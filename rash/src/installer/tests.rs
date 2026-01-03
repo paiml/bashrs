@@ -284,3 +284,90 @@ mod property_tests {
         }
     }
 }
+
+// =============================================================================
+// INSTALLER_006: Edge case tests for init_project
+// =============================================================================
+
+#[test]
+fn test_INSTALLER_006_init_returns_project_info() {
+    let temp_dir = TempDir::new().unwrap();
+    let project_path = temp_dir.path().join("my-app");
+
+    let result = init_project(&project_path, Some("Test description")).unwrap();
+
+    assert_eq!(result.name, "my-app");
+    assert_eq!(result.path, project_path);
+    assert_eq!(result.description, Some("Test description".to_string()));
+}
+
+#[test]
+fn test_INSTALLER_006_validate_nonexistent_path() {
+    let result = validate_installer(std::path::Path::new("/nonexistent/path/to/installer"));
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_INSTALLER_006_validate_file_directly() {
+    let temp_dir = TempDir::new().unwrap();
+    let project_path = temp_dir.path().join("test-installer");
+
+    init_project(&project_path, None).unwrap();
+
+    // Validate by pointing directly to the installer.toml file
+    let result = validate_installer(&project_path.join("installer.toml"));
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_INSTALLER_006_validation_result_fields() {
+    let temp_dir = TempDir::new().unwrap();
+    let project_path = temp_dir.path().join("test-installer");
+
+    init_project(&project_path, None).unwrap();
+
+    let result = validate_installer(&project_path).unwrap();
+
+    assert!(result.valid);
+    assert_eq!(result.steps, 1); // Default template has one step
+    assert!(result.warnings.is_empty());
+    assert!(result.errors.is_empty());
+}
+
+#[test]
+fn test_INSTALLER_006_generate_installer_toml_content() {
+    let toml = generate_installer_toml("my-app", Some("My app description"));
+
+    assert!(toml.contains("name = \"my-app\""));
+    assert!(toml.contains("description = \"My app description\""));
+    assert!(toml.contains("[installer]"));
+    assert!(toml.contains("[[step]]"));
+}
+
+#[test]
+fn test_INSTALLER_006_generate_installer_toml_default_description() {
+    let toml = generate_installer_toml("my-app", None);
+
+    assert!(toml.contains("name = \"my-app\""));
+    assert!(toml.contains("TDD-first installer"));
+}
+
+#[test]
+fn test_INSTALLER_006_generate_test_mod_content() {
+    let content = generate_test_mod("my-app");
+
+    assert!(content.contains("Test module for my-app"));
+    assert!(content.contains("mod falsification"));
+    assert!(content.contains("EXTREME TDD"));
+}
+
+#[test]
+fn test_INSTALLER_006_generate_falsification_tests_content() {
+    let content = generate_falsification_tests("my-app");
+
+    assert!(content.contains("Falsification tests for my-app"));
+    assert!(content.contains("Karl Popper"));
+    assert!(content.contains("falsify_step_idempotency"));
+    assert!(content.contains("falsify_dry_run_accuracy"));
+    assert!(content.contains("falsify_rollback_completeness"));
+}
