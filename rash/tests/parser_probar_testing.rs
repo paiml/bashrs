@@ -202,7 +202,7 @@ fn test_parser_command_substitution_coverage() {
 #[test]
 fn test_parser_conditionals_coverage() {
     let mut gui = gui_coverage! {
-        buttons: ["if_simple", "if_else", "if_elif", "if_nested", "test_bracket", "test_double", "test_arith", "case_simple", "case_multi", "case_default"],
+        buttons: ["if_simple", "if_else", "if_elif", "if_nested", "test_bracket", "test_double", "test_arith", "case_simple", "case_multi", "case_default", "if_invalid"],
         screens: ["parsed", "error"]
     };
 
@@ -226,6 +226,8 @@ fn test_parser_conditionals_coverage() {
             "case $x in a) echo a;; *) echo default;; esac",
             "case_default",
         ),
+        // Invalid conditional to test error handling path
+        ("if then echo oops; fi", "if_invalid"),
     ];
 
     for (input, feature) in tests {

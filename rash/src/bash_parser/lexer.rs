@@ -16,6 +16,7 @@ pub enum Token {
     Fi,
     For,
     While,
+    Until,
     Do,
     Done,
     Case,
@@ -721,6 +722,7 @@ impl Lexer {
                 "fi" => return Token::Fi,
                 "for" => return Token::For,
                 "while" => return Token::While,
+                "until" => return Token::Until,
                 "do" => return Token::Do,
                 "done" => return Token::Done,
                 "case" => return Token::Case,
@@ -1293,5 +1295,438 @@ mod tests {
             tokens[2],
             Token::ArithmeticExpansion("(a + b) * c".to_string())
         );
+    }
+
+    // ============================================================================
+    // Token Display Tests
+    // ============================================================================
+
+    #[test]
+    fn test_token_display_if() {
+        assert_eq!(format!("{}", Token::If), "if");
+    }
+
+    #[test]
+    fn test_token_display_then() {
+        assert_eq!(format!("{}", Token::Then), "then");
+    }
+
+    #[test]
+    fn test_token_display_identifier() {
+        assert_eq!(
+            format!("{}", Token::Identifier("foo".to_string())),
+            "Identifier(foo)"
+        );
+    }
+
+    #[test]
+    fn test_token_display_string() {
+        assert_eq!(
+            format!("{}", Token::String("hello".to_string())),
+            "String(hello)"
+        );
+    }
+
+    #[test]
+    fn test_token_display_number() {
+        assert_eq!(format!("{}", Token::Number(42)), "Number(42)");
+    }
+
+    #[test]
+    fn test_token_display_variable() {
+        assert_eq!(format!("{}", Token::Variable("x".to_string())), "$x");
+    }
+
+    #[test]
+    fn test_token_display_arithmetic() {
+        assert_eq!(
+            format!("{}", Token::ArithmeticExpansion("1+2".to_string())),
+            "$((1+2)"
+        );
+    }
+
+    #[test]
+    fn test_token_display_command_sub() {
+        assert_eq!(
+            format!("{}", Token::CommandSubstitution("ls".to_string())),
+            "$(ls)"
+        );
+    }
+
+    #[test]
+    fn test_token_display_comment() {
+        assert_eq!(format!("{}", Token::Comment("test".to_string())), "#test");
+    }
+
+    #[test]
+    fn test_token_display_eof() {
+        assert_eq!(format!("{}", Token::Eof), "EOF");
+    }
+
+    #[test]
+    fn test_token_display_other() {
+        // Other tokens use Debug format
+        let output = format!("{}", Token::Semicolon);
+        assert!(output.contains("Semicolon"));
+    }
+
+    // ============================================================================
+    // LexerError Tests
+    // ============================================================================
+
+    #[test]
+    fn test_lexer_error_unexpected_char() {
+        let err = LexerError::UnexpectedChar('$', 1, 5);
+        assert!(err.to_string().contains("'$'"));
+        assert!(err.to_string().contains("line 1"));
+    }
+
+    #[test]
+    fn test_lexer_error_unterminated_string() {
+        let err = LexerError::UnterminatedString(2, 10);
+        assert!(err.to_string().contains("Unterminated"));
+        assert!(err.to_string().contains("line 2"));
+    }
+
+    #[test]
+    fn test_lexer_error_invalid_number() {
+        let err = LexerError::InvalidNumber("abc123".to_string());
+        assert!(err.to_string().contains("Invalid"));
+    }
+
+    // ============================================================================
+    // Lexer Method Tests
+    // ============================================================================
+
+    #[test]
+    fn test_lexer_new() {
+        let lexer = Lexer::new("echo hello");
+        assert_eq!(lexer.position, 0);
+        assert_eq!(lexer.line, 1);
+        assert_eq!(lexer.column, 1);
+    }
+
+    #[test]
+    fn test_lexer_empty_input() {
+        let mut lexer = Lexer::new("");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0], Token::Eof);
+    }
+
+    #[test]
+    fn test_lexer_whitespace_only() {
+        let mut lexer = Lexer::new("   \t   ");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Eof);
+    }
+
+    #[test]
+    fn test_lexer_newline() {
+        let mut lexer = Lexer::new("\n");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.iter().any(|t| matches!(t, Token::Newline)));
+    }
+
+    #[test]
+    fn test_lexer_multiple_newlines() {
+        let mut lexer = Lexer::new("\n\n\n");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(
+            tokens
+                .iter()
+                .filter(|t| matches!(t, Token::Newline))
+                .count()
+                >= 1
+        );
+    }
+
+    #[test]
+    fn test_lexer_variable_simple() {
+        let mut lexer = Lexer::new("$FOO");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Variable("FOO".to_string()));
+    }
+
+    #[test]
+    fn test_lexer_variable_braces() {
+        let mut lexer = Lexer::new("${FOO}");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(matches!(tokens[0], Token::Variable(_)));
+    }
+
+    #[test]
+    fn test_lexer_variable_special() {
+        let mut lexer = Lexer::new("$?");
+        let tokens = lexer.tokenize().unwrap();
+        // $? is tokenized as Variable - content may vary by implementation
+        assert!(matches!(tokens[0], Token::Variable(_)));
+    }
+
+    #[test]
+    fn test_lexer_command_substitution() {
+        let mut lexer = Lexer::new("$(echo hello)");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(matches!(tokens[0], Token::CommandSubstitution(_)));
+    }
+
+    #[test]
+    fn test_lexer_keywords() {
+        let keywords = vec![
+            ("if", Token::If),
+            ("then", Token::Then),
+            ("elif", Token::Elif),
+            ("else", Token::Else),
+            ("fi", Token::Fi),
+            ("for", Token::For),
+            ("while", Token::While),
+            ("until", Token::Until),
+            ("do", Token::Do),
+            ("done", Token::Done),
+            ("case", Token::Case),
+            ("esac", Token::Esac),
+            ("in", Token::In),
+            ("function", Token::Function),
+            ("return", Token::Return),
+            ("export", Token::Export),
+            ("local", Token::Local),
+            ("coproc", Token::Coproc),
+        ];
+
+        for (input, expected) in keywords {
+            let mut lexer = Lexer::new(input);
+            let tokens = lexer.tokenize().unwrap();
+            assert_eq!(tokens[0], expected, "Failed for keyword: {}", input);
+        }
+    }
+
+    #[test]
+    fn test_lexer_operators() {
+        let mut lexer = Lexer::new("= == != < <= > >= && || !");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Assign));
+        assert!(tokens.contains(&Token::Eq));
+        assert!(tokens.contains(&Token::Ne));
+    }
+
+    #[test]
+    fn test_lexer_pipe() {
+        let mut lexer = Lexer::new("echo hello | grep h");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Pipe));
+    }
+
+    #[test]
+    fn test_lexer_semicolon() {
+        let mut lexer = Lexer::new("echo a; echo b");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Semicolon));
+    }
+
+    #[test]
+    fn test_lexer_ampersand() {
+        let mut lexer = Lexer::new("sleep 1 &");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Ampersand));
+    }
+
+    #[test]
+    fn test_lexer_parentheses() {
+        let mut lexer = Lexer::new("(echo hello)");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::LeftParen));
+        assert!(tokens.contains(&Token::RightParen));
+    }
+
+    #[test]
+    fn test_lexer_braces() {
+        let mut lexer = Lexer::new("{ echo hello; }");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::LeftBrace));
+        assert!(tokens.contains(&Token::RightBrace));
+    }
+
+    #[test]
+    fn test_lexer_brackets() {
+        let mut lexer = Lexer::new("[ $x ]");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::LeftBracket));
+        assert!(tokens.contains(&Token::RightBracket));
+    }
+
+    #[test]
+    fn test_lexer_double_brackets() {
+        let mut lexer = Lexer::new("[[ $x ]]");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::DoubleLeftBracket));
+        assert!(tokens.contains(&Token::DoubleRightBracket));
+    }
+
+    #[test]
+    fn test_lexer_single_quoted_string() {
+        let mut lexer = Lexer::new("'hello world'");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::String("hello world".to_string()));
+    }
+
+    #[test]
+    fn test_lexer_double_quoted_string() {
+        let mut lexer = Lexer::new("\"hello world\"");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::String("hello world".to_string()));
+    }
+
+    #[test]
+    fn test_lexer_number() {
+        let mut lexer = Lexer::new("42");
+        let tokens = lexer.tokenize().unwrap();
+        assert_eq!(tokens[0], Token::Number(42));
+    }
+
+    #[test]
+    fn test_lexer_negative_number() {
+        let mut lexer = Lexer::new("x=-5");
+        let tokens = lexer.tokenize().unwrap();
+        // -5 may be parsed as identifier or number depending on context
+        assert!(tokens.len() >= 3);
+    }
+
+    #[test]
+    fn test_lexer_herestring() {
+        let mut lexer = Lexer::new("cat <<< 'hello'");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.iter().any(|t| matches!(t, Token::HereString(_))));
+    }
+
+    #[test]
+    fn test_lexer_heredoc() {
+        let mut lexer = Lexer::new("cat <<EOF\nhello\nEOF");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.iter().any(|t| matches!(t, Token::Heredoc { .. })));
+    }
+
+    #[test]
+    fn test_lexer_append_redirect() {
+        let mut lexer = Lexer::new("echo hello >> file");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::GtGt));
+    }
+
+    #[test]
+    fn test_lexer_for_loop() {
+        let mut lexer = Lexer::new("for i in 1 2 3; do echo $i; done");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::For));
+        assert!(tokens.contains(&Token::In));
+        assert!(tokens.contains(&Token::Do));
+        assert!(tokens.contains(&Token::Done));
+    }
+
+    #[test]
+    fn test_lexer_while_loop() {
+        let mut lexer = Lexer::new("while true; do echo loop; done");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::While));
+        assert!(tokens.contains(&Token::Do));
+        assert!(tokens.contains(&Token::Done));
+    }
+
+    #[test]
+    fn test_lexer_case_statement() {
+        let mut lexer = Lexer::new("case $x in a) echo a;; esac");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Case));
+        assert!(tokens.contains(&Token::In));
+        assert!(tokens.contains(&Token::Esac));
+    }
+
+    #[test]
+    fn test_lexer_function_definition() {
+        let mut lexer = Lexer::new("function foo { echo hello; }");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Function));
+    }
+
+    #[test]
+    fn test_lexer_export() {
+        let mut lexer = Lexer::new("export FOO=bar");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Export));
+    }
+
+    #[test]
+    fn test_lexer_local() {
+        let mut lexer = Lexer::new("local x=5");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Local));
+    }
+
+    #[test]
+    fn test_lexer_return() {
+        let mut lexer = Lexer::new("return 0");
+        let tokens = lexer.tokenize().unwrap();
+        assert!(tokens.contains(&Token::Return));
+    }
+
+    #[test]
+    fn test_token_clone() {
+        let tokens = vec![
+            Token::If,
+            Token::Then,
+            Token::Identifier("x".to_string()),
+            Token::String("hello".to_string()),
+            Token::Number(42),
+            Token::Variable("x".to_string()),
+            Token::Eof,
+        ];
+        for token in tokens {
+            let _ = token.clone();
+        }
+    }
+
+    #[test]
+    fn test_token_eq() {
+        assert_eq!(Token::If, Token::If);
+        assert_ne!(Token::If, Token::Then);
+        assert_eq!(Token::Number(42), Token::Number(42));
+        assert_ne!(Token::Number(42), Token::Number(43));
+    }
+
+    #[test]
+    fn test_lexer_error_debug() {
+        let err = LexerError::UnexpectedChar('x', 1, 1);
+        let debug = format!("{:?}", err);
+        assert!(debug.contains("UnexpectedChar"));
+    }
+
+    #[test]
+    fn test_lexer_complex_script() {
+        let input = r#"
+#!/bin/bash
+# Comment
+FOO=bar
+if [ "$FOO" == "bar" ]; then
+    echo "Hello $FOO"
+fi
+"#;
+        let mut lexer = Lexer::new(input);
+        let result = lexer.tokenize();
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_lexer_escape_in_string() {
+        let mut lexer = Lexer::new(r#""hello\nworld""#);
+        let tokens = lexer.tokenize().unwrap();
+        assert!(matches!(tokens[0], Token::String(_)));
+    }
+
+    #[test]
+    fn test_lexer_dollar_sign_context() {
+        // $ followed by space might be handled differently
+        let mut lexer = Lexer::new("echo $FOO");
+        let tokens = lexer.tokenize().unwrap();
+        // Should have a variable token
+        assert!(tokens.iter().any(|t| matches!(t, Token::Variable(_))));
     }
 }

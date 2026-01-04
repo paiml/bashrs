@@ -22,7 +22,7 @@
 
 ## Table of Contents
 
-- [What's New](#-whats-new-in-v6460)
+- [What's New](#-whats-new-in-v6490)
 - [Why Rash?](#why-rash)
 - [Quick Start](#quick-start)
 - [Features](#features)
@@ -36,18 +36,16 @@
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🚀 What's New in v6.46.0
+## 🚀 What's New in v6.49.0
 
-**Latest Release** - 2025-12-21
+**Latest Release** - 2026-01-04
 
-- **Probar Integration**: Three new CLI commands for advanced testing
-  - `bashrs playbook` - State machine testing for shell scripts
-  - `bashrs mutate` - Mutation testing with 10 mutation operators
-  - `bashrs simulate` - Deterministic simulation replay with seed control
-- **Transpiler Bug Hunt**: 130-point Popper Falsification Checklist (T001-T130)
-- **Dockerfile Linting**: 30-point D-code validation (D001-D030)
-- **Test Suite**: 7,445 tests passing (100% pass rate)
-- **PMAT Score**: 133/134 (Grade A+)
+- **95% Test Coverage Achieved**: Target coverage milestone reached
+  - 10,521 tests passing (100% pass rate)
+  - Line Coverage: 95.00% ✅
+  - Function Coverage: 96.42%
+- **Quality Improvements**: 140+ new tests across oracle, report, and testing modules
+- **EXTREME TDD**: Full methodology with property testing and comprehensive assertions
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 

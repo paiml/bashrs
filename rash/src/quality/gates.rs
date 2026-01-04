@@ -1381,4 +1381,277 @@ high_risk_components = ["linter"]
         assert_eq!(default_version(), "1.0.0");
         assert_eq!(default_tool(), "bashrs");
     }
+
+    // ===== GATE EXECUTION TESTS =====
+
+    #[test]
+    fn test_run_gate_unknown() {
+        let gate = QualityGate::with_defaults();
+        let result = gate.run_gate("unknown_gate");
+        assert!(!result.passed);
+        assert!(result.message.contains("Unknown gate"));
+        assert_eq!(result.gate_name, "unknown_gate");
+    }
+
+    #[test]
+    fn test_run_clippy_gate_disabled() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                run_clippy: false,
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let result = gate.run_gate("clippy");
+        assert!(result.passed);
+        assert!(result.message.contains("disabled"));
+    }
+
+    #[test]
+    fn test_run_complexity_gate_disabled() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                check_complexity: false,
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let result = gate.run_gate("complexity");
+        assert!(result.passed);
+        assert!(result.message.contains("disabled"));
+    }
+
+    #[test]
+    fn test_run_tests_gate_disabled() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                run_tests: false,
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let result = gate.run_gate("tests");
+        assert!(result.passed);
+        assert!(result.message.contains("disabled"));
+    }
+
+    #[test]
+    fn test_run_coverage_gate_disabled() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                check_coverage: false,
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let result = gate.run_gate("coverage");
+        assert!(result.passed);
+        assert!(result.message.contains("disabled"));
+    }
+
+    #[test]
+    fn test_run_satd_gate_disabled() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                satd: SatdConfig {
+                    enabled: false,
+                    ..SatdConfig::default()
+                },
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let result = gate.run_gate("satd");
+        assert!(result.passed);
+        assert!(result.message.contains("disabled"));
+    }
+
+    #[test]
+    fn test_run_mutation_gate_disabled() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                mutation: MutationConfig {
+                    enabled: false,
+                    ..MutationConfig::default()
+                },
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let result = gate.run_gate("mutation");
+        assert!(result.passed);
+        assert!(result.message.contains("disabled") || result.message.contains("Tier 3"));
+    }
+
+    #[test]
+    fn test_run_security_gate_disabled() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                security: SecurityConfig {
+                    enabled: false,
+                    ..SecurityConfig::default()
+                },
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let result = gate.run_gate("security");
+        assert!(result.passed);
+        assert!(result.message.contains("disabled"));
+    }
+
+    #[test]
+    fn test_run_tier_with_disabled_gates() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                run_clippy: false,
+                check_complexity: false,
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let results = gate.run_tier(Tier::Tier1);
+
+        // Tier1 has clippy and complexity gates
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().all(|r| r.passed));
+    }
+
+    #[test]
+    fn test_run_coverage_gate_enabled() {
+        let gate = QualityGate::with_defaults();
+        let result = gate.run_gate("coverage");
+        // Coverage gate returns placeholder message
+        assert!(result.passed);
+        assert!(result.message.contains("coverage") || result.message.contains("Coverage"));
+        assert!(result.metrics.contains_key("target"));
+    }
+
+    #[test]
+    fn test_run_mutation_gate_enabled() {
+        let config = GateConfig {
+            gates: GatesConfig {
+                mutation: MutationConfig {
+                    enabled: true,
+                    min_score: 80.0,
+                    ..MutationConfig::default()
+                },
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        };
+        let gate = QualityGate::new(config);
+        let result = gate.run_gate("mutation");
+        // Mutation gate returns placeholder when enabled
+        assert!(result.passed);
+        assert!(result.metrics.contains_key("target"));
+    }
+
+    #[test]
+    fn test_gate_result_clone() {
+        let result = GateResult {
+            gate_name: "test".to_string(),
+            passed: true,
+            duration: Duration::from_millis(100),
+            message: "OK".to_string(),
+            metrics: HashMap::new(),
+            violations: vec![],
+        };
+        let cloned = result.clone();
+        assert_eq!(cloned.gate_name, "test");
+        assert!(cloned.passed);
+    }
+
+    #[test]
+    fn test_gate_violation_clone() {
+        let violation = GateViolation {
+            file: Some("test.rs".to_string()),
+            line: Some(10),
+            description: "desc".to_string(),
+            severity: ViolationSeverity::Warning,
+        };
+        let cloned = violation.clone();
+        assert_eq!(cloned.file, Some("test.rs".to_string()));
+        assert_eq!(cloned.severity, ViolationSeverity::Warning);
+    }
+
+    #[test]
+    fn test_gate_summary_clone() {
+        let summary = GateSummary {
+            total: 10,
+            passed: 8,
+            failed: 2,
+            total_duration: Duration::from_secs(5),
+        };
+        let cloned = summary.clone();
+        assert_eq!(cloned.total, 10);
+        assert_eq!(cloned.passed, 8);
+        assert_eq!(cloned.failed, 2);
+    }
+
+    #[test]
+    fn test_tier_hash() {
+        use std::collections::HashSet;
+        let mut set = HashSet::new();
+        set.insert(Tier::Tier1);
+        set.insert(Tier::Tier2);
+        set.insert(Tier::Tier3);
+        assert_eq!(set.len(), 3);
+        assert!(set.contains(&Tier::Tier1));
+    }
+
+    #[test]
+    fn test_gate_config_error_std_error() {
+        let io_error = GateConfigError::Io {
+            path: std::path::PathBuf::from("/test.toml"),
+            source: std::io::Error::new(std::io::ErrorKind::NotFound, "not found"),
+        };
+        // Verify it implements std::error::Error
+        let err: &dyn std::error::Error = &io_error;
+        assert!(!err.to_string().is_empty());
+    }
+
+    #[test]
+    fn test_satd_default_patterns() {
+        let patterns = default_satd_patterns();
+        assert_eq!(patterns.len(), 4);
+        assert!(patterns.contains(&"TODO".to_string()));
+        assert!(patterns.contains(&"FIXME".to_string()));
+        assert!(patterns.contains(&"HACK".to_string()));
+        assert!(patterns.contains(&"XXX".to_string()));
+    }
+
+    #[test]
+    fn test_tier1_default_gates() {
+        let gates = default_tier1_gates();
+        assert_eq!(gates.len(), 2);
+        assert!(gates.contains(&"clippy".to_string()));
+        assert!(gates.contains(&"complexity".to_string()));
+    }
+
+    #[test]
+    fn test_tier2_default_gates() {
+        let gates = default_tier2_gates();
+        assert_eq!(gates.len(), 4);
+        assert!(gates.contains(&"clippy".to_string()));
+        assert!(gates.contains(&"tests".to_string()));
+        assert!(gates.contains(&"coverage".to_string()));
+        assert!(gates.contains(&"satd".to_string()));
+    }
+
+    #[test]
+    fn test_tier3_default_gates() {
+        let gates = default_tier3_gates();
+        assert_eq!(gates.len(), 6);
+        assert!(gates.contains(&"mutation".to_string()));
+        assert!(gates.contains(&"security".to_string()));
+    }
 }
