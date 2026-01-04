@@ -34,5 +34,6 @@ xbuild = "build --all-features"
 xcheck = "check --all-features"
 
 # RAM disk acceleration (auto-generated)
+# Note: Using regular target dir due to zram issues
 [build]
-target-dir = "/mnt/zram/targets/bashrs"
+target-dir = "target"

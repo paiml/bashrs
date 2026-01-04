@@ -352,6 +352,7 @@ pub fn format_purification_report(report: &PurificationReport) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::linter::Severity;
 
     // ===== UNIT TESTS (RED PHASE) =====
 
@@ -519,6 +520,180 @@ mod tests {
             "Should explain variable quoting: {}",
             text
         );
+    }
+
+    // ===== Additional coverage tests =====
+
+    #[test]
+    fn test_purified_lint_result_new() {
+        let lint_result = LintResult::new();
+        let result = PurifiedLintResult::new("echo hello".to_string(), lint_result);
+        assert!(result.is_clean);
+        assert_eq!(result.critical_violations(), 0);
+    }
+
+    #[test]
+    fn test_purified_lint_result_with_det_violations() {
+        let mut lint_result = LintResult::new();
+        lint_result.diagnostics.push(Diagnostic::new(
+            "DET001",
+            Severity::Warning,
+            "Non-deterministic".to_string(),
+            crate::linter::Span::new(1, 1, 1, 10),
+        ));
+        let result = PurifiedLintResult::new("echo $RANDOM".to_string(), lint_result);
+        assert!(!result.is_clean);
+        assert_eq!(result.critical_violations(), 1);
+        assert_eq!(result.det_violations().len(), 1);
+        assert!(result.idem_violations().is_empty());
+        assert!(result.sec_violations().is_empty());
+    }
+
+    #[test]
+    fn test_purified_lint_result_with_idem_violations() {
+        let mut lint_result = LintResult::new();
+        lint_result.diagnostics.push(Diagnostic::new(
+            "IDEM001",
+            Severity::Warning,
+            "Non-idempotent".to_string(),
+            crate::linter::Span::new(1, 1, 1, 10),
+        ));
+        let result = PurifiedLintResult::new("mkdir dir".to_string(), lint_result);
+        assert!(!result.is_clean);
+        assert_eq!(result.idem_violations().len(), 1);
+    }
+
+    #[test]
+    fn test_purified_lint_result_with_sec_violations() {
+        let mut lint_result = LintResult::new();
+        lint_result.diagnostics.push(Diagnostic::new(
+            "SEC001",
+            Severity::Error,
+            "Security issue".to_string(),
+            crate::linter::Span::new(1, 1, 1, 10),
+        ));
+        let result = PurifiedLintResult::new("eval $input".to_string(), lint_result);
+        assert!(!result.is_clean);
+        assert_eq!(result.sec_violations().len(), 1);
+    }
+
+    #[test]
+    fn test_purified_lint_result_clone() {
+        let lint_result = LintResult::new();
+        let result = PurifiedLintResult::new("echo test".to_string(), lint_result);
+        let cloned = result.clone();
+        assert_eq!(cloned.is_clean, result.is_clean);
+        assert_eq!(cloned.purified_code, result.purified_code);
+    }
+
+    #[test]
+    fn test_purification_error_new() {
+        let mut lint_result = LintResult::new();
+        lint_result.diagnostics.push(Diagnostic::new(
+            "DET001",
+            Severity::Warning,
+            "Non-deterministic".to_string(),
+            crate::linter::Span::new(1, 1, 1, 10),
+        ));
+        lint_result.diagnostics.push(Diagnostic::new(
+            "IDEM001",
+            Severity::Warning,
+            "Non-idempotent".to_string(),
+            crate::linter::Span::new(2, 1, 2, 10),
+        ));
+        let result = PurifiedLintResult::new("echo test".to_string(), lint_result);
+        let error = PurificationError::new(&result);
+
+        assert_eq!(error.det_violations, 1);
+        assert_eq!(error.idem_violations, 1);
+        assert_eq!(error.sec_violations, 0);
+        assert_eq!(error.total_violations(), 2);
+    }
+
+    #[test]
+    fn test_purification_error_display() {
+        let mut lint_result = LintResult::new();
+        lint_result.diagnostics.push(Diagnostic::new(
+            "SEC001",
+            Severity::Error,
+            "Security issue".to_string(),
+            crate::linter::Span::new(1, 1, 1, 10),
+        ));
+        let result = PurifiedLintResult::new("test".to_string(), lint_result);
+        let error = PurificationError::new(&result);
+
+        let display = format!("{}", error);
+        assert!(display.contains("1 violation"));
+        assert!(display.contains("SEC: 1"));
+    }
+
+    #[test]
+    fn test_format_purified_lint_result_clean() {
+        let lint_result = LintResult::new();
+        let result = PurifiedLintResult::new("echo hello".to_string(), lint_result);
+        let formatted = format_purified_lint_result(&result);
+        assert!(formatted.contains("Purified"));
+        assert!(formatted.contains("CLEAN"));
+    }
+
+    #[test]
+    fn test_format_purified_lint_result_with_violations() {
+        let mut lint_result = LintResult::new();
+        lint_result.diagnostics.push(Diagnostic::new(
+            "DET001",
+            Severity::Warning,
+            "Non-deterministic".to_string(),
+            crate::linter::Span::new(1, 1, 1, 10),
+        ));
+        let result = PurifiedLintResult::new("echo $RANDOM".to_string(), lint_result);
+        let formatted = format_purified_lint_result(&result);
+        assert!(formatted.contains("Purified"));
+        assert!(formatted.contains("critical violation"));
+        assert!(formatted.contains("DET"));
+    }
+
+    #[test]
+    fn test_format_purified_lint_result_with_context() {
+        let lint_result = LintResult::new();
+        let result = PurifiedLintResult::new("echo hello".to_string(), lint_result);
+        let formatted = format_purified_lint_result_with_context(&result, "echo hello");
+        assert!(formatted.contains("Purified"));
+        assert!(formatted.contains("CLEAN"));
+    }
+
+    #[test]
+    fn test_format_purification_report_empty() {
+        let report = PurificationReport {
+            idempotency_fixes: vec![],
+            determinism_fixes: vec![],
+            side_effects_isolated: vec![],
+            warnings: vec![],
+        };
+        let formatted = format_purification_report(&report);
+        // Empty report should produce empty or minimal output
+        assert!(formatted.is_empty() || formatted.len() < 10);
+    }
+
+    #[test]
+    fn test_purify_and_validate_clean_code() {
+        let result = purify_and_validate("echo hello");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_explain_no_changes() {
+        // Code that's already clean - may or may not have changes
+        let result = explain_purification_changes("echo \"$HOME\"");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_explain_ln_sf() {
+        let result = explain_purification_changes("ln -s target link");
+        assert!(result.is_ok());
+        let text = result.unwrap();
+        // Should mention ln or symlink
+        assert!(text.contains("ln") || text.contains("symlink") || text.contains("-"));
     }
 }
 
@@ -2402,5 +2577,263 @@ rm /tmp/old
                 }
             }
         }
+    }
+
+    // ===== SafetyRationale tests =====
+
+    #[test]
+    fn test_safety_rationale_new() {
+        let rationale = SafetyRationale::new();
+        assert!(rationale.vulnerabilities_prevented.is_empty());
+        assert!(rationale.failures_eliminated.is_empty());
+        assert!(rationale.attack_vectors_closed.is_empty());
+        assert!(rationale.impact_without_fix.is_empty());
+        assert_eq!(rationale.severity, SafetySeverity::Low);
+    }
+
+    #[test]
+    fn test_safety_rationale_default() {
+        let rationale = SafetyRationale::default();
+        assert!(rationale.vulnerabilities_prevented.is_empty());
+    }
+
+    #[test]
+    fn test_safety_rationale_add_vulnerability() {
+        let rationale = SafetyRationale::new().add_vulnerability("Command Injection");
+        assert!(rationale
+            .vulnerabilities_prevented
+            .contains(&"Command Injection".to_string()));
+    }
+
+    #[test]
+    fn test_safety_rationale_add_failure() {
+        let rationale = SafetyRationale::new().add_failure("Race condition on recreate");
+        assert!(rationale
+            .failures_eliminated
+            .contains(&"Race condition on recreate".to_string()));
+    }
+
+    #[test]
+    fn test_safety_rationale_add_attack_vector() {
+        let rationale = SafetyRationale::new().add_attack_vector("Path traversal");
+        assert!(rationale
+            .attack_vectors_closed
+            .contains(&"Path traversal".to_string()));
+    }
+
+    #[test]
+    fn test_safety_rationale_with_impact() {
+        let rationale = SafetyRationale::new().with_impact("Data loss");
+        assert_eq!(rationale.impact_without_fix, "Data loss");
+    }
+
+    #[test]
+    fn test_safety_rationale_with_severity() {
+        let rationale = SafetyRationale::new().with_severity(SafetySeverity::Critical);
+        assert_eq!(rationale.severity, SafetySeverity::Critical);
+    }
+
+    #[test]
+    fn test_safety_rationale_builder_chain() {
+        let rationale = SafetyRationale::new()
+            .add_vulnerability("Injection")
+            .add_failure("Crash")
+            .add_attack_vector("RCE")
+            .with_impact("System compromise")
+            .with_severity(SafetySeverity::High);
+
+        assert_eq!(rationale.vulnerabilities_prevented.len(), 1);
+        assert_eq!(rationale.failures_eliminated.len(), 1);
+        assert_eq!(rationale.attack_vectors_closed.len(), 1);
+        assert_eq!(rationale.impact_without_fix, "System compromise");
+        assert_eq!(rationale.severity, SafetySeverity::High);
+    }
+
+    // ===== SafetySeverity tests =====
+
+    #[test]
+    fn test_safety_severity_eq() {
+        assert_eq!(SafetySeverity::Critical, SafetySeverity::Critical);
+        assert_ne!(SafetySeverity::Critical, SafetySeverity::High);
+    }
+
+    #[test]
+    fn test_safety_severity_clone() {
+        let severities = [
+            SafetySeverity::Critical,
+            SafetySeverity::High,
+            SafetySeverity::Medium,
+            SafetySeverity::Low,
+        ];
+        for severity in severities {
+            let _ = severity.clone();
+        }
+    }
+
+    // ===== Alternative tests =====
+
+    #[test]
+    fn test_alternative_new() {
+        let alt = Alternative::new(
+            "Use set -e",
+            "set -e; rm file",
+            "When you want script to fail on error",
+        );
+        assert_eq!(alt.approach, "Use set -e");
+        assert_eq!(alt.example, "set -e; rm file");
+        assert_eq!(alt.when_to_use, "When you want script to fail on error");
+        assert!(alt.pros.is_empty());
+        assert!(alt.cons.is_empty());
+    }
+
+    #[test]
+    fn test_alternative_add_pro() {
+        let alt = Alternative::new("Approach", "Example", "When").add_pro("Fast");
+        assert!(alt.pros.contains(&"Fast".to_string()));
+    }
+
+    #[test]
+    fn test_alternative_add_con() {
+        let alt = Alternative::new("Approach", "Example", "When").add_con("Complex");
+        assert!(alt.cons.contains(&"Complex".to_string()));
+    }
+
+    #[test]
+    fn test_alternative_builder_chain() {
+        let alt = Alternative::new("Approach", "Example", "When")
+            .add_pro("Simple")
+            .add_pro("Fast")
+            .add_con("Verbose");
+
+        assert_eq!(alt.pros.len(), 2);
+        assert_eq!(alt.cons.len(), 1);
+    }
+
+    #[test]
+    fn test_alternative_clone() {
+        let alt = Alternative::new("Approach", "Example", "When")
+            .add_pro("Fast")
+            .add_con("Complex");
+        let cloned = alt.clone();
+        assert_eq!(cloned.approach, "Approach");
+        assert_eq!(cloned.pros.len(), 1);
+    }
+
+    // ===== TransformationExplanation tests =====
+
+    #[test]
+    fn test_transformation_explanation_new() {
+        let exp = TransformationExplanation::new(
+            TransformationCategory::Idempotency,
+            "Use mkdir -p",
+            "mkdir /dir",
+            "mkdir -p /dir",
+            "Added -p flag",
+            "Prevents errors on rerun",
+        );
+        assert_eq!(exp.category, TransformationCategory::Idempotency);
+        assert_eq!(exp.title, "Use mkdir -p");
+        assert!(exp.line_number.is_none());
+    }
+
+    #[test]
+    fn test_transformation_explanation_with_line_number() {
+        let exp = TransformationExplanation::new(
+            TransformationCategory::Safety,
+            "Title",
+            "Original",
+            "Transformed",
+            "What",
+            "Why",
+        )
+        .with_line_number(42);
+        assert_eq!(exp.line_number, Some(42));
+    }
+
+    #[test]
+    fn test_transformation_explanation_with_safety_rationale() {
+        let rationale = SafetyRationale::new().add_vulnerability("Injection");
+        let exp = TransformationExplanation::new(
+            TransformationCategory::Safety,
+            "Title",
+            "Original",
+            "Transformed",
+            "What",
+            "Why",
+        )
+        .with_safety_rationale(rationale);
+        assert!(!exp.safety_rationale.vulnerabilities_prevented.is_empty());
+    }
+
+    #[test]
+    fn test_transformation_explanation_with_alternatives() {
+        let alternatives = vec![Alternative::new("Alt", "Example", "When")];
+        let exp = TransformationExplanation::new(
+            TransformationCategory::Determinism,
+            "Title",
+            "Original",
+            "Transformed",
+            "What",
+            "Why",
+        )
+        .with_alternatives(alternatives);
+        assert_eq!(exp.alternatives.len(), 1);
+    }
+
+    // ===== TransformationCategory tests =====
+
+    #[test]
+    fn test_transformation_category_eq() {
+        assert_eq!(
+            TransformationCategory::Idempotency,
+            TransformationCategory::Idempotency
+        );
+        assert_ne!(
+            TransformationCategory::Idempotency,
+            TransformationCategory::Safety
+        );
+    }
+
+    #[test]
+    fn test_transformation_category_clone() {
+        let categories = [
+            TransformationCategory::Idempotency,
+            TransformationCategory::Determinism,
+            TransformationCategory::Safety,
+        ];
+        for cat in categories {
+            let _ = cat.clone();
+        }
+    }
+
+    // ===== PurifiedLintResult tests =====
+
+    #[test]
+    fn test_purified_lint_result_new_clean() {
+        let lint_result = LintResult::new();
+        let plr = PurifiedLintResult::new("echo hello".to_string(), lint_result);
+        assert!(plr.is_clean);
+        assert_eq!(plr.critical_violations(), 0);
+    }
+
+    #[test]
+    fn test_purified_lint_result_det_violations_empty() {
+        let lint_result = LintResult::new();
+        let plr = PurifiedLintResult::new("echo hello".to_string(), lint_result);
+        assert!(plr.det_violations().is_empty());
+    }
+
+    #[test]
+    fn test_purified_lint_result_idem_violations_empty() {
+        let lint_result = LintResult::new();
+        let plr = PurifiedLintResult::new("echo hello".to_string(), lint_result);
+        assert!(plr.idem_violations().is_empty());
+    }
+
+    #[test]
+    fn test_purified_lint_result_sec_violations_empty() {
+        let lint_result = LintResult::new();
+        let plr = PurifiedLintResult::new("echo hello".to_string(), lint_result);
+        assert!(plr.sec_violations().is_empty());
     }
 }

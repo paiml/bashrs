@@ -325,4 +325,127 @@ mod tests {
         assert_eq!(loaded.use_tabs, original.use_tabs);
         assert_eq!(loaded.quote_variables, original.quote_variables);
     }
+
+    #[test]
+    fn test_new_equals_default() {
+        let new_config = FormatterConfig::new();
+        let default_config = FormatterConfig::default();
+        assert_eq!(new_config.indent_width, default_config.indent_width);
+        assert_eq!(new_config.use_tabs, default_config.use_tabs);
+    }
+
+    #[test]
+    fn test_from_file_and_to_file() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("test_config.toml");
+
+        let config = FormatterConfig {
+            indent_width: 8,
+            use_tabs: true,
+            ..Default::default()
+        };
+
+        config.to_file(&config_path).unwrap();
+        let loaded = FormatterConfig::from_file(&config_path).unwrap();
+
+        assert_eq!(loaded.indent_width, 8);
+        assert!(loaded.use_tabs);
+    }
+
+    #[test]
+    fn test_from_file_nonexistent() {
+        let result = FormatterConfig::from_file("/nonexistent/path/config.toml");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to read"));
+    }
+
+    #[test]
+    fn test_from_toml_invalid() {
+        let result = FormatterConfig::from_toml("invalid [[[ toml");
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("Failed to parse"));
+    }
+
+    #[test]
+    fn test_should_ignore_empty_patterns() {
+        let config = FormatterConfig::default();
+        assert!(!config.should_ignore("any/path/file.sh"));
+    }
+
+    #[test]
+    fn test_merge_all_fields() {
+        let mut base = FormatterConfig::default();
+        let override_config = FormatterConfig {
+            indent_width: 8,
+            use_tabs: true,
+            quote_variables: false,
+            use_double_brackets: false,
+            normalize_functions: false,
+            inline_then: false,
+            space_before_brace: false,
+            preserve_blank_lines: false,
+            max_blank_lines: 5,
+            ignore_patterns: vec!["*.bak".to_string()],
+        };
+
+        base.merge(override_config);
+
+        assert_eq!(base.indent_width, 8);
+        assert!(base.use_tabs);
+        assert!(!base.quote_variables);
+        assert!(!base.use_double_brackets);
+        assert!(!base.normalize_functions);
+        assert!(!base.inline_then);
+        assert!(!base.space_before_brace);
+        assert!(!base.preserve_blank_lines);
+        assert_eq!(base.max_blank_lines, 5);
+        assert!(base.ignore_patterns.contains(&"*.bak".to_string()));
+    }
+
+    #[test]
+    fn test_merge_preserves_base_when_other_is_default() {
+        let mut base = FormatterConfig {
+            indent_width: 4,
+            use_tabs: true,
+            ..Default::default()
+        };
+        let other = FormatterConfig::default();
+
+        base.merge(other);
+
+        // Base values should be preserved when other has defaults
+        assert_eq!(base.indent_width, 4);
+        assert!(base.use_tabs);
+    }
+
+    #[test]
+    fn test_partial_toml_uses_defaults() {
+        let toml = "indent_width = 6";
+        let config = FormatterConfig::from_toml(toml).unwrap();
+
+        assert_eq!(config.indent_width, 6);
+        // Other fields should have defaults
+        assert!(!config.use_tabs);
+        assert!(config.quote_variables);
+    }
+
+    #[test]
+    fn test_debug_impl() {
+        let config = FormatterConfig::default();
+        let debug_str = format!("{:?}", config);
+        assert!(debug_str.contains("FormatterConfig"));
+        assert!(debug_str.contains("indent_width"));
+    }
+
+    #[test]
+    fn test_clone_impl() {
+        let config = FormatterConfig {
+            indent_width: 4,
+            ignore_patterns: vec!["test".to_string()],
+            ..Default::default()
+        };
+        let cloned = config.clone();
+        assert_eq!(cloned.indent_width, 4);
+        assert_eq!(cloned.ignore_patterns, vec!["test".to_string()]);
+    }
 }

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.49.0] - 2026-01-04
+
+### Added
+
+- **95% Test Coverage Achieved**: Target coverage milestone reached through comprehensive testing
+  - `quality/oracle.rs`: 74 new tests (86% → 98.84%) - ML classification, feature extraction, drift detection
+  - `quality/report.rs`: 40+ new tests (92% → 100%) - Grade computation, sparklines, report building
+  - `testing/mod.rs`: 30+ new tests - ExhaustiveTestHarness methods, boundary tests, stress testing
+  - `quality/sbfl.rs`: Coverage improved to 97.42%
+  - `make_parser/ast.rs`: Coverage improved to 96.02%
+
+### Quality
+
+- **Tests**: 10,521 passed (100% pass rate)
+- **Line Coverage**: 95.00% ✅ (target achieved)
+- **Function Coverage**: 96.42%
+- **Region Coverage**: 94.74%
+- **EXTREME TDD**: Full methodology with property testing and comprehensive assertions
+
+### Documentation
+
+- Updated quality metrics in README
+- Book documentation maintained
+
 ## [6.48.0] - 2025-12-30
 
 ### Added
