@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["run_repl"],"mod":["ast_display","breakpoint","completion","config","debugger","determinism","diff","errors","executor","explain","help","highlighting","linter","loader","loop","modes","multiline","parser","purifier","state","variables"]};
+window.SIDEBAR_ITEMS = {"fn":["run_repl"],"mod":["ast_display","breakpoint","completion","config","debugger","determinism","diff","errors","executor","explain","help","highlighting","linter","loader","logic","loop","modes","multiline","parser","purifier","state","variables"]};

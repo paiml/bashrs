@@ -175,40 +175,41 @@
 <a href=#175 id=175 data-nosnippet>175</a><span class="kw">pub mod </span>highlighting;
 <a href=#176 id=176 data-nosnippet>176</a><span class="kw">pub mod </span>linter;
 <a href=#177 id=177 data-nosnippet>177</a><span class="kw">pub mod </span>loader;
-<a href=#178 id=178 data-nosnippet>178</a><span class="kw">mod </span>r#loop;
-<a href=#179 id=179 data-nosnippet>179</a><span class="kw">pub mod </span>modes;
-<a href=#180 id=180 data-nosnippet>180</a><span class="kw">pub mod </span>multiline;
-<a href=#181 id=181 data-nosnippet>181</a><span class="kw">pub mod </span>parser;
-<a href=#182 id=182 data-nosnippet>182</a><span class="kw">pub mod </span>purifier;
-<a href=#183 id=183 data-nosnippet>183</a><span class="kw">pub mod </span>state;
-<a href=#184 id=184 data-nosnippet>184</a><span class="kw">pub mod </span>variables;
-<a href=#185 id=185 data-nosnippet>185</a>
-<a href=#186 id=186 data-nosnippet>186</a><span class="kw">pub use </span>ast_display::format_ast;
-<a href=#187 id=187 data-nosnippet>187</a><span class="kw">pub use </span>breakpoint::{Breakpoint, BreakpointManager};
-<a href=#188 id=188 data-nosnippet>188</a><span class="kw">pub use </span>config::ReplConfig;
-<a href=#189 id=189 data-nosnippet>189</a><span class="kw">pub use </span>debugger::{ContinueResult, DebugSession, LineComparison, StackFrame};
-<a href=#190 id=190 data-nosnippet>190</a><span class="kw">pub use </span>determinism::{
-<a href=#191 id=191 data-nosnippet>191</a>    format_idempotency_report, format_replay_diff, DeterminismChecker, DeterminismIssue,
-<a href=#192 id=192 data-nosnippet>192</a>    IdempotencyChecker, IdempotencyIssue, IdempotencyResult, IdempotencyVerifier,
-<a href=#193 id=193 data-nosnippet>193</a>    NonDeterministicPattern, NonIdempotentOperation, OutputDifference, ReplayResult,
-<a href=#194 id=194 data-nosnippet>194</a>    ReplayVerifier, RunOutput,
-<a href=#195 id=195 data-nosnippet>195</a>};
-<a href=#196 id=196 data-nosnippet>196</a><span class="kw">pub use </span>diff::display_diff;
-<a href=#197 id=197 data-nosnippet>197</a><span class="kw">pub use </span>errors::{
-<a href=#198 id=198 data-nosnippet>198</a>    format_command_error, format_error, format_lint_error, format_source_context, suggest_command,
-<a href=#199 id=199 data-nosnippet>199</a>    ErrorMessage, ErrorType, Severity, SourceContext, Suggestion,
-<a href=#200 id=200 data-nosnippet>200</a>};
-<a href=#201 id=201 data-nosnippet>201</a><span class="kw">pub use </span>explain::{explain_bash, Explanation};
-<a href=#202 id=202 data-nosnippet>202</a><span class="kw">pub use </span>highlighting::{highlight_bash, is_keyword, strip_ansi_codes, tokenize, Token, TokenType};
-<a href=#203 id=203 data-nosnippet>203</a><span class="kw">pub use </span>linter::{format_lint_results, format_violations_with_context, lint_bash};
-<a href=#204 id=204 data-nosnippet>204</a><span class="kw">pub use </span>modes::ReplMode;
-<a href=#205 id=205 data-nosnippet>205</a><span class="kw">pub use </span>parser::{format_parse_error, parse_bash};
-<a href=#206 id=206 data-nosnippet>206</a><span class="kw">pub use </span>purifier::{
-<a href=#207 id=207 data-nosnippet>207</a>    explain_purification_changes, explain_purification_changes_detailed,
-<a href=#208 id=208 data-nosnippet>208</a>    format_purified_lint_result, format_purified_lint_result_with_context,
-<a href=#209 id=209 data-nosnippet>209</a>    format_transformation_report, purify_and_lint, purify_and_validate, purify_bash, Alternative,
-<a href=#210 id=210 data-nosnippet>210</a>    PurificationError, PurifiedLintResult, SafetyRationale, SafetySeverity, TransformationCategory,
-<a href=#211 id=211 data-nosnippet>211</a>    TransformationExplanation,
-<a href=#212 id=212 data-nosnippet>212</a>};
-<a href=#213 id=213 data-nosnippet>213</a><span class="kw">pub use </span>r#loop::run_repl;
-<a href=#214 id=214 data-nosnippet>214</a><span class="kw">pub use </span>state::ReplState;</code></pre></div></section></main></body></html>
+<a href=#178 id=178 data-nosnippet>178</a><span class="kw">pub mod </span>logic;
+<a href=#179 id=179 data-nosnippet>179</a><span class="kw">mod </span>r#loop;
+<a href=#180 id=180 data-nosnippet>180</a><span class="kw">pub mod </span>modes;
+<a href=#181 id=181 data-nosnippet>181</a><span class="kw">pub mod </span>multiline;
+<a href=#182 id=182 data-nosnippet>182</a><span class="kw">pub mod </span>parser;
+<a href=#183 id=183 data-nosnippet>183</a><span class="kw">pub mod </span>purifier;
+<a href=#184 id=184 data-nosnippet>184</a><span class="kw">pub mod </span>state;
+<a href=#185 id=185 data-nosnippet>185</a><span class="kw">pub mod </span>variables;
+<a href=#186 id=186 data-nosnippet>186</a>
+<a href=#187 id=187 data-nosnippet>187</a><span class="kw">pub use </span>ast_display::format_ast;
+<a href=#188 id=188 data-nosnippet>188</a><span class="kw">pub use </span>breakpoint::{Breakpoint, BreakpointManager};
+<a href=#189 id=189 data-nosnippet>189</a><span class="kw">pub use </span>config::ReplConfig;
+<a href=#190 id=190 data-nosnippet>190</a><span class="kw">pub use </span>debugger::{ContinueResult, DebugSession, LineComparison, StackFrame};
+<a href=#191 id=191 data-nosnippet>191</a><span class="kw">pub use </span>determinism::{
+<a href=#192 id=192 data-nosnippet>192</a>    format_idempotency_report, format_replay_diff, DeterminismChecker, DeterminismIssue,
+<a href=#193 id=193 data-nosnippet>193</a>    IdempotencyChecker, IdempotencyIssue, IdempotencyResult, IdempotencyVerifier,
+<a href=#194 id=194 data-nosnippet>194</a>    NonDeterministicPattern, NonIdempotentOperation, OutputDifference, ReplayResult,
+<a href=#195 id=195 data-nosnippet>195</a>    ReplayVerifier, RunOutput,
+<a href=#196 id=196 data-nosnippet>196</a>};
+<a href=#197 id=197 data-nosnippet>197</a><span class="kw">pub use </span>diff::display_diff;
+<a href=#198 id=198 data-nosnippet>198</a><span class="kw">pub use </span>errors::{
+<a href=#199 id=199 data-nosnippet>199</a>    format_command_error, format_error, format_lint_error, format_source_context, suggest_command,
+<a href=#200 id=200 data-nosnippet>200</a>    ErrorMessage, ErrorType, Severity, SourceContext, Suggestion,
+<a href=#201 id=201 data-nosnippet>201</a>};
+<a href=#202 id=202 data-nosnippet>202</a><span class="kw">pub use </span>explain::{explain_bash, Explanation};
+<a href=#203 id=203 data-nosnippet>203</a><span class="kw">pub use </span>highlighting::{highlight_bash, is_keyword, strip_ansi_codes, tokenize, Token, TokenType};
+<a href=#204 id=204 data-nosnippet>204</a><span class="kw">pub use </span>linter::{format_lint_results, format_violations_with_context, lint_bash};
+<a href=#205 id=205 data-nosnippet>205</a><span class="kw">pub use </span>modes::ReplMode;
+<a href=#206 id=206 data-nosnippet>206</a><span class="kw">pub use </span>parser::{format_parse_error, parse_bash};
+<a href=#207 id=207 data-nosnippet>207</a><span class="kw">pub use </span>purifier::{
+<a href=#208 id=208 data-nosnippet>208</a>    explain_purification_changes, explain_purification_changes_detailed,
+<a href=#209 id=209 data-nosnippet>209</a>    format_purified_lint_result, format_purified_lint_result_with_context,
+<a href=#210 id=210 data-nosnippet>210</a>    format_transformation_report, purify_and_lint, purify_and_validate, purify_bash, Alternative,
+<a href=#211 id=211 data-nosnippet>211</a>    PurificationError, PurifiedLintResult, SafetyRationale, SafetySeverity, TransformationCategory,
+<a href=#212 id=212 data-nosnippet>212</a>    TransformationExplanation,
+<a href=#213 id=213 data-nosnippet>213</a>};
+<a href=#214 id=214 data-nosnippet>214</a><span class="kw">pub use </span>r#loop::run_repl;
+<a href=#215 id=215 data-nosnippet>215</a><span class="kw">pub use </span>state::ReplState;</code></pre></div></section></main></body></html>

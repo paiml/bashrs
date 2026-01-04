@@ -599,13 +599,16 @@
 <a href=#599 id=599 data-nosnippet>599</a>    </span><span class="kw">fn </span>test_action_parse() {
 <a href=#600 id=600 data-nosnippet>600</a>        <span class="macro">assert_eq!</span>(Action::parse(<span class="string">"script"</span>), Action::Script);
 <a href=#601 id=601 data-nosnippet>601</a>        <span class="macro">assert_eq!</span>(Action::parse(<span class="string">"apt-install"</span>), Action::AptInstall);
-<a href=#602 id=602 data-nosnippet>602</a>        <span class="macro">assert_eq!</span>(Action::parse(<span class="string">"custom-action"</span>), Action::Custom(<span class="string">"custom-action"</span>.to_string()));
-<a href=#603 id=603 data-nosnippet>603</a>    }
-<a href=#604 id=604 data-nosnippet>604</a>
-<a href=#605 id=605 data-nosnippet>605</a>    <span class="attr">#[test]
-<a href=#606 id=606 data-nosnippet>606</a>    </span><span class="kw">fn </span>test_invalid_toml() {
-<a href=#607 id=607 data-nosnippet>607</a>        <span class="kw">let </span>toml = <span class="string">"INVALID [[["</span>;
-<a href=#608 id=608 data-nosnippet>608</a>        <span class="kw">let </span>result = InstallerSpec::parse(toml);
-<a href=#609 id=609 data-nosnippet>609</a>        <span class="macro">assert!</span>(result.is_err());
-<a href=#610 id=610 data-nosnippet>610</a>    }
-<a href=#611 id=611 data-nosnippet>611</a>}</code></pre></div></section></main></body></html>
+<a href=#602 id=602 data-nosnippet>602</a>        <span class="macro">assert_eq!</span>(
+<a href=#603 id=603 data-nosnippet>603</a>            Action::parse(<span class="string">"custom-action"</span>),
+<a href=#604 id=604 data-nosnippet>604</a>            Action::Custom(<span class="string">"custom-action"</span>.to_string())
+<a href=#605 id=605 data-nosnippet>605</a>        );
+<a href=#606 id=606 data-nosnippet>606</a>    }
+<a href=#607 id=607 data-nosnippet>607</a>
+<a href=#608 id=608 data-nosnippet>608</a>    <span class="attr">#[test]
+<a href=#609 id=609 data-nosnippet>609</a>    </span><span class="kw">fn </span>test_invalid_toml() {
+<a href=#610 id=610 data-nosnippet>610</a>        <span class="kw">let </span>toml = <span class="string">"INVALID [[["</span>;
+<a href=#611 id=611 data-nosnippet>611</a>        <span class="kw">let </span>result = InstallerSpec::parse(toml);
+<a href=#612 id=612 data-nosnippet>612</a>        <span class="macro">assert!</span>(result.is_err());
+<a href=#613 id=613 data-nosnippet>613</a>    }
+<a href=#614 id=614 data-nosnippet>614</a>}</code></pre></div></section></main></body></html>
