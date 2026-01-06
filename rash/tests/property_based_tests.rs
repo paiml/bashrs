@@ -56,6 +56,7 @@ fn bash_script() -> impl Strategy<Value = BashAst> {
                     name,
                     value: BashExpr::Literal(value),
                     exported: false,
+                    index: None,
                     span: Span::dummy(),
                 }
             }),
@@ -120,6 +121,7 @@ proptest! {
                 name: name.clone(),
                 value: BashExpr::Literal(value.clone()),
                 exported: false,
+                index: None,
                 span: Span::dummy(),
             }],
             metadata: AstMetadata {
@@ -212,12 +214,14 @@ proptest! {
                     name: var1.clone(),
                     value: BashExpr::Literal("value1".to_string()),
                     exported: false,
+                    index: None,
                     span: Span::dummy(),
                 },
                 BashStmt::Assignment {
                     name: var2.clone(),
                     value: BashExpr::Literal("value2".to_string()),
                     exported: false,
+                    index: None,
                     span: Span::dummy(),
                 },
             ],
@@ -247,6 +251,7 @@ proptest! {
                 name: name.clone(),
                 value: BashExpr::Literal("value".to_string()),
                 exported: true,
+                index: None,
                 span: Span::dummy(),
             }],
             metadata: AstMetadata {
@@ -308,6 +313,7 @@ proptest! {
                     Box::new(ArithExpr::Number(b)),
                 ))),
                 exported: false,
+                index: None,
                 span: Span::dummy(),
             }],
             metadata: AstMetadata {
@@ -341,6 +347,7 @@ mod determinism_tests {
                     name: "FOO".to_string(),
                     value: BashExpr::Literal("bar".to_string()),
                     exported: false,
+                    index: None,
                     span: Span::dummy(),
                 },
                 BashStmt::Command {

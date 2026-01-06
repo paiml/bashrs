@@ -112,10 +112,32 @@ fn create_unquoted_var_diagnostic(
 fn check_unquoted_vars(line: &str, line_num: usize, result: &mut LintResult) {
     let chars: Vec<char> = line.chars().collect();
     let mut i = 0;
+    let mut in_double_quote = false;
+    let mut in_single_quote = false;
 
     while i < chars.len() {
+        let ch = chars[i];
+
+        // Track quote state (F037 fix: proper quoted context tracking)
+        if ch == '"' && !in_single_quote {
+            in_double_quote = !in_double_quote;
+            i += 1;
+            continue;
+        }
+        if ch == '\'' && !in_double_quote {
+            in_single_quote = !in_single_quote;
+            i += 1;
+            continue;
+        }
+
         if chars[i] == '$' && i + 1 < chars.len() {
-            // Skip if already quoted before
+            // F037 FIX: If we're inside a quoted string, skip this variable
+            if in_double_quote || in_single_quote {
+                i += 1;
+                continue;
+            }
+
+            // Skip if already quoted before (adjacent quote)
             if is_quoted_before(&chars, i) {
                 i += 1;
                 continue;
@@ -227,5 +249,37 @@ mod tests {
 
         // echo is safe, shouldn't warn
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    /// F037: MAKE003 must recognize quoted context - variable inside quoted string
+    /// Issue #118: False positive for quoted variables
+    #[test]
+    fn test_F037_MAKE003_quoted_context() {
+        // Variable inside a quoted string - should NOT trigger warning
+        let makefile = r#"clean:
+	rm -rf "path/$(BUILD_DIR)/output""#;
+        let result = check(makefile);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "F037 FALSIFIED: MAKE003 must NOT flag variables inside quoted strings. Got: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// F037 variation: Multiple variables in quoted string
+    #[test]
+    fn test_F037_MAKE003_multiple_vars_in_quoted_string() {
+        let makefile = r#"install:
+	cp "$(SRC)/file" "$(DEST)/file""#;
+        let result = check(makefile);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "F037 FALSIFIED: Multiple variables in quoted strings should not be flagged. Got: {:?}",
+            result.diagnostics
+        );
     }
 }

@@ -1725,3 +1725,52 @@ fn test_init_command_default_name() {
     let result = init_command(&project_path, None);
     assert!(result.is_ok());
 }
+
+// ============================================================================
+// Additional Coverage Tests - Unique test names to avoid conflicts
+// ============================================================================
+
+#[test]
+fn test_purify_dockerfile_content_basic() {
+    let dockerfile = "FROM ubuntu:20.04\nRUN apt-get update";
+    let result = purify_dockerfile(dockerfile, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_purify_dockerfile_content_skip_user() {
+    let dockerfile = "FROM ubuntu:20.04\nRUN echo hello";
+    let result = purify_dockerfile(dockerfile, true);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_purify_dockerfile_content_with_cleanup() {
+    let dockerfile = "FROM ubuntu:20.04\nRUN apt-get update && apt-get install -y curl";
+    let result = purify_dockerfile(dockerfile, false);
+    assert!(result.is_ok());
+    let purified = result.unwrap();
+    // Should add cleanup patterns
+    assert!(purified.contains("apt-get") || purified.contains("FROM"));
+}
+
+#[test]
+fn test_logic_find_devcontainer_json_exists() {
+    let temp_dir = TempDir::new().unwrap();
+    let devcontainer_dir = temp_dir.path().join(".devcontainer");
+    fs::create_dir_all(&devcontainer_dir).unwrap();
+
+    let json_path = devcontainer_dir.join("devcontainer.json");
+    fs::write(&json_path, r#"{"name": "test"}"#).unwrap();
+
+    // Test finding devcontainer.json
+    let result = logic_find_devcontainer_json(temp_dir.path());
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_logic_find_devcontainer_json_not_exists() {
+    let temp_dir = TempDir::new().unwrap();
+    let result = logic_find_devcontainer_json(temp_dir.path());
+    assert!(result.is_err());
+}

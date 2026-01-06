@@ -7,12 +7,20 @@ use crate::cli::args::{
     MakeOutputFormat, MutateFormat, PlaybookFormat, ReportFormat, ScoreOutputFormat,
     SimulateFormat, TestOutputFormat,
 };
+#[cfg(feature = "oracle")]
+use crate::cli::logic::extract_exit_code;
+use crate::cli::logic::{
+    coverage_class, coverage_status, find_devcontainer_json as logic_find_devcontainer_json,
+    format_purify_report_human, format_purify_report_json, format_purify_report_markdown,
+    format_timestamp, generate_diff_lines, hex_encode, is_dockerfile, is_makefile,
+    is_shell_script_file, normalize_shell_script, parse_rule_filter, purify_dockerfile_source,
+    score_status, truncate_str,
+};
+// Test-only imports
+#[cfg(test)]
 use crate::cli::logic::{
     add_no_install_recommends, add_package_manager_cleanup, convert_add_to_copy_if_local,
-    coverage_class, coverage_status, find_devcontainer_json as logic_find_devcontainer_json,
-    format_timestamp, generate_diff_lines, hex_encode, is_dockerfile, is_makefile,
-    is_shell_script_file, normalize_shell_script, pin_base_image_version, score_status,
-    truncate_str,
+    pin_base_image_version,
 };
 use crate::cli::{Cli, Commands};
 use crate::models::{Config, Error, Result};
@@ -607,41 +615,7 @@ fn explain_error_command(
     Ok(())
 }
 
-/// Extract exit code from error message text
-#[cfg(feature = "oracle")]
-fn extract_exit_code(error: &str) -> i32 {
-    // Common patterns for exit codes in error messages
-    let patterns = [
-        ("exit code ", 10),
-        ("exited with ", 12),
-        ("returned ", 9),
-        ("status ", 7),
-    ];
-
-    for (pattern, prefix_len) in patterns {
-        if let Some(idx) = error.to_lowercase().find(pattern) {
-            let start = idx + prefix_len;
-            let code_str: String = error[start..]
-                .chars()
-                .take_while(|c| c.is_ascii_digit())
-                .collect();
-            if let Ok(code) = code_str.parse::<i32>() {
-                return code;
-            }
-        }
-    }
-
-    // Check for well-known exit codes in error messages
-    if error.contains("command not found") {
-        return 127;
-    }
-    if error.contains("Permission denied") || error.contains("permission denied") {
-        return 126;
-    }
-
-    // Default to generic failure
-    1
-}
+// extract_exit_code moved to cli/logic.rs
 
 fn build_command(input: &Path, output: &Path, config: Config) -> Result<()> {
     // Read input file
@@ -1784,59 +1758,9 @@ fn dockerfile_purify_command_impl(
     Ok(())
 }
 
+/// Thin shim - delegates to pure logic function
 fn purify_dockerfile(source: &str, skip_user: bool) -> Result<String> {
-    let lines: Vec<&str> = source.lines().collect();
-    let mut purified = Vec::new();
-
-    // Check if USER directive already exists
-    let has_user = lines.iter().any(|line| line.trim().starts_with("USER "));
-    let is_scratch = lines
-        .iter()
-        .any(|line| line.trim().starts_with("FROM scratch"));
-
-    // Find CMD/ENTRYPOINT position
-    let cmd_pos = lines.iter().position(|line| {
-        let trimmed = line.trim();
-        trimmed.starts_with("CMD ") || trimmed.starts_with("ENTRYPOINT ")
-    });
-
-    // Build purified Dockerfile
-    for (i, line) in lines.iter().enumerate() {
-        // Check if we should add USER before CMD/ENTRYPOINT
-        if !skip_user && !has_user && !is_scratch && Some(i) == cmd_pos {
-            purified.push(String::new());
-            purified.push("# Security: Run as non-root user".to_string());
-            purified.push("RUN groupadd -r appuser && useradd -r -g appuser appuser".to_string());
-            purified.push("USER appuser".to_string());
-            purified.push(String::new());
-        }
-
-        // DOCKER002: Pin unpinned base images
-        let mut processed_line = if line.trim().starts_with("FROM ") {
-            pin_base_image_version(line)
-        } else {
-            line.to_string()
-        };
-
-        // DOCKER006: Convert ADD to COPY for local files
-        if line.trim().starts_with("ADD ") {
-            processed_line = convert_add_to_copy_if_local(&processed_line);
-        }
-
-        // DOCKER005: Add --no-install-recommends to apt-get install
-        if line.trim().starts_with("RUN ") && processed_line.contains("apt-get install") {
-            processed_line = add_no_install_recommends(&processed_line);
-        }
-
-        // DOCKER003: Add apt/apk cleanup
-        if line.trim().starts_with("RUN ") {
-            processed_line = add_package_manager_cleanup(&processed_line);
-        }
-
-        purified.push(processed_line);
-    }
-
-    Ok(purified.join("\n"))
+    Ok(purify_dockerfile_source(source, skip_user))
 }
 
 fn dockerfile_lint_command(input: &Path, format: LintFormat, rules: Option<&str>) -> Result<()> {
@@ -2613,51 +2537,32 @@ fn make_purify_command(
     Ok(())
 }
 
+/// Thin shim - delegates formatting to pure logic functions
 fn print_purify_report(
     result: &crate::make_parser::purify::PurificationResult,
     format: ReportFormat,
 ) {
-    match format {
-        ReportFormat::Human => {
-            println!("Makefile Purification Report");
-            println!("============================");
-            println!(
-                "Transformations Applied: {}",
-                result.transformations_applied
-            );
-            println!("Issues Fixed: {}", result.issues_fixed);
-            println!("Manual Fixes Needed: {}", result.manual_fixes_needed);
-            println!();
-            for (i, report_item) in result.report.iter().enumerate() {
-                println!("{}: {}", i + 1, report_item);
-            }
-        }
-        ReportFormat::Json => {
-            println!("{{");
-            println!(
-                "  \"transformations_applied\": {},",
-                result.transformations_applied
-            );
-            println!("  \"issues_fixed\": {},", result.issues_fixed);
-            println!("  \"manual_fixes_needed\": {},", result.manual_fixes_needed);
-            println!("  \"report\": [");
-            for (i, report_item) in result.report.iter().enumerate() {
-                let comma = if i < result.report.len() - 1 { "," } else { "" };
-                println!("    \"{}\"{}", report_item.replace('"', "\\\""), comma);
-            }
-            println!("  ]");
-            println!("}}");
-        }
-        ReportFormat::Markdown => {
-            println!("# Makefile Purification Report\n");
-            println!("**Transformations**: {}", result.transformations_applied);
-            println!("**Issues Fixed**: {}", result.issues_fixed);
-            println!("**Manual Fixes Needed**: {}\n", result.manual_fixes_needed);
-            for (i, report_item) in result.report.iter().enumerate() {
-                println!("{}. {}", i + 1, report_item);
-            }
-        }
-    }
+    let output = match format {
+        ReportFormat::Human => format_purify_report_human(
+            result.transformations_applied,
+            result.issues_fixed,
+            result.manual_fixes_needed,
+            &result.report,
+        ),
+        ReportFormat::Json => format_purify_report_json(
+            result.transformations_applied,
+            result.issues_fixed,
+            result.manual_fixes_needed,
+            &result.report,
+        ),
+        ReportFormat::Markdown => format_purify_report_markdown(
+            result.transformations_applied,
+            result.issues_fixed,
+            result.manual_fixes_needed,
+            &result.report,
+        ),
+    };
+    print!("{}", output);
 }
 
 /// Convert LintFormat to OutputFormat
@@ -2670,15 +2575,15 @@ fn convert_lint_format(format: LintFormat) -> crate::linter::output::OutputForma
     }
 }
 
-/// Run linter and optionally filter results by specific rules
+/// Run linter and optionally filter results by specific rules (thin shim)
 fn run_filtered_lint(source: &str, rules: Option<&str>) -> crate::linter::LintResult {
     use crate::linter::rules::lint_makefile;
 
     let mut result = lint_makefile(source);
 
-    // Filter by specific rules if requested
+    // Filter by specific rules if requested - uses logic::parse_rule_filter
     if let Some(rule_filter) = rules {
-        let allowed_rules: Vec<&str> = rule_filter.split(',').map(|s| s.trim()).collect();
+        let allowed_rules = parse_rule_filter(rule_filter);
         result
             .diagnostics
             .retain(|d| allowed_rules.iter().any(|rule| d.code.contains(rule)));

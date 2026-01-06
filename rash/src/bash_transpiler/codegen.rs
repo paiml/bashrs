@@ -273,6 +273,23 @@ impl BashToRashTranspiler {
                     ))
                 }
             }
+            BashStmt::Select {
+                variable,
+                items,
+                body,
+                ..
+            } => {
+                // F017: Select is bash-specific, transpile as loop with menu
+                // Note: No direct Rust equivalent, generate a comment placeholder
+                self.current_indent += 1;
+                let body_rash = self.transpile_block(body)?;
+                self.current_indent -= 1;
+                let items_rash = self.transpile_expression(items)?;
+                Ok(format!(
+                    "// select {} in {} - interactive menu loop\nfor {} in {} {{\n{}\n}}",
+                    variable, items_rash, variable, items_rash, body_rash
+                ))
+            }
         }
     }
 

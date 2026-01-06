@@ -43,6 +43,7 @@ proptest! {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: name.clone(),
+            index: None,
                 value: BashExpr::Literal("test".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -69,6 +70,7 @@ proptest! {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: name.clone(),
+            index: None,
                 value: BashExpr::Literal("value".to_string()),
                 exported: true,
                 span: Span::dummy(),

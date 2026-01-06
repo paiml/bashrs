@@ -27,6 +27,7 @@ pub enum Token {
     Export,
     Local,
     Coproc, // BUG-018: coproc keyword
+    Select, // F017: select keyword for select-in-do-done loops
 
     // Identifiers and literals
     Identifier(String),
@@ -723,6 +724,7 @@ impl Lexer {
                 "for" => return Token::For,
                 "while" => return Token::While,
                 "until" => return Token::Until,
+                "select" => return Token::Select, // F017: select statement
                 "do" => return Token::Do,
                 "done" => return Token::Done,
                 "case" => return Token::Case,

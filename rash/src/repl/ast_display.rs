@@ -150,6 +150,14 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
                 format!("{}Coproc ({} statements)", indent_str, body.len())
             }
         }
+        BashStmt::Select { variable, body, .. } => {
+            format!(
+                "{}Select: {} ({} statements)",
+                indent_str,
+                variable,
+                body.len()
+            )
+        }
     }
 }
 
@@ -197,6 +205,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("value".to_string()),
                 exported: false,
                 span: dummy_span(),
@@ -278,6 +287,7 @@ mod tests {
                 },
                 BashStmt::Assignment {
                     name: "X".to_string(),
+                    index: None,
                     value: BashExpr::Literal("5".to_string()),
                     exported: false,
                     span: dummy_span(),
@@ -801,6 +811,7 @@ mod property_tests {
                 },
                 BashStmt::Assignment {
                     name: var_name.clone(),
+            index: None,
                     value: BashExpr::Literal("test".to_string()),
                     exported: false,
                     span: dummy_span(),

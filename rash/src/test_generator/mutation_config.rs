@@ -297,6 +297,7 @@ mod tests {
                 name: "test_func".to_string(),
                 body: vec![BashStmt::Assignment {
                     name: "x".to_string(),
+                    index: None,
                     value: BashExpr::Literal("42".to_string()),
                     exported: false,
                     span: Span::dummy(),
@@ -364,6 +365,7 @@ mod tests {
         // Simple function: complexity = 1
         let simple_body = vec![BashStmt::Assignment {
             name: "x".to_string(),
+            index: None,
             value: BashExpr::Literal("1".to_string()),
             exported: false,
             span: Span::dummy(),
@@ -527,6 +529,7 @@ mod tests {
                 name: "math_func".to_string(),
                 body: vec![BashStmt::Assignment {
                     name: "result".to_string(),
+                    index: None,
                     value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
                         Box::new(ArithExpr::Number(1)),
                         Box::new(ArithExpr::Number(2)),

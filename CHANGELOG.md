@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.50.0] - 2026-01-06
+
+### Added
+
+- **Logic Extraction for EXTREME TDD**: Pure logic functions extracted from linter rules
+  - `sc2086_logic.rs`: Double-quote detection with 37 unit tests
+  - `sc2154_logic.rs`: Variable reference validation with 44 unit tests
+  - `devcontainer_logic.rs`: JSON validation helpers with 42 unit tests
+  - `sec010_logic.rs`: Path traversal detection with 26 unit tests
+  - `docker010_logic.rs`: Dockerfile user directive validation
+  - `sc2064_logic.rs`: Trap command expansion detection
+
+- **New Linter Rules**:
+  - `docker007`: Detect missing HEALTHCHECK in Dockerfiles
+  - `docker008`: Detect ADD instead of COPY for local files
+  - `docker009`: Detect missing version pinning in apt-get
+  - `docker010`: Detect missing USER directive
+  - `docker011`: Detect secrets in ENV variables
+  - `docker012`: Detect WORKDIR not using absolute path
+  - `signal001`: Detect improper signal handling in shell scripts
+  - `systemd001`: Detect systemd unit file issues
+  - `launchd001`: Detect macOS launchd plist issues
+
+- **Fast Coverage**: `make coverage` runs in under 5 minutes with cargo-nextest
+
+### Changed
+
+- **Thin Shim Pattern**: Linter rule files reduced to ~20 lines, delegating to `*_logic.rs` modules
+- **Property-based Tests**: Added index field to BashStmt::Assignment for array support
+
+### Quality
+
+- **Tests**: 9,824 passed (100% pass rate)
+- **Line Coverage**: 94.16%
+- **Function Coverage**: 96.52% ✅
+- **EXTREME TDD**: Full methodology with pure logic extraction
+
+### Documentation
+
+- Updated README.md with new quality metrics
+- Updated book installation guide to v6.50.0
+- All 6 examples verified working
+
 ## [6.49.0] - 2026-01-04
 
 ### Added

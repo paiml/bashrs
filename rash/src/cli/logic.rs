@@ -1183,12 +1183,549 @@ pub fn coverage_status(percent: f64) -> &'static str {
 
 /// Helper to get CSS class for coverage percent
 pub fn coverage_class(percent: f64) -> &'static str {
-    if percent >= 80.0 {
+    if percent >= 90.0 {
+        "excellent"
+    } else if percent >= 80.0 {
         "good"
-    } else if percent >= 50.0 {
-        "medium"
+    } else if percent >= 70.0 {
+        "fair"
     } else {
         "poor"
+    }
+}
+
+// =============================================================================
+// EXTRACTED PURE LOGIC FUNCTIONS
+// =============================================================================
+
+/// Extract exit code from error message (pure function)
+pub fn extract_exit_code(error: &str) -> i32 {
+    // Common patterns for exit codes in error messages
+    let patterns = [
+        ("exit code ", 10),
+        ("exited with ", 12),
+        ("returned ", 9),
+        ("status ", 7),
+    ];
+
+    for (pattern, prefix_len) in patterns {
+        if let Some(idx) = error.to_lowercase().find(pattern) {
+            let start = idx + prefix_len;
+            let code_str: String = error[start..]
+                .chars()
+                .take_while(|c| c.is_ascii_digit())
+                .collect();
+            if let Ok(code) = code_str.parse::<i32>() {
+                return code;
+            }
+        }
+    }
+
+    // Check for well-known exit codes in error messages
+    if error.contains("command not found") {
+        return 127;
+    }
+    if error.contains("Permission denied") || error.contains("permission denied") {
+        return 126;
+    }
+
+    // Default to generic failure
+    1
+}
+
+/// Check if output path indicates stdout (pure function)
+pub fn should_output_to_stdout(output_path: &Path) -> bool {
+    output_path == Path::new("-") || output_path == Path::new("/dev/null")
+}
+
+/// Detect the current platform (pure function)
+pub fn detect_platform() -> &'static str {
+    #[cfg(target_os = "linux")]
+    {
+        "linux"
+    }
+    #[cfg(target_os = "macos")]
+    {
+        "macos"
+    }
+    #[cfg(target_os = "windows")]
+    {
+        "windows"
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        "unknown"
+    }
+}
+
+/// Count duplicate entries in a list of paths (pure function)
+pub fn count_duplicate_path_entries(entries: &[String]) -> usize {
+    use std::collections::HashSet;
+    let unique: HashSet<&String> = entries.iter().collect();
+    entries.len().saturating_sub(unique.len())
+}
+
+// =============================================================================
+// DOCKERFILE PURIFICATION LOGIC (extracted from commands.rs)
+// =============================================================================
+
+/// Purify a Dockerfile source (pure function - no I/O)
+///
+/// Applies the following transformations:
+/// - DOCKER002: Pin unpinned base images to stable versions
+/// - DOCKER003: Add package manager cleanup
+/// - DOCKER005: Add --no-install-recommends to apt-get
+/// - DOCKER006: Convert ADD to COPY for local files
+/// - Add non-root USER directive before CMD/ENTRYPOINT
+pub fn purify_dockerfile_source(source: &str, skip_user: bool) -> String {
+    let lines: Vec<&str> = source.lines().collect();
+    let mut purified = Vec::new();
+
+    // Check if USER directive already exists
+    let has_user = lines.iter().any(|line| line.trim().starts_with("USER "));
+    let is_scratch = lines
+        .iter()
+        .any(|line| line.trim().starts_with("FROM scratch"));
+
+    // Find CMD/ENTRYPOINT position
+    let cmd_pos = lines.iter().position(|line| {
+        let trimmed = line.trim();
+        trimmed.starts_with("CMD ") || trimmed.starts_with("ENTRYPOINT ")
+    });
+
+    // Build purified Dockerfile
+    for (i, line) in lines.iter().enumerate() {
+        // Check if we should add USER before CMD/ENTRYPOINT
+        if !skip_user && !has_user && !is_scratch && Some(i) == cmd_pos {
+            purified.push(String::new());
+            purified.push("# Security: Run as non-root user".to_string());
+            purified.push("RUN groupadd -r appuser && useradd -r -g appuser appuser".to_string());
+            purified.push("USER appuser".to_string());
+            purified.push(String::new());
+        }
+
+        // DOCKER002: Pin unpinned base images
+        let mut processed_line = if line.trim().starts_with("FROM ") {
+            pin_base_image_version(line)
+        } else {
+            line.to_string()
+        };
+
+        // DOCKER006: Convert ADD to COPY for local files
+        if line.trim().starts_with("ADD ") {
+            processed_line = convert_add_to_copy_if_local(&processed_line);
+        }
+
+        // DOCKER005: Add --no-install-recommends to apt-get install
+        if line.trim().starts_with("RUN ") && processed_line.contains("apt-get install") {
+            processed_line = add_no_install_recommends(&processed_line);
+        }
+
+        // DOCKER003: Add apt/apk cleanup
+        if line.trim().starts_with("RUN ") {
+            processed_line = add_package_manager_cleanup(&processed_line);
+        }
+
+        purified.push(processed_line);
+    }
+
+    purified.join("\n")
+}
+
+/// Check if Dockerfile has USER directive
+pub fn dockerfile_has_user_directive(source: &str) -> bool {
+    source.lines().any(|line| line.trim().starts_with("USER "))
+}
+
+/// Check if Dockerfile uses scratch base
+pub fn dockerfile_is_scratch(source: &str) -> bool {
+    source
+        .lines()
+        .any(|line| line.trim().starts_with("FROM scratch"))
+}
+
+/// Find CMD or ENTRYPOINT line number (0-indexed)
+pub fn dockerfile_find_cmd_line(source: &str) -> Option<usize> {
+    source.lines().position(|line| {
+        let trimmed = line.trim();
+        trimmed.starts_with("CMD ") || trimmed.starts_with("ENTRYPOINT ")
+    })
+}
+
+// =============================================================================
+// LINT FILTERING LOGIC (extracted from commands.rs)
+// =============================================================================
+
+/// Filter lint diagnostics by rule codes (pure function)
+pub fn filter_diagnostics_by_rules(
+    diagnostics: Vec<crate::linter::Diagnostic>,
+    rules: &[&str],
+) -> Vec<crate::linter::Diagnostic> {
+    diagnostics
+        .into_iter()
+        .filter(|d| rules.iter().any(|rule| d.code.contains(rule)))
+        .collect()
+}
+
+/// Parse comma-separated rule filter into list
+pub fn parse_rule_filter(filter: &str) -> Vec<&str> {
+    filter.split(',').map(|s| s.trim()).collect()
+}
+
+// =============================================================================
+// GRADE INTERPRETATION (extracted from commands.rs)
+// =============================================================================
+
+/// Get human-readable grade interpretation
+pub fn grade_interpretation(grade: &str) -> &'static str {
+    match grade {
+        "A+" => "Excellent! Near-perfect code quality.",
+        "A" => "Great! Very good code quality.",
+        "B+" | "B" => "Good code quality with room for improvement.",
+        "C+" | "C" => "Average code quality. Consider addressing suggestions.",
+        "D" => "Below average. Multiple improvements needed.",
+        "F" => "Poor code quality. Significant improvements required.",
+        _ => "Unknown grade.",
+    }
+}
+
+/// Get grade emoji/symbol
+pub fn grade_symbol(grade: &str) -> &'static str {
+    match grade {
+        "A+" | "A" | "B+" | "B" => "✓",
+        "C+" | "C" | "D" => "⚠",
+        "F" => "✗",
+        _ => "?",
+    }
+}
+
+// =============================================================================
+// REPORT FORMATTING (extracted from commands.rs)
+// =============================================================================
+
+/// Format purification report as human text
+pub fn format_purify_report_human(
+    transformations_applied: usize,
+    issues_fixed: usize,
+    manual_fixes_needed: usize,
+    report_items: &[String],
+) -> String {
+    let mut output = String::new();
+    output.push_str("Makefile Purification Report\n");
+    output.push_str("============================\n");
+    output.push_str(&format!(
+        "Transformations Applied: {}\n",
+        transformations_applied
+    ));
+    output.push_str(&format!("Issues Fixed: {}\n", issues_fixed));
+    output.push_str(&format!("Manual Fixes Needed: {}\n", manual_fixes_needed));
+    output.push('\n');
+    for (i, item) in report_items.iter().enumerate() {
+        output.push_str(&format!("{}: {}\n", i + 1, item));
+    }
+    output
+}
+
+/// Format purification report as JSON
+pub fn format_purify_report_json(
+    transformations_applied: usize,
+    issues_fixed: usize,
+    manual_fixes_needed: usize,
+    report_items: &[String],
+) -> String {
+    let mut output = String::new();
+    output.push_str("{\n");
+    output.push_str(&format!(
+        "  \"transformations_applied\": {},\n",
+        transformations_applied
+    ));
+    output.push_str(&format!("  \"issues_fixed\": {},\n", issues_fixed));
+    output.push_str(&format!(
+        "  \"manual_fixes_needed\": {},\n",
+        manual_fixes_needed
+    ));
+    output.push_str("  \"report\": [\n");
+    for (i, item) in report_items.iter().enumerate() {
+        let comma = if i < report_items.len() - 1 { "," } else { "" };
+        output.push_str(&format!("    \"{}\"{}\n", item.replace('"', "\\\""), comma));
+    }
+    output.push_str("  ]\n");
+    output.push_str("}\n");
+    output
+}
+
+/// Format purification report as Markdown
+pub fn format_purify_report_markdown(
+    transformations_applied: usize,
+    issues_fixed: usize,
+    manual_fixes_needed: usize,
+    report_items: &[String],
+) -> String {
+    let mut output = String::new();
+    output.push_str("# Makefile Purification Report\n\n");
+    output.push_str(&format!(
+        "**Transformations**: {}\n",
+        transformations_applied
+    ));
+    output.push_str(&format!("**Issues Fixed**: {}\n", issues_fixed));
+    output.push_str(&format!(
+        "**Manual Fixes Needed**: {}\n\n",
+        manual_fixes_needed
+    ));
+    for (i, item) in report_items.iter().enumerate() {
+        output.push_str(&format!("{}. {}\n", i + 1, item));
+    }
+    output
+}
+
+// =============================================================================
+// SCORE FORMATTING (extracted from commands.rs)
+// =============================================================================
+
+/// Format quality score as human text
+#[allow(clippy::too_many_arguments)]
+pub fn format_score_human(
+    grade: &str,
+    score: f64,
+    complexity: f64,
+    safety: f64,
+    maintainability: f64,
+    testing: f64,
+    documentation: f64,
+    suggestions: &[String],
+    detailed: bool,
+) -> String {
+    let mut output = String::new();
+    output.push('\n');
+    output.push_str("Bash Script Quality Score\n");
+    output.push_str("=========================\n\n");
+    output.push_str(&format!("Overall Grade: {}\n", grade));
+    output.push_str(&format!("Overall Score: {:.1}/10.0\n\n", score));
+
+    if detailed {
+        output.push_str("Dimension Scores:\n");
+        output.push_str("-----------------\n");
+        output.push_str(&format!("Complexity:      {:.1}/10.0\n", complexity));
+        output.push_str(&format!("Safety:          {:.1}/10.0\n", safety));
+        output.push_str(&format!("Maintainability: {:.1}/10.0\n", maintainability));
+        output.push_str(&format!("Testing:         {:.1}/10.0\n", testing));
+        output.push_str(&format!("Documentation:   {:.1}/10.0\n\n", documentation));
+    }
+
+    if !suggestions.is_empty() {
+        output.push_str("Improvement Suggestions:\n");
+        output.push_str("------------------------\n");
+        for (i, suggestion) in suggestions.iter().enumerate() {
+            output.push_str(&format!("{}. {}\n", i + 1, suggestion));
+        }
+        output.push('\n');
+    }
+
+    output.push_str(&format!(
+        "{} {}\n",
+        grade_symbol(grade),
+        grade_interpretation(grade)
+    ));
+    output
+}
+
+/// Validate proof format data
+pub fn validate_proof_data(source_hash: &str, verification_level: &str, target: &str) -> bool {
+    // Hash should be non-empty hex
+    !source_hash.is_empty()
+        && source_hash.chars().all(|c| c.is_ascii_hexdigit())
+        && !verification_level.is_empty()
+        && !target.is_empty()
+}
+
+/// Parse shell dialect from string
+pub fn parse_shell_dialect(s: &str) -> Option<&'static str> {
+    match s.to_lowercase().as_str() {
+        "posix" | "sh" => Some("posix"),
+        "bash" => Some("bash"),
+        "zsh" => Some("zsh"),
+        "dash" => Some("dash"),
+        _ => None,
+    }
+}
+
+/// Calculate percentage with bounds
+pub fn calculate_percentage(value: usize, total: usize) -> f64 {
+    if total == 0 {
+        100.0
+    } else {
+        (value as f64 / total as f64) * 100.0
+    }
+}
+
+/// Format bytes as human readable size
+pub fn format_bytes_human(bytes: u64) -> String {
+    if bytes >= 1_000_000_000 {
+        format!("{:.2} GB", bytes as f64 / 1_000_000_000.0)
+    } else if bytes >= 1_000_000 {
+        format!("{:.2} MB", bytes as f64 / 1_000_000.0)
+    } else if bytes >= 1_000 {
+        format!("{:.2} KB", bytes as f64 / 1_000.0)
+    } else {
+        format!("{} B", bytes)
+    }
+}
+
+/// Format duration in seconds as human readable
+pub fn format_duration_human(seconds: u64) -> String {
+    if seconds >= 3600 {
+        format!(
+            "{}h {}m {}s",
+            seconds / 3600,
+            (seconds % 3600) / 60,
+            seconds % 60
+        )
+    } else if seconds >= 60 {
+        format!("{}m {}s", seconds / 60, seconds % 60)
+    } else {
+        format!("{}s", seconds)
+    }
+}
+
+/// Check if path looks like stdin/stdout marker
+pub fn is_stdio_path(path: &Path) -> bool {
+    path == Path::new("-") || path == Path::new("/dev/stdin") || path == Path::new("/dev/stdout")
+}
+
+// =============================================================================
+// SIZE PARSING (extracted from commands.rs)
+// =============================================================================
+
+/// Parse size string like "10GB" or "500MB" into bytes
+pub fn parse_size_string(s: &str) -> Option<u64> {
+    let s = s.trim().to_uppercase();
+    if s.ends_with("GB") {
+        s[..s.len() - 2]
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .map(|n| (n * 1_000_000_000.0) as u64)
+    } else if s.ends_with("MB") {
+        s[..s.len() - 2]
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .map(|n| (n * 1_000_000.0) as u64)
+    } else if s.ends_with("KB") {
+        s[..s.len() - 2]
+            .trim()
+            .parse::<f64>()
+            .ok()
+            .map(|n| (n * 1_000.0) as u64)
+    } else if s.ends_with('B') {
+        s[..s.len() - 1].trim().parse::<u64>().ok()
+    } else {
+        // Try parsing as raw bytes
+        s.parse::<u64>().ok()
+    }
+}
+
+/// Format build time estimate from layer data (pure function)
+pub fn format_build_time_estimate(
+    layer_count: usize,
+    total_size_bytes: u64,
+    has_apt: bool,
+    has_pip: bool,
+    has_npm: bool,
+) -> String {
+    let seconds =
+        estimate_build_time_seconds(layer_count, total_size_bytes, has_apt, has_pip, has_npm);
+    if seconds < 60 {
+        format!("~{}s", seconds)
+    } else {
+        format!("~{}m {}s", seconds / 60, seconds % 60)
+    }
+}
+
+/// Check if size exceeds limit
+pub fn size_exceeds_limit(size_bytes: u64, limit_bytes: u64) -> bool {
+    size_bytes > limit_bytes
+}
+
+/// Calculate size percentage of limit
+pub fn size_percentage_of_limit(size_bytes: u64, limit_bytes: u64) -> f64 {
+    if limit_bytes == 0 {
+        100.0
+    } else {
+        (size_bytes as f64 / limit_bytes as f64) * 100.0
+    }
+}
+
+/// Determine if layer contains slow operation
+pub fn layer_has_slow_operation(content: &str) -> (bool, bool, bool) {
+    let lower = content.to_lowercase();
+    (
+        lower.contains("apt-get install") || lower.contains("apt install"),
+        lower.contains("pip install") || lower.contains("pip3 install"),
+        lower.contains("npm install") || lower.contains("yarn install"),
+    )
+}
+
+/// Format size comparison for display
+pub fn format_size_comparison(actual_bytes: u64, limit_bytes: u64) -> String {
+    let actual_gb = actual_bytes as f64 / 1_000_000_000.0;
+    let limit_gb = limit_bytes as f64 / 1_000_000_000.0;
+    let percentage = size_percentage_of_limit(actual_bytes, limit_bytes);
+
+    if actual_bytes > limit_bytes {
+        format!("✗ EXCEEDS LIMIT: {:.2}GB > {:.0}GB", actual_gb, limit_gb)
+    } else {
+        format!(
+            "✓ Within limit: {:.2}GB / {:.0}GB ({:.0}%)",
+            actual_gb, limit_gb, percentage
+        )
+    }
+}
+
+/// Parse multiple rule codes from comma-separated string
+pub fn parse_rule_codes(input: &str) -> Vec<String> {
+    input
+        .split(',')
+        .map(|s| s.trim().to_uppercase())
+        .filter(|s| !s.is_empty())
+        .collect()
+}
+
+/// Check if diagnostic code matches any of the rule filters
+pub fn diagnostic_matches_rules(code: &str, rules: &[String]) -> bool {
+    rules.iter().any(|rule| code.contains(rule))
+}
+
+/// Format lint severity as icon
+pub fn severity_icon(severity: &str) -> &'static str {
+    match severity.to_lowercase().as_str() {
+        "error" => "❌",
+        "warning" => "⚠",
+        "info" => "ℹ",
+        "hint" => "💡",
+        _ => "•",
+    }
+}
+
+/// Classify test result status
+pub fn test_result_status(passed: usize, failed: usize, total: usize) -> &'static str {
+    if failed > 0 {
+        "FAILED"
+    } else if passed == total && total > 0 {
+        "PASSED"
+    } else if total == 0 {
+        "NO TESTS"
+    } else {
+        "PARTIAL"
+    }
+}
+
+/// Calculate test pass rate
+pub fn test_pass_rate(passed: usize, total: usize) -> f64 {
+    if total == 0 {
+        100.0
+    } else {
+        (passed as f64 / total as f64) * 100.0
     }
 }
 
@@ -1876,20 +2413,30 @@ mod tests {
     }
 
     #[test]
+    fn test_coverage_class_excellent() {
+        assert_eq!(coverage_class(100.0), "excellent");
+        assert_eq!(coverage_class(95.0), "excellent");
+        assert_eq!(coverage_class(90.0), "excellent");
+    }
+
+    #[test]
     fn test_coverage_class_good() {
-        assert_eq!(coverage_class(90.0), "good");
+        assert_eq!(coverage_class(89.9), "good");
+        assert_eq!(coverage_class(85.0), "good");
         assert_eq!(coverage_class(80.0), "good");
     }
 
     #[test]
-    fn test_coverage_class_medium() {
-        assert_eq!(coverage_class(75.0), "medium");
-        assert_eq!(coverage_class(50.0), "medium");
+    fn test_coverage_class_fair() {
+        assert_eq!(coverage_class(79.9), "fair");
+        assert_eq!(coverage_class(75.0), "fair");
+        assert_eq!(coverage_class(70.0), "fair");
     }
 
     #[test]
     fn test_coverage_class_poor() {
-        assert_eq!(coverage_class(49.0), "poor");
+        assert_eq!(coverage_class(69.9), "poor");
+        assert_eq!(coverage_class(50.0), "poor");
         assert_eq!(coverage_class(0.0), "poor");
     }
 
@@ -2107,5 +2654,746 @@ mod tests {
         };
 
         assert!(!result.passed());
+    }
+
+    // ===== EXTRACT EXIT CODE TESTS =====
+
+    #[test]
+    fn test_extract_exit_code_exit_code_pattern() {
+        assert_eq!(extract_exit_code("Process failed with exit code 1"), 1);
+        assert_eq!(extract_exit_code("exit code 127"), 127);
+        assert_eq!(extract_exit_code("Error: exit code 255"), 255);
+    }
+
+    #[test]
+    fn test_extract_exit_code_exited_with_pattern() {
+        assert_eq!(extract_exit_code("Command exited with 42"), 42);
+        assert_eq!(extract_exit_code("Process exited with 0"), 0);
+    }
+
+    #[test]
+    fn test_extract_exit_code_returned_pattern() {
+        assert_eq!(extract_exit_code("Function returned 5"), 5);
+        assert_eq!(extract_exit_code("returned 100"), 100);
+    }
+
+    #[test]
+    fn test_extract_exit_code_status_pattern() {
+        assert_eq!(extract_exit_code("status 2"), 2);
+        assert_eq!(extract_exit_code("Exit status 128"), 128);
+    }
+
+    #[test]
+    fn test_extract_exit_code_command_not_found() {
+        assert_eq!(extract_exit_code("bash: foo: command not found"), 127);
+        assert_eq!(extract_exit_code("command not found: xyz"), 127);
+    }
+
+    #[test]
+    fn test_extract_exit_code_permission_denied() {
+        assert_eq!(extract_exit_code("Permission denied"), 126);
+        assert_eq!(extract_exit_code("Error: permission denied"), 126);
+    }
+
+    #[test]
+    fn test_extract_exit_code_default() {
+        assert_eq!(extract_exit_code("Unknown error"), 1);
+        assert_eq!(extract_exit_code("Something went wrong"), 1);
+        assert_eq!(extract_exit_code(""), 1);
+    }
+
+    // ===== SHOULD OUTPUT TO STDOUT TESTS =====
+
+    #[test]
+    fn test_should_output_to_stdout_dash() {
+        use std::path::Path;
+        assert!(should_output_to_stdout(Path::new("-")));
+    }
+
+    #[test]
+    fn test_should_output_to_stdout_devnull() {
+        use std::path::Path;
+        assert!(should_output_to_stdout(Path::new("/dev/null")));
+    }
+
+    #[test]
+    fn test_should_output_to_stdout_regular_file() {
+        use std::path::Path;
+        assert!(!should_output_to_stdout(Path::new("output.txt")));
+        assert!(!should_output_to_stdout(Path::new("/tmp/file.sh")));
+    }
+
+    // ===== DETECT PLATFORM TESTS =====
+
+    #[test]
+    fn test_detect_platform_returns_valid() {
+        let platform = detect_platform();
+        let valid_platforms = ["linux", "macos", "windows", "unknown"];
+        assert!(valid_platforms.contains(&platform));
+    }
+
+    // ===== COUNT DUPLICATE PATH ENTRIES TESTS =====
+
+    #[test]
+    fn test_count_duplicate_path_entries_none() {
+        let entries = vec![
+            "/usr/bin".to_string(),
+            "/usr/local/bin".to_string(),
+            "/home/user/bin".to_string(),
+        ];
+        assert_eq!(count_duplicate_path_entries(&entries), 0);
+    }
+
+    #[test]
+    fn test_count_duplicate_path_entries_some() {
+        let entries = vec![
+            "/usr/bin".to_string(),
+            "/usr/local/bin".to_string(),
+            "/usr/bin".to_string(), // duplicate
+        ];
+        assert_eq!(count_duplicate_path_entries(&entries), 1);
+    }
+
+    #[test]
+    fn test_count_duplicate_path_entries_multiple() {
+        let entries = vec![
+            "/usr/bin".to_string(),
+            "/usr/bin".to_string(),
+            "/usr/bin".to_string(),
+            "/home/user/bin".to_string(),
+            "/home/user/bin".to_string(),
+        ];
+        assert_eq!(count_duplicate_path_entries(&entries), 3); // 2 extra /usr/bin + 1 extra /home/user/bin
+    }
+
+    #[test]
+    fn test_count_duplicate_path_entries_empty() {
+        let entries: Vec<String> = vec![];
+        assert_eq!(count_duplicate_path_entries(&entries), 0);
+    }
+
+    // ===== ESTIMATE BUILD TIME TESTS =====
+
+    #[test]
+    fn test_estimate_build_time_small() {
+        // 10 layers, 100MB, no package managers
+        let time = estimate_build_time_seconds(10, 100_000_000, false, false, false);
+        assert!(time >= 10); // at least 10 seconds for layers
+    }
+
+    #[test]
+    fn test_estimate_build_time_large() {
+        // 20 layers, 1GB, with package managers
+        let time = estimate_build_time_seconds(20, 1_000_000_000, true, true, true);
+        assert!(time > 30); // layers + size + package manager overhead
+    }
+
+    #[test]
+    fn test_estimate_build_time_with_apt() {
+        let no_apt = estimate_build_time_seconds(10, 100_000_000, false, false, false);
+        let with_apt = estimate_build_time_seconds(10, 100_000_000, true, false, false);
+        assert!(with_apt > no_apt);
+    }
+
+    #[test]
+    fn test_estimate_build_time_with_pip() {
+        let no_pip = estimate_build_time_seconds(10, 100_000_000, false, false, false);
+        let with_pip = estimate_build_time_seconds(10, 100_000_000, false, true, false);
+        assert!(with_pip > no_pip);
+    }
+
+    #[test]
+    fn test_estimate_build_time_with_npm() {
+        let no_npm = estimate_build_time_seconds(10, 100_000_000, false, false, false);
+        let with_npm = estimate_build_time_seconds(10, 100_000_000, false, false, true);
+        assert!(with_npm > no_npm);
+    }
+
+    // ===== DOCKERFILE PURIFICATION TESTS =====
+
+    #[test]
+    fn test_purify_dockerfile_source_basic() {
+        let source = "FROM ubuntu\nRUN apt-get install -y curl\nCMD [\"bash\"]";
+        let purified = purify_dockerfile_source(source, false);
+
+        // Should pin ubuntu version
+        assert!(purified.contains("ubuntu:22.04"));
+        // Should add --no-install-recommends
+        assert!(purified.contains("--no-install-recommends"));
+        // Should add cleanup
+        assert!(purified.contains("rm -rf /var/lib/apt/lists"));
+        // Should add USER directive
+        assert!(purified.contains("USER appuser"));
+    }
+
+    #[test]
+    fn test_purify_dockerfile_source_skip_user() {
+        let source = "FROM ubuntu\nCMD [\"bash\"]";
+        let purified = purify_dockerfile_source(source, true);
+
+        // Should NOT add USER directive when skip_user is true
+        assert!(!purified.contains("USER appuser"));
+    }
+
+    #[test]
+    fn test_purify_dockerfile_source_existing_user() {
+        let source = "FROM ubuntu\nUSER myuser\nCMD [\"bash\"]";
+        let purified = purify_dockerfile_source(source, false);
+
+        // Should NOT add another USER directive
+        assert!(!purified.contains("USER appuser"));
+        assert!(purified.contains("USER myuser"));
+    }
+
+    #[test]
+    fn test_purify_dockerfile_source_scratch() {
+        let source = "FROM scratch\nCOPY binary /\nCMD [\"/binary\"]";
+        let purified = purify_dockerfile_source(source, false);
+
+        // Should NOT add USER directive for scratch images
+        assert!(!purified.contains("USER appuser"));
+    }
+
+    #[test]
+    fn test_dockerfile_has_user_directive() {
+        assert!(dockerfile_has_user_directive(
+            "FROM ubuntu\nUSER root\nCMD bash"
+        ));
+        assert!(!dockerfile_has_user_directive("FROM ubuntu\nCMD bash"));
+        assert!(dockerfile_has_user_directive("USER nobody"));
+    }
+
+    #[test]
+    fn test_dockerfile_is_scratch() {
+        assert!(dockerfile_is_scratch("FROM scratch\nCOPY app /"));
+        assert!(!dockerfile_is_scratch("FROM ubuntu\nCOPY app /"));
+        assert!(dockerfile_is_scratch("  FROM scratch  "));
+    }
+
+    #[test]
+    fn test_dockerfile_find_cmd_line() {
+        assert_eq!(
+            dockerfile_find_cmd_line("FROM ubuntu\nRUN apt update\nCMD bash"),
+            Some(2)
+        );
+        assert_eq!(
+            dockerfile_find_cmd_line("FROM ubuntu\nENTRYPOINT [\"app\"]"),
+            Some(1)
+        );
+        assert_eq!(
+            dockerfile_find_cmd_line("FROM ubuntu\nRUN apt update"),
+            None
+        );
+    }
+
+    // ===== LINT FILTERING TESTS =====
+
+    #[test]
+    fn test_parse_rule_filter() {
+        let rules = parse_rule_filter("SEC001,DET002,IDEM003");
+        assert_eq!(rules, vec!["SEC001", "DET002", "IDEM003"]);
+    }
+
+    #[test]
+    fn test_parse_rule_filter_with_spaces() {
+        let rules = parse_rule_filter(" SEC001 , DET002 , IDEM003 ");
+        assert_eq!(rules, vec!["SEC001", "DET002", "IDEM003"]);
+    }
+
+    #[test]
+    fn test_parse_rule_filter_single() {
+        let rules = parse_rule_filter("SEC001");
+        assert_eq!(rules, vec!["SEC001"]);
+    }
+
+    // ===== GRADE INTERPRETATION TESTS =====
+
+    #[test]
+    fn test_grade_interpretation_excellent() {
+        assert!(grade_interpretation("A+").contains("Excellent"));
+        assert!(grade_interpretation("A").contains("Great"));
+    }
+
+    #[test]
+    fn test_grade_interpretation_good() {
+        assert!(grade_interpretation("B+").contains("Good"));
+        assert!(grade_interpretation("B").contains("Good"));
+    }
+
+    #[test]
+    fn test_grade_interpretation_average() {
+        assert!(grade_interpretation("C+").contains("Average"));
+        assert!(grade_interpretation("C").contains("Average"));
+    }
+
+    #[test]
+    fn test_grade_interpretation_poor() {
+        assert!(grade_interpretation("D").contains("Below"));
+        assert!(grade_interpretation("F").contains("Poor"));
+    }
+
+    #[test]
+    fn test_grade_interpretation_unknown() {
+        assert!(grade_interpretation("X").contains("Unknown"));
+    }
+
+    #[test]
+    fn test_grade_symbol() {
+        assert_eq!(grade_symbol("A+"), "✓");
+        assert_eq!(grade_symbol("A"), "✓");
+        assert_eq!(grade_symbol("B+"), "✓");
+        assert_eq!(grade_symbol("B"), "✓");
+        assert_eq!(grade_symbol("C+"), "⚠");
+        assert_eq!(grade_symbol("C"), "⚠");
+        assert_eq!(grade_symbol("D"), "⚠");
+        assert_eq!(grade_symbol("F"), "✗");
+        assert_eq!(grade_symbol("X"), "?");
+    }
+
+    // ===== REPORT FORMATTING TESTS =====
+
+    #[test]
+    fn test_format_purify_report_human() {
+        let items = vec!["Fixed tabs".to_string(), "Added phony".to_string()];
+        let report = format_purify_report_human(5, 3, 2, &items);
+
+        assert!(report.contains("Makefile Purification Report"));
+        assert!(report.contains("Transformations Applied: 5"));
+        assert!(report.contains("Issues Fixed: 3"));
+        assert!(report.contains("Manual Fixes Needed: 2"));
+        assert!(report.contains("1: Fixed tabs"));
+        assert!(report.contains("2: Added phony"));
+    }
+
+    #[test]
+    fn test_format_purify_report_json() {
+        let items = vec!["Fix1".to_string()];
+        let report = format_purify_report_json(1, 1, 0, &items);
+
+        assert!(report.contains("\"transformations_applied\": 1"));
+        assert!(report.contains("\"issues_fixed\": 1"));
+        assert!(report.contains("\"manual_fixes_needed\": 0"));
+        assert!(report.contains("\"Fix1\""));
+    }
+
+    #[test]
+    fn test_format_purify_report_markdown() {
+        let items = vec!["Item1".to_string()];
+        let report = format_purify_report_markdown(2, 1, 1, &items);
+
+        assert!(report.contains("# Makefile Purification Report"));
+        assert!(report.contains("**Transformations**: 2"));
+        assert!(report.contains("1. Item1"));
+    }
+
+    // ===== SCORE FORMATTING TESTS =====
+
+    #[test]
+    fn test_format_score_human_basic() {
+        let suggestions = vec!["Add tests".to_string()];
+        let report = format_score_human("A", 9.0, 9.0, 9.0, 9.0, 8.0, 8.0, &suggestions, false);
+
+        assert!(report.contains("Overall Grade: A"));
+        assert!(report.contains("9.0/10.0"));
+        assert!(report.contains("Add tests"));
+    }
+
+    #[test]
+    fn test_format_score_human_detailed() {
+        let report = format_score_human("B", 8.0, 7.0, 8.0, 9.0, 6.0, 7.0, &[], true);
+
+        assert!(report.contains("Dimension Scores:"));
+        assert!(report.contains("Complexity:"));
+        assert!(report.contains("Safety:"));
+        assert!(report.contains("Maintainability:"));
+    }
+
+    #[test]
+    fn test_format_score_human_no_suggestions() {
+        let report = format_score_human("A+", 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, &[], false);
+
+        assert!(!report.contains("Improvement Suggestions:"));
+    }
+
+    // ===== VALIDATION TESTS =====
+
+    #[test]
+    fn test_validate_proof_data_valid() {
+        assert!(validate_proof_data("deadbeef", "strict", "posix"));
+        assert!(validate_proof_data("0123456789abcdef", "minimal", "bash"));
+    }
+
+    #[test]
+    fn test_validate_proof_data_invalid_hash() {
+        assert!(!validate_proof_data("", "strict", "posix"));
+        assert!(!validate_proof_data("xyz123", "strict", "posix")); // non-hex
+    }
+
+    #[test]
+    fn test_validate_proof_data_empty_fields() {
+        assert!(!validate_proof_data("deadbeef", "", "posix"));
+        assert!(!validate_proof_data("deadbeef", "strict", ""));
+    }
+
+    // ===== SHELL DIALECT TESTS =====
+
+    #[test]
+    fn test_parse_shell_dialect_posix() {
+        assert_eq!(parse_shell_dialect("posix"), Some("posix"));
+        assert_eq!(parse_shell_dialect("sh"), Some("posix"));
+        assert_eq!(parse_shell_dialect("POSIX"), Some("posix"));
+        assert_eq!(parse_shell_dialect("SH"), Some("posix"));
+    }
+
+    #[test]
+    fn test_parse_shell_dialect_bash() {
+        assert_eq!(parse_shell_dialect("bash"), Some("bash"));
+        assert_eq!(parse_shell_dialect("BASH"), Some("bash"));
+    }
+
+    #[test]
+    fn test_parse_shell_dialect_zsh() {
+        assert_eq!(parse_shell_dialect("zsh"), Some("zsh"));
+        assert_eq!(parse_shell_dialect("ZSH"), Some("zsh"));
+    }
+
+    #[test]
+    fn test_parse_shell_dialect_dash() {
+        assert_eq!(parse_shell_dialect("dash"), Some("dash"));
+    }
+
+    #[test]
+    fn test_parse_shell_dialect_unknown() {
+        assert_eq!(parse_shell_dialect("fish"), None);
+        assert_eq!(parse_shell_dialect("invalid"), None);
+    }
+
+    // ===== PERCENTAGE CALCULATION TESTS =====
+
+    #[test]
+    fn test_calculate_percentage_normal() {
+        assert_eq!(calculate_percentage(50, 100), 50.0);
+        assert_eq!(calculate_percentage(75, 100), 75.0);
+        assert_eq!(calculate_percentage(1, 4), 25.0);
+    }
+
+    #[test]
+    fn test_calculate_percentage_zero_total() {
+        assert_eq!(calculate_percentage(0, 0), 100.0);
+        assert_eq!(calculate_percentage(5, 0), 100.0);
+    }
+
+    #[test]
+    fn test_calculate_percentage_full() {
+        assert_eq!(calculate_percentage(100, 100), 100.0);
+    }
+
+    // ===== BYTES FORMATTING TESTS =====
+
+    #[test]
+    fn test_format_bytes_human_bytes() {
+        assert_eq!(format_bytes_human(0), "0 B");
+        assert_eq!(format_bytes_human(512), "512 B");
+        assert_eq!(format_bytes_human(999), "999 B");
+    }
+
+    #[test]
+    fn test_format_bytes_human_kb() {
+        assert_eq!(format_bytes_human(1_000), "1.00 KB");
+        assert_eq!(format_bytes_human(1_500), "1.50 KB");
+        assert_eq!(format_bytes_human(999_999), "1000.00 KB");
+    }
+
+    #[test]
+    fn test_format_bytes_human_mb() {
+        assert_eq!(format_bytes_human(1_000_000), "1.00 MB");
+        assert_eq!(format_bytes_human(500_000_000), "500.00 MB");
+    }
+
+    #[test]
+    fn test_format_bytes_human_gb() {
+        assert_eq!(format_bytes_human(1_000_000_000), "1.00 GB");
+        assert_eq!(format_bytes_human(2_500_000_000), "2.50 GB");
+    }
+
+    // ===== DURATION FORMATTING TESTS =====
+
+    #[test]
+    fn test_format_duration_human_seconds() {
+        assert_eq!(format_duration_human(0), "0s");
+        assert_eq!(format_duration_human(30), "30s");
+        assert_eq!(format_duration_human(59), "59s");
+    }
+
+    #[test]
+    fn test_format_duration_human_minutes() {
+        assert_eq!(format_duration_human(60), "1m 0s");
+        assert_eq!(format_duration_human(90), "1m 30s");
+        assert_eq!(format_duration_human(3599), "59m 59s");
+    }
+
+    #[test]
+    fn test_format_duration_human_hours() {
+        assert_eq!(format_duration_human(3600), "1h 0m 0s");
+        assert_eq!(format_duration_human(3661), "1h 1m 1s");
+        assert_eq!(format_duration_human(7325), "2h 2m 5s");
+    }
+
+    // ===== STDIO PATH TESTS =====
+
+    #[test]
+    fn test_is_stdio_path_stdin_stdout() {
+        assert!(is_stdio_path(Path::new("-")));
+        assert!(is_stdio_path(Path::new("/dev/stdin")));
+        assert!(is_stdio_path(Path::new("/dev/stdout")));
+    }
+
+    #[test]
+    fn test_is_stdio_path_regular_files() {
+        assert!(!is_stdio_path(Path::new("output.txt")));
+        assert!(!is_stdio_path(Path::new("/tmp/file.sh")));
+        assert!(!is_stdio_path(Path::new("/dev/null")));
+    }
+
+    // ===== SIZE PARSING TESTS =====
+
+    #[test]
+    fn test_parse_size_string_gb() {
+        assert_eq!(parse_size_string("1GB"), Some(1_000_000_000));
+        assert_eq!(parse_size_string("2.5GB"), Some(2_500_000_000));
+        assert_eq!(parse_size_string("10GB"), Some(10_000_000_000));
+    }
+
+    #[test]
+    fn test_parse_size_string_mb() {
+        assert_eq!(parse_size_string("100MB"), Some(100_000_000));
+        assert_eq!(parse_size_string("500MB"), Some(500_000_000));
+        assert_eq!(parse_size_string("1.5MB"), Some(1_500_000));
+    }
+
+    #[test]
+    fn test_parse_size_string_kb() {
+        assert_eq!(parse_size_string("1KB"), Some(1_000));
+        assert_eq!(parse_size_string("500KB"), Some(500_000));
+    }
+
+    #[test]
+    fn test_parse_size_string_bytes() {
+        assert_eq!(parse_size_string("1000B"), Some(1000));
+        assert_eq!(parse_size_string("1000"), Some(1000));
+    }
+
+    #[test]
+    fn test_parse_size_string_case_insensitive() {
+        assert_eq!(parse_size_string("1gb"), Some(1_000_000_000));
+        assert_eq!(parse_size_string("1Gb"), Some(1_000_000_000));
+        assert_eq!(parse_size_string("1mb"), Some(1_000_000));
+    }
+
+    #[test]
+    fn test_parse_size_string_with_spaces() {
+        assert_eq!(parse_size_string("  1GB  "), Some(1_000_000_000));
+        // "500 MB" works because the number part gets trimmed after extracting
+        assert_eq!(parse_size_string("500 MB"), Some(500_000_000));
+    }
+
+    #[test]
+    fn test_parse_size_string_invalid() {
+        assert_eq!(parse_size_string("invalid"), None);
+        assert_eq!(parse_size_string(""), None);
+        assert_eq!(parse_size_string("GB"), None);
+    }
+
+    // ===== BUILD TIME ESTIMATE TESTS =====
+
+    #[test]
+    fn test_format_build_time_estimate_seconds() {
+        let result = format_build_time_estimate(5, 100_000_000, false, false, false);
+        assert!(result.starts_with("~"));
+        assert!(result.contains('s'));
+    }
+
+    #[test]
+    fn test_format_build_time_estimate_minutes() {
+        // Large enough to be over 60 seconds
+        let result = format_build_time_estimate(50, 5_000_000_000, true, true, true);
+        assert!(result.contains('m'));
+    }
+
+    // ===== SIZE LIMIT TESTS =====
+
+    #[test]
+    fn test_size_exceeds_limit() {
+        assert!(size_exceeds_limit(2_000_000_000, 1_000_000_000));
+        assert!(!size_exceeds_limit(500_000_000, 1_000_000_000));
+        assert!(!size_exceeds_limit(1_000_000_000, 1_000_000_000));
+    }
+
+    #[test]
+    fn test_size_percentage_of_limit() {
+        assert_eq!(size_percentage_of_limit(500_000_000, 1_000_000_000), 50.0);
+        assert_eq!(
+            size_percentage_of_limit(1_000_000_000, 1_000_000_000),
+            100.0
+        );
+        assert_eq!(size_percentage_of_limit(250_000_000, 1_000_000_000), 25.0);
+    }
+
+    #[test]
+    fn test_size_percentage_of_limit_zero() {
+        assert_eq!(size_percentage_of_limit(100, 0), 100.0);
+    }
+
+    // ===== LAYER OPERATION TESTS =====
+
+    #[test]
+    fn test_layer_has_slow_operation_apt() {
+        let (apt, pip, npm) = layer_has_slow_operation("RUN apt-get install -y curl");
+        assert!(apt);
+        assert!(!pip);
+        assert!(!npm);
+    }
+
+    #[test]
+    fn test_layer_has_slow_operation_pip() {
+        let (apt, pip, npm) = layer_has_slow_operation("RUN pip install requests");
+        assert!(!apt);
+        assert!(pip);
+        assert!(!npm);
+    }
+
+    #[test]
+    fn test_layer_has_slow_operation_npm() {
+        let (apt, pip, npm) = layer_has_slow_operation("RUN npm install express");
+        assert!(!apt);
+        assert!(!pip);
+        assert!(npm);
+    }
+
+    #[test]
+    fn test_layer_has_slow_operation_yarn() {
+        let (apt, pip, npm) = layer_has_slow_operation("RUN yarn install");
+        assert!(!apt);
+        assert!(!pip);
+        assert!(npm); // yarn counts as npm-like
+    }
+
+    #[test]
+    fn test_layer_has_slow_operation_none() {
+        let (apt, pip, npm) = layer_has_slow_operation("RUN echo hello");
+        assert!(!apt);
+        assert!(!pip);
+        assert!(!npm);
+    }
+
+    #[test]
+    fn test_layer_has_slow_operation_multiple() {
+        let (apt, pip, npm) =
+            layer_has_slow_operation("RUN apt-get install && pip install && npm install");
+        assert!(apt);
+        assert!(pip);
+        assert!(npm);
+    }
+
+    // ===== SIZE COMPARISON TESTS =====
+
+    #[test]
+    fn test_format_size_comparison_within_limit() {
+        let result = format_size_comparison(500_000_000, 1_000_000_000);
+        assert!(result.contains("✓"));
+        assert!(result.contains("Within limit"));
+        assert!(result.contains("50%"));
+    }
+
+    #[test]
+    fn test_format_size_comparison_exceeds() {
+        let result = format_size_comparison(2_000_000_000, 1_000_000_000);
+        assert!(result.contains("✗"));
+        assert!(result.contains("EXCEEDS"));
+    }
+
+    // ===== RULE CODE TESTS =====
+
+    #[test]
+    fn test_parse_rule_codes() {
+        let codes = parse_rule_codes("sec001,det002,idem003");
+        assert_eq!(codes, vec!["SEC001", "DET002", "IDEM003"]);
+    }
+
+    #[test]
+    fn test_parse_rule_codes_with_spaces() {
+        let codes = parse_rule_codes(" sec001 , det002 ");
+        assert_eq!(codes, vec!["SEC001", "DET002"]);
+    }
+
+    #[test]
+    fn test_parse_rule_codes_empty() {
+        let codes = parse_rule_codes("");
+        assert!(codes.is_empty());
+    }
+
+    #[test]
+    fn test_diagnostic_matches_rules() {
+        let rules = vec!["SEC".to_string(), "DET".to_string()];
+        assert!(diagnostic_matches_rules("SEC001", &rules));
+        assert!(diagnostic_matches_rules("DET002", &rules));
+        assert!(!diagnostic_matches_rules("IDEM001", &rules));
+    }
+
+    // ===== SEVERITY ICON TESTS =====
+
+    #[test]
+    fn test_severity_icon() {
+        assert_eq!(severity_icon("error"), "❌");
+        assert_eq!(severity_icon("Error"), "❌");
+        assert_eq!(severity_icon("ERROR"), "❌");
+        assert_eq!(severity_icon("warning"), "⚠");
+        assert_eq!(severity_icon("info"), "ℹ");
+        assert_eq!(severity_icon("hint"), "💡");
+        assert_eq!(severity_icon("unknown"), "•");
+    }
+
+    // ===== TEST RESULT STATUS TESTS =====
+
+    #[test]
+    fn test_test_result_status_passed() {
+        assert_eq!(test_result_status(10, 0, 10), "PASSED");
+    }
+
+    #[test]
+    fn test_test_result_status_failed() {
+        assert_eq!(test_result_status(8, 2, 10), "FAILED");
+    }
+
+    #[test]
+    fn test_test_result_status_no_tests() {
+        assert_eq!(test_result_status(0, 0, 0), "NO TESTS");
+    }
+
+    #[test]
+    fn test_test_result_status_partial() {
+        assert_eq!(test_result_status(5, 0, 10), "PARTIAL");
+    }
+
+    // ===== TEST PASS RATE TESTS =====
+
+    #[test]
+    fn test_test_pass_rate_all_passed() {
+        assert_eq!(test_pass_rate(10, 10), 100.0);
+    }
+
+    #[test]
+    fn test_test_pass_rate_half() {
+        assert_eq!(test_pass_rate(5, 10), 50.0);
+    }
+
+    #[test]
+    fn test_test_pass_rate_none() {
+        assert_eq!(test_pass_rate(0, 10), 0.0);
+    }
+
+    #[test]
+    fn test_test_pass_rate_no_tests() {
+        assert_eq!(test_pass_rate(0, 0), 100.0);
     }
 }

@@ -309,6 +309,27 @@ impl Formatter {
                     format!("{}coproc {{ {}; }}", indent_str, stmts.join("; "))
                 }
             }
+            BashStmt::Select {
+                variable,
+                items,
+                body,
+                ..
+            } => {
+                // F017: Format select statement
+                let items_str = self.format_expr(items);
+                let body_stmts: Vec<String> = body
+                    .iter()
+                    .map(|s| self.format_stmt(s, indent + 1))
+                    .collect();
+                format!(
+                    "{}select {} in {}; do\n{}\n{}done",
+                    indent_str,
+                    variable,
+                    items_str,
+                    body_stmts.join("\n"),
+                    indent_str
+                )
+            }
         }
     }
 
@@ -556,6 +577,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("value".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -573,6 +595,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("value".to_string()),
                 exported: true,
                 span: Span::dummy(),
@@ -1154,6 +1177,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "arr".to_string(),
+                index: None,
                 value: BashExpr::Array(vec![
                     BashExpr::Literal("a".to_string()),
                     BashExpr::Literal("b".to_string()),
@@ -1761,12 +1785,14 @@ mod tests {
             statements: vec![
                 BashStmt::Assignment {
                     name: "x".to_string(),
+                    index: None,
                     value: BashExpr::Literal("1".to_string()),
                     exported: false,
                     span: Span::dummy(),
                 },
                 BashStmt::Assignment {
                     name: "y".to_string(),
+                    index: None,
                     value: BashExpr::Literal("2".to_string()),
                     exported: false,
                     span: Span::dummy(),

@@ -458,6 +458,7 @@ mod tests {
                 name: "pure_func".to_string(),
                 body: vec![BashStmt::Assignment {
                     name: "result".to_string(),
+                    index: None,
                     value: BashExpr::Literal("42".to_string()),
                     exported: false,
                     span: Span::dummy(),
@@ -563,6 +564,7 @@ mod tests {
         // Test with pure operations
         let body = vec![BashStmt::Assignment {
             name: "x".to_string(),
+            index: None,
             value: BashExpr::Literal("42".to_string()),
             exported: false,
             span: Span::dummy(),
@@ -588,6 +590,7 @@ mod tests {
         // Test with non-idempotent operations
         let body = vec![BashStmt::Assignment {
             name: "x".to_string(),
+            index: None,
             value: BashExpr::Literal("42".to_string()),
             exported: false,
             span: Span::dummy(),
@@ -603,12 +606,14 @@ mod tests {
         let body = vec![
             BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::Literal("42".to_string()),
                 exported: false,
                 span: Span::dummy(),
             },
             BashStmt::Assignment {
                 name: "y".to_string(),
+                index: None,
                 value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
                     Box::new(ArithExpr::Variable("x".to_string())),
                     Box::new(ArithExpr::Number(1)),
