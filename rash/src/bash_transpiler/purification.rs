@@ -108,6 +108,7 @@ impl Purifier {
         match stmt {
             BashStmt::Assignment {
                 name,
+                index,
                 value,
                 exported,
                 span,
@@ -117,6 +118,7 @@ impl Purifier {
 
                 Ok(BashStmt::Assignment {
                     name: name.clone(),
+                    index: index.clone(),
                     value: purified_value,
                     exported: *exported,
                     span: *span,
@@ -402,6 +404,26 @@ impl Purifier {
 
                 Ok(BashStmt::Coproc {
                     name: name.clone(),
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+            BashStmt::Select {
+                variable,
+                items,
+                body,
+                span,
+            } => {
+                // F017: Purify select statement
+                let purified_items = self.purify_expression(items)?;
+                let mut purified_body = Vec::new();
+                for stmt in body {
+                    purified_body.push(self.purify_statement(stmt)?);
+                }
+
+                Ok(BashStmt::Select {
+                    variable: variable.clone(),
+                    items: purified_items,
                     body: purified_body,
                     span: *span,
                 })
@@ -958,6 +980,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "value".to_string(),
+                index: None,
                 value: BashExpr::Variable("RANDOM".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1012,6 +1035,7 @@ mod tests {
             statements: vec![
                 BashStmt::Assignment {
                     name: "FOO".to_string(),
+                    index: None,
                     value: BashExpr::Literal("bar".to_string()),
                     exported: false,
                     span: Span::dummy(),
@@ -1265,6 +1289,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "time".to_string(),
+                index: None,
                 value: BashExpr::Variable("SECONDS".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1292,6 +1317,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "pid".to_string(),
+                index: None,
                 value: BashExpr::Variable("BASHPID".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1319,6 +1345,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "parent".to_string(),
+                index: None,
                 value: BashExpr::Variable("PPID".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1348,6 +1375,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::Variable("RANDOM".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -2108,6 +2136,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "output".to_string(),
+                index: None,
                 value: BashExpr::CommandSubst(Box::new(BashStmt::Command {
                     name: "date".to_string(),
                     args: vec![],
@@ -2137,6 +2166,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "arr".to_string(),
+                index: None,
                 value: BashExpr::Array(vec![
                     BashExpr::Literal("a".to_string()),
                     BashExpr::Variable("RANDOM".to_string()),
@@ -2172,6 +2202,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::Concat(vec![
                     BashExpr::Literal("prefix_".to_string()),
                     BashExpr::Variable("RANDOM".to_string()),
@@ -2198,6 +2229,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::Literal("hello".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -2225,6 +2257,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "files".to_string(),
+                index: None,
                 value: BashExpr::Glob("*.txt".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -2254,6 +2287,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::DefaultValue {
                     variable: "FOO".to_string(),
                     default: Box::new(BashExpr::Literal("default".to_string())),
@@ -2284,6 +2318,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::DefaultValue {
                     variable: "RANDOM".to_string(),
                     default: Box::new(BashExpr::Literal("0".to_string())),
@@ -2309,6 +2344,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::AssignDefault {
                     variable: "RANDOM".to_string(),
                     default: Box::new(BashExpr::Literal("0".to_string())),
@@ -2334,6 +2370,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::ErrorIfUnset {
                     variable: "RANDOM".to_string(),
                     message: Box::new(BashExpr::Literal("error".to_string())),
@@ -2359,6 +2396,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::AlternativeValue {
                     variable: "RANDOM".to_string(),
                     alternative: Box::new(BashExpr::Literal("alt".to_string())),
@@ -2384,6 +2422,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "len".to_string(),
+                index: None,
                 value: BashExpr::StringLength {
                     variable: "RANDOM".to_string(),
                 },
@@ -2408,6 +2447,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::RemoveSuffix {
                     variable: "RANDOM".to_string(),
                     pattern: Box::new(BashExpr::Literal("*".to_string())),
@@ -2433,6 +2473,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::RemovePrefix {
                     variable: "RANDOM".to_string(),
                     pattern: Box::new(BashExpr::Literal("*".to_string())),
@@ -2458,6 +2499,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::RemoveLongestPrefix {
                     variable: "RANDOM".to_string(),
                     pattern: Box::new(BashExpr::Literal("*".to_string())),
@@ -2483,6 +2525,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::RemoveLongestSuffix {
                     variable: "RANDOM".to_string(),
                     pattern: Box::new(BashExpr::Literal("*".to_string())),
@@ -2727,6 +2770,7 @@ mod tests {
             let ast = BashAst {
                 statements: vec![BashStmt::Assignment {
                     name: "result".to_string(),
+                    index: None,
                     value: BashExpr::Arithmetic(Box::new(op)),
                     exported: false,
                     span: Span::dummy(),
@@ -2749,6 +2793,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "result".to_string(),
+                index: None,
                 value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
                     Box::new(ArithExpr::Variable("RANDOM".to_string())),
                     Box::new(ArithExpr::Number(1)),
@@ -2788,6 +2833,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::Arithmetic(Box::new(ArithExpr::Number(42))),
                 exported: false,
                 span: Span::dummy(),
@@ -2891,6 +2937,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "x".to_string(),
+                index: None,
                 value: BashExpr::Variable("RANDOM".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -2915,6 +2962,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "PATH".to_string(),
+                index: None,
                 value: BashExpr::Literal("/usr/bin".to_string()),
                 exported: true,
                 span: Span::dummy(),

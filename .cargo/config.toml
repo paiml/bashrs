@@ -1,39 +1,4 @@
-# Cargo configuration for Rash project
-# Static Analysis: Testing Spec Section 9
-#
-# Philosophy: Incremental improvement with pragmatic defaults
-# - Start with warnings, promote to errors after codebase cleanup
-# - Focus on safety/security critical lints first
-
-[target.'cfg(all())']
-rustflags = [
-    # PHASE 1: Critical safety lints (currently WARN, will become DENY after cleanup)
-    # These catch the most dangerous patterns
-    "-W", "clippy::unwrap_used",              # TODO: Convert to -D after fixing
-    "-W", "clippy::expect_used",              # TODO: Convert to -D after fixing
-    "-W", "clippy::panic",                    # TODO: Convert to -D after fixing
-    "-W", "clippy::indexing_slicing",         # TODO: Convert to -D after fixing
-
-    # PHASE 2: Development hygiene (WARN level)
-    "-W", "clippy::todo",                     # Track TODO markers
-    "-W", "clippy::unimplemented",            # Track unimplemented code
-    "-W", "clippy::dbg_macro",                # No dbg!() in committed code
-
-    # PHASE 3: Quality lints (WARN level - informational)
-    # Note: pedantic/nursery disabled by default - too noisy (745 warnings!)
-    # "-W", "clippy::pedantic",               # Enable manually: cargo clippy -- -W clippy::pedantic
-    # "-W", "clippy::nursery",                # Enable manually: cargo clippy -- -W clippy::nursery
-    "-W", "clippy::cargo",                    # Cargo-related lints
-]
-
-[alias]
-# Convenience aliases for common commands
-xclippy = "clippy --all-targets --all-features -- -D warnings"
-xtest = "test --all-features"
-xbuild = "build --all-features"
-xcheck = "check --all-features"
-
-# RAM disk acceleration (auto-generated)
-# Note: Using regular target dir due to zram issues
+# Temporary coverage config - DO NOT COMMIT
+# Replaces project config during coverage runs
 [build]
-target-dir = "target"
+target-dir = "/mnt/zram/coverage/bashrs"

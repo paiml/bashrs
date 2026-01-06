@@ -261,6 +261,8 @@ fn test_parser_loops_coverage() {
         ("select opt in a b c; do echo $opt; done", "select_simple"),
         ("for i in 1 2; do break; done", "loop_break"),
         ("for i in 1 2; do continue; done", "loop_continue"),
+        // Invalid syntax to test error path (Poka-Yoke: graceful failure)
+        ("for in; do done", "for_simple"), // Malformed for loop
     ];
 
     for (input, feature) in tests {

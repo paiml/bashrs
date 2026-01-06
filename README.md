@@ -36,16 +36,18 @@
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🚀 What's New in v6.49.0
+## 🚀 What's New in v6.50.0
 
-**Latest Release** - 2026-01-04
+**Latest Release** - 2026-01-06
 
-- **95% Test Coverage Achieved**: Target coverage milestone reached
-  - 10,521 tests passing (100% pass rate)
-  - Line Coverage: 95.00% ✅
-  - Function Coverage: 96.42%
-- **Quality Improvements**: 140+ new tests across oracle, report, and testing modules
-- **EXTREME TDD**: Full methodology with property testing and comprehensive assertions
+- **Logic Extraction for EXTREME TDD**: Pure logic functions extracted from linter rules
+  - `sc2086_logic.rs`: Double-quote detection (37 unit tests)
+  - `sc2154_logic.rs`: Variable reference validation (44 unit tests)
+  - `devcontainer_logic.rs`: JSON validation helpers (42 unit tests)
+  - `sec010_logic.rs`: Path traversal detection (26 unit tests)
+- **New Linter Rules**: docker007-012, signal001, systemd001, launchd001
+- **Fast Coverage**: `make coverage` runs in under 5 minutes with nextest
+- **Quality Metrics**: 9,824 tests, 94.16% line coverage, 96.52% function coverage
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
@@ -205,8 +207,9 @@ bashrs simulate script.sh --seed 42 --verify
 | Metric | Value | Status |
 |--------|-------|--------|
 | **PMAT Score** | 133/134 (99.3%) | ✅ Grade A+ |
-| **Tests** | 7,445 passing | ✅ 100% pass rate |
-| **Coverage** | 91.22% | ⚠️ Target: 95% |
+| **Tests** | 9,824 passing | ✅ 100% pass rate |
+| **Line Coverage** | 94.16% | ✅ Near target (95%) |
+| **Function Coverage** | 96.52% | ✅ Exceeds target |
 | **T-code Falsification** | 142/142 | ✅ 130-point checklist |
 | **D-code Falsification** | 31/31 | ✅ Dockerfile validation |
 | **ShellCheck** | 100% compliant | ✅ All output passes |

@@ -762,6 +762,7 @@ mod tests {
         let gen = UnitTestGenerator::new();
         let body = vec![BashStmt::Assignment {
             name: "x".to_string(),
+            index: None,
             value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
                 Box::new(ArithExpr::Number(1)),
                 Box::new(ArithExpr::Number(2)),
@@ -778,6 +779,7 @@ mod tests {
         let gen = UnitTestGenerator::new();
         let body = vec![BashStmt::Assignment {
             name: "x".to_string(),
+            index: None,
             value: BashExpr::Literal("hello".to_string()),
             exported: false,
             span: Span::dummy(),
@@ -821,6 +823,7 @@ mod tests {
                 name: "arith_func".to_string(),
                 body: vec![BashStmt::Assignment {
                     name: "x".to_string(),
+                    index: None,
                     value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
                         Box::new(ArithExpr::Number(1)),
                         Box::new(ArithExpr::Number(2)),

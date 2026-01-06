@@ -304,6 +304,22 @@ impl SemanticAnalyzer {
                     self.analyze_statement(stmt, scope)?;
                 }
             }
+            BashStmt::Select { variable, body, .. } => {
+                // F017: Analyze select statement - variable is assigned in each iteration
+                scope.variables.insert(
+                    variable.clone(),
+                    VarInfo {
+                        name: variable.clone(),
+                        exported: false,
+                        assigned: true,
+                        used: false,
+                        inferred_type: InferredType::String, // User selection is string
+                    },
+                );
+                for stmt in body {
+                    self.analyze_statement(stmt, scope)?;
+                }
+            }
         }
 
         Ok(())
@@ -588,6 +604,7 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         let ast = make_ast(vec![BashStmt::Assignment {
             name: "FOO".to_string(),
+            index: None,
             value: BashExpr::Literal("bar".to_string()),
             exported: false,
             span: Span::dummy(),
@@ -602,6 +619,7 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         let ast = make_ast(vec![BashStmt::Assignment {
             name: "PATH".to_string(),
+            index: None,
             value: BashExpr::Literal("/usr/bin".to_string()),
             exported: true,
             span: Span::dummy(),
@@ -1019,6 +1037,7 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         let ast = make_ast(vec![BashStmt::Assignment {
             name: "OUT".to_string(),
+            index: None,
             value: BashExpr::CommandSubst(Box::new(BashStmt::Command {
                 name: "date".to_string(),
                 args: vec![],
@@ -1038,6 +1057,7 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         let ast = make_ast(vec![BashStmt::Assignment {
             name: "X".to_string(),
+            index: None,
             value: BashExpr::Concat(vec![
                 BashExpr::Literal("a".to_string()),
                 BashExpr::Variable("B".to_string()),
@@ -1056,6 +1076,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("set".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1102,6 +1123,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("original".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1128,6 +1150,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("set".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1154,6 +1177,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("set".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1180,6 +1204,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "STR".to_string(),
+                index: None,
                 value: BashExpr::Literal("hello".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1205,6 +1230,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "FILE".to_string(),
+                index: None,
                 value: BashExpr::Literal("test.txt".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1231,6 +1257,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "PATH".to_string(),
+                index: None,
                 value: BashExpr::Literal("/usr/local/bin".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1257,6 +1284,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("aaa/bbb/ccc".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1283,6 +1311,7 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "VAR".to_string(),
+                index: None,
                 value: BashExpr::Literal("aaa/bbb/ccc".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -1347,12 +1376,14 @@ mod tests {
         let ast = make_ast(vec![
             BashStmt::Assignment {
                 name: "X".to_string(),
+                index: None,
                 value: BashExpr::Literal("5".to_string()),
                 exported: false,
                 span: Span::dummy(),
             },
             BashStmt::Assignment {
                 name: "Y".to_string(),
+                index: None,
                 value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
                     Box::new(ArithExpr::Variable("X".to_string())),
                     Box::new(ArithExpr::Number(10)),
@@ -1372,6 +1403,7 @@ mod tests {
         let mut analyzer = SemanticAnalyzer::new();
         let ast = make_ast(vec![BashStmt::Assignment {
             name: "RESULT".to_string(),
+            index: None,
             value: BashExpr::Arithmetic(Box::new(ArithExpr::Mod(
                 Box::new(ArithExpr::Div(
                     Box::new(ArithExpr::Mul(

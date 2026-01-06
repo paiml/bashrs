@@ -85,14 +85,41 @@ fn is_empty_or_comment(line: &str) -> bool {
     line.trim().is_empty() || line.trim_start().starts_with('#')
 }
 
+/// Check if previous line is a continuation line (ends with \)
+fn is_continuation_line(line: &str) -> bool {
+    line.trim_end().ends_with('\\')
+}
+
 /// Check for spaces instead of tabs in recipe lines
+/// F039 FIX: Handle continuation lines - don't flag them as recipe errors
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
     let mut in_recipe = false;
     let mut current_target = String::new();
+    let mut in_continuation = false;
 
     for (line_num, line) in lines.iter().enumerate() {
+        // F039 FIX: If we're in a continuation, skip this line
+        if in_continuation {
+            // Check if this line also continues
+            in_continuation = is_continuation_line(line);
+            continue;
+        }
+
+        // Check if this line starts a continuation
+        if is_continuation_line(line) {
+            in_continuation = true;
+            // Still need to check if it's a target line
+            if is_target_line(line) {
+                if let Some(target) = extract_target_name(line) {
+                    current_target = target;
+                    in_recipe = true;
+                }
+            }
+            continue;
+        }
+
         if is_target_line(line) {
             if let Some(target) = extract_target_name(line) {
                 current_target = target;
@@ -203,5 +230,46 @@ install:
         // Only install target has space error
         assert_eq!(result.diagnostics.len(), 1);
         assert!(result.diagnostics[0].message.contains("install"));
+    }
+
+    /// F039: MAKE008 must handle continuation lines
+    /// Issue #121: MAKE008 triggers on .PHONY continuation
+    #[test]
+    fn test_F039_MAKE008_phony_continuation() {
+        // .PHONY with line continuation - should NOT trigger MAKE008
+        let makefile = r#".PHONY: clean \
+        test \
+        install
+
+clean:
+	rm -f *.o"#;
+        let result = check(makefile);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "F039 FALSIFIED: MAKE008 must NOT flag continuation lines. Got: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// F039 variation: Target with line continuation
+    #[test]
+    fn test_F039_MAKE008_target_continuation() {
+        // Target with continuation - should NOT flag the continuation as recipe with spaces
+        let makefile = r#"SRCS = main.c \
+       utils.c \
+       helpers.c
+
+build:
+	gcc $(SRCS) -o app"#;
+        let result = check(makefile);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "F039 FALSIFIED: MAKE008 must NOT flag variable continuation lines. Got: {:?}",
+            result.diagnostics
+        );
     }
 }

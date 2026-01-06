@@ -271,6 +271,24 @@ fn generate_statement(stmt: &BashStmt) -> String {
             coproc.push_str("; }");
             coproc
         }
+        BashStmt::Select {
+            variable,
+            items,
+            body,
+            ..
+        } => {
+            // F017: Generate select statement
+            let mut select = format!("select {} in ", variable);
+            select.push_str(&generate_expr(items));
+            select.push_str("; do\n");
+            for stmt in body {
+                select.push_str("    ");
+                select.push_str(&generate_statement(stmt));
+                select.push('\n');
+            }
+            select.push_str("done");
+            select
+        }
     }
 }
 

@@ -62,6 +62,7 @@ fn test_codegen_003_assignment_not_exported() {
     let ast = BashAst {
         statements: vec![BashStmt::Assignment {
             name: "VAR".to_string(),
+            index: None,
             value: BashExpr::Literal("value".to_string()),
             exported: false,
             span: Span::new(1, 1, 1, 10),
@@ -84,6 +85,7 @@ fn test_codegen_004_assignment_exported() {
     let ast = BashAst {
         statements: vec![BashStmt::Assignment {
             name: "VAR".to_string(),
+            index: None,
             value: BashExpr::Literal("value".to_string()),
             exported: true,
             span: Span::new(1, 1, 1, 10),
@@ -496,6 +498,7 @@ fn test_codegen_018_arithmetic_expression() {
     let ast = BashAst {
         statements: vec![BashStmt::Assignment {
             name: "result".to_string(),
+            index: None,
             value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
                 Box::new(ArithExpr::Number(5)),
                 Box::new(ArithExpr::Number(3)),
@@ -523,6 +526,7 @@ fn test_codegen_019_command_substitution() {
     let ast = BashAst {
         statements: vec![BashStmt::Assignment {
             name: "date_str".to_string(),
+            index: None,
             value: BashExpr::CommandSubst(Box::new(BashStmt::Command {
                 name: "date".to_string(),
                 args: vec![],

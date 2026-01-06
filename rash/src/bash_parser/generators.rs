@@ -235,6 +235,25 @@ fn generate_statement(stmt: &BashStmt) -> String {
             coproc.push_str("; }");
             coproc
         }
+
+        BashStmt::Select {
+            variable,
+            items,
+            body,
+            ..
+        } => {
+            // Generate select: select VAR in ITEMS; do BODY; done
+            let mut select = format!("select {} in ", variable);
+            select.push_str(&generate_expr(items));
+            select.push_str("; do\n");
+            for stmt in body {
+                select.push_str("    ");
+                select.push_str(&generate_statement(stmt));
+                select.push('\n');
+            }
+            select.push_str("done");
+            select
+        }
     }
 }
 
@@ -626,6 +645,7 @@ pub fn bash_stmt(depth: u32) -> BoxedStrategy<BashStmt> {
                 |(name, value, exported)| {
                     BashStmt::Assignment {
                         name,
+                        index: None,
                         value: BashExpr::Literal(value),
                         exported,
                         span: Span::dummy(),
@@ -660,6 +680,7 @@ pub fn bash_stmt(depth: u32) -> BoxedStrategy<BashStmt> {
                 |(name, value, exported)| {
                     BashStmt::Assignment {
                         name,
+                        index: None,
                         value: BashExpr::Literal(value),
                         exported,
                         span: Span::dummy(),
@@ -851,6 +872,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "FOO".to_string(),
+                index: None,
                 value: BashExpr::Literal("bar".to_string()),
                 exported: false,
                 span: Span::dummy(),
@@ -870,6 +892,7 @@ mod tests {
         let ast = BashAst {
             statements: vec![BashStmt::Assignment {
                 name: "PATH".to_string(),
+                index: None,
                 value: BashExpr::Literal("/usr/bin".to_string()),
                 exported: true,
                 span: Span::dummy(),

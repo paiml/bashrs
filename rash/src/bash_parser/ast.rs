@@ -24,9 +24,11 @@ pub struct AstMetadata {
 /// Statement-level AST node
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BashStmt {
-    /// Variable assignment: VAR=value
+    /// Variable assignment: VAR=value or VAR[index]=value (F019: array element)
     Assignment {
         name: String,
+        /// F019: Optional array index for element assignments like `hash[key]=value`
+        index: Option<String>,
         value: BashExpr,
         exported: bool,
         span: Span,
@@ -137,6 +139,16 @@ pub enum BashStmt {
     /// BUG-018: Added coproc keyword support
     Coproc {
         name: Option<String>,
+        body: Vec<BashStmt>,
+        span: Span,
+    },
+
+    /// Select statement: select VAR in WORDS; do COMMANDS; done
+    /// F017: Interactive menu selection loop (bash-specific)
+    /// Presents numbered menu from WORDS, user selects, VAR is set, COMMANDS run
+    Select {
+        variable: String,
+        items: BashExpr,
         body: Vec<BashStmt>,
         span: Span,
     },
@@ -369,6 +381,7 @@ impl BashStmt {
             BashStmt::OrList { .. } => "OrList",
             BashStmt::BraceGroup { .. } => "BraceGroup",
             BashStmt::Coproc { .. } => "Coproc",
+            BashStmt::Select { .. } => "Select",
         }
     }
 
@@ -390,7 +403,8 @@ impl BashStmt {
             | BashStmt::AndList { span, .. }
             | BashStmt::OrList { span, .. }
             | BashStmt::BraceGroup { span, .. }
-            | BashStmt::Coproc { span, .. } => *span,
+            | BashStmt::Coproc { span, .. }
+            | BashStmt::Select { span, .. } => *span,
         };
 
         // Convert bash_parser::Span to tracing::Span
@@ -428,6 +442,7 @@ impl fmt::Display for BashStmt {
                     write!(f, "Coproc({} stmts)", body.len())
                 }
             }
+            BashStmt::Select { variable, .. } => write!(f, "Select({})", variable),
         }
     }
 }
@@ -453,6 +468,7 @@ mod tests {
     fn test_ast_construction() {
         let stmt = BashStmt::Assignment {
             name: "FOO".to_string(),
+            index: None,
             value: BashExpr::Literal("bar".to_string()),
             exported: false,
             span: Span::dummy(),
@@ -495,6 +511,7 @@ mod tests {
     fn test_assignment_construction() {
         let stmt = BashStmt::Assignment {
             name: "x".to_string(),
+            index: None,
             value: BashExpr::Literal("1".to_string()),
             exported: false,
             span: Span::dummy(),
@@ -672,6 +689,7 @@ mod tests {
         let span = Span::new(1, 0, 1, 10);
         let stmt = BashStmt::Assignment {
             name: "x".to_string(),
+            index: None,
             value: BashExpr::Literal("1".to_string()),
             exported: false,
             span,
@@ -702,6 +720,7 @@ mod tests {
     fn test_assignment_display() {
         let stmt = BashStmt::Assignment {
             name: "FOO".to_string(),
+            index: None,
             value: BashExpr::Literal("bar".to_string()),
             exported: false,
             span: Span::dummy(),

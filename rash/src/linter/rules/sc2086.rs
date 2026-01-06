@@ -1,279 +1,32 @@
-//! SC2086: Double quote to prevent globbing and word splitting
-//!
-//! Detects unquoted variable expansions that could cause:
-//! - Word splitting on IFS characters (space, tab, newline)
-//! - Glob expansion of *, ?, [...] patterns
-//!
-//! References:
-//! - https://www.shellcheck.net/wiki/SC2086
-//! - POSIX Shell Command Language Section 2.6.2
+// SC2086: Double quote to prevent globbing and word splitting - THIN SHIM
+// All logic extracted to sc2086_logic.rs
 
+use super::sc2086_logic::*;
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
-use regex::Regex;
-
-/// Check if line should be skipped (comments or assignments)
-fn should_skip_line(line: &str) -> bool {
-    // Skip comments
-    if line.trim_start().starts_with('#') {
-        return true;
-    }
-
-    // Skip variable assignments (VAR=value)
-    if line.contains('=') && !line.contains("if [") && !line.contains("[ ") {
-        if let Some(eq_pos) = line.find('=') {
-            if let Some(first_space) = line.find(' ') {
-                if eq_pos < first_space {
-                    return true; // Assignment, not command
-                }
-            }
-        }
-    }
-
-    false
-}
-
-/// Find the position of $ character before a variable
-fn find_dollar_position(line: &str, var_start: usize) -> usize {
-    line[..var_start].rfind('$').unwrap_or(var_start)
-}
-
-/// Calculate end column for variable span, including closing brace if present
-fn calculate_end_column(line: &str, var_end: usize, is_braced: bool) -> usize {
-    if is_braced {
-        let after_var = &line[var_end..];
-        if let Some(brace_pos) = after_var.find('}') {
-            var_end + brace_pos + 2 // +1 for }, +1 for 1-indexing
-        } else {
-            var_end + 1 // Fallback
-        }
-    } else {
-        var_end + 1 // Simple $VAR case
-    }
-}
-
-/// Check if variable is in arithmetic context (inside $(( )) or (( )))
-/// Issue #107: Also handles C-style for loops, standalone (( )), while/if (( ))
-fn is_in_arithmetic_context(line: &str, dollar_pos: usize, var_end: usize) -> bool {
-    let before = &line[..dollar_pos];
-    let after = &line[var_end..];
-
-    // Case 1: Command substitution arithmetic $(( ))
-    if before.contains("$((") && after.contains("))") {
-        return true;
-    }
-
-    // Case 2: Standalone arithmetic (( )) - for loops, while, if, statements
-    // Look for (( that is NOT preceded by $ (to distinguish from $(( ))
-    if let Some(paren_pos) = before.rfind("((") {
-        // Verify it's standalone (( not $((
-        let is_standalone = if paren_pos > 0 {
-            !before[..paren_pos].ends_with('$')
-        } else {
-            true
-        };
-
-        if is_standalone && after.contains("))") {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// F048: Extract C-style for loop variable names from source
-/// C-style for loops: for ((i=0; i<n; i++)) define numeric loop variables
-/// These variables are always numeric, so SC2086 should not flag them
-fn get_cstyle_for_loop_vars(source: &str) -> std::collections::HashSet<String> {
-    use once_cell::sync::Lazy;
-    use regex::Regex;
-
-    #[allow(clippy::unwrap_used)] // Compile-time regex
-    static CSTYLE_FOR: Lazy<Regex> =
-        Lazy::new(|| Regex::new(r"\bfor\s*\(\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*=").unwrap());
-
-    let mut vars = std::collections::HashSet::new();
-    for cap in CSTYLE_FOR.captures_iter(source) {
-        if let Some(m) = cap.get(1) {
-            vars.insert(m.as_str().to_string());
-        }
-    }
-    vars
-}
-
-/// Issue #105: Check if variable is inside [[ ]] (bash extended test)
-/// In [[ ]], word splitting and glob expansion do NOT occur on unquoted variables
-/// This is safe: [[ -n $var ]] (no word splitting inside [[ ]])
-/// This is NOT safe: [ -n $var ] (word splitting occurs in [ ])
-fn is_in_double_bracket_context(line: &str, dollar_pos: usize, var_end: usize) -> bool {
-    let before = &line[..dollar_pos];
-    let after = &line[var_end..];
-
-    // Check for [[ before and ]] after
-    // Must be [[ not [ (single bracket still has word splitting)
-    if let Some(open_pos) = before.rfind("[[") {
-        // Make sure it's not a single bracket by checking the character before
-        let is_double = if open_pos > 0 {
-            // Check there's no [ immediately before (would be [[[)
-            !before[..open_pos].ends_with('[')
-        } else {
-            true
-        };
-
-        if is_double && after.contains("]]") {
-            return true;
-        }
-    }
-
-    false
-}
-
-/// Check if variable is already quoted
-fn is_already_quoted(line: &str, dollar_pos: usize, var_end: usize) -> bool {
-    let before_context = &line[..dollar_pos];
-    let after_context = &line[var_end..];
-
-    // Simple case: "$VAR" (immediately surrounded by quotes)
-    if before_context.ends_with('"') && after_context.starts_with('"') {
-        return true;
-    }
-
-    // Braced case: "${VAR}" (immediately surrounded by quotes)
-    if after_context.starts_with('}') {
-        if let Some(brace_pos) = after_context.find('}') {
-            let after_brace = &after_context[brace_pos + 1..];
-            if before_context.ends_with('"') && after_brace.starts_with('"') {
-                return true;
-            }
-        }
-    }
-
-    // Check if variable is inside a quoted string (e.g., "${VAR1}text${VAR2}")
-    // Count unescaped quotes before the variable
-    let mut quote_count = 0;
-    let mut escaped = false;
-    for ch in before_context.chars() {
-        if escaped {
-            escaped = false;
-            continue;
-        }
-        if ch == '\\' {
-            escaped = true;
-            continue;
-        }
-        if ch == '"' {
-            quote_count += 1;
-        }
-    }
-
-    // If odd number of quotes, we're inside a quoted string
-    // Check if there's a closing quote after the variable
-    if quote_count % 2 == 1 {
-        // For braced variables, check after the closing brace
-        if after_context.starts_with('}') {
-            if let Some(brace_pos) = after_context.find('}') {
-                let after_brace = &after_context[brace_pos + 1..];
-                // Look for closing quote (could be immediately or after more content)
-                if after_brace.contains('"') {
-                    return true;
-                }
-            }
-        } else {
-            // For simple variables, check after the variable name
-            if after_context.contains('"') {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-/// Build diagnostic for unquoted variable
-fn build_diagnostic(
-    line_num: usize,
-    col: usize,
-    end_col: usize,
-    var_name: &str,
-    is_braced: bool,
-) -> Diagnostic {
-    let span = Span::new(line_num, col, line_num, end_col);
-    let var_text = if is_braced {
-        format!("${{{}}}", var_name)
-    } else {
-        format!("${}", var_name)
-    };
-
-    let fix = Fix::new(format!("\"{}\"", var_text));
-
-    Diagnostic::new(
-        "SC2086",
-        Severity::Warning,
-        format!(
-            "Double quote to prevent globbing and word splitting on {}",
-            var_text
-        ),
-        span,
-    )
-    .with_fix(fix)
-}
 
 /// Check for unquoted variable expansions (SC2086)
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
-    // F048: Get C-style for loop variables (always numeric, skip quoting check)
-    let cstyle_loop_vars = get_cstyle_for_loop_vars(source);
-
-    // Regex to find unquoted variables in command contexts
-    let var_pattern = Regex::new(r#"(?m)(?P<pre>[^"']|^)\$(?:\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<simple>[A-Za-z_][A-Za-z0-9_]*))"#).unwrap();
-
+    let pattern = get_var_pattern();
+    let cstyle_vars = get_cstyle_for_loop_vars(source);
     for (line_num, line) in source.lines().enumerate() {
-        let line_num = line_num + 1; // 1-indexed
-
-        if should_skip_line(line) {
-            continue;
-        }
-
-        // Issue #107: Check for any arithmetic context - $(( )) or standalone (( ))
-        let is_arithmetic = line.contains("$((") || line.contains("((");
-
-        for cap in var_pattern.captures_iter(line) {
-            let var_capture = match cap.name("brace").or_else(|| cap.name("simple")) {
-                Some(v) => v,
-                None => continue,
-            };
-
-            let var_name = var_capture.as_str();
-            let dollar_pos = find_dollar_position(line, var_capture.start());
-            let col = dollar_pos + 1; // 1-indexed
-
-            let is_braced = cap.name("brace").is_some();
-            let end_col = calculate_end_column(line, var_capture.end(), is_braced);
-
-            // Skip if in arithmetic context or already quoted
-            if is_arithmetic && is_in_arithmetic_context(line, dollar_pos, var_capture.end()) {
-                continue;
-            }
-
-            if is_already_quoted(line, dollar_pos, var_capture.end()) {
-                continue;
-            }
-
-            // Issue #105: Skip if in [[ ]] context (no word splitting in bash extended test)
-            if is_in_double_bracket_context(line, dollar_pos, var_capture.end()) {
-                continue;
-            }
-
-            // F048: Skip C-style for loop variables (always numeric)
-            if cstyle_loop_vars.contains(var_name) {
-                continue;
-            }
-
-            let diag = build_diagnostic(line_num, col, end_col, var_name, is_braced);
-            result.add(diag);
+        for uv in find_unquoted_vars(line, &pattern, &cstyle_vars) {
+            let span = Span::new(line_num + 1, uv.col, line_num + 1, uv.end_col);
+            let var_text = format_var_text(&uv.var_name, uv.is_braced);
+            result.add(
+                Diagnostic::new(
+                    "SC2086",
+                    Severity::Warning,
+                    format!(
+                        "Double quote to prevent globbing and word splitting on {}",
+                        var_text
+                    ),
+                    span,
+                )
+                .with_fix(Fix::new(format_quoted_var(&uv.var_name, uv.is_braced))),
+            );
         }
     }
-
     result
 }
 

@@ -80,12 +80,37 @@ fn parse_phony_line(line: &str) -> Vec<String> {
 }
 
 /// Parse all .PHONY declarations from source
+/// F038 FIX: Handle multi-line .PHONY declarations with backslash continuations
 fn parse_phony_targets(source: &str) -> HashSet<String> {
-    source
-        .lines()
-        .filter(|line| is_phony_line(line))
-        .flat_map(parse_phony_line)
-        .collect()
+    let mut targets = HashSet::new();
+    let lines: Vec<&str> = source.lines().collect();
+    let mut i = 0;
+
+    while i < lines.len() {
+        let line = lines[i];
+        if is_phony_line(line) {
+            // Start collecting .PHONY targets
+            let mut combined_line = line.to_string();
+
+            // F038: Handle line continuations (lines ending with \)
+            while combined_line.trim_end().ends_with('\\') && i + 1 < lines.len() {
+                // Remove the trailing backslash
+                combined_line = combined_line.trim_end().trim_end_matches('\\').to_string();
+                i += 1;
+                // Add the continuation line
+                combined_line.push(' ');
+                combined_line.push_str(lines[i].trim());
+            }
+
+            // Parse all targets from the combined line
+            for target in parse_phony_line(&combined_line) {
+                targets.insert(target);
+            }
+        }
+        i += 1;
+    }
+
+    targets
 }
 
 /// Check if line should be skipped (comments or .PHONY)
@@ -220,5 +245,57 @@ mod tests {
 
         // Variable assignments shouldn't trigger
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    /// F038: MAKE004 must handle multi-line .PHONY declarations
+    /// Issue #119: Multi-line .PHONY not recognized
+    #[test]
+    fn test_F038_MAKE004_multiline_phony() {
+        // Multi-line .PHONY with backslash continuations
+        let makefile = r#".PHONY: clean \
+        test \
+        install
+
+clean:
+	rm -f *.o
+
+test:
+	pytest
+
+install:
+	cp app /usr/bin"#;
+        let result = check(makefile);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "F038 FALSIFIED: MAKE004 must recognize multi-line .PHONY declarations. Got: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// F038 variation: Mixed single and multi-line .PHONY
+    #[test]
+    fn test_F038_MAKE004_mixed_phony_declarations() {
+        let makefile = r#".PHONY: clean
+.PHONY: test \
+        install
+
+clean:
+	rm -f *.o
+
+test:
+	pytest
+
+install:
+	cp app /usr/bin"#;
+        let result = check(makefile);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "F038 FALSIFIED: Mixed .PHONY declarations should work. Got: {:?}",
+            result.diagnostics
+        );
     }
 }
