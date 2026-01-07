@@ -47,7 +47,7 @@ glob = "0.3"    # For .bashrsignore pattern matching (Issue #58)
 rustyline.workspace = true  # REPL terminal line editing
 sysinfo = "0.31"  # For bench command - CPU/RAM/OS detection
 schemars = "0.8"  # For JSON schema generation (Issue #12)
-bashrs-oracle = { version = "6.40", optional = true }  # ML-powered error classification
+bashrs-oracle = { version = "6.50", optional = true }  # ML-powered error classification
 
 # Compile mode dependencies (optional - not needed for WASM)
 zstd = { version = "0.13", optional = true }
