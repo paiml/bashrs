@@ -96,6 +96,15 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
+        // Issue #127: Track variables passed to validation functions
+        // Pattern: validate_path "$VAR" or validate_input "$VAR"
+        if is_validation_function_call(trimmed) {
+            if let Some(var) = extract_function_argument_variable(trimmed) {
+                validated_vars.push(var);
+            }
+            continue;
+        }
+
         // Track end of validation blocks
         if trimmed == "fi" || trimmed.starts_with("fi ") || trimmed.starts_with("fi;") {
             in_validation_block = false;
@@ -383,6 +392,75 @@ fn is_variable_validated(line: &str, validated_vars: &[String]) -> bool {
         }
     }
     false
+}
+
+/// Issue #127: Check if this is a validation function call
+/// Patterns: validate_path, validate_input, check_path, sanitize_path, etc.
+fn is_validation_function_call(line: &str) -> bool {
+    let validation_prefixes = [
+        "validate_",
+        "check_",
+        "verify_",
+        "sanitize_",
+        "clean_",
+        "safe_",
+        "is_valid_",
+        "is_safe_",
+        "assert_",
+    ];
+
+    let line_lower = line.to_lowercase();
+
+    // Check if line starts with a validation function call (not a definition)
+    // Skip function definitions: validate_path() { ... }
+    if line.contains("()") && (line.contains('{') || line.trim().ends_with("()")) {
+        return false;
+    }
+
+    for prefix in validation_prefixes {
+        if line_lower.contains(prefix) {
+            // Make sure it's a function call, not just containing the word
+            // Should have a variable argument after it
+            if line.contains('$') {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Issue #127: Extract variable passed to a validation function
+/// Pattern: validate_path "$VAR" or validate_input "${VAR}"
+fn extract_function_argument_variable(line: &str) -> Option<String> {
+    // Look for quoted variable arguments: "$VAR" or "${VAR}"
+    // Find the first variable after a function call
+
+    // Find position of first $
+    let dollar_pos = line.find('$')?;
+    let rest = &line[dollar_pos..];
+
+    // Handle ${VAR} format
+    if rest.starts_with("${") {
+        if let Some(end) = rest.find('}') {
+            let var_name = &rest[2..end];
+            // Remove array index if present: VAR[0] -> VAR
+            let var_name = var_name.split('[').next().unwrap_or(var_name);
+            return Some(var_name.to_string());
+        }
+    }
+    // Handle $VAR format
+    else if let Some(after_dollar) = rest.strip_prefix('$') {
+        let var_chars: String = after_dollar
+            .chars()
+            .take_while(|c| c.is_alphanumeric() || *c == '_')
+            .collect();
+        if !var_chars.is_empty() {
+            return Some(var_chars);
+        }
+    }
+
+    None
 }
 
 /// Issue #106: Check if this is a heredoc pattern
@@ -676,6 +754,157 @@ cp "$INPUT_PATH" /destination/
             0,
             "Expected no diagnostics after absolute path validation"
         );
+    }
+
+    // Issue #127 tests: Custom validation function tracking
+
+    #[test]
+    fn test_SEC010_127_validate_function_tracks_var() {
+        // Issue #127: Variables passed to validate_* functions should be tracked
+        let script = r#"
+validate_path() {
+    local path="$1"
+    if [[ "$path" == *".."* ]]; then
+        echo "Invalid path" >&2
+        exit 1
+    fi
+}
+
+validate_path "$RAID_PATH"
+mkdir -p "$RAID_PATH/targets"
+"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Expected no diagnostics for variable passed to validate_path()"
+        );
+    }
+
+    #[test]
+    fn test_SEC010_127_check_function_tracks_var() {
+        // Issue #127: check_* functions also count as validation
+        let script = r#"
+check_path "$SRC_PATH"
+cp "$SRC_PATH/file" /destination/
+"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Expected no diagnostics for variable passed to check_path()"
+        );
+    }
+
+    #[test]
+    fn test_SEC010_127_sanitize_function_tracks_var() {
+        // Issue #127: sanitize_* functions also count as validation
+        let script = r#"
+sanitize_input "$USER_FILE"
+cat "$USER_FILE"
+"#;
+        let result = check(script);
+
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Expected no diagnostics for variable passed to sanitize_input()"
+        );
+    }
+
+    #[test]
+    fn test_SEC010_127_unvalidated_still_flagged() {
+        // Issue #127: Variables NOT passed to validation functions should still be flagged
+        let script = r#"
+validate_path "$OTHER_PATH"
+mkdir -p "$USER_DIR"
+"#;
+        let result = check(script);
+
+        // USER_DIR was not validated, should be flagged
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SEC010");
+    }
+
+    #[test]
+    fn test_SEC010_127_function_definition_not_call() {
+        // Issue #127: Function definitions should not count as validation calls
+        let script = r#"
+validate_path() {
+    echo "validating"
+}
+mkdir -p "$USER_DIR"
+"#;
+        let result = check(script);
+
+        // USER_DIR was not validated (just function was defined), should be flagged
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // Unit tests for helper functions to increase coverage
+
+    #[test]
+    fn test_is_validation_function_call_various_prefixes() {
+        // Test all validation function prefixes
+        assert!(is_validation_function_call(r#"validate_path "$PATH""#));
+        assert!(is_validation_function_call(r#"check_input "$INPUT""#));
+        assert!(is_validation_function_call(r#"verify_file "$FILE""#));
+        assert!(is_validation_function_call(r#"sanitize_input "$INPUT""#));
+        assert!(is_validation_function_call(r#"clean_path "$PATH""#));
+        assert!(is_validation_function_call(r#"safe_copy "$FILE""#));
+        assert!(is_validation_function_call(r#"is_valid_path "$PATH""#));
+        assert!(is_validation_function_call(r#"is_safe_input "$INPUT""#));
+        assert!(is_validation_function_call(r#"assert_path "$PATH""#));
+
+        // Should not match without variable
+        assert!(!is_validation_function_call("validate_path /fixed/path"));
+        // Should not match function definitions
+        assert!(!is_validation_function_call("validate_path() {"));
+        assert!(!is_validation_function_call("validate_path()"));
+    }
+
+    #[test]
+    fn test_extract_function_argument_variable_formats() {
+        // Test ${VAR} format
+        assert_eq!(
+            extract_function_argument_variable(r#"validate_path "${PATH}""#),
+            Some("PATH".to_string())
+        );
+        // Test ${VAR[0]} format (array index stripped)
+        assert_eq!(
+            extract_function_argument_variable(r#"validate_path "${ARGS[0]}""#),
+            Some("ARGS".to_string())
+        );
+        // Test $VAR format
+        assert_eq!(
+            extract_function_argument_variable(r#"validate_path "$PATH""#),
+            Some("PATH".to_string())
+        );
+        // Test no variable
+        assert_eq!(
+            extract_function_argument_variable("validate_path /fixed/path"),
+            None
+        );
+    }
+
+    #[test]
+    fn test_is_heredoc_pattern_variants() {
+        // Test various heredoc patterns
+        assert!(is_heredoc_pattern("cat <<EOF"));
+        assert!(is_heredoc_pattern("cat <<'EOF'"));
+        assert!(is_heredoc_pattern("cat <<-EOF"));
+        assert!(is_heredoc_pattern("cat<<<'EOF'"));
+        assert!(is_heredoc_pattern("echo <<EOF"));
+        assert!(is_heredoc_pattern("read <<EOF"));
+        assert!(is_heredoc_pattern("tee <<EOF"));
+        assert!(is_heredoc_pattern("content=$(cat <<EOF"));
+        assert!(is_heredoc_pattern("x=$(cat<<EOF"));
+
+        // Should not match regular cat
+        assert!(!is_heredoc_pattern("cat /etc/passwd"));
+        assert!(!is_heredoc_pattern(r#"cat "$FILE""#));
     }
 }
 
