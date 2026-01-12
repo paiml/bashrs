@@ -101,7 +101,7 @@ assert_cmd = "2.1"
 predicates = "3.1"
 renacer = "0.7"  # Golden trace integration - syscall tracing for regression detection
 verificar = "0.5"  # Synthetic bash program generation for comprehensive testing
-jugar-probar = "0.4"  # TUI/GUI testing framework with coverage tracking
+jugar-probar = "1.0"  # TUI/GUI testing framework with coverage tracking
 
 [[bench]]
 name = "transpilation"
