@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.55.0] - 2026-01-18
+
+### Fixed
+
+- **SC2128 False Positives** (Issue #132): No longer flags scalar variables ending in 's' (e.g., `cpu_tps`, `status`) as arrays. Now tracks actual array declarations (`var=(...)`) instead of using heuristics.
+
+- **SC2031 False Positives** (Issue #132): Fixed multiple false positive scenarios:
+  - Array declarations `var=(...)` no longer detected as subshells
+  - Arithmetic grouping `$(( (a - b) / c ))` no longer detected as subshells
+  - Parentheses inside quotes (e.g., regex `(?=...)`) no longer detected as subshells
+
+- **SC2154 False Positives** (Issue #132): Variables with parameter expansion operators (`${VAR:-}`, `${VAR:=}`, `${VAR:+}`, `${VAR:?}`) no longer flagged as undefined.
+
+### Quality
+
+- All fixes include comprehensive test coverage with property-based tests
+- Validated against real-world benchmark scripts
+
 ## [6.50.0] - 2026-01-06
 
 ### Added
