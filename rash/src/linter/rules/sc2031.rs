@@ -38,8 +38,25 @@ fn has_subshell(line: &str) -> bool {
     let chars: Vec<char> = line.chars().collect();
     let mut in_arithmetic = false;
     let mut paren_depth = 0;
+    let mut in_single_quote = false;
+    let mut in_double_quote = false;
 
     for i in 0..chars.len() {
+        // Track quote context (Issue #132: skip parens inside quotes like regex (?=...))
+        if chars[i] == '\'' && !in_double_quote {
+            in_single_quote = !in_single_quote;
+            continue;
+        }
+        if chars[i] == '"' && !in_single_quote {
+            in_double_quote = !in_double_quote;
+            continue;
+        }
+
+        // Skip everything inside quotes
+        if in_single_quote || in_double_quote {
+            continue;
+        }
+
         // Track arithmetic expansion context $((
         if i > 0 && chars[i] == '(' && chars[i - 1] == '(' && i > 1 && chars[i - 2] == '$' {
             in_arithmetic = true;
@@ -445,6 +462,38 @@ get_grade() {
         assert!(
             !has_pct_warning,
             "SC2031 must NOT flag local variable assignments"
+        );
+    }
+
+    // Issue #132: Regex patterns with (?= should not be detected as subshells
+    #[test]
+    fn test_sc2031_issue_132_regex_lookahead_not_subshell() {
+        let code = r#"
+measure_throughput() {
+    local tps
+    tps=$(echo "$output" | grep -oP '[0-9.]+(?= tok/s)' | tail -n1 || echo "0")
+    echo "$tps"
+}
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Regex lookahead (?= inside quotes should NOT trigger SC2031"
+        );
+    }
+
+    #[test]
+    fn test_sc2031_issue_132_parens_in_double_quotes() {
+        let code = r#"
+result=$(echo "test (value)" | grep -o "(.*)")
+echo "$result"
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Parentheses inside double quotes should NOT trigger SC2031"
         );
     }
 }
