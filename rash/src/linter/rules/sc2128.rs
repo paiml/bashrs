@@ -29,16 +29,21 @@
 //! Suggest adding [@] to expand all elements
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
+use once_cell::sync::Lazy;
 use regex::Regex;
+use std::collections::HashSet;
+
+/// Regex to detect array declarations: var=(...)
+static ARRAY_DECL: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\(").unwrap());
+
+/// Regex to find variable references
+static VAR_REF: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?"#).unwrap());
 
 /// Check if a line is a comment
 fn is_comment_line(line: &str) -> bool {
     line.trim_start().starts_with('#')
-}
-
-/// Check if a line contains an array declaration
-fn is_array_declaration(line: &str) -> bool {
-    line.contains("=(")
 }
 
 /// Check if variable already has an index (like $var[0])
@@ -51,9 +56,12 @@ fn has_array_expansion(text: &str) -> bool {
     text.contains("[@]") || text.contains("[*]")
 }
 
-/// Check if variable name matches array heuristics
-fn matches_array_heuristics(var_name: &str) -> bool {
-    var_name.ends_with("s") || var_name.contains("array") || var_name.contains("list")
+/// Extract array variable names from declarations on a line
+fn extract_array_declarations(line: &str) -> Vec<String> {
+    ARRAY_DECL
+        .captures_iter(line)
+        .map(|cap| cap.get(1).unwrap().as_str().to_string())
+        .collect()
 }
 
 /// Create diagnostic for array without index
@@ -75,35 +83,48 @@ fn create_array_diagnostic(
 }
 
 /// Check for array reference without index
+///
+/// This implementation tracks actual array declarations rather than using
+/// heuristics (like variable names ending in 's'), which caused false positives
+/// for scalar variables like `cpu_tps`, `status`, etc.
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    let mut known_arrays: HashSet<String> = HashSet::new();
 
-    // Pattern: $array or "$array" (without [@] or [*] or [n])
-    let pattern = Regex::new(r#"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?"#).unwrap();
+    // First pass: collect all array declarations
+    for line in source.lines() {
+        if is_comment_line(line) {
+            continue;
+        }
+        known_arrays.extend(extract_array_declarations(line));
+    }
 
+    // Second pass: check for unindexed array references
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if is_comment_line(line) || is_array_declaration(line) {
+        if is_comment_line(line) {
             continue;
         }
 
-        for cap in pattern.captures_iter(line) {
+        for cap in VAR_REF.captures_iter(line) {
             let full_match = cap.get(0).unwrap();
             let var_name = cap.get(1).unwrap().as_str();
+
+            // Only flag variables that are ACTUALLY declared as arrays
+            if !known_arrays.contains(var_name) {
+                continue;
+            }
 
             // Skip if already has index or array expansion
             if has_index(line, full_match.end()) || has_array_expansion(full_match.as_str()) {
                 continue;
             }
 
-            // Check if matches array heuristics
-            if matches_array_heuristics(var_name) {
-                let start_col = full_match.start() + 1;
-                let end_col = full_match.end() + 1;
-                let diagnostic = create_array_diagnostic(var_name, line_num, start_col, end_col);
-                result.add(diagnostic);
-            }
+            let start_col = full_match.start() + 1;
+            let end_col = full_match.end() + 1;
+            let diagnostic = create_array_diagnostic(var_name, line_num, start_col, end_col);
+            result.add(diagnostic);
         }
     }
 
@@ -114,7 +135,61 @@ pub fn check(source: &str) -> LintResult {
 mod tests {
     use super::*;
 
-    // ===== Manual Property Tests =====
+    // ===== Issue #132: False Positive Tests =====
+
+    #[test]
+    fn test_sc2128_issue_132_scalar_ending_in_s_not_flagged() {
+        // Issue #132: Variables like cpu_tps, gpu_tps are scalars, not arrays
+        // The old heuristic `ends_with("s")` caused false positives
+        let script = r#"
+cpu_tps=$(measure_throughput "echo '200.5 tok/s'")
+echo "$cpu_tps"
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Scalar variable ending in 's' should NOT be flagged as array"
+        );
+    }
+
+    #[test]
+    fn test_sc2128_issue_132_status_variable_not_flagged() {
+        let script = r#"
+status="success"
+echo "$status"
+"#;
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2128_issue_132_formats_scalar_not_flagged() {
+        // Variable named 'formats' but assigned as scalar
+        let script = r#"
+formats="json"
+echo "$formats"
+"#;
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2128_issue_132_formats_array_is_flagged() {
+        // Variable named 'formats' AND declared as array - SHOULD be flagged
+        let script = r#"
+formats=("json" "xml")
+echo "$formats"
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "Array variable should be flagged when used without index"
+        );
+    }
+
+    // ===== Property Tests =====
 
     #[test]
     fn prop_sc2128_comments_never_diagnosed() {
@@ -148,14 +223,14 @@ mod tests {
     }
 
     #[test]
-    fn prop_sc2128_array_heuristics_always_diagnosed() {
-        // Property: Variables matching array heuristics should be diagnosed
+    fn prop_sc2128_declared_arrays_diagnosed() {
+        // Property: Variables declared as arrays should be diagnosed when used without index
         let test_cases = vec![
-            ("args=(a b)\necho $args", "args"),             // ends with 's'
-            ("files=(*.txt)\ncat $files", "files"),         // ends with 's'
-            ("items=(x y)\nprintf $items", "items"),        // ends with 's'
-            ("myarray=(1 2)\necho $myarray", "myarray"),    // contains 'array'
-            ("datalist=(a b)\necho $datalist", "datalist"), // contains 'list'
+            ("args=(a b)\necho $args", "args"),
+            ("files=(*.txt)\ncat $files", "files"),
+            ("items=(x y)\nprintf $items", "items"),
+            ("myarray=(1 2)\necho $myarray", "myarray"),
+            ("datalist=(a b)\necho $datalist", "datalist"),
         ];
 
         for (code, var_name) in test_cases {
@@ -171,8 +246,30 @@ mod tests {
     }
 
     #[test]
+    fn prop_sc2128_non_arrays_not_diagnosed() {
+        // Property: Variables NOT declared as arrays should NEVER be diagnosed
+        let test_cases = vec![
+            "args=\"hello\"\necho $args",     // scalar ending in 's'
+            "files=\"test.txt\"\ncat $files", // scalar ending in 's'
+            "status=0\necho $status",         // scalar ending in 's'
+            "tps=100\necho $tps",             // scalar ending in 's'
+            "mylist=\"item\"\necho $mylist",  // contains 'list' but scalar
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert_eq!(
+                result.diagnostics.len(),
+                0,
+                "Should NOT diagnose scalar: {}",
+                code
+            );
+        }
+    }
+
+    #[test]
     fn prop_sc2128_declarations_skipped() {
-        // Property: Array declarations should not be diagnosed
+        // Property: Array declarations themselves should not be diagnosed
         let test_cases = vec![
             "args=(a b c)",
             "files=(*.txt)",
