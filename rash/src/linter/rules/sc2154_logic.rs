@@ -193,6 +193,32 @@ pub fn is_uppercase_var(var_name: &str) -> bool {
     var_name.chars().all(|c| c.is_uppercase() || c == '_')
 }
 
+/// Check if a variable reference uses parameter expansion operators
+/// ${VAR:-}, ${VAR:=}, ${VAR:+}, ${VAR:?} are intentional patterns
+/// that should not trigger "undefined variable" warnings
+///
+/// Issue #132: Variables like ${BASHRS_TEST:-} are intentional env var checks
+pub fn is_parameter_expansion_with_operator(line: &str, match_end: usize) -> bool {
+    // Check what follows the variable name in the line
+    let remaining = &line[match_end..];
+
+    // Parameter expansion operators are :-, :=, :+, :?
+    // Also handle the non-colon variants -, =, +, ?
+    if remaining.starts_with(":-")
+        || remaining.starts_with(":=")
+        || remaining.starts_with(":+")
+        || remaining.starts_with(":?")
+        || remaining.starts_with('-')
+        || remaining.starts_with('=')
+        || remaining.starts_with('+')
+        || remaining.starts_with('?')
+    {
+        return true;
+    }
+
+    false
+}
+
 /// Find variables assigned inside case statements with default branches
 /// If a case has a *) default branch, variables assigned in ANY branch are considered defined
 #[allow(clippy::expect_used)] // Compile-time regex
@@ -369,7 +395,15 @@ pub fn collect_variable_info(
         }
         for cap in patterns.use_.captures_iter(line) {
             let var_name = cap.get(1).unwrap().as_str();
-            let col = cap.get(0).unwrap().start() + 1;
+            let full_match = cap.get(0).unwrap();
+            let col = full_match.start() + 1;
+
+            // Issue #132: Skip variables with parameter expansion operators
+            // ${VAR:-}, ${VAR:=}, ${VAR:+}, ${VAR:?} are intentional default/check patterns
+            if is_parameter_expansion_with_operator(line, full_match.end()) {
+                continue;
+            }
+
             if has_sources && is_uppercase_var(var_name) {
                 continue;
             }

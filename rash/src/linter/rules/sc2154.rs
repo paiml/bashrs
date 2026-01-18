@@ -858,4 +858,57 @@ echo $level
             "SC2154 must NOT flag variable assigned in case with default"
         );
     }
+
+    // Issue #132: Parameter expansion with default should NOT trigger warning
+    #[test]
+    fn test_issue_132_parameter_expansion_default_not_flagged() {
+        // ${VAR:-} is intentional check for environment variable
+        let script = r#"
+_is_bashrs_test() {
+    [[ "${BASHRS_TEST:-}" == "1" ]]
+}
+"#;
+        let result = check(script);
+        assert!(
+            !result
+                .diagnostics
+                .iter()
+                .any(|d| d.message.contains("BASHRS_TEST")),
+            "SC2154 must NOT flag ${{VAR:-}} - it's intentional env var check"
+        );
+    }
+
+    #[test]
+    fn test_issue_132_parameter_expansion_variants() {
+        // All parameter expansion operators should be recognized
+        let script = r#"
+echo "${VAR1:-default}"
+echo "${VAR2:=assigned}"
+echo "${VAR3:+alternate}"
+echo "${VAR4:?error}"
+echo "${VAR5-default}"
+echo "${VAR6=assigned}"
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2154 must NOT flag any parameter expansion operators"
+        );
+    }
+
+    #[test]
+    fn test_issue_132_regular_undefined_still_flagged() {
+        // Regular undefined variables should still be flagged
+        let script = r#"
+echo "$UNDEFINED_VAR"
+echo "${ANOTHER_UNDEFINED}"
+"#;
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            2,
+            "SC2154 should still flag regular undefined variables"
+        );
+    }
 }

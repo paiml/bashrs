@@ -36,10 +36,37 @@ static VAR_USAGE: Lazy<Regex> =
 /// Check if line contains a subshell (standalone parentheses, not command substitution or arithmetic)
 fn has_subshell(line: &str) -> bool {
     let chars: Vec<char> = line.chars().collect();
+    let mut in_arithmetic = false;
+    let mut paren_depth = 0;
+
     for i in 0..chars.len() {
+        // Track arithmetic expansion context $((
+        if i > 0 && chars[i] == '(' && chars[i - 1] == '(' && i > 1 && chars[i - 2] == '$' {
+            in_arithmetic = true;
+            paren_depth = 2;
+            continue;
+        }
+
+        // Track nested parens in arithmetic context
+        if in_arithmetic {
+            if chars[i] == '(' {
+                paren_depth += 1;
+            } else if chars[i] == ')' {
+                paren_depth -= 1;
+                if paren_depth == 0 {
+                    in_arithmetic = false;
+                }
+            }
+            continue;
+        }
+
         if chars[i] == '(' {
             // Check if previous char is NOT $ (would be command substitution $())
             if i > 0 && chars[i - 1] == '$' {
+                continue;
+            }
+            // Issue #132: Skip array declarations var=(...) - the = before ( indicates array
+            if i > 0 && chars[i - 1] == '=' {
                 continue;
             }
             // Issue #86: Check if this is arithmetic expansion $((...))
@@ -367,6 +394,36 @@ echo "$count"
             result.diagnostics.len(),
             0,
             "Arithmetic expansion should not trigger SC2031"
+        );
+    }
+
+    // Issue #132: Array declarations should NOT trigger SC2031
+    #[test]
+    fn test_sc2031_issue_132_array_declaration_not_subshell() {
+        let code = r#"
+formats=("gguf" "apr")
+echo "${formats[@]}"
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Array declaration formats=(...) should NOT trigger SC2031"
+        );
+    }
+
+    #[test]
+    fn test_sc2031_issue_132_arithmetic_with_grouping() {
+        // Nested parentheses in arithmetic expansion
+        let code = r#"
+duration=$(( (end_ts - start_ts) / 1000000 ))
+echo "$duration"
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "Arithmetic grouping $(( (a - b) / c )) should NOT trigger SC2031"
         );
     }
 
