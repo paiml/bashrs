@@ -9,8 +9,15 @@ repository = "https://github.com/paiml/bashrs"
 keywords = ["shell", "bash", "transpiler", "rust", "mcp"]
 categories = ["command-line-utilities", "development-tools"]
 
-[lints]
-workspace = true
+# Local lint configuration for rash-mcp (pre-existing technical debt, not using workspace lints)
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unreachable_pub = "allow"  # MCP handlers use pub for Handler trait impl
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[lints.clippy]
+useless_format = "allow"  # String literals in format! are intentional for readability
+expect_used = "allow"  # Handler implementations use expect for required fields
 
 [dependencies]
 bashrs = { version = "6.42", path = "../rash" }  # Use path for workspace dev, version for publish
