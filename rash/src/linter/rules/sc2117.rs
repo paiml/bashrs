@@ -39,10 +39,20 @@ fn is_exit_or_return_line(line: &str) -> bool {
     EXIT_OR_RETURN.is_match(line)
 }
 
-/// Check if a line is a closing token (}, fi, done, esac)
+/// Check if a line is a closing token (}, fi, done, esac, ;;, ;&, ;;&)
+/// Issue #123: Also handle case statement terminators
 fn is_closing_token(line: &str) -> bool {
     let trimmed = line.trim();
-    trimmed == "}" || trimmed == "fi" || trimmed == "done" || trimmed == "esac"
+    trimmed == "}"
+        || trimmed == "fi"
+        || trimmed == "done"
+        || trimmed == "esac"
+        || trimmed == ";;"
+        || trimmed == ";&"
+        || trimmed == ";;&"
+        || trimmed.ends_with(";;")  // Handle `) ... ;;` on same line
+        || trimmed.ends_with(";&")
+        || trimmed.ends_with(";;&")
 }
 
 /// Extract the keyword (exit or return) from a line
@@ -329,5 +339,63 @@ echo "This runs if condition is false"
         let result = check(code);
         // Code after 'fi' is reachable
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // Issue #123: Case statement terminators should not be flagged
+    #[test]
+    fn test_issue_123_exit_before_case_terminator() {
+        let code = r#"
+case $option in
+    a)
+        exit 0
+        ;;
+    b)
+        exit 1
+        ;;
+esac
+"#;
+        let result = check(code);
+        // ;; after exit is a case terminator, not unreachable code
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2117 must NOT flag ;; after exit in case statements"
+        );
+    }
+
+    #[test]
+    fn test_issue_123_return_before_case_terminator() {
+        let code = r#"
+case $mode in
+    debug) return 1 ;;
+    prod) return 0 ;;
+esac
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2117 must NOT flag ;; after return"
+        );
+    }
+
+    #[test]
+    fn test_issue_123_fallthrough_terminator() {
+        let code = r#"
+case $x in
+    a)
+        exit 1
+        ;&
+    b)
+        exit 0
+        ;;
+esac
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2117 must NOT flag ;& after exit"
+        );
     }
 }

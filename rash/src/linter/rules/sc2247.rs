@@ -10,8 +10,44 @@ static STRING_MULTIPLY: Lazy<Regex> = Lazy::new(|| {
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    let mut in_heredoc = false;
+    let mut heredoc_delimiter: Option<String> = None;
+
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
+
+        // Issue #120: Handle heredoc boundaries
+        // If we're in a heredoc, check if this line ends it
+        if in_heredoc {
+            if let Some(ref delim) = heredoc_delimiter {
+                if line.trim() == delim {
+                    in_heredoc = false;
+                    heredoc_delimiter = None;
+                }
+            }
+            continue; // Skip all lines inside heredoc
+        }
+
+        // Check if this line starts a heredoc
+        if line.contains("<<") {
+            // Extract heredoc delimiter (handles <<EOF, <<'EOF', <<"EOF", <<-EOF)
+            if let Some(pos) = line.find("<<") {
+                let after_heredoc = &line[pos + 2..];
+                let delim_start = after_heredoc.trim_start_matches('-');
+                let delim = delim_start
+                    .trim_start()
+                    .trim_start_matches(['\'', '"'])
+                    .chars()
+                    .take_while(|c| c.is_alphanumeric() || *c == '_')
+                    .collect::<String>();
+                if !delim.is_empty() {
+                    in_heredoc = true;
+                    heredoc_delimiter = Some(delim);
+                }
+            }
+            // Process the line that starts heredoc (before the content)
+        }
+
         if line.trim_start().starts_with('#') {
             continue;
         }
@@ -29,6 +65,11 @@ pub fn check(source: &str) -> LintResult {
 
         // Skip expr command (already handled but making explicit)
         if line.contains("expr") {
+            continue;
+        }
+
+        // Issue #120: Skip if line contains python/perl/ruby (embedded code)
+        if line.contains("python") || line.contains("perl") || line.contains("ruby") {
             continue;
         }
 
@@ -181,6 +222,64 @@ echo "done"
             result.diagnostics.len(),
             1,
             "Should detect string multiplication outside awk/bc"
+        );
+    }
+
+    // Issue #120: Python in heredoc should NOT be flagged
+    #[test]
+    fn test_issue_120_python_heredoc_not_flagged() {
+        let code = r#"
+python3 <<EOF
+result = "x" * 10
+print(result)
+EOF
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2247 must NOT flag Python code in heredoc"
+        );
+    }
+
+    #[test]
+    fn test_issue_120_ruby_heredoc_not_flagged() {
+        let code = r#"
+ruby <<RUBY
+puts "hello" * 3
+RUBY
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2247 must NOT flag Ruby code in heredoc"
+        );
+    }
+
+    #[test]
+    fn test_issue_120_perl_heredoc_not_flagged() {
+        let code = r#"
+perl <<'PERL'
+print "x" * 5;
+PERL
+"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2247 must NOT flag Perl code in heredoc"
+        );
+    }
+
+    #[test]
+    fn test_issue_120_python_command_not_flagged() {
+        let code = r#"python3 -c 'print("x" * 10)'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2247 must NOT flag Python -c command"
         );
     }
 }

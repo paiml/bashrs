@@ -40,6 +40,13 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
+        // Issue #124: Skip if this is a regex match with =~
+        // Regex quantifiers like {1,3} are valid in [[ $var =~ pattern{1,3} ]]
+        // Use word boundary check to avoid matching "=" comparison
+        if line.contains(" =~ ") || line.contains("]=~") {
+            continue;
+        }
+
         // Extract [[ ]] blocks
         for bracket_match in DOUBLE_BRACKET.find_iter(line) {
             let bracket_text = bracket_match.as_str();
@@ -143,5 +150,42 @@ mod tests {
         let code = r#"[[ $letter = {a..z} ]]"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // Issue #124: Regex quantifiers should NOT be flagged
+    #[test]
+    fn test_issue_124_regex_quantifier_not_flagged() {
+        // {1,3} is a valid regex quantifier in =~ context
+        let code = r#"[[ $var =~ ^[0-9]{1,3}$ ]]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2200 must NOT flag regex quantifiers in =~ context"
+        );
+    }
+
+    #[test]
+    fn test_issue_124_regex_with_range_not_flagged() {
+        let code = r#"[[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2200 must NOT flag IP address regex pattern"
+        );
+    }
+
+    #[test]
+    fn test_issue_124_brace_without_regex_still_flagged() {
+        // Brace expansion without =~ should still be flagged
+        // Note: Use 2-element brace pattern as regex matches {a,b} format
+        let code = r#"[[ $var = {foo,bar} ]]"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "SC2200 should still flag brace expansion in non-regex context"
+        );
     }
 }
