@@ -22263,7 +22263,93 @@ anyhow = "1.0"
 <li><a href="reference/../getting-started/repl.html">REPL Usage</a></li>
 <li><a href="reference/../advanced/pmat-integration.html">PMAT Integration</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="repl-commands-reference"><a class="header" href="#repl-commands-reference">REPL Commands Reference</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="dsl-built-in-functions"><a class="header" href="#dsl-built-in-functions">DSL Built-in Functions</a></h1>
+<p>This reference documents the built-in functions available in the bashrs Rust DSL for transpiling to shell scripts.</p>
+<h2 id="overview-10"><a class="header" href="#overview-10">Overview</a></h2>
+<p>When writing <code>.rs</code> files for bashrs transpilation, you can use these built-in functions without declaring them. bashrs recognizes these as DSL primitives and emits the appropriate shell code.</p>
+<h2 id="built-in-functions"><a class="header" href="#built-in-functions">Built-in Functions</a></h2>
+<h3 id="echomsg-str"><a class="header" href="#echomsg-str"><code>echo(msg: &amp;str)</code></a></h3>
+<p>Prints a message to stdout with a trailing newline.</p>
+<pre><code class="language-rust ignore">#[bashrs::main]
+fn main() {
+    echo("Hello, world!");
+}</code></pre>
+<p>Transpiles to:</p>
+<pre><code class="language-sh">echo 'Hello, world!'
+</code></pre>
+<h3 id="execcmd-str"><a class="header" href="#execcmd-str"><code>exec(cmd: &amp;str)</code></a></h3>
+<p>Executes a shell command string. This is the primary way to run arbitrary shell commands, including those with pipes, redirections, and logical operators.</p>
+<pre><code class="language-rust ignore">#[bashrs::main]
+fn main() {
+    // Simple command
+    exec("ls -la");
+
+    // Commands with pipes
+    exec("cat file.txt | grep pattern | head -10");
+
+    // Commands with logical operators
+    exec("mkdir -p /tmp/foo &amp;&amp; cd /tmp/foo");
+
+    // Commands with redirections
+    exec("command 2&gt;&amp;1 | tee output.log");
+}</code></pre>
+<p>Transpiles to:</p>
+<pre><code class="language-sh">eval 'ls -la'
+eval 'cat file.txt | grep pattern | head -10'
+eval 'mkdir -p /tmp/foo &amp;&amp; cd /tmp/foo'
+eval 'command 2&gt;&amp;1 | tee output.log'
+</code></pre>
+<blockquote>
+<p><strong>Note (v6.56.2+):</strong> The <code>exec()</code> function uses <code>eval</code> internally to properly handle shell operators like <code>|</code>, <code>&amp;&amp;</code>, <code>||</code>, and <code>;</code>. This was fixed in <a href="https://github.com/paiml/bashrs/issues/95">Issue #95</a>.</p>
+</blockquote>
+<h4 id="why-eval"><a class="header" href="#why-eval">Why <code>eval</code>?</a></h4>
+<p>Shell operators like pipes and logical operators are interpreted by the shell, not by individual commands. When you pass a string like <code>"cmd1 | cmd2"</code> to a function, the shell sees it as a single argument. Using <code>eval</code> causes the shell to re-interpret the string, properly parsing the operators.</p>
+<h4 id="security-considerations-1"><a class="header" href="#security-considerations-1">Security Considerations</a></h4>
+<p>The <code>exec()</code> function still validates against:</p>
+<ul>
+<li><strong>Shellshock attacks</strong> (<code>() { :; }</code> patterns)</li>
+<li><strong>Command substitution</strong> (<code>$(...)</code> and backticks)</li>
+</ul>
+<p>These protections remain active even when shell operators are allowed.</p>
+<h2 id="example-complete-script"><a class="header" href="#example-complete-script">Example: Complete Script</a></h2>
+<pre><code class="language-rust ignore">//! Performance benchmark script
+//!
+//! Usage:
+//! ```bash
+//! bashrs build benchmark.rs -o benchmark.sh
+//! ./benchmark.sh
+//! ```
+
+#[bashrs::main]
+fn main() {
+    print_header();
+    run_benchmarks();
+}
+
+fn print_header() {
+    echo("=================================");
+    echo("  Performance Benchmark Suite    ");
+    echo("=================================");
+    echo("");
+}
+
+fn run_benchmarks() {
+    echo("Checking system info...");
+    exec("uname -a");
+
+    echo("Checking CPU cores...");
+    exec("nproc 2&gt;/dev/null || sysctl -n hw.ncpu");
+
+    echo("Running benchmark...");
+    exec("time cargo build --release 2&gt;&amp;1 | tail -5");
+}</code></pre>
+<h2 id="version-history"><a class="header" href="#version-history">Version History</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>Change</th></tr></thead><tbody>
+<tr><td>6.56.2</td><td>Fixed <code>exec()</code> to use <code>eval</code> for proper shell operator handling</td></tr>
+<tr><td>6.56.1</td><td>Added context-aware validation to allow shell operators in <code>exec()</code></td></tr>
+<tr><td>6.56.0</td><td>Initial DSL support</td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><h1 id="repl-commands-reference"><a class="header" href="#repl-commands-reference">REPL Commands Reference</a></h1>
 <p>Complete reference for all bashrs REPL commands (v6.19.0).</p>
 <h2 id="whats-new-in-v6190"><a class="header" href="#whats-new-in-v6190">What's New in v6.19.0</a></h2>
 <ul>
@@ -23360,7 +23446,7 @@ validation_level = "paranoid"
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bashrsignore-file-reference"><a class="header" href="#bashrsignore-file-reference">.bashrsignore File Reference</a></h1>
 <p>The <code>.bashrsignore</code> file allows you to exclude specific files from linting, providing a proper way to handle false positives and intentional violations.</p>
-<h2 id="overview-10"><a class="header" href="#overview-10">Overview</a></h2>
+<h2 id="overview-11"><a class="header" href="#overview-11">Overview</a></h2>
 <p>When bashrs lints a file, it first checks for a <code>.bashrsignore</code> file in the project hierarchy. If the file matches a pattern in <code>.bashrsignore</code>, it is skipped with a message explaining which pattern matched.</p>
 <p>This is essential for:</p>
 <ul>
