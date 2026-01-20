@@ -273,6 +273,23 @@ impl IrConverter {
 
         match expr {
             Expr::FunctionCall { name, args } => {
+                // Issue #95: exec() is a DSL built-in that runs a shell command string
+                // It should use 'eval' to properly evaluate pipes and operators
+                if name == "exec" {
+                    // Convert exec("cmd1 | cmd2") to eval 'cmd1 | cmd2'
+                    let mut cmd_args = Vec::new();
+                    for arg in args {
+                        cmd_args.push(self.convert_expr_to_value(arg)?);
+                    }
+                    return Ok(ShellIR::Exec {
+                        cmd: Command {
+                            program: "eval".to_string(),
+                            args: cmd_args,
+                        },
+                        effects: self.analyze_command_effects(name),
+                    });
+                }
+
                 // Convert function calls to shell commands
                 let mut cmd_args = Vec::new();
                 for arg in args {
