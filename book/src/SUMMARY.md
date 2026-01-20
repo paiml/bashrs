@@ -83,6 +83,7 @@
 ## Reference
 
 - [CLI Commands](./reference/cli.md)
+- [DSL Built-in Functions](./reference/dsl-builtins.md)
 - [REPL Commands](./reference/repl-commands.md)
 - [Configuration](./reference/configuration.md)
 - [.bashrsignore File](./reference/ignore-file.md)
