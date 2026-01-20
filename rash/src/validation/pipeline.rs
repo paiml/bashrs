@@ -276,9 +276,108 @@ impl ValidationPipeline {
                 "Empty function name".to_string(),
             ));
         }
+
+        // Issue #95: exec() arguments ARE meant to be shell commands
+        // Skip shell operator validation (|, &&, ||) for exec() but keep shellshock protection
+        let is_exec_context = name == "exec";
+
         for arg in args {
-            self.validate_expr(arg)?;
+            if is_exec_context {
+                self.validate_expr_in_exec_context(arg)?;
+            } else {
+                self.validate_expr(arg)?;
+            }
         }
+        Ok(())
+    }
+
+    /// Validate expression in exec() context - allows shell operators but blocks shellshock
+    fn validate_expr_in_exec_context(&self, expr: &crate::ast::Expr) -> RashResult<()> {
+        use crate::ast::Expr;
+
+        match expr {
+            Expr::Literal(lit) => self.validate_literal_in_exec_context(lit),
+            Expr::Variable(name) => self.validate_variable_name(name),
+            Expr::Binary { left, right, .. } => {
+                self.validate_expr_in_exec_context(left)?;
+                self.validate_expr_in_exec_context(right)
+            }
+            Expr::Unary { operand, .. } => self.validate_expr_in_exec_context(operand),
+            Expr::FunctionCall { name, args } => self.validate_function_call(name, args),
+            Expr::MethodCall {
+                receiver,
+                method,
+                args,
+            } => {
+                self.validate_expr_in_exec_context(receiver)?;
+                if method.is_empty() {
+                    return Err(RashError::ValidationError("Empty method name".to_string()));
+                }
+                for arg in args {
+                    self.validate_expr_in_exec_context(arg)?;
+                }
+                Ok(())
+            }
+            Expr::Array(items) => {
+                for item in items {
+                    self.validate_expr_in_exec_context(item)?;
+                }
+                Ok(())
+            }
+            Expr::Index { object, index } => {
+                self.validate_expr_in_exec_context(object)?;
+                self.validate_expr_in_exec_context(index)
+            }
+            Expr::Try { expr } => self.validate_expr_in_exec_context(expr),
+            Expr::Block(stmts) => self.validate_block_statements(stmts),
+            Expr::Range { start, end, .. } => {
+                self.validate_expr_in_exec_context(start)?;
+                self.validate_expr_in_exec_context(end)
+            }
+            Expr::PositionalArgs => Ok(()),
+        }
+    }
+
+    fn validate_literal_in_exec_context(
+        &self,
+        lit: &crate::ast::restricted::Literal,
+    ) -> RashResult<()> {
+        use crate::ast::restricted::Literal;
+
+        match lit {
+            Literal::Str(s) => self.validate_string_literal_in_exec(s),
+            Literal::Bool(_) | Literal::U32(_) | Literal::I32(_) => Ok(()),
+        }
+    }
+
+    /// Validate string literal in exec() context - only check for shellshock, allow pipes/operators
+    fn validate_string_literal_in_exec(&self, s: &str) -> RashResult<()> {
+        if self.level == ValidationLevel::None {
+            return Ok(());
+        }
+
+        // Still block shellshock-style attacks even in exec context
+        if s.contains("() { :; }") {
+            return Err(RashError::ValidationError(
+                "Shellshock-style function definition detected in exec command".to_string(),
+            ));
+        }
+
+        // Block command substitution in exec strings (could be injection vector)
+        if s.contains("$(") {
+            return Err(RashError::ValidationError(format!(
+                "Command substitution detected in exec command: '{}'",
+                s.chars().take(50).collect::<String>()
+            )));
+        }
+
+        // Block backtick substitution
+        if s.contains('`') {
+            return Err(RashError::ValidationError(
+                "Backtick command substitution detected in exec command (SC2006)".to_string(),
+            ));
+        }
+
         Ok(())
     }
 
@@ -546,5 +645,98 @@ mod tests {
         // Command substitution should still be flagged
         let result = pipeline.validate_string_literal("$(dangerous_command)");
         assert!(result.is_err(), "Command substitution should be flagged");
+    }
+
+    // Issue #95: exec() arguments should allow shell operators
+    #[test]
+    fn test_issue_95_exec_with_pipe_allowed() {
+        let pipeline = create_test_pipeline();
+        // Pipes in exec() are expected - this is the whole point of exec()
+        let result = pipeline.validate_string_literal_in_exec("ldd /usr/bin/foo | grep cuda");
+        assert!(
+            result.is_ok(),
+            "Pipe in exec() should be allowed: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue_95_exec_with_and_allowed() {
+        let pipeline = create_test_pipeline();
+        // AND operator in exec() is expected
+        let result = pipeline.validate_string_literal_in_exec("cmd1 && cmd2");
+        assert!(
+            result.is_ok(),
+            "AND operator in exec() should be allowed: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue_95_exec_with_or_allowed() {
+        let pipeline = create_test_pipeline();
+        // OR operator in exec() is expected
+        let result = pipeline.validate_string_literal_in_exec("cmd1 || cmd2");
+        assert!(
+            result.is_ok(),
+            "OR operator in exec() should be allowed: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue_95_exec_with_semicolon_allowed() {
+        let pipeline = create_test_pipeline();
+        // Semicolon in exec() is expected
+        let result = pipeline.validate_string_literal_in_exec("cmd1; cmd2");
+        assert!(
+            result.is_ok(),
+            "Semicolon in exec() should be allowed: {:?}",
+            result
+        );
+    }
+
+    #[test]
+    fn test_issue_95_exec_shellshock_still_blocked() {
+        let pipeline = create_test_pipeline();
+        // Shellshock attacks should STILL be blocked even in exec()
+        let result = pipeline.validate_string_literal_in_exec("() { :; }; echo pwned");
+        assert!(
+            result.is_err(),
+            "Shellshock in exec() should still be blocked"
+        );
+    }
+
+    #[test]
+    fn test_issue_95_exec_command_substitution_blocked() {
+        let pipeline = create_test_pipeline();
+        // Command substitution in exec() is blocked (potential injection vector)
+        let result = pipeline.validate_string_literal_in_exec("echo $(whoami)");
+        assert!(
+            result.is_err(),
+            "Command substitution in exec() should be blocked"
+        );
+    }
+
+    #[test]
+    fn test_issue_95_non_exec_pipe_still_flagged() {
+        let pipeline = create_test_pipeline();
+        // Non-exec strings with pipes should still be flagged
+        let result = pipeline.validate_string_literal("cat file | rm -rf /");
+        assert!(result.is_err(), "Pipe in non-exec string should be flagged");
+    }
+
+    #[test]
+    fn test_issue_95_complex_exec_command() {
+        let pipeline = create_test_pipeline();
+        // Complex shell commands should work in exec()
+        let result = pipeline.validate_string_literal_in_exec(
+            "ldd /home/noah/.local/bin/main 2>/dev/null | grep -i blas | head -1",
+        );
+        assert!(
+            result.is_ok(),
+            "Complex pipeline in exec() should be allowed: {:?}",
+            result
+        );
     }
 }
