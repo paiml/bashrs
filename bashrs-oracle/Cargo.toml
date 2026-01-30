@@ -18,7 +18,7 @@ compressed-models = ["aprender/format-compression"]  # zstd lossless (14x smalle
 [dependencies]
 # ML models from aprender (crates.io v0.24)
 # Features: parallel (rayon), gpu (wgpu via trueno)
-aprender = { version = "0.24", default-features = true }
+aprender = { version = "0.25", default-features = true }
 
 # Serialization
 serde = { workspace = true }
