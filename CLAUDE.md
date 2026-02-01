@@ -1033,7 +1033,11 @@ Test all failure modes: OOM, storage full, network failure, tab suspension, malf
 
 ## Stack Documentation Search
 
-Query this component's documentation and the entire Sovereign AI Stack using batuta's RAG Oracle:
+**IMPORTANT: Proactively use the batuta RAG oracle when:**
+- Looking up patterns from other stack components (trueno SIMD, aprender ML, realizar inference)
+- Finding cross-language equivalents (Shell → Rust transpilation patterns, Python → Rust from depyler)
+- Understanding how other transpilers handle AST/IR lowering (decy C→Rust, depyler Python→Rust)
+- Researching determinism and idempotency patterns across the stack
 
 ```bash
 # Index all stack documentation (run once, persists to ~/.cache/batuta/rag/)
@@ -1042,13 +1046,12 @@ batuta oracle --rag-index
 # Search across the entire stack
 batuta oracle --rag "your question here"
 
-# Examples
-batuta oracle --rag "SIMD matrix multiplication"
-batuta oracle --rag "how to train a model"
-batuta oracle --rag "tokenization for BERT"
-
-# Check index status
-batuta oracle --rag-stats
+# Bashrs-specific examples
+batuta oracle --rag "shell script idempotency patterns"
+batuta oracle --rag "AST to IR lowering in transpilers"
+batuta oracle --rag "security linting rules implementation"
+batuta oracle --rag "POSIX shell compatibility validation"
+batuta oracle --rag "transpiler test generation strategies"
 ```
 
-The RAG index includes CLAUDE.md, README.md, and source files from all stack components plus Python ground truth corpora for cross-language pattern matching.
+The RAG index (341+ docs) includes CLAUDE.md, README.md, and source files from all stack components plus Python ground truth corpora for cross-language pattern matching.
