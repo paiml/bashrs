@@ -116,3 +116,10 @@ test_*/
 mutants.out/
 mutants.out.old/
 pkg/
+
+# PMAT
+.pmat/backup/
+.pmat-qa/
+.pmat/context.idx/
+.pmat/workspace.idx/
+.pmat/deps-cache.json

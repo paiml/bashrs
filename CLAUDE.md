@@ -62,6 +62,37 @@ Transforms non-deterministic bash ($RANDOM, timestamps) into safe, idempotent PO
 
 ---
 
+## Code Search (pmat query)
+
+**NEVER use grep or rg for code discovery.** Use `pmat query` instead -- it returns quality-annotated, ranked results with TDG scores and fault annotations.
+
+```bash
+# Find functions by intent
+pmat query "shell ast parsing" --limit 10
+
+# Find high-quality code
+pmat query "bash builtin" --min-grade A --exclude-tests
+
+# Find with fault annotations (unwrap, panic, unsafe, etc.)
+pmat query "command execution" --faults
+
+# Filter by complexity
+pmat query "pipe handling" --max-complexity 10
+
+# Cross-project search
+pmat query "rust codegen" --include-project ../depyler
+
+# Git history search (find code by commit intent via RRF fusion)
+pmat query "fix redirect handling" -G
+pmat query "fix redirect handling" --git-history
+
+# Enrichment flags (combine freely)
+pmat query "parser" --churn              # git volatility (commit count, churn score)
+pmat query "builtin" --duplicates          # code clone detection (MinHash+LSH)
+pmat query "command handler" --entropy             # pattern diversity (repetitive vs unique)
+pmat query "shell transpilation" --churn --duplicates --entropy --faults -G  # full audit
+```
+
 ## Development Principles
 
 ### EXTREME TDD Definition
