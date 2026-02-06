@@ -435,6 +435,7 @@ fn convert_expr(expr: &SynExpr) -> Result<Expr> {
             "If expressions not supported in expression position".to_string(),
         )),
         SynExpr::Range(range_expr) => convert_range_expr(range_expr),
+        SynExpr::Macro(expr_macro) => convert_macro_expr(expr_macro),
         _ => Err(Error::Validation("Unsupported expression type".to_string())),
     }
 }
@@ -451,6 +452,57 @@ fn convert_reference_expr(expr_ref: &syn::ExprReference) -> Result<Expr> {
     // &[...] -> unwrap reference, convert inner array expression
     // &expr -> unwrap reference, convert inner expression
     convert_expr(&expr_ref.expr)
+}
+
+fn convert_macro_expr(expr_macro: &syn::ExprMacro) -> Result<Expr> {
+    let macro_name = expr_macro
+        .mac
+        .path
+        .segments
+        .last()
+        .ok_or_else(|| Error::Validation("Empty macro path".to_string()))?
+        .ident
+        .to_string();
+
+    if macro_name == "format" {
+        // format!("{}", x) -> treat as string interpolation
+        // Parse the macro tokens to extract the format string and arguments
+        let tokens = expr_macro.mac.tokens.clone();
+        // format! takes a format string and args: format!("{}", x)
+        // Try to parse as a comma-separated list; use the last arg as the expression
+        let token_str = tokens.to_string();
+        // Simple heuristic: find the comma separator after the format string
+        if let Some(comma_pos) = token_str.find(',') {
+            let args_str = token_str[comma_pos + 1..].trim();
+            // Try to parse the argument as an expression
+            if let Ok(parsed) = syn::parse_str::<syn::Expr>(args_str) {
+                return convert_expr(&parsed);
+            }
+        }
+        // If no arguments, format! with just a string literal: format!("hello")
+        if let Ok(parsed) = syn::parse_str::<syn::Expr>(&token_str) {
+            return convert_expr(&parsed);
+        }
+        Err(Error::Validation(
+            "Could not parse format! arguments".to_string(),
+        ))
+    } else if macro_name == "vec" {
+        // vec![...] -> array
+        let tokens = expr_macro.mac.tokens.clone();
+        let token_str = tokens.to_string();
+        // Try to parse as array elements
+        let array_str = format!("[{token_str}]");
+        if let Ok(parsed) = syn::parse_str::<syn::ExprArray>(&array_str) {
+            return convert_array_expr(&parsed);
+        }
+        Err(Error::Validation(
+            "Could not parse vec! arguments".to_string(),
+        ))
+    } else {
+        Err(Error::Validation(format!(
+            "Unsupported macro expression: {macro_name}!"
+        )))
+    }
 }
 
 fn convert_literal_expr(expr_lit: &syn::ExprLit) -> Result<Expr> {
