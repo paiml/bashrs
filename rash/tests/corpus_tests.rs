@@ -596,3 +596,111 @@ fn test_CORPUS_025_tier3_aggregate_score() {
 
     assert!(score.total > 55, "Should run more than 55 entries");
 }
+
+// =============================================================================
+// Tier 4 Corpus Tests (Adversarial - edge cases, boundary conditions)
+// =============================================================================
+
+#[test]
+fn test_CORPUS_026_tier4_loads_all_entries() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all_with_adversarial();
+    assert!(registry.len() > 85, "Tier 1-4 should have more than 85 entries");
+}
+
+#[test]
+fn test_CORPUS_027_tier4_bash_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all_with_adversarial();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Bash);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER4 FALSIFIER: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Bash T1-T4: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_028_tier4_makefile_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all_with_adversarial();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Makefile);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER4 FALSIFIER: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Makefile T1-T4: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_029_tier4_dockerfile_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all_with_adversarial();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Dockerfile);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER4 FALSIFIER: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Dockerfile T1-T4: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_030_tier4_aggregate_score() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all_with_adversarial();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run(&registry);
+
+    eprintln!("\n=== CORPUS QUALITY REPORT (Tier 1-4, Adversarial) ===");
+    eprintln!("Total entries: {}", score.total);
+    eprintln!("Passed: {}", score.passed);
+    eprintln!("Failed: {}", score.failed);
+    eprintln!("Rate: {:.1}%", score.rate * 100.0);
+    eprintln!("Score: {:.1}/100", score.score);
+    eprintln!("Grade: {}", score.grade);
+    eprintln!("====================================================\n");
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "  FALSIFIER: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    assert!(score.total > 85, "Should run more than 85 entries");
+}

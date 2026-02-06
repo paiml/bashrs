@@ -246,6 +246,10 @@ fn convert_expr_stmt(expr: &SynExpr) -> Result<Stmt> {
         SynExpr::Break(_) => Ok(Stmt::Break),
         SynExpr::Continue(_) => Ok(Stmt::Continue),
         SynExpr::Assign(expr_assign) => convert_assign_stmt(expr_assign),
+        // Compound assignment: x += expr, x -= expr, x *= expr, etc.
+        SynExpr::Binary(expr_binary) if is_compound_assign(&expr_binary.op) => {
+            convert_compound_assign_stmt(expr_binary)
+        }
         _ => Ok(Stmt::Expr(convert_expr(expr)?)),
     }
 }
@@ -271,6 +275,58 @@ fn convert_assign_stmt(expr_assign: &syn::ExprAssign) -> Result<Stmt> {
     Ok(Stmt::Let { name, value })
 }
 
+/// Check if a BinOp is a compound assignment operator (+=, -=, *=, /=, %=)
+fn is_compound_assign(op: &BinOp) -> bool {
+    matches!(
+        op,
+        BinOp::AddAssign(_)
+            | BinOp::SubAssign(_)
+            | BinOp::MulAssign(_)
+            | BinOp::DivAssign(_)
+            | BinOp::RemAssign(_)
+    )
+}
+
+/// Desugar compound assignment: x += expr -> x = x + expr
+fn compound_assign_to_binary_op(op: &BinOp) -> Result<BinaryOp> {
+    match op {
+        BinOp::AddAssign(_) => Ok(BinaryOp::Add),
+        BinOp::SubAssign(_) => Ok(BinaryOp::Sub),
+        BinOp::MulAssign(_) => Ok(BinaryOp::Mul),
+        BinOp::DivAssign(_) => Ok(BinaryOp::Div),
+        BinOp::RemAssign(_) => Ok(BinaryOp::Rem),
+        _ => Err(Error::Validation(
+            "Unsupported compound assignment operator".to_string(),
+        )),
+    }
+}
+
+fn convert_compound_assign_stmt(expr_binary: &syn::ExprBinary) -> Result<Stmt> {
+    let name = match &*expr_binary.left {
+        SynExpr::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|seg| seg.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
+        _ => {
+            return Err(Error::Validation(
+                "Complex assignment targets not supported".to_string(),
+            ))
+        }
+    };
+    let op = compound_assign_to_binary_op(&expr_binary.op)?;
+    let right = convert_expr(&expr_binary.right)?;
+    let left = Expr::Variable(name.clone());
+    let value = Expr::Binary {
+        op,
+        left: Box::new(left),
+        right: Box::new(right),
+    };
+    Ok(Stmt::Let { name, value })
+}
+
 fn convert_macro_stmt(macro_stmt: &syn::StmtMacro) -> Result<Stmt> {
     let macro_path = &macro_stmt.mac.path;
     let macro_name = macro_path
@@ -280,18 +336,24 @@ fn convert_macro_stmt(macro_stmt: &syn::StmtMacro) -> Result<Stmt> {
         .ident
         .to_string();
 
-    if macro_name == "println" {
+    if macro_name == "println" || macro_name == "eprintln" {
         // Parse macro tokens to extract the format string
         let tokens = macro_stmt.mac.tokens.clone();
-        let parsed: syn::Expr = syn::parse2(tokens)
-            .map_err(|_| Error::Validation("Invalid println! arguments".to_string()))?;
+        let parsed: syn::Expr = syn::parse2(tokens).map_err(|_| {
+            Error::Validation(format!("Invalid {macro_name}! arguments"))
+        })?;
 
         // Convert the first argument as the format string
         let arg = convert_expr(&parsed)?;
 
-        // Generate a function call to rash_println
+        // Generate a function call to rash_println or rash_eprintln
+        let func_name = if macro_name == "eprintln" {
+            "rash_eprintln"
+        } else {
+            "rash_println"
+        };
         Ok(Stmt::Expr(Expr::FunctionCall {
-            name: "rash_println".to_string(),
+            name: func_name.to_string(),
             args: vec![arg],
         }))
     } else {

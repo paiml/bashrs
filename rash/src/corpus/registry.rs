@@ -238,6 +238,24 @@ impl CorpusRegistry {
         registry
     }
 
+    /// Load tiers 1-3 for comprehensive testing.
+    pub fn load_all() -> Self {
+        let mut registry = Self::load_tier1_and_tier2();
+        registry.load_tier3_bash();
+        registry.load_tier3_makefile();
+        registry.load_tier3_dockerfile();
+        registry
+    }
+
+    /// Load all tiers including adversarial (1-4).
+    pub fn load_all_with_adversarial() -> Self {
+        let mut registry = Self::load_all();
+        registry.load_tier4_bash();
+        registry.load_tier4_makefile();
+        registry.load_tier4_dockerfile();
+        registry
+    }
+
     fn load_tier1_bash(&mut self) {
         let entries = vec![
             CorpusEntry::new(
@@ -771,6 +789,568 @@ impl CorpusRegistry {
                 CorpusTier::Standard,
                 r#"fn main() { from_image("node", "20"); expose(3000u16); } fn from_image(i: &str, t: &str) {} fn expose(p: u16) {}"#,
                 "EXPOSE 3000",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Tier 3: Complex difficulty (multi-construct, real-world patterns)
+    // =========================================================================
+
+    fn load_tier3_bash(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "B-021",
+                "else-if-chain",
+                "Else-if chain with three branches",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                r#"fn main() { let x = 5; if x > 10 { let r = "big"; } else if x > 3 { let r = "medium"; } else { let r = "small"; } }"#,
+                "elif",
+            ),
+            CorpusEntry::new(
+                "B-022",
+                "inclusive-range",
+                "For loop with inclusive range (0..=5)",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { for i in 0..=5 { let x = i; } }",
+                "for ",
+            ),
+            CorpusEntry::new(
+                "B-023",
+                "println-macro",
+                "println! macro transpilation",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                r#"fn main() { println!("hello world"); }"#,
+                "echo",
+            ),
+            CorpusEntry::new(
+                "B-024",
+                "function-with-params",
+                "Function with typed parameters",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                r#"fn main() { greet("World", 3); } fn greet(name: &str, count: u32) {}"#,
+                "greet",
+            ),
+            CorpusEntry::new(
+                "B-025",
+                "nested-if-in-loop",
+                "If inside for loop",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { for i in 0..10 { if i > 5 { let big = true; } } }",
+                "for ",
+            ),
+            CorpusEntry::new(
+                "B-026",
+                "comparison-operators",
+                "All comparison operators",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { let a = 5 == 5; let b = 3 != 4; let c = 1 < 2; let d = 5 >= 3; }",
+                "#!/bin/sh",
+            ),
+            CorpusEntry::new(
+                "B-027",
+                "boolean-logic",
+                "Boolean AND/OR operators",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { let a = true; let b = false; let c = a && b; let d = a || b; }",
+                "#!/bin/sh",
+            ),
+            CorpusEntry::new(
+                "B-028",
+                "modulo-operator",
+                "Modulo arithmetic",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { let remainder = 17 % 5; }",
+                "remainder=",
+            ),
+            CorpusEntry::new(
+                "B-029",
+                "string-empty",
+                "Empty string variable",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                r#"fn main() { let empty = ""; }"#,
+                "empty=",
+            ),
+            CorpusEntry::new(
+                "B-030",
+                "multiple-assignments-in-loop",
+                "Multiple assignments inside while loop",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { let mut i = 0; let mut sum = 0; while i < 5 { sum = sum + i; i = i + 1; } }",
+                "while",
+            ),
+            CorpusEntry::new(
+                "B-031",
+                "break-in-loop",
+                "Break statement in while loop",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { let mut i = 0; while i < 100 { if i > 10 { break; } i = i + 1; } }",
+                "break",
+            ),
+            CorpusEntry::new(
+                "B-032",
+                "continue-in-loop",
+                "Continue statement in for loop",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { for i in 0..20 { if i == 5 { continue; } let x = i; } }",
+                "continue",
+            ),
+            CorpusEntry::new(
+                "B-033",
+                "subtraction-multiplication",
+                "Subtraction and multiplication",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { let a = 100 - 42; let b = 6 * 7; }",
+                "#!/bin/sh",
+            ),
+            CorpusEntry::new(
+                "B-034",
+                "division",
+                "Integer division",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { let quotient = 20 / 4; }",
+                "quotient=",
+            ),
+            CorpusEntry::new(
+                "B-035",
+                "large-integer",
+                "Large integer value",
+                CorpusFormat::Bash,
+                CorpusTier::Complex,
+                "fn main() { let big = 4294967295; }",
+                "big=",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    fn load_tier3_makefile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "M-018",
+                "complex-build-system",
+                "Variables + multiple phony targets",
+                CorpusFormat::Makefile,
+                CorpusTier::Complex,
+                r#"fn main() { let cc = "gcc"; let cflags = "-O2 -Wall"; phony_target("all", &["build", "test"], &[]); target("build", &["main.c"], &["$(CC) $(CFLAGS) -o app main.c"]); phony_target("test", &[], &["./test.sh"]); phony_target("clean", &[], &["rm -f app"]); } fn target(n: &str, d: &[&str], r: &[&str]) {} fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "CC := gcc",
+            ),
+            CorpusEntry::new(
+                "M-019",
+                "install-uninstall",
+                "Install and uninstall targets",
+                CorpusFormat::Makefile,
+                CorpusTier::Complex,
+                r#"fn main() { let prefix = "/usr/local"; phony_target("install", &[], &["cp -f app $(PREFIX)/bin/"]); phony_target("uninstall", &[], &["rm -f $(PREFIX)/bin/app"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "PREFIX := /usr/local",
+            ),
+            CorpusEntry::new(
+                "M-020",
+                "empty-prerequisites",
+                "Target with no prerequisites",
+                CorpusFormat::Makefile,
+                CorpusTier::Complex,
+                r#"fn main() { target("help", &[], &["@echo 'Usage: make build'"]); } fn target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "help:",
+            ),
+            CorpusEntry::new(
+                "M-021",
+                "docker-build-target",
+                "Makefile with docker build recipe",
+                CorpusFormat::Makefile,
+                CorpusTier::Complex,
+                r#"fn main() { let image = "myapp"; let tag = "latest"; phony_target("docker-build", &[], &["docker build -t $(IMAGE):$(TAG) ."]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "IMAGE := myapp",
+            ),
+            CorpusEntry::new(
+                "M-022",
+                "many-variables",
+                "Five or more variables",
+                CorpusFormat::Makefile,
+                CorpusTier::Complex,
+                r#"fn main() { let cc = "gcc"; let cflags = "-O2"; let ldflags = "-lpthread"; let prefix = "/usr"; let version = "1.0"; }"#,
+                "VERSION := 1.0",
+            ),
+            CorpusEntry::new(
+                "M-023",
+                "shell-recipe",
+                "Recipe with shell command",
+                CorpusFormat::Makefile,
+                CorpusTier::Complex,
+                r#"fn main() { phony_target("check", &[], &["@which gcc || echo 'gcc not found'"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "check:",
+            ),
+            CorpusEntry::new(
+                "M-024",
+                "target-chain",
+                "Chain of dependent targets",
+                CorpusFormat::Makefile,
+                CorpusTier::Complex,
+                r#"fn main() { phony_target("deploy", &["test", "build"], &["echo deploying"]); phony_target("build", &["lint"], &["echo building"]); phony_target("lint", &[], &["echo linting"]); phony_target("test", &["build"], &["echo testing"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "deploy: test build",
+            ),
+            CorpusEntry::new(
+                "M-025",
+                "silent-recipe",
+                "Recipe with @ prefix (silent)",
+                CorpusFormat::Makefile,
+                CorpusTier::Complex,
+                r#"fn main() { phony_target("version", &[], &["@echo v1.0.0"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "@echo v1.0.0",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    fn load_tier3_dockerfile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "D-019",
+                "three-stage-build",
+                "Three-stage multi-stage build",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Complex,
+                r#"fn main() { from_image_as("rust", "1.75", "builder"); workdir("/app"); from_image_as("debian", "bookworm-slim", "runtime"); copy_from("builder", "/app/target/release/app", "/usr/local/bin/"); from_image("alpine", "3.18"); copy_from("runtime", "/usr/local/bin/app", "/app/"); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy_from(f: &str, s: &str, d: &str) {}"#,
+                "FROM rust:1.75 AS builder",
+            ),
+            CorpusEntry::new(
+                "D-020",
+                "run-cleanup",
+                "RUN with cleanup (rm cache)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Complex,
+                r#"fn main() { from_image("ubuntu", "22.04"); run(&["apt-get update", "apt-get install -y --no-install-recommends curl", "rm -rf /var/lib/apt/lists/*"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {}"#,
+                "rm -rf /var/lib/apt/lists/*",
+            ),
+            CorpusEntry::new(
+                "D-021",
+                "multiple-env",
+                "Multiple ENV instructions from let bindings",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Complex,
+                r#"fn main() { from_image("node", "20-alpine"); let app_port = "3000"; let node_env = "production"; let app_name = "myapp"; workdir("/app"); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {}"#,
+                "ENV APP_PORT=3000",
+            ),
+            CorpusEntry::new(
+                "D-022",
+                "entrypoint-with-cmd",
+                "ENTRYPOINT with CMD for default args",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Complex,
+                r#"fn main() { from_image("alpine", "3.18"); entrypoint(&["/app/server"]); cmd(&["--port", "8080"]); } fn from_image(i: &str, t: &str) {} fn entrypoint(e: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "ENTRYPOINT",
+            ),
+            CorpusEntry::new(
+                "D-023",
+                "label-multiple",
+                "Multiple LABEL instructions",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Complex,
+                r#"fn main() { from_image("alpine", "3.18"); label("maintainer", "team@example.com"); label("version", "1.0"); label("description", "My application"); } fn from_image(i: &str, t: &str) {} fn label(k: &str, v: &str) {}"#,
+                "LABEL maintainer=",
+            ),
+            CorpusEntry::new(
+                "D-024",
+                "full-production-rust",
+                "Production Rust Dockerfile pattern",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Complex,
+                r#"fn main() { from_image_as("rust", "1.75-alpine", "builder"); workdir("/app"); copy("Cargo.toml", "."); copy("src", "src"); run(&["cargo build --release"]); from_image("alpine", "3.18"); copy_from("builder", "/app/target/release/myapp", "/usr/local/bin/"); user("65534"); entrypoint(&["/usr/local/bin/myapp"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn copy_from(f: &str, s: &str, d: &str) {} fn user(u: &str) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM rust:1.75-alpine AS builder",
+            ),
+            CorpusEntry::new(
+                "D-025",
+                "arg-instruction",
+                "ARG via env() function",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Complex,
+                r#"fn main() { from_image("alpine", "3.18"); env("APP_VERSION", "1.0.0"); env("BUILD_DATE", "2026-02-06"); workdir("/app"); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn workdir(p: &str) {}"#,
+                "ENV APP_VERSION=1.0.0",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Tier 4: Adversarial entries (edge cases, boundary conditions)
+    // =========================================================================
+
+    fn load_tier4_bash(&mut self) {
+        let entries = vec![
+            // --- Compound assignment operators (+=, -=) ---
+            CorpusEntry::new(
+                "B-036",
+                "compound-add-assign",
+                "Compound addition assignment (x += 1)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let mut count = 0; count += 5; }"#,
+                "count=",
+            ),
+            CorpusEntry::new(
+                "B-037",
+                "compound-sub-assign",
+                "Compound subtraction assignment (x -= 1)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let mut total = 100; total -= 25; }"#,
+                "total=",
+            ),
+            CorpusEntry::new(
+                "B-038",
+                "compound-mul-assign",
+                "Compound multiplication assignment (x *= 2)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let mut factor = 3; factor *= 4; }"#,
+                "factor=",
+            ),
+            // --- eprintln! macro ---
+            CorpusEntry::new(
+                "B-039",
+                "eprintln-macro",
+                "eprintln! macro support (stderr output)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { eprintln!("error: something went wrong"); }"#,
+                ">&2",
+            ),
+            // --- Nested function calls ---
+            CorpusEntry::new(
+                "B-040",
+                "nested-function-calls",
+                "Function call as argument to another function",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn add(a: u32, b: u32) -> u32 { a + b } fn double(x: u32) -> u32 { x * 2 } fn main() { let result = double(add(3, 4)); }"#,
+                "result=",
+            ),
+            // --- Multiple return paths ---
+            CorpusEntry::new(
+                "B-041",
+                "early-return-conditional",
+                "Early return based on condition",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn check(x: u32) -> u32 { if x > 10 { return 1; } return 0; } fn main() { let r = check(5); }"#,
+                "check()",
+            ),
+            // --- Empty function body ---
+            CorpusEntry::new(
+                "B-042",
+                "empty-function",
+                "Function with empty body",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn noop() {} fn main() { noop(); }"#,
+                "noop()",
+            ),
+            // --- Large literal values ---
+            CorpusEntry::new(
+                "B-043",
+                "max-u32-literal",
+                "Maximum u32 literal value",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let max = 4294967295; }"#,
+                "max=4294967295",
+            ),
+            // --- String with special characters (safe) ---
+            CorpusEntry::new(
+                "B-044",
+                "special-safe-chars",
+                "String containing characters that need quoting in shell",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let msg = "hello world: it's a test!"; let path = "/usr/local/bin"; }"#,
+                "msg=",
+            ),
+            // --- Deeply nested if-else ---
+            CorpusEntry::new(
+                "B-045",
+                "deeply-nested-if",
+                "Three-level nested if-else",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let x = 5; if x > 0 { if x > 3 { if x > 4 { let r = 1; } } } }"#,
+                "if",
+            ),
+            // --- While with complex condition ---
+            CorpusEntry::new(
+                "B-046",
+                "while-complex-condition",
+                "While loop with compound boolean condition",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let mut x = 0; let mut y = 10; while x < 5 && y > 0 { x = x + 1; y = y - 1; } }"#,
+                "while",
+            ),
+            // --- Multiple functions calling each other ---
+            CorpusEntry::new(
+                "B-047",
+                "multi-function-chain",
+                "Three functions calling each other in sequence",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn step1() -> u32 { 1 } fn step2(x: u32) -> u32 { x + 2 } fn step3(x: u32) -> u32 { x * 3 } fn main() { let r = step3(step2(step1())); }"#,
+                "step1()",
+            ),
+            // --- Boolean parameters ---
+            CorpusEntry::new(
+                "B-048",
+                "boolean-params",
+                "Function with boolean parameters",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn process(verbose: bool, dry_run: bool) { if verbose { println!("processing"); } } fn main() { process(true, false); }"#,
+                "process()",
+            ),
+            // --- Match with many arms ---
+            CorpusEntry::new(
+                "B-049",
+                "match-many-arms",
+                "Match expression with 6+ arms",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let x = 3; match x { 0 => { println!("zero"); } 1 => { println!("one"); } 2 => { println!("two"); } 3 => { println!("three"); } 4 => { println!("four"); } _ => { println!("other"); } } }"#,
+                "case",
+            ),
+            // --- Negation operator ---
+            CorpusEntry::new(
+                "B-050",
+                "negation-unary",
+                "Unary negation on integer",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let x = 5; let y = !true; }"#,
+                "y=",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    fn load_tier4_makefile(&mut self) {
+        let entries = vec![
+            // --- Complex variable expressions ---
+            CorpusEntry::new(
+                "M-026",
+                "conditional-variable",
+                "Variable with conditional default",
+                CorpusFormat::Makefile,
+                CorpusTier::Adversarial,
+                r#"fn main() { let cc = "gcc"; let cflags = "-Wall -Werror -O2 -pedantic"; let ldflags = "-lpthread -lm"; target("all", &["build", "test"]); } fn target(n: &str, d: &[&str]) {}"#,
+                "CFLAGS :=",
+            ),
+            // --- Many targets ---
+            CorpusEntry::new(
+                "M-027",
+                "many-targets",
+                "Makefile with 5+ targets",
+                CorpusFormat::Makefile,
+                CorpusTier::Adversarial,
+                r#"fn main() { let cc = "gcc"; target("all", &["build"]); target("build", &["src/main.c"]); target("test", &["build"]); target("clean", &[]); target("install", &["build"]); target("lint", &["src/main.c"]); } fn target(n: &str, d: &[&str]) {}"#,
+                "all: build",
+            ),
+            // --- Phony with many targets ---
+            CorpusEntry::new(
+                "M-028",
+                "phony-multiple",
+                "Multiple phony targets at once",
+                CorpusFormat::Makefile,
+                CorpusTier::Adversarial,
+                r#"fn main() { phony_target("all", &["build"]); phony_target("clean", &[]); phony_target("test", &["build"]); phony_target("lint", &[]); phony_target("fmt", &[]); } fn phony_target(n: &str, d: &[&str]) {}"#,
+                ".PHONY:",
+            ),
+            // --- Recipe with multiple commands ---
+            CorpusEntry::new(
+                "M-029",
+                "recipe-multi-command",
+                "Target with multiple recipe lines",
+                CorpusFormat::Makefile,
+                CorpusTier::Adversarial,
+                r#"fn main() { let cc = "gcc"; let src = "main.c"; target("build", &["main.c"]); target("test", &["build"]); target("clean", &[]); } fn target(n: &str, d: &[&str]) {}"#,
+                "build: main.c",
+            ),
+            // --- Empty string variables ---
+            CorpusEntry::new(
+                "M-030",
+                "empty-string-var",
+                "Variable with empty string value",
+                CorpusFormat::Makefile,
+                CorpusTier::Adversarial,
+                r#"fn main() { let prefix = ""; let suffix = ""; let name = "app"; } fn target(n: &str, d: &[&str]) {}"#,
+                "PREFIX :=",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    fn load_tier4_dockerfile(&mut self) {
+        let entries = vec![
+            // --- Four-stage build ---
+            CorpusEntry::new(
+                "D-026",
+                "four-stage-build",
+                "Four-stage multi-stage build",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Adversarial,
+                r#"fn main() { from_image_as("rust", "1.75", "deps"); workdir("/app"); from_image_as("rust", "1.75", "builder"); copy_from("deps", "/app/target", "/app/target"); from_image_as("debian", "bookworm-slim", "runtime"); copy_from("builder", "/app/target/release/app", "/usr/local/bin/"); from_image("gcr.io/distroless/cc-debian12", "nonroot"); copy_from("runtime", "/usr/local/bin/app", "/app/"); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy_from(f: &str, s: &str, d: &str) {}"#,
+                "FROM rust:1.75 AS deps",
+            ),
+            // --- Healthcheck ---
+            CorpusEntry::new(
+                "D-027",
+                "healthcheck-full",
+                "Full HEALTHCHECK with all options",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Adversarial,
+                r#"fn main() { from_image("alpine", "3.18"); healthcheck("curl -f http://localhost:8080/health || exit 1"); expose(8080u16); } fn from_image(i: &str, t: &str) {} fn healthcheck(c: &str) {} fn expose(p: u16) {}"#,
+                "HEALTHCHECK",
+            ),
+            // --- Many ENV instructions ---
+            CorpusEntry::new(
+                "D-028",
+                "many-env-vars",
+                "Six ENV variables from let bindings",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Adversarial,
+                r#"fn main() { from_image("node", "20-alpine"); let app_name = "myapp"; let app_port = "3000"; let node_env = "production"; let log_level = "info"; let db_host = "localhost"; let cache_ttl = "3600"; workdir("/app"); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {}"#,
+                "ENV APP_NAME=myapp",
+            ),
+            // --- Copy with chown-like pattern ---
+            CorpusEntry::new(
+                "D-029",
+                "copy-multiple",
+                "Multiple COPY instructions",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Adversarial,
+                r#"fn main() { from_image("node", "20-alpine"); workdir("/app"); copy("package.json", "."); copy("package-lock.json", "."); copy("tsconfig.json", "."); copy("src", "src"); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {}"#,
+                "COPY package.json .",
+            ),
+            // --- Comment instructions ---
+            CorpusEntry::new(
+                "D-030",
+                "comments-rich",
+                "Dockerfile with multiple comments",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Adversarial,
+                r#"fn main() { comment("Build stage"); from_image_as("rust", "1.75", "builder"); comment("Runtime stage"); from_image("alpine", "3.18"); copy_from("builder", "/app", "/app"); } fn comment(c: &str) {} fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn copy_from(f: &str, s: &str, d: &str) {}"#,
+                "# Build stage",
             ),
         ];
         self.entries.extend(entries);
