@@ -113,6 +113,69 @@ impl ShellIR {
     pub fn is_pure(&self) -> bool {
         self.effects().is_pure()
     }
+
+    /// Collect all function names referenced by Exec nodes and CommandSubst values.
+    /// Used by the emitter to determine which runtime functions to include.
+    pub fn collect_used_functions(&self) -> std::collections::HashSet<String> {
+        let mut used = std::collections::HashSet::new();
+        self.collect_functions_recursive(&mut used);
+        used
+    }
+
+    fn collect_functions_recursive(&self, used: &mut std::collections::HashSet<String>) {
+        match self {
+            ShellIR::Exec { cmd, .. } => {
+                used.insert(cmd.program.clone());
+                for arg in &cmd.args {
+                    arg.collect_functions(used);
+                }
+            }
+            ShellIR::Let { value, .. } => {
+                value.collect_functions(used);
+            }
+            ShellIR::Echo { value } => {
+                value.collect_functions(used);
+            }
+            ShellIR::If {
+                test,
+                then_branch,
+                else_branch,
+            } => {
+                test.collect_functions(used);
+                then_branch.collect_functions_recursive(used);
+                if let Some(eb) = else_branch {
+                    eb.collect_functions_recursive(used);
+                }
+            }
+            ShellIR::Sequence(items) => {
+                for item in items {
+                    item.collect_functions_recursive(used);
+                }
+            }
+            ShellIR::Function { body, .. } => {
+                body.collect_functions_recursive(used);
+            }
+            ShellIR::For { start, end, body, .. } => {
+                start.collect_functions(used);
+                end.collect_functions(used);
+                body.collect_functions_recursive(used);
+            }
+            ShellIR::While { condition, body } => {
+                condition.collect_functions(used);
+                body.collect_functions_recursive(used);
+            }
+            ShellIR::Case { scrutinee, arms } => {
+                scrutinee.collect_functions(used);
+                for arm in arms {
+                    arm.body.collect_functions_recursive(used);
+                    if let Some(guard) = &arm.guard {
+                        guard.collect_functions(used);
+                    }
+                }
+            }
+            ShellIR::Exit { .. } | ShellIR::Noop | ShellIR::Break | ShellIR::Continue => {}
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -264,6 +327,41 @@ impl ShellValue {
             | ShellValue::LogicalAnd { left, right }
             | ShellValue::LogicalOr { left, right } => left.is_constant() && right.is_constant(),
             ShellValue::LogicalNot { operand } => operand.is_constant(),
+        }
+    }
+
+    /// Collect function names referenced by command substitutions in this value.
+    pub fn collect_functions(&self, used: &mut std::collections::HashSet<String>) {
+        match self {
+            ShellValue::CommandSubst(cmd) => {
+                used.insert(cmd.program.clone());
+                for arg in &cmd.args {
+                    arg.collect_functions(used);
+                }
+            }
+            ShellValue::Concat(parts) => {
+                for part in parts {
+                    part.collect_functions(used);
+                }
+            }
+            ShellValue::Comparison { left, right, .. }
+            | ShellValue::Arithmetic { left, right, .. }
+            | ShellValue::LogicalAnd { left, right }
+            | ShellValue::LogicalOr { left, right } => {
+                left.collect_functions(used);
+                right.collect_functions(used);
+            }
+            ShellValue::LogicalNot { operand } => {
+                operand.collect_functions(used);
+            }
+            ShellValue::String(_)
+            | ShellValue::Bool(_)
+            | ShellValue::Variable(_)
+            | ShellValue::EnvVar { .. }
+            | ShellValue::Arg { .. }
+            | ShellValue::ArgWithDefault { .. }
+            | ShellValue::ArgCount
+            | ShellValue::ExitCode => {}
         }
     }
 

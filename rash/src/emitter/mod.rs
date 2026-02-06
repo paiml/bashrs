@@ -12,9 +12,8 @@
 //! - **Multiple Dialects**: Support for POSIX sh, Bash, and other shell variants
 //!
 //! ## Safety Note
-//! Emitter uses unwrap() on validated IR operations and string operations after validation.
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::indexing_slicing)]
+//! Emitter operations use fallible methods with proper error handling.
+//! Production code MUST NOT use unwrap() (Cloudflare-class defect prevention).
 //!
 //! ## Architecture
 //!
@@ -102,7 +101,9 @@
 //! # }
 //! ```
 
+pub mod dockerfile;
 pub mod escape;
+pub mod makefile;
 pub mod posix;
 
 #[cfg(test)]

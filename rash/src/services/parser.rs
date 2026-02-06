@@ -131,6 +131,7 @@ fn convert_type(ty: &SynType) -> Result<Type> {
 
             match path_str.as_str() {
                 "bool" => Ok(Type::Bool),
+                "u16" => Ok(Type::U16),
                 "u32" | "i32" => Ok(Type::U32), // Treat i32 as u32 for now
                 "str" | "String" => Ok(Type::Str),
                 path if path.starts_with("Result") => {
@@ -150,24 +151,30 @@ fn convert_type(ty: &SynType) -> Result<Type> {
             }
         }
         SynType::Reference(type_ref) => {
-            // Handle &str and other reference types
-            if let SynType::Path(path) = &*type_ref.elem {
-                let path_str = path
-                    .path
-                    .segments
-                    .iter()
-                    .map(|seg| seg.ident.to_string())
-                    .collect::<Vec<_>>()
-                    .join("::");
+            // Handle &str, &[T] and other reference types
+            match &*type_ref.elem {
+                SynType::Path(path) => {
+                    let path_str = path
+                        .path
+                        .segments
+                        .iter()
+                        .map(|seg| seg.ident.to_string())
+                        .collect::<Vec<_>>()
+                        .join("::");
 
-                match path_str.as_str() {
-                    "str" => Ok(Type::Str),
-                    _ => Err(Error::Validation(format!(
-                        "Unsupported reference type: &{path_str}"
-                    ))),
+                    match path_str.as_str() {
+                        "str" => Ok(Type::Str),
+                        _ => Err(Error::Validation(format!(
+                            "Unsupported reference type: &{path_str}"
+                        ))),
+                    }
                 }
-            } else {
-                Err(Error::Validation(
+                SynType::Slice(_) => {
+                    // &[T] slice references are treated as Str for shell compatibility
+                    // The actual array content is handled at the expression level
+                    Ok(Type::Str)
+                }
+                _ => Err(Error::Validation(
                     "Complex reference types not supported".to_string(),
                 ))
             }
@@ -338,12 +345,28 @@ fn convert_expr(expr: &SynExpr) -> Result<Expr> {
         SynExpr::MethodCall(method_call) => convert_method_call_expr(method_call),
         SynExpr::Return(ret_expr) => convert_return_expr(ret_expr),
         SynExpr::Paren(expr_paren) => convert_expr(&expr_paren.expr),
+        SynExpr::Array(expr_array) => convert_array_expr(expr_array),
+        SynExpr::Reference(expr_ref) => convert_reference_expr(expr_ref),
         SynExpr::If(_) => Err(Error::Validation(
             "If expressions not supported in expression position".to_string(),
         )),
         SynExpr::Range(range_expr) => convert_range_expr(range_expr),
         _ => Err(Error::Validation("Unsupported expression type".to_string())),
     }
+}
+
+fn convert_array_expr(expr_array: &syn::ExprArray) -> Result<Expr> {
+    let mut elements = Vec::new();
+    for elem in &expr_array.elems {
+        elements.push(convert_expr(elem)?);
+    }
+    Ok(Expr::Array(elements))
+}
+
+fn convert_reference_expr(expr_ref: &syn::ExprReference) -> Result<Expr> {
+    // &[...] -> unwrap reference, convert inner array expression
+    // &expr -> unwrap reference, convert inner expression
+    convert_expr(&expr_ref.expr)
 }
 
 fn convert_literal_expr(expr_lit: &syn::ExprLit) -> Result<Expr> {
@@ -461,10 +484,18 @@ fn convert_literal(lit: &Lit) -> Result<Literal> {
     match lit {
         Lit::Bool(lit_bool) => Ok(Literal::Bool(lit_bool.value)),
         Lit::Int(lit_int) => {
-            let value: u32 = lit_int
-                .base10_parse()
-                .map_err(|_| Error::Validation("Invalid integer literal".to_string()))?;
-            Ok(Literal::U32(value))
+            let suffix = lit_int.suffix();
+            if suffix == "u16" {
+                let value: u16 = lit_int
+                    .base10_parse()
+                    .map_err(|_| Error::Validation("Invalid u16 literal".to_string()))?;
+                Ok(Literal::U16(value))
+            } else {
+                let value: u32 = lit_int
+                    .base10_parse()
+                    .map_err(|_| Error::Validation("Invalid integer literal".to_string()))?;
+                Ok(Literal::U32(value))
+            }
         }
         Lit::Str(lit_str) => Ok(Literal::Str(lit_str.value())),
         _ => Err(Error::Validation("Unsupported literal type".to_string())),

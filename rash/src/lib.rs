@@ -78,6 +78,8 @@ pub mod cli;
 /// Rust compiler integration for transpilation
 #[cfg(not(target_arch = "wasm32"))]
 pub mod compiler;
+/// Corpus-driven transpilation quality measurement (Popperian falsification)
+pub mod corpus;
 /// Shell configuration file management and analysis
 pub mod config;
 /// Container and sandbox support
@@ -246,6 +248,82 @@ pub fn transpile(input: &str, config: Config) -> Result<String> {
     validation_pipeline.validate_output(&shell_code)?;
 
     Ok(shell_code)
+}
+
+/// Transpile Rust source code to POSIX shell script with lint validation.
+///
+/// Like [`transpile`], but additionally runs the built-in linter on the generated
+/// shell output. Returns both the shell script and any lint diagnostics found.
+///
+/// # Arguments
+///
+/// * `input` - Rust source code as a string
+/// * `config` - Configuration options for transpilation
+///
+/// # Returns
+///
+/// * `Ok((String, LintResult))` - Generated shell script and lint results
+/// * `Err(Error)` - Transpilation error
+pub fn transpile_with_lint(
+    input: &str,
+    config: Config,
+) -> Result<(String, linter::LintResult)> {
+    let shell_code = transpile(input, config)?;
+    let lint_result = linter::rules::lint_shell(&shell_code);
+    Ok((shell_code, lint_result))
+}
+
+/// Transpile Rust source code to a Makefile.
+///
+/// Converts a Rust DSL into a valid Makefile using conventions:
+/// - `let` bindings -> Makefile variables (`CC := gcc`)
+/// - `target("name", &["deps"], &["recipes"])` -> Make targets
+/// - `phony_target("name", ...)` -> `.PHONY` targets
+///
+/// # Arguments
+///
+/// * `input` - Rust source code using the Makefile DSL
+/// * `config` - Configuration options
+///
+/// # Returns
+///
+/// * `Ok(String)` - Generated Makefile content
+/// * `Err(Error)` - Transpilation error
+pub fn transpile_makefile(input: &str, config: Config) -> Result<String> {
+    let _validation_pipeline = validation::pipeline::ValidationPipeline::new(&config);
+
+    let ast = services::parser::parse(input)?;
+    ast::validate(&ast)?;
+
+    emitter::makefile::emit_makefile(&ast)
+}
+
+/// Transpile Rust source code to a Dockerfile.
+///
+/// Converts a Rust DSL into a valid Dockerfile using conventions:
+/// - `from_image("rust", "1.75-alpine")` -> `FROM rust:1.75-alpine`
+/// - `run(&["cmd1", "cmd2"])` -> `RUN cmd1 && cmd2`
+/// - `copy("src", "dst")` -> `COPY src dst`
+/// - `workdir("/app")` -> `WORKDIR /app`
+/// - `user("65534")` -> `USER 65534`
+/// - `entrypoint(&["/app"])` -> `ENTRYPOINT ["/app"]`
+///
+/// # Arguments
+///
+/// * `input` - Rust source code using the Dockerfile DSL
+/// * `config` - Configuration options
+///
+/// # Returns
+///
+/// * `Ok(String)` - Generated Dockerfile content
+/// * `Err(Error)` - Transpilation error
+pub fn transpile_dockerfile(input: &str, config: Config) -> Result<String> {
+    let _validation_pipeline = validation::pipeline::ValidationPipeline::new(&config);
+
+    let ast = services::parser::parse(input)?;
+    ast::validate(&ast)?;
+
+    emitter::dockerfile::emit_dockerfile(&ast)
 }
 
 /// Check if the given Rust code is valid for transpilation without generating output.
