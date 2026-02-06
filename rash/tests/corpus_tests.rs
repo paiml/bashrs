@@ -487,3 +487,112 @@ fn test_CORPUS_020_tier2_aggregate_score() {
 
     assert!(score.total == 55, "Should run all 55 entries");
 }
+
+// =============================================================================
+// Tier 3 Corpus Tests (Complex difficulty - stronger falsifiers)
+// =============================================================================
+
+#[test]
+fn test_CORPUS_021_tier3_loads_all_entries() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all();
+    assert!(registry.len() > 55, "Tier 1+2+3 should have more than 55 entries");
+}
+
+#[test]
+fn test_CORPUS_022_tier3_bash_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Bash);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER3 FAILED: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Bash T1+T2+T3: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_023_tier3_makefile_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Makefile);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER3 FAILED: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Makefile T1+T2+T3: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_024_tier3_dockerfile_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Dockerfile);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER3 FAILED: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Dockerfile T1+T2+T3: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_025_tier3_aggregate_score() {
+    let registry = bashrs::corpus::CorpusRegistry::load_all();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run(&registry);
+
+    eprintln!("\n=== CORPUS QUALITY REPORT (Tier 1+2+3) ===");
+    eprintln!("Total entries: {}", score.total);
+    eprintln!("Passed: {}", score.passed);
+    eprintln!("Failed: {}", score.failed);
+    eprintln!("Rate: {:.1}%", score.rate * 100.0);
+    eprintln!("Score: {:.1}/100", score.score);
+    eprintln!("Grade: {}", score.grade);
+    eprintln!("============================================\n");
+
+    // Log individual failures for fixing
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "  FALSIFIER: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    assert!(score.total > 55, "Should run more than 55 entries");
+}
