@@ -36,6 +36,10 @@ pub mod generators {
         "[a-zA-Z0-9 _.-]{0,50}"
     }
 
+    pub fn any_u16_literal() -> impl Strategy<Value = Literal> {
+        (0u16..10000u16).prop_map(Literal::U16)
+    }
+
     pub fn any_u32_literal() -> impl Strategy<Value = Literal> {
         (0u32..10000u32).prop_map(Literal::U32)
     }
@@ -49,7 +53,7 @@ pub mod generators {
     }
 
     pub fn any_literal() -> impl Strategy<Value = Literal> {
-        prop_oneof![any_u32_literal(), any_bool_literal(), any_string_literal()]
+        prop_oneof![any_u16_literal(), any_u32_literal(), any_bool_literal(), any_string_literal()]
     }
 
     pub fn any_binary_op() -> impl Strategy<Value = BinaryOp> {
@@ -230,6 +234,7 @@ proptest! {
     fn prop_literals_transpile(lit in generators::any_literal()) {
         let source = match &lit {
             Literal::Bool(b) => format!("fn main() {{ let x = {b}; }}"),
+            Literal::U16(n) => format!("fn main() {{ let x = {n}u16; }}"),
             Literal::U32(n) => format!("fn main() {{ let x = {n}; }}"),
             Literal::I32(n) => format!("fn main() {{ let x = {n}; }}"),
             Literal::Str(s) => format!(r#"fn main() {{ let x = "{s}"; }}"#),

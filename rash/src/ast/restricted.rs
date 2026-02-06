@@ -170,6 +170,8 @@ pub enum Type {
     Void,
     /// Boolean type
     Bool,
+    /// 16-bit unsigned integer
+    U16,
     /// 32-bit unsigned integer
     U32,
     /// String type
@@ -191,7 +193,7 @@ pub enum Type {
 impl Type {
     pub fn is_allowed(&self) -> bool {
         match self {
-            Type::Void | Type::Bool | Type::U32 | Type::Str => true,
+            Type::Void | Type::Bool | Type::U16 | Type::U32 | Type::Str => true,
             Type::Result { ok_type, err_type } => ok_type.is_allowed() && err_type.is_allowed(),
             Type::Option { inner_type } => inner_type.is_allowed(),
         }
@@ -596,6 +598,7 @@ impl Expr {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Literal {
     Bool(bool),
+    U16(u16),
     U32(u32),
     I32(i32), // Support negative integers
     Str(String),

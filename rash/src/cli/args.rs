@@ -588,6 +588,17 @@ pub enum ExplainErrorFormat {
 
 #[derive(Subcommand)]
 pub enum MakeCommands {
+    /// Transpile Rust DSL to Makefile
+    Build {
+        /// Input Rust file with Makefile DSL
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output Makefile path
+        #[arg(short, long, default_value = "Makefile")]
+        output: PathBuf,
+    },
+
     /// Parse Makefile to AST
     Parse {
         /// Input Makefile
@@ -672,6 +683,21 @@ pub enum MakeCommands {
 
 #[derive(Subcommand)]
 pub enum DockerfileCommands {
+    /// Transpile Rust DSL to Dockerfile
+    Build {
+        /// Input Rust file with Dockerfile DSL
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output Dockerfile path
+        #[arg(short, long, default_value = "Dockerfile")]
+        output: PathBuf,
+
+        /// Base image (e.g., "rust:1.75-alpine")
+        #[arg(long)]
+        base_image: Option<String>,
+    },
+
     /// Purify Dockerfile (auto-fix security and best practices issues)
     Purify {
         /// Input Dockerfile

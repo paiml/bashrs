@@ -71,7 +71,11 @@ fn is_safe_unquoted(s: &str) -> bool {
     }
 
     // Must start with ASCII alphanumeric or safe characters
-    let first_char = s.chars().next().unwrap();
+    // Safety: is_empty() check above guarantees at least one char
+    let first_char = match s.chars().next() {
+        Some(c) => c,
+        None => return false,
+    };
     if !first_char.is_ascii_alphanumeric()
         && first_char != '_'
         && first_char != '.'
@@ -102,7 +106,11 @@ fn is_valid_shell_identifier(name: &str) -> bool {
     }
 
     // Must start with ASCII letter or underscore (POSIX requirement)
-    let first_char = name.chars().next().unwrap();
+    // Safety: is_empty() check above guarantees at least one char
+    let first_char = match name.chars().next() {
+        Some(c) => c,
+        None => return false,
+    };
     if !first_char.is_ascii_alphabetic() && first_char != '_' {
         return false;
     }

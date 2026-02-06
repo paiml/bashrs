@@ -1448,6 +1448,14 @@ fn purify_command(
 
 fn handle_make_command(command: MakeCommands) -> Result<()> {
     match command {
+        MakeCommands::Build { input, output } => {
+            info!(
+                "Building Makefile from {} -> {}",
+                input.display(),
+                output.display()
+            );
+            make_build_command(&input, &output)
+        }
         MakeCommands::Parse { input, format } => {
             info!("Parsing {}", input.display());
             make_parse_command(&input, format)
@@ -1495,6 +1503,18 @@ fn handle_make_command(command: MakeCommands) -> Result<()> {
 
 fn handle_dockerfile_command(command: DockerfileCommands) -> Result<()> {
     match command {
+        DockerfileCommands::Build {
+            input,
+            output,
+            base_image: _,
+        } => {
+            info!(
+                "Building Dockerfile from {} -> {}",
+                input.display(),
+                output.display()
+            );
+            dockerfile_build_command(&input, &output)
+        }
         DockerfileCommands::Purify {
             input,
             output,
@@ -1701,6 +1721,27 @@ struct DockerfilePurifyOptions<'a> {
 }
 
 #[allow(clippy::too_many_arguments)]
+fn dockerfile_build_command(input: &Path, output: &Path) -> Result<()> {
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+    let config = Config::default();
+
+    let dockerfile_content = crate::transpile_dockerfile(&source, config)?;
+
+    fs::write(output, &dockerfile_content).map_err(Error::Io)?;
+    info!("Successfully generated Dockerfile at {}", output.display());
+
+    // Run lint on generated output
+    let lint_result = crate::linter::rules::lint_dockerfile(&dockerfile_content);
+    if !lint_result.diagnostics.is_empty() {
+        warn!(
+            "Generated Dockerfile has {} lint issues",
+            lint_result.diagnostics.len()
+        );
+    }
+
+    Ok(())
+}
+
 fn dockerfile_purify_command(
     input: &Path,
     output: Option<&Path>,
@@ -2420,6 +2461,27 @@ fn dockerfile_full_validate_command(
                 println!("✗ **FAILED**");
             }
         }
+    }
+
+    Ok(())
+}
+
+fn make_build_command(input: &Path, output: &Path) -> Result<()> {
+    let source = fs::read_to_string(input).map_err(Error::Io)?;
+    let config = Config::default();
+
+    let makefile_content = crate::transpile_makefile(&source, config)?;
+
+    fs::write(output, &makefile_content).map_err(Error::Io)?;
+    info!("Successfully generated Makefile at {}", output.display());
+
+    // Run lint on generated output
+    let lint_result = crate::linter::rules::lint_makefile(&makefile_content);
+    if !lint_result.diagnostics.is_empty() {
+        warn!(
+            "Generated Makefile has {} lint issues",
+            lint_result.diagnostics.len()
+        );
     }
 
     Ok(())

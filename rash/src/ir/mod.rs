@@ -1,10 +1,10 @@
 //! Intermediate Representation (IR) module
 //!
 //! ## Safety Note
-//! IR uses unwrap() on validated AST operations and checked invariants.
-#![allow(clippy::unwrap_used)]
-#![allow(clippy::indexing_slicing)]
+//! IR operations use fallible indexing with proper error handling.
+//! Production code MUST NOT use unwrap() (Cloudflare-class defect prevention).
 
+pub mod dockerfile_ir;
 pub mod effects;
 pub mod shell_ir;
 
@@ -326,6 +326,7 @@ impl IrConverter {
         match expr {
             Expr::Literal(literal) => match literal {
                 Literal::Bool(b) => Ok(ShellValue::Bool(*b)),
+                Literal::U16(n) => Ok(ShellValue::String(n.to_string())),
                 Literal::U32(n) => Ok(ShellValue::String(n.to_string())),
                 Literal::I32(n) => Ok(ShellValue::String(n.to_string())),
                 Literal::Str(s) => Ok(ShellValue::String(s.clone())),
@@ -335,7 +336,13 @@ impl IrConverter {
                 // Sprint 27a: Handle env() and env_var_or() specially
                 if name == "env" || name == "env_var_or" {
                     // Extract variable name from first argument
-                    let var_name = match &args[0] {
+                    let first_arg = args.first().ok_or_else(|| {
+                        crate::models::Error::Validation(format!(
+                            "{}() requires at least one argument",
+                            name
+                        ))
+                    })?;
+                    let var_name = match first_arg {
                         Expr::Literal(Literal::Str(s)) => s.clone(),
                         _ => {
                             return Err(crate::models::Error::Validation(format!(
@@ -380,7 +387,12 @@ impl IrConverter {
                 // Sprint 27b: Handle arg(), args(), and arg_count() specially
                 if name == "arg" {
                     // Extract position from first argument
-                    let position = match &args[0] {
+                    let first_arg = args.first().ok_or_else(|| {
+                        crate::models::Error::Validation(
+                            "arg() requires at least one argument".to_string(),
+                        )
+                    })?;
+                    let position = match first_arg {
                         Expr::Literal(Literal::U32(n)) => *n as usize,
                         Expr::Literal(Literal::I32(n)) => *n as usize,
                         _ => {
@@ -561,7 +573,9 @@ impl IrConverter {
                             {
                                 if name == "std::env::args" && fn_args.is_empty() {
                                     // Extract the position number
-                                    if let Expr::Literal(Literal::U32(n)) = &inner_args[0] {
+                                    if let Some(Expr::Literal(Literal::U32(n))) =
+                                        inner_args.first()
+                                    {
                                         return Ok(ShellValue::Arg {
                                             position: Some(*n as usize),
                                         });
@@ -583,12 +597,11 @@ impl IrConverter {
                     } = &**receiver
                     {
                         if inner_method == "get" && inner_args.len() == 1 {
-                            // Check if inner receiver is a variable holding positional args
-                            // For now, we'll check if it's assigned from PositionalArgs
                             // Extract the position number
-                            if let Expr::Literal(Literal::U32(n)) = &inner_args[0] {
+                            if let Some(Expr::Literal(Literal::U32(n))) = inner_args.first() {
                                 // Extract the default value
-                                if let Expr::Literal(Literal::Str(default_val)) = &args[0] {
+                                if let Some(Expr::Literal(Literal::Str(default_val))) = args.first()
+                                {
                                     return Ok(ShellValue::ArgWithDefault {
                                         position: *n as usize,
                                         default: default_val.clone(),
@@ -608,9 +621,13 @@ impl IrConverter {
                             {
                                 if name == "std::env::args" && fn_args.is_empty() {
                                     // Extract the position number
-                                    if let Expr::Literal(Literal::U32(n)) = &inner_args[0] {
+                                    if let Some(Expr::Literal(Literal::U32(n))) =
+                                        inner_args.first()
+                                    {
                                         // Extract the default value
-                                        if let Expr::Literal(Literal::Str(default_val)) = &args[0] {
+                                        if let Some(Expr::Literal(Literal::Str(default_val))) =
+                                            args.first()
+                                        {
                                             return Ok(ShellValue::ArgWithDefault {
                                                 position: *n as usize,
                                                 default: default_val.clone(),
@@ -662,6 +679,7 @@ impl IrConverter {
                 // Convert literal to string representation for case pattern
                 let lit_str = match literal {
                     Literal::Bool(b) => b.to_string(),
+                    Literal::U16(n) => n.to_string(),
                     Literal::U32(n) => n.to_string(),
                     Literal::I32(n) => n.to_string(),
                     Literal::Str(s) => s.clone(),
