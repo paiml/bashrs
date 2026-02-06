@@ -271,6 +271,9 @@ impl CorpusRegistry {
         registry.load_expansion3_bash();
         registry.load_expansion3_makefile();
         registry.load_expansion3_dockerfile();
+        registry.load_expansion4_bash();
+        registry.load_expansion4_makefile();
+        registry.load_expansion4_dockerfile();
         registry
     }
 
@@ -2248,6 +2251,128 @@ impl CorpusRegistry {
             CorpusEntry::new("D-070", "cron-runner", "Cron job runner container", CorpusFormat::Dockerfile, CorpusTier::Production,
                 r#"fn main() { from_image("alpine", "3.18"); run(&["apk add --no-cache dcron"]); copy("crontab", "/etc/crontabs/root"); copy("scripts", "/scripts/"); run(&["chmod +x /scripts/*"]); cmd(&["crond", "-f"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn copy(s: &str, d: &str) {} fn cmd(c: &[&str]) {}"#,
                 "FROM alpine:3.18"),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion wave 4: pushing past 350 total
+    // =========================================================================
+
+    fn load_expansion4_bash(&mut self) {
+        let entries = vec![
+            CorpusEntry::new("B-151", "selection-sort-pass", "Selection sort single pass", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let mut min_val = 999; let mut min_idx = 0; for i in 0..5 { if i < min_val { min_val = i; min_idx = i; } } }"#, "min_val="),
+            CorpusEntry::new("B-152", "bit-shift-like", "Power of 2 via multiplication", CorpusFormat::Bash, CorpusTier::Standard,
+                r#"fn main() { let base = 2; let mut result = 1; for _i in 0..8 { result *= base; } }"#, "result="),
+            CorpusEntry::new("B-153", "temperature-converter", "Temperature conversion functions", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn c_to_f(c: u32) -> u32 { c * 9 / 5 + 32 } fn f_to_c(f: u32) -> u32 { (f - 32) * 5 / 9 } fn main() { let f = c_to_f(100); let c = f_to_c(212); }"#, "c_to_f()"),
+            CorpusEntry::new("B-154", "leap-year-check", "Leap year determination", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn is_leap(year: u32) -> bool { (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 } fn main() { let leap = is_leap(2024); }"#, "is_leap()"),
+            CorpusEntry::new("B-155", "digit-counter", "Count specific digit occurrences", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let mut n = 112211; let target = 1; let mut count = 0; while n > 0 { if n % 10 == target { count += 1; } n = n / 10; } }"#, "count="),
+            CorpusEntry::new("B-156", "harmonic-partial", "Partial harmonic series (integer approx)", CorpusFormat::Bash, CorpusTier::Standard,
+                r#"fn main() { let mut sum = 0; for i in 1..=10 { sum += 100 / i; } }"#, "sum="),
+            CorpusEntry::new("B-157", "matrix-diagonal", "Diagonal element computation", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let mut trace = 0; for i in 0..4 { trace += i * 4 + i; } }"#, "trace="),
+            CorpusEntry::new("B-158", "validator-chain", "Chain of validation functions", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn valid_len(n: u32) -> bool { n > 0 && n < 256 } fn valid_range(n: u32) -> bool { n >= 1 && n <= 65535 } fn valid_all(n: u32) -> bool { valid_len(n) && valid_range(n) } fn main() { let ok = valid_all(100); }"#, "valid_all()"),
+            CorpusEntry::new("B-159", "accumulate-complex", "Complex accumulation pattern", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let mut total = 0; let mut bonus = 0; for i in 0..50 { total += i; if i % 10 == 0 { bonus += 5; } } let final_score = total + bonus; }"#, "final_score="),
+            CorpusEntry::new("B-160", "signal-handler-pattern", "Signal handler-like flag checking", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let mut interrupted = false; let mut completed = false; let mut retries = 0; while !completed && !interrupted { retries += 1; if retries >= 5 { completed = true; } } }"#, "while"),
+            CorpusEntry::new("B-161", "bracket-match-sim", "Bracket counting simulation", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let mut depth = 0; let mut max_depth = 0; for _i in 0..10 { depth += 1; if depth > max_depth { max_depth = depth; } } for _j in 0..10 { depth -= 1; } }"#, "max_depth="),
+            CorpusEntry::new("B-162", "config-env-vars", "Environment-style configuration", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let db_host = "localhost"; let db_port = "5432"; let db_name = "mydb"; let db_user = "admin"; let db_pool = "10"; let db_timeout = "30"; let db_ssl = "true"; }"#, "db_host="),
+            CorpusEntry::new("B-163", "bit-count-sim", "Bit counting via modulo", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let mut n = 255; let mut ones = 0; while n > 0 { if n % 2 == 1 { ones += 1; } n = n / 2; } }"#, "ones="),
+            CorpusEntry::new("B-164", "euclidean-dist-approx", "Approximate distance calculation", CorpusFormat::Bash, CorpusTier::Standard,
+                r#"fn main() { let dx = 3; let dy = 4; let dist_sq = dx * dx + dy * dy; }"#, "dist_sq="),
+            CorpusEntry::new("B-165", "lookup-table-sim", "Lookup table simulation with match", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn lookup(key: u32) -> u32 { match key { 0 => { return 100; } 1 => { return 200; } 2 => { return 300; } 3 => { return 400; } 4 => { return 500; } _ => { return 0; } } } fn main() { let v = lookup(3); }"#, "lookup()"),
+            CorpusEntry::new("B-166", "stack-sim", "Stack depth simulation", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn main() { let mut sp = 0; for _i in 0..5 { sp += 1; } for _j in 0..3 { sp -= 1; } }"#, "sp="),
+            CorpusEntry::new("B-167", "multi-format-output", "Multiple output formats", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn report(code: u32, msg: &str) { println!("report"); if code > 0 { eprintln!("error detected"); } } fn main() { report(0, "ok"); report(1, "fail"); }"#, "report()"),
+            CorpusEntry::new("B-168", "cascade-if", "Cascading if statements", CorpusFormat::Bash, CorpusTier::Standard,
+                r#"fn main() { let x = 42; let mut result = 0; if x > 100 { result = 4; } if x > 50 { result = 3; } if x > 25 { result = 2; } if x > 0 { result = 1; } }"#, "result="),
+            CorpusEntry::new("B-169", "null-object-sim", "Null object pattern with zero", CorpusFormat::Bash, CorpusTier::Standard,
+                r#"fn get_value(present: bool) -> u32 { if present { return 42; } return 0; } fn main() { let v = get_value(true); let n = get_value(false); }"#, "get_value()"),
+            CorpusEntry::new("B-170", "pipeline-stages", "Multi-stage pipeline simulation", CorpusFormat::Bash, CorpusTier::Production,
+                r#"fn stage1(x: u32) -> u32 { x + 10 } fn stage2(x: u32) -> u32 { x * 2 } fn stage3(x: u32) -> u32 { x - 5 } fn pipeline(x: u32) -> u32 { stage3(stage2(stage1(x))) } fn main() { let result = pipeline(5); }"#, "pipeline()"),
+        ];
+        self.entries.extend(entries);
+    }
+
+    fn load_expansion4_makefile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new("M-071", "gleam-project", "Gleam language project", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { phony_target("build", &[], &["gleam build"]); phony_target("test", &[], &["gleam test"]); phony_target("run", &["build"], &["gleam run"]); phony_target("deps", &[], &["gleam deps download"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build"),
+            CorpusEntry::new("M-072", "zig-project", "Zig language project", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { let target = "x86_64-linux"; phony_target("build", &[], &["zig build"]); phony_target("test", &[], &["zig build test"]); phony_target("run", &["build"], &["./zig-out/bin/app"]); phony_target("clean", &[], &["rm -rf zig-out zig-cache"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "TARGET := x86_64-linux"),
+            CorpusEntry::new("M-073", "bazel-project", "Bazel build system targets", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { phony_target("build", &[], &["bazel build //..."]); phony_target("test", &[], &["bazel test //..."]); phony_target("clean", &[], &["bazel clean"]); phony_target("query", &[], &["bazel query //..."]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build"),
+            CorpusEntry::new("M-074", "packer-build", "Packer image building", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { phony_target("validate", &[], &["packer validate ."]); phony_target("build", &["validate"], &["packer build ."]); phony_target("fmt", &[], &["packer fmt ."]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: validate"),
+            CorpusEntry::new("M-075", "pulumi-infra", "Pulumi infrastructure", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { let stack = "dev"; phony_target("up", &[], &["pulumi up --stack $(STACK)"]); phony_target("preview", &[], &["pulumi preview --stack $(STACK)"]); phony_target("destroy", &[], &["pulumi destroy --stack $(STACK)"]); phony_target("refresh", &[], &["pulumi refresh --stack $(STACK)"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "STACK := dev"),
+            CorpusEntry::new("M-076", "nix-build", "Nix build targets", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { phony_target("build", &[], &["nix build"]); phony_target("develop", &[], &["nix develop"]); phony_target("check", &[], &["nix flake check"]); phony_target("update", &[], &["nix flake update"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build"),
+            CorpusEntry::new("M-077", "just-alternative", "Alternative build targets", CorpusFormat::Makefile, CorpusTier::Standard,
+                r#"fn main() { phony_target("default", &["build", "test"], &[]); phony_target("build", &[], &["cargo build"]); phony_target("test", &[], &["cargo test"]); phony_target("watch", &[], &["cargo watch -x test"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: default"),
+            CorpusEntry::new("M-078", "llvm-project", "LLVM/Clang build", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { let cmake_build_dir = "build"; phony_target("configure", &[], &["cmake -B build -DCMAKE_BUILD_TYPE=Release"]); phony_target("build", &["configure"], &["cmake --build build -j$(nproc)"]); phony_target("install", &["build"], &["cmake --install build"]); phony_target("clean", &[], &["rm -rf build"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "CMAKE_BUILD_DIR := build"),
+            CorpusEntry::new("M-079", "migration-v2", "Database migration v2", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { phony_target("db-create", &[], &["createdb myapp"]); phony_target("db-drop", &[], &["dropdb myapp"]); phony_target("db-migrate", &[], &["diesel migration run"]); phony_target("db-revert", &[], &["diesel migration revert"]); phony_target("db-reset", &["db-drop", "db-create", "db-migrate"], &[]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: db-create"),
+            CorpusEntry::new("M-080", "monitoring-setup", "Monitoring stack setup", CorpusFormat::Makefile, CorpusTier::Production,
+                r#"fn main() { phony_target("monitoring-up", &[], &["docker compose -f monitoring.yml up -d"]); phony_target("monitoring-down", &[], &["docker compose -f monitoring.yml down"]); phony_target("monitoring-logs", &[], &["docker compose -f monitoring.yml logs -f"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: monitoring-up"),
+        ];
+        self.entries.extend(entries);
+    }
+
+    fn load_expansion4_dockerfile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new("D-071", "vite-react", "Vite + React production build", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image_as("node", "20-alpine", "builder"); workdir("/app"); copy("package.json", "."); copy("pnpm-lock.yaml", "."); run(&["corepack enable", "pnpm install --frozen-lockfile"]); copy(".", "."); run(&["pnpm build"]); from_image("nginx", "1.25-alpine"); copy_from("builder", "/app/dist", "/usr/share/nginx/html"); expose(80u16); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn copy_from(f: &str, s: &str, d: &str) {} fn expose(p: u16) {}"#,
+                "FROM node:20-alpine AS builder"),
+            CorpusEntry::new("D-072", "scala-sbt", "Scala SBT build", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image_as("sbtscala/scala-sbt", "eclipse-temurin-jammy-21.0.2_13_1.9.9_3.4.0", "builder"); workdir("/app"); copy("build.sbt", "."); copy("project", "project"); run(&["sbt update"]); copy(".", "."); run(&["sbt assembly"]); from_image("eclipse-temurin", "21-jre-alpine"); copy_from("builder", "/app/target/scala-3.4.0/app-assembly.jar", "/app.jar"); expose(8080u16); entrypoint(&["java", "-jar", "/app.jar"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn copy_from(f: &str, s: &str, d: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM sbtscala/scala-sbt"),
+            CorpusEntry::new("D-073", "gitea-server", "Gitea git server", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image("gitea/gitea", "1.21"); let user_uid = "1000"; let user_gid = "1000"; copy("app.ini", "/data/gitea/conf/"); expose(3000u16); expose(22u16); } fn from_image(i: &str, t: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {}"#,
+                "FROM gitea/gitea:1.21"),
+            CorpusEntry::new("D-074", "sonarqube-server", "SonarQube code analysis", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image("sonarqube", "10-community"); let sonar_jdbc_url = "jdbc:postgresql://db:5432/sonar"; expose(9000u16); } fn from_image(i: &str, t: &str) {} fn expose(p: u16) {}"#,
+                "FROM sonarqube:10-community"),
+            CorpusEntry::new("D-075", "mailhog-dev", "MailHog development SMTP", CorpusFormat::Dockerfile, CorpusTier::Standard,
+                r#"fn main() { from_image("mailhog/mailhog", "latest"); expose(1025u16); expose(8025u16); } fn from_image(i: &str, t: &str) {} fn expose(p: u16) {}"#,
+                "FROM mailhog/mailhog:latest"),
+            CorpusEntry::new("D-076", "wireguard-vpn", "WireGuard VPN container", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image("alpine", "3.18"); run(&["apk add --no-cache wireguard-tools iptables"]); copy("wg0.conf", "/etc/wireguard/"); expose(51820u16); entrypoint(&["wg-quick", "up", "wg0"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM alpine:3.18"),
+            CorpusEntry::new("D-077", "superset-bi", "Apache Superset BI", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image("apache/superset", "3.1"); let superset_secret_key = "change-me-in-production"; let admin_username = "admin"; copy("superset_config.py", "/app/"); expose(8088u16); } fn from_image(i: &str, t: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {}"#,
+                "FROM apache/superset:3.1"),
+            CorpusEntry::new("D-078", "vector-log", "Vector log collector", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image("timberio/vector", "0.35-alpine"); copy("vector.toml", "/etc/vector/"); expose(8686u16); entrypoint(&["vector"]); cmd(&["--config", "/etc/vector/vector.toml"]); } fn from_image(i: &str, t: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "FROM timberio/vector:0.35-alpine"),
+            CorpusEntry::new("D-079", "meilisearch", "Meilisearch search engine", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image("getmeili/meilisearch", "v1.6"); let meili_master_key = "change-me"; expose(7700u16); } fn from_image(i: &str, t: &str) {} fn expose(p: u16) {}"#,
+                "FROM getmeili/meilisearch:v1.6"),
+            CorpusEntry::new("D-080", "typesense-search", "Typesense search engine", CorpusFormat::Dockerfile, CorpusTier::Production,
+                r#"fn main() { from_image("typesense/typesense", "0.25"); let typesense_api_key = "change-me"; let typesense_data_dir = "/data"; expose(8108u16); } fn from_image(i: &str, t: &str) {} fn expose(p: u16) {}"#,
+                "FROM typesense/typesense:0.25"),
         ];
         self.entries.extend(entries);
     }
