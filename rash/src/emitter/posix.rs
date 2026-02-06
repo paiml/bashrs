@@ -938,6 +938,15 @@ impl PosixEmitter {
                 };
                 Ok(format!("({left_str} {op_str} {right_str})"))
             }
+            ShellValue::CommandSubst(cmd) => {
+                // Function call return value in arithmetic context
+                // Emit as $(func arg1 arg2) for command substitution
+                let mut parts = vec![cmd.program.clone()];
+                for arg in &cmd.args {
+                    parts.push(self.emit_shell_value(arg)?);
+                }
+                Ok(format!("$({})", parts.join(" ")))
+            }
             _ => Err(crate::models::Error::Emission(format!(
                 "Unsupported value in arithmetic expression: {:?}",
                 value
