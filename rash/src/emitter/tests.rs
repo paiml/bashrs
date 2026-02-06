@@ -214,8 +214,7 @@ fn test_runtime_functions_included() {
     // so that selective runtime emission includes them
     let ir = ShellIR::Sequence(vec![
         ShellIR::Exec {
-            cmd: Command::new("rash_require")
-                .arg(ShellValue::String("curl".to_string())),
+            cmd: Command::new("rash_require").arg(ShellValue::String("curl".to_string())),
             effects: EffectSet::pure(),
         },
         ShellIR::Exec {
@@ -1177,7 +1176,9 @@ fn test_string_split_in_runtime() {
     // Use IR that references rash_string_split to trigger selective emission
     let ir = crate::ir::shell_ir::ShellIR::Exec {
         cmd: Command::new("rash_string_split")
-            .arg(crate::ir::shell_ir::ShellValue::String("hello world".to_string()))
+            .arg(crate::ir::shell_ir::ShellValue::String(
+                "hello world".to_string(),
+            ))
             .arg(crate::ir::shell_ir::ShellValue::String(" ".to_string())),
         effects: EffectSet::pure(),
     };
@@ -1228,8 +1229,9 @@ fn test_array_len_in_runtime() {
     use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
-        cmd: Command::new("rash_array_len")
-            .arg(crate::ir::shell_ir::ShellValue::String("myarray".to_string())),
+        cmd: Command::new("rash_array_len").arg(crate::ir::shell_ir::ShellValue::String(
+            "myarray".to_string(),
+        )),
         effects: EffectSet::pure(),
     };
 
@@ -1250,8 +1252,9 @@ fn test_array_len_basic() {
     use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
-        cmd: Command::new("rash_array_len")
-            .arg(crate::ir::shell_ir::ShellValue::String("myarray".to_string())),
+        cmd: Command::new("rash_array_len").arg(crate::ir::shell_ir::ShellValue::String(
+            "myarray".to_string(),
+        )),
         effects: EffectSet::pure(),
     };
 
@@ -1279,7 +1282,9 @@ fn test_array_join_in_runtime() {
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
         cmd: Command::new("rash_array_join")
-            .arg(crate::ir::shell_ir::ShellValue::String("myarray".to_string()))
+            .arg(crate::ir::shell_ir::ShellValue::String(
+                "myarray".to_string(),
+            ))
             .arg(crate::ir::shell_ir::ShellValue::String(",".to_string())),
         effects: EffectSet::pure(),
     };
@@ -1302,7 +1307,9 @@ fn test_array_join_basic() {
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
         cmd: Command::new("rash_array_join")
-            .arg(crate::ir::shell_ir::ShellValue::String("myarray".to_string()))
+            .arg(crate::ir::shell_ir::ShellValue::String(
+                "myarray".to_string(),
+            ))
             .arg(crate::ir::shell_ir::ShellValue::String(",".to_string())),
         effects: EffectSet::pure(),
     };

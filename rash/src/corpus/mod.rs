@@ -23,4 +23,4 @@ pub mod registry;
 pub mod runner;
 
 pub use registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
-pub use runner::{CorpusResult, CorpusRunner, CorpusScore, ConvergenceEntry};
+pub use runner::{ConvergenceEntry, CorpusResult, CorpusRunner, CorpusScore};

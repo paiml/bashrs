@@ -138,12 +138,8 @@ impl CorpusRunner {
     /// Run a single corpus entry.
     fn run_entry(&self, entry: &CorpusEntry) -> CorpusResult {
         let transpile_result = match entry.format {
-            CorpusFormat::Bash => {
-                crate::transpile(&entry.input, self.config.clone())
-            }
-            CorpusFormat::Makefile => {
-                crate::transpile_makefile(&entry.input, self.config.clone())
-            }
+            CorpusFormat::Bash => crate::transpile(&entry.input, self.config.clone()),
+            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, self.config.clone()),
             CorpusFormat::Dockerfile => {
                 crate::transpile_dockerfile(&entry.input, self.config.clone())
             }

@@ -443,9 +443,7 @@ impl PosixEmitter {
         }
 
         // String stdlib functions
-        let has_string_funcs = used_functions
-            .iter()
-            .any(|f| f.starts_with("rash_string_"));
+        let has_string_funcs = used_functions.iter().any(|f| f.starts_with("rash_string_"));
         let has_fs_funcs = used_functions.iter().any(|f| f.starts_with("rash_fs_"));
         let has_array_funcs = used_functions.iter().any(|f| f.starts_with("rash_array_"));
 

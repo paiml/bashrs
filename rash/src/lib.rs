@@ -78,13 +78,13 @@ pub mod cli;
 /// Rust compiler integration for transpilation
 #[cfg(not(target_arch = "wasm32"))]
 pub mod compiler;
-/// Corpus-driven transpilation quality measurement (Popperian falsification)
-pub mod corpus;
 /// Shell configuration file management and analysis
 pub mod config;
 /// Container and sandbox support
 #[cfg(not(target_arch = "wasm32"))]
 pub mod container;
+/// Corpus-driven transpilation quality measurement (Popperian falsification)
+pub mod corpus;
 /// Shell script code emission
 pub mod emitter;
 /// Formal verification and proof generation
@@ -264,10 +264,7 @@ pub fn transpile(input: &str, config: Config) -> Result<String> {
 ///
 /// * `Ok((String, LintResult))` - Generated shell script and lint results
 /// * `Err(Error)` - Transpilation error
-pub fn transpile_with_lint(
-    input: &str,
-    config: Config,
-) -> Result<(String, linter::LintResult)> {
+pub fn transpile_with_lint(input: &str, config: Config) -> Result<(String, linter::LintResult)> {
     let shell_code = transpile(input, config)?;
     let lint_result = linter::rules::lint_shell(&shell_code);
     Ok((shell_code, lint_result))

@@ -25,7 +25,11 @@ fn bashrs_cmd() -> Command {
 #[test]
 fn test_CORPUS_001_registry_loads_all_tier1() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1();
-    assert_eq!(registry.len(), 30, "Tier 1 should have 30 entries (10 per format)");
+    assert_eq!(
+        registry.len(),
+        30,
+        "Tier 1 should have 30 entries (10 per format)"
+    );
 }
 
 #[test]
@@ -36,13 +40,20 @@ fn test_CORPUS_002_registry_bash_entries() {
 
     // Verify all entries have non-empty inputs and expected outputs
     for entry in &bash {
-        assert!(!entry.input.is_empty(), "Entry {} has empty input", entry.id);
+        assert!(
+            !entry.input.is_empty(),
+            "Entry {} has empty input",
+            entry.id
+        );
         assert!(
             !entry.expected_output.is_empty(),
             "Entry {} has empty expected output",
             entry.id
         );
-        assert!(entry.id.starts_with("B-"), "Bash entry ID should start with B-");
+        assert!(
+            entry.id.starts_with("B-"),
+            "Bash entry ID should start with B-"
+        );
     }
 }
 
@@ -53,7 +64,10 @@ fn test_CORPUS_003_registry_makefile_entries() {
     assert_eq!(make.len(), 10, "Tier 1 makefile should have 10 entries");
 
     for entry in &make {
-        assert!(entry.id.starts_with("M-"), "Makefile entry ID should start with M-");
+        assert!(
+            entry.id.starts_with("M-"),
+            "Makefile entry ID should start with M-"
+        );
     }
 }
 
@@ -157,7 +171,11 @@ fn test_CORPUS_008_bash_transpilation_runs() {
     // (not enforcing 100% yet - this is iteration 1)
     eprintln!(
         "Bash corpus: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -186,7 +204,11 @@ fn test_CORPUS_009_makefile_transpilation_runs() {
 
     eprintln!(
         "Makefile corpus: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -215,7 +237,11 @@ fn test_CORPUS_010_dockerfile_transpilation_runs() {
 
     eprintln!(
         "Dockerfile corpus: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -386,7 +412,11 @@ fn test_CORPUS_015_full_corpus_aggregate_score() {
 #[test]
 fn test_CORPUS_016_tier2_loads_all_entries() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1_and_tier2();
-    assert_eq!(registry.len(), 55, "Tier 1+2 should have 55 entries (30 + 25)");
+    assert_eq!(
+        registry.len(),
+        55,
+        "Tier 1+2 should have 55 entries (30 + 25)"
+    );
 }
 
 #[test]
@@ -408,7 +438,11 @@ fn test_CORPUS_017_tier2_bash_transpilation() {
 
     eprintln!(
         "Bash T1+T2: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -431,7 +465,11 @@ fn test_CORPUS_018_tier2_makefile_transpilation() {
 
     eprintln!(
         "Makefile T1+T2: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -454,7 +492,11 @@ fn test_CORPUS_019_tier2_dockerfile_transpilation() {
 
     eprintln!(
         "Dockerfile T1+T2: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -495,7 +537,10 @@ fn test_CORPUS_020_tier2_aggregate_score() {
 #[test]
 fn test_CORPUS_021_tier3_loads_all_entries() {
     let registry = bashrs::corpus::CorpusRegistry::load_all();
-    assert!(registry.len() > 55, "Tier 1+2+3 should have more than 55 entries");
+    assert!(
+        registry.len() > 55,
+        "Tier 1+2+3 should have more than 55 entries"
+    );
 }
 
 #[test]
@@ -517,7 +562,11 @@ fn test_CORPUS_022_tier3_bash_transpilation() {
 
     eprintln!(
         "Bash T1+T2+T3: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -540,7 +589,11 @@ fn test_CORPUS_023_tier3_makefile_transpilation() {
 
     eprintln!(
         "Makefile T1+T2+T3: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -563,7 +616,11 @@ fn test_CORPUS_024_tier3_dockerfile_transpilation() {
 
     eprintln!(
         "Dockerfile T1+T2+T3: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -604,7 +661,10 @@ fn test_CORPUS_025_tier3_aggregate_score() {
 #[test]
 fn test_CORPUS_026_tier4_loads_all_entries() {
     let registry = bashrs::corpus::CorpusRegistry::load_all_with_adversarial();
-    assert!(registry.len() > 85, "Tier 1-4 should have more than 85 entries");
+    assert!(
+        registry.len() > 85,
+        "Tier 1-4 should have more than 85 entries"
+    );
 }
 
 #[test]
@@ -626,7 +686,11 @@ fn test_CORPUS_027_tier4_bash_transpilation() {
 
     eprintln!(
         "Bash T1-T4: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -649,7 +713,11 @@ fn test_CORPUS_028_tier4_makefile_transpilation() {
 
     eprintln!(
         "Makefile T1-T4: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -672,7 +740,11 @@ fn test_CORPUS_029_tier4_dockerfile_transpilation() {
 
     eprintln!(
         "Dockerfile T1-T4: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -712,7 +784,10 @@ fn test_CORPUS_030_tier4_aggregate_score() {
 #[test]
 fn test_CORPUS_031_tier5_loads_full_corpus() {
     let registry = bashrs::corpus::CorpusRegistry::load_full();
-    assert!(registry.len() > 110, "Full corpus should have more than 110 entries");
+    assert!(
+        registry.len() > 110,
+        "Full corpus should have more than 110 entries"
+    );
 }
 
 #[test]
@@ -734,7 +809,11 @@ fn test_CORPUS_032_tier5_bash_transpilation() {
 
     eprintln!(
         "Bash FULL: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -757,7 +836,11 @@ fn test_CORPUS_033_tier5_makefile_transpilation() {
 
     eprintln!(
         "Makefile FULL: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -780,7 +863,11 @@ fn test_CORPUS_034_tier5_dockerfile_transpilation() {
 
     eprintln!(
         "Dockerfile FULL: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
-        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+        score.passed,
+        score.total,
+        score.rate * 100.0,
+        score.score,
+        score.grade
     );
 }
 
@@ -810,5 +897,8 @@ fn test_CORPUS_035_tier5_full_aggregate_score() {
         }
     }
 
-    assert!(score.total > 110, "Full corpus should run more than 110 entries");
+    assert!(
+        score.total > 110,
+        "Full corpus should run more than 110 entries"
+    );
 }

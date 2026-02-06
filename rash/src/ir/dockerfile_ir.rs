@@ -15,9 +15,7 @@ pub struct DockerfileIR {
 impl DockerfileIR {
     /// Create a new empty DockerfileIR
     pub fn new() -> Self {
-        Self {
-            stages: Vec::new(),
-        }
+        Self { stages: Vec::new() }
     }
 
     /// Add a stage to the Dockerfile
@@ -127,7 +125,10 @@ pub enum DockerInstruction {
     /// ENV key=value
     Env { key: String, value: String },
     /// ARG name[=default]
-    Arg { name: String, default: Option<String> },
+    Arg {
+        name: String,
+        default: Option<String>,
+    },
     /// EXPOSE port
     Expose(u16),
     /// USER user
@@ -275,7 +276,7 @@ mod tests {
         });
         runtime.add_instruction(DockerInstruction::User("65534".to_string()));
         runtime.add_instruction(DockerInstruction::Entrypoint(vec![
-            "/usr/local/bin/myapp".to_string(),
+            "/usr/local/bin/myapp".to_string()
         ]));
         ir.add_stage(runtime);
 

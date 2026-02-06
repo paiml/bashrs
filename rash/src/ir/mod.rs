@@ -573,8 +573,7 @@ impl IrConverter {
                             {
                                 if name == "std::env::args" && fn_args.is_empty() {
                                     // Extract the position number
-                                    if let Some(Expr::Literal(Literal::U32(n))) =
-                                        inner_args.first()
+                                    if let Some(Expr::Literal(Literal::U32(n))) = inner_args.first()
                                     {
                                         return Ok(ShellValue::Arg {
                                             position: Some(*n as usize),
@@ -621,8 +620,7 @@ impl IrConverter {
                             {
                                 if name == "std::env::args" && fn_args.is_empty() {
                                     // Extract the position number
-                                    if let Some(Expr::Literal(Literal::U32(n))) =
-                                        inner_args.first()
+                                    if let Some(Expr::Literal(Literal::U32(n))) = inner_args.first()
                                     {
                                         // Extract the default value
                                         if let Some(Expr::Literal(Literal::Str(default_val))) =
@@ -699,15 +697,41 @@ impl IrConverter {
     }
 }
 
+/// Evaluate an arithmetic operation on two constant integers.
+/// Returns None for division/modulo by zero.
+fn eval_arithmetic_op(op: &shell_ir::ArithmeticOp, left: i64, right: i64) -> Option<i64> {
+    match op {
+        shell_ir::ArithmeticOp::Add => Some(left + right),
+        shell_ir::ArithmeticOp::Sub => Some(left - right),
+        shell_ir::ArithmeticOp::Mul => Some(left * right),
+        shell_ir::ArithmeticOp::Div if right != 0 => Some(left / right),
+        shell_ir::ArithmeticOp::Mod if right != 0 => Some(left % right),
+        _ => None,
+    }
+}
+
+/// Try to fold two ShellValues as constant integer arithmetic.
+/// Returns the folded result string, or None if folding is not possible.
+fn try_fold_constant_arithmetic(
+    op: &shell_ir::ArithmeticOp,
+    left: &ShellValue,
+    right: &ShellValue,
+) -> Option<String> {
+    if let (ShellValue::String(l), ShellValue::String(r)) = (left, right) {
+        if let (Ok(ln), Ok(rn)) = (l.parse::<i64>(), r.parse::<i64>()) {
+            return eval_arithmetic_op(op, ln, rn).map(|v| v.to_string());
+        }
+    }
+    None
+}
+
 fn constant_fold(ir: ShellIR) -> ShellIR {
-    // Constant folding pass - fold string concat and arithmetic
     let mut transform_fn = |node| match node {
         ShellIR::Let {
             name,
             value: ShellValue::Concat(parts),
             effects,
         } => {
-            // Fold string concatenation
             if parts.iter().all(|p| matches!(p, ShellValue::String(_))) {
                 let folded = parts
                     .iter()
@@ -734,71 +758,20 @@ fn constant_fold(ir: ShellIR) -> ShellIR {
             value: ShellValue::Arithmetic { op, left, right },
             effects,
         } => {
-            // Recursively fold nested arithmetic first
             let folded_left = fold_arithmetic_value(*left);
             let folded_right = fold_arithmetic_value(*right);
 
-            // Try to fold arithmetic if both operands are constant strings containing integers
-            if let (ShellValue::String(left_str), ShellValue::String(right_str)) =
-                (&folded_left, &folded_right)
-            {
-                if let (Ok(left_num), Ok(right_num)) =
-                    (left_str.parse::<i64>(), right_str.parse::<i64>())
-                {
-                    let result = match op {
-                        shell_ir::ArithmeticOp::Add => left_num + right_num,
-                        shell_ir::ArithmeticOp::Sub => left_num - right_num,
-                        shell_ir::ArithmeticOp::Mul => left_num * right_num,
-                        shell_ir::ArithmeticOp::Div => {
-                            if right_num != 0 {
-                                left_num / right_num
-                            } else {
-                                // Division by zero - don't fold
-                                return ShellIR::Let {
-                                    name,
-                                    value: ShellValue::Arithmetic {
-                                        op,
-                                        left: Box::new(folded_left),
-                                        right: Box::new(folded_right),
-                                    },
-                                    effects,
-                                };
-                            }
-                        }
-                        shell_ir::ArithmeticOp::Mod => {
-                            if right_num != 0 {
-                                left_num % right_num
-                            } else {
-                                // Modulo by zero - don't fold
-                                return ShellIR::Let {
-                                    name,
-                                    value: ShellValue::Arithmetic {
-                                        op,
-                                        left: Box::new(folded_left),
-                                        right: Box::new(folded_right),
-                                    },
-                                    effects,
-                                };
-                            }
-                        }
-                    };
-
-                    return ShellIR::Let {
-                        name,
-                        value: ShellValue::String(result.to_string()),
-                        effects,
-                    };
-                }
-            }
-
-            // Cannot fold - return with recursively folded operands
-            ShellIR::Let {
-                name,
-                value: ShellValue::Arithmetic {
+            let value = match try_fold_constant_arithmetic(&op, &folded_left, &folded_right) {
+                Some(result) => ShellValue::String(result),
+                None => ShellValue::Arithmetic {
                     op,
                     left: Box::new(folded_left),
                     right: Box::new(folded_right),
                 },
+            };
+            ShellIR::Let {
+                name,
+                value,
                 effects,
             }
         }
@@ -814,52 +787,13 @@ fn fold_arithmetic_value(value: ShellValue) -> ShellValue {
             let folded_left = fold_arithmetic_value(*left);
             let folded_right = fold_arithmetic_value(*right);
 
-            // Try to fold if both are constant integers
-            if let (ShellValue::String(left_str), ShellValue::String(right_str)) =
-                (&folded_left, &folded_right)
-            {
-                if let (Ok(left_num), Ok(right_num)) =
-                    (left_str.parse::<i64>(), right_str.parse::<i64>())
-                {
-                    let result = match op {
-                        shell_ir::ArithmeticOp::Add => left_num + right_num,
-                        shell_ir::ArithmeticOp::Sub => left_num - right_num,
-                        shell_ir::ArithmeticOp::Mul => left_num * right_num,
-                        shell_ir::ArithmeticOp::Div => {
-                            if right_num != 0 {
-                                left_num / right_num
-                            } else {
-                                // Division by zero - don't fold
-                                return ShellValue::Arithmetic {
-                                    op,
-                                    left: Box::new(folded_left),
-                                    right: Box::new(folded_right),
-                                };
-                            }
-                        }
-                        shell_ir::ArithmeticOp::Mod => {
-                            if right_num != 0 {
-                                left_num % right_num
-                            } else {
-                                // Modulo by zero - don't fold
-                                return ShellValue::Arithmetic {
-                                    op,
-                                    left: Box::new(folded_left),
-                                    right: Box::new(folded_right),
-                                };
-                            }
-                        }
-                    };
-
-                    return ShellValue::String(result.to_string());
-                }
-            }
-
-            // Cannot fold
-            ShellValue::Arithmetic {
-                op,
-                left: Box::new(folded_left),
-                right: Box::new(folded_right),
+            match try_fold_constant_arithmetic(&op, &folded_left, &folded_right) {
+                Some(result) => ShellValue::String(result),
+                None => ShellValue::Arithmetic {
+                    op,
+                    left: Box::new(folded_left),
+                    right: Box::new(folded_right),
+                },
             }
         }
         other => other,

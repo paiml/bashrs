@@ -176,7 +176,7 @@ fn convert_type(ty: &SynType) -> Result<Type> {
                 }
                 _ => Err(Error::Validation(
                     "Complex reference types not supported".to_string(),
-                ))
+                )),
             }
         }
         _ => Err(Error::Validation("Complex types not supported".to_string())),
@@ -339,9 +339,8 @@ fn convert_macro_stmt(macro_stmt: &syn::StmtMacro) -> Result<Stmt> {
     if macro_name == "println" || macro_name == "eprintln" {
         // Parse macro tokens to extract the format string
         let tokens = macro_stmt.mac.tokens.clone();
-        let parsed: syn::Expr = syn::parse2(tokens).map_err(|_| {
-            Error::Validation(format!("Invalid {macro_name}! arguments"))
-        })?;
+        let parsed: syn::Expr = syn::parse2(tokens)
+            .map_err(|_| Error::Validation(format!("Invalid {macro_name}! arguments")))?;
 
         // Convert the first argument as the format string
         let arg = convert_expr(&parsed)?;

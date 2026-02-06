@@ -155,7 +155,9 @@ impl ShellIR {
             ShellIR::Function { body, .. } => {
                 body.collect_functions_recursive(used);
             }
-            ShellIR::For { start, end, body, .. } => {
+            ShellIR::For {
+                start, end, body, ..
+            } => {
                 start.collect_functions(used);
                 end.collect_functions(used);
                 body.collect_functions_recursive(used);

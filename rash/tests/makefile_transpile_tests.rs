@@ -106,5 +106,8 @@ fn test_MAKE_BUILD_004_determinism() {
     let config = bashrs::Config::default();
     let result1 = bashrs::transpile_makefile(rust_code, config.clone()).unwrap();
     let result2 = bashrs::transpile_makefile(rust_code, config).unwrap();
-    assert_eq!(result1, result2, "Makefile transpilation must be deterministic");
+    assert_eq!(
+        result1, result2,
+        "Makefile transpilation must be deterministic"
+    );
 }
