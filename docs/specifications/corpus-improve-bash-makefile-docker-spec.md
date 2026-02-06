@@ -104,9 +104,9 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 | Initial   | 30 entries | ~85% | Establish baseline, fix obvious gaps | DONE (iter 1-2) |
 | Iteration 5 | 100 entries | ~92% | Expanding construct coverage | DONE (iter 5: 85/85, 100%) |
 | Iteration 8 | 150 entries | ~95% | Production patterns added | DONE (iter 8: 150/150, 100%) |
-| Iteration 12 | 250 entries | ~97% | Deeper edge cases | IN PROGRESS |
-| Iteration 15 | 350 entries | ~98% | Mutation-guided additions | PLANNED |
-| Iteration 20 | 500 entries | ~99% | Full corpus target | PLANNED |
+| Iteration 11 | 250 entries | ~97% | Deeper edge cases | DONE (iter 11: 250/250, 100%, bug #7 fixed) |
+| Iteration 13 | 330 entries | ~98% | Expansion waves 3-4 | DONE (iter 13: 330/330, 100%) |
+| Iteration 14 | 500 entries | ~99% | Full corpus target reached | DONE (iter 14: 500/500, 100%, bug #8 fixed) |
 | Ongoing | 500+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
@@ -415,7 +415,17 @@ Each corpus repository maintains a `convergence.log` tracking transpilation rate
   9    | 2026-02-06 |  200  | 200  |   0  | 100.0% |  0.0   | 99.5  | A+    | Expansion 1: 50 more entries, no falsifiers
   10   | 2026-02-06 |  250  | 249  |   1  | 99.6%  | -0.4   | 99.1  | A+    | Expansion 2: B-121 falsifier (CommandSubst in arithmetic)
   11   | 2026-02-06 |  250  | 250  |   0  | 100.0% | +0.4   | 99.5  | A+    | Fixed: emit_arithmetic_operand handles CommandSubst
+  12   | 2026-02-06 |  290  | 290  |   0  | 100.0% |  0.0   | 99.6  | A+    | Expansion 3+4: 80 more entries, no falsifiers
+  13   | 2026-02-06 |  330  | 330  |   0  | 100.0% |  0.0   | 99.6  | A+    | Expansion 4 confirmed: 330 entries, zero falsifiers
+  14   | 2026-02-06 |  500  | 499  |   1  | 99.8%  | -0.2   | 99.5  | A+    | Expansion 5-7: B-171 falsifier (format! macro expr)
+  15   | 2026-02-06 |  500  | 500  |   0  | 100.0% | +0.2   | 99.7  | A+    | Fixed: SynExpr::Macro handler for format!/vec! macros
 ```
+
+**Final Corpus Composition**:
+- **Bash**: 200 entries (B-001..B-200) — target: 200 ✅
+- **Makefile**: 150 entries (M-001..M-150) — target: 150 ✅
+- **Dockerfile**: 150 entries (D-001..D-150) — target: 150 ✅
+- **Total**: 500 entries — target: 500 ✅
 
 **Bugs Fixed (Transpiler Improvements)**:
 1. **u16 type support** (D-006): Added `Type::U16`, `Literal::U16(u16)` to AST, parser, IR, all emitters
@@ -425,6 +435,7 @@ Each corpus repository maintains a `convergence.log` tracking transpilation rate
 5. **eprintln! macro** (B-039): Parser + `rash_eprintln` runtime function with `>&2` redirect
 6. **2-arg target()** (M-026/M-027/M-028/M-029): Makefile `target()/phony_target()` now accept 2 or 3 args
 7. **CommandSubst in arithmetic** (B-121): `emit_arithmetic_operand` now handles `ShellValue::CommandSubst` for function return values in `$((...))` expressions
+8. **format! macro expression** (B-171): Added `SynExpr::Macro` handler in `convert_expr()` for `format!` and `vec!` macro expressions
 
 ### 5.2 Convergence Criteria
 
