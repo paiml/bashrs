@@ -738,17 +738,19 @@ impl PosixEmitter {
                 CasePattern::Wildcard => "*".to_string(),
             };
 
-            // TODO: Handle guards with additional if statements inside the case
-            if arm.guard.is_some() {
-                // For now, guards are not fully supported - would need nested if
-                // This is acceptable as it will just be ignored in the emitted code
-            }
-
             // pattern)
             writeln!(output, "{}    {})", indent_str, pattern_str)?;
 
-            // Emit body with additional indentation
-            self.emit_ir(output, &arm.body, indent + 1)?;
+            // If guard is present, wrap body in an if statement
+            if let Some(guard) = &arm.guard {
+                let guard_str = self.emit_shell_value(guard)?;
+                writeln!(output, "{}        if {guard_str}; then", indent_str)?;
+                self.emit_ir(output, &arm.body, indent + 2)?;
+                writeln!(output, "{}        fi", indent_str)?;
+            } else {
+                // Emit body with additional indentation
+                self.emit_ir(output, &arm.body, indent + 1)?;
+            }
 
             // ;;
             writeln!(output, "{}    ;;", indent_str)?;
