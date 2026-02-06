@@ -195,9 +195,9 @@ fn test_header_and_footer_structure() {
     assert!(result.contains("IFS=' \t\n'"));
     assert!(result.contains("export LC_ALL=C"));
 
-    // Check runtime functions
-    assert!(result.contains("rash_require()"));
-    assert!(result.contains("rash_download_verified()"));
+    // With selective runtime, Noop IR emits no runtime functions.
+    // Runtime functions are only emitted when the IR references them.
+    // This is by design for smaller output scripts.
 
     // Check footer
     assert!(result.contains("main() {"));
@@ -210,7 +210,21 @@ fn test_runtime_functions_included() {
     let config = Config::default();
     let emitter = PosixEmitter::new(config);
 
-    let ir = ShellIR::Noop;
+    // Use an IR that references rash_require and rash_download_verified
+    // so that selective runtime emission includes them
+    let ir = ShellIR::Sequence(vec![
+        ShellIR::Exec {
+            cmd: Command::new("rash_require")
+                .arg(ShellValue::String("curl".to_string())),
+            effects: EffectSet::pure(),
+        },
+        ShellIR::Exec {
+            cmd: Command::new("rash_download_verified")
+                .arg(ShellValue::String("https://example.com/file".to_string()))
+                .arg(ShellValue::String("abc123".to_string())),
+            effects: EffectSet::pure(),
+        },
+    ]);
     let result = emitter.emit(&ir).unwrap();
 
     // Verify essential runtime functions are present
@@ -1157,15 +1171,20 @@ fn test_exit_code_in_concatenation() {
 /// Tests that string_split generates shell function
 #[test]
 fn test_string_split_in_runtime() {
+    use crate::ir::{Command, EffectSet};
     use crate::models::Config;
 
-    // Simple IR that will trigger runtime generation
-    let ir = crate::ir::shell_ir::ShellIR::Noop;
+    // Use IR that references rash_string_split to trigger selective emission
+    let ir = crate::ir::shell_ir::ShellIR::Exec {
+        cmd: Command::new("rash_string_split")
+            .arg(crate::ir::shell_ir::ShellValue::String("hello world".to_string()))
+            .arg(crate::ir::shell_ir::ShellValue::String(" ".to_string())),
+        effects: EffectSet::pure(),
+    };
 
     let config = Config::default();
     let output = super::emit(&ir, &config).unwrap();
 
-    // RED: Will fail until write_string_split_function() is implemented
     assert!(
         output.contains("rash_string_split()"),
         "Runtime should include rash_string_split function, got: {}",
@@ -1173,18 +1192,22 @@ fn test_string_split_in_runtime() {
     );
 }
 
-/// RED TEST: string_split() basic usage
-/// Tests that string_split splits correctly
+/// Tests that string_split uses POSIX tools
 #[test]
 fn test_string_split_basic() {
+    use crate::ir::{Command, EffectSet};
     use crate::models::Config;
 
-    let ir = crate::ir::shell_ir::ShellIR::Noop;
+    let ir = crate::ir::shell_ir::ShellIR::Exec {
+        cmd: Command::new("rash_string_split")
+            .arg(crate::ir::shell_ir::ShellValue::String("a,b,c".to_string()))
+            .arg(crate::ir::shell_ir::ShellValue::String(",".to_string())),
+        effects: EffectSet::pure(),
+    };
 
     let config = Config::default();
     let output = super::emit(&ir, &config).unwrap();
 
-    // RED: Check for basic implementation pattern
     assert!(
         output.contains("rash_string_split()"),
         "Should have string_split function"
@@ -1201,14 +1224,18 @@ fn test_string_split_basic() {
 /// Tests that array_len generates shell function
 #[test]
 fn test_array_len_in_runtime() {
+    use crate::ir::{Command, EffectSet};
     use crate::models::Config;
 
-    let ir = crate::ir::shell_ir::ShellIR::Noop;
+    let ir = crate::ir::shell_ir::ShellIR::Exec {
+        cmd: Command::new("rash_array_len")
+            .arg(crate::ir::shell_ir::ShellValue::String("myarray".to_string())),
+        effects: EffectSet::pure(),
+    };
 
     let config = Config::default();
     let output = super::emit(&ir, &config).unwrap();
 
-    // RED: Will fail until write_array_len_function() is implemented
     assert!(
         output.contains("rash_array_len()"),
         "Runtime should include rash_array_len function, got: {}",
@@ -1216,18 +1243,21 @@ fn test_array_len_in_runtime() {
     );
 }
 
-/// RED TEST: array_len() basic usage
-/// Tests that array_len counts correctly
+/// Tests that array_len uses POSIX counting
 #[test]
 fn test_array_len_basic() {
+    use crate::ir::{Command, EffectSet};
     use crate::models::Config;
 
-    let ir = crate::ir::shell_ir::ShellIR::Noop;
+    let ir = crate::ir::shell_ir::ShellIR::Exec {
+        cmd: Command::new("rash_array_len")
+            .arg(crate::ir::shell_ir::ShellValue::String("myarray".to_string())),
+        effects: EffectSet::pure(),
+    };
 
     let config = Config::default();
     let output = super::emit(&ir, &config).unwrap();
 
-    // RED: Check for basic implementation pattern
     assert!(
         output.contains("rash_array_len()"),
         "Should have array_len function"
@@ -1244,14 +1274,19 @@ fn test_array_len_basic() {
 /// Tests that array_join generates shell function
 #[test]
 fn test_array_join_in_runtime() {
+    use crate::ir::{Command, EffectSet};
     use crate::models::Config;
 
-    let ir = crate::ir::shell_ir::ShellIR::Noop;
+    let ir = crate::ir::shell_ir::ShellIR::Exec {
+        cmd: Command::new("rash_array_join")
+            .arg(crate::ir::shell_ir::ShellValue::String("myarray".to_string()))
+            .arg(crate::ir::shell_ir::ShellValue::String(",".to_string())),
+        effects: EffectSet::pure(),
+    };
 
     let config = Config::default();
     let output = super::emit(&ir, &config).unwrap();
 
-    // RED: Will fail until write_array_join_function() is implemented
     assert!(
         output.contains("rash_array_join()"),
         "Runtime should include rash_array_join function, got: {}",
@@ -1259,18 +1294,22 @@ fn test_array_join_in_runtime() {
     );
 }
 
-/// RED TEST: array_join() basic usage
-/// Tests that array_join joins correctly
+/// Tests that array_join uses loop for joining
 #[test]
 fn test_array_join_basic() {
+    use crate::ir::{Command, EffectSet};
     use crate::models::Config;
 
-    let ir = crate::ir::shell_ir::ShellIR::Noop;
+    let ir = crate::ir::shell_ir::ShellIR::Exec {
+        cmd: Command::new("rash_array_join")
+            .arg(crate::ir::shell_ir::ShellValue::String("myarray".to_string()))
+            .arg(crate::ir::shell_ir::ShellValue::String(",".to_string())),
+        effects: EffectSet::pure(),
+    };
 
     let config = Config::default();
     let output = super::emit(&ir, &config).unwrap();
 
-    // RED: Check for basic implementation pattern
     assert!(
         output.contains("rash_array_join()"),
         "Should have array_join function"
