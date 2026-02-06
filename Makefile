@@ -950,25 +950,27 @@ help:
 # - repl/purifier.rs, repl/parser.rs: REPL internals, requires terminal interaction
 # - transpiler.rs: Rust-to-Shell transpiler, complex integration testing
 # - services/parser.rs: Parser service, complex parsing paths
-COVERAGE_EXCLUDE := --ignore-filename-regex='quality/gates\.rs|quality/oracle\.rs|quality/sbfl\.rs|test_generator/core\.rs|test_generator/unit_tests\.rs|test_generator/coverage\.rs|bash_parser/codegen\.rs|bash_parser/semantic\.rs|bash_parser/generators\.rs|bash_quality/formatter\.rs|bash_transpiler/.*\.rs|compiler/.*\.rs|bashrs-oracle/.*\.rs|testing/error_injection\.rs|testing/stress\.rs|cli/commands\.rs|cli/bench\.rs|gates\.rs|ir/mod\.rs|formal/enhanced_state\.rs|repl/loop\.rs|repl/purifier\.rs|repl/parser\.rs|make_parser/ast\.rs|make_parser/parser\.rs|linter/rules/sec017\.rs|linter/rules/sec019\.rs|tui/.*\.rs|transpiler\.rs|services/parser\.rs'
+# Coverage exclusion: test infrastructure + binaries only (honest measurement, ≤10 patterns)
+# Pattern: paiml-mcp-agent-toolkit CB-125 style - no source file exclusions
+COVERAGE_EXCLUDE := --ignore-filename-regex='(/tests/|_tests\.rs|_test\.rs|/benches/|/examples/|/fixtures/|main\.rs|bin/|bashrs-oracle/)'
 
-coverage: ## Generate HTML coverage report (cold: ~3min, warm: <1min)
+coverage: ## Generate HTML coverage report (<5 min, uses cargo test not nextest)
 	@echo "📊 Running fast coverage analysis..."
+	@echo "   Uses 'cargo test' (1 profraw/binary) NOT nextest (1 profraw/test = slow merge)"
 	@which cargo-llvm-cov > /dev/null 2>&1 || (echo "📦 Installing cargo-llvm-cov..." && cargo install cargo-llvm-cov --locked)
-	@which cargo-nextest > /dev/null 2>&1 || (echo "📦 Installing cargo-nextest..." && cargo install cargo-nextest --locked)
 	@mkdir -p target/coverage
-	@echo "🧪 Running tests with instrumentation (cold: ~3min, warm: <1min)..."
-	@env PROPTEST_CASES=5 QUICKCHECK_TESTS=5 cargo llvm-cov nextest \
-		--profile coverage \
-		--no-tests=warn \
-		--all-features \
-		--workspace \
-		--html --output-dir target/coverage/html \
+	@cargo llvm-cov clean --workspace 2>/dev/null || true
+	@echo "🧪 Running tests with instrumentation..."
+	@env RUSTC_WRAPPER= PROPTEST_CASES=3 QUICKCHECK_TESTS=3 cargo llvm-cov test \
+		--lib \
+		-p bashrs \
 		$(COVERAGE_EXCLUDE) \
-		-E 'not test(/stress|fuzz|property.*comprehensive|benchmark|verificar_programs_lint/)'
+		-- --test-threads=$$(sysctl -n hw.ncpu 2>/dev/null || nproc) \
+		--skip stress --skip fuzz --skip comprehensive --skip benchmark
+	@echo "📊 Generating reports..."
+	@cargo llvm-cov report --html --output-dir target/coverage/html $(COVERAGE_EXCLUDE)
 	@echo ""
-	@echo "📊 Coverage Summary:"
-	@cargo llvm-cov report --summary-only $(COVERAGE_EXCLUDE)
+	@cargo llvm-cov report --summary-only $(COVERAGE_EXCLUDE) | grep -E "^TOTAL|^Filename|lines|functions"
 	@echo ""
 	@echo "💡 HTML report: target/coverage/html/index.html"
 	@echo ""
