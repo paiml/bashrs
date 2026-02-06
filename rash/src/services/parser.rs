@@ -245,8 +245,30 @@ fn convert_expr_stmt(expr: &SynExpr) -> Result<Stmt> {
         SynExpr::Match(expr_match) => convert_match_stmt(expr_match),
         SynExpr::Break(_) => Ok(Stmt::Break),
         SynExpr::Continue(_) => Ok(Stmt::Continue),
+        SynExpr::Assign(expr_assign) => convert_assign_stmt(expr_assign),
         _ => Ok(Stmt::Expr(convert_expr(expr)?)),
     }
+}
+
+fn convert_assign_stmt(expr_assign: &syn::ExprAssign) -> Result<Stmt> {
+    // x = expr -> Stmt::Let { name: "x", value: expr }
+    // In shell, reassignment is the same syntax as initial assignment
+    let name = match &*expr_assign.left {
+        SynExpr::Path(path) => path
+            .path
+            .segments
+            .iter()
+            .map(|seg| seg.ident.to_string())
+            .collect::<Vec<_>>()
+            .join("::"),
+        _ => {
+            return Err(Error::Validation(
+                "Complex assignment targets not supported".to_string(),
+            ))
+        }
+    };
+    let value = convert_expr(&expr_assign.right)?;
+    Ok(Stmt::Let { name, value })
 }
 
 fn convert_macro_stmt(macro_stmt: &syn::StmtMacro) -> Result<Stmt> {

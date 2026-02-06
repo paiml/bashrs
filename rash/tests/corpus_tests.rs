@@ -378,3 +378,112 @@ fn test_CORPUS_015_full_corpus_aggregate_score() {
     // The spec says Tier 1 target is 100%, but we're bootstrapping
     assert!(score.total > 0, "Corpus should have entries");
 }
+
+// =============================================================================
+// Tier 2 Corpus Tests (Standard difficulty - potential falsifiers)
+// =============================================================================
+
+#[test]
+fn test_CORPUS_016_tier2_loads_all_entries() {
+    let registry = bashrs::corpus::CorpusRegistry::load_tier1_and_tier2();
+    assert_eq!(registry.len(), 55, "Tier 1+2 should have 55 entries (30 + 25)");
+}
+
+#[test]
+fn test_CORPUS_017_tier2_bash_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_tier1_and_tier2();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Bash);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER2 FAILED: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Bash T1+T2: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_018_tier2_makefile_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_tier1_and_tier2();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Makefile);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER2 FAILED: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Makefile T1+T2: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_019_tier2_dockerfile_transpilation() {
+    let registry = bashrs::corpus::CorpusRegistry::load_tier1_and_tier2();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run_format(&registry, bashrs::corpus::CorpusFormat::Dockerfile);
+
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "TIER2 FAILED: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    eprintln!(
+        "Dockerfile T1+T2: {}/{} passed ({:.1}%), score: {:.1}, grade: {}",
+        score.passed, score.total, score.rate * 100.0, score.score, score.grade
+    );
+}
+
+#[test]
+fn test_CORPUS_020_tier2_aggregate_score() {
+    let registry = bashrs::corpus::CorpusRegistry::load_tier1_and_tier2();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run(&registry);
+
+    eprintln!("\n=== CORPUS QUALITY REPORT (Tier 1+2) ===");
+    eprintln!("Total entries: {}", score.total);
+    eprintln!("Passed: {}", score.passed);
+    eprintln!("Failed: {}", score.failed);
+    eprintln!("Rate: {:.1}%", score.rate * 100.0);
+    eprintln!("Score: {:.1}/100", score.score);
+    eprintln!("Grade: {}", score.grade);
+    eprintln!("==========================================\n");
+
+    // Log individual failures for fixing
+    for result in &score.results {
+        if !result.transpiled {
+            eprintln!(
+                "  FALSIFIER: {} - {}",
+                result.id,
+                result.error.as_deref().unwrap_or("unknown")
+            );
+        }
+    }
+
+    assert!(score.total == 55, "Should run all 55 entries");
+}
