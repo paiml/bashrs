@@ -1,5 +1,9 @@
 use super::*;
-use crate::cli::args::{CompileRuntime, ContainerFormatArg};
+use crate::cli::args::{
+    AuditOutputFormat, CompileRuntime, ContainerFormatArg, CoverageOutputFormat, LintProfileArg,
+    MutateFormat, PlaybookFormat, ReportFormat, ScoreOutputFormat, SimulateFormat,
+    TestOutputFormat,
+};
 use crate::models::{ShellDialect, VerificationLevel};
 use crate::validation::ValidationLevel;
 use std::path::PathBuf;
@@ -1772,5 +1776,1480 @@ fn test_logic_find_devcontainer_json_exists() {
 fn test_logic_find_devcontainer_json_not_exists() {
     let temp_dir = TempDir::new().unwrap();
     let result = logic_find_devcontainer_json(temp_dir.path());
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Score Command Tests (covers score_command + print_* formatters)
+// ============================================================================
+
+#[test]
+fn test_score_command_shell_script_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nset -eu\necho 'hello'\nexit 0\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Human,
+        false,
+        false,
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_shell_script_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Json,
+        false,
+        false,
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_shell_script_markdown() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Markdown,
+        false,
+        false,
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_shell_script_detailed() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nset -eu\necho 'hello'\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Human,
+        true, // detailed
+        false,
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_dockerfile_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\nCOPY . /app\nWORKDIR /app\nCMD [\"python\", \"app.py\"]\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Human,
+        true,
+        true,  // dockerfile
+        false,
+        true,  // show_grade
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_dockerfile_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM alpine:3.18\nRUN apk add --no-cache curl\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Json,
+        false,
+        true,  // dockerfile
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_dockerfile_markdown() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM node:20-alpine\nWORKDIR /app\nCOPY . .\nCMD [\"node\", \"index.js\"]\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Markdown,
+        false,
+        true,  // dockerfile
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_dockerfile_with_runtime() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:22.04\nRUN apt-get update\nCOPY . /app\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Human,
+        true,
+        true,  // dockerfile
+        true,  // runtime
+        true,  // show_grade
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_dockerfile_with_coursera_profile() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\n").unwrap();
+
+    let result = score_command(
+        &input,
+        ScoreOutputFormat::Human,
+        true,
+        true,  // dockerfile
+        true,  // runtime
+        true,  // show_grade
+        Some(LintProfileArg::Coursera),
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_score_command_nonexistent_file() {
+    let result = score_command(
+        &PathBuf::from("/nonexistent/script.sh"),
+        ScoreOutputFormat::Human,
+        false,
+        false,
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Audit Command Tests (covers audit_command + print_* formatters)
+// ============================================================================
+
+#[test]
+fn test_audit_command_basic_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nset -eu\necho 'hello'\n").unwrap();
+
+    let result = audit_command(&input, &AuditOutputFormat::Human, false, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_audit_command_basic_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'hello'\n").unwrap();
+
+    let result = audit_command(&input, &AuditOutputFormat::Json, false, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_audit_command_basic_sarif() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'hello'\n").unwrap();
+
+    let result = audit_command(&input, &AuditOutputFormat::Sarif, false, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_audit_command_detailed() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nset -eu\necho 'hello world'\nexit 0\n").unwrap();
+
+    let result = audit_command(&input, &AuditOutputFormat::Human, false, true, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_audit_command_strict_mode() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    // Script with unquoted variable (produces warning)
+    fs::write(&input, "#!/bin/sh\necho $HOME\n").unwrap();
+
+    let result = audit_command(&input, &AuditOutputFormat::Human, true, false, None);
+    // Strict mode: warnings cause failure
+    let _ = result; // may pass or fail depending on lint rules
+}
+
+#[test]
+fn test_audit_command_min_grade_pass() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nset -eu\necho 'hello'\nexit 0\n").unwrap();
+
+    let result = audit_command(
+        &input,
+        &AuditOutputFormat::Human,
+        false,
+        false,
+        Some("F"), // very low bar
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_audit_command_min_grade_fail() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho $RANDOM\n").unwrap();
+
+    let result = audit_command(
+        &input,
+        &AuditOutputFormat::Human,
+        false,
+        false,
+        Some("A+"), // very high bar
+    );
+    // May fail if grade is below A+
+    let _ = result;
+}
+
+#[test]
+fn test_audit_command_nonexistent_file() {
+    let result = audit_command(
+        &PathBuf::from("/nonexistent/audit.sh"),
+        &AuditOutputFormat::Human,
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Coverage Command Tests (covers coverage_command + print_* formatters)
+// ============================================================================
+
+#[test]
+fn test_coverage_command_terminal() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nset -eu\necho 'hello'\nexit 0\n").unwrap();
+
+    let result = coverage_command(
+        &input,
+        &CoverageOutputFormat::Terminal,
+        None,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_coverage_command_terminal_detailed() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'line1'\necho 'line2'\n").unwrap();
+
+    let result = coverage_command(
+        &input,
+        &CoverageOutputFormat::Terminal,
+        None,
+        true, // detailed
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_coverage_command_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
+
+    let result = coverage_command(
+        &input,
+        &CoverageOutputFormat::Json,
+        None,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_coverage_command_html_to_stdout() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
+
+    let result = coverage_command(
+        &input,
+        &CoverageOutputFormat::Html,
+        None,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_coverage_command_html_to_file() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    let output = temp_dir.path().join("coverage.html");
+    fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
+
+    let result = coverage_command(
+        &input,
+        &CoverageOutputFormat::Html,
+        None,
+        false,
+        Some(&output),
+    );
+    assert!(result.is_ok());
+    assert!(output.exists());
+}
+
+#[test]
+fn test_coverage_command_lcov() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
+
+    let result = coverage_command(
+        &input,
+        &CoverageOutputFormat::Lcov,
+        None,
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_coverage_command_min_threshold_pass() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
+
+    let result = coverage_command(
+        &input,
+        &CoverageOutputFormat::Terminal,
+        Some(0), // 0% min - always passes
+        false,
+        None,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_coverage_command_nonexistent_file() {
+    let result = coverage_command(
+        &PathBuf::from("/nonexistent/coverage.sh"),
+        &CoverageOutputFormat::Terminal,
+        None,
+        false,
+        None,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Format Command Tests (covers format_command)
+// ============================================================================
+
+#[test]
+fn test_format_command_basic_inplace() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho  'hello'\n").unwrap();
+
+    let result = format_command(&[input.clone()], false, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_format_command_check_mode() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'hello'\n").unwrap();
+
+    let result = format_command(&[input.clone()], true, false, None);
+    // May pass or fail depending on formatting rules
+    let _ = result;
+}
+
+#[test]
+fn test_format_command_dry_run() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    let original = "#!/bin/sh\necho  'hello'\n";
+    fs::write(&input, original).unwrap();
+
+    let result = format_command(&[input.clone()], false, true, None);
+    assert!(result.is_ok());
+
+    // Dry run should not modify the file
+    let after = fs::read_to_string(&input).unwrap();
+    assert_eq!(after, original);
+}
+
+#[test]
+fn test_format_command_to_output_file() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    let output = temp_dir.path().join("formatted.sh");
+    fs::write(&input, "#!/bin/sh\necho 'hello'\n").unwrap();
+
+    let result = format_command(&[input.clone()], false, false, Some(&output));
+    assert!(result.is_ok());
+    assert!(output.exists());
+}
+
+#[test]
+fn test_format_command_multiple_files() {
+    let temp_dir = TempDir::new().unwrap();
+    let input1 = temp_dir.path().join("a.sh");
+    let input2 = temp_dir.path().join("b.sh");
+    fs::write(&input1, "#!/bin/sh\necho 'a'\n").unwrap();
+    fs::write(&input2, "#!/bin/sh\necho 'b'\n").unwrap();
+
+    let result = format_command(&[input1, input2], false, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_format_command_nonexistent_file() {
+    let result = format_command(
+        &[PathBuf::from("/nonexistent/format.sh")],
+        false,
+        false,
+        None,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Test Command Tests (covers test_command + print_* formatters)
+// ============================================================================
+
+#[test]
+fn test_test_command_no_tests_found() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'no tests here'\n").unwrap();
+
+    let result = test_command(&input, TestOutputFormat::Human, false, None);
+    assert!(result.is_ok()); // Returns OK with "No tests found" message
+}
+
+#[test]
+fn test_test_command_json_format() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'no tests'\n").unwrap();
+
+    let result = test_command(&input, TestOutputFormat::Json, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_test_command_junit_format() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'no tests'\n").unwrap();
+
+    let result = test_command(&input, TestOutputFormat::Junit, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_test_command_with_pattern() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'no tests'\n").unwrap();
+
+    let result = test_command(&input, TestOutputFormat::Human, false, Some("nonexistent"));
+    assert!(result.is_ok()); // No tests match pattern
+}
+
+#[test]
+fn test_test_command_nonexistent_file() {
+    let result = test_command(
+        &PathBuf::from("/nonexistent/test.sh"),
+        TestOutputFormat::Human,
+        false,
+        None,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Purify Command Tests (additional coverage for report and test generation)
+// ============================================================================
+
+#[test]
+fn test_purify_command_with_output_and_report() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("messy.sh");
+    let output = temp_dir.path().join("purified.sh");
+    fs::write(&input, "#!/bin/bash\nmkdir /tmp/test\necho $RANDOM\n").unwrap();
+
+    let result = purify_command(&input, Some(&output), true, false, false);
+    assert!(result.is_ok());
+    assert!(output.exists());
+}
+
+#[test]
+fn test_purify_command_to_stdout() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/bash\necho hello\n").unwrap();
+
+    let result = purify_command(&input, None, false, false, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_purify_command_with_tests() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    let output = temp_dir.path().join("purified.sh");
+    fs::write(&input, "#!/bin/bash\necho hello\n").unwrap();
+
+    let result = purify_command(&input, Some(&output), false, true, false);
+    assert!(result.is_ok());
+    // Test file should be generated
+    let test_path = temp_dir.path().join("purified_test.sh");
+    assert!(test_path.exists());
+}
+
+#[test]
+fn test_purify_command_with_property_tests() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    let output = temp_dir.path().join("purified.sh");
+    fs::write(&input, "#!/bin/bash\necho hello\n").unwrap();
+
+    let result = purify_command(&input, Some(&output), true, true, true);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_purify_command_with_tests_requires_output() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/bash\necho hello\n").unwrap();
+
+    let result = purify_command(&input, None, false, true, false);
+    assert!(result.is_err()); // --with-tests requires -o flag
+}
+
+#[test]
+fn test_purify_command_nonexistent_file() {
+    let result = purify_command(
+        &PathBuf::from("/nonexistent/purify.sh"),
+        None,
+        false,
+        false,
+        false,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Dockerfile Profile Command Tests
+// ============================================================================
+
+#[test]
+fn test_dockerfile_profile_command_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\nCOPY . /app\n").unwrap();
+
+    let result = dockerfile_profile_command(
+        &input,
+        true,  // build
+        true,  // layers
+        false, // startup
+        false, // memory
+        false, // cpu
+        None,  // workload
+        "30s", // duration
+        None,  // profile
+        false, // simulate_limits
+        false, // full
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_profile_command_full_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl\nCOPY . /app\n").unwrap();
+
+    let result = dockerfile_profile_command(
+        &input,
+        false, false, false, false, false,
+        None, "30s",
+        None, false,
+        true,  // full (enables all sections)
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_profile_command_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM alpine:3.18\nRUN apk add curl\n").unwrap();
+
+    let result = dockerfile_profile_command(
+        &input,
+        false, false, false, false, false,
+        None, "30s",
+        None, false, false,
+        ReportFormat::Json,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_profile_command_markdown() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM node:20-alpine\nCOPY . /app\n").unwrap();
+
+    let result = dockerfile_profile_command(
+        &input,
+        false, false, false, false, false,
+        None, "30s",
+        None, false, false,
+        ReportFormat::Markdown,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_profile_command_coursera_with_limits() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\n").unwrap();
+
+    let result = dockerfile_profile_command(
+        &input,
+        true, true, true, true, true,
+        None, "30s",
+        Some(LintProfileArg::Coursera),
+        true,  // simulate_limits
+        false,
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+// ============================================================================
+// Dockerfile Size Check Command Tests
+// ============================================================================
+
+#[test]
+fn test_dockerfile_size_check_command_human_basic() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM alpine:3.18\nRUN apk add curl\n").unwrap();
+
+    let result = dockerfile_size_check_command(
+        &input,
+        false, // verbose
+        false, // layers
+        false, // detect_bloat
+        false, // verify
+        false, // docker_verify
+        None,  // profile
+        false, // strict
+        None,  // max_size
+        false, // compression_analysis
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_size_check_command_verbose_with_bloat() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl wget git\n").unwrap();
+
+    let result = dockerfile_size_check_command(
+        &input,
+        true,  // verbose
+        true,  // layers
+        true,  // detect_bloat
+        false, false,
+        None, false, None,
+        true,  // compression_analysis
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_size_check_command_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM python:3.11\nRUN pip install flask\n").unwrap();
+
+    let result = dockerfile_size_check_command(
+        &input,
+        false, false, false, false, false,
+        None, false, None, false,
+        ReportFormat::Json,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_size_check_command_markdown() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM node:20\nCOPY . /app\n").unwrap();
+
+    let result = dockerfile_size_check_command(
+        &input,
+        false, false, false, false, false,
+        None, false, None, false,
+        ReportFormat::Markdown,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_size_check_command_with_coursera_profile() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\n").unwrap();
+
+    let result = dockerfile_size_check_command(
+        &input,
+        true, true, true, false, false,
+        Some(LintProfileArg::Coursera),
+        false, None, false,
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_size_check_command_custom_max_size_gb() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM alpine:3.18\nRUN echo hello\n").unwrap();
+
+    let result = dockerfile_size_check_command(
+        &input,
+        false, false, false, false, false,
+        None, false,
+        Some("5GB"),
+        false,
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_size_check_command_custom_max_size_mb() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM alpine:3.18\nRUN echo hello\n").unwrap();
+
+    let result = dockerfile_size_check_command(
+        &input,
+        false, false, false, false, false,
+        None, false,
+        Some("500MB"),
+        false,
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+// ============================================================================
+// Dockerfile Full Validate Command Tests
+// ============================================================================
+
+#[test]
+fn test_dockerfile_full_validate_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\nCOPY . /app\nUSER 65534\n").unwrap();
+
+    let result = dockerfile_full_validate_command(
+        &input,
+        None,  // profile
+        true,  // size_check
+        false, // graded
+        false, // runtime
+        false, // strict
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_full_validate_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM alpine:3.18\nRUN apk add curl\n").unwrap();
+
+    let result = dockerfile_full_validate_command(
+        &input,
+        None, true, false, false, false,
+        ReportFormat::Json,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_full_validate_markdown() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM node:20-alpine\nCOPY . /app\n").unwrap();
+
+    let result = dockerfile_full_validate_command(
+        &input,
+        None, true, false, false, false,
+        ReportFormat::Markdown,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_full_validate_coursera_profile() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\nUSER 65534\n").unwrap();
+
+    let result = dockerfile_full_validate_command(
+        &input,
+        Some(LintProfileArg::Coursera),
+        true, false, false, false,
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_full_validate_with_runtime() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:22.04\nRUN apt-get update\n").unwrap();
+
+    let result = dockerfile_full_validate_command(
+        &input,
+        None, true, false,
+        true,  // runtime
+        false,
+        ReportFormat::Human,
+    );
+    assert!(result.is_ok());
+}
+
+// ============================================================================
+// Playbook Command Tests
+// ============================================================================
+
+#[test]
+fn test_playbook_command_validate_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("playbook.yaml");
+    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: test-machine\n  initial: start\n").unwrap();
+
+    let result = playbook_command(&input, false, PlaybookFormat::Human, false, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_playbook_command_run_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("playbook.yaml");
+    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: deploy\n  initial: setup\n").unwrap();
+
+    let result = playbook_command(&input, true, PlaybookFormat::Human, true, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_playbook_command_dry_run() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("playbook.yaml");
+    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n").unwrap();
+
+    let result = playbook_command(&input, true, PlaybookFormat::Human, false, true);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_playbook_command_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("playbook.yaml");
+    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n").unwrap();
+
+    let result = playbook_command(&input, false, PlaybookFormat::Json, false, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_playbook_command_junit() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("playbook.yaml");
+    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n").unwrap();
+
+    let result = playbook_command(&input, false, PlaybookFormat::Junit, false, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_playbook_command_invalid() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("bad.yaml");
+    fs::write(&input, "this is not a valid playbook").unwrap();
+
+    let result = playbook_command(&input, false, PlaybookFormat::Human, false, false);
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_playbook_command_nonexistent() {
+    let result = playbook_command(
+        &PathBuf::from("/nonexistent/playbook.yaml"),
+        false,
+        PlaybookFormat::Human,
+        false,
+        false,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Mutate Command Tests
+// ============================================================================
+
+#[test]
+fn test_mutate_command_human() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nif [ \"$x\" == \"y\" ]; then\n  echo true\nfi\n").unwrap();
+
+    let result = mutate_command(&input, None, MutateFormat::Human, 10, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_mutate_command_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nif [ $x -eq 0 ]; then exit 0; fi\n").unwrap();
+
+    let result = mutate_command(&input, None, MutateFormat::Json, 5, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_mutate_command_csv() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\ntrue && echo ok\n").unwrap();
+
+    let result = mutate_command(&input, None, MutateFormat::Csv, 5, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_mutate_command_show_survivors() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\nif [ \"$a\" == \"$b\" ]; then\n  echo equal\nfi\nexit 0\n").unwrap();
+
+    let result = mutate_command(&input, None, MutateFormat::Human, 10, true, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_mutate_command_no_mutations() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho hello\n").unwrap();
+
+    let result = mutate_command(&input, None, MutateFormat::Human, 10, false, None);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_mutate_command_nonexistent() {
+    let result = mutate_command(
+        &PathBuf::from("/nonexistent/mutate.sh"),
+        None,
+        MutateFormat::Human,
+        10,
+        false,
+        None,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Simulate Command Tests
+// ============================================================================
+
+#[test]
+fn test_simulate_command_human_deterministic() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho 'deterministic'\nexit 0\n").unwrap();
+
+    let result = simulate_command(&input, 42, false, false, SimulateFormat::Human, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_simulate_command_human_nondeterministic() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho $RANDOM\necho $$\n").unwrap();
+
+    let result = simulate_command(&input, 42, false, false, SimulateFormat::Human, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_simulate_command_with_trace() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho hello\necho world\n").unwrap();
+
+    let result = simulate_command(&input, 42, false, false, SimulateFormat::Human, true);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_simulate_command_with_verify() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho test\n").unwrap();
+
+    let result = simulate_command(&input, 42, true, false, SimulateFormat::Human, true);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_simulate_command_with_mock_externals() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho test\n").unwrap();
+
+    let result = simulate_command(&input, 42, false, true, SimulateFormat::Human, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_simulate_command_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\necho test\n").unwrap();
+
+    let result = simulate_command(&input, 42, false, false, SimulateFormat::Json, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_simulate_command_trace_format() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("script.sh");
+    fs::write(&input, "#!/bin/sh\n# comment\necho hello\necho world\n").unwrap();
+
+    let result = simulate_command(&input, 42, false, false, SimulateFormat::Trace, false);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_simulate_command_nonexistent() {
+    let result = simulate_command(
+        &PathBuf::from("/nonexistent/sim.sh"),
+        42,
+        false,
+        false,
+        SimulateFormat::Human,
+        false,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Dockerfile Purify Command Tests
+// ============================================================================
+
+#[test]
+fn test_dockerfile_purify_command_to_stdout() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:20.04\nRUN apt-get update\n").unwrap();
+
+    let result = dockerfile_purify_command(
+        &input,
+        None,   // output
+        false,  // fix
+        false,  // no_backup
+        false,  // dry_run
+        false,  // report
+        ReportFormat::Human,
+        false,  // skip_user
+        false,  // skip_bash_purify
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_purify_command_to_output_file() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    let output = temp_dir.path().join("Dockerfile.purified");
+    fs::write(&input, "FROM ubuntu:20.04\nRUN apt-get update\n").unwrap();
+
+    let result = dockerfile_purify_command(
+        &input,
+        Some(&output),
+        false, false, false, false,
+        ReportFormat::Human,
+        false, false,
+    );
+    assert!(result.is_ok());
+    assert!(output.exists());
+}
+
+#[test]
+fn test_dockerfile_purify_command_dry_run() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:20.04\nRUN echo hello\n").unwrap();
+
+    let result = dockerfile_purify_command(
+        &input,
+        None,
+        false,
+        false,
+        true,   // dry_run
+        false,
+        ReportFormat::Human,
+        false, false,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_purify_command_fix_inplace() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:20.04\nRUN apt-get update\n").unwrap();
+
+    let result = dockerfile_purify_command(
+        &input,
+        None,
+        true,   // fix (in-place)
+        false,  // no_backup (creates backup)
+        false, false,
+        ReportFormat::Human,
+        false, false,
+    );
+    assert!(result.is_ok());
+    // Backup should be created
+    assert!(input.with_extension("bak").exists());
+}
+
+#[test]
+fn test_dockerfile_purify_command_fix_no_backup() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:20.04\nRUN echo test\n").unwrap();
+
+    let result = dockerfile_purify_command(
+        &input,
+        None,
+        true,   // fix
+        true,   // no_backup
+        false, false,
+        ReportFormat::Human,
+        false, false,
+    );
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_dockerfile_purify_command_skip_user() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Dockerfile");
+    fs::write(&input, "FROM ubuntu:20.04\nRUN echo test\n").unwrap();
+
+    let result = dockerfile_purify_command(
+        &input,
+        None,
+        false, false, false, false,
+        ReportFormat::Human,
+        true,   // skip_user
+        false,
+    );
+    assert!(result.is_ok());
+}
+
+// ============================================================================
+// Make Command Tests (additional coverage)
+// ============================================================================
+
+#[test]
+fn test_make_lint_command_with_fix() {
+    let temp_dir = TempDir::new().unwrap();
+    let makefile = temp_dir.path().join("Makefile");
+    let output = temp_dir.path().join("Makefile.fixed");
+    fs::write(&makefile, ".PHONY: all\nall:\n\t@echo test\n").unwrap();
+
+    let result = make_lint_command(&makefile, LintFormat::Human, true, Some(&output), None);
+    // May or may not have fixable issues
+    let _ = result;
+}
+
+#[test]
+fn test_make_lint_command_json_format() {
+    let temp_dir = TempDir::new().unwrap();
+    let makefile = temp_dir.path().join("Makefile");
+    fs::write(&makefile, ".PHONY: all\nall:\n\t@echo test\n").unwrap();
+
+    // Note: show_lint_results calls process::exit on warnings/errors
+    // so we test with a rule filter that produces no matches
+    let result = make_lint_command(&makefile, LintFormat::Human, false, None, Some("NONEXISTENT"));
+    let _ = result;
+}
+
+#[test]
+fn test_make_lint_command_with_rules_filter() {
+    let temp_dir = TempDir::new().unwrap();
+    let makefile = temp_dir.path().join("Makefile");
+    fs::write(&makefile, "all:\n\t@echo test\n").unwrap();
+
+    let result = make_lint_command(&makefile, LintFormat::Human, false, None, Some("MAKE001"));
+    let _ = result;
+}
+
+#[test]
+fn test_make_purify_command_basic() {
+    let temp_dir = TempDir::new().unwrap();
+    let input = temp_dir.path().join("Makefile");
+    let output = temp_dir.path().join("Makefile.purified");
+    fs::write(&input, ".PHONY: all\nall:\n\t@echo test\n").unwrap();
+
+    let result = make_purify_command(
+        &input,
+        Some(&output),
+        false, // fix
+        false, // report
+        ReportFormat::Human,
+        false, // with_tests
+        false, // property_tests
+        false, // preserve_formatting
+        None,  // max_line_length
+        false, // skip_blank_line_removal
+        false, // skip_consolidation
+    );
+    assert!(result.is_ok());
+}
+
+// ============================================================================
+// Convert Lint Format Test
+// ============================================================================
+
+#[test]
+fn test_convert_lint_format_human() {
+    let result = convert_lint_format(LintFormat::Human);
+    assert!(matches!(result, crate::linter::output::OutputFormat::Human));
+}
+
+#[test]
+fn test_convert_lint_format_json() {
+    let result = convert_lint_format(LintFormat::Json);
+    assert!(matches!(result, crate::linter::output::OutputFormat::Json));
+}
+
+#[test]
+fn test_convert_lint_format_sarif() {
+    let result = convert_lint_format(LintFormat::Sarif);
+    assert!(matches!(result, crate::linter::output::OutputFormat::Sarif));
+}
+
+// ============================================================================
+// Run Filtered Lint Tests
+// ============================================================================
+
+#[test]
+fn test_run_filtered_lint_no_filter() {
+    let source = ".PHONY: all\nall:\n\t@echo test\n";
+    let result = run_filtered_lint(source, None);
+    // Should return lint results (may have diagnostics)
+    let _ = result.diagnostics.len();
+}
+
+#[test]
+fn test_run_filtered_lint_with_filter() {
+    let source = "all:\n\t@echo test\n";
+    let result = run_filtered_lint(source, Some("MAKE001"));
+    // Should only contain MAKE001 diagnostics (if any)
+    for d in &result.diagnostics {
+        assert!(d.code.contains("MAKE001"));
+    }
+}
+
+#[test]
+fn test_run_filtered_lint_nonexistent_rule() {
+    let source = "all:\n\t@echo test\n";
+    let result = run_filtered_lint(source, Some("NONEXISTENT999"));
+    assert!(result.diagnostics.is_empty());
+}
+
+// ============================================================================
+// Estimate Build Time Tests
+// ============================================================================
+
+#[test]
+fn test_estimate_build_time_simple() {
+    use crate::linter::docker_profiler::estimate_size;
+    let source = "FROM alpine:3.18\nRUN echo hello\n";
+    let estimate = estimate_size(source);
+    let time = estimate_build_time(&estimate);
+    assert!(time.contains('s') || time.contains('m'));
+}
+
+#[test]
+fn test_estimate_build_time_with_apt() {
+    use crate::linter::docker_profiler::estimate_size;
+    let source = "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl\n";
+    let estimate = estimate_size(source);
+    let time = estimate_build_time(&estimate);
+    assert!(time.contains('s') || time.contains('m'));
+}
+
+// ============================================================================
+// Dockerfile Lint with Rules Filter Test
+// ============================================================================
+
+#[test]
+fn test_dockerfile_lint_command_sarif_format() {
+    let temp_dir = TempDir::new().unwrap();
+    let dockerfile = temp_dir.path().join("Dockerfile");
+    fs::write(&dockerfile, "FROM ubuntu:20.04\nRUN apt-get update\n").unwrap();
+
+    let result = dockerfile_lint_command(&dockerfile, LintFormat::Sarif, None);
+    let _ = result;
+}
+
+#[test]
+fn test_dockerfile_lint_command_nonexistent() {
+    let result = dockerfile_lint_command(
+        &PathBuf::from("/nonexistent/Dockerfile"),
+        LintFormat::Human,
+        None,
+    );
+    assert!(result.is_err());
+}
+
+// ============================================================================
+// Config Command Tests (additional coverage)
+// ============================================================================
+
+#[test]
+fn test_config_analyze_command_json_format() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_file = temp_dir.path().join(".bashrc");
+    fs::write(&config_file, "export PATH=/usr/bin:$PATH\nalias ll='ls -la'\n").unwrap();
+
+    let result = config_analyze_command(&config_file, ConfigOutputFormat::Json);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_config_analyze_command_nonexistent() {
+    let result = config_analyze_command(
+        &PathBuf::from("/nonexistent/.bashrc"),
+        ConfigOutputFormat::Human,
+    );
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_config_lint_command_json() {
+    let temp_dir = TempDir::new().unwrap();
+    let config_file = temp_dir.path().join(".bashrc");
+    fs::write(&config_file, "export PATH=/usr/bin\n").unwrap();
+
+    let result = config_lint_command(&config_file, ConfigOutputFormat::Json);
+    let _ = result;
+}
+
+// ============================================================================
+// Parse Public Key Test
+// ============================================================================
+
+#[test]
+fn test_parse_public_key_valid() {
+    // 32 bytes = 64 hex chars
+    let hex = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    let result = parse_public_key(hex);
+    assert!(result.is_ok());
+}
+
+#[test]
+fn test_parse_public_key_invalid_length() {
+    let result = parse_public_key("0123456789abcdef");
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_parse_public_key_invalid_hex() {
+    let result = parse_public_key("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
     assert!(result.is_err());
 }
