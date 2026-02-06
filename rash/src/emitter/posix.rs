@@ -110,6 +110,16 @@ impl PosixEmitter {
         self.write_shell_lines(output, &lines)
     }
 
+    fn write_eprintln_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_eprintln() {",
+            "    printf '%s\\n' \"$1\" >&2",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+
     fn write_require_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_require() {",
@@ -421,6 +431,9 @@ impl PosixEmitter {
         // Core runtime functions
         if used_functions.contains("rash_println") {
             self.write_println_function(output)?;
+        }
+        if used_functions.contains("rash_eprintln") {
+            self.write_eprintln_function(output)?;
         }
         if used_functions.contains("rash_require") {
             self.write_require_function(output)?;

@@ -154,16 +154,17 @@ impl MakefileConverter {
         args: &[Expr],
     ) -> Result<Option<MakeItem>> {
         // target("name", &["dep1", "dep2"], &["recipe1", "recipe2"])
+        // target("name", &["dep1", "dep2"]) -- deps only, no recipes
         // phony_target("name", &["dep1"], &["recipe1"])
-        if args.len() < 3 {
+        if args.len() < 2 {
             return Err(Error::Validation(format!(
-                "{}() requires 3 arguments: name, dependencies, recipes",
+                "{}() requires at least 2 arguments: name, dependencies (recipes optional)",
                 func_name
             )));
         }
 
-        // Extract target name (safe indexing: we verified args.len() >= 3 above)
-        let target_name = match args.first().expect("verified args.len() >= 3") {
+        // Extract target name (safe indexing: we verified args.len() >= 2 above)
+        let target_name = match args.first().expect("verified args.len() >= 2") {
             Expr::Literal(Literal::Str(s)) => s.clone(),
             _ => {
                 return Err(Error::Validation(format!(
@@ -173,13 +174,16 @@ impl MakefileConverter {
             }
         };
 
-        // Extract dependencies (from array literal) - safe: verified args.len() >= 3
-        let deps_arg = args.get(1).expect("verified args.len() >= 3");
+        // Extract dependencies (from array literal) - safe: verified args.len() >= 2
+        let deps_arg = args.get(1).expect("verified args.len() >= 2");
         let deps = self.extract_string_array(deps_arg)?;
 
-        // Extract recipes (from array literal) - safe: verified args.len() >= 3
-        let recipes_arg = args.get(2).expect("verified args.len() >= 3");
-        let recipes = self.extract_string_array(recipes_arg)?;
+        // Extract recipes (optional third argument)
+        let recipes = if let Some(recipes_arg) = args.get(2) {
+            self.extract_string_array(recipes_arg)?
+        } else {
+            Vec::new()
+        };
 
         let is_phony = func_name == "phony_target";
 
