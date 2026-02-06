@@ -412,6 +412,9 @@ Each corpus repository maintains a `convergence.log` tracking transpilation rate
   6    | 2026-02-06 |  110  | 101  |   9  | 91.8%  | -8.2   | 90.8  | A     | Tier 4 adversarial: 9 falsifiers (+=/-=/*=, eprintln!, target() arity)
   7    | 2026-02-06 |  110  | 110  |   0  | 100.0% | +8.2   | 99.0  | A+    | Fixed: compound assign, eprintln!, 2-arg target()
   8    | 2026-02-06 |  150  | 150  |   0  | 100.0% |  0.0   | 99.3  | A+    | Tier 5 production: no falsifiers (40 new entries)
+  9    | 2026-02-06 |  200  | 200  |   0  | 100.0% |  0.0   | 99.5  | A+    | Expansion 1: 50 more entries, no falsifiers
+  10   | 2026-02-06 |  250  | 249  |   1  | 99.6%  | -0.4   | 99.1  | A+    | Expansion 2: B-121 falsifier (CommandSubst in arithmetic)
+  11   | 2026-02-06 |  250  | 250  |   0  | 100.0% | +0.4   | 99.5  | A+    | Fixed: emit_arithmetic_operand handles CommandSubst
 ```
 
 **Bugs Fixed (Transpiler Improvements)**:
@@ -421,6 +424,7 @@ Each corpus repository maintains a `convergence.log` tracking transpilation rate
 4. **Compound assignment operators** (B-036/B-037/B-038): Desugar `+=`, `-=`, `*=`, `/=`, `%=` to binary expressions
 5. **eprintln! macro** (B-039): Parser + `rash_eprintln` runtime function with `>&2` redirect
 6. **2-arg target()** (M-026/M-027/M-028/M-029): Makefile `target()/phony_target()` now accept 2 or 3 args
+7. **CommandSubst in arithmetic** (B-121): `emit_arithmetic_operand` now handles `ShellValue::CommandSubst` for function return values in `$((...))` expressions
 
 ### 5.2 Convergence Criteria
 
