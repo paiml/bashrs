@@ -1865,9 +1865,9 @@ fn test_score_command_dockerfile_human() {
         &input,
         ScoreOutputFormat::Human,
         true,
-        true,  // dockerfile
+        true, // dockerfile
         false,
-        true,  // show_grade
+        true, // show_grade
         None,
     );
     assert!(result.is_ok());
@@ -1883,7 +1883,7 @@ fn test_score_command_dockerfile_json() {
         &input,
         ScoreOutputFormat::Json,
         false,
-        true,  // dockerfile
+        true, // dockerfile
         false,
         false,
         None,
@@ -1895,13 +1895,17 @@ fn test_score_command_dockerfile_json() {
 fn test_score_command_dockerfile_markdown() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("Dockerfile");
-    fs::write(&input, "FROM node:20-alpine\nWORKDIR /app\nCOPY . .\nCMD [\"node\", \"index.js\"]\n").unwrap();
+    fs::write(
+        &input,
+        "FROM node:20-alpine\nWORKDIR /app\nCOPY . .\nCMD [\"node\", \"index.js\"]\n",
+    )
+    .unwrap();
 
     let result = score_command(
         &input,
         ScoreOutputFormat::Markdown,
         false,
-        true,  // dockerfile
+        true, // dockerfile
         false,
         false,
         None,
@@ -1913,15 +1917,19 @@ fn test_score_command_dockerfile_markdown() {
 fn test_score_command_dockerfile_with_runtime() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("Dockerfile");
-    fs::write(&input, "FROM ubuntu:22.04\nRUN apt-get update\nCOPY . /app\n").unwrap();
+    fs::write(
+        &input,
+        "FROM ubuntu:22.04\nRUN apt-get update\nCOPY . /app\n",
+    )
+    .unwrap();
 
     let result = score_command(
         &input,
         ScoreOutputFormat::Human,
         true,
-        true,  // dockerfile
-        true,  // runtime
-        true,  // show_grade
+        true, // dockerfile
+        true, // runtime
+        true, // show_grade
         None,
     );
     assert!(result.is_ok());
@@ -1937,9 +1945,9 @@ fn test_score_command_dockerfile_with_coursera_profile() {
         &input,
         ScoreOutputFormat::Human,
         true,
-        true,  // dockerfile
-        true,  // runtime
-        true,  // show_grade
+        true, // dockerfile
+        true, // runtime
+        true, // show_grade
         Some(LintProfileArg::Coursera),
     );
     assert!(result.is_ok());
@@ -2070,13 +2078,7 @@ fn test_coverage_command_terminal() {
     let input = temp_dir.path().join("script.sh");
     fs::write(&input, "#!/bin/sh\nset -eu\necho 'hello'\nexit 0\n").unwrap();
 
-    let result = coverage_command(
-        &input,
-        &CoverageOutputFormat::Terminal,
-        None,
-        false,
-        None,
-    );
+    let result = coverage_command(&input, &CoverageOutputFormat::Terminal, None, false, None);
     assert!(result.is_ok());
 }
 
@@ -2102,13 +2104,7 @@ fn test_coverage_command_json() {
     let input = temp_dir.path().join("script.sh");
     fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
 
-    let result = coverage_command(
-        &input,
-        &CoverageOutputFormat::Json,
-        None,
-        false,
-        None,
-    );
+    let result = coverage_command(&input, &CoverageOutputFormat::Json, None, false, None);
     assert!(result.is_ok());
 }
 
@@ -2118,13 +2114,7 @@ fn test_coverage_command_html_to_stdout() {
     let input = temp_dir.path().join("script.sh");
     fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
 
-    let result = coverage_command(
-        &input,
-        &CoverageOutputFormat::Html,
-        None,
-        false,
-        None,
-    );
+    let result = coverage_command(&input, &CoverageOutputFormat::Html, None, false, None);
     assert!(result.is_ok());
 }
 
@@ -2152,13 +2142,7 @@ fn test_coverage_command_lcov() {
     let input = temp_dir.path().join("script.sh");
     fs::write(&input, "#!/bin/sh\necho 'test'\n").unwrap();
 
-    let result = coverage_command(
-        &input,
-        &CoverageOutputFormat::Lcov,
-        None,
-        false,
-        None,
-    );
+    let result = coverage_command(&input, &CoverageOutputFormat::Lcov, None, false, None);
     assert!(result.is_ok());
 }
 
@@ -2401,7 +2385,11 @@ fn test_purify_command_nonexistent_file() {
 fn test_dockerfile_profile_command_human() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("Dockerfile");
-    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\nCOPY . /app\n").unwrap();
+    fs::write(
+        &input,
+        "FROM python:3.11-slim\nRUN pip install flask\nCOPY . /app\n",
+    )
+    .unwrap();
 
     let result = dockerfile_profile_command(
         &input,
@@ -2424,14 +2412,24 @@ fn test_dockerfile_profile_command_human() {
 fn test_dockerfile_profile_command_full_human() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("Dockerfile");
-    fs::write(&input, "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl\nCOPY . /app\n").unwrap();
+    fs::write(
+        &input,
+        "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl\nCOPY . /app\n",
+    )
+    .unwrap();
 
     let result = dockerfile_profile_command(
         &input,
-        false, false, false, false, false,
-        None, "30s",
-        None, false,
-        true,  // full (enables all sections)
+        false,
+        false,
+        false,
+        false,
+        false,
+        None,
+        "30s",
+        None,
+        false,
+        true, // full (enables all sections)
         ReportFormat::Human,
     );
     assert!(result.is_ok());
@@ -2445,9 +2443,16 @@ fn test_dockerfile_profile_command_json() {
 
     let result = dockerfile_profile_command(
         &input,
-        false, false, false, false, false,
-        None, "30s",
-        None, false, false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None,
+        "30s",
+        None,
+        false,
+        false,
         ReportFormat::Json,
     );
     assert!(result.is_ok());
@@ -2461,9 +2466,16 @@ fn test_dockerfile_profile_command_markdown() {
 
     let result = dockerfile_profile_command(
         &input,
-        false, false, false, false, false,
-        None, "30s",
-        None, false, false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None,
+        "30s",
+        None,
+        false,
+        false,
         ReportFormat::Markdown,
     );
     assert!(result.is_ok());
@@ -2477,10 +2489,15 @@ fn test_dockerfile_profile_command_coursera_with_limits() {
 
     let result = dockerfile_profile_command(
         &input,
-        true, true, true, true, true,
-        None, "30s",
+        true,
+        true,
+        true,
+        true,
+        true,
+        None,
+        "30s",
         Some(LintProfileArg::Coursera),
-        true,  // simulate_limits
+        true, // simulate_limits
         false,
         ReportFormat::Human,
     );
@@ -2517,16 +2534,23 @@ fn test_dockerfile_size_check_command_human_basic() {
 fn test_dockerfile_size_check_command_verbose_with_bloat() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("Dockerfile");
-    fs::write(&input, "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl wget git\n").unwrap();
+    fs::write(
+        &input,
+        "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl wget git\n",
+    )
+    .unwrap();
 
     let result = dockerfile_size_check_command(
         &input,
-        true,  // verbose
-        true,  // layers
-        true,  // detect_bloat
-        false, false,
-        None, false, None,
-        true,  // compression_analysis
+        true, // verbose
+        true, // layers
+        true, // detect_bloat
+        false,
+        false,
+        None,
+        false,
+        None,
+        true, // compression_analysis
         ReportFormat::Human,
     );
     assert!(result.is_ok());
@@ -2540,8 +2564,15 @@ fn test_dockerfile_size_check_command_json() {
 
     let result = dockerfile_size_check_command(
         &input,
-        false, false, false, false, false,
-        None, false, None, false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None,
+        false,
+        None,
+        false,
         ReportFormat::Json,
     );
     assert!(result.is_ok());
@@ -2555,8 +2586,15 @@ fn test_dockerfile_size_check_command_markdown() {
 
     let result = dockerfile_size_check_command(
         &input,
-        false, false, false, false, false,
-        None, false, None, false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None,
+        false,
+        None,
+        false,
         ReportFormat::Markdown,
     );
     assert!(result.is_ok());
@@ -2570,9 +2608,15 @@ fn test_dockerfile_size_check_command_with_coursera_profile() {
 
     let result = dockerfile_size_check_command(
         &input,
-        true, true, true, false, false,
+        true,
+        true,
+        true,
+        false,
+        false,
         Some(LintProfileArg::Coursera),
-        false, None, false,
+        false,
+        None,
+        false,
         ReportFormat::Human,
     );
     assert!(result.is_ok());
@@ -2586,8 +2630,13 @@ fn test_dockerfile_size_check_command_custom_max_size_gb() {
 
     let result = dockerfile_size_check_command(
         &input,
-        false, false, false, false, false,
-        None, false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None,
+        false,
         Some("5GB"),
         false,
         ReportFormat::Human,
@@ -2603,8 +2652,13 @@ fn test_dockerfile_size_check_command_custom_max_size_mb() {
 
     let result = dockerfile_size_check_command(
         &input,
-        false, false, false, false, false,
-        None, false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        None,
+        false,
         Some("500MB"),
         false,
         ReportFormat::Human,
@@ -2620,7 +2674,11 @@ fn test_dockerfile_size_check_command_custom_max_size_mb() {
 fn test_dockerfile_full_validate_human() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("Dockerfile");
-    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\nCOPY . /app\nUSER 65534\n").unwrap();
+    fs::write(
+        &input,
+        "FROM python:3.11-slim\nRUN pip install flask\nCOPY . /app\nUSER 65534\n",
+    )
+    .unwrap();
 
     let result = dockerfile_full_validate_command(
         &input,
@@ -2642,7 +2700,11 @@ fn test_dockerfile_full_validate_json() {
 
     let result = dockerfile_full_validate_command(
         &input,
-        None, true, false, false, false,
+        None,
+        true,
+        false,
+        false,
+        false,
         ReportFormat::Json,
     );
     assert!(result.is_ok());
@@ -2656,7 +2718,11 @@ fn test_dockerfile_full_validate_markdown() {
 
     let result = dockerfile_full_validate_command(
         &input,
-        None, true, false, false, false,
+        None,
+        true,
+        false,
+        false,
+        false,
         ReportFormat::Markdown,
     );
     assert!(result.is_ok());
@@ -2666,12 +2732,19 @@ fn test_dockerfile_full_validate_markdown() {
 fn test_dockerfile_full_validate_coursera_profile() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("Dockerfile");
-    fs::write(&input, "FROM python:3.11-slim\nRUN pip install flask\nUSER 65534\n").unwrap();
+    fs::write(
+        &input,
+        "FROM python:3.11-slim\nRUN pip install flask\nUSER 65534\n",
+    )
+    .unwrap();
 
     let result = dockerfile_full_validate_command(
         &input,
         Some(LintProfileArg::Coursera),
-        true, false, false, false,
+        true,
+        false,
+        false,
+        false,
         ReportFormat::Human,
     );
     assert!(result.is_ok());
@@ -2685,8 +2758,10 @@ fn test_dockerfile_full_validate_with_runtime() {
 
     let result = dockerfile_full_validate_command(
         &input,
-        None, true, false,
-        true,  // runtime
+        None,
+        true,
+        false,
+        true, // runtime
         false,
         ReportFormat::Human,
     );
@@ -2701,7 +2776,11 @@ fn test_dockerfile_full_validate_with_runtime() {
 fn test_playbook_command_validate_human() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("playbook.yaml");
-    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: test-machine\n  initial: start\n").unwrap();
+    fs::write(
+        &input,
+        "version: \"1.0\"\nmachine:\n  id: test-machine\n  initial: start\n",
+    )
+    .unwrap();
 
     let result = playbook_command(&input, false, PlaybookFormat::Human, false, false);
     assert!(result.is_ok());
@@ -2711,7 +2790,11 @@ fn test_playbook_command_validate_human() {
 fn test_playbook_command_run_human() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("playbook.yaml");
-    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: deploy\n  initial: setup\n").unwrap();
+    fs::write(
+        &input,
+        "version: \"1.0\"\nmachine:\n  id: deploy\n  initial: setup\n",
+    )
+    .unwrap();
 
     let result = playbook_command(&input, true, PlaybookFormat::Human, true, false);
     assert!(result.is_ok());
@@ -2721,7 +2804,11 @@ fn test_playbook_command_run_human() {
 fn test_playbook_command_dry_run() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("playbook.yaml");
-    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n").unwrap();
+    fs::write(
+        &input,
+        "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n",
+    )
+    .unwrap();
 
     let result = playbook_command(&input, true, PlaybookFormat::Human, false, true);
     assert!(result.is_ok());
@@ -2731,7 +2818,11 @@ fn test_playbook_command_dry_run() {
 fn test_playbook_command_json() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("playbook.yaml");
-    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n").unwrap();
+    fs::write(
+        &input,
+        "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n",
+    )
+    .unwrap();
 
     let result = playbook_command(&input, false, PlaybookFormat::Json, false, false);
     assert!(result.is_ok());
@@ -2741,7 +2832,11 @@ fn test_playbook_command_json() {
 fn test_playbook_command_junit() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("playbook.yaml");
-    fs::write(&input, "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n").unwrap();
+    fs::write(
+        &input,
+        "version: \"1.0\"\nmachine:\n  id: test\n  initial: start\n",
+    )
+    .unwrap();
 
     let result = playbook_command(&input, false, PlaybookFormat::Junit, false, false);
     assert!(result.is_ok());
@@ -2777,7 +2872,11 @@ fn test_playbook_command_nonexistent() {
 fn test_mutate_command_human() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("script.sh");
-    fs::write(&input, "#!/bin/sh\nif [ \"$x\" == \"y\" ]; then\n  echo true\nfi\n").unwrap();
+    fs::write(
+        &input,
+        "#!/bin/sh\nif [ \"$x\" == \"y\" ]; then\n  echo true\nfi\n",
+    )
+    .unwrap();
 
     let result = mutate_command(&input, None, MutateFormat::Human, 10, false, None);
     assert!(result.is_ok());
@@ -2807,7 +2906,11 @@ fn test_mutate_command_csv() {
 fn test_mutate_command_show_survivors() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("script.sh");
-    fs::write(&input, "#!/bin/sh\nif [ \"$a\" == \"$b\" ]; then\n  echo equal\nfi\nexit 0\n").unwrap();
+    fs::write(
+        &input,
+        "#!/bin/sh\nif [ \"$a\" == \"$b\" ]; then\n  echo equal\nfi\nexit 0\n",
+    )
+    .unwrap();
 
     let result = mutate_command(&input, None, MutateFormat::Human, 10, true, None);
     assert!(result.is_ok());
@@ -2935,14 +3038,14 @@ fn test_dockerfile_purify_command_to_stdout() {
 
     let result = dockerfile_purify_command(
         &input,
-        None,   // output
-        false,  // fix
-        false,  // no_backup
-        false,  // dry_run
-        false,  // report
+        None,  // output
+        false, // fix
+        false, // no_backup
+        false, // dry_run
+        false, // report
         ReportFormat::Human,
-        false,  // skip_user
-        false,  // skip_bash_purify
+        false, // skip_user
+        false, // skip_bash_purify
     );
     assert!(result.is_ok());
 }
@@ -2957,9 +3060,13 @@ fn test_dockerfile_purify_command_to_output_file() {
     let result = dockerfile_purify_command(
         &input,
         Some(&output),
-        false, false, false, false,
+        false,
+        false,
+        false,
+        false,
         ReportFormat::Human,
-        false, false,
+        false,
+        false,
     );
     assert!(result.is_ok());
     assert!(output.exists());
@@ -2976,10 +3083,11 @@ fn test_dockerfile_purify_command_dry_run() {
         None,
         false,
         false,
-        true,   // dry_run
+        true, // dry_run
         false,
         ReportFormat::Human,
-        false, false,
+        false,
+        false,
     );
     assert!(result.is_ok());
 }
@@ -2993,11 +3101,13 @@ fn test_dockerfile_purify_command_fix_inplace() {
     let result = dockerfile_purify_command(
         &input,
         None,
-        true,   // fix (in-place)
-        false,  // no_backup (creates backup)
-        false, false,
+        true,  // fix (in-place)
+        false, // no_backup (creates backup)
+        false,
+        false,
         ReportFormat::Human,
-        false, false,
+        false,
+        false,
     );
     assert!(result.is_ok());
     // Backup should be created
@@ -3013,11 +3123,13 @@ fn test_dockerfile_purify_command_fix_no_backup() {
     let result = dockerfile_purify_command(
         &input,
         None,
-        true,   // fix
-        true,   // no_backup
-        false, false,
+        true, // fix
+        true, // no_backup
+        false,
+        false,
         ReportFormat::Human,
-        false, false,
+        false,
+        false,
     );
     assert!(result.is_ok());
 }
@@ -3031,9 +3143,12 @@ fn test_dockerfile_purify_command_skip_user() {
     let result = dockerfile_purify_command(
         &input,
         None,
-        false, false, false, false,
+        false,
+        false,
+        false,
+        false,
         ReportFormat::Human,
-        true,   // skip_user
+        true, // skip_user
         false,
     );
     assert!(result.is_ok());
@@ -3063,7 +3178,13 @@ fn test_make_lint_command_json_format() {
 
     // Note: show_lint_results calls process::exit on warnings/errors
     // so we test with a rule filter that produces no matches
-    let result = make_lint_command(&makefile, LintFormat::Human, false, None, Some("NONEXISTENT"));
+    let result = make_lint_command(
+        &makefile,
+        LintFormat::Human,
+        false,
+        None,
+        Some("NONEXISTENT"),
+    );
     let _ = result;
 }
 
@@ -3205,7 +3326,11 @@ fn test_dockerfile_lint_command_nonexistent() {
 fn test_config_analyze_command_json_format() {
     let temp_dir = TempDir::new().unwrap();
     let config_file = temp_dir.path().join(".bashrc");
-    fs::write(&config_file, "export PATH=/usr/bin:$PATH\nalias ll='ls -la'\n").unwrap();
+    fs::write(
+        &config_file,
+        "export PATH=/usr/bin:$PATH\nalias ll='ls -la'\n",
+    )
+    .unwrap();
 
     let result = config_analyze_command(&config_file, ConfigOutputFormat::Json);
     assert!(result.is_ok());
@@ -3250,6 +3375,7 @@ fn test_parse_public_key_invalid_length() {
 
 #[test]
 fn test_parse_public_key_invalid_hex() {
-    let result = parse_public_key("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+    let result =
+        parse_public_key("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
     assert!(result.is_err());
 }

@@ -53,7 +53,12 @@ pub mod generators {
     }
 
     pub fn any_literal() -> impl Strategy<Value = Literal> {
-        prop_oneof![any_u16_literal(), any_u32_literal(), any_bool_literal(), any_string_literal()]
+        prop_oneof![
+            any_u16_literal(),
+            any_u32_literal(),
+            any_bool_literal(),
+            any_string_literal()
+        ]
     }
 
     pub fn any_binary_op() -> impl Strategy<Value = BinaryOp> {

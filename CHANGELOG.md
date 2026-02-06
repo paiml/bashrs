@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.60.0] - 2026-02-06
+
+### Added
+
+- **Corpus Expansion**: Expanded transpilation corpus to 500+ entries across all tiers (Tier 1-5)
+  - Bash, Makefile, and Dockerfile corpus entries with 100% pass rate
+  - Tier 4 adversarial entries with 3 transpiler bug fixes
+  - Tier 5 production-scale entries for full coverage
+
+- **114 CLI Command Tests**: Comprehensive CLI test coverage for score, coverage, and analysis commands
+  - Dockerfile scoring tests (human, JSON, markdown formats)
+  - Coverage output format tests (terminal, JSON, HTML, LCOV)
+  - Runtime analysis and lint profile tests
+
+### Fixed
+
+- **format! Macro Bug** (Bug #8): Fixed incorrect transpilation of format! macro in corpus entries
+- **Assignment Expression Bug** (B-016): Fixed assignment expression handling in transpiler
+- **Arithmetic CommandSubst Bug**: Fixed command substitution inside arithmetic contexts
+- **3 Transpiler Bugs**: Fixed during Tier 4 adversarial corpus expansion
+- **12 Test Failures**: Resolved test failures for release eligibility
+
+### Performance
+
+- **Coverage Analysis 3x Faster**: Rewrote coverage target using single-profraw approach instead of per-test merging
+
+### Quality
+
+- **Tests**: All tests pass (100% pass rate)
+- **Line Coverage**: 91.23%
+- **Function Coverage**: 95.07%
+- **PMAT Score**: 152.5/159 (95.9%, Grade A+)
+- **Corpus**: 500+ entries, 100% pass rate, Grade A+
+
 ## [6.55.0] - 2026-01-18
 
 ### Fixed

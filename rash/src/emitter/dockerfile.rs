@@ -175,8 +175,7 @@ impl DockerfileConverter {
                         "copy_from() requires 3 arguments: stage, src, dst".to_string(),
                     ));
                 }
-                let from_stage =
-                    self.expr_to_string(args.first().expect("verified len >= 3"))?;
+                let from_stage = self.expr_to_string(args.first().expect("verified len >= 3"))?;
                 let src = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
                 let dst = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
                 if let Some(stage) = current_stage {

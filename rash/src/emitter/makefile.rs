@@ -90,11 +90,8 @@ impl MakefileConverter {
 
                 // Only generate target if function has meaningful body
                 if !recipes.is_empty() {
-                    let params: Vec<String> = function
-                        .params
-                        .iter()
-                        .map(|p| p.name.clone())
-                        .collect();
+                    let params: Vec<String> =
+                        function.params.iter().map(|p| p.name.clone()).collect();
 
                     items.push(MakeItem::Target {
                         name: function.name.clone(),
@@ -148,11 +145,7 @@ impl MakefileConverter {
         }
     }
 
-    fn convert_target_call(
-        &mut self,
-        func_name: &str,
-        args: &[Expr],
-    ) -> Result<Option<MakeItem>> {
+    fn convert_target_call(&mut self, func_name: &str, args: &[Expr]) -> Result<Option<MakeItem>> {
         // target("name", &["dep1", "dep2"], &["recipe1", "recipe2"])
         // target("name", &["dep1", "dep2"]) -- deps only, no recipes
         // phony_target("name", &["dep1"], &["recipe1"])
@@ -268,7 +261,11 @@ mod tests {
         }]);
 
         let result = emit_makefile(&ast).unwrap();
-        assert!(result.contains("CC := gcc"), "Expected 'CC := gcc' in: {}", result);
+        assert!(
+            result.contains("CC := gcc"),
+            "Expected 'CC := gcc' in: {}",
+            result
+        );
     }
 
     #[test]
