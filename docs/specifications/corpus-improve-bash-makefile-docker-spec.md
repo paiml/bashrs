@@ -99,14 +99,15 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 
 **Corpus size targets over time**:
 
-| Milestone | Corpus Size | Expected Rate | Action |
-|-----------|------------|---------------|--------|
-| Initial   | 30 entries | ~85% | Establish baseline, fix obvious gaps |
-| Iteration 5 | 100 entries | ~92% | Expanding construct coverage |
-| Iteration 10 | 200 entries | ~96% | Adversarial entries added |
-| Iteration 15 | 350 entries | ~98% | Production scripts added |
-| Iteration 20 | 500 entries | ~99% | Deep edge cases, mutation-guided additions |
-| Ongoing | 500+ entries | 99%+ | Continuous addition of harder entries forever |
+| Milestone | Corpus Size | Expected Rate | Action | Status |
+|-----------|------------|---------------|--------|--------|
+| Initial   | 30 entries | ~85% | Establish baseline, fix obvious gaps | DONE (iter 1-2) |
+| Iteration 5 | 100 entries | ~92% | Expanding construct coverage | DONE (iter 5: 85/85, 100%) |
+| Iteration 8 | 150 entries | ~95% | Production patterns added | DONE (iter 8: 150/150, 100%) |
+| Iteration 12 | 250 entries | ~97% | Deeper edge cases | IN PROGRESS |
+| Iteration 15 | 350 entries | ~98% | Mutation-guided additions | PLANNED |
+| Iteration 20 | 500 entries | ~99% | Full corpus target | PLANNED |
+| Ongoing | 500+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
 
@@ -401,15 +402,25 @@ This weighting ensures that production-quality programs contribute more to the o
 Each corpus repository maintains a `convergence.log` tracking transpilation rate over iterations:
 
 ```
-# convergence.log
-# iteration | date       | total | pass | fail | rate   | delta | notes
-  1         | 2026-02-07 | 200   | 120  | 80   | 60.0%  | +60.0 | Initial corpus, baseline measurement
-  2         | 2026-02-14 | 200   | 145  | 55   | 72.5%  | +12.5 | Fixed arithmetic emission, loop lowering
-  3         | 2026-02-21 | 210   | 180  | 30   | 85.7%  | +13.2 | Added pipe chains, function calls
-  4         | 2026-02-28 | 220   | 210  | 10   | 95.5%  | +9.8  | Error handling, file ops
-  ...
-  N         | 2026-MM-DD | 500   | 497  |  3   | 99.4%  | +0.1  | Approaching asymptote
+# convergence.log (ACTUAL DATA - updated 2026-02-06)
+# iter | date       | total | pass | fail | rate   | delta  | score | grade | notes
+  1    | 2026-02-06 |   30  |  26  |   4  | 86.7%  | +86.7  | ~85   | B     | Initial Tier 1: 4 falsifiers (D-006 u16, D-007/M-003/M-004 array refs)
+  2    | 2026-02-06 |   30  |  30  |   0  | 100.0% | +13.3  | 99.2  | A+    | Fixed: u16 type, array/slice refs, reference exprs
+  3    | 2026-02-06 |   55  |  54  |   1  | 98.2%  | -1.8   | ~98   | A+    | Tier 2 added: 1 falsifier (B-016 assignment expr)
+  4    | 2026-02-06 |   55  |  55  |   0  | 100.0% | +1.8   | 99.5  | A+    | Fixed: SynExpr::Assign handler
+  5    | 2026-02-06 |   85  |  85  |   0  | 100.0% |  0.0   | 99.1  | A+    | Tier 3 added: no falsifiers (sawtooth didn't dip)
+  6    | 2026-02-06 |  110  | 101  |   9  | 91.8%  | -8.2   | 90.8  | A     | Tier 4 adversarial: 9 falsifiers (+=/-=/*=, eprintln!, target() arity)
+  7    | 2026-02-06 |  110  | 110  |   0  | 100.0% | +8.2   | 99.0  | A+    | Fixed: compound assign, eprintln!, 2-arg target()
+  8    | 2026-02-06 |  150  | 150  |   0  | 100.0% |  0.0   | 99.3  | A+    | Tier 5 production: no falsifiers (40 new entries)
 ```
+
+**Bugs Fixed (Transpiler Improvements)**:
+1. **u16 type support** (D-006): Added `Type::U16`, `Literal::U16(u16)` to AST, parser, IR, all emitters
+2. **Array/slice reference expressions** (D-007, M-003, M-004): Added `SynExpr::Array`, `SynExpr::Reference`, `SynType::Slice` handlers
+3. **Assignment expressions** (B-016): Added `SynExpr::Assign` → `convert_assign_stmt()` in parser
+4. **Compound assignment operators** (B-036/B-037/B-038): Desugar `+=`, `-=`, `*=`, `/=`, `%=` to binary expressions
+5. **eprintln! macro** (B-039): Parser + `rash_eprintln` runtime function with `>&2` redirect
+6. **2-arg target()** (M-026/M-027/M-028/M-029): Makefile `target()/phony_target()` now accept 2 or 3 args
 
 ### 5.2 Convergence Criteria
 
