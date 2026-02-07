@@ -1204,6 +1204,316 @@ mod tests {
         assert!(!result.contains("HEALTHCHECK"), "No HEALTHCHECK with empty args");
     }
 
+    // ============================================================================
+    // Coverage Tests - convert_function_call branches (DOCKER_COV_013-025)
+    // ============================================================================
+
+    #[test]
+    fn test_DOCKER_COV_013_from_image_too_few_args() {
+        let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
+            name: "from_image".to_string(),
+            args: vec![Expr::Literal(Literal::Str("alpine".to_string()))],
+        })]);
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("2 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_014_from_image_as_too_few_args() {
+        let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
+            name: "from_image_as".to_string(),
+            args: vec![
+                Expr::Literal(Literal::Str("rust".to_string())),
+                Expr::Literal(Literal::Str("1.75".to_string())),
+            ],
+        })]);
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("3 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_015_copy_too_few_args() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "copy".to_string(),
+                args: vec![Expr::Literal(Literal::Str("src".to_string()))],
+            }),
+        ]);
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("2 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_016_copy_from_too_few_args() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "copy_from".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("builder".to_string())),
+                    Expr::Literal(Literal::Str("/src".to_string())),
+                ],
+            }),
+        ]);
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("3 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_017_env_too_few_args() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "env".to_string(),
+                args: vec![Expr::Literal(Literal::Str("KEY".to_string()))],
+            }),
+        ]);
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("2 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_018_expose_u32() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "expose".to_string(),
+                args: vec![Expr::Literal(Literal::U32(3000))],
+            }),
+        ]);
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("EXPOSE 3000"), "U32 expose in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_019_expose_i32() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "expose".to_string(),
+                args: vec![Expr::Literal(Literal::I32(9090))],
+            }),
+        ]);
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("EXPOSE 9090"), "I32 expose in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_020_cmd_instruction() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "cmd".to_string(),
+                args: vec![Expr::Array(vec![
+                    Expr::Literal(Literal::Str("/bin/sh".to_string())),
+                    Expr::Literal(Literal::Str("-c".to_string())),
+                    Expr::Literal(Literal::Str("echo hello".to_string())),
+                ])],
+            }),
+        ]);
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("CMD"), "CMD in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_021_no_stage_run_copy_env() {
+        // Instructions without a stage: run, copy, copy_from, env, label, entrypoint, cmd
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "run".to_string(),
+                args: vec![Expr::Literal(Literal::Str("echo hi".to_string()))],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "copy".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("src".to_string())),
+                    Expr::Literal(Literal::Str("dst".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "env".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("K".to_string())),
+                    Expr::Literal(Literal::Str("V".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "label".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("k".to_string())),
+                    Expr::Literal(Literal::Str("v".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "entrypoint".to_string(),
+                args: vec![Expr::Literal(Literal::Str("/bin/sh".to_string()))],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "cmd".to_string(),
+                args: vec![Expr::Literal(Literal::Str("echo".to_string()))],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "copy_from".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("builder".to_string())),
+                    Expr::Literal(Literal::Str("/a".to_string())),
+                    Expr::Literal(Literal::Str("/b".to_string())),
+                ],
+            }),
+            // Add from_image last so we don't error on "no stages"
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+        ]);
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("FROM alpine:3.18"));
+        // Instructions before FROM should have been skipped (no stage)
+        assert!(!result.contains("RUN"), "No RUN before FROM");
+    }
+
+    #[test]
+    fn test_DOCKER_COV_022_from_image_pushes_existing_stage() {
+        // Two from_image calls — second one pushes the first stage
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("rust".to_string())),
+                    Expr::Literal(Literal::Str("1.75".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "run".to_string(),
+                args: vec![Expr::Literal(Literal::Str("cargo build".to_string()))],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+        ]);
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("FROM rust:1.75"), "First stage in: {result}");
+        assert!(
+            result.contains("FROM alpine:3.18"),
+            "Second stage in: {result}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_COV_023_label_success() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "label".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("maintainer".to_string())),
+                    Expr::Literal(Literal::Str("test@example.com".to_string())),
+                ],
+            }),
+        ]);
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(
+            result.contains("LABEL maintainer"),
+            "LABEL in: {result}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_COV_024_comment_success() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "comment".to_string(),
+                args: vec![Expr::Literal(Literal::Str(
+                    "This is a comment".to_string(),
+                ))],
+            }),
+        ]);
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(
+            result.contains("# This is a comment"),
+            "Comment in: {result}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_COV_025_entrypoint_single_string() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "entrypoint".to_string(),
+                args: vec![Expr::Literal(Literal::Str("/app/start".to_string()))],
+            }),
+        ]);
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(
+            result.contains("ENTRYPOINT"),
+            "ENTRYPOINT in: {result}"
+        );
+    }
+
     #[test]
     fn test_DOCKER_BUILD_025_comprehensive_dockerfile() {
         let ast = make_simple_ast(vec![
