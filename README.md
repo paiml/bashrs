@@ -22,7 +22,7 @@
 
 ## Table of Contents
 
-- [What's New](#-whats-new-in-v6490)
+- [What's New](#-whats-new-in-v6600)
 - [Why Rash?](#why-rash)
 - [Quick Start](#quick-start)
 - [Features](#features)
@@ -36,18 +36,18 @@
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🚀 What's New in v6.50.0
+## 🚀 What's New in v6.60.0
 
-**Latest Release** - 2026-01-06
+**Latest Release** - 2026-02-06
 
-- **Logic Extraction for EXTREME TDD**: Pure logic functions extracted from linter rules
-  - `sc2086_logic.rs`: Double-quote detection (37 unit tests)
-  - `sc2154_logic.rs`: Variable reference validation (44 unit tests)
-  - `devcontainer_logic.rs`: JSON validation helpers (42 unit tests)
-  - `sec010_logic.rs`: Path traversal detection (26 unit tests)
-- **New Linter Rules**: docker007-012, signal001, systemd001, launchd001
-- **Fast Coverage**: `make coverage` runs in under 5 minutes with nextest
-- **Quality Metrics**: 9,824 tests, 94.16% line coverage, 96.52% function coverage
+- **Corpus Expansion**: 500+ transpilation corpus entries across Tiers 1-5 with 100% pass rate
+  - Bash, Makefile, and Dockerfile formats fully covered
+  - Tier 4 adversarial entries that found and fixed 3 transpiler bugs
+  - Tier 5 production-scale entries for real-world validation
+- **114 CLI Command Tests**: Comprehensive CLI coverage for score, coverage, and analysis commands
+- **5 Bug Fixes**: format! macro, assignment expressions, arithmetic in command substitution
+- **3x Faster Coverage**: Rewrote coverage analysis using single-profraw approach
+- **Quality Metrics**: 11,407 tests, 91.23% line coverage, 95.07% function coverage, PMAT 152.5/159 (A+)
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
@@ -206,10 +206,11 @@ bashrs simulate script.sh --seed 42 --verify
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| **PMAT Score** | 133/134 (99.3%) | ✅ Grade A+ |
-| **Tests** | 9,824 passing | ✅ 100% pass rate |
-| **Line Coverage** | 94.16% | ✅ Near target (95%) |
-| **Function Coverage** | 96.52% | ✅ Exceeds target |
+| **PMAT Score** | 152.5/159 (95.9%) | ✅ Grade A+ |
+| **Tests** | 11,407 passing | ✅ 100% pass rate |
+| **Line Coverage** | 91.23% | ✅ Target: 95% |
+| **Function Coverage** | 95.07% | ✅ Exceeds target |
+| **Corpus** | 500+ entries | ✅ 100% pass rate (Grade A+) |
 | **T-code Falsification** | 142/142 | ✅ 130-point checklist |
 | **D-code Falsification** | 31/31 | ✅ Dockerfile validation |
 | **ShellCheck** | 100% compliant | ✅ All output passes |
