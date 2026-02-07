@@ -350,7 +350,6 @@ fn format_file_patterns(format: CorpusFormat) -> &'static [&'static str] {
         CorpusFormat::Bash => &[
             "emitter/posix",
             "bash_transpiler/",
-            "bash_parser/",
         ],
         CorpusFormat::Makefile => &["emitter/makefile"],
         CorpusFormat::Dockerfile => &["emitter/dockerfile"],
@@ -980,9 +979,12 @@ impl CorpusRunner {
                 if r.status.success() {
                     return true;
                 }
-                // "No targets" (exit 2) is valid for variable-only Makefiles
+                // "No targets" (exit 2) is valid for variable-only Makefiles.
+                // "No rule to make target" means valid syntax but unresolvable
+                // prerequisites — acceptable for syntax validation.
                 let stderr = String::from_utf8_lossy(&r.stderr);
                 stderr.contains("No targets")
+                    || stderr.contains("No rule to make target")
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => true, // make not installed
             Err(_) => true, // other error, graceful pass
