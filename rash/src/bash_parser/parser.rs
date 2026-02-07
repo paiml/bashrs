@@ -2938,6 +2938,171 @@ function greet() {
     }
 
     // ============================================================================
+    // Coverage Tests - C-style For Loop Parser (FORCSTYLE_COV_001-015)
+    // ============================================================================
+
+    /// Helper: parse C-style for loop and return (init, condition, increment)
+    fn parse_for_c_style_parts(input: &str) -> (String, String, String) {
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        match &ast.statements[0] {
+            BashStmt::ForCStyle {
+                init,
+                condition,
+                increment,
+                ..
+            } => (init.clone(), condition.clone(), increment.clone()),
+            other => panic!("Expected ForCStyle, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_001_le_operator() {
+        let (_, cond, _) = parse_for_c_style_parts(
+            "for ((i=0; i<=10; i++)); do echo $i; done",
+        );
+        assert!(cond.contains("<="));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_002_ge_operator() {
+        let (_, cond, _) = parse_for_c_style_parts(
+            "for ((i=10; i>=0; i--)); do echo $i; done",
+        );
+        assert!(cond.contains(">="));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_003_eq_operator() {
+        let (_, cond, _) = parse_for_c_style_parts(
+            "for ((i=0; i==0; i++)); do echo $i; done",
+        );
+        assert!(cond.contains("=="));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_004_ne_operator() {
+        let (_, cond, _) = parse_for_c_style_parts(
+            "for ((i=0; i!=10; i++)); do echo $i; done",
+        );
+        assert!(cond.contains("!="));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_005_gt_operator() {
+        let (_, cond, _) = parse_for_c_style_parts(
+            "for ((i=10; i>0; i--)); do echo $i; done",
+        );
+        assert!(cond.contains(">"));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_006_variable_token() {
+        let (init, _, _) = parse_for_c_style_parts(
+            "for (($i=0; $i<10; i++)); do echo $i; done",
+        );
+        assert!(init.contains("$i"));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_007_no_semicolon_before_do() {
+        // No semicolon between )) and do
+        let (init, cond, incr) = parse_for_c_style_parts(
+            "for ((i=0; i<10; i++))\ndo\necho $i\ndone",
+        );
+        assert_eq!(init, "i=0");
+        assert!(cond.contains("i<10") || cond.contains("i <10") || cond.contains("i< 10"));
+        assert!(!incr.is_empty());
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_008_semicolon_before_do() {
+        // Explicit semicolon between )) and do
+        let (init, _, _) = parse_for_c_style_parts(
+            "for ((i=0; i<10; i++)); do echo $i; done",
+        );
+        assert_eq!(init, "i=0");
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_009_nested_parentheses() {
+        // Nested parens in arithmetic
+        let (init, _, _) = parse_for_c_style_parts(
+            "for (((i)=0; i<10; i++)); do echo $i; done",
+        );
+        assert!(init.contains("(i)"));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_010_number_tokens() {
+        let (init, cond, incr) = parse_for_c_style_parts(
+            "for ((i=0; i<100; i++)); do echo $i; done",
+        );
+        assert!(init.contains("0"));
+        assert!(cond.contains("100"));
+        assert!(!incr.is_empty());
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_011_multiline_body() {
+        let input = "for ((i=0; i<3; i++))\ndo\necho $i\necho done_iter\ndone";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        match &ast.statements[0] {
+            BashStmt::ForCStyle { body, .. } => {
+                assert!(body.len() >= 2);
+            }
+            other => panic!("Expected ForCStyle, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_012_from_content_variant() {
+        // This tests the `parse_for_c_style_from_content` path via ArithmeticExpansion token
+        // When the lexer pre-parses ((init;cond;incr)) as a single ArithmeticExpansion token
+        let input = "for ((x=1; x<5; x++)); do\necho $x\ndone";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        match &ast.statements[0] {
+            BashStmt::ForCStyle { init, condition, increment, .. } => {
+                assert!(!init.is_empty());
+                assert!(!condition.is_empty());
+                assert!(!increment.is_empty());
+            }
+            other => panic!("Expected ForCStyle, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_013_assign_token() {
+        // Tests the Token::Assign (=) path in the content reader
+        let (init, _, _) = parse_for_c_style_parts(
+            "for ((i=0; i<10; i++)); do echo ok; done",
+        );
+        assert!(init.contains("=") || init.contains("0"));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_014_identifier_and_number() {
+        // Tests both Token::Identifier and Token::Number paths
+        let (init, cond, incr) = parse_for_c_style_parts(
+            "for ((count=0; count<5; count++)); do echo $count; done",
+        );
+        assert!(init.contains("count"));
+        assert!(cond.contains("count"));
+        assert!(incr.contains("count"));
+    }
+
+    #[test]
+    fn test_FORCSTYLE_COV_015_empty_body() {
+        // For loop with colon (no-op) body
+        let input = "for ((i=0; i<3; i++)); do :; done";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        assert!(matches!(&ast.statements[0], BashStmt::ForCStyle { .. }));
+    }
+
+    // ============================================================================
     // Coverage Tests - Case Statement
     // ============================================================================
 
