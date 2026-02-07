@@ -232,6 +232,12 @@ pub enum Commands {
         command: ComplyCommands,
     },
 
+    /// V2 corpus scoring and quality measurement (NEW in v7.2.0)
+    Corpus {
+        #[command(subcommand)]
+        command: CorpusCommands,
+    },
+
     /// Shell configuration file management (NEW in v7.0)
     Config {
         #[command(subcommand)]
@@ -590,6 +596,50 @@ pub enum ExplainErrorFormat {
     Human,
     /// JSON output
     Json,
+}
+
+/// Corpus scoring subcommands (V2 quality measurement)
+#[derive(Subcommand)]
+pub enum CorpusCommands {
+    /// Run V2 corpus scoring on all 500 entries
+    Run {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+
+        /// Minimum score threshold (exit 1 if below)
+        #[arg(long)]
+        min_score: Option<f64>,
+
+        /// Write convergence log entry to .quality/convergence.log
+        #[arg(long)]
+        log: bool,
+    },
+}
+
+/// Corpus output format
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum CorpusOutputFormat {
+    /// Human-readable report
+    #[default]
+    Human,
+    /// JSON output
+    Json,
+}
+
+/// Corpus format filter
+#[derive(Clone, Debug, ValueEnum)]
+pub enum CorpusFormatArg {
+    /// Bash shell scripts
+    Bash,
+    /// Makefiles
+    Makefile,
+    /// Dockerfiles
+    Dockerfile,
 }
 
 /// Comply subcommands (SPEC-COMPLY-2026-001)
