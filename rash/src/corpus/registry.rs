@@ -3872,7 +3872,7 @@ impl CorpusRegistry {
                 "Euclidean GCD algorithm with while loop",
                 CorpusFormat::Bash,
                 CorpusTier::Production,
-                r#"fn gcd(a: u32, b: u32) -> u32 { let mut x = a; let mut y = b; while y != 0 { let t = y; let y2 = x % y; x = t; let _ = y2; } x } fn main() { let g = gcd(48, 18); }"#,
+                r#"fn gcd(a: u32, b: u32) -> u32 { let mut x = a; let mut y = b; while y != 0 { let t = x % y; x = y; y = t; } x } fn main() { let g = gcd(48, 18); }"#,
                 "gcd() {",
             ),
             CorpusEntry::new(
