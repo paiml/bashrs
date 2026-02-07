@@ -5119,6 +5119,14 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::History { format, last } => {
             corpus_show_history(&format, last)
         }
+
+        CorpusCommands::Failures { format, filter, dimension } => {
+            corpus_show_failures(&format, filter.as_ref(), dimension.as_deref())
+        }
+
+        CorpusCommands::Diff { format, from, to } => {
+            corpus_show_diff(&format, from, to)
+        }
     }
 }
 
@@ -5261,6 +5269,159 @@ fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Resu
         }
         CorpusOutputFormat::Json => {
             let json = serde_json::to_string_pretty(display)
+                .map_err(|e| Error::Internal(format!("JSON serialization failed: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+fn corpus_show_failures(
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+    dimension: Option<&str>,
+) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = match filter {
+        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
+        None => runner.run(&registry),
+    };
+
+    let failures: Vec<_> = score.results.iter().filter(|r| {
+        let has_any_failure = !r.transpiled
+            || !r.output_contains
+            || !r.output_exact
+            || !r.output_behavioral
+            || !r.lint_clean
+            || !r.deterministic
+            || !r.metamorphic_consistent
+            || !r.cross_shell_agree
+            || !r.schema_valid;
+        if !has_any_failure {
+            return false;
+        }
+        match dimension {
+            Some("a") => !r.transpiled,
+            Some("b1") => !r.output_contains,
+            Some("b2") => !r.output_exact,
+            Some("b3") => !r.output_behavioral,
+            Some("d") => !r.lint_clean,
+            Some("e") => !r.deterministic,
+            Some("f") => !r.metamorphic_consistent,
+            Some("g") => !r.cross_shell_agree,
+            Some("schema") => !r.schema_valid,
+            _ => true,
+        }
+    }).collect();
+
+    corpus_print_failures(&failures, format)
+}
+
+fn corpus_print_failures(
+    failures: &[&crate::corpus::runner::CorpusResult],
+    format: &CorpusOutputFormat,
+) -> Result<()> {
+    match format {
+        CorpusOutputFormat::Human => {
+            if failures.is_empty() {
+                println!("No failures found.");
+                return Ok(());
+            }
+            println!("Failures ({} entries):", failures.len());
+            println!(
+                "{:<8} {:>6}  {}",
+                "ID", "Score", "Failing Dimensions"
+            );
+            for r in failures {
+                let dims = corpus_failing_dims(r);
+                println!("{:<8} {:>5.1}  {}", r.id, r.score(), dims);
+            }
+        }
+        CorpusOutputFormat::Json => {
+            let json = serde_json::to_string_pretty(failures)
+                .map_err(|e| Error::Internal(format!("JSON serialization failed: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+fn corpus_failing_dims(r: &crate::corpus::runner::CorpusResult) -> String {
+    let mut dims = Vec::new();
+    if !r.transpiled { dims.push("A"); }
+    if !r.output_contains { dims.push("B1"); }
+    if !r.output_exact { dims.push("B2"); }
+    if !r.output_behavioral { dims.push("B3"); }
+    if !r.lint_clean { dims.push("D"); }
+    if !r.deterministic { dims.push("E"); }
+    if !r.metamorphic_consistent { dims.push("F"); }
+    if !r.cross_shell_agree { dims.push("G"); }
+    if !r.schema_valid { dims.push("Schema"); }
+    dims.join(", ")
+}
+
+fn corpus_show_diff(
+    format: &CorpusOutputFormat,
+    from: Option<u32>,
+    to: Option<u32>,
+) -> Result<()> {
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let entries = CorpusRunner::load_convergence_log(&log_path)
+        .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
+
+    if entries.len() < 2 {
+        return Err(Error::Validation(
+            "Need at least 2 convergence entries to diff. Run `bashrs corpus run --log` multiple times.".to_string()
+        ));
+    }
+
+    let from_entry = match from {
+        Some(iter) => entries.iter().find(|e| e.iteration == iter)
+            .ok_or_else(|| Error::Validation(format!("Iteration {iter} not found in convergence log")))?,
+        None => &entries[entries.len() - 2],
+    };
+    let to_entry = match to {
+        Some(iter) => entries.iter().find(|e| e.iteration == iter)
+            .ok_or_else(|| Error::Validation(format!("Iteration {iter} not found in convergence log")))?,
+        None => entries.last()
+            .ok_or_else(|| Error::Validation("Empty convergence log".to_string()))?,
+    };
+
+    match format {
+        CorpusOutputFormat::Human => {
+            println!("Convergence Diff: iteration {} → {}", from_entry.iteration, to_entry.iteration);
+            println!();
+            println!("  {:>12}  {:>10}  {:>10}", "", "From", "To");
+            println!("  {:>12}  {:>10}  {:>10}", "Date", from_entry.date, to_entry.date);
+            println!("  {:>12}  {:>10}  {:>10}", "Passed", from_entry.passed, to_entry.passed);
+            println!("  {:>12}  {:>10}  {:>10}", "Total", from_entry.total, to_entry.total);
+            println!("  {:>12}  {:>9.1}%  {:>9.1}%", "Rate", from_entry.rate * 100.0, to_entry.rate * 100.0);
+            let rate_delta = to_entry.rate - from_entry.rate;
+            let passed_delta = to_entry.passed as i64 - from_entry.passed as i64;
+            println!();
+            if rate_delta > 0.0 {
+                println!("  Improvement: +{passed_delta} entries, +{:.4}% rate", rate_delta * 100.0);
+            } else if rate_delta < 0.0 {
+                println!("  Regression: {passed_delta} entries, {:.4}% rate", rate_delta * 100.0);
+            } else {
+                println!("  No change in pass rate.");
+            }
+        }
+        CorpusOutputFormat::Json => {
+            let diff = serde_json::json!({
+                "from": { "iteration": from_entry.iteration, "date": from_entry.date, "passed": from_entry.passed, "total": from_entry.total, "rate": from_entry.rate },
+                "to": { "iteration": to_entry.iteration, "date": to_entry.date, "passed": to_entry.passed, "total": to_entry.total, "rate": to_entry.rate },
+                "delta": { "passed": to_entry.passed as i64 - from_entry.passed as i64, "rate": to_entry.rate - from_entry.rate }
+            });
+            let json = serde_json::to_string_pretty(&diff)
                 .map_err(|e| Error::Internal(format!("JSON serialization failed: {e}")))?;
             println!("{json}");
         }

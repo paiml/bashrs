@@ -641,6 +641,36 @@ pub enum CorpusCommands {
         #[arg(short = 'n', long)]
         last: Option<usize>,
     },
+
+    /// List corpus entries with failures (any V2 dimension)
+    Failures {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+
+        /// Filter by failing dimension (a, b1, b2, b3, d, e, f, g)
+        #[arg(long)]
+        dimension: Option<String>,
+    },
+
+    /// Compare two convergence log snapshots
+    Diff {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// First iteration number (default: second-to-last)
+        #[arg(long)]
+        from: Option<u32>,
+
+        /// Second iteration number (default: last)
+        #[arg(long)]
+        to: Option<u32>,
+    },
 }
 
 /// Corpus output format
