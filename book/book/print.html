@@ -188,7 +188,7 @@ cd /tmp/deploy-$SESSION_ID
 </code></pre>
 <p><strong>After (purified, deterministic):</strong></p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
-</span><span class="boring"> Purified by Rash v6.50.0
+</span><span class="boring"> Purified by Rash v6.60.0
 </span>SESSION_ID="${VERSION:-1.0.0}"
 mkdir -p "/tmp/deploy-${SESSION_ID}"
 cd "/tmp/deploy-${SESSION_ID}" || exit 1
@@ -251,7 +251,7 @@ fn main() {
 <pre><code class="language-bash">bashrs --version
 </code></pre>
 <p>You should see output like:</p>
-<pre><code class="language-text">bashrs 6.50.0
+<pre><code class="language-text">bashrs 6.60.0
 </code></pre>
 <h2 id="from-source"><a class="header" href="#from-source">From Source</a></h2>
 <p>If you want the latest development version:</p>
@@ -268,8 +268,8 @@ sudo cp target/release/bashrs /usr/local/bin/
 <p>For now, use <code>cargo install bashrs</code>.</p>
 <h3 id="linux"><a class="header" href="#linux">Linux</a></h3>
 <h4 id="debianubuntu-coming-soon"><a class="header" href="#debianubuntu-coming-soon">Debian/Ubuntu (coming soon)</a></h4>
-<pre><code class="language-bash"><span class="boring"> wget https://github.com/paiml/bashrs/releases/download/v6.50.0/bashrs_6.50.0_amd64.deb
-</span><span class="boring"> sudo dpkg -i bashrs_6.50.0_amd64.deb
+<pre><code class="language-bash"><span class="boring"> wget https://github.com/paiml/bashrs/releases/download/v6.60.0/bashrs_6.60.0_amd64.deb
+</span><span class="boring"> sudo dpkg -i bashrs_6.60.0_amd64.deb
 </span></code></pre>
 <h4 id="arch-linux-coming-soon"><a class="header" href="#arch-linux-coming-soon">Arch Linux (coming soon)</a></h4>
 <pre><code class="language-bash"><span class="boring"> yay -S bashrs
@@ -17124,9 +17124,89 @@ fn test_real_world_deployment_script() {
 <li><strong>Testability</strong>: Unit tests, integration tests, and property tests</li>
 </ul>
 <p>For more details on testing transformations, see the <a href="advanced/./property-testing.html">Property Testing</a> and <a href="advanced/./mutation-testing.html">Mutation Testing</a> chapters.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="corpus-testing"><a class="header" href="#corpus-testing">Corpus Testing</a></h1>
+<p>Rash v6.60.0 includes a comprehensive transpilation corpus with 500+ entries for validating the Rust-to-Shell transpiler across three formats and five tiers.</p>
+<h2 id="overview-9"><a class="header" href="#overview-9">Overview</a></h2>
+<p>The corpus is a registry of known-good transpilation test cases. Each entry contains Rust source code, the expected shell output pattern, and metadata about format and difficulty tier.</p>
+<pre><code class="language-bash"><span class="boring"> Run the full corpus
+</span>bashrs corpus
+
+<span class="boring"> Run corpus for a specific format
+</span>bashrs corpus --format bash
+bashrs corpus --format makefile
+bashrs corpus --format dockerfile
+</code></pre>
+<h2 id="corpus-tiers"><a class="header" href="#corpus-tiers">Corpus Tiers</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Tier</th><th>Name</th><th>Purpose</th><th>Entry Range</th></tr></thead><tbody>
+<tr><td>1</td><td>Core</td><td>Basic constructs (variables, echo, strings)</td><td>B-001 to B-010</td></tr>
+<tr><td>2</td><td>Standard</td><td>Control flow (if/else, loops, match)</td><td>B-011 to B-020</td></tr>
+<tr><td>3</td><td>Advanced</td><td>Functions, nesting, complex expressions</td><td>B-021 to B-050</td></tr>
+<tr><td>4</td><td>Adversarial</td><td>Edge cases designed to break the transpiler</td><td>B-051+</td></tr>
+<tr><td>5</td><td>Production</td><td>Real-world scale programs</td><td>B-171+</td></tr>
+</tbody></table>
+</div>
+<h2 id="supported-formats"><a class="header" href="#supported-formats">Supported Formats</a></h2>
+<h3 id="bash-b-codes"><a class="header" href="#bash-b-codes">Bash (B-codes)</a></h3>
+<p>Transpile Rust to POSIX shell:</p>
+<pre><code class="language-bash"><span class="boring"> Example: B-011 (if-else)
+</span><span class="boring"> Input (Rust):
+</span><span class="boring">   fn main() { let x = 5; if x &gt; 3 { let msg = "big"; } }
+</span><span class="boring"> Output (Shell):
+</span><span class="boring">   if [ "$x" -gt 3 ]; then msg="big"; fi
+</span></code></pre>
+<h3 id="makefile-m-codes"><a class="header" href="#makefile-m-codes">Makefile (M-codes)</a></h3>
+<p>Transpile Rust to Makefile targets:</p>
+<pre><code class="language-bash">bashrs corpus --format makefile
+</code></pre>
+<h3 id="dockerfile-d-codes"><a class="header" href="#dockerfile-d-codes">Dockerfile (D-codes)</a></h3>
+<p>Transpile Rust to Dockerfile instructions:</p>
+<pre><code class="language-bash">bashrs corpus --format dockerfile
+</code></pre>
+<h2 id="scoring"><a class="header" href="#scoring">Scoring</a></h2>
+<p>The corpus uses Popperian falsification scoring:</p>
+<ul>
+<li><strong>Below 60% pass rate</strong>: Score is capped (gateway barrier)</li>
+<li><strong>Above 60% pass rate</strong>: Weighted average across all entries</li>
+<li><strong>Grade scale</strong>: A+ (90-100), A (80-89), B (70-79), C (60-69), F (&lt;60)</li>
+</ul>
+<pre><code class="language-text">Corpus Score: 152.5/159 (95.9%)
+Grade: A+
+Entries: 500+ total, 100% pass rate
+</code></pre>
+<h2 id="adding-custom-corpus-entries"><a class="header" href="#adding-custom-corpus-entries">Adding Custom Corpus Entries</a></h2>
+<p>Corpus entries follow this structure:</p>
+<pre><code class="language-rust ignore">CorpusEntry::new(
+    "B-200",                        // ID
+    "custom-feature",               // Name
+    "Description of the test case", // Description
+    CorpusFormat::Bash,             // Format
+    CorpusTier::Standard,           // Tier
+    r#"fn main() { /* Rust source */ }"#, // Input
+    "expected_output_pattern",      // Output pattern
+)</code></pre>
+<h2 id="adversarial-testing-tier-4"><a class="header" href="#adversarial-testing-tier-4">Adversarial Testing (Tier 4)</a></h2>
+<p>Tier 4 entries are intentionally crafted to expose transpiler bugs. In v6.60.0, these found and fixed:</p>
+<ol>
+<li><strong>format! macro bug</strong>: <code>format!("{}", x)</code> was not transpiled correctly</li>
+<li><strong>Assignment expression bug</strong>: <code>x = x + 1</code> inside complex expressions failed</li>
+<li><strong>Arithmetic command substitution</strong>: <code>$(( ... ))</code> inside <code>$()</code> produced invalid output</li>
+</ol>
+<h2 id="best-practices-15"><a class="header" href="#best-practices-15">Best Practices</a></h2>
+<ul>
+<li>Run the full corpus before any release: <code>bashrs corpus</code></li>
+<li>Add Tier 4 adversarial entries when you find edge cases</li>
+<li>Target 100% pass rate across all tiers before shipping</li>
+<li>Use <code>--format</code> to validate specific transpilation targets</li>
+</ul>
+<h2 id="see-also-7"><a class="header" href="#see-also-7">See Also</a></h2>
+<ul>
+<li><a href="advanced/./probar-testing.html">Probar Testing</a></li>
+<li><a href="advanced/./property-testing.html">Property Testing</a></li>
+<li><a href="advanced/../reference/cli.html">CLI Commands Reference</a></li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="probar-testing-integration"><a class="header" href="#probar-testing-integration">Probar Testing Integration</a></h1>
 <p>Rash v6.46.0 introduces three new CLI commands for advanced shell script testing, integrating with the Probar testing methodology.</p>
-<h2 id="overview-9"><a class="header" href="#overview-9">Overview</a></h2>
+<h2 id="overview-10"><a class="header" href="#overview-10">Overview</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Command</th><th>Purpose</th><th>Use Case</th></tr></thead><tbody>
 <tr><td><code>bashrs playbook</code></td><td>State machine testing</td><td>Complex multi-state workflows</td></tr>
 <tr><td><code>bashrs mutate</code></td><td>Mutation testing</td><td>Verify test quality</td></tr>
@@ -17348,7 +17428,7 @@ Simulation Mode: Deterministic replay active
 <li><strong>Documentation</strong>: Generate reproducible examples</li>
 </ol>
 <hr />
-<h2 id="best-practices-15"><a class="header" href="#best-practices-15">Best Practices</a></h2>
+<h2 id="best-practices-16"><a class="header" href="#best-practices-16">Best Practices</a></h2>
 <h3 id="combining-all-three-commands"><a class="header" href="#combining-all-three-commands">Combining All Three Commands</a></h3>
 <p>For comprehensive testing:</p>
 <pre><code class="language-bash"><span class="boring"> 1. Validate playbook structure
@@ -17389,7 +17469,7 @@ jobs:
 </tbody></table>
 </div>
 <hr />
-<h2 id="see-also-7"><a class="header" href="#see-also-7">See Also</a></h2>
+<h2 id="see-also-8"><a class="header" href="#see-also-8">See Also</a></h2>
 <ul>
 <li><a href="advanced/../reference/cli.html">CLI Commands Reference</a></li>
 <li><a href="advanced/./property-testing.html">Property Testing</a></li>
@@ -17815,7 +17895,7 @@ proptest! {
 <li>Mutation tests: Only test what you wrote</li>
 <li>Property tests: Test what you <strong>didn't think of</strong></li>
 </ul>
-<h2 id="best-practices-16"><a class="header" href="#best-practices-16">Best Practices</a></h2>
+<h2 id="best-practices-17"><a class="header" href="#best-practices-17">Best Practices</a></h2>
 <h3 id="1-start-with-simple-properties"><a class="header" href="#1-start-with-simple-properties">1. Start with Simple Properties</a></h3>
 <p>Don't try to test everything at once:</p>
 <pre><code class="language-rust ignore">// ✅ GOOD: Simple, focused property
@@ -18518,7 +18598,7 @@ src/linter/rules/sec002.rs:45:28: replace Error -&gt; Warning
 <li>Type of mutation</li>
 <li>Original → Mutated code</li>
 </ul>
-<h2 id="best-practices-17"><a class="header" href="#best-practices-17">Best Practices</a></h2>
+<h2 id="best-practices-18"><a class="header" href="#best-practices-18">Best Practices</a></h2>
 <h3 id="1-run-mutations-early-and-often"><a class="header" href="#1-run-mutations-early-and-often">1. Run Mutations Early and Often</a></h3>
 <pre><code class="language-bash"><span class="boring"> During development
 </span>cargo mutants --file rash/src/linter/rules/sec001.rs -- --lib
@@ -19518,7 +19598,7 @@ fn test_memory_scaling() {
 100KB script uses 5.2MB memory   (52× overhead, excellent)
 1000KB script uses 48MB memory   (48× overhead, excellent scaling)
 </code></pre>
-<h2 id="best-practices-18"><a class="header" href="#best-practices-18">Best Practices</a></h2>
+<h2 id="best-practices-19"><a class="header" href="#best-practices-19">Best Practices</a></h2>
 <h3 id="1-profile-before-optimizing"><a class="header" href="#1-profile-before-optimizing">1. Profile Before Optimizing</a></h3>
 <p>Don't guess where the bottleneck is:</p>
 <pre><code class="language-bash"><span class="boring"> Always measure first
@@ -19880,7 +19960,7 @@ pub fn check(source: &amp;str) -&gt; LintResult {
 <li>✅ Mutation testing ≥ 80%</li>
 <li>✅ Benchmarks pass</li>
 </ul>
-<h2 id="best-practices-19"><a class="header" href="#best-practices-19">Best Practices</a></h2>
+<h2 id="best-practices-20"><a class="header" href="#best-practices-20">Best Practices</a></h2>
 <h3 id="1-run-pmat-before-commits"><a class="header" href="#1-run-pmat-before-commits">1. Run PMAT Before Commits</a></h3>
 <pre><code class="language-bash"><span class="boring"> Check complexity before committing
 </span>pmat analyze complexity --fail-on-violation
@@ -20146,7 +20226,7 @@ done
 </tbody></table>
 </div>
 <p><strong>Results:</strong> 100% of synthetic programs parse without errors.</p>
-<h2 id="best-practices-20"><a class="header" href="#best-practices-20">Best Practices</a></h2>
+<h2 id="best-practices-21"><a class="header" href="#best-practices-21">Best Practices</a></h2>
 <h3 id="1-run-dogfood-before-prs"><a class="header" href="#1-run-dogfood-before-prs">1. Run Dogfood Before PRs</a></h3>
 <pre><code class="language-bash"><span class="boring"> Quick check before committing
 </span>make dogfood-quick
@@ -20550,7 +20630,7 @@ fn main() {
         DriftStatus::Degraded(rate) =&gt; println!("ALERT: Model degraded to {:.1}%", rate * 100.0),
     }
 }</code></pre>
-<h2 id="best-practices-21"><a class="header" href="#best-practices-21">Best Practices</a></h2>
+<h2 id="best-practices-22"><a class="header" href="#best-practices-22">Best Practices</a></h2>
 <ol>
 <li><strong>Start with rule-based</strong>: The classifier falls back to rules when confidence is low</li>
 <li><strong>Collect feedback</strong>: Record whether users accept fixes to improve the model</li>
@@ -20695,7 +20775,7 @@ fn main() {
 ║                                                               ║
 ╚══════════════════════════════════════════════════════════════╝
 </code></pre>
-<h2 id="best-practices-22"><a class="header" href="#best-practices-22">Best Practices</a></h2>
+<h2 id="best-practices-23"><a class="header" href="#best-practices-23">Best Practices</a></h2>
 <h3 id="keep-complexity-low"><a class="header" href="#keep-complexity-low">Keep Complexity Low</a></h3>
 <pre><code class="language-bash"><span class="boring"> BAD: High cyclomatic complexity (11)
 </span>process_args() {
@@ -20949,7 +21029,7 @@ fn main() {
 </tbody></table>
 </div>
 <p>Disable colors with <code>NO_COLOR=1</code> environment variable.</p>
-<h2 id="best-practices-23"><a class="header" href="#best-practices-23">Best Practices</a></h2>
+<h2 id="best-practices-24"><a class="header" href="#best-practices-24">Best Practices</a></h2>
 <ol>
 <li><strong>Keep reports scannable</strong>: Use visual hierarchy</li>
 <li><strong>Show trends</strong>: Sparklines reveal patterns</li>
@@ -22254,7 +22334,7 @@ anyhow = "1.0"
 </code></pre>
 <p><strong>Solution:</strong> Review generated script, check for non-deterministic constructs</p>
 <hr />
-<h2 id="see-also-8"><a class="header" href="#see-also-8">See Also</a></h2>
+<h2 id="see-also-9"><a class="header" href="#see-also-9">See Also</a></h2>
 <ul>
 <li><a href="reference/../getting-started/installation.html">Getting Started Guide</a></li>
 <li><a href="reference/../concepts/purification.html">Purification Concepts</a></li>
@@ -22265,7 +22345,7 @@ anyhow = "1.0"
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="dsl-built-in-functions"><a class="header" href="#dsl-built-in-functions">DSL Built-in Functions</a></h1>
 <p>This reference documents the built-in functions available in the bashrs Rust DSL for transpiling to shell scripts.</p>
-<h2 id="overview-10"><a class="header" href="#overview-10">Overview</a></h2>
+<h2 id="overview-11"><a class="header" href="#overview-11">Overview</a></h2>
 <p>When writing <code>.rs</code> files for bashrs transpilation, you can use these built-in functions without declaring them. bashrs recognizes these as DSL primitives and emits the appropriate shell code.</p>
 <h2 id="built-in-functions"><a class="header" href="#built-in-functions">Built-in Functions</a></h2>
 <h3 id="echomsg-str"><a class="header" href="#echomsg-str"><code>echo(msg: &amp;str)</code></a></h3>
@@ -22795,7 +22875,7 @@ Purified 1 statement(s)
 <li><strong>More intuitive</strong> - Mode-based processing matches user mental model</li>
 <li><strong>Explicit commands</strong> - Still available when you need them</li>
 </ul>
-<h2 id="see-also-9"><a class="header" href="#see-also-9">See Also</a></h2>
+<h2 id="see-also-10"><a class="header" href="#see-also-10">See Also</a></h2>
 <ul>
 <li><a href="reference/../getting-started/repl.html">Interactive REPL Guide</a> - Getting started tutorial</li>
 <li><a href="reference/../concepts/purification.html">Purifier Integration</a> - Transformation rules</li>
@@ -23301,7 +23381,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 </code></pre>
-<h2 id="best-practices-24"><a class="header" href="#best-practices-24">Best Practices</a></h2>
+<h2 id="best-practices-25"><a class="header" href="#best-practices-25">Best Practices</a></h2>
 <h3 id="1-use-per-project-configuration"><a class="header" href="#1-use-per-project-configuration">1. Use Per-Project Configuration</a></h3>
 <p>Always include <code>bashrs.toml</code> in your repository:</p>
 <pre><code class="language-toml">[bashrs]
@@ -23446,7 +23526,7 @@ validation_level = "paranoid"
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bashrsignore-file-reference"><a class="header" href="#bashrsignore-file-reference">.bashrsignore File Reference</a></h1>
 <p>The <code>.bashrsignore</code> file allows you to exclude specific files from linting, providing a proper way to handle false positives and intentional violations.</p>
-<h2 id="overview-11"><a class="header" href="#overview-11">Overview</a></h2>
+<h2 id="overview-12"><a class="header" href="#overview-12">Overview</a></h2>
 <p>When bashrs lints a file, it first checks for a <code>.bashrsignore</code> file in the project hierarchy. If the file matches a pattern in <code>.bashrsignore</code>, it is skipped with a message explaining which pattern matched.</p>
 <p>This is essential for:</p>
 <ul>
@@ -23592,7 +23672,7 @@ DET002:scripts/record.sh:30
 <li>You want centralized ignore management</li>
 <li>You need to track ignores across the project</li>
 </ul>
-<h2 id="best-practices-25"><a class="header" href="#best-practices-25">Best Practices</a></h2>
+<h2 id="best-practices-26"><a class="header" href="#best-practices-26">Best Practices</a></h2>
 <h3 id="1-document-rationale"><a class="header" href="#1-document-rationale">1. Document Rationale</a></h3>
 <p>Always include comments explaining WHY a file is excluded:</p>
 <pre><code class="language-text"># .bashrsignore
@@ -24331,7 +24411,7 @@ workflows:
 <tr><td>78</td><td>EX_CONFIG</td><td>Configuration error</td></tr>
 </tbody></table>
 </div>
-<h2 id="best-practices-26"><a class="header" href="#best-practices-26">Best Practices</a></h2>
+<h2 id="best-practices-27"><a class="header" href="#best-practices-27">Best Practices</a></h2>
 <h3 id="1-always-check-exit-codes"><a class="header" href="#1-always-check-exit-codes">1. Always Check Exit Codes</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/bash
 </span>
