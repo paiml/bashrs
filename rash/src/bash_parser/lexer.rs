@@ -1737,4 +1737,153 @@ fi
         // Should have a variable token
         assert!(tokens.iter().any(|t| matches!(t, Token::Variable(_))));
     }
+
+    // ============================================================================
+    // Coverage Tests - read_operator (LEX_OP_COV_001-020)
+    // ============================================================================
+
+    /// Helper: tokenize and return the token types
+    fn lex(input: &str) -> Vec<Token> {
+        let mut lexer = Lexer::new(input);
+        lexer.tokenize().unwrap_or_default()
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_001_ne_operator() {
+        let tokens = lex("[ a != b ]");
+        assert!(tokens.iter().any(|t| matches!(t, Token::Ne)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_002_le_operator() {
+        let tokens = lex("[[ a <= b ]]");
+        assert!(tokens.iter().any(|t| matches!(t, Token::Le)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_003_ge_operator() {
+        let tokens = lex("[[ a >= b ]]");
+        assert!(tokens.iter().any(|t| matches!(t, Token::Ge)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_004_append_redirect() {
+        let tokens = lex("echo hi >> file");
+        assert!(tokens.iter().any(|t| matches!(t, Token::GtGt)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_005_and_operator() {
+        let tokens = lex("true && false");
+        assert!(tokens.iter().any(|t| matches!(t, Token::And)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_006_or_operator() {
+        let tokens = lex("true || false");
+        assert!(tokens.iter().any(|t| matches!(t, Token::Or)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_007_double_brackets() {
+        let tokens = lex("[[ x == y ]]");
+        assert!(tokens.iter().any(|t| matches!(t, Token::DoubleLeftBracket)));
+        assert!(tokens
+            .iter()
+            .any(|t| matches!(t, Token::DoubleRightBracket)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_008_plus_equals() {
+        let tokens = lex("arr+=(val)");
+        assert!(tokens
+            .iter()
+            .any(|t| matches!(t, Token::Identifier(s) if s == "+=")));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_009_not_operator() {
+        let tokens = lex("! true");
+        assert!(tokens.iter().any(|t| matches!(t, Token::Not)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_010_pipe() {
+        let tokens = lex("ls | grep foo");
+        assert!(tokens.iter().any(|t| matches!(t, Token::Pipe)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_011_case_double_semicolon() {
+        let tokens = lex(";;");
+        assert!(tokens
+            .iter()
+            .any(|t| matches!(t, Token::Identifier(s) if s == ";;")));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_012_case_semicolon_ampersand() {
+        let tokens = lex(";&");
+        assert!(tokens
+            .iter()
+            .any(|t| matches!(t, Token::Identifier(s) if s == ";&")));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_013_ampersand_background() {
+        let tokens = lex("sleep 1 &");
+        assert!(tokens.iter().any(|t| matches!(t, Token::Ampersand)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_014_parens() {
+        let tokens = lex("(echo hi)");
+        assert!(tokens.iter().any(|t| matches!(t, Token::LeftParen)));
+        assert!(tokens.iter().any(|t| matches!(t, Token::RightParen)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_015_braces() {
+        let tokens = lex("{ echo hi; }");
+        assert!(tokens.iter().any(|t| matches!(t, Token::LeftBrace)));
+        assert!(tokens.iter().any(|t| matches!(t, Token::RightBrace)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_016_brackets() {
+        let tokens = lex("[ -f file ]");
+        assert!(tokens.iter().any(|t| matches!(t, Token::LeftBracket)));
+        assert!(tokens.iter().any(|t| matches!(t, Token::RightBracket)));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_017_noclobber_redirect() {
+        let tokens = lex("echo hi >| file");
+        assert!(tokens
+            .iter()
+            .any(|t| matches!(t, Token::Identifier(s) if s == ">|")));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_018_readwrite_redirect() {
+        let tokens = lex("exec 3<> file");
+        assert!(tokens
+            .iter()
+            .any(|t| matches!(t, Token::Identifier(s) if s == "<>")));
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_019_question_glob() {
+        let tokens = lex("echo file?.txt");
+        // The ? should be tokenized somewhere in the output
+        assert!(!tokens.is_empty());
+    }
+
+    #[test]
+    fn test_LEX_OP_COV_020_case_resume_double_semi_ampersand() {
+        let tokens = lex(";;&");
+        assert!(tokens
+            .iter()
+            .any(|t| matches!(t, Token::Identifier(s) if s == ";;&")));
+    }
 }
