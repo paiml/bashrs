@@ -95,7 +95,7 @@ fn test_sequence_emission() {
 
     let result = emitter.emit(&ir).unwrap();
     // Updated: Variables are now mutable to support let-shadowing semantics
-    assert!(result.contains("greeting=hello"));
+    assert!(result.contains("greeting='hello'"));
     assert!(!result.contains("readonly"));
     assert!(result.contains("echo \"$greeting\""));
 }
@@ -631,7 +631,7 @@ fn test_complex_nested_emission() {
 
     // Verify structure
     // Updated: Variables are now mutable to support let-shadowing semantics
-    assert!(result.contains("prefix=/usr/local"));
+    assert!(result.contains("prefix='/usr/local'"));
     assert!(!result.contains("readonly"));
     assert!(result.contains("if test -n \"$install_mode\"; then"));
     assert!(result.contains("mkdir \"$prefix\""));
@@ -655,7 +655,7 @@ fn test_emit_public_api() {
     // Test the public emit function
     let result = emit(&ir, &config).unwrap();
     // Updated: Variables are now mutable to support let-shadowing semantics
-    assert!(result.contains("test=value"));
+    assert!(result.contains("test='value'"));
     assert!(!result.contains("readonly"));
 }
 

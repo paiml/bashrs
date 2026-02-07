@@ -98,3 +98,23 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-069
+  github_issue: null
+  item_type: task
+  title: 'COMPLY-PHASE1: bashrs comply init, check, track, status'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-02-07T10:03:26Z
+  updated: 2026-02-07T10:03:30.224552036+00:00
+  spec: null
+  acceptance_criteria:
+  - 'Implement Phase 1 of SPEC-COMPLY-2026-001: comply init (create .bashrs/comply.toml), comply check (Layer 1 Jidoka with COMPLY-001 through COMPLY-006), comply track (artifact discovery/management), comply status (alias). Falsification tests F-001 through F-006.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - comply
+  - phase1
+  - spec
+  notes: null

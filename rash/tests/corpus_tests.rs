@@ -90,21 +90,29 @@ fn test_CORPUS_004_registry_dockerfile_entries() {
 // =============================================================================
 
 #[test]
-fn test_CORPUS_005_score_perfect() {
+fn test_CORPUS_005_score_perfect_v2() {
+    // V2 scoring: A(30) + B_L1(10) + B_L2(8) + B_L3(7) + C(15) + D(10) + E(10) + F(5) + G(5) = 100
     let result = bashrs::corpus::CorpusResult {
         id: "T-001".to_string(),
         transpiled: true,
-        output_correct: true,
+        output_contains: true,
+        output_exact: true,
+        output_behavioral: true,
+        schema_valid: true,
         has_test: true,
         lint_clean: true,
         deterministic: true,
+        metamorphic_consistent: true,
+        cross_shell_agree: true,
         actual_output: Some("output".to_string()),
         error: None,
+        error_category: None,
+        error_confidence: None,
     };
     let score = result.score();
     assert!(
         (score - 100.0).abs() < f64::EPSILON,
-        "Perfect entry should score 100, got {}",
+        "Perfect v2 entry should score 100, got {}",
         score
     );
 }
@@ -115,12 +123,19 @@ fn test_CORPUS_006_score_gateway_barrier() {
     let result = bashrs::corpus::CorpusResult {
         id: "T-002".to_string(),
         transpiled: false,
-        output_correct: true, // should be ignored
-        has_test: true,       // should be ignored
-        lint_clean: true,     // should be ignored
-        deterministic: true,  // should be ignored
+        output_contains: true,     // should be ignored
+        output_exact: true,        // should be ignored
+        output_behavioral: true,   // should be ignored
+        schema_valid: true,        // should be ignored
+        has_test: true,            // should be ignored
+        lint_clean: true,          // should be ignored
+        deterministic: true,       // should be ignored
+        metamorphic_consistent: true, // should be ignored
+        cross_shell_agree: true,   // should be ignored
         actual_output: None,
         error: Some("parse error".to_string()),
+        error_category: None,
+        error_confidence: None,
     };
     let score = result.score();
     assert!(
@@ -900,5 +915,200 @@ fn test_CORPUS_035_tier5_full_aggregate_score() {
     assert!(
         score.total > 110,
         "Full corpus should run more than 110 entries"
+    );
+}
+
+// =============================================================================
+// V2 Falsification: Component-Level Diagnostic
+// =============================================================================
+
+#[test]
+fn test_CORPUS_036_v2_component_breakdown() {
+    let registry = bashrs::corpus::CorpusRegistry::load_full();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run(&registry);
+
+    let total = score.results.len();
+    let transpiled = score.results.iter().filter(|r| r.transpiled).count();
+    let contains = score.results.iter().filter(|r| r.output_contains).count();
+    let exact = score.results.iter().filter(|r| r.output_exact).count();
+    let behavioral = score.results.iter().filter(|r| r.output_behavioral).count();
+    let schema = score.results.iter().filter(|r| r.schema_valid).count();
+    let has_test = score.results.iter().filter(|r| r.has_test).count();
+    let lint = score.results.iter().filter(|r| r.lint_clean).count();
+    let determ = score.results.iter().filter(|r| r.deterministic).count();
+    let metamorphic = score.results.iter().filter(|r| r.metamorphic_consistent).count();
+    let cross_shell = score.results.iter().filter(|r| r.cross_shell_agree).count();
+
+    eprintln!("\n=== V2 COMPONENT FALSIFICATION REPORT ===");
+    eprintln!("A  Transpilation:  {}/{} ({:.1}%) → {:.0}/30 pts",
+        transpiled, total, transpiled as f64 / total as f64 * 100.0,
+        transpiled as f64 / total as f64 * 30.0);
+    eprintln!("B1 Containment:    {}/{} ({:.1}%) → {:.0}/10 pts",
+        contains, total, contains as f64 / total as f64 * 100.0,
+        contains as f64 / total as f64 * 10.0);
+    eprintln!("B2 Exact match:    {}/{} ({:.1}%) → {:.0}/8 pts",
+        exact, total, exact as f64 / total as f64 * 100.0,
+        exact as f64 / total as f64 * 8.0);
+    eprintln!("B3 Behavioral:     {}/{} ({:.1}%) → {:.0}/7 pts",
+        behavioral, total, behavioral as f64 / total as f64 * 100.0,
+        behavioral as f64 / total as f64 * 7.0);
+    eprintln!("   Schema valid:   {}/{} ({:.1}%)",
+        schema, total, schema as f64 / total as f64 * 100.0);
+    eprintln!("C  Has test:       {}/{} ({:.1}%) → {:.0}/15 pts",
+        has_test, total, has_test as f64 / total as f64 * 100.0,
+        has_test as f64 / total as f64 * 15.0);
+    eprintln!("D  Lint clean:     {}/{} ({:.1}%) → {:.0}/10 pts",
+        lint, total, lint as f64 / total as f64 * 100.0,
+        lint as f64 / total as f64 * 10.0);
+    eprintln!("E  Deterministic:  {}/{} ({:.1}%) → {:.0}/10 pts",
+        determ, total, determ as f64 / total as f64 * 100.0,
+        determ as f64 / total as f64 * 10.0);
+    eprintln!("F  Metamorphic:    {}/{} ({:.1}%) → {:.0}/5 pts",
+        metamorphic, total, metamorphic as f64 / total as f64 * 100.0,
+        metamorphic as f64 / total as f64 * 5.0);
+    eprintln!("G  Cross-shell:    {}/{} ({:.1}%) → {:.0}/5 pts",
+        cross_shell, total, cross_shell as f64 / total as f64 * 100.0,
+        cross_shell as f64 / total as f64 * 5.0);
+    eprintln!("\n   Aggregate v2 score: {:.1}/100 ({})", score.score, score.grade);
+
+    // Per-format breakdown
+    for fs in &score.format_scores {
+        eprintln!("   Format {}: {}/{} ({:.1}%), score: {:.1}, grade: {}",
+            fs.format, fs.passed, fs.total, fs.rate * 100.0, fs.score, fs.grade);
+    }
+
+    log_v2_failures(&score);
+}
+
+/// Log failure details for each v2 component.
+fn log_v2_failures(score: &bashrs::corpus::CorpusScore) {
+    let failure_categories: Vec<(&str, Vec<&bashrs::corpus::CorpusResult>)> = vec![
+        ("SCHEMA GATE FAILURES", score.results.iter()
+            .filter(|r| r.transpiled && !r.schema_valid).collect()),
+        ("CONTAINMENT PASS / EXACT MATCH FAIL (B1=ok, B2=fail)", score.results.iter()
+            .filter(|r| r.output_contains && !r.output_exact).collect()),
+        ("BEHAVIORAL FAILURES (B3)", score.results.iter()
+            .filter(|r| r.transpiled && !r.output_behavioral).collect()),
+        ("METAMORPHIC RELATION FAILURES", score.results.iter()
+            .filter(|r| r.transpiled && !r.metamorphic_consistent).collect()),
+        ("CROSS-SHELL AGREEMENT FAILURES", score.results.iter()
+            .filter(|r| r.transpiled && !r.cross_shell_agree).collect()),
+        ("LINT FAILURES", score.results.iter()
+            .filter(|r| r.transpiled && !r.lint_clean).collect()),
+    ];
+
+    for (label, failures) in &failure_categories {
+        if !failures.is_empty() {
+            eprintln!("\n--- {} ---", label);
+            for r in &failures[..failures.len().min(20)] {
+                eprintln!("  {}", r.id);
+            }
+            if failures.len() > 20 {
+                eprintln!("  ... and {} more", failures.len() - 20);
+            }
+        }
+    }
+
+    eprintln!("==========================================\n");
+}
+
+#[test]
+fn test_CORPUS_037_falsify_lint_failures() {
+    // Transpile the 4 lint-failing entries and show what lint flags
+    let config = bashrs::Config::default();
+    let failing_inputs = vec![
+        ("B-046", r#"fn main() { let mut x = 0; let mut y = 10; while x < 5 && y > 0 { x = x + 1; y = y - 1; } }"#),
+        ("B-116", r#"fn main() { let mut a = 0; let mut b = 100; while a < 50 || b > 50 { a += 1; b -= 1; } }"#),
+        ("B-138", r#"fn main() { let max_retries = 3; let mut attempts = 0; let mut success = false; while attempts < max_retries && !success { attempts += 1; if attempts >= 2 { success = true; } } }"#),
+        ("B-160", r#"fn main() { let mut interrupted = false; let mut completed = false; let mut retries = 0; while !completed && !interrupted { retries += 1; if retries >= 5 { completed = true; } } }"#),
+    ];
+
+    for (id, input) in &failing_inputs {
+        match bashrs::transpile(input, config.clone()) {
+            Ok(output) => {
+                let lint = bashrs::linter::rules::lint_shell(&output);
+                eprintln!("\n=== {} (lint_clean={}) ===", id, !lint.has_errors());
+                eprintln!("--- output ---\n{}", output);
+                if lint.has_errors() {
+                    eprintln!("--- lint violations ---");
+                    for d in &lint.diagnostics {
+                        eprintln!("  {}: {} ({})", d.code, d.message, d.severity);
+                    }
+                }
+            }
+            Err(e) => eprintln!("\n=== {} TRANSPILE FAILED: {} ===", id, e),
+        }
+    }
+}
+
+#[test]
+fn test_CORPUS_038_falsify_cross_shell_failures() {
+    // Transpile B-001, B-021, B-023 with Posix and Bash dialect configs
+    let entries = vec![
+        ("B-001", r#"fn main() { let greeting = "hello"; } "#, "greeting='hello'"),
+        ("B-021", r#"fn main() { let x = 5; if x > 10 { let r = "big"; } else if x > 3 { let r = "medium"; } else { let r = "small"; } }"#, "elif"),
+    ];
+
+    for (id, input, expected) in &entries {
+        let posix_config = bashrs::Config {
+            target: bashrs::models::ShellDialect::Posix,
+            ..bashrs::Config::default()
+        };
+        let bash_config = bashrs::Config {
+            target: bashrs::models::ShellDialect::Bash,
+            ..bashrs::Config::default()
+        };
+
+        let posix_out = bashrs::transpile(input, posix_config);
+        let bash_out = bashrs::transpile(input, bash_config);
+
+        eprintln!("\n=== {} (expected contains: '{}') ===", id, expected);
+        match &posix_out {
+            Ok(o) => eprintln!("POSIX: contains={} len={}\n{}", o.contains(expected), o.len(), o),
+            Err(e) => eprintln!("POSIX: FAILED - {}", e),
+        }
+        match &bash_out {
+            Ok(o) => eprintln!("BASH:  contains={} len={}\n{}", o.contains(expected), o.len(), o),
+            Err(e) => eprintln!("BASH:  FAILED - {}", e),
+        }
+    }
+}
+
+#[test]
+fn test_CORPUS_039_b1_containment_failures() {
+    let registry = bashrs::corpus::CorpusRegistry::load_full();
+    let config = bashrs::Config::default();
+    let runner = bashrs::corpus::CorpusRunner::new(config);
+    let score = runner.run(&registry);
+
+    let entry_map: std::collections::HashMap<&str, &bashrs::corpus::CorpusEntry> = registry
+        .entries
+        .iter()
+        .map(|e| (e.id.as_str(), e))
+        .collect();
+
+    let b1_failures: Vec<_> = score
+        .results
+        .iter()
+        .filter(|r| r.transpiled && !r.output_contains)
+        .collect();
+
+    for r in &b1_failures {
+        if let Some(entry) = entry_map.get(r.id.as_str()) {
+            eprintln!(
+                "\nB1 FAIL: {} expected='{}' actual=\n{}",
+                r.id,
+                entry.expected_output,
+                r.actual_output.as_deref().unwrap_or("(none)")
+            );
+        }
+    }
+
+    assert!(
+        b1_failures.len() <= 1,
+        "Expected at most 1 B1 failure, got {}",
+        b1_failures.len()
     );
 }

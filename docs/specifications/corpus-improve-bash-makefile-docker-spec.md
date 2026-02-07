@@ -1,9 +1,9 @@
 # Corpus-Driven Transpilation Quality Specification
 
-**Version**: 1.0.0
-**Date**: 2026-02-06
-**Status**: Draft
-**Methodology**: EXTREME TDD + Popperian Falsification + Toyota Production System
+**Version**: 2.0.0
+**Date**: 2026-02-07
+**Status**: Draft (v2 — research design for quantifiable correctness)
+**Methodology**: EXTREME TDD + Popperian Falsification + Toyota Production System + Metamorphic Testing
 
 ## Executive Summary
 
@@ -987,7 +987,689 @@ This follows the depyler pattern where the `depyler_oracle.apr` model is retrain
 
 ---
 
-## 11. References
+## 11. Quantifiable Correctness: Findings and Research Design (v2.0)
+
+### 11.1 Current System Findings (Audit 2026-02-07)
+
+An audit of the in-tree corpus implementation (`rash/src/corpus/`) identified six structural weaknesses that limit the system's ability to quantifiably measure transpilation correctness. Each finding is mapped to a specific code location and a research-backed remediation.
+
+#### Finding F1: Substring Containment as Correctness Metric (CRITICAL)
+
+**Location**: `rash/src/corpus/runner.rs:151`
+```rust
+output.contains(&entry.expected_output)
+```
+
+**Problem**: Output correctness (Category B, 25 points) is measured by substring containment — `actual_output.contains(expected_output)`. This means a transpiled output containing the expected string *plus arbitrary additional content* scores full marks. A transpiler that appends `; rm -rf /` to every correct output would still pass.
+
+**Severity**: CRITICAL — the 25-point correctness category (B) provides no meaningful signal. The current 100% convergence rate may mask latent defects.
+
+**Remediation — Three-Level Correctness Hierarchy**:
+
+| Level | Method | Points | Description |
+|-------|--------|--------|-------------|
+| L1 | Exact string match | 10/25 | `actual.trim() == expected.trim()` — baseline |
+| L2 | AST structural equivalence | 8/25 | Parse both to AST, compare semantically (ignoring whitespace, comments) |
+| L3 | Execution-based behavioral equivalence | 7/25 | Execute both in sandbox, compare stdout/stderr/exit code |
+
+**L2 Implementation — AST Comparison**: For shell scripts, parse both actual and expected output using the bashrs parser into `ShellAst`, then compare structurally. This eliminates false negatives from insignificant formatting differences while catching semantic divergence. For Makefiles and Dockerfiles, use format-specific structural comparison.
+
+Tree edit distance (Zhang & Shasha, 1989) provides a polynomial-time algorithm for comparing ordered labeled trees, directly applicable to AST comparison. Recent work by Huang et al. (2024) demonstrates AST edit distance as superior to token-level comparison for code similarity measurement.
+
+**L3 Implementation — Execution-Based Oracle**: For Tier 1-3 entries, execute both expected and actual output in an isolated sandbox (bubblewrap/firejail on Linux) and compare:
+- stdout (byte-exact)
+- stderr (pattern match)
+- exit code (exact)
+- filesystem side effects (diff of sandbox root)
+
+This follows the **differential testing** methodology (McKeeman, 1998), where the expected output serves as the reference implementation and the transpiled output is the system under test.
+
+> "Differential testing finds semantic bugs by providing the same input to different implementations of the same functionality and cross-referencing the outputs." — McKeeman, W. M. (1998). "Differential Testing for Software." *Digital Technical Journal*, 10(1), 100-107.
+
+#### Finding F2: Hardcoded Test Coverage Score
+
+**Location**: `rash/src/corpus/runner.rs:163`
+```rust
+has_test: true,  // hardcoded
+```
+
+**Problem**: Category C (Test Coverage, 15 points) always awards full marks because `has_test` is hardcoded to `true`. This category provides zero discriminative signal.
+
+**Remediation**: Replace with actual coverage measurement using `pmat query --coverage` integration (see Section 11.3). Each corpus entry should measure whether the transpiler code paths exercised by that entry are covered by unit tests:
+
+```
+C_score = (covered_transpiler_lines_for_entry / total_transpiler_lines_for_entry) × 15
+```
+
+This requires per-entry LLVM coverage tracing, achievable via `cargo llvm-cov report --json` with test-name filtering.
+
+#### Finding F3: Two Disconnected Oracle Systems
+
+**Locations**:
+- In-tree k-NN oracle: `rash/src/quality/oracle.rs` (1858 lines, 73-feature vector, k=5)
+- Standalone Random Forest oracle: `bashrs-oracle/src/lib.rs` (696 lines, 100 trees via `aprender`)
+
+**Problem**: Two independent ML systems classify transpilation errors but are not connected to each other or to the corpus runner. The in-tree oracle uses k-NN with 15 error categories; the standalone oracle uses Random Forest with 24 categories. Neither feeds classification results back into the corpus scoring system. Neither is trained on real corpus failure data.
+
+**Remediation — Unified Oracle Architecture**:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                 Unified Oracle                        │
+│                                                       │
+│  ┌──────────┐   ┌──────────────┐   ┌─────────────┐  │
+│  │ k-NN     │   │ Random       │   │ Ensemble     │  │
+│  │ (fast,   │──▶│ Forest       │──▶│ Voter        │  │
+│  │  online) │   │ (accurate,   │   │ (majority    │  │
+│  │          │   │  batch)      │   │  vote)       │  │
+│  └──────────┘   └──────────────┘   └─────────────┘  │
+│        ▲               ▲                   │          │
+│        │               │                   ▼          │
+│  ┌──────────────────────────────┐  ┌──────────────┐  │
+│  │ Corpus Failure Training Data │  │ Fix Pattern   │  │
+│  │ (real failures, not synthetic)│  │ Recommender  │  │
+│  └──────────────────────────────┘  └──────────────┘  │
+└─────────────────────────────────────────────────────┘
+```
+
+Ensemble classification combining k-NN and Random Forest improves prediction accuracy over either alone. Breiman (2001) demonstrated that Random Forests achieve lower generalization error through ensemble diversity, and combining with instance-based learners (k-NN) provides complementary bias-variance tradeoffs (Dietterich, 2000).
+
+#### Finding F4: Synthetic Training Data
+
+**Location**: `bashrs-oracle/src/lib.rs` — `Corpus::generate_synthetic(5000)`
+
+**Problem**: The standalone oracle trains on 5000 synthetically generated examples, not on real corpus failures. The synthetic generator creates plausible-looking feature vectors with random labels, meaning the model learns artificial correlations rather than real failure patterns.
+
+**Remediation**: Train exclusively on real corpus failure data. Every falsification event (corpus entry failure) generates a training example:
+
+```rust
+TrainingExample {
+    features: FeatureVector::extract(&diagnostic, &source_code),
+    label: error_category,  // manually classified on first occurrence
+    corpus_entry_id: "B-036",
+    transpiler_version: "6.60.0",
+    fix_applied: "compound_assign_desugar",
+}
+```
+
+With 500 corpus entries and 8 historical bugs (see Section 5.1), the current real training set is small. **Active learning** (Settles, 2012) addresses this by selecting the most informative examples for labeling: run the oracle on new corpus entries, and prioritize manual labeling of entries where the oracle is least confident.
+
+#### Finding F5: No Cross-Validation or Held-Out Test Set
+
+**Problem**: Neither oracle system uses cross-validation or a held-out test set. Model accuracy is unmeasured. The in-tree k-NN uses bootstrap patterns (PAT-001..PAT-015) as a fallback but never validates their accuracy against held-out data.
+
+**Remediation**: Implement k-fold cross-validation (k=5) on the real corpus failure dataset. Report precision, recall, and F1-score per error category. Maintain a 20% held-out test set that is never used during training — only for final accuracy measurement.
+
+**Target Metrics** (based on software defect prediction literature):
+- Accuracy: ≥80% (Malhotra, 2015 reports 75-85% for Random Forest on NASA datasets)
+- F1-score: ≥0.75 per category
+- AUC-ROC: ≥0.80
+
+#### Finding F6: No Execution-Based Behavioral Equivalence
+
+**Problem**: No corpus entry is ever *executed*. Correctness is entirely syntactic (string match or lint pass). A transpiled script could be syntactically correct but behaviorally wrong (e.g., an off-by-one in a loop range, incorrect variable scoping, wrong exit code).
+
+**Remediation**: See Section 11.2 for the execution-based oracle design.
+
+---
+
+### 11.2 Execution-Based Oracle Design (Behavioral Equivalence)
+
+The **test oracle problem** (Barr et al., 2015) is the fundamental challenge of determining whether a program's output is correct. For transpilers, the oracle problem is acute: the expected *behavior* of the output program must match the input program's semantics, but behavior is not directly observable from syntax alone.
+
+We propose a **three-tier oracle** that progressively strengthens correctness guarantees:
+
+#### Tier A: Reference Execution Oracle (Differential Testing)
+
+For each corpus entry, maintain a **reference execution trace**:
+
+```toml
+# corpus/tier-2-standard/B-052/execution.toml
+[execution]
+stdin = ""
+argv = []
+env = { HOME = "/tmp/test", PATH = "/usr/bin" }
+
+[expected]
+stdout = "hello world\n"
+stderr = ""
+exit_code = 0
+files_created = ["output.txt"]
+files_content = { "output.txt" = "result\n" }
+```
+
+The transpiled output is executed in an identical sandbox and all observable effects are compared. This is **differential testing** (McKeeman, 1998) where the expected execution trace is the reference oracle.
+
+**Sandbox Requirements**:
+- Filesystem isolation (tmpfs mount, no host access)
+- Network isolation (no outbound connections)
+- Time budget: 5s per entry (kill on timeout)
+- Resource limits: 64MB memory, 1MB stdout
+- Deterministic environment (fixed PATH, HOME, locale, timezone)
+
+#### Tier B: Metamorphic Testing Oracle
+
+**Metamorphic testing** (Chen et al., 2018) alleviates the oracle problem by defining **metamorphic relations** (MRs) — properties that must hold across related inputs, even when individual outputs cannot be independently verified.
+
+**Metamorphic Relations for Shell Transpilation**:
+
+| MR ID | Relation | Description |
+|-------|----------|-------------|
+| MR-1 | **Determinism** | `transpile(X) == transpile(X)` — same input always produces same output |
+| MR-2 | **Monotonicity** | Adding a no-op line to input does not change output semantics |
+| MR-3 | **Commutativity** | Reordering independent variable assignments does not change behavior |
+| MR-4 | **Idempotency** | `transpile(purify(X)) == transpile(X)` — purification is idempotent |
+| MR-5 | **Subsumption** | If `transpile(A)` succeeds and B is a simplification of A, `transpile(B)` must succeed |
+| MR-6 | **Composition** | `transpile(A; B) ≡ transpile(A); transpile(B)` for independent statements |
+| MR-7 | **Negation** | `transpile(if P then A else B)` must swap branches when P is negated |
+
+> "A central element [of metamorphic testing] is a set of metamorphic relations, which are necessary properties of the target function or algorithm in relation to multiple inputs and their expected outputs." — Chen, T. Y. et al. (2018). "Metamorphic Testing: A Review of Challenges and Opportunities." *ACM Computing Surveys*, 51(1), Article 4.
+
+**Implementation**: For each corpus entry, generate follow-up test cases by applying MR transformations. Verify that the metamorphic relation holds between the source and follow-up outputs. This multiplies the effective corpus size without requiring new expected outputs.
+
+**Coverage Amplification**: 500 corpus entries × 7 MRs = 3,500 effective test cases.
+
+#### Tier C: N-Version Oracle (Cross-Shell Validation)
+
+Execute transpiled POSIX shell output across multiple shell interpreters:
+
+| Shell | Version | Purpose |
+|-------|---------|---------|
+| dash | 0.5.12+ | POSIX reference (strict) |
+| bash | 5.2+ | Most common (permissive) |
+| busybox ash | 1.36+ | Minimal POSIX (embedded) |
+| zsh --emulate sh | 5.9+ | Diversity check |
+
+If all four shells produce identical output, correctness confidence is high. Any divergence indicates either:
+1. A POSIX compliance bug in the transpiled output (the transpiler must be fixed)
+2. A shell interpreter bug (rare, document and exclude)
+
+This follows the **N-version programming** principle (Avizienis, 1985): fault detection through diversity.
+
+> "The N-version programming approach is based on the assumption that the probability of identical errors in independently developed implementations of the same specification is small." — Avizienis, A. (1985). "The N-Version Approach to Fault-Tolerant Software." *IEEE Transactions on Software Engineering*, SE-11(12), 1491-1501.
+
+#### Quantifiable Correctness Metrics
+
+The revised scoring system replaces the current string-containment metric with a multi-dimensional correctness measurement:
+
+| Metric | Formula | Target |
+|--------|---------|--------|
+| **Syntactic Correctness** | `exact_match_count / total_entries` | ≥99% |
+| **Structural Equivalence** | `ast_equivalent_count / total_entries` | ≥99% |
+| **Behavioral Equivalence** | `execution_match_count / executable_entries` | ≥95% |
+| **Metamorphic Consistency** | `mr_hold_count / (entries × mr_count)` | ≥98% |
+| **Cross-Shell Consistency** | `all_shells_agree_count / executable_entries` | ≥90% |
+| **Oracle Precision** | `correct_classifications / total_classifications` | ≥80% |
+| **Oracle Recall** | `detected_faults / total_faults` | ≥85% |
+| **Mutation Kill Rate** | `killed_mutants / total_mutants` | ≥90% |
+
+---
+
+### 11.3 Research Design: Improving Makefile, Bash, and Dockerfile Quality
+
+#### 11.3.1 Bash Quality Improvement
+
+**Current State**: 200 entries (B-001..B-200), 100% convergence, 8 transpiler bugs found and fixed.
+
+**Gap Analysis**:
+1. No execution-based verification — all correctness is syntactic
+2. No coverage of interactive constructs (read, select, trap)
+3. No heredoc/herestring transpilation testing
+4. No pipeline error propagation testing (`set -o pipefail` semantics)
+
+**Research Protocol**:
+
+| Phase | Action | Metric | Target |
+|-------|--------|--------|--------|
+| R1 | Add execution traces for Tier 1-2 entries (90 entries) | Behavioral match rate | ≥95% |
+| R2 | Add metamorphic relations MR-1 through MR-7 | MR violation rate | <2% |
+| R3 | Cross-shell validation (dash, bash, ash, zsh) | Agreement rate | ≥90% |
+| R4 | Add 50 entries for interactive/heredoc/pipeline constructs | Transpilation rate after additions | measure drop |
+| R5 | Train oracle on real B-series failures | Classification F1 | ≥0.75 |
+
+**Bash-Specific Metamorphic Relations**:
+- **MR-B1**: Quoting transformation — `$var` → `"$var"` must not change behavior
+- **MR-B2**: Arithmetic equivalence — `$((x+1))` ≡ `$((x + 1))`
+- **MR-B3**: Function inlining — inlining a single-use function must preserve behavior
+- **MR-B4**: Pipe to process substitution — `cmd1 | cmd2` ≡ `cmd2 <(cmd1)` for stdin readers
+
+#### 11.3.2 Makefile Quality Improvement
+
+**Current State**: 150 entries (M-001..M-150), 100% convergence.
+
+**Gap Analysis**:
+1. No validation of Make's rebuild semantics (timestamp-based dependency resolution)
+2. No testing of parallel make (`-j` flag) safety
+3. No recursive vs non-recursive make pattern testing
+4. No validation of automatic variable expansion (`$@`, `$<`, `$^`, `$?`)
+
+**Research Protocol**:
+
+| Phase | Action | Metric | Target |
+|-------|--------|--------|--------|
+| R1 | Add execution traces with `make -n` dry-run comparison | Command sequence match | ≥98% |
+| R2 | Add parallel-safety test entries (`make -j4` vs `make -j1`) | Output equivalence | ≥95% |
+| R3 | Add 30 entries for automatic variables and pattern rules | Transpilation rate | measure drop |
+| R4 | Validate rebuild semantics (touch file, re-make, verify minimal rebuild) | Correct rebuild count | 100% |
+| R5 | Cross-validate with GNU Make 4.3+ and bmake | Agreement rate | ≥85% |
+
+**Makefile-Specific Metamorphic Relations**:
+- **MR-M1**: Target reordering — reordering independent targets must not change build output
+- **MR-M2**: Variable expansion — `:=` (simply-expanded) must be equivalent to `=` for non-recursive definitions
+- **MR-M3**: Phony equivalence — `.PHONY: clean` must produce same behavior whether declared or not (for recipes without file output)
+
+#### 11.3.3 Dockerfile Quality Improvement
+
+**Current State**: 150 entries (D-001..D-150), 100% convergence.
+
+**Gap Analysis**:
+1. No image build verification (transpiled Dockerfiles are never built)
+2. No layer count optimization measurement
+3. No multi-platform build testing (arm64 vs amd64)
+4. No BuildKit-specific feature testing (cache mounts, secret mounts)
+
+**Research Protocol**:
+
+| Phase | Action | Metric | Target |
+|-------|--------|--------|--------|
+| R1 | Add `docker build --no-cache` verification for Tier 1-2 | Build success rate | ≥95% |
+| R2 | Measure layer count vs expected layer count | Layer count delta | ≤1 per entry |
+| R3 | Add 25 entries for BuildKit features (cache mounts, secrets, heredocs) | Transpilation rate | measure drop |
+| R4 | Hadolint cross-validation (run both bashrs and hadolint, compare) | Agreement rate | ≥90% |
+| R5 | Multi-platform build matrix (amd64, arm64) | Build success rate | ≥90% |
+
+**Dockerfile-Specific Metamorphic Relations**:
+- **MR-D1**: Layer merging — combining two `RUN` commands with `&&` must produce same filesystem
+- **MR-D2**: Stage reordering — reordering independent build stages must produce same final image
+- **MR-D3**: ARG default override — `--build-arg` overriding default must propagate correctly
+
+---
+
+### 11.4 Revised 100-Point Scoring System (v2)
+
+The original scoring system (Section 4) is updated to replace weak metrics with quantifiable measurements:
+
+| Category | v1 (Current) | v2 (Proposed) | Change |
+|----------|-------------|---------------|--------|
+| A. Transpilation Success | 40 pts — transpiles without error | 30 pts — transpiles without error | -10 pts (still critical but overweighted) |
+| B. Output Correctness | 25 pts — `output.contains()` | 25 pts — L1 exact (10) + L2 AST (8) + L3 execution (7) | Decomposed into 3 levels |
+| C. Test Coverage | 15 pts — hardcoded `true` | 15 pts — actual LLVM coverage per entry | Real measurement |
+| D. Lint Compliance | 10 pts — lint pass/fail | 10 pts — lint pass/fail (unchanged) | No change |
+| E. Determinism | 10 pts — transpile twice, compare | 10 pts — transpile twice, compare (unchanged) | No change |
+| **F. Metamorphic Consistency** | — | **5 pts** — MR-1 through MR-7 hold | **NEW** |
+| **G. Cross-Shell Agreement** | — | **5 pts** — all reference shells agree | **NEW** |
+| **Total** | **100 pts** | **100 pts** | Rebalanced |
+
+**v2 Scoring Formula**:
+```
+Score = (A × 30)
+      + (B_L1 × 10 + B_L2 × 8 + B_L3 × 7)
+      + (C_coverage × 15)
+      + (D_lint × 10)
+      + (E_determinism × 10)
+      + (F_metamorphic × 5)
+      + (G_cross_shell × 5)
+```
+
+**Gateway Logic** (updated):
+- If A < 18 (60% transpilation): B through G score 0
+- If B_L1 < 6 (60% exact match): B_L2 and B_L3 score 0
+
+---
+
+### 11.5 Oracle Unification and ML Pipeline
+
+#### 11.5.1 Feature Alignment
+
+The in-tree oracle uses a 73-feature vector (20 lexical + 25 structural + 28 semantic) but only 24 dimensions for k-NN distance calculation. The standalone oracle uses `aprender` with an opaque feature matrix. These must be aligned:
+
+**Unified Feature Schema** (32 features):
+
+| Feature Group | Count | Features |
+|---------------|-------|----------|
+| Lexical | 8 | line_count, token_count, avg_line_length, max_line_length, comment_ratio, blank_ratio, string_literal_count, numeric_literal_count |
+| Structural | 10 | nesting_depth, branch_count, loop_count, function_count, pipe_count, redirect_count, subshell_count, command_count, variable_ref_count, assignment_count |
+| Semantic | 8 | has_shebang, uses_set_e, uses_set_u, has_trap, uses_eval, uses_source, has_heredoc, uses_arithmetic |
+| Quality | 6 | lint_violation_count, lint_severity_max, determinism_score, idempotency_score, quoting_ratio, shellcheck_issue_count |
+
+#### 11.5.2 Training Pipeline
+
+```
+Corpus Run (500 entries)
+    │
+    ├── Passing entries → negative examples (no fault)
+    │
+    └── Failing entries → positive examples
+            │
+            ├── Extract 32-feature vector
+            ├── Label: error_category (24 categories)
+            ├── Label: fix_pattern (15 patterns)
+            │
+            ▼
+    ┌─────────────────┐
+    │  Train/Test Split │
+    │  (80/20, stratified) │
+    └─────────────────┘
+            │
+            ├──▶ k-NN (k=5, online, fast)
+            ├──▶ Random Forest (100 trees, batch, accurate)
+            │
+            ▼
+    ┌─────────────────┐
+    │  Ensemble Voter   │
+    │  (weighted majority)│
+    └─────────────────┘
+            │
+            ▼
+    ┌─────────────────┐
+    │  5-Fold CV Report │
+    │  P/R/F1 per class │
+    └─────────────────┘
+```
+
+#### 11.5.3 Drift Detection
+
+Both oracles include drift detection, but they measure different things. Unify on a single drift metric:
+
+```
+drift_score = |accuracy_window_recent - accuracy_window_historical|
+```
+
+Where `accuracy_window_recent` is the classification accuracy over the last 50 corpus runs and `accuracy_window_historical` is the accuracy over the preceding 200 runs. If `drift_score > 0.10` (10% accuracy drop), trigger model retraining.
+
+This follows the concept drift detection methodology from Gama et al. (2014): "A survey on concept drift adaptation."
+
+---
+
+### 11.6 Implementation Roadmap (v2 Enhancements)
+
+| Phase | Work | Duration | Key Metric |
+|-------|------|----------|------------|
+| V2-1 | Replace `output.contains()` with exact match (L1) | 1 week | Measure how many entries currently pass exact match |
+| V2-2 | Add AST structural comparison (L2) for bash entries | 2 weeks | AST equivalence rate across B-001..B-200 |
+| V2-3 | Add execution traces for Tier 1-2 entries (L3) | 3 weeks | Behavioral match rate ≥95% |
+| V2-4 | Implement 7 metamorphic relations | 2 weeks | MR violation rate <2% |
+| V2-5 | Cross-shell execution (dash, bash, ash, zsh) | 2 weeks | Agreement rate ≥90% |
+| V2-6 | Unify oracle systems into ensemble | 3 weeks | Classification F1 ≥0.75 |
+| V2-7 | Replace synthetic training with real corpus failures | 1 week | Training set from 8+ real bugs |
+| V2-8 | Implement real coverage measurement (replace hardcoded `has_test`) | 1 week | Coverage score variance >0 |
+| V2-9 | Makefile execution verification (`make -n`) | 2 weeks | Command sequence match ≥98% |
+| V2-10 | Dockerfile build verification (`docker build`) | 2 weeks | Build success rate ≥95% |
+
+**Total estimated effort**: 19 weeks (can be parallelized to ~10 weeks with 2 developers)
+
+---
+
+### 11.7 Aprender Integration: Model Compilation and Provability
+
+The `aprender` crate (../aprender) provides the ML infrastructure for the unified oracle. Key capabilities discovered via `pmat query`:
+
+#### 11.7.1 Core API for Corpus Oracle
+
+**Estimator trait** (`src/traits.rs`):
+```rust
+pub trait Estimator {
+    fn fit(&mut self, x: &Matrix<f32>, y: &Vector<f32>) -> Result<()>;
+    fn predict(&self, x: &Matrix<f32>) -> Vector<f32>;
+    fn score(&self, x: &Matrix<f32>, y: &Vector<f32>) -> f32;
+}
+```
+
+**RandomForestClassifier** (`examples/random_forest_iris.rs`):
+```rust
+let mut rf = RandomForestClassifier::new(100)  // 100 trees
+    .with_max_depth(10)
+    .with_random_state(42);  // deterministic training
+rf.fit(&x_train, &y_train)?;
+let predictions = rf.predict(&x_test);
+let accuracy = rf.score(&x_test, &y_test);
+```
+
+**Classification metrics** (`src/metrics/classification.rs`):
+- `accuracy(y_pred, y_true) -> f32`
+- `precision(y_pred, y_true, Average::Macro) -> f32`
+- `recall(y_pred, y_true, Average::Macro) -> f32`
+- `f1_score(y_pred, y_true, Average::Weighted) -> f32`
+- `evaluate_classification(y_pred, y_true) -> HashMap<String, f32>` — full report
+
+**Cross-validation** (`src/model_selection/mod.rs`):
+- `CrossValidationResult { scores: Vec<f32> }` — k-fold CV
+- `cross_validate(&model, &x, &y, &kfold) -> Result<CrossValidationResult>`
+
+#### 11.7.2 Poka-Yoke Quality Gates (APR-POKA-001)
+
+Aprender implements Toyota's Poka-yoke (mistake-proofing) as a first-class concept:
+
+**PokaYoke trait** (`src/format/validation.rs`):
+```rust
+pub trait PokaYoke {
+    fn poka_yoke_validate(&self) -> PokaYokeResult;
+    fn quality_score(&self) -> u8 { self.poka_yoke_validate().score }
+}
+```
+
+**Jidoka gate in .apr format** (`src/format/core_io.rs`):
+- `save()` refuses to write models with `quality_score == 0` (APR-POKA-001)
+- Models are serialized as `.apr` files with MessagePack metadata, zstd compression, CRC32 checksums
+- Quality score is embedded in the file header — consumers can verify before loading
+
+**Application to corpus oracle**: The corpus oracle model should implement `PokaYoke` with gates for:
+1. Minimum training accuracy (≥80%)
+2. Minimum F1-score per category (≥0.60)
+3. Training data size (≥50 real failure examples)
+4. Cross-validation score variance (<0.15)
+
+If any gate fails, `save()` refuses to persist the model — Jidoka stops the line at the ML level.
+
+#### 11.7.3 Drift Detection for Oracle Monitoring
+
+Aprender provides two drift detection mechanisms:
+
+**DriftDetector trait** (`src/online/drift.rs`):
+```rust
+pub trait DriftDetector: Send + Sync {
+    fn add_element(&mut self, error: bool);     // feed prediction outcomes
+    fn detected_change(&self) -> DriftStatus;   // check for drift
+}
+```
+
+**RollingDriftMonitor** (`src/metrics/drift.rs`):
+- Maintains reference + current windows
+- Statistical distance measures between windows
+- `RetrainingTrigger`: combines multiple drift signals, requires N consecutive detections
+
+**Application**: After each corpus run, feed oracle classification outcomes into `RollingDriftMonitor`. When drift is detected (corpus failures shift in character), trigger model retraining from updated failure data.
+
+#### 11.7.4 Model Persistence and Versioning
+
+**`.apr` format** (`src/format/core_io.rs`):
+- Binary format: Header (64B) + MessagePack metadata + zstd payload + CRC32
+- AES-256-GCM encryption option for sensitive models
+- Embedded metadata: model type, training date, quality score, feature names
+
+**Corpus oracle model lifecycle**:
+```
+Train on corpus failures → PokaYoke validate → Save as .apr
+    → Embed in bashrs binary (include_bytes!)
+    → Load at runtime for error classification
+    → Monitor with DriftDetector
+    → Retrain when drift detected
+```
+
+---
+
+### 11.8 Formal Schema Enforcement for Output Formats
+
+Each target format (Bash, Makefile, Dockerfile) has a formal grammar or specification that transpiled outputs must conform to. Schema enforcement ensures outputs are not just syntactically plausible but grammatically valid according to the authoritative specification.
+
+#### 11.8.1 POSIX Shell Grammar (Bash Output)
+
+**Authoritative spec**: IEEE Std 1003.1-2017 (POSIX.1), Shell Command Language (Section 2)
+
+**Grammar enforcement layers**:
+
+| Layer | Validator | What It Checks | Pass Criteria |
+|-------|-----------|----------------|---------------|
+| L1: Lexical | bashrs parser (`ShellAst`) | Token stream is valid | Parses without error |
+| L2: Syntactic | `shellcheck -s sh` | POSIX grammar compliance | Zero errors (SC-level "error") |
+| L3: Semantic | bashrs linter (SEC/DET/IDEM rules) | Security, determinism, idempotency | Zero violations |
+| L4: Behavioral | Cross-shell execution (dash, bash, ash) | Runtime equivalence | All shells agree |
+
+**POSIX grammar productions enforced** (subset):
+
+```
+complete_command : list separator_op
+               | list
+               ;
+list            : list separator_op and_or
+               | and_or
+               ;
+and_or          : pipeline
+               | and_or AND_IF linebreak pipeline
+               | and_or OR_IF linebreak pipeline
+               ;
+pipeline        : pipe_sequence
+               | Bang pipe_sequence
+               ;
+```
+
+**Corpus enforcement**: Every transpiled shell script MUST parse successfully against the POSIX grammar. The bashrs parser already produces `ShellAst` — we add a `validate_posix_grammar(ast: &ShellAst) -> Vec<GrammarViolation>` function that checks:
+- No bashisms (process substitution `<()`, arrays, `[[ ]]`)
+- Correct quoting (all variable expansions in double quotes)
+- Valid here-document delimiters
+- Correct `case` pattern syntax
+- Proper arithmetic expansion `$(())`
+
+#### 11.8.2 GNU Make Grammar (Makefile Output)
+
+**Authoritative spec**: GNU Make Manual, 4.4 (2023), Section 3.7 "How `make` Reads a Makefile"
+
+**Grammar enforcement layers**:
+
+| Layer | Validator | What It Checks | Pass Criteria |
+|-------|-----------|----------------|---------------|
+| L1: Lexical | Tab-vs-space detection | Recipe lines use tabs | Zero space-indented recipes |
+| L2: Syntactic | `make -n --warn-undefined-variables` | Valid Make syntax | Zero warnings |
+| L3: Semantic | bashrs Makefile linter (MAKE001-MAKE020) | Best practices | Zero violations |
+| L4: Behavioral | `make -n` dry-run comparison | Command sequence | Matches expected |
+
+**Makefile grammar schema** (key rules):
+
+```
+makefile     : (rule | assignment | directive | comment | empty_line)*
+rule         : targets ':' prerequisites '\n' recipe
+targets      : target (' ' target)*
+prerequisites: prerequisite (' ' prerequisite)*
+recipe       : ('\t' command '\n')+
+assignment   : variable assignment_op value
+assignment_op: ':=' | '?=' | '+=' | '='
+directive    : 'include' | 'ifeq' | 'ifdef' | 'define' | '.PHONY' | ...
+```
+
+**Schema violations detectable at parse time**:
+- Recipe lines not starting with tab character
+- Undefined variable references (`:=` without prior definition)
+- Circular dependency detection
+- `.PHONY` targets with file-producing recipes
+- Recursive vs simply-expanded variable misuse
+
+#### 11.8.3 Dockerfile Grammar (Dockerfile Output)
+
+**Authoritative spec**: Dockerfile reference, Docker Engine v25+ (2024)
+
+**Grammar enforcement layers**:
+
+| Layer | Validator | What It Checks | Pass Criteria |
+|-------|-----------|----------------|---------------|
+| L1: Lexical | Instruction keyword recognition | Valid instructions only | All lines are valid instructions |
+| L2: Syntactic | bashrs Dockerfile parser | Correct argument format | Parses without error |
+| L3: Semantic | bashrs Dockerfile linter (DOCKER001-012) + Hadolint | Best practices | Zero violations |
+| L4: Behavioral | `docker build --no-cache` | Builds successfully | Exit code 0 |
+
+**Dockerfile grammar schema** (key rules):
+
+```
+dockerfile   : (instruction | comment | empty_line)*
+instruction  : FROM from_args
+             | RUN run_args
+             | COPY copy_args
+             | WORKDIR path
+             | ENV env_args
+             | EXPOSE port_spec
+             | USER user_spec
+             | CMD exec_or_shell
+             | ENTRYPOINT exec_or_shell
+             | ARG arg_spec
+             | LABEL label_args
+             | HEALTHCHECK healthcheck_args
+             | ...
+from_args    : ['--platform=' platform] image [':' tag | '@' digest] ['AS' name]
+exec_or_shell: exec_form | shell_form
+exec_form    : '[' string (',' string)* ']'
+shell_form   : string
+```
+
+**Schema violations detectable at parse time**:
+- `FROM` not as first instruction (multi-stage: each stage starts with FROM)
+- `:latest` tag (DOCKER002 — must pin version)
+- Shell form for `ENTRYPOINT`/`CMD` (exec form required)
+- Missing `USER` directive (DOCKER003 — non-root enforcement)
+- `ADD` instead of `COPY` for local files (DOCKER004)
+
+#### 11.8.4 Schema Validation Integration with Corpus Scoring
+
+Add a **Schema Conformance** check to each corpus entry's scoring:
+
+```rust
+fn check_schema_conformance(output: &str, format: CorpusFormat) -> SchemaResult {
+    match format {
+        CorpusFormat::Bash => {
+            let ast = parse_posix_shell(output)?;
+            let violations = validate_posix_grammar(&ast);
+            SchemaResult { valid: violations.is_empty(), violations }
+        }
+        CorpusFormat::Makefile => {
+            let ast = parse_makefile(output)?;
+            let violations = validate_make_grammar(&ast);
+            SchemaResult { valid: violations.is_empty(), violations }
+        }
+        CorpusFormat::Dockerfile => {
+            let ast = parse_dockerfile(output)?;
+            let violations = validate_dockerfile_grammar(&ast);
+            SchemaResult { valid: violations.is_empty(), violations }
+        }
+    }
+}
+```
+
+Schema conformance becomes a **hard gate**: if `valid == false`, the entry scores 0 on categories B through G regardless of other results. This is stronger than the existing gateway logic — a syntactically invalid output cannot be correct, tested, or deterministic.
+
+#### 11.8.5 Aprender Model for Grammar Error Classification
+
+Train a `RandomForestClassifier` via aprender to classify grammar violations by root cause:
+
+| Category | Description | Fix Pattern |
+|----------|-------------|-------------|
+| GRAM-001 | Missing quoting in expansion | Add double quotes around `${}` |
+| GRAM-002 | Bashism in POSIX output | Replace `[[ ]]` with `[ ]` |
+| GRAM-003 | Tab/space confusion in Makefile | Ensure recipe lines use `\t` |
+| GRAM-004 | Shell form in Dockerfile CMD | Convert to exec form `["cmd", "arg"]` |
+| GRAM-005 | Undefined variable reference | Add `:=` assignment before use |
+| GRAM-006 | Invalid POSIX arithmetic | Replace bash-specific `(( ))` with `$(( ))` |
+| GRAM-007 | Missing FROM in Dockerfile | Add `FROM` as first instruction |
+| GRAM-008 | Circular Make dependency | Reorder targets |
+
+The classifier uses the 32-feature unified schema (Section 11.5.1) plus 4 grammar-specific features:
+- `grammar_violation_count`: total violations
+- `grammar_violation_severity`: max severity
+- `format_type`: bash=0, makefile=1, dockerfile=2
+- `nesting_at_violation`: AST depth at first violation
+
+Training data comes from real corpus grammar failures, following the same pipeline as Section 11.5.2. The model is persisted as `.apr` with Poka-yoke validation (APR-POKA-001) ensuring minimum quality before deployment.
+
+---
+
+## 12. References
 
 ### Peer-Reviewed and Foundational
 
@@ -1017,11 +1699,37 @@ This follows the depyler pattern where the `depyler_oracle.apr` model is retrain
 
 13. **Beck, K.** (2002). *Test-Driven Development: By Example*. Addison-Wesley. ISBN: 978-0321146533. (Test-first development; static test suites as a quality anti-pattern.)
 
+### v2 References (Quantifiable Correctness)
+
+14. **Avizienis, A.** (1985). "The N-Version Approach to Fault-Tolerant Software." *IEEE Transactions on Software Engineering*, SE-11(12), 1491-1501. DOI: 10.1109/TSE.1985.232116. (N-version programming for fault detection through implementation diversity.)
+
+15. **Barr, E. T., Harman, M., McMinn, P., Shahbaz, M., & Yoo, S.** (2015). "The Oracle Problem in Software Testing: A Survey." *IEEE Transactions on Software Engineering*, 41(5), 507-525. DOI: 10.1109/TSE.2014.2372785. (Comprehensive taxonomy of test oracle approaches including specified, derived, implicit, and human oracles.)
+
+16. **Breiman, L.** (2001). "Random Forests." *Machine Learning*, 45(1), 5-32. DOI: 10.1023/A:1010933404324. (Foundational paper on Random Forest ensemble method; demonstrates lower generalization error through bagging and feature subsampling.)
+
+17. **Chen, T. Y., Kuo, F.-C., Liu, H., Poon, P.-L., Towey, D., Tse, T. H., & Zhou, Z. Q.** (2018). "Metamorphic Testing: A Review of Challenges and Opportunities." *ACM Computing Surveys*, 51(1), Article 4. DOI: 10.1145/3143561. (Definitive survey on metamorphic testing for alleviating the oracle problem; defines metamorphic relations as necessary properties across related test inputs.)
+
+18. **Dietterich, T. G.** (2000). "Ensemble Methods in Machine Learning." *Multiple Classifier Systems (MCS 2000)*, LNCS 1857, 1-15. Springer. DOI: 10.1007/3-540-45014-9_1. (Theoretical basis for combining k-NN with Random Forest; bias-variance decomposition of ensemble error.)
+
+19. **Gama, J., Žliobaitė, I., Bifet, A., Pechenizkiy, M., & Bouchachia, A.** (2014). "A Survey on Concept Drift Adaptation." *ACM Computing Surveys*, 46(4), Article 44. DOI: 10.1145/2523813. (Concept drift detection methods for monitoring oracle accuracy degradation over time.)
+
+20. **Huang, K., et al.** (2024). "Revisiting Code Similarity Evaluation with Abstract Syntax Tree Edit Distance." *arXiv preprint* arXiv:2404.08817. (Demonstrates AST edit distance as superior to token-level comparison for measuring code structural equivalence.)
+
+21. **Malhotra, R.** (2015). "A Systematic Review of Machine Learning Techniques for Software Fault Prediction." *Applied Soft Computing*, 27, 504-518. DOI: 10.1016/j.asoc.2014.11.023. (Meta-analysis showing Random Forest and ensemble methods achieve 75-85% accuracy on software defect prediction benchmarks including NASA datasets.)
+
+22. **McKeeman, W. M.** (1998). "Differential Testing for Software." *Digital Technical Journal*, 10(1), 100-107. (Seminal work on using multiple implementations as cross-referencing oracles; directly applicable to cross-shell validation of transpiled output.)
+
+23. **Settles, B.** (2012). *Active Learning*. Synthesis Lectures on Artificial Intelligence and Machine Learning. Morgan & Claypool. ISBN: 978-1608457250. (Active learning for efficient labeling of corpus failure examples when training data is scarce.)
+
+24. **Zhang, K. & Shasha, D.** (1989). "Simple Fast Algorithms for the Editing Distance Between Trees and Related Problems." *SIAM Journal on Computing*, 18(6), 1245-1262. DOI: 10.1137/0218082. (Polynomial-time algorithm for tree edit distance; basis for AST structural comparison in Level 2 correctness measurement.)
+
+25. **Chen, J., Patra, J., Pradel, M., Xiong, Y., Zhang, H., Hao, D., & Zhang, L.** (2020). "A Survey of Compiler Testing." *ACM Computing Surveys*, 53(1), Article 4. DOI: 10.1145/3363562. (Survey of compiler testing techniques including differential testing, metamorphic testing, and EMI; relevant methodology for transpiler validation.)
+
 ### Project-Specific
 
-14. **Gift, N.** (2025). "Depyler Corpus Registry and Convergence Methodology." Internal specification, paiml/depyler. (Corpus registry pattern, 100-point scoring system, multi-tier measurement.)
+26. **Gift, N.** (2025). "Depyler Corpus Registry and Convergence Methodology." Internal specification, paiml/depyler. (Corpus registry pattern, 100-point scoring system, multi-tier measurement.)
 
-15. **bashrs CLAUDE.md** (2024-2026). Project development guidelines. (EXTREME TDD, STOP THE LINE, assert_cmd mandate, unwrap policy.)
+27. **bashrs CLAUDE.md** (2024-2026). Project development guidelines. (EXTREME TDD, STOP THE LINE, assert_cmd mandate, unwrap policy.)
 
 ---
 

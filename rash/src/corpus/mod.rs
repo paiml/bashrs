@@ -12,15 +12,16 @@
 //! - **Scoring**: 100-point quality score (transpilation + correctness + coverage + lint + determinism)
 //! - **Convergence**: Tracks transpilation rate over iterations (Kaizen methodology)
 //!
-//! ## Scoring Formula
+//! ## V2 Scoring Formula
 //!
 //! ```text
-//! Score = (A_success × 40) + (B_correct × 25) + (C_coverage × 15)
-//!       + (D_lint_pass × 10) + (E_determinism × 10)
+//! Score = A(30) + B_L1(10) + B_L2(8) + B_L3(7) + C(15) + D(10) + E(10) + F(5) + G(5)
 //! ```
+//!
+//! Gates: A < 60% → B-G = 0; schema_invalid → score = 0; B_L1 fail → B_L2/B_L3 = 0
 
 pub mod registry;
 pub mod runner;
 
 pub use registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
-pub use runner::{ConvergenceEntry, CorpusResult, CorpusRunner, CorpusScore};
+pub use runner::{ConvergenceEntry, CorpusResult, CorpusRunner, CorpusScore, FormatScore};
