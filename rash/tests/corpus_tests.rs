@@ -980,6 +980,52 @@ fn test_CORPUS_036_v2_component_breakdown() {
     }
 
     log_v2_failures(&score);
+
+    // Persist convergence log
+    let log_path = std::path::Path::new(".quality/convergence.log");
+    let previous = bashrs::corpus::CorpusRunner::load_convergence_log(log_path)
+        .unwrap_or_default();
+    let iteration = previous.len() as u32 + 1;
+    let previous_rate = previous.last().map_or(0.0, |e| e.rate);
+    let entry = runner.convergence_entry(
+        &score,
+        iteration,
+        &chrono_date_today(),
+        previous_rate,
+        &format!("v2 score {:.1}/100 ({})", score.score, score.grade),
+    );
+    if let Err(e) = bashrs::corpus::CorpusRunner::append_convergence_log(&entry, log_path) {
+        eprintln!("WARNING: Failed to write convergence log: {}", e);
+    }
+}
+
+/// Get today's date as YYYY-MM-DD string without chrono dependency.
+fn chrono_date_today() -> String {
+    // Use system time to derive ISO date
+    let now = std::time::SystemTime::now();
+    let duration = now.duration_since(std::time::UNIX_EPOCH).unwrap_or_default();
+    let secs = duration.as_secs();
+    // Simple days-since-epoch calculation
+    let days = secs / 86400;
+    // Gregorian calendar from days since 1970-01-01
+    let (year, month, day) = days_to_ymd(days);
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
+/// Convert days since Unix epoch to (year, month, day).
+fn days_to_ymd(days: u64) -> (u64, u64, u64) {
+    // Algorithm from http://howardhinnant.github.io/date_algorithms.html
+    let z = days + 719468;
+    let era = z / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    (y, m, d)
 }
 
 /// Log failure details for each v2 component.
