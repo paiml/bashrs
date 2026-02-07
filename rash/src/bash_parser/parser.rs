@@ -4671,4 +4671,373 @@ fi"#;
         let ast = parser.parse().unwrap();
         assert!(!ast.statements.is_empty());
     }
+
+    mod tokenize_arithmetic_tests {
+        #![allow(clippy::unwrap_used)]
+
+        use super::*;
+
+        /// Helper: create a parser and call tokenize_arithmetic
+        fn tokenize(input: &str) -> Vec<ArithToken> {
+            let parser = BashParser::new("echo x").unwrap();
+            parser.tokenize_arithmetic(input).unwrap()
+        }
+
+        /// Helper: call tokenize_arithmetic expecting an error
+        fn tokenize_err(input: &str) -> ParseError {
+            let parser = BashParser::new("echo x").unwrap();
+            parser.tokenize_arithmetic(input).unwrap_err()
+        }
+
+        #[test]
+        fn test_arith_tok_001_empty_input() {
+            let tokens = tokenize("");
+            assert!(tokens.is_empty());
+        }
+
+        #[test]
+        fn test_arith_tok_002_basic_arithmetic_operators() {
+            let tokens = tokenize("+ - * / %");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::Plus,
+                    ArithToken::Minus,
+                    ArithToken::Multiply,
+                    ArithToken::Divide,
+                    ArithToken::Modulo,
+                ]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_003_parentheses() {
+            let tokens = tokenize("(1+2)");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::LeftParen,
+                    ArithToken::Number(1),
+                    ArithToken::Plus,
+                    ArithToken::Number(2),
+                    ArithToken::RightParen,
+                ]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_004_less_than_variants() {
+            // Plain <
+            let tokens = tokenize("<");
+            assert_eq!(tokens, vec![ArithToken::Lt]);
+
+            // <=
+            let tokens = tokenize("<=");
+            assert_eq!(tokens, vec![ArithToken::Le]);
+
+            // <<
+            let tokens = tokenize("<<");
+            assert_eq!(tokens, vec![ArithToken::ShiftLeft]);
+        }
+
+        #[test]
+        fn test_arith_tok_005_greater_than_variants() {
+            // Plain >
+            let tokens = tokenize(">");
+            assert_eq!(tokens, vec![ArithToken::Gt]);
+
+            // >=
+            let tokens = tokenize(">=");
+            assert_eq!(tokens, vec![ArithToken::Ge]);
+
+            // >>
+            let tokens = tokenize(">>");
+            assert_eq!(tokens, vec![ArithToken::ShiftRight]);
+        }
+
+        #[test]
+        fn test_arith_tok_006_equality_and_assign() {
+            // ==
+            let tokens = tokenize("==");
+            assert_eq!(tokens, vec![ArithToken::Eq]);
+
+            // = (assignment)
+            let tokens = tokenize("=");
+            assert_eq!(tokens, vec![ArithToken::Assign]);
+
+            // !=
+            let tokens = tokenize("!=");
+            assert_eq!(tokens, vec![ArithToken::Ne]);
+        }
+
+        #[test]
+        fn test_arith_tok_007_logical_not() {
+            // Bare ! (not followed by =)
+            let tokens = tokenize("!");
+            assert_eq!(tokens, vec![ArithToken::LogicalNot]);
+        }
+
+        #[test]
+        fn test_arith_tok_008_ternary_operator() {
+            let tokens = tokenize("a ? 1 : 0");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::Variable("a".to_string()),
+                    ArithToken::Question,
+                    ArithToken::Number(1),
+                    ArithToken::Colon,
+                    ArithToken::Number(0),
+                ]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_009_bitwise_and_logical_and() {
+            // & (bitwise and)
+            let tokens = tokenize("&");
+            assert_eq!(tokens, vec![ArithToken::BitAnd]);
+
+            // && (logical and)
+            let tokens = tokenize("&&");
+            assert_eq!(tokens, vec![ArithToken::LogicalAnd]);
+        }
+
+        #[test]
+        fn test_arith_tok_010_bitwise_and_logical_or() {
+            // | (bitwise or)
+            let tokens = tokenize("|");
+            assert_eq!(tokens, vec![ArithToken::BitOr]);
+
+            // || (logical or)
+            let tokens = tokenize("||");
+            assert_eq!(tokens, vec![ArithToken::LogicalOr]);
+        }
+
+        #[test]
+        fn test_arith_tok_011_bitwise_xor_and_not() {
+            let tokens = tokenize("^ ~");
+            assert_eq!(
+                tokens,
+                vec![ArithToken::BitXor, ArithToken::BitNot]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_012_comma_operator() {
+            let tokens = tokenize("1 , 2");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::Number(1),
+                    ArithToken::Comma,
+                    ArithToken::Number(2),
+                ]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_013_decimal_numbers() {
+            let tokens = tokenize("42");
+            assert_eq!(tokens, vec![ArithToken::Number(42)]);
+
+            let tokens = tokenize("0");
+            assert_eq!(tokens, vec![ArithToken::Number(0)]);
+
+            let tokens = tokenize("123456789");
+            assert_eq!(tokens, vec![ArithToken::Number(123_456_789)]);
+        }
+
+        #[test]
+        fn test_arith_tok_014_hex_numbers() {
+            let tokens = tokenize("0xFF");
+            assert_eq!(tokens, vec![ArithToken::Number(255)]);
+
+            let tokens = tokenize("0x0");
+            assert_eq!(tokens, vec![ArithToken::Number(0)]);
+
+            let tokens = tokenize("0XAB");
+            assert_eq!(tokens, vec![ArithToken::Number(0xAB)]);
+
+            let tokens = tokenize("0x1F");
+            assert_eq!(tokens, vec![ArithToken::Number(31)]);
+        }
+
+        #[test]
+        fn test_arith_tok_015_octal_numbers() {
+            let tokens = tokenize("077");
+            assert_eq!(tokens, vec![ArithToken::Number(0o77)]);
+
+            let tokens = tokenize("010");
+            assert_eq!(tokens, vec![ArithToken::Number(8)]);
+        }
+
+        #[test]
+        fn test_arith_tok_016_dollar_variable() {
+            let tokens = tokenize("$var");
+            assert_eq!(
+                tokens,
+                vec![ArithToken::Variable("var".to_string())]
+            );
+
+            let tokens = tokenize("$foo_bar");
+            assert_eq!(
+                tokens,
+                vec![ArithToken::Variable("foo_bar".to_string())]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_017_bare_identifier_variable() {
+            let tokens = tokenize("count");
+            assert_eq!(
+                tokens,
+                vec![ArithToken::Variable("count".to_string())]
+            );
+
+            let tokens = tokenize("_private");
+            assert_eq!(
+                tokens,
+                vec![ArithToken::Variable("_private".to_string())]
+            );
+
+            let tokens = tokenize("Var2");
+            assert_eq!(
+                tokens,
+                vec![ArithToken::Variable("Var2".to_string())]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_018_whitespace_handling() {
+            // Tabs, spaces, newlines should all be skipped
+            let tokens = tokenize("  1\t+\n2  ");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::Number(1),
+                    ArithToken::Plus,
+                    ArithToken::Number(2),
+                ]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_019_invalid_character_error() {
+            let err = tokenize_err("1 @ 2");
+            match err {
+                ParseError::InvalidSyntax(msg) => {
+                    assert!(
+                        msg.contains('@'),
+                        "Error should mention the invalid char '@': {msg}"
+                    );
+                }
+                other => panic!("Expected InvalidSyntax, got: {other:?}"),
+            }
+        }
+
+        #[test]
+        fn test_arith_tok_020_complex_expression() {
+            // Full real-world expression: x = (a + b) * c / 2
+            let tokens = tokenize("x = (a + b) * c / 2");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::Variable("x".to_string()),
+                    ArithToken::Assign,
+                    ArithToken::LeftParen,
+                    ArithToken::Variable("a".to_string()),
+                    ArithToken::Plus,
+                    ArithToken::Variable("b".to_string()),
+                    ArithToken::RightParen,
+                    ArithToken::Multiply,
+                    ArithToken::Variable("c".to_string()),
+                    ArithToken::Divide,
+                    ArithToken::Number(2),
+                ]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_021_single_token_inputs() {
+            // Each single-char operator should produce exactly one token
+            let cases: Vec<(&str, ArithToken)> = vec![
+                ("+", ArithToken::Plus),
+                ("-", ArithToken::Minus),
+                ("*", ArithToken::Multiply),
+                ("/", ArithToken::Divide),
+                ("%", ArithToken::Modulo),
+                ("(", ArithToken::LeftParen),
+                (")", ArithToken::RightParen),
+                ("?", ArithToken::Question),
+                (":", ArithToken::Colon),
+                ("^", ArithToken::BitXor),
+                ("~", ArithToken::BitNot),
+                (",", ArithToken::Comma),
+            ];
+            for (input, expected) in cases {
+                let tokens = tokenize(input);
+                assert_eq!(tokens, vec![expected], "Failed for input: {input:?}");
+            }
+        }
+
+        #[test]
+        fn test_arith_tok_022_dollar_empty_variable() {
+            // $ followed by a non-alphanumeric char should yield an empty variable name
+            let tokens = tokenize("$+");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::Variable(String::new()),
+                    ArithToken::Plus,
+                ]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_023_adjacent_operators_no_spaces() {
+            let tokens = tokenize("1+2*3");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::Number(1),
+                    ArithToken::Plus,
+                    ArithToken::Number(2),
+                    ArithToken::Multiply,
+                    ArithToken::Number(3),
+                ]
+            );
+        }
+
+        #[test]
+        fn test_arith_tok_024_zero_standalone() {
+            // Just "0" without further digits is a standalone zero
+            let tokens = tokenize("0");
+            assert_eq!(tokens, vec![ArithToken::Number(0)]);
+        }
+
+        #[test]
+        fn test_arith_tok_025_all_comparison_in_expression() {
+            // Expression mixing several comparison operators
+            let tokens = tokenize("a <= b >= c == d != e < f > g");
+            assert_eq!(
+                tokens,
+                vec![
+                    ArithToken::Variable("a".to_string()),
+                    ArithToken::Le,
+                    ArithToken::Variable("b".to_string()),
+                    ArithToken::Ge,
+                    ArithToken::Variable("c".to_string()),
+                    ArithToken::Eq,
+                    ArithToken::Variable("d".to_string()),
+                    ArithToken::Ne,
+                    ArithToken::Variable("e".to_string()),
+                    ArithToken::Lt,
+                    ArithToken::Variable("f".to_string()),
+                    ArithToken::Gt,
+                    ArithToken::Variable("g".to_string()),
+                ]
+            );
+        }
+    }
 }
