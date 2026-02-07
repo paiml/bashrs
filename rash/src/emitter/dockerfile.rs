@@ -498,11 +498,465 @@ mod tests {
         })]);
 
         let result = emit_dockerfile(&ast).unwrap();
-        // Should use pinned version, not "latest"
         assert!(
             !result.contains(":latest"),
             "Generated Dockerfile should use pinned versions (DOCKER002 compliance)"
         );
         assert!(result.contains("FROM rust:1.75-alpine"));
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_007_env_directive() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("node".to_string())),
+                    Expr::Literal(Literal::Str("20-alpine".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "env".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("NODE_ENV".to_string())),
+                    Expr::Literal(Literal::Str("production".to_string())),
+                ],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(
+            result.contains("ENV NODE_ENV=production"),
+            "ENV directive in: {result}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_008_expose_u16() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("nginx".to_string())),
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "expose".to_string(),
+                args: vec![Expr::Literal(Literal::U16(8080))],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("EXPOSE 8080"), "EXPOSE in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_009_expose_u32() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("nginx".to_string())),
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "expose".to_string(),
+                args: vec![Expr::Literal(Literal::U32(3000))],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("EXPOSE 3000"), "EXPOSE U32 in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_010_expose_i32() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("nginx".to_string())),
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "expose".to_string(),
+                args: vec![Expr::Literal(Literal::I32(443))],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("EXPOSE 443"), "EXPOSE I32 in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_011_cmd_directive() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("node".to_string())),
+                    Expr::Literal(Literal::Str("20".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "cmd".to_string(),
+                args: vec![Expr::Array(vec![
+                    Expr::Literal(Literal::Str("node".to_string())),
+                    Expr::Literal(Literal::Str("server.js".to_string())),
+                ])],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("CMD"), "CMD in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_012_label_directive() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "label".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("maintainer".to_string())),
+                    Expr::Literal(Literal::Str("team@example.com".to_string())),
+                ],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("LABEL"), "LABEL in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_013_healthcheck() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("nginx".to_string())),
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "healthcheck".to_string(),
+                args: vec![Expr::Literal(Literal::Str(
+                    "curl -f http://localhost/".to_string(),
+                ))],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("HEALTHCHECK"), "HEALTHCHECK in: {result}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_014_comment() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "comment".to_string(),
+                args: vec![Expr::Literal(Literal::Str(
+                    "Install dependencies".to_string(),
+                ))],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(
+            result.contains("Install dependencies"),
+            "Comment in: {result}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_015_let_binding_becomes_env() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("python".to_string())),
+                    Expr::Literal(Literal::Str("3.12".to_string())),
+                ],
+            }),
+            Stmt::Let {
+                name: "app_port".to_string(),
+                value: Expr::Literal(Literal::Str("8080".to_string())),
+            },
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(
+            result.contains("ENV APP_PORT=8080"),
+            "Let→ENV in: {result}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_016_no_from_image_error() {
+        let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
+            name: "workdir".to_string(),
+            args: vec![Expr::Literal(Literal::Str("/app".to_string()))],
+        })]);
+
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(
+            format!("{err}").contains("from_image"),
+            "Error should mention from_image: {err}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_017_from_image_too_few_args() {
+        let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
+            name: "from_image".to_string(),
+            args: vec![Expr::Literal(Literal::Str("alpine".to_string()))],
+        })]);
+
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(
+            format!("{err}").contains("2 arguments"),
+            "Error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_018_from_image_as_too_few_args() {
+        let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
+            name: "from_image_as".to_string(),
+            args: vec![
+                Expr::Literal(Literal::Str("rust".to_string())),
+                Expr::Literal(Literal::Str("1.75".to_string())),
+            ],
+        })]);
+
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(
+            format!("{err}").contains("3 arguments"),
+            "Error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_019_copy_too_few_args() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "copy".to_string(),
+                args: vec![Expr::Literal(Literal::Str(".".to_string()))],
+            }),
+        ]);
+
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("2 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_020_copy_from_too_few_args() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "copy_from".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("builder".to_string())),
+                    Expr::Literal(Literal::Str("/app".to_string())),
+                ],
+            }),
+        ]);
+
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("3 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_021_env_too_few_args() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "env".to_string(),
+                args: vec![Expr::Literal(Literal::Str("KEY".to_string()))],
+            }),
+        ]);
+
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("2 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_022_expose_invalid_type() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "expose".to_string(),
+                args: vec![Expr::Literal(Literal::Str("not-a-port".to_string()))],
+            }),
+        ]);
+
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(
+            format!("{err}").contains("integer"),
+            "Error: {err}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_023_label_too_few_args() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "label".to_string(),
+                args: vec![Expr::Literal(Literal::Str("key".to_string()))],
+            }),
+        ]);
+
+        let err = emit_dockerfile(&ast).unwrap_err();
+        assert!(format!("{err}").contains("2 arguments"), "Error: {err}");
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_024_variable_in_expr() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "env".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("PATH".to_string())),
+                    Expr::Variable("app_dir".to_string()),
+                ],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(
+            result.contains("${APP_DIR}"),
+            "Variable ref in: {result}"
+        );
+    }
+
+    #[test]
+    fn test_DOCKER_BUILD_025_comprehensive_dockerfile() {
+        let ast = make_simple_ast(vec![
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image_as".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("rust".to_string())),
+                    Expr::Literal(Literal::Str("1.75-alpine".to_string())),
+                    Expr::Literal(Literal::Str("builder".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "workdir".to_string(),
+                args: vec![Expr::Literal(Literal::Str("/app".to_string()))],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "copy".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("Cargo.toml".to_string())),
+                    Expr::Literal(Literal::Str(".".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "run".to_string(),
+                args: vec![Expr::Array(vec![
+                    Expr::Literal(Literal::Str("cargo build --release".to_string())),
+                ])],
+            }),
+            // Runtime stage
+            Stmt::Expr(Expr::FunctionCall {
+                name: "from_image".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("alpine".to_string())),
+                    Expr::Literal(Literal::Str("3.18".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "copy_from".to_string(),
+                args: vec![
+                    Expr::Literal(Literal::Str("builder".to_string())),
+                    Expr::Literal(Literal::Str("/app/target/release/app".to_string())),
+                    Expr::Literal(Literal::Str("/usr/local/bin/".to_string())),
+                ],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "expose".to_string(),
+                args: vec![Expr::Literal(Literal::U16(8080))],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "user".to_string(),
+                args: vec![Expr::Literal(Literal::Str("65534".to_string()))],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "healthcheck".to_string(),
+                args: vec![Expr::Literal(Literal::Str(
+                    "curl -f http://localhost:8080/health".to_string(),
+                ))],
+            }),
+            Stmt::Expr(Expr::FunctionCall {
+                name: "entrypoint".to_string(),
+                args: vec![Expr::Array(vec![Expr::Literal(Literal::Str(
+                    "/usr/local/bin/app".to_string(),
+                ))])],
+            }),
+        ]);
+
+        let result = emit_dockerfile(&ast).unwrap();
+        assert!(result.contains("FROM rust:1.75-alpine AS builder"));
+        assert!(result.contains("FROM alpine:3.18"));
+        assert!(result.contains("COPY --from=builder"));
+        assert!(result.contains("EXPOSE 8080"));
+        assert!(result.contains("USER 65534"));
+        assert!(result.contains("HEALTHCHECK"));
+        assert!(result.contains("ENTRYPOINT"));
     }
 }
