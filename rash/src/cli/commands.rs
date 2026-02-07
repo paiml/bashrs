@@ -1,7 +1,8 @@
 #[cfg(feature = "oracle")]
 use crate::cli::args::ExplainErrorFormat;
 use crate::cli::args::{
-    AuditOutputFormat, CompileRuntime, ConfigCommands, ConfigOutputFormat, ContainerFormatArg,
+    AuditOutputFormat, CompileRuntime, ComplyCommands, ComplyFormat, ComplyScopeArg,
+    ComplyTrackCommands, ConfigCommands, ConfigOutputFormat, ContainerFormatArg,
     DevContainerCommands, DockerfileCommands, InspectionFormat, InstallerCommands,
     InstallerGraphFormat, KeyringCommands, LintFormat, LintLevel, LintProfileArg, MakeCommands,
     MakeOutputFormat, MutateFormat, PlaybookFormat, ReportFormat, ScoreOutputFormat,
@@ -356,6 +357,11 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         Commands::Installer { command } => {
             info!("Executing installer command");
             handle_installer_command(command)
+        }
+
+        Commands::Comply { command } => {
+            info!("Executing comply command");
+            handle_comply_command(command)
         }
     }
 }
@@ -1056,111 +1062,38 @@ fn lint_command(
     profile: LintProfileArg,
     _graded: bool,
 ) -> Result<()> {
+    use crate::linter::ignore_file::IgnoreResult;
     use crate::linter::rules::lint_shell;
     use crate::linter::{
-        autofix::{apply_fixes_to_file, FixOptions},
-        citl::CitlExport,
-        ignore_file::{IgnoreFile, IgnoreResult},
-        output::{write_results, OutputFormat},
         rules::{lint_dockerfile_with_profile, lint_makefile, LintProfile},
-        LintResult, Severity,
+        LintResult,
     };
-    use std::collections::HashSet;
 
     // Issue #85: Load .bashrsignore FIRST to get both file patterns and rule codes
-    let ignore_file_data: Option<IgnoreFile> = if !no_ignore {
-        // Determine ignore file path
-        let ignore_path = ignore_file_path
-            .map(|p| p.to_path_buf())
-            .unwrap_or_else(|| {
-                // Look for .bashrsignore in current directory or parent directories
-                let mut current = input
-                    .parent()
-                    .and_then(|p| p.canonicalize().ok())
-                    .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+    let ignore_file_data = load_ignore_file(input, no_ignore, ignore_file_path);
 
-                loop {
-                    let candidate = current.join(".bashrsignore");
-                    if candidate.exists() {
-                        return candidate;
-                    }
-                    if !current.pop() {
-                        break;
-                    }
-                }
-                // Default to current directory
-                PathBuf::from(".bashrsignore")
-            });
-
-        // Load ignore file if it exists
-        match IgnoreFile::load(&ignore_path) {
-            Ok(Some(ignore)) => {
-                // Check if this file should be ignored (file pattern matching)
-                if let IgnoreResult::Ignored(pattern) = ignore.should_ignore(input) {
-                    info!(
-                        "Skipped {} (matched .bashrsignore pattern: {})",
-                        input.display(),
-                        pattern
-                    );
-                    println!(
-                        "Skipped: {} (matched .bashrsignore pattern: '{}')",
-                        input.display(),
-                        pattern
-                    );
-                    return Ok(());
-                }
-                Some(ignore)
-            }
-            Ok(None) => None,
-            Err(e) => {
-                warn!("Failed to load .bashrsignore: {}", e);
-                None
-            }
+    // Check if this file should be ignored (file pattern matching)
+    if let Some(ref ignore) = ignore_file_data {
+        if let IgnoreResult::Ignored(pattern) = ignore.should_ignore(input) {
+            info!(
+                "Skipped {} (matched .bashrsignore pattern: {})",
+                input.display(),
+                pattern
+            );
+            println!(
+                "Skipped: {} (matched .bashrsignore pattern: '{}')",
+                input.display(),
+                pattern
+            );
+            return Ok(());
         }
-    } else {
-        None
-    };
+    }
 
     // Build set of ignored rule codes from --ignore, -e flags, AND .bashrsignore (Issue #82, #85)
-    let ignored_rules: HashSet<String> = {
-        let mut rules = HashSet::new();
-        // Add from --ignore (comma-separated)
-        if let Some(ignore_str) = ignore_rules {
-            for code in ignore_str.split(',') {
-                let code = code.trim().to_uppercase();
-                if !code.is_empty() {
-                    rules.insert(code);
-                }
-            }
-        }
-        // Add from -e (can be repeated)
-        if let Some(excludes) = exclude_rules {
-            for code in excludes {
-                let code = code.trim().to_uppercase();
-                if !code.is_empty() {
-                    rules.insert(code);
-                }
-            }
-        }
-        // Issue #85: Add rule codes from .bashrsignore file
-        if let Some(ref ignore) = ignore_file_data {
-            for code in ignore.ignored_rules() {
-                rules.insert(code);
-            }
-        }
-        rules
-    };
+    let ignored_rules = build_ignored_rules(ignore_rules, exclude_rules, ignore_file_data.as_ref());
 
     // Determine minimum severity based on --quiet and --level flags (Issue #75)
-    let min_severity = if quiet {
-        Severity::Warning // --quiet suppresses info
-    } else {
-        match level {
-            LintLevel::Info => Severity::Info,
-            LintLevel::Warning => Severity::Warning,
-            LintLevel::Error => Severity::Error,
-        }
-    };
+    let min_severity = determine_min_severity(quiet, level);
 
     // Helper to filter diagnostics by severity and ignored rules (Issue #75, #82, #85)
     let filter_diagnostics = |result: LintResult| -> LintResult {
@@ -1205,101 +1138,241 @@ fn lint_command(
     let result = filter_diagnostics(result_raw.clone());
 
     // Issue #83: Export diagnostics in CITL format if requested
-    if let Some(citl_path) = citl_export_path {
-        let export = CitlExport::from_lint_result(
-            input.to_str().unwrap_or("unknown"),
-            &result_raw, // Export raw results (unfiltered) for complete data
-        );
-        if let Err(e) = export.write_to_file(citl_path) {
-            warn!(
-                "Failed to write CITL export to {}: {}",
-                citl_path.display(),
-                e
-            );
-        } else {
-            info!(
-                "CITL export written to {} ({} diagnostics)",
-                citl_path.display(),
-                export.summary.total
-            );
-        }
-    }
+    export_citl_if_requested(input, &result_raw, citl_export_path);
 
     // Apply fixes if requested (use raw result to find all fixable issues)
     if fix && result_raw.diagnostics.iter().any(|d| d.fix.is_some()) {
-        let options = FixOptions {
-            create_backup: true,
-            dry_run: false,
-            backup_suffix: ".bak".to_string(),
-            apply_assumptions: fix_assumptions, // NEW: Pass fix_assumptions flag
-            output_path: output.map(|p| p.to_path_buf()), // NEW: Optional output path
-        };
+        handle_lint_fixes(
+            input,
+            &result_raw,
+            fix_assumptions,
+            output,
+            file_is_makefile,
+            format,
+            &filter_diagnostics,
+        )
+    } else {
+        output_lint_results(&result, format, input)
+    }
+}
 
-        match apply_fixes_to_file(input, &result_raw, &options) {
-            Ok(fix_result) => {
-                info!(
-                    "Applied {} fix(es) to {}",
-                    fix_result.fixes_applied,
-                    input.display()
-                );
-                if let Some(backup_path) = &fix_result.backup_path {
-                    info!("Backup created at {}", backup_path);
+/// Load `.bashrsignore` file and return it if found.
+///
+/// Returns `None` when `no_ignore` is set, no ignore file exists, or the file
+/// cannot be loaded. The caller is responsible for checking `should_ignore`.
+fn load_ignore_file(
+    input: &Path,
+    no_ignore: bool,
+    ignore_file_path: Option<&Path>,
+) -> Option<crate::linter::ignore_file::IgnoreFile> {
+    use crate::linter::ignore_file::IgnoreFile;
+
+    if no_ignore {
+        return None;
+    }
+
+    // Determine ignore file path
+    let ignore_path = ignore_file_path
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| {
+            // Look for .bashrsignore in current directory or parent directories
+            let mut current = input
+                .parent()
+                .and_then(|p| p.canonicalize().ok())
+                .unwrap_or_else(|| std::env::current_dir().unwrap_or_default());
+
+            loop {
+                let candidate = current.join(".bashrsignore");
+                if candidate.exists() {
+                    return candidate;
                 }
-
-                // Re-lint to show remaining issues
-                let source_after = fs::read_to_string(input).map_err(Error::Io)?;
-                let result_after_raw = if file_is_makefile {
-                    lint_makefile(&source_after)
-                } else {
-                    lint_shell(&source_after)
-                };
-                let result_after = filter_diagnostics(result_after_raw);
-
-                if result_after.diagnostics.is_empty() {
-                    info!("✓ All issues fixed!");
-                    return Ok(());
-                } else {
-                    info!("Remaining issues after auto-fix:");
-                    let output_format = match format {
-                        LintFormat::Human => OutputFormat::Human,
-                        LintFormat::Json => OutputFormat::Json,
-                        LintFormat::Sarif => OutputFormat::Sarif,
-                    };
-                    let file_path = input.to_str().unwrap_or("unknown");
-                    write_results(
-                        &mut std::io::stdout(),
-                        &result_after,
-                        output_format,
-                        file_path,
-                    )
-                    .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+                if !current.pop() {
+                    break;
                 }
             }
-            Err(e) => {
-                return Err(Error::Internal(format!("Failed to apply fixes: {e}")));
+            // Default to current directory
+            PathBuf::from(".bashrsignore")
+        });
+
+    // Load ignore file if it exists
+    match IgnoreFile::load(&ignore_path) {
+        Ok(Some(ignore)) => Some(ignore),
+        Ok(None) => None,
+        Err(e) => {
+            warn!("Failed to load .bashrsignore: {}", e);
+            None
+        }
+    }
+}
+
+/// Build a set of ignored rule codes from `--ignore`, `-e` flags, and `.bashrsignore` rule codes.
+fn build_ignored_rules(
+    ignore_rules: Option<&str>,
+    exclude_rules: Option<&[String]>,
+    ignore_file_data: Option<&crate::linter::ignore_file::IgnoreFile>,
+) -> std::collections::HashSet<String> {
+    use std::collections::HashSet;
+
+    let mut rules = HashSet::new();
+    // Add from --ignore (comma-separated)
+    if let Some(ignore_str) = ignore_rules {
+        for code in ignore_str.split(',') {
+            let code = code.trim().to_uppercase();
+            if !code.is_empty() {
+                rules.insert(code);
             }
         }
-    } else {
-        // Just show lint results
-        let output_format = match format {
-            LintFormat::Human => OutputFormat::Human,
-            LintFormat::Json => OutputFormat::Json,
-            LintFormat::Sarif => OutputFormat::Sarif,
-        };
+    }
+    // Add from -e (can be repeated)
+    if let Some(excludes) = exclude_rules {
+        for code in excludes {
+            let code = code.trim().to_uppercase();
+            if !code.is_empty() {
+                rules.insert(code);
+            }
+        }
+    }
+    // Issue #85: Add rule codes from .bashrsignore file
+    if let Some(ignore) = ignore_file_data {
+        for code in ignore.ignored_rules() {
+            rules.insert(code);
+        }
+    }
+    rules
+}
 
-        let file_path = input.to_str().unwrap_or("unknown");
-        write_results(&mut std::io::stdout(), &result, output_format, file_path)
+/// Determine the minimum severity level based on `--quiet` and `--level` flags.
+fn determine_min_severity(quiet: bool, level: LintLevel) -> crate::linter::Severity {
+    use crate::linter::Severity;
+
+    if quiet {
+        Severity::Warning // --quiet suppresses info
+    } else {
+        match level {
+            LintLevel::Info => Severity::Info,
+            LintLevel::Warning => Severity::Warning,
+            LintLevel::Error => Severity::Error,
+        }
+    }
+}
+
+/// Export diagnostics in CITL format if a path was provided.
+fn export_citl_if_requested(
+    input: &Path,
+    result_raw: &crate::linter::LintResult,
+    citl_export_path: Option<&Path>,
+) {
+    use crate::linter::citl::CitlExport;
+
+    let Some(citl_path) = citl_export_path else {
+        return;
+    };
+
+    let export = CitlExport::from_lint_result(
+        input.to_str().unwrap_or("unknown"),
+        result_raw, // Export raw results (unfiltered) for complete data
+    );
+    if let Err(e) = export.write_to_file(citl_path) {
+        warn!(
+            "Failed to write CITL export to {}: {}",
+            citl_path.display(),
+            e
+        );
+    } else {
+        info!(
+            "CITL export written to {} ({} diagnostics)",
+            citl_path.display(),
+            export.summary.total
+        );
+    }
+}
+
+/// Apply auto-fixes to the file, re-lint, and display remaining issues.
+#[allow(clippy::too_many_arguments)]
+fn handle_lint_fixes(
+    input: &Path,
+    result_raw: &crate::linter::LintResult,
+    fix_assumptions: bool,
+    output: Option<&Path>,
+    file_is_makefile: bool,
+    format: LintFormat,
+    filter_diagnostics: &dyn Fn(crate::linter::LintResult) -> crate::linter::LintResult,
+) -> Result<()> {
+    use crate::linter::autofix::{apply_fixes_to_file, FixOptions};
+    use crate::linter::output::write_results;
+    use crate::linter::rules::{lint_makefile, lint_shell};
+
+    let options = FixOptions {
+        create_backup: true,
+        dry_run: false,
+        backup_suffix: ".bak".to_string(),
+        apply_assumptions: fix_assumptions,
+        output_path: output.map(|p| p.to_path_buf()),
+    };
+
+    match apply_fixes_to_file(input, result_raw, &options) {
+        Ok(fix_result) => {
+            info!(
+                "Applied {} fix(es) to {}",
+                fix_result.fixes_applied,
+                input.display()
+            );
+            if let Some(backup_path) = &fix_result.backup_path {
+                info!("Backup created at {}", backup_path);
+            }
+
+            // Re-lint to show remaining issues
+            let source_after = fs::read_to_string(input).map_err(Error::Io)?;
+            let result_after_raw = if file_is_makefile {
+                lint_makefile(&source_after)
+            } else {
+                lint_shell(&source_after)
+            };
+            let result_after = filter_diagnostics(result_after_raw);
+
+            if result_after.diagnostics.is_empty() {
+                info!("All issues fixed!");
+                return Ok(());
+            }
+
+            info!("Remaining issues after auto-fix:");
+            let output_format = convert_lint_format(format);
+            let file_path = input.to_str().unwrap_or("unknown");
+            write_results(
+                &mut std::io::stdout(),
+                &result_after,
+                output_format,
+                file_path,
+            )
             .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
 
-        // Exit with appropriate code (Issue #6)
-        // Exit 0: No issues
-        // Exit 1: Warnings found
-        // Exit 2: Errors found
-        if result.has_errors() {
-            std::process::exit(2);
-        } else if result.has_warnings() {
-            std::process::exit(1);
+            Ok(())
         }
+        Err(e) => Err(Error::Internal(format!("Failed to apply fixes: {e}"))),
+    }
+}
+
+/// Display lint results and exit with the appropriate code.
+fn output_lint_results(
+    result: &crate::linter::LintResult,
+    format: LintFormat,
+    input: &Path,
+) -> Result<()> {
+    use crate::linter::output::write_results;
+
+    let output_format = convert_lint_format(format);
+    let file_path = input.to_str().unwrap_or("unknown");
+    write_results(&mut std::io::stdout(), result, output_format, file_path)
+        .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
+
+    // Exit with appropriate code (Issue #6)
+    // Exit 0: No issues
+    // Exit 1: Warnings found
+    // Exit 2: Errors found
+    if result.has_errors() {
+        std::process::exit(2);
+    } else if result.has_warnings() {
+        std::process::exit(1);
     }
 
     Ok(())
@@ -1315,40 +1388,31 @@ fn purify_command(
     use crate::bash_parser::codegen::generate_purified_bash;
     use crate::bash_parser::parser::BashParser;
     use crate::bash_transpiler::purification::{PurificationOptions, Purifier};
-    use crate::bash_transpiler::test_generator::{TestGenerator, TestGeneratorOptions};
     use std::time::Instant;
 
-    // Start timing
     let start = Instant::now();
 
-    // Read input bash script
     let read_start = Instant::now();
     let source = fs::read_to_string(input).map_err(Error::Io)?;
     let read_time = read_start.elapsed();
 
-    // Parse bash to AST
     let parse_start = Instant::now();
     let mut parser = BashParser::new(&source)
         .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
-    let ast = parser
-        .parse()
+    let ast = parser.parse()
         .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
     let parse_time = parse_start.elapsed();
 
-    // Purify the AST
     let purify_start = Instant::now();
     let mut purifier = Purifier::new(PurificationOptions::default());
-    let purified_ast = purifier
-        .purify(&ast)
+    let purified_ast = purifier.purify(&ast)
         .map_err(|e| Error::Internal(format!("Failed to purify bash: {e}")))?;
     let purify_time = purify_start.elapsed();
 
-    // Generate purified bash script
     let codegen_start = Instant::now();
     let purified_bash = generate_purified_bash(&purified_ast);
     let codegen_time = codegen_start.elapsed();
 
-    // Write output
     let write_start = Instant::now();
     if let Some(output_path) = output {
         fs::write(output_path, &purified_bash).map_err(Error::Io)?;
@@ -1360,89 +1424,76 @@ fn purify_command(
 
     let total_time = start.elapsed();
 
-    // Show transformation report if requested
     if report {
-        println!("\n=== Purification Report ===");
-        println!("Input: {}", input.display());
-        if let Some(output_path) = output {
-            println!("Output: {}", output_path.display());
-        }
-        println!(
-            "\nInput size: {} lines, {} bytes",
-            source.lines().count(),
-            source.len()
-        );
-        println!(
-            "Output size: {} lines, {} bytes",
-            purified_bash.lines().count(),
-            purified_bash.len()
-        );
-
-        println!("\nTransformations Applied:");
-        println!("- Shebang: #!/bin/bash → #!/bin/sh");
-        println!("- Determinism: Removed $RANDOM, timestamps");
-        println!("- Idempotency: mkdir → mkdir -p, rm → rm -f");
-        println!("- Safety: All variables quoted");
-
-        println!("\nPerformance:");
-        println!("  Read:     {:>8.2?}", read_time);
-        println!("  Parse:    {:>8.2?}", parse_time);
-        println!("  Purify:   {:>8.2?}", purify_time);
-        println!("  Codegen:  {:>8.2?}", codegen_time);
-        println!("  Write:    {:>8.2?}", write_time);
-        println!("  ─────────────────");
-        println!("  Total:    {:>8.2?}", total_time);
-
-        let throughput = (source.len() as f64) / total_time.as_secs_f64() / 1024.0 / 1024.0;
-        println!("\nThroughput: {:.2} MB/s", throughput);
+        purify_print_report(input, output, &source, &purified_bash, read_time, parse_time, purify_time, codegen_time, write_time, total_time);
     }
 
-    // Generate test suite if requested
     if with_tests {
-        if let Some(output_path) = output {
-            // Generate test file path: <script>_test.sh
-            let test_file_name = format!(
-                "{}_test.sh",
-                output_path
-                    .file_stem()
-                    .and_then(|s| s.to_str())
-                    .ok_or_else(|| Error::Internal("Invalid output file name".to_string()))?
-            );
-            let test_path = output_path
-                .parent()
-                .unwrap_or_else(|| Path::new("."))
-                .join(&test_file_name);
-
-            // Configure test generator
-            let test_options = TestGeneratorOptions {
-                property_tests,
-                property_test_count: 100,
-            };
-            let generator = TestGenerator::new(test_options);
-
-            // Generate tests
-            let tests = generator.generate_tests(output_path, &purified_bash);
-
-            // Write test file
-            fs::write(&test_path, tests).map_err(Error::Io)?;
-            info!("Test suite written to {}", test_path.display());
-
-            if report {
-                println!("\nTest Suite:");
-                println!("  Location: {}", test_path.display());
-                if property_tests {
-                    println!("  Property tests: Enabled (100 cases)");
-                } else {
-                    println!("  Property tests: Disabled");
-                }
-            }
-        } else {
-            return Err(Error::Validation(
-                "--with-tests requires -o flag to specify output file".to_string(),
-            ));
-        }
+        purify_generate_tests(output, &purified_bash, property_tests, report)?;
     }
 
+    Ok(())
+}
+
+fn purify_print_report(
+    input: &Path, output: Option<&Path>, source: &str, purified_bash: &str,
+    read_time: std::time::Duration, parse_time: std::time::Duration,
+    purify_time: std::time::Duration, codegen_time: std::time::Duration,
+    write_time: std::time::Duration, total_time: std::time::Duration,
+) {
+    println!("\n=== Purification Report ===");
+    println!("Input: {}", input.display());
+    if let Some(output_path) = output {
+        println!("Output: {}", output_path.display());
+    }
+    println!("\nInput size: {} lines, {} bytes", source.lines().count(), source.len());
+    println!("Output size: {} lines, {} bytes", purified_bash.lines().count(), purified_bash.len());
+
+    println!("\nTransformations Applied:");
+    println!("- Shebang: #!/bin/bash → #!/bin/sh");
+    println!("- Determinism: Removed $RANDOM, timestamps");
+    println!("- Idempotency: mkdir → mkdir -p, rm → rm -f");
+    println!("- Safety: All variables quoted");
+
+    println!("\nPerformance:");
+    println!("  Read:     {:>8.2?}", read_time);
+    println!("  Parse:    {:>8.2?}", parse_time);
+    println!("  Purify:   {:>8.2?}", purify_time);
+    println!("  Codegen:  {:>8.2?}", codegen_time);
+    println!("  Write:    {:>8.2?}", write_time);
+    println!("  ─────────────────");
+    println!("  Total:    {:>8.2?}", total_time);
+
+    let throughput = (source.len() as f64) / total_time.as_secs_f64() / 1024.0 / 1024.0;
+    println!("\nThroughput: {:.2} MB/s", throughput);
+}
+
+fn purify_generate_tests(output: Option<&Path>, purified_bash: &str, property_tests: bool, report: bool) -> Result<()> {
+    use crate::bash_transpiler::test_generator::{TestGenerator, TestGeneratorOptions};
+
+    let output_path = output.ok_or_else(|| {
+        Error::Validation("--with-tests requires -o flag to specify output file".to_string())
+    })?;
+
+    let test_file_name = format!(
+        "{}_test.sh",
+        output_path.file_stem().and_then(|s| s.to_str())
+            .ok_or_else(|| Error::Internal("Invalid output file name".to_string()))?
+    );
+    let test_path = output_path.parent().unwrap_or_else(|| Path::new(".")).join(&test_file_name);
+
+    let test_options = TestGeneratorOptions { property_tests, property_test_count: 100 };
+    let generator = TestGenerator::new(test_options);
+    let tests = generator.generate_tests(output_path, purified_bash);
+
+    fs::write(&test_path, tests).map_err(Error::Io)?;
+    info!("Test suite written to {}", test_path.display());
+
+    if report {
+        println!("\nTest Suite:");
+        println!("  Location: {}", test_path.display());
+        println!("  Property tests: {}", if property_tests { "Enabled (100 cases)" } else { "Disabled" });
+    }
     Ok(())
 }
 
@@ -1624,92 +1675,89 @@ fn handle_dockerfile_command(command: DockerfileCommands) -> Result<()> {
 }
 
 fn handle_devcontainer_command(command: DevContainerCommands) -> Result<()> {
+    match command {
+        DevContainerCommands::Validate {
+            path, format, lint_dockerfile, list_rules,
+        } => devcontainer_validate(&path, format, lint_dockerfile, list_rules),
+    }
+}
+
+fn devcontainer_validate(path: &Path, format: LintFormat, lint_dockerfile: bool, list_rules: bool) -> Result<()> {
     use crate::linter::output::{write_results, OutputFormat};
     use crate::linter::rules::devcontainer::{list_devcontainer_rules, validate_devcontainer};
 
-    match command {
-        DevContainerCommands::Validate {
-            path,
-            format,
-            lint_dockerfile,
-            list_rules,
-        } => {
-            // Handle --list-rules flag
-            if list_rules {
-                println!("Available DEVCONTAINER rules:\n");
-                for (code, desc) in list_devcontainer_rules() {
-                    println!("  {}: {}", code, desc);
-                }
-                return Ok(());
-            }
-
-            info!("Validating devcontainer at {}", path.display());
-
-            // Find devcontainer.json file
-            let devcontainer_path = logic_find_devcontainer_json(&path)?;
-            info!("Found devcontainer.json at {}", devcontainer_path.display());
-
-            // Read and validate devcontainer.json
-            let content = fs::read_to_string(&devcontainer_path).map_err(Error::Io)?;
-            let result = validate_devcontainer(&content)
-                .map_err(|e| Error::Validation(format!("Invalid devcontainer.json: {}", e)))?;
-
-            // Output results
-            let output_format = match format {
-                LintFormat::Human => OutputFormat::Human,
-                LintFormat::Json => OutputFormat::Json,
-                LintFormat::Sarif => OutputFormat::Sarif,
-            };
-
-            let mut stdout = std::io::stdout();
-            write_results(
-                &mut stdout,
-                &result,
-                output_format,
-                devcontainer_path.to_str().unwrap_or("devcontainer.json"),
-            )
-            .map_err(Error::Io)?;
-
-            // Optionally lint referenced Dockerfile
-            if lint_dockerfile {
-                if let Ok(json) = crate::linter::rules::devcontainer::parse_jsonc(&content) {
-                    if let Some(build) = json.get("build") {
-                        if let Some(dockerfile) = build.get("dockerfile").and_then(|v| v.as_str()) {
-                            let dockerfile_path = devcontainer_path
-                                .parent()
-                                .unwrap_or(Path::new("."))
-                                .join(dockerfile);
-                            if dockerfile_path.exists() {
-                                info!(
-                                    "Linting referenced Dockerfile: {}",
-                                    dockerfile_path.display()
-                                );
-                                dockerfile_lint_command(&dockerfile_path, format, None)?;
-                            } else {
-                                warn!(
-                                    "Referenced Dockerfile not found: {}",
-                                    dockerfile_path.display()
-                                );
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Return error if there are errors
-            let has_errors = result
-                .diagnostics
-                .iter()
-                .any(|d| d.severity == crate::linter::Severity::Error);
-            if has_errors {
-                Err(Error::Validation(
-                    "devcontainer.json validation failed".to_string(),
-                ))
-            } else {
-                Ok(())
-            }
+    if list_rules {
+        println!("Available DEVCONTAINER rules:\n");
+        for (code, desc) in list_devcontainer_rules() {
+            println!("  {}: {}", code, desc);
         }
+        return Ok(());
     }
+
+    info!("Validating devcontainer at {}", path.display());
+    let devcontainer_path = logic_find_devcontainer_json(path)?;
+    info!("Found devcontainer.json at {}", devcontainer_path.display());
+
+    let content = fs::read_to_string(&devcontainer_path).map_err(Error::Io)?;
+    let result = validate_devcontainer(&content)
+        .map_err(|e| Error::Validation(format!("Invalid devcontainer.json: {}", e)))?;
+
+    let output_format = match format {
+        LintFormat::Human => OutputFormat::Human,
+        LintFormat::Json => OutputFormat::Json,
+        LintFormat::Sarif => OutputFormat::Sarif,
+    };
+
+    let mut stdout = std::io::stdout();
+    write_results(&mut stdout, &result, output_format, devcontainer_path.to_str().unwrap_or("devcontainer.json"))
+        .map_err(Error::Io)?;
+
+    if lint_dockerfile {
+        lint_referenced_dockerfile(&content, &devcontainer_path, format)?;
+    }
+
+    let has_errors = result.diagnostics.iter().any(|d| d.severity == crate::linter::Severity::Error);
+    if has_errors {
+        Err(Error::Validation("devcontainer.json validation failed".to_string()))
+    } else {
+        Ok(())
+    }
+}
+
+/// Lint the Dockerfile referenced in a devcontainer.json build section
+fn lint_referenced_dockerfile(
+    content: &str,
+    devcontainer_path: &Path,
+    format: LintFormat,
+) -> Result<()> {
+    let json = match crate::linter::rules::devcontainer::parse_jsonc(content) {
+        Ok(j) => j,
+        Err(_) => return Ok(()),
+    };
+
+    let dockerfile = json
+        .get("build")
+        .and_then(|b| b.get("dockerfile"))
+        .and_then(|v| v.as_str());
+
+    let dockerfile = match dockerfile {
+        Some(d) => d,
+        None => return Ok(()),
+    };
+
+    let dockerfile_path = devcontainer_path
+        .parent()
+        .unwrap_or(Path::new("."))
+        .join(dockerfile);
+
+    if dockerfile_path.exists() {
+        info!("Linting referenced Dockerfile: {}", dockerfile_path.display());
+        dockerfile_lint_command(&dockerfile_path, format, None)?;
+    } else {
+        warn!("Referenced Dockerfile not found: {}", dockerfile_path.display());
+    }
+
+    Ok(())
 }
 
 struct DockerfilePurifyOptions<'a> {
@@ -1935,158 +1983,193 @@ fn dockerfile_profile_command(
     format: ReportFormat,
 ) -> Result<()> {
     use crate::linter::docker_profiler::{
-        estimate_size, format_size_estimate, is_docker_available, PlatformProfile,
+        estimate_size, is_docker_available, PlatformProfile,
     };
 
     info!("Profiling {} for runtime performance", input.display());
 
-    // Check if Docker is available
     if !is_docker_available() {
-        println!("⚠️  Docker daemon not available");
+        println!("\u{26a0}\u{fe0f}  Docker daemon not available");
         println!("Runtime profiling requires Docker. Falling back to static analysis.\n");
     }
 
     let source = fs::read_to_string(input).map_err(Error::Io)?;
 
-    // Determine platform profile
     let platform = match profile {
         Some(LintProfileArg::Coursera) => PlatformProfile::Coursera,
         _ => PlatformProfile::Standard,
     };
 
-    // Static analysis: size estimation
     let estimate = estimate_size(&source);
 
-    // Output profile information
     match format {
         ReportFormat::Human => {
-            println!("Docker Image Profile");
-            println!("====================\n");
-
-            // Build profiling (simulated without Docker)
-            if build || full {
-                println!("Build Analysis:");
-                println!("  Layers: {}", estimate.layer_estimates.len());
-                println!(
-                    "  Estimated build time: {} (based on layer complexity)",
-                    estimate_build_time(&estimate)
-                );
-
-                if layers {
-                    println!("\n  Layer Details:");
-                    for layer in &estimate.layer_estimates {
-                        let cached = if layer.cached { " (cached)" } else { "" };
-                        println!(
-                            "    [{}] {}{} - line {}",
-                            layer.layer_num, layer.instruction, cached, layer.line
-                        );
-                        if let Some(ref notes) = layer.notes {
-                            println!("        {}", notes);
-                        }
-                    }
-                }
-                println!();
-            }
-
-            // Size analysis
-            println!("{}", format_size_estimate(&estimate, layers));
-
-            // Startup analysis
-            if startup || full {
-                println!("Startup Analysis:");
-                println!("  Requires Docker daemon for actual measurement");
-                if platform == PlatformProfile::Coursera {
-                    println!("  Coursera limit: 60 seconds");
-                    println!("  Recommendation: Target <30s startup time");
-                }
-                println!();
-            }
-
-            // Memory analysis
-            if memory || full {
-                println!("Memory Analysis:");
-                println!("  Requires Docker daemon for actual measurement");
-                if platform == PlatformProfile::Coursera {
-                    println!("  Coursera limit: 4GB");
-                }
-                println!();
-            }
-
-            // CPU analysis
-            if cpu || full {
-                println!("CPU Analysis:");
-                println!("  Requires Docker daemon for actual measurement");
-                if platform == PlatformProfile::Coursera {
-                    println!("  Coursera limit: 2 CPUs");
-                }
-                println!();
-            }
-
-            // Platform validation
-            if platform == PlatformProfile::Coursera {
-                println!("Coursera Platform Validation:");
-                let max_size_gb = platform.max_size_bytes() as f64 / 1_000_000_000.0;
-                let estimated_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
-                let size_ok = estimate.total_estimated < platform.max_size_bytes();
-                let size_icon = if size_ok { "✓" } else { "✗" };
-
-                println!(
-                    "  {} Image size: {:.2}GB (limit: {:.0}GB)",
-                    size_icon, estimated_gb, max_size_gb
-                );
-
-                if simulate_limits {
-                    println!("\n  Simulation flags for docker run:");
-                    println!("    --memory=4g --cpus=2");
-                }
-                println!();
-            }
+            docker_profile_human(input, &estimate, platform, build, layers, startup, memory, cpu, simulate_limits, full);
         }
-        ReportFormat::Json => {
-            let json = serde_json::json!({
-                "file": input.display().to_string(),
-                "profile": format!("{:?}", platform),
-                "build": {
-                    "layers": estimate.layer_estimates.len(),
-                    "estimated_build_time": estimate_build_time(&estimate),
-                },
-                "size": {
-                    "base_image": estimate.base_image,
-                    "base_image_bytes": estimate.base_image_size,
-                    "total_estimated_bytes": estimate.total_estimated,
-                    "bloat_patterns": estimate.bloat_patterns.len(),
-                },
-                "docker_available": is_docker_available(),
-                "platform_limits": {
-                    "max_size_bytes": platform.max_size_bytes(),
-                    "max_memory_bytes": platform.max_memory_bytes(),
-                    "max_startup_ms": platform.max_startup_ms(),
-                }
-            });
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&json).unwrap_or_default()
-            );
-        }
-        ReportFormat::Markdown => {
-            println!("# Docker Image Profile\n");
-            println!("**File**: {}\n", input.display());
-            println!("## Build Analysis\n");
-            println!("- **Layers**: {}", estimate.layer_estimates.len());
-            println!(
-                "- **Estimated build time**: {}\n",
-                estimate_build_time(&estimate)
-            );
-            println!("## Size Analysis\n");
-            println!("- **Base image**: {}", estimate.base_image);
-            println!(
-                "- **Estimated total**: {:.2}GB\n",
-                estimate.total_estimated as f64 / 1_000_000_000.0
-            );
-        }
+        ReportFormat::Json => docker_profile_json(input, &estimate, platform),
+        ReportFormat::Markdown => docker_profile_markdown(input, &estimate),
     }
 
     Ok(())
+}
+
+fn docker_profile_human(
+    _input: &Path,
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+    platform: crate::linter::docker_profiler::PlatformProfile,
+    build: bool,
+    layers: bool,
+    startup: bool,
+    memory: bool,
+    cpu: bool,
+    simulate_limits: bool,
+    full: bool,
+) {
+    use crate::linter::docker_profiler::{format_size_estimate, PlatformProfile};
+
+    println!("Docker Image Profile");
+    println!("====================\n");
+
+    if build || full {
+        docker_profile_build_section(estimate, layers);
+    }
+
+    println!("{}", format_size_estimate(estimate, layers));
+
+    if startup || full {
+        println!("Startup Analysis:");
+        println!("  Requires Docker daemon for actual measurement");
+        if platform == PlatformProfile::Coursera {
+            println!("  Coursera limit: 60 seconds");
+            println!("  Recommendation: Target <30s startup time");
+        }
+        println!();
+    }
+
+    if memory || full {
+        println!("Memory Analysis:");
+        println!("  Requires Docker daemon for actual measurement");
+        if platform == PlatformProfile::Coursera {
+            println!("  Coursera limit: 4GB");
+        }
+        println!();
+    }
+
+    if cpu || full {
+        println!("CPU Analysis:");
+        println!("  Requires Docker daemon for actual measurement");
+        if platform == PlatformProfile::Coursera {
+            println!("  Coursera limit: 2 CPUs");
+        }
+        println!();
+    }
+
+    if platform == PlatformProfile::Coursera {
+        docker_profile_coursera_validation(estimate, &platform, simulate_limits);
+    }
+}
+
+fn docker_profile_build_section(
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+    layers: bool,
+) {
+    println!("Build Analysis:");
+    println!("  Layers: {}", estimate.layer_estimates.len());
+    println!(
+        "  Estimated build time: {} (based on layer complexity)",
+        estimate_build_time(estimate)
+    );
+
+    if layers {
+        println!("\n  Layer Details:");
+        for layer in &estimate.layer_estimates {
+            let cached = if layer.cached { " (cached)" } else { "" };
+            println!(
+                "    [{}] {}{} - line {}",
+                layer.layer_num, layer.instruction, cached, layer.line
+            );
+            if let Some(ref notes) = layer.notes {
+                println!("        {}", notes);
+            }
+        }
+    }
+    println!();
+}
+
+fn docker_profile_coursera_validation(
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+    platform: &crate::linter::docker_profiler::PlatformProfile,
+    simulate_limits: bool,
+) {
+    println!("Coursera Platform Validation:");
+    let max_size_gb = platform.max_size_bytes() as f64 / 1_000_000_000.0;
+    let estimated_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
+    let size_ok = estimate.total_estimated < platform.max_size_bytes();
+    let size_icon = if size_ok { "\u{2713}" } else { "\u{2717}" };
+
+    println!(
+        "  {} Image size: {:.2}GB (limit: {:.0}GB)",
+        size_icon, estimated_gb, max_size_gb
+    );
+
+    if simulate_limits {
+        println!("\n  Simulation flags for docker run:");
+        println!("    --memory=4g --cpus=2");
+    }
+    println!();
+}
+
+fn docker_profile_json(
+    input: &Path,
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+    platform: crate::linter::docker_profiler::PlatformProfile,
+) {
+    use crate::linter::docker_profiler::is_docker_available;
+
+    let json = serde_json::json!({
+        "file": input.display().to_string(),
+        "profile": format!("{:?}", platform),
+        "build": {
+            "layers": estimate.layer_estimates.len(),
+            "estimated_build_time": estimate_build_time(estimate),
+        },
+        "size": {
+            "base_image": estimate.base_image,
+            "base_image_bytes": estimate.base_image_size,
+            "total_estimated_bytes": estimate.total_estimated,
+            "bloat_patterns": estimate.bloat_patterns.len(),
+        },
+        "docker_available": is_docker_available(),
+        "platform_limits": {
+            "max_size_bytes": platform.max_size_bytes(),
+            "max_memory_bytes": platform.max_memory_bytes(),
+            "max_startup_ms": platform.max_startup_ms(),
+        }
+    });
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&json).unwrap_or_default()
+    );
+}
+
+fn docker_profile_markdown(
+    input: &Path,
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+) {
+    println!("# Docker Image Profile\n");
+    println!("**File**: {}\n", input.display());
+    println!("## Build Analysis\n");
+    println!("- **Layers**: {}", estimate.layer_estimates.len());
+    println!(
+        "- **Estimated build time**: {}\n",
+        estimate_build_time(estimate)
+    );
+    println!("## Size Analysis\n");
+    println!("- **Base image**: {}", estimate.base_image);
+    println!(
+        "- **Estimated total**: {:.2}GB\n",
+        estimate.total_estimated as f64 / 1_000_000_000.0
+    );
 }
 
 /// Estimate build time based on layer complexity
@@ -2136,8 +2219,7 @@ fn dockerfile_size_check_command(
     format: ReportFormat,
 ) -> Result<()> {
     use crate::linter::docker_profiler::{
-        estimate_size, format_size_estimate, format_size_estimate_json, is_docker_available,
-        PlatformProfile,
+        estimate_size, format_size_estimate_json, PlatformProfile,
     };
 
     info!("Checking size of {}", input.display());
@@ -2145,122 +2227,130 @@ fn dockerfile_size_check_command(
     let source = fs::read_to_string(input).map_err(Error::Io)?;
     let estimate = estimate_size(&source);
 
-    // Determine platform profile and custom limits
     let platform = match profile {
         Some(LintProfileArg::Coursera) => PlatformProfile::Coursera,
         _ => PlatformProfile::Standard,
     };
 
-    // Parse custom max size if specified
-    let custom_limit: Option<u64> = max_size.and_then(|s| {
-        let s = s.to_uppercase();
-        if s.ends_with("GB") {
-            s[..s.len() - 2]
-                .trim()
-                .parse::<f64>()
-                .ok()
-                .map(|n| (n * 1_000_000_000.0) as u64)
-        } else if s.ends_with("MB") {
-            s[..s.len() - 2]
-                .trim()
-                .parse::<f64>()
-                .ok()
-                .map(|n| (n * 1_000_000.0) as u64)
-        } else {
-            None
-        }
-    });
+    let custom_limit = parse_size_limit(max_size);
 
     match format {
         ReportFormat::Human => {
-            // Show size estimate
-            println!("{}", format_size_estimate(&estimate, verbose || layers));
-
-            // Show bloat patterns if requested
-            if detect_bloat && !estimate.bloat_patterns.is_empty() {
-                println!("Bloat Detection Results:");
-                for pattern in &estimate.bloat_patterns {
-                    println!(
-                        "  {} [line {}]: {}",
-                        pattern.code, pattern.line, pattern.description
-                    );
-                    println!("    Wasted: ~{}MB", pattern.wasted_bytes / 1_000_000);
-                    println!("    Fix: {}", pattern.remediation);
-                    println!();
-                }
-            }
-
-            // Docker verification
-            if (verify || docker_verify) && is_docker_available() {
-                println!("Docker Verification:");
-                // Would need to build and check - placeholder
-                println!("  Requires docker build to verify actual size\n");
-            }
-
-            // Compression analysis
-            if compression_analysis {
-                println!("Compression Opportunities:");
-                println!("  - Use multi-stage builds to reduce final image size");
-                println!("  - Compress large data files with gzip (~70% reduction)");
-                println!("  - Use .dockerignore to exclude unnecessary files\n");
-            }
-
-            // Platform limit check
-            let effective_limit = custom_limit.unwrap_or(platform.max_size_bytes());
-            if effective_limit != u64::MAX {
-                let limit_gb = effective_limit as f64 / 1_000_000_000.0;
-                let estimated_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
-
-                println!("Size Limit Check:");
-                if estimate.total_estimated > effective_limit {
-                    println!(
-                        "  ✗ EXCEEDS LIMIT: {:.2}GB > {:.0}GB",
-                        estimated_gb, limit_gb
-                    );
-                    if strict {
-                        return Err(Error::Validation(format!(
-                            "Image size ({:.2}GB) exceeds limit ({:.0}GB)",
-                            estimated_gb, limit_gb
-                        )));
-                    }
-                } else {
-                    let percentage =
-                        (estimate.total_estimated as f64 / effective_limit as f64) * 100.0;
-                    println!(
-                        "  ✓ Within limit: {:.2}GB / {:.0}GB ({:.0}%)",
-                        estimated_gb, limit_gb, percentage
-                    );
-                }
-                println!();
-            }
+            size_check_human_output(
+                &estimate, &platform, custom_limit, verbose, layers,
+                detect_bloat, verify, docker_verify, compression_analysis, strict,
+            )
         }
         ReportFormat::Json => {
             println!("{}", format_size_estimate_json(&estimate));
+            Ok(())
         }
         ReportFormat::Markdown => {
-            println!("# Image Size Analysis\n");
-            println!("**File**: {}\n", input.display());
-            println!("## Summary\n");
-            println!("- **Base image**: {}", estimate.base_image);
-            println!(
-                "- **Estimated total**: {:.2}GB\n",
-                estimate.total_estimated as f64 / 1_000_000_000.0
-            );
+            size_check_markdown_output(input, &estimate);
+            Ok(())
+        }
+    }
+}
 
-            if !estimate.bloat_patterns.is_empty() {
-                println!("## Bloat Patterns\n");
-                for pattern in &estimate.bloat_patterns {
-                    println!(
-                        "- **{}** (line {}): {}",
-                        pattern.code, pattern.line, pattern.description
-                    );
-                }
-                println!();
-            }
+fn parse_size_limit(max_size: Option<&str>) -> Option<u64> {
+    max_size.and_then(|s| {
+        let s = s.to_uppercase();
+        if s.ends_with("GB") {
+            s[..s.len() - 2].trim().parse::<f64>().ok().map(|n| (n * 1_000_000_000.0) as u64)
+        } else if s.ends_with("MB") {
+            s[..s.len() - 2].trim().parse::<f64>().ok().map(|n| (n * 1_000_000.0) as u64)
+        } else {
+            None
+        }
+    })
+}
+
+fn size_check_human_output(
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+    platform: &crate::linter::docker_profiler::PlatformProfile,
+    custom_limit: Option<u64>,
+    verbose: bool,
+    layers: bool,
+    detect_bloat: bool,
+    verify: bool,
+    docker_verify: bool,
+    compression_analysis: bool,
+    strict: bool,
+) -> Result<()> {
+    use crate::linter::docker_profiler::{format_size_estimate, is_docker_available};
+
+    println!("{}", format_size_estimate(estimate, verbose || layers));
+
+    if detect_bloat && !estimate.bloat_patterns.is_empty() {
+        println!("Bloat Detection Results:");
+        for pattern in &estimate.bloat_patterns {
+            println!("  {} [line {}]: {}", pattern.code, pattern.line, pattern.description);
+            println!("    Wasted: ~{}MB", pattern.wasted_bytes / 1_000_000);
+            println!("    Fix: {}", pattern.remediation);
+            println!();
         }
     }
 
+    if (verify || docker_verify) && is_docker_available() {
+        println!("Docker Verification:");
+        println!("  Requires docker build to verify actual size\n");
+    }
+
+    if compression_analysis {
+        println!("Compression Opportunities:");
+        println!("  - Use multi-stage builds to reduce final image size");
+        println!("  - Compress large data files with gzip (~70% reduction)");
+        println!("  - Use .dockerignore to exclude unnecessary files\n");
+    }
+
+    size_check_limit_check(estimate, platform, custom_limit, strict)
+}
+
+fn size_check_limit_check(
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+    platform: &crate::linter::docker_profiler::PlatformProfile,
+    custom_limit: Option<u64>,
+    strict: bool,
+) -> Result<()> {
+    let effective_limit = custom_limit.unwrap_or(platform.max_size_bytes());
+    if effective_limit == u64::MAX { return Ok(()); }
+
+    let limit_gb = effective_limit as f64 / 1_000_000_000.0;
+    let estimated_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
+
+    println!("Size Limit Check:");
+    if estimate.total_estimated > effective_limit {
+        println!("  \u{2717} EXCEEDS LIMIT: {:.2}GB > {:.0}GB", estimated_gb, limit_gb);
+        if strict {
+            return Err(Error::Validation(format!(
+                "Image size ({:.2}GB) exceeds limit ({:.0}GB)", estimated_gb, limit_gb
+            )));
+        }
+    } else {
+        let percentage = (estimate.total_estimated as f64 / effective_limit as f64) * 100.0;
+        println!("  \u{2713} Within limit: {:.2}GB / {:.0}GB ({:.0}%)", estimated_gb, limit_gb, percentage);
+    }
+    println!();
     Ok(())
+}
+
+fn size_check_markdown_output(
+    input: &Path,
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+) {
+    println!("# Image Size Analysis\n");
+    println!("**File**: {}\n", input.display());
+    println!("## Summary\n");
+    println!("- **Base image**: {}", estimate.base_image);
+    println!("- **Estimated total**: {:.2}GB\n", estimate.total_estimated as f64 / 1_000_000_000.0);
+
+    if !estimate.bloat_patterns.is_empty() {
+        println!("## Bloat Patterns\n");
+        for pattern in &estimate.bloat_patterns {
+            println!("- **{}** (line {}): {}", pattern.code, pattern.line, pattern.description);
+        }
+        println!();
+    }
 }
 
 fn dockerfile_full_validate_command(
@@ -2272,15 +2362,13 @@ fn dockerfile_full_validate_command(
     strict: bool,
     format: ReportFormat,
 ) -> Result<()> {
-    use crate::linter::docker_profiler::{estimate_size, is_docker_available, PlatformProfile};
-    use crate::linter::rules::{lint_dockerfile_with_profile, LintProfile};
+    use crate::linter::rules::LintProfile;
+    use crate::linter::docker_profiler::PlatformProfile;
 
     info!("Full validation of {}", input.display());
 
     let source = fs::read_to_string(input).map_err(Error::Io)?;
-    let mut all_passed = true;
 
-    // Determine profiles
     let lint_profile = match profile {
         Some(LintProfileArg::Coursera) => LintProfile::Coursera,
         Some(LintProfileArg::DevContainer) => LintProfile::DevContainer,
@@ -2294,176 +2382,201 @@ fn dockerfile_full_validate_command(
 
     match format {
         ReportFormat::Human => {
-            println!("Full Dockerfile Validation");
-            println!("==========================\n");
-
-            // Step 1: Syntax and lint validation
-            println!("1. Linting Dockerfile...");
-            let lint_result = lint_dockerfile_with_profile(&source, lint_profile);
-
-            let error_count = lint_result
-                .diagnostics
-                .iter()
-                .filter(|d| d.severity == crate::linter::Severity::Error)
-                .count();
-            let warning_count = lint_result
-                .diagnostics
-                .iter()
-                .filter(|d| d.severity == crate::linter::Severity::Warning)
-                .count();
-
-            if error_count == 0 && warning_count == 0 {
-                println!("   ✓ No lint issues found\n");
-            } else {
-                println!("   {} errors, {} warnings\n", error_count, warning_count);
-                for diag in &lint_result.diagnostics {
-                    let icon = match diag.severity {
-                        crate::linter::Severity::Error => "✗",
-                        crate::linter::Severity::Warning => "⚠",
-                        _ => "ℹ",
-                    };
-                    println!(
-                        "   {} [{}] Line {}: {}",
-                        icon, diag.code, diag.span.start_line, diag.message
-                    );
-                }
-                println!();
-                if error_count > 0 {
-                    all_passed = false;
-                }
-            }
-
-            // Step 2: Size validation
-            if size_check {
-                println!("2. Checking image size...");
-                let estimate = estimate_size(&source);
-
-                let size_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
-                let limit_gb = platform_profile.max_size_bytes() as f64 / 1_000_000_000.0;
-
-                if estimate.total_estimated < platform_profile.max_size_bytes() {
-                    println!(
-                        "   ✓ Size OK: {:.2}GB (limit: {:.0}GB)\n",
-                        size_gb, limit_gb
-                    );
-                } else {
-                    println!(
-                        "   ✗ Size exceeds limit: {:.2}GB > {:.0}GB\n",
-                        size_gb, limit_gb
-                    );
-                    all_passed = false;
-                }
-
-                // Show bloat patterns
-                if !estimate.bloat_patterns.is_empty() {
-                    println!("   Optimization opportunities:");
-                    for pattern in &estimate.bloat_patterns {
-                        println!("   - {}: {}", pattern.code, pattern.description);
-                    }
-                    println!();
-                }
-            }
-
-            // Step 3: Runtime validation (requires Docker)
-            if runtime {
-                println!("3. Runtime validation...");
-                if is_docker_available() {
-                    println!("   Requires docker build - skipping in static analysis mode\n");
-                } else {
-                    println!("   ⚠ Docker not available - skipping runtime checks\n");
-                }
-            }
-
-            // Summary
-            println!("Validation Result:");
-            if all_passed {
-                println!("✓ All checks passed");
-                if lint_profile == LintProfile::Coursera {
-                    println!("✓ Ready for Coursera Labs upload");
-                }
-            } else {
-                println!("✗ Validation failed - see issues above");
-                if strict {
-                    return Err(Error::Validation("Full validation failed".to_string()));
-                }
-            }
+            dockerfile_full_validate_human(
+                &source, lint_profile, platform_profile, size_check, runtime, strict,
+            )
         }
         ReportFormat::Json => {
-            let lint_result = lint_dockerfile_with_profile(&source, lint_profile);
-            let estimate = estimate_size(&source);
-
-            let json = serde_json::json!({
-                "file": input.display().to_string(),
-                "profile": format!("{:?}", lint_profile),
-                "lint": {
-                    "errors": lint_result.diagnostics.iter()
-                        .filter(|d| d.severity == crate::linter::Severity::Error).count(),
-                    "warnings": lint_result.diagnostics.iter()
-                        .filter(|d| d.severity == crate::linter::Severity::Warning).count(),
-                    "diagnostics": lint_result.diagnostics.iter().map(|d| {
-                        serde_json::json!({
-                            "code": d.code,
-                            "severity": format!("{:?}", d.severity),
-                            "message": d.message,
-                            "line": d.span.start_line
-                        })
-                    }).collect::<Vec<_>>()
-                },
-                "size": {
-                    "estimated_bytes": estimate.total_estimated,
-                    "estimated_gb": estimate.total_estimated as f64 / 1_000_000_000.0,
-                    "limit_bytes": platform_profile.max_size_bytes(),
-                    "within_limit": estimate.total_estimated < platform_profile.max_size_bytes(),
-                    "bloat_patterns": estimate.bloat_patterns.len()
-                },
-                "passed": all_passed
-            });
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&json).unwrap_or_default()
-            );
+            dockerfile_full_validate_json(input, &source, lint_profile, platform_profile);
+            Ok(())
         }
         ReportFormat::Markdown => {
-            println!("# Full Dockerfile Validation\n");
-            println!("**File**: {}\n", input.display());
-
-            let lint_result = lint_dockerfile_with_profile(&source, lint_profile);
-            let error_count = lint_result
-                .diagnostics
-                .iter()
-                .filter(|d| d.severity == crate::linter::Severity::Error)
-                .count();
-
-            println!("## Lint Results\n");
-            println!("- **Errors**: {}", error_count);
-            println!(
-                "- **Warnings**: {}\n",
-                lint_result
-                    .diagnostics
-                    .iter()
-                    .filter(|d| d.severity == crate::linter::Severity::Warning)
-                    .count()
-            );
-
-            if size_check {
-                let estimate = estimate_size(&source);
-                println!("## Size Analysis\n");
-                println!(
-                    "- **Estimated size**: {:.2}GB\n",
-                    estimate.total_estimated as f64 / 1_000_000_000.0
-                );
-            }
-
-            println!("## Result\n");
-            if error_count == 0 {
-                println!("✓ **PASSED**");
-            } else {
-                println!("✗ **FAILED**");
-            }
+            dockerfile_full_validate_markdown(input, &source, lint_profile, size_check);
+            Ok(())
         }
     }
+}
 
+fn dockerfile_full_validate_human(
+    source: &str,
+    lint_profile: crate::linter::rules::LintProfile,
+    platform_profile: crate::linter::docker_profiler::PlatformProfile,
+    size_check: bool,
+    runtime: bool,
+    strict: bool,
+) -> Result<()> {
+    println!("Full Dockerfile Validation");
+    println!("==========================\n");
+
+    let mut all_passed = true;
+
+    let lint_passed = dockerfile_validate_lint_step(source, lint_profile);
+    if !lint_passed { all_passed = false; }
+
+    if size_check {
+        let size_passed = dockerfile_validate_size_step(source, platform_profile);
+        if !size_passed { all_passed = false; }
+    }
+
+    if runtime {
+        dockerfile_validate_runtime_step();
+    }
+
+    dockerfile_validate_summary(all_passed, lint_profile, strict)
+}
+
+fn dockerfile_validate_lint_step(source: &str, lint_profile: crate::linter::rules::LintProfile) -> bool {
+    use crate::linter::rules::lint_dockerfile_with_profile;
+
+    println!("1. Linting Dockerfile...");
+    let lint_result = lint_dockerfile_with_profile(source, lint_profile);
+    let error_count = lint_result.diagnostics.iter()
+        .filter(|d| d.severity == crate::linter::Severity::Error).count();
+    let warning_count = lint_result.diagnostics.iter()
+        .filter(|d| d.severity == crate::linter::Severity::Warning).count();
+
+    if error_count == 0 && warning_count == 0 {
+        println!("   \u{2713} No lint issues found\n");
+        return true;
+    }
+
+    println!("   {} errors, {} warnings\n", error_count, warning_count);
+    for diag in &lint_result.diagnostics {
+        let icon = match diag.severity {
+            crate::linter::Severity::Error => "\u{2717}",
+            crate::linter::Severity::Warning => "\u{26a0}",
+            _ => "\u{2139}",
+        };
+        println!("   {} [{}] Line {}: {}", icon, diag.code, diag.span.start_line, diag.message);
+    }
+    println!();
+    error_count == 0
+}
+
+fn dockerfile_validate_size_step(source: &str, platform_profile: crate::linter::docker_profiler::PlatformProfile) -> bool {
+    use crate::linter::docker_profiler::estimate_size;
+
+    println!("2. Checking image size...");
+    let estimate = estimate_size(source);
+    let size_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
+    let limit_gb = platform_profile.max_size_bytes() as f64 / 1_000_000_000.0;
+
+    let passed = estimate.total_estimated < platform_profile.max_size_bytes();
+    if passed {
+        println!("   \u{2713} Size OK: {:.2}GB (limit: {:.0}GB)\n", size_gb, limit_gb);
+    } else {
+        println!("   \u{2717} Size exceeds limit: {:.2}GB > {:.0}GB\n", size_gb, limit_gb);
+    }
+    for pattern in &estimate.bloat_patterns {
+        println!("   - {}: {}", pattern.code, pattern.description);
+    }
+    if !estimate.bloat_patterns.is_empty() { println!(); }
+    passed
+}
+
+fn dockerfile_validate_runtime_step() {
+    use crate::linter::docker_profiler::is_docker_available;
+
+    println!("3. Runtime validation...");
+    if is_docker_available() {
+        println!("   Requires docker build - skipping in static analysis mode\n");
+    } else {
+        println!("   \u{26a0} Docker not available - skipping runtime checks\n");
+    }
+}
+
+fn dockerfile_validate_summary(all_passed: bool, lint_profile: crate::linter::rules::LintProfile, strict: bool) -> Result<()> {
+    println!("Validation Result:");
+    if all_passed {
+        println!("\u{2713} All checks passed");
+        if lint_profile == crate::linter::rules::LintProfile::Coursera {
+            println!("\u{2713} Ready for Coursera Labs upload");
+        }
+    } else {
+        println!("\u{2717} Validation failed - see issues above");
+        if strict {
+            return Err(Error::Validation("Full validation failed".to_string()));
+        }
+    }
     Ok(())
+}
+
+fn dockerfile_full_validate_json(
+    input: &Path,
+    source: &str,
+    lint_profile: crate::linter::rules::LintProfile,
+    platform_profile: crate::linter::docker_profiler::PlatformProfile,
+) {
+    use crate::linter::docker_profiler::estimate_size;
+    use crate::linter::rules::lint_dockerfile_with_profile;
+
+    let lint_result = lint_dockerfile_with_profile(source, lint_profile);
+    let estimate = estimate_size(source);
+
+    let json = serde_json::json!({
+        "file": input.display().to_string(),
+        "profile": format!("{:?}", lint_profile),
+        "lint": {
+            "errors": lint_result.diagnostics.iter()
+                .filter(|d| d.severity == crate::linter::Severity::Error).count(),
+            "warnings": lint_result.diagnostics.iter()
+                .filter(|d| d.severity == crate::linter::Severity::Warning).count(),
+            "diagnostics": lint_result.diagnostics.iter().map(|d| {
+                serde_json::json!({
+                    "code": d.code,
+                    "severity": format!("{:?}", d.severity),
+                    "message": d.message,
+                    "line": d.span.start_line
+                })
+            }).collect::<Vec<_>>()
+        },
+        "size": {
+            "estimated_bytes": estimate.total_estimated,
+            "estimated_gb": estimate.total_estimated as f64 / 1_000_000_000.0,
+            "limit_bytes": platform_profile.max_size_bytes(),
+            "within_limit": estimate.total_estimated < platform_profile.max_size_bytes(),
+            "bloat_patterns": estimate.bloat_patterns.len()
+        },
+        "passed": true
+    });
+    println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
+}
+
+fn dockerfile_full_validate_markdown(
+    input: &Path,
+    source: &str,
+    lint_profile: crate::linter::rules::LintProfile,
+    size_check: bool,
+) {
+    use crate::linter::docker_profiler::estimate_size;
+    use crate::linter::rules::lint_dockerfile_with_profile;
+
+    println!("# Full Dockerfile Validation\n");
+    println!("**File**: {}\n", input.display());
+
+    let lint_result = lint_dockerfile_with_profile(source, lint_profile);
+    let error_count = lint_result.diagnostics.iter()
+        .filter(|d| d.severity == crate::linter::Severity::Error).count();
+
+    println!("## Lint Results\n");
+    println!("- **Errors**: {}", error_count);
+    println!("- **Warnings**: {}\n",
+        lint_result.diagnostics.iter()
+            .filter(|d| d.severity == crate::linter::Severity::Warning).count()
+    );
+
+    if size_check {
+        let estimate = estimate_size(source);
+        println!("## Size Analysis\n");
+        println!("- **Estimated size**: {:.2}GB\n", estimate.total_estimated as f64 / 1_000_000_000.0);
+    }
+
+    println!("## Result\n");
+    if error_count == 0 {
+        println!("\u{2713} **PASSED**");
+    } else {
+        println!("\u{2717} **FAILED**");
+    }
 }
 
 fn make_build_command(input: &Path, output: &Path) -> Result<()> {
@@ -2528,10 +2641,8 @@ fn make_purify_command(
         generators::{generate_purified_makefile_with_options, MakefileGeneratorOptions},
         parser::parse_makefile,
         purify::purify_makefile,
-        MakefileTestGenerator, MakefileTestGeneratorOptions,
     };
 
-    // Validate: --with-tests requires -o flag
     if with_tests && output.is_none() {
         return Err(Error::Validation(
             "--with-tests requires -o flag to specify output file".to_string(),
@@ -2544,58 +2655,59 @@ fn make_purify_command(
     let purify_result = purify_makefile(&ast);
 
     if report {
-        // Print transformation report
         print_purify_report(&purify_result, format);
     }
 
-    // Build generator options from CLI flags
     let generator_options = MakefileGeneratorOptions {
-        preserve_formatting,
-        max_line_length,
-        skip_blank_line_removal,
-        skip_consolidation,
+        preserve_formatting, max_line_length, skip_blank_line_removal, skip_consolidation,
     };
-
     let purified = generate_purified_makefile_with_options(&purify_result.ast, &generator_options);
 
-    if let Some(output_path) = output {
-        // Write to specified output file (-o flag provided)
-        fs::write(output_path, &purified).map_err(Error::Io)?;
-        info!("Purified Makefile written to {}", output_path.display());
+    make_purify_write_output(input, output, fix, &purified)?;
 
-        // Generate test suite if requested
-        if with_tests {
-            let test_options = MakefileTestGeneratorOptions {
-                property_tests,
-                property_test_count: 100,
-            };
-            let test_generator = MakefileTestGenerator::new(test_options);
-            let test_suite = test_generator.generate_tests(output_path, &purified);
-
-            // Derive test file name: <Makefile>.test.sh
-            // Append ".test.sh" to the full filename (not replace extension)
-            let file_name = output_path
-                .file_name()
-                .ok_or_else(|| Error::Internal("Invalid output path".to_string()))?
-                .to_str()
-                .ok_or_else(|| Error::Internal("Invalid UTF-8 in filename".to_string()))?;
-            let test_file = output_path.with_file_name(format!("{}.test.sh", file_name));
-
-            fs::write(&test_file, test_suite).map_err(Error::Io)?;
-            info!("Test suite written to {}", test_file.display());
+    if with_tests {
+        if let Some(output_path) = output {
+            make_purify_generate_tests(output_path, &purified, property_tests)?;
         }
+    }
+
+    Ok(())
+}
+
+fn make_purify_write_output(input: &Path, output: Option<&Path>, fix: bool, purified: &str) -> Result<()> {
+    if let Some(output_path) = output {
+        fs::write(output_path, purified).map_err(Error::Io)?;
+        info!("Purified Makefile written to {}", output_path.display());
     } else if fix {
-        // In-place editing: create backup and overwrite
         let backup_path = input.with_extension("mk.bak");
         fs::copy(input, &backup_path).map_err(Error::Io)?;
-        fs::write(input, &purified).map_err(Error::Io)?;
+        fs::write(input, purified).map_err(Error::Io)?;
         info!("Purified Makefile written to {}", input.display());
         info!("Backup created at {}", backup_path.display());
     } else {
-        // Dry-run: print purified output to stdout
         println!("{}", purified);
     }
+    Ok(())
+}
 
+fn make_purify_generate_tests(output_path: &Path, purified: &str, property_tests: bool) -> Result<()> {
+    use crate::make_parser::{MakefileTestGenerator, MakefileTestGeneratorOptions};
+
+    let test_options = MakefileTestGeneratorOptions {
+        property_tests,
+        property_test_count: 100,
+    };
+    let test_generator = MakefileTestGenerator::new(test_options);
+    let test_suite = test_generator.generate_tests(output_path, purified);
+
+    let file_name = output_path.file_name()
+        .ok_or_else(|| Error::Internal("Invalid output path".to_string()))?
+        .to_str()
+        .ok_or_else(|| Error::Internal("Invalid UTF-8 in filename".to_string()))?;
+    let test_file = output_path.with_file_name(format!("{}.test.sh", file_name));
+
+    fs::write(&test_file, test_suite).map_err(Error::Io)?;
+    info!("Test suite written to {}", test_file.display());
     Ok(())
 }
 
@@ -2846,101 +2958,85 @@ fn handle_config_command(command: ConfigCommands) -> Result<()> {
 fn config_analyze_command(input: &Path, format: ConfigOutputFormat) -> Result<()> {
     use crate::config::analyzer;
 
-    // Read input file
     let source = fs::read_to_string(input).map_err(Error::Io)?;
-
-    // Analyze config
     let analysis = analyzer::analyze_config(&source, input.to_path_buf());
 
-    // Output results
     match format {
-        ConfigOutputFormat::Human => {
-            println!("Analysis: {}", input.display());
-            println!(
-                "=========={}=",
-                "=".repeat(input.display().to_string().len())
-            );
-            println!();
-            println!("Statistics:");
-            println!("  - Lines: {}", analysis.line_count);
-            println!("  - Complexity score: {}/10", analysis.complexity_score);
-            println!("  - Config type: {:?}", analysis.config_type);
-            println!();
-
-            if !analysis.path_entries.is_empty() {
-                println!("PATH Entries ({}):", analysis.path_entries.len());
-                for entry in &analysis.path_entries {
-                    let marker = if entry.is_duplicate { "  ✗" } else { "  ✓" };
-                    println!("{}  Line {}: {}", marker, entry.line, entry.path);
-                }
-                println!();
-            }
-
-            if !analysis.performance_issues.is_empty() {
-                println!(
-                    "Performance Issues ({}):",
-                    analysis.performance_issues.len()
-                );
-                for issue in &analysis.performance_issues {
-                    println!(
-                        "  - Line {}: {} (~{}ms)",
-                        issue.line, issue.command, issue.estimated_cost_ms
-                    );
-                    println!("    Suggestion: {}", issue.suggestion);
-                }
-                println!();
-            }
-
-            if analysis.issues.is_empty() {
-                println!("✓ No issues found");
-            } else {
-                println!("Issues Found: {}", analysis.issues.len());
-                for issue in &analysis.issues {
-                    let severity_marker = match issue.severity {
-                        crate::config::Severity::Error => "✗",
-                        crate::config::Severity::Warning => "⚠",
-                        crate::config::Severity::Info => "ℹ",
-                    };
-                    println!(
-                        "  {} [{}] Line {}: {}",
-                        severity_marker, issue.rule_id, issue.line, issue.message
-                    );
-                    if let Some(suggestion) = &issue.suggestion {
-                        println!("    → {}", suggestion);
-                    }
-                }
-            }
-        }
-        ConfigOutputFormat::Json => {
-            // Simple JSON output
-            println!("{{");
-            println!("  \"file\": \"{}\",", input.display());
-            println!("  \"line_count\": {},", analysis.line_count);
-            println!("  \"complexity_score\": {},", analysis.complexity_score);
-            println!("  \"path_entries\": {},", analysis.path_entries.len());
-            println!(
-                "  \"performance_issues\": {},",
-                analysis.performance_issues.len()
-            );
-            println!("  \"issues\": [");
-            for (i, issue) in analysis.issues.iter().enumerate() {
-                let comma = if i < analysis.issues.len() - 1 {
-                    ","
-                } else {
-                    ""
-                };
-                println!("    {{");
-                println!("      \"rule_id\": \"{}\",", issue.rule_id);
-                println!("      \"line\": {},", issue.line);
-                println!("      \"message\": \"{}\"", issue.message);
-                println!("    }}{}", comma);
-            }
-            println!("  ]");
-            println!("}}");
-        }
+        ConfigOutputFormat::Human => config_analyze_human(input, &analysis),
+        ConfigOutputFormat::Json => config_analyze_json(input, &analysis),
     }
 
     Ok(())
+}
+
+fn config_analyze_human(input: &Path, analysis: &crate::config::ConfigAnalysis) {
+    println!("Analysis: {}", input.display());
+    println!("=========={}=", "=".repeat(input.display().to_string().len()));
+    println!();
+    println!("Statistics:");
+    println!("  - Lines: {}", analysis.line_count);
+    println!("  - Complexity score: {}/10", analysis.complexity_score);
+    println!("  - Config type: {:?}", analysis.config_type);
+    println!();
+
+    if !analysis.path_entries.is_empty() {
+        println!("PATH Entries ({}):", analysis.path_entries.len());
+        for entry in &analysis.path_entries {
+            let marker = if entry.is_duplicate { "  ✗" } else { "  ✓" };
+            println!("{}  Line {}: {}", marker, entry.line, entry.path);
+        }
+        println!();
+    }
+
+    if !analysis.performance_issues.is_empty() {
+        println!("Performance Issues ({}):", analysis.performance_issues.len());
+        for issue in &analysis.performance_issues {
+            println!("  - Line {}: {} (~{}ms)", issue.line, issue.command, issue.estimated_cost_ms);
+            println!("    Suggestion: {}", issue.suggestion);
+        }
+        println!();
+    }
+
+    config_analyze_human_issues(&analysis.issues);
+}
+
+fn config_analyze_human_issues(issues: &[crate::config::ConfigIssue]) {
+    if issues.is_empty() {
+        println!("✓ No issues found");
+        return;
+    }
+    println!("Issues Found: {}", issues.len());
+    for issue in issues {
+        let severity_marker = match issue.severity {
+            crate::config::Severity::Error => "✗",
+            crate::config::Severity::Warning => "⚠",
+            crate::config::Severity::Info => "ℹ",
+        };
+        println!("  {} [{}] Line {}: {}", severity_marker, issue.rule_id, issue.line, issue.message);
+        if let Some(suggestion) = &issue.suggestion {
+            println!("    → {}", suggestion);
+        }
+    }
+}
+
+fn config_analyze_json(input: &Path, analysis: &crate::config::ConfigAnalysis) {
+    println!("{{");
+    println!("  \"file\": \"{}\",", input.display());
+    println!("  \"line_count\": {},", analysis.line_count);
+    println!("  \"complexity_score\": {},", analysis.complexity_score);
+    println!("  \"path_entries\": {},", analysis.path_entries.len());
+    println!("  \"performance_issues\": {},", analysis.performance_issues.len());
+    println!("  \"issues\": [");
+    for (i, issue) in analysis.issues.iter().enumerate() {
+        let comma = if i < analysis.issues.len() - 1 { "," } else { "" };
+        println!("    {{");
+        println!("      \"rule_id\": \"{}\",", issue.rule_id);
+        println!("      \"line\": {},", issue.line);
+        println!("      \"message\": \"{}\"", issue.message);
+        println!("    }}{}", comma);
+    }
+    println!("  ]");
+    println!("}}");
 }
 
 fn config_lint_command(input: &Path, format: ConfigOutputFormat) -> Result<()> {
@@ -3290,166 +3386,150 @@ fn handle_installer_command(command: InstallerCommands) -> Result<()> {
 }
 
 fn handle_keyring_command(command: KeyringCommands) -> Result<()> {
-    use crate::installer::{Keyring, TrustedKey};
-
-    // Default keyring location (use XDG or HOME-based fallback)
-    let keyring_dir = std::env::var("XDG_CONFIG_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|_| std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
-        .unwrap_or_else(|_| std::path::PathBuf::from("."))
-        .join("bashrs")
-        .join("installer");
-    let keyring_path = keyring_dir.join("keyring.json");
+    let keyring_path = keyring_default_path();
 
     match command {
-        KeyringCommands::Init { import } => {
-            info!("Initializing keyring at {}", keyring_path.display());
+        KeyringCommands::Init { import } => keyring_init_command(&keyring_path, import),
+        KeyringCommands::Add { key, id } => keyring_add_command(&keyring_path, &key, &id),
+        KeyringCommands::List => keyring_list_command(&keyring_path),
+        KeyringCommands::Remove { id } => keyring_remove_command(&keyring_path, &id),
+    }
+}
 
-            // Create keyring directory if needed
-            if let Some(parent) = keyring_path.parent() {
-                std::fs::create_dir_all(parent).map_err(|e| {
-                    Error::Io(std::io::Error::new(
-                        e.kind(),
-                        format!("Failed to create keyring directory: {}", e),
-                    ))
-                })?;
-            }
+fn keyring_default_path() -> PathBuf {
+    std::env::var("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|_| std::env::var("HOME").map(|h| PathBuf::from(h).join(".config")))
+        .unwrap_or_else(|_| PathBuf::from("."))
+        .join("bashrs")
+        .join("installer")
+        .join("keyring.json")
+}
 
-            // Create new keyring
-            let mut keyring = Keyring::with_storage(&keyring_path)?;
-            keyring.enable_tofu();
+fn require_keyring_exists(keyring_path: &Path) -> Result<()> {
+    if !keyring_path.exists() {
+        return Err(Error::Validation(
+            "Keyring not initialized. Run 'bashrs installer keyring init' first.".to_string(),
+        ));
+    }
+    Ok(())
+}
 
-            println!("✓ Initialized keyring at {}", keyring_path.display());
-            println!("  TOFU mode: enabled");
+fn keyring_init_command(keyring_path: &Path, import: Vec<PathBuf>) -> Result<()> {
+    use crate::installer::{Keyring, TrustedKey};
 
-            // Import keys if specified
-            for key_path in import {
-                if key_path.exists() {
-                    // Read public key from file (expecting 32 bytes hex-encoded or raw)
-                    let content = std::fs::read_to_string(&key_path).map_err(|e| {
-                        Error::Io(std::io::Error::new(
-                            e.kind(),
-                            format!("Failed to read key file: {}", e),
-                        ))
-                    })?;
+    info!("Initializing keyring at {}", keyring_path.display());
 
-                    let key_id = key_path
-                        .file_stem()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("imported-key")
-                        .to_string();
+    if let Some(parent) = keyring_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| {
+            Error::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to create keyring directory: {}", e),
+            ))
+        })?;
+    }
 
-                    // Parse hex-encoded key
-                    let public_key = parse_public_key(content.trim())?;
-                    let trusted_key = TrustedKey::new(&key_id, public_key);
-                    keyring.add_key(trusted_key)?;
-                    println!("  Imported: {} ({})", key_id, key_path.display());
-                } else {
-                    println!("  ⚠ Key file not found: {}", key_path.display());
-                }
-            }
+    let mut keyring = Keyring::with_storage(keyring_path)?;
+    keyring.enable_tofu();
 
-            Ok(())
+    println!("\u{2713} Initialized keyring at {}", keyring_path.display());
+    println!("  TOFU mode: enabled");
+
+    for key_path in import {
+        if !key_path.exists() {
+            println!("  \u{26a0} Key file not found: {}", key_path.display());
+            continue;
         }
+        let content = std::fs::read_to_string(&key_path).map_err(|e| {
+            Error::Io(std::io::Error::new(e.kind(), format!("Failed to read key file: {}", e)))
+        })?;
+        let key_id = key_path.file_stem().and_then(|s| s.to_str()).unwrap_or("imported-key").to_string();
+        let public_key = parse_public_key(content.trim())?;
+        let trusted_key = TrustedKey::new(&key_id, public_key);
+        keyring.add_key(trusted_key)?;
+        println!("  Imported: {} ({})", key_id, key_path.display());
+    }
 
-        KeyringCommands::Add { key, id } => {
-            info!("Adding key {} from {}", id, key.display());
+    Ok(())
+}
 
-            if !keyring_path.exists() {
-                return Err(Error::Validation(
-                    "Keyring not initialized. Run 'bashrs installer keyring init' first."
-                        .to_string(),
-                ));
-            }
+fn keyring_add_command(keyring_path: &Path, key: &Path, id: &str) -> Result<()> {
+    use crate::installer::{Keyring, TrustedKey};
 
-            let mut keyring = Keyring::with_storage(&keyring_path)?;
+    info!("Adding key {} from {}", id, key.display());
+    require_keyring_exists(keyring_path)?;
 
-            // Read and parse key file
-            let content = std::fs::read_to_string(&key).map_err(|e| {
-                Error::Io(std::io::Error::new(
-                    e.kind(),
-                    format!("Failed to read key file: {}", e),
-                ))
-            })?;
+    let mut keyring = Keyring::with_storage(keyring_path)?;
+    let content = std::fs::read_to_string(key).map_err(|e| {
+        Error::Io(std::io::Error::new(e.kind(), format!("Failed to read key file: {}", e)))
+    })?;
 
-            let public_key = parse_public_key(content.trim())?;
-            let trusted_key = TrustedKey::new(&id, public_key);
+    let public_key = parse_public_key(content.trim())?;
+    let trusted_key = TrustedKey::new(id, public_key);
+    keyring.add_key(trusted_key)?;
+    println!("\u{2713} Added key: {}", id);
+    println!("  Fingerprint: {}", &hex_encode(&public_key[..8]));
 
-            keyring.add_key(trusted_key)?;
-            println!("✓ Added key: {}", id);
-            println!("  Fingerprint: {}", &hex_encode(&public_key[..8]));
+    Ok(())
+}
 
-            Ok(())
-        }
+fn keyring_list_command(keyring_path: &Path) -> Result<()> {
+    use crate::installer::Keyring;
 
-        KeyringCommands::List => {
-            info!("Listing keyring");
+    info!("Listing keyring");
 
-            if !keyring_path.exists() {
-                println!("Keyring not initialized.");
-                println!("  Run: bashrs installer keyring init");
-                return Ok(());
-            }
+    if !keyring_path.exists() {
+        println!("Keyring not initialized.");
+        println!("  Run: bashrs installer keyring init");
+        return Ok(());
+    }
 
-            let keyring = Keyring::with_storage(&keyring_path)?;
-            let keys = keyring.list_keys();
+    let keyring = Keyring::with_storage(keyring_path)?;
+    let keys = keyring.list_keys();
 
-            if keys.is_empty() {
-                println!("Keyring contents:");
-                println!("  (no keys configured)");
-            } else {
-                println!("Keyring contents ({} keys):", keys.len());
-                println!();
-                println!("  ID                  Fingerprint       TOFU    Added");
-                println!("  ────────────────────────────────────────────────────────────");
-                for key in keys {
-                    let tofu_marker = if key.is_tofu { "yes" } else { "no" };
-                    let added = format_timestamp(key.added_at);
-                    println!(
-                        "  {:<20}{:<18}{:<8}{}",
-                        truncate_str(&key.id, 20),
-                        key.fingerprint(),
-                        tofu_marker,
-                        added
-                    );
-                }
-            }
-
-            println!();
-            println!("  Keyring path: {}", keyring_path.display());
+    if keys.is_empty() {
+        println!("Keyring contents:");
+        println!("  (no keys configured)");
+    } else {
+        println!("Keyring contents ({} keys):", keys.len());
+        println!();
+        println!("  ID                  Fingerprint       TOFU    Added");
+        println!("  \u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}\u{2500}");
+        for key in keys {
+            let tofu_marker = if key.is_tofu { "yes" } else { "no" };
+            let added = format_timestamp(key.added_at);
             println!(
-                "  TOFU mode: {}",
-                if keyring.is_tofu_enabled() {
-                    "enabled"
-                } else {
-                    "disabled"
-                }
+                "  {:<20}{:<18}{:<8}{}",
+                truncate_str(&key.id, 20),
+                key.fingerprint(),
+                tofu_marker,
+                added
             );
-
-            Ok(())
-        }
-
-        KeyringCommands::Remove { id } => {
-            info!("Removing key: {}", id);
-
-            if !keyring_path.exists() {
-                return Err(Error::Validation(
-                    "Keyring not initialized. Run 'bashrs installer keyring init' first."
-                        .to_string(),
-                ));
-            }
-
-            let mut keyring = Keyring::with_storage(&keyring_path)?;
-
-            if keyring.remove_key(&id)? {
-                println!("✓ Removed key: {}", id);
-            } else {
-                println!("⚠ Key not found: {}", id);
-            }
-
-            Ok(())
         }
     }
+
+    println!();
+    println!("  Keyring path: {}", keyring_path.display());
+    let tofu_status = if keyring.is_tofu_enabled() { "enabled" } else { "disabled" };
+    println!("  TOFU mode: {}", tofu_status);
+
+    Ok(())
+}
+
+fn keyring_remove_command(keyring_path: &Path, id: &str) -> Result<()> {
+    use crate::installer::Keyring;
+
+    info!("Removing key: {}", id);
+    require_keyring_exists(keyring_path)?;
+
+    let mut keyring = Keyring::with_storage(keyring_path)?;
+    if keyring.remove_key(id)? {
+        println!("\u{2713} Removed key: {}", id);
+    } else {
+        println!("\u{26a0} Key not found: {}", id);
+    }
+
+    Ok(())
 }
 
 /// Parse a hex-encoded public key (64 hex chars = 32 bytes)
@@ -3559,15 +3639,12 @@ fn installer_run_command(
     trace_file: Option<&Path>,
 ) -> Result<()> {
     use crate::installer::{
-        self, generate_summary, CheckpointStore, ExecutionMode, ExecutorConfig, HermeticContext,
-        InstallerProgress, InstallerSpec, Keyring, ProgressRenderer, StepExecutor,
-        TerminalRenderer, TracingContext,
+        self, CheckpointStore, ExecutionMode, ExecutorConfig, InstallerProgress, InstallerSpec,
+        ProgressRenderer, StepExecutor, TerminalRenderer,
     };
 
-    // Validate installer first
+    // Phase 1: Validate and parse installer spec
     let result = installer::validate_installer(path)?;
-
-    // Parse the full spec for execution
     let installer_toml = path.join("installer.toml");
     let spec_content = std::fs::read_to_string(&installer_toml).map_err(|e| {
         Error::Io(std::io::Error::new(
@@ -3577,90 +3654,19 @@ fn installer_run_command(
     })?;
     let spec = InstallerSpec::parse(&spec_content)?;
 
-    // Set up hermetic context if requested
-    let hermetic_context = if hermetic {
-        let lockfile_path = path.join("installer.lock");
-        if !lockfile_path.exists() {
-            return Err(Error::Validation(format!(
-                "Hermetic mode requires a lockfile. Run 'bashrs installer lock {}' first.",
-                path.display()
-            )));
-        }
+    // Phase 2: Set up hermetic context and signature keyring
+    let hermetic_context = installer_setup_hermetic_context(path, hermetic)?;
+    let keyring = installer_setup_signature_keyring(verify_signatures)?;
 
-        let context = HermeticContext::load(&lockfile_path)?;
-        println!("Hermetic mode enabled");
-        println!("  Lockfile: {}", lockfile_path.display());
-        println!("  SOURCE_DATE_EPOCH: {}", context.source_date_epoch());
-        println!("  Artifacts locked: {}", context.lockfile.artifacts.len());
-        println!();
-        Some(context)
-    } else {
-        None
-    };
-
-    // Set up signature verification if requested
-    let keyring = if verify_signatures {
-        let keyring_dir = std::env::var("XDG_CONFIG_HOME")
-            .map(std::path::PathBuf::from)
-            .or_else(|_| std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
-            .unwrap_or_else(|_| std::path::PathBuf::from("."))
-            .join("bashrs")
-            .join("installer");
-        let keyring_path = keyring_dir.join("keyring.json");
-
-        if !keyring_path.exists() {
-            return Err(Error::Validation(
-                "Signature verification requires a keyring. Run 'bashrs installer keyring init' first.".to_string(),
-            ));
-        }
-
-        let kr = Keyring::with_storage(&keyring_path)?;
-        println!("Signature verification enabled");
-        println!("  Keyring: {}", keyring_path.display());
-        println!("  Keys: {}", kr.len());
-        println!(
-            "  TOFU mode: {}",
-            if kr.is_tofu_enabled() {
-                "enabled"
-            } else {
-                "disabled"
-            }
-        );
-        println!();
-        Some(kr)
-    } else {
-        None
-    };
-
+    // Phase 3: Handle early-exit modes (diff preview, dry-run)
     if diff {
-        println!("=== Dry-Run Diff Preview ===");
-        println!();
-        println!("Steps to execute: {}", result.steps);
-        println!("Artifacts to download: {}", result.artifacts);
-        if hermetic_context.is_some() {
-            println!("Mode: hermetic (reproducible)");
-        }
-        if keyring.is_some() {
-            println!("Signatures: will be verified");
-        }
-        return Ok(());
+        return installer_handle_diff_preview(&result, &hermetic_context, &keyring);
     }
-
     if dry_run {
-        println!("Dry-run mode: validating only");
-        println!("  Steps: {}", result.steps);
-        println!("  Artifacts: {}", result.artifacts);
-        if hermetic_context.is_some() {
-            println!("  Mode: hermetic (reproducible)");
-        }
-        if keyring.is_some() {
-            println!("  Signatures: will be verified");
-        }
-        println!("✓ Installer validated successfully");
-        return Ok(());
+        return installer_handle_dry_run(&result, &hermetic_context, &keyring);
     }
 
-    // Set up checkpoint store
+    // Phase 4: Set up checkpoint store
     let checkpoint_path = checkpoint_dir
         .map(|p| p.to_path_buf())
         .unwrap_or_else(|| path.join(".checkpoint"));
@@ -3675,25 +3681,20 @@ fn installer_run_command(
     }
 
     let mut store = CheckpointStore::new(&checkpoint_path)?;
-
-    // Start a new run
     let installer_name = path
         .file_name()
         .and_then(|s| s.to_str())
         .unwrap_or("installer");
 
     if let Some(ref ctx) = hermetic_context {
-        // Start hermetic run with lockfile hash
         store.start_hermetic_run(installer_name, "1.0.0", &ctx.lockfile.content_hash)?;
     } else {
         store.start_run(installer_name, "1.0.0")?;
     }
 
-    // Set up progress tracking (#107 trueno-viz integration)
+    // Phase 5: Set up progress tracking
     let execution_mode = if hermetic {
         ExecutionMode::Hermetic
-    } else if dry_run {
-        ExecutionMode::DryRun
     } else {
         ExecutionMode::Normal
     };
@@ -3704,39 +3705,15 @@ fn installer_run_command(
         .with_signatures(keyring.is_some())
         .with_trace(trace);
 
-    // Set up tracing context (#117 OpenTelemetry integration)
-    let mut tracing_ctx = if trace {
-        let mut ctx = TracingContext::new(installer_name, "1.0.0");
-        ctx.start_root("installer_run");
-        ctx.set_attribute(
-            "installer.path",
-            crate::installer::AttributeValue::string(path.display().to_string()),
-        );
-        ctx.set_attribute(
-            "installer.steps",
-            crate::installer::AttributeValue::int(result.steps as i64),
-        );
-        ctx.set_attribute(
-            "installer.hermetic",
-            crate::installer::AttributeValue::bool(hermetic),
-        );
-        println!("Tracing enabled");
-        println!("  Trace ID: {}", ctx.trace_id());
-        if let Some(f) = trace_file {
-            println!("  Trace file: {}", f.display());
-        }
-        println!();
-        Some(ctx)
-    } else {
-        None
-    };
-
-    // Add steps to progress tracker from actual spec
     for step in &spec.step {
         progress.add_step(&step.id, &step.name);
     }
 
-    // Render initial progress
+    // Phase 6: Set up tracing context
+    let mut tracing_ctx =
+        installer_setup_tracing(trace, trace_file, path, &result, hermetic);
+
+    // Phase 7: Render initial progress header
     let renderer = TerminalRenderer::new();
     println!("{}", renderer.render_header(&progress));
     println!("  Installer: {}", path.display());
@@ -3745,103 +3722,307 @@ fn installer_run_command(
     println!("  Mode: {}", execution_mode.label());
     println!();
 
-    // Create executor with appropriate config (Issue #113)
+    // Phase 8: Create executor
     let executor_config = ExecutorConfig {
         dry_run,
-        use_sudo: false, // Will be set per-step based on privileges
+        use_sudo: false,
         environment: std::collections::HashMap::new(),
         working_dir: Some(path.display().to_string()),
-        timeout_secs: 300, // 5 minute default timeout
+        timeout_secs: 300,
     };
     let executor = StepExecutor::with_config(executor_config);
 
-    // Execute each step (Issue #113: Real step execution)
+    // Phase 9: Execute steps
+    let all_succeeded =
+        installer_execute_steps(&spec, &executor, &mut progress, &mut tracing_ctx, &renderer);
+
+    // Phase 10: Finalize
+    installer_finalize_run(
+        &progress,
+        &mut tracing_ctx,
+        &renderer,
+        trace_file,
+        path,
+        all_succeeded,
+    )
+}
+
+/// Set up hermetic context if requested.
+fn installer_setup_hermetic_context(
+    path: &Path,
+    hermetic: bool,
+) -> Result<Option<crate::installer::HermeticContext>> {
+    use crate::installer::HermeticContext;
+
+    if !hermetic {
+        return Ok(None);
+    }
+
+    let lockfile_path = path.join("installer.lock");
+    if !lockfile_path.exists() {
+        return Err(Error::Validation(format!(
+            "Hermetic mode requires a lockfile. Run 'bashrs installer lock {}' first.",
+            path.display()
+        )));
+    }
+
+    let context = HermeticContext::load(&lockfile_path)?;
+    println!("Hermetic mode enabled");
+    println!("  Lockfile: {}", lockfile_path.display());
+    println!("  SOURCE_DATE_EPOCH: {}", context.source_date_epoch());
+    println!("  Artifacts locked: {}", context.lockfile.artifacts.len());
+    println!();
+    Ok(Some(context))
+}
+
+/// Set up signature verification keyring if requested.
+fn installer_setup_signature_keyring(
+    verify_signatures: bool,
+) -> Result<Option<crate::installer::Keyring>> {
+    use crate::installer::Keyring;
+
+    if !verify_signatures {
+        return Ok(None);
+    }
+
+    let keyring_dir = std::env::var("XDG_CONFIG_HOME")
+        .map(std::path::PathBuf::from)
+        .or_else(|_| std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
+        .unwrap_or_else(|_| std::path::PathBuf::from("."))
+        .join("bashrs")
+        .join("installer");
+    let keyring_path = keyring_dir.join("keyring.json");
+
+    if !keyring_path.exists() {
+        return Err(Error::Validation(
+            "Signature verification requires a keyring. Run 'bashrs installer keyring init' first."
+                .to_string(),
+        ));
+    }
+
+    let kr = Keyring::with_storage(&keyring_path)?;
+    println!("Signature verification enabled");
+    println!("  Keyring: {}", keyring_path.display());
+    println!("  Keys: {}", kr.len());
+    println!(
+        "  TOFU mode: {}",
+        if kr.is_tofu_enabled() {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    );
+    println!();
+    Ok(Some(kr))
+}
+
+/// Handle diff preview mode: print summary and return early.
+fn installer_handle_diff_preview(
+    result: &crate::installer::ValidationResult,
+    hermetic_context: &Option<crate::installer::HermeticContext>,
+    keyring: &Option<crate::installer::Keyring>,
+) -> Result<()> {
+    println!("=== Dry-Run Diff Preview ===");
+    println!();
+    println!("Steps to execute: {}", result.steps);
+    println!("Artifacts to download: {}", result.artifacts);
+    if hermetic_context.is_some() {
+        println!("Mode: hermetic (reproducible)");
+    }
+    if keyring.is_some() {
+        println!("Signatures: will be verified");
+    }
+    Ok(())
+}
+
+/// Handle dry-run mode: print validation summary and return early.
+fn installer_handle_dry_run(
+    result: &crate::installer::ValidationResult,
+    hermetic_context: &Option<crate::installer::HermeticContext>,
+    keyring: &Option<crate::installer::Keyring>,
+) -> Result<()> {
+    println!("Dry-run mode: validating only");
+    println!("  Steps: {}", result.steps);
+    println!("  Artifacts: {}", result.artifacts);
+    if hermetic_context.is_some() {
+        println!("  Mode: hermetic (reproducible)");
+    }
+    if keyring.is_some() {
+        println!("  Signatures: will be verified");
+    }
+    println!("\u{2713} Installer validated successfully");
+    Ok(())
+}
+
+/// Set up OpenTelemetry tracing context if tracing is enabled.
+fn installer_setup_tracing(
+    trace: bool,
+    trace_file: Option<&Path>,
+    path: &Path,
+    result: &crate::installer::ValidationResult,
+    hermetic: bool,
+) -> Option<crate::installer::TracingContext> {
+    use crate::installer::{AttributeValue, TracingContext};
+
+    if !trace {
+        return None;
+    }
+
+    let installer_name = path
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("installer");
+
+    let mut ctx = TracingContext::new(installer_name, "1.0.0");
+    ctx.start_root("installer_run");
+    ctx.set_attribute(
+        "installer.path",
+        AttributeValue::string(path.display().to_string()),
+    );
+    ctx.set_attribute(
+        "installer.steps",
+        AttributeValue::int(result.steps as i64),
+    );
+    ctx.set_attribute("installer.hermetic", AttributeValue::bool(hermetic));
+    println!("Tracing enabled");
+    println!("  Trace ID: {}", ctx.trace_id());
+    if let Some(f) = trace_file {
+        println!("  Trace file: {}", f.display());
+    }
+    println!();
+    Some(ctx)
+}
+
+/// Execute all installer steps, updating progress and tracing along the way.
+/// Returns `true` if all steps succeeded.
+fn installer_execute_steps(
+    spec: &crate::installer::InstallerSpec,
+    executor: &crate::installer::StepExecutor,
+    progress: &mut crate::installer::InstallerProgress,
+    tracing_ctx: &mut Option<crate::installer::TracingContext>,
+    renderer: &crate::installer::TerminalRenderer,
+) -> bool {
+    let total_steps = spec.step.len();
     let mut all_succeeded = true;
+
     for step in &spec.step {
-        // Start tracing span for this step
         if let Some(ref mut ctx) = tracing_ctx {
             ctx.start_step_span(&step.id, &step.name);
         }
 
         progress.start_step(&step.id, "Executing...");
-
-        // Execute the step
         let exec_result = executor.execute_step(step);
 
         match exec_result {
             Ok(result) => {
                 if result.success {
-                    progress.update_step(&step.id, 100, "Completed");
-                    progress.complete_step(&step.id);
-
-                    // End tracing span successfully
-                    if let Some(ref mut ctx) = tracing_ctx {
-                        ctx.end_span_ok();
-                    }
-
-                    // Show output if any
-                    if !result.stdout.trim().is_empty() {
-                        println!(
-                            "  Output: {}",
-                            result.stdout.trim().lines().next().unwrap_or("")
-                        );
-                    }
+                    installer_handle_step_success(step, &result, progress, tracing_ctx);
                 } else {
+                    installer_handle_step_failure(step, &result, progress, tracing_ctx);
                     all_succeeded = false;
-                    progress.update_step(&step.id, 0, "Failed");
-
-                    // End tracing span with error
-                    if let Some(ref mut ctx) = tracing_ctx {
-                        ctx.end_span_error(&result.stderr);
-                    }
-
-                    println!("  ❌ Step '{}' failed:", step.id);
-                    if !result.stderr.is_empty() {
-                        for line in result.stderr.lines().take(3) {
-                            println!("     {}", line);
-                        }
-                    }
-
-                    // Check postcondition failures
-                    for postcond in &result.postcondition_results {
-                        if !postcond.passed {
-                            println!("     Postcondition failed: {}", postcond.details);
-                        }
-                    }
-
-                    // Stop on first failure (unless configured otherwise)
+                    installer_render_step_progress(progress, renderer, &step.id, total_steps);
                     break;
                 }
             }
             Err(e) => {
                 all_succeeded = false;
-                println!("  ❌ Step '{}' error: {}", step.id, e);
-
+                println!("  \u{274c} Step '{}' error: {}", step.id, e);
                 if let Some(ref mut ctx) = tracing_ctx {
                     ctx.end_span_error(&e.to_string());
                 }
+                installer_render_step_progress(progress, renderer, &step.id, total_steps);
                 break;
             }
         }
 
-        // Render step progress
-        if let Some(step_info) = progress.get_step(&step.id) {
-            println!("{}", renderer.render_step(step_info, spec.step.len()));
+        installer_render_step_progress(progress, renderer, &step.id, total_steps);
+    }
+    all_succeeded
+}
+
+/// Handle a successful step execution: update progress and tracing.
+fn installer_handle_step_success(
+    step: &crate::installer::Step,
+    result: &crate::installer::StepExecutionResult,
+    progress: &mut crate::installer::InstallerProgress,
+    tracing_ctx: &mut Option<crate::installer::TracingContext>,
+) {
+    progress.update_step(&step.id, 100, "Completed");
+    progress.complete_step(&step.id);
+
+    if let Some(ref mut ctx) = tracing_ctx {
+        ctx.end_span_ok();
+    }
+
+    if !result.stdout.trim().is_empty() {
+        println!(
+            "  Output: {}",
+            result.stdout.trim().lines().next().unwrap_or("")
+        );
+    }
+}
+
+/// Handle a failed step execution: update progress, tracing, and print diagnostics.
+fn installer_handle_step_failure(
+    step: &crate::installer::Step,
+    result: &crate::installer::StepExecutionResult,
+    progress: &mut crate::installer::InstallerProgress,
+    tracing_ctx: &mut Option<crate::installer::TracingContext>,
+) {
+    progress.update_step(&step.id, 0, "Failed");
+
+    if let Some(ref mut ctx) = tracing_ctx {
+        ctx.end_span_error(&result.stderr);
+    }
+
+    println!("  \u{274c} Step '{}' failed:", step.id);
+    if !result.stderr.is_empty() {
+        for line in result.stderr.lines().take(3) {
+            println!("     {}", line);
         }
     }
 
-    // End root span
+    for postcond in &result.postcondition_results {
+        if !postcond.passed {
+            println!("     Postcondition failed: {}", postcond.details);
+        }
+    }
+}
+
+/// Render step progress if the step info is available.
+fn installer_render_step_progress(
+    progress: &crate::installer::InstallerProgress,
+    renderer: &crate::installer::TerminalRenderer,
+    step_id: &str,
+    total_steps: usize,
+) {
+    use crate::installer::ProgressRenderer;
+
+    if let Some(step_info) = progress.get_step(step_id) {
+        println!("{}", renderer.render_step(step_info, total_steps));
+    }
+}
+
+/// Finalize the installer run: end tracing spans, render footer, export traces, report status.
+fn installer_finalize_run(
+    progress: &crate::installer::InstallerProgress,
+    tracing_ctx: &mut Option<crate::installer::TracingContext>,
+    renderer: &crate::installer::TerminalRenderer,
+    trace_file: Option<&Path>,
+    path: &Path,
+    all_succeeded: bool,
+) -> Result<()> {
+    use crate::installer::{generate_summary, ProgressRenderer};
+
     if let Some(ref mut ctx) = tracing_ctx {
         ctx.end_root_ok();
     }
 
-    // Render footer and summary
-    println!("{}", renderer.render_footer(&progress));
+    println!("{}", renderer.render_footer(progress));
 
-    let summary = generate_summary(&progress);
+    let summary = generate_summary(progress);
     println!("\n{}", summary.format());
 
-    // Export traces if requested
     if let Some(ref ctx) = tracing_ctx {
         let trace_summary = ctx.summary();
         println!("\n{}", trace_summary.format());
@@ -3858,12 +4039,11 @@ fn installer_run_command(
         }
     }
 
-    // Report final status
     if all_succeeded {
-        println!("\n✅ Installation completed successfully!");
+        println!("\n\u{2705} Installation completed successfully!");
     } else {
         println!(
-            "\n❌ Installation failed. Use 'bashrs installer resume {}' to retry.",
+            "\n\u{274c} Installation failed. Use 'bashrs installer resume {}' to retry.",
             path.display()
         );
     }
@@ -4035,145 +4215,118 @@ fn installer_test_command(path: &Path, matrix: Option<&str>, coverage: bool) -> 
 }
 
 fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()> {
-    use crate::installer::{
-        self, HermeticContext, LockedArtifact, Lockfile, LockfileEnvironment, LOCKFILE_VERSION,
-    };
+    use crate::installer::{self, Lockfile};
 
-    // Validate installer first
     let result = installer::validate_installer(path)?;
-
     let lockfile_path = path.join("installer.lock");
 
     println!("Managing lockfile for installer at {}", path.display());
     println!();
 
     if verify {
-        // Verify existing lockfile
-        if !lockfile_path.exists() {
-            if result.artifacts == 0 {
-                println!("✓ No lockfile needed (no external artifacts)");
-            } else {
-                return Err(Error::Validation(format!(
-                    "Lockfile required but not found. Run 'bashrs installer lock {}' first.",
-                    path.display()
-                )));
-            }
-            return Ok(());
-        }
-
-        // Load and verify lockfile
-        let lockfile = Lockfile::load(&lockfile_path)?;
-        lockfile.verify()?;
-
-        println!("Lockfile verification:");
-        println!("  Version: {}", LOCKFILE_VERSION);
-        println!("  Generator: {}", lockfile.generator);
-        println!("  Content hash: {}", lockfile.content_hash);
-        println!("  Artifacts: {}", lockfile.artifacts.len());
-        println!();
-
-        // Check if lockfile matches current spec
-        if lockfile.artifacts.len() != result.artifacts {
-            println!("⚠ Lockfile may be outdated:");
-            println!(
-                "    Lockfile has {} artifacts, spec has {}",
-                lockfile.artifacts.len(),
-                result.artifacts
-            );
-            println!(
-                "    Run 'bashrs installer lock {} --update' to refresh",
-                path.display()
-            );
-        } else {
-            println!("✓ Lockfile is valid and up-to-date");
-        }
-
-        // Try creating hermetic context to validate
-        let context = HermeticContext::from_lockfile(lockfile)?;
-        println!("  SOURCE_DATE_EPOCH: {}", context.source_date_epoch());
-
-        return Ok(());
+        return installer_lock_verify(path, &lockfile_path, &result);
     }
 
     if update && !lockfile_path.exists() {
-        // Treat --update on nonexistent lockfile as generate
         println!("  No existing lockfile found, generating new one...");
     } else if update {
-        // Update existing lockfile
-        println!("Updating lockfile...");
         let existing = Lockfile::load(&lockfile_path)?;
-        println!(
-            "  Existing lockfile has {} artifacts",
-            existing.artifacts.len()
-        );
+        println!("Updating lockfile...");
+        println!("  Existing lockfile has {} artifacts", existing.artifacts.len());
     }
 
-    // Generate new lockfile
-    if result.artifacts == 0 {
-        println!("✓ No external artifacts to lock");
-        println!("  Hermetic mode will use empty lockfile");
+    installer_lock_generate(path, &lockfile_path, &result)
+}
 
-        // Create minimal lockfile for hermetic consistency
-        let mut lockfile = Lockfile::new();
-        lockfile.environment = LockfileEnvironment::deterministic(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0),
-        );
-        lockfile.finalize();
-        lockfile.save(&lockfile_path)?;
+fn installer_lock_verify(
+    path: &Path,
+    lockfile_path: &Path,
+    result: &crate::installer::ValidationResult,
+) -> Result<()> {
+    use crate::installer::{HermeticContext, Lockfile, LOCKFILE_VERSION};
 
-        println!("  Created: {}", lockfile_path.display());
-        println!(
-            "  SOURCE_DATE_EPOCH: {}",
-            lockfile.environment.source_date_epoch
-        );
-    } else {
-        println!("Generating lockfile for {} artifacts...", result.artifacts);
-        println!();
-
-        // Create lockfile with artifacts
-        // Note: In a full implementation, this would fetch artifacts and record hashes
-        let mut lockfile = Lockfile::new();
-        lockfile.environment = LockfileEnvironment::deterministic(
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_secs())
-                .unwrap_or(0),
-        );
-
-        // For now, create placeholder entries
-        // Real implementation would parse installer.toml and fetch artifacts
-        for i in 0..result.artifacts {
-            let artifact = LockedArtifact::new(
-                &format!("artifact-{}", i + 1),
-                "1.0.0",
-                "https://example.com/artifact.tar.gz",
-                "sha256:placeholder",
-                0,
-            );
-            lockfile.add_artifact(artifact);
+    if !lockfile_path.exists() {
+        if result.artifacts == 0 {
+            println!("\u{2713} No lockfile needed (no external artifacts)");
+        } else {
+            return Err(Error::Validation(format!(
+                "Lockfile required but not found. Run 'bashrs installer lock {}' first.", path.display()
+            )));
         }
-
-        lockfile.finalize();
-        lockfile.save(&lockfile_path)?;
-
-        println!("✓ Generated lockfile: {}", lockfile_path.display());
-        println!("  Version: {}", LOCKFILE_VERSION);
-        println!("  Content hash: {}", lockfile.content_hash);
-        println!("  Artifacts locked: {}", lockfile.artifacts.len());
-        println!(
-            "  SOURCE_DATE_EPOCH: {}",
-            lockfile.environment.source_date_epoch
-        );
-        println!();
-        println!("Note: Run with real artifact URLs to generate proper hashes.");
-        println!(
-            "      Use 'bashrs installer run {} --hermetic' to execute.",
-            path.display()
-        );
+        return Ok(());
     }
+
+    let lockfile = Lockfile::load(lockfile_path)?;
+    lockfile.verify()?;
+
+    println!("Lockfile verification:");
+    println!("  Version: {}", LOCKFILE_VERSION);
+    println!("  Generator: {}", lockfile.generator);
+    println!("  Content hash: {}", lockfile.content_hash);
+    println!("  Artifacts: {}", lockfile.artifacts.len());
+    println!();
+
+    if lockfile.artifacts.len() != result.artifacts {
+        println!("\u{26a0} Lockfile may be outdated:");
+        println!("    Lockfile has {} artifacts, spec has {}", lockfile.artifacts.len(), result.artifacts);
+        println!("    Run 'bashrs installer lock {} --update' to refresh", path.display());
+    } else {
+        println!("\u{2713} Lockfile is valid and up-to-date");
+    }
+
+    let context = HermeticContext::from_lockfile(lockfile)?;
+    println!("  SOURCE_DATE_EPOCH: {}", context.source_date_epoch());
+
+    Ok(())
+}
+
+fn installer_lock_generate(
+    path: &Path,
+    lockfile_path: &Path,
+    result: &crate::installer::ValidationResult,
+) -> Result<()> {
+    use crate::installer::{LockedArtifact, Lockfile, LockfileEnvironment, LOCKFILE_VERSION};
+
+    let epoch = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    let mut lockfile = Lockfile::new();
+    lockfile.environment = LockfileEnvironment::deterministic(epoch);
+
+    if result.artifacts == 0 {
+        println!("\u{2713} No external artifacts to lock");
+        println!("  Hermetic mode will use empty lockfile");
+        lockfile.finalize();
+        lockfile.save(lockfile_path)?;
+        println!("  Created: {}", lockfile_path.display());
+        println!("  SOURCE_DATE_EPOCH: {}", lockfile.environment.source_date_epoch);
+        return Ok(());
+    }
+
+    println!("Generating lockfile for {} artifacts...", result.artifacts);
+    println!();
+
+    for i in 0..result.artifacts {
+        let artifact = LockedArtifact::new(
+            &format!("artifact-{}", i + 1), "1.0.0",
+            "https://example.com/artifact.tar.gz", "sha256:placeholder", 0,
+        );
+        lockfile.add_artifact(artifact);
+    }
+
+    lockfile.finalize();
+    lockfile.save(lockfile_path)?;
+
+    println!("\u{2713} Generated lockfile: {}", lockfile_path.display());
+    println!("  Version: {}", LOCKFILE_VERSION);
+    println!("  Content hash: {}", lockfile.content_hash);
+    println!("  Artifacts locked: {}", lockfile.artifacts.len());
+    println!("  SOURCE_DATE_EPOCH: {}", lockfile.environment.source_date_epoch);
+    println!();
+    println!("Note: Run with real artifact URLs to generate proper hashes.");
+    println!("      Use 'bashrs installer run {} --hermetic' to execute.", path.display());
 
     Ok(())
 }
@@ -4579,7 +4732,6 @@ fn playbook_command(
     verbose: bool,
     dry_run: bool,
 ) -> Result<()> {
-    // Validate file exists
     if !input.exists() {
         return Err(Error::Io(std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -4587,26 +4739,9 @@ fn playbook_command(
         )));
     }
 
-    // Read playbook YAML
     let content = fs::read_to_string(input)?;
+    let (version, machine_id, initial_state) = playbook_parse_yaml(&content);
 
-    // Simple YAML parsing (extract key fields)
-    let mut version = "1.0";
-    let mut machine_id = "unknown";
-    let mut initial_state = "start";
-
-    for line in content.lines() {
-        let line = line.trim();
-        if line.starts_with("version:") {
-            version = line.trim_start_matches("version:").trim().trim_matches('"');
-        } else if line.starts_with("id:") {
-            machine_id = line.trim_start_matches("id:").trim().trim_matches('"');
-        } else if line.starts_with("initial:") {
-            initial_state = line.trim_start_matches("initial:").trim().trim_matches('"');
-        }
-    }
-
-    // Validate basic structure
     if !content.contains("version:") && !content.contains("machine:") {
         return Err(Error::Validation(
             "Invalid playbook: missing version or machine definition".to_string(),
@@ -4614,62 +4749,81 @@ fn playbook_command(
     }
 
     match format {
-        PlaybookFormat::Human => {
-            println!("╔══════════════════════════════════════════════════════════════╗");
-            println!("║                    PLAYBOOK EXECUTION                         ║");
-            println!("╠══════════════════════════════════════════════════════════════╣");
-            println!("║  File: {:<54} ║", input.display());
-            println!("║  Version: {:<51} ║", version);
-            println!("║  Machine: {:<51} ║", machine_id);
-            println!("║  Initial State: {:<45} ║", initial_state);
-            println!("╠══════════════════════════════════════════════════════════════╣");
-
-            if dry_run {
-                println!("║  Mode: DRY RUN (no changes will be made)                    ║");
-            } else if run {
-                println!("║  Mode: EXECUTE                                               ║");
-            } else {
-                println!("║  Mode: VALIDATE ONLY                                         ║");
-            }
-            println!("╚══════════════════════════════════════════════════════════════╝");
-
-            if verbose {
-                println!("\nPlaybook structure validated successfully.");
-                println!("State machine: {} -> ...", initial_state);
-            }
-
-            if run && !dry_run {
-                println!("\n✓ Playbook executed successfully");
-            } else {
-                println!("\n✓ Playbook validated successfully");
-            }
-        }
-        PlaybookFormat::Json => {
-            println!("{{");
-            println!("  \"file\": \"{}\",", input.display());
-            println!("  \"version\": \"{}\",", version);
-            println!("  \"machine_id\": \"{}\",", machine_id);
-            println!("  \"initial_state\": \"{}\",", initial_state);
-            println!(
-                "  \"mode\": \"{}\",",
-                if run { "execute" } else { "validate" }
-            );
-            println!("  \"dry_run\": {},", dry_run);
-            println!("  \"status\": \"success\"");
-            println!("}}");
-        }
-        PlaybookFormat::Junit => {
-            println!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-            println!(
-                "<testsuite name=\"{}\" tests=\"1\" failures=\"0\">",
-                machine_id
-            );
-            println!("  <testcase name=\"playbook_validation\" time=\"0.001\"/>");
-            println!("</testsuite>");
-        }
+        PlaybookFormat::Human => playbook_human(input, &version, &machine_id, &initial_state, run, verbose, dry_run),
+        PlaybookFormat::Json => playbook_json(input, &version, &machine_id, &initial_state, run, dry_run),
+        PlaybookFormat::Junit => playbook_junit(&machine_id),
     }
 
     Ok(())
+}
+
+fn playbook_parse_yaml(content: &str) -> (String, String, String) {
+    let mut version = "1.0".to_string();
+    let mut machine_id = "unknown".to_string();
+    let mut initial_state = "start".to_string();
+
+    for line in content.lines() {
+        let line = line.trim();
+        if line.starts_with("version:") {
+            version = line.trim_start_matches("version:").trim().trim_matches('"').to_string();
+        } else if line.starts_with("id:") {
+            machine_id = line.trim_start_matches("id:").trim().trim_matches('"').to_string();
+        } else if line.starts_with("initial:") {
+            initial_state = line.trim_start_matches("initial:").trim().trim_matches('"').to_string();
+        }
+    }
+
+    (version, machine_id, initial_state)
+}
+
+fn playbook_human(
+    input: &Path, version: &str, machine_id: &str, initial_state: &str,
+    run: bool, verbose: bool, dry_run: bool,
+) {
+    println!("╔══════════════════════════════════════════════════════════════╗");
+    println!("║                    PLAYBOOK EXECUTION                         ║");
+    println!("╠══════════════════════════════════════════════════════════════╣");
+    println!("║  File: {:<54} ║", input.display());
+    println!("║  Version: {:<51} ║", version);
+    println!("║  Machine: {:<51} ║", machine_id);
+    println!("║  Initial State: {:<45} ║", initial_state);
+    println!("╠══════════════════════════════════════════════════════════════╣");
+    if dry_run {
+        println!("║  Mode: DRY RUN (no changes will be made)                    ║");
+    } else if run {
+        println!("║  Mode: EXECUTE                                               ║");
+    } else {
+        println!("║  Mode: VALIDATE ONLY                                         ║");
+    }
+    println!("╚══════════════════════════════════════════════════════════════╝");
+    if verbose {
+        println!("\nPlaybook structure validated successfully.");
+        println!("State machine: {} -> ...", initial_state);
+    }
+    if run && !dry_run {
+        println!("\n✓ Playbook executed successfully");
+    } else {
+        println!("\n✓ Playbook validated successfully");
+    }
+}
+
+fn playbook_json(input: &Path, version: &str, machine_id: &str, initial_state: &str, run: bool, dry_run: bool) {
+    println!("{{");
+    println!("  \"file\": \"{}\",", input.display());
+    println!("  \"version\": \"{}\",", version);
+    println!("  \"machine_id\": \"{}\",", machine_id);
+    println!("  \"initial_state\": \"{}\",", initial_state);
+    println!("  \"mode\": \"{}\",", if run { "execute" } else { "validate" });
+    println!("  \"dry_run\": {},", dry_run);
+    println!("  \"status\": \"success\"");
+    println!("}}");
+}
+
+fn playbook_junit(machine_id: &str) {
+    println!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
+    println!("<testsuite name=\"{}\" tests=\"1\" failures=\"0\">", machine_id);
+    println!("  <testcase name=\"playbook_validation\" time=\"0.001\"/>");
+    println!("</testsuite>");
 }
 
 /// Mutation testing for shell scripts (Popper Falsification)
@@ -4681,7 +4835,6 @@ fn mutate_command(
     show_survivors: bool,
     output: Option<&Path>,
 ) -> Result<()> {
-    // Validate file exists
     if !input.exists() {
         return Err(Error::Io(std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -4689,12 +4842,28 @@ fn mutate_command(
         )));
     }
 
-    // Read script
     let content = fs::read_to_string(input)?;
-    let lines: Vec<&str> = content.lines().collect();
+    let (mutants_generated, mutant_locations) = mutate_find_mutations(&content, count);
 
-    // Define mutation operators
-    let mutations = vec![
+    let killed = (mutants_generated as f64 * 0.85) as usize;
+    let survived = mutants_generated - killed;
+    let kill_rate = if mutants_generated > 0 {
+        (killed as f64 / mutants_generated as f64) * 100.0
+    } else {
+        100.0
+    };
+
+    match format {
+        MutateFormat::Human => mutate_human(input, config, mutants_generated, killed, survived, kill_rate, show_survivors, &mutant_locations, output),
+        MutateFormat::Json => mutate_json(input, mutants_generated, killed, survived, kill_rate),
+        MutateFormat::Csv => mutate_csv(input, mutants_generated, killed, survived, kill_rate),
+    }
+
+    Ok(())
+}
+
+fn mutate_find_mutations(content: &str, count: usize) -> (usize, Vec<(usize, String, String)>) {
+    let mutations = [
         ("==", "!=", "Negate equality"),
         ("!=", "==", "Flip inequality"),
         ("-eq", "-ne", "Negate numeric equality"),
@@ -4707,86 +4876,68 @@ fn mutate_command(
         ("exit 0", "exit 1", "Flip exit code"),
     ];
 
-    // Generate mutants
-    let mut mutants_generated = 0;
-    let mut mutant_locations: Vec<(usize, String, String)> = Vec::new();
-
-    for (line_num, line) in lines.iter().enumerate() {
+    let mut generated = 0;
+    let mut locations = Vec::new();
+    for (line_num, line) in content.lines().enumerate() {
         for (from, _to, desc) in &mutations {
-            if line.contains(from) && mutants_generated < count {
-                mutant_locations.push((line_num + 1, desc.to_string(), from.to_string()));
-                mutants_generated += 1;
+            if line.contains(from) && generated < count {
+                locations.push((line_num + 1, desc.to_string(), from.to_string()));
+                generated += 1;
             }
         }
     }
+    (generated, locations)
+}
 
-    // Calculate hypothetical kill rate (for demo)
-    let killed = (mutants_generated as f64 * 0.85) as usize;
-    let survived = mutants_generated - killed;
-    let kill_rate = if mutants_generated > 0 {
-        (killed as f64 / mutants_generated as f64) * 100.0
+fn mutate_human(
+    input: &Path, config: Option<&Path>,
+    mutants_generated: usize, killed: usize, survived: usize, kill_rate: f64,
+    show_survivors: bool, mutant_locations: &[(usize, String, String)], output: Option<&Path>,
+) {
+    println!("╔══════════════════════════════════════════════════════════════╗");
+    println!("║                    MUTATION TESTING                          ║");
+    println!("╠══════════════════════════════════════════════════════════════╣");
+    println!("║  Script: {:<52} ║", input.display());
+    if let Some(cfg) = config {
+        println!("║  Config: {:<52} ║", cfg.display());
+    }
+    println!("║  Mutants Generated: {:<41} ║", mutants_generated);
+    println!("║  Mutants Killed: {:<44} ║", killed);
+    println!("║  Mutants Survived: {:<42} ║", survived);
+    println!("║  Kill Rate: {:<49.1}% ║", kill_rate);
+    println!("╠══════════════════════════════════════════════════════════════╣");
+    if kill_rate >= 90.0 {
+        println!("║  ✓ PASS: Kill rate >= 90% (Popper threshold met)            ║");
     } else {
-        100.0
-    };
+        println!("║  ✗ FAIL: Kill rate < 90% (tests need improvement)           ║");
+    }
+    println!("╚══════════════════════════════════════════════════════════════╝");
 
-    match format {
-        MutateFormat::Human => {
-            println!("╔══════════════════════════════════════════════════════════════╗");
-            println!("║                    MUTATION TESTING                          ║");
-            println!("╠══════════════════════════════════════════════════════════════╣");
-            println!("║  Script: {:<52} ║", input.display());
-            if let Some(cfg) = config {
-                println!("║  Config: {:<52} ║", cfg.display());
-            }
-            println!("║  Mutants Generated: {:<41} ║", mutants_generated);
-            println!("║  Mutants Killed: {:<44} ║", killed);
-            println!("║  Mutants Survived: {:<42} ║", survived);
-            println!("║  Kill Rate: {:<49.1}% ║", kill_rate);
-            println!("╠══════════════════════════════════════════════════════════════╣");
-
-            if kill_rate >= 90.0 {
-                println!("║  ✓ PASS: Kill rate >= 90% (Popper threshold met)            ║");
-            } else {
-                println!("║  ✗ FAIL: Kill rate < 90% (tests need improvement)           ║");
-            }
-            println!("╚══════════════════════════════════════════════════════════════╝");
-
-            if show_survivors && survived > 0 {
-                println!("\nSurviving Mutants:");
-                for (i, (line, desc, op)) in mutant_locations.iter().take(survived).enumerate() {
-                    println!("  {}. Line {}: {} ({})", i + 1, line, desc, op);
-                }
-            }
-
-            if let Some(out_dir) = output {
-                println!("\nMutant files written to: {}", out_dir.display());
-            }
-        }
-        MutateFormat::Json => {
-            println!("{{");
-            println!("  \"script\": \"{}\",", input.display());
-            println!("  \"mutants_generated\": {},", mutants_generated);
-            println!("  \"mutants_killed\": {},", killed);
-            println!("  \"mutants_survived\": {},", survived);
-            println!("  \"kill_rate\": {:.1},", kill_rate);
-            println!("  \"passed\": {}", kill_rate >= 90.0);
-            println!("}}");
-        }
-        MutateFormat::Csv => {
-            println!("script,mutants,killed,survived,kill_rate,passed");
-            println!(
-                "{},{},{},{},{:.1},{}",
-                input.display(),
-                mutants_generated,
-                killed,
-                survived,
-                kill_rate,
-                kill_rate >= 90.0
-            );
+    if show_survivors && survived > 0 {
+        println!("\nSurviving Mutants:");
+        for (i, (line, desc, op)) in mutant_locations.iter().take(survived).enumerate() {
+            println!("  {}. Line {}: {} ({})", i + 1, line, desc, op);
         }
     }
+    if let Some(out_dir) = output {
+        println!("\nMutant files written to: {}", out_dir.display());
+    }
+}
 
-    Ok(())
+fn mutate_json(input: &Path, mutants_generated: usize, killed: usize, survived: usize, kill_rate: f64) {
+    println!("{{");
+    println!("  \"script\": \"{}\",", input.display());
+    println!("  \"mutants_generated\": {},", mutants_generated);
+    println!("  \"mutants_killed\": {},", killed);
+    println!("  \"mutants_survived\": {},", survived);
+    println!("  \"kill_rate\": {:.1},", kill_rate);
+    println!("  \"passed\": {}", kill_rate >= 90.0);
+    println!("}}");
+}
+
+fn mutate_csv(input: &Path, mutants_generated: usize, killed: usize, survived: usize, kill_rate: f64) {
+    println!("script,mutants,killed,survived,kill_rate,passed");
+    println!("{},{},{},{},{:.1},{}", input.display(), mutants_generated, killed, survived, kill_rate, kill_rate >= 90.0);
 }
 
 /// Deterministic simulation replay
@@ -4798,7 +4949,6 @@ fn simulate_command(
     format: SimulateFormat,
     trace: bool,
 ) -> Result<()> {
-    // Validate file exists
     if !input.exists() {
         return Err(Error::Io(std::io::Error::new(
             std::io::ErrorKind::NotFound,
@@ -4806,119 +4956,327 @@ fn simulate_command(
         )));
     }
 
-    // Read script
     let content = fs::read_to_string(input)?;
     let lines: Vec<&str> = content.lines().collect();
-
-    // Count non-deterministic patterns
-    let mut nondeterministic_count = 0;
-    let patterns = ["$RANDOM", "$$", "$(date", "`date", "$PPID", "mktemp"];
-
-    for line in &lines {
-        for pattern in &patterns {
-            if line.contains(pattern) {
-                nondeterministic_count += 1;
-            }
-        }
-    }
-
-    // Simulate execution
+    let nondeterministic_count = simulate_count_nondet(&lines);
     let is_deterministic = nondeterministic_count == 0;
 
     match format {
-        SimulateFormat::Human => {
-            println!("╔══════════════════════════════════════════════════════════════╗");
-            println!("║                 DETERMINISTIC SIMULATION                      ║");
-            println!("╠══════════════════════════════════════════════════════════════╣");
-            println!("║  Script: {:<52} ║", input.display());
-            println!("║  Seed: {:<54} ║", seed);
-            println!("║  Lines: {:<53} ║", lines.len());
-            println!(
-                "║  Non-deterministic patterns: {:<32} ║",
-                nondeterministic_count
-            );
-            println!("╠══════════════════════════════════════════════════════════════╣");
-
-            if mock_externals {
-                println!("║  External commands: MOCKED                                  ║");
-            }
-
-            if verify {
-                println!("║  Verification: ENABLED (comparing two runs)                 ║");
-            }
-
-            println!("╠══════════════════════════════════════════════════════════════╣");
-
-            if is_deterministic {
-                println!("║  ✓ DETERMINISTIC: Script produces identical output          ║");
-            } else {
-                println!(
-                    "║  ✗ NON-DETERMINISTIC: {} pattern(s) found              ║",
-                    nondeterministic_count
-                );
-            }
-            println!("╚══════════════════════════════════════════════════════════════╝");
-
-            if trace {
-                println!("\nExecution Trace (seed={}):", seed);
-                println!("  1. Initialize environment");
-                println!("  2. Set RANDOM seed to {}", seed);
-                println!("  3. Execute script");
-                println!(
-                    "  4. Capture output hash: 0x{:08x}",
-                    seed.wrapping_mul(0x5DEECE66D)
-                );
-                if verify {
-                    println!("  5. Re-execute with same seed");
-                    println!(
-                        "  6. Compare output hashes: {}",
-                        if is_deterministic {
-                            "MATCH"
-                        } else {
-                            "MISMATCH"
-                        }
-                    );
-                }
-            }
-        }
-        SimulateFormat::Json => {
-            println!("{{");
-            println!("  \"script\": \"{}\",", input.display());
-            println!("  \"seed\": {},", seed);
-            println!("  \"lines\": {},", lines.len());
-            println!(
-                "  \"nondeterministic_patterns\": {},",
-                nondeterministic_count
-            );
-            println!("  \"is_deterministic\": {},", is_deterministic);
-            println!("  \"mock_externals\": {},", mock_externals);
-            println!("  \"verify\": {}", verify);
-            println!("}}");
-        }
-        SimulateFormat::Trace => {
-            println!("# Simulation Trace");
-            println!("# Script: {}", input.display());
-            println!("# Seed: {}", seed);
-            println!("# Timestamp: simulated");
-            println!();
-            for (i, line) in lines.iter().enumerate() {
-                if !line.trim().is_empty() && !line.trim().starts_with('#') {
-                    println!("[{:04}] EXEC: {}", i + 1, line.trim());
-                }
-            }
-            println!();
-            println!(
-                "# Result: {}",
-                if is_deterministic {
-                    "DETERMINISTIC"
-                } else {
-                    "NON-DETERMINISTIC"
-                }
-            );
-        }
+        SimulateFormat::Human => simulate_human(input, seed, verify, mock_externals, trace, &lines, nondeterministic_count, is_deterministic),
+        SimulateFormat::Json => simulate_json(input, seed, verify, mock_externals, &lines, nondeterministic_count, is_deterministic),
+        SimulateFormat::Trace => simulate_trace(input, seed, &lines, is_deterministic),
     }
 
     Ok(())
+}
+
+fn simulate_count_nondet(lines: &[&str]) -> usize {
+    let patterns = ["$RANDOM", "$$", "$(date", "`date", "$PPID", "mktemp"];
+    let mut count = 0;
+    for line in lines {
+        for pattern in &patterns {
+            if line.contains(pattern) {
+                count += 1;
+            }
+        }
+    }
+    count
+}
+
+fn simulate_human(
+    input: &Path, seed: u64, verify: bool, mock_externals: bool, trace: bool,
+    lines: &[&str], nondeterministic_count: usize, is_deterministic: bool,
+) {
+    println!("╔══════════════════════════════════════════════════════════════╗");
+    println!("║                 DETERMINISTIC SIMULATION                      ║");
+    println!("╠══════════════════════════════════════════════════════════════╣");
+    println!("║  Script: {:<52} ║", input.display());
+    println!("║  Seed: {:<54} ║", seed);
+    println!("║  Lines: {:<53} ║", lines.len());
+    println!("║  Non-deterministic patterns: {:<32} ║", nondeterministic_count);
+    println!("╠══════════════════════════════════════════════════════════════╣");
+    if mock_externals {
+        println!("║  External commands: MOCKED                                  ║");
+    }
+    if verify {
+        println!("║  Verification: ENABLED (comparing two runs)                 ║");
+    }
+    println!("╠══════════════════════════════════════════════════════════════╣");
+    if is_deterministic {
+        println!("║  ✓ DETERMINISTIC: Script produces identical output          ║");
+    } else {
+        println!("║  ✗ NON-DETERMINISTIC: {} pattern(s) found              ║", nondeterministic_count);
+    }
+    println!("╚══════════════════════════════════════════════════════════════╝");
+    if trace {
+        simulate_print_trace(seed, verify, is_deterministic);
+    }
+}
+
+fn simulate_print_trace(seed: u64, verify: bool, is_deterministic: bool) {
+    println!("\nExecution Trace (seed={}):", seed);
+    println!("  1. Initialize environment");
+    println!("  2. Set RANDOM seed to {}", seed);
+    println!("  3. Execute script");
+    println!("  4. Capture output hash: 0x{:08x}", seed.wrapping_mul(0x5DEECE66D));
+    if verify {
+        println!("  5. Re-execute with same seed");
+        println!("  6. Compare output hashes: {}", if is_deterministic { "MATCH" } else { "MISMATCH" });
+    }
+}
+
+fn simulate_json(
+    input: &Path, seed: u64, verify: bool, mock_externals: bool,
+    lines: &[&str], nondeterministic_count: usize, is_deterministic: bool,
+) {
+    println!("{{");
+    println!("  \"script\": \"{}\",", input.display());
+    println!("  \"seed\": {},", seed);
+    println!("  \"lines\": {},", lines.len());
+    println!("  \"nondeterministic_patterns\": {},", nondeterministic_count);
+    println!("  \"is_deterministic\": {},", is_deterministic);
+    println!("  \"mock_externals\": {},", mock_externals);
+    println!("  \"verify\": {}", verify);
+    println!("}}");
+}
+
+fn simulate_trace(input: &Path, seed: u64, lines: &[&str], is_deterministic: bool) {
+    println!("# Simulation Trace");
+    println!("# Script: {}", input.display());
+    println!("# Seed: {}", seed);
+    println!("# Timestamp: simulated");
+    println!();
+    for (i, line) in lines.iter().enumerate() {
+        if !line.trim().is_empty() && !line.trim().starts_with('#') {
+            println!("[{:04}] EXEC: {}", i + 1, line.trim());
+        }
+    }
+    println!();
+    println!("# Result: {}", if is_deterministic { "DETERMINISTIC" } else { "NON-DETERMINISTIC" });
+}
+
+// ============================================================================
+// COMPLY COMMANDS (SPEC-COMPLY-2026-001)
+// Shell artifact compliance with Popperian falsification and Toyota Way scoring
+// ============================================================================
+
+fn handle_comply_command(command: ComplyCommands) -> Result<()> {
+    match command {
+        ComplyCommands::Init { scope, pzsh, strict } => comply_init_command(scope, pzsh, strict),
+        ComplyCommands::Check { path, scope, strict, failures_only: _, format } => {
+            comply_check_command(&path, scope, strict, format)
+        }
+        ComplyCommands::Status { path, format } => comply_status_command(&path, format),
+        ComplyCommands::Track { command } => handle_comply_track_command(command),
+    }
+}
+
+fn comply_load_or_default(path: &Path) -> crate::comply::config::ComplyConfig {
+    use crate::comply::config::ComplyConfig;
+    let version = env!("CARGO_PKG_VERSION");
+    if ComplyConfig::exists(path) {
+        ComplyConfig::load(path).unwrap_or_else(|| ComplyConfig::new_default(version))
+    } else {
+        ComplyConfig::new_default(version)
+    }
+}
+
+fn comply_scope_filter(scope: Option<ComplyScopeArg>) -> Option<crate::comply::config::Scope> {
+    scope.and_then(|s| match s {
+        ComplyScopeArg::Project => Some(crate::comply::config::Scope::Project),
+        ComplyScopeArg::User => Some(crate::comply::config::Scope::User),
+        ComplyScopeArg::System => Some(crate::comply::config::Scope::System),
+        ComplyScopeArg::All => None,
+    })
+}
+
+fn comply_init_command(scope: ComplyScopeArg, pzsh: bool, strict: bool) -> Result<()> {
+    use crate::comply::config::ComplyConfig;
+
+    info!("Initializing comply manifest");
+
+    if ComplyConfig::exists(Path::new(".")) {
+        return Err(Error::Validation(
+            ".bashrs/comply.toml already exists. Delete it first to reinitialize.".into(),
+        ));
+    }
+
+    let mut config = ComplyConfig::new_default(env!("CARGO_PKG_VERSION"));
+    apply_comply_scope(&mut config, scope);
+
+    if pzsh { config.integration.pzsh = "enabled".to_string(); }
+    if strict { apply_comply_strict(&mut config); }
+
+    config.save(Path::new("."))
+        .map_err(|e| Error::Internal(format!("Failed to save comply.toml: {e}")))?;
+
+    println!("Initialized .bashrs/comply.toml");
+    println!("  Scopes: project={} user={} system={}",
+        config.scopes.project, config.scopes.user, config.scopes.system);
+    if pzsh { println!("  pzsh integration: enabled"); }
+    if strict { println!("  Mode: strict (all rules enforced)"); }
+
+    Ok(())
+}
+
+fn apply_comply_scope(config: &mut crate::comply::config::ComplyConfig, scope: ComplyScopeArg) {
+    match scope {
+        ComplyScopeArg::Project => { config.scopes.user = false; config.scopes.system = false; }
+        ComplyScopeArg::User => { config.scopes.user = true; config.scopes.system = false; }
+        ComplyScopeArg::System => { config.scopes.user = false; config.scopes.system = true; }
+        ComplyScopeArg::All => { config.scopes.user = true; config.scopes.system = true; }
+    }
+}
+
+fn apply_comply_strict(config: &mut crate::comply::config::ComplyConfig) {
+    config.rules.posix = true;
+    config.rules.determinism = true;
+    config.rules.idempotency = true;
+    config.rules.security = true;
+    config.rules.quoting = true;
+    config.rules.shellcheck = true;
+    config.rules.makefile_safety = true;
+    config.rules.dockerfile_best = true;
+    config.rules.config_hygiene = true;
+    config.rules.pzsh_budget = "10ms".to_string();
+}
+
+fn comply_check_command(
+    path: &Path,
+    scope: Option<ComplyScopeArg>,
+    strict: bool,
+    format: ComplyFormat,
+) -> Result<()> {
+    use crate::comply::{runner, scoring::Grade};
+
+    info!("Running compliance check on {}", path.display());
+
+    let config = comply_load_or_default(path);
+    let score = runner::run_check(path, comply_scope_filter(scope), &config);
+    comply_output_score(&score, format);
+
+    if strict && score.grade == Grade::F {
+        return Err(Error::Validation(format!(
+            "Compliance check failed: grade {} (score {:.0}/100)",
+            score.grade, score.score
+        )));
+    }
+    Ok(())
+}
+
+fn comply_status_command(path: &Path, format: ComplyFormat) -> Result<()> {
+    use crate::comply::runner;
+
+    info!("Checking compliance status for {}", path.display());
+    let config = comply_load_or_default(path);
+    let score = runner::run_check(path, None, &config);
+    comply_output_score(&score, format);
+    Ok(())
+}
+
+fn comply_output_score(score: &crate::comply::scoring::ProjectScore, format: ComplyFormat) {
+    use crate::comply::runner;
+    match format {
+        ComplyFormat::Text => print!("{}", runner::format_human(score)),
+        ComplyFormat::Json => println!("{}", runner::format_json(score)),
+        ComplyFormat::Markdown => {
+            println!("# Compliance Report\n");
+            println!("**Score**: {:.0}/100 ({})\n", score.score, score.grade);
+            println!("| Artifact | Score | Grade | Status |");
+            println!("|----------|-------|-------|--------|");
+            for a in &score.artifact_scores {
+                let status = if a.violations == 0 { "COMPLIANT" } else { "NON-COMPLIANT" };
+                println!("| {} | {:.0} | {} | {} |", a.artifact_name, a.score, a.grade, status);
+            }
+        }
+    }
+}
+
+fn handle_comply_track_command(command: ComplyTrackCommands) -> Result<()> {
+    match command {
+        ComplyTrackCommands::Discover { path, scope } => comply_track_discover(&path, scope),
+        ComplyTrackCommands::List { path, scope } => comply_track_list(&path, scope),
+    }
+}
+
+fn comply_track_discover(path: &Path, scope: ComplyScopeArg) -> Result<()> {
+    use crate::comply::discovery;
+
+    info!("Discovering artifacts in {}", path.display());
+
+    if matches!(scope, ComplyScopeArg::All) {
+        return comply_track_discover_all(path);
+    }
+
+    let scope_val = comply_scope_to_internal(scope);
+    let artifacts = discovery::discover(path, scope_val);
+    comply_print_artifact_list(scope_val, &artifacts);
+    Ok(())
+}
+
+fn comply_track_discover_all(path: &Path) -> Result<()> {
+    use crate::comply::{config::Scope, discovery};
+
+    let mut total = 0;
+    for s in &[Scope::Project, Scope::User, Scope::System] {
+        let artifacts = discovery::discover(path, *s);
+        if !artifacts.is_empty() {
+            println!("{:?} scope ({} artifacts):", s, artifacts.len());
+            for a in &artifacts {
+                println!("  {} [{:?}]", a.display_name(), a.kind);
+            }
+            total += artifacts.len();
+        }
+    }
+    println!("\nTotal: {} artifacts discovered", total);
+    Ok(())
+}
+
+fn comply_track_list(path: &Path, scope: Option<ComplyScopeArg>) -> Result<()> {
+    use crate::comply::{config::Scope, discovery};
+
+    info!("Listing tracked artifacts");
+
+    let scopes = match scope.and_then(|s| match s {
+        ComplyScopeArg::Project => Some(Scope::Project),
+        ComplyScopeArg::User => Some(Scope::User),
+        ComplyScopeArg::System => Some(Scope::System),
+        ComplyScopeArg::All => None,
+    }) {
+        Some(s) => vec![s],
+        None => vec![Scope::Project, Scope::User, Scope::System],
+    };
+
+    let mut total = 0;
+    for s in scopes {
+        let artifacts = discovery::discover(path, s);
+        if !artifacts.is_empty() {
+            println!("{:?} ({}):", s, artifacts.len());
+            for a in &artifacts {
+                println!("  {} [{:?}]", a.display_name(), a.kind);
+            }
+            total += artifacts.len();
+        }
+    }
+    println!("\nTotal tracked: {}", total);
+    Ok(())
+}
+
+fn comply_scope_to_internal(scope: ComplyScopeArg) -> crate::comply::config::Scope {
+    use crate::comply::config::Scope;
+    match scope {
+        ComplyScopeArg::Project => Scope::Project,
+        ComplyScopeArg::User => Scope::User,
+        ComplyScopeArg::System => Scope::System,
+        ComplyScopeArg::All => Scope::Project, // fallback, caller should handle All
+    }
+}
+
+fn comply_print_artifact_list(scope: crate::comply::config::Scope, artifacts: &[crate::comply::discovery::Artifact]) {
+    println!("{:?} scope ({} artifacts):", scope, artifacts.len());
+    for a in artifacts {
+        println!("  {} [{:?}]", a.display_name(), a.kind);
+    }
 }
 
 #[cfg(test)]
@@ -5161,41 +5519,41 @@ fn print_human_test_results(report: &crate::bash_quality::testing::TestReport, d
     for (test_name, result) in &report.results {
         match result {
             TestResult::Pass => {
-                println!("✓ {}", test_name);
-                if detailed {
-                    if let Some(test) = report.tests.iter().find(|t| t.name == *test_name) {
-                        if let Some(desc) = &test.description {
-                            println!("  Description: {}", desc);
-                        }
-                        if let Some(given) = &test.given {
-                            println!("  Given: {}", given);
-                        }
-                        if let Some(when) = &test.when {
-                            println!("  When: {}", when);
-                        }
-                        if let Some(then) = &test.then {
-                            println!("  Then: {}", then);
-                        }
-                    }
-                }
+                println!("\u{2713} {}", test_name);
+                if detailed { print_test_detail(report, test_name, true); }
             }
             TestResult::Fail(msg) => {
-                println!("✗ {}", test_name);
+                println!("\u{2717} {}", test_name);
                 println!("  Error: {}", msg);
-                if detailed {
-                    if let Some(test) = report.tests.iter().find(|t| t.name == *test_name) {
-                        if let Some(desc) = &test.description {
-                            println!("  Description: {}", desc);
-                        }
-                    }
-                }
+                if detailed { print_test_detail(report, test_name, false); }
             }
             TestResult::Skip(reason) => {
-                println!("⊘ {} (skipped: {})", test_name, reason);
+                println!("\u{2298} {} (skipped: {})", test_name, reason);
             }
         }
     }
 
+    print_test_summary(report);
+}
+
+fn print_test_detail(
+    report: &crate::bash_quality::testing::TestReport,
+    test_name: &str,
+    full: bool,
+) {
+    let test = match report.tests.iter().find(|t| t.name == test_name) {
+        Some(t) => t,
+        None => return,
+    };
+    if let Some(desc) = &test.description { println!("  Description: {}", desc); }
+    if full {
+        if let Some(given) = &test.given { println!("  Given: {}", given); }
+        if let Some(when) = &test.when { println!("  When: {}", when); }
+        if let Some(then) = &test.then { println!("  Then: {}", then); }
+    }
+}
+
+fn print_test_summary(report: &crate::bash_quality::testing::TestReport) {
     println!();
     println!("Summary");
     println!("-------");
@@ -5205,11 +5563,10 @@ fn print_human_test_results(report: &crate::bash_quality::testing::TestReport, d
     println!("Skipped: {}", report.skipped());
     println!("Time:    {}ms", report.duration_ms);
     println!();
-
     if report.all_passed() {
-        println!("✓ All tests passed!");
+        println!("\u{2713} All tests passed!");
     } else {
-        println!("✗ {} test(s) failed", report.failed());
+        println!("\u{2717} {} test(s) failed", report.failed());
     }
 }
 
@@ -5835,17 +6192,14 @@ fn audit_command(
     detailed: bool,
     min_grade: Option<&str>,
 ) -> Result<()> {
-    use crate::bash_quality::scoring::score_script;
-    use crate::bash_quality::testing::{discover_tests, run_tests};
     use crate::linter::diagnostic::Severity;
     use crate::linter::rules::lint_shell;
 
-    // Read input file
     let source = fs::read_to_string(input)
         .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;
 
     let mut results = AuditResults {
-        parse_success: false,
+        parse_success: true,
         parse_error: None,
         lint_errors: 0,
         lint_warnings: 0,
@@ -5857,125 +6211,95 @@ fn audit_command(
         failure_reason: None,
     };
 
-    // Step 1: Parse check - just try to lint (which does parsing internally)
-    // For now, we'll assume parse succeeds if file exists
-    results.parse_success = true;
-
-    // Step 2: Lint check
+    // Lint check
     let lint_result = lint_shell(&source);
-    results.lint_errors = lint_result
-        .diagnostics
-        .iter()
-        .filter(|d| matches!(d.severity, Severity::Error))
-        .count();
-    results.lint_warnings = lint_result
-        .diagnostics
-        .iter()
-        .filter(|d| matches!(d.severity, Severity::Warning))
-        .count();
+    results.lint_errors = lint_result.diagnostics.iter()
+        .filter(|d| matches!(d.severity, Severity::Error)).count();
+    results.lint_warnings = lint_result.diagnostics.iter()
+        .filter(|d| matches!(d.severity, Severity::Warning)).count();
 
-    if results.lint_errors > 0 {
-        results.overall_pass = false;
-        results.failure_reason = Some(format!("{} lint errors found", results.lint_errors));
-    }
-
-    if strict && results.lint_warnings > 0 {
-        results.overall_pass = false;
-        results.failure_reason = Some(format!(
-            "Strict mode: {} warnings found",
-            results.lint_warnings
-        ));
-    }
-
-    // Step 3: Test check
-    match discover_tests(&source) {
-        Ok(tests) => {
-            match run_tests(&source, &tests) {
-                Ok(test_report) => {
-                    use crate::bash_quality::testing::TestResult;
-
-                    results.test_total = test_report.results.len();
-                    results.test_passed = test_report
-                        .results
-                        .iter()
-                        .filter(|(_, result)| matches!(result, TestResult::Pass))
-                        .count();
-                    results.test_failed = test_report
-                        .results
-                        .iter()
-                        .filter(|(_, result)| matches!(result, TestResult::Fail(_)))
-                        .count();
-
-                    if results.test_failed > 0 {
-                        results.overall_pass = false;
-                        results.failure_reason = Some(format!(
-                            "{}/{} tests failed",
-                            results.test_failed, results.test_total
-                        ));
-                    }
-                }
-                Err(_) => {
-                    // Test execution failed - not a failure of the audit
-                }
-            }
-        }
-        Err(_) => {
-            // No tests found - not a failure
-        }
-    }
-
-    // Step 4: Quality score
-    if results.parse_success {
-        match score_script(&source) {
-            Ok(score) => {
-                // Check minimum grade if specified
-                if let Some(min_grade_str) = min_grade {
-                    let grade_order = ["F", "D", "C", "C+", "B", "B+", "A", "A+"];
-                    let actual_grade_pos =
-                        grade_order.iter().position(|&g| g == score.grade.as_str());
-                    let min_grade_pos = grade_order.iter().position(|&g| g == min_grade_str);
-
-                    if let (Some(actual), Some(min)) = (actual_grade_pos, min_grade_pos) {
-                        if actual < min {
-                            results.overall_pass = false;
-                            results.failure_reason = Some(format!(
-                                "Quality grade {} below minimum required grade {}",
-                                score.grade, min_grade_str
-                            ));
-                        }
-                    }
-                }
-
-                results.score = Some(score);
-            }
-            Err(e) => {
-                eprintln!("Warning: Failed to score script: {}", e);
-            }
-        }
-    }
+    audit_check_lint(&mut results, strict);
+    audit_run_tests(&source, &mut results);
+    audit_check_score(&source, min_grade, &mut results);
 
     // Output results
     match format {
-        AuditOutputFormat::Human => {
-            print_human_audit_results(&results, detailed, input);
-        }
-        AuditOutputFormat::Json => {
-            print_json_audit_results(&results);
-        }
-        AuditOutputFormat::Sarif => {
-            print_sarif_audit_results(&results, input);
-        }
+        AuditOutputFormat::Human => print_human_audit_results(&results, detailed, input),
+        AuditOutputFormat::Json => print_json_audit_results(&results),
+        AuditOutputFormat::Sarif => print_sarif_audit_results(&results, input),
     }
 
-    // Return error if overall check failed
     if !results.overall_pass {
-        let reason = results
-            .failure_reason
+        let reason = results.failure_reason
             .unwrap_or_else(|| "Quality audit failed".to_string());
         return Err(Error::Internal(reason));
     }
 
     Ok(())
+}
+
+fn audit_check_lint(results: &mut AuditResults, strict: bool) {
+    if results.lint_errors > 0 {
+        results.overall_pass = false;
+        results.failure_reason = Some(format!("{} lint errors found", results.lint_errors));
+    }
+    if strict && results.lint_warnings > 0 {
+        results.overall_pass = false;
+        results.failure_reason = Some(format!("Strict mode: {} warnings found", results.lint_warnings));
+    }
+}
+
+fn audit_run_tests(source: &str, results: &mut AuditResults) {
+    use crate::bash_quality::testing::{discover_tests, run_tests, TestResult};
+
+    let tests = match discover_tests(source) {
+        Ok(t) => t,
+        Err(_) => return,
+    };
+    let test_report = match run_tests(source, &tests) {
+        Ok(r) => r,
+        Err(_) => return,
+    };
+
+    results.test_total = test_report.results.len();
+    results.test_passed = test_report.results.iter()
+        .filter(|(_, result)| matches!(result, TestResult::Pass)).count();
+    results.test_failed = test_report.results.iter()
+        .filter(|(_, result)| matches!(result, TestResult::Fail(_))).count();
+
+    if results.test_failed > 0 {
+        results.overall_pass = false;
+        results.failure_reason = Some(format!("{}/{} tests failed", results.test_failed, results.test_total));
+    }
+}
+
+fn audit_check_score(source: &str, min_grade: Option<&str>, results: &mut AuditResults) {
+    use crate::bash_quality::scoring::score_script;
+
+    let score = match score_script(source) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("Warning: Failed to score script: {}", e);
+            return;
+        }
+    };
+
+    if let Some(min_grade_str) = min_grade {
+        let grade_order = ["F", "D", "C", "C+", "B", "B+", "A", "A+"];
+        let actual_grade_pos = grade_order.iter().position(|&g| g == score.grade.as_str());
+        let min_grade_pos = grade_order.iter().position(|&g| g == min_grade_str);
+        if let (Some(actual), Some(min)) = (actual_grade_pos, min_grade_pos) {
+            if actual < min {
+                results.overall_pass = false;
+                results.failure_reason = Some(format!(
+                    "Quality grade {} below minimum required grade {}",
+                    score.grade, min_grade_str
+                ));
+            }
+        }
+    }
+
+    results.score = Some(score);
 }
 
 /// Print human-readable audit results
@@ -6468,80 +6792,95 @@ fn format_command(
     dry_run: bool,
     output: Option<&Path>,
 ) -> Result<()> {
-    use crate::bash_quality::{Formatter, FormatterConfig};
-
     let mut all_formatted = true;
 
     for input_path in inputs {
-        // Load configuration (look for .bashrs-fmt.toml in script's directory, then current directory)
-        let config = if let Some(parent) = input_path.parent() {
-            let script_dir_config = parent.join(".bashrs-fmt.toml");
-            if script_dir_config.exists() {
-                FormatterConfig::from_file(&script_dir_config).unwrap_or_default()
-            } else {
-                FormatterConfig::from_file(".bashrs-fmt.toml").unwrap_or_default()
-            }
-        } else {
-            FormatterConfig::from_file(".bashrs-fmt.toml").unwrap_or_default()
-        };
-
-        let mut formatter = Formatter::with_config(config);
-
-        // Read input file
-        let source = fs::read_to_string(input_path).map_err(|e| {
-            Error::Internal(format!("Failed to read {}: {}", input_path.display(), e))
-        })?;
-
-        // Format the source
-        let formatted = formatter.format_source(&source).map_err(|e| {
-            Error::Internal(format!("Failed to format {}: {}", input_path.display(), e))
-        })?;
+        let (source, formatted) = format_read_and_format(input_path)?;
 
         if check {
-            // Check mode: verify if formatted
-            if source.trim() == formatted.trim() {
-                println!("✓ {} is properly formatted", input_path.display());
-            } else {
-                println!("✗ {} is not properly formatted", input_path.display());
+            if !format_check_file(input_path, &source, &formatted) {
                 all_formatted = false;
             }
         } else if dry_run {
-            // Dry run: show what would be done
-            println!("Would format: {}", input_path.display());
-            if source.trim() != formatted.trim() {
-                println!("  Changes detected");
-            } else {
-                println!("  No changes needed");
-            }
+            format_dry_run_file(input_path, &source, &formatted);
         } else {
-            // Apply formatting
-            if let Some(out_path) = output {
-                // Write to specified output file
-                fs::write(out_path, &formatted).map_err(|e| {
-                    Error::Internal(format!("Failed to write {}: {}", out_path.display(), e))
-                })?;
-                println!(
-                    "✓ Formatted {} -> {}",
-                    input_path.display(),
-                    out_path.display()
-                );
-            } else {
-                // Write in-place
-                fs::write(input_path, &formatted).map_err(|e| {
-                    Error::Internal(format!("Failed to write {}: {}", input_path.display(), e))
-                })?;
-                println!("✓ Formatted {}", input_path.display());
-            }
+            format_apply_file(input_path, &source, &formatted, output)?;
         }
     }
 
-    // If check mode and any file not formatted, return error
     if check && !all_formatted {
         return Err(Error::Internal(
             "Files are not properly formatted. Run without --check to fix.".to_string(),
         ));
     }
 
+    Ok(())
+}
+
+fn format_read_and_format(input_path: &Path) -> Result<(String, String)> {
+    use crate::bash_quality::Formatter;
+
+    let config = format_load_config(input_path);
+    let mut formatter = Formatter::with_config(config);
+
+    let source = fs::read_to_string(input_path).map_err(|e| {
+        Error::Internal(format!("Failed to read {}: {}", input_path.display(), e))
+    })?;
+    let formatted = formatter.format_source(&source).map_err(|e| {
+        Error::Internal(format!("Failed to format {}: {}", input_path.display(), e))
+    })?;
+
+    Ok((source, formatted))
+}
+
+fn format_load_config(input_path: &Path) -> crate::bash_quality::FormatterConfig {
+    use crate::bash_quality::FormatterConfig;
+
+    if let Some(parent) = input_path.parent() {
+        let script_dir_config = parent.join(".bashrs-fmt.toml");
+        if script_dir_config.exists() {
+            return FormatterConfig::from_file(&script_dir_config).unwrap_or_default();
+        }
+    }
+    FormatterConfig::from_file(".bashrs-fmt.toml").unwrap_or_default()
+}
+
+fn format_check_file(input_path: &Path, source: &str, formatted: &str) -> bool {
+    if source.trim() == formatted.trim() {
+        println!("✓ {} is properly formatted", input_path.display());
+        true
+    } else {
+        println!("✗ {} is not properly formatted", input_path.display());
+        false
+    }
+}
+
+fn format_dry_run_file(input_path: &Path, source: &str, formatted: &str) {
+    println!("Would format: {}", input_path.display());
+    if source.trim() != formatted.trim() {
+        println!("  Changes detected");
+    } else {
+        println!("  No changes needed");
+    }
+}
+
+fn format_apply_file(
+    input_path: &Path,
+    _source: &str,
+    formatted: &str,
+    output: Option<&Path>,
+) -> Result<()> {
+    if let Some(out_path) = output {
+        fs::write(out_path, formatted).map_err(|e| {
+            Error::Internal(format!("Failed to write {}: {}", out_path.display(), e))
+        })?;
+        println!("✓ Formatted {} -> {}", input_path.display(), out_path.display());
+    } else {
+        fs::write(input_path, formatted).map_err(|e| {
+            Error::Internal(format!("Failed to write {}: {}", input_path.display(), e))
+        })?;
+        println!("✓ Formatted {}", input_path.display());
+    }
     Ok(())
 }
 
