@@ -5152,6 +5152,45 @@ fn corpus_print_score(
                     format!("{}:", fs.format), fs.score, fs.grade, fs.passed, fs.total
                 );
             }
+            // V2 component breakdown (spec §11.4)
+            if !score.results.is_empty() {
+                let n = score.results.len();
+                let a_pass = score.results.iter().filter(|r| r.transpiled).count();
+                let b1_pass = score.results.iter().filter(|r| r.output_contains).count();
+                let b2_pass = score.results.iter().filter(|r| r.output_exact).count();
+                let b3_pass = score.results.iter().filter(|r| r.output_behavioral).count();
+                let d_pass = score.results.iter().filter(|r| r.lint_clean).count();
+                let e_pass = score.results.iter().filter(|r| r.deterministic).count();
+                let f_pass = score.results.iter().filter(|r| r.metamorphic_consistent).count();
+                let g_pass = score.results.iter().filter(|r| r.cross_shell_agree).count();
+                let c_avg: f64 = score.results.iter().map(|r| r.coverage_ratio).sum::<f64>()
+                    / n as f64;
+
+                let pct = |pass: usize| -> f64 { pass as f64 / n as f64 * 100.0 };
+                let pts = |pass: usize, max: f64| -> f64 { pass as f64 / n as f64 * max };
+
+                println!();
+                println!("V2 Component Breakdown:");
+                println!("  A  Transpilation: {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
+                    a_pass, n, pct(a_pass), pts(a_pass, 30.0), 30);
+                println!("  B1 Containment:   {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
+                    b1_pass, n, pct(b1_pass), pts(b1_pass, 10.0), 10);
+                println!("  B2 Exact match:   {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
+                    b2_pass, n, pct(b2_pass), pts(b2_pass, 8.0), 8);
+                println!("  B3 Behavioral:    {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
+                    b3_pass, n, pct(b3_pass), pts(b3_pass, 7.0), 7);
+                println!("  C  Coverage:      avg {:.1}% -> {:.1}/{} pts",
+                    c_avg * 100.0, c_avg * 15.0, 15);
+                println!("  D  Lint clean:    {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
+                    d_pass, n, pct(d_pass), pts(d_pass, 10.0), 10);
+                println!("  E  Deterministic: {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
+                    e_pass, n, pct(e_pass), pts(e_pass, 10.0), 10);
+                println!("  F  Metamorphic:   {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
+                    f_pass, n, pct(f_pass), pts(f_pass, 5.0), 5);
+                println!("  G  Cross-shell:   {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
+                    g_pass, n, pct(g_pass), pts(g_pass, 5.0), 5);
+            }
+
             let failures: Vec<_> = score.results.iter().filter(|r| !r.transpiled).collect();
             if !failures.is_empty() {
                 println!();
