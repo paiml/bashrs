@@ -3,10 +3,11 @@ use crate::cli::args::ExplainErrorFormat;
 use crate::cli::args::{
     AuditOutputFormat, CompileRuntime, ComplyCommands, ComplyFormat, ComplyScopeArg,
     ComplyTrackCommands, ConfigCommands, ConfigOutputFormat, ContainerFormatArg,
-    DevContainerCommands, DockerfileCommands, InspectionFormat, InstallerCommands,
-    InstallerGraphFormat, KeyringCommands, LintFormat, LintLevel, LintProfileArg, MakeCommands,
-    MakeOutputFormat, MutateFormat, PlaybookFormat, ReportFormat, ScoreOutputFormat,
-    SimulateFormat, TestOutputFormat,
+    CorpusCommands, CorpusFormatArg, CorpusOutputFormat, DevContainerCommands,
+    DockerfileCommands, InspectionFormat, InstallerCommands, InstallerGraphFormat,
+    KeyringCommands, LintFormat, LintLevel, LintProfileArg, MakeCommands, MakeOutputFormat,
+    MutateFormat, PlaybookFormat, ReportFormat, ScoreOutputFormat, SimulateFormat,
+    TestOutputFormat,
 };
 #[cfg(feature = "oracle")]
 use crate::cli::logic::extract_exit_code;
@@ -362,6 +363,11 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         Commands::Comply { command } => {
             info!("Executing comply command");
             handle_comply_command(command)
+        }
+
+        Commands::Corpus { command } => {
+            info!("Executing corpus command");
+            handle_corpus_command(command)
         }
     }
 }
@@ -5069,6 +5075,111 @@ fn handle_comply_command(command: ComplyCommands) -> Result<()> {
         ComplyCommands::Status { path, format } => comply_status_command(&path, format),
         ComplyCommands::Track { command } => handle_comply_track_command(command),
     }
+}
+
+fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    match command {
+        CorpusCommands::Run { format, filter, min_score, log } => {
+            let config = Config::default();
+            let registry = CorpusRegistry::load_full();
+            let runner = CorpusRunner::new(config);
+
+            let score = match filter {
+                Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
+                Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
+                Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
+                None => runner.run(&registry),
+            };
+
+            corpus_print_score(&score, &format)?;
+
+            if log {
+                corpus_write_convergence_log(&runner, &score)?;
+            }
+
+            if let Some(threshold) = min_score {
+                if score.score < threshold {
+                    return Err(Error::Validation(format!(
+                        "Score {:.1} is below minimum threshold {:.1}",
+                        score.score, threshold
+                    )));
+                }
+            }
+
+            Ok(())
+        }
+    }
+}
+
+fn corpus_print_score(
+    score: &crate::corpus::runner::CorpusScore,
+    format: &CorpusOutputFormat,
+) -> Result<()> {
+    match format {
+        CorpusOutputFormat::Human => {
+            println!("V2 Corpus Score: {:.1}/100 ({})", score.score, score.grade);
+            println!(
+                "Entries: {} total, {} passed, {} failed ({:.1}%)",
+                score.total, score.passed, score.failed, score.rate * 100.0
+            );
+            println!();
+            for fs in &score.format_scores {
+                println!(
+                    "  {:<12} {:.1}/100 ({}) — {}/{} passed",
+                    format!("{}:", fs.format), fs.score, fs.grade, fs.passed, fs.total
+                );
+            }
+            let failures: Vec<_> = score.results.iter().filter(|r| !r.transpiled).collect();
+            if !failures.is_empty() {
+                println!();
+                println!("Failed entries ({}):", failures.len());
+                for f in &failures {
+                    let err = f.error.as_deref().unwrap_or("unknown error");
+                    println!("  {} — {}", f.id, truncate_str(err, 80));
+                }
+            }
+        }
+        CorpusOutputFormat::Json => {
+            let json = serde_json::to_string_pretty(score)
+                .map_err(|e| Error::Internal(format!("JSON serialization failed: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+fn corpus_write_convergence_log(
+    runner: &crate::corpus::runner::CorpusRunner,
+    score: &crate::corpus::runner::CorpusScore,
+) -> Result<()> {
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let previous = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
+    let iteration = previous.len() as u32 + 1;
+    let prev_rate = previous.last().map_or(0.0, |e| e.rate);
+    let date = chrono_free_date();
+    let entry = runner.convergence_entry(&score, iteration, &date, prev_rate, "CLI corpus run");
+    CorpusRunner::append_convergence_log(&entry, &log_path)
+        .map_err(|e| Error::Internal(format!("Failed to write convergence log: {e}")))?;
+    println!();
+    println!("Convergence log: iteration {}, delta {:.4}", iteration, entry.delta);
+    Ok(())
+}
+
+/// Generate ISO 8601 date string without chrono dependency.
+fn chrono_free_date() -> String {
+    use std::process::Command;
+    Command::new("date")
+        .arg("+%Y-%m-%d")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| "unknown".to_string())
 }
 
 fn comply_load_or_default(path: &Path) -> crate::comply::config::ComplyConfig {
