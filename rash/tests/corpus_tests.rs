@@ -100,6 +100,7 @@ fn test_CORPUS_005_score_perfect_v2() {
         output_behavioral: true,
         schema_valid: true,
         has_test: true,
+        coverage_ratio: 1.0,
         lint_clean: true,
         deterministic: true,
         metamorphic_consistent: true,
@@ -128,6 +129,7 @@ fn test_CORPUS_006_score_gateway_barrier() {
         output_behavioral: true,   // should be ignored
         schema_valid: true,        // should be ignored
         has_test: true,            // should be ignored
+        coverage_ratio: 1.0,      // should be ignored
         lint_clean: true,          // should be ignored
         deterministic: true,       // should be ignored
         metamorphic_consistent: true, // should be ignored
@@ -936,6 +938,8 @@ fn test_CORPUS_036_v2_component_breakdown() {
     let behavioral = score.results.iter().filter(|r| r.output_behavioral).count();
     let schema = score.results.iter().filter(|r| r.schema_valid).count();
     let has_test = score.results.iter().filter(|r| r.has_test).count();
+    let avg_coverage: f64 = score.results.iter().map(|r| r.coverage_ratio).sum::<f64>()
+        / total as f64;
     let lint = score.results.iter().filter(|r| r.lint_clean).count();
     let determ = score.results.iter().filter(|r| r.deterministic).count();
     let metamorphic = score.results.iter().filter(|r| r.metamorphic_consistent).count();
@@ -956,9 +960,8 @@ fn test_CORPUS_036_v2_component_breakdown() {
         behavioral as f64 / total as f64 * 7.0);
     eprintln!("   Schema valid:   {}/{} ({:.1}%)",
         schema, total, schema as f64 / total as f64 * 100.0);
-    eprintln!("C  Has test:       {}/{} ({:.1}%) → {:.0}/15 pts",
-        has_test, total, has_test as f64 / total as f64 * 100.0,
-        has_test as f64 / total as f64 * 15.0);
+    eprintln!("C  Coverage (V2-8): avg {:.1}% → {:.1}/15 pts (has_test: {}/{})",
+        avg_coverage * 100.0, avg_coverage * 15.0, has_test, total);
     eprintln!("D  Lint clean:     {}/{} ({:.1}%) → {:.0}/10 pts",
         lint, total, lint as f64 / total as f64 * 100.0,
         lint as f64 / total as f64 * 10.0);

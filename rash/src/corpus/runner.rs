@@ -2,12 +2,12 @@
 //!
 //! Implements the v2 scoring system from the corpus specification:
 //! - A. Transpilation Success (30 points)
-//! - B. Output Correctness: L1 containment (10) + L2 exact match (8) + L3 reserved (7)
-//! - C. Test Coverage (15 points) — based on actual test detection
+//! - B. Output Correctness: L1 containment (10) + L2 exact match (8) + L3 behavioral (7)
+//! - C. Test Coverage (15 points) — real LLVM coverage ratio per format (V2-8)
 //! - D. Lint Compliance (10 points)
 //! - E. Determinism (10 points)
-//! - F. Metamorphic Consistency (5 points) — MR-1 determinism, MR-2 stability
-//! - G. Cross-format reserved (5 points)
+//! - F. Metamorphic Consistency (5 points) — MR-1 through MR-7
+//! - G. Cross-shell agreement (5 points)
 //!
 //! Gateway logic: if A < 60%, B-G are scored as 0 (Popperian falsification barrier).
 //! Secondary gate: if B_L1 < 60%, B_L2 and B_L3 are scored as 0.
@@ -15,7 +15,7 @@
 use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, Grade};
 use crate::models::Config;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
 /// Result of transpiling a single corpus entry (v2 scoring).
@@ -31,8 +31,12 @@ pub struct CorpusResult {
     pub output_exact: bool,
     /// B_L3: Reserved for execution-based behavioral equivalence (7 points)
     pub output_behavioral: bool,
-    /// Whether a unit test exists for this entry (C: 15 points)
+    /// Whether a unit test exists for this entry (legacy binary detection)
     pub has_test: bool,
+    /// Real LLVM coverage ratio for this entry's format (0.0-1.0, V2-8)
+    /// C_score = coverage_ratio × 15
+    #[serde(default)]
+    pub coverage_ratio: f64,
     /// Whether output conforms to format schema (hard gate: 0 if false)
     pub schema_valid: bool,
     /// Whether output passes lint (D: 10 points)
@@ -82,7 +86,9 @@ impl CorpusResult {
             0.0
         };
 
-        let c = if self.has_test { 15.0 } else { 0.0 };
+        // C: real LLVM coverage ratio (V2-8 spec §11.4)
+        // C_score = coverage_ratio × 15 (replaces binary has_test)
+        let c = self.coverage_ratio * 15.0;
         let d = if self.lint_clean { 10.0 } else { 0.0 };
         let e = if self.deterministic { 10.0 } else { 0.0 };
         let f = if self.metamorphic_consistent {
@@ -103,7 +109,7 @@ impl CorpusResult {
             return a;
         }
         let b = if self.output_contains { 25.0 } else { 0.0 };
-        let c = if self.has_test { 15.0 } else { 0.0 };
+        let c = self.coverage_ratio * 15.0;
         let d = if self.lint_clean { 10.0 } else { 0.0 };
         let e = if self.deterministic { 10.0 } else { 0.0 };
         a + b + c + d + e
@@ -320,6 +326,126 @@ fn detect_test_exists(entry_id: &str) -> bool {
     })
 }
 
+/// Per-format LLVM coverage ratios, lazily loaded from LCOV data.
+static FORMAT_COVERAGE: OnceLock<HashMap<String, f64>> = OnceLock::new();
+
+/// Standard locations to search for LCOV coverage data files.
+/// Includes both workspace root and crate-level paths since cargo tests
+/// may run from either directory.
+const LCOV_SEARCH_PATHS: &[&str] = &[
+    "target/coverage/lcov.info",
+    "lcov.info",
+    ".coverage/lcov.info",
+    "target/llvm-cov/lcov.info",
+    // Workspace-relative paths (when cwd is a crate subdirectory)
+    "../target/coverage/lcov.info",
+    "../lcov.info",
+    "../.coverage/lcov.info",
+];
+
+/// Source file path patterns that map to each corpus format.
+/// Used to attribute LCOV line coverage to the correct format.
+fn format_file_patterns(format: CorpusFormat) -> &'static [&'static str] {
+    match format {
+        CorpusFormat::Bash => &[
+            "emitter/posix",
+            "bash_transpiler/",
+            "bash_parser/",
+        ],
+        CorpusFormat::Makefile => &["emitter/makefile"],
+        CorpusFormat::Dockerfile => &["emitter/dockerfile"],
+    }
+}
+
+/// Load per-format coverage ratios from LCOV data.
+/// Returns a map of format name → coverage ratio (0.0-1.0).
+fn load_format_coverage() -> HashMap<String, f64> {
+    let mut map = HashMap::new();
+
+    // Try each standard LCOV location
+    let lcov_content = LCOV_SEARCH_PATHS
+        .iter()
+        .find_map(|path| std::fs::read_to_string(path).ok());
+
+    let Some(content) = lcov_content else {
+        return map;
+    };
+
+    // Parse LCOV and compute per-format coverage
+    let file_coverage = parse_lcov_file_coverage(&content);
+
+    for format in [CorpusFormat::Bash, CorpusFormat::Makefile, CorpusFormat::Dockerfile] {
+        let patterns = format_file_patterns(format);
+        let mut total_lines = 0u64;
+        let mut hit_lines = 0u64;
+
+        for (file_path, (lf, lh)) in &file_coverage {
+            if patterns.iter().any(|p| file_path.contains(p)) {
+                total_lines += lf;
+                hit_lines += lh;
+            }
+        }
+
+        if total_lines > 0 {
+            let ratio = hit_lines as f64 / total_lines as f64;
+            map.insert(format!("{format}"), ratio);
+        }
+    }
+
+    map
+}
+
+/// Parse LCOV data into per-file (lines_found, lines_hit) tuples.
+fn parse_lcov_file_coverage(content: &str) -> Vec<(String, (u64, u64))> {
+    let mut results = Vec::new();
+    let mut current_file = String::new();
+    let mut lines_found = 0u64;
+    let mut lines_hit = 0u64;
+
+    for line in content.lines() {
+        if let Some(path) = line.strip_prefix("SF:") {
+            current_file = path.to_string();
+            lines_found = 0;
+            lines_hit = 0;
+        } else if let Some(rest) = line.strip_prefix("DA:") {
+            // DA:<line number>,<execution count>[,<checksum>]
+            if let Some((_line_no, count_str)) = rest.split_once(',') {
+                // Count might have a trailing checksum: "5,abc123"
+                let count_part = count_str.split(',').next().unwrap_or("0");
+                if let Ok(count) = count_part.parse::<u64>() {
+                    lines_found += 1;
+                    if count > 0 {
+                        lines_hit += 1;
+                    }
+                }
+            }
+        } else if line == "end_of_record" && !current_file.is_empty() {
+            results.push((current_file.clone(), (lines_found, lines_hit)));
+        }
+    }
+
+    results
+}
+
+/// Get the LLVM coverage ratio for a corpus format.
+/// Returns 0.0-1.0 from LCOV data, or falls back to test name detection.
+fn detect_coverage_ratio(format: CorpusFormat, entry_id: &str) -> f64 {
+    let coverage = FORMAT_COVERAGE.get_or_init(load_format_coverage);
+
+    // Primary: real LLVM coverage data
+    let format_key = format!("{format}");
+    if let Some(&ratio) = coverage.get(&format_key) {
+        return ratio;
+    }
+
+    // Fallback: binary test name detection
+    if detect_test_exists(entry_id) {
+        1.0
+    } else {
+        0.0
+    }
+}
+
 /// Corpus runner: loads entries, transpiles, scores, tracks convergence.
 pub struct CorpusRunner {
     config: Config,
@@ -379,8 +505,9 @@ impl CorpusRunner {
                 // B_L3: Behavioral equivalence — execute transpiled shell and verify exit 0
                 let output_behavioral = self.check_behavioral(&output, entry.format);
 
-                // C: Test detection — check if entry has corresponding test function
-                let has_test = detect_test_exists(&entry.id);
+                // C: Coverage ratio (V2-8) — real LLVM coverage or test name fallback
+                let coverage_ratio = detect_coverage_ratio(entry.format, &entry.id);
+                let has_test = coverage_ratio > 0.0 || detect_test_exists(&entry.id);
 
                 // D: Check lint compliance
                 let lint_clean = self.check_lint(&output, entry.format);
@@ -416,6 +543,7 @@ impl CorpusRunner {
                     output_behavioral,
                     schema_valid,
                     has_test,
+                    coverage_ratio,
                     lint_clean,
                     deterministic,
                     metamorphic_consistent,
@@ -429,6 +557,7 @@ impl CorpusRunner {
             Err(e) => {
                 let error_msg = format!("{e}");
                 let (error_category, error_confidence) = classify_error(&error_msg);
+                let cov = detect_coverage_ratio(entry.format, &entry.id);
 
                 CorpusResult {
                     id: entry.id.clone(),
@@ -437,7 +566,8 @@ impl CorpusRunner {
                     output_exact: false,
                     output_behavioral: false,
                     schema_valid: false,
-                    has_test: detect_test_exists(&entry.id),
+                    has_test: cov > 0.0 || detect_test_exists(&entry.id),
+                    coverage_ratio: cov,
                     lint_clean: false,
                     deterministic: false,
                     metamorphic_consistent: false,
@@ -1074,6 +1204,7 @@ mod tests {
             output_behavioral: true,
             schema_valid: true,
             has_test: true,
+            coverage_ratio: 1.0,
             lint_clean: true,
             deterministic: true,
             metamorphic_consistent: true,
@@ -1097,6 +1228,7 @@ mod tests {
             output_behavioral: false,
             schema_valid: true,
             has_test: false,
+            coverage_ratio: 0.0,
             lint_clean: false,
             deterministic: false,
             metamorphic_consistent: false,
@@ -1120,6 +1252,7 @@ mod tests {
             output_behavioral: false,
             schema_valid: false,
             has_test: true,
+            coverage_ratio: 1.0,
             lint_clean: false,
             deterministic: false,
             metamorphic_consistent: false,
@@ -1232,6 +1365,7 @@ mod tests {
             output_behavioral: true,
             schema_valid: true,
             has_test: true,
+            coverage_ratio: 1.0,
             lint_clean: true,
             deterministic: true,
             metamorphic_consistent: true,
@@ -1252,6 +1386,7 @@ mod tests {
             output_behavioral: true,
             schema_valid: true,
             has_test: true,
+            coverage_ratio: 1.0,
             lint_clean: true,
             deterministic: true,
             metamorphic_consistent: true,
@@ -1276,6 +1411,7 @@ mod tests {
             output_behavioral: false,
             schema_valid: true,
             has_test: true,
+            coverage_ratio: 1.0,
             lint_clean: false,
             deterministic: true,
             metamorphic_consistent: true,
@@ -1300,6 +1436,7 @@ mod tests {
             output_behavioral: true,  // gated by L1
             schema_valid: true,
             has_test: true,
+            coverage_ratio: 1.0,
             lint_clean: true,
             deterministic: true,
             metamorphic_consistent: true,
@@ -1323,6 +1460,7 @@ mod tests {
             output_behavioral: false,
             schema_valid: true,
             has_test: true,
+            coverage_ratio: 1.0,
             lint_clean: true,
             deterministic: true,
             metamorphic_consistent: true,
@@ -1574,6 +1712,7 @@ fn not_a_test() {}
             output_behavioral: true,
             schema_valid: false,
             has_test: true,
+            coverage_ratio: 1.0,
             lint_clean: true,
             deterministic: true,
             metamorphic_consistent: true,
@@ -1588,5 +1727,116 @@ fn not_a_test() {}
             "Schema-invalid entry should score 0, got {}",
             result.score()
         );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_030_parse_lcov_basic() {
+        let lcov = r#"SF:rash/src/emitter/posix.rs
+DA:1,5
+DA:2,3
+DA:3,0
+DA:4,10
+end_of_record
+SF:rash/src/emitter/makefile.rs
+DA:1,1
+DA:2,0
+DA:3,0
+end_of_record
+"#;
+        let results = parse_lcov_file_coverage(lcov);
+        assert_eq!(results.len(), 2);
+        // posix.rs: 4 lines found, 3 hit (DA:3,0 is not hit)
+        assert_eq!(results[0].0, "rash/src/emitter/posix.rs");
+        assert_eq!(results[0].1, (4, 3));
+        // makefile.rs: 3 lines found, 1 hit
+        assert_eq!(results[1].0, "rash/src/emitter/makefile.rs");
+        assert_eq!(results[1].1, (3, 1));
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_031_parse_lcov_empty() {
+        let results = parse_lcov_file_coverage("");
+        assert!(results.is_empty());
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_032_coverage_ratio_scoring() {
+        // V2-8: coverage_ratio=0.8 should give 12.0/15 points for C
+        let result = CorpusResult {
+            id: "T-032".to_string(),
+            transpiled: true,
+            output_contains: true,
+            output_exact: true,
+            output_behavioral: true,
+            schema_valid: true,
+            has_test: true,
+            coverage_ratio: 0.8,
+            lint_clean: true,
+            deterministic: true,
+            metamorphic_consistent: true,
+            cross_shell_agree: true,
+            actual_output: Some("output".to_string()),
+            error: None,
+            error_category: None,
+            error_confidence: None,
+        };
+        // A=30 + B1=10 + B2=8 + B3=7 + C=12.0 + D=10 + E=10 + F=5 + G=5 = 97.0
+        let score = result.score();
+        assert!(
+            (score - 97.0).abs() < f64::EPSILON,
+            "Expected 97.0, got {score}"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_033_coverage_ratio_zero() {
+        // V2-8: coverage_ratio=0.0 gives 0/15 for C
+        let result = CorpusResult {
+            id: "T-033".to_string(),
+            transpiled: true,
+            output_contains: true,
+            output_exact: true,
+            output_behavioral: true,
+            schema_valid: true,
+            has_test: false,
+            coverage_ratio: 0.0,
+            lint_clean: true,
+            deterministic: true,
+            metamorphic_consistent: true,
+            cross_shell_agree: true,
+            actual_output: Some("output".to_string()),
+            error: None,
+            error_category: None,
+            error_confidence: None,
+        };
+        // A=30 + B1=10 + B2=8 + B3=7 + C=0 + D=10 + E=10 + F=5 + G=5 = 85.0
+        let score = result.score();
+        assert!(
+            (score - 85.0).abs() < f64::EPSILON,
+            "Expected 85.0, got {score}"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_034_format_file_patterns() {
+        // Verify format-to-file pattern mappings exist for all formats
+        let bash_patterns = format_file_patterns(CorpusFormat::Bash);
+        assert!(!bash_patterns.is_empty());
+        assert!(bash_patterns.iter().any(|p| p.contains("posix")));
+
+        let make_patterns = format_file_patterns(CorpusFormat::Makefile);
+        assert!(make_patterns.iter().any(|p| p.contains("makefile")));
+
+        let docker_patterns = format_file_patterns(CorpusFormat::Dockerfile);
+        assert!(docker_patterns.iter().any(|p| p.contains("dockerfile")));
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_035_parse_lcov_with_checksum() {
+        // LCOV DA lines can have optional checksums: DA:<line>,<count>,<checksum>
+        let lcov = "SF:test.rs\nDA:1,5,abc123\nDA:2,0,def456\nend_of_record\n";
+        let results = parse_lcov_file_coverage(lcov);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].1, (2, 1)); // 2 lines, 1 hit
     }
 }
