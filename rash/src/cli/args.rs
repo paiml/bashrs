@@ -657,6 +657,13 @@ pub enum CorpusCommands {
         dimension: Option<String>,
     },
 
+    /// Generate comprehensive markdown quality report
+    Report {
+        /// Write to file instead of stdout
+        #[arg(short, long)]
+        output: Option<String>,
+    },
+
     /// Compare two convergence log snapshots
     Diff {
         /// Output format
