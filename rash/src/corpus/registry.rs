@@ -311,7 +311,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 "fn main() { let x = 42; }",
-                "x=42",
+                "x='42'",
             ),
             CorpusEntry::new(
                 "B-004",
@@ -329,7 +329,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 r#"fn main() { let name = "Alice"; let age = 30; }"#,
-                "name=",
+                "name='Alice'",
             ),
             CorpusEntry::new(
                 "B-006",
@@ -338,7 +338,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 r#"fn main() { greet("World"); } fn greet(name: &str) {}"#,
-                "greet",
+                "greet() {",
             ),
             CorpusEntry::new(
                 "B-007",
@@ -356,7 +356,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 "fn main() { let x = 5 + 3; }",
-                "x=",
+                "x='8'",
             ),
             CorpusEntry::new(
                 "B-009",
@@ -374,7 +374,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 "fn main() { std::process::exit(1); }",
-                "exit 1",
+                "std::process::exit 1",
             ),
         ];
         self.entries.extend(entries);
@@ -539,7 +539,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Trivial,
                 r#"fn main() { from_image("alpine", "3.18"); entrypoint(&["/app"]); } fn from_image(i: &str, t: &str) {} fn entrypoint(e: &[&str]) {}"#,
-                "ENTRYPOINT",
+                r#"ENTRYPOINT ["/app"]"#,
             ),
             CorpusEntry::new(
                 "D-008",
@@ -548,7 +548,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Trivial,
                 r#"fn main() { from_image("alpine", "3.18"); label("maintainer", "team@example.com"); } fn from_image(i: &str, t: &str) {} fn label(k: &str, v: &str) {}"#,
-                "LABEL maintainer=",
+                r#"LABEL maintainer="team@example.com""#,
             ),
             CorpusEntry::new(
                 "D-009",
@@ -585,7 +585,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = 5; if x > 3 { let msg = "big"; } else { let msg = "small"; } }"#,
-                "if [",
+                r#"if [ "$x" -gt 3 ]; then"#,
             ),
             CorpusEntry::new(
                 "B-012",
@@ -594,7 +594,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 "fn main() { for i in 0..5 { let x = i; } }",
-                "for ",
+                "for i in $(seq 0 4); do",
             ),
             CorpusEntry::new(
                 "B-013",
@@ -603,7 +603,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 "fn main() { let sum = 10 + 20; let product = 3 * 4; }",
-                "sum=",
+                "sum='30'",
             ),
             CorpusEntry::new(
                 "B-014",
@@ -612,7 +612,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = "hello"; greet(x); } fn greet(name: &str) {} "#,
-                "greet",
+                "greet() {",
             ),
             CorpusEntry::new(
                 "B-015",
@@ -621,7 +621,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 "fn main() { let flag = !false; }",
-                "flag=",
+                "flag=! false",
             ),
             // Harder entries - potential falsifiers
             CorpusEntry::new(
@@ -631,7 +631,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 "fn main() { let mut x = 0; while x < 10 { x = x + 1; } }",
-                "while",
+                r#"while [ "$x" -lt 10 ]; do"#,
             ),
             CorpusEntry::new(
                 "B-017",
@@ -640,7 +640,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = 1; match x { 1 => { let a = "one"; }, 2 => { let b = "two"; }, _ => { let c = "other"; } } }"#,
-                "case",
+                r#"case "$x" in"#,
             ),
             CorpusEntry::new(
                 "B-018",
@@ -649,7 +649,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 "fn main() { let x = -42; }",
-                "x=",
+                "x='-42'",
             ),
             CorpusEntry::new(
                 "B-019",
@@ -752,7 +752,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Standard,
                 r#"fn main() { from_image("ubuntu", "22.04"); run(&["apt-get update", "apt-get install -y curl"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {}"#,
-                "RUN apt-get update",
+                r#"RUN apt-get update && \"#,
             ),
             CorpusEntry::new(
                 "D-012",
@@ -770,7 +770,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Standard,
                 r#"fn main() { from_image_as("rust", "1.75", "builder"); workdir("/app"); copy(".", "."); from_image("alpine", "3.18"); copy_from("builder", "/app/target/release/app", "/usr/local/bin/"); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {}"#,
-                "COPY --from=builder",
+                "COPY --from=builder /app/target/release/app /usr/local/bin/",
             ),
             CorpusEntry::new(
                 "D-014",
@@ -788,7 +788,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Standard,
                 r#"fn main() { from_image("alpine", "3.18"); cmd(&["sh", "-c", "echo hello"]); } fn from_image(i: &str, t: &str) {} fn cmd(c: &[&str]) {}"#,
-                "CMD",
+                r#"CMD ["sh", "-c", "echo hello"]"#,
             ),
             // Harder entries
             CorpusEntry::new(
@@ -798,7 +798,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Standard,
                 r#"fn main() { from_image("nginx", "1.25"); healthcheck("curl -f http://localhost/"); } fn from_image(i: &str, t: &str) {} fn healthcheck(c: &str) {}"#,
-                "HEALTHCHECK CMD",
+                "HEALTHCHECK CMD curl -f http://localhost/",
             ),
             CorpusEntry::new(
                 "D-017",
@@ -835,7 +835,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 r#"fn main() { let x = 5; if x > 10 { let r = "big"; } else if x > 3 { let r = "medium"; } else { let r = "small"; } }"#,
-                "elif",
+                r#"elif [ "$x" -gt 3 ]; then"#,
             ),
             CorpusEntry::new(
                 "B-022",
@@ -844,7 +844,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 "fn main() { for i in 0..=5 { let x = i; } }",
-                "for ",
+                "for i in $(seq 0 5); do",
             ),
             CorpusEntry::new(
                 "B-023",
@@ -853,7 +853,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 r#"fn main() { println!("hello world"); }"#,
-                "echo",
+                "rash_println() {",
             ),
             CorpusEntry::new(
                 "B-024",
@@ -862,7 +862,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 r#"fn main() { greet("World", 3); } fn greet(name: &str, count: u32) {}"#,
-                "greet",
+                "greet() {",
             ),
             CorpusEntry::new(
                 "B-025",
@@ -871,7 +871,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 "fn main() { for i in 0..10 { if i > 5 { let big = true; } } }",
-                "for ",
+                "for i in $(seq 0 9); do",
             ),
             CorpusEntry::new(
                 "B-026",
@@ -898,7 +898,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 "fn main() { let remainder = 17 % 5; }",
-                "remainder=",
+                "remainder='2'",
             ),
             CorpusEntry::new(
                 "B-029",
@@ -907,7 +907,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 r#"fn main() { let empty = ""; }"#,
-                "empty=",
+                "empty=''",
             ),
             CorpusEntry::new(
                 "B-030",
@@ -916,7 +916,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 "fn main() { let mut i = 0; let mut sum = 0; while i < 5 { sum = sum + i; i = i + 1; } }",
-                "while",
+                r#"while [ "$i" -lt 5 ]; do"#,
             ),
             CorpusEntry::new(
                 "B-031",
@@ -952,7 +952,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 "fn main() { let quotient = 20 / 4; }",
-                "quotient=",
+                "quotient='5'",
             ),
             CorpusEntry::new(
                 "B-035",
@@ -961,7 +961,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 "fn main() { let big = 4294967295; }",
-                "big=",
+                "big='4294967295'",
             ),
         ];
         self.entries.extend(entries);
@@ -1081,7 +1081,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Complex,
                 r#"fn main() { from_image("alpine", "3.18"); entrypoint(&["/app/server"]); cmd(&["--port", "8080"]); } fn from_image(i: &str, t: &str) {} fn entrypoint(e: &[&str]) {} fn cmd(c: &[&str]) {}"#,
-                "ENTRYPOINT",
+                r#"ENTRYPOINT ["/app/server"]"#,
             ),
             CorpusEntry::new(
                 "D-023",
@@ -1090,7 +1090,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Complex,
                 r#"fn main() { from_image("alpine", "3.18"); label("maintainer", "team@example.com"); label("version", "1.0"); label("description", "My application"); } fn from_image(i: &str, t: &str) {} fn label(k: &str, v: &str) {}"#,
-                "LABEL maintainer=",
+                r#"LABEL maintainer="team@example.com""#,
             ),
             CorpusEntry::new(
                 "D-024",
@@ -1128,7 +1128,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let mut count = 0; count += 5; }"#,
-                "count=",
+                "count='0'",
             ),
             CorpusEntry::new(
                 "B-037",
@@ -1137,7 +1137,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let mut total = 100; total -= 25; }"#,
-                "total=",
+                "total='100'",
             ),
             CorpusEntry::new(
                 "B-038",
@@ -1146,7 +1146,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let mut factor = 3; factor *= 4; }"#,
-                "factor=",
+                "factor='3'",
             ),
             // --- eprintln! macro ---
             CorpusEntry::new(
@@ -1156,7 +1156,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { eprintln!("error: something went wrong"); }"#,
-                ">&2",
+                r#"printf '%s\n' "$1" >&2"#,
             ),
             // --- Nested function calls ---
             CorpusEntry::new(
@@ -1166,7 +1166,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn add(a: u32, b: u32) -> u32 { a + b } fn double(x: u32) -> u32 { x * 2 } fn main() { let result = double(add(3, 4)); }"#,
-                "result=",
+                r#"result="$(double "$(add 3 4)")""#,
             ),
             // --- Multiple return paths ---
             CorpusEntry::new(
@@ -1176,7 +1176,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn check(x: u32) -> u32 { if x > 10 { return 1; } return 0; } fn main() { let r = check(5); }"#,
-                "check()",
+                "check() {",
             ),
             // --- Empty function body ---
             CorpusEntry::new(
@@ -1186,7 +1186,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn noop() {} fn main() { noop(); }"#,
-                "noop()",
+                "noop() {",
             ),
             // --- Large literal values ---
             CorpusEntry::new(
@@ -1196,7 +1196,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let max = 4294967295; }"#,
-                "max=4294967295",
+                "max='4294967295'",
             ),
             // --- String with special characters (safe) ---
             CorpusEntry::new(
@@ -1206,7 +1206,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let msg = "hello world: it's a test!"; let path = "/usr/local/bin"; }"#,
-                "msg=",
+                r#"msg='hello world: it'"'"'s a test!'"#,
             ),
             // --- Deeply nested if-else ---
             CorpusEntry::new(
@@ -1216,7 +1216,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let x = 5; if x > 0 { if x > 3 { if x > 4 { let r = 1; } } } }"#,
-                "if",
+                r#"if [ "$x" -gt 0 ]; then"#,
             ),
             // --- While with complex condition ---
             CorpusEntry::new(
@@ -1226,7 +1226,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let mut x = 0; let mut y = 10; while x < 5 && y > 0 { x = x + 1; y = y - 1; } }"#,
-                "while",
+                r#"while [ "$x" -lt 5 ] && [ "$y" -gt 0 ]; do"#,
             ),
             // --- Multiple functions calling each other ---
             CorpusEntry::new(
@@ -1236,7 +1236,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn step1() -> u32 { 1 } fn step2(x: u32) -> u32 { x + 2 } fn step3(x: u32) -> u32 { x * 3 } fn main() { let r = step3(step2(step1())); }"#,
-                "step1()",
+                "step1() {",
             ),
             // --- Boolean parameters ---
             CorpusEntry::new(
@@ -1246,7 +1246,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn process(verbose: bool, dry_run: bool) { if verbose { println!("processing"); } } fn main() { process(true, false); }"#,
-                "process()",
+                "process() {",
             ),
             // --- Match with many arms ---
             CorpusEntry::new(
@@ -1256,7 +1256,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let x = 3; match x { 0 => { println!("zero"); } 1 => { println!("one"); } 2 => { println!("two"); } 3 => { println!("three"); } 4 => { println!("four"); } _ => { println!("other"); } } }"#,
-                "case",
+                r#"case "$x" in"#,
             ),
             // --- Negation operator ---
             CorpusEntry::new(
@@ -1266,7 +1266,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let x = 5; let y = !true; }"#,
-                "y=",
+                "y=! true",
             ),
         ];
         self.entries.extend(entries);
@@ -1282,7 +1282,7 @@ impl CorpusRegistry {
                 CorpusFormat::Makefile,
                 CorpusTier::Adversarial,
                 r#"fn main() { let cc = "gcc"; let cflags = "-Wall -Werror -O2 -pedantic"; let ldflags = "-lpthread -lm"; target("all", &["build", "test"]); } fn target(n: &str, d: &[&str]) {}"#,
-                "CFLAGS :=",
+                "CFLAGS := -Wall -Werror -O2 -pedantic",
             ),
             // --- Many targets ---
             CorpusEntry::new(
@@ -1302,7 +1302,7 @@ impl CorpusRegistry {
                 CorpusFormat::Makefile,
                 CorpusTier::Adversarial,
                 r#"fn main() { phony_target("all", &["build"]); phony_target("clean", &[]); phony_target("test", &["build"]); phony_target("lint", &[]); phony_target("fmt", &[]); } fn phony_target(n: &str, d: &[&str]) {}"#,
-                ".PHONY:",
+                ".PHONY: all",
             ),
             // --- Recipe with multiple commands ---
             CorpusEntry::new(
@@ -1348,7 +1348,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Adversarial,
                 r#"fn main() { from_image("alpine", "3.18"); healthcheck("curl -f http://localhost:8080/health || exit 1"); expose(8080u16); } fn from_image(i: &str, t: &str) {} fn healthcheck(c: &str) {} fn expose(p: u16) {}"#,
-                "HEALTHCHECK",
+                "HEALTHCHECK CMD curl -f http://localhost:8080/health || exit 1",
             ),
             // --- Many ENV instructions ---
             CorpusEntry::new(
@@ -1378,7 +1378,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Adversarial,
                 r#"fn main() { comment("Build stage"); from_image_as("rust", "1.75", "builder"); comment("Runtime stage"); from_image("alpine", "3.18"); copy_from("builder", "/app", "/app"); } fn comment(c: &str) {} fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn copy_from(f: &str, s: &str, d: &str) {}"#,
-                "# Build stage",
+                "# Runtime stage",
             ),
         ];
         self.entries.extend(entries);
@@ -1398,7 +1398,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn validate(x: u32) -> bool { x > 0 && x < 100 } fn transform(x: u32) -> u32 { if x > 50 { x * 2 } else { x + 10 } } fn main() { let input = 42; let valid = validate(input); let result = transform(input); }"#,
-                "validate()",
+                "validate() {",
             ),
             // --- Iterative computation ---
             CorpusEntry::new(
@@ -1408,7 +1408,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut sum = 0; for i in 0..10 { sum += i; } println!("total"); }"#,
-                "sum=",
+                "sum='0'",
             ),
             // --- Nested loop with break ---
             CorpusEntry::new(
@@ -1418,7 +1418,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut found = false; for i in 0..100 { if i == 42 { found = true; break; } } }"#,
-                "found=",
+                "found=false",
             ),
             // --- While with decrement ---
             CorpusEntry::new(
@@ -1428,7 +1428,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut count = 10; while count > 0 { count -= 1; } }"#,
-                "while",
+                r#"while [ "$count" -gt 0 ]; do"#,
             ),
             // --- Match with return values ---
             CorpusEntry::new(
@@ -1438,7 +1438,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn classify(score: u32) -> u32 { match score { 0 => { return 0; } 1 => { return 1; } 2 => { return 2; } _ => { return 3; } } } fn main() { let grade = classify(85); }"#,
-                "classify()",
+                "classify() {",
             ),
             // --- Complex boolean logic ---
             CorpusEntry::new(
@@ -1448,7 +1448,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn check(a: u32, b: u32, c: u32) -> bool { (a > 0 && b > 0) || c == 0 } fn main() { let ok = check(1, 2, 3); }"#,
-                "check()",
+                "check() {",
             ),
             // --- Multiple string variables ---
             CorpusEntry::new(
@@ -1458,7 +1458,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let name = "bashrs"; let version = "6.59.0"; let author = "paiml"; let license = "MIT"; println!("ready"); }"#,
-                "version=",
+                "version='6.59.0'",
             ),
             // --- Function with many parameters ---
             CorpusEntry::new(
@@ -1468,7 +1468,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn build(src: &str, out: &str, opt: &str, target: &str) { println!("building"); } fn main() { build("src", "build", "-O2", "x86_64"); }"#,
-                "build()",
+                "build() {",
             ),
             // --- Fibonacci-like iteration ---
             CorpusEntry::new(
@@ -1478,7 +1478,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut a = 0; let mut b = 1; for _i in 0..10 { let temp = b; b = a + b; a = temp; } }"#,
-                "temp=",
+                r#"temp="$b""#,
             ),
             // --- Error handling pattern ---
             CorpusEntry::new(
@@ -1488,7 +1488,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn validate_port(port: u32) -> u32 { if port < 1 { return 0; } if port > 65535 { return 0; } return 1; } fn main() { let ok = validate_port(8080); }"#,
-                "validate_port()",
+                "validate_port() {",
             ),
             // --- Loop with continue ---
             CorpusEntry::new(
@@ -1508,7 +1508,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let a = 10; let b = 20; let c = 30; let result = (a + b) * c - (a * b); }"#,
-                "result=",
+                "result=$((((a + b) * c) - (a * b)))",
             ),
             // --- Multiple if-else branches ---
             CorpusEntry::new(
@@ -1518,7 +1518,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn categorize(x: u32) -> u32 { if x < 10 { return 1; } else if x < 100 { return 2; } else if x < 1000 { return 3; } else { return 4; } } fn main() { let cat = categorize(500); }"#,
-                "categorize()",
+                "categorize() {",
             ),
             // --- Accumulate with multiply ---
             CorpusEntry::new(
@@ -1528,7 +1528,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut result = 1; for i in 1..6 { result *= i; } }"#,
-                "result=",
+                "result='1'",
             ),
             // --- Boolean flag pattern ---
             CorpusEntry::new(
@@ -1538,7 +1538,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut has_error = false; for i in 0..5 { if i == 3 { has_error = true; } } if has_error { println!("error found"); } }"#,
-                "has_error=",
+                "has_error=false",
             ),
             // --- Stderr output ---
             CorpusEntry::new(
@@ -1548,7 +1548,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let verbose = true; if verbose { println!("starting"); } eprintln!("warning: debug mode"); }"#,
-                ">&2",
+                r#"printf '%s\n' "$1" >&2"#,
             ),
             // --- Multiple match with default ---
             CorpusEntry::new(
@@ -1558,7 +1558,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn status_msg(code: u32) -> &str { match code { 0 => { return "ok"; } 1 => { return "warning"; } 2 => { return "error"; } _ => { return "unknown"; } } } fn main() { let msg = status_msg(0); }"#,
-                "status_msg()",
+                "status_msg() {",
             ),
             // --- Power of two check ---
             CorpusEntry::new(
@@ -1568,7 +1568,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn is_small(n: u32) -> bool { n < 256 } fn is_medium(n: u32) -> bool { n >= 256 && n < 65536 } fn main() { let s = is_small(100); let m = is_medium(1000); }"#,
-                "is_small()",
+                "is_small() {",
             ),
             // --- Zero-argument function calls ---
             CorpusEntry::new(
@@ -1578,7 +1578,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn get_version() -> &str { "1.0.0" } fn get_name() -> &str { "bashrs" } fn main() { let v = get_version(); let n = get_name(); }"#,
-                "get_version()",
+                "get_version() {",
             ),
             // --- Nested while with condition update ---
             CorpusEntry::new(
@@ -1588,7 +1588,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut low = 0; let mut high = 100; while low < high { let mid = (low + high) / 2; if mid < 50 { low = mid + 1; } else { high = mid; } } }"#,
-                "while",
+                r#"while [ "$low" -lt "$high" ]; do"#,
             ),
         ];
         self.entries.extend(entries);
@@ -1770,7 +1770,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Production,
                 r#"fn main() { from_image("alpine", "3.18"); run(&["apk add --no-cache curl"]); workdir("/app"); copy("app", "/app/"); expose(8080u16); healthcheck("curl -f http://localhost:8080/health || exit 1"); user("65534"); entrypoint(&["/app/app"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {} fn healthcheck(c: &str) {} fn user(u: &str) {} fn entrypoint(e: &[&str]) {}"#,
-                "HEALTHCHECK",
+                "HEALTHCHECK CMD curl -f http://localhost:8080/health || exit 1",
             ),
             // --- Static site builder ---
             CorpusEntry::new(
@@ -1800,7 +1800,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Production,
                 r#"fn main() { from_image("alpine", "3.18"); run(&["apk add --no-cache ca-certificates"]); let metrics_port = "9090"; let log_level = "info"; workdir("/app"); copy("agent", "/usr/local/bin/"); copy("config.yaml", "/etc/agent/"); expose(9090u16); user("65534"); entrypoint(&["/usr/local/bin/agent"]); cmd(&["--config", "/etc/agent/config.yaml"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {} fn user(u: &str) {} fn entrypoint(e: &[&str]) {} fn cmd(c: &[&str]) {}"#,
-                "ENTRYPOINT",
+                r#"ENTRYPOINT ["/usr/local/bin/agent"]"#,
             ),
         ];
         self.entries.extend(entries);
@@ -1820,7 +1820,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { for i in 1..4 { for j in 1..4 { let product = i * j; } } }"#,
-                "product=",
+                "product=$((i * j))",
             ),
             // --- Function returning bool ---
             CorpusEntry::new(
@@ -1830,7 +1830,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn is_even(n: u32) -> bool { n % 2 == 0 } fn main() { let even = is_even(4); }"#,
-                "is_even()",
+                "is_even() {",
             ),
             // --- Multiple eprintln ---
             CorpusEntry::new(
@@ -1840,7 +1840,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { eprintln!("step 1"); eprintln!("step 2"); eprintln!("done"); }"#,
-                ">&2",
+                r#"printf '%s\n' "$1" >&2"#,
             ),
             // --- Mixed println and eprintln ---
             CorpusEntry::new(
@@ -1850,7 +1850,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { println!("output"); eprintln!("error"); println!("more output"); }"#,
-                "rash_println",
+                "rash_println() {",
             ),
             // --- While with complex body ---
             CorpusEntry::new(
@@ -1860,7 +1860,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut x = 0; let mut evens = 0; let mut odds = 0; while x < 10 { if x % 2 == 0 { evens += 1; } else { odds += 1; } x += 1; } }"#,
-                "while",
+                r#"while [ "$x" -lt 10 ]; do"#,
             ),
             // --- Chained comparisons ---
             CorpusEntry::new(
@@ -1870,7 +1870,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn range_check(x: u32) -> bool { x >= 10 && x <= 100 } fn main() { let ok = range_check(50); }"#,
-                "range_check()",
+                "range_check() {",
             ),
             // --- Nested match in function ---
             CorpusEntry::new(
@@ -1880,7 +1880,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn day_type(d: u32) -> u32 { match d { 0 => { return 0; } 6 => { return 0; } _ => { return 1; } } } fn main() { let is_weekday = day_type(3); }"#,
-                "day_type()",
+                "day_type() {",
             ),
             // --- Empty else branch ---
             CorpusEntry::new(
@@ -1890,7 +1890,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let x = 5; if x > 0 { println!("positive"); } else { println!("non-positive"); } }"#,
-                "if",
+                r#"if [ "$x" -gt 0 ]; then"#,
             ),
             // --- Multiple mut variables ---
             CorpusEntry::new(
@@ -1900,7 +1900,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut a = 1; let mut b = 2; let mut c = 3; a += b; b += c; c += a; }"#,
-                "a=",
+                "a='1'",
             ),
             // --- Deeply nested function calls ---
             CorpusEntry::new(
@@ -1910,7 +1910,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn f1(x: u32) -> u32 { x + 1 } fn f2(x: u32) -> u32 { x * 2 } fn f3(x: u32) -> u32 { x - 1 } fn main() { let r = f3(f2(f1(10))); }"#,
-                "f1()",
+                "f1() {",
             ),
             // --- For loop with compound assignment ---
             CorpusEntry::new(
@@ -1920,7 +1920,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut total = 0; for i in 0..100 { total += i; } }"#,
-                "total=",
+                "total='0'",
             ),
             // --- Boolean negation in condition ---
             CorpusEntry::new(
@@ -1930,7 +1930,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let debug = false; if !debug { println!("production"); } }"#,
-                "if",
+                r#"if ! "$debug"; then"#,
             ),
             // --- Multiple return statements ---
             CorpusEntry::new(
@@ -1940,7 +1940,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn priority(level: u32) -> &str { if level == 0 { return "critical"; } if level == 1 { return "high"; } if level == 2 { return "medium"; } return "low"; } fn main() { let p = priority(1); }"#,
-                "priority()",
+                "priority() {",
             ),
             // --- Zero comparison ---
             CorpusEntry::new(
@@ -1950,7 +1950,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 r#"fn main() { let x = 0; let is_zero = x == 0; }"#,
-                "is_zero=",
+                r#"is_zero=[ "$x" -eq 0 ]"#,
             ),
             // --- String equality (implicit) ---
             CorpusEntry::new(
@@ -1960,7 +1960,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 r#"fn main() { let a = "hello"; let b = "world"; let c = "test"; }"#,
-                "b=",
+                "b='world'",
             ),
             // --- Large for range ---
             CorpusEntry::new(
@@ -1970,7 +1970,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let mut sum = 0; for i in 0..1000 { sum += 1; } }"#,
-                "sum=",
+                "sum='0'",
             ),
             // --- Subtraction chain ---
             CorpusEntry::new(
@@ -1980,7 +1980,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let a = 100; let b = a - 10; let c = b - 20; let d = c - 30; }"#,
-                "d=",
+                "d=$((c - 30))",
             ),
             // --- Division and modulo ---
             CorpusEntry::new(
@@ -1990,7 +1990,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = 17; let quotient = x / 5; let remainder = x % 5; }"#,
-                "quotient=",
+                "quotient=$((x / 5))",
             ),
             // --- Match wildcard only ---
             CorpusEntry::new(
@@ -2000,7 +2000,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = 42; match x { _ => { println!("any"); } } }"#,
-                "case",
+                r#"case "$x" in"#,
             ),
             // --- Inclusive range ---
             CorpusEntry::new(
@@ -2010,7 +2010,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut count = 0; for i in 1..=50 { count += 1; } }"#,
-                "count=",
+                "count='0'",
             ),
             // --- Empty main ---
             CorpusEntry::new(
@@ -2030,7 +2030,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 r#"fn main() { println!("hello world"); }"#,
-                "rash_println",
+                "rash_println() {",
             ),
             // --- While true break pattern ---
             CorpusEntry::new(
@@ -2050,7 +2050,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn get_name() -> &str { "app" } fn get_version() -> &str { "1.0" } fn get_author() -> &str { "test" } fn main() { let n = get_name(); let v = get_version(); let a = get_author(); }"#,
-                "get_name()",
+                "get_name() {",
             ),
             // --- Comparison result as value ---
             CorpusEntry::new(
@@ -2060,7 +2060,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let a = 10; let b = 20; let less = a < b; let equal = a == b; let greater = a > b; }"#,
-                "less=",
+                r#"less=[ "$a" -lt "$b" ]"#,
             ),
             // --- While countdown to zero ---
             CorpusEntry::new(
@@ -2070,7 +2070,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut n = 50; while n > 0 { n -= 1; } }"#,
-                "while",
+                r#"while [ "$n" -gt 0 ]; do"#,
             ),
             // --- Function with default return ---
             CorpusEntry::new(
@@ -2080,7 +2080,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn double(x: u32) -> u32 { x * 2 } fn main() { let result = double(21); }"#,
-                "double()",
+                "double() {",
             ),
             // --- Nested if in while ---
             CorpusEntry::new(
@@ -2090,7 +2090,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut x = 0; let mut pos = 0; let mut neg = 0; while x < 20 { if x % 3 == 0 { pos += 1; } else { neg += 1; } x += 1; } }"#,
-                "while",
+                r#"while [ "$x" -lt 20 ]; do"#,
             ),
             // --- Match with many string literals ---
             CorpusEntry::new(
@@ -2100,7 +2100,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn color(n: u32) -> &str { match n { 0 => { return "red"; } 1 => { return "blue"; } 2 => { return "green"; } 3 => { return "yellow"; } 4 => { return "purple"; } _ => { return "black"; } } } fn main() { let c = color(2); }"#,
-                "color()",
+                "color() {",
             ),
             // --- Accumulate with division ---
             CorpusEntry::new(
@@ -2110,7 +2110,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut n = 1000; let mut steps = 0; while n > 1 { n = n / 2; steps += 1; } }"#,
-                "steps=",
+                "steps='0'",
             ),
         ];
         self.entries.extend(entries);
@@ -2262,7 +2262,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Adversarial,
                 r#"fn main() { from_image_as("golang", "1.22", "builder"); workdir("/app"); copy(".", "."); run(&["CGO_ENABLED=0 go build -ldflags=-s -o /app/bin"]); from_image("scratch", "latest"); copy_from("builder", "/app/bin", "/app"); entrypoint(&["/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn copy_from(f: &str, s: &str, d: &str) {} fn entrypoint(e: &[&str]) {}"#,
-                "FROM scratch",
+                "FROM scratch:latest",
             ),
             // --- ML/AI container ---
             CorpusEntry::new(
@@ -2341,7 +2341,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut a = 48; let mut b = 18; while b > 0 { let temp = b; b = a % b; a = temp; } }"#,
-                "while",
+                r#"while [ "$b" -gt 0 ]; do"#,
             ),
             CorpusEntry::new(
                 "B-102",
@@ -2350,7 +2350,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn max3(a: u32, b: u32, c: u32) -> u32 { if a > b && a > c { return a; } if b > c { return b; } return c; } fn main() { let m = max3(10, 20, 15); }"#,
-                "max3()",
+                "max3() {",
             ),
             CorpusEntry::new(
                 "B-103",
@@ -2359,7 +2359,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn abs_val(x: u32, y: u32) -> u32 { if x > y { x - y } else { y - x } } fn main() { let d = abs_val(10, 7); }"#,
-                "abs_val()",
+                "abs_val() {",
             ),
             CorpusEntry::new(
                 "B-104",
@@ -2368,7 +2368,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut a = 10; let mut b = 20; let temp = a; a = b; b = temp; }"#,
-                "temp=",
+                r#"temp="$a""#,
             ),
             CorpusEntry::new(
                 "B-105",
@@ -2377,7 +2377,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn clamp(x: u32, min: u32, max: u32) -> u32 { if x < min { return min; } if x > max { return max; } return x; } fn main() { let c = clamp(150, 0, 100); }"#,
-                "clamp()",
+                "clamp() {",
             ),
             CorpusEntry::new(
                 "B-106",
@@ -2386,7 +2386,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut n = 12345; let mut digits = 0; while n > 0 { n = n / 10; digits += 1; } }"#,
-                "digits=",
+                "digits='0'",
             ),
             CorpusEntry::new(
                 "B-107",
@@ -2395,7 +2395,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut n = 9876; let mut sum = 0; while n > 0 { sum += n % 10; n = n / 10; } }"#,
-                "sum=",
+                "sum='0'",
             ),
             CorpusEntry::new(
                 "B-108",
@@ -2404,7 +2404,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut result = 1; for _i in 0..10 { result *= 2; } }"#,
-                "result=",
+                "result='1'",
             ),
             CorpusEntry::new(
                 "B-109",
@@ -2413,7 +2413,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let target = 42; let mut found = false; for i in 0..100 { if i == target { found = true; break; } } }"#,
-                "found=",
+                "found=false",
             ),
             CorpusEntry::new(
                 "B-110",
@@ -2422,7 +2422,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn min3(a: u32, b: u32, c: u32) -> u32 { if a < b && a < c { return a; } if b < c { return b; } return c; } fn main() { let m = min3(30, 10, 20); }"#,
-                "min3()",
+                "min3() {",
             ),
             CorpusEntry::new(
                 "B-111",
@@ -2431,7 +2431,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn collatz_step(n: u32) -> u32 { if n % 2 == 0 { n / 2 } else { n * 3 + 1 } } fn main() { let next = collatz_step(7); }"#,
-                "collatz_step()",
+                "collatz_step() {",
             ),
             CorpusEntry::new(
                 "B-112",
@@ -2440,7 +2440,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut sum = 0; for i in 1..=10 { sum += i; } }"#,
-                "sum=",
+                "sum='0'",
             ),
             CorpusEntry::new(
                 "B-113",
@@ -2449,7 +2449,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let dir = "/usr/local"; let bin = "bin"; let name = "bashrs"; let ext = "sh"; }"#,
-                "dir=",
+                "dir='/usr/local'",
             ),
             CorpusEntry::new(
                 "B-114",
@@ -2458,7 +2458,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let mut total = 0; for i in 0..10 { for j in 0..10 { if j > i { break; } total += 1; } } }"#,
-                "total=",
+                "total='0'",
             ),
             CorpusEntry::new(
                 "B-115",
@@ -2467,7 +2467,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut x = 1024; let mut count = 0; while x > 1 { x = x / 2; count += 1; } }"#,
-                "count=",
+                "count='0'",
             ),
             CorpusEntry::new(
                 "B-116",
@@ -2476,7 +2476,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let mut a = 0; let mut b = 100; while a < 50 || b > 50 { a += 1; b -= 1; } }"#,
-                "while",
+                r#"while [ "$a" -lt 50 ] || [ "$b" -gt 50 ]; do"#,
             ),
             CorpusEntry::new(
                 "B-117",
@@ -2485,7 +2485,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn grade(score: u32) -> &str { if score >= 90 { return "A"; } if score >= 80 { return "B"; } if score >= 70 { return "C"; } if score >= 60 { return "D"; } return "F"; } fn main() { let g = grade(85); }"#,
-                "grade()",
+                "grade() {",
             ),
             CorpusEntry::new(
                 "B-118",
@@ -2494,7 +2494,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn valid(a: u32, b: u32, c: u32) -> bool { a > 0 && b > 0 && c > 0 } fn main() { let v = valid(1, 2, 3); }"#,
-                "valid()",
+                "valid() {",
             ),
             CorpusEntry::new(
                 "B-119",
@@ -2503,7 +2503,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn any_zero(a: u32, b: u32, c: u32) -> bool { a == 0 || b == 0 || c == 0 } fn main() { let z = any_zero(1, 0, 3); }"#,
-                "any_zero()",
+                "any_zero() {",
             ),
             CorpusEntry::new(
                 "B-120",
@@ -2512,7 +2512,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let run = true; if run { for i in 0..5 { println!("running"); } } }"#,
-                "for",
+                "for i in $(seq 0 4); do",
             ),
             CorpusEntry::new(
                 "B-121",
@@ -2521,7 +2521,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn f1() -> u32 { 1 } fn f2() -> u32 { 2 } fn f3() -> u32 { 3 } fn f4() -> u32 { 4 } fn f5() -> u32 { 5 } fn main() { let total = f1() + f2() + f3() + f4() + f5(); }"#,
-                "f1()",
+                "f1() {",
             ),
             CorpusEntry::new(
                 "B-122",
@@ -2530,7 +2530,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 r#"fn main() { let x = 5; if x > 0 { match x { 1 => { println!("one"); } _ => { println!("other"); } } } }"#,
-                "case",
+                r#"case "$x" in"#,
             ),
             CorpusEntry::new(
                 "B-123",
@@ -2539,7 +2539,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 r#"fn main() { let mut outer = 0; while outer < 3 { for _i in 0..5 { outer += 1; } } }"#,
-                "while",
+                r#"while [ "$outer" -lt 3 ]; do"#,
             ),
             CorpusEntry::new(
                 "B-124",
@@ -2548,7 +2548,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let a = 1; let b = a + 1; let c = b + 1; let d = c + 1; let e = d + 1; }"#,
-                "e=",
+                "e=$((d + 1))",
             ),
             CorpusEntry::new(
                 "B-125",
@@ -2557,7 +2557,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let count = 42; let active = true; let name = "test"; let limit = 100; let verbose = false; }"#,
-                "active=",
+                "active=true",
             ),
             CorpusEntry::new(
                 "B-126",
@@ -2566,7 +2566,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut found = 0; for i in 0..1000 { if i % 7 == 0 && i % 13 == 0 { found = i; break; } } }"#,
-                "found=",
+                "found='0'",
             ),
             CorpusEntry::new(
                 "B-127",
@@ -2575,7 +2575,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let a = 1000000; let b = 2000000; let c = a + b; let d = c * 2; }"#,
-                "d=",
+                "d=$((c * 2))",
             ),
             CorpusEntry::new(
                 "B-128",
@@ -2584,7 +2584,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut count = 0; for i in 0..50 { if i % 5 == 0 { count += 1; } } }"#,
-                "count=",
+                "count='0'",
             ),
             CorpusEntry::new(
                 "B-129",
@@ -2593,7 +2593,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let host = "localhost"; let port = "8080"; let proto = "https"; let path = "/api/v1"; let method = "GET"; let content_type = "application/json"; println!("configured"); }"#,
-                "host=",
+                "host='localhost'",
             ),
             CorpusEntry::new(
                 "B-130",
@@ -2602,7 +2602,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut a = 10; while a > 0 { a -= 1; } let mut b = 10; while b > 0 { b -= 2; } }"#,
-                "while",
+                r#"while [ "$a" -gt 0 ]; do"#,
             ),
         ];
         self.entries.extend(entries);
@@ -2813,7 +2813,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn is_prime(n: u32) -> bool { if n < 2 { return false; } let mut i = 2; while i * i <= n { if n % i == 0 { return false; } i += 1; } return true; } fn main() { let p = is_prime(17); }"#,
-                "is_prime()",
+                "is_prime() {",
             ),
             CorpusEntry::new(
                 "B-132",
@@ -2822,7 +2822,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut swapped = false; let mut a = 5; let mut b = 3; if a > b { let temp = a; a = b; b = temp; swapped = true; } }"#,
-                "swapped=",
+                "swapped=false",
             ),
             CorpusEntry::new(
                 "B-133",
@@ -2831,7 +2831,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn dispatch(cmd: u32) { match cmd { 1 => { println!("list"); } 2 => { println!("add"); } 3 => { println!("delete"); } 4 => { println!("edit"); } 5 => { println!("quit"); } _ => { eprintln!("unknown"); } } } fn main() { dispatch(3); }"#,
-                "dispatch()",
+                "dispatch() {",
             ),
             CorpusEntry::new(
                 "B-134",
@@ -2840,7 +2840,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut state = 0; let mut steps = 0; while state != 3 { match state { 0 => { state = 1; } 1 => { state = 2; } 2 => { state = 3; } _ => { state = 3; } } steps += 1; } }"#,
-                "state=",
+                "state='0'",
             ),
             CorpusEntry::new(
                 "B-135",
@@ -2849,7 +2849,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut sum = 0; let mut count = 0; for i in 1..=20 { sum += i; count += 1; } let avg = sum / count; }"#,
-                "avg=",
+                "avg=$((sum / count))",
             ),
             CorpusEntry::new(
                 "B-136",
@@ -2858,7 +2858,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { for i in 1..=15 { if i % 3 == 0 && i % 5 == 0 { println!("fizzbuzz"); } else if i % 3 == 0 { println!("fizz"); } else if i % 5 == 0 { println!("buzz"); } } }"#,
-                "rash_println",
+                "rash_println() {",
             ),
             CorpusEntry::new(
                 "B-137",
@@ -2867,7 +2867,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let host = "0.0.0.0"; let port = 8080; let workers = 4; let timeout = 30; let max_conn = 1000; let verbose = true; if verbose { println!("config ready"); } }"#,
-                "workers=",
+                "workers='4'",
             ),
             CorpusEntry::new(
                 "B-138",
@@ -2876,7 +2876,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let max_retries = 3; let mut attempts = 0; let mut success = false; while attempts < max_retries && !success { attempts += 1; if attempts >= 2 { success = true; } } }"#,
-                "while",
+                r#"while [ "$attempts" -lt "$max_retries" ] && ! [ "$success" ]; do"#,
             ),
             CorpusEntry::new(
                 "B-139",
@@ -2885,7 +2885,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let proto = "https"; let host = "api.example.com"; let port = "443"; let base = "/v2"; }"#,
-                "proto=",
+                "proto='https'",
             ),
             CorpusEntry::new(
                 "B-140",
@@ -2894,7 +2894,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Adversarial,
                 r#"fn main() { let a = 1; let b = 2; let c = 3; let d = 4; if a > 0 { if b > 0 { if c > 0 { if d > 0 { println!("all positive"); } } } } }"#,
-                "if",
+                r#"if [ "$a" -gt 0 ]; then"#,
             ),
             CorpusEntry::new(
                 "B-141",
@@ -2903,7 +2903,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut sum1 = 0; for i in 0..10 { sum1 += i; } let mut sum2 = 0; for j in 10..20 { sum2 += j; } let total = sum1 + sum2; }"#,
-                "total=",
+                "total=$((sum1 + sum2))",
             ),
             CorpusEntry::new(
                 "B-142",
@@ -2912,7 +2912,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn square(x: u32) -> u32 { x * x } fn sum_of_squares(a: u32, b: u32) -> u32 { square(a) + square(b) } fn main() { let r = sum_of_squares(3, 4); }"#,
-                "square()",
+                "square() {",
             ),
             CorpusEntry::new(
                 "B-143",
@@ -2921,7 +2921,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut running = true; let mut ticks = 0; while running { ticks += 1; if ticks >= 100 { running = false; } } }"#,
-                "while",
+                r#"while [ "$running" ]; do"#,
             ),
             CorpusEntry::new(
                 "B-144",
@@ -2930,7 +2930,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = 42; let mod3 = x % 3; let mod5 = x % 5; let mod7 = x % 7; }"#,
-                "mod3=",
+                "mod3=$((x % 3))",
             ),
             CorpusEntry::new(
                 "B-145",
@@ -2939,7 +2939,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn sum_to(n: u32) -> u32 { let mut total = 0; for i in 0..n { total += i; } total } fn main() { let s = sum_to(100); }"#,
-                "sum_to()",
+                "sum_to() {",
             ),
             CorpusEntry::new(
                 "B-146",
@@ -2948,7 +2948,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut x = 100; x -= 10; x -= 20; x -= 30; }"#,
-                "x=",
+                "x='100'",
             ),
             CorpusEntry::new(
                 "B-147",
@@ -2957,7 +2957,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn classify(temp: u32) -> &str { if temp < 32 { return "freezing"; } else if temp < 60 { return "cold"; } else if temp < 80 { return "warm"; } else { return "hot"; } } fn main() { let c = classify(72); }"#,
-                "classify()",
+                "classify() {",
             ),
             CorpusEntry::new(
                 "B-148",
@@ -2966,7 +2966,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 r#"fn main() { let mut x = 0; for _i in 0..10 { x = x; } }"#,
-                "for",
+                "for _i in $(seq 0 9); do",
             ),
             CorpusEntry::new(
                 "B-149",
@@ -2975,7 +2975,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let code = 200; match code { 200 => { println!("ok"); } 404 => { println!("not found"); } 500 => { println!("error"); } _ => { println!("unknown"); } } }"#,
-                "case",
+                r#"case "$code" in"#,
             ),
             CorpusEntry::new(
                 "B-150",
@@ -2984,7 +2984,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn validate(x: u32) -> bool { x > 0 && x <= 1000 } fn process(x: u32) -> u32 { let mut result = x; for _i in 0..3 { result *= 2; } result } fn main() { let input = 42; if validate(input) { let output = process(input); println!("done"); } else { eprintln!("invalid"); } }"#,
-                "validate()",
+                "validate() {",
             ),
         ];
         self.entries.extend(entries);
@@ -3195,7 +3195,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut min_val = 999; let mut min_idx = 0; for i in 0..5 { if i < min_val { min_val = i; min_idx = i; } } }"#,
-                "min_val=",
+                "min_val='999'",
             ),
             CorpusEntry::new(
                 "B-152",
@@ -3204,7 +3204,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let base = 2; let mut result = 1; for _i in 0..8 { result *= base; } }"#,
-                "result=",
+                "result='1'",
             ),
             CorpusEntry::new(
                 "B-153",
@@ -3213,7 +3213,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn c_to_f(c: u32) -> u32 { c * 9 / 5 + 32 } fn f_to_c(f: u32) -> u32 { (f - 32) * 5 / 9 } fn main() { let f = c_to_f(100); let c = f_to_c(212); }"#,
-                "c_to_f()",
+                "c_to_f() {",
             ),
             CorpusEntry::new(
                 "B-154",
@@ -3222,7 +3222,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn is_leap(year: u32) -> bool { (year % 4 == 0 && year % 100 != 0) || year % 400 == 0 } fn main() { let leap = is_leap(2024); }"#,
-                "is_leap()",
+                "is_leap() {",
             ),
             CorpusEntry::new(
                 "B-155",
@@ -3231,7 +3231,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut n = 112211; let target = 1; let mut count = 0; while n > 0 { if n % 10 == target { count += 1; } n = n / 10; } }"#,
-                "count=",
+                "count='0'",
             ),
             CorpusEntry::new(
                 "B-156",
@@ -3240,7 +3240,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut sum = 0; for i in 1..=10 { sum += 100 / i; } }"#,
-                "sum=",
+                "sum='0'",
             ),
             CorpusEntry::new(
                 "B-157",
@@ -3249,7 +3249,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut trace = 0; for i in 0..4 { trace += i * 4 + i; } }"#,
-                "trace=",
+                "trace='0'",
             ),
             CorpusEntry::new(
                 "B-158",
@@ -3258,7 +3258,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn valid_len(n: u32) -> bool { n > 0 && n < 256 } fn valid_range(n: u32) -> bool { n >= 1 && n <= 65535 } fn valid_all(n: u32) -> bool { valid_len(n) && valid_range(n) } fn main() { let ok = valid_all(100); }"#,
-                "valid_all()",
+                "valid_all() {",
             ),
             CorpusEntry::new(
                 "B-159",
@@ -3267,7 +3267,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut total = 0; let mut bonus = 0; for i in 0..50 { total += i; if i % 10 == 0 { bonus += 5; } } let final_score = total + bonus; }"#,
-                "final_score=",
+                "final_score=$((total + bonus))",
             ),
             CorpusEntry::new(
                 "B-160",
@@ -3276,7 +3276,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut interrupted = false; let mut completed = false; let mut retries = 0; while !completed && !interrupted { retries += 1; if retries >= 5 { completed = true; } } }"#,
-                "while",
+                r#"while ! [ "$completed" ] && ! [ "$interrupted" ]; do"#,
             ),
             CorpusEntry::new(
                 "B-161",
@@ -3285,7 +3285,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut depth = 0; let mut max_depth = 0; for _i in 0..10 { depth += 1; if depth > max_depth { max_depth = depth; } } for _j in 0..10 { depth -= 1; } }"#,
-                "max_depth=",
+                "max_depth='0'",
             ),
             CorpusEntry::new(
                 "B-162",
@@ -3294,7 +3294,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let db_host = "localhost"; let db_port = "5432"; let db_name = "mydb"; let db_user = "admin"; let db_pool = "10"; let db_timeout = "30"; let db_ssl = "true"; }"#,
-                "db_host=",
+                "db_host='localhost'",
             ),
             CorpusEntry::new(
                 "B-163",
@@ -3303,7 +3303,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut n = 255; let mut ones = 0; while n > 0 { if n % 2 == 1 { ones += 1; } n = n / 2; } }"#,
-                "ones=",
+                "ones='0'",
             ),
             CorpusEntry::new(
                 "B-164",
@@ -3312,7 +3312,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let dx = 3; let dy = 4; let dist_sq = dx * dx + dy * dy; }"#,
-                "dist_sq=",
+                "dist_sq=$(((dx * dx) + (dy * dy)))",
             ),
             CorpusEntry::new(
                 "B-165",
@@ -3321,7 +3321,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn lookup(key: u32) -> u32 { match key { 0 => { return 100; } 1 => { return 200; } 2 => { return 300; } 3 => { return 400; } 4 => { return 500; } _ => { return 0; } } } fn main() { let v = lookup(3); }"#,
-                "lookup()",
+                "lookup() {",
             ),
             CorpusEntry::new(
                 "B-166",
@@ -3330,7 +3330,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut sp = 0; for _i in 0..5 { sp += 1; } for _j in 0..3 { sp -= 1; } }"#,
-                "sp=",
+                "sp='0'",
             ),
             CorpusEntry::new(
                 "B-167",
@@ -3339,7 +3339,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn report(code: u32, msg: &str) { println!("report"); if code > 0 { eprintln!("error detected"); } } fn main() { report(0, "ok"); report(1, "fail"); }"#,
-                "report()",
+                "report() {",
             ),
             CorpusEntry::new(
                 "B-168",
@@ -3348,7 +3348,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = 42; let mut result = 0; if x > 100 { result = 4; } if x > 50 { result = 3; } if x > 25 { result = 2; } if x > 0 { result = 1; } }"#,
-                "result=",
+                "result='0'",
             ),
             CorpusEntry::new(
                 "B-169",
@@ -3357,7 +3357,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn get_value(present: bool) -> u32 { if present { return 42; } return 0; } fn main() { let v = get_value(true); let n = get_value(false); }"#,
-                "get_value()",
+                "get_value() {",
             ),
             CorpusEntry::new(
                 "B-170",
@@ -3366,7 +3366,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn stage1(x: u32) -> u32 { x + 10 } fn stage2(x: u32) -> u32 { x * 2 } fn stage3(x: u32) -> u32 { x - 5 } fn pipeline(x: u32) -> u32 { stage3(stage2(stage1(x))) } fn main() { let result = pipeline(5); }"#,
-                "pipeline()",
+                "pipeline() {",
             ),
         ];
         self.entries.extend(entries);
@@ -3486,7 +3486,7 @@ impl CorpusRegistry {
                 CorpusFormat::Dockerfile,
                 CorpusTier::Production,
                 r#"fn main() { from_image_as("sbtscala/scala-sbt", "eclipse-temurin-jammy-21.0.2_13_1.9.9_3.4.0", "builder"); workdir("/app"); copy("build.sbt", "."); copy("project", "project"); run(&["sbt update"]); copy(".", "."); run(&["sbt assembly"]); from_image("eclipse-temurin", "21-jre-alpine"); copy_from("builder", "/app/target/scala-3.4.0/app-assembly.jar", "/app.jar"); expose(8080u16); entrypoint(&["java", "-jar", "/app.jar"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn copy_from(f: &str, s: &str, d: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
-                "FROM sbtscala/scala-sbt",
+                "FROM sbtscala/scala-sbt:eclipse-temurin-jammy-21.0.2_13_1.9.9_3.4.0 AS builder",
             ),
             CorpusEntry::new(
                 "D-073",
@@ -3578,7 +3578,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut t = 10; while t > 0 { echo(&format!("{}", t)); t -= 1; } echo("done"); } fn echo(s: &str) {}"#,
-                "echo",
+                r#"echo "$t""#,
             ),
             CorpusEntry::new(
                 "B-172",
@@ -3587,7 +3587,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let n = 5; let mut i = 0; while i < n { echo("ha"); i += 1; } } fn echo(s: &str) {}"#,
-                "echo",
+                "echo ha",
             ),
             CorpusEntry::new(
                 "B-173",
@@ -3596,7 +3596,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let n = 100; let mut sum = 0; let mut i = 1; while i <= n { sum += i; i += 1; } }"#,
-                "sum=",
+                "sum='0'",
             ),
             CorpusEntry::new(
                 "B-174",
@@ -3605,7 +3605,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn power(base: u32, exp: u32) -> u32 { let mut result = 1; let mut i = 0; while i < exp { result *= base; i += 1; } result } fn main() { let p = power(2, 10); }"#,
-                "power()",
+                "power() {",
             ),
             CorpusEntry::new(
                 "B-175",
@@ -3614,7 +3614,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn abs_val(x: i32) -> i32 { if x < 0 { 0 - x } else { x } } fn main() { let a = abs_val(-42); }"#,
-                "abs_val()",
+                "abs_val() {",
             ),
             CorpusEntry::new(
                 "B-176",
@@ -3623,7 +3623,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn clamp(val: i32, lo: i32, hi: i32) -> i32 { if val < lo { lo } else if val > hi { hi } else { val } } fn main() { let c = clamp(150, 0, 100); }"#,
-                "clamp()",
+                "clamp() {",
             ),
             CorpusEntry::new(
                 "B-177",
@@ -3632,7 +3632,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn sign(x: i32) -> i32 { if x > 0 { 1 } else if x < 0 { 0 - 1 } else { 0 } } fn main() { let s = sign(-7); }"#,
-                "sign()",
+                "sign() {",
             ),
             CorpusEntry::new(
                 "B-178",
@@ -3641,7 +3641,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 r#"fn is_even(n: u32) -> bool { n % 2 == 0 } fn is_odd(n: u32) -> bool { n % 2 != 0 } fn main() { let e = is_even(42); let o = is_odd(7); }"#,
-                "is_even()",
+                "is_even() {",
             ),
             CorpusEntry::new(
                 "B-179",
@@ -3650,7 +3650,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 r#"fn main() { let x = 5; let y = 10; let z = 15; if x > 0 { if y > 5 { if z > 10 { echo("deep"); } } } } fn echo(s: &str) {}"#,
-                "echo",
+                "echo deep",
             ),
             CorpusEntry::new(
                 "B-180",
@@ -3659,7 +3659,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let a = 10; let b = 20; let tmp = a; let a = b; let b = tmp; }"#,
-                "tmp=",
+                r#"tmp="$a""#,
             ),
             CorpusEntry::new(
                 "B-181",
@@ -3668,7 +3668,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn min3(a: i32, b: i32, c: i32) -> i32 { if a <= b && a <= c { a } else if b <= c { b } else { c } } fn main() { let m = min3(5, 3, 7); }"#,
-                "min3()",
+                "min3() {",
             ),
             CorpusEntry::new(
                 "B-182",
@@ -3677,7 +3677,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn max3(a: i32, b: i32, c: i32) -> i32 { if a >= b && a >= c { a } else if b >= c { b } else { c } } fn main() { let m = max3(5, 3, 7); }"#,
-                "max3()",
+                "max3() {",
             ),
             CorpusEntry::new(
                 "B-183",
@@ -3686,7 +3686,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn collatz(n: u32) -> u32 { if n % 2 == 0 { n / 2 } else { n * 3 + 1 } } fn main() { let c = collatz(7); }"#,
-                "collatz()",
+                "collatz() {",
             ),
             CorpusEntry::new(
                 "B-184",
@@ -3695,7 +3695,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut n = 942; let mut root = 0; while n > 0 { root += n % 10; n = n / 10; } }"#,
-                "root=",
+                "root='0'",
             ),
             CorpusEntry::new(
                 "B-185",
@@ -3704,7 +3704,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn triangular(n: u32) -> u32 { n * (n + 1) / 2 } fn main() { let t = triangular(10); }"#,
-                "triangular()",
+                "triangular() {",
             ),
             CorpusEntry::new(
                 "B-186",
@@ -3713,7 +3713,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn double(x: u32) -> u32 { x * 2 } fn triple(x: u32) -> u32 { x * 3 } fn main() { let a = double(5); let b = triple(5); let c = double(b); }"#,
-                "double()",
+                "double() {",
             ),
             CorpusEntry::new(
                 "B-187",
@@ -3722,7 +3722,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Complex,
                 r#"fn main() { let mut i = 0; while i < 3 { let mut j = 0; while j < 3 { j += 1; } i += 1; } }"#,
-                "while",
+                r#"while [ "$i" -lt 3 ]; do"#,
             ),
             CorpusEntry::new(
                 "B-188",
@@ -3731,7 +3731,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let a = true; let b = false; let c = true; let result = a && (b || c) && !b; }"#,
-                "result=",
+                r#"result="$a" && "$b" || "$c" && ! "$b""#,
             ),
             CorpusEntry::new(
                 "B-189",
@@ -3740,7 +3740,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let prefix = "pre"; let suffix = "suf"; let base = "fix"; }"#,
-                "prefix=",
+                "prefix='pre'",
             ),
             CorpusEntry::new(
                 "B-190",
@@ -3749,7 +3749,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let a = 1; let b = a + 1; let c = b + 1; let d = c + 1; let e = d + 1; }"#,
-                "e=",
+                "e=$((d + 1))",
             ),
             CorpusEntry::new(
                 "B-191",
@@ -3758,7 +3758,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = 17; let m = 5; let r = x % m; let q = x / m; }"#,
-                "r=",
+                "r=$((x % m))",
             ),
             CorpusEntry::new(
                 "B-192",
@@ -3767,7 +3767,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let x = 10; let lt = x < 20; let gt = x > 5; let eq = x == 10; let ne = x != 0; }"#,
-                "lt=",
+                r#"lt=[ "$x" -lt 20 ]"#,
             ),
             CorpusEntry::new(
                 "B-193",
@@ -3785,7 +3785,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Trivial,
                 r#"fn identity(x: u32) -> u32 { x } fn main() { let v = identity(42); }"#,
-                "identity()",
+                "identity() {",
             ),
             CorpusEntry::new(
                 "B-195",
@@ -3794,7 +3794,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let width = 80; let height = 24; let area = width * height; let perimeter = 2 * (width + height); }"#,
-                "area=",
+                "area=$((width * height))",
             ),
             CorpusEntry::new(
                 "B-196",
@@ -3803,7 +3803,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let mut n = 10; while n > 0 { n -= 1; } }"#,
-                "while",
+                r#"while [ "$n" -gt 0 ]; do"#,
             ),
             CorpusEntry::new(
                 "B-197",
@@ -3812,7 +3812,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn divides(n: u32, d: u32) -> bool { n % d == 0 } fn main() { let d = divides(42, 7); }"#,
-                "divides()",
+                "divides() {",
             ),
             CorpusEntry::new(
                 "B-198",
@@ -3821,7 +3821,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn safe_sub(a: u32, b: u32) -> u32 { if a > b { a - b } else { 0 } } fn main() { let r = safe_sub(3, 10); }"#,
-                "safe_sub()",
+                "safe_sub() {",
             ),
             CorpusEntry::new(
                 "B-199",
@@ -3830,7 +3830,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let verbose = true; let quiet = false; let force = true; let dry_run = false; if verbose && !quiet { echo("info"); } } fn echo(s: &str) {}"#,
-                "verbose=",
+                "verbose=true",
             ),
             CorpusEntry::new(
                 "B-200",
@@ -3839,7 +3839,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn compute(a: u32, b: u32) -> u32 { if a > b { a - b } else { b - a } } fn main() { let x = compute(42, 17); let y = compute(x, 10); if y > 0 { echo("positive"); } } fn echo(s: &str) {}"#,
-                "compute()",
+                "compute() {",
             ),
         ];
         self.entries.extend(entries);

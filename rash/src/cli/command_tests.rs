@@ -37,7 +37,7 @@ fn test_build_command() {
     // Check output contains expected shell code
     let output = fs::read_to_string(&output_path).unwrap();
     assert!(output.contains("#!/bin/sh"));
-    assert!(output.contains("x=42"));
+    assert!(output.contains("x='42'"));
 }
 
 #[test]

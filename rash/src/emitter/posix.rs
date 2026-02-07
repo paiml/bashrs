@@ -3,6 +3,17 @@ use crate::ir::{Command, ShellIR, ShellValue};
 use crate::models::{Config, Result};
 use std::fmt::Write;
 
+/// Unwrap a Sequence containing a single If statement.
+/// The parser wraps `else if` branches in `Sequence([If { ... }])`.
+fn unwrap_single_if(ir: &ShellIR) -> &ShellIR {
+    if let ShellIR::Sequence(items) = ir {
+        if items.len() == 1 && matches!(&items[0], ShellIR::If { .. }) {
+            return &items[0];
+        }
+    }
+    ir
+}
+
 pub struct PosixEmitter {
     #[allow(dead_code)]
     config: Config,
@@ -561,11 +572,26 @@ impl PosixEmitter {
     ) -> Result<()> {
         let indent_str = "    ".repeat(indent + 1);
         let var_name = escape_variable_name(name);
-        let var_value = self.emit_shell_value(value)?;
-        // TODO: Add proper variable shadowing with renaming to restore readonly safety
-        // For now, use mutable variables to support Rust's let-shadowing semantics
+        let var_value = self.emit_assignment_value(value)?;
         writeln!(output, "{indent_str}{var_name}={var_value}")?;
         Ok(())
+    }
+
+    /// Emit a value for use on the RHS of a variable assignment.
+    /// String literals are always single-quoted for safety and POSIX compliance.
+    fn emit_assignment_value(&self, value: &ShellValue) -> Result<String> {
+        match value {
+            ShellValue::String(s) => {
+                if s.is_empty() {
+                    Ok("''".to_string())
+                } else if !s.contains('\'') {
+                    Ok(format!("'{s}'"))
+                } else {
+                    Ok(escape_shell_string(s))
+                }
+            }
+            _ => self.emit_shell_value(value),
+        }
     }
 
     fn emit_exec_statement(&self, output: &mut String, cmd: &Command, indent: usize) -> Result<()> {
@@ -590,11 +616,54 @@ impl PosixEmitter {
         self.emit_ir(output, then_branch, indent + 1)?;
 
         if let Some(else_ir) = else_branch {
-            writeln!(output, "{indent_str}else")?;
-            self.emit_ir(output, else_ir, indent + 1)?;
+            // Emit elif for chained if-else-if instead of nested else { if }
+            let unwrapped = unwrap_single_if(else_ir);
+            if let ShellIR::If {
+                test: elif_test,
+                then_branch: elif_then,
+                else_branch: elif_else,
+            } = unwrapped
+            {
+                let elif_expr = self.emit_test_expression(elif_test)?;
+                writeln!(output, "{indent_str}elif {elif_expr}; then")?;
+                self.emit_ir(output, elif_then, indent + 1)?;
+                if let Some(final_else) = elif_else {
+                    self.emit_elif_chain(output, final_else, indent)?;
+                }
+            } else {
+                writeln!(output, "{indent_str}else")?;
+                self.emit_ir(output, else_ir, indent + 1)?;
+            }
         }
 
         writeln!(output, "{indent_str}fi")?;
+        Ok(())
+    }
+
+    fn emit_elif_chain(
+        &self,
+        output: &mut String,
+        else_ir: &ShellIR,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        let unwrapped = unwrap_single_if(else_ir);
+        if let ShellIR::If {
+            test: elif_test,
+            then_branch: elif_then,
+            else_branch: elif_else,
+        } = unwrapped
+        {
+            let elif_expr = self.emit_test_expression(elif_test)?;
+            writeln!(output, "{indent_str}elif {elif_expr}; then")?;
+            self.emit_ir(output, elif_then, indent + 1)?;
+            if let Some(final_else) = elif_else {
+                self.emit_elif_chain(output, final_else, indent)?;
+            }
+        } else {
+            writeln!(output, "{indent_str}else")?;
+            self.emit_ir(output, else_ir, indent + 1)?;
+        }
         Ok(())
     }
 
@@ -696,6 +765,24 @@ impl PosixEmitter {
                 // Comparison expression - use emit_shell_value which handles it
                 self.emit_shell_value(condition)?
             }
+            ShellValue::LogicalAnd { left, right } => {
+                // Compound AND: emit as separate test commands chained with &&
+                // POSIX requires: [ cond1 ] && [ cond2 ], NOT [ cond1 && cond2 ]
+                let left_cond = self.emit_while_condition(left)?;
+                let right_cond = self.emit_while_condition(right)?;
+                format!("{left_cond} && {right_cond}")
+            }
+            ShellValue::LogicalOr { left, right } => {
+                // Compound OR: emit as separate test commands chained with ||
+                let left_cond = self.emit_while_condition(left)?;
+                let right_cond = self.emit_while_condition(right)?;
+                format!("{left_cond} || {right_cond}")
+            }
+            ShellValue::LogicalNot { operand } => {
+                // Negation: emit as ! [ cond ]
+                let inner = self.emit_while_condition(operand)?;
+                format!("! {inner}")
+            }
             _ => {
                 // General expression - treat as test
                 let cond_str = self.emit_shell_value(condition)?;
@@ -712,6 +799,34 @@ impl PosixEmitter {
         // Close loop
         writeln!(output, "{indent_str}done")?;
         Ok(())
+    }
+
+    /// Emit a single while-loop condition operand, wrapping in [ ] for test expressions.
+    /// Recursively handles nested LogicalAnd/Or/Not for compound conditions.
+    fn emit_while_condition(&self, value: &ShellValue) -> Result<String> {
+        match value {
+            ShellValue::Bool(true) => Ok("true".to_string()),
+            ShellValue::Bool(false) => Ok("false".to_string()),
+            ShellValue::Comparison { .. } => self.emit_shell_value(value),
+            ShellValue::LogicalAnd { left, right } => {
+                let l = self.emit_while_condition(left)?;
+                let r = self.emit_while_condition(right)?;
+                Ok(format!("{l} && {r}"))
+            }
+            ShellValue::LogicalOr { left, right } => {
+                let l = self.emit_while_condition(left)?;
+                let r = self.emit_while_condition(right)?;
+                Ok(format!("{l} || {r}"))
+            }
+            ShellValue::LogicalNot { operand } => {
+                let inner = self.emit_while_condition(operand)?;
+                Ok(format!("! {inner}"))
+            }
+            _ => {
+                let cond_str = self.emit_shell_value(value)?;
+                Ok(format!("[ {cond_str} ]"))
+            }
+        }
     }
 
     fn emit_case_statement(
