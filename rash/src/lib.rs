@@ -78,6 +78,8 @@ pub mod cli;
 /// Rust compiler integration for transpilation
 #[cfg(not(target_arch = "wasm32"))]
 pub mod compiler;
+/// Shell artifact compliance system (SPEC-COMPLY-2026-001)
+pub mod comply;
 /// Shell configuration file management and analysis
 pub mod config;
 /// Container and sandbox support

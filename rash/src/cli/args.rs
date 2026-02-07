@@ -226,6 +226,12 @@ pub enum Commands {
         command: DevContainerCommands,
     },
 
+    /// Shell artifact compliance system (NEW in v7.1.0 - SPEC-COMPLY-2026-001)
+    Comply {
+        #[command(subcommand)]
+        command: ComplyCommands,
+    },
+
     /// Shell configuration file management (NEW in v7.0)
     Config {
         #[command(subcommand)]
@@ -584,6 +590,117 @@ pub enum ExplainErrorFormat {
     Human,
     /// JSON output
     Json,
+}
+
+/// Comply subcommands (SPEC-COMPLY-2026-001)
+#[derive(Subcommand)]
+pub enum ComplyCommands {
+    /// Initialize .bashrs/comply.toml manifest
+    Init {
+        /// Scopes to track
+        #[arg(long, value_enum, default_value = "project")]
+        scope: ComplyScopeArg,
+
+        /// Enable pzsh integration
+        #[arg(long)]
+        pzsh: bool,
+
+        /// Strict mode (all rules enforced, zero tolerance)
+        #[arg(long)]
+        strict: bool,
+    },
+
+    /// Layer 1 (Jidoka): Automated compliance verification
+    Check {
+        /// Project path
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+
+        /// Scope to check
+        #[arg(long, value_enum)]
+        scope: Option<ComplyScopeArg>,
+
+        /// Exit with error if non-compliant
+        #[arg(long)]
+        strict: bool,
+
+        /// Show only failures
+        #[arg(long)]
+        failures_only: bool,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "text")]
+        format: ComplyFormat,
+    },
+
+    /// Show current compliance status (alias for check)
+    Status {
+        /// Project path
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "text")]
+        format: ComplyFormat,
+    },
+
+    /// Manage tracked artifacts
+    Track {
+        #[command(subcommand)]
+        command: ComplyTrackCommands,
+    },
+}
+
+/// Track subcommands
+#[derive(Subcommand)]
+pub enum ComplyTrackCommands {
+    /// Auto-discover artifacts in project
+    Discover {
+        /// Project path
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+
+        /// Scope to discover
+        #[arg(long, value_enum, default_value = "project")]
+        scope: ComplyScopeArg,
+    },
+
+    /// List tracked artifacts
+    List {
+        /// Project path
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+
+        /// Scope to list
+        #[arg(long, value_enum)]
+        scope: Option<ComplyScopeArg>,
+    },
+}
+
+/// Scope argument for comply commands
+#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+pub enum ComplyScopeArg {
+    /// Project artifacts (*.sh, Makefile, Dockerfile)
+    #[default]
+    Project,
+    /// User config files (~/.zshrc, ~/.bashrc)
+    User,
+    /// System config files (/etc/profile, read-only)
+    System,
+    /// All scopes
+    All,
+}
+
+/// Output format for comply commands
+#[derive(Clone, Copy, Debug, Default, ValueEnum)]
+pub enum ComplyFormat {
+    /// Human-readable text
+    #[default]
+    Text,
+    /// JSON format for CI/CD
+    Json,
+    /// Markdown report
+    Markdown,
 }
 
 #[derive(Subcommand)]
