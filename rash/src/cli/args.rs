@@ -619,6 +619,28 @@ pub enum CorpusCommands {
         #[arg(long)]
         log: bool,
     },
+
+    /// Show detailed scoring for a single corpus entry
+    Show {
+        /// Entry ID (e.g., B-001, M-042, D-100)
+        #[arg(value_name = "ID")]
+        id: String,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
+
+    /// Show convergence history from .quality/convergence.log
+    History {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// Show last N entries
+        #[arg(short = 'n', long)]
+        last: Option<usize>,
+    },
 }
 
 /// Corpus output format

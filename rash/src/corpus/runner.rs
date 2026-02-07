@@ -480,6 +480,11 @@ impl CorpusRunner {
         self.compute_score(&results, registry)
     }
 
+    /// Run a single corpus entry and return its detailed result.
+    pub fn run_single(&self, entry: &CorpusEntry) -> CorpusResult {
+        self.run_entry(entry)
+    }
+
     /// Run a single corpus entry with v2 multi-level correctness checking.
     fn run_entry(&self, entry: &CorpusEntry) -> CorpusResult {
         let transpile_result = match entry.format {
