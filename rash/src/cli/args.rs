@@ -718,6 +718,32 @@ pub enum CorpusCommands {
         #[arg(short, long, value_enum, default_value = "human")]
         format: CorpusOutputFormat,
     },
+
+    /// Pareto analysis of corpus failures by dimension (spec §11.10.4)
+    Pareto {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+
+        /// Show top N dimensions only
+        #[arg(short = 'n', long)]
+        top: Option<usize>,
+    },
+
+    /// Generate Five Whys root cause template for a failing entry (spec §11.10.3)
+    WhyFailed {
+        /// Entry ID (e.g., B-143)
+        #[arg(value_name = "ID")]
+        id: String,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
 }
 
 /// Corpus output format
