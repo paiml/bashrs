@@ -293,6 +293,7 @@ impl CorpusRegistry {
         registry.load_expansion12_bash();
         registry.load_expansion9_makefile();
         registry.load_expansion10_dockerfile();
+        registry.load_expansion13_bash();
         registry
     }
 
@@ -7389,6 +7390,293 @@ impl CorpusRegistry {
         ];
         self.entries.extend(entries);
     }
+
+    // =========================================================================
+    // Expansion Wave 13: Domain-Specific Corpus (Section 11.11)
+    //   A: Config files B-371..B-380 (bashrc/zshrc/profile)
+    //   B: One-liners B-381..B-390 (pipeline/redirect patterns)
+    //   C: Provability B-391..B-400 (restricted Rust, miri-verifiable)
+    // =========================================================================
+
+    fn load_expansion13_bash(&mut self) {
+        let entries = vec![
+            // === Category A: Shell Config Files (B-371..B-380) ===
+            CorpusEntry::new(
+                "B-371",
+                "config-path-export",
+                "PATH export with directory append (config: bashrc pattern)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let home_bin = "/home/user/bin"; let local_bin = "/usr/local/bin"; }"#,
+                "home_bin='/home/user/bin'",
+            ),
+            CorpusEntry::new(
+                "B-372",
+                "config-env-defaults",
+                "Environment variable defaults with fallback (config: profile pattern)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let editor = "vim"; let pager = "less"; let lang = "en_US.UTF-8"; }"#,
+                "editor='vim'",
+            ),
+            CorpusEntry::new(
+                "B-373",
+                "config-history-settings",
+                "Shell history configuration variables (config: bashrc)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let histsize = 10000; let histfilesize = 20000; let histcontrol = "ignoreboth"; }"#,
+                "histsize='10000'",
+            ),
+            CorpusEntry::new(
+                "B-374",
+                "config-conditional-tool",
+                "Conditional tool availability check (config: if command exists)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let use_color = true; if use_color { let cflags = "-fcolor-diagnostics"; } else { let cflags = ""; } }"#,
+                r#"if test -n "$use_color"; then"#,
+            ),
+            CorpusEntry::new(
+                "B-375",
+                "config-umask-setting",
+                "Umask setting for file permissions (config: profile security)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let umask_val = 22; let secure_umask = 77; }"#,
+                "umask_val='22'",
+            ),
+            CorpusEntry::new(
+                "B-376",
+                "config-xdg-dirs",
+                "XDG base directory specification variables (config: profile)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let xdg_config = "/home/user/.config"; let xdg_data = "/home/user/.local/share"; let xdg_cache = "/home/user/.cache"; let xdg_state = "/home/user/.local/state"; }"#,
+                "xdg_config='/home/user/.config'",
+            ),
+            CorpusEntry::new(
+                "B-377",
+                "config-alias-chain",
+                "Multiple alias-like variable definitions (config: aliases)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let ls_cmd = "ls --color=auto"; let grep_cmd = "grep --color=auto"; let diff_cmd = "diff --color=auto"; }"#,
+                "ls_cmd='ls --color=auto'",
+            ),
+            CorpusEntry::new(
+                "B-378",
+                "config-ssh-agent-check",
+                "SSH agent socket existence check (config: bashrc pattern)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let ssh_auth = "/tmp/ssh-agent.sock"; let has_agent = true; if has_agent { let ssh_ok = 1; } else { let ssh_ok = 0; } }"#,
+                "ssh_auth='/tmp/ssh-agent.sock'",
+            ),
+            CorpusEntry::new(
+                "B-379",
+                "config-locale-setup",
+                "Locale configuration block (config: profile i18n)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let lc_all = "en_US.UTF-8"; let lc_ctype = "en_US.UTF-8"; let language = "en_US"; }"#,
+                "lc_all='en_US.UTF-8'",
+            ),
+            CorpusEntry::new(
+                "B-380",
+                "milestone-380-config",
+                "Milestone 380: Full shell config block with conditional sections",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let interactive = true; let editor = "vim"; let pager = "less"; let histsize = 5000; if interactive { let ps1_prefix = "user"; let ps1_suffix = "$ "; } }"#,
+                r#"if test -n "$interactive"; then"#,
+            ),
+            // === Category B: Shell One-Liners (B-381..B-390) ===
+            CorpusEntry::new(
+                "B-381",
+                "oneliner-counter-loop",
+                "Counting loop with accumulator (one-liner: seq + sum)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut count = 0; for i in 1..=100 { count += 1; } }"#,
+                "for i in $(seq 1 100); do",
+            ),
+            CorpusEntry::new(
+                "B-382",
+                "oneliner-filter-count",
+                "Filter and count matching items (one-liner: grep -c pattern)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut matches = 0; for val in 1..=50 { if val % 3 == 0 { matches += 1; } } }"#,
+                "if [ $((val % 3)) -eq 0 ]; then",
+            ),
+            CorpusEntry::new(
+                "B-383",
+                "oneliner-max-finder",
+                "Find maximum value in a range (one-liner: sort -rn | head -1)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut max = 0; for i in 1..=20 { let val = i * 7 % 13; if val > max { max = val; } } }"#,
+                r#"if [ "$val" -gt "$max" ]; then"#,
+            ),
+            CorpusEntry::new(
+                "B-384",
+                "oneliner-string-builder",
+                "Build result string through accumulation (one-liner: paste/join)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let prefix = "item"; let count = 5; let mut total = 0; for i in 1..=count { total += i; } }"#,
+                "for i in $(seq 1 \"$count\"); do",
+            ),
+            CorpusEntry::new(
+                "B-385",
+                "oneliner-exit-status",
+                "Check exit status pattern (one-liner: cmd && echo ok || echo fail)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let status = 0; if status == 0 { let result = 1; } else { let result = 0; } }"#,
+                r#"if [ "$status" -eq 0 ]; then"#,
+            ),
+            CorpusEntry::new(
+                "B-386",
+                "oneliner-range-sum",
+                "Sum a range with step (one-liner: seq + awk)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut sum = 0; for i in 1..=10 { sum += i * i; } }"#,
+                "sum=$((sum + (i * i)))",
+            ),
+            CorpusEntry::new(
+                "B-387",
+                "oneliner-dual-accumulator",
+                "Two accumulators in one loop (one-liner: awk with multiple fields)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let mut even_sum = 0; let mut odd_sum = 0; for i in 1..=20 { if i % 2 == 0 { even_sum += i; } else { odd_sum += i; } } }"#,
+                "even_sum=$((even_sum + i))",
+            ),
+            CorpusEntry::new(
+                "B-388",
+                "oneliner-nested-check",
+                "Nested condition check (one-liner: test -f && grep -q)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let exists = true; let readable = true; if exists { if readable { let ok = 1; } else { let ok = 0; } } else { let ok = 0; } }"#,
+                r#"if test -n "$exists"; then"#,
+            ),
+            CorpusEntry::new(
+                "B-389",
+                "oneliner-transform-collect",
+                "Transform values and collect result (one-liner: xargs pattern)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut result = 0; for i in 1..=8 { let doubled = i * 2; if doubled > 10 { result += 10; } else { result += doubled; } } }"#,
+                "for i in $(seq 1 8); do",
+            ),
+            CorpusEntry::new(
+                "B-390",
+                "milestone-390-oneliner",
+                "Milestone 390: Complex pipeline simulation with multiple stages",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn stage1(x: i32) -> i32 { x * 2 } fn stage2(x: i32) -> i32 { x + 5 } fn stage3(x: i32) -> i32 { if x > 20 { 20 } else { x } } fn main() { let mut result = 0; for i in 1..=10 { let a = stage1(i); let b = stage2(a); let c = stage3(b); result += c; } }"#,
+                "stage1() {",
+            ),
+            // === Category C: Provability Corpus (B-391..B-400) ===
+            // Restricted Rust: pure functions, no I/O, no unsafe, miri-verifiable
+            CorpusEntry::new(
+                "B-391",
+                "prove-identity",
+                "Identity function: f(x) = x (provability: trivial equivalence)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn identity(x: i32) -> i32 { x } fn main() { let a = identity(42); let b = identity(0); let c = identity(-1); }"#,
+                "identity() {",
+            ),
+            CorpusEntry::new(
+                "B-392",
+                "prove-abs-value",
+                "Absolute value: |x| (provability: branch equivalence)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn abs_val(x: i32) -> i32 { if x < 0 { 0 - x } else { x } } fn main() { let a = abs_val(5); let b = abs_val(-3); let c = abs_val(0); }"#,
+                "abs_val() {",
+            ),
+            CorpusEntry::new(
+                "B-393",
+                "prove-min-two",
+                "Minimum of two: min(a, b) (provability: comparison equivalence)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn min_val(a: i32, b: i32) -> i32 { if a < b { a } else { b } } fn main() { let m1 = min_val(3, 7); let m2 = min_val(10, 2); let m3 = min_val(5, 5); }"#,
+                "min_val() {",
+            ),
+            CorpusEntry::new(
+                "B-394",
+                "prove-max-two",
+                "Maximum of two: max(a, b) (provability: comparison equivalence)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn max_val(a: i32, b: i32) -> i32 { if a > b { a } else { b } } fn main() { let m1 = max_val(3, 7); let m2 = max_val(10, 2); let m3 = max_val(5, 5); }"#,
+                "max_val() {",
+            ),
+            CorpusEntry::new(
+                "B-395",
+                "prove-clamp",
+                "Clamp value to range: clamp(x, lo, hi) (provability: bounded)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn clamp(x: i32, lo: i32, hi: i32) -> i32 { if x < lo { lo } else if x > hi { hi } else { x } } fn main() { let a = clamp(5, 0, 10); let b = clamp(-3, 0, 10); let c = clamp(15, 0, 10); }"#,
+                "clamp() {",
+            ),
+            CorpusEntry::new(
+                "B-396",
+                "prove-sign",
+                "Sign function: sgn(x) (provability: trichotomy)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn sign(x: i32) -> i32 { if x > 0 { 1 } else if x < 0 { return -1; } else { 0 } } fn main() { let pos = sign(42); let neg = sign(-7); let zero = sign(0); }"#,
+                "sign() {",
+            ),
+            CorpusEntry::new(
+                "B-397",
+                "prove-gcd",
+                "Greatest common divisor: gcd(a, b) (provability: loop termination)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn gcd(a: i32, b: i32) -> i32 { let mut x = a; let mut y = b; while y != 0 { let temp = y; y = x % y; x = temp; } x } fn main() { let g1 = gcd(12, 8); let g2 = gcd(35, 14); }"#,
+                "gcd() {",
+            ),
+            CorpusEntry::new(
+                "B-398",
+                "prove-is-even",
+                "Even predicate: is_even(x) (provability: modular arithmetic)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn is_even(x: i32) -> bool { x % 2 == 0 } fn main() { let a = is_even(4); let b = is_even(7); let c = is_even(0); }"#,
+                "is_even() {",
+            ),
+            CorpusEntry::new(
+                "B-399",
+                "prove-sum-range",
+                "Sum of 1..n: sum(n) = n*(n+1)/2 (provability: closed-form verification)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn sum_to(n: i32) -> i32 { let mut total = 0; let mut i = 1; while i <= n { total += i; i += 1; } total } fn main() { let s10 = sum_to(10); let s100 = sum_to(100); }"#,
+                "sum_to() {",
+            ),
+            CorpusEntry::new(
+                "B-400",
+                "milestone-400-provability",
+                "Milestone 400: Composable pure functions (provability: composition equivalence)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn double(x: i32) -> i32 { x * 2 } fn increment(x: i32) -> i32 { x + 1 } fn square(x: i32) -> i32 { x * x } fn pipeline(x: i32) -> i32 { let a = double(x); let b = increment(a); square(b) } fn main() { let r1 = pipeline(3); let r2 = pipeline(5); let r3 = pipeline(0); }"#,
+                "pipeline() {",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
 }
 
 #[cfg(test)]
@@ -7492,5 +7780,6 @@ mod tests {
         assert!((CorpusTier::Standard.target_rate() - 0.99).abs() < f64::EPSILON);
         assert!((CorpusTier::Adversarial.target_rate() - 0.95).abs() < f64::EPSILON);
     }
+
 
 }

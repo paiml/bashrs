@@ -110,7 +110,8 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 | Iteration 15 | 550 entries | ~99% | OIP-driven fix-pattern entries (B-321..B-350) | DONE (iter 15: 550/550, 100%) |
 | Iteration 15+ | 700 entries | 99%+ | pmat coverage-gap + Dockerfile/Makefile balance | DONE (iter 15+: 700/700, 99.9/100) |
 | Iteration 16 | 730 entries | 99%+ | Phase 3 adversarial + advanced patterns | DONE (iter 16: 730/730, 99.9/100) |
-| Ongoing | 730+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
+| Iteration 17 | 760 entries | 99%+ | Domain-specific: config files, one-liners, provability (Section 11.11) | DONE |
+| Ongoing | 760+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
 
@@ -1980,6 +1981,116 @@ This enables detection of **format-specific regressions** — a Makefile fix tha
 | 6 | Convergence dashboard (11.10.5) | 3 days | None | Regression visibility |
 
 Phase 1 and Phase 6 are independent and can start immediately. Phases 2-5 are sequential.
+
+### 11.11 Domain-Specific Corpus Categories
+
+The corpus must cover three domain-specific categories that standard tier progression misses. These represent real-world usage patterns where shell scripts are most commonly written and maintained, and where transpiler correctness has the highest practical impact.
+
+#### 11.11.1 Category A: Shell Configuration Files (bashrc/zshrc/profile)
+
+**Motivation**: Shell config files (`.bashrc`, `.zshrc`, `.profile`, `/etc/environment`) are the most-edited shell scripts in existence. Every developer maintains at least one. They have unique patterns:
+
+- **PATH manipulation**: Append/prepend directories, deduplication, conditional addition
+- **Alias definitions**: Simple and complex aliases with quoting challenges
+- **Environment exports**: `export VAR=value` chains, conditional exports
+- **Prompt customization**: PS1/PS2 with escape sequences and dynamic content
+- **Conditional tool setup**: `if command -v tool >/dev/null; then ... fi`
+- **Source/dot inclusion**: `. ~/.bashrc.d/*.sh` sourcing patterns
+- **Shell options**: `set -o`, `shopt -s`, `setopt` configuration
+- **History configuration**: HISTSIZE, HISTFILESIZE, HISTCONTROL
+
+**Corpus Entry Pattern**: Rust DSL representing config-style shell constructs. The transpiler should emit clean, idempotent config blocks suitable for inclusion in rc files.
+
+**Unique Quality Requirements**:
+- **Idempotent**: Sourcing the config twice must be safe (no duplicate PATH entries)
+- **Non-destructive**: Config blocks must not overwrite user state (use `${VAR:-default}`)
+- **POSIX-portable**: Must work when sourced by sh, bash, zsh, and dash
+
+**Entry Range**: B-371..B-380
+
+#### 11.11.2 Category B: Shell One-Liners (bash/sh/zsh)
+
+**Motivation**: Shell one-liners are the most common ad-hoc shell usage. They compress complex operations into single pipeline expressions. The transpiler must produce output that captures the *intent* of these patterns even when the Rust DSL input is multi-statement.
+
+**Key Patterns**:
+- **Pipeline chains**: `cmd1 | cmd2 | cmd3` — data flows through filters
+- **Find-exec patterns**: `find . -name '*.log' -exec rm {} \;`
+- **Xargs composition**: `cmd | xargs -I{} other {}`
+- **Process substitution**: `diff <(cmd1) <(cmd2)`
+- **Inline conditionals**: `test -f file && source file`
+- **Redirect chains**: `cmd > out 2>&1`, `cmd 2>/dev/null`
+- **Sort-uniq pipelines**: `cmd | sort | uniq -c | sort -rn | head`
+- **Awk/sed transforms**: Text processing in single expressions
+- **Subshell grouping**: `(cd dir && cmd)` to avoid directory pollution
+- **Arithmetic expansion**: Complex `$((...))` expressions
+
+**Corpus Entry Pattern**: Rust DSL that expresses operations typically solved by one-liners. The transpiled output should demonstrate that the transpiler can produce compact, idiomatic shell.
+
+**Unique Quality Requirements**:
+- **Behavioral equivalence**: The multi-statement Rust DSL must produce shell output that achieves the same result as the canonical one-liner
+- **Pipeline safety**: No unquoted variables in pipe chains
+- **Error propagation**: `set -o pipefail` equivalent semantics where applicable
+
+**Entry Range**: B-381..B-390
+
+#### 11.11.3 Category C: Provability Corpus (Restricted Rust → Verified Shell)
+
+**Motivation**: The provability corpus contains entries where the Rust source is **restricted to a formally verifiable subset** — pure functions, no I/O, no unsafe, no panics. This subset can be:
+
+1. **Verified by Miri**: Rust's mid-level IR interpreter can prove absence of undefined behavior
+2. **Verified by property tests**: Exhaustive/random testing over the input domain
+3. **Verified by symbolic execution**: For simple arithmetic, the Rust and shell outputs can be proven equivalent
+
+**Restricted Rust Subset** (allowed constructs):
+- Pure functions (`fn f(x: i32) -> i32`)
+- Integer arithmetic (`+`, `-`, `*`, `/`, `%`)
+- Boolean logic (`&&`, `||`, `!`)
+- Conditionals (`if`/`else`)
+- Bounded loops (`for i in 0..n`, `while i < n`)
+- Local variables only (no globals, no statics, no heap)
+- No I/O, no `println!`, no `eprintln!`
+- No `unsafe`, no `unwrap`, no `expect`, no `panic!`
+
+**Provability Chain**:
+```
+Rust source (restricted subset)
+  │
+  ├── Miri verification: cargo miri run (proves no UB)
+  ├── Property test: proptest over input domain
+  │
+  ▼
+Shell output (transpiled)
+  │
+  ├── Behavioral test: sh -c "$script" produces same result
+  ├── Cross-shell: sh, dash, bash agree
+  │
+  ▼
+Equivalence: Rust output ≡ Shell output (for all tested inputs)
+```
+
+**Why This Matters**: The provability corpus establishes a **trusted kernel** — a set of entries where correctness is not just tested but *proven*. This kernel serves as the foundation for confidence in the transpiler. If the transpiler is correct on provably-correct Rust, we have high confidence it's correct on general Rust.
+
+**Corpus Entry Pattern**: Pure Rust functions with known-correct outputs. Expected shell output is derived from the Rust semantics (not observed from the transpiler). This makes the corpus truly **falsifying** — it can catch transpiler bugs that other entries cannot.
+
+**Unique Quality Requirements**:
+- **Miri-clean**: `cargo miri run` passes on the Rust source (no UB)
+- **Deterministic**: Pure functions produce identical output every run
+- **Exhaustively testable**: Small input domains allow full enumeration
+- **No shell-isms**: Output must not rely on shell-specific behavior (e.g., string-as-boolean)
+
+**Entry Range**: B-391..B-400
+
+#### 11.11.4 Cross-Category Quality Matrix
+
+| Property | Config (A) | One-liner (B) | Provability (C) |
+|----------|-----------|--------------|----------------|
+| Idempotent | REQUIRED | N/A | REQUIRED |
+| POSIX | REQUIRED | REQUIRED | REQUIRED |
+| Deterministic | REQUIRED | REQUIRED | REQUIRED |
+| Miri-verifiable | N/A | N/A | REQUIRED |
+| Cross-shell | REQUIRED | REQUIRED | REQUIRED |
+| Shellcheck-clean | REQUIRED | REQUIRED | REQUIRED |
+| Pipeline-safe | N/A | REQUIRED | N/A |
 
 ---
 
