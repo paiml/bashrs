@@ -1006,6 +1006,15 @@ pub enum CorpusCommands {
 
     /// Scatter view: entries on a timing × failure-count grid
     Scatter,
+
+    /// Grade distribution histogram across all entries
+    GradeDist,
+
+    /// Pivot table: tier × format cross-tabulation with pass rates
+    Pivot,
+
+    /// Dimension correlation matrix (which failures co-occur)
+    Corr,
 }
 
 /// Corpus output format

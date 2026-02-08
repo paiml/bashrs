@@ -5314,6 +5314,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Scatter => {
             corpus_scatter()
         }
+
+        CorpusCommands::GradeDist => {
+            corpus_grade_dist()
+        }
+
+        CorpusCommands::Pivot => {
+            corpus_pivot()
+        }
+
+        CorpusCommands::Corr => {
+            corpus_corr()
+        }
     }
 }
 
@@ -8617,6 +8629,229 @@ fn corpus_scatter() -> Result<()> {
     let total_fail = data.len() - total_pass;
     println!();
     println!("  {DIM}Pass: {total_pass} | Fail: {total_fail} | Entries: {}{RESET}", data.len());
+    Ok(())
+}
+
+/// Grade distribution histogram across all entries.
+fn corpus_grade_dist() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::registry::Grade;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    // Count per-entry grades
+    let mut counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    for result in &score.results {
+        let fail_count = result_fail_dims(result).len();
+        let entry_grade = if fail_count == 0 {
+            "A+"
+        } else if fail_count == 1 {
+            "A"
+        } else if fail_count <= 2 {
+            "B"
+        } else if fail_count <= 4 {
+            "C"
+        } else if fail_count <= 6 {
+            "D"
+        } else {
+            "F"
+        };
+        *counts.entry(entry_grade.to_string()).or_default() += 1;
+    }
+
+    println!("{BOLD}Grade Distribution{RESET} ({} entries)", score.results.len());
+    println!();
+
+    let max_count = counts.values().copied().max().unwrap_or(1);
+    let bar_width = 40;
+    let grade_order = ["A+", "A", "B", "C", "D", "F"];
+
+    for grade in &grade_order {
+        let count = counts.get(*grade).copied().unwrap_or(0);
+        let bar_len = if max_count > 0 { count * bar_width / max_count } else { 0 };
+        let bar: String = "█".repeat(bar_len);
+        let pct = if score.results.is_empty() { 0.0 } else { count as f64 / score.results.len() as f64 * 100.0 };
+        let color = match *grade {
+            "A+" | "A" => GREEN,
+            "B" => YELLOW,
+            "C" => BRIGHT_YELLOW,
+            _ => RED,
+        };
+        println!("  {color}{:<3}{RESET} {color}{bar}{RESET} {BOLD}{count:>4}{RESET} ({pct:.1}%)", grade);
+    }
+
+    println!();
+    println!("  {DIM}Overall: {:.1}/100 {}{RESET}", score.score, Grade::from_score(score.score));
+    Ok(())
+}
+
+/// Pivot table: tier × format cross-tabulation with pass rates.
+fn corpus_pivot() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    // Build tier × format grid
+    let tiers = ["Trivial", "Standard", "Complex", "Adversarial", "Production"];
+    let formats = ["Bash", "Makefile", "Dockerfile"];
+
+    // Collect data: (tier_idx, format_str) -> (passed, total)
+    let mut grid: std::collections::HashMap<(usize, &str), (usize, usize)> =
+        std::collections::HashMap::new();
+
+    for (i, entry) in registry.entries.iter().enumerate() {
+        let tier_idx = match entry.tier {
+            crate::corpus::registry::CorpusTier::Trivial => 0,
+            crate::corpus::registry::CorpusTier::Standard => 1,
+            crate::corpus::registry::CorpusTier::Complex => 2,
+            crate::corpus::registry::CorpusTier::Adversarial => 3,
+            crate::corpus::registry::CorpusTier::Production => 4,
+        };
+        let fmt_str = match entry.format {
+            crate::corpus::registry::CorpusFormat::Bash => "Bash",
+            crate::corpus::registry::CorpusFormat::Makefile => "Makefile",
+            crate::corpus::registry::CorpusFormat::Dockerfile => "Dockerfile",
+        };
+        if let Some(result) = score.results.get(i) {
+            let passed = result_fail_dims(result).is_empty();
+            let cell = grid.entry((tier_idx, fmt_str)).or_insert((0, 0));
+            cell.1 += 1;
+            if passed {
+                cell.0 += 1;
+            }
+        }
+    }
+
+    println!("{BOLD}Tier × Format Pivot{RESET}");
+    println!();
+
+    // Header
+    print!("  {BOLD}{:<14}", "Tier");
+    for fmt in &formats {
+        print!("{:>14}", fmt);
+    }
+    println!("{:>12}{RESET}", "Total");
+
+    // Rows
+    for (t_idx, tier) in tiers.iter().enumerate() {
+        print!("  {CYAN}{:<14}{RESET}", tier);
+        let mut row_pass = 0usize;
+        let mut row_total = 0usize;
+        for fmt in &formats {
+            let (p, t) = grid.get(&(t_idx, *fmt)).copied().unwrap_or((0, 0));
+            row_pass += p;
+            row_total += t;
+            if t == 0 {
+                print!("{DIM}{:>14}{RESET}", "-");
+            } else {
+                let rate = p as f64 / t as f64 * 100.0;
+                let color = pct_color(rate);
+                print!("{color}{:>5}/{:<4} {:>4.1}%{RESET}", p, t, rate);
+            }
+        }
+        if row_total == 0 {
+            println!("{DIM}{:>12}{RESET}", "-");
+        } else {
+            let rate = row_pass as f64 / row_total as f64 * 100.0;
+            let color = pct_color(rate);
+            println!("{color}{:>5}/{:<4}{RESET}", row_pass, row_total);
+        }
+    }
+
+    // Footer totals
+    print!("  {BOLD}{:<14}", "Total");
+    let mut grand_pass = 0usize;
+    let mut grand_total = 0usize;
+    for fmt in &formats {
+        let (p, t): (usize, usize) = (0..5)
+            .map(|ti| grid.get(&(ti, *fmt)).copied().unwrap_or((0, 0)))
+            .fold((0, 0), |acc, (p, t)| (acc.0 + p, acc.1 + t));
+        grand_pass += p;
+        grand_total += t;
+        if t == 0 {
+            print!("{DIM}{:>14}{RESET}", "-");
+        } else {
+            let rate = p as f64 / t as f64 * 100.0;
+            let color = pct_color(rate);
+            print!("{color}{:>5}/{:<4} {:>4.1}%{RESET}", p, t, rate);
+        }
+    }
+    println!("{BOLD}{:>5}/{:<4}{RESET}", grand_pass, grand_total);
+
+    Ok(())
+}
+
+/// Dimension correlation matrix: which failures co-occur.
+fn corpus_corr() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    let dims = ["A", "B1", "B2", "B3", "D", "E", "F", "G"];
+
+    // For each result, extract failure bitmask per dimension
+    let mut fail_vecs: Vec<[bool; 8]> = Vec::new();
+    for result in &score.results {
+        let fails = [
+            !result.transpiled,
+            !result.output_contains,
+            !result.output_exact,
+            !result.output_behavioral,
+            !result.lint_clean,
+            !result.deterministic,
+            !result.metamorphic_consistent,
+            !result.cross_shell_agree,
+        ];
+        fail_vecs.push(fails);
+    }
+
+    println!("{BOLD}Dimension Failure Correlation{RESET} ({} entries)", fail_vecs.len());
+    println!();
+    println!("  {DIM}Shows how often two dimensions fail together (co-occurrence count).{RESET}");
+    println!();
+
+    // Header
+    print!("  {BOLD}{:<5}", "");
+    for dim in &dims {
+        print!("{:>5}", dim);
+    }
+    println!("{RESET}");
+
+    // Correlation matrix (co-occurrence counts)
+    for (i, dim_i) in dims.iter().enumerate() {
+        print!("  {CYAN}{:<5}{RESET}", dim_i);
+        for (j, _) in dims.iter().enumerate() {
+            let co = fail_vecs.iter().filter(|f| f[i] && f[j]).count();
+            if i == j {
+                // Diagonal: total failures for this dimension
+                let color = if co == 0 { DIM } else { BRIGHT_RED };
+                print!("{color}{co:>5}{RESET}");
+            } else if co == 0 {
+                print!("{DIM}{:>5}{RESET}", "·");
+            } else {
+                print!("{YELLOW}{co:>5}{RESET}");
+            }
+        }
+        println!();
+    }
+
+    // Summary of entries with multi-dimension failures
+    let multi_fail = fail_vecs.iter().filter(|f| f.iter().filter(|&&x| x).count() >= 2).count();
+    println!();
+    println!("  {DIM}Multi-dimension failures: {multi_fail} entries{RESET}");
+
     Ok(())
 }
 
