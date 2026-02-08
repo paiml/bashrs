@@ -1,0 +1,28 @@
+# Performance Metrics Configuration (Spec Section 9 / 8.2)
+# Controls performance budgets, staleness tracking, and trend analysis.
+
+[thresholds]
+lint_ms = 5000
+test_ms = 60000
+coverage_ms = 120000
+binary_size_kb = 10240
+
+[staleness]
+max_age_days = 7
+
+[enforcement]
+fail_on_stale = true
+fail_on_performance_regression = true
+
+[trend_analysis]
+enabled = true
+retention_days = 90
+
+[quality_gates]
+min_coverage = 95.0
+min_mutation_score = 90.0
+min_tdg_grade = "A"
+
+[performance]
+max_transpile_ms_per_entry = 100
+max_memory_mb_per_entry = 10

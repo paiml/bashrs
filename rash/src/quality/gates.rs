@@ -1654,4 +1654,255 @@ high_risk_components = ["linter"]
         assert!(gates.contains(&"mutation".to_string()));
         assert!(gates.contains(&"security".to_string()));
     }
+
+    #[test]
+    fn test_METRICS_001_default_values() {
+        let config = MetricsConfig::default();
+        assert!((config.thresholds.lint_ms - 5000.0).abs() < f64::EPSILON);
+        assert!((config.thresholds.test_ms - 60000.0).abs() < f64::EPSILON);
+        assert!((config.quality_gates.min_coverage - 95.0).abs() < f64::EPSILON);
+        assert!((config.quality_gates.min_mutation_score - 90.0).abs() < f64::EPSILON);
+        assert_eq!(config.quality_gates.min_tdg_grade, "A");
+        assert_eq!(config.staleness.max_age_days, 7);
+        assert!(config.trend_analysis.enabled);
+        assert_eq!(config.trend_analysis.retention_days, 90);
+    }
+
+    #[test]
+    fn test_METRICS_002_parse_toml() {
+        let toml_str = r#"
+[thresholds]
+lint_ms = 3000
+test_ms = 30000
+coverage_ms = 60000
+binary_size_kb = 5120
+
+[staleness]
+max_age_days = 14
+
+[enforcement]
+fail_on_stale = false
+fail_on_performance_regression = true
+
+[trend_analysis]
+enabled = true
+retention_days = 180
+
+[quality_gates]
+min_coverage = 90.0
+min_mutation_score = 85.0
+min_tdg_grade = "B"
+
+[performance]
+max_transpile_ms_per_entry = 200
+max_memory_mb_per_entry = 20
+"#;
+        let config: MetricsConfig = toml::from_str(toml_str).expect("parse");
+        assert!((config.thresholds.lint_ms - 3000.0).abs() < f64::EPSILON);
+        assert_eq!(config.staleness.max_age_days, 14);
+        assert!(!config.enforcement.fail_on_stale);
+        assert_eq!(config.trend_analysis.retention_days, 180);
+        assert!((config.quality_gates.min_coverage - 90.0).abs() < f64::EPSILON);
+        assert_eq!(config.quality_gates.min_tdg_grade, "B");
+        assert!((config.performance.max_transpile_ms_per_entry - 200.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_METRICS_003_load_or_default_missing() {
+        // When file doesn't exist, returns defaults
+        let config = MetricsConfig::load_or_default();
+        assert!((config.thresholds.lint_ms - 5000.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_METRICS_004_check_budget() {
+        let config = MetricsConfig::default();
+        assert!(config.check_budget("lint_ms", 4000.0));
+        assert!(!config.check_budget("lint_ms", 6000.0));
+        assert!(config.check_budget("test_ms", 50000.0));
+        assert!(!config.check_budget("test_ms", 70000.0));
+        assert!(config.check_budget("unknown", 9999.0)); // unknown key always passes
+    }
+}
+
+// =============================================================================
+// MetricsConfig (Spec Section 9 / 8.2 — Performance Metrics)
+// =============================================================================
+
+/// Performance metrics configuration loaded from `.pmat-metrics.toml`.
+/// Controls performance budgets, staleness tracking, and trend analysis.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetricsConfig {
+    #[serde(default)]
+    pub thresholds: MetricsThresholds,
+    #[serde(default)]
+    pub staleness: StalenessConfig,
+    #[serde(default)]
+    pub enforcement: MetricsEnforcement,
+    #[serde(default)]
+    pub trend_analysis: TrendAnalysisConfig,
+    #[serde(default)]
+    pub quality_gates: MetricsQualityGates,
+    #[serde(default)]
+    pub performance: PerformanceBudget,
+}
+
+impl Default for MetricsConfig {
+    fn default() -> Self {
+        Self {
+            thresholds: MetricsThresholds::default(),
+            staleness: StalenessConfig::default(),
+            enforcement: MetricsEnforcement::default(),
+            trend_analysis: TrendAnalysisConfig::default(),
+            quality_gates: MetricsQualityGates::default(),
+            performance: PerformanceBudget::default(),
+        }
+    }
+}
+
+impl MetricsConfig {
+    /// Load from `.pmat-metrics.toml` or return defaults.
+    pub fn load_or_default() -> Self {
+        let path = Path::new(".pmat-metrics.toml");
+        if path.exists() {
+            if let Ok(content) = fs::read_to_string(path) {
+                if let Ok(config) = toml::from_str(&content) {
+                    return config;
+                }
+            }
+        }
+        Self::default()
+    }
+
+    /// Check if a measured value is within the performance budget.
+    pub fn check_budget(&self, key: &str, value_ms: f64) -> bool {
+        match key {
+            "lint_ms" => value_ms <= self.thresholds.lint_ms,
+            "test_ms" => value_ms <= self.thresholds.test_ms,
+            "coverage_ms" => value_ms <= self.thresholds.coverage_ms,
+            _ => true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetricsThresholds {
+    #[serde(default = "default_lint_ms")]
+    pub lint_ms: f64,
+    #[serde(default = "default_test_ms")]
+    pub test_ms: f64,
+    #[serde(default = "default_coverage_ms")]
+    pub coverage_ms: f64,
+    #[serde(default = "default_binary_size_kb")]
+    pub binary_size_kb: f64,
+}
+
+fn default_lint_ms() -> f64 { 5000.0 }
+fn default_test_ms() -> f64 { 60000.0 }
+fn default_coverage_ms() -> f64 { 120000.0 }
+fn default_binary_size_kb() -> f64 { 10240.0 }
+
+impl Default for MetricsThresholds {
+    fn default() -> Self {
+        Self {
+            lint_ms: default_lint_ms(),
+            test_ms: default_test_ms(),
+            coverage_ms: default_coverage_ms(),
+            binary_size_kb: default_binary_size_kb(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StalenessConfig {
+    #[serde(default = "default_max_age_days")]
+    pub max_age_days: u32,
+}
+
+fn default_max_age_days() -> u32 { 7 }
+
+impl Default for StalenessConfig {
+    fn default() -> Self {
+        Self { max_age_days: default_max_age_days() }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetricsEnforcement {
+    #[serde(default = "default_true")]
+    pub fail_on_stale: bool,
+    #[serde(default = "default_true")]
+    pub fail_on_performance_regression: bool,
+}
+
+impl Default for MetricsEnforcement {
+    fn default() -> Self {
+        Self {
+            fail_on_stale: true,
+            fail_on_performance_regression: true,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TrendAnalysisConfig {
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(default = "default_retention_days")]
+    pub retention_days: u32,
+}
+
+fn default_retention_days() -> u32 { 90 }
+
+impl Default for TrendAnalysisConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            retention_days: default_retention_days(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetricsQualityGates {
+    #[serde(default = "default_min_coverage")]
+    pub min_coverage: f64,
+    #[serde(default = "default_min_mutation_score")]
+    pub min_mutation_score: f64,
+    #[serde(default = "default_min_tdg_grade")]
+    pub min_tdg_grade: String,
+}
+
+fn default_min_coverage() -> f64 { 95.0 }
+fn default_min_mutation_score() -> f64 { 90.0 }
+fn default_min_tdg_grade() -> String { "A".to_string() }
+
+impl Default for MetricsQualityGates {
+    fn default() -> Self {
+        Self {
+            min_coverage: default_min_coverage(),
+            min_mutation_score: default_min_mutation_score(),
+            min_tdg_grade: default_min_tdg_grade(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PerformanceBudget {
+    #[serde(default = "default_max_transpile_ms")]
+    pub max_transpile_ms_per_entry: f64,
+    #[serde(default = "default_max_memory_mb")]
+    pub max_memory_mb_per_entry: f64,
+}
+
+fn default_max_transpile_ms() -> f64 { 100.0 }
+fn default_max_memory_mb() -> f64 { 10.0 }
+
+impl Default for PerformanceBudget {
+    fn default() -> Self {
+        Self {
+            max_transpile_ms_per_entry: default_max_transpile_ms(),
+            max_memory_mb_per_entry: default_max_memory_mb(),
+        }
+    }
 }
