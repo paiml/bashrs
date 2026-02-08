@@ -997,6 +997,15 @@ pub enum CorpusCommands {
 
     /// Time budget analysis: time spent per format and per tier
     Budget,
+
+    /// Information entropy of construct distribution (diversity metric)
+    Entropy,
+
+    /// Auto-generate improvement suggestions from current state
+    Todo,
+
+    /// Scatter view: entries on a timing × failure-count grid
+    Scatter,
 }
 
 /// Corpus output format
