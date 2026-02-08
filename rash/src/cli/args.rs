@@ -1015,6 +1015,19 @@ pub enum CorpusCommands {
 
     /// Dimension correlation matrix (which failures co-occur)
     Corr,
+
+    /// Schema enforcement layer status per format (spec §11.8)
+    Schema,
+
+    /// ASCII chart of score over iterations from convergence log
+    HistoryChart,
+
+    /// Detect potentially flaky entries (high timing variance)
+    Flaky {
+        /// Minimum coefficient of variation for flakiness (default: 0.5)
+        #[arg(long, default_value = "0.5")]
+        threshold: f64,
+    },
 }
 
 /// Corpus output format
