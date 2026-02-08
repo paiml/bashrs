@@ -5206,6 +5206,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Top { limit, worst, filter } => {
             corpus_top(limit, worst, filter.as_ref())
         }
+
+        CorpusCommands::Categories { format } => {
+            corpus_categories(&format)
+        }
+
+        CorpusCommands::Dimensions { format, filter } => {
+            corpus_dimensions(&format, filter.as_ref())
+        }
+
+        CorpusCommands::Dupes => {
+            corpus_dupes()
+        }
     }
 }
 
@@ -6785,6 +6797,225 @@ fn corpus_top(
         println!("  {:<8} {}  {}", r.id, fc, dim_str);
     }
     Ok(())
+}
+
+/// Classify entry into domain-specific category based on name/description (spec §11.11).
+fn classify_category(name: &str) -> &'static str {
+    let n = name.to_lowercase();
+    if n.contains("config") || n.contains("bashrc") || n.contains("profile") || n.contains("alias") || n.contains("xdg") || n.contains("history") {
+        "Config (A)"
+    } else if n.contains("oneliner") || n.contains("one-liner") || n.contains("pipe-") || n.contains("pipeline") {
+        "One-liner (B)"
+    } else if n.contains("coreutil") || n.contains("reimpl") {
+        "Coreutils (G)"
+    } else if n.contains("regex") || n.contains("pattern-match") || n.contains("glob-match") {
+        "Regex (H)"
+    } else if n.contains("daemon") || n.contains("cron") || n.contains("startup") || n.contains("service") {
+        "System (F)"
+    } else if n.contains("milestone") {
+        "Milestone"
+    } else if n.contains("adversarial") || n.contains("injection") || n.contains("fuzz") {
+        "Adversarial"
+    } else {
+        "General"
+    }
+}
+
+/// Show entries grouped by domain-specific category (spec §11.11).
+fn corpus_categories(format: &CorpusOutputFormat) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    let mut cats: std::collections::BTreeMap<&str, Vec<&str>> = std::collections::BTreeMap::new();
+    for e in &registry.entries {
+        let cat = classify_category(&e.name);
+        cats.entry(cat).or_default().push(&e.id);
+    }
+
+    match format {
+        CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+            println!("{BOLD}Domain-Specific Categories (spec §11.11){RESET}");
+            println!();
+            println!("  {BOLD}{:<18} {:>5}  {}{RESET}", "Category", "Count", "Sample IDs");
+            let total = registry.entries.len();
+            for (cat, ids) in &cats {
+                let sample: Vec<_> = ids.iter().take(5).copied().collect();
+                let more = if ids.len() > 5 {
+                    format!(" {DIM}(+{}){RESET}", ids.len() - 5)
+                } else {
+                    String::new()
+                };
+                let pct = ids.len() as f64 / total as f64 * 100.0;
+                println!("  {CYAN}{:<18}{RESET} {:>5}  {DIM}({pct:>5.1}%){RESET}  {}{}",
+                    cat, ids.len(), sample.join(", "), more);
+            }
+            println!();
+            println!("  {DIM}Total: {total} entries in {} categories{RESET}", cats.len());
+        }
+        CorpusOutputFormat::Json => {
+            let result: Vec<_> = cats.iter().map(|(cat, ids)| {
+                serde_json::json!({
+                    "category": cat,
+                    "count": ids.len(),
+                    "ids": ids,
+                })
+            }).collect();
+            let json = serde_json::to_string_pretty(&serde_json::json!({
+                "total": registry.entries.len(),
+                "categories": result,
+            })).map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+/// Show per-dimension pass rates, weights, and point contributions.
+fn corpus_dimensions(
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = match filter {
+        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
+        None => runner.run(&registry),
+    };
+
+    let total = score.results.len();
+    let dims = compute_dimension_stats(&score.results, total);
+
+    match format {
+        CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+            println!("{BOLD}V2 Dimension Analysis ({total} entries){RESET}");
+            println!();
+            println!("  {BOLD}{:<4} {:<16} {:>6} {:>6} {:>7}  {:>6} {:>6}{RESET}",
+                "Dim", "Name", "Pass", "Fail", "Rate", "Weight", "Points");
+            for d in &dims {
+                let rc = pct_color(d.rate * 100.0);
+                println!("  {:<4} {:<16} {:>6} {:>6} {rc}{:>6.1}%{RESET}  {:>6.0} {:>6.1}",
+                    d.code, d.name, d.pass, d.fail, d.rate * 100.0, d.weight, d.points);
+            }
+            let total_pts: f64 = dims.iter().map(|d| d.points).sum();
+            let total_wt: f64 = dims.iter().map(|d| d.weight).sum();
+            println!();
+            println!("  {BOLD}{:<4} {:<16} {:>6} {:>6} {:>7}  {:>6.0} {:>6.1}{RESET}",
+                "", "Total", "", "", "", total_wt, total_pts);
+        }
+        CorpusOutputFormat::Json => {
+            let result: Vec<_> = dims.iter().map(|d| {
+                serde_json::json!({
+                    "code": d.code, "name": d.name,
+                    "pass": d.pass, "fail": d.fail,
+                    "rate": d.rate, "weight": d.weight, "points": d.points,
+                })
+            }).collect();
+            let json = serde_json::to_string_pretty(&serde_json::json!({
+                "total_entries": total,
+                "dimensions": result,
+            })).map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+struct DimStat {
+    code: &'static str,
+    name: &'static str,
+    pass: usize,
+    fail: usize,
+    rate: f64,
+    weight: f64,
+    points: f64,
+}
+
+fn compute_dimension_stats(results: &[crate::corpus::runner::CorpusResult], total: usize) -> Vec<DimStat> {
+    let count = |f: &dyn Fn(&crate::corpus::runner::CorpusResult) -> bool| -> usize {
+        results.iter().filter(|r| f(r)).count()
+    };
+    let dim = |code: &'static str, name: &'static str, pass: usize, weight: f64| -> DimStat {
+        let fail = total - pass;
+        let rate = if total > 0 { pass as f64 / total as f64 } else { 0.0 };
+        let points = rate * weight;
+        DimStat { code, name, pass, fail, rate, weight, points }
+    };
+    vec![
+        dim("A",  "Transpilation",  count(&|r| r.transpiled), 30.0),
+        dim("B1", "Containment",    count(&|r| r.output_contains), 10.0),
+        dim("B2", "Exact match",    count(&|r| r.output_exact), 8.0),
+        dim("B3", "Behavioral",     count(&|r| r.output_behavioral), 7.0),
+        dim("C",  "Coverage",       total, 15.0), // coverage is always "pass" (ratio-based)
+        dim("D",  "Lint clean",     count(&|r| r.lint_clean), 10.0),
+        dim("E",  "Deterministic",  count(&|r| r.deterministic), 10.0),
+        dim("F",  "Metamorphic",    count(&|r| r.metamorphic_consistent), 5.0),
+        dim("G",  "Cross-shell",    count(&|r| r.cross_shell_agree), 5.0),
+    ]
+}
+
+/// Find potential duplicate or similar corpus entries.
+fn corpus_dupes() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    let mut dupes: Vec<(&str, &str, &str)> = Vec::new();
+
+    // Compare all pairs (O(n^2) but n=900 is fine)
+    for i in 0..registry.entries.len() {
+        for j in (i + 1)..registry.entries.len() {
+            let a = &registry.entries[i];
+            let b = &registry.entries[j];
+            // Same format only
+            if a.format != b.format {
+                continue;
+            }
+            // Check name similarity
+            if names_similar(&a.name, &b.name) {
+                dupes.push((&a.id, &b.id, &a.name));
+            }
+        }
+    }
+
+    if dupes.is_empty() {
+        println!("{GREEN}No potential duplicates found.{RESET}");
+    } else {
+        println!("{BOLD}Potential Duplicates ({} pairs):{RESET}", dupes.len());
+        println!();
+        for (a, b, name) in dupes.iter().take(20) {
+            println!("  {YELLOW}{a}{RESET} \u{2194} {YELLOW}{b}{RESET}  {DIM}({name}){RESET}");
+        }
+        if dupes.len() > 20 {
+            println!("  {DIM}... and {} more{RESET}", dupes.len() - 20);
+        }
+    }
+    Ok(())
+}
+
+/// Check if two entry names are similar enough to flag as potential duplicates.
+fn names_similar(a: &str, b: &str) -> bool {
+    // Exact match (different IDs, same name)
+    if a == b {
+        return true;
+    }
+    // One is a prefix of the other (e.g., "variable" and "variable-assignment")
+    let a_lower = a.to_lowercase();
+    let b_lower = b.to_lowercase();
+    // Same normalized name after removing common suffixes
+    let strip_suffix = |s: &str| -> String {
+        s.trim_end_matches("-basic")
+            .trim_end_matches("-simple")
+            .trim_end_matches("-advanced")
+            .to_string()
+    };
+    strip_suffix(&a_lower) == strip_suffix(&b_lower) && a_lower != b_lower
 }
 
 fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
