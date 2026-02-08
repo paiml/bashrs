@@ -205,6 +205,20 @@ pub struct ConvergenceEntry {
     /// Dockerfile entries total
     #[serde(default)]
     pub dockerfile_total: usize,
+    // --- V2 score/grade (spec §5.1) ---
+    /// V2 weighted score (0-100)
+    #[serde(default)]
+    pub score: f64,
+    /// Quality grade string (e.g. "A+", "A", "B", ...)
+    #[serde(default)]
+    pub grade: String,
+    /// Per-format V2 scores (spec §11.10.5)
+    #[serde(default)]
+    pub bash_score: f64,
+    #[serde(default)]
+    pub makefile_score: f64,
+    #[serde(default)]
+    pub dockerfile_score: f64,
 }
 
 /// Valid Dockerfile instruction prefixes (per Dockerfile reference).
@@ -1150,6 +1164,16 @@ impl CorpusRunner {
             .format_score(CorpusFormat::Dockerfile)
             .map_or((0, 0), |fs| (fs.passed, fs.total));
 
+        let bash_score = score
+            .format_score(CorpusFormat::Bash)
+            .map_or(0.0, |fs| fs.score);
+        let makefile_score = score
+            .format_score(CorpusFormat::Makefile)
+            .map_or(0.0, |fs| fs.score);
+        let dockerfile_score = score
+            .format_score(CorpusFormat::Dockerfile)
+            .map_or(0.0, |fs| fs.score);
+
         ConvergenceEntry {
             iteration,
             date: date.to_string(),
@@ -1165,6 +1189,11 @@ impl CorpusRunner {
             makefile_total,
             dockerfile_passed,
             dockerfile_total,
+            score: score.score,
+            grade: score.grade.to_string(),
+            bash_score,
+            makefile_score,
+            dockerfile_score,
         }
     }
 
@@ -1953,6 +1982,7 @@ end_of_record
             makefile_total: 200,
             dockerfile_passed: 199,
             dockerfile_total: 200,
+            ..Default::default()
         };
         let json = serde_json::to_string(&entry).expect("serialize");
         let loaded: ConvergenceEntry = serde_json::from_str(&json).expect("deserialize");
@@ -2003,5 +2033,114 @@ end_of_record
         let results = parse_lcov_file_coverage(lcov);
         assert_eq!(results.len(), 1);
         assert_eq!(results[0].1, (2, 1)); // 2 lines, 1 hit
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_040_v2_score_in_convergence_entry() {
+        // convergence_entry should populate score, grade, and per-format scores
+        let runner = CorpusRunner::new(Config::default());
+        let score = CorpusScore {
+            total: 900,
+            passed: 898,
+            failed: 2,
+            rate: 0.998,
+            score: 99.9,
+            grade: Grade::APlus,
+            format_scores: vec![
+                FormatScore {
+                    format: CorpusFormat::Bash,
+                    total: 500,
+                    passed: 499,
+                    rate: 0.998,
+                    score: 99.8,
+                    grade: Grade::APlus,
+                },
+                FormatScore {
+                    format: CorpusFormat::Makefile,
+                    total: 200,
+                    passed: 200,
+                    rate: 1.0,
+                    score: 100.0,
+                    grade: Grade::APlus,
+                },
+                FormatScore {
+                    format: CorpusFormat::Dockerfile,
+                    total: 200,
+                    passed: 199,
+                    rate: 0.995,
+                    score: 99.5,
+                    grade: Grade::APlus,
+                },
+            ],
+            results: vec![],
+        };
+        let entry = runner.convergence_entry(&score, 10, "2026-02-08", 0.997, "v2 test");
+        assert!((entry.score - 99.9).abs() < 0.01);
+        assert_eq!(entry.grade, "A+");
+        assert!((entry.bash_score - 99.8).abs() < 0.01);
+        assert!((entry.makefile_score - 100.0).abs() < 0.01);
+        assert!((entry.dockerfile_score - 99.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_041_v2_score_serde_roundtrip() {
+        // V2 score/grade fields should survive JSON serialization
+        let entry = ConvergenceEntry {
+            iteration: 10,
+            date: "2026-02-08".to_string(),
+            total: 900,
+            passed: 898,
+            failed: 2,
+            rate: 0.998,
+            delta: 0.001,
+            notes: "serde".to_string(),
+            score: 99.9,
+            grade: "A+".to_string(),
+            bash_score: 99.8,
+            makefile_score: 100.0,
+            dockerfile_score: 99.5,
+            ..Default::default()
+        };
+        let json = serde_json::to_string(&entry).expect("serialize");
+        let loaded: ConvergenceEntry = serde_json::from_str(&json).expect("deserialize");
+        assert!((loaded.score - 99.9).abs() < 0.01);
+        assert_eq!(loaded.grade, "A+");
+        assert!((loaded.bash_score - 99.8).abs() < 0.01);
+        assert!((loaded.makefile_score - 100.0).abs() < 0.01);
+        assert!((loaded.dockerfile_score - 99.5).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_042_v2_score_backward_compat() {
+        // Old entries without score/grade fields should deserialize with defaults
+        let old_json = r#"{"iteration":1,"date":"2026-01-01","total":100,"passed":99,"failed":1,"rate":0.99,"delta":0.0,"notes":"old"}"#;
+        let entry: ConvergenceEntry = serde_json::from_str(old_json).expect("deserialize old");
+        assert!((entry.score - 0.0).abs() < 0.01);
+        assert_eq!(entry.grade, "");
+        assert!((entry.bash_score - 0.0).abs() < 0.01);
+        assert!((entry.makefile_score - 0.0).abs() < 0.01);
+        assert!((entry.dockerfile_score - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_043_v2_empty_format_scores() {
+        // convergence_entry with no format_scores → per-format scores default to 0
+        let runner = CorpusRunner::new(Config::default());
+        let score = CorpusScore {
+            total: 10,
+            passed: 10,
+            failed: 0,
+            rate: 1.0,
+            score: 95.0,
+            grade: Grade::A,
+            format_scores: vec![],
+            results: vec![],
+        };
+        let entry = runner.convergence_entry(&score, 1, "2026-02-08", 0.0, "empty");
+        assert!((entry.score - 95.0).abs() < 0.01);
+        assert_eq!(entry.grade, "A");
+        assert!((entry.bash_score - 0.0).abs() < 0.01);
+        assert!((entry.makefile_score - 0.0).abs() < 0.01);
+        assert!((entry.dockerfile_score - 0.0).abs() < 0.01);
     }
 }
