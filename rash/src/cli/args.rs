@@ -984,6 +984,19 @@ pub enum CorpusCommands {
 
     /// Show longest streak of consecutive passing entries
     Streak,
+
+    /// Show V2 scoring weight contributions per dimension
+    Weight,
+
+    /// Detailed per-format quality report with dimension breakdown
+    Format {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
+
+    /// Time budget analysis: time spent per format and per tier
+    Budget,
 }
 
 /// Corpus output format
