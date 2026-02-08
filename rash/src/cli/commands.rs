@@ -5292,6 +5292,18 @@ fn corpus_write_convergence_log(
             println!("{DIM}  Per-format:{RESET} {}", parts.join(", "));
         }
     }
+    // Regression detection (spec §5.3 — Jidoka)
+    if let Some(prev) = previous.last() {
+        let report = entry.detect_regressions(prev);
+        if report.has_regressions() {
+            println!();
+            println!("{BRIGHT_RED}ANDON CORD: Corpus regression detected!{RESET}");
+            for r in &report.regressions {
+                println!("  {BRIGHT_RED}• {}{RESET}", r.message);
+            }
+            println!("{BRIGHT_RED}STOP THE LINE — investigate before proceeding.{RESET}");
+        }
+    }
     Ok(())
 }
 

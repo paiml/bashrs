@@ -221,6 +221,60 @@ pub struct ConvergenceEntry {
     pub dockerfile_score: f64,
 }
 
+/// A single regression finding (spec §5.3 — Jidoka).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Regression {
+    /// Human-readable description of the regression
+    pub message: String,
+    /// Dimension that regressed (e.g. "score", "bash_passed")
+    pub dimension: String,
+    /// Previous value
+    pub previous: f64,
+    /// Current value
+    pub current: f64,
+}
+
+/// Result of comparing current corpus run against previous convergence entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RegressionReport {
+    /// List of detected regressions (empty = no regressions)
+    pub regressions: Vec<Regression>,
+}
+
+impl RegressionReport {
+    /// True if any regressions were detected.
+    pub fn has_regressions(&self) -> bool {
+        !self.regressions.is_empty()
+    }
+}
+
+impl ConvergenceEntry {
+    /// Compare current entry against a previous entry to detect regressions (spec §5.3).
+    /// Returns a report listing all dimensions that regressed.
+    pub fn detect_regressions(&self, previous: &ConvergenceEntry) -> RegressionReport {
+        let mut regressions = Vec::new();
+        let mut check = |dim: &str, prev: f64, curr: f64, label: &str| {
+            if curr < prev {
+                regressions.push(Regression {
+                    message: format!("{label}: {prev} → {curr}"),
+                    dimension: dim.to_string(),
+                    previous: prev,
+                    current: curr,
+                });
+            }
+        };
+        check("score", previous.score, self.score, "V2 score dropped");
+        check("passed", previous.passed as f64, self.passed as f64, "Total passed dropped");
+        check("bash_passed", previous.bash_passed as f64, self.bash_passed as f64, "Bash passed dropped");
+        check("makefile_passed", previous.makefile_passed as f64, self.makefile_passed as f64, "Makefile passed dropped");
+        check("dockerfile_passed", previous.dockerfile_passed as f64, self.dockerfile_passed as f64, "Dockerfile passed dropped");
+        check("bash_score", previous.bash_score, self.bash_score, "Bash score dropped");
+        check("makefile_score", previous.makefile_score, self.makefile_score, "Makefile score dropped");
+        check("dockerfile_score", previous.dockerfile_score, self.dockerfile_score, "Dockerfile score dropped");
+        RegressionReport { regressions }
+    }
+}
+
 /// Valid Dockerfile instruction prefixes (per Dockerfile reference).
 const DOCKERFILE_INSTRUCTIONS: &[&str] = &[
     "FROM ", "RUN ", "CMD ", "LABEL ", "EXPOSE ", "ENV ", "ADD ", "COPY ", "ENTRYPOINT ",
@@ -2142,5 +2196,112 @@ end_of_record
         assert!((entry.bash_score - 0.0).abs() < 0.01);
         assert!((entry.makefile_score - 0.0).abs() < 0.01);
         assert!((entry.dockerfile_score - 0.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_044_regression_none() {
+        // No regression when current is better or equal
+        let prev = ConvergenceEntry {
+            score: 99.0,
+            passed: 898,
+            bash_passed: 499,
+            makefile_passed: 200,
+            dockerfile_passed: 199,
+            bash_score: 99.0,
+            makefile_score: 100.0,
+            dockerfile_score: 99.5,
+            ..Default::default()
+        };
+        let curr = ConvergenceEntry {
+            score: 99.9,
+            passed: 900,
+            bash_passed: 500,
+            makefile_passed: 200,
+            dockerfile_passed: 200,
+            bash_score: 99.8,
+            makefile_score: 100.0,
+            dockerfile_score: 100.0,
+            ..Default::default()
+        };
+        let report = curr.detect_regressions(&prev);
+        assert!(!report.has_regressions());
+        assert!(report.regressions.is_empty());
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_045_regression_score_drop() {
+        // Regression when score drops
+        let prev = ConvergenceEntry {
+            score: 99.9,
+            passed: 900,
+            bash_passed: 500,
+            ..Default::default()
+        };
+        let curr = ConvergenceEntry {
+            score: 98.5,
+            passed: 900,
+            bash_passed: 500,
+            ..Default::default()
+        };
+        let report = curr.detect_regressions(&prev);
+        assert!(report.has_regressions());
+        assert_eq!(report.regressions.len(), 1);
+        assert_eq!(report.regressions[0].dimension, "score");
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_046_regression_format_specific() {
+        // Regression in one format but improvement in another
+        let prev = ConvergenceEntry {
+            score: 99.0,
+            passed: 898,
+            bash_passed: 498,
+            makefile_passed: 200,
+            dockerfile_passed: 200,
+            bash_score: 99.0,
+            makefile_score: 100.0,
+            dockerfile_score: 100.0,
+            ..Default::default()
+        };
+        let curr = ConvergenceEntry {
+            score: 99.0,
+            passed: 898,
+            bash_passed: 500,
+            makefile_passed: 198,
+            dockerfile_passed: 200,
+            bash_score: 99.5,
+            makefile_score: 98.0,
+            dockerfile_score: 100.0,
+            ..Default::default()
+        };
+        let report = curr.detect_regressions(&prev);
+        assert!(report.has_regressions());
+        // makefile_passed (200→198) and makefile_score (100→98) regressed
+        assert_eq!(report.regressions.len(), 2);
+        let dims: Vec<&str> = report.regressions.iter().map(|r| r.dimension.as_str()).collect();
+        assert!(dims.contains(&"makefile_passed"));
+        assert!(dims.contains(&"makefile_score"));
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_047_regression_multiple() {
+        // Multiple regressions at once
+        let prev = ConvergenceEntry {
+            score: 99.9,
+            passed: 900,
+            bash_passed: 500,
+            bash_score: 99.8,
+            ..Default::default()
+        };
+        let curr = ConvergenceEntry {
+            score: 95.0,
+            passed: 890,
+            bash_passed: 490,
+            bash_score: 95.0,
+            ..Default::default()
+        };
+        let report = curr.detect_regressions(&prev);
+        assert!(report.has_regressions());
+        assert_eq!(report.regressions.len(), 4);
     }
 }
