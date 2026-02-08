@@ -5374,6 +5374,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ScoreRange => {
             corpus_score_range()
         }
+
+        CorpusCommands::Topk { limit } => {
+            corpus_topk(limit)
+        }
+
+        CorpusCommands::FormatCmp => {
+            corpus_format_cmp()
+        }
+
+        CorpusCommands::Stability => {
+            corpus_stability()
+        }
     }
 }
 
@@ -9617,6 +9629,174 @@ fn corpus_score_range() -> Result<()> {
     };
     println!("  {BOLD}{:<12}{RESET} {:>7.1} {:>7.1}% {:>7.1} {:>8} {:>8}",
         "Overall", score.score, score.rate * 100.0, avg_all, min_all, max_all);
+
+    Ok(())
+}
+
+/// Top-K entries by number of passing dimensions.
+fn corpus_topk(limit: usize) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    // Collect entries sorted by fewest failures (worst first)
+    let mut entries_with_dims: Vec<(&str, &str, usize, Vec<&str>)> = registry.entries.iter()
+        .enumerate()
+        .filter_map(|(i, entry)| {
+            score.results.get(i).map(|r| {
+                let fails = result_fail_dims(r);
+                let pass_count = 9 - fails.len();
+                (entry.id.as_str(), entry.name.as_str(), pass_count, fails)
+            })
+        })
+        .collect();
+
+    // Sort: fewest passing dims first (worst entries first)
+    entries_with_dims.sort_by(|a, b| a.2.cmp(&b.2));
+
+    println!("{BOLD}Top-K Entries by Dimension Pass Count{RESET} (worst first)");
+    println!();
+    println!("  {BOLD}{:<10} {:>5} {:<30} {}{RESET}",
+        "ID", "Pass", "Name", "Failures");
+
+    for (id, name, pass_count, fails) in entries_with_dims.iter().take(limit) {
+        let truncated_name: String = name.chars().take(28).collect();
+        let color = if *pass_count == 9 { GREEN } else if *pass_count >= 7 { YELLOW } else { RED };
+        let fail_str = if fails.is_empty() { "-".to_string() } else { fails.join(",") };
+        println!("  {CYAN}{:<10}{RESET} {color}{:>4}/9{RESET} {:<30} {DIM}{fail_str}{RESET}",
+            id, pass_count, truncated_name);
+    }
+
+    Ok(())
+}
+
+/// Side-by-side format comparison.
+fn corpus_format_cmp() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    println!("{BOLD}Format Comparison{RESET}");
+    println!();
+
+    let metrics = [
+        "Total", "Passed", "Failed", "Rate", "Score", "Grade",
+        "A (Transpile)", "B1 (Contains)", "B2 (Exact)", "B3 (Behavioral)",
+        "D (Lint)", "E (Determinism)", "F (Metamorphic)", "G (Cross-shell)",
+    ];
+
+    println!("  {BOLD}{:<18} {:>12} {:>12} {:>12}{RESET}", "Metric", "Bash", "Makefile", "Dockerfile");
+
+    for fs in &score.format_scores {
+        // Handled below per-metric
+        let _ = fs;
+    }
+
+    // Gather per-format dim rates
+    let formats = [
+        ("Bash", crate::corpus::registry::CorpusFormat::Bash),
+        ("Makefile", crate::corpus::registry::CorpusFormat::Makefile),
+        ("Dockerfile", crate::corpus::registry::CorpusFormat::Dockerfile),
+    ];
+
+    for (m_idx, metric) in metrics.iter().enumerate() {
+        print!("  {CYAN}{:<18}{RESET}", metric);
+        for (_, fmt) in &formats {
+            let fs = score.format_scores.iter().find(|f| f.format == *fmt);
+            let val = match m_idx {
+                0 => format!("{}", fs.map_or(0, |f| f.total)),
+                1 => format!("{}", fs.map_or(0, |f| f.passed)),
+                2 => format!("{}", fs.map_or(0, |f| f.total - f.passed)),
+                3 => format!("{:.1}%", fs.map_or(0.0, |f| f.rate * 100.0)),
+                4 => format!("{:.1}", fs.map_or(0.0, |f| f.score)),
+                5 => format!("{}", fs.map_or_else(|| "?".to_string(), |f| format!("{}", f.grade))),
+                d @ 6..=13 => {
+                    let dim_idx = d - 6;
+                    let rate = dim_format_rate(&registry, &score.results, *fmt, dim_idx);
+                    format!("{:.1}%", rate)
+                }
+                _ => "-".to_string(),
+            };
+            let color = match m_idx {
+                3 | 4 | 6..=13 => {
+                    let num: f64 = val.trim_end_matches('%').parse().unwrap_or(100.0);
+                    pct_color(num)
+                }
+                _ => "",
+            };
+            print!("{color}{:>12}{RESET}", val);
+        }
+        println!();
+    }
+
+    Ok(())
+}
+
+/// Stability index: ratio of entries never failing across iterations.
+fn corpus_stability() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    // Current stability: entries with zero failures
+    let stable = score.results.iter().filter(|r| result_fail_dims(r).is_empty()).count();
+    let total = score.results.len();
+    let stability = if total > 0 { stable as f64 / total as f64 * 100.0 } else { 100.0 };
+
+    println!("{BOLD}Stability Index{RESET}");
+    println!();
+
+    let color = pct_color(stability);
+    println!("  Stable entries: {color}{stable}/{total} ({stability:.1}%){RESET}");
+    println!("  Unstable entries: {}", total - stable);
+
+    // Per-format stability
+    println!();
+    println!("  {BOLD}{:<14} {:>8} {:>8} {:>8}{RESET}", "Format", "Stable", "Total", "Rate");
+
+    let formats = [
+        ("Bash", crate::corpus::registry::CorpusFormat::Bash),
+        ("Makefile", crate::corpus::registry::CorpusFormat::Makefile),
+        ("Dockerfile", crate::corpus::registry::CorpusFormat::Dockerfile),
+    ];
+
+    for (name, fmt) in &formats {
+        let fmt_entries: Vec<_> = registry.entries.iter().enumerate()
+            .filter(|(_, e)| e.format == *fmt)
+            .collect();
+        let fmt_total = fmt_entries.len();
+        let fmt_stable = fmt_entries.iter()
+            .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_fail_dims(r).is_empty()))
+            .count();
+        let fmt_rate = if fmt_total > 0 { fmt_stable as f64 / fmt_total as f64 * 100.0 } else { 100.0 };
+        let fc = pct_color(fmt_rate);
+        println!("  {CYAN}{:<14}{RESET} {:>8} {:>8} {fc}{:>7.1}%{RESET}", name, fmt_stable, fmt_total, fmt_rate);
+    }
+
+    // Stability assessment
+    println!();
+    let assessment = if stability >= 99.9 {
+        format!("{GREEN}EXCELLENT{RESET} — near-perfect stability")
+    } else if stability >= 99.0 {
+        format!("{GREEN}GOOD{RESET} — high stability")
+    } else if stability >= 95.0 {
+        format!("{YELLOW}MODERATE{RESET} — some instability")
+    } else {
+        format!("{RED}POOR{RESET} — significant instability")
+    };
+    println!("  Assessment: {assessment}");
 
     Ok(())
 }

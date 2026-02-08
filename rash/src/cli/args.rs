@@ -1055,6 +1055,19 @@ pub enum CorpusCommands {
 
     /// Score range analysis: min, max, median, IQR per format
     ScoreRange,
+
+    /// Top-K entries by number of passing dimensions
+    Topk {
+        /// Number of entries to show
+        #[arg(short = 'n', long, default_value = "10")]
+        limit: usize,
+    },
+
+    /// Side-by-side format comparison
+    FormatCmp,
+
+    /// Stability index: ratio of entries never failing across iterations
+    Stability,
 }
 
 /// Corpus output format
