@@ -115,7 +115,8 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 | Iteration 19 | 820 entries | 99%+ | Transpiled coreutils: 30 Unix tools reimplemented (Section 11.11.7) | DONE (iter 19: 820/820, 99.9/100) |
 | Iteration 20 | 850 entries | 99%+ | Makefile milestone 200 (CI/CD, k8s, terraform) + Dockerfile D-181..D-190 (distroless, buildkit, init) | DONE (iter 20: 850/850, 99.9/100) |
 | Iteration 21 | 880 entries | 99%+ | Regex pattern corpus: char classes, quantifiers, anchoring, alternation, state machines (Section 11.11.8) | DONE (iter 21: 880/880, 99.9/100) |
-| Ongoing | 880+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
+| Iteration 22 | 900 entries | 99%+ | Triple milestone: Bash 500 (data structures) + Dockerfile 200 (multi-runtime) | DONE (iter 22: 900/900, 99.9/100) |
+| Ongoing | 900+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
 
