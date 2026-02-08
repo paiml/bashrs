@@ -288,6 +288,8 @@ impl CorpusRegistry {
         registry.load_expansion7_dockerfile();
         registry.load_expansion8_makefile();
         registry.load_expansion8_dockerfile();
+        registry.load_expansion11_bash();
+        registry.load_expansion9_dockerfile();
         registry
     }
 
@@ -5655,6 +5657,109 @@ impl CorpusRegistry {
     }
 
     // =========================================================================
+    // Expansion Wave 11: pmat coverage-gap-driven Bash B-351..B-360
+    // Source: pmat query --coverage-gaps (parse_assignment, convert_expr_to_value)
+    // =========================================================================
+
+    fn load_expansion11_bash(&mut self) {
+        let entries = vec![
+            // --- Parser coverage: compound assignment patterns ---
+            CorpusEntry::new(
+                "B-351",
+                "compound-sub-assign",
+                "Compound subtraction assignment operator (pmat: parse_assignment gap)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut balance = 100; balance -= 25; balance -= 10; }"#,
+                "balance='100'",
+            ),
+            CorpusEntry::new(
+                "B-352",
+                "compound-mul-assign",
+                "Compound multiplication assignment operator (pmat: parse_assignment gap)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut scale = 1; scale *= 2; scale *= 3; scale *= 4; }"#,
+                "scale='1'",
+            ),
+            CorpusEntry::new(
+                "B-353",
+                "compound-div-assign",
+                "Compound division assignment operator (pmat: parse_assignment gap)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut total = 120; total /= 2; total /= 3; }"#,
+                "total='120'",
+            ),
+            CorpusEntry::new(
+                "B-354",
+                "compound-mod-assign",
+                "Compound modulo assignment operator (pmat: parse_assignment gap)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let mut val = 100; val %= 7; }"#,
+                "val='100'",
+            ),
+            // --- convert_expr_to_value coverage: complex expressions ---
+            CorpusEntry::new(
+                "B-355",
+                "triple-add-chain",
+                "Three-variable addition chain (pmat: convert_expr_to_value gap)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let a = 10; let b = 20; let c = 30; let sum = a + b + c; let doubled = sum * 2; }"#,
+                "sum=$(((a + b) + c))",
+            ),
+            CorpusEntry::new(
+                "B-356",
+                "subtract-negative-result",
+                "Subtraction yielding negative intermediate (pmat: convert_expr_to_value gap)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let small = 3; let big = 10; let diff = small - big; let abs_diff = 0 - diff; }"#,
+                "diff=$((small - big))",
+            ),
+            CorpusEntry::new(
+                "B-357",
+                "nested-func-arith",
+                "Function returning arithmetic used in outer arithmetic (pmat: convert_expr_to_value)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn add(a: i32, b: i32) -> i32 { a + b } fn double(x: i32) -> i32 { x * 2 } fn main() { let r = add(3, 4); let d = double(r); let final_val = d + 1; }"#,
+                "add() {",
+            ),
+            CorpusEntry::new(
+                "B-358",
+                "multi-condition-while",
+                "While loop with compound condition (pmat: convert_expr_to_value gap)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let mut x = 0; let mut y = 100; while x < 10 && y > 0 { x += 1; y -= 10; } }"#,
+                r#"while [ "$x" -lt 10 ] && [ "$y" -gt 0 ]; do"#,
+            ),
+            CorpusEntry::new(
+                "B-359",
+                "boolean-or-condition",
+                "If with logical OR condition (pmat: convert_expr_to_value gap)",
+                CorpusFormat::Bash,
+                CorpusTier::Standard,
+                r#"fn main() { let code = 0; let force = 1; if code == 0 || force == 1 { let run = 1; } }"#,
+                r#"if [ "$code" -eq 0 ] || [ "$force" -eq 1 ]; then"#,
+            ),
+            CorpusEntry::new(
+                "B-360",
+                "milestone-360",
+                "360th Bash entry - pmat coverage-driven multi-operator milestone",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn fibonacci(n: i32) -> i32 { let mut a = 0; let mut b = 1; let mut i = 0; while i < n { let temp = b; b = a + b; a = temp; i += 1; } a } fn main() { let f10 = fibonacci(10); let f20 = fibonacci(20); }"#,
+                "fibonacci() {",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
     // Expansion Wave 6: Makefile M-101..M-125, Dockerfile D-101..D-125
     // =========================================================================
 
@@ -6876,6 +6981,106 @@ impl CorpusRegistry {
                 CorpusTier::Production,
                 r#"fn main() { from_image_as("rust", "1.75-bookworm", "builder"); run(&["apt-get update", "apt-get install -y pkg-config libssl-dev", "rm -rf /var/lib/apt/lists/*"]); workdir("/app"); copy("Cargo.toml", "."); copy("Cargo.lock", "."); run(&["mkdir src", "echo 'fn main(){}' > src/main.rs", "cargo build --release", "rm -rf src"]); copy("src", "src"); run(&["cargo build --release"]); from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y ca-certificates", "rm -rf /var/lib/apt/lists/*"]); copy_from("builder", "/app/target/release/app", "/usr/local/bin/app"); user("65534"); healthcheck("CMD /usr/local/bin/app --health || exit 1"); expose(8080u16); entrypoint(&["/usr/local/bin/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn user(u: &str) {} fn healthcheck(h: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
                 "FROM rust:1.75-bookworm AS builder",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 9: Dockerfile D-161..D-170 (balancing with Makefile at 170)
+    // =========================================================================
+
+    fn load_expansion9_dockerfile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "D-161",
+                "nginx-reverse-proxy",
+                "Nginx reverse proxy with custom config",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("nginx", "1.25-alpine"); copy("nginx.conf", "/etc/nginx/nginx.conf"); copy("conf.d/", "/etc/nginx/conf.d/"); expose(80u16); expose(443u16); cmd(&["nginx", "-g", "daemon off;"]); } fn from_image(i: &str, t: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM nginx:1.25-alpine",
+            ),
+            CorpusEntry::new(
+                "D-162",
+                "postgres-init",
+                "PostgreSQL with initialization scripts",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("postgres", "16-alpine"); env("POSTGRES_DB", "app"); env("POSTGRES_USER", "appuser"); copy("init.sql", "/docker-entrypoint-initdb.d/"); expose(5432u16); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {}"#,
+                "FROM postgres:16-alpine",
+            ),
+            CorpusEntry::new(
+                "D-163",
+                "redis-custom-conf",
+                "Redis with custom configuration",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("redis", "7-alpine"); copy("redis.conf", "/usr/local/etc/redis/redis.conf"); expose(6379u16); cmd(&["redis-server", "/usr/local/etc/redis/redis.conf"]); } fn from_image(i: &str, t: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM redis:7-alpine",
+            ),
+            CorpusEntry::new(
+                "D-164",
+                "alpine-musl-static",
+                "Alpine musl static binary build",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("rust", "1.75-alpine", "builder"); run(&["apk add --no-cache musl-dev"]); workdir("/app"); copy(".", "."); run(&["cargo build --release --target x86_64-unknown-linux-musl"]); from_image("alpine", "3.19"); copy_from("builder", "/app/target/x86_64-unknown-linux-musl/release/app", "/usr/local/bin/app"); user("65534"); entrypoint(&["/usr/local/bin/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn user(u: &str) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM rust:1.75-alpine AS builder",
+            ),
+            CorpusEntry::new(
+                "D-165",
+                "caddy-web-server",
+                "Caddy web server with Caddyfile",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("caddy", "2.7-alpine"); copy("Caddyfile", "/etc/caddy/Caddyfile"); copy("site/", "/srv/"); expose(80u16); expose(443u16); } fn from_image(i: &str, t: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {}"#,
+                "FROM caddy:2.7-alpine",
+            ),
+            CorpusEntry::new(
+                "D-166",
+                "grafana-dashboard",
+                "Grafana with provisioned dashboards",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("grafana/grafana", "10.3"); env("GF_SECURITY_ADMIN_PASSWORD", "changeme"); copy("dashboards/", "/var/lib/grafana/dashboards/"); copy("provisioning/", "/etc/grafana/provisioning/"); expose(3000u16); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {}"#,
+                "FROM grafana/grafana:10.3",
+            ),
+            CorpusEntry::new(
+                "D-167",
+                "prometheus-monitoring",
+                "Prometheus with custom scrape config",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("prom/prometheus", "v2.49"); copy("prometheus.yml", "/etc/prometheus/prometheus.yml"); copy("rules/", "/etc/prometheus/rules/"); expose(9090u16); } fn from_image(i: &str, t: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {}"#,
+                "FROM prom/prometheus:v2.49",
+            ),
+            CorpusEntry::new(
+                "D-168",
+                "minio-object-storage",
+                "MinIO S3-compatible object storage",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("minio/minio", "latest"); env("MINIO_ROOT_USER", "minioadmin"); env("MINIO_ROOT_PASSWORD", "minioadmin"); expose(9000u16); expose(9001u16); cmd(&["server", "/data", "--console-address", ":9001"]); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM minio/minio:latest",
+            ),
+            CorpusEntry::new(
+                "D-169",
+                "vaultwarden-secrets",
+                "Vaultwarden password manager",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("vaultwarden/server", "1.30"); env("ROCKET_PORT", "8080"); env("WEBSOCKET_ENABLED", "true"); expose(8080u16); expose(3012u16); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn expose(p: u16) {}"#,
+                "FROM vaultwarden/server:1.30",
+            ),
+            CorpusEntry::new(
+                "D-170",
+                "milestone-170-docker",
+                "170th Dockerfile - three-stage Rust build with cargo-chef and sccache",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("rust", "1.75-bookworm", "chef"); run(&["cargo install cargo-chef"]); workdir("/app"); from_image_as("chef", "", "planner"); copy(".", "."); run(&["cargo chef prepare --recipe-path recipe.json"]); from_image_as("chef", "", "builder"); env("SCCACHE", "1"); copy_from("planner", "/app/recipe.json", "recipe.json"); run(&["cargo chef cook --release --recipe-path recipe.json"]); copy(".", "."); run(&["cargo build --release"]); from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y ca-certificates", "rm -rf /var/lib/apt/lists/*"]); copy_from("builder", "/app/target/release/app", "/usr/local/bin/app"); user("65534"); expose(8080u16); entrypoint(&["/usr/local/bin/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn env(k: &str, v: &str) {} fn user(u: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM rust:1.75-bookworm AS chef",
             ),
         ];
         self.entries.extend(entries);
