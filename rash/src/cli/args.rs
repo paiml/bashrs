@@ -689,6 +689,13 @@ pub enum CorpusCommands {
         #[arg(long, value_enum)]
         filter: Option<CorpusFormatArg>,
     },
+
+    /// Show per-format statistics and convergence trends (spec §11.10)
+    Stats {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
 }
 
 /// Corpus output format

@@ -5142,6 +5142,10 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Export { output, filter } => {
             corpus_export(output.as_deref(), filter.as_ref())
         }
+
+        CorpusCommands::Stats { format } => {
+            corpus_show_stats(&format)
+        }
     }
 }
 
@@ -5305,6 +5309,156 @@ fn corpus_write_convergence_log(
         }
     }
     Ok(())
+}
+
+/// Format a bar chart for a percentage value.
+fn stats_bar(pct: f64, width: usize) -> String {
+    let filled = ((pct / 100.0) * width as f64).round() as usize;
+    let empty = width.saturating_sub(filled);
+    format!("{}{}", "█".repeat(filled), "░".repeat(empty))
+}
+
+/// Show per-format statistics and convergence trends (spec §11.10).
+fn corpus_show_stats(format: &CorpusOutputFormat) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let config = Config::default();
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(config);
+    let score = runner.run(&registry);
+
+    match format {
+        CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+
+            println!("{BOLD}Corpus Statistics{RESET}");
+            println!("{DIM}═══════════════════════════════════════════════════{RESET}");
+
+            // Per-format table
+            println!(
+                "{DIM}{:<12} {:>7} {:>10} {:>5} {:>16}{RESET}",
+                "Format", "Entries", "Pass Rate", "Grade", "Bar"
+            );
+            println!("{DIM}───────────────────────────────────────────────────{RESET}");
+
+            for fs in &score.format_scores {
+                let pct = fs.rate * 100.0;
+                let rc = pct_color(pct);
+                let gc = grade_color(&fs.grade.to_string());
+                let bar = stats_bar(pct, 16);
+                println!(
+                    "{:<12} {:>7} {rc}{:>9.1}%{RESET} {gc}{:>5}{RESET} {rc}{bar}{RESET}",
+                    fs.format, fs.total, pct, fs.grade,
+                );
+            }
+
+            println!("{DIM}───────────────────────────────────────────────────{RESET}");
+            let total_pct = score.rate * 100.0;
+            let tc = pct_color(total_pct);
+            let tg = grade_color(&score.grade.to_string());
+            let tbar = stats_bar(total_pct, 16);
+            println!(
+                "{BOLD}{:<12}{RESET} {:>7} {tc}{:>9.1}%{RESET} {tg}{:>5}{RESET} {tc}{tbar}{RESET}",
+                "Total", score.total, total_pct, score.grade,
+            );
+
+            // V2 score
+            let sc = pct_color(score.score);
+            println!();
+            println!("{BOLD}V2 Score:{RESET} {sc}{:.1}/100{RESET} ({tg}{}{RESET})", score.score, score.grade);
+
+            // Convergence trend from log
+            let log_path = PathBuf::from(".quality/convergence.log");
+            if let Ok(entries) = CorpusRunner::load_convergence_log(&log_path) {
+                if entries.len() >= 2 {
+                    println!();
+                    println!("{BOLD}Convergence Trend{RESET} (last {} runs):", entries.len().min(10));
+                    let recent: &[_] = if entries.len() > 10 {
+                        &entries[entries.len() - 10..]
+                    } else {
+                        &entries
+                    };
+                    corpus_stats_sparkline(recent);
+                }
+            }
+
+            // Failure summary
+            let failures: Vec<_> = score.results.iter().filter(|r| !r.transpiled).collect();
+            if !failures.is_empty() {
+                println!();
+                println!("{BOLD}Failing Entries{RESET} ({}):", failures.len());
+                for r in failures.iter().take(10) {
+                    println!("  {BRIGHT_RED}• {}{RESET}", r.id);
+                }
+                if failures.len() > 10 {
+                    println!("  {DIM}... and {} more{RESET}", failures.len() - 10);
+                }
+            }
+        }
+        CorpusOutputFormat::Json => {
+            #[derive(serde::Serialize)]
+            struct StatsJson {
+                total: usize,
+                passed: usize,
+                failed: usize,
+                rate: f64,
+                score: f64,
+                grade: String,
+                formats: Vec<FormatStats>,
+            }
+            #[derive(serde::Serialize)]
+            struct FormatStats {
+                format: String,
+                total: usize,
+                passed: usize,
+                rate: f64,
+                score: f64,
+                grade: String,
+            }
+            let stats = StatsJson {
+                total: score.total,
+                passed: score.passed,
+                failed: score.failed,
+                rate: score.rate,
+                score: score.score,
+                grade: score.grade.to_string(),
+                formats: score.format_scores.iter().map(|fs| FormatStats {
+                    format: fs.format.to_string(),
+                    total: fs.total,
+                    passed: fs.passed,
+                    rate: fs.rate,
+                    score: fs.score,
+                    grade: fs.grade.to_string(),
+                }).collect(),
+            };
+            let json = serde_json::to_string_pretty(&stats)
+                .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+/// Print sparkline of score trend from convergence entries.
+fn corpus_stats_sparkline(entries: &[crate::corpus::runner::ConvergenceEntry]) {
+    use crate::cli::color::*;
+    let bars = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+    let scores: Vec<f64> = entries.iter().map(|e| e.score).collect();
+    let min = scores.iter().copied().fold(f64::INFINITY, f64::min);
+    let max = scores.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let range = (max - min).max(0.1);
+    let sparkline: String = scores
+        .iter()
+        .map(|&s| {
+            let idx = (((s - min) / range) * 7.0).round() as usize;
+            bars[idx.min(7)]
+        })
+        .collect();
+    let first = scores.first().copied().unwrap_or(0.0);
+    let last = scores.last().copied().unwrap_or(0.0);
+    let trend = if last > first { GREEN } else if last < first { BRIGHT_RED } else { DIM };
+    println!("  {DIM}Score:{RESET} {trend}{sparkline}{RESET}  ({:.1} → {:.1})", first, last);
 }
 
 fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
