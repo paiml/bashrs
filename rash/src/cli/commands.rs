@@ -5386,6 +5386,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Stability => {
             corpus_stability()
         }
+
+        CorpusCommands::Version => {
+            corpus_version()
+        }
+
+        CorpusCommands::Rate => {
+            corpus_rate()
+        }
+
+        CorpusCommands::Dist => {
+            corpus_dist()
+        }
     }
 }
 
@@ -9797,6 +9809,120 @@ fn corpus_stability() -> Result<()> {
         format!("{RED}POOR{RESET} — significant instability")
     };
     println!("  Assessment: {assessment}");
+
+    Ok(())
+}
+
+/// Corpus version and metadata info.
+fn corpus_version() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+
+    let bash_count = registry.entries.iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Bash).count();
+    let make_count = registry.entries.iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Makefile).count();
+    let dock_count = registry.entries.iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Dockerfile).count();
+
+    println!("{BOLD}Corpus Version{RESET}");
+    println!();
+    println!("  Spec version:  2.1.0");
+    println!("  Scoring:       V2 (9 dimensions, 100-point scale)");
+    println!("  Total entries: {}", registry.entries.len());
+    println!("  Bash:          {bash_count} (B-001..B-{bash_count:03})");
+    println!("  Makefile:      {make_count} (M-001..M-{make_count:03})");
+    println!("  Dockerfile:    {dock_count} (D-001..D-{dock_count:03})");
+    println!("  CLI commands:  71");
+    println!("  Dimensions:    A(30) B1(10) B2(8) B3(7) C(15) D(10) E(10) F(5) G(5)");
+
+    Ok(())
+}
+
+/// Simple pass rate display per format.
+fn corpus_rate() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    println!("{BOLD}Pass Rates{RESET}");
+    println!();
+
+    for fs in &score.format_scores {
+        let rate = fs.rate * 100.0;
+        let color = pct_color(rate);
+        println!("  {CYAN}{:<12}{RESET} {color}{:>4}/{:<4} {:.1}%{RESET}",
+            format!("{}", fs.format), fs.passed, fs.total, rate);
+    }
+
+    println!();
+    let total_rate = score.rate * 100.0;
+    let tc = pct_color(total_rate);
+    println!("  {BOLD}Total{RESET}        {tc}{:>4}/{:<4} {:.1}%{RESET}",
+        score.passed, score.total, total_rate);
+
+    Ok(())
+}
+
+/// Distribution of entries by timing buckets.
+fn corpus_dist() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use std::time::Instant;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    let mut timings: Vec<f64> = Vec::new();
+    for entry in &registry.entries {
+        let start = Instant::now();
+        let _result = runner.run_single(entry);
+        timings.push(start.elapsed().as_secs_f64() * 1000.0);
+    }
+
+    let buckets = [
+        ("< 1ms", 0.0, 1.0),
+        ("1-5ms", 1.0, 5.0),
+        ("5-10ms", 5.0, 10.0),
+        ("10-20ms", 10.0, 20.0),
+        ("20-50ms", 20.0, 50.0),
+        ("50-100ms", 50.0, 100.0),
+        ("100ms+", 100.0, f64::MAX),
+    ];
+
+    println!("{BOLD}Timing Distribution{RESET} ({} entries)", timings.len());
+    println!();
+
+    let max_count = buckets.iter()
+        .map(|(_, lo, hi)| timings.iter().filter(|t| **t >= *lo && **t < *hi).count())
+        .max()
+        .unwrap_or(1);
+
+    for (label, lo, hi) in &buckets {
+        let count = timings.iter().filter(|t| **t >= *lo && **t < *hi).count();
+        let bar_len = if max_count > 0 { count * 40 / max_count } else { 0 };
+        let bar: String = "█".repeat(bar_len);
+        let pct = count as f64 / timings.len().max(1) as f64 * 100.0;
+        let color = if count == 0 { DIM } else { CYAN };
+        println!("  {color}{label:<10}{RESET} {CYAN}{bar}{RESET} {BOLD}{count:>4}{RESET} ({pct:.1}%)");
+    }
+
+    // Summary stats
+    let total: f64 = timings.iter().sum();
+    let mean = total / timings.len().max(1) as f64;
+    timings.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let median = percentile(&timings, 50.0);
+
+    println!();
+    println!("  {DIM}Mean: {mean:.1}ms | Median: {median:.1}ms | Total: {:.1}s{RESET}",
+        total / 1000.0);
 
     Ok(())
 }

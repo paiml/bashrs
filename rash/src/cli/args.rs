@@ -1068,6 +1068,15 @@ pub enum CorpusCommands {
 
     /// Stability index: ratio of entries never failing across iterations
     Stability,
+
+    /// Corpus version and metadata info
+    Version,
+
+    /// Simple pass rate display per format
+    Rate,
+
+    /// Distribution of entries by timing buckets
+    Dist,
 }
 
 /// Corpus output format
