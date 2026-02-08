@@ -114,7 +114,8 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 | Iteration 18 | 790 entries | 99%+ | Unix tools, language integration, system tooling (Section 11.11.4-6) | DONE (iter 18: 790/790, 99.9/100) |
 | Iteration 19 | 820 entries | 99%+ | Transpiled coreutils: 30 Unix tools reimplemented (Section 11.11.7) | DONE (iter 19: 820/820, 99.9/100) |
 | Iteration 20 | 850 entries | 99%+ | Makefile milestone 200 (CI/CD, k8s, terraform) + Dockerfile D-181..D-190 (distroless, buildkit, init) | DONE (iter 20: 850/850, 99.9/100) |
-| Ongoing | 850+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
+| Iteration 21 | 880 entries | 99%+ | Regex pattern corpus: char classes, quantifiers, anchoring, alternation, state machines (Section 11.11.8) | DONE (iter 21: 880/880, 99.9/100) |
+| Ongoing | 880+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
 
@@ -2226,19 +2227,58 @@ For each tool T in {true, false, echo, seq, factor, ...}:
 
 **Future Work**: As the transpiler gains support for stdin/stdout piping, string slicing, and file I/O, these entries can evolve from core-algorithm-only to full tool reimplementations with flag parsing and I/O handling.
 
-#### 11.11.8 Cross-Category Quality Matrix
+#### 11.11.8 Category H: Regex Pattern Corpus (Pattern Matching → Shell)
 
-| Property | Config (A) | One-liner (B) | Provability (C) | Unix Tools (D) | Lang Integ (E) | System (F) | Coreutils (G) |
-|----------|-----------|--------------|----------------|---------------|--------------|-----------|--------------|
-| Idempotent | REQUIRED | N/A | REQUIRED | N/A | N/A | REQUIRED | REQUIRED |
-| POSIX | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
-| Deterministic | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
-| Miri-verifiable | N/A | N/A | REQUIRED | N/A | N/A | N/A | REQUIRED |
-| Cross-shell | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
-| Shellcheck-clean | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
-| Pipeline-safe | N/A | REQUIRED | N/A | REQUIRED | REQUIRED | N/A | REQUIRED |
-| 1:1 parity | N/A | N/A | N/A | N/A | N/A | N/A | REQUIRED |
-| Signal-aware | N/A | N/A | N/A | N/A | N/A | REQUIRED | N/A |
+**Motivation**: Regular expressions are fundamental to shell scripting — `grep`, `sed`, `awk`, `find`, and `[[ =~ ]]` all rely on regex. The transpiler must correctly translate Rust-style pattern matching logic into equivalent POSIX shell constructs (case/esac, grep patterns, character class tests, string prefix/suffix operations). This category exercises the transpiler's ability to handle:
+
+1. **Character classification** — digit, alpha, alnum, space detection via shell `case` or `[ ]` tests
+2. **Pattern matching semantics** — glob patterns, case/esac branches, prefix/suffix stripping
+3. **Finite automaton simulation** — state machines transpiled to shell loops with case dispatch
+4. **Quantifier logic** — greedy/lazy matching simulated through loop bounds and counters
+5. **Alternation and grouping** — multiple pattern branches, nested match logic
+6. **Anchoring** — start-of-string, end-of-string, whole-string matching via shell parameter expansion
+
+**Design Constraints** (Rust DSL subset):
+- No actual `regex` crate — all patterns are simulated via integer arithmetic, boolean logic, and control flow
+- Character codes represented as integers (e.g., 48-57 for digits, 65-90 for uppercase)
+- Pattern state encoded as integer variables (0=no match, 1=matching, 2=matched)
+- Quantifiers simulated via bounded while loops with counters
+- Alternation via nested if/else chains
+
+**Entry Groups** (30 entries: B-461..B-490):
+
+| Group | Entries | Pattern | Shell Construct |
+|-------|---------|---------|-----------------|
+| Character Classes | B-461..B-465 | `[0-9]`, `[a-z]`, `[A-Z]`, `\s`, `\w` | Integer range checks |
+| Quantifiers | B-466..B-470 | `+`, `*`, `?`, `{n}`, `{n,m}` | Bounded while loops |
+| Anchoring | B-471..B-475 | `^`, `$`, `\b`, `^...$` | Prefix/suffix position checks |
+| Alternation | B-476..B-480 | `a|b`, `(foo|bar)`, nested | If/else chains |
+| State Machines | B-481..B-485 | NFA/DFA simulation | Case dispatch in while loop |
+| Composition | B-486..B-490 | Combined patterns | Multi-function pipelines |
+
+**Verification Protocol**:
+1. Each entry must transpile to valid POSIX shell
+2. Pattern matching logic must produce correct accept/reject decisions
+3. State machine entries must terminate (bounded loops, no infinite states)
+4. All entries must be deterministic (same input → same match result)
+5. Cross-shell agreement: sh and dash must produce identical match results
+
+**Entry Range**: B-461..B-490
+
+#### 11.11.9 Cross-Category Quality Matrix
+
+| Property | Config (A) | One-liner (B) | Provability (C) | Unix Tools (D) | Lang Integ (E) | System (F) | Coreutils (G) | Regex (H) |
+|----------|-----------|--------------|----------------|---------------|--------------|-----------|--------------|----------|
+| Idempotent | REQUIRED | N/A | REQUIRED | N/A | N/A | REQUIRED | REQUIRED | REQUIRED |
+| POSIX | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Deterministic | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Miri-verifiable | N/A | N/A | REQUIRED | N/A | N/A | N/A | REQUIRED | N/A |
+| Cross-shell | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Shellcheck-clean | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Pipeline-safe | N/A | REQUIRED | N/A | REQUIRED | REQUIRED | N/A | REQUIRED | REQUIRED |
+| 1:1 parity | N/A | N/A | N/A | N/A | N/A | N/A | REQUIRED | N/A |
+| Signal-aware | N/A | N/A | N/A | N/A | N/A | REQUIRED | N/A | N/A |
+| Terminates | N/A | N/A | REQUIRED | N/A | N/A | N/A | N/A | REQUIRED |
 
 ---
 
