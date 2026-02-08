@@ -136,6 +136,7 @@ pub mod testing;
 
 // WebAssembly support removed - use probar/simular/jugar instead
 
+pub use emitter::{DecisionTrace, TranspilerDecision};
 pub use models::{Config, Error, Result};
 pub use transpiler::Transpiler;
 
@@ -250,6 +251,33 @@ pub fn transpile(input: &str, config: Config) -> Result<String> {
     validation_pipeline.validate_output(&shell_code)?;
 
     Ok(shell_code)
+}
+
+/// Transpile Rust source code to POSIX shell script with decision tracing.
+///
+/// Same pipeline as [`transpile`], but collects a trace of emitter decisions
+/// for fault localization via the SBFL module.
+///
+/// # Returns
+///
+/// * `Ok((String, DecisionTrace))` - Generated shell script and decision trace
+/// * `Err(Error)` - Transpilation error
+pub fn transpile_with_trace(input: &str, config: Config) -> Result<(String, DecisionTrace)> {
+    let validation_pipeline = validation::pipeline::ValidationPipeline::new(&config);
+
+    let ast = services::parser::parse(input)?;
+    ast::validate(&ast)?;
+    validation_pipeline.validate_ast(&ast)?;
+
+    let ir = ir::from_ast(&ast)?;
+    validation_pipeline.validate_ir(&ir)?;
+
+    let optimized = ir::optimize(ir, &config)?;
+    let (shell_code, trace) = emitter::emit_with_trace(&optimized, &config)?;
+
+    validation_pipeline.validate_output(&shell_code)?;
+
+    Ok((shell_code, trace))
 }
 
 /// Transpile Rust source code to POSIX shell script with lint validation.

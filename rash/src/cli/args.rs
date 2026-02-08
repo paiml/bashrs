@@ -1077,6 +1077,23 @@ pub enum CorpusCommands {
 
     /// Distribution of entries by timing buckets
     Dist,
+
+    /// Show decision trace for a single corpus entry (§11.10.1)
+    Trace {
+        /// Entry ID (e.g., B-001)
+        #[arg(value_name = "ID")]
+        id: String,
+    },
+
+    /// Tarantula suspiciousness ranking across all decisions (§11.10.1)
+    Suspicious {
+        /// Maximum entries to show
+        #[arg(short = 'n', long, default_value = "20")]
+        limit: usize,
+    },
+
+    /// Decision frequency and pass/fail correlation summary (§11.10.1)
+    Decisions,
 }
 
 /// Corpus output format

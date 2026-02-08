@@ -5398,6 +5398,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Dist => {
             corpus_dist()
         }
+
+        CorpusCommands::Trace { id } => {
+            corpus_trace(&id)
+        }
+
+        CorpusCommands::Suspicious { limit } => {
+            corpus_suspicious(limit)
+        }
+
+        CorpusCommands::Decisions => {
+            corpus_decisions()
+        }
     }
 }
 
@@ -9924,6 +9936,244 @@ fn corpus_dist() -> Result<()> {
     println!("  {DIM}Mean: {mean:.1}ms | Median: {median:.1}ms | Total: {:.1}s{RESET}",
         total / 1000.0);
 
+    Ok(())
+}
+
+/// Decision trace for a single corpus entry.
+fn corpus_trace(id: &str) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let entry = registry
+        .entries
+        .iter()
+        .find(|e| e.id == id)
+        .ok_or_else(|| Error::Validation(format!("Corpus entry '{id}' not found")))?;
+
+    let runner = CorpusRunner::new(Config::default());
+    let result = runner.run_entry_with_trace(entry);
+
+    let pass_fail = if result.transpiled {
+        format!("{BRIGHT_GREEN}PASS{RESET}")
+    } else {
+        format!("{BRIGHT_RED}FAIL{RESET}")
+    };
+
+    println!(
+        "\n  {BOLD}Decision Trace for {CYAN}{id}{RESET} [{pass_fail}]"
+    );
+    println!(
+        "  {DIM}{}{}",
+        "─".repeat(60),
+        RESET
+    );
+
+    match &result.decision_trace {
+        Some(trace) if !trace.is_empty() => {
+            println!(
+                "  {DIM}{:<4}  {:<22}  {:<24}  {:<12}{RESET}",
+                "#", "Decision Type", "Choice", "IR Node"
+            );
+            println!(
+                "  {DIM}{}{RESET}",
+                "─".repeat(60)
+            );
+            for (i, d) in trace.iter().enumerate() {
+                println!(
+                    "  {DIM}{:<4}{RESET}  {CYAN}{:<22}{RESET}  {WHITE}{:<24}{RESET}  {DIM}{:<12}{RESET}",
+                    i + 1,
+                    d.decision_type,
+                    d.choice,
+                    d.ir_node
+                );
+            }
+            println!();
+            println!(
+                "  {DIM}Total decisions: {}{RESET}",
+                trace.len()
+            );
+        }
+        _ => {
+            println!(
+                "  {DIM}No decision trace available (non-Bash entry or transpilation failed){RESET}"
+            );
+            if let Some(err) = &result.error {
+                println!("  {RED}Error: {err}{RESET}");
+            }
+        }
+    }
+
+    println!();
+    Ok(())
+}
+
+/// Collect decision trace coverage data from all corpus entries.
+fn collect_trace_coverage(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    runner: &crate::corpus::runner::CorpusRunner,
+) -> Vec<(String, bool, Vec<String>)> {
+    registry
+        .entries
+        .iter()
+        .filter_map(|entry| {
+            let result = runner.run_entry_with_trace(entry);
+            let passed = result.transpiled
+                && result.output_contains
+                && result.schema_valid
+                && result.lint_clean
+                && result.deterministic;
+            let locations: Vec<String> = result
+                .decision_trace
+                .as_ref()
+                .map(|t| t.iter().map(|d| format!("{}:{}", d.decision_type, d.choice)).collect())
+                .unwrap_or_default();
+            if locations.is_empty() { None } else { Some((entry.id.clone(), passed, locations)) }
+        })
+        .collect()
+}
+
+/// Tarantula fault localization ranking across all corpus decisions.
+fn corpus_suspicious(limit: usize) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use crate::quality::sbfl::{localize_faults, SbflFormula};
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let coverage_data = collect_trace_coverage(&registry, &runner);
+
+    let total = coverage_data.len();
+    let passed = coverage_data.iter().filter(|(_, p, _)| *p).count();
+    let failed = total - passed;
+
+    if failed == 0 {
+        println!("\n  {BRIGHT_GREEN}All {total} traced entries pass — no suspicious decisions{RESET}\n");
+        return Ok(());
+    }
+
+    let rankings = localize_faults(&coverage_data, SbflFormula::Tarantula);
+
+    println!(
+        "\n  {BOLD}Tarantula Fault Localization{RESET}  ({total} entries: {BRIGHT_GREEN}{passed} pass{RESET}, {BRIGHT_RED}{failed} fail{RESET})"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+    println!(
+        "  {DIM}{:<36}  {:>14}  {:>8}  {:>8}{RESET}",
+        "Decision", "Suspiciousness", "Impact", "Priority"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    for ranking in rankings.iter().take(limit) {
+        let (impact, color) = score_impact_color(ranking.score);
+        println!(
+            "  {:<36}  {color}{:>14.4}{RESET}  {:>8}  {DIM}{:>8}{RESET}",
+            ranking.location, ranking.score, impact, format!("#{}", ranking.rank)
+        );
+    }
+
+    if rankings.len() > limit {
+        println!(
+            "\n  {DIM}... and {} more (use --limit to show more){RESET}",
+            rankings.len() - limit
+        );
+    }
+
+    println!();
+    Ok(())
+}
+
+/// Map a suspiciousness score to an impact label and ANSI color.
+fn score_impact_color(score: f64) -> (String, &'static str) {
+    use crate::cli::color::*;
+    if score >= 0.8 {
+        (format!("{RED}HIGH{RESET}"), RED)
+    } else if score >= 0.5 {
+        (format!("{YELLOW}MEDIUM{RESET}"), YELLOW)
+    } else {
+        (format!("{DIM}LOW{RESET}"), DIM)
+    }
+}
+
+/// Accumulate per-decision pass/fail stats from a trace result.
+fn accumulate_decision_stats(
+    result: &crate::corpus::runner::CorpusResult,
+    stats: &mut std::collections::HashMap<String, (usize, usize, usize)>,
+) -> bool {
+    let passed = result.transpiled
+        && result.output_contains
+        && result.schema_valid
+        && result.lint_clean
+        && result.deterministic;
+
+    let trace = match &result.decision_trace {
+        Some(t) => t,
+        None => return false,
+    };
+
+    for d in trace {
+        let key = format!("{}:{}", d.decision_type, d.choice);
+        let entry = stats.entry(key).or_insert((0, 0, 0));
+        entry.0 += 1;
+        if passed { entry.1 += 1; } else { entry.2 += 1; }
+    }
+
+    !trace.is_empty()
+}
+
+/// Decision frequency and pass/fail correlation summary.
+fn corpus_decisions() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use std::collections::HashMap;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    let mut stats: HashMap<String, (usize, usize, usize)> = HashMap::new();
+    let mut total_entries = 0usize;
+    let mut traced_entries = 0usize;
+
+    for entry in &registry.entries {
+        let result = runner.run_entry_with_trace(entry);
+        total_entries += 1;
+        if accumulate_decision_stats(&result, &mut stats) {
+            traced_entries += 1;
+        }
+    }
+
+    let mut sorted: Vec<_> = stats.into_iter().collect();
+    sorted.sort_by(|a, b| b.1.0.cmp(&a.1.0));
+
+    println!(
+        "\n  {BOLD}Decision Frequency Summary{RESET}  ({traced_entries}/{total_entries} entries traced)"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(78));
+    println!(
+        "  {DIM}{:<36}  {:>8}  {:>10}  {:>10}  {:>8}{RESET}",
+        "Decision", "Count", "In Pass", "In Fail", "Fail %"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(78));
+
+    for (key, (total, in_pass, in_fail)) in &sorted {
+        let fail_pct = if *total > 0 {
+            (*in_fail as f64 / *total as f64) * 100.0
+        } else {
+            0.0
+        };
+        let color = if fail_pct >= 50.0 { RED } else if fail_pct >= 20.0 { YELLOW } else { "" };
+        let end = if color.is_empty() { "" } else { RESET };
+        println!(
+            "  {color}{:<36}  {:>8}  {:>10}  {:>10}  {:>7.1}%{end}",
+            key, total, in_pass, in_fail, fail_pct
+        );
+    }
+
+    println!("\n  {DIM}Total unique decisions: {}{RESET}", sorted.len());
+    println!();
     Ok(())
 }
 

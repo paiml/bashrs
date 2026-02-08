@@ -55,6 +55,9 @@ pub struct CorpusResult {
     pub error_category: Option<String>,
     /// Confidence of error classification (0.0 - 1.0)
     pub error_confidence: Option<f32>,
+    /// Decision trace from the emitter (for fault localization)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decision_trace: Option<Vec<crate::emitter::trace::TranspilerDecision>>,
 }
 
 impl CorpusResult {
@@ -581,6 +584,84 @@ impl CorpusRunner {
         self.run_entry(entry)
     }
 
+    /// Run a single entry with decision tracing enabled.
+    /// For Bash entries, uses `transpile_with_trace()` to collect emitter decisions.
+    /// Makefile/Dockerfile entries fall back to the normal path (no trace).
+    pub fn run_entry_with_trace(&self, entry: &CorpusEntry) -> CorpusResult {
+        if entry.format != CorpusFormat::Bash {
+            return self.run_entry(entry);
+        }
+
+        let transpile_result =
+            crate::transpile_with_trace(&entry.input, self.config.clone());
+
+        match transpile_result {
+            Ok((output, trace)) => {
+                let schema_valid = self.check_schema(&output, entry.format);
+                let output_contains = output.contains(&entry.expected_output);
+                let output_exact = check_exact_match(&output, &entry.expected_output);
+                let output_behavioral = self.check_behavioral(&output, entry.format);
+                let coverage_ratio = detect_coverage_ratio(entry.format, &entry.id);
+                let has_test = coverage_ratio > 0.0 || detect_test_exists(&entry.id);
+                let lint_clean = self.check_lint(&output, entry.format);
+                let deterministic = self.check_determinism(entry);
+                let metamorphic_consistent = deterministic
+                    && self.check_mr2_stability(entry)
+                    && self.check_mr3_whitespace(entry)
+                    && self.check_mr4_leading_blanks(entry)
+                    && self.check_mr5_subsumption(entry)
+                    && self.check_mr6_composition(entry)
+                    && self.check_mr7_negation(entry);
+                let cross_shell_agree = self.check_cross_shell(entry);
+
+                CorpusResult {
+                    id: entry.id.clone(),
+                    transpiled: true,
+                    output_contains,
+                    output_exact,
+                    output_behavioral,
+                    schema_valid,
+                    has_test,
+                    coverage_ratio,
+                    lint_clean,
+                    deterministic,
+                    metamorphic_consistent,
+                    cross_shell_agree,
+                    actual_output: Some(output),
+                    error: None,
+                    error_category: None,
+                    error_confidence: None,
+                    decision_trace: Some(trace),
+                }
+            }
+            Err(e) => {
+                let error_msg = format!("{e}");
+                let (error_category, error_confidence) = classify_error(&error_msg);
+                let cov = detect_coverage_ratio(entry.format, &entry.id);
+
+                CorpusResult {
+                    id: entry.id.clone(),
+                    transpiled: false,
+                    output_contains: false,
+                    output_exact: false,
+                    output_behavioral: false,
+                    schema_valid: false,
+                    has_test: cov > 0.0 || detect_test_exists(&entry.id),
+                    coverage_ratio: cov,
+                    lint_clean: false,
+                    deterministic: false,
+                    metamorphic_consistent: false,
+                    cross_shell_agree: false,
+                    actual_output: None,
+                    error: Some(error_msg),
+                    error_category,
+                    error_confidence,
+                    decision_trace: None,
+                }
+            }
+        }
+    }
+
     /// Run a single corpus entry with v2 multi-level correctness checking.
     fn run_entry(&self, entry: &CorpusEntry) -> CorpusResult {
         let transpile_result = match entry.format {
@@ -652,6 +733,7 @@ impl CorpusRunner {
                     error: None,
                     error_category: None,
                     error_confidence: None,
+                    decision_trace: None,
                 }
             }
             Err(e) => {
@@ -676,6 +758,7 @@ impl CorpusRunner {
                     error: Some(error_msg),
                     error_category,
                     error_confidence,
+                    decision_trace: None,
                 }
             }
         }
@@ -1354,6 +1437,7 @@ mod tests {
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!((result.score() - 100.0).abs() < f64::EPSILON);
     }
@@ -1378,6 +1462,7 @@ mod tests {
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!((result.score() - 30.0).abs() < f64::EPSILON);
     }
@@ -1402,6 +1487,7 @@ mod tests {
             error: Some("parse error".to_string()),
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!((result.score()).abs() < f64::EPSILON);
     }
@@ -1522,6 +1608,7 @@ mod tests {
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!((perfect.score() - 100.0).abs() < f64::EPSILON);
 
@@ -1543,6 +1630,7 @@ mod tests {
             error: Some("err".to_string()),
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!((failed.score()).abs() < f64::EPSILON);
     }
@@ -1568,6 +1656,7 @@ mod tests {
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!((partial.score() - 78.0).abs() < f64::EPSILON);
     }
@@ -1593,6 +1682,7 @@ mod tests {
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!((result.score() - 75.0).abs() < f64::EPSILON);
     }
@@ -1617,6 +1707,7 @@ mod tests {
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!((result.score_v1() - 100.0).abs() < f64::EPSILON);
     }
@@ -1871,6 +1962,7 @@ fn not_a_test() {}
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         assert!(
             result.score().abs() < f64::EPSILON,
@@ -1929,6 +2021,7 @@ end_of_record
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         // A=30 + B1=10 + B2=8 + B3=7 + C=12.0 + D=10 + E=10 + F=5 + G=5 = 97.0
         let score = result.score();
@@ -1958,6 +2051,7 @@ end_of_record
             error: None,
             error_category: None,
             error_confidence: None,
+            decision_trace: None,
         };
         // A=30 + B1=10 + B2=8 + B3=7 + C=0 + D=10 + E=10 + F=5 + G=5 = 85.0
         let score = result.score();
