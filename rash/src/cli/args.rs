@@ -678,6 +678,17 @@ pub enum CorpusCommands {
         #[arg(long)]
         to: Option<u32>,
     },
+
+    /// Export per-entry results as structured JSON (spec §10.3)
+    Export {
+        /// Output file (default: stdout)
+        #[arg(short, long)]
+        output: Option<String>,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
 }
 
 /// Corpus output format
