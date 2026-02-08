@@ -950,6 +950,23 @@ pub enum CorpusCommands {
 
     /// Show entries grouped by shell construct type (variable, loop, pipe, etc.)
     Tags,
+
+    /// Compact one-line health check for CI status reporting
+    Health,
+
+    /// Compare two corpus entries side-by-side
+    Compare {
+        /// First entry ID (e.g., B-001)
+        #[arg(value_name = "ID1")]
+        id1: String,
+
+        /// Second entry ID (e.g., B-002)
+        #[arg(value_name = "ID2")]
+        id2: String,
+    },
+
+    /// Show entry density by ID range (detect numbering gaps)
+    Density,
 }
 
 /// Corpus output format
