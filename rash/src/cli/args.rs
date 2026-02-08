@@ -916,6 +916,23 @@ pub enum CorpusCommands {
         #[arg(long, default_value = "200")]
         max_ms: u64,
     },
+
+    /// Find statistical outliers by transpilation timing (z-score detection)
+    Outliers {
+        /// Z-score threshold for outlier detection (default: 2.0)
+        #[arg(long, default_value = "2.0")]
+        threshold: f64,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// Cross-category × quality property matrix (spec §11.11.9)
+    Matrix,
+
+    /// Timeline visualization of corpus growth from convergence log
+    Timeline,
 }
 
 /// Corpus output format
