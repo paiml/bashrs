@@ -1037,6 +1037,15 @@ pub enum CorpusCommands {
 
     /// Compact JSON summary for CI/script consumption
     SummaryJson,
+
+    /// Full audit trail: entries, tests, build, lint status
+    Audit,
+
+    /// Per-tier detailed breakdown with pass rates
+    TierDetail,
+
+    /// ID range info per format (first, last, count)
+    IdRange,
 }
 
 /// Corpus output format
