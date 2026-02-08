@@ -5302,6 +5302,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Budget => {
             corpus_budget()
         }
+
+        CorpusCommands::Entropy => {
+            corpus_entropy()
+        }
+
+        CorpusCommands::Todo => {
+            corpus_todo()
+        }
+
+        CorpusCommands::Scatter => {
+            corpus_scatter()
+        }
     }
 }
 
@@ -8391,6 +8403,220 @@ fn corpus_budget() -> Result<()> {
                 tier_name, time);
         }
     }
+    Ok(())
+}
+
+/// Information entropy of construct distribution.
+fn corpus_entropy() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    let total = registry.entries.len() as f64;
+
+    // Category distribution entropy
+    let mut cat_counts: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for entry in &registry.entries {
+        let cat = classify_category(&entry.name);
+        *cat_counts.entry(cat).or_insert(0) += 1;
+    }
+
+    let mut h_cat = 0.0f64;
+    for count in cat_counts.values() {
+        let p = *count as f64 / total;
+        if p > 0.0 { h_cat -= p * p.log2(); }
+    }
+    let max_h_cat = (cat_counts.len() as f64).log2();
+    let cat_norm = if max_h_cat > 0.0 { h_cat / max_h_cat } else { 0.0 };
+
+    // Tier distribution entropy
+    let mut tier_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for entry in &registry.entries {
+        *tier_counts.entry(format!("{:?}", entry.tier)).or_insert(0) += 1;
+    }
+    let mut h_tier = 0.0f64;
+    for count in tier_counts.values() {
+        let p = *count as f64 / total;
+        if p > 0.0 { h_tier -= p * p.log2(); }
+    }
+    let max_h_tier = (tier_counts.len() as f64).log2();
+    let tier_norm = if max_h_tier > 0.0 { h_tier / max_h_tier } else { 0.0 };
+
+    // Format distribution entropy
+    let mut fmt_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for entry in &registry.entries {
+        *fmt_counts.entry(format!("{}", entry.format)).or_insert(0) += 1;
+    }
+    let mut h_fmt = 0.0f64;
+    for count in fmt_counts.values() {
+        let p = *count as f64 / total;
+        if p > 0.0 { h_fmt -= p * p.log2(); }
+    }
+    let max_h_fmt = (fmt_counts.len() as f64).log2();
+    let fmt_norm = if max_h_fmt > 0.0 { h_fmt / max_h_fmt } else { 0.0 };
+
+    println!("{BOLD}Corpus Diversity (Shannon Entropy){RESET}");
+    println!();
+    println!("  {BOLD}{:<18} {:>6} {:>8} {:>8} {:>8}{RESET}",
+        "Distribution", "H", "H_max", "Norm", "Rating");
+
+    let rating = |norm: f64| -> (&str, &str) {
+        if norm >= 0.8 { (GREEN, "Diverse") }
+        else if norm >= 0.5 { (YELLOW, "Moderate") }
+        else { (RED, "Clustered") }
+    };
+
+    let (cc, cr) = rating(cat_norm);
+    println!("  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {cc}{cr}{RESET}",
+        "Category", h_cat, max_h_cat, cat_norm);
+
+    let (tc, tr) = rating(tier_norm);
+    println!("  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {tc}{tr}{RESET}",
+        "Tier", h_tier, max_h_tier, tier_norm);
+
+    let (fc, fr) = rating(fmt_norm);
+    println!("  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {fc}{fr}{RESET}",
+        "Format", h_fmt, max_h_fmt, fmt_norm);
+
+    println!();
+    println!("  {DIM}H=Shannon entropy (bits), Norm=H/H_max (0=uniform, 1=max diversity){RESET}");
+    Ok(())
+}
+
+/// Auto-generate improvement suggestions from current state.
+fn corpus_todo() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    println!("{BOLD}Corpus Improvement Suggestions{RESET}");
+    println!();
+
+    let mut suggestions: Vec<(u8, String)> = Vec::new(); // (priority, suggestion)
+
+    // Check for failures
+    let failures: Vec<_> = score.results.iter()
+        .enumerate()
+        .filter(|(_, r)| !result_fail_dims(r).is_empty())
+        .collect();
+    if !failures.is_empty() {
+        let fail_ids: Vec<String> = failures.iter()
+            .filter_map(|(i, _)| registry.entries.get(*i).map(|e| e.id.clone()))
+            .collect();
+        suggestions.push((1, format!("Fix {} failing entries: {}", fail_ids.len(), fail_ids.join(", "))));
+    }
+
+    // Check coverage
+    let c_avg: f64 = score.results.iter().map(|r| r.coverage_ratio).sum::<f64>()
+        / score.results.len().max(1) as f64;
+    if c_avg < 0.99 {
+        suggestions.push((2, format!("Improve coverage: {:.1}% → target 99%+ (run LCOV, add tests)", c_avg * 100.0)));
+    }
+
+    // Check category diversity
+    let mut cat_counts: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
+    for entry in &registry.entries {
+        *cat_counts.entry(classify_category(&entry.name)).or_insert(0) += 1;
+    }
+    let untagged = cat_counts.get("General").copied().unwrap_or(0);
+    let pct_untagged = untagged as f64 / registry.entries.len() as f64 * 100.0;
+    if pct_untagged > 40.0 {
+        suggestions.push((3, format!("Reduce unclassified entries: {untagged} ({pct_untagged:.0}%) are 'General'")));
+    }
+
+    // Check format balance
+    for fs in &score.format_scores {
+        if fs.score < 99.5 {
+            suggestions.push((2, format!("{} score {:.1}/100 — investigate dimension gaps", fs.format, fs.score)));
+        }
+    }
+
+    // Check if score is capped
+    if score.score >= 99.9 && score.score < 100.0 {
+        suggestions.push((4, "Score at 99.9 — theoretical max limited by B-143 (unfixable shell semantics)".to_string()));
+    }
+
+    if suggestions.is_empty() {
+        println!("  {GREEN}No improvements needed — corpus is in excellent shape!{RESET}");
+    } else {
+        suggestions.sort_by_key(|(p, _)| *p);
+        for (priority, suggestion) in &suggestions {
+            let pc = match priority {
+                1 => BRIGHT_RED,
+                2 => YELLOW,
+                3 => CYAN,
+                _ => DIM,
+            };
+            let label = match priority {
+                1 => "P0",
+                2 => "P1",
+                3 => "P2",
+                _ => "P3",
+            };
+            println!("  {pc}[{label}]{RESET} {suggestion}");
+        }
+    }
+    Ok(())
+}
+
+/// Scatter view: entries on a timing × failure-count grid.
+fn corpus_scatter() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use std::time::Instant;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    // Collect timing and failure counts
+    let mut data: Vec<(&str, f64, usize)> = Vec::new();
+    for entry in &registry.entries {
+        let start = Instant::now();
+        let result = runner.run_single(entry);
+        let ms = start.elapsed().as_secs_f64() * 1000.0;
+        let fails = result_fail_dims(&result).len();
+        data.push((&entry.id, ms, fails));
+    }
+
+    // Bucket into timing ranges
+    let ranges = [
+        ("< 1ms", 0.0, 1.0),
+        ("1-10ms", 1.0, 10.0),
+        ("10-50ms", 10.0, 50.0),
+        ("50-100ms", 50.0, 100.0),
+        ("100-500ms", 100.0, 500.0),
+        ("> 500ms", 500.0, f64::MAX),
+    ];
+
+    println!("{BOLD}Timing × Failure Scatter{RESET} ({} entries)", data.len());
+    println!();
+
+    println!("  {BOLD}{:<12} {:>6} {:>6} {:>6}{RESET}",
+        "Timing", "0 fail", "1 fail", "2+ fail");
+
+    for (label, lo, hi) in &ranges {
+        let in_range: Vec<_> = data.iter().filter(|(_, ms, _)| *ms >= *lo && *ms < *hi).collect();
+        if in_range.is_empty() { continue; }
+        let f0 = in_range.iter().filter(|(_, _, f)| *f == 0).count();
+        let f1 = in_range.iter().filter(|(_, _, f)| *f == 1).count();
+        let f2 = in_range.iter().filter(|(_, _, f)| *f >= 2).count();
+        let f0c = if f0 > 0 { GREEN } else { DIM };
+        let f1c = if f1 > 0 { YELLOW } else { DIM };
+        let f2c = if f2 > 0 { RED } else { DIM };
+        println!("  {CYAN}{:<12}{RESET} {f0c}{:>6}{RESET} {f1c}{:>6}{RESET} {f2c}{:>6}{RESET}",
+            label, f0, f1, f2);
+    }
+
+    // Summary
+    let total_pass = data.iter().filter(|(_, _, f)| *f == 0).count();
+    let total_fail = data.len() - total_pass;
+    println!();
+    println!("  {DIM}Pass: {total_pass} | Fail: {total_fail} | Entries: {}{RESET}", data.len());
     Ok(())
 }
 
