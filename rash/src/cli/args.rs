@@ -854,6 +854,43 @@ pub enum CorpusCommands {
 
     /// Find potential duplicate or similar corpus entries
     Dupes,
+
+    /// Check convergence criteria from spec §5.2 (exit 1 if not converged)
+    Converged {
+        /// Minimum rate threshold (default: 99.0%)
+        #[arg(long, default_value = "99.0")]
+        min_rate: f64,
+
+        /// Minimum consecutive stable iterations (default: 3)
+        #[arg(long, default_value = "3")]
+        min_stable: usize,
+
+        /// Maximum delta for stability (default: 0.5%)
+        #[arg(long, default_value = "0.5")]
+        max_delta: f64,
+    },
+
+    /// Benchmark transpilation time per entry (spec §8.2)
+    Benchmark {
+        /// Maximum allowed ms per entry (flag violations)
+        #[arg(long, default_value = "100")]
+        max_ms: u64,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// Group failures by error category and message pattern
+    Errors {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
 }
 
 /// Corpus output format
