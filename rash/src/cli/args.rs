@@ -719,6 +719,13 @@ pub enum CorpusCommands {
         format: CorpusOutputFormat,
     },
 
+    /// Validate corpus entries for metadata correctness (spec §2.3)
+    Validate {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
+
     /// Pareto analysis of corpus failures by dimension (spec §11.10.4)
     Pareto {
         /// Output format
