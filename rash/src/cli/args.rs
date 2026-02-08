@@ -696,6 +696,17 @@ pub enum CorpusCommands {
         #[arg(short, long, value_enum, default_value = "human")]
         format: CorpusOutputFormat,
     },
+
+    /// Run metamorphic relation checks on a corpus entry (spec §11.2)
+    Check {
+        /// Entry ID (e.g., B-001, M-042, D-100)
+        #[arg(value_name = "ID")]
+        id: String,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
 }
 
 /// Corpus output format
