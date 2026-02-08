@@ -5138,6 +5138,10 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Diff { format, from, to } => {
             corpus_show_diff(&format, from, to)
         }
+
+        CorpusCommands::Export { output, filter } => {
+            corpus_export(output.as_deref(), filter.as_ref())
+        }
     }
 }
 
@@ -5340,6 +5344,95 @@ fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
                 .map_err(|e| Error::Internal(format!("JSON serialization failed: {e}")))?;
             println!("{json}");
         }
+    }
+    Ok(())
+}
+
+/// Export per-entry corpus results as structured JSON (spec §10.3).
+fn corpus_export(output: Option<&str>, filter: Option<&CorpusFormatArg>) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let config = Config::default();
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(config);
+
+    let score = match filter {
+        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
+        None => runner.run(&registry),
+    };
+
+    // Build export entries by joining registry metadata with results
+    let results_map: std::collections::HashMap<&str, &crate::corpus::runner::CorpusResult> =
+        score.results.iter().map(|r| (r.id.as_str(), r)).collect();
+
+    #[derive(serde::Serialize)]
+    struct ExportEntry<'a> {
+        id: &'a str,
+        name: &'a str,
+        format: &'a CorpusFormat,
+        tier: &'a crate::corpus::registry::CorpusTier,
+        transpiled: bool,
+        score: f64,
+        grade: String,
+        actual_output: &'a Option<String>,
+        error: &'a Option<String>,
+        lint_clean: bool,
+        deterministic: bool,
+        behavioral: bool,
+        cross_shell: bool,
+    }
+
+    let entries: Vec<ExportEntry<'_>> = registry.entries.iter().filter_map(|e| {
+        let r = results_map.get(e.id.as_str())?;
+        Some(ExportEntry {
+            id: &e.id,
+            name: &e.name,
+            format: &e.format,
+            tier: &e.tier,
+            transpiled: r.transpiled,
+            score: r.score(),
+            grade: crate::corpus::registry::Grade::from_score(r.score()).to_string(),
+            actual_output: &r.actual_output,
+            error: &r.error,
+            lint_clean: r.lint_clean,
+            deterministic: r.deterministic,
+            behavioral: r.output_behavioral,
+            cross_shell: r.cross_shell_agree,
+        })
+    }).collect();
+
+    #[derive(serde::Serialize)]
+    struct ExportDocument<'a> {
+        bashrs_version: &'a str,
+        date: String,
+        total: usize,
+        aggregate_score: f64,
+        aggregate_grade: String,
+        entries: Vec<ExportEntry<'a>>,
+    }
+
+    let doc = ExportDocument {
+        bashrs_version: env!("CARGO_PKG_VERSION"),
+        date: chrono_free_date(),
+        total: entries.len(),
+        aggregate_score: score.score,
+        aggregate_grade: score.grade.to_string(),
+        entries,
+    };
+
+    let json = serde_json::to_string_pretty(&doc)
+        .map_err(|e| Error::Internal(format!("JSON serialization failed: {e}")))?;
+
+    match output {
+        Some(path) => {
+            std::fs::write(path, &json)
+                .map_err(|e| Error::Internal(format!("Failed to write {path}: {e}")))?;
+            eprintln!("Exported {} entries to {path}", doc.total);
+        }
+        None => println!("{json}"),
     }
     Ok(())
 }
