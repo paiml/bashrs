@@ -779,6 +779,27 @@ pub enum CorpusCommands {
         #[arg(short, long, value_enum, default_value = "human")]
         format: CorpusOutputFormat,
     },
+
+    /// Detect regressions between convergence log iterations (spec §5.3 Jidoka)
+    Regressions {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
+
+    /// Visual heatmap of entries × V2 dimensions (pass/fail matrix)
+    Heatmap {
+        /// Maximum entries to show (default: 20, failures first)
+        #[arg(short = 'n', long, default_value = "20")]
+        limit: usize,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// Compact multi-corpus convergence dashboard (spec §11.10.5)
+    Dashboard,
 }
 
 /// Corpus output format
