@@ -2283,6 +2283,171 @@ For each tool T in {true, false, echo, seq, factor, ...}:
 
 ---
 
+### 11.12 Colorized CLI Output
+
+**Version**: 1.0.0 (v6.61.0)
+**Status**: Implemented
+
+#### Design Goals
+
+- Visual consistency with `pmat query` output palette
+- Semantic coloring: meaning conveyed through color (pass=green, fail=red, info=dim)
+- JSON output must remain uncolored (ANSI codes only in Human format)
+- All CLI commands produce colorized output in Human format
+
+#### ANSI Color Palette
+
+| Semantic Element | ANSI Code | Constant | Example Usage |
+|---|---|---|---|
+| Reset | `\x1b[0m` | `RESET` | End of every colored span |
+| Bold | `\x1b[1m` | `BOLD` | Section headers, labels |
+| Dim | `\x1b[2m` | `DIM` | Secondary info, box-drawing |
+| Red | `\x1b[31m` | `RED` | Grades D, below-threshold percentages |
+| Green | `\x1b[32m` | `GREEN` | Pass indicators, >= 99% percentages |
+| Yellow | `\x1b[33m` | `YELLOW` | Grades B/C, 95-99% percentages, warnings |
+| Cyan | `\x1b[36m` | `CYAN` | File paths, entry IDs, format names |
+| Bold White | `\x1b[1;37m` | `WHITE` | Score values, dimension labels |
+| Bright Green | `\x1b[1;32m` | `BRIGHT_GREEN` | Grade A/A+, improvement deltas |
+| Bright Red | `\x1b[1;31m` | `BRIGHT_RED` | Grade F, failure counts, regression deltas |
+| Bright Yellow | `\x1b[1;33m` | `BRIGHT_YELLOW` | Risk-level lint diagnostics |
+| Bright Cyan | `\x1b[1;36m` | `BRIGHT_CYAN` | Highlighted paths |
+
+#### Grade Coloring Rules
+
+| Grade | Color |
+|---|---|
+| A+, A | Bright Green (`\x1b[1;32m`) |
+| B+, B, C+, C | Yellow (`\x1b[33m`) |
+| D | Red (`\x1b[31m`) |
+| F | Bright Red (`\x1b[1;31m`) |
+
+#### Percentage Coloring Rules (Corpus Dimensions)
+
+| Range | Color |
+|---|---|
+| >= 99% | Green |
+| >= 95% | Yellow |
+| < 95% | Red |
+
+#### Percentage Coloring Rules (Score Dimensions)
+
+| Range | Color |
+|---|---|
+| >= 80% | Green |
+| >= 50% | Yellow |
+| < 50% | Red |
+
+#### Progress Bar Rendering
+
+Progress bars use Unicode block characters:
+
+- Filled: `█` (colored by pass rate — green if 100%, yellow if >= 95%, red otherwise)
+- Empty: `░` (dim)
+- Width: 16 characters
+
+Example: `████████████████` (all pass) or `████████████░░░░` (75% pass)
+
+#### Colorized Output Structure
+
+**Corpus Score (`bashrs corpus run`)**:
+
+```
+╭──────────────────────────────────────────────╮  ← dim box-drawing
+│  V2 Corpus Score: 99.9/100 (A+)             │  ← bold white score, bright green grade
+│  Entries: 900 total, 900 passed, 0 failed    │  ← green passed, green/red failed count
+╰──────────────────────────────────────────────╯
+
+  bash:        99.7/100 (A+) — 500/500 passed     ← cyan format, colored grade, colored count
+  makefile:    100.0/100 (A+) — 200/200 passed
+  dockerfile:  100.0/100 (A+) — 200/200 passed
+
+V2 Component Breakdown:                            ← bold header
+  A  Transpilation   900/900 (100.0%) ████████████████ 30.0/30 pts  ← progress bar
+  B1 Containment     900/900 (100.0%) ████████████████ 10.0/10 pts
+  ...
+```
+
+**Lint Output (`bashrs lint`)**:
+
+```
+Issues found in script.sh:                         ← cyan file path
+
+✗ 1:5-1:10 [SC2086] Error: message                ← bright red for errors
+⚠ 3:1-3:8 [DET001] Warning: message               ← yellow for warnings
+  Fix: suggested replacement                       ← green "Fix:" prefix
+
+Summary: 1 error(s), 1 warning(s), 0 info(s)      ← red errors, yellow warnings, dim info
+```
+
+**Score Output (`bashrs score`)**:
+
+```
+Bash Script Quality Score
+═════════════════════════                          ← dim line
+Overall Grade: A+                                  ← grade-colored
+Overall Score: 9.2/10.0                            ← bold white
+
+Dimension Scores:
+─────────────────                                  ← dim line
+Complexity:       9.5/10.0                         ← colored by value
+Safety:           8.0/10.0
+...
+
+✓ Excellent! Near-perfect code quality.            ← green for A+
+```
+
+**Coverage Output (`bashrs coverage`)**:
+
+```
+Coverage Report: script.sh                         ← cyan file path
+
+Lines:     45/50  (90.0%)  ██████████████░░        ← colored pct + progress bar
+Functions: 8/10   (80.0%)  ████████████░░░░
+
+✓ Good coverage!                                   ← green for >= 80%
+```
+
+#### Commands Colorized
+
+| Command | Functions Colorized |
+|---|---|
+| `bashrs corpus run` | `corpus_print_score`, `corpus_write_convergence_log` |
+| `bashrs corpus show` | `corpus_show_entry` |
+| `bashrs corpus failures` | `corpus_print_failures` |
+| `bashrs corpus history` | `corpus_show_history` |
+| `bashrs corpus diff` | `corpus_show_diff` |
+| `bashrs lint` | `write_human` (linter/output.rs) |
+| `bashrs purify --report` | `purify_print_report` |
+| `bashrs score` | `print_human_score_results`, `print_human_dockerfile_score_results` |
+| `bashrs audit` | `print_human_audit_results` |
+| `bashrs coverage` | `print_terminal_coverage` |
+
+#### Implementation
+
+Color utilities are centralized in `rash/src/cli/color.rs`:
+
+- Constants: `RESET`, `BOLD`, `DIM`, `RED`, `GREEN`, `YELLOW`, `CYAN`, `WHITE`, `BRIGHT_GREEN`, `BRIGHT_RED`, `BRIGHT_YELLOW`, `BRIGHT_CYAN`
+- `grade_color(grade: &str) -> &'static str` — maps letter grades to ANSI color
+- `pct_color(pct: f64) -> &'static str` — maps percentages to color (strict: 99%/95% thresholds)
+- `score_color(pct: f64) -> &'static str` — maps percentages to color (lenient: 80%/50% thresholds)
+- `progress_bar(pass, total, width) -> String` — Unicode progress bar with colored fill
+- `pass_fail(passed: bool) -> String` — colored PASS/FAIL indicator
+- `pass_count(pass, total) -> String` — colored pass count
+- `delta_color(delta: f64) -> String` — green for positive, red for negative, dim for zero
+
+#### Testing
+
+21 unit tests in `cli::color::tests` covering all helper functions:
+- Grade color mapping (6 tests: A+, A, B, D, F, unknown)
+- Percentage color thresholds (3 tests: high, medium, low)
+- Score color thresholds (3 tests: high, mid, low)
+- Progress bar rendering (3 tests: full, empty, zero total)
+- Pass/fail indicators (2 tests)
+- Pass count formatting (1 test)
+- Delta coloring (3 tests: positive, negative, zero)
+
+---
+
 ## 12. References
 
 ### Peer-Reviewed and Foundational

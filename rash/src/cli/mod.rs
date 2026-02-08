@@ -1,5 +1,6 @@
 pub mod args;
 pub mod bench;
+pub mod color;
 pub mod commands;
 pub mod logic;
 

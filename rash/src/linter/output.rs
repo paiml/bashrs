@@ -42,33 +42,35 @@ pub fn write_results<W: Write>(
     }
 }
 
-/// Human-readable output format
+/// Human-readable output format with ANSI colors
 fn write_human<W: Write>(
     writer: &mut W,
     result: &LintResult,
     file_path: &str,
 ) -> std::io::Result<()> {
+    use crate::cli::color::*;
+
     if result.diagnostics.is_empty() {
-        writeln!(writer, "✓ No issues found in {}", file_path)?;
+        writeln!(writer, "{GREEN}✓ No issues found in {CYAN}{file_path}{RESET}")?;
         return Ok(());
     }
 
-    writeln!(writer, "Issues found in {}:\n", file_path)?;
+    writeln!(writer, "Issues found in {CYAN}{file_path}{RESET}:\n")?;
 
     for diag in &result.diagnostics {
-        let icon = match diag.severity {
-            Severity::Error => "✗",
-            Severity::Warning => "⚠",
-            Severity::Risk => "◆",
-            Severity::Perf => "⚡",
-            Severity::Info => "ℹ",
-            Severity::Note => "→",
+        let (icon, color) = match diag.severity {
+            Severity::Error => ("✗", BRIGHT_RED),
+            Severity::Warning => ("⚠", YELLOW),
+            Severity::Risk => ("◆", BRIGHT_YELLOW),
+            Severity::Perf => ("⚡", CYAN),
+            Severity::Info => ("ℹ", DIM),
+            Severity::Note => ("→", DIM),
         };
 
-        writeln!(writer, "{} {} {}", icon, diag.span, diag)?;
+        writeln!(writer, "{color}{icon}{RESET} {DIM}{}{RESET} {color}{}{RESET}", diag.span, diag)?;
 
         if let Some(ref fix) = diag.fix {
-            writeln!(writer, "  Fix: {}", fix.replacement)?;
+            writeln!(writer, "  {GREEN}Fix:{RESET} {}", fix.replacement)?;
         }
         writeln!(writer)?;
     }
@@ -78,10 +80,12 @@ fn write_human<W: Write>(
     let warnings = result.count_by_severity(Severity::Warning);
     let infos = result.count_by_severity(Severity::Info);
 
+    let err_color = if errors > 0 { BRIGHT_RED } else { GREEN };
+    let warn_color = if warnings > 0 { YELLOW } else { GREEN };
+
     writeln!(
         writer,
-        "Summary: {} error(s), {} warning(s), {} info(s)",
-        errors, warnings, infos
+        "Summary: {err_color}{errors} error(s){RESET}, {warn_color}{warnings} warning(s){RESET}, {DIM}{infos} info(s){RESET}",
     )?;
 
     Ok(())

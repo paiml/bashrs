@@ -12,7 +12,7 @@ use crate::cli::args::{
 #[cfg(feature = "oracle")]
 use crate::cli::logic::extract_exit_code;
 use crate::cli::logic::{
-    coverage_class, coverage_status, find_devcontainer_json as logic_find_devcontainer_json,
+    coverage_class, find_devcontainer_json as logic_find_devcontainer_json,
     format_purify_report_human, format_purify_report_json, format_purify_report_markdown,
     format_timestamp, generate_diff_lines, hex_encode, is_dockerfile, is_makefile,
     is_shell_script_file, normalize_shell_script, parse_rule_filter, purify_dockerfile_source,
@@ -1447,31 +1447,38 @@ fn purify_print_report(
     purify_time: std::time::Duration, codegen_time: std::time::Duration,
     write_time: std::time::Duration, total_time: std::time::Duration,
 ) {
-    println!("\n=== Purification Report ===");
-    println!("Input: {}", input.display());
+    use crate::cli::color::*;
+
+    println!();
+    println!("{BOLD}=== Purification Report ==={RESET}");
+    println!("Input:  {CYAN}{}{RESET}", input.display());
     if let Some(output_path) = output {
-        println!("Output: {}", output_path.display());
+        println!("Output: {CYAN}{}{RESET}", output_path.display());
     }
-    println!("\nInput size: {} lines, {} bytes", source.lines().count(), source.len());
-    println!("Output size: {} lines, {} bytes", purified_bash.lines().count(), purified_bash.len());
+    println!();
+    println!("Input size:  {WHITE}{} lines{RESET}, {} bytes", source.lines().count(), source.len());
+    println!("Output size: {WHITE}{} lines{RESET}, {} bytes", purified_bash.lines().count(), purified_bash.len());
 
-    println!("\nTransformations Applied:");
-    println!("- Shebang: #!/bin/bash → #!/bin/sh");
-    println!("- Determinism: Removed $RANDOM, timestamps");
-    println!("- Idempotency: mkdir → mkdir -p, rm → rm -f");
-    println!("- Safety: All variables quoted");
+    println!();
+    println!("{BOLD}Transformations Applied:{RESET}");
+    println!("  {GREEN}✓{RESET} Shebang: #!/bin/bash → #!/bin/sh");
+    println!("  {GREEN}✓{RESET} Determinism: Removed $RANDOM, timestamps");
+    println!("  {GREEN}✓{RESET} Idempotency: mkdir → mkdir -p, rm → rm -f");
+    println!("  {GREEN}✓{RESET} Safety: All variables quoted");
 
-    println!("\nPerformance:");
-    println!("  Read:     {:>8.2?}", read_time);
-    println!("  Parse:    {:>8.2?}", parse_time);
-    println!("  Purify:   {:>8.2?}", purify_time);
-    println!("  Codegen:  {:>8.2?}", codegen_time);
-    println!("  Write:    {:>8.2?}", write_time);
-    println!("  ─────────────────");
-    println!("  Total:    {:>8.2?}", total_time);
+    println!();
+    println!("{BOLD}Performance:{RESET}");
+    println!("  {DIM}Read:{RESET}     {:>8.2?}", read_time);
+    println!("  {DIM}Parse:{RESET}    {:>8.2?}", parse_time);
+    println!("  {DIM}Purify:{RESET}   {:>8.2?}", purify_time);
+    println!("  {DIM}Codegen:{RESET}  {:>8.2?}", codegen_time);
+    println!("  {DIM}Write:{RESET}    {:>8.2?}", write_time);
+    println!("  {DIM}─────────────────{RESET}");
+    println!("  {WHITE}Total:{RESET}    {:>8.2?}", total_time);
 
     let throughput = (source.len() as f64) / total_time.as_secs_f64() / 1024.0 / 1024.0;
-    println!("\nThroughput: {:.2} MB/s", throughput);
+    println!();
+    println!("Throughput: {WHITE}{:.2} MB/s{RESET}", throughput);
 }
 
 fn purify_generate_tests(output: Option<&Path>, purified_bash: &str, property_tests: bool, report: bool) -> Result<()> {
@@ -5138,21 +5145,42 @@ fn corpus_print_score(
     score: &crate::corpus::runner::CorpusScore,
     format: &CorpusOutputFormat,
 ) -> Result<()> {
+    use crate::cli::color::*;
+
     match format {
         CorpusOutputFormat::Human => {
-            println!("V2 Corpus Score: {:.1}/100 ({})", score.score, score.grade);
+            let grade_str = score.grade.to_string();
+            let gc = grade_color(&grade_str);
+            let fail_color = if score.failed == 0 { GREEN } else { BRIGHT_RED };
+
+            // Header box
+            let score_str = format!("{:.1}", score.score);
+            let pad_len = 18_usize.saturating_sub(score_str.len() + grade_str.len());
+            println!("{DIM}╭──────────────────────────────────────────────╮{RESET}");
             println!(
-                "Entries: {} total, {} passed, {} failed ({:.1}%)",
+                "{DIM}│{RESET}  V2 Corpus Score: {WHITE}{}/100{RESET} ({gc}{grade_str}{RESET}){:>pad$}{DIM}│{RESET}",
+                score_str, "",
+                pad = pad_len
+            );
+            println!(
+                "{DIM}│{RESET}  Entries: {} total, {GREEN}{} passed{RESET}, {fail_color}{} failed{RESET} ({:.1}%)  {DIM}│{RESET}",
                 score.total, score.passed, score.failed, score.rate * 100.0
             );
+            println!("{DIM}╰──────────────────────────────────────────────╯{RESET}");
             println!();
+
+            // Format breakdown
             for fs in &score.format_scores {
+                let fgs = fs.grade.to_string();
+                let fgc = grade_color(&fgs);
+                let pc = pct_color(fs.passed as f64 / fs.total.max(1) as f64 * 100.0);
                 println!(
-                    "  {:<12} {:.1}/100 ({}) — {}/{} passed",
-                    format!("{}:", fs.format), fs.score, fs.grade, fs.passed, fs.total
+                    "  {CYAN}{:<12}{RESET} {WHITE}{:.1}/100{RESET} ({fgc}{fgs}{RESET}) — {pc}{}/{} passed{RESET}",
+                    format!("{}:", fs.format), fs.score, fs.passed, fs.total
                 );
             }
-            // V2 component breakdown (spec §11.4)
+
+            // V2 component breakdown (spec §11.4, §11.12)
             if !score.results.is_empty() {
                 let n = score.results.len();
                 let a_pass = score.results.iter().filter(|r| r.transpiled).count();
@@ -5166,38 +5194,52 @@ fn corpus_print_score(
                 let c_avg: f64 = score.results.iter().map(|r| r.coverage_ratio).sum::<f64>()
                     / n as f64;
 
-                let pct = |pass: usize| -> f64 { pass as f64 / n as f64 * 100.0 };
+                let pct_val = |pass: usize| -> f64 { pass as f64 / n as f64 * 100.0 };
                 let pts = |pass: usize, max: f64| -> f64 { pass as f64 / n as f64 * max };
 
                 println!();
-                println!("V2 Component Breakdown:");
-                println!("  A  Transpilation: {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
-                    a_pass, n, pct(a_pass), pts(a_pass, 30.0), 30);
-                println!("  B1 Containment:   {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
-                    b1_pass, n, pct(b1_pass), pts(b1_pass, 10.0), 10);
-                println!("  B2 Exact match:   {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
-                    b2_pass, n, pct(b2_pass), pts(b2_pass, 8.0), 8);
-                println!("  B3 Behavioral:    {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
-                    b3_pass, n, pct(b3_pass), pts(b3_pass, 7.0), 7);
-                println!("  C  Coverage:      avg {:.1}% -> {:.1}/{} pts",
-                    c_avg * 100.0, c_avg * 15.0, 15);
-                println!("  D  Lint clean:    {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
-                    d_pass, n, pct(d_pass), pts(d_pass, 10.0), 10);
-                println!("  E  Deterministic: {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
-                    e_pass, n, pct(e_pass), pts(e_pass, 10.0), 10);
-                println!("  F  Metamorphic:   {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
-                    f_pass, n, pct(f_pass), pts(f_pass, 5.0), 5);
-                println!("  G  Cross-shell:   {:>4}/{} ({:.1}%) -> {:.1}/{} pts",
-                    g_pass, n, pct(g_pass), pts(g_pass, 5.0), 5);
+                println!("{BOLD}V2 Component Breakdown:{RESET}");
+
+                let print_dim = |label: &str, pass: usize, max_pts: f64| {
+                    let p = pct_val(pass);
+                    let pc = pct_color(p);
+                    let bar = progress_bar(pass, n, 16);
+                    println!(
+                        "  {WHITE}{:<2} {:<14}{RESET} {pc}{:>4}/{}{RESET} ({pc}{:.1}%{RESET}) {bar} {WHITE}{:.1}/{}{RESET} pts",
+                        label.split_whitespace().next().unwrap_or(""),
+                        label.split_whitespace().skip(1).collect::<Vec<_>>().join(" "),
+                        pass, n, p, pts(pass, max_pts), max_pts as u32
+                    );
+                };
+
+                print_dim("A  Transpilation", a_pass, 30.0);
+                print_dim("B1 Containment", b1_pass, 10.0);
+                print_dim("B2 Exact match", b2_pass, 8.0);
+                print_dim("B3 Behavioral", b3_pass, 7.0);
+
+                // Coverage is special (average, not pass/fail)
+                let c_pct = c_avg * 100.0;
+                let cc = pct_color(c_pct);
+                let c_bar = progress_bar((c_avg * n as f64) as usize, n, 16);
+                println!(
+                    "  {WHITE}C  Coverage       {RESET} {cc}avg {:.1}%{RESET}        {c_bar} {WHITE}{:.1}/15{RESET} pts",
+                    c_pct, c_avg * 15.0
+                );
+
+                print_dim("D  Lint clean", d_pass, 10.0);
+                print_dim("E  Deterministic", e_pass, 10.0);
+                print_dim("F  Metamorphic", f_pass, 5.0);
+                print_dim("G  Cross-shell", g_pass, 5.0);
             }
 
+            // Failures section
             let failures: Vec<_> = score.results.iter().filter(|r| !r.transpiled).collect();
             if !failures.is_empty() {
                 println!();
-                println!("Failed entries ({}):", failures.len());
+                println!("{BRIGHT_RED}Failed entries ({}):{RESET}", failures.len());
                 for f in &failures {
                     let err = f.error.as_deref().unwrap_or("unknown error");
-                    println!("  {} — {}", f.id, truncate_str(err, 80));
+                    println!("  {CYAN}{}{RESET} — {DIM}{}{RESET}", f.id, truncate_str(err, 80));
                 }
             }
         }
@@ -5224,8 +5266,10 @@ fn corpus_write_convergence_log(
     let entry = runner.convergence_entry(&score, iteration, &date, prev_rate, "CLI corpus run");
     CorpusRunner::append_convergence_log(&entry, &log_path)
         .map_err(|e| Error::Internal(format!("Failed to write convergence log: {e}")))?;
+    use crate::cli::color::*;
     println!();
-    println!("Convergence log: iteration {}, delta {:.4}", iteration, entry.delta);
+    let dc = delta_color(entry.delta);
+    println!("{DIM}Convergence log:{RESET} iteration {}, delta {dc}", iteration);
     Ok(())
 }
 
@@ -5245,31 +5289,36 @@ fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
 
     match format {
         CorpusOutputFormat::Human => {
-            println!("Entry: {} ({})", entry.id, entry.name);
-            println!("Format: {} | Tier: {:?}", entry.format, entry.tier);
-            println!("Description: {}", entry.description);
+            use crate::cli::color::*;
+
+            println!("{WHITE}Entry:{RESET} {CYAN}{}{RESET} ({})", entry.id, entry.name);
+            println!("{DIM}Format: {} | Tier: {:?}{RESET}", entry.format, entry.tier);
+            println!("{DIM}Description: {}{RESET}", entry.description);
             println!();
-            println!("Score: {:.1}/100", result.score());
+            let s = result.score();
+            let gc = grade_color(if s >= 90.0 { "A" } else if s >= 70.0 { "B" } else { "D" });
+            println!("Score: {gc}{:.1}/100{RESET}", s);
             println!();
-            let check = |b: bool| if b { "PASS" } else { "FAIL" };
-            println!("  A  Transpilation (30):  {}", check(result.transpiled));
-            println!("  B1 Containment  (10):  {}", check(result.output_contains));
-            println!("  B2 Exact match  ( 8):  {}", check(result.output_exact));
-            println!("  B3 Behavioral   ( 7):  {}", check(result.output_behavioral));
-            println!("  C  Coverage     (15):  {:.1}%", result.coverage_ratio * 100.0);
-            println!("  D  Lint         (10):  {}", check(result.lint_clean));
-            println!("  E  Determinism  (10):  {}", check(result.deterministic));
-            println!("  F  Metamorphic  ( 5):  {}", check(result.metamorphic_consistent));
-            println!("  G  Cross-shell  ( 5):  {}", check(result.cross_shell_agree));
+            let check = |b: bool| -> String { pass_fail(b) };
+            println!("  {WHITE}A  Transpilation{RESET} (30):  {}", check(result.transpiled));
+            println!("  {WHITE}B1 Containment{RESET}  (10):  {}", check(result.output_contains));
+            println!("  {WHITE}B2 Exact match{RESET}  ( 8):  {}", check(result.output_exact));
+            println!("  {WHITE}B3 Behavioral{RESET}   ( 7):  {}", check(result.output_behavioral));
+            let cc = pct_color(result.coverage_ratio * 100.0);
+            println!("  {WHITE}C  Coverage{RESET}     (15):  {cc}{:.1}%{RESET}", result.coverage_ratio * 100.0);
+            println!("  {WHITE}D  Lint{RESET}         (10):  {}", check(result.lint_clean));
+            println!("  {WHITE}E  Determinism{RESET}  (10):  {}", check(result.deterministic));
+            println!("  {WHITE}F  Metamorphic{RESET}  ( 5):  {}", check(result.metamorphic_consistent));
+            println!("  {WHITE}G  Cross-shell{RESET}  ( 5):  {}", check(result.cross_shell_agree));
             println!("  Schema valid:          {}", check(result.schema_valid));
             if let Some(ref output) = result.actual_output {
                 println!();
-                println!("Output:");
-                println!("{}", truncate_str(output, 500));
+                println!("{DIM}Output:{RESET}");
+                println!("{DIM}{}{RESET}", truncate_str(output, 500));
             }
             if let Some(ref err) = result.error {
                 println!();
-                println!("Error: {err}");
+                println!("{BRIGHT_RED}Error:{RESET} {err}");
             }
         }
         CorpusOutputFormat::Json => {
@@ -5300,13 +5349,21 @@ fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Resu
 
     match format {
         CorpusOutputFormat::Human => {
-            println!("Convergence History ({} entries):", entries.len());
-            println!("{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}  {}", "Iter", "Date", "Pass", "Total", "Rate", "Delta", "Notes");
+            use crate::cli::color::*;
+
+            println!("{BOLD}Convergence History ({} entries):{RESET}", entries.len());
+            println!(
+                "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}  {}{RESET}",
+                "Iter", "Date", "Pass", "Total", "Rate", "Delta", "Notes"
+            );
             for e in display {
+                let rate_pct = e.rate * 100.0;
+                let rc = pct_color(rate_pct);
+                let dc = delta_color(e.delta);
                 println!(
-                    "{:>4}  {:>10}  {:>5}/{:<5}  {:>5.1}%  {:>+8.4}  {}",
+                    "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}  {}",
                     e.iteration, e.date, e.passed, e.total,
-                    e.rate * 100.0, e.delta, e.notes
+                    rate_pct, e.notes
                 );
             }
         }
@@ -5372,18 +5429,22 @@ fn corpus_print_failures(
 ) -> Result<()> {
     match format {
         CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+
             if failures.is_empty() {
-                println!("No failures found.");
+                println!("{GREEN}No failures found.{RESET}");
                 return Ok(());
             }
-            println!("Failures ({} entries):", failures.len());
+            println!("{BRIGHT_RED}Failures ({} entries):{RESET}", failures.len());
             println!(
-                "{:<8} {:>6}  {}",
+                "{DIM}{:<8} {:>6}  {}{RESET}",
                 "ID", "Score", "Failing Dimensions"
             );
             for r in failures {
                 let dims = corpus_failing_dims(r);
-                println!("{:<8} {:>5.1}  {}", r.id, r.score(), dims);
+                let sc = r.score();
+                let gc = grade_color(if sc >= 90.0 { "A" } else if sc >= 70.0 { "B" } else { "D" });
+                println!("{CYAN}{:<8}{RESET} {gc}{:>5.1}{RESET}  {RED}{}{RESET}", r.id, sc, dims);
             }
         }
         CorpusOutputFormat::Json => {
@@ -5440,22 +5501,28 @@ fn corpus_show_diff(
 
     match format {
         CorpusOutputFormat::Human => {
-            println!("Convergence Diff: iteration {} → {}", from_entry.iteration, to_entry.iteration);
+            use crate::cli::color::*;
+
+            println!("{BOLD}Convergence Diff:{RESET} iteration {} → {}", from_entry.iteration, to_entry.iteration);
             println!();
-            println!("  {:>12}  {:>10}  {:>10}", "", "From", "To");
+            println!("  {DIM}{:>12}  {:>10}  {:>10}{RESET}", "", "From", "To");
             println!("  {:>12}  {:>10}  {:>10}", "Date", from_entry.date, to_entry.date);
             println!("  {:>12}  {:>10}  {:>10}", "Passed", from_entry.passed, to_entry.passed);
             println!("  {:>12}  {:>10}  {:>10}", "Total", from_entry.total, to_entry.total);
-            println!("  {:>12}  {:>9.1}%  {:>9.1}%", "Rate", from_entry.rate * 100.0, to_entry.rate * 100.0);
+            let from_pct = from_entry.rate * 100.0;
+            let to_pct = to_entry.rate * 100.0;
+            let frc = pct_color(from_pct);
+            let trc = pct_color(to_pct);
+            println!("  {:>12}  {frc}{:>9.1}%{RESET}  {trc}{:>9.1}%{RESET}", "Rate", from_pct, to_pct);
             let rate_delta = to_entry.rate - from_entry.rate;
             let passed_delta = to_entry.passed as i64 - from_entry.passed as i64;
             println!();
             if rate_delta > 0.0 {
-                println!("  Improvement: +{passed_delta} entries, +{:.4}% rate", rate_delta * 100.0);
+                println!("  {GREEN}Improvement: +{passed_delta} entries, +{:.4}% rate{RESET}", rate_delta * 100.0);
             } else if rate_delta < 0.0 {
-                println!("  Regression: {passed_delta} entries, {:.4}% rate", rate_delta * 100.0);
+                println!("  {BRIGHT_RED}Regression: {passed_delta} entries, {:.4}% rate{RESET}", rate_delta * 100.0);
             } else {
-                println!("  No change in pass rate.");
+                println!("  {DIM}No change in pass rate.{RESET}");
             }
         }
         CorpusOutputFormat::Json => {
@@ -6547,42 +6614,49 @@ fn print_markdown_runtime_score(rt: &RuntimeScore) {
 
 /// Print human-readable score results
 fn print_human_score_results(score: &crate::bash_quality::scoring::QualityScore, detailed: bool) {
+    use crate::cli::color::*;
+
     println!();
-    println!("Bash Script Quality Score");
-    println!("=========================");
+    println!("{BOLD}Bash Script Quality Score{RESET}");
+    println!("{DIM}═════════════════════════{RESET}");
     println!();
-    println!("Overall Grade: {}", score.grade);
-    println!("Overall Score: {:.1}/10.0", score.score);
+    let gc = grade_color(&score.grade);
+    println!("Overall Grade: {gc}{}{RESET}", score.grade);
+    println!("Overall Score: {WHITE}{:.1}/10.0{RESET}", score.score);
     println!();
 
     if detailed {
-        println!("Dimension Scores:");
-        println!("-----------------");
-        println!("Complexity:      {:.1}/10.0", score.complexity);
-        println!("Safety:          {:.1}/10.0", score.safety);
-        println!("Maintainability: {:.1}/10.0", score.maintainability);
-        println!("Testing:         {:.1}/10.0", score.testing);
-        println!("Documentation:   {:.1}/10.0", score.documentation);
+        println!("{BOLD}Dimension Scores:{RESET}");
+        println!("{DIM}─────────────────{RESET}");
+        let dim_line = |name: &str, val: f64| {
+            let sc = score_color(val * 10.0);
+            println!("{:<17} {sc}{:.1}/10.0{RESET}", name, val);
+        };
+        dim_line("Complexity:", score.complexity);
+        dim_line("Safety:", score.safety);
+        dim_line("Maintainability:", score.maintainability);
+        dim_line("Testing:", score.testing);
+        dim_line("Documentation:", score.documentation);
         println!();
     }
 
     if !score.suggestions.is_empty() {
-        println!("Improvement Suggestions:");
-        println!("------------------------");
+        println!("{BOLD}Improvement Suggestions:{RESET}");
+        println!("{DIM}────────────────────────{RESET}");
         for (i, suggestion) in score.suggestions.iter().enumerate() {
-            println!("{}. {}", i + 1, suggestion);
+            println!("{YELLOW}{}. {}{RESET}", i + 1, suggestion);
         }
         println!();
     }
 
     // Grade interpretation
     match score.grade.as_str() {
-        "A+" => println!("✓ Excellent! Near-perfect code quality."),
-        "A" => println!("✓ Great! Very good code quality."),
-        "B+" | "B" => println!("✓ Good code quality with room for improvement."),
-        "C+" | "C" => println!("⚠ Average code quality. Consider addressing suggestions."),
-        "D" => println!("⚠ Below average. Multiple improvements needed."),
-        "F" => println!("✗ Poor code quality. Significant improvements required."),
+        "A+" => println!("{GREEN}✓ Excellent! Near-perfect code quality.{RESET}"),
+        "A" => println!("{GREEN}✓ Great! Very good code quality.{RESET}"),
+        "B+" | "B" => println!("{GREEN}✓ Good code quality with room for improvement.{RESET}"),
+        "C+" | "C" => println!("{YELLOW}⚠ Average code quality. Consider addressing suggestions.{RESET}"),
+        "D" => println!("{RED}⚠ Below average. Multiple improvements needed.{RESET}"),
+        "F" => println!("{BRIGHT_RED}✗ Poor code quality. Significant improvements required.{RESET}"),
         _ => {}
     }
 }
@@ -6821,89 +6895,93 @@ fn audit_check_score(source: &str, min_grade: Option<&str>, results: &mut AuditR
     results.score = Some(score);
 }
 
-/// Print human-readable audit results
+/// Print human-readable audit results with ANSI colors
 fn print_human_audit_results(results: &AuditResults, detailed: bool, input: &Path) {
+    use crate::cli::color::*;
+
     println!();
-    println!("Comprehensive Quality Audit");
-    println!("===========================");
+    println!("{BOLD}Comprehensive Quality Audit{RESET}");
+    println!("{DIM}══════════════════════════{RESET}");
     println!();
-    println!("File: {}", input.display());
+    println!("File: {CYAN}{}{RESET}", input.display());
     println!();
-    println!("Check Results:");
-    println!("--------------");
+    println!("{BOLD}Check Results:{RESET}");
+    println!("{DIM}──────────────{RESET}");
 
     // Parse
     if results.parse_success {
-        println!("✅ Parse:    Valid bash syntax");
+        println!("{GREEN}✓{RESET} Parse:    Valid bash syntax");
     } else {
-        println!("❌ Parse:    Syntax error");
+        println!("{BRIGHT_RED}✗{RESET} Parse:    Syntax error");
         if let Some(err) = &results.parse_error {
-            println!("           {}", err);
+            println!("           {DIM}{err}{RESET}");
         }
     }
 
     // Lint
     if results.lint_errors == 0 && results.lint_warnings == 0 {
-        println!("✅ Lint:     No issues found");
+        println!("{GREEN}✓{RESET} Lint:     No issues found");
     } else if results.lint_errors > 0 {
         println!(
-            "❌ Lint:     {} errors, {} warnings",
+            "{BRIGHT_RED}✗{RESET} Lint:     {BRIGHT_RED}{} errors{RESET}, {YELLOW}{} warnings{RESET}",
             results.lint_errors, results.lint_warnings
         );
     } else {
-        println!("⚠️  Lint:     {} warnings", results.lint_warnings);
+        println!("{YELLOW}⚠{RESET} Lint:     {YELLOW}{} warnings{RESET}", results.lint_warnings);
     }
 
     // Test
     if results.test_total > 0 {
         if results.test_failed == 0 {
             println!(
-                "✅ Test:     {}/{} tests passed",
+                "{GREEN}✓{RESET} Test:     {GREEN}{}/{} tests passed{RESET}",
                 results.test_passed, results.test_total
             );
         } else {
             println!(
-                "❌ Test:     {}/{} tests passed, {} failed",
+                "{BRIGHT_RED}✗{RESET} Test:     {}/{} tests passed, {BRIGHT_RED}{} failed{RESET}",
                 results.test_passed, results.test_total, results.test_failed
             );
         }
     } else {
-        println!("⚠️  Test:     No tests found");
+        println!("{YELLOW}⚠{RESET} Test:     {DIM}No tests found{RESET}");
     }
 
     // Score
     if let Some(score) = &results.score {
-        println!("✅ Score:    {} ({:.1}/10.0)", score.grade, score.score);
+        let gc = grade_color(&score.grade);
+        println!("{GREEN}✓{RESET} Score:    {gc}{}{RESET} ({WHITE}{:.1}/10.0{RESET})", score.grade, score.score);
 
         if detailed {
             println!();
-            println!("  Dimension Breakdown:");
-            println!("  - Complexity:      {:.1}/10.0", score.complexity);
-            println!("  - Safety:          {:.1}/10.0", score.safety);
-            println!("  - Maintainability: {:.1}/10.0", score.maintainability);
-            println!("  - Testing:         {:.1}/10.0", score.testing);
-            println!("  - Documentation:   {:.1}/10.0", score.documentation);
+            println!("  {BOLD}Dimension Breakdown:{RESET}");
+            let dim_line = |name: &str, val: f64| {
+                let sc = score_color(val * 10.0);
+                println!("  {DIM}-{RESET} {:<17} {sc}{:.1}/10.0{RESET}", name, val);
+            };
+            dim_line("Complexity:", score.complexity);
+            dim_line("Safety:", score.safety);
+            dim_line("Maintainability:", score.maintainability);
+            dim_line("Testing:", score.testing);
+            dim_line("Documentation:", score.documentation);
         }
     }
 
     println!();
-    println!(
-        "Overall: {}",
-        if results.overall_pass {
-            "✅ PASS"
-        } else {
-            "❌ FAIL"
-        }
-    );
+    if results.overall_pass {
+        println!("Overall: {GREEN}{BOLD}✓ PASS{RESET}");
+    } else {
+        println!("Overall: {BRIGHT_RED}{BOLD}✗ FAIL{RESET}");
+    }
     println!();
 
     // Suggestions
     if let Some(score) = &results.score {
         if !score.suggestions.is_empty() {
-            println!("Improvement Suggestions:");
-            println!("------------------------");
+            println!("{BOLD}Improvement Suggestions:{RESET}");
+            println!("{DIM}────────────────────────{RESET}");
             for (i, suggestion) in score.suggestions.iter().enumerate() {
-                println!("{}. {}", i + 1, suggestion);
+                println!("{YELLOW}{}. {}{RESET}", i + 1, suggestion);
             }
             println!();
         }
@@ -7093,43 +7171,48 @@ fn coverage_command(
     Ok(())
 }
 
-/// Print terminal coverage output
+/// Print terminal coverage output with ANSI colors
 fn print_terminal_coverage(
     coverage: &crate::bash_quality::coverage::CoverageReport,
     detailed: bool,
     input: &Path,
 ) {
+    use crate::cli::color::*;
+
     println!();
-    println!("Coverage Report: {}", input.display());
+    println!("{BOLD}Coverage Report:{RESET} {CYAN}{}{RESET}", input.display());
     println!();
 
     let line_pct = coverage.line_coverage_percent();
     let func_pct = coverage.function_coverage_percent();
 
-    // Overall coverage
+    // Overall coverage with progress bars
+    let lc = score_color(line_pct);
+    let fc = score_color(func_pct);
+    let line_bar = progress_bar(coverage.covered_lines.len(), coverage.total_lines, 16);
+    let func_bar = progress_bar(coverage.covered_functions.len(), coverage.all_functions.len(), 16);
+
     println!(
-        "Lines:     {}/{}   ({:.1}%)  {}",
+        "Lines:     {lc}{}/{}{RESET}  ({lc}{:.1}%{RESET})  {line_bar}",
         coverage.covered_lines.len(),
         coverage.total_lines,
         line_pct,
-        coverage_status(line_pct)
     );
 
     println!(
-        "Functions: {}/{}   ({:.1}%)  {}",
+        "Functions: {fc}{}/{}{RESET}  ({fc}{:.1}%{RESET})  {func_bar}",
         coverage.covered_functions.len(),
         coverage.all_functions.len(),
         func_pct,
-        coverage_status(func_pct)
     );
     println!();
 
-    // Show uncovered items (always show if they exist)
+    // Show uncovered items
     let uncovered_lines = coverage.uncovered_lines();
     if !uncovered_lines.is_empty() {
         if detailed {
             println!(
-                "Uncovered Lines: {}",
+                "{YELLOW}Uncovered Lines:{RESET} {}",
                 uncovered_lines
                     .iter()
                     .map(|n| n.to_string())
@@ -7137,7 +7220,7 @@ fn print_terminal_coverage(
                     .join(", ")
             );
         } else {
-            println!("Uncovered Lines: {} lines", uncovered_lines.len());
+            println!("{YELLOW}Uncovered Lines:{RESET} {} lines", uncovered_lines.len());
         }
         println!();
     }
@@ -7145,27 +7228,27 @@ fn print_terminal_coverage(
     let uncovered_funcs = coverage.uncovered_functions();
     if !uncovered_funcs.is_empty() {
         if detailed {
-            println!("Uncovered Functions:");
+            println!("{YELLOW}Uncovered Functions:{RESET}");
             for func in uncovered_funcs {
-                println!("  - {}", func);
+                println!("  {DIM}-{RESET} {}", func);
             }
         } else {
-            println!("Uncovered Functions: {}", uncovered_funcs.len());
+            println!("{YELLOW}Uncovered Functions:{RESET} {}", uncovered_funcs.len());
         }
         println!();
     }
 
     // Summary
     if coverage.total_lines == 0 {
-        println!("⚠️  No executable code found");
+        println!("{YELLOW}⚠ No executable code found{RESET}");
     } else if coverage.covered_lines.is_empty() {
-        println!("⚠️  No tests found - 0% coverage");
+        println!("{YELLOW}⚠ No tests found - 0% coverage{RESET}");
     } else if line_pct >= 80.0 {
-        println!("✅ Good coverage!");
+        println!("{GREEN}✓ Good coverage!{RESET}");
     } else if line_pct >= 50.0 {
-        println!("⚠️  Moderate coverage - consider adding more tests");
+        println!("{YELLOW}⚠ Moderate coverage - consider adding more tests{RESET}");
     } else {
-        println!("❌ Low coverage - more tests needed");
+        println!("{BRIGHT_RED}✗ Low coverage - more tests needed{RESET}");
     }
 }
 
@@ -7412,59 +7495,49 @@ fn print_human_dockerfile_score_results(
     score: &crate::bash_quality::dockerfile_scoring::DockerfileQualityScore,
     detailed: bool,
 ) {
+    use crate::cli::color::*;
+
     println!();
-    println!("Dockerfile Quality Score");
-    println!("========================");
+    println!("{BOLD}Dockerfile Quality Score{RESET}");
+    println!("{DIM}════════════════════════{RESET}");
     println!();
-    println!("Overall Grade: {}", score.grade);
-    println!("Overall Score: {:.1}/10.0", score.score);
+    let gc = grade_color(&score.grade);
+    println!("Overall Grade: {gc}{}{RESET}", score.grade);
+    println!("Overall Score: {WHITE}{:.1}/10.0{RESET}", score.score);
     println!();
 
     if detailed {
-        println!("Dimension Scores:");
-        println!("-----------------");
-        println!(
-            "Safety:              {:.1}/10.0  (30% weight)",
-            score.safety
-        );
-        println!(
-            "Complexity:          {:.1}/10.0  (25% weight)",
-            score.complexity
-        );
-        println!(
-            "Layer Optimization:  {:.1}/10.0  (20% weight)",
-            score.layer_optimization
-        );
-        println!(
-            "Determinism:         {:.1}/10.0  (15% weight)",
-            score.determinism
-        );
-        println!(
-            "Security:            {:.1}/10.0  (10% weight)",
-            score.security
-        );
+        println!("{BOLD}Dimension Scores:{RESET}");
+        println!("{DIM}─────────────────{RESET}");
+        let dim_line = |name: &str, val: f64, weight: &str| {
+            let sc = score_color(val * 10.0);
+            println!("{:<21} {sc}{:.1}/10.0{RESET}  {DIM}({weight}){RESET}", name, val);
+        };
+        dim_line("Safety:", score.safety, "30% weight");
+        dim_line("Complexity:", score.complexity, "25% weight");
+        dim_line("Layer Optimization:", score.layer_optimization, "20% weight");
+        dim_line("Determinism:", score.determinism, "15% weight");
+        dim_line("Security:", score.security, "10% weight");
         println!();
     }
 
     if !score.suggestions.is_empty() {
-        println!("Improvement Suggestions:");
-        println!("------------------------");
+        println!("{BOLD}Improvement Suggestions:{RESET}");
+        println!("{DIM}────────────────────────{RESET}");
         for (i, suggestion) in score.suggestions.iter().enumerate() {
-            println!("{}. {}", i + 1, suggestion);
+            println!("{YELLOW}{}. {}{RESET}", i + 1, suggestion);
         }
         println!();
     }
 
-    println!("Grade Interpretation:");
-    println!("---------------------");
     match score.grade.as_str() {
-        "A+" => println!("✅ Excellent! Production-ready Dockerfile."),
-        "A" => println!("✅ Very good! Minor improvements possible."),
-        "B+" | "B" => println!("✅ Good Dockerfile with room for optimization."),
-        "C+" | "C" => println!("⚠️  Average. Consider addressing suggestions."),
-        "D" => println!("⚠️  Below average. Multiple improvements needed."),
-        "F" => println!("❌ Poor quality. Significant improvements required."),
-        _ => println!("Unknown grade."),
+        "A+" => println!("{GREEN}✓ Excellent! Production-ready Dockerfile.{RESET}"),
+        "A" => println!("{GREEN}✓ Very good! Minor improvements possible.{RESET}"),
+        "B+" | "B" => println!("{GREEN}✓ Good Dockerfile with room for optimization.{RESET}"),
+        "C+" | "C" => println!("{YELLOW}⚠ Average. Consider addressing suggestions.{RESET}"),
+        "D" => println!("{RED}⚠ Below average. Multiple improvements needed.{RESET}"),
+        "F" => println!("{BRIGHT_RED}✗ Poor quality. Significant improvements required.{RESET}"),
+        _ => println!("{DIM}Unknown grade.{RESET}"),
     }
     println!();
 }
