@@ -1046,6 +1046,15 @@ pub enum CorpusCommands {
 
     /// ID range info per format (first, last, count)
     IdRange,
+
+    /// Compact tier summary table
+    Tiers,
+
+    /// Map of failing entries with dimension failures
+    FailMap,
+
+    /// Score range analysis: min, max, median, IQR per format
+    ScoreRange,
 }
 
 /// Corpus output format
