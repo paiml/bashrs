@@ -107,7 +107,9 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 | Iteration 11 | 250 entries | ~97% | Deeper edge cases | DONE (iter 11: 250/250, 100%, bug #7 fixed) |
 | Iteration 13 | 330 entries | ~98% | Expansion waves 3-4 | DONE (iter 13: 330/330, 100%) |
 | Iteration 14 | 500 entries | ~99% | Full corpus target reached | DONE (iter 14: 500/500, 100%, bug #8 fixed) |
-| Ongoing | 500+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
+| Iteration 15 | 550 entries | ~99% | OIP-driven fix-pattern entries (B-321..B-350) | DONE (iter 15: 550/550, 100%) |
+| Iteration 15+ | 620+ entries | 99%+ | OIP-driven fix-pattern entries | ONGOING |
+| Ongoing | 620+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
 
@@ -1667,6 +1669,317 @@ The classifier uses the 32-feature unified schema (Section 11.5.1) plus 4 gramma
 
 Training data comes from real corpus grammar failures, following the same pipeline as Section 11.5.2. The model is persisted as `.apr` with Poka-yoke validation (APR-POKA-001) ensuring minimum quality before deployment.
 
+### 11.9 OIP-Driven Corpus Generation
+
+Organizational Intelligence Platform (OIP) provides automated mining of real fix patterns from git history across an entire GitHub organization. This section defines how OIP outputs are systematically converted into corpus entries, ensuring the corpus reflects **real defects** rather than hypothetical edge cases.
+
+#### 11.9.1 Mining Methodology
+
+OIP analyzes commit history to classify fix patterns into 18 defect categories:
+
+```bash
+# Extract training data from a single repo
+oip extract-training-data --repo . --max-commits 500
+
+# Analyze an entire GitHub organization
+oip analyze --org paiml
+
+# Output: classified fix commits with defect categories, severity, and code diffs
+```
+
+**Key insight**: Every bug fix in the transpiler's history represents a real-world failure mode. Each fix should generate 1-3 corpus entries that would **catch the regression** if the bug were reintroduced.
+
+#### 11.9.2 Defect Category to Corpus Entry Mapping
+
+OIP's 18 defect categories map to specific corpus entry patterns:
+
+| OIP Category | Frequency (bashrs) | Corpus Entry Pattern | Example |
+|---|---|---|---|
+| ASTTransform | 62 | Parser/emitter correctness: heredoc, brackets, brace groups, command substitution | B-321..B-330 |
+| OperatorPrecedence | 6 | Arithmetic parenthesization, operator associativity | B-331..B-335 |
+| SecurityVulnerabilities | 24 | Quoting, injection prevention, special character handling | B-336..B-340 |
+| IdempotencyViolation | 8 | `mkdir -p`, atomic writes, lock files, existence checks | B-341..B-345 |
+| ComprehensionBugs | 8 | Iterator patterns, accumulation, filtering, early exit | B-346..B-350 |
+| ConfigurationErrors | 7 | Env var handling, default values, path construction | Future entries |
+| IntegrationFailures | 3 | Cross-shell compatibility, version-specific behavior | Future entries |
+| FalsePositives | 5 | Linter rules triggering on valid code (SC2171, MAKE016) | Linter corpus |
+
+#### 11.9.3 Fix-Driven Entry Generation Protocol
+
+For each OIP-detected fix commit:
+
+1. **Extract the fix diff**: Identify what changed in the transpiler
+2. **Identify the input that triggered the bug**: Reconstruct the Rust DSL input
+3. **Determine the correct output**: What the transpiler should produce post-fix
+4. **Create 1-3 corpus entries**:
+   - **Entry A**: The exact regression case (minimal reproducer)
+   - **Entry B**: A generalized variant (different values, same pattern)
+   - **Entry C**: An edge case variant (boundary conditions)
+
+**Example** (from Issue #59 — nested quotes in command substitution):
+
+```
+Fix commit: "fix: handle nested quotes inside command substitution"
+OIP category: ASTTransform
+Severity: P1
+
+→ Corpus entry B-321:
+  Input:  fn main() { let out = command_output("echo \"hello\""); }
+  Output: out=$(echo "hello")
+  Tests:  Nested quoting preserved through transpilation
+```
+
+#### 11.9.4 Org-Wide Pattern Analysis
+
+Running `oip analyze --org paiml` across 28 repositories reveals cross-project defect patterns applicable to bashrs:
+
+| Cross-Project Pattern | Source Repos | bashrs Relevance |
+|---|---|---|
+| Off-by-one in range iteration | depyler, aprender | `for i in $(seq)` boundary values |
+| String escaping in code generation | depyler, decy | Quote handling in shell output |
+| Precedence errors in expression trees | depyler, decy | Arithmetic parenthesization |
+| Missing error path handling | trueno, aprender | Shell `set -e` interaction |
+
+These patterns inform corpus entries that test **cross-cutting concerns** — defect classes that appear in multiple transpiler projects and are likely to recur.
+
+#### 11.9.5 Continuous OIP Integration
+
+OIP analysis should be re-run periodically to discover new fix patterns:
+
+- **Per-release**: `oip extract-training-data --repo . --since <last-release-tag>`
+- **Monthly**: `oip analyze --org paiml` for cross-project patterns
+- **On regression**: Immediate `oip extract-training-data` on the fix commit to generate corpus entries
+
+Each OIP run produces a training data file (JSON) that is processed into corpus entries following the protocol in Section 11.9.3. The corpus grows monotonically (Section 1.2 — append-only rule) with each OIP cycle adding 10-30 entries.
+
+### 11.10 Cross-Project Techniques from depyler
+
+The `depyler` Python-to-Rust transpiler (same org) has developed three corpus-driven ML techniques that are directly applicable to bashrs. This section defines how each technique adapts to shell transpilation.
+
+> "Standing on the shoulders of sister projects is not reuse—it is organizational learning." — Adapted from Nonaka & Takeuchi (1995), *The Knowledge-Creating Company*.
+
+#### 11.10.1 Tarantula Fault Localization for Transpiler Decisions
+
+**Source**: `depyler-oracle/src/tarantula_corpus.rs` (Jones & Harrold, 2005)
+
+Tarantula assigns a **suspiciousness score** to each transpiler decision based on how strongly it correlates with corpus failures. In depyler, this identified `async_await` as the #1 priority (suspiciousness 0.946) when intuition suggested other features.
+
+**Adaptation to bashrs**:
+
+Each corpus entry's transpilation produces a **decision trace** — the sequence of emitter choices made:
+
+```rust
+struct TranspilerDecision {
+    /// e.g., "emit_for_range", "emit_if_condition", "emit_arithmetic"
+    decision_type: String,
+    /// e.g., "seq_inclusive", "test_bracket", "dollar_paren_paren"
+    choice: String,
+    /// Line in the Rust DSL input
+    source_span: (usize, usize),
+}
+```
+
+Tarantula scoring formula (Jones & Harrold, 2005):
+
+```
+suspiciousness(d) = (failed(d) / total_failed) / ((failed(d) / total_failed) + (passed(d) / total_passed))
+```
+
+Where `failed(d)` = number of failing corpus entries that exercised decision `d`, and `passed(d)` = number of passing entries that exercised it.
+
+**Expected output** (run periodically on corpus):
+
+```
+Decision                    Suspiciousness   Impact    Priority
+────────────────────────────────────────────────────────────────
+emit_nested_arithmetic      0.89             HIGH      Fix first
+emit_string_in_conditional  0.72             MEDIUM    Fix second
+emit_heredoc_expansion      0.68             MEDIUM    Investigate
+emit_brace_group            0.45             LOW       Monitor
+emit_simple_assignment      0.02             NONE      Stable
+```
+
+Decisions with suspiciousness > 0.7 trigger automatic corpus entry generation (Section 11.9.3) targeting the suspicious code path with adversarial inputs.
+
+#### 11.10.2 CITL (Compiler-in-the-Loop) Pattern Mining
+
+**Source**: `depyler-oracle/src/corpus_citl.rs` (entrenar `DecisionCITL`)
+
+CITL closes the feedback loop between transpiler output and downstream validation. In depyler, the "compiler" is `rustc` — transpiled Rust that fails `cargo check` generates training signal. In bashrs, the "compilers" are **shellcheck** and **/bin/sh execution**.
+
+**CITL feedback loop for bashrs**:
+
+```
+┌────────────────────┐     ┌──────────────────┐     ┌────────────────────┐
+│  Rust DSL Input    │────►│  bashrs Transpile │────►│  POSIX Shell Output│
+│  (corpus entry)    │     │  (decision trace) │     │  (generated .sh)   │
+└────────────────────┘     └──────────────────┘     └────────────────────┘
+                                                            │
+                           ┌────────────────────────────────┼──────────────┐
+                           │                                │              │
+                           ▼                                ▼              ▼
+                    ┌──────────────┐              ┌──────────────┐  ┌────────────┐
+                    │  shellcheck  │              │  sh -c exec  │  │  dash exec │
+                    │  (lint gate) │              │  (B3 behav.) │  │  (G cross) │
+                    └──────────────┘              └──────────────┘  └────────────┘
+                           │                                │              │
+                           └────────────────────────────────┼──────────────┘
+                                                            │
+                                                            ▼
+                                                 ┌──────────────────┐
+                                                 │  PatternStore    │
+                                                 │  (BM25 + Dense)  │
+                                                 │  error → fix map │
+                                                 └──────────────────┘
+```
+
+**Pattern store schema**:
+
+```rust
+struct ShellFixPattern {
+    /// Shellcheck error code or execution failure type
+    error_signal: String,        // e.g., "SC2086", "B3_timeout", "G_dash_fail"
+    /// Transpiler decision that caused the error
+    causal_decision: String,     // e.g., "emit_unquoted_variable"
+    /// Fix applied to the transpiler
+    fix_type: String,            // e.g., "add_double_quotes"
+    /// Confidence (0.0-1.0) from Tarantula suspiciousness
+    confidence: f64,
+    /// Corpus entries that demonstrated this pattern
+    evidence_ids: Vec<String>,   // e.g., ["B-042", "B-189", "B-336"]
+}
+```
+
+**Training cycle**:
+
+1. Run full corpus → collect all B3/D/G failures
+2. Extract decision traces from failing entries
+3. Match failure signals to decisions via Tarantula (Section 11.10.1)
+4. Build `ShellFixPattern` entries for each error→decision→fix triple
+5. On next transpilation, query PatternStore for known fixes when a decision is about to be made
+6. Log suggestions to convergence log for human review
+
+#### 11.10.3 Graph-Aware Corpus with Call Context
+
+**Source**: `depyler-oracle/src/graph_corpus.rs` (depyler-graph `VectorizedFailure`)
+
+Depyler enriches each corpus failure with **call graph context** — the in-degree, out-degree, callers, and callees of the function where the failure occurred. Functions with high connectivity (many callers) are higher priority because a fix has greater blast radius.
+
+**Adaptation to bashrs**:
+
+The Rust DSL inputs define functions. Each corpus entry can be enriched with graph context:
+
+```rust
+struct ShellGraphContext {
+    /// Function being transpiled
+    function_name: String,
+    /// Number of call sites in the corpus (how many entries call this function)
+    corpus_call_count: usize,
+    /// Functions this function calls
+    callees: Vec<String>,
+    /// Functions that call this function
+    callers: Vec<String>,
+    /// Whether this function is in the "hot path" (called by >5 entries)
+    is_high_connectivity: bool,
+}
+```
+
+**Prioritization formula**:
+
+```
+priority(f) = suspiciousness(f) × log2(1 + corpus_call_count(f))
+```
+
+A function that is both suspicious (high failure correlation) AND highly connected (many callers) gets top priority. This prevents fixing obscure one-off patterns when high-impact shared functions have bugs.
+
+**Example application**:
+
+| Function | Suspiciousness | Call Count | Priority | Action |
+|----------|---------------|------------|----------|--------|
+| `emit_arithmetic` | 0.89 | 45 | 4.94 | Fix immediately |
+| `emit_for_range` | 0.72 | 38 | 3.97 | Fix next |
+| `emit_heredoc` | 0.68 | 3 | 1.36 | Defer |
+| `emit_assignment` | 0.02 | 120 | 0.14 | Stable |
+
+#### 11.10.4 Weak Supervision and Error Deduplication
+
+**Source**: `depyler-oracle/src/corpus_extract.rs`
+
+Depyler deduplicates training errors by hashing `(error_code, message)` and tracks extraction cycles. This prevents the same shellcheck warning from inflating training data.
+
+**Adaptation to bashrs**:
+
+```rust
+struct ShellTrainingError {
+    /// Shellcheck code or execution failure type
+    error_code: String,
+    /// Error message (normalized — paths and line numbers stripped)
+    message: String,
+    /// Deduplication hash
+    hash: u64,
+    /// Which corpus run discovered this error
+    cycle: u32,
+    /// Risk classification (programmatic labeling)
+    risk: RiskLevel,  // HIGH, MEDIUM, LOW
+}
+
+enum RiskLevel {
+    /// Security-relevant (injection, unquoted expansion in eval)
+    High,
+    /// Correctness-relevant (wrong output, behavioral mismatch)
+    Medium,
+    /// Style/lint (shellcheck warnings that don't affect behavior)
+    Low,
+}
+```
+
+**Programmatic labeling rules** (weak supervision à la Snorkel, Ratner et al. 2017):
+
+| Rule | Condition | Label |
+|------|-----------|-------|
+| SEC_RULE | error_code matches SEC001-SEC008 | HIGH |
+| B3_FAIL | entry has B3 behavioral failure | HIGH |
+| G_FAIL | entry has cross-shell disagreement (sh vs dash) | MEDIUM |
+| LINT_ONLY | only shellcheck style warnings, B3 passes | LOW |
+| QUOTING | error_code is SC2086 (unquoted variable) | MEDIUM |
+
+This automated triage ensures fix effort is directed at high-risk failures first, following the Pareto principle (Juran, 1951): 80% of user-visible defects come from 20% of error categories.
+
+#### 11.10.5 Multi-Corpus Convergence Dashboard
+
+**Source**: depyler `improve-converge.md` (17 iterations tracked)
+
+Depyler tracks per-tier compile rates across 5 independent corpora at each iteration, with root cause analysis tables. Bashrs should adopt the same granular tracking.
+
+**Proposed convergence table format**:
+
+| Iteration | Date | Bash (350) | Makefile (150) | Dockerfile (150) | Total | Score | Notes |
+|-----------|------|-----------|---------------|------------------|-------|-------|-------|
+| 14 | 2026-02-07 | 349/350 | 150/150 | 150/150 | 649/650 | 99.9 | B-143 only failure |
+| 15 | 2026-02-08 | 349/350 | 150/150 | 150/150 | 649/650 | 99.9 | +30 OIP entries |
+| 16 | TBD | ? | ? | ? | ? | ? | CITL-driven entries |
+
+Each iteration records:
+- **Per-format pass rates** (not just aggregate)
+- **New entries added** (append-only count)
+- **Failures fixed** (transpiler changes)
+- **Root cause** for any new failures introduced
+
+This enables detection of **format-specific regressions** — a Makefile fix that accidentally breaks Bash entries would be immediately visible.
+
+#### 11.10.6 Implementation Roadmap
+
+| Phase | Technique | Effort | Prerequisite | Expected Impact |
+|-------|-----------|--------|-------------|-----------------|
+| 1 | Error deduplication + weak supervision (11.10.4) | 1 week | None | Prioritized fix backlog |
+| 2 | Decision tracing in emitter (11.10.1 prerequisite) | 2 weeks | None | Enables Tarantula + CITL |
+| 3 | Tarantula fault localization (11.10.1) | 1 week | Phase 2 | Data-driven prioritization |
+| 4 | CITL pattern store (11.10.2) | 2 weeks | Phases 2-3 | Automated fix suggestions |
+| 5 | Graph-aware prioritization (11.10.3) | 1 week | Phase 3 | Impact-weighted triage |
+| 6 | Convergence dashboard (11.10.5) | 3 days | None | Regression visibility |
+
+Phase 1 and Phase 6 are independent and can start immediately. Phases 2-5 are sequential.
+
 ---
 
 ## 12. References
@@ -1725,11 +2038,23 @@ Training data comes from real corpus grammar failures, following the same pipeli
 
 25. **Chen, J., Patra, J., Pradel, M., Xiong, Y., Zhang, H., Hao, D., & Zhang, L.** (2020). "A Survey of Compiler Testing." *ACM Computing Surveys*, 53(1), Article 4. DOI: 10.1145/3363562. (Survey of compiler testing techniques including differential testing, metamorphic testing, and EMI; relevant methodology for transpiler validation.)
 
+### v2.1 References (Cross-Project Techniques, Section 11.10)
+
+26. **Jones, J. A. & Harrold, M. J.** (2005). "Empirical Evaluation of the Tarantula Automatic Fault-Localization Technique." *Proceedings of the 20th IEEE/ACM International Conference on Automated Software Engineering (ASE)*, 273-282. DOI: 10.1145/1101908.1101949. (Tarantula suspiciousness scoring for fault localization; applied to transpiler decision tracing in Section 11.10.1.)
+
+27. **Zeller, A.** (2002). "Isolating Cause-Effect Chains from Computer Programs." *Proceedings of the 10th ACM SIGSOFT Symposium on Foundations of Software Engineering (FSE)*, 1-10. DOI: 10.1145/587051.587053. (Delta debugging and cause-effect chain isolation; theoretical basis for CITL pattern mining in Section 11.10.2.)
+
+28. **Ratner, A., Bach, S. H., Ehrenberg, H., Fries, J., Wu, S., & Ré, C.** (2017). "Snorkel: Rapid Training Data Creation with Weak Supervision." *Proceedings of the VLDB Endowment*, 11(3), 269-282. DOI: 10.14778/3157794.3157797. (Programmatic labeling functions for weak supervision; applied to error risk classification in Section 11.10.4.)
+
+29. **Nonaka, I. & Takeuchi, H.** (1995). *The Knowledge-Creating Company: How Japanese Companies Create the Dynamics of Innovation*. Oxford University Press. ISBN: 978-0195092691. (Organizational knowledge transfer; basis for cross-project technique adoption in Section 11.10.)
+
 ### Project-Specific
 
-26. **Gift, N.** (2025). "Depyler Corpus Registry and Convergence Methodology." Internal specification, paiml/depyler. (Corpus registry pattern, 100-point scoring system, multi-tier measurement.)
+30. **Gift, N.** (2025). "Depyler Corpus Registry and Convergence Methodology." Internal specification, paiml/depyler. (Corpus registry pattern, 100-point scoring system, multi-tier measurement.)
 
-27. **bashrs CLAUDE.md** (2024-2026). Project development guidelines. (EXTREME TDD, STOP THE LINE, assert_cmd mandate, unwrap policy.)
+31. **Gift, N.** (2026). "Depyler Oracle: CITL Pattern Mining, Tarantula Fault Localization, and Graph-Aware Corpus." Internal implementation, paiml/depyler `crates/depyler-oracle/`. (Source implementations for Sections 11.10.1-11.10.3.)
+
+32. **bashrs CLAUDE.md** (2024-2026). Project development guidelines. (EXTREME TDD, STOP THE LINE, assert_cmd mandate, unwrap policy.)
 
 ---
 
@@ -1772,7 +2097,7 @@ Rate
     Phase 1        Phase 2       Phase 3     Phase 4 (repeating sawtooth)
     (Tier 1)       (Tier 2-3)    (Tier 4-5)  (Add entries → rate drops → fix → recover)
 
-Corpus size: 30   100  100  200  200  250  350  350  400  500  500  550  600
+Corpus size: 30   100  100  200  200  250  350  350  400  500  500  550  600  620
 ```
 
 The convergence curve follows a **sawtooth pattern**, NOT a monotonic sigmoid. Each time 100% is reached, new harder entries are added, causing the rate to drop temporarily. The transpiler is then improved to recover. This is the healthy Kaizen cadence: perpetual challenge and improvement.
