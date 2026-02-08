@@ -741,6 +741,17 @@ pub enum CorpusCommands {
         top: Option<usize>,
     },
 
+    /// Risk classification of corpus failures by severity (spec §11.10.4)
+    Risk {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// Filter by risk level (high, medium, low)
+        #[arg(long)]
+        level: Option<String>,
+    },
+
     /// Generate Five Whys root cause template for a failing entry (spec §11.10.3)
     WhyFailed {
         /// Entry ID (e.g., B-143)

@@ -5163,6 +5163,10 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
             corpus_pareto_analysis(&format, filter.as_ref(), top)
         }
 
+        CorpusCommands::Risk { format, level } => {
+            corpus_risk_analysis(&format, level.as_deref())
+        }
+
         CorpusCommands::WhyFailed { id, format } => {
             corpus_why_failed(&id, &format)
         }
@@ -5771,6 +5775,96 @@ fn corpus_classify_all(
                     count: tier_counts[t as usize],
                 }).collect(),
             };
+            let json = serde_json::to_string_pretty(&result)
+                .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+/// Classify a V2 dimension failure by risk level (spec §11.10.4).
+fn dimension_risk(dim: &str) -> &'static str {
+    match dim {
+        "A" => "HIGH",     // transpilation failure = can't use output at all
+        "B3" => "HIGH",    // behavioral = execution fails/hangs
+        "E" => "HIGH",     // non-deterministic = unreliable output
+        "D" => "MEDIUM",   // lint violations = quality issue
+        "G" => "MEDIUM",   // cross-shell = portability issue
+        "F" => "MEDIUM",   // metamorphic = consistency issue
+        "B1" => "LOW",     // containment = output semantics
+        "B2" => "LOW",     // exact match = cosmetic
+        _ => "LOW",
+    }
+}
+
+/// Collect classified failures from corpus results, optionally filtered by risk level.
+fn collect_risk_failures<'a>(
+    results: &'a [crate::corpus::runner::CorpusResult],
+    level_filter: Option<&str>,
+) -> Vec<(&'a str, &'static str, &'static str)> {
+    let mut classified = Vec::new();
+    for r in results {
+        for dim in result_fail_dims(r) {
+            let risk = dimension_risk(dim);
+            if level_filter.map_or(true, |f| risk.eq_ignore_ascii_case(f)) {
+                classified.push((r.id.as_str(), dim, risk));
+            }
+        }
+    }
+    classified
+}
+
+/// Print risk group for a given level.
+fn risk_print_group(classified: &[(&str, &str, &str)], label: &str, color: &str, count: usize) {
+    use crate::cli::color::*;
+    if count == 0 { return; }
+    println!("  {color}{BOLD}{label}{RESET} ({count}):");
+    for (id, dim, risk) in classified {
+        if *risk == label {
+            println!("    {color}{id}{RESET} — {dim}");
+        }
+    }
+    println!();
+}
+
+/// Risk analysis: classify corpus failures by HIGH/MEDIUM/LOW risk (spec §11.10.4).
+fn corpus_risk_analysis(format: &CorpusOutputFormat, level_filter: Option<&str>) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    let classified = collect_risk_failures(&score.results, level_filter);
+    let high = classified.iter().filter(|(_, _, r)| *r == "HIGH").count();
+    let medium = classified.iter().filter(|(_, _, r)| *r == "MEDIUM").count();
+    let low = classified.iter().filter(|(_, _, r)| *r == "LOW").count();
+
+    match format {
+        CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+            println!("{BOLD}Risk Classification: Corpus Failures{RESET}");
+            println!("{DIM}Total failures: {} (HIGH: {high}, MEDIUM: {medium}, LOW: {low}){RESET}",
+                classified.len());
+            println!();
+            if classified.is_empty() {
+                println!("  {GREEN}No failures to classify.{RESET}");
+                return Ok(());
+            }
+            risk_print_group(&classified, "HIGH", BRIGHT_RED, high);
+            risk_print_group(&classified, "MEDIUM", YELLOW, medium);
+            risk_print_group(&classified, "LOW", DIM, low);
+        }
+        CorpusOutputFormat::Json => {
+            let result = serde_json::json!({
+                "total": classified.len(),
+                "high": high, "medium": medium, "low": low,
+                "failures": classified.iter().map(|(id, dim, risk)| serde_json::json!({
+                    "id": id, "dimension": dim, "risk": risk,
+                })).collect::<Vec<_>>(),
+            });
             let json = serde_json::to_string_pretty(&result)
                 .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
             println!("{json}");
