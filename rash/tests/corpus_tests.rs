@@ -311,6 +311,7 @@ fn test_CORPUS_012_convergence_detection() {
             rate: 0.99,
             delta: 0.002,
             notes: "stable".to_string(),
+            ..Default::default()
         },
         ConvergenceEntry {
             iteration: 2,
@@ -321,6 +322,7 @@ fn test_CORPUS_012_convergence_detection() {
             rate: 0.995,
             delta: 0.004,
             notes: "stable".to_string(),
+            ..Default::default()
         },
         ConvergenceEntry {
             iteration: 3,
@@ -331,6 +333,7 @@ fn test_CORPUS_012_convergence_detection() {
             rate: 0.995,
             delta: 0.0,
             notes: "converged".to_string(),
+            ..Default::default()
         },
     ];
     assert!(
@@ -354,6 +357,7 @@ fn test_CORPUS_013_convergence_not_met() {
             rate: 0.95,
             delta: 0.001,
             notes: "not met".to_string(),
+            ..Default::default()
         },
         ConvergenceEntry {
             iteration: 2,
@@ -364,6 +368,7 @@ fn test_CORPUS_013_convergence_not_met() {
             rate: 0.96,
             delta: 0.01,
             notes: "not met".to_string(),
+            ..Default::default()
         },
         ConvergenceEntry {
             iteration: 3,
@@ -374,6 +379,7 @@ fn test_CORPUS_013_convergence_not_met() {
             rate: 0.97,
             delta: 0.01,
             notes: "not met".to_string(),
+            ..Default::default()
         },
     ];
     assert!(
