@@ -5410,6 +5410,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Decisions => {
             corpus_decisions()
         }
+
+        CorpusCommands::Patterns => {
+            corpus_patterns()
+        }
+
+        CorpusCommands::PatternQuery { signal } => {
+            corpus_pattern_query(&signal)
+        }
+
+        CorpusCommands::FixSuggest { id } => {
+            corpus_fix_suggest(&id)
+        }
     }
 }
 
@@ -10173,6 +10185,173 @@ fn corpus_decisions() -> Result<()> {
     }
 
     println!("\n  {DIM}Total unique decisions: {}{RESET}", sorted.len());
+    println!();
+    Ok(())
+}
+
+/// Mine and display CITL fix patterns (§11.10.2).
+fn corpus_patterns() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::pattern_store::mine_patterns;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let store = mine_patterns(&registry, &runner);
+
+    println!(
+        "\n  {BOLD}CITL Pattern Store{RESET}  ({} traced, {} failures)",
+        store.total_entries, store.total_failures
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(76));
+
+    if store.patterns.is_empty() {
+        println!("  {BRIGHT_GREEN}No failure patterns — all entries pass{RESET}");
+        println!();
+        return Ok(());
+    }
+
+    println!(
+        "  {DIM}{:<22}  {:<30}  {:>10}  {:<12}{RESET}",
+        "Signal", "Decision", "Confidence", "Evidence"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(76));
+
+    for pattern in &store.patterns {
+        let (_, color) = score_impact_color(pattern.confidence);
+        let evidence = if pattern.evidence_ids.len() <= 3 {
+            pattern.evidence_ids.join(", ")
+        } else {
+            format!(
+                "{}, ... +{}",
+                pattern.evidence_ids[..2].join(", "),
+                pattern.evidence_ids.len() - 2
+            )
+        };
+        println!(
+            "  {:<22}  {color}{:<30}{RESET}  {:>10.4}  {DIM}{:<12}{RESET}",
+            pattern.error_signal, pattern.causal_decision, pattern.confidence, evidence
+        );
+    }
+
+    println!(
+        "\n  {DIM}Total patterns: {} (version {}){RESET}",
+        store.patterns.len(),
+        store.version
+    );
+    println!();
+    Ok(())
+}
+
+/// Query CITL patterns for a specific error signal (§11.10.2).
+fn corpus_pattern_query(signal: &str) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::pattern_store::mine_patterns;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let store = mine_patterns(&registry, &runner);
+
+    let matching: Vec<_> = store
+        .patterns
+        .iter()
+        .filter(|p| p.error_signal == signal)
+        .collect();
+
+    println!("\n  {BOLD}Patterns for:{RESET} {CYAN}{signal}{RESET}");
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    if matching.is_empty() {
+        println!("  {DIM}No patterns found for signal '{signal}'{RESET}");
+        println!("  {DIM}Known signals: A_transpile_fail, B1_containment_fail, B2_exact_fail,");
+        println!("  B3_behavioral_fail, D_lint_fail, G_cross_shell_fail{RESET}");
+        println!();
+        return Ok(());
+    }
+
+    println!(
+        "  {DIM}{:<30}  {:>10}  {:<16}  {:<12}{RESET}",
+        "Decision", "Confidence", "Fix Type", "Evidence"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    for pattern in &matching {
+        let (_, color) = score_impact_color(pattern.confidence);
+        let evidence = pattern.evidence_ids.join(", ");
+        println!(
+            "  {color}{:<30}{RESET}  {:>10.4}  {:<16}  {DIM}{:<12}{RESET}",
+            pattern.causal_decision, pattern.confidence, pattern.fix_type, evidence
+        );
+    }
+
+    println!();
+    Ok(())
+}
+
+/// Suggest fixes for a failing corpus entry (§11.10.2).
+fn corpus_fix_suggest(id: &str) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::pattern_store::{classify_failure_signals, mine_patterns, suggest_fixes};
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    // Verify entry exists
+    let entry = registry
+        .entries
+        .iter()
+        .find(|e| e.id == id)
+        .ok_or_else(|| Error::Validation(format!("Corpus entry '{id}' not found")))?;
+
+    // Get current result to show failure signals
+    let result = runner.run_entry_with_trace(entry);
+    let signals = classify_failure_signals(&result);
+
+    if signals.is_empty() {
+        println!("\n  {BRIGHT_GREEN}{id} passes all checks — no fixes needed{RESET}\n");
+        return Ok(());
+    }
+
+    let signal_list = signals.join(", ");
+    println!(
+        "\n  {BOLD}Fix Suggestions for {CYAN}{id}{RESET} ({BRIGHT_RED}{signal_list}{RESET})"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    let store = mine_patterns(&registry, &runner);
+    let suggestions = suggest_fixes(id, &registry, &runner, &store);
+
+    if suggestions.is_empty() {
+        println!("  {DIM}No pattern-based suggestions available for this entry{RESET}");
+        println!(
+            "  {DIM}(decision trace may not match any known failure patterns){RESET}"
+        );
+        println!();
+        return Ok(());
+    }
+
+    println!(
+        "  {DIM}{:<4}  {:<30}  {:<18}  {:>10}{RESET}",
+        "#", "Decision", "Fix Type", "Confidence"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    for (i, suggestion) in suggestions.iter().enumerate() {
+        let (_, color) = score_impact_color(suggestion.confidence);
+        println!(
+            "  {WHITE}#{:<3}{RESET}  {color}{:<30}{RESET}  {:<18}  {:>10.4}",
+            i + 1,
+            suggestion.causal_decision,
+            suggestion.fix_type,
+            suggestion.confidence
+        );
+    }
+
     println!();
     Ok(())
 }

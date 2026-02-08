@@ -1094,6 +1094,23 @@ pub enum CorpusCommands {
 
     /// Decision frequency and pass/fail correlation summary (§11.10.1)
     Decisions,
+
+    /// Mine CITL fix patterns from corpus failures (§11.10.2)
+    Patterns,
+
+    /// Query CITL patterns for a specific error signal (§11.10.2)
+    PatternQuery {
+        /// Error signal to query (e.g. B3_behavioral_fail, D_lint_fail, G_cross_shell_fail)
+        #[arg(value_name = "SIGNAL")]
+        signal: String,
+    },
+
+    /// Suggest fixes for a failing corpus entry (§11.10.2)
+    FixSuggest {
+        /// Entry ID (e.g. B-143)
+        #[arg(value_name = "ID")]
+        id: String,
+    },
 }
 
 /// Corpus output format
