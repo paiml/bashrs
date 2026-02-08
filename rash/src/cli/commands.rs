@@ -5155,6 +5155,10 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
             corpus_classify_difficulty(&id, &format)
         }
 
+        CorpusCommands::Validate { format } => {
+            corpus_validate(&format)
+        }
+
         CorpusCommands::Pareto { format, filter, top } => {
             corpus_pareto_analysis(&format, filter.as_ref(), top)
         }
@@ -5767,6 +5771,83 @@ fn corpus_classify_all(
                     count: tier_counts[t as usize],
                 }).collect(),
             };
+            let json = serde_json::to_string_pretty(&result)
+                .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+/// Validate a single corpus entry and return issues found.
+fn validate_corpus_entry(
+    entry: &crate::corpus::registry::CorpusEntry,
+    seen_ids: &mut std::collections::HashSet<String>,
+) -> Vec<String> {
+    use crate::corpus::registry::CorpusFormat;
+    let mut issues = Vec::new();
+
+    if !seen_ids.insert(entry.id.clone()) {
+        issues.push("Duplicate ID".to_string());
+    }
+    let valid_prefix = match entry.format {
+        CorpusFormat::Bash => entry.id.starts_with("B-"),
+        CorpusFormat::Makefile => entry.id.starts_with("M-"),
+        CorpusFormat::Dockerfile => entry.id.starts_with("D-"),
+    };
+    if !valid_prefix {
+        issues.push(format!("ID prefix doesn't match format {:?}", entry.format));
+    }
+    if entry.name.is_empty() { issues.push("Empty name".to_string()); }
+    if entry.description.is_empty() { issues.push("Empty description".to_string()); }
+    if entry.input.is_empty() { issues.push("Empty input".to_string()); }
+    if entry.expected_output.is_empty() { issues.push("Empty expected_output".to_string()); }
+    if entry.format == CorpusFormat::Bash && !entry.input.contains("fn main()") {
+        issues.push("Bash entry missing fn main()".to_string());
+    }
+    issues
+}
+
+/// Validate all corpus entries for metadata correctness (spec §2.3).
+fn corpus_validate(format: &CorpusOutputFormat) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+
+    let registry = CorpusRegistry::load_full();
+    let mut seen_ids = std::collections::HashSet::new();
+    let mut all_issues: Vec<(String, String)> = Vec::new();
+
+    for entry in &registry.entries {
+        for issue in validate_corpus_entry(entry, &mut seen_ids) {
+            all_issues.push((entry.id.clone(), issue));
+        }
+    }
+
+    match format {
+        CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+            println!("{BOLD}Corpus Validation: {} entries{RESET}", registry.entries.len());
+            let bash_count = registry.entries.iter().filter(|e| e.format == CorpusFormat::Bash).count();
+            let make_count = registry.entries.iter().filter(|e| e.format == CorpusFormat::Makefile).count();
+            let dock_count = registry.entries.iter().filter(|e| e.format == CorpusFormat::Dockerfile).count();
+            println!("  {DIM}Bash: {bash_count}, Makefile: {make_count}, Dockerfile: {dock_count}{RESET}");
+            println!();
+            if all_issues.is_empty() {
+                println!("  {GREEN}All entries valid — no issues found.{RESET}");
+            } else {
+                println!("  {BRIGHT_RED}{} issue(s) found:{RESET}", all_issues.len());
+                for (id, msg) in &all_issues {
+                    println!("    {BRIGHT_RED}{id}{RESET}: {msg}");
+                }
+            }
+        }
+        CorpusOutputFormat::Json => {
+            let result = serde_json::json!({
+                "total_entries": registry.entries.len(),
+                "issues_count": all_issues.len(),
+                "issues": all_issues.iter().map(|(id, msg)| serde_json::json!({
+                    "id": id, "issue": msg
+                })).collect::<Vec<_>>(),
+            });
             let json = serde_json::to_string_pretty(&result)
                 .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
             println!("{json}");
