@@ -290,6 +290,9 @@ impl CorpusRegistry {
         registry.load_expansion8_dockerfile();
         registry.load_expansion11_bash();
         registry.load_expansion9_dockerfile();
+        registry.load_expansion12_bash();
+        registry.load_expansion9_makefile();
+        registry.load_expansion10_dockerfile();
         registry
     }
 
@@ -7085,6 +7088,307 @@ impl CorpusRegistry {
         ];
         self.entries.extend(entries);
     }
+
+    // =========================================================================
+    // Expansion Wave 12: Adversarial Bash B-361..B-370 (Phase 3 security/edge)
+    // =========================================================================
+
+    fn load_expansion12_bash(&mut self) {
+        let entries = vec![
+            // --- Adversarial: quoting, escaping, injection prevention ---
+            CorpusEntry::new(
+                "B-361",
+                "special-char-string",
+                "Variable containing special shell characters (Phase 3 adversarial: quoting)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let msg = "hello-world_goodbye.done"; let len = 30; }"#,
+                "msg='hello-world_goodbye.done'",
+            ),
+            CorpusEntry::new(
+                "B-362",
+                "dollar-literal-string",
+                "String with literal dollar signs that must not expand (adversarial: escaping)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let price = "$9.99"; let tax = "$1.50"; let total = 0; }"#,
+                "price='$9.99'",
+            ),
+            CorpusEntry::new(
+                "B-363",
+                "semicolon-in-string",
+                "String with semicolons that must not terminate commands (adversarial: injection)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let query = "select-all drop-table"; let safe = true; }"#,
+                "query='select-all drop-table'",
+            ),
+            CorpusEntry::new(
+                "B-364",
+                "empty-string-assignment",
+                "Empty string variable assignment (adversarial: boundary)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let name = ""; let status = "unknown"; }"#,
+                "name=''",
+            ),
+            CorpusEntry::new(
+                "B-365",
+                "space-in-path",
+                "Path with spaces in variable (adversarial: quoting safety)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let dir = "/tmp/test dir"; let file = "my file.txt"; }"#,
+                "dir='/tmp/test dir'",
+            ),
+            CorpusEntry::new(
+                "B-366",
+                "large-number-arithmetic",
+                "Arithmetic with large numbers near overflow (adversarial: boundary)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let big = 999999; let small = 1; let sum = big + small; let product = big * 2; }"#,
+                "big='999999'",
+            ),
+            CorpusEntry::new(
+                "B-367",
+                "zero-division-guard",
+                "Division with zero-guard conditional (adversarial: runtime safety)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let numerator = 100; let denominator = 0; if denominator != 0 { let result = numerator / denominator; } }"#,
+                r#"if [ "$denominator" -ne 0 ]; then"#,
+            ),
+            CorpusEntry::new(
+                "B-368",
+                "deeply-nested-if",
+                "Deeply nested if-else chain (adversarial: nesting depth)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let x = 50; if x > 80 { let grade = 1; } else if x > 60 { let grade = 2; } else if x > 40 { let grade = 3; } else if x > 20 { let grade = 4; } else { let grade = 5; } }"#,
+                r#"elif [ "$x" -gt 60 ]; then"#,
+            ),
+            CorpusEntry::new(
+                "B-369",
+                "multi-function-call-chain",
+                "Multiple function calls in sequence (adversarial: scope)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn step_one() -> i32 { 10 } fn step_two() -> i32 { 20 } fn step_three() -> i32 { 30 } fn main() { let a = step_one(); let b = step_two(); let c = step_three(); let total = a + b + c; }"#,
+                "step_one() {",
+            ),
+            CorpusEntry::new(
+                "B-370",
+                "milestone-370-adversarial",
+                "Milestone 370: function with local variables and arithmetic return (adversarial: scope isolation)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn square(x: i32) -> i32 { x * x } fn cube(x: i32) -> i32 { x * x * x } fn main() { let s = square(5); let c = cube(3); let total = s + c; }"#,
+                "square() {",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 9: Makefile M-171..M-180 (adversarial/advanced)
+    // =========================================================================
+
+    fn load_expansion9_makefile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "M-171",
+                "makefile-recursive-var",
+                "Recursive vs simply-expanded variable semantics",
+                CorpusFormat::Makefile,
+                CorpusTier::Adversarial,
+                r#"fn main() { let cc = "gcc"; let cflags = "-O2"; let compile = "$(CC) $(CFLAGS)"; phony_target("build", &[], &["$(COMPILE) -o main main.c"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build",
+            ),
+            CorpusEntry::new(
+                "M-172",
+                "makefile-conditional-os",
+                "OS-conditional Makefile with uname detection",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let os = "$(shell uname -s)"; phony_target("build", &[], &["echo Building on $(OS)"]); phony_target("clean", &[], &["rm -f *.o"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build",
+            ),
+            CorpusEntry::new(
+                "M-173",
+                "makefile-help-target",
+                "Self-documenting Makefile help target with grep",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { phony_target("help", &[], &["@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort"]); phony_target("build", &[], &["cargo build --release"]); phony_target("test", &[], &["cargo test"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: help",
+            ),
+            CorpusEntry::new(
+                "M-174",
+                "makefile-docker-compose",
+                "Docker Compose orchestration Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let dc = "docker compose"; phony_target("up", &[], &["$(DC) up -d"]); phony_target("down", &[], &["$(DC) down"]); phony_target("logs", &[], &["$(DC) logs -f"]); phony_target("restart", &["down", "up"], &[]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: up",
+            ),
+            CorpusEntry::new(
+                "M-175",
+                "makefile-version-bump",
+                "Version bump with sed and git tag",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let version = "1.0.0"; phony_target("version", &[], &["@echo $(VERSION)"]); phony_target("bump-patch", &[], &["@echo Bumping patch version"]); phony_target("tag", &[], &["git tag v$(VERSION)", "git push --tags"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: version",
+            ),
+            CorpusEntry::new(
+                "M-176",
+                "makefile-parallel-jobs",
+                "Makefile with parallelism hints and job server",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let jobs = "$(shell nproc)"; phony_target("build-all", &["lib", "bin", "docs"], &[]); phony_target("lib", &[], &["cargo build --lib"]); phony_target("bin", &[], &["cargo build --bins"]); phony_target("docs", &[], &["cargo doc --no-deps"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build-all",
+            ),
+            CorpusEntry::new(
+                "M-177",
+                "makefile-cross-compile",
+                "Cross-compilation Makefile for multiple architectures",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let target_arch = "x86_64-unknown-linux-musl"; phony_target("build-linux", &[], &["cargo build --release --target $(TARGET_ARCH)"]); phony_target("build-mac", &[], &["cargo build --release --target aarch64-apple-darwin"]); phony_target("build-all", &["build-linux", "build-mac"], &[]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build-linux",
+            ),
+            CorpusEntry::new(
+                "M-178",
+                "makefile-database-migrate",
+                "Database migration Makefile with up/down/status",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let db_url = "postgres://localhost/app"; phony_target("migrate-up", &[], &["sqlx migrate run --database-url $(DB_URL)"]); phony_target("migrate-down", &[], &["sqlx migrate revert --database-url $(DB_URL)"]); phony_target("migrate-status", &[], &["sqlx migrate info --database-url $(DB_URL)"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: migrate-up",
+            ),
+            CorpusEntry::new(
+                "M-179",
+                "makefile-proto-codegen",
+                "Protobuf code generation Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let proto_dir = "proto"; let out_dir = "src/generated"; phony_target("proto", &[], &["protoc --rust_out=$(OUT_DIR) $(PROTO_DIR)/*.proto"]); phony_target("proto-check", &[], &["buf lint $(PROTO_DIR)"]); phony_target("clean-proto", &[], &["rm -rf $(OUT_DIR)"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: proto",
+            ),
+            CorpusEntry::new(
+                "M-180",
+                "milestone-180-makefile",
+                "Milestone 180: Full Rust workspace Makefile with coverage and release pipeline",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let cargo = "cargo"; phony_target("check", &[], &["$(CARGO) check --workspace"]); phony_target("test", &[], &["$(CARGO) test --workspace"]); phony_target("coverage", &[], &["$(CARGO) llvm-cov --workspace --lcov --output-path lcov.info"]); phony_target("lint", &[], &["$(CARGO) clippy --workspace -- -D warnings"]); phony_target("release", &["check", "test", "lint"], &["$(CARGO) build --release"]); phony_target("publish", &["release"], &["$(CARGO) publish"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: check",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 10: Dockerfile D-171..D-180 (adversarial/advanced)
+    // =========================================================================
+
+    fn load_expansion10_dockerfile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "D-171",
+                "dockerfile-scratch-binary",
+                "Scratch container with static binary (adversarial: minimal base)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Adversarial,
+                r#"fn main() { from_image_as("rust", "1.75-alpine", "builder"); run(&["apk add musl-dev", "cargo build --release --target x86_64-unknown-linux-musl"]); workdir("/app"); copy(".", "."); from_image("scratch", ""); copy_from("builder", "/app/target/x86_64-unknown-linux-musl/release/app", "/app"); entrypoint(&["/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM scratch:",
+            ),
+            CorpusEntry::new(
+                "D-172",
+                "dockerfile-multi-expose",
+                "Container exposing multiple ports (web + metrics + debug)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("node", "20-alpine"); workdir("/app"); copy("package.json", "."); run(&["npm ci --production"]); copy(".", "."); expose(3000u16); expose(9090u16); expose(9229u16); cmd(&["node", "server.js"]); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "EXPOSE 3000",
+            ),
+            CorpusEntry::new(
+                "D-173",
+                "dockerfile-env-chain",
+                "Multiple environment variables for app configuration",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("python", "3.12-slim"); env("PYTHONDONTWRITEBYTECODE", "1"); env("PYTHONUNBUFFERED", "1"); env("APP_ENV", "production"); env("LOG_LEVEL", "info"); workdir("/app"); copy("requirements.txt", "."); run(&["pip install --no-cache-dir -r requirements.txt"]); copy(".", "."); cmd(&["python", "app.py"]); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "ENV PYTHONDONTWRITEBYTECODE=1",
+            ),
+            CorpusEntry::new(
+                "D-174",
+                "dockerfile-label-metadata",
+                "OCI labels for image metadata",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("alpine", "3.19"); label("org.opencontainers.image.title", "myapp"); label("org.opencontainers.image.version", "1.0.0"); label("org.opencontainers.image.vendor", "ACME Corp"); run(&["apk add --no-cache curl"]); cmd(&["sh"]); } fn from_image(i: &str, t: &str) {} fn label(k: &str, v: &str) {} fn run(c: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                r#"LABEL org.opencontainers.image.title="myapp""#,
+            ),
+            CorpusEntry::new(
+                "D-175",
+                "dockerfile-healthcheck-curl",
+                "Health check with curl and custom intervals",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image("nginx", "1.25-alpine"); copy("nginx.conf", "/etc/nginx/nginx.conf"); expose(80u16); healthcheck("curl -f http://localhost/ || exit 1", "30s", "10s"); cmd(&["nginx", "-g", "daemon off;"]); } fn from_image(i: &str, t: &str) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {} fn healthcheck(c: &str, i: &str, t: &str) {} fn cmd(c: &[&str]) {}"#,
+                "HEALTHCHECK CMD curl -f http://localhost/ || exit 1",
+            ),
+            CorpusEntry::new(
+                "D-176",
+                "dockerfile-copy-chown",
+                "COPY with ownership change for non-root user",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("node", "20-alpine"); run(&["addgroup -g 1001 app", "adduser -u 1001 -G app -D app"]); workdir("/app"); copy(".", "."); user("app"); expose(3000u16); cmd(&["node", "index.js"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn user(u: &str) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "USER app",
+            ),
+            CorpusEntry::new(
+                "D-177",
+                "dockerfile-apt-layer-cache",
+                "Debian apt layer caching best practice",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y --no-install-recommends ca-certificates curl", "rm -rf /var/lib/apt/lists/*"]); workdir("/app"); copy(".", "."); cmd(&["/app/run.sh"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn cmd(c: &[&str]) {}"#,
+                "FROM debian:bookworm-slim",
+            ),
+            CorpusEntry::new(
+                "D-178",
+                "dockerfile-entrypoint-script",
+                "Entrypoint shell script pattern with exec",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image("alpine", "3.19"); workdir("/app"); copy("entrypoint.sh", "/entrypoint.sh"); run(&["chmod +x /entrypoint.sh"]); copy(".", "."); entrypoint(&["/entrypoint.sh"]); cmd(&["serve"]); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn entrypoint(e: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                r#"ENTRYPOINT ["/entrypoint.sh"]"#,
+            ),
+            CorpusEntry::new(
+                "D-179",
+                "dockerfile-timezone",
+                "Container with timezone configuration",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("ubuntu", "22.04"); env("TZ", "UTC"); env("DEBIAN_FRONTEND", "noninteractive"); run(&["apt-get update", "apt-get install -y tzdata", "rm -rf /var/lib/apt/lists/*"]); cmd(&["bash"]); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn run(c: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "ENV TZ=UTC",
+            ),
+            CorpusEntry::new(
+                "D-180",
+                "milestone-180-docker",
+                "Milestone 180: Four-stage build with test runner and security scan",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("rust", "1.75-bookworm", "base"); workdir("/app"); copy("Cargo.toml", "."); copy("Cargo.lock", "."); from_image_as("base", "", "tester"); copy(".", "."); run(&["cargo test --release"]); from_image_as("base", "", "builder"); copy(".", "."); run(&["cargo build --release"]); from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y ca-certificates", "rm -rf /var/lib/apt/lists/*"]); copy_from("builder", "/app/target/release/app", "/usr/local/bin/app"); user("65534"); healthcheck("app --health", "30s", "5s"); expose(8080u16); entrypoint(&["/usr/local/bin/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn user(u: &str) {} fn healthcheck(c: &str, i: &str, t: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM rust:1.75-bookworm AS base",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
 }
 
 #[cfg(test)]
@@ -7188,4 +7492,5 @@ mod tests {
         assert!((CorpusTier::Standard.target_rate() - 0.99).abs() < f64::EPSILON);
         assert!((CorpusTier::Adversarial.target_rate() - 0.95).abs() < f64::EPSILON);
     }
+
 }

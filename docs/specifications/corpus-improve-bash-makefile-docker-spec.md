@@ -108,8 +108,9 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 | Iteration 13 | 330 entries | ~98% | Expansion waves 3-4 | DONE (iter 13: 330/330, 100%) |
 | Iteration 14 | 500 entries | ~99% | Full corpus target reached | DONE (iter 14: 500/500, 100%, bug #8 fixed) |
 | Iteration 15 | 550 entries | ~99% | OIP-driven fix-pattern entries (B-321..B-350) | DONE (iter 15: 550/550, 100%) |
-| Iteration 15+ | 620+ entries | 99%+ | OIP-driven fix-pattern entries | ONGOING |
-| Ongoing | 620+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
+| Iteration 15+ | 700 entries | 99%+ | pmat coverage-gap + Dockerfile/Makefile balance | DONE (iter 15+: 700/700, 99.9/100) |
+| Iteration 16 | 730 entries | 99%+ | Phase 3 adversarial + advanced patterns | DONE (iter 16: 730/730, 99.9/100) |
+| Ongoing | 730+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
 
