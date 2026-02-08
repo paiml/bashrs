@@ -1,8 +1,8 @@
 # Corpus-Driven Transpilation Quality Specification
 
-**Version**: 2.0.0
-**Date**: 2026-02-07
-**Status**: Draft (v2 — research design for quantifiable correctness)
+**Version**: 2.1.0
+**Date**: 2026-02-08
+**Status**: Draft (v2.1 — merged ML linting spec BASHRS-SPEC-ML-001 into Section 11.13)
 **Methodology**: EXTREME TDD + Popperian Falsification + Toyota Production System + Metamorphic Testing
 
 ## Executive Summary
@@ -831,6 +831,8 @@ max_parameters = 5
 level = "error"     # "warn", "error", or "block"
 ```
 
+> **See also**: Section 11.13.7 for ML-specific quality gates (SBFL accuracy, Oracle F1, report render time).
+
 ### 8.2 `.pmat-metrics.toml`
 
 ```toml
@@ -1341,6 +1343,8 @@ The in-tree oracle uses a 73-feature vector (20 lexical + 25 structural + 28 sem
 | Semantic | 8 | has_shebang, uses_set_e, uses_set_u, has_trap, uses_eval, uses_source, has_heredoc, uses_arithmetic |
 | Quality | 6 | lint_violation_count, lint_severity_max, determinism_score, idempotency_score, quoting_ratio, shellcheck_issue_count |
 
+> **See also**: Section 11.13.3 for full Oracle implementation details (k-NN, Random Forest, feature extraction, drift detection, fix pattern library).
+
 #### 11.5.2 Training Pipeline
 
 ```
@@ -1444,6 +1448,8 @@ let accuracy = rf.score(&x_test, &y_test);
 **Cross-validation** (`src/model_selection/mod.rs`):
 - `CrossValidationResult { scores: Vec<f32> }` — k-fold CV
 - `cross_validate(&model, &x, &y, &kfold) -> Result<CrossValidationResult>`
+
+> **See also**: Section 11.13.3 for the Oracle training pipeline that consumes these Aprender APIs.
 
 #### 11.7.2 Poka-Yoke Quality Gates (APR-POKA-001)
 
@@ -1770,6 +1776,8 @@ The `depyler` Python-to-Rust transpiler (same org) has developed three corpus-dr
 **Source**: `depyler-oracle/src/tarantula_corpus.rs` (Jones & Harrold, 2005)
 
 Tarantula assigns a **suspiciousness score** to each transpiler decision based on how strongly it correlates with corpus failures. In depyler, this identified `async_await` as the #1 priority (suspiciousness 0.946) when intuition suggested other features.
+
+> **See also**: Section 11.13.2 for the implemented SBFL module (`rash/src/quality/sbfl.rs`) with 5 formulas and 16+ tests.
 
 **Adaptation to bashrs**:
 
@@ -2295,6 +2303,8 @@ For each tool T in {true, false, echo, seq, factor, ...}:
 - JSON output must remain uncolored (ANSI codes only in Human format)
 - All CLI commands produce colorized output in Human format
 
+> **See also**: Section 11.13.4 for rich ASCII lint reporting (box-drawing, sparklines, histogram bars) that builds on this color palette.
+
 #### ANSI Color Palette
 
 | Semantic Element | ANSI Code | Constant | Example Usage |
@@ -2446,6 +2456,171 @@ Color utilities are centralized in `rash/src/cli/color.rs`:
 - Pass count formatting (1 test)
 - Delta coloring (3 tests: positive, negative, zero)
 
+### 11.13 ML-Powered Linting, Error Classification, and Rich Reporting
+
+**Status**: Implemented (2025-12-07)
+**Source**: Merged from BASHRS-SPEC-ML-001 v1.0.0
+
+> This section consolidates the standalone ML linting specification into the unified corpus spec. All 5 phases (17 tasks) are implemented and verified in the codebase. Cross-references to related sections are provided throughout.
+
+#### 11.13.1 Overview and Toyota Way Alignment
+
+ML-powered linting enhances bashrs diagnostics with intelligent error classification, spectrum-based fault localization, and rich visual reporting. The motivation: raw lint output (e.g., 47 individual diagnostics) overwhelms users. ML clustering reduces this to 3 actionable clusters with confidence scores and auto-fix suggestions, following the Pareto principle (Juran, 1951).
+
+**Toyota Way mapping**:
+
+| Principle | Application |
+|---|---|
+| **Jidoka** | ML classifies errors but human approves fixes |
+| **Genchi Genbutsu** | SBFL locates actual fault locations in code |
+| **Kaizen** | Oracle learns from user fix acceptance |
+| **Heijunka** | Cluster errors to batch similar fixes |
+| **Visual Management** | Rich ASCII dashboards and sparklines (see Section 11.12) |
+| **Andon** | Color-coded severity with visual hierarchy |
+| **Poka-yoke** | Confidence scores prevent bad auto-fixes |
+| **Nemawashi** | CITL export enables team review |
+
+**Cross-references**: Quality gate configuration in Section 9; Oracle unification in Section 11.5; Aprender integration in Section 11.7.
+
+#### 11.13.2 Tarantula SBFL Fault Localization (Implemented)
+
+Spectrum-Based Fault Localization (SBFL) ranks code locations by suspiciousness — code executed more by failing tests than passing tests is more likely to contain bugs (Jones & Harrold, 2005 [26]; Abreu et al., 2009 [33]).
+
+**Data structures**: `StatementId` (file, line, column, rule_code), `StatementCoverage` (passed/failed execution counts), `SuspiciousnessRanking` (rank, score, explanation).
+
+**Formulas** (5 supported via `SbflFormula` enum):
+
+| Formula | Definition | Use Case |
+|---|---|---|
+| Tarantula | `(f/F) / ((f/F) + (p/P))` | General-purpose, interpretable |
+| Ochiai | `f / sqrt(F × (f + p))` | Often superior accuracy |
+| DStar | `f^* / (p + (F - f))` | Configurable exponent |
+| Jaccard | `f / (F + p)` | Set-similarity based |
+| Wong2 | `f - p` | Simple difference |
+
+Where `f` = failed executions of statement, `p` = passed executions, `F` = total failed tests, `P` = total passed tests.
+
+**API**: `localize_faults(diagnostics, test_results) -> Vec<SuspiciousnessRanking>` — groups diagnostics by rule code, applies SBFL, returns top-N most suspicious.
+
+**Implementation**: `rash/src/quality/sbfl.rs` (`FaultLocalizer`, 16+ tests).
+
+**Cross-reference**: Decision tracing context in Section 11.10.1.
+
+#### 11.13.3 Oracle ML-Powered Error Classifier (Implemented)
+
+The Oracle classifies shell script errors into 15 categories using a multi-model architecture: feature extraction → k-NN + Random Forest → pattern library.
+
+**Error categories** (`ShellErrorCategory` enum, 15 variants):
+- Security: `CommandInjection`, `PathTraversal`, `UnsafeExpansion`
+- Determinism: `NonDeterministicRandom`, `TimestampUsage`, `ProcessIdDependency`
+- Idempotency: `NonIdempotentOperation`, `MissingGuard`, `UnsafeOverwrite`
+- Quoting: `MissingQuotes`, `GlobbingRisk`, `WordSplitting`
+- Other: `SyntaxError`, `StyleViolation`, `Unknown`
+
+**Feature extraction**: 73-feature `FeatureVector` (20 lexical + 25 structural + 28 semantic) extracted from each diagnostic and its source context. The unified feature schema (Section 11.5.1) aligns the in-tree 73-feature vector with the standalone oracle's opaque matrix via a 32-feature common schema.
+
+**Classifiers**:
+- **k-NN** (k=5, online, fast): `rash/src/quality/oracle.rs` (`KnnClassifier`, 14+ tests)
+- **Random Forest** (100 trees, batch, accurate): `bashrs-oracle/src/lib.rs` (via `aprender` — see Section 11.7)
+- **Keyword fallback**: `bashrs-oracle/src/classifier.rs` (`ErrorClassifier`)
+- **Ensemble**: Weighted majority vote combining k-NN and Random Forest
+
+**Drift detection**: `DriftDetector` with configurable window monitors fix acceptance rate. When `drift_score > 0.10` (10% accuracy drop over 50 vs. 200 corpus runs), triggers model retraining. See Section 11.5.3 for unified drift metric.
+
+**Fix pattern library**: 15 bootstrap `FixPattern` entries mapping error categories to regex-based replacements with success rate tracking (e.g., `MissingQuotes` → quote variable, 94% success rate).
+
+**Cross-references**: Oracle unification in Section 11.5; Aprender training pipeline in Section 11.7; PokaYoke quality gates in Section 11.7.2.
+
+#### 11.13.4 Rich ASCII Lint Reporting (Implemented)
+
+Rich reporting provides Tufte-principled (Tufte, 2001 [38]) visual output using box-drawing characters, sparklines, and histogram bars. This complements the ANSI color palette defined in Section 11.12.
+
+**Report structure** (`RichLintReport`): header, summary panel, cluster analysis (Pareto), fault localization (SBFL), fix suggestions, trend sparklines, footer with CITL export.
+
+**Visualization primitives**:
+- Box-drawing: `╔═╗║╠╣╚═╝╦╩╬` (double-line Unicode set)
+- Sparklines: `sparkline(data, width)` → `▂▃▄▅▆▇█` (normalized to data range)
+- Histogram bars: `histogram_bar(value, max, width)` → `████░░░░` (filled + empty blocks)
+
+**Implementation**: `rash/src/quality/lint_report.rs`, `rash/src/quality/report.rs`.
+
+**Cross-reference**: ANSI color constants and grade/percentage coloring in Section 11.12.
+
+#### 11.13.5 Control Flow Graph Analysis (Implemented)
+
+Shell-specific CFG generation enables complexity metrics beyond simple line counting.
+
+**API**: `build_cfg(ast: &ShellAst) -> ControlFlowGraph`
+
+**Node types**: `Entry`, `Exit`, `BasicBlock`, `Conditional`, `LoopHeader`, `FunctionEntry`, `SubshellEntry`.
+
+**Metrics computed**:
+
+| Metric | Formula | Threshold | Reference |
+|---|---|---|---|
+| Cyclomatic (McCabe) | E - N + 2P | ≤ 10 | McCabe, 1976 [39] |
+| Essential | # SCCs with >1 node | ≤ 4 | Watson & Wallace, 1996 [40] |
+| Cognitive | Weighted nesting depth | ≤ 15 | Shepperd, 1988 |
+| Halstead Volume | N × log₂(n) | Informational | Halstead, 1977 |
+| Max Depth | Longest path from entry | Informational | — |
+
+**CfgBuilder**: Shell-specific CFG construction with back-edge detection for loops, subshell boundaries, and trap handlers.
+
+**Implementation**: `rash/src/quality/cfg.rs` (`CfgBuilder`, 6+ tests).
+
+#### 11.13.6 ML Error Clustering (Implemented)
+
+Error clustering discovers patterns in lint output, reducing N individual diagnostics to K actionable clusters ranked by Pareto impact.
+
+**Algorithms** (`ClusteringAlgorithm` enum):
+- **k-means++** (Arthur & Vassilvitskii, 2007 [36]): Careful seeding for stable convergence
+- **DBSCAN** (Ester et al., 1996 [37]): Density-based, no k required, handles noise
+- **Hierarchical**: Agglomerative with configurable linkage
+
+**Distance metrics**: Euclidean, Cosine, Jaccard.
+
+**Cluster output** (`ErrorCluster`): centroid feature vector, member diagnostics, `RootCause` enum (`TranspilerGap`, `MissingRule`, `FalsePositive`, `Unknown`), fix confidence score, sample errors, blocked examples.
+
+**Integration**: Cluster results feed into rich report (Section 11.13.4) Pareto analysis panel and CITL export for organizational intelligence.
+
+#### 11.13.7 Quality Gates (ML-Specific)
+
+| Criterion | Threshold | Measurement |
+|---|---|---|
+| SBFL Accuracy | ≥ 70% EXAM score | Benchmark suite |
+| Oracle Classification F1 | ≥ 0.85 | 5-fold cross-validation |
+| Report Render Time | < 100ms | Benchmark |
+| Mutation Score (ML modules) | ≥ 80% | `cargo mutants` |
+| Cyclomatic Complexity | ≤ 10 | `pmat analyze complexity` |
+
+**Cross-reference**: General quality gate configuration in Section 9.
+
+#### 11.13.8 Implementation Status
+
+All 17 tasks from the ML specification are implemented and verified:
+
+| Task ID | Description | Implementation | Tests |
+|---|---|---|---|
+| ML-001 | `.pmat-gates.toml` parser | `rash/src/quality/gates.rs` | 6+ |
+| ML-002 | `bashrs gate` CLI command | `rash/src/cli/gate.rs` | 4+ |
+| ML-003 | Tiered quality gates | `rash/src/quality/gates.rs` | 8+ |
+| ML-004 | Tarantula/Ochiai formulas | `rash/src/quality/sbfl.rs` | 16+ |
+| ML-005 | Coverage tracking per rule | `rash/src/quality/sbfl.rs` | 4+ |
+| ML-006 | SBFL ASCII report | `rash/src/quality/report.rs` | 3+ |
+| ML-007 | 73-feature extraction | `rash/src/quality/oracle.rs` | 6+ |
+| ML-008 | k-NN classifier | `rash/src/quality/oracle.rs` | 14+ |
+| ML-009 | Pattern library (15 patterns) | `rash/src/quality/oracle.rs` | 4+ |
+| ML-010 | Drift detection | `rash/src/quality/oracle.rs` | 3+ |
+| ML-011 | ASCII box drawing | `rash/src/quality/lint_report.rs` | 4+ |
+| ML-012 | Sparkline generation | `rash/src/quality/lint_report.rs` | 3+ |
+| ML-013 | Histogram bars | `rash/src/quality/lint_report.rs` | 3+ |
+| ML-014 | Complete rich report | `rash/src/quality/report.rs` | 5+ |
+| ML-015 | Shell CFG generator | `rash/src/quality/cfg.rs` | 6+ |
+| ML-016 | Complexity metrics | `rash/src/quality/cfg.rs` | 4+ |
+| ML-017 | ASCII CFG visualization | `rash/src/quality/cfg.rs` | 2+ |
+
+**CITL integration**: `bashrs lint --citl-export diagnostics.json` outputs JSON conforming to the CITL schema for organizational-intelligence-plugin integration.
+
 ---
 
 ## 12. References
@@ -2514,13 +2689,33 @@ Color utilities are centralized in `rash/src/cli/color.rs`:
 
 29. **Nonaka, I. & Takeuchi, H.** (1995). *The Knowledge-Creating Company: How Japanese Companies Create the Dynamics of Innovation*. Oxford University Press. ISBN: 978-0195092691. (Organizational knowledge transfer; basis for cross-project technique adoption in Section 11.10.)
 
+### v2.2 References (ML-Powered Linting, Section 11.13)
+
+33. **Abreu, R., Zoeteweij, P., & Van Gemund, A. J.** (2009). "Spectrum-Based Multiple Fault Localization." *Proceedings of ASE '09*, 88-99. DOI: 10.1109/ASE.2009.25. (Multi-fault SBFL extensions; applied to multi-rule fault localization in Section 11.13.2.)
+
+34. **Kim, D., Tao, Y., Kim, S., & Zeller, A.** (2013). "Where Should We Fix This Bug? A Two-Phase Recommendation Model." *IEEE Transactions on Software Engineering*, 39(11), 1597-1610. DOI: 10.1109/TSE.2013.24. (Bug fix recommendation; theoretical basis for Oracle fix suggestions in Section 11.13.3.)
+
+35. **Le, T. D. B., Lo, D., Le Goues, C., & Grunske, L.** (2016). "A Learning-to-Rank Based Fault Localization Approach Using Likely Invariants." *Proceedings of ISSTA '16*, 177-188. DOI: 10.1145/2931037.2931049. (Learning-to-rank for fault localization; informs Oracle ranking strategy in Section 11.13.3.)
+
+36. **Arthur, D. & Vassilvitskii, S.** (2007). "k-means++: The Advantages of Careful Seeding." *Proceedings of SODA '07*, 1027-1035. (k-means++ initialization for stable clustering; applied to error clustering in Section 11.13.6.)
+
+37. **Ester, M., Kriegel, H. P., Sander, J., & Xu, X.** (1996). "A Density-Based Algorithm for Discovering Clusters in Large Spatial Databases with Noise." *Proceedings of KDD '96*, 226-231. (DBSCAN clustering algorithm; applied to noise-tolerant error clustering in Section 11.13.6.)
+
+38. **Tufte, E. R.** (2001). *The Visual Display of Quantitative Information* (2nd ed.). Graphics Press. ISBN: 978-0961392147. (Principles of analytical design; applied to rich lint report layout in Section 11.13.4.)
+
+39. **McCabe, T. J.** (1976). "A Complexity Measure." *IEEE Transactions on Software Engineering*, SE-2(4), 308-320. DOI: 10.1109/TSE.1976.233837. (Cyclomatic complexity metric; implemented in CFG analysis in Section 11.13.5.)
+
+40. **Watson, A. H. & Wallace, D. R.** (1996). "A Critique of Cyclomatic Complexity as a Software Metric." *NIST Special Publication 500-235*. (Essential complexity metric; implemented alongside cyclomatic in Section 11.13.5.)
+
+41. **Few, S.** (2006). *Information Dashboard Design: The Effective Visual Communication of Data*. O'Reilly Media. ISBN: 978-0596100162. (Dashboard design principles; applied to rich reporting layout in Section 11.13.4.)
+
 ### Project-Specific
 
-30. **Gift, N.** (2025). "Depyler Corpus Registry and Convergence Methodology." Internal specification, paiml/depyler. (Corpus registry pattern, 100-point scoring system, multi-tier measurement.)
+42. **Gift, N.** (2025). "Depyler Corpus Registry and Convergence Methodology." Internal specification, paiml/depyler. (Corpus registry pattern, 100-point scoring system, multi-tier measurement.)
 
-31. **Gift, N.** (2026). "Depyler Oracle: CITL Pattern Mining, Tarantula Fault Localization, and Graph-Aware Corpus." Internal implementation, paiml/depyler `crates/depyler-oracle/`. (Source implementations for Sections 11.10.1-11.10.3.)
+43. **Gift, N.** (2026). "Depyler Oracle: CITL Pattern Mining, Tarantula Fault Localization, and Graph-Aware Corpus." Internal implementation, paiml/depyler `crates/depyler-oracle/`. (Source implementations for Sections 11.10.1-11.10.3.)
 
-32. **bashrs CLAUDE.md** (2024-2026). Project development guidelines. (EXTREME TDD, STOP THE LINE, assert_cmd mandate, unwrap policy.)
+44. **bashrs CLAUDE.md** (2024-2026). Project development guidelines. (EXTREME TDD, STOP THE LINE, assert_cmd mandate, unwrap policy.)
 
 ---
 
