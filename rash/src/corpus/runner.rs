@@ -167,7 +167,8 @@ impl CorpusScore {
 }
 
 /// A single convergence log entry (Kaizen tracking).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Per-format fields (spec §11.10.5) enable format-specific regression detection.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ConvergenceEntry {
     /// Iteration number
     pub iteration: u32,
@@ -185,6 +186,25 @@ pub struct ConvergenceEntry {
     pub delta: f64,
     /// Notes about this iteration
     pub notes: String,
+    // --- Per-format breakdown (spec §11.10.5) ---
+    /// Bash entries that passed
+    #[serde(default)]
+    pub bash_passed: usize,
+    /// Bash entries total
+    #[serde(default)]
+    pub bash_total: usize,
+    /// Makefile entries that passed
+    #[serde(default)]
+    pub makefile_passed: usize,
+    /// Makefile entries total
+    #[serde(default)]
+    pub makefile_total: usize,
+    /// Dockerfile entries that passed
+    #[serde(default)]
+    pub dockerfile_passed: usize,
+    /// Dockerfile entries total
+    #[serde(default)]
+    pub dockerfile_total: usize,
 }
 
 /// Valid Dockerfile instruction prefixes (per Dockerfile reference).
@@ -1119,6 +1139,17 @@ impl CorpusRunner {
         previous_rate: f64,
         notes: &str,
     ) -> ConvergenceEntry {
+        // Extract per-format stats from format_scores (spec §11.10.5)
+        let (bash_passed, bash_total) = score
+            .format_score(CorpusFormat::Bash)
+            .map_or((0, 0), |fs| (fs.passed, fs.total));
+        let (makefile_passed, makefile_total) = score
+            .format_score(CorpusFormat::Makefile)
+            .map_or((0, 0), |fs| (fs.passed, fs.total));
+        let (dockerfile_passed, dockerfile_total) = score
+            .format_score(CorpusFormat::Dockerfile)
+            .map_or((0, 0), |fs| (fs.passed, fs.total));
+
         ConvergenceEntry {
             iteration,
             date: date.to_string(),
@@ -1128,6 +1159,12 @@ impl CorpusRunner {
             rate: score.rate,
             delta: score.rate - previous_rate,
             notes: notes.to_string(),
+            bash_passed,
+            bash_total,
+            makefile_passed,
+            makefile_total,
+            dockerfile_passed,
+            dockerfile_total,
         }
     }
 
@@ -1283,6 +1320,7 @@ mod tests {
             rate: 0.99,
             delta: 0.99,
             notes: "initial".to_string(),
+            ..Default::default()
         }];
         assert!(!CorpusRunner::is_converged(&entries));
     }
@@ -1299,6 +1337,7 @@ mod tests {
                 rate: 0.99,
                 delta: 0.001,
                 notes: "stable".to_string(),
+                ..Default::default()
             },
             ConvergenceEntry {
                 iteration: 2,
@@ -1309,6 +1348,7 @@ mod tests {
                 rate: 0.995,
                 delta: 0.004,
                 notes: "stable".to_string(),
+                ..Default::default()
             },
             ConvergenceEntry {
                 iteration: 3,
@@ -1319,6 +1359,7 @@ mod tests {
                 rate: 0.995,
                 delta: 0.0,
                 notes: "converged".to_string(),
+                ..Default::default()
             },
         ];
         assert!(CorpusRunner::is_converged(&entries));
@@ -1336,6 +1377,7 @@ mod tests {
                 rate: 0.95,
                 delta: 0.001,
                 notes: "not met".to_string(),
+                ..Default::default()
             },
             ConvergenceEntry {
                 iteration: 2,
@@ -1346,6 +1388,7 @@ mod tests {
                 rate: 0.96,
                 delta: 0.01,
                 notes: "not met".to_string(),
+                ..Default::default()
             },
             ConvergenceEntry {
                 iteration: 3,
@@ -1356,6 +1399,7 @@ mod tests {
                 rate: 0.97,
                 delta: 0.01,
                 notes: "not met".to_string(),
+                ..Default::default()
             },
         ];
         assert!(!CorpusRunner::is_converged(&entries));
@@ -1653,6 +1697,7 @@ mod tests {
             rate: 0.95,
             delta: 0.0,
             notes: "first".to_string(),
+            ..Default::default()
         };
         let entry2 = ConvergenceEntry {
             iteration: 2,
@@ -1663,6 +1708,7 @@ mod tests {
             rate: 0.98,
             delta: 0.03,
             notes: "second".to_string(),
+            ..Default::default()
         };
 
         CorpusRunner::append_convergence_log(&entry1, &tmp).unwrap();
@@ -1839,7 +1885,119 @@ end_of_record
     }
 
     #[test]
-    fn test_CORPUS_RUN_035_parse_lcov_with_checksum() {
+    fn test_CORPUS_RUN_035_per_format_convergence_entry() {
+        // Verify convergence_entry extracts per-format stats from CorpusScore
+        let runner = CorpusRunner::new(Config::default());
+        let score = CorpusScore {
+            total: 900,
+            passed: 898,
+            failed: 2,
+            rate: 898.0 / 900.0,
+            score: 99.9,
+            grade: Grade::APlus,
+            format_scores: vec![
+                FormatScore {
+                    format: CorpusFormat::Bash,
+                    total: 500,
+                    passed: 499,
+                    rate: 499.0 / 500.0,
+                    score: 99.8,
+                    grade: Grade::APlus,
+                },
+                FormatScore {
+                    format: CorpusFormat::Makefile,
+                    total: 200,
+                    passed: 200,
+                    rate: 1.0,
+                    score: 100.0,
+                    grade: Grade::APlus,
+                },
+                FormatScore {
+                    format: CorpusFormat::Dockerfile,
+                    total: 200,
+                    passed: 199,
+                    rate: 199.0 / 200.0,
+                    score: 99.5,
+                    grade: Grade::APlus,
+                },
+            ],
+            results: vec![],
+        };
+        let entry = runner.convergence_entry(&score, 5, "2026-02-08", 0.997, "test");
+        assert_eq!(entry.bash_passed, 499);
+        assert_eq!(entry.bash_total, 500);
+        assert_eq!(entry.makefile_passed, 200);
+        assert_eq!(entry.makefile_total, 200);
+        assert_eq!(entry.dockerfile_passed, 199);
+        assert_eq!(entry.dockerfile_total, 200);
+        assert_eq!(entry.total, 900);
+        assert_eq!(entry.passed, 898);
+        assert_eq!(entry.iteration, 5);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_036_per_format_serde_roundtrip() {
+        // Verify per-format fields survive JSON serialization
+        let entry = ConvergenceEntry {
+            iteration: 10,
+            date: "2026-02-08".to_string(),
+            total: 900,
+            passed: 898,
+            failed: 2,
+            rate: 0.998,
+            delta: 0.001,
+            notes: "per-format".to_string(),
+            bash_passed: 499,
+            bash_total: 500,
+            makefile_passed: 200,
+            makefile_total: 200,
+            dockerfile_passed: 199,
+            dockerfile_total: 200,
+        };
+        let json = serde_json::to_string(&entry).expect("serialize");
+        let loaded: ConvergenceEntry = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(loaded.bash_passed, 499);
+        assert_eq!(loaded.bash_total, 500);
+        assert_eq!(loaded.makefile_passed, 200);
+        assert_eq!(loaded.dockerfile_total, 200);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_037_per_format_backward_compat() {
+        // Old entries without per-format fields should deserialize with defaults (0)
+        let old_json = r#"{"iteration":1,"date":"2026-01-01","total":100,"passed":99,"failed":1,"rate":0.99,"delta":0.0,"notes":"old"}"#;
+        let entry: ConvergenceEntry = serde_json::from_str(old_json).expect("deserialize old");
+        assert_eq!(entry.bash_passed, 0);
+        assert_eq!(entry.bash_total, 0);
+        assert_eq!(entry.makefile_passed, 0);
+        assert_eq!(entry.dockerfile_total, 0);
+        assert_eq!(entry.total, 100);
+        assert_eq!(entry.passed, 99);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_038_per_format_empty_score() {
+        // convergence_entry with no format_scores should yield zeros
+        let runner = CorpusRunner::new(Config::default());
+        let score = CorpusScore {
+            total: 10,
+            passed: 10,
+            failed: 0,
+            rate: 1.0,
+            score: 100.0,
+            grade: Grade::APlus,
+            format_scores: vec![],
+            results: vec![],
+        };
+        let entry = runner.convergence_entry(&score, 1, "2026-02-08", 0.0, "empty");
+        assert_eq!(entry.bash_passed, 0);
+        assert_eq!(entry.bash_total, 0);
+        assert_eq!(entry.makefile_passed, 0);
+        assert_eq!(entry.dockerfile_passed, 0);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_039_parse_lcov_with_checksum() {
         // LCOV DA lines can have optional checksums: DA:<line>,<count>,<checksum>
         let lcov = "SF:test.rs\nDA:1,5,abc123\nDA:2,0,def456\nend_of_record\n";
         let results = parse_lcov_file_coverage(lcov);

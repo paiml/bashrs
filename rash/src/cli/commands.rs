@@ -5270,6 +5270,20 @@ fn corpus_write_convergence_log(
     println!();
     let dc = delta_color(entry.delta);
     println!("{DIM}Convergence log:{RESET} iteration {}, delta {dc}", iteration);
+    // Per-format breakdown (spec §11.10.5)
+    if entry.bash_total > 0 || entry.makefile_total > 0 || entry.dockerfile_total > 0 {
+        let fmt_part = |name: &str, passed: usize, total: usize| -> String {
+            if total > 0 { format!("{name} {passed}/{total}") } else { String::new() }
+        };
+        let parts: Vec<String> = [
+            fmt_part("Bash", entry.bash_passed, entry.bash_total),
+            fmt_part("Make", entry.makefile_passed, entry.makefile_total),
+            fmt_part("Docker", entry.dockerfile_passed, entry.dockerfile_total),
+        ].into_iter().filter(|s| !s.is_empty()).collect();
+        if !parts.is_empty() {
+            println!("{DIM}  Per-format:{RESET} {}", parts.join(", "));
+        }
+    }
     Ok(())
 }
 
@@ -5330,6 +5344,34 @@ fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
     Ok(())
 }
 
+/// Format a per-format pass/total column (e.g. "499/500" or "-" if no data).
+fn fmt_pass_total(passed: usize, total: usize) -> String {
+    if total > 0 { format!("{passed}/{total}") } else { "-".to_string() }
+}
+
+/// Print a single convergence history row (human-readable).
+fn corpus_print_history_row(e: &crate::corpus::runner::ConvergenceEntry, has_format_data: bool) {
+    use crate::cli::color::*;
+    let rate_pct = e.rate * 100.0;
+    let rc = pct_color(rate_pct);
+    let dc = delta_color(e.delta);
+    if has_format_data {
+        println!(
+            "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}  {:>9} {:>9} {:>9}  {}",
+            e.iteration, e.date, e.passed, e.total, rate_pct,
+            fmt_pass_total(e.bash_passed, e.bash_total),
+            fmt_pass_total(e.makefile_passed, e.makefile_total),
+            fmt_pass_total(e.dockerfile_passed, e.dockerfile_total),
+            e.notes
+        );
+    } else {
+        println!(
+            "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}  {}",
+            e.iteration, e.date, e.passed, e.total, rate_pct, e.notes
+        );
+    }
+}
+
 fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
@@ -5347,24 +5389,27 @@ fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Resu
         _ => &entries,
     };
 
+    // Detect if any entry has per-format data (spec §11.10.5)
+    let has_format_data = display.iter().any(|e| e.bash_total > 0 || e.makefile_total > 0 || e.dockerfile_total > 0);
+
     match format {
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
-
             println!("{BOLD}Convergence History ({} entries):{RESET}", entries.len());
-            println!(
-                "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}  {}{RESET}",
-                "Iter", "Date", "Pass", "Total", "Rate", "Delta", "Notes"
-            );
-            for e in display {
-                let rate_pct = e.rate * 100.0;
-                let rc = pct_color(rate_pct);
-                let dc = delta_color(e.delta);
+            if has_format_data {
                 println!(
-                    "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}  {}",
-                    e.iteration, e.date, e.passed, e.total,
-                    rate_pct, e.notes
+                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}  {:>9} {:>9} {:>9}  {}{RESET}",
+                    "Iter", "Date", "Pass", "Total", "Rate", "Delta",
+                    "Bash", "Make", "Docker", "Notes"
                 );
+            } else {
+                println!(
+                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}  {}{RESET}",
+                    "Iter", "Date", "Pass", "Total", "Rate", "Delta", "Notes"
+                );
+            }
+            for e in display {
+                corpus_print_history_row(e, has_format_data);
             }
         }
         CorpusOutputFormat::Json => {
