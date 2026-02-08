@@ -719,6 +719,23 @@ pub enum CorpusCommands {
         format: CorpusOutputFormat,
     },
 
+    /// One-line corpus summary for CI and scripts (spec §10)
+    Summary,
+
+    /// Show corpus size growth over time from convergence log (spec §4)
+    Growth {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
+
+    /// Show tier × format coverage matrix (spec §2.3)
+    Coverage {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
+
     /// Validate corpus entries for metadata correctness (spec §2.3)
     Validate {
         /// Output format

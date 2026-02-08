@@ -5155,6 +5155,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
             corpus_classify_difficulty(&id, &format)
         }
 
+        CorpusCommands::Summary => {
+            corpus_summary()
+        }
+
+        CorpusCommands::Growth { format } => {
+            corpus_growth(&format)
+        }
+
+        CorpusCommands::Coverage { format } => {
+            corpus_coverage(&format)
+        }
+
         CorpusCommands::Validate { format } => {
             corpus_validate(&format)
         }
@@ -5871,6 +5883,162 @@ fn corpus_risk_analysis(format: &CorpusOutputFormat, level_filter: Option<&str>)
         }
     }
     Ok(())
+}
+
+/// One-line corpus summary for CI and scripts (spec §10).
+fn corpus_summary() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    let failures: Vec<_> = score.results.iter().filter(|r| !result_fail_dims(r).is_empty()).collect();
+    let fail_ids: Vec<_> = failures.iter().map(|r| r.id.as_str()).collect();
+
+    if failures.is_empty() {
+        println!("{} entries, {:.1}/100 {}, 0 failures",
+            score.results.len(), score.score, score.grade);
+    } else {
+        println!("{} entries, {:.1}/100 {}, {} failure(s) ({})",
+            score.results.len(), score.score, score.grade,
+            failures.len(), fail_ids.join(", "));
+    }
+    Ok(())
+}
+
+/// Show corpus size growth over time from convergence log (spec §4).
+fn corpus_growth(format: &CorpusOutputFormat) -> Result<()> {
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let entries = CorpusRunner::load_convergence_log(&log_path)
+        .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
+
+    if entries.is_empty() {
+        println!("No convergence history. Run `bashrs corpus run --log` first.");
+        return Ok(());
+    }
+
+    match format {
+        CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+            println!("{BOLD}Corpus Growth (from convergence log){RESET}");
+            println!("{DIM}{:>4}  {:>10}  {:>5}  {:>6}  {}{RESET}",
+                "Iter", "Date", "Total", "Added", "Notes");
+
+            let mut prev_total = 0;
+            for e in &entries {
+                let added = if e.total > prev_total { e.total - prev_total } else { 0 };
+                let added_str = if added > 0 {
+                    format!("{GREEN}+{added}{RESET}")
+                } else {
+                    format!("{DIM}  0{RESET}")
+                };
+                println!("{:>4}  {:>10}  {:>5}  {}  {}",
+                    e.iteration, e.date, e.total, added_str, e.notes);
+                prev_total = e.total;
+            }
+
+            let first = entries.first().map(|e| e.total).unwrap_or(0);
+            let last = entries.last().map(|e| e.total).unwrap_or(0);
+            let growth = last.saturating_sub(first);
+            println!();
+            println!("  {BOLD}Total growth{RESET}: {first} → {last} ({GREEN}+{growth}{RESET} entries over {} iterations)",
+                entries.len());
+        }
+        CorpusOutputFormat::Json => {
+            let growth: Vec<_> = entries.windows(2).map(|w| {
+                serde_json::json!({
+                    "iteration": w[1].iteration,
+                    "date": w[1].date,
+                    "total": w[1].total,
+                    "added": w[1].total.saturating_sub(w[0].total),
+                })
+            }).collect();
+            let result = serde_json::json!({
+                "first_total": entries.first().map(|e| e.total),
+                "last_total": entries.last().map(|e| e.total),
+                "iterations": entries.len(),
+                "growth": growth,
+            });
+            let json = serde_json::to_string_pretty(&result)
+                .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+/// Show tier × format coverage matrix (spec §2.3).
+fn corpus_coverage(format: &CorpusOutputFormat) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry, CorpusTier};
+
+    let registry = CorpusRegistry::load_full();
+
+    let tiers = [
+        (CorpusTier::Trivial, "Trivial"),
+        (CorpusTier::Standard, "Standard"),
+        (CorpusTier::Complex, "Complex"),
+        (CorpusTier::Adversarial, "Adversarial"),
+        (CorpusTier::Production, "Production"),
+    ];
+    let count = |t: &CorpusTier, f: &CorpusFormat| -> usize {
+        registry.entries.iter().filter(|e| &e.tier == t && &e.format == f).count()
+    };
+
+    match format {
+        CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+            println!("{BOLD}Corpus Coverage: Tier × Format Matrix{RESET}");
+            println!();
+            println!("  {BOLD}{:<14} {:>6} {:>9} {:>11}  {:>5}{RESET}",
+                "Tier", "Bash", "Makefile", "Dockerfile", "Total");
+
+            let mut grand_total = 0;
+            for (tier, label) in &tiers {
+                let bash = count(tier, &CorpusFormat::Bash);
+                let make = count(tier, &CorpusFormat::Makefile);
+                let dock = count(tier, &CorpusFormat::Dockerfile);
+                let total = bash + make + dock;
+                grand_total += total;
+                println!("  {:<14} {:>6} {:>9} {:>11}  {:>5}",
+                    label, bash, make, dock, total);
+            }
+            println!("  {DIM}{:<14} {:>6} {:>9} {:>11}  {:>5}{RESET}",
+                "Total",
+                count_format(&registry, &CorpusFormat::Bash),
+                count_format(&registry, &CorpusFormat::Makefile),
+                count_format(&registry, &CorpusFormat::Dockerfile),
+                grand_total);
+        }
+        CorpusOutputFormat::Json => {
+            let matrix: Vec<_> = tiers.iter().map(|(tier, label)| {
+                serde_json::json!({
+                    "tier": label,
+                    "bash": count(tier, &CorpusFormat::Bash),
+                    "makefile": count(tier, &CorpusFormat::Makefile),
+                    "dockerfile": count(tier, &CorpusFormat::Dockerfile),
+                })
+            }).collect();
+            let result = serde_json::json!({
+                "total": registry.entries.len(),
+                "matrix": matrix,
+            });
+            let json = serde_json::to_string_pretty(&result)
+                .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+fn count_format(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &crate::corpus::registry::CorpusFormat,
+) -> usize {
+    registry.entries.iter().filter(|e| &e.format == format).count()
 }
 
 /// Validate a single corpus entry and return issues found.
