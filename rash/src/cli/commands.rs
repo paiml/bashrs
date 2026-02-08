@@ -6186,9 +6186,17 @@ fn fmt_pass_total(passed: usize, total: usize) -> String {
     if total > 0 { format!("{passed}/{total}") } else { "-".to_string() }
 }
 
+/// Compute a trend arrow by comparing two values.
+fn trend_arrow(current: usize, previous: usize) -> &'static str {
+    if current > previous { "↑" }
+    else if current < previous { "↓" }
+    else { "→" }
+}
+
 /// Print a single convergence history row (human-readable).
 fn corpus_print_history_row(
     e: &crate::corpus::runner::ConvergenceEntry,
+    prev: Option<&crate::corpus::runner::ConvergenceEntry>,
     has_format_data: bool,
     has_score_data: bool,
 ) {
@@ -6204,8 +6212,15 @@ fn corpus_print_history_row(
         String::new()
     };
     if has_format_data {
+        let trend = match prev {
+            Some(p) => format!("{}{}{}",
+                trend_arrow(e.bash_passed, p.bash_passed),
+                trend_arrow(e.makefile_passed, p.makefile_passed),
+                trend_arrow(e.dockerfile_passed, p.dockerfile_passed)),
+            None => "---".to_string(),
+        };
         println!(
-            "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}{score_part}  {:>9} {:>9} {:>9}  {}",
+            "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}{score_part}  {:>9} {:>9} {:>9}  {DIM}{trend}{RESET}  {}",
             e.iteration, e.date, e.passed, e.total, rate_pct,
             fmt_pass_total(e.bash_passed, e.bash_total),
             fmt_pass_total(e.makefile_passed, e.makefile_total),
@@ -6249,9 +6264,9 @@ fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Resu
             let score_hdr = if has_score_data { "  Score Gr" } else { "" };
             if has_format_data {
                 println!(
-                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}{score_hdr}  {:>9} {:>9} {:>9}  {}{RESET}",
+                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}{score_hdr}  {:>9} {:>9} {:>9}  {:<5}{}{RESET}",
                     "Iter", "Date", "Pass", "Total", "Rate", "Delta",
-                    "Bash", "Make", "Docker", "Notes"
+                    "Bash", "Make", "Docker", "Trend", "Notes"
                 );
             } else {
                 println!(
@@ -6259,8 +6274,9 @@ fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Resu
                     "Iter", "Date", "Pass", "Total", "Rate", "Delta", "Notes"
                 );
             }
-            for e in display {
-                corpus_print_history_row(e, has_format_data, has_score_data);
+            for (i, e) in display.iter().enumerate() {
+                let prev = if i > 0 { Some(&display[i - 1]) } else { None };
+                corpus_print_history_row(e, prev, has_format_data, has_score_data);
             }
         }
         CorpusOutputFormat::Json => {
