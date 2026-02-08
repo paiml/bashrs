@@ -5278,6 +5278,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Density => {
             corpus_density()
         }
+
+        CorpusCommands::Perf { filter } => {
+            corpus_perf(filter.as_ref())
+        }
+
+        CorpusCommands::Citl { filter } => {
+            corpus_citl(filter.as_ref())
+        }
+
+        CorpusCommands::Streak => {
+            corpus_streak()
+        }
     }
 }
 
@@ -8004,6 +8016,197 @@ fn corpus_density() -> Result<()> {
                 gaps.len(), first_gaps.join(", "), gaps.len() - 5);
         }
         println!();
+    }
+    Ok(())
+}
+
+/// Compute percentile from sorted data.
+fn percentile(sorted: &[f64], p: f64) -> f64 {
+    if sorted.is_empty() { return 0.0; }
+    let idx = (p / 100.0 * (sorted.len() - 1) as f64).round() as usize;
+    sorted[idx.min(sorted.len() - 1)]
+}
+
+/// Performance percentile breakdown (P50, P90, P95, P99) per format.
+fn corpus_perf(filter: Option<&CorpusFormatArg>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+    use std::time::Instant;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    let entries: Vec<_> = registry.entries.iter().filter(|e| {
+        match filter {
+            Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
+            Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
+            Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
+            None => true,
+        }
+    }).collect();
+
+    // Time each entry, collecting per-format buckets
+    let mut all_timings: Vec<f64> = Vec::new();
+    let mut format_timings: std::collections::HashMap<String, Vec<f64>> = std::collections::HashMap::new();
+
+    for entry in &entries {
+        let start = Instant::now();
+        let _ = runner.run_single(entry);
+        let ms = start.elapsed().as_secs_f64() * 1000.0;
+        all_timings.push(ms);
+        format_timings.entry(format!("{}", entry.format)).or_default().push(ms);
+    }
+
+    all_timings.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+
+    println!("{BOLD}Performance Percentile Breakdown{RESET} ({} entries)", entries.len());
+    println!();
+
+    let pcts = [50.0, 90.0, 95.0, 99.0];
+    println!("  {BOLD}{:<12} {:>8} {:>8} {:>8} {:>8} {:>8} {:>8}{RESET}",
+        "Format", "P50", "P90", "P95", "P99", "Max", "Mean");
+
+    // Overall
+    let mean = all_timings.iter().sum::<f64>() / all_timings.len().max(1) as f64;
+    let max = all_timings.last().copied().unwrap_or(0.0);
+    print!("  {WHITE}{:<12}{RESET}", "ALL");
+    for p in &pcts {
+        let v = percentile(&all_timings, *p);
+        let color = if v > 1000.0 { BRIGHT_RED } else if v > 100.0 { YELLOW } else { GREEN };
+        print!(" {color}{:>7.1}ms{RESET}", v);
+    }
+    let mc = if max > 1000.0 { BRIGHT_RED } else if max > 100.0 { YELLOW } else { GREEN };
+    println!(" {mc}{:>7.1}ms{RESET} {:>7.1}ms", max, mean);
+
+    // Per-format
+    let mut fmt_keys: Vec<_> = format_timings.keys().cloned().collect();
+    fmt_keys.sort();
+    for key in &fmt_keys {
+        let mut ts = format_timings[key].clone();
+        ts.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+        let fmt_mean = ts.iter().sum::<f64>() / ts.len().max(1) as f64;
+        let fmt_max = ts.last().copied().unwrap_or(0.0);
+        print!("  {CYAN}{:<12}{RESET}", key);
+        for p in &pcts {
+            let v = percentile(&ts, *p);
+            let color = if v > 1000.0 { BRIGHT_RED } else if v > 100.0 { YELLOW } else { GREEN };
+            print!(" {color}{:>7.1}ms{RESET}", v);
+        }
+        let mc = if fmt_max > 1000.0 { BRIGHT_RED } else if fmt_max > 100.0 { YELLOW } else { GREEN };
+        println!(" {mc}{:>7.1}ms{RESET} {:>7.1}ms", fmt_max, fmt_mean);
+    }
+    Ok(())
+}
+
+/// CITL lint violation summary from transpiled output (spec §7.3).
+fn corpus_citl(filter: Option<&CorpusFormatArg>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    let entries: Vec<_> = registry.entries.iter().filter(|e| {
+        match filter {
+            Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
+            Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
+            Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
+            None => true,
+        }
+    }).collect();
+
+    let mut lint_pass = 0usize;
+    let mut lint_fail = 0usize;
+    let mut fail_entries: Vec<(&str, String)> = Vec::new();
+
+    for entry in &entries {
+        let result = runner.run_single(entry);
+        if result.lint_clean {
+            lint_pass += 1;
+        } else {
+            lint_fail += 1;
+            let err = result.error.as_deref().unwrap_or("lint violation");
+            fail_entries.push((&entry.id, err.to_string()));
+        }
+    }
+
+    let total = entries.len();
+    let rate = lint_pass as f64 / total.max(1) as f64 * 100.0;
+    let rc = pct_color(rate);
+
+    println!("{BOLD}CITL Lint Compliance{RESET} (spec §7.3)");
+    println!();
+    println!("  Entries: {total}  Pass: {GREEN}{lint_pass}{RESET}  Fail: {}{}{}  Rate: {rc}{rate:.1}%{RESET}",
+        if lint_fail > 0 { RED } else { GREEN }, lint_fail, RESET);
+    println!();
+
+    if fail_entries.is_empty() {
+        println!("  {GREEN}All transpiled outputs pass CITL lint gate.{RESET}");
+    } else {
+        println!("  {BOLD}Lint Violations:{RESET}");
+        for (id, err) in &fail_entries {
+            let short_err = if err.len() > 60 { &err[..60] } else { err };
+            println!("    {CYAN}{id}{RESET}  {DIM}{short_err}{RESET}");
+        }
+    }
+
+    println!();
+    println!("  {DIM}CITL loop: transpile → lint → score → feedback{RESET}");
+    Ok(())
+}
+
+/// Show longest streak of consecutive passing entries.
+fn corpus_streak() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    let formats = [
+        ("Bash", CorpusFormat::Bash),
+        ("Makefile", CorpusFormat::Makefile),
+        ("Dockerfile", CorpusFormat::Dockerfile),
+    ];
+
+    println!("{BOLD}Consecutive Pass Streaks{RESET}");
+    println!();
+
+    for (name, fmt) in &formats {
+        let mut entries: Vec<_> = registry.entries.iter()
+            .filter(|e| e.format == *fmt)
+            .collect();
+        entries.sort_by(|a, b| a.id.cmp(&b.id));
+
+        let mut current_streak = 0usize;
+        let mut max_streak = 0usize;
+        let mut max_start = "";
+        let mut max_end = "";
+        let mut cur_start = "";
+
+        for entry in &entries {
+            let result = runner.run_single(entry);
+            let pass = result_fail_dims(&result).is_empty();
+            if pass {
+                if current_streak == 0 { cur_start = &entry.id; }
+                current_streak += 1;
+                if current_streak > max_streak {
+                    max_streak = current_streak;
+                    max_start = cur_start;
+                    max_end = &entry.id;
+                }
+            } else {
+                current_streak = 0;
+            }
+        }
+
+        let total = entries.len();
+        let pct = max_streak as f64 / total.max(1) as f64 * 100.0;
+        let sc = if max_streak == total { GREEN } else if pct >= 90.0 { YELLOW } else { RED };
+        println!("  {CYAN}{name:<12}{RESET} {sc}{max_streak}{RESET}/{total} ({sc}{pct:.1}%{RESET})  {DIM}{max_start}..{max_end}{RESET}");
     }
     Ok(())
 }

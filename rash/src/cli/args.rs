@@ -967,6 +967,23 @@ pub enum CorpusCommands {
 
     /// Show entry density by ID range (detect numbering gaps)
     Density,
+
+    /// Performance percentile breakdown (P50, P90, P95, P99) per format
+    Perf {
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// CITL lint violation summary from transpiled output (spec §7.3)
+    Citl {
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// Show longest streak of consecutive passing entries
+    Streak,
 }
 
 /// Corpus output format
