@@ -286,6 +286,8 @@ impl CorpusRegistry {
         registry.load_expansion6_dockerfile();
         registry.load_expansion7_makefile();
         registry.load_expansion7_dockerfile();
+        registry.load_expansion8_makefile();
+        registry.load_expansion8_dockerfile();
         registry
     }
 
@@ -6580,6 +6582,300 @@ impl CorpusRegistry {
                 CorpusTier::Production,
                 r#"fn main() { from_image_as("rust", "1.75-bookworm", "chef"); run(&["cargo install cargo-chef"]); workdir("/app"); from_image_as("chef", "", "planner"); copy(".", "."); run(&["cargo chef prepare --recipe-path recipe.json"]); from_image_as("chef", "", "builder"); copy_from("planner", "/app/recipe.json", "recipe.json"); run(&["cargo chef cook --release --recipe-path recipe.json"]); copy(".", "."); run(&["cargo build --release"]); from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y ca-certificates", "rm -rf /var/lib/apt/lists/*"]); copy_from("builder", "/app/target/release/app", "/usr/local/bin/app"); user("65534"); expose(8080u16); entrypoint(&["/usr/local/bin/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn user(u: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
                 "FROM rust:1.75-bookworm AS chef",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 8: OIP-Driven Makefile M-151..M-170, Dockerfile D-151..D-160
+    // Source: oip analyze --org paiml + depyler cross-project patterns
+    // =========================================================================
+
+    fn load_expansion8_makefile(&mut self) {
+        let entries = vec![
+            // --- OIP: ConfigurationErrors - env/variable patterns ---
+            CorpusEntry::new(
+                "M-151",
+                "env-conditional-override",
+                "Environment variable with conditional override (OIP: ConfigurationErrors)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let rust_log = "info"; let cargo = "cargo"; phony_target("run", &[], &["RUST_LOG=$(RUST_LOG) $(CARGO) run"]); phony_target("run-debug", &[], &["RUST_LOG=debug $(CARGO) run"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: run",
+            ),
+            CorpusEntry::new(
+                "M-152",
+                "multi-arch-build",
+                "Multi-architecture cross-compilation targets (OIP: IntegrationFailures)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let cargo = "cargo"; phony_target("build-linux", &[], &["$(CARGO) build --release --target x86_64-unknown-linux-gnu"]); phony_target("build-mac", &[], &["$(CARGO) build --release --target aarch64-apple-darwin"]); phony_target("build-all", &["build-linux", "build-mac"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build-linux",
+            ),
+            CorpusEntry::new(
+                "M-153",
+                "wasm-pack-targets",
+                "WASM build targets with wasm-pack (OIP: IntegrationFailures)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { phony_target("wasm-build", &[], &["wasm-pack build --target web --release"]); phony_target("wasm-test", &[], &["wasm-pack test --headless --chrome"]); phony_target("wasm-pack", &["wasm-build"], &["wasm-pack pack"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: wasm-build",
+            ),
+            // --- OIP: ASTTransform - dependency chain patterns ---
+            CorpusEntry::new(
+                "M-154",
+                "chained-deps-pipeline",
+                "Multi-step pipeline with chained dependencies (OIP: ASTTransform)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let cargo = "cargo"; phony_target("fmt", &[], &["$(CARGO) fmt"]); phony_target("lint", &["fmt"], &["$(CARGO) clippy -- -D warnings"]); phony_target("test", &["lint"], &["$(CARGO) test"]); phony_target("build", &["test"], &["$(CARGO) build --release"]); phony_target("ci", &["build"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: fmt",
+            ),
+            CorpusEntry::new(
+                "M-155",
+                "doc-generation",
+                "Documentation generation and serving (OIP: ConfigurationErrors)",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let cargo = "cargo"; phony_target("doc", &[], &["$(CARGO) doc --no-deps --open"]); phony_target("doc-private", &[], &["$(CARGO) doc --no-deps --document-private-items"]); phony_target("book", &[], &["mdbook build book"]); phony_target("book-serve", &[], &["mdbook serve book"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: doc",
+            ),
+            CorpusEntry::new(
+                "M-156",
+                "workspace-members",
+                "Cargo workspace member targets (OIP: ASTTransform)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let cargo = "cargo"; phony_target("test-core", &[], &["$(CARGO) test -p core"]); phony_target("test-cli", &[], &["$(CARGO) test -p cli"]); phony_target("test-api", &[], &["$(CARGO) test -p api"]); phony_target("test-all", &["test-core", "test-cli", "test-api"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: test-core",
+            ),
+            CorpusEntry::new(
+                "M-157",
+                "database-migration",
+                "Database migration targets (OIP: ConfigurationErrors)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let database_url = "postgres://localhost/app"; phony_target("migrate-up", &[], &["sqlx migrate run"]); phony_target("migrate-down", &[], &["sqlx migrate revert"]); phony_target("migrate-create", &[], &["sqlx migrate add"]); phony_target("db-reset", &["migrate-down", "migrate-up"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: migrate-up",
+            ),
+            CorpusEntry::new(
+                "M-158",
+                "container-compose",
+                "Docker Compose orchestration (OIP: IntegrationFailures)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let compose = "docker compose"; phony_target("up", &[], &["$(COMPOSE) up -d"]); phony_target("down", &[], &["$(COMPOSE) down"]); phony_target("logs", &[], &["$(COMPOSE) logs -f"]); phony_target("ps", &[], &["$(COMPOSE) ps"]); phony_target("restart", &["down", "up"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: up",
+            ),
+            // --- OIP: SecurityVulnerabilities - audit/check patterns ---
+            CorpusEntry::new(
+                "M-159",
+                "security-audit-pipeline",
+                "Security audit targets (OIP: SecurityVulnerabilities)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let cargo = "cargo"; phony_target("audit", &[], &["$(CARGO) audit"]); phony_target("deny", &[], &["$(CARGO) deny check"]); phony_target("outdated", &[], &["$(CARGO) outdated"]); phony_target("security", &["audit", "deny"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: audit",
+            ),
+            CorpusEntry::new(
+                "M-160",
+                "milestone-160-make",
+                "160th Makefile - full CI/CD pipeline with release (OIP milestone)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let cargo = "cargo"; let git = "git"; phony_target("check", &[], &["$(CARGO) check"]); phony_target("test", &["check"], &["$(CARGO) test"]); phony_target("lint", &["check"], &["$(CARGO) clippy -- -D warnings"]); phony_target("release", &["test", "lint"], &["$(CARGO) publish"]); phony_target("tag", &["release"], &["$(GIT) tag -a v$(VERSION) -m release"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: check",
+            ),
+            // --- OIP: OperatorPrecedence/Idempotency - clean/install patterns ---
+            CorpusEntry::new(
+                "M-161",
+                "clean-artifacts",
+                "Idempotent clean targets for build artifacts (OIP: IdempotencyViolation)",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let cargo = "cargo"; phony_target("clean", &[], &["$(CARGO) clean"]); phony_target("clean-all", &["clean"], &["rm -rf dist coverage"]); phony_target("distclean", &["clean-all"], &["rm -rf node_modules"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: clean",
+            ),
+            CorpusEntry::new(
+                "M-162",
+                "install-toolchain",
+                "Toolchain installation targets (OIP: ConfigurationErrors)",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { phony_target("install-tools", &[], &["rustup component add llvm-tools-preview", "cargo install cargo-llvm-cov", "cargo install cargo-mutants"]); phony_target("install-dev", &["install-tools"], &["cargo install cargo-watch"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: install-tools",
+            ),
+            CorpusEntry::new(
+                "M-163",
+                "bench-targets",
+                "Benchmark targets with criterion (OIP: ASTTransform)",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let cargo = "cargo"; phony_target("bench", &[], &["$(CARGO) bench"]); phony_target("bench-save", &[], &["$(CARGO) bench -- --save-baseline main"]); phony_target("bench-compare", &[], &["$(CARGO) bench -- --baseline main"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: bench",
+            ),
+            CorpusEntry::new(
+                "M-164",
+                "proto-codegen",
+                "Protobuf code generation targets (OIP: ASTTransform)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let protoc = "protoc"; phony_target("proto", &[], &["$(PROTOC) --rust_out=src/proto proto/*.proto"]); phony_target("proto-check", &[], &["$(PROTOC) --rust_out=/dev/null proto/*.proto"]); phony_target("proto-clean", &[], &["rm -f src/proto/*.rs"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: proto",
+            ),
+            CorpusEntry::new(
+                "M-165",
+                "npm-integration",
+                "NPM/Node integration targets for Rust+JS projects (OIP: IntegrationFailures)",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let npm = "npm"; phony_target("npm-install", &[], &["$(NPM) install"]); phony_target("npm-build", &["npm-install"], &["$(NPM) run build"]); phony_target("npm-test", &["npm-install"], &["$(NPM) test"]); phony_target("npm-lint", &["npm-install"], &["$(NPM) run lint"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: npm-install",
+            ),
+            CorpusEntry::new(
+                "M-166",
+                "terraform-infra",
+                "Terraform infrastructure management (OIP: ConfigurationErrors)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let terraform = "terraform"; phony_target("init", &[], &["$(TERRAFORM) init"]); phony_target("plan", &["init"], &["$(TERRAFORM) plan"]); phony_target("apply", &["plan"], &["$(TERRAFORM) apply -auto-approve"]); phony_target("destroy", &[], &["$(TERRAFORM) destroy"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: init",
+            ),
+            CorpusEntry::new(
+                "M-167",
+                "coverage-report",
+                "Coverage report generation and enforcement (OIP: ComprehensionBugs)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let cargo = "cargo"; phony_target("coverage", &[], &["$(CARGO) llvm-cov --html"]); phony_target("coverage-lcov", &[], &["$(CARGO) llvm-cov --lcov --output-path lcov.info"]); phony_target("coverage-check", &[], &["$(CARGO) llvm-cov --fail-under-lines 85"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: coverage",
+            ),
+            CorpusEntry::new(
+                "M-168",
+                "deploy-s3-cloudfront",
+                "S3 deploy with CloudFront invalidation (OIP: ConfigurationErrors)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let aws = "aws"; let bucket = "my-bucket"; let dist_id = "EXAMPLEID"; phony_target("deploy", &["build"], &["$(AWS) s3 sync dist/ s3://$(BUCKET)", "$(AWS) cloudfront create-invalidation --distribution-id $(DIST_ID) --paths '/*'"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: deploy",
+            ),
+            CorpusEntry::new(
+                "M-169",
+                "pmat-quality-gates",
+                "PMAT quality gate enforcement targets (OIP: ComprehensionBugs)",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { phony_target("quality", &[], &["pmat analyze complexity --max 10"]); phony_target("tdg", &[], &["pmat analyze tdg"]); phony_target("satd", &[], &["pmat analyze satd"]); phony_target("quality-all", &["quality", "tdg", "satd"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: quality",
+            ),
+            CorpusEntry::new(
+                "M-170",
+                "milestone-170-make",
+                "170th Makefile - OIP-driven corpus milestone with full DevOps pipeline",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let cargo = "cargo"; let docker = "docker"; phony_target("check", &[], &["$(CARGO) check --all-targets"]); phony_target("test", &["check"], &["$(CARGO) test --all-targets"]); phony_target("lint", &["check"], &["$(CARGO) clippy --all-targets -- -D warnings"]); phony_target("fmt-check", &[], &["$(CARGO) fmt -- --check"]); phony_target("docker-build", &[], &["$(DOCKER) build -t app:latest ."]); phony_target("docker-push", &["docker-build"], &["$(DOCKER) push app:latest"]); phony_target("ci", &["fmt-check", "test", "lint"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: check",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    fn load_expansion8_dockerfile(&mut self) {
+        let entries = vec![
+            // --- OIP: SecurityVulnerabilities - non-root, health checks ---
+            CorpusEntry::new(
+                "D-151",
+                "healthcheck-pattern",
+                "Dockerfile with HEALTHCHECK instruction (OIP: SecurityVulnerabilities)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image("rust", "1.75-slim"); workdir("/app"); copy(".", "."); run(&["cargo build --release"]); healthcheck("CMD curl -f http://localhost:8080/health || exit 1"); expose(8080u16); cmd(&["./target/release/app"]); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn healthcheck(h: &str) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM rust:1.75-slim",
+            ),
+            CorpusEntry::new(
+                "D-152",
+                "build-env-config",
+                "Dockerfile with ENV for build configuration (OIP: ConfigurationErrors)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image("rust", "1.75-slim"); env("CARGO_HOME", "/usr/local/cargo"); env("RUSTFLAGS", "-C target-cpu=native"); workdir("/app"); copy(".", "."); run(&["cargo build --release"]); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {}"#,
+                "FROM rust:1.75-slim",
+            ),
+            CorpusEntry::new(
+                "D-153",
+                "non-root-user",
+                "Non-root user security pattern (OIP: SecurityVulnerabilities)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image("debian", "bookworm-slim"); run(&["groupadd -r appuser", "useradd -r -g appuser appuser"]); workdir("/app"); copy("app", "/app/"); run(&["chown -R appuser:appuser /app"]); user("appuser"); cmd(&["./app"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn user(u: &str) {} fn cmd(c: &[&str]) {}"#,
+                "FROM debian:bookworm-slim",
+            ),
+            // --- OIP: ASTTransform - multi-stage optimization ---
+            CorpusEntry::new(
+                "D-154",
+                "distroless-runtime",
+                "Distroless runtime for minimal attack surface (OIP: SecurityVulnerabilities)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("rust", "1.75", "builder"); workdir("/app"); copy(".", "."); run(&["cargo build --release"]); from_image("gcr.io/distroless/cc-debian12", "latest"); copy_from("builder", "/app/target/release/app", "/app"); user("65534"); entrypoint(&["/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn copy_from(f: &str, s: &str, d: &str) {} fn user(u: &str) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM rust:1.75 AS builder",
+            ),
+            CorpusEntry::new(
+                "D-155",
+                "layer-cache-deps",
+                "Dependency layer caching pattern (OIP: ASTTransform)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image("rust", "1.75"); workdir("/app"); copy("Cargo.toml", "."); copy("Cargo.lock", "."); run(&["mkdir src", "echo 'fn main(){}' > src/main.rs", "cargo build --release", "rm -rf src"]); copy("src", "src"); run(&["cargo build --release"]); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {}"#,
+                "FROM rust:1.75",
+            ),
+            CorpusEntry::new(
+                "D-156",
+                "python-uv-builder",
+                "Python UV package manager multi-stage (OIP: IntegrationFailures)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("ghcr.io/astral-sh/uv", "latest", "uv"); from_image("python", "3.12-slim"); copy_from("uv", "/uv", "/usr/local/bin/uv"); workdir("/app"); copy("pyproject.toml", "."); run(&["uv pip install --system -r pyproject.toml"]); copy(".", "."); cmd(&["python", "main.py"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "FROM ghcr.io/astral-sh/uv:latest AS uv",
+            ),
+            // --- OIP: ComprehensionBugs - label/env patterns ---
+            CorpusEntry::new(
+                "D-157",
+                "oci-labels",
+                "OCI standard labels for container metadata (OIP: ComprehensionBugs)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("rust", "1.75-slim"); label("org.opencontainers.image.source", "https://github.com/org/repo"); label("org.opencontainers.image.description", "My application"); label("org.opencontainers.image.version", "1.0.0"); workdir("/app"); copy(".", "."); run(&["cargo build --release"]); } fn from_image(i: &str, t: &str) {} fn label(k: &str, v: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {}"#,
+                "FROM rust:1.75-slim",
+            ),
+            CorpusEntry::new(
+                "D-158",
+                "env-runtime-config",
+                "Runtime configuration via ENV (OIP: ConfigurationErrors)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("node", "20-alpine"); env("NODE_ENV", "production"); env("PORT", "3000"); workdir("/app"); copy("package.json", "."); run(&["npm ci --only=production"]); copy(".", "."); expose(3000u16); cmd(&["node", "server.js"]); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM node:20-alpine",
+            ),
+            CorpusEntry::new(
+                "D-159",
+                "go-scratch-minimal",
+                "Go static binary with scratch base (OIP: SecurityVulnerabilities)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("golang", "1.22-alpine", "builder"); workdir("/app"); copy("go.mod", "."); copy("go.sum", "."); run(&["go mod download"]); copy(".", "."); run(&["CGO_ENABLED=0 go build -o /app/server ."]); from_image("scratch", ""); copy_from("builder", "/app/server", "/server"); entrypoint(&["/server"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn copy_from(f: &str, s: &str, d: &str) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM golang:1.22-alpine AS builder",
+            ),
+            CorpusEntry::new(
+                "D-160",
+                "milestone-160-docker",
+                "160th Dockerfile - OIP-driven milestone with full production patterns",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("rust", "1.75-bookworm", "builder"); run(&["apt-get update", "apt-get install -y pkg-config libssl-dev", "rm -rf /var/lib/apt/lists/*"]); workdir("/app"); copy("Cargo.toml", "."); copy("Cargo.lock", "."); run(&["mkdir src", "echo 'fn main(){}' > src/main.rs", "cargo build --release", "rm -rf src"]); copy("src", "src"); run(&["cargo build --release"]); from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y ca-certificates", "rm -rf /var/lib/apt/lists/*"]); copy_from("builder", "/app/target/release/app", "/usr/local/bin/app"); user("65534"); healthcheck("CMD /usr/local/bin/app --health || exit 1"); expose(8080u16); entrypoint(&["/usr/local/bin/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn user(u: &str) {} fn healthcheck(h: &str) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM rust:1.75-bookworm AS builder",
             ),
         ];
         self.entries.extend(entries);
