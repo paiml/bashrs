@@ -891,6 +891,31 @@ pub enum CorpusCommands {
         #[arg(long, value_enum)]
         filter: Option<CorpusFormatArg>,
     },
+
+    /// Random sample of N entries with results (spot-check)
+    Sample {
+        /// Number of entries to sample
+        #[arg(short = 'n', long, default_value = "5")]
+        count: usize,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// Check corpus construct completeness by tier
+    Completeness,
+
+    /// CI quality gate: score + regressions + benchmark in one check
+    Gate {
+        /// Minimum score threshold (default: 99.0)
+        #[arg(long, default_value = "99.0")]
+        min_score: f64,
+
+        /// Maximum ms per entry for benchmark (default: 200)
+        #[arg(long, default_value = "200")]
+        max_ms: u64,
+    },
 }
 
 /// Corpus output format

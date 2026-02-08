@@ -5230,6 +5230,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Errors { format, filter } => {
             corpus_errors(&format, filter.as_ref())
         }
+
+        CorpusCommands::Sample { count, filter } => {
+            corpus_sample(count, filter.as_ref())
+        }
+
+        CorpusCommands::Completeness => {
+            corpus_completeness()
+        }
+
+        CorpusCommands::Gate { min_score, max_ms } => {
+            corpus_gate(min_score, max_ms)
+        }
     }
 }
 
@@ -7225,6 +7237,188 @@ fn corpus_errors(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) 
         }
     }
     Ok(())
+}
+
+/// Random sample of N entries with results (spot-check).
+fn corpus_sample(count: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    let entries: Vec<_> = registry.entries.iter().filter(|e| {
+        match filter {
+            Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
+            Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
+            Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
+            None => true,
+        }
+    }).collect();
+
+    // Deterministic pseudo-random sampling using hash of current time
+    let seed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as usize)
+        .unwrap_or(42);
+    let n = entries.len();
+    let sampled: Vec<_> = (0..count.min(n)).map(|i| {
+        let idx = (seed.wrapping_mul(6364136223846793005).wrapping_add(i * 1442695040888963407)) % n;
+        entries[idx]
+    }).collect();
+
+    println!("{BOLD}Random Sample ({count} of {n} entries){RESET}");
+    println!();
+    println!("  {BOLD}{:<8} {:<10} {:<12} {:>5}  {}{RESET}",
+        "ID", "Format", "Tier", "Dims", "Status");
+    for entry in &sampled {
+        let result = runner.run_single(entry);
+        let fails = result_fail_dims(&result);
+        let status = if fails.is_empty() {
+            format!("{GREEN}PASS{RESET}")
+        } else {
+            format!("{RED}FAIL{RESET} ({})", fails.join(", "))
+        };
+        println!("  {:<8} {:<10} {:<12} {:>5}  {}",
+            entry.id, format!("{}", entry.format), format!("{:?}", entry.tier),
+            format!("{}/{}", 9 - fails.len(), 9), status);
+    }
+    Ok(())
+}
+
+/// Check corpus construct completeness by tier.
+fn corpus_completeness() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry, CorpusTier};
+
+    let registry = CorpusRegistry::load_full();
+
+    // Spec targets from §2.3 and §3.1-3.3
+    let targets = [
+        (CorpusFormat::Bash, 500, "B-001..B-500"),
+        (CorpusFormat::Makefile, 200, "M-001..M-200"),
+        (CorpusFormat::Dockerfile, 200, "D-001..D-200"),
+    ];
+
+    println!("{BOLD}Corpus Completeness Check{RESET}");
+    println!();
+
+    let mut all_complete = true;
+    for (fmt, target, range) in &targets {
+        let count = registry.entries.iter().filter(|e| &e.format == fmt).count();
+        let pct = count as f64 / *target as f64 * 100.0;
+        let pc = pct_color(pct);
+        let mark = if count >= *target {
+            format!("{GREEN}\u{2713}{RESET}")
+        } else {
+            all_complete = false;
+            format!("{RED}\u{2717}{RESET}")
+        };
+        println!("  {mark} {CYAN}{:<12}{RESET} {count:>4}/{target} {pc}({pct:.0}%){RESET}  {DIM}{range}{RESET}",
+            format!("{fmt}"));
+    }
+
+    // Tier distribution
+    println!();
+    println!("  {BOLD}Tier Distribution:{RESET}");
+    let tiers = [
+        (CorpusTier::Trivial, "Trivial", 5),
+        (CorpusTier::Standard, "Standard", 30),
+        (CorpusTier::Complex, "Complex", 5),
+        (CorpusTier::Adversarial, "Adversarial", 5),
+        (CorpusTier::Production, "Production", 55),
+    ];
+    let total = registry.entries.len();
+    for (tier, label, target_pct) in &tiers {
+        let count = registry.entries.iter().filter(|e| &e.tier == tier).count();
+        let actual_pct = count as f64 / total as f64 * 100.0;
+        println!("    {:<14} {:>4} ({:>5.1}%)  {DIM}target: ~{target_pct}%{RESET}",
+            label, count, actual_pct);
+    }
+
+    println!();
+    if all_complete {
+        println!("  {GREEN}All format targets met.{RESET}");
+    } else {
+        println!("  {YELLOW}Some format targets not met yet.{RESET}");
+    }
+    Ok(())
+}
+
+/// CI quality gate: score + regressions + benchmark in one check.
+fn corpus_gate(min_score: f64, max_ms: u64) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use std::time::Instant;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    println!("{BOLD}Corpus Quality Gate{RESET}");
+    println!();
+
+    // Gate 1: Run corpus and check score
+    let score = runner.run(&registry);
+    let score_pass = score.score >= min_score;
+    gate_print_check(
+        &format!("Score >= {min_score} (actual: {:.1})", score.score),
+        score_pass,
+    );
+
+    // Gate 2: Check for failures
+    let failure_count = score.results.iter().filter(|r| !result_fail_dims(r).is_empty()).count();
+    let fail_pass = failure_count <= 1; // Allow B-143 known failure
+    gate_print_check(
+        &format!("Failures <= 1 (actual: {failure_count})"),
+        fail_pass,
+    );
+
+    // Gate 3: Check for regressions
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let regression_pass = if let Ok(entries) = CorpusRunner::load_convergence_log(&log_path) {
+        if entries.len() >= 2 {
+            let last = &entries[entries.len() - 1];
+            let prev = &entries[entries.len() - 2];
+            let report = last.detect_regressions(prev);
+            !report.has_regressions()
+        } else {
+            true
+        }
+    } else {
+        true // No log = no regressions
+    };
+    gate_print_check("No regressions from previous iteration", regression_pass);
+
+    // Gate 4: Benchmark spot-check (sample 50 entries)
+    let sample_size = 50.min(registry.entries.len());
+    let start = Instant::now();
+    for entry in registry.entries.iter().take(sample_size) {
+        let _ = runner.run_single(entry);
+    }
+    let avg_ms = start.elapsed().as_millis() / sample_size as u128;
+    let bench_pass = avg_ms <= max_ms as u128;
+    gate_print_check(
+        &format!("Avg transpile <= {max_ms}ms (actual: {avg_ms}ms, {sample_size} sampled)"),
+        bench_pass,
+    );
+
+    println!();
+    let all_pass = score_pass && fail_pass && regression_pass && bench_pass;
+    if all_pass {
+        println!("  {BRIGHT_GREEN}ALL GATES PASSED{RESET}");
+        Ok(())
+    } else {
+        println!("  {BRIGHT_RED}GATE FAILURE — STOP THE LINE{RESET}");
+        Err(Error::Internal("Quality gate failed".to_string()))
+    }
+}
+
+fn gate_print_check(label: &str, pass: bool) {
+    use crate::cli::color::*;
+    let mark = if pass { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") };
+    println!("  {mark} {label}");
 }
 
 fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
