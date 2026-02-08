@@ -296,6 +296,8 @@ impl CorpusRegistry {
         registry.load_expansion13_bash();
         registry.load_expansion14_bash();
         registry.load_expansion15_bash();
+        registry.load_expansion10_makefile();
+        registry.load_expansion11_dockerfile();
         registry
     }
 
@@ -8255,6 +8257,296 @@ impl CorpusRegistry {
         ];
         self.entries.extend(entries);
     }
+
+    // =========================================================================
+    // Expansion Wave 16: Makefile M-181..M-200 (CI/CD, monorepo, cloud patterns)
+    // =========================================================================
+
+    fn load_expansion10_makefile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "M-181",
+                "makefile-github-actions",
+                "GitHub Actions CI/CD trigger Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let ci = "github"; phony_target("ci", &["lint", "test", "build"], &["@echo CI pipeline complete"]); phony_target("lint", &[], &["cargo clippy -- -D warnings"]); phony_target("test", &[], &["cargo test --workspace"]); phony_target("build", &[], &["cargo build --release"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: ci",
+            ),
+            CorpusEntry::new(
+                "M-182",
+                "makefile-monorepo-workspace",
+                "Monorepo workspace with per-crate targets",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let crates = "core api cli"; phony_target("all", &["core", "api", "cli"], &[]); phony_target("core", &[], &["cargo build -p core"]); phony_target("api", &["core"], &["cargo build -p api"]); phony_target("cli", &["core"], &["cargo build -p cli"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: all",
+            ),
+            CorpusEntry::new(
+                "M-183",
+                "makefile-k8s-deploy",
+                "Kubernetes deployment Makefile with kubectl",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let ns = "production"; phony_target("deploy", &["build-image"], &["kubectl apply -f k8s/ -n $(NS)"]); phony_target("build-image", &[], &["docker build -t app:latest ."]); phony_target("rollback", &[], &["kubectl rollout undo deployment/app -n $(NS)"]); phony_target("status", &[], &["kubectl get pods -n $(NS)"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: deploy",
+            ),
+            CorpusEntry::new(
+                "M-184",
+                "makefile-terraform",
+                "Terraform infrastructure Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let env = "staging"; phony_target("init", &[], &["terraform init"]); phony_target("plan", &["init"], &["terraform plan -var-file=$(ENV).tfvars"]); phony_target("apply", &["plan"], &["terraform apply -auto-approve -var-file=$(ENV).tfvars"]); phony_target("destroy", &[], &["terraform destroy -var-file=$(ENV).tfvars"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: init",
+            ),
+            CorpusEntry::new(
+                "M-185",
+                "makefile-wasm-build",
+                "WebAssembly build pipeline Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let target = "wasm32-unknown-unknown"; phony_target("wasm", &[], &["wasm-pack build --target web"]); phony_target("wasm-opt", &["wasm"], &["wasm-opt -Os pkg/app_bg.wasm -o pkg/app_bg.wasm"]); phony_target("serve", &["wasm"], &["python3 -m http.server 8080"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: wasm",
+            ),
+            CorpusEntry::new(
+                "M-186",
+                "makefile-bench-compare",
+                "Benchmark comparison Makefile with criterion",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let bench_dir = "target/criterion"; phony_target("bench", &[], &["cargo bench"]); phony_target("bench-save", &[], &["cargo bench -- --save-baseline main"]); phony_target("bench-compare", &[], &["cargo bench -- --baseline main"]); phony_target("bench-clean", &[], &["rm -rf $(BENCH_DIR)"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: bench",
+            ),
+            CorpusEntry::new(
+                "M-187",
+                "makefile-docs-mdbook",
+                "Documentation build with mdbook",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let book_dir = "book"; phony_target("docs", &[], &["mdbook build $(BOOK_DIR)"]); phony_target("docs-serve", &[], &["mdbook serve $(BOOK_DIR)"]); phony_target("docs-test", &[], &["mdbook test $(BOOK_DIR)"]); phony_target("docs-clean", &[], &["rm -rf $(BOOK_DIR)/book"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: docs",
+            ),
+            CorpusEntry::new(
+                "M-188",
+                "makefile-npm-rust-ffi",
+                "Node.js + Rust FFI build Makefile with napi-rs",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let napi = "napi"; phony_target("build-native", &[], &["napi build --release"]); phony_target("build-js", &["build-native"], &["npm run build"]); phony_target("test-native", &[], &["cargo test"]); phony_target("test-js", &["build-native"], &["npm test"]); phony_target("test", &["test-native", "test-js"], &[]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build-native",
+            ),
+            CorpusEntry::new(
+                "M-189",
+                "makefile-docker-multi-arch",
+                "Multi-architecture Docker build Makefile with buildx",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let platforms = "linux/amd64,linux/arm64"; let image = "ghcr.io/org/app"; phony_target("build-multi", &[], &["docker buildx build --platform $(PLATFORMS) -t $(IMAGE):latest --push ."]); phony_target("build-local", &[], &["docker build -t $(IMAGE):dev ."]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: build-multi",
+            ),
+            CorpusEntry::new(
+                "M-190",
+                "makefile-security-audit",
+                "Security audit pipeline Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { phony_target("audit", &["audit-deps", "audit-code", "audit-secrets"], &["@echo Security audit complete"]); phony_target("audit-deps", &[], &["cargo audit"]); phony_target("audit-code", &[], &["cargo clippy -- -D warnings"]); phony_target("audit-secrets", &[], &["git secrets --scan"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: audit",
+            ),
+            CorpusEntry::new(
+                "M-191",
+                "makefile-release-github",
+                "GitHub release creation Makefile with gh CLI",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let version = "$(shell git describe --tags --abbrev=0)"; phony_target("release", &["build"], &["gh release create $(VERSION) target/release/app --title $(VERSION)"]); phony_target("build", &[], &["cargo build --release"]); phony_target("changelog", &[], &["git-cliff -o CHANGELOG.md"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: release",
+            ),
+            CorpusEntry::new(
+                "M-192",
+                "makefile-coverage-lcov",
+                "Code coverage with LCOV output Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let cov_dir = "target/coverage"; phony_target("coverage", &[], &["cargo llvm-cov --lcov --output-path $(COV_DIR)/lcov.info"]); phony_target("coverage-html", &[], &["cargo llvm-cov --html --output-dir $(COV_DIR)/html"]); phony_target("coverage-open", &["coverage-html"], &["open $(COV_DIR)/html/index.html"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: coverage",
+            ),
+            CorpusEntry::new(
+                "M-193",
+                "makefile-env-dotenv",
+                "Environment variable loading from .env file",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let env_file = ".env"; phony_target("run", &[], &["source $(ENV_FILE) && cargo run"]); phony_target("run-dev", &[], &["source .env.dev && cargo run"]); phony_target("env-check", &[], &["@test -f $(ENV_FILE) || echo Missing .env"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: run",
+            ),
+            CorpusEntry::new(
+                "M-194",
+                "makefile-git-hooks",
+                "Git hooks installation Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let hooks_dir = ".git/hooks"; phony_target("hooks-install", &[], &["cp scripts/pre-commit $(HOOKS_DIR)/pre-commit", "chmod +x $(HOOKS_DIR)/pre-commit"]); phony_target("hooks-remove", &[], &["rm -f $(HOOKS_DIR)/pre-commit"]); phony_target("hooks-check", &[], &["@test -x $(HOOKS_DIR)/pre-commit && echo Hooks installed"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: hooks-install",
+            ),
+            CorpusEntry::new(
+                "M-195",
+                "makefile-container-registry",
+                "Container registry push with tagging Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let registry = "ghcr.io/org"; let tag = "$(shell git rev-parse --short HEAD)"; phony_target("push", &["build-image"], &["docker push $(REGISTRY)/app:$(TAG)", "docker push $(REGISTRY)/app:latest"]); phony_target("build-image", &[], &["docker build -t $(REGISTRY)/app:$(TAG) -t $(REGISTRY)/app:latest ."]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: push",
+            ),
+            CorpusEntry::new(
+                "M-196",
+                "makefile-lint-all",
+                "Multi-linter aggregation Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { phony_target("lint-all", &["lint-rust", "lint-sh", "lint-yaml"], &["@echo All linters passed"]); phony_target("lint-rust", &[], &["cargo clippy -- -D warnings"]); phony_target("lint-sh", &[], &["shellcheck scripts/*.sh"]); phony_target("lint-yaml", &[], &["yamllint .github/"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: lint-all",
+            ),
+            CorpusEntry::new(
+                "M-197",
+                "makefile-migration-sql",
+                "SQL migration runner Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { let db = "sqlite://app.db"; phony_target("migrate", &[], &["sqlx database create", "sqlx migrate run"]); phony_target("migrate-add", &[], &["sqlx migrate add $(NAME)"]); phony_target("migrate-revert", &[], &["sqlx migrate revert"]); phony_target("db-reset", &[], &["rm -f app.db", "sqlx database create", "sqlx migrate run"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: migrate",
+            ),
+            CorpusEntry::new(
+                "M-198",
+                "makefile-cargo-xtask",
+                "Cargo xtask pattern Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                r#"fn main() { phony_target("xtask-codegen", &[], &["cargo xtask codegen"]); phony_target("xtask-dist", &[], &["cargo xtask dist"]); phony_target("xtask-install", &[], &["cargo xtask install"]); phony_target("xtask-check", &[], &["cargo xtask check"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: xtask-codegen",
+            ),
+            CorpusEntry::new(
+                "M-199",
+                "makefile-s3-deploy",
+                "S3 static site deployment Makefile",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let bucket = "s3://my-site-production"; let dist_id = "E1234567890"; phony_target("deploy", &["build"], &["aws s3 sync dist/ $(BUCKET) --delete"]); phony_target("invalidate", &["deploy"], &["aws cloudfront create-invalidation --distribution-id $(DIST_ID) --paths '/*'"]); phony_target("build", &[], &["npm run build"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: deploy",
+            ),
+            CorpusEntry::new(
+                "M-200",
+                "milestone-200-makefile",
+                "Milestone 200: Full production Makefile with dev/staging/prod environments",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let env = "dev"; phony_target("dev", &[], &["ENV=dev cargo run"]); phony_target("staging", &["build"], &["ENV=staging ./deploy.sh"]); phony_target("prod", &["test", "lint", "build"], &["ENV=prod ./deploy.sh"]); phony_target("build", &[], &["cargo build --release"]); phony_target("test", &[], &["cargo test --workspace"]); phony_target("lint", &[], &["cargo clippy -- -D warnings"]); phony_target("clean", &[], &["cargo clean", "rm -rf dist/"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: dev",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 17: Dockerfile D-181..D-190 (multi-arch, distroless, init)
+    // =========================================================================
+
+    fn load_expansion11_dockerfile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "D-181",
+                "dockerfile-distroless",
+                "Google distroless base image for minimal attack surface",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("rust", "1.75-bookworm", "builder"); workdir("/app"); copy(".", "."); run(&["cargo build --release"]); from_image("gcr.io/distroless/cc-debian12", ""); copy_from("builder", "/app/target/release/app", "/app"); entrypoint(&["/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM gcr.io/distroless/cc-debian12:",
+            ),
+            CorpusEntry::new(
+                "D-182",
+                "dockerfile-buildkit-cache",
+                "BuildKit cache mount for faster package installs",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image("rust", "1.75-bookworm"); workdir("/app"); copy("Cargo.toml", "."); copy("Cargo.lock", "."); run(&["--mount=type=cache,target=/usr/local/cargo/registry cargo build --release"]); copy("src/", "src/"); run(&["cargo build --release"]); cmd(&["./target/release/app"]); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "FROM rust:1.75-bookworm",
+            ),
+            CorpusEntry::new(
+                "D-183",
+                "dockerfile-tini-init",
+                "Container with tini init process for signal handling",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("alpine", "3.19"); run(&["apk add --no-cache tini"]); workdir("/app"); copy(".", "."); entrypoint(&["/sbin/tini", "--"]); cmd(&["./app"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn entrypoint(e: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                r#"ENTRYPOINT ["/sbin/tini", "--"]"#,
+            ),
+            CorpusEntry::new(
+                "D-184",
+                "dockerfile-arg-build",
+                "Build arguments for configurable builds",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { arg("RUST_VERSION", "1.75"); arg("APP_NAME", "myapp"); from_image("rust", "${RUST_VERSION}-bookworm"); workdir("/app"); copy(".", "."); run(&["cargo build --release"]); cmd(&["./target/release/${APP_NAME}"]); } fn arg(k: &str, v: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "RUN cargo build --release",
+            ),
+            CorpusEntry::new(
+                "D-185",
+                "dockerfile-volume-data",
+                "Volume mount for persistent data",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("postgres", "16-alpine"); env("PGDATA", "/var/lib/postgresql/data/pgdata"); volume("/var/lib/postgresql/data"); expose(5432u16); cmd(&["postgres"]); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn volume(p: &str) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "ENV PGDATA=/var/lib/postgresql/data/pgdata",
+            ),
+            CorpusEntry::new(
+                "D-186",
+                "dockerfile-multi-copy-from",
+                "Multiple COPY --from stages for asset aggregation",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("node", "20-alpine", "frontend"); workdir("/web"); copy("web/", "."); run(&["npm ci", "npm run build"]); from_image_as("rust", "1.75-alpine", "backend"); workdir("/app"); copy(".", "."); run(&["cargo build --release"]); from_image("alpine", "3.19"); copy_from("frontend", "/web/dist", "/srv/static"); copy_from("backend", "/app/target/release/server", "/usr/local/bin/server"); expose(8080u16); cmd(&["server"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM node:20-alpine AS frontend",
+            ),
+            CorpusEntry::new(
+                "D-187",
+                "dockerfile-pip-constraints",
+                "Python with pip constraints file for reproducible builds",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("python", "3.12-slim"); env("PIP_NO_CACHE_DIR", "1"); env("PIP_DISABLE_PIP_VERSION_CHECK", "1"); workdir("/app"); copy("requirements.txt", "."); copy("constraints.txt", "."); run(&["pip install -r requirements.txt -c constraints.txt"]); copy(".", "."); cmd(&["python", "-m", "app"]); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "ENV PIP_NO_CACHE_DIR=1",
+            ),
+            CorpusEntry::new(
+                "D-188",
+                "dockerfile-go-scratch",
+                "Go binary in scratch container (CGO_ENABLED=0)",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("golang", "1.22-alpine", "builder"); env("CGO_ENABLED", "0"); workdir("/src"); copy("go.mod", "."); copy("go.sum", "."); run(&["go mod download"]); copy(".", "."); run(&["go build -ldflags=-s -o /app"]); from_image("scratch", ""); copy_from("builder", "/app", "/app"); entrypoint(&["/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn entrypoint(e: &[&str]) {}"#,
+                "ENV CGO_ENABLED=0",
+            ),
+            CorpusEntry::new(
+                "D-189",
+                "dockerfile-nginx-spa",
+                "Nginx SPA with custom config and non-root",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("node", "20-alpine", "build"); workdir("/app"); copy("package.json", "."); run(&["npm ci"]); copy(".", "."); run(&["npm run build"]); from_image("nginx", "1.25-alpine"); copy("nginx.conf", "/etc/nginx/conf.d/default.conf"); copy_from("build", "/app/dist", "/usr/share/nginx/html"); expose(80u16); cmd(&["nginx", "-g", "daemon off;"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM node:20-alpine AS build",
+            ),
+            CorpusEntry::new(
+                "D-190",
+                "milestone-190-docker",
+                "Milestone 190: Production-grade Rust service with monitoring sidecar pattern",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("rust", "1.75-bookworm", "builder"); workdir("/app"); copy("Cargo.toml", "."); copy("Cargo.lock", "."); run(&["mkdir src", "echo 'fn main(){}' > src/main.rs", "cargo build --release", "rm -rf src"]); copy("src/", "src/"); run(&["cargo build --release"]); from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y --no-install-recommends ca-certificates", "rm -rf /var/lib/apt/lists/*", "groupadd -r app", "useradd -r -g app app"]); copy_from("builder", "/app/target/release/server", "/usr/local/bin/server"); user("app"); expose(8080u16); expose(9090u16); healthcheck("server --health-check", "15s", "5s"); entrypoint(&["/usr/local/bin/server"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn user(u: &str) {} fn expose(p: u16) {} fn healthcheck(c: &str, i: &str, t: &str) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM rust:1.75-bookworm AS builder",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
 }
 
 #[cfg(test)]
@@ -8358,6 +8650,7 @@ mod tests {
         assert!((CorpusTier::Standard.target_rate() - 0.99).abs() < f64::EPSILON);
         assert!((CorpusTier::Adversarial.target_rate() - 0.95).abs() < f64::EPSILON);
     }
+
 
 
 }
