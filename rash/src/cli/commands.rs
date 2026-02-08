@@ -5273,7 +5273,11 @@ fn corpus_write_convergence_log(
     use crate::cli::color::*;
     println!();
     let dc = delta_color(entry.delta);
-    println!("{DIM}Convergence log:{RESET} iteration {}, delta {dc}", iteration);
+    let sc = pct_color(entry.score);
+    println!(
+        "{DIM}Convergence log:{RESET} iteration {}, {sc}{:.1}/100 {}{RESET}, delta {dc}",
+        iteration, entry.score, entry.grade
+    );
     // Per-format breakdown (spec §11.10.5)
     if entry.bash_total > 0 || entry.makefile_total > 0 || entry.dockerfile_total > 0 {
         let fmt_part = |name: &str, passed: usize, total: usize| -> String {
@@ -5443,14 +5447,25 @@ fn fmt_pass_total(passed: usize, total: usize) -> String {
 }
 
 /// Print a single convergence history row (human-readable).
-fn corpus_print_history_row(e: &crate::corpus::runner::ConvergenceEntry, has_format_data: bool) {
+fn corpus_print_history_row(
+    e: &crate::corpus::runner::ConvergenceEntry,
+    has_format_data: bool,
+    has_score_data: bool,
+) {
     use crate::cli::color::*;
     let rate_pct = e.rate * 100.0;
     let rc = pct_color(rate_pct);
     let dc = delta_color(e.delta);
+    let score_part = if has_score_data {
+        let sc = pct_color(e.score);
+        let gr = if e.grade.is_empty() { "-".to_string() } else { e.grade.clone() };
+        format!("  {sc}{:>5.1}{RESET} {:>2}", e.score, gr)
+    } else {
+        String::new()
+    };
     if has_format_data {
         println!(
-            "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}  {:>9} {:>9} {:>9}  {}",
+            "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}{score_part}  {:>9} {:>9} {:>9}  {}",
             e.iteration, e.date, e.passed, e.total, rate_pct,
             fmt_pass_total(e.bash_passed, e.bash_total),
             fmt_pass_total(e.makefile_passed, e.makefile_total),
@@ -5459,7 +5474,7 @@ fn corpus_print_history_row(e: &crate::corpus::runner::ConvergenceEntry, has_for
         );
     } else {
         println!(
-            "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}  {}",
+            "{:>4}  {:>10}  {:>5}/{:<5}  {rc}{:>5.1}%{RESET}  {dc}{score_part}  {}",
             e.iteration, e.date, e.passed, e.total, rate_pct, e.notes
         );
     }
@@ -5484,25 +5499,28 @@ fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Resu
 
     // Detect if any entry has per-format data (spec §11.10.5)
     let has_format_data = display.iter().any(|e| e.bash_total > 0 || e.makefile_total > 0 || e.dockerfile_total > 0);
+    // Detect if any entry has V2 score data (spec §5.1)
+    let has_score_data = display.iter().any(|e| e.score > 0.0);
 
     match format {
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
             println!("{BOLD}Convergence History ({} entries):{RESET}", entries.len());
+            let score_hdr = if has_score_data { "  Score Gr" } else { "" };
             if has_format_data {
                 println!(
-                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}  {:>9} {:>9} {:>9}  {}{RESET}",
+                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}{score_hdr}  {:>9} {:>9} {:>9}  {}{RESET}",
                     "Iter", "Date", "Pass", "Total", "Rate", "Delta",
                     "Bash", "Make", "Docker", "Notes"
                 );
             } else {
                 println!(
-                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}  {}{RESET}",
+                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}{score_hdr}  {}{RESET}",
                     "Iter", "Date", "Pass", "Total", "Rate", "Delta", "Notes"
                 );
             }
             for e in display {
-                corpus_print_history_row(e, has_format_data);
+                corpus_print_history_row(e, has_format_data, has_score_data);
             }
         }
         CorpusOutputFormat::Json => {
