@@ -833,6 +833,27 @@ pub enum CorpusCommands {
         #[arg(long, value_enum)]
         filter: Option<CorpusFormatArg>,
     },
+
+    /// Show entries grouped by domain-specific category (spec §11.11)
+    Categories {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
+
+    /// Show per-dimension pass rates, weights, and point contributions
+    Dimensions {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// Find potential duplicate or similar corpus entries
+    Dupes,
 }
 
 /// Corpus output format
