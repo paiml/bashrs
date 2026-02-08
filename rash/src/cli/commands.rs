@@ -5350,6 +5350,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::SummaryJson => {
             corpus_summary_json()
         }
+
+        CorpusCommands::Audit => {
+            corpus_audit()
+        }
+
+        CorpusCommands::TierDetail => {
+            corpus_tier_detail()
+        }
+
+        CorpusCommands::IdRange => {
+            corpus_id_range()
+        }
     }
 }
 
@@ -9268,6 +9280,176 @@ fn corpus_summary_json() -> Result<()> {
     });
 
     println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
+    Ok(())
+}
+
+/// Full audit trail: entries, tests, build, lint status.
+fn corpus_audit() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use std::time::Instant;
+
+    let registry = CorpusRegistry::load_full();
+    let start = Instant::now();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+    let elapsed = start.elapsed();
+
+    println!("{BOLD}Corpus Audit{RESET}");
+    println!();
+
+    // Entry inventory
+    let bash_count = registry.entries.iter().filter(|e| e.format == crate::corpus::registry::CorpusFormat::Bash).count();
+    let make_count = registry.entries.iter().filter(|e| e.format == crate::corpus::registry::CorpusFormat::Makefile).count();
+    let dock_count = registry.entries.iter().filter(|e| e.format == crate::corpus::registry::CorpusFormat::Dockerfile).count();
+
+    println!("  {BOLD}Entries:{RESET}");
+    println!("    Total:      {}", registry.entries.len());
+    println!("    Bash:       {bash_count}");
+    println!("    Makefile:   {make_count}");
+    println!("    Dockerfile: {dock_count}");
+
+    // Scoring results
+    println!();
+    println!("  {BOLD}Scoring:{RESET}");
+    println!("    Score:  {GREEN}{:.1}/100{RESET}", score.score);
+    println!("    Grade:  {GREEN}{}{RESET}", score.grade);
+    println!("    Pass:   {GREEN}{}{RESET}/{}", score.passed, score.total);
+    println!("    Fail:   {}{}{RESET}", if score.failed > 0 { RED } else { GREEN }, score.failed);
+
+    // Dimension pass rates
+    println!();
+    println!("  {BOLD}Dimensions:{RESET}");
+    let dims = ["A", "B1", "B2", "B3", "D", "E", "F", "G"];
+    for (d_idx, dim) in dims.iter().enumerate() {
+        let pass = score.results.iter().filter(|r| result_dim_pass(r, d_idx)).count();
+        let rate = pass as f64 / score.results.len().max(1) as f64 * 100.0;
+        let color = pct_color(rate);
+        println!("    {:<3} {color}{:>4}/{:<4} {:>5.1}%{RESET}", dim, pass, score.total, rate);
+    }
+
+    // Performance
+    println!();
+    println!("  {BOLD}Performance:{RESET}");
+    println!("    Run time: {:.1}s", elapsed.as_secs_f64());
+    println!("    Per entry: {:.1}ms", elapsed.as_secs_f64() * 1000.0 / score.total.max(1) as f64);
+
+    // Convergence log
+    let log_exists = std::path::Path::new(".quality/convergence.log").exists()
+        || std::path::Path::new("../.quality/convergence.log").exists();
+    println!();
+    println!("  {BOLD}Infrastructure:{RESET}");
+    println!("    Convergence log: {}", if log_exists { format!("{GREEN}present{RESET}") } else { format!("{YELLOW}missing{RESET}") });
+
+    Ok(())
+}
+
+/// Per-tier detailed breakdown with pass rates.
+fn corpus_tier_detail() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    let tiers = [
+        ("Trivial", crate::corpus::registry::CorpusTier::Trivial),
+        ("Standard", crate::corpus::registry::CorpusTier::Standard),
+        ("Complex", crate::corpus::registry::CorpusTier::Complex),
+        ("Adversarial", crate::corpus::registry::CorpusTier::Adversarial),
+        ("Production", crate::corpus::registry::CorpusTier::Production),
+    ];
+
+    println!("{BOLD}Tier Detail{RESET}");
+    println!();
+
+    for (name, tier) in &tiers {
+        let entries: Vec<_> = registry.entries.iter().enumerate()
+            .filter(|(_, e)| e.tier == *tier)
+            .collect();
+
+        let total = entries.len();
+        let passed = entries.iter()
+            .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_fail_dims(r).is_empty()))
+            .count();
+        let rate = if total > 0 { passed as f64 / total as f64 * 100.0 } else { 100.0 };
+        let color = pct_color(rate);
+
+        println!("  {BOLD}{name}{RESET} ({total} entries)");
+        println!("    Pass rate: {color}{:.1}%{RESET} ({passed}/{total})", rate);
+
+        // Per-dimension breakdown for this tier
+        let dims = ["A", "B1", "B2", "B3", "D", "E", "F", "G"];
+        print!("    Dims:     ");
+        for (d_idx, dim) in dims.iter().enumerate() {
+            let dim_pass = entries.iter()
+                .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_dim_pass(r, d_idx)))
+                .count();
+            let dc = if dim_pass == total { GREEN } else { YELLOW };
+            print!("{dc}{dim}:{dim_pass}{RESET} ");
+        }
+        println!();
+
+        // Show failures if any
+        let failures: Vec<_> = entries.iter()
+            .filter(|(i, _)| !score.results.get(*i).map_or(true, |r| result_fail_dims(r).is_empty()))
+            .collect();
+        if !failures.is_empty() {
+            for (i, entry) in &failures {
+                let fails = score.results.get(*i).map_or_else(Vec::new, result_fail_dims);
+                println!("    {RED}FAIL{RESET}: {} [{}]", entry.id, fails.join(","));
+            }
+        }
+        println!();
+    }
+
+    Ok(())
+}
+
+/// ID range info per format (first, last, count).
+fn corpus_id_range() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+
+    println!("{BOLD}ID Range by Format{RESET}");
+    println!();
+
+    let formats = [
+        ("Bash", "B-", crate::corpus::registry::CorpusFormat::Bash),
+        ("Makefile", "M-", crate::corpus::registry::CorpusFormat::Makefile),
+        ("Dockerfile", "D-", crate::corpus::registry::CorpusFormat::Dockerfile),
+    ];
+
+    println!("  {BOLD}{:<12} {:>6} {:>8} {:>8} {:>8}{RESET}",
+        "Format", "Count", "First", "Last", "Max#");
+
+    for (name, prefix, fmt) in &formats {
+        let ids: Vec<&str> = registry.entries.iter()
+            .filter(|e| e.format == *fmt)
+            .map(|e| e.id.as_str())
+            .collect();
+
+        let count = ids.len();
+        let nums: Vec<usize> = ids.iter()
+            .filter_map(|id| id.strip_prefix(prefix).and_then(|n| n.parse().ok()))
+            .collect();
+
+        let first = ids.first().copied().unwrap_or("-");
+        let last = ids.last().copied().unwrap_or("-");
+        let max_num = nums.iter().copied().max().unwrap_or(0);
+
+        println!("  {CYAN}{:<12}{RESET} {:>6} {:>8} {:>8} {:>8}",
+            name, count, first, last, max_num);
+    }
+
+    println!();
+    println!("  {DIM}Max# = highest numeric ID in range{RESET}");
+
     Ok(())
 }
 
