@@ -707,6 +707,17 @@ pub enum CorpusCommands {
         #[arg(short, long, value_enum, default_value = "human")]
         format: CorpusOutputFormat,
     },
+
+    /// Classify corpus entry difficulty as Tier 1-5 (spec §2.3)
+    Difficulty {
+        /// Entry ID (e.g., B-001) or "all" for full corpus
+        #[arg(value_name = "ID")]
+        id: String,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+    },
 }
 
 /// Corpus output format
