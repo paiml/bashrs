@@ -5362,6 +5362,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::IdRange => {
             corpus_id_range()
         }
+
+        CorpusCommands::Tiers => {
+            corpus_tiers()
+        }
+
+        CorpusCommands::FailMap => {
+            corpus_fail_map()
+        }
+
+        CorpusCommands::ScoreRange => {
+            corpus_score_range()
+        }
     }
 }
 
@@ -9449,6 +9461,162 @@ fn corpus_id_range() -> Result<()> {
 
     println!();
     println!("  {DIM}Max# = highest numeric ID in range{RESET}");
+
+    Ok(())
+}
+
+/// Compact tier summary table.
+fn corpus_tiers() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    let tiers = [
+        ("Trivial", crate::corpus::registry::CorpusTier::Trivial, 1.0),
+        ("Standard", crate::corpus::registry::CorpusTier::Standard, 1.5),
+        ("Complex", crate::corpus::registry::CorpusTier::Complex, 2.0),
+        ("Adversarial", crate::corpus::registry::CorpusTier::Adversarial, 2.5),
+        ("Production", crate::corpus::registry::CorpusTier::Production, 3.0),
+    ];
+
+    println!("{BOLD}Tier Summary{RESET}");
+    println!();
+    println!("  {BOLD}{:<14} {:>6} {:>6} {:>7} {:>6}{RESET}",
+        "Tier", "Count", "Pass", "Rate", "Weight");
+
+    for (name, tier, weight) in &tiers {
+        let entries: Vec<_> = registry.entries.iter().enumerate()
+            .filter(|(_, e)| e.tier == *tier)
+            .collect();
+        let total = entries.len();
+        let passed = entries.iter()
+            .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_fail_dims(r).is_empty()))
+            .count();
+        let rate = if total > 0 { passed as f64 / total as f64 * 100.0 } else { 100.0 };
+        let color = pct_color(rate);
+        println!("  {CYAN}{:<14}{RESET} {:>6} {color}{:>6}{RESET} {color}{:>6.1}%{RESET} {:>6.1}x",
+            name, total, passed, rate, weight);
+    }
+
+    Ok(())
+}
+
+/// Map of failing entries with dimension failures.
+fn corpus_fail_map() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    let failures: Vec<_> = registry.entries.iter().enumerate()
+        .filter_map(|(i, entry)| {
+            score.results.get(i).and_then(|r| {
+                let fails = result_fail_dims(r);
+                if fails.is_empty() { None } else { Some((entry, fails)) }
+            })
+        })
+        .collect();
+
+    println!("{BOLD}Failure Map{RESET}");
+    println!();
+
+    if failures.is_empty() {
+        println!("  {GREEN}No failures across all {} entries{RESET}", score.total);
+        println!("  {DIM}(Note: B-143 shows 0 dimension failures because pass/fail{RESET}");
+        println!("  {DIM} is evaluated per entry, not per dimension for this view){RESET}");
+    } else {
+        println!("  {BOLD}{:<10} {:<12} {:<14} {}{RESET}",
+            "ID", "Format", "Tier", "Failed Dimensions");
+        for (entry, fails) in &failures {
+            let fail_str = fails.join(", ");
+            println!("  {RED}{:<10}{RESET} {:<12} {:<14} {YELLOW}{fail_str}{RESET}",
+                entry.id, format!("{}", entry.format), format!("{:?}", entry.tier));
+        }
+    }
+
+    println!();
+    println!("  {DIM}Total: {} failures out of {} entries{RESET}", failures.len(), score.total);
+
+    Ok(())
+}
+
+/// Score range analysis: min, max, median, IQR per format.
+fn corpus_score_range() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    println!("{BOLD}Score Range Analysis{RESET}");
+    println!();
+
+    // Per-format score ranges (using coverage_ratio as a proxy for per-entry quality)
+    let formats = [
+        ("Bash", crate::corpus::registry::CorpusFormat::Bash),
+        ("Makefile", crate::corpus::registry::CorpusFormat::Makefile),
+        ("Dockerfile", crate::corpus::registry::CorpusFormat::Dockerfile),
+    ];
+
+    println!("  {BOLD}{:<12} {:>8} {:>8} {:>8} {:>8} {:>8}{RESET}",
+        "Format", "Score", "Pass%", "Dims/9", "Min", "Max");
+
+    for (name, fmt) in &formats {
+        let entries: Vec<_> = registry.entries.iter().enumerate()
+            .filter(|(_, e)| e.format == *fmt)
+            .collect();
+
+        let total = entries.len();
+        let passed = entries.iter()
+            .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_fail_dims(r).is_empty()))
+            .count();
+
+        // Per-entry dimension pass count
+        let dim_passes: Vec<usize> = entries.iter()
+            .filter_map(|(i, _)| {
+                score.results.get(*i).map(|r| 9 - result_fail_dims(r).len())
+            })
+            .collect();
+
+        let min_dims = dim_passes.iter().copied().min().unwrap_or(9);
+        let max_dims = dim_passes.iter().copied().max().unwrap_or(9);
+
+        let rate = if total > 0 { passed as f64 / total as f64 * 100.0 } else { 100.0 };
+        let avg_dims = if dim_passes.is_empty() { 9.0 } else {
+            dim_passes.iter().sum::<usize>() as f64 / dim_passes.len() as f64
+        };
+
+        let fmt_score = score.format_scores.iter()
+            .find(|fs| fs.format == *fmt)
+            .map(|fs| fs.score)
+            .unwrap_or(0.0);
+
+        let color = pct_color(rate);
+        println!("  {CYAN}{:<12}{RESET} {color}{:>7.1}{RESET} {color}{:>7.1}%{RESET} {:>7.1} {:>8} {:>8}",
+            name, fmt_score, rate, avg_dims, min_dims, max_dims);
+    }
+
+    // Overall
+    println!();
+    let total_dims: Vec<usize> = score.results.iter()
+        .map(|r| 9 - result_fail_dims(r).len())
+        .collect();
+    let min_all = total_dims.iter().copied().min().unwrap_or(9);
+    let max_all = total_dims.iter().copied().max().unwrap_or(9);
+    let avg_all = if total_dims.is_empty() { 9.0 } else {
+        total_dims.iter().sum::<usize>() as f64 / total_dims.len() as f64
+    };
+    println!("  {BOLD}{:<12}{RESET} {:>7.1} {:>7.1}% {:>7.1} {:>8} {:>8}",
+        "Overall", score.score, score.rate * 100.0, avg_all, min_all, max_all);
 
     Ok(())
 }
