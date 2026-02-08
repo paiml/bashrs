@@ -933,6 +933,23 @@ pub enum CorpusCommands {
 
     /// Timeline visualization of corpus growth from convergence log
     Timeline,
+
+    /// Detect per-dimension score drift across convergence iterations
+    Drift,
+
+    /// Show entries sorted by transpilation time (slowest first)
+    Slow {
+        /// Number of entries to show
+        #[arg(short = 'n', long, default_value = "20")]
+        limit: usize,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// Show entries grouped by shell construct type (variable, loop, pipe, etc.)
+    Tags,
 }
 
 /// Corpus output format
