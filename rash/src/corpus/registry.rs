@@ -299,6 +299,8 @@ impl CorpusRegistry {
         registry.load_expansion10_makefile();
         registry.load_expansion11_dockerfile();
         registry.load_expansion16_bash();
+        registry.load_expansion17_bash();
+        registry.load_expansion12_dockerfile();
         registry
     }
 
@@ -8831,6 +8833,208 @@ impl CorpusRegistry {
                 CorpusTier::Production,
                 r#"fn is_match_class(ch: i32, class: i32) -> bool { if class == 1 { ch >= 48 && ch <= 57 } else if class == 2 { ch >= 65 && ch <= 90 } else if class == 3 { ch >= 97 && ch <= 122 } else { false } } fn scan_class(len: i32, class: i32) -> i32 { let mut matched = 0; let mut i = 0; while i < len { if is_match_class(48 + i, class) { matched += 1; } i += 1; } matched } fn regex_score(digits: i32, uppers: i32, lowers: i32) -> i32 { digits * 3 + uppers * 2 + lowers } fn main() { let d = scan_class(20, 1); let u = scan_class(50, 2); let l = scan_class(80, 3); let score = regex_score(d, u, l); }"#,
                 "is_match_class() {",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 19: Bash B-491..B-500 (Milestone 500: Data Structure Algorithms)
+    //   Transpiled implementations of classic CS data structure operations
+    // =========================================================================
+
+    fn load_expansion17_bash(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "B-491",
+                "ds-stack-push-pop",
+                "Data structure: stack push/pop simulation via array index",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn stack_push(top: i32) -> i32 { top + 1 } fn stack_pop(top: i32) -> i32 { if top > 0 { top - 1 } else { 0 } } fn stack_empty(top: i32) -> bool { top == 0 } fn main() { let mut sp = 0; sp = stack_push(sp); sp = stack_push(sp); sp = stack_push(sp); sp = stack_pop(sp); let empty = stack_empty(sp); }"#,
+                "stack_push() {",
+            ),
+            CorpusEntry::new(
+                "B-492",
+                "ds-queue-enqueue-dequeue",
+                "Data structure: circular queue head/tail index management",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn enqueue(tail: i32, capacity: i32) -> i32 { (tail + 1) % capacity } fn dequeue(head: i32, capacity: i32) -> i32 { (head + 1) % capacity } fn queue_size(head: i32, tail: i32, capacity: i32) -> i32 { if tail >= head { tail - head } else { capacity - head + tail } } fn main() { let h = 0; let t = enqueue(0, 8); let t2 = enqueue(t, 8); let h2 = dequeue(h, 8); let sz = queue_size(h2, t2, 8); }"#,
+                "enqueue() {",
+            ),
+            CorpusEntry::new(
+                "B-493",
+                "ds-hash-function",
+                "Data structure: simple hash function (djb2-style modular arithmetic)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn hash_combine(hash: i32, ch: i32) -> i32 { hash * 33 + ch } fn hash_bucket(hash: i32, num_buckets: i32) -> i32 { let mut h = hash; if hash < 0 { h = 0 - hash; } h % num_buckets } fn main() { let mut h = 5381; h = hash_combine(h, 104); h = hash_combine(h, 101); h = hash_combine(h, 108); let bucket = hash_bucket(h, 16); }"#,
+                "hash_combine() {",
+            ),
+            CorpusEntry::new(
+                "B-494",
+                "ds-binary-search",
+                "Data structure: binary search iteration count on sorted range",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn binary_search_steps(low: i32, high: i32, target: i32) -> i32 { let mut lo = low; let mut hi = high; let mut steps = 0; while lo <= hi { let mid = lo + (hi - lo) / 2; steps += 1; if mid == target { lo = hi + 1; } else if mid < target { lo = mid + 1; } else { hi = mid - 1; } } steps } fn main() { let s1 = binary_search_steps(0, 100, 42); let s2 = binary_search_steps(0, 1000, 500); }"#,
+                "binary_search_steps() {",
+            ),
+            CorpusEntry::new(
+                "B-495",
+                "ds-tree-depth",
+                "Data structure: complete binary tree depth from node count",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn tree_depth(nodes: i32) -> i32 { let mut depth = 0; let mut n = nodes; while n > 0 { depth += 1; n = n / 2; } depth } fn tree_leaves(depth: i32) -> i32 { let mut leaves = 1; let mut i = 0; while i < depth - 1 { leaves *= 2; i += 1; } leaves } fn main() { let d = tree_depth(15); let l = tree_leaves(d); let d2 = tree_depth(1023); }"#,
+                "tree_depth() {",
+            ),
+            CorpusEntry::new(
+                "B-496",
+                "ds-heap-parent-child",
+                "Data structure: binary heap parent/child index calculations",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn heap_parent(i: i32) -> i32 { (i - 1) / 2 } fn heap_left(i: i32) -> i32 { 2 * i + 1 } fn heap_right(i: i32) -> i32 { 2 * i + 2 } fn heap_is_leaf(i: i32, size: i32) -> bool { heap_left(i) >= size } fn main() { let p = heap_parent(5); let l = heap_left(2); let r = heap_right(2); let leaf = heap_is_leaf(7, 10); }"#,
+                "heap_parent() {",
+            ),
+            CorpusEntry::new(
+                "B-497",
+                "ds-graph-degree",
+                "Data structure: graph vertex degree and edge count",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn total_edges(vertices: i32, avg_degree: i32) -> i32 { vertices * avg_degree / 2 } fn is_connected_min(vertices: i32, edges: i32) -> bool { edges >= vertices - 1 } fn density(vertices: i32, edges: i32) -> i32 { let max_edges = vertices * (vertices - 1) / 2; if max_edges == 0 { 0 } else { edges * 100 / max_edges } } fn main() { let e = total_edges(10, 4); let c = is_connected_min(10, e); let d = density(10, e); }"#,
+                "total_edges() {",
+            ),
+            CorpusEntry::new(
+                "B-498",
+                "ds-lru-eviction",
+                "Data structure: LRU cache eviction decision (age-based)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn lru_should_evict(age: i32, max_age: i32) -> bool { age >= max_age } fn lru_new_age(hit: bool) -> i32 { if hit { 0 } else { 1 } } fn lru_oldest(a1: i32, a2: i32, a3: i32) -> i32 { if a1 >= a2 && a1 >= a3 { 1 } else if a2 >= a3 { 2 } else { 3 } } fn main() { let evict = lru_should_evict(10, 8); let age = lru_new_age(true); let oldest = lru_oldest(5, 3, 7); }"#,
+                "lru_should_evict() {",
+            ),
+            CorpusEntry::new(
+                "B-499",
+                "ds-bloom-filter-hash",
+                "Data structure: Bloom filter bit position calculation",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn bloom_hash1(key: i32, size: i32) -> i32 { let mut h = key; if key < 0 { h = 0 - key; } h % size } fn bloom_hash2(key: i32, size: i32) -> i32 { let mut h = key; if key < 0 { h = 0 - key; } (h * 7 + 13) % size } fn bloom_test(bit1: bool, bit2: bool) -> bool { bit1 && bit2 } fn main() { let h1 = bloom_hash1(42, 64); let h2 = bloom_hash2(42, 64); let present = bloom_test(true, true); let absent = bloom_test(true, false); }"#,
+                "bloom_hash1() {",
+            ),
+            CorpusEntry::new(
+                "B-500",
+                "milestone-500-bash",
+                "Milestone 500: Composite data structure — hash table with chaining (bucket + chain length)",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn hash_key(key: i32, buckets: i32) -> i32 { let mut h = key; if key < 0 { h = 0 - key; } h % buckets } fn chain_length(items: i32, buckets: i32) -> i32 { if buckets == 0 { items } else { items / buckets } } fn load_factor_pct(items: i32, buckets: i32) -> i32 { if buckets == 0 { 100 } else { items * 100 / buckets } } fn needs_resize(items: i32, buckets: i32, threshold_pct: i32) -> bool { load_factor_pct(items, buckets) > threshold_pct } fn main() { let b = hash_key(42, 16); let cl = chain_length(100, 16); let lf = load_factor_pct(100, 16); let resize = needs_resize(100, 16, 75); }"#,
+                "hash_key() {",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 20: Dockerfile D-191..D-200 (Milestone 200: Multi-Runtime)
+    //   Java, .NET, Ruby, Elixir, Zig, and composite multi-runtime patterns
+    // =========================================================================
+
+    fn load_expansion12_dockerfile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "D-191",
+                "dockerfile-java-gradle",
+                "Java Gradle multi-stage build with JRE runtime",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("gradle", "8.5-jdk21", "builder"); workdir("/app"); copy("build.gradle", "."); copy("src/", "src/"); run(&["gradle build --no-daemon"]); from_image("eclipse-temurin", "21-jre-alpine"); copy_from("builder", "/app/build/libs/app.jar", "/app.jar"); expose(8080u16); cmd(&["java", "-jar", "/app.jar"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM gradle:8.5-jdk21 AS builder",
+            ),
+            CorpusEntry::new(
+                "D-192",
+                "dockerfile-dotnet-publish",
+                ".NET SDK multi-stage build with ASP.NET runtime",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("mcr.microsoft.com/dotnet/sdk", "8.0", "build"); workdir("/src"); copy("*.csproj", "."); run(&["dotnet restore"]); copy(".", "."); run(&["dotnet publish -c Release -o /app"]); from_image("mcr.microsoft.com/dotnet/aspnet", "8.0"); workdir("/app"); copy_from("build", "/app", "."); expose(8080u16); entrypoint(&["dotnet", "MyApp.dll"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn expose(p: u16) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build",
+            ),
+            CorpusEntry::new(
+                "D-193",
+                "dockerfile-ruby-bundler",
+                "Ruby with Bundler dependency management",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("ruby", "3.3-slim"); env("BUNDLE_DEPLOYMENT", "1"); env("BUNDLE_WITHOUT", "development:test"); workdir("/app"); copy("Gemfile", "."); copy("Gemfile.lock", "."); run(&["bundle install"]); copy(".", "."); expose(3000u16); cmd(&["ruby", "app.rb"]); } fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "ENV BUNDLE_DEPLOYMENT=1",
+            ),
+            CorpusEntry::new(
+                "D-194",
+                "dockerfile-elixir-release",
+                "Elixir Phoenix release with multi-stage build",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("elixir", "1.16-alpine", "builder"); env("MIX_ENV", "prod"); workdir("/app"); copy("mix.exs", "."); copy("mix.lock", "."); run(&["mix deps.get --only prod", "mix compile"]); copy(".", "."); run(&["mix release"]); from_image("alpine", "3.19"); run(&["apk add --no-cache libstdc++ openssl ncurses-libs"]); copy_from("builder", "/app/_build/prod/rel/app", "/app"); cmd(&["/app/bin/app", "start"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn env(k: &str, v: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn cmd(c: &[&str]) {}"#,
+                "FROM elixir:1.16-alpine AS builder",
+            ),
+            CorpusEntry::new(
+                "D-195",
+                "dockerfile-zig-static",
+                "Zig static binary build to scratch container",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("alpine", "3.19", "builder"); run(&["apk add --no-cache zig"]); workdir("/src"); copy(".", "."); run(&["zig build -Doptimize=ReleaseSafe"]); from_image("scratch", ""); copy_from("builder", "/src/zig-out/bin/app", "/app"); entrypoint(&["/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM scratch:",
+            ),
+            CorpusEntry::new(
+                "D-196",
+                "dockerfile-php-composer",
+                "PHP with Composer and Apache",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("php", "8.3-apache"); run(&["docker-php-ext-install pdo pdo_mysql"]); copy("composer.json", "."); copy("composer.lock", "."); run(&["composer install --no-dev --optimize-autoloader"]); copy(".", "/var/www/html/"); expose(80u16); cmd(&["apache2-foreground"]); } fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn copy(s: &str, d: &str) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM php:8.3-apache",
+            ),
+            CorpusEntry::new(
+                "D-197",
+                "dockerfile-deno-slim",
+                "Deno runtime with slim permissions model",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("denoland/deno", "1.40"); workdir("/app"); copy("deno.json", "."); copy("deno.lock", "."); run(&["deno cache main.ts"]); copy(".", "."); user("deno"); expose(8000u16); cmd(&["deno", "run", "--allow-net", "--allow-read", "main.ts"]); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn user(u: &str) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM denoland/deno:1.40",
+            ),
+            CorpusEntry::new(
+                "D-198",
+                "dockerfile-bun-runtime",
+                "Bun JavaScript runtime container",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Standard,
+                r#"fn main() { from_image("oven/bun", "1.0"); workdir("/app"); copy("package.json", "."); copy("bun.lockb", "."); run(&["bun install --frozen-lockfile"]); copy(".", "."); expose(3000u16); cmd(&["bun", "run", "start"]); } fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn run(c: &[&str]) {} fn expose(p: u16) {} fn cmd(c: &[&str]) {}"#,
+                "FROM oven/bun:1.0",
+            ),
+            CorpusEntry::new(
+                "D-199",
+                "dockerfile-rust-musl-cross",
+                "Rust cross-compile to musl with cargo-chef for layer caching",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("rust", "1.75-bookworm", "planner"); workdir("/app"); copy(".", "."); run(&["cargo install cargo-chef", "cargo chef prepare --recipe-path recipe.json"]); from_image_as("rust", "1.75-bookworm", "builder"); run(&["rustup target add x86_64-unknown-linux-musl"]); workdir("/app"); copy_from("planner", "/app/recipe.json", "recipe.json"); run(&["cargo chef cook --release --target x86_64-unknown-linux-musl --recipe-path recipe.json"]); copy(".", "."); run(&["cargo build --release --target x86_64-unknown-linux-musl"]); from_image("scratch", ""); copy_from("builder", "/app/target/x86_64-unknown-linux-musl/release/app", "/app"); entrypoint(&["/app"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM rust:1.75-bookworm AS planner",
+            ),
+            CorpusEntry::new(
+                "D-200",
+                "milestone-200-docker",
+                "Milestone 200: Full polyglot multi-stage build — Rust API + Node frontend + Redis sidecar",
+                CorpusFormat::Dockerfile,
+                CorpusTier::Production,
+                r#"fn main() { from_image_as("node", "20-alpine", "frontend"); workdir("/web"); copy("web/package.json", "."); run(&["npm ci"]); copy("web/", "."); run(&["npm run build"]); from_image_as("rust", "1.75-bookworm", "backend"); workdir("/app"); copy("Cargo.toml", "."); copy("Cargo.lock", "."); copy("src/", "src/"); run(&["cargo build --release"]); from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y --no-install-recommends ca-certificates", "rm -rf /var/lib/apt/lists/*", "groupadd -r app", "useradd -r -g app app"]); copy_from("frontend", "/web/dist", "/srv/static"); copy_from("backend", "/app/target/release/server", "/usr/local/bin/server"); user("app"); expose(8080u16); expose(9090u16); healthcheck("server --health", "15s", "5s"); entrypoint(&["/usr/local/bin/server"]); } fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn run(c: &[&str]) {} fn user(u: &str) {} fn expose(p: u16) {} fn healthcheck(c: &str, i: &str, t: &str) {} fn entrypoint(e: &[&str]) {}"#,
+                "FROM node:20-alpine AS frontend",
             ),
         ];
         self.entries.extend(entries);
