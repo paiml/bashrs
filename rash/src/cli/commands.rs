@@ -5266,6 +5266,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Tags => {
             corpus_tags()
         }
+
+        CorpusCommands::Health => {
+            corpus_health()
+        }
+
+        CorpusCommands::Compare { id1, id2 } => {
+            corpus_compare(&id1, &id2)
+        }
+
+        CorpusCommands::Density => {
+            corpus_density()
+        }
     }
 }
 
@@ -7856,6 +7868,143 @@ fn corpus_tags() -> Result<()> {
     let tagged_count: usize = tag_map.values().map(|v| v.len()).sum();
     println!("  {DIM}{tagged_count} tagged / {total} total ({:.1}% tagged){RESET}",
         tagged_count as f64 / total as f64 * 100.0);
+    Ok(())
+}
+
+/// Compact one-line health check for CI status reporting.
+fn corpus_health() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    let grade_str = score.grade.to_string();
+    let gc = grade_color(&grade_str);
+
+    // Per-format compact
+    let fmt_parts: Vec<String> = score.format_scores.iter().map(|fs| {
+        format!("{}:{}/{}", fs.format, fs.passed, fs.total)
+    }).collect();
+
+    let status = if score.failed == 0 { "HEALTHY" } else { "DEGRADED" };
+    let status_color = if score.failed == 0 { GREEN } else { YELLOW };
+
+    println!("{status_color}{status}{RESET} | {WHITE}{:.1}/100{RESET} {gc}{grade_str}{RESET} | {}/{} passed | {} | {DIM}failures:{}{RESET}",
+        score.score, score.passed, score.total, fmt_parts.join(" "), score.failed);
+    Ok(())
+}
+
+/// Compare two corpus entries side-by-side.
+fn corpus_compare(id1: &str, id2: &str) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use std::time::Instant;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    let entry1 = registry.entries.iter().find(|e| e.id == id1)
+        .ok_or_else(|| Error::Validation(format!("Entry '{id1}' not found")))?;
+    let entry2 = registry.entries.iter().find(|e| e.id == id2)
+        .ok_or_else(|| Error::Validation(format!("Entry '{id2}' not found")))?;
+
+    let start1 = Instant::now();
+    let r1 = runner.run_single(entry1);
+    let t1 = start1.elapsed().as_secs_f64() * 1000.0;
+
+    let start2 = Instant::now();
+    let r2 = runner.run_single(entry2);
+    let t2 = start2.elapsed().as_secs_f64() * 1000.0;
+
+    let dims1 = result_fail_dims(&r1);
+    let dims2 = result_fail_dims(&r2);
+
+    println!("{BOLD}Corpus Entry Comparison{RESET}");
+    println!();
+    println!("  {BOLD}{:<18} {:<20} {:<20}{RESET}", "", id1, id2);
+    println!("  {:<18} {:<20} {:<20}", "Name", entry1.name, entry2.name);
+    println!("  {:<18} {:<20} {:<20}", "Format", format!("{}", entry1.format), format!("{}", entry2.format));
+    println!("  {:<18} {:<20} {:<20}", "Tier", format!("{:?}", entry1.tier), format!("{:?}", entry2.tier));
+    println!("  {:<18} {:<20} {:<20}", "Time",
+        format!("{t1:.1}ms"), format!("{t2:.1}ms"));
+
+    let s1 = if dims1.is_empty() { format!("{GREEN}PASS{RESET}") } else { format!("{RED}FAIL{RESET}") };
+    let s2 = if dims2.is_empty() { format!("{GREEN}PASS{RESET}") } else { format!("{RED}FAIL{RESET}") };
+    println!("  {:<18} {:<20} {:<20}", "Status", s1, s2);
+    println!("  {:<18} {:<20} {:<20}", "Pass Dims",
+        format!("{}/9", 9 - dims1.len()), format!("{}/9", 9 - dims2.len()));
+
+    // Per-dimension comparison
+    println!();
+    println!("  {BOLD}Dimension Comparison:{RESET}");
+    let dim_names = ["A-Transpile", "B1-Contain", "B2-Exact", "B3-Behav",
+                     "D-Lint", "E-Determ", "F-Meta", "G-XShell"];
+    let bools1 = [r1.transpiled, r1.output_contains, r1.output_exact, r1.output_behavioral,
+                  r1.lint_clean, r1.deterministic, r1.metamorphic_consistent, r1.cross_shell_agree];
+    let bools2 = [r2.transpiled, r2.output_contains, r2.output_exact, r2.output_behavioral,
+                  r2.lint_clean, r2.deterministic, r2.metamorphic_consistent, r2.cross_shell_agree];
+
+    for i in 0..dim_names.len() {
+        let v1 = if bools1[i] { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") };
+        let v2 = if bools2[i] { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") };
+        let diff = if bools1[i] != bools2[i] { format!(" {YELLOW}<-{RESET}") } else { String::new() };
+        println!("    {:<14} {:>6}  {:>6}{diff}", dim_names[i], v1, v2);
+    }
+    Ok(())
+}
+
+/// Show entry density by ID range (detect numbering gaps).
+fn corpus_density() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+
+    let registry = CorpusRegistry::load_full();
+
+    let formats = [
+        ("B", CorpusFormat::Bash, 500),
+        ("M", CorpusFormat::Makefile, 200),
+        ("D", CorpusFormat::Dockerfile, 200),
+    ];
+
+    println!("{BOLD}Corpus Entry Density{RESET}");
+    println!();
+
+    for (prefix, fmt, max_id) in &formats {
+        let ids: std::collections::BTreeSet<usize> = registry.entries.iter()
+            .filter(|e| e.format == *fmt)
+            .filter_map(|e| {
+                e.id.strip_prefix(&format!("{prefix}-"))
+                    .and_then(|n| n.parse::<usize>().ok())
+            })
+            .collect();
+
+        let count = ids.len();
+        let min_id = ids.iter().next().copied().unwrap_or(1);
+        let max_found = ids.iter().next_back().copied().unwrap_or(0);
+        let expected_range = max_found - min_id + 1;
+        let gaps: Vec<usize> = (min_id..=max_found).filter(|n| !ids.contains(n)).collect();
+
+        let density = if expected_range > 0 { count as f64 / expected_range as f64 * 100.0 } else { 0.0 };
+        let dc = if density >= 99.0 { GREEN } else if density >= 90.0 { YELLOW } else { RED };
+
+        println!("  {CYAN}{prefix}{RESET}-{min_id:03}..{prefix}-{max_found:03} ({count}/{max_id} target)");
+        println!("    Density: {dc}{density:.1}%{RESET}  ({count} present / {expected_range} in range)");
+        if gaps.is_empty() {
+            println!("    {GREEN}No gaps detected.{RESET}");
+        } else if gaps.len() <= 10 {
+            let gap_strs: Vec<String> = gaps.iter().map(|g| format!("{prefix}-{g:03}")).collect();
+            println!("    {YELLOW}Gaps ({}):{RESET} {}", gaps.len(), gap_strs.join(", "));
+        } else {
+            let first_gaps: Vec<String> = gaps.iter().take(5).map(|g| format!("{prefix}-{g:03}")).collect();
+            println!("    {YELLOW}Gaps ({}):{RESET} {}... +{} more",
+                gaps.len(), first_gaps.join(", "), gaps.len() - 5);
+        }
+        println!();
+    }
     Ok(())
 }
 
