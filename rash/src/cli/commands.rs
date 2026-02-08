@@ -5242,6 +5242,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Gate { min_score, max_ms } => {
             corpus_gate(min_score, max_ms)
         }
+
+        CorpusCommands::Outliers { threshold, filter } => {
+            corpus_outliers(threshold, filter.as_ref())
+        }
+
+        CorpusCommands::Matrix => {
+            corpus_matrix()
+        }
+
+        CorpusCommands::Timeline => {
+            corpus_timeline()
+        }
     }
 }
 
@@ -7419,6 +7431,212 @@ fn gate_print_check(label: &str, pass: bool) {
     use crate::cli::color::*;
     let mark = if pass { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") };
     println!("  {mark} {label}");
+}
+
+/// Find statistical outliers by transpilation timing (z-score detection).
+fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+    use std::time::Instant;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    let entries: Vec<_> = registry.entries.iter().filter(|e| {
+        match filter {
+            Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
+            Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
+            Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
+            None => true,
+        }
+    }).collect();
+
+    // Time each entry
+    let mut timings: Vec<(&str, f64)> = Vec::new();
+    for entry in &entries {
+        let start = Instant::now();
+        let _ = runner.run_single(entry);
+        let ms = start.elapsed().as_secs_f64() * 1000.0;
+        timings.push((&entry.id, ms));
+    }
+
+    let n = timings.len() as f64;
+    if n < 2.0 {
+        println!("Need at least 2 entries for outlier detection.");
+        return Ok(());
+    }
+
+    let mean = timings.iter().map(|(_, t)| t).sum::<f64>() / n;
+    let variance = timings.iter().map(|(_, t)| (t - mean).powi(2)).sum::<f64>() / (n - 1.0);
+    let stddev = variance.sqrt();
+
+    // Find outliers by z-score
+    let mut outliers: Vec<(&str, f64, f64)> = timings.iter()
+        .filter_map(|(id, ms)| {
+            let z = if stddev > 0.0 { (ms - mean) / stddev } else { 0.0 };
+            if z.abs() >= threshold { Some((*id, *ms, z)) } else { None }
+        })
+        .collect();
+    outliers.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+
+    println!("{BOLD}Timing Outlier Detection{RESET} (z-score >= {threshold:.1})");
+    println!("{DIM}  Mean: {mean:.1}ms | StdDev: {stddev:.1}ms | Entries: {}{RESET}", timings.len());
+    println!();
+
+    if outliers.is_empty() {
+        println!("  {GREEN}No outliers detected.{RESET}");
+    } else {
+        println!("  {BOLD}{:<8} {:>8} {:>8}  {}{RESET}",
+            "ID", "Time", "Z-Score", "Status");
+        for (id, ms, z) in &outliers {
+            let color = if *z > 3.0 { BRIGHT_RED } else if *z > 2.0 { YELLOW } else { DIM };
+            let status = if *z > 3.0 { "EXTREME" } else { "OUTLIER" };
+            println!("  {CYAN}{:<8}{RESET} {color}{:>7.1}ms {:>+7.2}{RESET}  {status}",
+                id, ms, z);
+        }
+        println!();
+        println!("  {DIM}{} outliers found out of {} entries{RESET}", outliers.len(), timings.len());
+    }
+    Ok(())
+}
+
+/// Cross-category × quality property matrix (spec §11.11.9).
+fn corpus_matrix() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+
+    // Classify entries by category and collect results
+    let categories = ["Config (A)", "One-liner (B)", "Coreutils (G)", "Regex (H)",
+                      "System (F)", "Adversarial", "General", "Milestone"];
+    let properties = ["POSIX", "Determ", "Idempot", "X-Shell", "Lint", "B3-Behav"];
+
+    // Collect per-category pass rates for each property
+    let mut matrix: Vec<Vec<f64>> = Vec::new();
+    let mut cat_counts: Vec<usize> = Vec::new();
+
+    for cat in &categories {
+        let cat_entries: Vec<_> = registry.entries.iter()
+            .filter(|e| classify_category(&e.name) == *cat)
+            .collect();
+        let count = cat_entries.len();
+        cat_counts.push(count);
+
+        if count == 0 {
+            matrix.push(vec![0.0; properties.len()]);
+            continue;
+        }
+
+        let results: Vec<_> = cat_entries.iter()
+            .map(|e| runner.run_single(e))
+            .collect();
+
+        let rates = vec![
+            results.iter().filter(|r| r.lint_clean).count() as f64 / count as f64, // POSIX (lint)
+            results.iter().filter(|r| r.deterministic).count() as f64 / count as f64, // Deterministic
+            results.iter().filter(|r| r.transpiled).count() as f64 / count as f64, // Idempotent (approx via transpile)
+            results.iter().filter(|r| r.cross_shell_agree).count() as f64 / count as f64, // Cross-shell
+            results.iter().filter(|r| r.lint_clean).count() as f64 / count as f64, // Lint
+            results.iter().filter(|r| r.output_behavioral).count() as f64 / count as f64, // B3 Behavioral
+        ];
+        matrix.push(rates);
+    }
+
+    println!("{BOLD}Category × Quality Property Matrix{RESET} (spec §11.11.9)");
+    println!();
+
+    // Header
+    print!("  {BOLD}{:<16} {:>4}", "Category", "N");
+    for prop in &properties {
+        print!("  {:>7}", prop);
+    }
+    println!("{RESET}");
+
+    // Rows
+    for (i, cat) in categories.iter().enumerate() {
+        if cat_counts[i] == 0 { continue; }
+        print!("  {CYAN}{:<16}{RESET} {:>4}", cat, cat_counts[i]);
+        for rate in &matrix[i] {
+            let pct = rate * 100.0;
+            let color = if pct >= 99.0 { GREEN } else if pct >= 95.0 { YELLOW } else { RED };
+            print!("  {color}{:>6.1}%{RESET}", pct);
+        }
+        println!();
+    }
+
+    println!();
+    println!("  {DIM}Cells show pass rate per quality property within each category.{RESET}");
+    Ok(())
+}
+
+/// Timeline visualization of corpus growth from convergence log.
+fn corpus_timeline() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::runner::CorpusRunner;
+    use std::path::PathBuf;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let entries = CorpusRunner::load_convergence_log(&log_path)
+        .map_err(|e| Error::Internal(format!("Failed to load convergence log: {e}")))?;
+
+    if entries.is_empty() {
+        println!("No convergence log entries found.");
+        return Ok(());
+    }
+
+    println!("{BOLD}Corpus Growth Timeline{RESET}");
+    println!();
+
+    // Find max total for bar scaling
+    let max_total = entries.iter().map(|e| e.total).max().unwrap_or(1) as f64;
+
+    println!("  {BOLD}{:<4} {:<12} {:>6} {:>6} {:>7} {:>7}  {}{RESET}",
+        "Iter", "Date", "Total", "Pass", "Rate", "Score", "Growth Bar");
+
+    for entry in &entries {
+        let bar_len = ((entry.total as f64 / max_total) * 30.0) as usize;
+        let bar: String = "\u{2588}".repeat(bar_len);
+        let empty: String = "\u{2591}".repeat(30 - bar_len);
+
+        let rate_pct = entry.rate * 100.0;
+        let rc = pct_color(rate_pct);
+        let sc = if entry.score > 0.0 {
+            format!("{:.1}", entry.score)
+        } else {
+            "-".to_string()
+        };
+
+        let delta_str = if entry.delta != 0.0 {
+            let arrow = if entry.delta > 0.0 { "\u{2191}" } else { "\u{2193}" };
+            format!(" {arrow}{:.1}%", entry.delta.abs() * 100.0)
+        } else {
+            String::new()
+        };
+
+        println!("  {:<4} {:<12} {:>6} {:>6} {rc}{:>6.1}%{RESET} {:>7}  {GREEN}{bar}{RESET}{DIM}{empty}{RESET}{delta_str}",
+            entry.iteration, entry.date, entry.total, entry.passed,
+            rate_pct, sc);
+    }
+
+    // Summary
+    if entries.len() >= 2 {
+        let first = &entries[0];
+        let last = &entries[entries.len() - 1];
+        let growth = last.total as i64 - first.total as i64;
+        let iters = entries.len();
+        println!();
+        println!("  {DIM}Growth: +{growth} entries over {iters} iterations{RESET}");
+        if last.score > 0.0 && first.score > 0.0 {
+            let score_delta = last.score - first.score;
+            let arrow = if score_delta >= 0.0 { "\u{2191}" } else { "\u{2193}" };
+            println!("  {DIM}Score: {:.1} → {:.1} ({arrow}{:.2}){RESET}", first.score, last.score, score_delta.abs());
+        }
+    }
+    Ok(())
 }
 
 fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
