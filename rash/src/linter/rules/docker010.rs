@@ -57,3 +57,160 @@ pub fn check(source: &str) -> LintResult {
 
     result
 }
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    // ===== HEALTHCHECK NONE =====
+
+    #[test]
+    fn test_DOCKER010_COV_001_healthcheck_none_triggers_info() {
+        let dockerfile = "FROM ubuntu:22.04\nHEALTHCHECK NONE\nCMD echo hello";
+        let result = check(dockerfile);
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("HEALTHCHECK NONE disables health monitoring")));
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_002_healthcheck_present_no_none_warning() {
+        let dockerfile =
+            "FROM ubuntu:22.04\nHEALTHCHECK --interval=30s CMD curl -f http://localhost/\nCMD echo";
+        let result = check(dockerfile);
+        assert!(!result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("HEALTHCHECK NONE")));
+    }
+
+    // ===== AGGRESSIVE INTERVAL =====
+
+    #[test]
+    fn test_DOCKER010_COV_003_aggressive_interval_triggers_warning() {
+        let dockerfile =
+            "FROM ubuntu:22.04\nHEALTHCHECK --interval=2s CMD curl localhost\nCMD echo";
+        let result = check(dockerfile);
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("may be too aggressive")));
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_004_normal_interval_no_warning() {
+        let dockerfile =
+            "FROM ubuntu:22.04\nHEALTHCHECK --interval=30s CMD curl localhost\nCMD echo";
+        let result = check(dockerfile);
+        assert!(!result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("too aggressive")));
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_005_boundary_interval_5s_no_warning() {
+        let dockerfile =
+            "FROM ubuntu:22.04\nHEALTHCHECK --interval=5s CMD curl localhost\nCMD echo";
+        let result = check(dockerfile);
+        assert!(!result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("too aggressive")));
+    }
+
+    // ===== MISSING HEALTHCHECK SUGGESTION =====
+
+    #[test]
+    fn test_DOCKER010_COV_006_missing_healthcheck_with_cmd() {
+        let dockerfile = "FROM ubuntu:22.04\nRUN apt-get update\nCMD echo hello";
+        let result = check(dockerfile);
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("Consider adding HEALTHCHECK")));
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_007_missing_healthcheck_with_entrypoint() {
+        let dockerfile = "FROM ubuntu:22.04\nENTRYPOINT [\"./app\"]\n";
+        let result = check(dockerfile);
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("Consider adding HEALTHCHECK")));
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_008_no_cmd_no_entrypoint_no_suggestion() {
+        let dockerfile = "FROM ubuntu:22.04\nRUN echo hello\n";
+        let result = check(dockerfile);
+        assert!(!result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("Consider adding HEALTHCHECK")));
+    }
+
+    // ===== ORDERING =====
+
+    #[test]
+    fn test_DOCKER010_COV_009_healthcheck_after_cmd_triggers_info() {
+        let dockerfile =
+            "FROM ubuntu:22.04\nCMD echo hello\nHEALTHCHECK --interval=30s CMD curl localhost";
+        let result = check(dockerfile);
+        assert!(result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("should typically come before CMD")));
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_010_healthcheck_before_cmd_no_ordering_issue() {
+        let dockerfile =
+            "FROM ubuntu:22.04\nHEALTHCHECK --interval=30s CMD curl localhost\nCMD echo";
+        let result = check(dockerfile);
+        assert!(!result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("should typically come before CMD")));
+    }
+
+    // ===== COMBINED / CLEAN =====
+
+    #[test]
+    fn test_DOCKER010_COV_011_clean_dockerfile_no_diagnostics() {
+        let dockerfile = "FROM ubuntu:22.04\nHEALTHCHECK --interval=30s --timeout=10s --retries=3 CMD curl -f http://localhost/\nCMD [\"./app\"]";
+        let result = check(dockerfile);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_012_multiple_issues() {
+        // HEALTHCHECK NONE + after CMD = 2 diagnostics (NONE + ordering)
+        let dockerfile = "FROM ubuntu:22.04\nCMD echo hello\nHEALTHCHECK NONE";
+        let result = check(dockerfile);
+        assert!(result.diagnostics.len() >= 2);
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_013_no_interval_specified() {
+        // HEALTHCHECK without --interval should not trigger aggressive interval warning
+        let dockerfile = "FROM ubuntu:22.04\nHEALTHCHECK CMD curl localhost\nCMD echo";
+        let result = check(dockerfile);
+        assert!(!result
+            .diagnostics
+            .iter()
+            .any(|d| d.message.contains("too aggressive")));
+    }
+
+    #[test]
+    fn test_DOCKER010_COV_014_all_diagnostics_have_docker010_code() {
+        let dockerfile = "FROM ubuntu:22.04\nCMD echo hello\nHEALTHCHECK NONE";
+        let result = check(dockerfile);
+        for diag in &result.diagnostics {
+            assert_eq!(diag.code, "DOCKER010");
+        }
+    }
+}
