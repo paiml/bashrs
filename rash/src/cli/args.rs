@@ -1028,6 +1028,15 @@ pub enum CorpusCommands {
         #[arg(long, default_value = "0.5")]
         threshold: f64,
     },
+
+    /// Corpus composition profile: tier, format, category breakdown
+    Profile,
+
+    /// Find quality gaps: dimensions where specific formats underperform
+    Gaps,
+
+    /// Compact JSON summary for CI/script consumption
+    SummaryJson,
 }
 
 /// Corpus output format
