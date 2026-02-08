@@ -800,6 +800,39 @@ pub enum CorpusCommands {
 
     /// Compact multi-corpus convergence dashboard (spec §11.10.5)
     Dashboard,
+
+    /// Search corpus entries by ID, name, or description pattern
+    Search {
+        /// Search pattern (substring match, case-insensitive)
+        #[arg(value_name = "PATTERN")]
+        pattern: String,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "human")]
+        format: CorpusOutputFormat,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
+
+    /// Show score trend as Unicode sparkline from convergence log
+    Sparkline,
+
+    /// Show top/bottom entries ranked by failure count
+    Top {
+        /// Number of entries to show
+        #[arg(short = 'n', long, default_value = "10")]
+        limit: usize,
+
+        /// Show bottom (most failures) instead of top (fewest)
+        #[arg(long)]
+        worst: bool,
+
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+    },
 }
 
 /// Corpus output format

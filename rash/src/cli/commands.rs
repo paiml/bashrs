@@ -5194,6 +5194,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Dashboard => {
             corpus_dashboard()
         }
+
+        CorpusCommands::Search { pattern, format, filter } => {
+            corpus_search(&pattern, &format, filter.as_ref())
+        }
+
+        CorpusCommands::Sparkline => {
+            corpus_sparkline()
+        }
+
+        CorpusCommands::Top { limit, worst, filter } => {
+            corpus_top(limit, worst, filter.as_ref())
+        }
     }
 }
 
@@ -6591,6 +6603,188 @@ fn dashboard_print_history(entries: &[crate::corpus::runner::ConvergenceEntry]) 
             e.iteration, sc, e.score, e.notes);
     }
     println!();
+}
+
+/// Search corpus entries by ID, name, or description pattern.
+fn corpus_search(
+    pattern: &str,
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+
+    let registry = CorpusRegistry::load_full();
+    let pat = pattern.to_lowercase();
+
+    let matches: Vec<_> = registry.entries.iter().filter(|e| {
+        let format_match = match filter {
+            Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
+            Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
+            Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
+            None => true,
+        };
+        format_match && (
+            e.id.to_lowercase().contains(&pat)
+            || e.name.to_lowercase().contains(&pat)
+            || e.description.to_lowercase().contains(&pat)
+        )
+    }).collect();
+
+    match format {
+        CorpusOutputFormat::Human => {
+            use crate::cli::color::*;
+            if matches.is_empty() {
+                println!("No entries matching \"{pattern}\".");
+            } else {
+                println!("{BOLD}Search results for \"{pattern}\" ({} matches):{RESET}", matches.len());
+                println!();
+                for e in &matches {
+                    let fmt = format!("{}", e.format);
+                    println!("  {CYAN}{:<8}{RESET} {DIM}[{:<10}]{RESET} {BOLD}{}{RESET}",
+                        e.id, fmt, e.name);
+                    if !e.description.is_empty() {
+                        let desc = if e.description.len() > 72 {
+                            format!("{}...", &e.description[..69])
+                        } else {
+                            e.description.clone()
+                        };
+                        println!("           {DIM}{desc}{RESET}");
+                    }
+                }
+            }
+        }
+        CorpusOutputFormat::Json => {
+            let results: Vec<_> = matches.iter().map(|e| {
+                serde_json::json!({
+                    "id": e.id,
+                    "name": e.name,
+                    "description": e.description,
+                    "format": format!("{}", e.format),
+                    "tier": format!("{:?}", e.tier),
+                })
+            }).collect();
+            let json = serde_json::to_string_pretty(&serde_json::json!({
+                "pattern": pattern,
+                "count": matches.len(),
+                "results": results,
+            })).map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            println!("{json}");
+        }
+    }
+    Ok(())
+}
+
+/// Show convergence score history as a Unicode sparkline.
+fn corpus_sparkline() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let entries = CorpusRunner::load_convergence_log(&log_path)
+        .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
+    if entries.is_empty() {
+        println!("No convergence history. Run `bashrs corpus run --log` first.");
+        return Ok(());
+    }
+
+    let scores: Vec<f64> = entries.iter().map(|e| e.score).collect();
+    let spark = sparkline_str(&scores);
+    let first = scores.first().copied().unwrap_or(0.0);
+    let last = scores.last().copied().unwrap_or(0.0);
+    let sc = pct_color(last);
+
+    println!("{BOLD}Score Trend{RESET} ({} iterations):", entries.len());
+    println!("  {spark}  {sc}{last:.1}/100{RESET}");
+    println!("  {DIM}{first:.1} \u{2192} {last:.1}{RESET}");
+
+    // Per-format sparklines if available
+    let bash_scores: Vec<f64> = entries.iter().map(|e| e.bash_score).collect();
+    let make_scores: Vec<f64> = entries.iter().map(|e| e.makefile_score).collect();
+    let dock_scores: Vec<f64> = entries.iter().map(|e| e.dockerfile_score).collect();
+
+    if bash_scores.iter().any(|&s| s > 0.0) {
+        println!("  {CYAN}bash:      {RESET} {}", sparkline_str(&bash_scores));
+    }
+    if make_scores.iter().any(|&s| s > 0.0) {
+        println!("  {CYAN}makefile:  {RESET} {}", sparkline_str(&make_scores));
+    }
+    if dock_scores.iter().any(|&s| s > 0.0) {
+        println!("  {CYAN}dockerfile:{RESET} {}", sparkline_str(&dock_scores));
+    }
+    Ok(())
+}
+
+/// Generate a sparkline string from a series of values.
+fn sparkline_str(data: &[f64]) -> String {
+    if data.is_empty() {
+        return String::new();
+    }
+    let blocks = ['\u{2581}', '\u{2582}', '\u{2583}', '\u{2584}', '\u{2585}', '\u{2586}', '\u{2587}', '\u{2588}'];
+    let min = data.iter().copied().fold(f64::INFINITY, f64::min);
+    let max = data.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+    let range = max - min;
+    data.iter().map(|&v| {
+        if range < 0.001 {
+            blocks[7] // All same value → full block
+        } else {
+            let idx = ((v - min) / range * 7.0).round() as usize;
+            blocks[idx.min(7)]
+        }
+    }).collect()
+}
+
+/// Show top/bottom entries ranked by failure count.
+fn corpus_top(
+    limit: usize,
+    worst: bool,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = match filter {
+        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
+        None => runner.run(&registry),
+    };
+
+    let mut ranked: Vec<_> = score.results.iter().map(|r| {
+        let fail_count = result_fail_dims(r).len();
+        (r, fail_count)
+    }).collect();
+
+    if worst {
+        // Most failures first
+        ranked.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.id.cmp(&b.0.id)));
+    } else {
+        // Fewest failures first (best entries)
+        ranked.sort_by(|a, b| a.1.cmp(&b.1).then_with(|| a.0.id.cmp(&b.0.id)));
+    }
+    let ranked: Vec<_> = ranked.into_iter().take(limit).collect();
+
+    let label = if worst { "Bottom" } else { "Top" };
+    println!("{BOLD}{label} {limit} Entries (by failure count):{RESET}");
+    println!();
+    println!("  {BOLD}{:<8} {:>5}  {}{RESET}", "ID", "Fails", "Failing Dimensions");
+    for (r, fail_count) in &ranked {
+        let dims = result_fail_dims(r);
+        let dim_str = if dims.is_empty() {
+            format!("{GREEN}all pass{RESET}")
+        } else {
+            format!("{RED}{}{RESET}", dims.join(", "))
+        };
+        let fc = if *fail_count == 0 {
+            format!("{GREEN}{:>5}{RESET}", fail_count)
+        } else {
+            format!("{RED}{:>5}{RESET}", fail_count)
+        };
+        println!("  {:<8} {}  {}", r.id, fc, dim_str);
+    }
+    Ok(())
 }
 
 fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
