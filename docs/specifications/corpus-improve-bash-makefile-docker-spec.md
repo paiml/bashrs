@@ -110,8 +110,9 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 | Iteration 15 | 550 entries | ~99% | OIP-driven fix-pattern entries (B-321..B-350) | DONE (iter 15: 550/550, 100%) |
 | Iteration 15+ | 700 entries | 99%+ | pmat coverage-gap + Dockerfile/Makefile balance | DONE (iter 15+: 700/700, 99.9/100) |
 | Iteration 16 | 730 entries | 99%+ | Phase 3 adversarial + advanced patterns | DONE (iter 16: 730/730, 99.9/100) |
-| Iteration 17 | 760 entries | 99%+ | Domain-specific: config files, one-liners, provability (Section 11.11) | DONE |
-| Ongoing | 760+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
+| Iteration 17 | 760 entries | 99%+ | Domain-specific: config files, one-liners, provability (Section 11.11) | DONE (iter 17: 760/760, 99.9/100) |
+| Iteration 18 | 790 entries | 99%+ | Unix tools, language integration, system tooling (Section 11.11.4-6) | DONE |
+| Ongoing | 790+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
 
@@ -2080,17 +2081,83 @@ Equivalence: Rust output ≡ Shell output (for all tested inputs)
 
 **Entry Range**: B-391..B-400
 
-#### 11.11.4 Cross-Category Quality Matrix
+#### 11.11.4 Category D: Unix Tool Patterns
 
-| Property | Config (A) | One-liner (B) | Provability (C) |
-|----------|-----------|--------------|----------------|
-| Idempotent | REQUIRED | N/A | REQUIRED |
-| POSIX | REQUIRED | REQUIRED | REQUIRED |
-| Deterministic | REQUIRED | REQUIRED | REQUIRED |
-| Miri-verifiable | N/A | N/A | REQUIRED |
-| Cross-shell | REQUIRED | REQUIRED | REQUIRED |
-| Shellcheck-clean | REQUIRED | REQUIRED | REQUIRED |
-| Pipeline-safe | N/A | REQUIRED | N/A |
+**Motivation**: Unix tools (`awk`, `sed`, `find`, `grep`, `cut`, `sort`, `uniq`, `tr`, `tee`, `wc`, `xargs`, `tar`, `curl`) are the building blocks of shell scripting. Real-world shell scripts overwhelmingly consist of orchestrating these tools together. The transpiler must produce output that correctly models the *setup, invocation, and result capture* patterns these tools require.
+
+**Key Patterns**:
+- **Variable-driven tool invocation**: Building command arguments from variables
+- **Result capture**: Capturing tool output into variables for downstream use
+- **Flag/option construction**: Building option strings conditionally
+- **Path manipulation**: Constructing paths for `find`, `tar`, `rsync` targets
+- **Threshold/limit configuration**: Setting numeric limits for `head`, `tail`, `wc`
+- **Pattern construction**: Building regex/glob patterns for `grep`, `find`, `awk`
+- **Multi-tool coordination**: Setting up shared state across tool invocations (temp dirs, log files)
+- **Cleanup patterns**: Trap-based cleanup of temp files created by tool pipelines
+
+**Unique Quality Requirements**:
+- **Tool-safe quoting**: Variables used as tool arguments must be properly quoted
+- **Exit code awareness**: Tool failure must not silently propagate
+- **Temp file hygiene**: Any temp files must be cleaned up via trap
+
+**Entry Range**: B-401..B-410
+
+#### 11.11.5 Category E: Language Integration One-Liners
+
+**Motivation**: Shell scripts frequently orchestrate other language runtimes — compiling C, running Python scripts, invoking Perl/Ruby/Node one-liners, managing virtual environments, and piping between languages. These cross-language patterns are among the most error-prone shell constructs because they involve quoting across language boundaries.
+
+**Key Patterns**:
+- **C compilation**: `gcc -o bin src.c -lm`, conditional flags, multi-file compilation
+- **Python invocation**: `python3 -c '...'`, venv activation, pip install chains
+- **Perl one-liners**: `perl -ne '...'`, `-pi -e` in-place editing
+- **Ruby scripting**: `ruby -e '...'`, gem management
+- **Node.js**: `node -e '...'`, npm/npx invocation
+- **Build system orchestration**: `cmake && make`, `cargo build`, `go build`
+- **Language version management**: Checking version, conditional on runtime availability
+- **Cross-language piping**: Output from one language runtime piped to another
+
+**Unique Quality Requirements**:
+- **Nested quoting correctness**: Shell quotes wrapping language-specific quotes must not collide
+- **Runtime availability check**: Should guard with `command -v` or equivalent
+- **Exit code propagation**: Language runtime failures must surface to shell
+
+**Entry Range**: B-411..B-420
+
+#### 11.11.6 Category F: System Tooling (cron, startups, daemons)
+
+**Motivation**: System administration scripts handle cron jobs, service management, init scripts, log rotation, scheduled tasks, and daemon lifecycle. These are the highest-stakes shell scripts — they run unattended, often as root, and failures may go unnoticed for days. Correctness is paramount.
+
+**Key Patterns**:
+- **Cron job setup**: Minute/hour/day fields, PATH setting, output redirection
+- **Service management**: Start/stop/restart/status/enable patterns
+- **Init script structure**: LSB header, start/stop functions, PID files
+- **Log rotation**: Size-based rotation, retention count, compression
+- **Health monitoring**: Periodic health checks with alerting thresholds
+- **Backup scripts**: Source/destination, retention, compression, verification
+- **Scheduled maintenance**: Database vacuum, cache cleanup, temp file pruning
+- **Daemon lifecycle**: Daemonize, PID file, signal handling, graceful shutdown
+
+**Unique Quality Requirements**:
+- **Idempotent**: System scripts MUST be safe to re-run (restart already-running, create already-existing)
+- **Fail-safe**: Errors must be logged, not silently swallowed
+- **Root-safe**: No assumptions about user; explicit permission checks where needed
+- **Signal-aware**: Trap handlers for SIGTERM/SIGINT for graceful shutdown
+
+**Entry Range**: B-421..B-430
+
+#### 11.11.7 Cross-Category Quality Matrix
+
+| Property | Config (A) | One-liner (B) | Provability (C) | Unix Tools (D) | Lang Integration (E) | System Tooling (F) |
+|----------|-----------|--------------|----------------|---------------|--------------------|--------------------|
+| Idempotent | REQUIRED | N/A | REQUIRED | N/A | N/A | REQUIRED |
+| POSIX | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Deterministic | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Miri-verifiable | N/A | N/A | REQUIRED | N/A | N/A | N/A |
+| Cross-shell | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Shellcheck-clean | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Pipeline-safe | N/A | REQUIRED | N/A | REQUIRED | REQUIRED | N/A |
+| Tool-safe quoting | N/A | N/A | N/A | REQUIRED | REQUIRED | N/A |
+| Signal-aware | N/A | N/A | N/A | N/A | N/A | REQUIRED |
 
 ---
 
