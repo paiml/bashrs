@@ -109,6 +109,7 @@ fn test_CORPUS_005_score_perfect_v2() {
         error: None,
         error_category: None,
         error_confidence: None,
+        decision_trace: None,
     };
     let score = result.score();
     assert!(
@@ -138,6 +139,7 @@ fn test_CORPUS_006_score_gateway_barrier() {
         error: Some("parse error".to_string()),
         error_category: None,
         error_confidence: None,
+        decision_trace: None,
     };
     let score = result.score();
     assert!(

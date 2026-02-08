@@ -105,6 +105,7 @@ pub mod dockerfile;
 pub mod escape;
 pub mod makefile;
 pub mod posix;
+pub mod trace;
 
 #[cfg(test)]
 mod tests;
@@ -116,6 +117,8 @@ pub use posix::PosixEmitter;
 
 use crate::ir::ShellIR;
 use crate::models::{Config, Result};
+
+pub use trace::{DecisionTrace, TranspilerDecision};
 
 /// Emit shell code from IR based on target dialect
 ///
@@ -169,4 +172,12 @@ pub fn emit(ir: &ShellIR, config: &Config) -> Result<String> {
             emitter.emit(ir)
         }
     }
+}
+
+/// Emit shell code from IR and return the decision trace for fault localization.
+pub fn emit_with_trace(ir: &ShellIR, config: &Config) -> Result<(String, DecisionTrace)> {
+    let emitter = PosixEmitter::new(config.clone());
+    let output = emitter.emit(ir)?;
+    let trace = emitter.take_trace();
+    Ok((output, trace))
 }

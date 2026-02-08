@@ -1,6 +1,8 @@
 use super::escape::{escape_command_name, escape_shell_string, escape_variable_name};
+use super::trace::{DecisionTrace, TranspilerDecision};
 use crate::ir::{Command, ShellIR, ShellValue};
 use crate::models::{Config, Result};
+use std::cell::RefCell;
 use std::fmt::Write;
 
 /// Unwrap a Sequence containing a single If statement.
@@ -17,11 +19,29 @@ fn unwrap_single_if(ir: &ShellIR) -> &ShellIR {
 pub struct PosixEmitter {
     #[allow(dead_code)]
     config: Config,
+    trace: RefCell<Vec<TranspilerDecision>>,
 }
 
 impl PosixEmitter {
     pub fn new(config: Config) -> Self {
-        Self { config }
+        Self {
+            config,
+            trace: RefCell::new(Vec::new()),
+        }
+    }
+
+    /// Record a decision made during emission.
+    fn record_decision(&self, decision_type: &str, choice: &str, ir_node: &str) {
+        self.trace.borrow_mut().push(TranspilerDecision {
+            decision_type: decision_type.to_string(),
+            choice: choice.to_string(),
+            ir_node: ir_node.to_string(),
+        });
+    }
+
+    /// Drain and return the accumulated decision trace.
+    pub fn take_trace(&self) -> DecisionTrace {
+        self.trace.borrow_mut().drain(..).collect()
     }
 
     pub fn emit(&self, ir: &ShellIR) -> Result<String> {
@@ -519,6 +539,23 @@ impl PosixEmitter {
     }
 
     fn emit_ir(&self, output: &mut String, ir: &ShellIR, indent: usize) -> Result<()> {
+        let ir_label = match ir {
+            ShellIR::Let { .. } => "Let",
+            ShellIR::Exec { .. } => "Exec",
+            ShellIR::If { .. } => "If",
+            ShellIR::Exit { .. } => "Exit",
+            ShellIR::Sequence(_) => "Sequence",
+            ShellIR::Noop => "Noop",
+            ShellIR::Function { .. } => "Function",
+            ShellIR::Echo { .. } => "Echo",
+            ShellIR::For { .. } => "For",
+            ShellIR::While { .. } => "While",
+            ShellIR::Case { .. } => "Case",
+            ShellIR::Break => "Break",
+            ShellIR::Continue => "Continue",
+        };
+        self.record_decision("ir_dispatch", ir_label, ir_label);
+
         match ir {
             ShellIR::Let { name, value, .. } => {
                 self.emit_let_statement(output, name, value, indent)
@@ -570,6 +607,17 @@ impl PosixEmitter {
         value: &ShellValue,
         indent: usize,
     ) -> Result<()> {
+        let choice = match value {
+            ShellValue::String(_) => "single_quote",
+            ShellValue::Variable(_) => "variable_ref",
+            ShellValue::Concat(_) => "concat",
+            ShellValue::CommandSubst(_) => "cmd_subst",
+            ShellValue::Arithmetic { .. } => "arithmetic",
+            ShellValue::Bool(_) => "bool_literal",
+            _ => "other",
+        };
+        self.record_decision("assignment_value", choice, "Let");
+
         let indent_str = "    ".repeat(indent + 1);
         let var_name = escape_variable_name(name);
         let var_value = self.emit_assignment_value(value)?;
@@ -595,6 +643,15 @@ impl PosixEmitter {
     }
 
     fn emit_exec_statement(&self, output: &mut String, cmd: &Command, indent: usize) -> Result<()> {
+        let choice = if cmd.program == "echo" || cmd.program == "printf" {
+            "builtin_echo"
+        } else if cmd.program.starts_with("rash_") {
+            "runtime_call"
+        } else {
+            "external_cmd"
+        };
+        self.record_decision("exec_command", choice, "Exec");
+
         let indent_str = "    ".repeat(indent + 1);
         let command_str = self.emit_command(cmd)?;
         writeln!(output, "{indent_str}{command_str}")?;
@@ -609,6 +666,19 @@ impl PosixEmitter {
         else_branch: Option<&ShellIR>,
         indent: usize,
     ) -> Result<()> {
+        let choice = match else_branch {
+            None => "simple_if",
+            Some(ir) => {
+                let unwrapped = unwrap_single_if(ir);
+                if matches!(unwrapped, ShellIR::If { .. }) {
+                    "elif_chain"
+                } else {
+                    "if_else"
+                }
+            }
+        };
+        self.record_decision("if_structure", choice, "If");
+
         let indent_str = "    ".repeat(indent + 1);
         let test_expr = self.emit_test_expression(test)?;
         writeln!(output, "{indent_str}if {test_expr}; then")?;
@@ -724,6 +794,8 @@ impl PosixEmitter {
         body: &ShellIR,
         indent: usize,
     ) -> Result<()> {
+        self.record_decision("for_construct", "seq_range", "For");
+
         let indent_str = "    ".repeat(indent + 1);
         let var_name = escape_variable_name(var);
 
@@ -753,6 +825,8 @@ impl PosixEmitter {
         body: &ShellIR,
         indent: usize,
     ) -> Result<()> {
+        self.record_decision("while_construct", "while_test", "While");
+
         let indent_str = "    ".repeat(indent + 1);
 
         // Handle special cases for condition
@@ -837,6 +911,8 @@ impl PosixEmitter {
         indent: usize,
     ) -> Result<()> {
         use crate::ir::shell_ir::CasePattern;
+
+        self.record_decision("case_dispatch", "case_arms", "Case");
 
         let indent_str = "    ".repeat(indent + 1);
         let scrutinee_str = self.emit_shell_value(scrutinee)?;
@@ -939,6 +1015,21 @@ impl PosixEmitter {
     }
 
     pub fn emit_shell_value(&self, value: &ShellValue) -> Result<String> {
+        let choice = match value {
+            ShellValue::String(_) => "literal_string",
+            ShellValue::Variable(_) => "variable",
+            ShellValue::Bool(_) => "bool",
+            ShellValue::CommandSubst(_) => "cmd_subst",
+            ShellValue::Concat(_) => "concat",
+            ShellValue::Comparison { .. } => "comparison",
+            ShellValue::Arithmetic { .. } => "arithmetic",
+            ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => "logical",
+            ShellValue::Arg { .. } | ShellValue::ArgWithDefault { .. } | ShellValue::ArgCount => "arg_access",
+            ShellValue::EnvVar { .. } => "env_var",
+            ShellValue::ExitCode => "exit_code",
+        };
+        self.record_decision("value_emit", choice, "Value");
+
         match value {
             ShellValue::String(s) => Ok(escape_shell_string(s)),
             ShellValue::Bool(b) => Ok(self.emit_bool_value(*b)),
@@ -1167,6 +1258,17 @@ impl PosixEmitter {
     }
 
     pub fn emit_test_expression(&self, test: &ShellValue) -> Result<String> {
+        let choice = match test {
+            ShellValue::Bool(_) => "bool_literal",
+            ShellValue::Variable(_) => "variable_test",
+            ShellValue::String(_) => "string_check",
+            ShellValue::Comparison { .. } => "bracket_test",
+            ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => "logical_op",
+            ShellValue::CommandSubst(_) => "cmd_subst_test",
+            _ => "other_test",
+        };
+        self.record_decision("test_syntax", choice, "Test");
+
         match test {
             ShellValue::Bool(true) => Ok("true".to_string()),
             ShellValue::Bool(false) => Ok("false".to_string()),
