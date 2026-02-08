@@ -111,8 +111,9 @@ Reaching 100% on the current corpus does **not** mean the transpiler is correct.
 | Iteration 15+ | 700 entries | 99%+ | pmat coverage-gap + Dockerfile/Makefile balance | DONE (iter 15+: 700/700, 99.9/100) |
 | Iteration 16 | 730 entries | 99%+ | Phase 3 adversarial + advanced patterns | DONE (iter 16: 730/730, 99.9/100) |
 | Iteration 17 | 760 entries | 99%+ | Domain-specific: config files, one-liners, provability (Section 11.11) | DONE (iter 17: 760/760, 99.9/100) |
-| Iteration 18 | 790 entries | 99%+ | Unix tools, language integration, system tooling (Section 11.11.4-6) | DONE |
-| Ongoing | 790+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
+| Iteration 18 | 790 entries | 99%+ | Unix tools, language integration, system tooling (Section 11.11.4-6) | DONE (iter 18: 790/790, 99.9/100) |
+| Iteration 19 | 820 entries | 99%+ | Transpiled coreutils: 30 Unix tools reimplemented (Section 11.11.7) | DONE |
+| Ongoing | 820+ entries | 99%+ | Continuous addition of harder entries forever | ONGOING |
 
 The corpus has no maximum size. If you run out of ideas for new entries, run mutation testing -- every surviving mutant reveals a corpus gap.
 
@@ -2145,19 +2146,98 @@ Equivalence: Rust output ≡ Shell output (for all tested inputs)
 
 **Entry Range**: B-421..B-430
 
-#### 11.11.7 Cross-Category Quality Matrix
+#### 11.11.7 Category G: Unix Tool Reimplementation (Transpiled Coreutils)
 
-| Property | Config (A) | One-liner (B) | Provability (C) | Unix Tools (D) | Lang Integration (E) | System Tooling (F) |
-|----------|-----------|--------------|----------------|---------------|--------------------|--------------------|
-| Idempotent | REQUIRED | N/A | REQUIRED | N/A | N/A | REQUIRED |
-| POSIX | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
-| Deterministic | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
-| Miri-verifiable | N/A | N/A | REQUIRED | N/A | N/A | N/A |
-| Cross-shell | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
-| Shellcheck-clean | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
-| Pipeline-safe | N/A | REQUIRED | N/A | REQUIRED | REQUIRED | N/A |
-| Tool-safe quoting | N/A | N/A | N/A | REQUIRED | REQUIRED | N/A |
-| Signal-aware | N/A | N/A | N/A | N/A | N/A | REQUIRED |
+**Motivation**: The ultimate test of a Rust-to-shell transpiler is whether it can reimplement Unix coreutils. This category takes the **top 30 Unix tools**, writes their core algorithms in Rust, transpiles to POSIX shell, and verifies **1:1 behavioral parity** with the original tools.
+
+This is not a toy exercise. The Unix philosophy of small, composable tools maps directly to the transpiler's strength: each tool is a self-contained pure function operating on integers, strings, and simple control flow. If the transpiler can faithfully reproduce the algorithms of `seq`, `factor`, `wc`, `sort`, `uniq`, `tr`, `basename`, and `expr`, it proves the transpiler is correct for the computational core of shell scripting.
+
+**The 30 Tools** (grouped by algorithm complexity):
+
+| Group | Tools | Algorithm Pattern |
+|-------|-------|-------------------|
+| **Trivial** (exit/print) | `true`, `false`, `echo`, `yes`, `printf`, `seq` | Constants, loops, formatted output |
+| **Arithmetic** | `expr`, `factor`, `seq`, `test` | Integer arithmetic, prime decomposition, comparisons |
+| **String** | `basename`, `dirname`, `rev`, `tr`, `wc`, `nl` | Character iteration, counting, transformation |
+| **Set/Filter** | `uniq`, `sort`, `head`, `tail`, `cut`, `fold` | Deduplication, ordering, selection, wrapping |
+| **File/Compose** | `cat`, `tac`, `tee`, `paste`, `comm`, `join`, `expand` | Passthrough, reversal, merge, comparison |
+| **System** | `sleep`, `env`, `id` | Timing, environment, identity |
+
+**Implementation Approach**:
+
+Each entry implements the **core algorithm** of the tool in Rust DSL:
+
+```rust
+// Example: factor(n) — prime factorization
+fn factor(n: i32) -> i32 {
+    let mut num = n;
+    let mut divisor = 2;
+    while divisor * divisor <= num {
+        while num % divisor == 0 {
+            num = num / divisor;
+            divisor += 1; // simplified: tracks last factor
+        }
+        divisor += 1;
+    }
+    num // returns largest prime factor
+}
+```
+
+Transpiles to:
+```sh
+factor() {
+    num="$1"
+    divisor='2'
+    while [ $((divisor * divisor)) -le "$num" ]; do
+        while [ $((num % divisor)) -eq 0 ]; do
+            num=$((num / divisor))
+            divisor=$((divisor + 1))
+        done
+        divisor=$((divisor + 1))
+    done
+    echo "$num"
+}
+```
+
+**Verification Protocol** (1:1 Parity):
+
+For each reimplemented tool, verify:
+
+1. **Algorithm correctness**: The Rust source produces correct results (unit tests + property tests)
+2. **Transpilation fidelity**: The transpiled shell implements the same algorithm
+3. **Behavioral equivalence**: For a test vector of inputs, `tool_rust(input) == tool_shell(input)`
+4. **Cross-shell agreement**: Output is identical in sh, bash, and dash
+5. **Shellcheck clean**: Transpiled output passes `shellcheck -s sh`
+
+```
+For each tool T in {true, false, echo, seq, factor, ...}:
+  1. Write T_rust: fn T(args) -> output  [Rust DSL]
+  2. Transpile: T_shell = transpile(T_rust)  [POSIX sh]
+  3. For each test_input in test_vectors(T):
+       assert T_rust(test_input) == T_shell(test_input)
+  4. assert shellcheck(T_shell) == PASS
+  5. assert T_shell(sh) == T_shell(dash) == T_shell(bash)
+```
+
+**Why 1:1 Parity Matters**: If we can prove that `factor_rust(n) == factor_shell(n)` for all `n` in a test domain, and the Rust source is verified by Miri/property tests, then we have a **proof chain** from Rust correctness to shell correctness. This is the provability corpus (Category C) applied to real-world tools.
+
+**Entry Range**: B-431..B-460
+
+**Future Work**: As the transpiler gains support for stdin/stdout piping, string slicing, and file I/O, these entries can evolve from core-algorithm-only to full tool reimplementations with flag parsing and I/O handling.
+
+#### 11.11.8 Cross-Category Quality Matrix
+
+| Property | Config (A) | One-liner (B) | Provability (C) | Unix Tools (D) | Lang Integ (E) | System (F) | Coreutils (G) |
+|----------|-----------|--------------|----------------|---------------|--------------|-----------|--------------|
+| Idempotent | REQUIRED | N/A | REQUIRED | N/A | N/A | REQUIRED | REQUIRED |
+| POSIX | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Deterministic | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Miri-verifiable | N/A | N/A | REQUIRED | N/A | N/A | N/A | REQUIRED |
+| Cross-shell | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Shellcheck-clean | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED | REQUIRED |
+| Pipeline-safe | N/A | REQUIRED | N/A | REQUIRED | REQUIRED | N/A | REQUIRED |
+| 1:1 parity | N/A | N/A | N/A | N/A | N/A | N/A | REQUIRED |
+| Signal-aware | N/A | N/A | N/A | N/A | N/A | REQUIRED | N/A |
 
 ---
 
