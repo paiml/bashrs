@@ -5174,7 +5174,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let mut max = 0; for i in 1..=15 { let val = i * 7 % 13; if val > max { max = val; } } }"#,
-                "val=$((i * 7 % 13))",
+                "val=$(((i * 7) % 13))",
             ),
             CorpusEntry::new(
                 "B-304",
@@ -5192,7 +5192,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Standard,
                 r#"fn main() { let v0 = 10; let v1 = 20; let v2 = 30; let v3 = 40; let sum = v0 + v1 + v2 + v3; }"#,
-                "sum=$((v0 + v1 + v2 + v3))",
+                "sum=$((((v0 + v1) + v2) + v3))",
             ),
             CorpusEntry::new(
                 "B-306",
@@ -5210,7 +5210,7 @@ impl CorpusRegistry {
                 CorpusFormat::Bash,
                 CorpusTier::Production,
                 r#"fn main() { let flags = 0; let read_bit = 4; let write_bit = 2; let exec_bit = 1; let perms = read_bit + write_bit + exec_bit; }"#,
-                "perms=$((read_bit + write_bit + exec_bit))",
+                "perms=$(((read_bit + write_bit) + exec_bit))",
             ),
             CorpusEntry::new(
                 "B-308",
