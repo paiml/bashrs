@@ -5304,6 +5304,15 @@ fn corpus_write_convergence_log(
             println!("{DIM}  Per-format:{RESET} {}", parts.join(", "));
         }
     }
+    // Lint pass rate (spec §7.5)
+    if entry.lint_passed > 0 {
+        let lint_pct = entry.lint_rate * 100.0;
+        let lc = pct_color(lint_pct);
+        let gap = ((entry.rate - entry.lint_rate) * 100.0).abs();
+        let gap_str = if gap > 0.1 { format!(" {DIM}(gap: {gap:.1}%){RESET}") } else { String::new() };
+        println!("{DIM}  Lint rate:{RESET} {lc}{lint_pct:.1}%{RESET} ({}/{}){}",
+            entry.lint_passed, entry.total, gap_str);
+    }
     // Regression detection (spec §5.3 — Jidoka)
     if let Some(prev) = previous.last() {
         let report = entry.detect_regressions(prev);

@@ -19,7 +19,7 @@ use std::collections::{HashMap, HashSet};
 use std::sync::OnceLock;
 
 /// Result of transpiling a single corpus entry (v2 scoring).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CorpusResult {
     /// Entry ID
     pub id: String,
@@ -219,6 +219,13 @@ pub struct ConvergenceEntry {
     pub makefile_score: f64,
     #[serde(default)]
     pub dockerfile_score: f64,
+    // --- Lint pass rate (spec §7.5) ---
+    /// Entries that passed lint (D dimension)
+    #[serde(default)]
+    pub lint_passed: usize,
+    /// Lint pass rate (0.0-1.0)
+    #[serde(default)]
+    pub lint_rate: f64,
 }
 
 /// A single regression finding (spec §5.3 — Jidoka).
@@ -271,6 +278,7 @@ impl ConvergenceEntry {
         check("bash_score", previous.bash_score, self.bash_score, "Bash score dropped");
         check("makefile_score", previous.makefile_score, self.makefile_score, "Makefile score dropped");
         check("dockerfile_score", previous.dockerfile_score, self.dockerfile_score, "Dockerfile score dropped");
+        check("lint_passed", previous.lint_passed as f64, self.lint_passed as f64, "Lint passed dropped");
         RegressionReport { regressions }
     }
 }
@@ -1248,6 +1256,12 @@ impl CorpusRunner {
             bash_score,
             makefile_score,
             dockerfile_score,
+            lint_passed: score.results.iter().filter(|r| r.lint_clean).count(),
+            lint_rate: if score.total > 0 {
+                score.results.iter().filter(|r| r.lint_clean).count() as f64 / score.total as f64
+            } else {
+                0.0
+            },
         }
     }
 
@@ -2303,5 +2317,67 @@ end_of_record
         let report = curr.detect_regressions(&prev);
         assert!(report.has_regressions());
         assert_eq!(report.regressions.len(), 4);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_048_lint_rate_in_convergence() {
+        // Lint rate fields should be populated from CorpusScore results
+        let runner = CorpusRunner::new(Config::default());
+        let score = CorpusScore {
+            total: 3,
+            passed: 3,
+            failed: 0,
+            rate: 1.0,
+            score: 99.0,
+            grade: Grade::APlus,
+            format_scores: vec![],
+            results: vec![
+                CorpusResult { id: "B-001".into(), transpiled: true, lint_clean: true, ..Default::default() },
+                CorpusResult { id: "B-002".into(), transpiled: true, lint_clean: true, ..Default::default() },
+                CorpusResult { id: "B-003".into(), transpiled: true, lint_clean: false, ..Default::default() },
+            ],
+        };
+        let entry = runner.convergence_entry(&score, 1, "2026-02-08", 0.0, "lint test");
+        assert_eq!(entry.lint_passed, 2);
+        assert!((entry.lint_rate - 2.0 / 3.0).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_049_lint_rate_serde_roundtrip() {
+        let entry = ConvergenceEntry {
+            lint_passed: 890,
+            lint_rate: 0.989,
+            total: 900,
+            ..Default::default()
+        };
+        let json = serde_json::to_string(&entry).expect("serialize");
+        let loaded: ConvergenceEntry = serde_json::from_str(&json).expect("deserialize");
+        assert_eq!(loaded.lint_passed, 890);
+        assert!((loaded.lint_rate - 0.989).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_050_lint_rate_backward_compat() {
+        // Old entries without lint fields should deserialize with defaults
+        let old_json = r#"{"iteration":1,"date":"2026-01-01","total":100,"passed":99,"failed":1,"rate":0.99,"delta":0.0,"notes":"old"}"#;
+        let entry: ConvergenceEntry = serde_json::from_str(old_json).expect("deserialize");
+        assert_eq!(entry.lint_passed, 0);
+        assert!((entry.lint_rate - 0.0).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_051_lint_regression_detected() {
+        let prev = ConvergenceEntry {
+            lint_passed: 900,
+            ..Default::default()
+        };
+        let curr = ConvergenceEntry {
+            lint_passed: 895,
+            ..Default::default()
+        };
+        let report = curr.detect_regressions(&prev);
+        assert!(report.has_regressions());
+        let dims: Vec<&str> = report.regressions.iter().map(|r| r.dimension.as_str()).collect();
+        assert!(dims.contains(&"lint_passed"));
     }
 }
