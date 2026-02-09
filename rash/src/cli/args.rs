@@ -1227,6 +1227,15 @@ pub enum CorpusCommands {
 
     /// Per-tier actual vs target rate comparison with risk ranking (§2.3/§4.3)
     TierTargets,
+
+    /// Check corpus against quality gate thresholds (§9 / §8.1)
+    QualityGates,
+
+    /// Check corpus performance metrics against thresholds (§9 / §8.2)
+    MetricsCheck,
+
+    /// Combined quality gate + metrics status overview (§9)
+    GateStatus,
 }
 
 /// Dataset export format

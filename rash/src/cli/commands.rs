@@ -5530,6 +5530,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::TierTargets => {
             corpus_tier_targets()
         }
+
+        CorpusCommands::QualityGates => {
+            corpus_quality_gates()
+        }
+
+        CorpusCommands::MetricsCheck => {
+            corpus_metrics_check()
+        }
+
+        CorpusCommands::GateStatus => {
+            corpus_gate_status_cmd()
+        }
     }
 }
 
@@ -11529,6 +11541,98 @@ fn corpus_tier_targets() -> Result<()> {
             .replace("AT RISK", &format!("{YELLOW}AT RISK{RESET}"))
             .replace("MARGINAL", &format!("{YELLOW}MARGINAL{RESET}"))
             .replace("BELOW TARGET", &format!("{RED}BELOW TARGET{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_quality_gates() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::quality_gates;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+    let history = CorpusRunner::load_convergence_log(&log_path)
+        .unwrap_or_default();
+    let thresholds = quality_gates::QualityThresholds::default();
+    let gates = quality_gates::check_quality_gates(&score, &history, &thresholds);
+
+    println!("{BOLD}Corpus Quality Gates (\u{00a7}9 / \u{00a7}8.1){RESET}");
+    println!();
+
+    let report = quality_gates::format_quality_gates(&gates);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("PASS", &format!("{GREEN}PASS{RESET}"))
+            .replace("FAIL", &format!("{RED}FAIL{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_metrics_check() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::quality_gates;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let start = std::time::Instant::now();
+    let score = runner.run(&registry);
+    let duration = start.elapsed();
+    let history = CorpusRunner::load_convergence_log(&log_path)
+        .unwrap_or_default();
+    let thresholds = quality_gates::PerformanceThresholds::default();
+    let metrics = quality_gates::check_metrics(&score, duration, &history, &thresholds);
+
+    println!("{BOLD}Corpus Performance Metrics (\u{00a7}9 / \u{00a7}8.2){RESET}");
+    println!();
+
+    let report = quality_gates::format_metrics_check(&metrics);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("PASS", &format!("{GREEN}PASS{RESET}"))
+            .replace("FAIL", &format!("{RED}FAIL{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_gate_status_cmd() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::quality_gates;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let start = std::time::Instant::now();
+    let score = runner.run(&registry);
+    let duration = start.elapsed();
+    let history = CorpusRunner::load_convergence_log(&log_path)
+        .unwrap_or_default();
+    let status = quality_gates::build_gate_status(&score, duration, &history);
+
+    println!("{BOLD}Corpus Gate Status Summary (\u{00a7}9){RESET}");
+    println!();
+
+    let report = quality_gates::format_gate_status(&status);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("\u{2713}", &format!("{GREEN}\u{2713}{RESET}"))
+            .replace("\u{2717}", &format!("{RED}\u{2717}{RESET}"))
+            .replace("ALL GATES PASSED", &format!("{GREEN}ALL GATES PASSED{RESET}"))
+            .replace("GATES FAILED", &format!("{RED}GATES FAILED{RESET}"));
         println!("  {colored}");
     }
 
