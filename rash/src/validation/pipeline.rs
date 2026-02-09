@@ -144,15 +144,13 @@ impl ValidationPipeline {
 
         // Check for command injection patterns
         let dangerous_patterns = [
-            (
-                "; ",
-                "Semicolon command separator detected in string literal",
-            ),
             ("$(", "Command substitution detected in string literal"),
             (
                 "`",
                 "Backtick command substitution detected in string literal (SC2006)",
             ),
+            // Note: bare "; " is NOT an injection in double-quoted strings (echo "a; b" is safe)
+            // Only quote-escape+semicolon patterns below are actual injection vectors
             ("&& ", "AND operator detected in string literal"),
             ("|| ", "OR operator detected in string literal"),
             (
@@ -497,9 +495,25 @@ impl ValidationPipeline {
                     ));
                 }
             }
+            ShellIR::ForIn { var, items, body } => {
+                if var.is_empty() {
+                    return Err(RashError::ValidationError(
+                        "For-in loop variable name cannot be empty".to_string(),
+                    ));
+                }
+                for item in items {
+                    self.validate_shell_value(item)?;
+                }
+                self.validate_ir_recursive(body)?;
+            }
             ShellIR::Break | ShellIR::Continue => {
                 // Break and continue are always valid in IR
                 // Context validation (must be inside loop) happens during AST validation
+            }
+            ShellIR::Return { value } => {
+                if let Some(val) = value {
+                    self.validate_shell_value(val)?;
+                }
             }
         }
         Ok(())
@@ -629,13 +643,25 @@ mod tests {
     }
 
     #[test]
-    fn test_issue_94_semicolon_still_flagged() {
+    fn test_issue_94_semicolon_in_quoted_string_allowed() {
         let pipeline = create_test_pipeline();
-        // Semicolon should still be flagged
+        // Bare semicolons inside double-quoted strings are safe (echo "a; b" is not injection)
         let result = pipeline.validate_string_literal("cmd1; cmd2");
         assert!(
+            result.is_ok(),
+            "Bare semicolons in double-quoted strings are not injection: {:?}",
+            result,
+        );
+    }
+
+    #[test]
+    fn test_issue_94_quote_escape_semicolon_flagged() {
+        let pipeline = create_test_pipeline();
+        // Quote-escape + semicolon IS injection (breaks out of quotes)
+        let result = pipeline.validate_string_literal("value'; rm -rf /");
+        assert!(
             result.is_err(),
-            "Semicolon command separator should be flagged"
+            "Quote-escape semicolon should be flagged"
         );
     }
 

@@ -169,12 +169,6 @@ impl ErrorInjectionTester {
             "fn main() { let x = ; }",     // Missing value
             "fn main() { 42 }",            // Missing let
             "fn main() { let x = y }",     // Undefined variable
-            "struct Foo {}",               // Unsupported construct
-            "impl Foo {}",                 // Unsupported construct
-            "fn main() { loop {} }",       // Unsupported loop
-            "fn main() { while true {} }", // Unsupported while
-            // Note: for loops and match are now supported (v0.5.0, v0.6.0)
-            "use std::collections::HashMap;", // Unsupported use
             "fn main() { let x: Vec<u32> = vec![]; }", // Unsupported types
             "fn main() { unsafe { } }",       // Unsupported unsafe
             "async fn main() {}",             // Unsupported async
@@ -201,6 +195,34 @@ impl ErrorInjectionTester {
                     results
                         .failure_details
                         .push(format!("Wrong error type for '{input}': {e:?}"));
+                }
+            }
+        }
+
+        // Inputs that are now supported (non-fn items skipped, loop/while handled)
+        // These should succeed gracefully
+        let now_supported_inputs = vec![
+            "struct Foo {}",                      // Non-fn items gracefully skipped
+            "impl Foo {}",                        // Non-fn items gracefully skipped
+            "fn main() { loop {} }",              // Loop converts to while true
+            "fn main() { while true {} }",        // While now supported
+            "use std::collections::HashMap;",     // Use items gracefully skipped
+        ];
+
+        for input in now_supported_inputs {
+            let result = transpile(input, self.config.clone());
+
+            results.total_injections += 1;
+
+            // These should either succeed or fail gracefully
+            match result {
+                Ok(_) | Err(Error::Parse(_)) | Err(Error::Validation(_)) => {
+                    results.graceful_failures += 1;
+                }
+                Err(e) => {
+                    results
+                        .failure_details
+                        .push(format!("Unexpected error type for '{input}': {e:?}"));
                 }
             }
         }

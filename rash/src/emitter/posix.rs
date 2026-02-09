@@ -5,6 +5,37 @@ use crate::models::{Config, Result};
 use std::cell::RefCell;
 use std::fmt::Write;
 
+/// Returns the shell operator string for an ArithmeticOp
+fn arithmetic_op_str(op: &crate::ir::shell_ir::ArithmeticOp) -> &'static str {
+    use crate::ir::shell_ir::ArithmeticOp;
+    match op {
+        ArithmeticOp::Add => "+",
+        ArithmeticOp::Sub => "-",
+        ArithmeticOp::Mul => "*",
+        ArithmeticOp::Div => "/",
+        ArithmeticOp::Mod => "%",
+        ArithmeticOp::BitAnd => "&",
+        ArithmeticOp::BitOr => "|",
+        ArithmeticOp::BitXor => "^",
+        ArithmeticOp::Shl => "<<",
+        ArithmeticOp::Shr => ">>",
+    }
+}
+
+/// Returns precedence level for arithmetic operators (higher = binds tighter).
+/// Follows POSIX shell / C operator precedence.
+fn arithmetic_precedence(op: &crate::ir::shell_ir::ArithmeticOp) -> u8 {
+    use crate::ir::shell_ir::ArithmeticOp;
+    match op {
+        ArithmeticOp::BitOr => 0,
+        ArithmeticOp::BitXor => 1,
+        ArithmeticOp::BitAnd => 2,
+        ArithmeticOp::Shl | ArithmeticOp::Shr => 3,
+        ArithmeticOp::Add | ArithmeticOp::Sub => 4,
+        ArithmeticOp::Mul | ArithmeticOp::Div | ArithmeticOp::Mod => 5,
+    }
+}
+
 /// Unwrap a Sequence containing a single If statement.
 /// The parser wraps `else if` branches in `Sequence([If { ... }])`.
 fn unwrap_single_if(ir: &ShellIR) -> &ShellIR {
@@ -138,6 +169,11 @@ impl PosixEmitter {
 
     fn write_println_function(&self, output: &mut String) -> Result<()> {
         let lines = ["rash_println() {", "    printf '%s\\n' \"$1\"", "}", ""];
+        self.write_shell_lines(output, &lines)
+    }
+
+    fn write_print_function(&self, output: &mut String) -> Result<()> {
+        let lines = ["rash_print() {", "    printf '%s' \"$1\"", "}", ""];
         self.write_shell_lines(output, &lines)
     }
 
@@ -463,6 +499,9 @@ impl PosixEmitter {
         if used_functions.contains("rash_println") {
             self.write_println_function(output)?;
         }
+        if used_functions.contains("rash_print") {
+            self.write_print_function(output)?;
+        }
         if used_functions.contains("rash_eprintln") {
             self.write_eprintln_function(output)?;
         }
@@ -551,8 +590,10 @@ impl PosixEmitter {
             ShellIR::For { .. } => "For",
             ShellIR::While { .. } => "While",
             ShellIR::Case { .. } => "Case",
+            ShellIR::ForIn { .. } => "ForIn",
             ShellIR::Break => "Break",
             ShellIR::Continue => "Continue",
+            ShellIR::Return { .. } => "Return",
         };
         self.record_decision("ir_dispatch", ir_label, ir_label);
 
@@ -587,6 +628,9 @@ impl PosixEmitter {
             ShellIR::Case { scrutinee, arms } => {
                 self.emit_case_statement(output, scrutinee, arms, indent)
             }
+            ShellIR::ForIn { var, items, body } => {
+                self.emit_for_in_statement(output, var, items, body, indent)
+            }
             ShellIR::Break => {
                 let indent_str = "    ".repeat(indent + 1);
                 writeln!(output, "{indent_str}break")?;
@@ -595,6 +639,15 @@ impl PosixEmitter {
             ShellIR::Continue => {
                 let indent_str = "    ".repeat(indent + 1);
                 writeln!(output, "{indent_str}continue")?;
+                Ok(())
+            }
+            ShellIR::Return { value } => {
+                let indent_str = "    ".repeat(indent + 1);
+                if let Some(val) = value {
+                    let value_str = self.emit_shell_value(val)?;
+                    writeln!(output, "{indent_str}echo {value_str}")?;
+                }
+                writeln!(output, "{indent_str}return")?;
                 Ok(())
             }
         }
@@ -809,6 +862,36 @@ impl PosixEmitter {
             output,
             "{indent_str}for {var_name} in $(seq {start_str} {end_str}); do"
         )?;
+
+        // Emit body
+        self.emit_ir(output, body, indent + 1)?;
+
+        // Close loop
+        writeln!(output, "{indent_str}done")?;
+        Ok(())
+    }
+
+    fn emit_for_in_statement(
+        &self,
+        output: &mut String,
+        var: &str,
+        items: &[ShellValue],
+        body: &ShellIR,
+        indent: usize,
+    ) -> Result<()> {
+        self.record_decision("for_construct", "for_in_list", "ForIn");
+
+        let indent_str = "    ".repeat(indent + 1);
+        let var_name = escape_variable_name(var);
+
+        // Emit: for var in item1 item2 item3; do
+        let items_str: Vec<String> = items
+            .iter()
+            .map(|item| self.emit_shell_value(item))
+            .collect::<Result<Vec<_>>>()?;
+        let items_joined = items_str.join(" ");
+
+        writeln!(output, "{indent_str}for {var_name} in {items_joined}; do")?;
 
         // Emit body
         self.emit_ir(output, body, indent + 1)?;
@@ -1109,40 +1192,46 @@ impl PosixEmitter {
         left: &ShellValue,
         right: &ShellValue,
     ) -> Result<String> {
-        use crate::ir::shell_ir::ArithmeticOp;
-
         // For arithmetic, emit raw values (no quotes needed inside $((...)))
-        let left_str = self.emit_arithmetic_operand(left)?;
-        let right_str = self.emit_arithmetic_operand(right)?;
+        // Pass parent op so children can decide about parentheses
+        let left_str = self.emit_arithmetic_operand(left, Some(op), false)?;
+        let right_str = self.emit_arithmetic_operand(right, Some(op), true)?;
 
-        let op_str = match op {
-            ArithmeticOp::Add => "+",
-            ArithmeticOp::Sub => "-",
-            ArithmeticOp::Mul => "*",
-            ArithmeticOp::Div => "/",
-            ArithmeticOp::Mod => "%",
-        };
+        let op_str = arithmetic_op_str(op);
 
         // Generate POSIX arithmetic expansion: $((expr))
         Ok(format!("$(({left_str} {op_str} {right_str}))"))
     }
 
-    fn emit_arithmetic_operand(&self, value: &ShellValue) -> Result<String> {
+    fn emit_arithmetic_operand(
+        &self,
+        value: &ShellValue,
+        parent_op: Option<&crate::ir::shell_ir::ArithmeticOp>,
+        is_right: bool,
+    ) -> Result<String> {
         match value {
             ShellValue::String(s) => Ok(s.clone()),
             ShellValue::Variable(name) => Ok(escape_variable_name(name)),
             ShellValue::Arithmetic { op, left, right } => {
-                // Nested arithmetic - just emit the expression without outer $(())
-                let left_str = self.emit_arithmetic_operand(left)?;
-                let right_str = self.emit_arithmetic_operand(right)?;
-                let op_str = match op {
-                    crate::ir::shell_ir::ArithmeticOp::Add => "+",
-                    crate::ir::shell_ir::ArithmeticOp::Sub => "-",
-                    crate::ir::shell_ir::ArithmeticOp::Mul => "*",
-                    crate::ir::shell_ir::ArithmeticOp::Div => "/",
-                    crate::ir::shell_ir::ArithmeticOp::Mod => "%",
-                };
-                Ok(format!("({left_str} {op_str} {right_str})"))
+                // Nested arithmetic - recurse with this op as parent context
+                let left_str = self.emit_arithmetic_operand(left, Some(op), false)?;
+                let right_str = self.emit_arithmetic_operand(right, Some(op), true)?;
+                let op_str = arithmetic_op_str(op);
+                let expr = format!("{left_str} {op_str} {right_str}");
+
+                // Precedence-aware parenthesization:
+                // - Left child: parens only if strictly lower precedence
+                // - Right child: parens if lower OR equal precedence (left-associative)
+                if let Some(parent) = parent_op {
+                    let child_prec = arithmetic_precedence(op);
+                    let parent_prec = arithmetic_precedence(parent);
+                    if child_prec < parent_prec
+                        || (child_prec == parent_prec && is_right)
+                    {
+                        return Ok(format!("({expr})"));
+                    }
+                }
+                Ok(expr)
             }
             ShellValue::CommandSubst(cmd) => {
                 // Function call return value in arithmetic context

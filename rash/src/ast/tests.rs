@@ -57,7 +57,8 @@ fn test_function_validation() {
 }
 
 #[test]
-fn test_recursion_detection() {
+fn test_recursion_allowed() {
+    // Recursive functions are allowed — shell supports them
     let ast = RestrictedAst {
         functions: vec![Function {
             name: "recursive".to_string(),
@@ -71,12 +72,12 @@ fn test_recursion_detection() {
         entry_point: "recursive".to_string(),
     };
 
-    assert!(ast.validate().is_err());
-    assert!(ast.validate().unwrap_err().contains("Recursion detected"));
+    assert!(ast.validate().is_ok());
 }
 
 #[test]
-fn test_indirect_recursion_detection() {
+fn test_indirect_recursion_allowed() {
+    // Indirect recursion is also allowed
     let ast = RestrictedAst {
         functions: vec![
             Function {
@@ -101,8 +102,7 @@ fn test_indirect_recursion_detection() {
         entry_point: "a".to_string(),
     };
 
-    assert!(ast.validate().is_err());
-    assert!(ast.validate().unwrap_err().contains("Recursion detected"));
+    assert!(ast.validate().is_ok());
 }
 
 #[rstest]

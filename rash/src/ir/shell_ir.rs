@@ -72,11 +72,21 @@ pub enum ShellIR {
         body: Box<ShellIR>,
     },
 
+    /// For-in loop over a word list
+    ForIn {
+        var: String,
+        items: Vec<ShellValue>,
+        body: Box<ShellIR>,
+    },
+
     /// Break statement
     Break,
 
     /// Continue statement
     Continue,
+
+    /// Return from function with optional value (echo + return)
+    Return { value: Option<ShellValue> },
 }
 
 impl ShellIR {
@@ -98,9 +108,12 @@ impl ShellIR {
             ShellIR::Sequence(items) => items
                 .iter()
                 .fold(EffectSet::pure(), |acc, item| acc.union(&item.effects())),
-            ShellIR::Exit { .. } | ShellIR::Noop | ShellIR::Echo { .. } => EffectSet::pure(),
+            ShellIR::Exit { .. }
+            | ShellIR::Noop
+            | ShellIR::Echo { .. }
+            | ShellIR::Return { .. } => EffectSet::pure(),
             ShellIR::Function { body, .. } => body.effects(),
-            ShellIR::For { body, .. } => body.effects(),
+            ShellIR::For { body, .. } | ShellIR::ForIn { body, .. } => body.effects(),
             ShellIR::While { body, .. } => body.effects(),
             ShellIR::Case { arms, .. } => arms
                 .iter()
@@ -173,6 +186,17 @@ impl ShellIR {
                     if let Some(guard) = &arm.guard {
                         guard.collect_functions(used);
                     }
+                }
+            }
+            ShellIR::ForIn { items, body, .. } => {
+                for item in items {
+                    item.collect_functions(used);
+                }
+                body.collect_functions_recursive(used);
+            }
+            ShellIR::Return { value } => {
+                if let Some(v) = value {
+                    v.collect_functions(used);
                 }
             }
             ShellIR::Exit { .. } | ShellIR::Noop | ShellIR::Break | ShellIR::Continue => {}
@@ -309,6 +333,16 @@ pub enum ArithmeticOp {
     Div,
     /// % : modulo
     Mod,
+    /// & : bitwise AND
+    BitAnd,
+    /// | : bitwise OR
+    BitOr,
+    /// ^ : bitwise XOR
+    BitXor,
+    /// << : left shift
+    Shl,
+    /// >> : right shift
+    Shr,
 }
 
 impl ShellValue {

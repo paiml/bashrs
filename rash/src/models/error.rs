@@ -46,4 +46,13 @@ pub enum Error {
     /// Issue #84: Command failed with helpful message
     #[error("{message}")]
     CommandFailed { message: String },
+
+    /// Rich error with file path and source code context for diagnostics
+    #[error("{inner}")]
+    WithContext {
+        #[source]
+        inner: Box<Error>,
+        file: Option<String>,
+        source_code: Option<String>,
+    },
 }

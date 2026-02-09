@@ -8,11 +8,11 @@ fn main() {
     let cli = Cli::parse();
 
     if let Err(error) = execute_command(cli) {
-        // Create rich diagnostic from error
+        // Create rich diagnostic from error (handles WithContext automatically)
         let diagnostic = Diagnostic::from_error(&error, None);
 
         // Print formatted diagnostic
-        eprintln!("{}", diagnostic);
+        eprintln!("{diagnostic}");
 
         // Optional: Print original error chain for debugging
         if std::env::var("RASH_DEBUG").is_ok() {
@@ -28,11 +28,17 @@ fn main() {
         // Issue #6: Different exit codes based on error type
         // Exit 1: General errors (lint failures, validation errors, etc.)
         // Exit 2: Tool failures (I/O errors, invalid arguments, etc.)
-        let exit_code = match error {
-            bashrs::models::Error::Io(_) => 2, // File not found, permission denied, etc.
-            bashrs::models::Error::Parse(_) => 2, // Invalid input
-            bashrs::models::Error::Internal(_) => 2, // Tool failure
-            _ => 1,                            // Lint failures, validation errors, etc.
+        // Unwrap WithContext to get the inner error for exit code matching
+        let inner_error = match &error {
+            bashrs::models::Error::WithContext { inner, .. } => inner.as_ref(),
+            other => other,
+        };
+
+        let exit_code = match inner_error {
+            bashrs::models::Error::Io(_) => 2,       // File not found, permission denied, etc.
+            bashrs::models::Error::Parse(_) => 2,     // Invalid input
+            bashrs::models::Error::Internal(_) => 2,  // Tool failure
+            _ => 1,                                   // Lint failures, validation errors, etc.
         };
 
         process::exit(exit_code);

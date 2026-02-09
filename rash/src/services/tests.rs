@@ -186,10 +186,10 @@ fn test_return_statement_parsing() {
     let main_func = &ast.functions[0];
 
     match &main_func.body[0] {
-        crate::ast::Stmt::Expr(crate::ast::Expr::Literal(Literal::Str(s))) => {
+        crate::ast::Stmt::Return(Some(crate::ast::Expr::Literal(Literal::Str(s)))) => {
             assert_eq!(s, "success");
         }
-        _ => panic!("Expected return expression"),
+        _ => panic!("Expected Stmt::Return with string literal, got {:?}", main_func.body[0]),
     }
 }
 
@@ -289,23 +289,27 @@ fn test_error_on_multiple_main_functions() {
 }
 
 #[test]
-fn test_error_on_non_function_items() {
+fn test_non_function_items_skipped() {
+    // Non-function items (struct, enum, impl, etc.) are now gracefully skipped
     let source = r#"
         struct MyStruct {
             field: u32,
         }
-        
+
         fn main() {
             let x = 42;
         }
     "#;
 
     let result = parse(source);
-    assert!(result.is_err());
-    assert!(result
-        .unwrap_err()
-        .to_string()
-        .contains("Only functions are allowed"));
+    assert!(
+        result.is_ok(),
+        "Non-function items should be gracefully skipped: {:?}",
+        result.err()
+    );
+    let ast = result.expect("parse should succeed");
+    assert_eq!(ast.functions.len(), 1);
+    assert_eq!(ast.entry_point, "main");
 }
 
 #[test]
