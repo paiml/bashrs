@@ -5470,6 +5470,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::OrgPatterns => {
             corpus_org_patterns()
         }
+
+        CorpusCommands::SchemaValidate => {
+            corpus_schema_validate()
+        }
+
+        CorpusCommands::GrammarErrors => {
+            corpus_grammar_errors()
+        }
+
+        CorpusCommands::FormatGrammar { format } => {
+            corpus_format_grammar(format)
+        }
     }
 }
 
@@ -11034,6 +11046,157 @@ fn corpus_org_patterns() -> Result<()> {
             )
         };
         println!("    {:<30} {}", p.name, coverage);
+    }
+
+    Ok(())
+}
+
+fn corpus_schema_validate() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::schema_enforcement;
+
+    let registry = CorpusRegistry::load_full();
+    let report = schema_enforcement::validate_corpus(&registry);
+
+    println!(
+        "{BOLD}Formal Schema Enforcement (\u{00a7}11.8){RESET}"
+    );
+    println!();
+
+    let table = schema_enforcement::format_schema_report(&report);
+    for line in table.lines() {
+        let colored = line
+            .replace("Bash", &format!("{CYAN}Bash{RESET}"))
+            .replace("Makefile", &format!("{YELLOW}Makefile{RESET}"))
+            .replace("Dockerfile", &format!("{GREEN}Dockerfile{RESET}"));
+        println!("  {colored}");
+    }
+
+    // Layer coverage summary
+    println!();
+    println!("  {BOLD}Layer Coverage:{RESET}");
+    for layer in &["L1:Lexical", "L2:Syntactic", "L3:Semantic"] {
+        let passed = report
+            .results
+            .iter()
+            .filter(|r| {
+                r.layers_passed.iter().any(|l| format!("{l}") == *layer)
+            })
+            .count();
+        let pct = if report.total_entries > 0 {
+            (passed as f64 / report.total_entries as f64) * 100.0
+        } else {
+            0.0
+        };
+        let color = if pct >= 99.0 {
+            GREEN
+        } else if pct >= 90.0 {
+            YELLOW
+        } else {
+            RED
+        };
+        println!(
+            "    {:<16} {color}{}/{} ({:.1}%){RESET}",
+            layer, passed, report.total_entries, pct,
+        );
+    }
+
+    println!();
+    let status = if report.total_violations == 0 {
+        format!("{GREEN}\u{2713} All entries pass schema validation{RESET}")
+    } else {
+        format!(
+            "{YELLOW}\u{26a0} {} violation(s) in {} entries{RESET}",
+            report.total_violations,
+            report.total_entries - report.valid_entries,
+        )
+    };
+    println!("  {status}");
+
+    Ok(())
+}
+
+fn corpus_grammar_errors() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::schema_enforcement;
+
+    let registry = CorpusRegistry::load_full();
+    let report = schema_enforcement::validate_corpus(&registry);
+
+    println!(
+        "{BOLD}Grammar Violations by Category (\u{00a7}11.8.5){RESET}"
+    );
+    println!();
+
+    let table = schema_enforcement::format_grammar_errors(&report);
+    for line in table.lines() {
+        let colored = line
+            .replace("GRAM-001", &format!("{CYAN}GRAM-001{RESET}"))
+            .replace("GRAM-002", &format!("{CYAN}GRAM-002{RESET}"))
+            .replace("GRAM-003", &format!("{YELLOW}GRAM-003{RESET}"))
+            .replace("GRAM-004", &format!("{GREEN}GRAM-004{RESET}"))
+            .replace("GRAM-005", &format!("{YELLOW}GRAM-005{RESET}"))
+            .replace("GRAM-006", &format!("{CYAN}GRAM-006{RESET}"))
+            .replace("GRAM-007", &format!("{GREEN}GRAM-007{RESET}"))
+            .replace("GRAM-008", &format!("{YELLOW}GRAM-008{RESET}"));
+        println!("  {colored}");
+    }
+
+    // Show fix pattern suggestions
+    if !report.violations_by_category.is_empty() {
+        println!();
+        println!("  {BOLD}Fix Patterns:{RESET}");
+        for (cat, count) in &report.violations_by_category {
+            if *count > 0 {
+                println!(
+                    "    {} ({} violations): {}",
+                    cat.code(),
+                    count,
+                    cat.fix_pattern(),
+                );
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn corpus_format_grammar(format: CorpusFormatArg) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusFormat;
+    use crate::corpus::schema_enforcement;
+
+    let corpus_format = match format {
+        CorpusFormatArg::Bash => CorpusFormat::Bash,
+        CorpusFormatArg::Makefile => CorpusFormat::Makefile,
+        CorpusFormatArg::Dockerfile => CorpusFormat::Dockerfile,
+    };
+
+    let spec = schema_enforcement::format_grammar_spec(corpus_format);
+
+    println!(
+        "{BOLD}Formal Grammar Specification (\u{00a7}11.8){RESET}"
+    );
+    println!();
+
+    for line in spec.lines() {
+        let colored = if line.contains("Validation Layers:") {
+            format!("{BOLD}{line}{RESET}")
+        } else if line.starts_with("  L") {
+            let parts: Vec<&str> = line.splitn(2, '\u{2014}').collect();
+            if parts.len() == 2 {
+                format!("{CYAN}{}{RESET}\u{2014}{}", parts[0], parts[1])
+            } else {
+                format!("{CYAN}{line}{RESET}")
+            }
+        } else if line.contains("Grammar") {
+            format!("{BOLD}{line}{RESET}")
+        } else {
+            line.to_string()
+        };
+        println!("  {colored}");
     }
 
     Ok(())
