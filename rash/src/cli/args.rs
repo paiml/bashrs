@@ -1137,6 +1137,22 @@ pub enum CorpusCommands {
 
     /// Show programmatic labeling rules and match counts (§11.10.4)
     LabelRules,
+
+    /// Full iteration x format convergence table (§11.10.5)
+    ConvergeTable,
+
+    /// Per-format delta between two iterations (§11.10.5)
+    ConvergeDiff {
+        /// First iteration number (default: second-to-last)
+        #[arg(long)]
+        from: Option<u32>,
+        /// Second iteration number (default: last)
+        #[arg(long)]
+        to: Option<u32>,
+    },
+
+    /// Per-format convergence status with trend (§11.10.5)
+    ConvergeStatus,
 }
 
 /// Corpus output format

@@ -5446,6 +5446,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::LabelRules => {
             corpus_label_rules()
         }
+
+        CorpusCommands::ConvergeTable => {
+            corpus_converge_table()
+        }
+
+        CorpusCommands::ConvergeDiff { from, to } => {
+            corpus_converge_diff(from, to)
+        }
+
+        CorpusCommands::ConvergeStatus => {
+            corpus_converge_status()
+        }
     }
 }
 
@@ -10748,6 +10760,122 @@ fn corpus_label_rules() -> Result<()> {
     }
 
     println!();
+    Ok(())
+}
+
+/// Full iteration x format convergence table (§11.10.5).
+fn corpus_converge_table() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::convergence;
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let entries = CorpusRunner::load_convergence_log(&log_path)
+        .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
+    if entries.is_empty() {
+        println!("No convergence history. Run `bashrs corpus run --log` first.");
+        return Ok(());
+    }
+
+    println!("{BOLD}Multi-Corpus Convergence Table (\u{00a7}11.10.5){RESET}");
+    println!();
+
+    let table = convergence::format_convergence_table(&entries);
+    for line in table.lines() {
+        println!("  {line}");
+    }
+
+    Ok(())
+}
+
+/// Per-format delta between two iterations (§11.10.5).
+fn corpus_converge_diff(from: Option<u32>, to: Option<u32>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::convergence;
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let entries = CorpusRunner::load_convergence_log(&log_path)
+        .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
+    if entries.len() < 2 {
+        println!("Need at least 2 iterations for diff. Run `bashrs corpus run --log` more.");
+        return Ok(());
+    }
+
+    let from_entry = match from {
+        Some(n) => entries
+            .iter()
+            .find(|e| e.iteration == n)
+            .ok_or_else(|| Error::Internal(format!("Iteration #{n} not found in log")))?,
+        None => &entries[entries.len() - 2],
+    };
+
+    let to_entry = match to {
+        Some(n) => entries
+            .iter()
+            .find(|e| e.iteration == n)
+            .ok_or_else(|| Error::Internal(format!("Iteration #{n} not found in log")))?,
+        None => entries.last().expect("entries is non-empty"),
+    };
+
+    let diff = convergence::compare_iterations(from_entry, to_entry);
+
+    println!("{BOLD}Convergence Diff (\u{00a7}11.10.5){RESET}");
+    println!();
+
+    let table = convergence::format_iteration_diff(&diff);
+    for line in table.lines() {
+        // Colorize delta arrows
+        let colored = line
+            .replace('\u{2191}', &format!("{GREEN}\u{2191}{RESET}"))
+            .replace('\u{2193}', &format!("{RED}\u{2193}{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+/// Per-format convergence status with trend (§11.10.5).
+fn corpus_converge_status() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::convergence;
+    use crate::corpus::runner::CorpusRunner;
+
+    let log_path = PathBuf::from(".quality/convergence.log");
+    let entries = CorpusRunner::load_convergence_log(&log_path)
+        .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
+    if entries.is_empty() {
+        println!("No convergence history. Run `bashrs corpus run --log` first.");
+        return Ok(());
+    }
+
+    let statuses = convergence::convergence_status(&entries);
+
+    println!("{BOLD}Per-Format Convergence Status (\u{00a7}11.10.5){RESET}");
+    println!();
+
+    let output = convergence::format_convergence_status(&statuses);
+    for line in output.lines() {
+        // Colorize trend arrows and status keywords
+        let colored = line
+            .replace("CONVERGED", &format!("{BRIGHT_GREEN}CONVERGED{RESET}"))
+            .replace("REGRESSING", &format!("{BRIGHT_RED}REGRESSING{RESET}"))
+            .replace("IMPROVING", &format!("{YELLOW}IMPROVING{RESET}"))
+            .replace(
+                "\u{2191} Improving",
+                &format!("{GREEN}\u{2191} Improving{RESET}"),
+            )
+            .replace(
+                "\u{2192} Stable",
+                &format!("{CYAN}\u{2192} Stable{RESET}"),
+            )
+            .replace(
+                "\u{2193} Regressing",
+                &format!("{RED}\u{2193} Regressing{RESET}"),
+            );
+        println!("  {colored}");
+    }
+
     Ok(())
 }
 
