@@ -1128,6 +1128,15 @@ pub enum CorpusCommands {
         #[arg(value_name = "DECISION")]
         decision: String,
     },
+
+    /// Deduplicated error view with counts and risk classification (§11.10.4)
+    Dedup,
+
+    /// Risk-prioritized fix backlog with weak supervision labels (§11.10.4)
+    Triage,
+
+    /// Show programmatic labeling rules and match counts (§11.10.4)
+    LabelRules,
 }
 
 /// Corpus output format

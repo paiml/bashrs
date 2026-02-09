@@ -5434,6 +5434,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::BlastRadius { decision } => {
             corpus_blast_radius(&decision)
         }
+
+        CorpusCommands::Dedup => {
+            corpus_dedup()
+        }
+
+        CorpusCommands::Triage => {
+            corpus_triage()
+        }
+
+        CorpusCommands::LabelRules => {
+            corpus_label_rules()
+        }
     }
 }
 
@@ -10571,6 +10583,170 @@ fn corpus_blast_radius(decision: &str) -> Result<()> {
         "\n  Impact: Fixing this decision affects {WHITE}{}/{total_entries}{RESET} entries ({WHITE}{pct:.1}%{RESET})",
         entry_ids.len()
     );
+    println!();
+    Ok(())
+}
+
+/// Deduplicated error view with counts and risk classification (§11.10.4).
+fn corpus_dedup() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::error_dedup::deduplicate_errors;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let triage = deduplicate_errors(&registry, &runner);
+
+    println!(
+        "\n  {BOLD}Deduplicated Errors{RESET}  ({DIM}{} raw → {} unique{RESET})",
+        triage.total_raw, triage.total_unique
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    if triage.errors.is_empty() {
+        println!("  {BRIGHT_GREEN}No errors in corpus.{RESET}\n");
+        return Ok(());
+    }
+
+    println!(
+        "  {DIM}{:<22}  {:<32}  {:>5}  {:<8}  {}{RESET}",
+        "Error Code", "Message (normalized)", "Count", "Risk", "Entries"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    for err in &triage.errors {
+        let risk_color = match err.risk {
+            crate::corpus::error_dedup::RiskLevel::High => RED,
+            crate::corpus::error_dedup::RiskLevel::Medium => YELLOW,
+            crate::corpus::error_dedup::RiskLevel::Low => DIM,
+        };
+        let msg_display = if err.message.len() > 30 {
+            format!("{}...", &err.message[..27])
+        } else {
+            err.message.clone()
+        };
+        let entries_display: Vec<&str> = err.entry_ids.iter().take(5).map(|s| s.as_str()).collect();
+        let more = if err.entry_ids.len() > 5 {
+            format!(" (+{})", err.entry_ids.len() - 5)
+        } else {
+            String::new()
+        };
+        println!(
+            "  {CYAN}{:<22}{RESET}  {:<32}  {:>5}  {risk_color}{:<8}{RESET}  {}{}",
+            err.error_code,
+            msg_display,
+            err.count,
+            format!("{}", err.risk),
+            entries_display.join(", "),
+            more,
+        );
+    }
+
+    println!(
+        "\n  {DIM}Summary: {RED}{} HIGH{RESET}{DIM}, {YELLOW}{} MEDIUM{RESET}{DIM}, {} LOW{RESET}",
+        triage.high_count, triage.medium_count, triage.low_count
+    );
+    println!();
+    Ok(())
+}
+
+/// Risk-prioritized fix backlog with weak supervision labels (§11.10.4).
+fn corpus_triage() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::error_dedup::deduplicate_errors;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let triage = deduplicate_errors(&registry, &runner);
+
+    println!(
+        "\n  {BOLD}Risk-Prioritized Fix Backlog{RESET}  ({DIM}{} unique errors{RESET})",
+        triage.total_unique
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    if triage.errors.is_empty() {
+        println!("  {BRIGHT_GREEN}No errors to triage.{RESET}\n");
+        return Ok(());
+    }
+
+    println!(
+        "  {DIM}{:<8}  {:<8}  {:<24}  {:>5}  {}{RESET}",
+        "Priority", "Risk", "Error Code", "Count", "Fix Impact"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    for (i, err) in triage.errors.iter().enumerate() {
+        let risk_color = match err.risk {
+            crate::corpus::error_dedup::RiskLevel::High => RED,
+            crate::corpus::error_dedup::RiskLevel::Medium => YELLOW,
+            crate::corpus::error_dedup::RiskLevel::Low => DIM,
+        };
+        let fix_impact = match err.error_code.as_str() {
+            "A_transpile_fail" => "transpilation",
+            "B1_containment_fail" => "output correctness",
+            "B2_exact_fail" => "exact match",
+            "B3_behavioral_fail" => "behavioral correctness",
+            "D_lint_fail" => "lint compliance",
+            "G_cross_shell_fail" => "cross-shell compat",
+            _ => "quality",
+        };
+        println!(
+            "  {WHITE}#{:<7}{RESET}  {risk_color}{:<8}{RESET}  {CYAN}{:<24}{RESET}  {:>5}  {DIM}{}{RESET}",
+            i + 1,
+            format!("{}", err.risk),
+            err.error_code,
+            err.count,
+            fix_impact,
+        );
+    }
+
+    println!();
+    Ok(())
+}
+
+/// Show programmatic labeling rules and match counts (§11.10.4).
+fn corpus_label_rules() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::error_dedup::count_rule_matches;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let rule_matches = count_rule_matches(&registry, &runner);
+
+    println!("\n  {BOLD}Programmatic Labeling Rules (Weak Supervision){RESET}");
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+    println!(
+        "  {DIM}{:<14}  {:<34}  {:<8}  {:>7}{RESET}",
+        "Rule", "Condition", "Risk", "Matches"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(72));
+
+    for (rule, count) in &rule_matches {
+        let risk_color = match rule.risk {
+            crate::corpus::error_dedup::RiskLevel::High => RED,
+            crate::corpus::error_dedup::RiskLevel::Medium => YELLOW,
+            crate::corpus::error_dedup::RiskLevel::Low => DIM,
+        };
+        let count_display = if *count > 0 {
+            format!("{WHITE}{count}{RESET}")
+        } else {
+            format!("{DIM}0{RESET}")
+        };
+        println!(
+            "  {CYAN}{:<14}{RESET}  {:<34}  {risk_color}{:<8}{RESET}  {:>7}",
+            rule.name,
+            rule.condition,
+            format!("{}", rule.risk),
+            count_display,
+        );
+    }
+
     println!();
     Ok(())
 }
