@@ -1218,6 +1218,15 @@ pub enum CorpusCommands {
 
     /// Cross-category quality requirements matrix (§11.11.9)
     DomainMatrix,
+
+    /// Per-tier weighted pass rates and scoring breakdown (§4.3)
+    TierWeights,
+
+    /// Tier difficulty analysis with weighted vs unweighted comparison (§4.3)
+    TierAnalysis,
+
+    /// Per-tier actual vs target rate comparison with risk ranking (§2.3/§4.3)
+    TierTargets,
 }
 
 /// Dataset export format

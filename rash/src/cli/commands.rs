@@ -5518,6 +5518,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::DomainMatrix => {
             corpus_domain_matrix()
         }
+
+        CorpusCommands::TierWeights => {
+            corpus_tier_weights()
+        }
+
+        CorpusCommands::TierAnalysis => {
+            corpus_tier_analysis()
+        }
+
+        CorpusCommands::TierTargets => {
+            corpus_tier_targets()
+        }
     }
 }
 
@@ -11427,6 +11439,96 @@ fn corpus_domain_matrix() -> Result<()> {
         let colored = line
             .replace("REQ", &format!("{GREEN}REQ{RESET}"))
             .replace("N/A", &format!("{DIM}N/A{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_tier_weights() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use crate::corpus::tier_analysis;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+    let analysis = tier_analysis::analyze_tiers(&registry, &score);
+
+    println!(
+        "{BOLD}Tier-Weighted Corpus Scoring (\u{00a7}4.3){RESET}"
+    );
+    println!();
+
+    let report = tier_analysis::format_tier_weights(&analysis);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("100.0%", &format!("{GREEN}100.0%{RESET}"))
+            .replace("Weighted Score:", &format!("{BOLD}Weighted Score:{RESET}"))
+            .replace("Weight Effect:", &format!("{BOLD}Weight Effect:{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_tier_analysis() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use crate::corpus::tier_analysis;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+    let analysis = tier_analysis::analyze_tiers(&registry, &score);
+
+    println!(
+        "{BOLD}Tier Difficulty Analysis (\u{00a7}4.3){RESET}"
+    );
+    println!();
+
+    let report = tier_analysis::format_tier_analysis(&analysis);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("No difference", &format!("{GREEN}No difference{RESET}"))
+            .replace("Distribution:", &format!("{BOLD}Distribution:{RESET}"))
+            .replace("Scoring Comparison:", &format!("{BOLD}Scoring Comparison:{RESET}"))
+            .replace("Weight Impact", &format!("{BOLD}Weight Impact{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_tier_targets() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use crate::corpus::tier_analysis;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+    let analysis = tier_analysis::analyze_tiers(&registry, &score);
+
+    println!(
+        "{BOLD}Tier Target Rate Comparison (\u{00a7}2.3/\u{00a7}4.3){RESET}"
+    );
+    println!();
+
+    let report = tier_analysis::format_tier_targets(&analysis);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("PASS", &format!("{GREEN}PASS{RESET}"))
+            .replace("FAIL", &format!("{RED}FAIL{RESET}"))
+            .replace("ALL TARGETS MET", &format!("{GREEN}ALL TARGETS MET{RESET}"))
+            .replace("TARGETS NOT MET", &format!("{RED}TARGETS NOT MET{RESET}"))
+            .replace("COMFORTABLE", &format!("{GREEN}COMFORTABLE{RESET}"))
+            .replace("AT RISK", &format!("{YELLOW}AT RISK{RESET}"))
+            .replace("MARGINAL", &format!("{YELLOW}MARGINAL{RESET}"))
+            .replace("BELOW TARGET", &format!("{RED}BELOW TARGET{RESET}"));
         println!("  {colored}");
     }
 
