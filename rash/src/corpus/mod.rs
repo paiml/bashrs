@@ -23,6 +23,7 @@
 pub mod convergence;
 pub mod error_dedup;
 pub mod graph_priority;
+pub mod oip;
 pub mod pattern_store;
 pub mod registry;
 pub mod runner;
