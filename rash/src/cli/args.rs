@@ -1209,6 +1209,15 @@ pub enum CorpusCommands {
 
     /// Verify 4 convergence criteria from §5.2
     ConvergenceCheck,
+
+    /// Classify entries into domain categories A-H (§11.11)
+    DomainCategories,
+
+    /// Per-category coverage analysis and gap identification (§11.11)
+    DomainCoverage,
+
+    /// Cross-category quality requirements matrix (§11.11.9)
+    DomainMatrix,
 }
 
 /// Dataset export format

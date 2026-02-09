@@ -23,6 +23,7 @@
 pub mod citl;
 pub mod convergence;
 pub mod dataset;
+pub mod domain_categories;
 pub mod error_dedup;
 pub mod graph_priority;
 pub mod oip;

@@ -5506,6 +5506,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ConvergenceCheck => {
             corpus_convergence_check()
         }
+
+        CorpusCommands::DomainCategories => {
+            corpus_domain_categories()
+        }
+
+        CorpusCommands::DomainCoverage => {
+            corpus_domain_coverage()
+        }
+
+        CorpusCommands::DomainMatrix => {
+            corpus_domain_matrix()
+        }
     }
 }
 
@@ -11329,6 +11341,92 @@ fn corpus_convergence_check() -> Result<()> {
             .replace("\u{2717} FAIL", &format!("{RED}\u{2717} FAIL{RESET}"))
             .replace("CONVERGED:", &format!("{GREEN}CONVERGED:{RESET}"))
             .replace("NOT CONVERGED:", &format!("{RED}NOT CONVERGED:{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_domain_categories() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::domain_categories;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+    let stats = domain_categories::categorize_corpus(&registry, &score.results);
+
+    println!(
+        "{BOLD}Domain-Specific Corpus Categories (\u{00a7}11.11){RESET}"
+    );
+    println!();
+
+    let report = domain_categories::format_categories_report(&stats);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("COMPLETE", &format!("{GREEN}COMPLETE{RESET}"))
+            .replace("EMPTY", &format!("{RED}EMPTY{RESET}"))
+            .replace("SPARSE", &format!("{YELLOW}SPARSE{RESET}"))
+            .replace("PARTIAL", &format!("{CYAN}PARTIAL{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_domain_coverage() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::domain_categories;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+    let stats = domain_categories::categorize_corpus(&registry, &score.results);
+
+    println!(
+        "{BOLD}Domain Coverage Analysis (\u{00a7}11.11){RESET}"
+    );
+    println!();
+
+    let report = domain_categories::format_domain_coverage(&stats, &score);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("COMPLETE", &format!("{GREEN}COMPLETE{RESET}"))
+            .replace("EMPTY", &format!("{RED}EMPTY{RESET}"))
+            .replace("SPARSE", &format!("{YELLOW}SPARSE{RESET}"))
+            .replace("PARTIAL", &format!("{CYAN}PARTIAL{RESET}"))
+            .replace("Coverage Gaps:", &format!("{YELLOW}Coverage Gaps:{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_domain_matrix() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::domain_categories;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+    let stats = domain_categories::categorize_corpus(&registry, &score.results);
+
+    println!(
+        "{BOLD}Cross-Category Quality Matrix (\u{00a7}11.11.9){RESET}"
+    );
+    println!();
+
+    let report = domain_categories::format_quality_matrix(&stats);
+    for line in report.lines().skip(2) {
+        let colored = line
+            .replace("REQ", &format!("{GREEN}REQ{RESET}"))
+            .replace("N/A", &format!("{DIM}N/A{RESET}"));
         println!("  {colored}");
     }
 
