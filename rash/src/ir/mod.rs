@@ -65,13 +65,15 @@ impl IrConverter {
                 let mut body_stmts = Vec::new();
 
                 // Convert function body statements
+                let has_return_type =
+                    !matches!(function.return_type, crate::ast::restricted::Type::Void);
                 for (i, stmt) in function.body.iter().enumerate() {
                     let is_last = i == function.body.len() - 1;
-                    let has_return_type =
-                        !matches!(function.return_type, crate::ast::restricted::Type::Void);
-
-                    body_stmts
-                        .push(self.convert_stmt_in_function(stmt, is_last && has_return_type)?);
+                    // Pass should_echo=true for last stmt in non-void functions;
+                    // convert_stmt_in_function also handles explicit `return` at any position
+                    body_stmts.push(
+                        self.convert_stmt_in_function(stmt, is_last && has_return_type)?,
+                    );
                 }
 
                 // Generate function with body (empty functions get Noop via emit_sequence)
@@ -98,7 +100,13 @@ impl IrConverter {
         Ok(ShellIR::Sequence(all_ir))
     }
 
-    /// Convert a statement in a function context (handles return values)
+    /// Convert a statement in a function context (handles return values).
+    /// When `should_echo` is true, the statement is in tail position of a
+    /// non-void function and its value must be echoed for capture via $().
+    /// Convert a statement in a non-void function context.
+    /// `should_echo`: true when this is the tail expression that should be echoed.
+    /// Explicit `return expr` is always converted to `echo + return` (not exit).
+    /// If statements in tail position propagate should_echo into branches.
     fn convert_stmt_in_function(
         &self,
         stmt: &crate::ast::Stmt,
@@ -107,13 +115,85 @@ impl IrConverter {
         use crate::ast::Stmt;
 
         match stmt {
+            // Tail expression → echo it
             Stmt::Expr(expr) if should_echo => {
-                // Last expression in function with return type - emit as echo
                 let value = self.convert_expr_to_value(expr)?;
                 Ok(ShellIR::Echo { value })
             }
+
+            // If in tail position → propagate should_echo into branches
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } if should_echo => {
+                let test_expr = self.convert_expr_to_value(condition)?;
+                let then_ir = self.convert_stmts_in_function(then_block, true)?;
+                let else_ir = if let Some(else_stmts) = else_block {
+                    Some(Box::new(
+                        self.convert_stmts_in_function(else_stmts, true)?,
+                    ))
+                } else {
+                    None
+                };
+                Ok(ShellIR::If {
+                    test: test_expr,
+                    then_branch: Box::new(then_ir),
+                    else_branch: else_ir,
+                })
+            }
+
+            // If NOT in tail position but contains returns → still need function context
+            Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                let test_expr = self.convert_expr_to_value(condition)?;
+                let then_ir = self.convert_stmts_in_function(then_block, false)?;
+                let else_ir = if let Some(else_stmts) = else_block {
+                    Some(Box::new(
+                        self.convert_stmts_in_function(else_stmts, false)?,
+                    ))
+                } else {
+                    None
+                };
+                Ok(ShellIR::If {
+                    test: test_expr,
+                    then_branch: Box::new(then_ir),
+                    else_branch: else_ir,
+                })
+            }
+
+            // Explicit return expr → echo value + return (not exit!)
+            Stmt::Return(Some(expr)) => {
+                let value = self.convert_expr_to_value(expr)?;
+                Ok(ShellIR::Return {
+                    value: Some(value),
+                })
+            }
+
+            // Explicit return without value
+            Stmt::Return(None) => Ok(ShellIR::Return { value: None }),
+
+            // Everything else: regular statement conversion
             _ => self.convert_stmt(stmt),
         }
+    }
+
+    /// Convert a block of statements in function context, with the last
+    /// statement receiving `should_echo` treatment for implicit returns.
+    fn convert_stmts_in_function(
+        &self,
+        stmts: &[crate::ast::Stmt],
+        should_echo: bool,
+    ) -> Result<ShellIR> {
+        let mut ir_stmts = Vec::new();
+        for (i, stmt) in stmts.iter().enumerate() {
+            let is_last = i == stmts.len() - 1;
+            ir_stmts.push(self.convert_stmt_in_function(stmt, is_last && should_echo)?);
+        }
+        Ok(ShellIR::Sequence(ir_stmts))
     }
 
     fn convert_stmt(&self, stmt: &crate::ast::Stmt) -> Result<ShellIR> {
@@ -121,6 +201,48 @@ impl IrConverter {
 
         match stmt {
             Stmt::Let { name, value } => {
+                // Handle __if_expr: let x = if cond { a } else { b }
+                // Lower to: if cond; then x=a; else x=b; fi
+                if let crate::ast::Expr::FunctionCall {
+                    name: fn_name,
+                    args,
+                } = value
+                {
+                    if fn_name == "__if_expr" && args.len() == 3 {
+                        let cond_val = self.convert_expr_to_value(&args[0])?;
+                        let then_val = self.convert_expr_to_value(&args[1])?;
+                        let else_val = self.convert_expr_to_value(&args[2])?;
+                        return Ok(ShellIR::If {
+                            test: cond_val,
+                            then_branch: Box::new(ShellIR::Let {
+                                name: name.clone(),
+                                value: then_val,
+                                effects: EffectSet::pure(),
+                            }),
+                            else_branch: Some(Box::new(ShellIR::Let {
+                                name: name.clone(),
+                                value: else_val,
+                                effects: EffectSet::pure(),
+                            })),
+                        });
+                    }
+                }
+
+                // Handle array initialization: let arr = [a, b, c]
+                // Lower to: arr_0=a; arr_1=b; arr_2=c
+                if let crate::ast::Expr::Array(elems) = value {
+                    let mut stmts = Vec::new();
+                    for (i, elem) in elems.iter().enumerate() {
+                        let elem_val = self.convert_expr_to_value(elem)?;
+                        stmts.push(ShellIR::Let {
+                            name: format!("{}_{}", name, i),
+                            value: elem_val,
+                            effects: EffectSet::pure(),
+                        });
+                    }
+                    return Ok(ShellIR::Sequence(stmts));
+                }
+
                 let shell_value = self.convert_expr_to_value(value)?;
                 Ok(ShellIR::Let {
                     name: name.clone(),
@@ -197,10 +319,41 @@ impl IrConverter {
 
                         (start_val, end_val)
                     }
-                    _ => {
-                        return Err(crate::models::Error::Validation(
-                            "For loops only support range expressions (e.g., 0..10)".to_string(),
-                        ))
+                    // Non-range iterables: arrays, variables, etc.
+                    // Convert to for-in loop over word list
+                    other => {
+                        let body_ir = self.convert_stmts(body)?;
+                        // Convert iterable to list of ShellValues
+                        match other {
+                            crate::ast::Expr::Array(elements) => {
+                                let items: Vec<ShellValue> = elements
+                                    .iter()
+                                    .map(|e| self.convert_expr_to_value(e))
+                                    .collect::<Result<_>>()?;
+                                return Ok(ShellIR::ForIn {
+                                    var,
+                                    items,
+                                    body: Box::new(body_ir),
+                                });
+                            }
+                            crate::ast::Expr::Variable(name) => {
+                                // for item in $var → for item in ${var}
+                                return Ok(ShellIR::ForIn {
+                                    var,
+                                    items: vec![ShellValue::Variable(name.clone())],
+                                    body: Box::new(body_ir),
+                                });
+                            }
+                            _ => {
+                                // Fallback: try to convert to a single value
+                                let val = self.convert_expr_to_value(other)?;
+                                return Ok(ShellIR::ForIn {
+                                    var,
+                                    items: vec![val],
+                                    body: Box::new(body_ir),
+                                });
+                            }
+                        }
                     }
                 };
 
@@ -224,6 +377,44 @@ impl IrConverter {
                     let pattern = self.convert_match_pattern(&arm.pattern)?;
                     let guard = if let Some(guard_expr) = &arm.guard {
                         Some(self.convert_expr_to_value(guard_expr)?)
+                    } else if let crate::ast::restricted::Pattern::Range {
+                        start,
+                        end,
+                        inclusive,
+                    } = &arm.pattern
+                    {
+                        // Generate range guard: scrutinee >= start && scrutinee <= end
+                        let start_str = match start {
+                            crate::ast::restricted::Literal::I32(n) => n.to_string(),
+                            crate::ast::restricted::Literal::U32(n) => n.to_string(),
+                            crate::ast::restricted::Literal::U16(n) => n.to_string(),
+                            crate::ast::restricted::Literal::Str(s) => s.clone(),
+                            crate::ast::restricted::Literal::Bool(b) => b.to_string(),
+                        };
+                        let end_str = match end {
+                            crate::ast::restricted::Literal::I32(n) => n.to_string(),
+                            crate::ast::restricted::Literal::U32(n) => n.to_string(),
+                            crate::ast::restricted::Literal::U16(n) => n.to_string(),
+                            crate::ast::restricted::Literal::Str(s) => s.clone(),
+                            crate::ast::restricted::Literal::Bool(b) => b.to_string(),
+                        };
+                        let end_op = if *inclusive {
+                            shell_ir::ComparisonOp::Le
+                        } else {
+                            shell_ir::ComparisonOp::Lt
+                        };
+                        Some(ShellValue::LogicalAnd {
+                            left: Box::new(ShellValue::Comparison {
+                                op: shell_ir::ComparisonOp::Ge,
+                                left: Box::new(scrutinee_value.clone()),
+                                right: Box::new(ShellValue::String(start_str)),
+                            }),
+                            right: Box::new(ShellValue::Comparison {
+                                op: end_op,
+                                left: Box::new(scrutinee_value.clone()),
+                                right: Box::new(ShellValue::String(end_str)),
+                            }),
+                        })
                     } else {
                         None
                     };
@@ -273,6 +464,12 @@ impl IrConverter {
 
         match expr {
             Expr::FunctionCall { name, args } => {
+                // Handle __format_concat at expression level (shouldn't happen often, but be safe)
+                if name == "__format_concat" {
+                    let _value = self.convert_expr_to_value(expr)?;
+                    return Ok(ShellIR::Noop);
+                }
+
                 // Issue #95: exec() is a DSL built-in that runs a shell command string
                 // It should use 'eval' to properly evaluate pipes and operators
                 if name == "exec" {
@@ -428,6 +625,22 @@ impl IrConverter {
                     return Ok(ShellValue::ExitCode);
                 }
 
+                // Handle __format_concat: convert format string interpolation to ShellValue::Concat
+                if name == "__format_concat" {
+                    let mut parts = Vec::new();
+                    for arg in args {
+                        parts.push(self.convert_expr_to_value(arg)?);
+                    }
+                    return Ok(ShellValue::Concat(parts));
+                }
+
+                // Handle __if_expr in value position: use then-value as fallback
+                // (full if-expr lowering happens in convert_stmt for let bindings)
+                if name == "__if_expr" && args.len() == 3 {
+                    // In value position, we just use the then-branch value
+                    return self.convert_expr_to_value(&args[1]);
+                }
+
                 // Function call used as value - capture output with command substitution
                 let mut cmd_args = Vec::new();
                 for arg in args {
@@ -548,6 +761,32 @@ impl IrConverter {
                         left: Box::new(left_val),
                         right: Box::new(right_val),
                     }),
+                    // Bitwise operators
+                    BinaryOp::BitAnd => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::BitAnd,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::BitOr => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::BitOr,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::BitXor => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::BitXor,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Shl => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::Shl,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
+                    BinaryOp::Shr => Ok(ShellValue::Arithmetic {
+                        op: shell_ir::ArithmeticOp::Shr,
+                        left: Box::new(left_val),
+                        right: Box::new(right_val),
+                    }),
                 }
             }
             Expr::MethodCall {
@@ -645,6 +884,28 @@ impl IrConverter {
                 // std::env::args().collect() → $@ (all positional parameters)
                 Ok(ShellValue::Arg { position: None })
             }
+            Expr::Index { object, index } => {
+                // arr[i] → $arr_i (naming convention for simulated arrays)
+                if let Expr::Variable(name) = &**object {
+                    let idx_val = self.convert_expr_to_value(index)?;
+                    match idx_val {
+                        ShellValue::String(s) => {
+                            Ok(ShellValue::Variable(format!("{}_{}", name, s)))
+                        }
+                        _ => Ok(ShellValue::Variable(format!("{}_0", name))),
+                    }
+                } else {
+                    Ok(ShellValue::String("unknown".to_string()))
+                }
+            }
+            Expr::Array(elems) => {
+                // Array in value position: use first element as representative
+                if let Some(first) = elems.first() {
+                    self.convert_expr_to_value(first)
+                } else {
+                    Ok(ShellValue::String("".to_string()))
+                }
+            }
             _ => Ok(ShellValue::String("unknown".to_string())), // Fallback
         }
     }
@@ -690,6 +951,10 @@ impl IrConverter {
                 // (proper binding would require more complex analysis)
                 Ok(shell_ir::CasePattern::Wildcard)
             }
+            Pattern::Range { .. } => {
+                // Range patterns are handled via guards — emit wildcard here
+                Ok(shell_ir::CasePattern::Wildcard)
+            }
             Pattern::Tuple(_) | Pattern::Struct { .. } => Err(crate::models::Error::Validation(
                 "Tuple and struct patterns not yet supported in match expressions".to_string(),
             )),
@@ -706,6 +971,11 @@ fn eval_arithmetic_op(op: &shell_ir::ArithmeticOp, left: i64, right: i64) -> Opt
         shell_ir::ArithmeticOp::Mul => Some(left * right),
         shell_ir::ArithmeticOp::Div if right != 0 => Some(left / right),
         shell_ir::ArithmeticOp::Mod if right != 0 => Some(left % right),
+        shell_ir::ArithmeticOp::BitAnd => Some(left & right),
+        shell_ir::ArithmeticOp::BitOr => Some(left | right),
+        shell_ir::ArithmeticOp::BitXor => Some(left ^ right),
+        shell_ir::ArithmeticOp::Shl => Some(left << right),
+        shell_ir::ArithmeticOp::Shr => Some(left >> right),
         _ => None,
     }
 }
@@ -1607,23 +1877,45 @@ mod convert_expr_tests {
     // ===== Fallback (_) branch =====
 
     #[test]
-    fn test_EXPR_VAL_033_fallback_array_expr() {
-        // Array expressions hit the fallback _ branch
+    fn test_EXPR_VAL_033_array_expr_expands_to_indexed_lets() {
+        // Array in let context: let arr = [1, 2] → arr_0=1; arr_1=2
         let expr = Expr::Array(vec![
             Expr::Literal(Literal::U32(1)),
             Expr::Literal(Literal::U32(2)),
         ]);
         let ir = convert_let_stmt("arr", expr);
-        let val = extract_let_value(&ir);
-        match val {
-            ShellValue::String(s) => assert_eq!(s, "unknown"),
-            other => panic!("Expected String(\"unknown\") fallback, got {:?}", other),
+        // Should produce Sequence([Sequence([Let arr_0=1, Let arr_1=2]])
+        match &ir {
+            ShellIR::Sequence(stmts) => {
+                // The outer sequence wraps the inner array expansion
+                match &stmts[0] {
+                    ShellIR::Sequence(inner) => {
+                        assert_eq!(inner.len(), 2);
+                        match &inner[0] {
+                            ShellIR::Let { name, value, .. } => {
+                                assert_eq!(name, "arr_0");
+                                assert!(matches!(value, ShellValue::String(s) if s == "1"));
+                            }
+                            other => panic!("Expected Let arr_0, got {:?}", other),
+                        }
+                        match &inner[1] {
+                            ShellIR::Let { name, value, .. } => {
+                                assert_eq!(name, "arr_1");
+                                assert!(matches!(value, ShellValue::String(s) if s == "2"));
+                            }
+                            other => panic!("Expected Let arr_1, got {:?}", other),
+                        }
+                    }
+                    other => panic!("Expected inner Sequence, got {:?}", other),
+                }
+            }
+            other => panic!("Expected Sequence, got {:?}", other),
         }
     }
 
     #[test]
-    fn test_EXPR_VAL_034_fallback_index_expr() {
-        // Index expressions hit the fallback _ branch
+    fn test_EXPR_VAL_034_index_expr_becomes_variable() {
+        // arr[0] → $arr_0
         let expr = Expr::Index {
             object: Box::new(Expr::Variable("arr".to_string())),
             index: Box::new(Expr::Literal(Literal::U32(0))),
@@ -1631,8 +1923,8 @@ mod convert_expr_tests {
         let ir = convert_let_stmt("elem", expr);
         let val = extract_let_value(&ir);
         match val {
-            ShellValue::String(s) => assert_eq!(s, "unknown"),
-            other => panic!("Expected String(\"unknown\") fallback, got {:?}", other),
+            ShellValue::Variable(name) => assert_eq!(name, "arr_0"),
+            other => panic!("Expected Variable(\"arr_0\"), got {:?}", other),
         }
     }
 

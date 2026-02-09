@@ -20,6 +20,22 @@ use crate::ast::{Expr, RestrictedAst, Stmt};
 use crate::ir::dockerfile_ir::{DockerInstruction, DockerStage, DockerfileIR};
 use crate::models::{Error, Result};
 
+/// Split an "image:tag" string on the last colon.
+/// If no colon, uses "latest" as the tag.
+fn split_image_tag(combined: &str) -> (String, String) {
+    if let Some(pos) = combined.rfind(':') {
+        let image = combined[..pos].to_string();
+        let tag = combined[pos + 1..].to_string();
+        if image.is_empty() || tag.is_empty() {
+            (combined.to_string(), "latest".to_string())
+        } else {
+            (image, tag)
+        }
+    } else {
+        (combined.to_string(), "latest".to_string())
+    }
+}
+
 /// Convert a RestrictedAst (Rust DSL) to a Dockerfile string.
 pub fn emit_dockerfile(ast: &RestrictedAst) -> Result<String> {
     let converter = DockerfileConverter::new();
@@ -38,6 +54,20 @@ impl DockerfileConverter {
         let mut ir = DockerfileIR::new();
         let mut current_stage: Option<DockerStage> = None;
 
+        // Process non-main functions first as preceding build stages
+        for func in &ast.functions {
+            if func.name == ast.entry_point {
+                continue;
+            }
+            for stmt in &func.body {
+                self.convert_stmt(stmt, &mut ir, &mut current_stage)?;
+            }
+            // Flush stage after each non-main function
+            if let Some(stage) = current_stage.take() {
+                ir.add_stage(stage);
+            }
+        }
+
         // Find the entry point function
         let entry_fn = ast
             .functions
@@ -45,7 +75,16 @@ impl DockerfileConverter {
             .find(|f| f.name == ast.entry_point)
             .ok_or_else(|| Error::IrGeneration("Entry point not found".to_string()))?;
 
-        // Convert each statement
+        // If main has no from_image() and we already have stages from non-main functions,
+        // re-open the last stage so main's instructions attach to it
+        let main_has_from = entry_fn.body.iter().any(|s| {
+            matches!(s, Stmt::Expr(Expr::FunctionCall { name, .. }) if name == "from_image" || name == "from_image_as")
+        });
+        if !main_has_from && !ir.stages.is_empty() {
+            current_stage = Some(ir.stages.pop().expect("verified non-empty"));
+        }
+
+        // Convert each statement in main
         for stmt in &entry_fn.body {
             self.convert_stmt(stmt, &mut ir, &mut current_stage)?;
         }
@@ -110,14 +149,25 @@ impl DockerfileConverter {
     ) -> Result<()> {
         match name {
             "from_image" => {
-                // from_image("image", "tag") or from_image("image", "tag")
-                if args.len() < 2 {
+                // from_image("image:tag") - 1 arg: split on last colon
+                // from_image("image", "tag") - 2 args: existing behavior
+                if args.is_empty() {
                     return Err(Error::Validation(
-                        "from_image() requires 2 arguments: image, tag".to_string(),
+                        "from_image() requires at least 1 argument".to_string(),
                     ));
                 }
-                let image = self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                let tag = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+
+                let (image, tag) = if args.len() == 1 {
+                    let combined =
+                        self.expr_to_string(args.first().expect("verified len >= 1"))?;
+                    split_image_tag(&combined)
+                } else {
+                    let image =
+                        self.expr_to_string(args.first().expect("verified len >= 2"))?;
+                    let tag =
+                        self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+                    (image, tag)
+                };
 
                 // Push current stage if exists
                 if let Some(stage) = current_stage.take() {
@@ -128,15 +178,30 @@ impl DockerfileConverter {
                 Ok(())
             }
             "from_image_as" => {
-                // from_image_as("image", "tag", "alias")
-                if args.len() < 3 {
+                // from_image_as("image:tag", "alias") - 2 args: split image:tag
+                // from_image_as("image", "tag", "alias") - 3 args: existing behavior
+                if args.len() < 2 {
                     return Err(Error::Validation(
-                        "from_image_as() requires 3 arguments: image, tag, alias".to_string(),
+                        "from_image_as() requires at least 2 arguments".to_string(),
                     ));
                 }
-                let image = self.expr_to_string(args.first().expect("verified len >= 3"))?;
-                let tag = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
-                let alias = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
+
+                let (image, tag, alias) = if args.len() == 2 {
+                    let combined =
+                        self.expr_to_string(args.first().expect("verified len >= 2"))?;
+                    let alias =
+                        self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+                    let (img, tg) = split_image_tag(&combined);
+                    (img, tg, alias)
+                } else {
+                    let image =
+                        self.expr_to_string(args.first().expect("verified len >= 3"))?;
+                    let tag =
+                        self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
+                    let alias =
+                        self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
+                    (image, tag, alias)
+                };
 
                 if let Some(stage) = current_stage.take() {
                     ir.add_stage(stage);
@@ -155,17 +220,37 @@ impl DockerfileConverter {
             "copy" => {
                 if args.len() < 2 {
                     return Err(Error::Validation(
-                        "copy() requires 2 arguments: src, dst".to_string(),
+                        "copy() requires at least 2 arguments: src, dst".to_string(),
                     ));
                 }
-                let src = self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                let dst = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
-                if let Some(stage) = current_stage {
-                    stage.add_instruction(DockerInstruction::Copy {
-                        src,
-                        dst,
-                        from: None,
-                    });
+                if args.len() == 3 {
+                    // 3 args: (src1, src2, dst) → "COPY src1 src2 dst"
+                    let src1 =
+                        self.expr_to_string(args.first().expect("verified len >= 3"))?;
+                    let src2 =
+                        self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
+                    let dst =
+                        self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
+                    if let Some(stage) = current_stage {
+                        // Use "src1 src2" as compound src
+                        stage.add_instruction(DockerInstruction::Copy {
+                            src: format!("{src1} {src2}"),
+                            dst,
+                            from: None,
+                        });
+                    }
+                } else {
+                    let src =
+                        self.expr_to_string(args.first().expect("verified len >= 2"))?;
+                    let dst =
+                        self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+                    if let Some(stage) = current_stage {
+                        stage.add_instruction(DockerInstruction::Copy {
+                            src,
+                            dst,
+                            from: None,
+                        });
+                    }
                 }
                 Ok(())
             }
@@ -196,10 +281,10 @@ impl DockerfileConverter {
                 }
                 Ok(())
             }
-            "env" => {
+            "env" | "env_set" => {
                 if args.len() < 2 {
                     return Err(Error::Validation(
-                        "env() requires 2 arguments: key, value".to_string(),
+                        "env()/env_set() requires 2 arguments: key, value".to_string(),
                     ));
                 }
                 let key = self.expr_to_string(args.first().expect("verified len >= 2"))?;
@@ -722,33 +807,35 @@ mod tests {
     }
 
     #[test]
-    fn test_DOCKER_BUILD_017_from_image_too_few_args() {
+    fn test_DOCKER_BUILD_017_from_image_single_arg() {
+        // Single arg from_image("alpine") → FROM alpine:latest
         let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
             name: "from_image".to_string(),
             args: vec![Expr::Literal(Literal::Str("alpine".to_string()))],
         })]);
 
-        let err = emit_dockerfile(&ast).unwrap_err();
+        let result = emit_dockerfile(&ast).expect("single-arg from_image should succeed");
         assert!(
-            format!("{err}").contains("2 arguments"),
-            "Error: {err}"
+            result.contains("FROM alpine:latest"),
+            "Expected FROM alpine:latest, got: {result}"
         );
     }
 
     #[test]
-    fn test_DOCKER_BUILD_018_from_image_as_too_few_args() {
+    fn test_DOCKER_BUILD_018_from_image_as_two_args() {
+        // Two-arg from_image_as("rust:1.75", "builder") → FROM rust:1.75 AS builder
         let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
             name: "from_image_as".to_string(),
             args: vec![
-                Expr::Literal(Literal::Str("rust".to_string())),
-                Expr::Literal(Literal::Str("1.75".to_string())),
+                Expr::Literal(Literal::Str("rust:1.75".to_string())),
+                Expr::Literal(Literal::Str("builder".to_string())),
             ],
         })]);
 
-        let err = emit_dockerfile(&ast).unwrap_err();
+        let result = emit_dockerfile(&ast).expect("2-arg from_image_as should succeed");
         assert!(
-            format!("{err}").contains("3 arguments"),
-            "Error: {err}"
+            result.contains("FROM rust:1.75 AS builder"),
+            "Expected FROM rust:1.75 AS builder, got: {result}"
         );
     }
 
@@ -1209,26 +1296,34 @@ mod tests {
     // ============================================================================
 
     #[test]
-    fn test_DOCKER_COV_013_from_image_too_few_args() {
+    fn test_DOCKER_COV_013_from_image_single_arg_with_tag() {
+        // Single arg from_image("alpine:3.18") → FROM alpine:3.18
         let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
             name: "from_image".to_string(),
-            args: vec![Expr::Literal(Literal::Str("alpine".to_string()))],
+            args: vec![Expr::Literal(Literal::Str("alpine:3.18".to_string()))],
         })]);
-        let err = emit_dockerfile(&ast).unwrap_err();
-        assert!(format!("{err}").contains("2 arguments"), "Error: {err}");
+        let result = emit_dockerfile(&ast).expect("single-arg with tag should succeed");
+        assert!(
+            result.contains("FROM alpine:3.18"),
+            "Expected FROM alpine:3.18, got: {result}"
+        );
     }
 
     #[test]
-    fn test_DOCKER_COV_014_from_image_as_too_few_args() {
+    fn test_DOCKER_COV_014_from_image_as_two_args_no_tag() {
+        // Two-arg from_image_as("rust", "builder") → FROM rust:latest AS builder
         let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
             name: "from_image_as".to_string(),
             args: vec![
                 Expr::Literal(Literal::Str("rust".to_string())),
-                Expr::Literal(Literal::Str("1.75".to_string())),
+                Expr::Literal(Literal::Str("builder".to_string())),
             ],
         })]);
-        let err = emit_dockerfile(&ast).unwrap_err();
-        assert!(format!("{err}").contains("3 arguments"), "Error: {err}");
+        let result = emit_dockerfile(&ast).expect("2-arg from_image_as should succeed");
+        assert!(
+            result.contains("FROM rust:latest AS builder"),
+            "Expected FROM rust:latest AS builder, got: {result}"
+        );
     }
 
     #[test]
@@ -1610,18 +1705,17 @@ mod tests {
             );
         }
 
-        // ─── 2. from_image too few args ──────────────────────────────────
+        // ─── 2. from_image single arg (image:tag or image → image:latest) ─
         #[test]
-        fn test_DOCKER_CONV_002_from_image_insufficient_args() {
+        fn test_DOCKER_CONV_002_from_image_single_arg() {
             let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
                 name: "from_image".to_string(),
                 args: vec![Expr::Literal(Literal::Str("ubuntu".to_string()))],
             })]);
-            let err = emit_dockerfile(&ast).unwrap_err();
-            let msg = format!("{err}");
+            let result = emit_dockerfile(&ast).expect("single-arg from_image should succeed");
             assert!(
-                msg.contains("from_image() requires 2 arguments"),
-                "Expected validation error, got: {msg}"
+                result.contains("FROM ubuntu:latest"),
+                "Expected FROM ubuntu:latest, got: {result}"
             );
         }
 
@@ -1643,21 +1737,20 @@ mod tests {
             );
         }
 
-        // ─── 4. from_image_as too few args ───────────────────────────────
+        // ─── 4. from_image_as 2-arg (image:tag, alias) ────────────────────
         #[test]
-        fn test_DOCKER_CONV_004_from_image_as_insufficient_args() {
+        fn test_DOCKER_CONV_004_from_image_as_two_args() {
             let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
                 name: "from_image_as".to_string(),
                 args: vec![
-                    Expr::Literal(Literal::Str("node".to_string())),
-                    Expr::Literal(Literal::Str("20".to_string())),
+                    Expr::Literal(Literal::Str("node:20".to_string())),
+                    Expr::Literal(Literal::Str("builder".to_string())),
                 ],
             })]);
-            let err = emit_dockerfile(&ast).unwrap_err();
-            let msg = format!("{err}");
+            let result = emit_dockerfile(&ast).expect("2-arg from_image_as should succeed");
             assert!(
-                msg.contains("from_image_as() requires 3 arguments"),
-                "Expected validation error, got: {msg}"
+                result.contains("FROM node:20 AS builder"),
+                "Expected FROM node:20 AS builder, got: {result}"
             );
         }
 
@@ -1789,7 +1882,7 @@ mod tests {
             let err = emit_dockerfile(&ast).unwrap_err();
             let msg = format!("{err}");
             assert!(
-                msg.contains("copy() requires 2 arguments"),
+                msg.contains("2 arguments"),
                 "Expected validation error, got: {msg}"
             );
         }
@@ -1916,7 +2009,7 @@ mod tests {
             let err = emit_dockerfile(&ast).unwrap_err();
             let msg = format!("{err}");
             assert!(
-                msg.contains("env() requires 2 arguments"),
+                msg.contains("requires 2 arguments"),
                 "Expected validation error, got: {msg}"
             );
         }

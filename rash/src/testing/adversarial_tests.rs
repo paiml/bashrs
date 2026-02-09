@@ -14,6 +14,20 @@
 
 use crate::{transpile, Config};
 
+/// Helper to assert transpilation succeeds (for patterns that are safe in quoted strings)
+fn assert_transpiles_ok(source: &str, description: &str) {
+    let config = Config::default();
+    match transpile(source, config) {
+        Ok(_) => {} // Success — bare semicolons in quoted strings are safe
+        Err(e) => {
+            panic!(
+                "{}: Expected transpilation to succeed, but got error: {}",
+                description, e
+            );
+        }
+    }
+}
+
 /// Helper to test if transpilation correctly rejects malicious input
 fn assert_rejects_malicious(source: &str, attack_description: &str) {
     let config = Config::default();
@@ -68,7 +82,9 @@ fn assert_rejects_malicious(source: &str, attack_description: &str) {
 // ============================================================================
 
 #[test]
-fn test_injection_semicolon_command() {
+fn test_semicolon_in_string_is_safe() {
+    // Bare semicolons in double-quoted strings are safe in shell
+    // echo "; rm -rf /" does NOT execute rm — the semicolon is quoted
     let source = r#"
         fn main() {
             let cmd = "; rm -rf /";
@@ -76,7 +92,7 @@ fn test_injection_semicolon_command() {
         }
     "#;
 
-    assert_rejects_malicious(source, "Semicolon command injection");
+    assert_transpiles_ok(source, "Bare semicolon in quoted string is safe");
 }
 
 #[test]
@@ -489,7 +505,9 @@ fn test_real_world_shellshock() {
 }
 
 #[test]
-fn test_real_world_command_injection_via_filename() {
+fn test_semicolon_in_filename_is_safe() {
+    // Bare semicolons in double-quoted strings are safe in shell
+    // filename='file.txt; rm -rf /' followed by echo "${filename}" is NOT injection
     let source = r#"
         fn main() {
             let filename = "file.txt; rm -rf /";
@@ -497,7 +515,7 @@ fn test_real_world_command_injection_via_filename() {
         }
     "#;
 
-    assert_rejects_malicious(source, "Command injection via filename");
+    assert_transpiles_ok(source, "Bare semicolon in filename string is safe");
 }
 
 // ============================================================================
@@ -507,8 +525,8 @@ fn test_real_world_command_injection_via_filename() {
 #[test]
 fn test_validation_catches_known_patterns() {
     // Test that our validation catches known-bad patterns
+    // Note: bare "; " is NOT dangerous inside double-quoted shell strings
     let patterns = vec![
-        "; rm",
         "| cat",
         "$(curl",
         "`wget",

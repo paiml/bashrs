@@ -28,12 +28,13 @@ impl RestrictedAst {
             function.validate()?;
         }
 
-        // Check for recursion
-        self.check_no_recursion()?;
+        // Recursion is allowed — shell supports recursive functions
+        // (previously rejected, but recursive patterns like factorial are valid)
 
         Ok(())
     }
 
+    #[allow(dead_code)]
     fn check_no_recursion(&self) -> Result<(), String> {
         let mut call_graph: HashMap<String, Vec<String>> = HashMap::new();
 
@@ -60,7 +61,7 @@ impl RestrictedAst {
         Ok(())
     }
 
-    #[allow(clippy::only_used_in_recursion)]
+    #[allow(dead_code, clippy::only_used_in_recursion)]
     fn has_cycle(
         &self,
         graph: &HashMap<String, Vec<String>>,
@@ -619,6 +620,11 @@ pub enum BinaryOp {
     Ge,
     And,
     Or,
+    BitAnd,
+    BitOr,
+    BitXor,
+    Shl,
+    Shr,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -643,6 +649,11 @@ pub enum Pattern {
     Struct {
         name: String,
         fields: Vec<(String, Pattern)>,
+    },
+    Range {
+        start: Literal,
+        end: Literal,
+        inclusive: bool,
     },
 }
 
@@ -680,6 +691,7 @@ impl Pattern {
                 }
                 Ok(())
             }
+            Pattern::Range { .. } => Ok(()),
         }
     }
 
@@ -748,7 +760,8 @@ mod tests {
     }
 
     #[test]
-    fn test_recursion_detection_direct() {
+    fn test_recursion_allowed_direct() {
+        // Recursive functions are allowed — shell supports them
         let ast = RestrictedAst {
             entry_point: "a".to_string(),
             functions: vec![Function {
@@ -762,12 +775,12 @@ mod tests {
             }],
         };
         let result = ast.validate();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Recursion detected"));
+        assert!(result.is_ok());
     }
 
     #[test]
-    fn test_recursion_detection_indirect() {
+    fn test_recursion_allowed_indirect() {
+        // Indirect recursion is also allowed
         let ast = RestrictedAst {
             entry_point: "a".to_string(),
             functions: vec![
@@ -792,8 +805,7 @@ mod tests {
             ],
         };
         let result = ast.validate();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().contains("Recursion detected"));
+        assert!(result.is_ok());
     }
 
     // ===== Function validation tests =====

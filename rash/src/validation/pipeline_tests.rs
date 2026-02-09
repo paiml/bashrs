@@ -552,7 +552,9 @@ mod tests {
     }
 
     #[test]
-    fn test_validate_string_semicolon_injection() {
+    fn test_validate_string_semicolon_in_quotes_is_safe() {
+        // Bare semicolons in string literals are safe — they end up inside
+        // double quotes in the generated shell (echo "safe; rm -rf /")
         let pipeline = create_test_pipeline(ValidationLevel::Minimal, false);
         let ast = RestrictedAst {
             functions: vec![Function {
@@ -567,8 +569,7 @@ mod tests {
             entry_point: "main".to_string(),
         };
         let result = pipeline.validate_ast(&ast);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Semicolon"));
+        assert!(result.is_ok(), "Bare semicolons in quoted strings are safe: {:?}", result);
     }
 
     #[test]

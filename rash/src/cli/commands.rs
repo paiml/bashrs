@@ -629,12 +629,22 @@ fn explain_error_command(
 
 // extract_exit_code moved to cli/logic.rs
 
+/// Wrap an error with file path and source code context for rich diagnostics
+fn with_context(error: Error, file: &Path, source: &str) -> Error {
+    Error::WithContext {
+        inner: Box::new(error),
+        file: Some(file.display().to_string()),
+        source_code: Some(source.to_string()),
+    }
+}
+
 fn build_command(input: &Path, output: &Path, config: Config) -> Result<()> {
     // Read input file
     let source = fs::read_to_string(input).map_err(Error::Io)?;
 
-    // Transpile
-    let shell_code = transpile(&source, config.clone())?;
+    // Transpile (wrap errors with source context)
+    let shell_code = transpile(&source, config.clone())
+        .map_err(|e| with_context(e, input, &source))?;
 
     // Write output
     fs::write(output, shell_code).map_err(Error::Io)?;
@@ -677,8 +687,8 @@ fn check_command(input: &Path) -> Result<()> {
         });
     }
 
-    // Check Rash compatibility
-    check(&source)?;
+    // Check Rash compatibility (wrap errors with source context)
+    check(&source).map_err(|e| with_context(e, input, &source))?;
 
     info!("✓ {} is compatible with Rash", input.display());
     Ok(())

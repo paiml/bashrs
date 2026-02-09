@@ -8,7 +8,7 @@
 //! The generated Makefile is passed through the existing Makefile generator
 //! infrastructure for consistent formatting.
 
-use crate::ast::restricted::Literal;
+use crate::ast::restricted::{BinaryOp, Literal};
 use crate::ast::{Expr, RestrictedAst, Stmt};
 use crate::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, Span, VarFlavor};
 use crate::make_parser::generators::generate_purified_makefile;
@@ -227,6 +227,31 @@ impl MakefileConverter {
             Expr::Literal(Literal::I32(n)) => Ok(n.to_string()),
             Expr::Literal(Literal::Bool(b)) => Ok(b.to_string()),
             Expr::Variable(name) => Ok(format!("$({})", name.to_uppercase())),
+            Expr::Array(items) => {
+                // Arrays become space-separated lists in Makefiles
+                let parts: Vec<String> = items
+                    .iter()
+                    .map(|item| self.expr_to_string(item))
+                    .collect::<Result<_>>()?;
+                Ok(parts.join(" "))
+            }
+            Expr::Binary { left, op, right } => {
+                let l = self.expr_to_string(left)?;
+                let r = self.expr_to_string(right)?;
+                let op_str = match op {
+                    BinaryOp::Add => "+",
+                    BinaryOp::Sub => "-",
+                    BinaryOp::Mul => "*",
+                    BinaryOp::Div => "/",
+                    _ => return Ok(format!("{} {}", l, r)),
+                };
+                Ok(format!("$(shell echo $$(({} {} {})))", l, op_str, r))
+            }
+            Expr::Index { object, index } => {
+                let arr_str = self.expr_to_string(object)?;
+                let idx_str = self.expr_to_string(index)?;
+                Ok(format!("$(word {},{})", idx_str, arr_str))
+            }
             _ => Err(Error::Validation(
                 "Cannot convert expression to Makefile value".to_string(),
             )),
@@ -639,11 +664,28 @@ mod tests {
     }
 
     #[test]
-    fn test_MAKE_COV_007_expr_to_string_unsupported() {
-        // Lines 230-232: catch-all _ => Err(...) in expr_to_string
+    fn test_MAKE_COV_007_expr_to_string_array_succeeds() {
+        // Arrays are now converted to space-separated Makefile values
         let ast = make_simple_ast(vec![Stmt::Let {
             name: "data".to_string(),
-            value: Expr::Array(vec![Expr::Literal(Literal::Str("a".to_string()))]),
+            value: Expr::Array(vec![
+                Expr::Literal(Literal::Str("a".to_string())),
+                Expr::Literal(Literal::Str("b".to_string())),
+            ]),
+        }]);
+
+        let result = emit_makefile(&ast);
+        assert!(result.is_ok(), "Array should convert to Makefile value: {:?}", result);
+        let output = result.expect("verified ok above");
+        assert!(output.contains("DATA := a b"), "Output: {}", output);
+    }
+
+    #[test]
+    fn test_MAKE_COV_007b_expr_to_string_unsupported() {
+        // Truly unsupported expression types still fail
+        let ast = make_simple_ast(vec![Stmt::Let {
+            name: "data".to_string(),
+            value: Expr::Block(vec![]),
         }]);
 
         let err = emit_makefile(&ast).unwrap_err();
