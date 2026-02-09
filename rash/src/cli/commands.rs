@@ -3,7 +3,7 @@ use crate::cli::args::ExplainErrorFormat;
 use crate::cli::args::{
     AuditOutputFormat, CompileRuntime, ComplyCommands, ComplyFormat, ComplyScopeArg,
     ComplyTrackCommands, ConfigCommands, ConfigOutputFormat, ContainerFormatArg,
-    CorpusCommands, CorpusFormatArg, CorpusOutputFormat, DevContainerCommands,
+    CorpusCommands, CorpusFormatArg, CorpusOutputFormat, DatasetExportFormat, DevContainerCommands,
     DockerfileCommands, InspectionFormat, InstallerCommands, InstallerGraphFormat,
     KeyringCommands, LintFormat, LintLevel, LintProfileArg, MakeCommands, MakeOutputFormat,
     MutateFormat, PlaybookFormat, ReportFormat, ScoreOutputFormat, SimulateFormat,
@@ -5481,6 +5481,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
 
         CorpusCommands::FormatGrammar { format } => {
             corpus_format_grammar(format)
+        }
+
+        CorpusCommands::ExportDataset { format, output } => {
+            corpus_export_dataset(format, output)
+        }
+
+        CorpusCommands::DatasetInfo => {
+            corpus_dataset_info()
+        }
+
+        CorpusCommands::PublishCheck => {
+            corpus_publish_check()
         }
     }
 }
@@ -11197,6 +11209,120 @@ fn corpus_format_grammar(format: CorpusFormatArg) -> Result<()> {
             line.to_string()
         };
         println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_export_dataset(
+    format: DatasetExportFormat,
+    output: Option<std::path::PathBuf>,
+) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::dataset::{self, ExportFormat};
+
+    let export_fmt = match format {
+        DatasetExportFormat::Json => ExportFormat::Json,
+        DatasetExportFormat::Jsonl => ExportFormat::JsonLines,
+        DatasetExportFormat::Csv => ExportFormat::Csv,
+    };
+
+    let (score, data) = dataset::run_and_export(export_fmt);
+
+    match output {
+        Some(path) => {
+            std::fs::write(&path, &data).map_err(|e| {
+                Error::Validation(format!("Failed to write {}: {e}", path.display()))
+            })?;
+            println!(
+                "{GREEN}\u{2713}{RESET} Exported {} entries to {} ({} format)",
+                score.total,
+                path.display(),
+                export_fmt,
+            );
+        }
+        None => {
+            print!("{data}");
+        }
+    }
+
+    Ok(())
+}
+
+fn corpus_dataset_info() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::dataset;
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    let info = dataset::dataset_info(&registry);
+
+    println!("{BOLD}Corpus Dataset Info (\u{00a7}10.3){RESET}");
+    println!();
+
+    let table = dataset::format_dataset_info(&info);
+    for line in table.lines() {
+        let colored = line
+            .replace("bash", &format!("{CYAN}bash{RESET}"))
+            .replace("makefile", &format!("{YELLOW}makefile{RESET}"))
+            .replace("dockerfile", &format!("{GREEN}dockerfile{RESET}"))
+            .replace("string", &format!("{DIM}string{RESET}"))
+            .replace("bool", &format!("{DIM}bool{RESET}"))
+            .replace("float64", &format!("{DIM}float64{RESET}"))
+            .replace("int32", &format!("{DIM}int32{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+fn corpus_publish_check() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::dataset;
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let score = runner.run(&registry);
+
+    let checks = dataset::check_publish_readiness(&score);
+
+    println!(
+        "{BOLD}Hugging Face Publish Readiness (\u{00a7}10.3){RESET}"
+    );
+    println!();
+
+    let table = dataset::format_publish_checks(&checks);
+    for line in table.lines() {
+        let colored = line
+            .replace("\u{2713} PASS", &format!("{GREEN}\u{2713} PASS{RESET}"))
+            .replace("\u{2717} FAIL", &format!("{RED}\u{2717} FAIL{RESET}"))
+            .replace("Ready to publish", &format!("{GREEN}Ready to publish{RESET}"))
+            .replace("check(s) failed", &format!("{RED}check(s) failed{RESET}"));
+        println!("  {colored}");
+    }
+
+    // Show target HF repos
+    println!();
+    println!("  {BOLD}Target Repositories:{RESET}");
+    for (repo, fmt) in &[
+        ("paiml/bashrs-corpus-bash", "Bash"),
+        ("paiml/bashrs-corpus-makefile", "Makefile"),
+        ("paiml/bashrs-corpus-dockerfile", "Dockerfile"),
+        ("paiml/bashrs-convergence", "Convergence"),
+    ] {
+        let count = match *fmt {
+            "Bash" => registry.entries.iter().filter(|e| e.format == CorpusFormat::Bash).count(),
+            "Makefile" => registry.entries.iter().filter(|e| e.format == CorpusFormat::Makefile).count(),
+            "Dockerfile" => registry.entries.iter().filter(|e| e.format == CorpusFormat::Dockerfile).count(),
+            _ => 0,
+        };
+        if count > 0 {
+            println!("    {CYAN}{repo}{RESET} ({count} entries)");
+        } else {
+            println!("    {CYAN}{repo}{RESET}");
+        }
     }
 
     Ok(())
