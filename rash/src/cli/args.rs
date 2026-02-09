@@ -1200,6 +1200,15 @@ pub enum CorpusCommands {
 
     /// Verify corpus is ready for Hugging Face publishing (§10.3)
     PublishCheck,
+
+    /// CITL lint pipeline: violations → corpus entry suggestions (§7.3)
+    LintPipeline,
+
+    /// Jidoka regression detection: compare against last known good (§5.3)
+    RegressionCheck,
+
+    /// Verify 4 convergence criteria from §5.2
+    ConvergenceCheck,
 }
 
 /// Dataset export format

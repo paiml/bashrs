@@ -20,6 +20,7 @@
 //!
 //! Gates: A < 60% → B-G = 0; schema_invalid → score = 0; B_L1 fail → B_L2/B_L3 = 0
 
+pub mod citl;
 pub mod convergence;
 pub mod dataset;
 pub mod error_dedup;
