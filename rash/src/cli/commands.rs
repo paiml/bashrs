@@ -5422,6 +5422,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::FixSuggest { id } => {
             corpus_fix_suggest(&id)
         }
+
+        CorpusCommands::Graph => {
+            corpus_graph()
+        }
+
+        CorpusCommands::Impact { limit } => {
+            corpus_impact(limit)
+        }
+
+        CorpusCommands::BlastRadius { decision } => {
+            corpus_blast_radius(&decision)
+        }
     }
 }
 
@@ -10352,6 +10364,213 @@ fn corpus_fix_suggest(id: &str) -> Result<()> {
         );
     }
 
+    println!();
+    Ok(())
+}
+
+/// Show decision connectivity graph with usage counts (§11.10.3).
+fn corpus_graph() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::graph_priority::{build_connectivity, connectivity_table};
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let coverage_data = collect_trace_coverage(&registry, &runner);
+    let total_entries = coverage_data.len();
+    let conn = build_connectivity(&coverage_data);
+    let table = connectivity_table(&conn);
+
+    println!(
+        "\n  {BOLD}Decision Connectivity Graph{RESET}  ({} decisions, {} traced entries)",
+        table.len(),
+        total_entries
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(78));
+    println!(
+        "  {DIM}{:<36}  {:>6}  {:<14}  {}{RESET}",
+        "Decision", "Usage", "Connectivity", "Entries (sample)"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(78));
+
+    for row in &table {
+        let bar_len = if total_entries > 0 {
+            (row.usage_count * 12) / total_entries.max(1)
+        } else {
+            0
+        };
+        let bar: String = "\u{2588}".repeat(bar_len.max(1).min(12));
+        let conn_label = if row.is_high_connectivity {
+            format!("{RED}HIGH{RESET}")
+        } else {
+            format!("{DIM}LOW{RESET}")
+        };
+        let sample: String = if row.entry_ids.len() <= 3 {
+            row.entry_ids.join(", ")
+        } else {
+            format!(
+                "{}, ... +{}",
+                row.entry_ids[..2].join(", "),
+                row.entry_ids.len() - 2
+            )
+        };
+        println!(
+            "  {:<36}  {:>6}  {:<14}  {DIM}{}{RESET}",
+            row.decision, row.usage_count, format!("{bar}  {conn_label}"), sample
+        );
+    }
+
+    println!();
+    Ok(())
+}
+
+/// Impact-weighted decision priority combining suspiciousness × connectivity (§11.10.3).
+fn corpus_impact(limit: usize) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::graph_priority::{build_connectivity, compute_graph_priorities};
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+    use crate::quality::sbfl::{localize_faults, SbflFormula};
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let coverage_data = collect_trace_coverage(&registry, &runner);
+
+    let total = coverage_data.len();
+    let passed = coverage_data.iter().filter(|(_, p, _)| *p).count();
+    let failed = total - passed;
+
+    if failed == 0 {
+        println!(
+            "\n  {BRIGHT_GREEN}All {total} traced entries pass — no impact analysis needed{RESET}\n"
+        );
+        return Ok(());
+    }
+
+    let conn = build_connectivity(&coverage_data);
+    let rankings = localize_faults(&coverage_data, SbflFormula::Tarantula);
+    let analysis = compute_graph_priorities(&rankings, &conn, total);
+
+    println!(
+        "\n  {BOLD}Impact-Weighted Decision Priority{RESET}  ({} failing signals)",
+        failed
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(80));
+    println!(
+        "  {DIM}{:<36}  {:>14}  {:>6}  {:>8}  {:>8}{RESET}",
+        "Decision", "Suspiciousness", "Usage", "Priority", "Impact"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(80));
+
+    for gp in analysis.priorities.iter().take(limit) {
+        let (impact_label, color) = score_impact_color(gp.suspiciousness);
+        let _ = impact_label; // use graph-level impact instead
+        let impact_display = match gp.impact.as_str() {
+            "HIGH" => format!("{RED}HIGH{RESET}"),
+            "MEDIUM" => format!("{YELLOW}MEDIUM{RESET}"),
+            _ => format!("{DIM}LOW{RESET}"),
+        };
+        println!(
+            "  {:<36}  {color}{:>14.4}{RESET}  {:>6}  {:>8.2}  {:>8}",
+            gp.decision, gp.suspiciousness, gp.usage_count, gp.priority, impact_display
+        );
+    }
+
+    if analysis.priorities.len() > limit {
+        println!(
+            "\n  {DIM}... and {} more (use --limit to show more){RESET}",
+            analysis.priorities.len() - limit
+        );
+    }
+
+    println!();
+    Ok(())
+}
+
+/// Show blast radius of fixing a specific decision (§11.10.3).
+fn corpus_blast_radius(decision: &str) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::graph_priority::build_connectivity;
+    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::runner::CorpusRunner;
+
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let coverage_data = collect_trace_coverage(&registry, &runner);
+    let total_entries = coverage_data.len();
+    let conn = build_connectivity(&coverage_data);
+
+    let entry_ids = match conn.get(decision) {
+        Some(ids) => {
+            let mut v: Vec<String> = ids.iter().cloned().collect();
+            v.sort();
+            v
+        }
+        None => {
+            println!(
+                "\n  {YELLOW}Decision '{decision}' not found in any traced entry{RESET}"
+            );
+            println!("  {DIM}Use 'bashrs corpus graph' to see available decisions{RESET}\n");
+            return Ok(());
+        }
+    };
+
+    // Classify entries as passing or failing
+    let pass_fail: std::collections::HashMap<String, bool> = coverage_data
+        .iter()
+        .map(|(id, passed, _)| (id.clone(), *passed))
+        .collect();
+
+    let mut passing = Vec::new();
+    let mut failing = Vec::new();
+    for id in &entry_ids {
+        if pass_fail.get(id).copied().unwrap_or(true) {
+            passing.push(id.clone());
+        } else {
+            failing.push(id.clone());
+        }
+    }
+
+    let pct = if total_entries > 0 {
+        (entry_ids.len() as f64 / total_entries as f64) * 100.0
+    } else {
+        0.0
+    };
+
+    println!(
+        "\n  {BOLD}Blast Radius for:{RESET} {CYAN}{decision}{RESET}"
+    );
+    println!("  {DIM}{}{RESET}", "─".repeat(60));
+    println!(
+        "  Total entries using this decision: {WHITE}{}{RESET}",
+        entry_ids.len()
+    );
+
+    if !failing.is_empty() {
+        println!(
+            "  Failing entries: {BRIGHT_RED}{}{RESET}",
+            failing.join(", ")
+        );
+    }
+
+    if !passing.is_empty() {
+        let display = if passing.len() <= 8 {
+            passing.join(", ")
+        } else {
+            format!(
+                "{}, ... +{}",
+                passing[..6].join(", "),
+                passing.len() - 6
+            )
+        };
+        println!("  Passing entries: {BRIGHT_GREEN}{display}{RESET}");
+    }
+
+    println!(
+        "\n  Impact: Fixing this decision affects {WHITE}{}/{total_entries}{RESET} entries ({WHITE}{pct:.1}%{RESET})",
+        entry_ids.len()
+    );
     println!();
     Ok(())
 }
