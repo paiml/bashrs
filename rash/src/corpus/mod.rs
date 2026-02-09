@@ -20,6 +20,7 @@
 //!
 //! Gates: A < 60% → B-G = 0; schema_invalid → score = 0; B_L1 fail → B_L2/B_L3 = 0
 
+pub mod graph_priority;
 pub mod pattern_store;
 pub mod registry;
 pub mod runner;

@@ -1111,6 +1111,23 @@ pub enum CorpusCommands {
         #[arg(value_name = "ID")]
         id: String,
     },
+
+    /// Show decision connectivity graph with usage counts (§11.10.3)
+    Graph,
+
+    /// Impact-weighted decision priority (suspiciousness × connectivity) (§11.10.3)
+    Impact {
+        /// Maximum entries to show
+        #[arg(short = 'n', long, default_value = "20")]
+        limit: usize,
+    },
+
+    /// Show blast radius of fixing a specific decision (§11.10.3)
+    BlastRadius {
+        /// Decision key (e.g. assignment_value:bool_literal)
+        #[arg(value_name = "DECISION")]
+        decision: String,
+    },
 }
 
 /// Corpus output format
