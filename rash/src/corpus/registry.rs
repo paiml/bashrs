@@ -310,6 +310,8 @@ impl CorpusRegistry {
         registry.load_expansion20_bash();
         registry.load_expansion13_makefile();
         registry.load_expansion15_dockerfile();
+        registry.load_expansion21_bash();
+        registry.load_expansion14_makefile();
         registry
     }
 
@@ -11142,6 +11144,398 @@ impl CorpusRegistry {
                 CorpusTier::Production,
                 r#"fn main() { arg("VERSION", "1.0.0"); from_image_as("rust", "1.77-bookworm", "builder"); run(&["apt-get update", "apt-get install -y --no-install-recommends openssh-client git ca-certificates", "rm -rf /var/lib/apt/lists/*"]); workdir("/app"); copy("Cargo.toml", "."); copy("Cargo.lock", "."); run(&["mkdir -p src", "echo 'fn main() {}' > src/main.rs", "cargo build --release 2>&1 | tail -1", "rm -rf src"]); copy("src/", "src/"); run(&["cargo build --release"]); from_image("debian", "bookworm-slim"); run(&["apt-get update", "apt-get install -y --no-install-recommends ca-certificates curl netcat-openbsd openssl", "rm -rf /var/lib/apt/lists/*", "groupadd -r app", "useradd -r -g app -d /app app", "mkdir -p /etc/ssl/app /var/log/app"]); run(&["openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/ssl/app/key.pem -out /etc/ssl/app/cert.pem -subj '/CN=localhost' 2>/dev/null"]); label("org.opencontainers.image.version", "$(VERSION)"); env("APP_PORT", "8443"); env("TLS_CERT", "/etc/ssl/app/cert.pem"); env("TLS_KEY", "/etc/ssl/app/key.pem"); env("LOG_LEVEL", "info"); copy_from("builder", "/app/target/release/app", "/usr/local/bin/app"); run(&["echo '#!/bin/sh' > /entrypoint.sh", "echo 'exec \"$@\"' >> /entrypoint.sh", "chmod +x /entrypoint.sh"]); user("app"); expose(8443u16); healthcheck("curl -sfk https://localhost:8443/health > /dev/null 2>&1 || exit 1", "15s", "5s"); entrypoint(&["/entrypoint.sh"]); cmd(&["app"]); } fn arg(k: &str, v: &str) {} fn from_image_as(i: &str, t: &str, a: &str) {} fn from_image(i: &str, t: &str) {} fn run(c: &[&str]) {} fn workdir(p: &str) {} fn copy(s: &str, d: &str) {} fn copy_from(f: &str, s: &str, d: &str) {} fn label(k: &str, v: &str) {} fn env(k: &str, v: &str) {} fn user(u: &str) {} fn expose(p: u16) {} fn healthcheck(c: &str, i: &str, t: &str) {} fn entrypoint(e: &[&str]) {} fn cmd(c: &[&str]) {}"#,
                 "FROM rust:1.77-bookworm AS builder",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 30: Bash B-621..B-660 — Round 3: BREAKING POINT
+    //   Extreme nesting, massive functions, Unicode strings, overflow arithmetic
+    // =========================================================================
+
+    fn load_expansion21_bash(&mut self) {
+        let entries = vec![
+            // ── Extreme nesting (5+ levels) ─────────────────────────────────
+            CorpusEntry::new(
+                "B-621",
+                "five-nested-for",
+                "5-level nested for loops with inner accumulator",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let mut t = 0; for a in 0..3 { for b in 0..3 { for c in 0..3 { for d in 0..3 { for e in 0..3 { t += 1; } } } } } }"#,
+                "for e in $(seq 0 2); do",
+            ),
+            CorpusEntry::new(
+                "B-622",
+                "for-while-if-while-for",
+                "Alternating for/while/if/while/for 5-level nesting",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let mut r = 0; for i in 0..4 { let mut j = 0; while j < 3 { if i + j > 2 { let mut k = 0; while k < 2 { for l in 0..2 { r += i + j + k + l; } k += 1; } } j += 1; } } }"#,
+                "for l in $(seq 0 1); do",
+            ),
+            // ── Massive function count ──────────────────────────────────────
+            CorpusEntry::new(
+                "B-623",
+                "fifteen-functions",
+                "15 small functions all called from main",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn a(x: i32) -> i32 { x + 1 } fn b(x: i32) -> i32 { x + 2 } fn c(x: i32) -> i32 { x + 3 } fn d(x: i32) -> i32 { x + 4 } fn e(x: i32) -> i32 { x + 5 } fn f(x: i32) -> i32 { x + 6 } fn g(x: i32) -> i32 { x + 7 } fn h(x: i32) -> i32 { x + 8 } fn i_fn(x: i32) -> i32 { x + 9 } fn j(x: i32) -> i32 { x + 10 } fn k(x: i32) -> i32 { x + 11 } fn l(x: i32) -> i32 { x + 12 } fn m(x: i32) -> i32 { x + 13 } fn n(x: i32) -> i32 { x + 14 } fn o(x: i32) -> i32 { x + 15 } fn main() { let r = a(b(c(d(e(f(g(h(i_fn(j(k(l(m(n(o(0))))))))))))))); }"#,
+                "a() {",
+            ),
+            // ── 10-param function ───────────────────────────────────────────
+            CorpusEntry::new(
+                "B-624",
+                "ten-param-function",
+                "Function with 10 parameters",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn mega(a: i32, b: i32, c: i32, d: i32, e: i32, f: i32, g: i32, h: i32, i: i32, j: i32) -> i32 { a + b + c + d + e + f + g + h + i + j } fn main() { let s = mega(1, 2, 3, 4, 5, 6, 7, 8, 9, 10); }"#,
+                "mega() {",
+            ),
+            // ── Extreme one-liners (30+ variables) ──────────────────────────
+            CorpusEntry::new(
+                "B-625",
+                "oneliner-30vars",
+                "30 variables in a single function",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let a = 1; let b = 2; let c = 3; let d = 4; let e = 5; let f = 6; let g = 7; let h = 8; let i = 9; let j = 10; let k = 11; let l = 12; let m = 13; let n = 14; let o = 15; let p = 16; let q = 17; let r = 18; let s = 19; let t = 20; let u = 21; let v = 22; let w = 23; let x = 24; let y = 25; let z = 26; let aa = 27; let bb = 28; let cc = 29; let dd = 30; }"#,
+                "dd='30'",
+            ),
+            CorpusEntry::new(
+                "B-626",
+                "oneliner-25-chained-arithmetic",
+                "25 variables chained in arithmetic sequence",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let v1 = 1; let v2 = v1 * 2; let v3 = v2 + v1; let v4 = v3 * 2; let v5 = v4 + v3; let v6 = v5 % 100; let v7 = v6 * 3; let v8 = v7 - v6; let v9 = v8 / 2; let v10 = v9 + v8; let v11 = v10 % 50; let v12 = v11 * v1; let v13 = v12 + 7; let v14 = v13 % 31; let v15 = v14 + v13; let v16 = v15 * 2; let v17 = v16 - v14; let v18 = v17 % 97; let v19 = v18 + 3; let v20 = v19 * v18; let v21 = v20 % 1000; let v22 = v21 + v20; let v23 = v22 % 500; let v24 = v23 + 1; let v25 = v24 * v23; }"#,
+                "v25=",
+            ),
+            // ── Extreme heredoc simulation ──────────────────────────────────
+            CorpusEntry::new(
+                "B-627",
+                "heredoc-dockerfile-content",
+                "15 lines of Dockerfile content as string variables",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let l1 = "FROM rust:1.77 AS builder"; let l2 = "WORKDIR /app"; let l3 = "COPY Cargo.toml ."; let l4 = "COPY src/ src/"; let l5 = "RUN cargo build --release"; let l6 = "FROM debian:bookworm-slim"; let l7 = "RUN apt-get update"; let l8 = "COPY --from=builder /app/target/release/app /usr/local/bin/"; let l9 = "EXPOSE 8080"; let l10 = "CMD [\"app\"]"; let l11 = "HEALTHCHECK CMD curl -f http://localhost:8080/"; let l12 = "USER nobody"; let l13 = "LABEL version=1.0"; let l14 = "ENV RUST_LOG=info"; let l15 = "ENTRYPOINT [\"/usr/local/bin/app\"]"; }"#,
+                "l1='FROM rust:1.77 AS builder'",
+            ),
+            CorpusEntry::new(
+                "B-628",
+                "heredoc-makefile-content",
+                "Makefile-like content as string variables (without dollar expansion)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let l1 = ".PHONY: all test clean"; let l2 = "CC := gcc"; let l3 = "CFLAGS := -Wall -O2"; let l4 = "all: main.o util.o"; let l5 = "gcc -o app main.o util.o"; let l6 = "%.o: %.c"; let l7 = "clean:"; let l8 = "rm -f *.o app"; let l9 = "test: all"; let l10 = "./app --test"; }"#,
+                "l2='CC := gcc'",
+            ),
+            // ── Extreme env patterns ────────────────────────────────────────
+            CorpusEntry::new(
+                "B-629",
+                "env-kubernetes-like",
+                "Kubernetes-like environment config with 15 vars",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let k8s_namespace = "production"; let k8s_service = "api-gateway"; let k8s_replicas = "3"; let k8s_cpu_req = "100m"; let k8s_cpu_limit = "500m"; let k8s_mem_req = "128Mi"; let k8s_mem_limit = "512Mi"; let k8s_port = "8080"; let k8s_health_path = "/healthz"; let k8s_ready_path = "/readyz"; let k8s_image = "registry.example.com/api:v1.2.3"; let k8s_pull_policy = "Always"; let k8s_sa = "api-service-account"; let k8s_node_selector = "tier=frontend"; let k8s_tolerations = "dedicated=api:NoSchedule"; }"#,
+                "k8s_namespace='production'",
+            ),
+            CorpusEntry::new(
+                "B-630",
+                "env-aws-like",
+                "AWS-like configuration with 12 variables",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let aws_region = "us-east-1"; let aws_account = "123456789012"; let s3_bucket = "my-app-data"; let sqs_queue = "my-app-queue"; let sns_topic = "my-app-notifications"; let rds_host = "mydb.cluster-xyz.us-east-1.rds.amazonaws.com"; let rds_port = "5432"; let elasticache_host = "my-cache.xyz.0001.use1.cache.amazonaws.com"; let ecs_cluster = "my-app-cluster"; let alb_target_group = "my-app-tg"; let ecr_repo = "123456789012.dkr.ecr.us-east-1.amazonaws.com/my-app"; let lambda_fn = "my-app-handler"; }"#,
+                "aws_region='us-east-1'",
+            ),
+            // ── Extreme quoting: more special chars ─────────────────────────
+            CorpusEntry::new(
+                "B-631",
+                "quote-xpath-like",
+                "XPath-like expression string with slashes and brackets",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let xpath = "//div[@class='main']/p[1]/text()"; }"#,
+                "xpath=",
+            ),
+            CorpusEntry::new(
+                "B-632",
+                "quote-css-selector",
+                "CSS selector string with special chars",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let selector = "div.container > ul.list li:nth-child(2n+1)"; }"#,
+                "selector=",
+            ),
+            CorpusEntry::new(
+                "B-633",
+                "quote-ipv6-address",
+                "IPv6 address string with colons",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let ipv6 = "2001:0db8:85a3:0000:0000:8a2e:0370:7334"; let loopback = "::1"; }"#,
+                "ipv6=",
+            ),
+            CorpusEntry::new(
+                "B-634",
+                "quote-mime-type",
+                "MIME type strings with slashes (without semicolons)",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let content_type = "application/json"; let accept = "text/html"; let encoding = "gzip, deflate, br"; }"#,
+                "content_type='application/json'",
+            ),
+            CorpusEntry::new(
+                "B-635",
+                "quote-base64-like",
+                "Base64-encoded string with plus and equals",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let token = "dGhpcyBpcyBhIHRlc3Q="; let key = "SGVsbG8gV29ybGQ="; }"#,
+                "token='dGhpcyBpcyBhIHRlc3Q='",
+            ),
+            // ── Complex algorithms ──────────────────────────────────────────
+            CorpusEntry::new(
+                "B-636",
+                "binary-search-iterative",
+                "Binary search over a virtual sorted array",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn binary_search(target: i32, size: i32) -> i32 { let mut lo = 0; let mut hi = size - 1; while lo <= hi { let mid = (lo + hi) / 2; if mid == target { return mid; } else if mid < target { lo = mid + 1; } else { hi = mid - 1; } } return -1; } fn main() { let r1 = binary_search(7, 100); let r2 = binary_search(50, 100); let r3 = binary_search(101, 100); }"#,
+                "binary_search() {",
+            ),
+            CorpusEntry::new(
+                "B-637",
+                "selection-sort-simulation",
+                "Selection sort simulation on 5 variables",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn swap_if_gt(a: i32, b: i32) -> i32 { if a > b { b } else { a } } fn max_of(a: i32, b: i32) -> i32 { if a > b { a } else { b } } fn main() { let a = 5; let b = 3; let c = 8; let d = 1; let e = 7; let min1 = swap_if_gt(swap_if_gt(swap_if_gt(swap_if_gt(a, b), c), d), e); let max1 = max_of(max_of(max_of(max_of(a, b), c), d), e); }"#,
+                "swap_if_gt() {",
+            ),
+            CorpusEntry::new(
+                "B-638",
+                "crc8-simulation",
+                "CRC-8 checksum simulation via XOR and shift",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn crc_step(crc: i32, byte: i32) -> i32 { let mut c = crc; let mut b = byte; let mut i = 0; while i < 8 { if (c + b) % 2 == 1 { c = (c / 2) + 128; } else { c = c / 2; } b = b / 2; i += 1; } c % 256 } fn main() { let c1 = crc_step(0, 65); let c2 = crc_step(c1, 66); let c3 = crc_step(c2, 67); }"#,
+                "crc_step() {",
+            ),
+            CorpusEntry::new(
+                "B-639",
+                "run-length-encode-sim",
+                "Run-length encoding simulation counting consecutive values",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let mut prev = 0; let mut count = 0; let mut groups = 0; for i in 0..20 { let val = i % 4; if val == prev { count += 1; } else { if count > 0 { groups += 1; } prev = val; count = 1; } } if count > 0 { groups += 1; } }"#,
+                "for i in $(seq 0 19); do",
+            ),
+            CorpusEntry::new(
+                "B-640",
+                "milestone-640-breaking",
+                "Milestone 640: pushing limits — 8 funcs, 5-level nesting, 20+ vars, extreme strings",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn abs_val(x: i32) -> i32 { if x < 0 { 0 - x } else { x } } fn min2(a: i32, b: i32) -> i32 { if a < b { a } else { b } } fn max2(a: i32, b: i32) -> i32 { if a > b { a } else { b } } fn clamp(x: i32, lo: i32, hi: i32) -> i32 { min2(max2(x, lo), hi) } fn is_prime(n: i32) -> bool { if n < 2 { return false; } let mut d = 2; while d * d <= n { if n % d == 0 { return false; } d += 1; } true } fn gcd(a: i32, b: i32) -> i32 { let mut x = a; let mut y = b; while y != 0 { let t = y; y = x % y; x = t; } x } fn mod_exp(b: i32, e: i32, m: i32) -> i32 { let mut r = 1; let mut base = b % m; let mut exp = e; while exp > 0 { if exp % 2 == 1 { r = r * base % m; } exp = exp / 2; base = base * base % m; } r } fn main() { let mut total = 0; for i in 1..51 { let v = clamp(i * 7 - 100, -50, 50); let a = abs_val(v); if is_prime(a) { total += mod_exp(a, 3, 97); } total += gcd(a, 30); } let host = "10.0.0.1"; let port = "443"; let proto = "https"; }"#,
+                "abs_val() {",
+            ),
+            // ── Round 3 Extreme: very long functions, stress tests ───────────
+            CorpusEntry::new(
+                "B-641",
+                "while-100-iterations-explicit",
+                "While loop with 100 explicit iterations and conditional branches",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let mut sum = 0; let mut i = 0; while i < 100 { if i % 15 == 0 { sum += 100; } else if i % 5 == 0 { sum += 50; } else if i % 3 == 0 { sum += 10; } else { sum += 1; } i += 1; } }"#,
+                "while [ \"$i\" -lt 100 ]",
+            ),
+            CorpusEntry::new(
+                "B-642",
+                "nested-match-8arms-in-loop",
+                "For loop with 8-arm match inside",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let mut total = 0; for i in 0..40 { let bucket = i % 8; match bucket { 0 => { total += 1; } 1 => { total += 2; } 2 => { total += 4; } 3 => { total += 8; } 4 => { total += 16; } 5 => { total += 32; } 6 => { total += 64; } _ => { total += 128; } } } }"#,
+                "for i in $(seq 0 39); do",
+            ),
+            CorpusEntry::new(
+                "B-643",
+                "bitwise-simulation",
+                "Bitwise operations simulated with arithmetic",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn bit_and(a: i32, b: i32) -> i32 { let mut result = 0; let mut bit = 1; let mut aa = a; let mut bb = b; let mut i = 0; while i < 16 { if aa % 2 == 1 && bb % 2 == 1 { result += bit; } aa = aa / 2; bb = bb / 2; bit = bit * 2; i += 1; } result } fn main() { let r1 = bit_and(255, 170); let r2 = bit_and(0, 255); let r3 = bit_and(12345, 54321); }"#,
+                "bit_and() {",
+            ),
+            CorpusEntry::new(
+                "B-644",
+                "luhn-checksum-sim",
+                "Luhn checksum simulation for credit card validation",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn luhn_double(d: i32) -> i32 { let doubled = d * 2; if doubled > 9 { doubled - 9 } else { doubled } } fn main() { let d1 = 4; let d2 = 5; let d3 = 3; let d4 = 9; let d5 = 1; let d6 = 4; let d7 = 8; let d8 = 8; let sum = luhn_double(d1) + d2 + luhn_double(d3) + d4 + luhn_double(d5) + d6 + luhn_double(d7) + d8; let check = (10 - sum % 10) % 10; }"#,
+                "luhn_double() {",
+            ),
+            CorpusEntry::new(
+                "B-645",
+                "caesar-cipher-sim",
+                "Caesar cipher simulation via modular arithmetic on ASCII codes",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn caesar_shift(code: i32, shift: i32) -> i32 { if code >= 65 && code <= 90 { (code - 65 + shift) % 26 + 65 } else if code >= 97 && code <= 122 { (code - 97 + shift) % 26 + 97 } else { code } } fn main() { let a = caesar_shift(65, 3); let z = caesar_shift(90, 1); let h = caesar_shift(104, 13); }"#,
+                "caesar_shift() {",
+            ),
+            // ── SSH/remote patterns ─────────────────────────────────────────
+            CorpusEntry::new(
+                "B-646",
+                "ssh-known-hosts-paths",
+                "SSH known_hosts and authorized_keys path variables",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let ssh_dir = "/home/deploy/.ssh"; let known_hosts = "/home/deploy/.ssh/known_hosts"; let authorized_keys = "/home/deploy/.ssh/authorized_keys"; let config_file = "/home/deploy/.ssh/config"; let id_rsa = "/home/deploy/.ssh/id_rsa"; let id_rsa_pub = "/home/deploy/.ssh/id_rsa.pub"; let id_ed25519 = "/home/deploy/.ssh/id_ed25519"; }"#,
+                "ssh_dir='/home/deploy/.ssh'",
+            ),
+            CorpusEntry::new(
+                "B-647",
+                "ssh-config-file-sim",
+                "SSH config file content via string variables",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let c1 = "Host bastion"; let c2 = "  HostName bastion.prod.example.com"; let c3 = "  User deploy"; let c4 = "  Port 22"; let c5 = "  IdentityFile ~/.ssh/id_ed25519"; let c6 = "Host prod-*"; let c7 = "  ProxyJump bastion"; let c8 = "  User app"; let c9 = "  StrictHostKeyChecking no"; }"#,
+                "c1='Host bastion'",
+            ),
+            // ── Extreme: patterns known to be near the edge ─────────────────
+            CorpusEntry::new(
+                "B-648",
+                "nested-if-in-while-in-for-with-break",
+                "For->While->If->break with accumulator",
+                CorpusFormat::Bash,
+                CorpusTier::Adversarial,
+                r#"fn main() { let mut global = 0; for outer in 0..5 { let mut inner = 0; while inner < 20 { inner += 1; if inner * outer > 30 { break; } if inner % 2 == 0 { global += outer; } else { global += inner; } } } }"#,
+                "for outer in $(seq 0 4); do",
+            ),
+            CorpusEntry::new(
+                "B-649",
+                "three-while-convergence",
+                "Three sequential while loops each converging from different directions",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn main() { let mut a = 0; while a < 100 { a += 7; } let mut b = 1000; while b > 0 { b = b - 13; } let mut c = 50; let mut d = 50; while c != d { if c > d { c = c - 1; } else { d = d - 1; } } }"#,
+                "while [ \"$a\" -lt 100 ]",
+            ),
+            CorpusEntry::new(
+                "B-650",
+                "milestone-650-ultimate",
+                "Milestone 650: ultimate stress — 10 functions, all patterns combined",
+                CorpusFormat::Bash,
+                CorpusTier::Production,
+                r#"fn abs_val(x: i32) -> i32 { if x < 0 { 0 - x } else { x } } fn sign(x: i32) -> i32 { if x > 0 { 1 } else if x < 0 { -1 } else { 0 } } fn min2(a: i32, b: i32) -> i32 { if a < b { a } else { b } } fn max2(a: i32, b: i32) -> i32 { if a > b { a } else { b } } fn clamp(x: i32, lo: i32, hi: i32) -> i32 { min2(max2(x, lo), hi) } fn gcd(a: i32, b: i32) -> i32 { let mut x = a; let mut y = b; while y != 0 { let t = y; y = x % y; x = t; } x } fn is_prime(n: i32) -> bool { if n < 2 { return false; } let mut d = 2; while d * d <= n { if n % d == 0 { return false; } d += 1; } true } fn fibonacci(n: i32) -> i32 { let mut a = 0; let mut b = 1; let mut i = 0; while i < n { let t = a + b; a = b; b = t; i += 1; } a } fn lcm(a: i32, b: i32) -> i32 { a / gcd(a, b) * b } fn isqrt(n: i32) -> i32 { if n < 2 { return n; } let mut x = n; let mut y = (x + 1) / 2; while y < x { x = y; y = (x + n / x) / 2; } x } fn main() { let mut total = 0; for i in 1..31 { let v = i * 11 - 150; let c = clamp(v, -100, 100); let a = abs_val(c); let s = sign(v); let g = gcd(a, 42); let fib = fibonacci(i % 10); total += a * s + g + fib; if is_prime(a) { total += isqrt(a * a); } total += lcm(min2(a, 10), max2(1, i % 7)); } let ssh_host = "10.0.0.1"; let ssh_port = "22"; let db_url = "postgresql://user:pass@db:5432/prod"; }"#,
+                "abs_val() {",
+            ),
+        ];
+        self.entries.extend(entries);
+    }
+
+    // =========================================================================
+    // Expansion Wave 31: Makefile M-261..M-270 — Round 3: EXTREME
+    // =========================================================================
+
+    fn load_expansion14_makefile(&mut self) {
+        let entries = vec![
+            CorpusEntry::new(
+                "M-261",
+                "makefile-ansible-playbook",
+                "Makefile with ansible-playbook commands and vault",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let inventory = "inventory/production"; let vault_file = ".vault-pass"; phony_target("provision", &[], &["ansible-playbook -i $(INVENTORY) --vault-password-file $(VAULT_FILE) site.yml"]); phony_target("check", &[], &["ansible-playbook -i $(INVENTORY) --vault-password-file $(VAULT_FILE) --check site.yml"]); phony_target("vault-edit", &[], &["ansible-vault edit --vault-password-file $(VAULT_FILE) group_vars/all/vault.yml"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: provision",
+            ),
+            CorpusEntry::new(
+                "M-262",
+                "makefile-helm-chart",
+                "Makefile with Helm chart deployment commands",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let chart = "charts/myapp"; let release = "myapp"; let namespace = "production"; let values = "values-production.yaml"; phony_target("helm-upgrade", &[], &["helm upgrade --install $(RELEASE) $(CHART) -n $(NAMESPACE) -f $(VALUES) --wait --timeout 300s"]); phony_target("helm-rollback", &[], &["helm rollback $(RELEASE) -n $(NAMESPACE)"]); phony_target("helm-status", &[], &["helm status $(RELEASE) -n $(NAMESPACE)"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: helm-upgrade",
+            ),
+            CorpusEntry::new(
+                "M-263",
+                "makefile-openssl-recipe",
+                "Makefile with OpenSSL certificate generation recipes",
+                CorpusFormat::Makefile,
+                CorpusTier::Adversarial,
+                r#"fn main() { let cert_dir = "certs"; phony_target("gen-ca", &[], &["openssl req -x509 -newkey rsa:4096 -days 365 -nodes -keyout $(CERT_DIR)/ca-key.pem -out $(CERT_DIR)/ca-cert.pem -subj '/CN=MyCA'"]); phony_target("gen-server-cert", &["gen-ca"], &["openssl req -newkey rsa:4096 -nodes -keyout $(CERT_DIR)/server-key.pem -out $(CERT_DIR)/server-req.pem -subj '/CN=server'", "openssl x509 -req -in $(CERT_DIR)/server-req.pem -CA $(CERT_DIR)/ca-cert.pem -CAkey $(CERT_DIR)/ca-key.pem -CAcreateserial -out $(CERT_DIR)/server-cert.pem -days 365"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: gen-ca",
+            ),
+            CorpusEntry::new(
+                "M-264",
+                "makefile-database-ops",
+                "Makefile with database migration and backup recipes",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let db_url = "postgresql://user:pass@localhost:5432/mydb"; phony_target("db-migrate", &[], &["sqlx migrate run --database-url '$(DB_URL)'"]); phony_target("db-revert", &[], &["sqlx migrate revert --database-url '$(DB_URL)'"]); phony_target("db-backup", &[], &["pg_dump '$(DB_URL)' | gzip > backup-$$(date +%Y%m%d).sql.gz"]); phony_target("db-restore", &[], &["gunzip -c backup-latest.sql.gz | psql '$(DB_URL)'"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: db-migrate",
+            ),
+            CorpusEntry::new(
+                "M-265",
+                "makefile-monitoring-setup",
+                "Makefile with monitoring and alerting setup",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let grafana_url = "http://localhost:3000"; let prom_url = "http://localhost:9090"; phony_target("mon-check", &[], &["curl -sf $(PROM_URL)/-/healthy > /dev/null 2>&1 && echo 'Prometheus OK' || echo 'Prometheus DOWN'", "curl -sf $(GRAFANA_URL)/api/health > /dev/null 2>&1 && echo 'Grafana OK' || echo 'Grafana DOWN'"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: mon-check",
+            ),
+            CorpusEntry::new(
+                "M-266",
+                "makefile-security-scan",
+                "Makefile with security scanning recipes and pipe chains",
+                CorpusFormat::Makefile,
+                CorpusTier::Adversarial,
+                r#"fn main() { phony_target("audit", &[], &["cargo audit 2>&1 | tee audit.log || true"]); phony_target("deny-check", &[], &["cargo deny check 2>&1 | tee deny.log"]); phony_target("trivy", &[], &["trivy fs --severity HIGH,CRITICAL . 2>&1 | tee trivy.log || true"]); phony_target("security", &["audit", "deny-check", "trivy"], &["echo 'Security scan complete'"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "security: audit deny-check trivy",
+            ),
+            CorpusEntry::new(
+                "M-267",
+                "makefile-perf-bench",
+                "Makefile with performance benchmarking and comparison",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { phony_target("bench", &[], &["cargo bench --bench main 2>&1 | tee bench-current.txt"]); phony_target("bench-compare", &["bench"], &["diff bench-baseline.txt bench-current.txt || echo 'Performance changed'"]); phony_target("bench-save", &["bench"], &["cp bench-current.txt bench-baseline.txt"]); phony_target("flamegraph", &[], &["cargo flamegraph --bin app -- --duration 10 2>/dev/null"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: bench",
+            ),
+            CorpusEntry::new(
+                "M-268",
+                "makefile-cross-compile",
+                "Makefile with cross-compilation for multiple targets",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let targets = "x86_64-unknown-linux-musl aarch64-unknown-linux-musl x86_64-apple-darwin"; phony_target("cross-all", &["cross-linux-amd64", "cross-linux-arm64"], &["echo 'Cross compilation complete'"]); phony_target("cross-linux-amd64", &[], &["cross build --release --target x86_64-unknown-linux-musl"]); phony_target("cross-linux-arm64", &[], &["cross build --release --target aarch64-unknown-linux-musl"]); phony_target("checksums", &["cross-all"], &["sha256sum target/*/release/app > checksums.txt"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "cross-all: cross-linux-amd64 cross-linux-arm64",
+            ),
+            CorpusEntry::new(
+                "M-269",
+                "makefile-git-release",
+                "Makefile with git release workflow and changelog",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let version = "1.0.0"; phony_target("changelog", &[], &["git log --oneline --no-merges $$(git describe --tags --abbrev=0 2>/dev/null || echo HEAD)..HEAD > CHANGES.md"]); phony_target("release-tag", &["changelog"], &["git add CHANGES.md", "git commit -m 'release: v$(VERSION)'", "git tag -a v$(VERSION) -m 'Release $(VERSION)'"]); phony_target("release-push", &["release-tag"], &["git push origin main --tags"]); } fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                ".PHONY: changelog",
+            ),
+            CorpusEntry::new(
+                "M-270",
+                "milestone-270-makefile",
+                "Milestone 270: ultimate Makefile — all patterns combined",
+                CorpusFormat::Makefile,
+                CorpusTier::Production,
+                r#"fn main() { let version = "5.0.0"; let registry = "ghcr.io/org"; let env = "production"; let ssh_host = "deploy@prod"; let db_url = "postgresql://app:secret@db:5432/prod"; phony_target("pipeline", &["lint", "test", "security", "build", "docker", "deploy", "verify"], &["echo 'Full pipeline complete'"]); phony_target("lint", &[], &["cargo clippy -- -D warnings 2>&1 | tee lint.log"]); phony_target("test", &[], &["cargo test -- --test-threads=4 2>&1 | tee test.log"]); phony_target("security", &[], &["cargo audit 2>&1 | tee audit.log || true", "cargo deny check 2>&1 | tee deny.log"]); target("build", &[], &["cargo build --release"]); phony_target("docker", &["build"], &["docker build --build-arg VERSION=$(VERSION) -t $(REGISTRY)/app:$(VERSION) -t $(REGISTRY)/app:latest .", "docker push $(REGISTRY)/app:$(VERSION)"]); phony_target("deploy", &["docker"], &["ssh $(SSH_HOST) 'docker pull $(REGISTRY)/app:$(VERSION) && docker stop app || true && docker run -d --name app -p 8080:8080 $(REGISTRY)/app:$(VERSION)'"]); phony_target("verify", &["deploy"], &["sleep 5 && curl -sf http://$(SSH_HOST):8080/health > /dev/null 2>&1 && echo 'Deploy OK' || echo 'Deploy FAILED'"]); phony_target("clean", &[], &["rm -rf target *.log"]); } fn target(n: &str, d: &[&str], r: &[&str]) {} fn phony_target(n: &str, d: &[&str], r: &[&str]) {}"#,
+                "pipeline: lint test security build docker deploy verify",
             ),
         ];
         self.entries.extend(entries);
