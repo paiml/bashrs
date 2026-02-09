@@ -31,6 +31,7 @@ pub mod pattern_store;
 pub mod schema_enforcement;
 pub mod registry;
 pub mod runner;
+pub mod tier_analysis;
 
 pub use pattern_store::{PatternStore, ShellFixPattern};
 pub use registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
