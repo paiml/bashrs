@@ -28,6 +28,7 @@ pub mod error_dedup;
 pub mod graph_priority;
 pub mod oip;
 pub mod pattern_store;
+pub mod quality_gates;
 pub mod schema_enforcement;
 pub mod registry;
 pub mod runner;
