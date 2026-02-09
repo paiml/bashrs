@@ -1183,6 +1183,35 @@ pub enum CorpusCommands {
         #[arg(value_enum)]
         format: CorpusFormatArg,
     },
+
+    /// Export corpus as dataset (JSON/CSV/JSONL) for HF publishing (§10.3)
+    ExportDataset {
+        /// Export format
+        #[arg(long, default_value = "json")]
+        format: DatasetExportFormat,
+
+        /// Output file path (stdout if not specified)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+    },
+
+    /// Show dataset schema and metadata (§10.3)
+    DatasetInfo,
+
+    /// Verify corpus is ready for Hugging Face publishing (§10.3)
+    PublishCheck,
+}
+
+/// Dataset export format
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum DatasetExportFormat {
+    /// JSON array (pretty-printed)
+    #[default]
+    Json,
+    /// JSON Lines (one object per line)
+    Jsonl,
+    /// CSV with headers
+    Csv,
 }
 
 /// Corpus output format
