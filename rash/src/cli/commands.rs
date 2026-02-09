@@ -5458,6 +5458,18 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ConvergeStatus => {
             corpus_converge_status()
         }
+
+        CorpusCommands::Mine { limit } => {
+            corpus_mine(limit)
+        }
+
+        CorpusCommands::FixGaps { limit } => {
+            corpus_fix_gaps(limit)
+        }
+
+        CorpusCommands::OrgPatterns => {
+            corpus_org_patterns()
+        }
     }
 }
 
@@ -10874,6 +10886,154 @@ fn corpus_converge_status() -> Result<()> {
                 &format!("{RED}\u{2193} Regressing{RESET}"),
             );
         println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+/// Mine fix patterns from git history (§11.9.1).
+fn corpus_mine(limit: usize) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::oip;
+    use crate::corpus::registry::CorpusRegistry;
+
+    // Run git log to find fix commits
+    let output = std::process::Command::new("git")
+        .args([
+            "log",
+            "--oneline",
+            "--all",
+            &format!("--max-count={limit}"),
+            "--grep=fix:",
+            "--format=%h|%as|%s",
+        ])
+        .output()
+        .map_err(|e| Error::Internal(format!("Failed to run git log: {e}")))?;
+
+    let log_text = String::from_utf8_lossy(&output.stdout);
+    let mut commits = oip::parse_fix_commits(&log_text);
+
+    // Cross-reference with corpus entries
+    let registry = CorpusRegistry::load_full();
+    let descriptions: Vec<String> = registry
+        .entries
+        .iter()
+        .map(|e| e.description.clone())
+        .collect();
+
+    for commit in &mut commits {
+        commit.has_corpus_entry =
+            oip::has_matching_corpus_entry(&commit.message, &descriptions);
+    }
+
+    println!("{BOLD}OIP Fix Pattern Mining (\u{00a7}11.9){RESET}");
+    println!();
+
+    let table = oip::format_mine_table(&commits);
+    for line in table.lines() {
+        let colored = line
+            .replace("\u{2713}", &format!("{GREEN}\u{2713}{RESET}"))
+            .replace("\u{2717}", &format!("{RED}\u{2717}{RESET}"))
+            .replace("HIGH", &format!("{BRIGHT_RED}HIGH{RESET}"))
+            .replace("ASTTransform", &format!("{CYAN}ASTTransform{RESET}"))
+            .replace("SecurityVulnerabilities", &format!("{BRIGHT_RED}SecurityVulnerabilities{RESET}"))
+            .replace("OperatorPrecedence", &format!("{YELLOW}OperatorPrecedence{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+/// Find fix commits without regression corpus entries (§11.9.3).
+fn corpus_fix_gaps(limit: usize) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::oip;
+    use crate::corpus::registry::CorpusRegistry;
+
+    // Run git log to find fix commits
+    let output = std::process::Command::new("git")
+        .args([
+            "log",
+            "--oneline",
+            "--all",
+            &format!("--max-count={limit}"),
+            "--grep=fix:",
+            "--format=%h|%as|%s",
+        ])
+        .output()
+        .map_err(|e| Error::Internal(format!("Failed to run git log: {e}")))?;
+
+    let log_text = String::from_utf8_lossy(&output.stdout);
+    let mut commits = oip::parse_fix_commits(&log_text);
+
+    // Cross-reference with corpus entries
+    let registry = CorpusRegistry::load_full();
+    let descriptions: Vec<String> = registry
+        .entries
+        .iter()
+        .map(|e| e.description.clone())
+        .collect();
+
+    for commit in &mut commits {
+        commit.has_corpus_entry =
+            oip::has_matching_corpus_entry(&commit.message, &descriptions);
+    }
+
+    let gaps = oip::find_fix_gaps(&commits, &descriptions);
+
+    println!("{BOLD}Fix-Driven Corpus Gaps (\u{00a7}11.9.3){RESET}");
+    println!();
+
+    if gaps.is_empty() {
+        println!("  {GREEN}No gaps found!{RESET} All high/medium priority fix commits have corpus coverage.");
+        return Ok(());
+    }
+
+    let table = oip::format_fix_gaps_table(&gaps);
+    for line in table.lines() {
+        let colored = line
+            .replace("HIGH", &format!("{BRIGHT_RED}HIGH{RESET}"))
+            .replace("MEDIUM", &format!("{YELLOW}MEDIUM{RESET}"));
+        println!("  {colored}");
+    }
+
+    Ok(())
+}
+
+/// Cross-project defect pattern analysis (§11.9.4).
+fn corpus_org_patterns() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::oip;
+
+    let patterns = oip::known_org_patterns();
+
+    println!("{BOLD}Cross-Project Defect Patterns (\u{00a7}11.9.4){RESET}");
+    println!();
+
+    let table = oip::format_org_patterns_table(&patterns);
+    for line in table.lines() {
+        let colored = line
+            .replace("ASTTransform", &format!("{CYAN}ASTTransform{RESET}"))
+            .replace("ComprehensionBugs", &format!("{YELLOW}ComprehensionBugs{RESET}"))
+            .replace("OperatorPrecedence", &format!("{YELLOW}OperatorPrecedence{RESET}"))
+            .replace("ConfigurationErrors", &format!("{YELLOW}ConfigurationErrors{RESET}"))
+            .replace("TypeErrors", &format!("{YELLOW}TypeErrors{RESET}"))
+            .replace("IntegrationFailures", &format!("{YELLOW}IntegrationFailures{RESET}"));
+        println!("  {colored}");
+    }
+
+    // Show coverage summary
+    println!("  {BOLD}Corpus Coverage:{RESET}");
+    for p in &patterns {
+        let coverage = if p.covered_entries.is_empty() {
+            format!("{RED}\u{2717} No coverage{RESET}")
+        } else {
+            format!(
+                "{GREEN}\u{2713} {}{RESET}",
+                p.covered_entries.join(", ")
+            )
+        };
+        println!("    {:<30} {}", p.name, coverage);
     }
 
     Ok(())

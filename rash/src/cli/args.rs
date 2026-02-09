@@ -1153,6 +1153,23 @@ pub enum CorpusCommands {
 
     /// Per-format convergence status with trend (§11.10.5)
     ConvergeStatus,
+
+    /// Mine fix patterns from git history (§11.9.1)
+    Mine {
+        /// Maximum number of commits to analyze
+        #[arg(short = 'n', long, default_value = "100")]
+        limit: usize,
+    },
+
+    /// Find fix commits without regression corpus entries (§11.9.3)
+    FixGaps {
+        /// Maximum number of commits to analyze
+        #[arg(short = 'n', long, default_value = "100")]
+        limit: usize,
+    },
+
+    /// Cross-project defect pattern analysis (§11.9.4)
+    OrgPatterns,
 }
 
 /// Corpus output format
