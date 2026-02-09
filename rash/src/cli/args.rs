@@ -1170,6 +1170,19 @@ pub enum CorpusCommands {
 
     /// Cross-project defect pattern analysis (§11.9.4)
     OrgPatterns,
+
+    /// Validate all corpus entries against formal grammar (§11.8)
+    SchemaValidate,
+
+    /// Categorize grammar violations by GRAM-001..GRAM-008 (§11.8.5)
+    GrammarErrors,
+
+    /// Display formal grammar specification for a format (§11.8.1-11.8.3)
+    FormatGrammar {
+        /// Target format to show grammar for
+        #[arg(value_enum)]
+        format: CorpusFormatArg,
+    },
 }
 
 /// Corpus output format
