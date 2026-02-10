@@ -152,6 +152,14 @@ pub enum BashStmt {
         body: Vec<BashStmt>,
         span: Span,
     },
+
+    /// Negated command/pipeline: ! command
+    /// Inverts the exit status of the command or pipeline
+    /// Issue #133: Support for `if ! cmd1 | cmd2; then` patterns
+    Negated {
+        command: Box<BashStmt>,
+        span: Span,
+    },
 }
 
 /// Case statement arm
@@ -382,6 +390,7 @@ impl BashStmt {
             BashStmt::BraceGroup { .. } => "BraceGroup",
             BashStmt::Coproc { .. } => "Coproc",
             BashStmt::Select { .. } => "Select",
+            BashStmt::Negated { .. } => "Negated",
         }
     }
 
@@ -404,7 +413,8 @@ impl BashStmt {
             | BashStmt::OrList { span, .. }
             | BashStmt::BraceGroup { span, .. }
             | BashStmt::Coproc { span, .. }
-            | BashStmt::Select { span, .. } => *span,
+            | BashStmt::Select { span, .. }
+            | BashStmt::Negated { span, .. } => *span,
         };
 
         // Convert bash_parser::Span to tracing::Span
@@ -443,6 +453,7 @@ impl fmt::Display for BashStmt {
                 }
             }
             BashStmt::Select { variable, .. } => write!(f, "Select({})", variable),
+            BashStmt::Negated { command, .. } => write!(f, "Negated({})", command),
         }
     }
 }

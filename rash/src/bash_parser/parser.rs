@@ -2318,14 +2318,69 @@ impl BashParser {
             return Ok(BashExpr::Test(Box::new(expr)));
         }
 
+        // Issue #133: Handle negated command/pipeline condition
+        // Example: `if ! cmd1 | cmd2; then` - negates the exit code of the pipeline
+        let negated = if self.check(&Token::Not) {
+            self.advance(); // consume !
+            true
+        } else {
+            false
+        };
+
         // Issue #93: Handle bare command as condition
         // Example: `if grep -q pattern file; then` - the command's exit code is the condition
+        // Issue #133: Handle pipeline commands as condition
+        // Example: `if cmd1 | cmd2; then` - the pipeline's exit code is the condition
         // Check if we have a command identifier (not a unary test operator)
         if let Some(Token::Identifier(name)) = self.peek() {
             // Don't treat test operators as commands
             if !name.starts_with('-') {
                 let cmd = self.parse_condition_command()?;
-                return Ok(BashExpr::CommandCondition(Box::new(cmd)));
+                // Issue #133: If next token is Pipe, build a pipeline
+                let stmt = if self.check(&Token::Pipe) {
+                    let mut commands = vec![cmd];
+                    while self.check(&Token::Pipe) {
+                        self.advance(); // consume |
+                        let next_cmd = self.parse_condition_command()?;
+                        commands.push(next_cmd);
+                    }
+                    BashStmt::Pipeline {
+                        commands,
+                        span: Span::dummy(),
+                    }
+                } else {
+                    cmd
+                };
+
+                // Issue #133: Wrap in Negated if ! was present
+                let final_stmt = if negated {
+                    BashStmt::Negated {
+                        command: Box::new(stmt),
+                        span: Span::dummy(),
+                    }
+                } else {
+                    stmt
+                };
+
+                return Ok(BashExpr::CommandCondition(Box::new(final_stmt)));
+            }
+        }
+
+        // If we consumed ! but didn't find a command, handle negated test expressions
+        if negated {
+            // `if ! [ ... ]; then` or `if ! [[ ... ]]; then`
+            let inner = self.parse_test_expression()?;
+            match inner {
+                BashExpr::Test(test_expr) => {
+                    return Ok(BashExpr::Test(Box::new(TestExpr::Not(test_expr))));
+                }
+                other => {
+                    // Wrap any other expression as a negated command condition
+                    // This handles `if ! $var; then` etc.
+                    return Ok(BashExpr::Test(Box::new(TestExpr::Not(Box::new(
+                        TestExpr::StringNonEmpty(other),
+                    )))));
+                }
             }
         }
 

@@ -290,6 +290,12 @@ impl BashToRashTranspiler {
                     variable, items_rash, variable, items_rash, body_rash
                 ))
             }
+
+            BashStmt::Negated { command, .. } => {
+                // Issue #133: Negated command - transpile inner and negate
+                let inner = self.transpile_statement(command)?;
+                Ok(format!("// negated: ! {}", inner))
+            }
         }
     }
 
