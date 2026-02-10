@@ -30,6 +30,11 @@
 - [False Positive Testing](./linting/false-positives.md)
 - [Writing Custom Rules](./linting/custom-rules.md)
 
+## Rust-to-Shell Transpiler
+
+- [Transpiler Overview](./transpiler/overview.md)
+- [Corpus Testing](./transpiler/corpus.md)
+
 ## Shell Configuration Management
 
 - [Overview](./config/overview.md)

@@ -1,6 +1,6 @@
 # Corpus Testing
 
-Rash v6.60.0 includes a comprehensive transpilation corpus with 500+ entries for validating the Rust-to-Shell transpiler across three formats and five tiers.
+Rash v6.61.0 includes a comprehensive transpilation corpus with 14,712 entries for validating the Rust-to-Shell transpiler across three formats (Bash, Makefile, Dockerfile).
 
 ## Overview
 
@@ -88,7 +88,7 @@ CorpusEntry::new(
 
 ## Adversarial Testing (Tier 4)
 
-Tier 4 entries are intentionally crafted to expose transpiler bugs. In v6.60.0, these found and fixed:
+Tier 4 entries are intentionally crafted to expose transpiler bugs. In v6.61.0, these found and fixed:
 
 1. **format! macro bug**: `format!("{}", x)` was not transpiled correctly
 2. **Assignment expression bug**: `x = x + 1` inside complex expressions failed

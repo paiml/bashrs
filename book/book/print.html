@@ -188,7 +188,7 @@ cd /tmp/deploy-$SESSION_ID
 </code></pre>
 <p><strong>After (purified, deterministic):</strong></p>
 <pre><code class="language-bash"><span class="boring">!/bin/sh
-</span><span class="boring"> Purified by Rash v6.60.0
+</span><span class="boring"> Purified by Rash v6.61.0
 </span>SESSION_ID="${VERSION:-1.0.0}"
 mkdir -p "/tmp/deploy-${SESSION_ID}"
 cd "/tmp/deploy-${SESSION_ID}" || exit 1
@@ -251,7 +251,7 @@ fn main() {
 <pre><code class="language-bash">bashrs --version
 </code></pre>
 <p>You should see output like:</p>
-<pre><code class="language-text">bashrs 6.60.0
+<pre><code class="language-text">bashrs 6.61.0
 </code></pre>
 <h2 id="from-source"><a class="header" href="#from-source">From Source</a></h2>
 <p>If you want the latest development version:</p>
@@ -268,8 +268,8 @@ sudo cp target/release/bashrs /usr/local/bin/
 <p>For now, use <code>cargo install bashrs</code>.</p>
 <h3 id="linux"><a class="header" href="#linux">Linux</a></h3>
 <h4 id="debianubuntu-coming-soon"><a class="header" href="#debianubuntu-coming-soon">Debian/Ubuntu (coming soon)</a></h4>
-<pre><code class="language-bash"><span class="boring"> wget https://github.com/paiml/bashrs/releases/download/v6.60.0/bashrs_6.60.0_amd64.deb
-</span><span class="boring"> sudo dpkg -i bashrs_6.60.0_amd64.deb
+<pre><code class="language-bash"><span class="boring"> wget https://github.com/paiml/bashrs/releases/download/v6.61.0/bashrs_6.61.0_amd64.deb
+</span><span class="boring"> sudo dpkg -i bashrs_6.61.0_amd64.deb
 </span></code></pre>
 <h4 id="arch-linux-coming-soon"><a class="header" href="#arch-linux-coming-soon">Arch Linux (coming soon)</a></h4>
 <pre><code class="language-bash"><span class="boring"> yay -S bashrs
@@ -7452,6 +7452,182 @@ eprintln!("Pattern match: {:?}", line.find("pattern"));</code></pre>
 </ul>
 <hr />
 <p><strong>Quality Standard</strong>: All custom rules must achieve ≥90% mutation kill rate and pass comprehensive property tests before merging.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="rust-to-shell-transpiler"><a class="header" href="#rust-to-shell-transpiler">Rust-to-Shell Transpiler</a></h1>
+<p>Rash can transpile a subset of Rust into safe, deterministic POSIX shell scripts. Write real Rust code, test it with standard Rust tooling (<code>cargo test</code>, <code>cargo clippy</code>), then transpile to a shell script that runs anywhere.</p>
+<h2 id="why-transpile-from-rust"><a class="header" href="#why-transpile-from-rust">Why Transpile from Rust?</a></h2>
+<ul>
+<li><strong>Type safety at write time</strong>: Catch errors before generating shell</li>
+<li><strong>Standard tooling</strong>: Use <code>cargo test</code> to verify logic</li>
+<li><strong>Safe output</strong>: Generated scripts use <code>set -euf</code>, proper quoting, and pass <code>shellcheck</code></li>
+<li><strong>Zero runtime</strong>: Output is plain POSIX <code>sh</code> with no dependencies</li>
+</ul>
+<h2 id="quick-start-1"><a class="header" href="#quick-start-1">Quick Start</a></h2>
+<p>Write a Rust file using the supported subset:</p>
+<pre><pre class="playground"><code class="language-rust">// install.rs
+fn greet(name: &amp;str) {
+    println!("Hello, {}!", name);
+}
+
+fn main() {
+    let user = env_var_or("USER", "world");
+    greet(&amp;user);
+}</code></pre></pre>
+<p>Transpile it:</p>
+<pre><code class="language-bash">bashrs build install.rs -o install.sh
+</code></pre>
+<p>The output is a self-contained POSIX shell script:</p>
+<pre><code class="language-sh">#!/bin/sh
+set -euf
+IFS='
+'
+export LC_ALL=C
+
+greet() {
+    name="$1"
+    printf '%s\n' "Hello, $name!"
+}
+
+main() {
+    user="${USER:-world}"
+    greet "$user"
+}
+
+trap 'rm -rf "${TMPDIR:-/tmp}/rash.$$"' EXIT
+main "$@"
+</code></pre>
+<h2 id="supported-rust-constructs"><a class="header" href="#supported-rust-constructs">Supported Rust Constructs</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Construct</th><th>Rust</th><th>Shell Output</th></tr></thead><tbody>
+<tr><td>Functions</td><td><code>fn add(a: u32, b: u32) -&gt; u32</code></td><td><code>add() { a="$1"; b="$2"; ... }</code></td></tr>
+<tr><td>Variables</td><td><code>let x = 42;</code></td><td><code>x='42'</code></td></tr>
+<tr><td>Arithmetic</td><td><code>x + y * 2</code></td><td><code>$((x + y * 2))</code></td></tr>
+<tr><td>If/else</td><td><code>if x &gt; 0 { ... } else { ... }</code></td><td><code>if [ "$x" -gt 0 ]; then ... fi</code></td></tr>
+<tr><td>While loops</td><td><code>while i &lt; n { ... }</code></td><td><code>while [ "$i" -lt "$n" ]; do ... done</code></td></tr>
+<tr><td>For loops</td><td><code>for i in 0..10 { ... }</code></td><td><code>for i in $(seq 0 9); do ... done</code></td></tr>
+<tr><td>Match</td><td><code>match x { 0 =&gt; ..., _ =&gt; ... }</code></td><td><code>case "$x" in 0) ... ;; *) ... ;; esac</code></td></tr>
+<tr><td>Return</td><td><code>return x + 1;</code></td><td><code>echo $((x + 1)); return</code></td></tr>
+<tr><td>Recursion</td><td><code>fn fib(n) { fib(n-1) + fib(n-2) }</code></td><td>Recursive shell function with <code>$(...)</code></td></tr>
+<tr><td>Nested calls</td><td><code>f(g(h(x)))</code></td><td><code>"$(f "$(g "$(h x)")")"</code></td></tr>
+<tr><td>println!</td><td><code>println!("{}", x)</code></td><td><code>printf '%s\n' "$x"</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="supported-types"><a class="header" href="#supported-types">Supported Types</a></h2>
+<ul>
+<li><code>u32</code>, <code>u16</code> -- integers (shell arithmetic)</li>
+<li><code>bool</code> -- booleans (<code>true</code>/<code>false</code> strings)</li>
+<li><code>&amp;str</code>, <code>String</code> -- strings (shell strings)</li>
+<li><code>()</code> (void) -- functions with no return value</li>
+</ul>
+<h2 id="match-expressions"><a class="header" href="#match-expressions">Match Expressions</a></h2>
+<p>Match can be used as a statement or in a let binding:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Match as let binding -- generates case with per-arm assignment
+let tier = match level % 3 {
+    0 =&gt; level * 10,
+    1 =&gt; level + 5,
+    _ =&gt; level,
+};
+<span class="boring">}</span></code></pre></pre>
+<p>Generates:</p>
+<pre><code class="language-sh">case "$level" in
+    0) tier=$((level * 10)) ;;
+    1) tier=$((level + 5)) ;;
+    *) tier="$level" ;;
+esac
+</code></pre>
+<h2 id="functions-and-return-values"><a class="header" href="#functions-and-return-values">Functions and Return Values</a></h2>
+<p>Functions with return types use <code>echo</code> + <code>return</code> for output capture:</p>
+<pre><pre class="playground"><code class="language-rust">fn double(x: u32) -&gt; u32 {
+    return x * 2;
+}
+
+fn main() {
+    let result = double(21);  // Captured via $(double 21)
+    println!("{}", result);   // Prints: 42
+}</code></pre></pre>
+<p>Nested function calls are supported:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let result = double(add_ten(square(3)));
+// Shell: result="$(double "$(add_ten "$(square 3)")")"
+<span class="boring">}</span></code></pre></pre>
+<h2 id="limitations"><a class="header" href="#limitations">Limitations</a></h2>
+<p>The transpiler supports a <strong>restricted subset</strong> of Rust designed for shell-compatible operations:</p>
+<ul>
+<li>No heap allocation (<code>Vec</code>, <code>HashMap</code>, <code>Box</code>)</li>
+<li>No traits, generics, or lifetimes</li>
+<li>No closures (lambda expressions are simplified)</li>
+<li>No async/await</li>
+<li>No pattern destructuring beyond match literals and wildcards</li>
+<li>Integer arithmetic only (no floating point)</li>
+<li>Arrays are simulated via indexed variables (<code>arr_0</code>, <code>arr_1</code>, ...)</li>
+</ul>
+<h2 id="running-the-demo"><a class="header" href="#running-the-demo">Running the Demo</a></h2>
+<pre><code class="language-bash">cargo run --example transpiler_demo
+</code></pre>
+<p>This runs 7 demonstrations covering basic functions, nested calls, match expressions, loops with return, match inside loops, recursion, and multi-function programs.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="corpus-testing"><a class="header" href="#corpus-testing">Corpus Testing</a></h1>
+<p>The transpiler is validated by a corpus of 14,712 entries across three formats: Bash, Makefile, and Dockerfile. Every entry specifies Rust input, expected output patterns, and behavioral equivalence checks.</p>
+<h2 id="v2-scoring-system"><a class="header" href="#v2-scoring-system">V2 Scoring System</a></h2>
+<p>The corpus uses a 100-point V2 scoring system with 9 dimensions:</p>
+<div class="table-wrapper"><table><thead><tr><th>Dimension</th><th>Points</th><th>Description</th></tr></thead><tbody>
+<tr><td>A: Transpilation</td><td>30</td><td>Does the Rust input parse and transpile without error?</td></tr>
+<tr><td>B1: Containment</td><td>10</td><td>Does the output contain the expected substring?</td></tr>
+<tr><td>B2: Exact Match</td><td>8</td><td>Does a full output line match the expected pattern?</td></tr>
+<tr><td>B3: Behavioral</td><td>7</td><td>Does the generated script execute correctly in <code>sh</code>?</td></tr>
+<tr><td>C: Coverage</td><td>15</td><td>LLVM line coverage ratio for the format's source files</td></tr>
+<tr><td>D: Lint Clean</td><td>10</td><td>Does the output pass <code>shellcheck -s sh</code>?</td></tr>
+<tr><td>E: Deterministic</td><td>10</td><td>Does the same input produce byte-identical output?</td></tr>
+<tr><td>F: Metamorphic</td><td>5</td><td>Does whitespace-varied input produce equivalent output?</td></tr>
+<tr><td>G: Cross-Shell</td><td>5</td><td>Does the output execute identically in <code>sh</code> and <code>dash</code>?</td></tr>
+</tbody></table>
+</div>
+<h3 id="grading-scale"><a class="header" href="#grading-scale">Grading Scale</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Grade</th><th>Score</th></tr></thead><tbody>
+<tr><td>A+</td><td>&gt;= 97.0</td></tr>
+<tr><td>A</td><td>&gt;= 93.0</td></tr>
+<tr><td>B</td><td>&gt;= 85.0</td></tr>
+<tr><td>C</td><td>&gt;= 75.0</td></tr>
+<tr><td>D</td><td>&gt;= 65.0</td></tr>
+<tr><td>F</td><td>&lt; 65.0</td></tr>
+</tbody></table>
+</div>
+<h2 id="running-the-corpus"><a class="header" href="#running-the-corpus">Running the Corpus</a></h2>
+<pre><code class="language-bash"><span class="boring"> Full corpus run with V2 scoring
+</span>bashrs corpus run
+
+<span class="boring"> Show specific entry details
+</span>bashrs corpus show B-001
+
+<span class="boring"> Show failure analysis
+</span>bashrs corpus failures
+
+<span class="boring"> Score history
+</span>bashrs corpus history
+</code></pre>
+<h2 id="entry-format"><a class="header" href="#entry-format">Entry Format</a></h2>
+<p>Each corpus entry in <code>registry.rs</code> specifies:</p>
+<pre><pre class="playground"><code class="language-rust">CorpusEntry {
+    id: "B-001",
+    name: "hello_world",
+    rust_source: r#"fn main() { println!("Hello"); }"#,
+    expected_output: "Hello",
+    expected_contains: "printf '%s\\n'",
+    category: "basic",
+    format: CorpusFormat::Bash,
+}</code></pre></pre>
+<ul>
+<li><code>rust_source</code>: The Rust code to transpile</li>
+<li><code>expected_output</code>: What <code>sh output.sh</code> should print (B1 containment check)</li>
+<li><code>expected_contains</code>: A line that must appear in the generated shell (B2 exact match)</li>
+</ul>
+<h2 id="current-status"><a class="header" href="#current-status">Current Status</a></h2>
+<ul>
+<li><strong>14,712 entries</strong> (13,397 Bash + 695 Makefile + 620 Dockerfile)</li>
+<li><strong>97.5/100 (A+)</strong> overall score</li>
+<li><strong>0 failures</strong> across all entries</li>
+<li><strong>100%</strong> transpilation pass rate</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-file-management"><a class="header" href="#configuration-file-management">Configuration File Management</a></h1>
 <p><strong>Rash</strong> provides specialized support for analyzing and purifying shell configuration files like <code>.bashrc</code>, <code>.zshrc</code>, <code>.bash_profile</code>, and <code>.profile</code>. These files are critical infrastructure - they set up your shell environment for every new session.</p>
 <h2 id="why-config-file-management-matters"><a class="header" href="#why-config-file-management-matters">Why Config File Management Matters</a></h2>
@@ -7780,7 +7956,7 @@ fi
 <li>Performance bottlenecks from expensive operations</li>
 </ul>
 <p>The <code>bashrs config analyze</code> command provides comprehensive analysis of your shell configuration files, detecting these issues and providing actionable recommendations.</p>
-<h2 id="quick-start-1"><a class="header" href="#quick-start-1">Quick Start</a></h2>
+<h2 id="quick-start-2"><a class="header" href="#quick-start-2">Quick Start</a></h2>
 <p>Analyze your shell configuration in seconds:</p>
 <pre><code class="language-bash">bashrs config analyze ~/.bashrc
 </code></pre>
@@ -10344,7 +10520,7 @@ Fixed 3 issues:
 
 Makefile is now deterministic and reproducible!
 </code></pre>
-<h2 id="quick-start-2"><a class="header" href="#quick-start-2">Quick Start</a></h2>
+<h2 id="quick-start-3"><a class="header" href="#quick-start-3">Quick Start</a></h2>
 <h3 id="analyze-a-makefile"><a class="header" href="#analyze-a-makefile">Analyze a Makefile</a></h3>
 <pre><code class="language-bash"><span class="boring"> Check for issues
 </span>$ rash lint Makefile
@@ -11908,7 +12084,7 @@ git commit -m "Add purified Makefile with test suite"
 <tr><td><strong>Signature Verification</strong></td><td>Ed25519 artifact signing</td></tr>
 </tbody></table>
 </div>
-<h2 id="quick-start-3"><a class="header" href="#quick-start-3">Quick Start</a></h2>
+<h2 id="quick-start-4"><a class="header" href="#quick-start-4">Quick Start</a></h2>
 <pre><code class="language-bash"><span class="boring"> Initialize a new installer project
 </span>bashrs installer init my-app-installer
 
@@ -17124,8 +17300,8 @@ fn test_real_world_deployment_script() {
 <li><strong>Testability</strong>: Unit tests, integration tests, and property tests</li>
 </ul>
 <p>For more details on testing transformations, see the <a href="advanced/./property-testing.html">Property Testing</a> and <a href="advanced/./mutation-testing.html">Mutation Testing</a> chapters.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="corpus-testing"><a class="header" href="#corpus-testing">Corpus Testing</a></h1>
-<p>Rash v6.60.0 includes a comprehensive transpilation corpus with 500+ entries for validating the Rust-to-Shell transpiler across three formats and five tiers.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="corpus-testing-1"><a class="header" href="#corpus-testing-1">Corpus Testing</a></h1>
+<p>Rash v6.61.0 includes a comprehensive transpilation corpus with 14,712 entries for validating the Rust-to-Shell transpiler across three formats (Bash, Makefile, Dockerfile).</p>
 <h2 id="overview-9"><a class="header" href="#overview-9">Overview</a></h2>
 <p>The corpus is a registry of known-good transpilation test cases. Each entry contains Rust source code, the expected shell output pattern, and metadata about format and difficulty tier.</p>
 <pre><code class="language-bash"><span class="boring"> Run the full corpus
@@ -17185,7 +17361,7 @@ Entries: 500+ total, 100% pass rate
     "expected_output_pattern",      // Output pattern
 )</code></pre>
 <h2 id="adversarial-testing-tier-4"><a class="header" href="#adversarial-testing-tier-4">Adversarial Testing (Tier 4)</a></h2>
-<p>Tier 4 entries are intentionally crafted to expose transpiler bugs. In v6.60.0, these found and fixed:</p>
+<p>Tier 4 entries are intentionally crafted to expose transpiler bugs. In v6.61.0, these found and fixed:</p>
 <ol>
 <li><strong>format! macro bug</strong>: <code>format!("{}", x)</code> was not transpiled correctly</li>
 <li><strong>Assignment expression bug</strong>: <code>x = x + 1</code> inside complex expressions failed</li>
@@ -20055,7 +20231,7 @@ Complexity exceeds thresholds
 <li>Validating synthetic test corpora</li>
 </ul>
 <p>This practice ensures bashrs can handle real-world complexity and catches regressions early.</p>
-<h2 id="quick-start-4"><a class="header" href="#quick-start-4">Quick Start</a></h2>
+<h2 id="quick-start-5"><a class="header" href="#quick-start-5">Quick Start</a></h2>
 <pre><code class="language-bash"><span class="boring"> Quick dogfood check (Makefile + key scripts)
 </span>make dogfood-quick
 

@@ -159,7 +159,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="corpus-testing"><a class="header" href="#corpus-testing">Corpus Testing</a></h1>
-<p>Rash v6.60.0 includes a comprehensive transpilation corpus with 500+ entries for validating the Rust-to-Shell transpiler across three formats and five tiers.</p>
+<p>Rash v6.61.0 includes a comprehensive transpilation corpus with 14,712 entries for validating the Rust-to-Shell transpiler across three formats (Bash, Makefile, Dockerfile).</p>
 <h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>The corpus is a registry of known-good transpilation test cases. Each entry contains Rust source code, the expected shell output pattern, and metadata about format and difficulty tier.</p>
 <pre><code class="language-bash"><span class="boring"> Run the full corpus
@@ -219,7 +219,7 @@ Entries: 500+ total, 100% pass rate
     "expected_output_pattern",      // Output pattern
 )</code></pre>
 <h2 id="adversarial-testing-tier-4"><a class="header" href="#adversarial-testing-tier-4">Adversarial Testing (Tier 4)</a></h2>
-<p>Tier 4 entries are intentionally crafted to expose transpiler bugs. In v6.60.0, these found and fixed:</p>
+<p>Tier 4 entries are intentionally crafted to expose transpiler bugs. In v6.61.0, these found and fixed:</p>
 <ol>
 <li><strong>format! macro bug</strong>: <code>format!("{}", x)</code> was not transpiled correctly</li>
 <li><strong>Assignment expression bug</strong>: <code>x = x + 1</code> inside complex expressions failed</li>

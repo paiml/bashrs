@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.61.0] - 2026-02-10
+
+### Fixed
+
+- **Return-in-Loop Transpiler Bug** (P0): `return expr` inside `while`/`for`/`match` bodies
+  within functions was emitting debug format (`Arithmetic { op: Add, ... }`) instead of shell
+  arithmetic (`$((expr))`). Root cause: `convert_stmt_in_function` delegated loop/match bodies
+  to `convert_stmt` which lacks function-context awareness. Fixed by propagating function context
+  through While, For, and Match statement bodies.
+
+- **Match-in-Let Transpiler Bug** (P0): `let x = match y { 0 => a, 1 => b, _ => c }` was
+  producing `x='unknown'` because `convert_expr_to_value` had no handler for `Expr::Block`
+  (the parser's representation of match-as-expression). Fixed by detecting `Expr::Block([Stmt::Match{...}])`
+  in the Let handler and lowering to a `case` statement with per-arm assignments.
+
+- **Clippy Logic Bug**: Fixed tautological assertion (`result || !result`) in corpus runner test.
+
+### Added
+
+- **Corpus Expansion**: 14,712 total entries (13,397 Bash + 695 Makefile + 620 Dockerfile)
+  - Round 19: 195 entries covering function chains, quoting, one-liners, env vars, data structures
+  - Round 20: 210 entries exploiting fixed return-in-loop with nested loops, convergence, recursion
+  - 107+ CLI subcommands for corpus analysis, quality gates, convergence tracking
+  - V2 Score: 97.5/100 (A+), 0 failures
+
+- **New Example**: `transpiler_demo` — demonstrates 7 transpiler capabilities:
+  basic functions, nested calls `f(g(h(x)))`, match-in-let, loops with early return,
+  match inside loops, recursion (fibonacci), and multi-function programs (gcd/lcm)
+
+- **Regression Tests**: 2 new IR tests covering the transpiler bug fixes
+
+- **Book Chapter**: Transpiler documentation covering supported Rust constructs, match expressions,
+  function calls, loops, and the corpus scoring system
+
+### Quality
+
+- **Tests**: 10,888 passing (100% pass rate)
+- **Corpus**: 97.5/100 (A+) — 14,712 entries, 0 failures
+- **V2 Breakdown**: A=30/30, B1=9.7/10, B2=7.0/8, B3=7.0/7, C=14.8/15, D=10/10, E=10/10, F=5/5, G=4.9/5
+
 ## [6.60.0] - 2026-02-06
 
 ### Added

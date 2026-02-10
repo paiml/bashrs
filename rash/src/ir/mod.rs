@@ -176,6 +176,111 @@ impl IrConverter {
             // Explicit return without value
             Stmt::Return(None) => Ok(ShellIR::Return { value: None }),
 
+            // While loop in function context: propagate function-aware conversion
+            // so that `return expr` inside the loop body becomes ShellIR::Return
+            // instead of ShellIR::Exit (which would emit debug format)
+            Stmt::While {
+                condition, body, ..
+            } => {
+                let condition_value = self.convert_expr_to_value(condition)?;
+                let body_ir = self.convert_stmts_in_function(body, false)?;
+                Ok(ShellIR::While {
+                    condition: condition_value,
+                    body: Box::new(body_ir),
+                })
+            }
+
+            // For loop in function context: propagate function-aware conversion
+            Stmt::For {
+                pattern,
+                iter,
+                body,
+                ..
+            } => {
+                let var = match pattern {
+                    crate::ast::restricted::Pattern::Variable(name) => name.clone(),
+                    _ => {
+                        return Err(crate::models::Error::Validation(
+                            "Only simple variable patterns supported in for loops".to_string(),
+                        ))
+                    }
+                };
+
+                let body_ir = self.convert_stmts_in_function(body, false)?;
+
+                match iter {
+                    crate::ast::Expr::Range {
+                        start,
+                        end,
+                        inclusive,
+                    } => {
+                        let start_val = self.convert_expr_to_value(start)?;
+                        let mut end_val = self.convert_expr_to_value(end)?;
+                        if !inclusive {
+                            if let ShellValue::String(s) = &end_val {
+                                if let Ok(n) = s.parse::<i32>() {
+                                    end_val = ShellValue::String((n - 1).to_string());
+                                }
+                            }
+                        }
+                        Ok(ShellIR::For {
+                            var,
+                            start: start_val,
+                            end: end_val,
+                            body: Box::new(body_ir),
+                        })
+                    }
+                    crate::ast::Expr::Array(elements) => {
+                        let items: Vec<ShellValue> = elements
+                            .iter()
+                            .map(|e| self.convert_expr_to_value(e))
+                            .collect::<Result<_>>()?;
+                        Ok(ShellIR::ForIn {
+                            var,
+                            items,
+                            body: Box::new(body_ir),
+                        })
+                    }
+                    crate::ast::Expr::Variable(name) => Ok(ShellIR::ForIn {
+                        var,
+                        items: vec![ShellValue::Variable(name.clone())],
+                        body: Box::new(body_ir),
+                    }),
+                    other => {
+                        let val = self.convert_expr_to_value(other)?;
+                        Ok(ShellIR::ForIn {
+                            var,
+                            items: vec![val],
+                            body: Box::new(body_ir),
+                        })
+                    }
+                }
+            }
+
+            // Match in function context: propagate function-aware conversion
+            Stmt::Match { scrutinee, arms } => {
+                let scrutinee_value = self.convert_expr_to_value(scrutinee)?;
+                let mut case_arms = Vec::new();
+                for arm in arms {
+                    let pattern = self.convert_match_pattern(&arm.pattern)?;
+                    let guard = if let Some(guard_expr) = &arm.guard {
+                        Some(self.convert_expr_to_value(guard_expr)?)
+                    } else {
+                        None
+                    };
+                    let body = self.convert_stmts_in_function(&arm.body, false)?;
+                    case_arms.push(shell_ir::CaseArm {
+                        pattern,
+                        guard,
+                        body: Box::new(body),
+                    });
+                }
+                Ok(ShellIR::Case {
+                    scrutinee: scrutinee_value,
+                    arms: case_arms,
+                })
+            }
+
             // Everything else: regular statement conversion
             _ => self.convert_stmt(stmt),
         }
@@ -241,6 +346,40 @@ impl IrConverter {
                         });
                     }
                     return Ok(ShellIR::Sequence(stmts));
+                }
+
+                // Handle let x = match y { arms } (match expression in let binding)
+                // Lower to: case $y in pattern) x=arm_value ;; esac
+                if let crate::ast::Expr::Block(block_stmts) = value {
+                    if block_stmts.len() == 1 {
+                        if let crate::ast::Stmt::Match { scrutinee, arms } = &block_stmts[0] {
+                            let scrutinee_value = self.convert_expr_to_value(scrutinee)?;
+                            let mut case_arms = Vec::new();
+                            for arm in arms {
+                                let pattern = self.convert_match_pattern(&arm.pattern)?;
+                                let guard = if let Some(guard_expr) = &arm.guard {
+                                    Some(self.convert_expr_to_value(guard_expr)?)
+                                } else {
+                                    None
+                                };
+                                let arm_value = self.extract_match_arm_value(&arm.body)?;
+                                let assign = ShellIR::Let {
+                                    name: name.clone(),
+                                    value: arm_value,
+                                    effects: EffectSet::pure(),
+                                };
+                                case_arms.push(shell_ir::CaseArm {
+                                    pattern,
+                                    guard,
+                                    body: Box::new(assign),
+                                });
+                            }
+                            return Ok(ShellIR::Case {
+                                scrutinee: scrutinee_value,
+                                arms: case_arms,
+                            });
+                        }
+                    }
                 }
 
                 let shell_value = self.convert_expr_to_value(value)?;
@@ -958,6 +1097,21 @@ impl IrConverter {
             Pattern::Tuple(_) | Pattern::Struct { .. } => Err(crate::models::Error::Validation(
                 "Tuple and struct patterns not yet supported in match expressions".to_string(),
             )),
+        }
+    }
+
+    /// Extract the value expression from a match arm body.
+    /// Match arms in expression position (e.g., `let x = match y { 0 => expr, ... }`)
+    /// have a body whose last statement is the value to assign.
+    fn extract_match_arm_value(&self, body: &[crate::ast::Stmt]) -> Result<ShellValue> {
+        if let Some(last) = body.last() {
+            match last {
+                crate::ast::Stmt::Expr(expr) => self.convert_expr_to_value(expr),
+                crate::ast::Stmt::Return(Some(expr)) => self.convert_expr_to_value(expr),
+                _ => Ok(ShellValue::String("0".to_string())),
+            }
+        } else {
+            Ok(ShellValue::String("0".to_string()))
         }
     }
 }

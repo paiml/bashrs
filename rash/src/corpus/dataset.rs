@@ -218,7 +218,7 @@ fn dataset_schema_fields() -> Vec<(&'static str, &'static str, &'static str)> {
         ("deterministic", "bool", "Output identical across runs?"),
         ("score", "float64", "Per-entry score (0-100)"),
         ("grade", "string", "A+, A, B, C, D, F"),
-        ("bashrs_version", "string", "e.g. 6.60.0"),
+        ("bashrs_version", "string", "e.g. 6.61.0"),
         ("commit_sha", "string", "Git commit SHA"),
         ("date", "string", "ISO 8601 date"),
     ]
@@ -481,21 +481,21 @@ mod tests {
     fn test_build_row_with_result() {
         let entry = make_entry("B-001", CorpusFormat::Bash);
         let result = make_result("B-001", true);
-        let row = build_row(&entry, Some(&result), "6.60.0", "abc1234", "2026-02-09");
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
 
         assert_eq!(row.id, "B-001");
         assert!(row.transpiled);
         assert!(row.output_correct);
         assert!(row.lint_clean);
         assert!(row.deterministic);
-        assert_eq!(row.bashrs_version, "6.60.0");
+        assert_eq!(row.bashrs_version, "6.61.0");
         assert!(row.score > 0.0);
     }
 
     #[test]
     fn test_build_row_without_result() {
         let entry = make_entry("B-002", CorpusFormat::Bash);
-        let row = build_row(&entry, None, "6.60.0", "abc1234", "2026-02-09");
+        let row = build_row(&entry, None, "6.61.0", "abc1234", "2026-02-09");
 
         assert_eq!(row.id, "B-002");
         assert!(!row.transpiled);
@@ -508,7 +508,7 @@ mod tests {
     fn test_build_row_failed_result() {
         let entry = make_entry("B-003", CorpusFormat::Bash);
         let result = make_result("B-003", false);
-        let row = build_row(&entry, Some(&result), "6.60.0", "abc1234", "2026-02-09");
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
 
         assert!(!row.transpiled);
         assert!(!row.output_correct);
@@ -519,7 +519,7 @@ mod tests {
     fn test_export_jsonl() {
         let entry = make_entry("B-001", CorpusFormat::Bash);
         let result = make_result("B-001", true);
-        let row = build_row(&entry, Some(&result), "6.60.0", "abc1234", "2026-02-09");
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
 
         let output = export_jsonl(&[row]);
         assert!(output.contains("\"id\":\"B-001\""));
@@ -531,7 +531,7 @@ mod tests {
     fn test_export_json() {
         let entry = make_entry("B-001", CorpusFormat::Bash);
         let result = make_result("B-001", true);
-        let row = build_row(&entry, Some(&result), "6.60.0", "abc1234", "2026-02-09");
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
 
         let output = export_json(&[row]);
         assert!(output.starts_with('['));
@@ -542,7 +542,7 @@ mod tests {
     fn test_export_csv() {
         let entry = make_entry("B-001", CorpusFormat::Bash);
         let result = make_result("B-001", true);
-        let row = build_row(&entry, Some(&result), "6.60.0", "abc1234", "2026-02-09");
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
 
         let output = export_csv(&[row]);
         assert!(output.starts_with("id,name,tier,format"));
@@ -563,7 +563,7 @@ mod tests {
                 };
                 let entry = make_entry(id, fmt);
                 let result = make_result(id, true);
-                build_row(&entry, Some(&result), "6.60.0", "abc", "2026-02-09")
+                build_row(&entry, Some(&result), "6.61.0", "abc", "2026-02-09")
             })
             .collect();
 
@@ -742,7 +742,7 @@ mod tests {
             deterministic: true,
             score: 100.0,
             grade: "A+".into(),
-            bashrs_version: "6.60.0".into(),
+            bashrs_version: "6.61.0".into(),
             commit_sha: "abc1234".into(),
             date: "2026-02-09".into(),
         };
