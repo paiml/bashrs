@@ -12,15 +12,41 @@ rash_println() {
     printf '%s\n' "$1"
 }
 
+dispatch() {
+    code="$1"
+
+        case $((code % 6)) in
+            0)
+            base='10'
+            ;;
+            1)
+            base='20'
+            ;;
+            2)
+            base='30'
+            ;;
+            3)
+            base='40'
+            ;;
+            4)
+            base='50'
+            ;;
+            *)
+            base='60'
+            ;;
+        esac
+        adjusted=$((base + code))
+        echo "$adjusted"
+        return
+}
+
+
 # Main script begins
 main() {
-        items_0='Alpha'
-        items_1='Beta'
-        values_0='10'
-        values_1='20'
-        for i in $(seq 0 1); do
-            rash_println "${items_0} & ${values_0} \\"
-        done
+        a="$(dispatch 7)"
+        b="$(dispatch 13)"
+        c="$(dispatch 25)"
+        rash_println $((a + b + c))
 }
 
 # Cleanup on exit
