@@ -825,8 +825,27 @@ fn convert_macro_stmt(macro_stmt: &syn::StmtMacro) -> Result<Stmt> {
 }
 
 /// Convert an if-expression used in expression position (e.g., `let x = if c { a } else { b }`).
-/// Extracts the last expression from each branch and represents as __if_expr(cond, then_val, else_val).
+/// For simple single-expression branches: __if_expr(cond, then_val, else_val).
+/// For multi-statement branches: Expr::Block([Stmt::If{...}]) to preserve all statements.
 fn convert_if_expr(expr_if: &syn::ExprIf) -> Result<Expr> {
+    // Check if either branch has multiple statements — if so, use Stmt::If to preserve them
+    let then_multi = expr_if.then_branch.stmts.len() > 1;
+    let else_multi = if let Some((_, else_expr)) = &expr_if.else_branch {
+        match &**else_expr {
+            SynExpr::Block(block) => block.block.stmts.len() > 1,
+            _ => false,
+        }
+    } else {
+        false
+    };
+
+    if then_multi || else_multi {
+        // Multi-statement branch: produce Expr::Block([Stmt::If{...}])
+        // This preserves all let bindings in each branch
+        let if_stmt = convert_if_stmt(expr_if)?;
+        return Ok(Expr::Block(vec![if_stmt]));
+    }
+
     let condition = convert_expr(&expr_if.cond)?;
 
     // Extract the last expression from the then branch
