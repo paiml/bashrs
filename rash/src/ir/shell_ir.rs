@@ -299,6 +299,13 @@ pub enum ShellValue {
     /// Exit code of last command: $?
     /// Sprint 27c: Exit Code Handling
     ExitCode,
+
+    /// Dynamic array access: arr[i] where i is a runtime variable
+    /// Emits eval-based POSIX-compliant lookup
+    DynamicArrayAccess {
+        array: String,
+        index: Box<ShellValue>,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -356,7 +363,8 @@ impl ShellValue {
             | ShellValue::Arg { .. }
             | ShellValue::ArgWithDefault { .. }
             | ShellValue::ArgCount
-            | ShellValue::ExitCode => false,
+            | ShellValue::ExitCode
+            | ShellValue::DynamicArrayAccess { .. } => false,
             ShellValue::Concat(parts) => parts.iter().all(|p| p.is_constant()),
             ShellValue::Comparison { left, right, .. }
             | ShellValue::Arithmetic { left, right, .. }
@@ -398,6 +406,9 @@ impl ShellValue {
             | ShellValue::ArgWithDefault { .. }
             | ShellValue::ArgCount
             | ShellValue::ExitCode => {}
+            ShellValue::DynamicArrayAccess { index, .. } => {
+                index.collect_functions(used);
+            }
         }
     }
 
