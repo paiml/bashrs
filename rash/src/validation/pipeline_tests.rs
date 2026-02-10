@@ -47,6 +47,7 @@ mod tests {
                     Stmt::Let {
                         name: "x".to_string(),
                         value: Expr::Literal(Literal::U32(42)),
+                        declaration: true,
                     },
                     Stmt::Expr(Expr::Variable("x".to_string())),
                 ],
@@ -213,10 +214,12 @@ mod tests {
                     then_block: vec![Stmt::Let {
                         name: "x".to_string(),
                         value: Expr::Literal(Literal::U32(1)),
+                        declaration: true,
                     }],
                     else_block: Some(vec![Stmt::Let {
                         name: "y".to_string(),
                         value: Expr::Literal(Literal::U32(2)),
+                        declaration: true,
                     }]),
                 }],
             }],
@@ -477,6 +480,7 @@ mod tests {
                             right: Box::new(Expr::Variable("x".to_string())),
                         }),
                     },
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -501,6 +505,7 @@ mod tests {
                             operand: Box::new(Expr::Variable("x".to_string())),
                         }),
                     },
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -542,6 +547,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("() { :; } ; echo attack".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -564,6 +570,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("safe; rm -rf /".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -583,6 +590,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("data| cat /etc/passwd".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -603,6 +611,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("data$(whoami)".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -623,6 +632,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("data`whoami`".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -643,6 +653,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("true&& rm -rf /".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -666,6 +677,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("false || rm -rf /".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -692,6 +704,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("<<EOF\nmalicious\nEOF".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -712,6 +725,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("eval rm -rf /".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -732,6 +746,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("exec rm -rf /".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -752,6 +767,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("safe data\nrm -rf /".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -774,6 +790,7 @@ mod tests {
                     value: Expr::Literal(Literal::Str(
                         "line one\nline two\nline three".to_string(),
                     )),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -989,6 +1006,7 @@ mod tests {
                         Expr::Literal(Literal::U32(2)),
                         Expr::Variable("x".to_string()),
                     ]),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -1049,10 +1067,12 @@ mod tests {
                     Stmt::Let {
                         name: "x".to_string(),
                         value: Expr::Literal(Literal::U32(1)),
+                        declaration: true,
                     },
                     Stmt::Let {
                         name: "y".to_string(),
                         value: Expr::Literal(Literal::U32(2)),
+                        declaration: true,
                     },
                 ]))],
             }],
@@ -1077,6 +1097,7 @@ mod tests {
                         end: Box::new(Expr::Literal(Literal::U32(10))),
                         inclusive: false,
                     },
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -1120,6 +1141,7 @@ mod tests {
                 body: vec![Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::Str("$(rm -rf /)".to_string())),
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),

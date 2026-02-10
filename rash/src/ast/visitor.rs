@@ -110,6 +110,7 @@ mod tests {
                     Stmt::Let {
                         name: "x".to_string(),
                         value: Expr::Literal(Literal::Str("hello".to_string())),
+                        declaration: true,
                     },
                     Stmt::Expr(Expr::Variable("x".to_string())),
                 ],

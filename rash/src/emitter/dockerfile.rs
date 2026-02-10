@@ -111,7 +111,7 @@ impl DockerfileConverter {
     ) -> Result<()> {
         match stmt {
             Stmt::Expr(expr) => self.convert_expr(expr, ir, current_stage),
-            Stmt::Let { name, value } => {
+            Stmt::Let { name, value, .. } => {
                 // let bindings become ENV or ARG depending on context
                 let val = self.expr_to_string(value)?;
                 if let Some(stage) = current_stage {
@@ -782,6 +782,7 @@ mod tests {
             Stmt::Let {
                 name: "app_port".to_string(),
                 value: Expr::Literal(Literal::Str("8080".to_string())),
+                declaration: true,
             },
         ]);
 

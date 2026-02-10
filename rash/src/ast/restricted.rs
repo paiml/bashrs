@@ -212,6 +212,10 @@ pub enum Stmt {
         name: String,
         /// Initial value
         value: Expr,
+        /// True if this is a `let` declaration, false if it's a bare assignment (`x = expr`)
+        /// Used to detect variable shadowing in loop bodies
+        #[serde(default = "default_declaration")]
+        declaration: bool,
     },
     /// Expression statement
     Expr(Expr),
@@ -259,10 +263,15 @@ pub enum Stmt {
     Continue,
 }
 
+/// Default value for `declaration` field in deserialization
+fn default_declaration() -> bool {
+    true
+}
+
 impl Stmt {
     pub fn validate(&self) -> Result<(), String> {
         match self {
-            Stmt::Let { name, value } => {
+            Stmt::Let { name, value, .. } => {
                 Self::validate_identifier(name)?;
                 value.validate()
             }
@@ -929,6 +938,7 @@ mod tests {
         let stmt = Stmt::Let {
             name: "".to_string(),
             value: Expr::Literal(Literal::U32(1)),
+            declaration: true,
         };
         let result = stmt.validate();
         assert!(result.is_err());

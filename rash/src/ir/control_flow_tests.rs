@@ -19,6 +19,7 @@ fn test_string_comparison_equality() {
                 Stmt::Let {
                     name: "env".to_string(),
                     value: Expr::Literal(Literal::Str("production".to_string())),
+                    declaration: true,
                 },
                 Stmt::If {
                     condition: Expr::Binary {
@@ -71,6 +72,7 @@ fn test_integer_comparison_equality() {
                 Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::I32(10)),
+                    declaration: true,
                 },
                 Stmt::If {
                     condition: Expr::Binary {
@@ -116,10 +118,12 @@ fn test_logical_and_operator() {
                 Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::I32(10)),
+                    declaration: true,
                 },
                 Stmt::Let {
                     name: "y".to_string(),
                     value: Expr::Literal(Literal::I32(20)),
+                    declaration: true,
                 },
                 Stmt::If {
                     condition: Expr::Binary {
@@ -175,6 +179,7 @@ fn test_logical_or_operator() {
                 Stmt::Let {
                     name: "x".to_string(),
                     value: Expr::Literal(Literal::I32(10)),
+                    declaration: true,
                 },
                 Stmt::If {
                     condition: Expr::Binary {
@@ -229,6 +234,7 @@ fn test_not_operator() {
                 Stmt::Let {
                     name: "enabled".to_string(),
                     value: Expr::Literal(Literal::Bool(false)),
+                    declaration: true,
                 },
                 Stmt::If {
                     condition: Expr::Unary {
@@ -278,6 +284,7 @@ fn test_string_inequality() {
                 Stmt::Let {
                     name: "env".to_string(),
                     value: Expr::Literal(Literal::Str("development".to_string())),
+                    declaration: true,
                 },
                 Stmt::If {
                     condition: Expr::Binary {
@@ -343,6 +350,7 @@ fn test_function_call_as_value() {
                         name: "get_value".to_string(),
                         args: vec![],
                     },
+                    declaration: true,
                 }],
             },
         ],
