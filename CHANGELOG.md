@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.62.0] - 2026-02-10
+
+### Fixed
+
+- **Variable Shadowing in Loops** (P0): `let x = x + i` inside `while`/`for` loops was
+  mutating the outer variable instead of creating a per-iteration shadow. Root cause: both
+  `let x = expr` (declaration) and `x = expr` (assignment) produced identical `Stmt::Let`
+  with no way to distinguish shadows from mutations. Fixed by adding `declaration: bool` to
+  `Stmt::Let` and implementing save/restore pattern (`__shadow_x_save`) for shadow variables.
+
+- **80 Corpus Failures**: Eliminated all pre-existing corpus failures by fixing edge cases
+  in transpilation, bringing failure count from 80 to 0.
+
+- **Lexer Panic on Bare Heredoc**: `<<` at end of input no longer panics the bash lexer.
+
+- **Pipe-in-Condition Parser** (#133): Pipes inside `if` conditions now parse correctly,
+  with new `BashStmt::Negated` support.
+
+- **Dynamic Array Indexing**: Runtime variable indices (`data[i]`) now transpile correctly
+  instead of producing static index 0.
+
+- **For-In Array Expansion**: `for x in arr` now correctly decomposes arrays into elements.
+
+### Added
+
+- **Corpus Expansion**: 15,106 total entries (Rounds 21-37 + shadow pathological)
+  - Rounds 21-37: 799 entries across Bash, Makefile, and Dockerfile formats
+  - 20 pathological shadow entries (B-13790..B-13809) covering while/for/function shadows
+  - V2 Score: 97.5/100 (A+), 0 failures
+
+- **Else-If Chain Fix** (P0): Correct `elif` emission for chained conditionals
+
+- **Range Pattern + Match Implicit Return** (P0): `match` with range patterns
+  (`90..=100 => 4`) now emits correct if-elif chains, and match-as-expression
+  correctly handles implicit returns
+
+### Quality
+
+- **Tests**: 10,893 passing (100% pass rate)
+- **Corpus**: 97.5/100 (A+) — 15,106 entries, 0 failures
+- **New entries**: 819 since v6.61.0
+
 ## [6.61.0] - 2026-02-10
 
 ### Fixed
