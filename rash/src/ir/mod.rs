@@ -215,18 +215,12 @@ impl IrConverter {
                         inclusive,
                     } => {
                         let start_val = self.convert_expr_to_value(start)?;
-                        let mut end_val = self.convert_expr_to_value(end)?;
-                        if !inclusive {
-                            if let ShellValue::String(s) = &end_val {
-                                if let Ok(n) = s.parse::<i32>() {
-                                    end_val = ShellValue::String((n - 1).to_string());
-                                }
-                            }
-                        }
+                        let end_val = self.convert_expr_to_value(end)?;
+                        let adjusted_end = adjust_range_end(end_val, *inclusive);
                         Ok(ShellIR::For {
                             var,
                             start: start_val,
-                            end: end_val,
+                            end: adjusted_end,
                             body: Box::new(body_ir),
                         })
                     }
@@ -353,32 +347,17 @@ impl IrConverter {
                 if let crate::ast::Expr::Block(block_stmts) = value {
                     if block_stmts.len() == 1 {
                         if let crate::ast::Stmt::Match { scrutinee, arms } = &block_stmts[0] {
-                            let scrutinee_value = self.convert_expr_to_value(scrutinee)?;
-                            let mut case_arms = Vec::new();
-                            for arm in arms {
-                                let pattern = self.convert_match_pattern(&arm.pattern)?;
-                                let guard = if let Some(guard_expr) = &arm.guard {
-                                    Some(self.convert_expr_to_value(guard_expr)?)
-                                } else {
-                                    None
-                                };
-                                let arm_value = self.extract_match_arm_value(&arm.body)?;
-                                let assign = ShellIR::Let {
-                                    name: name.clone(),
-                                    value: arm_value,
-                                    effects: EffectSet::pure(),
-                                };
-                                case_arms.push(shell_ir::CaseArm {
-                                    pattern,
-                                    guard,
-                                    body: Box::new(assign),
-                                });
-                            }
-                            return Ok(ShellIR::Case {
-                                scrutinee: scrutinee_value,
-                                arms: case_arms,
-                            });
+                            return self.lower_let_match(name, scrutinee, arms);
                         }
+                        // Handle let x = if cond { ... } else { ... }
+                        if let crate::ast::Stmt::If { condition, then_block, else_block } = &block_stmts[0] {
+                            return self.lower_let_if(name, condition, then_block, else_block.as_deref());
+                        }
+                    }
+                    // Handle let x = { stmt1; stmt2; ...; last_expr }
+                    // where last is if/match/expr — use convert_match_arm_for_let
+                    if block_stmts.len() > 1 {
+                        return self.convert_match_arm_for_let(name, block_stmts);
                     }
                 }
 
@@ -444,19 +423,10 @@ impl IrConverter {
                         inclusive,
                     } => {
                         let start_val = self.convert_expr_to_value(start)?;
-                        let mut end_val = self.convert_expr_to_value(end)?;
+                        let end_val = self.convert_expr_to_value(end)?;
+                        let adjusted_end = adjust_range_end(end_val, *inclusive);
 
-                        // For exclusive range (0..3), adjust end to be inclusive (0..=2)
-                        if !inclusive {
-                            // Subtract 1 from end value
-                            if let ShellValue::String(s) = &end_val {
-                                if let Ok(n) = s.parse::<i32>() {
-                                    end_val = ShellValue::String((n - 1).to_string());
-                                }
-                            }
-                        }
-
-                        (start_val, end_val)
+                        (start_val, adjusted_end)
                     }
                     // Non-range iterables: arrays, variables, etc.
                     // Convert to for-in loop over word list
@@ -1101,18 +1071,195 @@ impl IrConverter {
     }
 
     /// Extract the value expression from a match arm body.
-    /// Match arms in expression position (e.g., `let x = match y { 0 => expr, ... }`)
-    /// have a body whose last statement is the value to assign.
-    fn extract_match_arm_value(&self, body: &[crate::ast::Stmt]) -> Result<ShellValue> {
-        if let Some(last) = body.last() {
-            match last {
-                crate::ast::Stmt::Expr(expr) => self.convert_expr_to_value(expr),
-                crate::ast::Stmt::Return(Some(expr)) => self.convert_expr_to_value(expr),
-                _ => Ok(ShellValue::String("0".to_string())),
-            }
-        } else {
-            Ok(ShellValue::String("0".to_string()))
+    /// Lower `let target = match scrutinee { arms }` into a Case where each arm
+    /// assigns to `target`. Handles nested match expressions and block bodies.
+    fn lower_let_match(
+        &self,
+        target: &str,
+        scrutinee: &crate::ast::Expr,
+        arms: &[crate::ast::restricted::MatchArm],
+    ) -> Result<ShellIR> {
+        let scrutinee_value = self.convert_expr_to_value(scrutinee)?;
+        let mut case_arms = Vec::new();
+        for arm in arms {
+            let pattern = self.convert_match_pattern(&arm.pattern)?;
+            let guard = if let Some(guard_expr) = &arm.guard {
+                Some(self.convert_expr_to_value(guard_expr)?)
+            } else {
+                None
+            };
+            let body_ir = self.convert_match_arm_for_let(target, &arm.body)?;
+            case_arms.push(shell_ir::CaseArm {
+                pattern,
+                guard,
+                body: Box::new(body_ir),
+            });
         }
+        Ok(ShellIR::Case {
+            scrutinee: scrutinee_value,
+            arms: case_arms,
+        })
+    }
+
+    /// Convert a match arm body into IR that assigns the result to `target`.
+    /// Handles: simple expressions, nested match, and block bodies with
+    /// multiple statements.
+    fn convert_match_arm_for_let(
+        &self,
+        target: &str,
+        body: &[crate::ast::Stmt],
+    ) -> Result<ShellIR> {
+        if body.is_empty() {
+            return Ok(ShellIR::Let {
+                name: target.to_string(),
+                value: ShellValue::String("0".to_string()),
+                effects: EffectSet::pure(),
+            });
+        }
+
+        // Single statement arm
+        if body.len() == 1 {
+            match &body[0] {
+                // Simple expression → target=value
+                crate::ast::Stmt::Expr(expr) => {
+                    let val = self.convert_expr_to_value(expr)?;
+                    return Ok(ShellIR::Let {
+                        name: target.to_string(),
+                        value: val,
+                        effects: EffectSet::pure(),
+                    });
+                }
+                // return expr → target=value
+                crate::ast::Stmt::Return(Some(expr)) => {
+                    let val = self.convert_expr_to_value(expr)?;
+                    return Ok(ShellIR::Let {
+                        name: target.to_string(),
+                        value: val,
+                        effects: EffectSet::pure(),
+                    });
+                }
+                // Nested match → recursive lower_let_match
+                crate::ast::Stmt::Match {
+                    scrutinee,
+                    arms: inner_arms,
+                } => {
+                    return self.lower_let_match(target, scrutinee, inner_arms);
+                }
+                // If-else expression → lower_let_if
+                crate::ast::Stmt::If {
+                    condition,
+                    then_block,
+                    else_block,
+                } => {
+                    return self.lower_let_if(target, condition, then_block, else_block.as_deref());
+                }
+                _ => {}
+            }
+        }
+
+        // Multiple statements: convert all but last, then handle last
+        let mut ir_stmts = Vec::new();
+        for stmt in &body[..body.len() - 1] {
+            ir_stmts.push(self.convert_stmt(stmt)?);
+        }
+        let last = &body[body.len() - 1];
+        match last {
+            crate::ast::Stmt::Expr(expr) => {
+                let val = self.convert_expr_to_value(expr)?;
+                ir_stmts.push(ShellIR::Let {
+                    name: target.to_string(),
+                    value: val,
+                    effects: EffectSet::pure(),
+                });
+            }
+            crate::ast::Stmt::Return(Some(expr)) => {
+                let val = self.convert_expr_to_value(expr)?;
+                ir_stmts.push(ShellIR::Let {
+                    name: target.to_string(),
+                    value: val,
+                    effects: EffectSet::pure(),
+                });
+            }
+            crate::ast::Stmt::Match {
+                scrutinee,
+                arms: inner_arms,
+            } => {
+                ir_stmts.push(self.lower_let_match(target, scrutinee, inner_arms)?);
+            }
+            crate::ast::Stmt::If {
+                condition,
+                then_block,
+                else_block,
+            } => {
+                ir_stmts.push(self.lower_let_if(target, condition, then_block, else_block.as_deref())?);
+            }
+            other => {
+                ir_stmts.push(self.convert_stmt(other)?);
+            }
+        }
+        Ok(ShellIR::Sequence(ir_stmts))
+    }
+
+    /// Lower `let target = if cond { then } else { else }` into an If IR node
+    /// where each branch assigns to `target`.
+    fn lower_let_if(
+        &self,
+        target: &str,
+        condition: &crate::ast::Expr,
+        then_block: &[crate::ast::Stmt],
+        else_block: Option<&[crate::ast::Stmt]>,
+    ) -> Result<ShellIR> {
+        let test_expr = self.convert_expr_to_value(condition)?;
+        let then_ir = self.convert_block_for_let(target, then_block)?;
+        let else_ir = if let Some(else_stmts) = else_block {
+            Some(Box::new(self.convert_block_for_let(target, else_stmts)?))
+        } else {
+            None
+        };
+        Ok(ShellIR::If {
+            test: test_expr,
+            then_branch: Box::new(then_ir),
+            else_branch: else_ir,
+        })
+    }
+
+    /// Convert a block of statements where the last expression assigns to `target`.
+    fn convert_block_for_let(
+        &self,
+        target: &str,
+        stmts: &[crate::ast::Stmt],
+    ) -> Result<ShellIR> {
+        self.convert_match_arm_for_let(target, stmts)
+    }
+}
+
+/// Adjust range end value for exclusive ranges (0..n → 0..=n-1).
+/// For literal integers, directly subtract 1. For variables and expressions,
+/// wrap in Arithmetic { Sub, end_val, 1 } so shell emits $((n - 1)).
+fn adjust_range_end(end_val: ShellValue, inclusive: bool) -> ShellValue {
+    if inclusive {
+        return end_val;
+    }
+    // Exclusive range: subtract 1 from end
+    match &end_val {
+        ShellValue::String(s) => {
+            if let Ok(n) = s.parse::<i32>() {
+                ShellValue::String((n - 1).to_string())
+            } else {
+                // Non-numeric string — wrap in arithmetic
+                ShellValue::Arithmetic {
+                    op: shell_ir::ArithmeticOp::Sub,
+                    left: Box::new(end_val),
+                    right: Box::new(ShellValue::String("1".to_string())),
+                }
+            }
+        }
+        // Variable or expression — wrap in arithmetic subtraction
+        _ => ShellValue::Arithmetic {
+            op: shell_ir::ArithmeticOp::Sub,
+            left: Box::new(end_val),
+            right: Box::new(ShellValue::String("1".to_string())),
+        },
     }
 }
 
