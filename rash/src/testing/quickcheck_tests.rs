@@ -123,7 +123,7 @@ pub mod generators {
     pub fn simple_stmt() -> impl Strategy<Value = Stmt> {
         prop_oneof![
             (any_valid_identifier(), simple_expr())
-                .prop_map(|(name, value)| Stmt::Let { name, value }),
+                .prop_map(|(name, value)| Stmt::Let { name, value, declaration: true, }),
             simple_expr().prop_map(Stmt::Expr),
             prop::option::of(simple_expr()).prop_map(Stmt::Return),
         ]

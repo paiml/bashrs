@@ -50,12 +50,17 @@ struct IrConverter {
     /// Track array variables: name → element count
     /// Used to expand `for x in arr` into `for x in "$arr_0" "$arr_1" ...`
     arrays: std::cell::RefCell<std::collections::HashMap<String, usize>>,
+    /// Track declared variables for shadow detection in loop bodies.
+    /// When a `let x = ...` (declaration=true) appears inside a loop body
+    /// and `x` is already in this set, it's a shadow that needs renaming.
+    declared_vars: std::cell::RefCell<std::collections::HashSet<String>>,
 }
 
 impl IrConverter {
     fn new() -> Self {
         Self {
             arrays: std::cell::RefCell::new(std::collections::HashMap::new()),
+            declared_vars: std::cell::RefCell::new(std::collections::HashSet::new()),
         }
     }
 
@@ -187,11 +192,17 @@ impl IrConverter {
                 condition, body, ..
             } => {
                 let condition_value = self.convert_expr_to_value(condition)?;
-                let body_ir = self.convert_stmts_in_function(body, false)?;
-                Ok(ShellIR::While {
+                let shadow_vars = self.detect_shadows(body);
+                let body_ir = if shadow_vars.is_empty() {
+                    self.convert_stmts_in_function(body, false)?
+                } else {
+                    self.convert_loop_body_with_shadows(body, &shadow_vars)?
+                };
+                let while_ir = ShellIR::While {
                     condition: condition_value,
                     body: Box::new(body_ir),
-                })
+                };
+                self.wrap_with_shadow_save_restore(while_ir, &shadow_vars)
             }
 
             // For loop in function context: propagate function-aware conversion
@@ -210,9 +221,14 @@ impl IrConverter {
                     }
                 };
 
-                let body_ir = self.convert_stmts_in_function(body, false)?;
+                let shadow_vars = self.detect_shadows(body);
+                let body_ir = if shadow_vars.is_empty() {
+                    self.convert_stmts_in_function(body, false)?
+                } else {
+                    self.convert_loop_body_with_shadows(body, &shadow_vars)?
+                };
 
-                match iter {
+                let loop_ir = match iter {
                     crate::ast::Expr::Range {
                         start,
                         end,
@@ -221,23 +237,23 @@ impl IrConverter {
                         let start_val = self.convert_expr_to_value(start)?;
                         let end_val = self.convert_expr_to_value(end)?;
                         let adjusted_end = adjust_range_end(end_val, *inclusive);
-                        Ok(ShellIR::For {
+                        ShellIR::For {
                             var,
                             start: start_val,
                             end: adjusted_end,
                             body: Box::new(body_ir),
-                        })
+                        }
                     }
                     crate::ast::Expr::Array(elements) => {
                         let items: Vec<ShellValue> = elements
                             .iter()
                             .map(|e| self.convert_expr_to_value(e))
                             .collect::<Result<_>>()?;
-                        Ok(ShellIR::ForIn {
+                        ShellIR::ForIn {
                             var,
                             items,
                             body: Box::new(body_ir),
-                        })
+                        }
                     }
                     crate::ast::Expr::Variable(name) => {
                         // Check if variable is a known array — expand to elements
@@ -246,28 +262,29 @@ impl IrConverter {
                             let items: Vec<ShellValue> = (0..len)
                                 .map(|i| ShellValue::Variable(format!("{}_{}", name, i)))
                                 .collect();
-                            Ok(ShellIR::ForIn {
+                            ShellIR::ForIn {
                                 var,
                                 items,
                                 body: Box::new(body_ir),
-                            })
+                            }
                         } else {
-                            Ok(ShellIR::ForIn {
+                            ShellIR::ForIn {
                                 var,
                                 items: vec![ShellValue::Variable(name.clone())],
                                 body: Box::new(body_ir),
-                            })
+                            }
                         }
                     }
                     other => {
                         let val = self.convert_expr_to_value(other)?;
-                        Ok(ShellIR::ForIn {
+                        ShellIR::ForIn {
                             var,
                             items: vec![val],
                             body: Box::new(body_ir),
-                        })
+                        }
                     }
-                }
+                };
+                self.wrap_with_shadow_save_restore(loop_ir, &shadow_vars)
             }
 
             // Match in function context: propagate function-aware conversion
@@ -330,7 +347,7 @@ impl IrConverter {
         use crate::ast::Stmt;
 
         match stmt {
-            Stmt::Let { name, value } => {
+            Stmt::Let { name, value, declaration } => {
                 // Handle __if_expr: let x = if cond { a } else { b }
                 // Lower to: if cond; then x=a; else x=b; fi
                 // Supports nested else-if chains: __if_expr(c1, v1, __if_expr(c2, v2, v3))
@@ -381,6 +398,10 @@ impl IrConverter {
                 }
 
                 let shell_value = self.convert_expr_to_value(value)?;
+                // Track variable declarations for shadow detection
+                if *declaration {
+                    self.declared_vars.borrow_mut().insert(name.clone());
+                }
                 Ok(ShellIR::Let {
                     name: name.clone(),
                     value: shell_value,
@@ -450,19 +471,20 @@ impl IrConverter {
                     // Non-range iterables: arrays, variables, etc.
                     // Convert to for-in loop over word list
                     other => {
-                        let body_ir = self.convert_stmts(body)?;
+                        let shadow_vars = self.detect_shadows(body);
+                        let body_ir = self.convert_loop_body_with_shadows(body, &shadow_vars)?;
                         // Convert iterable to list of ShellValues
-                        match other {
+                        let loop_ir = match other {
                             crate::ast::Expr::Array(elements) => {
                                 let items: Vec<ShellValue> = elements
                                     .iter()
                                     .map(|e| self.convert_expr_to_value(e))
                                     .collect::<Result<_>>()?;
-                                return Ok(ShellIR::ForIn {
+                                ShellIR::ForIn {
                                     var,
                                     items,
                                     body: Box::new(body_ir),
-                                });
+                                }
                             }
                             crate::ast::Expr::Variable(name) => {
                                 // Check if variable is a known array — expand to elements
@@ -471,41 +493,45 @@ impl IrConverter {
                                     let items: Vec<ShellValue> = (0..len)
                                         .map(|i| ShellValue::Variable(format!("{}_{}", name, i)))
                                         .collect();
-                                    return Ok(ShellIR::ForIn {
+                                    ShellIR::ForIn {
                                         var,
                                         items,
                                         body: Box::new(body_ir),
-                                    });
+                                    }
+                                } else {
+                                    // Non-array variable: for item in $var
+                                    ShellIR::ForIn {
+                                        var,
+                                        items: vec![ShellValue::Variable(name.clone())],
+                                        body: Box::new(body_ir),
+                                    }
                                 }
-                                // Non-array variable: for item in $var
-                                return Ok(ShellIR::ForIn {
-                                    var,
-                                    items: vec![ShellValue::Variable(name.clone())],
-                                    body: Box::new(body_ir),
-                                });
                             }
                             _ => {
                                 // Fallback: try to convert to a single value
                                 let val = self.convert_expr_to_value(other)?;
-                                return Ok(ShellIR::ForIn {
+                                ShellIR::ForIn {
                                     var,
                                     items: vec![val],
                                     body: Box::new(body_ir),
-                                });
+                                }
                             }
-                        }
+                        };
+                        return self.wrap_with_shadow_save_restore(loop_ir, &shadow_vars);
                     }
                 };
 
-                // Convert body
-                let body_ir = self.convert_stmts(body)?;
+                // Range-based for: detect shadows and convert with awareness
+                let shadow_vars = self.detect_shadows(body);
+                let body_ir = self.convert_loop_body_with_shadows(body, &shadow_vars)?;
 
-                Ok(ShellIR::For {
+                let for_ir = ShellIR::For {
                     var,
                     start,
                     end,
                     body: Box::new(body_ir),
-                })
+                };
+                self.wrap_with_shadow_save_restore(for_ir, &shadow_vars)
             }
             Stmt::Match { scrutinee, arms } => {
                 let scrutinee_value = self.convert_expr_to_value(scrutinee)?;
@@ -543,13 +569,19 @@ impl IrConverter {
                 // Convert condition to shell value
                 let condition_value = self.convert_expr_to_value(condition)?;
 
-                // Convert body
-                let body_ir = self.convert_stmts(body)?;
+                // Detect shadow variables: `let x = ...` (declaration=true) where x is already declared
+                let shadow_vars = self.detect_shadows(body);
 
-                Ok(ShellIR::While {
+                // Convert body with shadow-awareness
+                let body_ir = self.convert_loop_body_with_shadows(body, &shadow_vars)?;
+
+                let while_ir = ShellIR::While {
                     condition: condition_value,
                     body: Box::new(body_ir),
-                })
+                };
+
+                // Wrap with save/restore if there are shadows
+                self.wrap_with_shadow_save_restore(while_ir, &shadow_vars)
             }
             Stmt::Break => Ok(ShellIR::Break),
             Stmt::Continue => Ok(ShellIR::Continue),
@@ -562,6 +594,192 @@ impl IrConverter {
             ir_stmts.push(self.convert_stmt(stmt)?);
         }
         Ok(ShellIR::Sequence(ir_stmts))
+    }
+
+    /// Detect variables that are shadowed inside a loop body.
+    /// Returns variable names that have `Stmt::Let { declaration: true }` in the body
+    /// AND are already in `declared_vars` (i.e., exist in the outer scope).
+    fn detect_shadows(&self, body: &[crate::ast::Stmt]) -> Vec<String> {
+        let declared = self.declared_vars.borrow();
+        let mut shadows = Vec::new();
+        let mut seen = std::collections::HashSet::new();
+        for stmt in body {
+            if let crate::ast::Stmt::Let { name, declaration: true, .. } = stmt {
+                if declared.contains(name) && seen.insert(name.clone()) {
+                    shadows.push(name.clone());
+                }
+            }
+        }
+        shadows
+    }
+
+    /// Convert a loop body with shadow-aware variable renaming.
+    /// For each shadow variable `x`, the FIRST `let x = <rhs>` (declaration=true)
+    /// is transformed so that the RHS references to `x` use the saved outer value
+    /// `__shadow_x_save` instead.
+    fn convert_loop_body_with_shadows(
+        &self,
+        body: &[crate::ast::Stmt],
+        shadow_vars: &[String],
+    ) -> Result<ShellIR> {
+        if shadow_vars.is_empty() {
+            return self.convert_stmts(body);
+        }
+
+        // Build set of shadow variable names for quick lookup
+        let shadow_set: std::collections::HashSet<&str> =
+            shadow_vars.iter().map(|s| s.as_str()).collect();
+        // Track which shadows we've already processed (first occurrence only)
+        let mut processed_shadows: std::collections::HashSet<String> =
+            std::collections::HashSet::new();
+
+        let mut ir_stmts = Vec::new();
+        for stmt in body {
+            if let crate::ast::Stmt::Let { name, value, declaration: true } = stmt {
+                if shadow_set.contains(name.as_str())
+                    && !processed_shadows.contains(name)
+                {
+                    // This is the first shadow of `name` in the loop body.
+                    // Convert the value expression, then replace references to `name`
+                    // in the result with the saved outer value `__shadow_{name}_save`.
+                    let shell_value = self.convert_expr_to_value(value)?;
+                    let save_name = format!("__shadow_{}_save", name);
+                    let replaced_value =
+                        Self::replace_var_refs_in_value(&shell_value, name, &save_name);
+                    self.declared_vars.borrow_mut().insert(name.clone());
+                    ir_stmts.push(ShellIR::Let {
+                        name: name.clone(),
+                        value: replaced_value,
+                        effects: EffectSet::pure(),
+                    });
+                    processed_shadows.insert(name.clone());
+                    continue;
+                }
+            }
+            ir_stmts.push(self.convert_stmt(stmt)?);
+        }
+        Ok(ShellIR::Sequence(ir_stmts))
+    }
+
+    /// Wrap a loop IR with save/restore statements for shadow variables.
+    /// Before: `__shadow_x_save=$x`
+    /// After: `x=$__shadow_x_save`
+    fn wrap_with_shadow_save_restore(
+        &self,
+        loop_ir: ShellIR,
+        shadow_vars: &[String],
+    ) -> Result<ShellIR> {
+        if shadow_vars.is_empty() {
+            return Ok(loop_ir);
+        }
+
+        let mut sequence = Vec::new();
+
+        // Save each shadow variable's outer value before the loop
+        for var in shadow_vars {
+            let save_name = format!("__shadow_{}_save", var);
+            sequence.push(ShellIR::Let {
+                name: save_name,
+                value: ShellValue::Variable(var.clone()),
+                effects: EffectSet::pure(),
+            });
+        }
+
+        // The loop itself
+        sequence.push(loop_ir);
+
+        // Restore each shadow variable's outer value after the loop
+        for var in shadow_vars {
+            let save_name = format!("__shadow_{}_save", var);
+            sequence.push(ShellIR::Let {
+                name: var.clone(),
+                value: ShellValue::Variable(save_name),
+                effects: EffectSet::pure(),
+            });
+        }
+
+        Ok(ShellIR::Sequence(sequence))
+    }
+
+    /// Replace all references to `old_name` with `new_name` in a ShellValue.
+    fn replace_var_refs_in_value(
+        value: &ShellValue,
+        old_name: &str,
+        new_name: &str,
+    ) -> ShellValue {
+        match value {
+            ShellValue::Variable(name) if name == old_name => {
+                ShellValue::Variable(new_name.to_string())
+            }
+            ShellValue::Arithmetic { op, left, right } => {
+                let new_left = Self::replace_var_refs_in_value(left, old_name, new_name);
+                let new_right = Self::replace_var_refs_in_value(right, old_name, new_name);
+                ShellValue::Arithmetic {
+                    op: op.clone(),
+                    left: Box::new(new_left),
+                    right: Box::new(new_right),
+                }
+            }
+            ShellValue::Concat(parts) => {
+                let new_parts: Vec<ShellValue> = parts
+                    .iter()
+                    .map(|p| Self::replace_var_refs_in_value(p, old_name, new_name))
+                    .collect();
+                ShellValue::Concat(new_parts)
+            }
+            ShellValue::Comparison { op, left, right } => {
+                let new_left = Self::replace_var_refs_in_value(left, old_name, new_name);
+                let new_right = Self::replace_var_refs_in_value(right, old_name, new_name);
+                ShellValue::Comparison {
+                    op: op.clone(),
+                    left: Box::new(new_left),
+                    right: Box::new(new_right),
+                }
+            }
+            ShellValue::LogicalNot { operand } => {
+                ShellValue::LogicalNot {
+                    operand: Box::new(
+                        Self::replace_var_refs_in_value(operand, old_name, new_name),
+                    ),
+                }
+            }
+            ShellValue::LogicalAnd { left, right } => {
+                let new_left = Self::replace_var_refs_in_value(left, old_name, new_name);
+                let new_right = Self::replace_var_refs_in_value(right, old_name, new_name);
+                ShellValue::LogicalAnd {
+                    left: Box::new(new_left),
+                    right: Box::new(new_right),
+                }
+            }
+            ShellValue::LogicalOr { left, right } => {
+                let new_left = Self::replace_var_refs_in_value(left, old_name, new_name);
+                let new_right = Self::replace_var_refs_in_value(right, old_name, new_name);
+                ShellValue::LogicalOr {
+                    left: Box::new(new_left),
+                    right: Box::new(new_right),
+                }
+            }
+            ShellValue::CommandSubst(cmd) => {
+                // Don't recurse into command substitutions for simplicity
+                ShellValue::CommandSubst(cmd.clone())
+            }
+            ShellValue::DynamicArrayAccess { array, index } => {
+                let new_index = Self::replace_var_refs_in_value(index, old_name, new_name);
+                if array == old_name {
+                    ShellValue::DynamicArrayAccess {
+                        array: new_name.to_string(),
+                        index: Box::new(new_index),
+                    }
+                } else {
+                    ShellValue::DynamicArrayAccess {
+                        array: array.clone(),
+                        index: Box::new(new_index),
+                    }
+                }
+            }
+            // String, TestFlag, FunctionCall, etc. — no variable references to replace
+            other => other.clone(),
+        }
     }
 
     fn convert_expr(&self, expr: &crate::ast::Expr) -> Result<ShellIR> {
@@ -1691,6 +1909,7 @@ mod convert_expr_tests {
                 body: vec![Stmt::Let {
                     name: name.to_string(),
                     value,
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),
@@ -1708,6 +1927,7 @@ mod convert_expr_tests {
                 body: vec![Stmt::Let {
                     name: name.to_string(),
                     value,
+                    declaration: true,
                 }],
             }],
             entry_point: "main".to_string(),

@@ -253,6 +253,7 @@ fn convert_let_stmt(local: &syn::Local) -> Result<Stmt> {
         let mut stmts = vec![Stmt::Let {
             name: tmp_name.clone(),
             value,
+            declaration: true,
         }];
         for (i, elem) in pat_tuple.elems.iter().enumerate() {
             if let Pat::Ident(ident) = elem {
@@ -263,6 +264,7 @@ fn convert_let_stmt(local: &syn::Local) -> Result<Stmt> {
                         object: Box::new(Expr::Variable(tmp_name.clone())),
                         index: Box::new(Expr::Literal(Literal::I32(i as i32))),
                     },
+                    declaration: true,
                 });
             }
         }
@@ -300,7 +302,7 @@ fn convert_let_stmt(local: &syn::Local) -> Result<Stmt> {
     };
 
     let value = convert_expr(&init.expr)?;
-    Ok(Stmt::Let { name, value })
+    Ok(Stmt::Let { name, value, declaration: true })
 }
 
 fn convert_expr_stmt(expr: &SynExpr) -> Result<Stmt> {
@@ -384,7 +386,7 @@ fn convert_assign_stmt(expr_assign: &syn::ExprAssign) -> Result<Stmt> {
         }
     };
     let value = convert_expr(&expr_assign.right)?;
-    Ok(Stmt::Let { name, value })
+    Ok(Stmt::Let { name, value, declaration: false })
 }
 
 /// Extract array name and combined index suffix for nested index targets like arr[i][j].
@@ -567,7 +569,7 @@ fn convert_compound_assign_stmt(expr_binary: &syn::ExprBinary) -> Result<Stmt> {
         left: Box::new(left),
         right: Box::new(right),
     };
-    Ok(Stmt::Let { name, value })
+    Ok(Stmt::Let { name, value, declaration: false })
 }
 
 /// Split macro arguments on commas, respecting nested `()`, `[]`, `{}`, and string literals.
@@ -1602,7 +1604,7 @@ mod tests {
         assert_eq!(ast.functions[0].body.len(), 1);
 
         match &ast.functions[0].body[0] {
-            Stmt::Let { name, value } => {
+            Stmt::Let { name, value, .. } => {
                 assert_eq!(name, "x");
                 assert!(matches!(value, Expr::Literal(Literal::U32(42))));
             }
@@ -1620,7 +1622,7 @@ mod tests {
         let ast = parse(source).unwrap();
 
         match &ast.functions[0].body[0] {
-            Stmt::Let { name, value } => {
+            Stmt::Let { name, value, .. } => {
                 assert_eq!(name, "greeting");
                 assert!(matches!(value, Expr::Literal(Literal::Str(_))));
             }

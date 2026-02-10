@@ -113,7 +113,7 @@ impl MakefileConverter {
 
     fn convert_stmt(&mut self, stmt: &Stmt) -> Result<Option<MakeItem>> {
         match stmt {
-            Stmt::Let { name, value } => self.convert_let(name, value),
+            Stmt::Let { name, value, .. } => self.convert_let(name, value),
             Stmt::Expr(expr) => self.convert_expr(expr),
             _ => Ok(None),
         }
@@ -283,6 +283,7 @@ mod tests {
         let ast = make_simple_ast(vec![Stmt::Let {
             name: "cc".to_string(),
             value: Expr::Literal(Literal::Str("gcc".to_string())),
+            declaration: true,
         }]);
 
         let result = emit_makefile(&ast).unwrap();
@@ -299,10 +300,12 @@ mod tests {
             Stmt::Let {
                 name: "cc".to_string(),
                 value: Expr::Literal(Literal::Str("gcc".to_string())),
+                declaration: true,
             },
             Stmt::Let {
                 name: "cflags".to_string(),
                 value: Expr::Literal(Literal::Str("-O2 -Wall".to_string())),
+                declaration: true,
             },
         ]);
 
@@ -403,6 +406,7 @@ mod tests {
         let ast = make_simple_ast(vec![Stmt::Let {
             name: "output".to_string(),
             value: Expr::Variable("cc".to_string()),
+            declaration: true,
         }]);
 
         let result = emit_makefile(&ast).unwrap();
@@ -418,18 +422,22 @@ mod tests {
             Stmt::Let {
                 name: "port".to_string(),
                 value: Expr::Literal(Literal::U16(8080)),
+                declaration: true,
             },
             Stmt::Let {
                 name: "count".to_string(),
                 value: Expr::Literal(Literal::I32(42)),
+                declaration: true,
             },
             Stmt::Let {
                 name: "size".to_string(),
                 value: Expr::Literal(Literal::U32(1024)),
+                declaration: true,
             },
             Stmt::Let {
                 name: "verbose".to_string(),
                 value: Expr::Literal(Literal::Bool(true)),
+                declaration: true,
             },
         ]);
 
@@ -488,6 +496,7 @@ mod tests {
                     body: vec![Stmt::Let {
                         name: "cc".to_string(),
                         value: Expr::Literal(Literal::Str("gcc".to_string())),
+                        declaration: true,
                     }],
                 },
                 Function {
@@ -517,6 +526,7 @@ mod tests {
             Stmt::Let {
                 name: "cc".to_string(),
                 value: Expr::Literal(Literal::Str("gcc".to_string())),
+                declaration: true,
             },
             Stmt::Expr(Expr::FunctionCall {
                 name: "unknown_func".to_string(),
@@ -537,6 +547,7 @@ mod tests {
             Stmt::Let {
                 name: "cc".to_string(),
                 value: Expr::Literal(Literal::Str("gcc".to_string())),
+                declaration: true,
             },
             Stmt::Return(None),
         ]);
@@ -552,6 +563,7 @@ mod tests {
             Stmt::Let {
                 name: "cc".to_string(),
                 value: Expr::Literal(Literal::Str("gcc".to_string())),
+                declaration: true,
             },
             Stmt::Expr(Expr::Variable("some_var".to_string())),
         ]);
@@ -572,6 +584,7 @@ mod tests {
                     body: vec![Stmt::Let {
                         name: "cc".to_string(),
                         value: Expr::Literal(Literal::Str("gcc".to_string())),
+                        declaration: true,
                     }],
                 },
                 Function {
@@ -605,6 +618,7 @@ mod tests {
                     body: vec![Stmt::Let {
                         name: "cc".to_string(),
                         value: Expr::Literal(Literal::Str("gcc".to_string())),
+                        declaration: true,
                     }],
                 },
                 Function {
@@ -672,6 +686,7 @@ mod tests {
                 Expr::Literal(Literal::Str("a".to_string())),
                 Expr::Literal(Literal::Str("b".to_string())),
             ]),
+            declaration: true,
         }]);
 
         let result = emit_makefile(&ast);
@@ -686,6 +701,7 @@ mod tests {
         let ast = make_simple_ast(vec![Stmt::Let {
             name: "data".to_string(),
             value: Expr::Block(vec![]),
+            declaration: true,
         }]);
 
         let err = emit_makefile(&ast).unwrap_err();
@@ -707,6 +723,7 @@ mod tests {
                     body: vec![Stmt::Let {
                         name: "cc".to_string(),
                         value: Expr::Literal(Literal::Str("gcc".to_string())),
+                        declaration: true,
                     }],
                 },
                 Function {
@@ -717,6 +734,7 @@ mod tests {
                         Stmt::Let {
                             name: "x".to_string(),
                             value: Expr::Literal(Literal::Str("val".to_string())),
+                            declaration: true,
                         },
                     ],
                 },
@@ -736,10 +754,12 @@ mod tests {
             Stmt::Let {
                 name: "cc".to_string(),
                 value: Expr::Literal(Literal::Str("gcc".to_string())),
+                declaration: true,
             },
             Stmt::Let {
                 name: "cflags".to_string(),
                 value: Expr::Literal(Literal::Str("-O2".to_string())),
+                declaration: true,
             },
             Stmt::Expr(Expr::FunctionCall {
                 name: "phony_target".to_string(),

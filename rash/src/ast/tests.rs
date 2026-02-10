@@ -13,6 +13,7 @@ fn test_restricted_ast_validation() {
             body: vec![Stmt::Let {
                 name: "x".to_string(),
                 value: Expr::Literal(restricted::Literal::U32(42)),
+                declaration: true,
             }],
         }],
         entry_point: "main".to_string(),
@@ -31,6 +32,7 @@ fn test_missing_entry_point() {
             body: vec![Stmt::Let {
                 name: "x".to_string(),
                 value: Expr::Literal(restricted::Literal::U32(1)),
+                declaration: true,
             }],
         }],
         entry_point: "main".to_string(),
@@ -151,6 +153,7 @@ fn test_statement_validation() {
     let let_stmt = Stmt::Let {
         name: "x".to_string(),
         value: Expr::Literal(restricted::Literal::U32(42)),
+        declaration: true,
     };
     assert!(let_stmt.validate().is_ok());
 
@@ -183,6 +186,7 @@ fn test_function_call_collection() {
                     name: "helper2".to_string(),
                     args: vec![],
                 },
+                declaration: true,
             },
         ],
     };
@@ -342,6 +346,7 @@ fn test_expr_array_try_block_handling() {
     let block_expr = Expr::Block(vec![Stmt::Let {
         name: "x".to_string(),
         value: Expr::Literal(restricted::Literal::U32(42)),
+        declaration: true,
     }]);
     assert!(block_expr.validate().is_ok());
 }
@@ -537,6 +542,7 @@ fn test_validate_public_api() {
             body: vec![Stmt::Let {
                 name: "x".to_string(),
                 value: Expr::Literal(restricted::Literal::U32(42)),
+                declaration: true,
             }],
         }],
         entry_point: "main".to_string(),
