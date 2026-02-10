@@ -330,6 +330,11 @@ impl Formatter {
                     indent_str
                 )
             }
+
+            BashStmt::Negated { command, .. } => {
+                // Issue #133: Format negated command: ! cmd
+                format!("{}! {}", indent_str, self.format_stmt(command, 0).trim())
+            }
         }
     }
 

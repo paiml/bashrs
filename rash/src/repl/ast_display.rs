@@ -158,6 +158,10 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
                 body.len()
             )
         }
+
+        BashStmt::Negated { command, .. } => {
+            format!("{}Negated: {}", indent_str, format_statement(command, indent + 1))
+        }
     }
 }
 

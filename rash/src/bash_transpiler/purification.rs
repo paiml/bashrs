@@ -428,6 +428,15 @@ impl Purifier {
                     span: *span,
                 })
             }
+
+            BashStmt::Negated { command, span } => {
+                // Issue #133: Purify negated command
+                let purified_cmd = self.purify_statement(command)?;
+                Ok(BashStmt::Negated {
+                    command: Box::new(purified_cmd),
+                    span: *span,
+                })
+            }
         }
     }
 

@@ -320,6 +320,11 @@ impl SemanticAnalyzer {
                     self.analyze_statement(stmt, scope)?;
                 }
             }
+
+            BashStmt::Negated { command, .. } => {
+                // Issue #133: Analyze the negated command
+                self.analyze_statement(command, scope)?;
+            }
         }
 
         Ok(())

@@ -289,6 +289,11 @@ fn generate_statement(stmt: &BashStmt) -> String {
             select.push_str("done");
             select
         }
+
+        BashStmt::Negated { command, .. } => {
+            // Issue #133: Generate negated command: ! cmd
+            format!("! {}", generate_statement(command))
+        }
     }
 }
 
