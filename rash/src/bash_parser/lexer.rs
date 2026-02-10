@@ -426,8 +426,9 @@ impl Lexer {
         }
 
         if delimiter.is_empty() {
+            let ch = if self.is_at_end() { '\0' } else { self.current_char() };
             return Err(LexerError::UnexpectedChar(
-                self.current_char(),
+                ch,
                 self.line,
                 self.column,
             ));
@@ -509,8 +510,9 @@ impl Lexer {
         }
 
         if delimiter.is_empty() {
+            let ch = if self.is_at_end() { '\0' } else { self.current_char() };
             return Err(LexerError::UnexpectedChar(
-                self.current_char(),
+                ch,
                 self.line,
                 self.column,
             ));
