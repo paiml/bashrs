@@ -302,28 +302,14 @@ impl IrConverter {
             Stmt::Let { name, value } => {
                 // Handle __if_expr: let x = if cond { a } else { b }
                 // Lower to: if cond; then x=a; else x=b; fi
+                // Supports nested else-if chains: __if_expr(c1, v1, __if_expr(c2, v2, v3))
                 if let crate::ast::Expr::FunctionCall {
                     name: fn_name,
                     args,
                 } = value
                 {
                     if fn_name == "__if_expr" && args.len() == 3 {
-                        let cond_val = self.convert_expr_to_value(&args[0])?;
-                        let then_val = self.convert_expr_to_value(&args[1])?;
-                        let else_val = self.convert_expr_to_value(&args[2])?;
-                        return Ok(ShellIR::If {
-                            test: cond_val,
-                            then_branch: Box::new(ShellIR::Let {
-                                name: name.clone(),
-                                value: then_val,
-                                effects: EffectSet::pure(),
-                            }),
-                            else_branch: Some(Box::new(ShellIR::Let {
-                                name: name.clone(),
-                                value: else_val,
-                                effects: EffectSet::pure(),
-                            })),
-                        });
+                        return self.lower_let_if_expr(name, args);
                     }
                 }
 
@@ -1230,6 +1216,50 @@ impl IrConverter {
         stmts: &[crate::ast::Stmt],
     ) -> Result<ShellIR> {
         self.convert_match_arm_for_let(target, stmts)
+    }
+
+    /// Lower `let target = __if_expr(cond, then_val, else_val)` into If IR.
+    /// Handles nested else-if chains where else_val is itself `__if_expr(...)`.
+    fn lower_let_if_expr(
+        &self,
+        target: &str,
+        args: &[crate::ast::Expr],
+    ) -> Result<ShellIR> {
+        let cond_val = self.convert_expr_to_value(&args[0])?;
+        let then_val = self.convert_expr_to_value(&args[1])?;
+        let then_ir = ShellIR::Let {
+            name: target.to_string(),
+            value: then_val,
+            effects: EffectSet::pure(),
+        };
+
+        // Check if else-value is a nested __if_expr (else-if chain)
+        let else_ir = if let crate::ast::Expr::FunctionCall { name: fn_name, args: inner_args } = &args[2] {
+            if fn_name == "__if_expr" && inner_args.len() == 3 {
+                // Recursive: else-if chain
+                self.lower_let_if_expr(target, inner_args)?
+            } else {
+                let else_val = self.convert_expr_to_value(&args[2])?;
+                ShellIR::Let {
+                    name: target.to_string(),
+                    value: else_val,
+                    effects: EffectSet::pure(),
+                }
+            }
+        } else {
+            let else_val = self.convert_expr_to_value(&args[2])?;
+            ShellIR::Let {
+                name: target.to_string(),
+                value: else_val,
+                effects: EffectSet::pure(),
+            }
+        };
+
+        Ok(ShellIR::If {
+            test: cond_val,
+            then_branch: Box::new(then_ir),
+            else_branch: Some(Box::new(else_ir)),
+        })
     }
 }
 
