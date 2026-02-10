@@ -47,12 +47,16 @@ pub fn optimize(ir: ShellIR, config: &Config) -> Result<ShellIR> {
 }
 
 struct IrConverter {
-    // Converter state (currently stateless)
+    /// Track array variables: name → element count
+    /// Used to expand `for x in arr` into `for x in "$arr_0" "$arr_1" ...`
+    arrays: std::cell::RefCell<std::collections::HashMap<String, usize>>,
 }
 
 impl IrConverter {
     fn new() -> Self {
-        Self {}
+        Self {
+            arrays: std::cell::RefCell::new(std::collections::HashMap::new()),
+        }
     }
 
     fn convert(&self, ast: &RestrictedAst) -> Result<ShellIR> {
@@ -235,11 +239,26 @@ impl IrConverter {
                             body: Box::new(body_ir),
                         })
                     }
-                    crate::ast::Expr::Variable(name) => Ok(ShellIR::ForIn {
-                        var,
-                        items: vec![ShellValue::Variable(name.clone())],
-                        body: Box::new(body_ir),
-                    }),
+                    crate::ast::Expr::Variable(name) => {
+                        // Check if variable is a known array — expand to elements
+                        let array_len = self.arrays.borrow().get(name).copied();
+                        if let Some(len) = array_len {
+                            let items: Vec<ShellValue> = (0..len)
+                                .map(|i| ShellValue::Variable(format!("{}_{}", name, i)))
+                                .collect();
+                            Ok(ShellIR::ForIn {
+                                var,
+                                items,
+                                body: Box::new(body_ir),
+                            })
+                        } else {
+                            Ok(ShellIR::ForIn {
+                                var,
+                                items: vec![ShellValue::Variable(name.clone())],
+                                body: Box::new(body_ir),
+                            })
+                        }
+                    }
                     other => {
                         let val = self.convert_expr_to_value(other)?;
                         Ok(ShellIR::ForIn {
@@ -328,6 +347,8 @@ impl IrConverter {
                 // Handle array initialization: let arr = [a, b, c]
                 // Lower to: arr_0=a; arr_1=b; arr_2=c
                 if let crate::ast::Expr::Array(elems) = value {
+                    // Track array size for for-in expansion
+                    self.arrays.borrow_mut().insert(name.clone(), elems.len());
                     let mut stmts = Vec::new();
                     for (i, elem) in elems.iter().enumerate() {
                         let elem_val = self.convert_expr_to_value(elem)?;
@@ -444,7 +465,19 @@ impl IrConverter {
                                 });
                             }
                             crate::ast::Expr::Variable(name) => {
-                                // for item in $var → for item in ${var}
+                                // Check if variable is a known array — expand to elements
+                                let array_len = self.arrays.borrow().get(name).copied();
+                                if let Some(len) = array_len {
+                                    let items: Vec<ShellValue> = (0..len)
+                                        .map(|i| ShellValue::Variable(format!("{}_{}", name, i)))
+                                        .collect();
+                                    return Ok(ShellIR::ForIn {
+                                        var,
+                                        items,
+                                        body: Box::new(body_ir),
+                                    });
+                                }
+                                // Non-array variable: for item in $var
                                 return Ok(ShellIR::ForIn {
                                     var,
                                     items: vec![ShellValue::Variable(name.clone())],
