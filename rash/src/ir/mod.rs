@@ -997,6 +997,14 @@ impl IrConverter {
                         ShellValue::String(s) => {
                             Ok(ShellValue::Variable(format!("{}_{}", name, s)))
                         }
+                        ShellValue::Variable(_) | ShellValue::Arithmetic { .. } => {
+                            // Dynamic index: arr[i] where i is a runtime variable
+                            // → eval-based POSIX lookup
+                            Ok(ShellValue::DynamicArrayAccess {
+                                array: name.clone(),
+                                index: Box::new(idx_val),
+                            })
+                        }
                         _ => Ok(ShellValue::Variable(format!("{}_0", name))),
                     }
                 } else {
@@ -1621,6 +1629,8 @@ fn is_string_value(value: &ShellValue) -> bool {
         ShellValue::ArgWithDefault { .. } => false,
         // Sprint 27c: Exit code handling - GREEN PHASE (exit codes are numeric, not string)
         ShellValue::ExitCode => false,
+        // Dynamic array access returns numeric values
+        ShellValue::DynamicArrayAccess { .. } => false,
     }
 }
 

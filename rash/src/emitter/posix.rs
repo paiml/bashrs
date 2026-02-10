@@ -1110,6 +1110,7 @@ impl PosixEmitter {
             ShellValue::Arg { .. } | ShellValue::ArgWithDefault { .. } | ShellValue::ArgCount => "arg_access",
             ShellValue::EnvVar { .. } => "env_var",
             ShellValue::ExitCode => "exit_code",
+            ShellValue::DynamicArrayAccess { .. } => "dynamic_array",
         };
         self.record_decision("value_emit", choice, "Value");
 
@@ -1157,6 +1158,14 @@ impl PosixEmitter {
             ShellValue::ArgCount => Ok("\"$#\"".to_string()), // Argument count
             // Sprint 27c: Exit code access - GREEN PHASE
             ShellValue::ExitCode => Ok("\"$?\"".to_string()), // Exit code of last command
+            // Dynamic array access: arr[i] → eval-based POSIX lookup
+            ShellValue::DynamicArrayAccess { array, index } => {
+                let idx_expr = self.emit_dynamic_index_expr(index)?;
+                Ok(format!(
+                    "\"$(eval \"printf '%s' \\\"\\${}_{}\\\"\")\""
+                    , escape_variable_name(array), idx_expr
+                ))
+            }
         }
     }
 
@@ -1242,6 +1251,14 @@ impl PosixEmitter {
                 }
                 Ok(format!("$({})", parts.join(" ")))
             }
+            ShellValue::DynamicArrayAccess { array, index } => {
+                // Dynamic array access in arithmetic: $(eval "printf '%s' \"\$arr_${i}\"")
+                let idx_expr = self.emit_dynamic_index_expr(index)?;
+                Ok(format!(
+                    "$(eval \"printf '%s' \\\"\\${}_{}\\\"\")",
+                    escape_variable_name(array), idx_expr
+                ))
+            }
             _ => Err(crate::models::Error::Emission(format!(
                 "Unsupported value in arithmetic expression: {:?}",
                 value
@@ -1251,6 +1268,21 @@ impl PosixEmitter {
 
     fn emit_bool_value(&self, value: bool) -> String {
         if value { "true" } else { "false" }.to_string()
+    }
+
+    /// Emit the index expression for dynamic array access.
+    /// Returns shell expression like `${i}` for variable or `$((i + 1))` for arithmetic.
+    fn emit_dynamic_index_expr(&self, index: &ShellValue) -> Result<String> {
+        match index {
+            ShellValue::Variable(v) => Ok(format!("${{{}}}", escape_variable_name(v))),
+            ShellValue::Arithmetic { op, left, right } => {
+                let left_str = self.emit_arithmetic_operand(left, Some(op), false)?;
+                let right_str = self.emit_arithmetic_operand(right, Some(op), true)?;
+                let op_str = arithmetic_op_str(op);
+                Ok(format!("$(({} {} {}))", left_str, op_str, right_str))
+            }
+            _ => Ok("0".to_string()),
+        }
     }
 
     fn emit_concatenation(&self, parts: &[ShellValue]) -> Result<String> {
@@ -1321,6 +1353,14 @@ impl PosixEmitter {
             // Sprint 27c: Exit code in concatenation - GREEN PHASE
             ShellValue::ExitCode => {
                 result.push_str("$?");
+            }
+            // Dynamic array access in concatenation
+            ShellValue::DynamicArrayAccess { array, index } => {
+                let idx_expr = self.emit_dynamic_index_expr(index)?;
+                result.push_str(&format!(
+                    "$(eval \"printf '%s' \\\"\\${}_{}\\\"\")",
+                    escape_variable_name(array), idx_expr
+                ));
             }
         }
         Ok(())
