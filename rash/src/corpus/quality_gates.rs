@@ -480,7 +480,7 @@ mod tests {
         let mut e = ConvergenceEntry::default();
         e.iteration = iteration;
         e.passed = passed_count;
-        e.date = "2026-02-08".to_string();
+        e.date = "2026-02-10".to_string();
         e
     }
 
