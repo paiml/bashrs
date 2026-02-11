@@ -36,6 +36,22 @@ fn arithmetic_precedence(op: &crate::ir::shell_ir::ArithmeticOp) -> u8 {
     }
 }
 
+/// Try to constant-fold a boolean expression at compile time.
+/// Returns `Some(bool)` if all operands are literals, `None` if any are runtime values.
+fn try_fold_logical(value: &ShellValue) -> Option<bool> {
+    match value {
+        ShellValue::Bool(b) => Some(*b),
+        ShellValue::LogicalNot { operand } => try_fold_logical(operand).map(|b| !b),
+        ShellValue::LogicalAnd { left, right } => {
+            Some(try_fold_logical(left)? && try_fold_logical(right)?)
+        }
+        ShellValue::LogicalOr { left, right } => {
+            Some(try_fold_logical(left)? || try_fold_logical(right)?)
+        }
+        _ => None,
+    }
+}
+
 /// Unwrap a Sequence containing a single If statement.
 /// The parser wraps `else if` branches in `Sequence([If { ... }])`.
 fn unwrap_single_if(ir: &ShellIR) -> &ShellIR {
@@ -1131,18 +1147,28 @@ impl PosixEmitter {
             ShellValue::Comparison { op, left, right } => self.emit_comparison(op, left, right),
             ShellValue::Arithmetic { op, left, right } => self.emit_arithmetic(op, left, right),
             ShellValue::LogicalAnd { left, right } => {
-                let left_str = self.emit_shell_value(left)?;
-                let right_str = self.emit_shell_value(right)?;
-                Ok(format!("{left_str} && {right_str}"))
+                // Constant-fold all-literal boolean expressions at compile time
+                if let (Some(l), Some(r)) = (try_fold_logical(left), try_fold_logical(right)) {
+                    return Ok(self.emit_bool_value(l && r));
+                }
+                let left_str = self.emit_logical_operand(left)?;
+                let right_str = self.emit_logical_operand(right)?;
+                Ok(format!("$(({left_str} && {right_str}))"))
             }
             ShellValue::LogicalOr { left, right } => {
-                let left_str = self.emit_shell_value(left)?;
-                let right_str = self.emit_shell_value(right)?;
-                Ok(format!("{left_str} || {right_str}"))
+                if let (Some(l), Some(r)) = (try_fold_logical(left), try_fold_logical(right)) {
+                    return Ok(self.emit_bool_value(l || r));
+                }
+                let left_str = self.emit_logical_operand(left)?;
+                let right_str = self.emit_logical_operand(right)?;
+                Ok(format!("$(({left_str} || {right_str}))"))
             }
             ShellValue::LogicalNot { operand } => {
-                let operand_str = self.emit_shell_value(operand)?;
-                Ok(format!("! {operand_str}"))
+                if let Some(b) = try_fold_logical(operand) {
+                    return Ok(self.emit_bool_value(!b));
+                }
+                let operand_str = self.emit_logical_operand(operand)?;
+                Ok(format!("$((!{operand_str}))"))
             }
             // Sprint 27b: Command-line argument access
             ShellValue::Arg { position } => match position {
@@ -1263,6 +1289,40 @@ impl PosixEmitter {
                 "Unsupported value in arithmetic expression: {:?}",
                 value
             ))),
+        }
+    }
+
+    /// Emit a value for use inside a logical/boolean arithmetic context.
+    /// Returns bare variable names and values without quotes (for use inside $(( ))).
+    fn emit_logical_operand(&self, value: &ShellValue) -> Result<String> {
+        match value {
+            ShellValue::String(s) => Ok(s.clone()),
+            ShellValue::Variable(name) => Ok(escape_variable_name(name)),
+            ShellValue::Bool(b) => Ok(if *b { "1".to_string() } else { "0".to_string() }),
+            ShellValue::LogicalAnd { left, right } => {
+                let l = self.emit_logical_operand(left)?;
+                let r = self.emit_logical_operand(right)?;
+                Ok(format!("{l} && {r}"))
+            }
+            ShellValue::LogicalOr { left, right } => {
+                let l = self.emit_logical_operand(left)?;
+                let r = self.emit_logical_operand(right)?;
+                Ok(format!("({l} || {r})"))
+            }
+            ShellValue::LogicalNot { operand } => {
+                let o = self.emit_logical_operand(operand)?;
+                Ok(format!("!{o}"))
+            }
+            ShellValue::Arithmetic { op, left, right } => {
+                let l = self.emit_arithmetic_operand(left, Some(op), false)?;
+                let r = self.emit_arithmetic_operand(right, Some(op), true)?;
+                let op_str = arithmetic_op_str(op);
+                Ok(format!("({l} {op_str} {r})"))
+            }
+            ShellValue::Comparison { op, left, right } => {
+                self.emit_comparison(op, left, right)
+            }
+            _ => self.emit_shell_value(value),
         }
     }
 
@@ -1416,11 +1476,38 @@ impl PosixEmitter {
                 // Comparisons already generate complete test expressions
                 self.emit_shell_value(test)
             }
-            ShellValue::LogicalAnd { .. }
-            | ShellValue::LogicalOr { .. }
-            | ShellValue::LogicalNot { .. } => {
-                // Logical operators already generate complete test expressions
-                self.emit_shell_value(test)
+            ShellValue::LogicalNot { operand } => {
+                // In test context, use command negation (! cmd), not arithmetic
+                if let Some(b) = try_fold_logical(operand) {
+                    return Ok(self.emit_bool_value(!b));
+                }
+                // For variable operands, use ! "$var" (treat as boolean command)
+                // For comparisons, use ! [ test ]
+                match operand.as_ref() {
+                    ShellValue::Variable(name) => {
+                        Ok(format!("! \"${}\"", escape_variable_name(name)))
+                    }
+                    _ => {
+                        let inner = self.emit_test_expression(operand)?;
+                        Ok(format!("! {inner}"))
+                    }
+                }
+            }
+            ShellValue::LogicalAnd { left, right } => {
+                if let (Some(l), Some(r)) = (try_fold_logical(left), try_fold_logical(right)) {
+                    return Ok(self.emit_bool_value(l && r));
+                }
+                let l = self.emit_test_expression(left)?;
+                let r = self.emit_test_expression(right)?;
+                Ok(format!("{l} && {r}"))
+            }
+            ShellValue::LogicalOr { left, right } => {
+                if let (Some(l), Some(r)) = (try_fold_logical(left), try_fold_logical(right)) {
+                    return Ok(self.emit_bool_value(l || r));
+                }
+                let l = self.emit_test_expression(left)?;
+                let r = self.emit_test_expression(right)?;
+                Ok(format!("{l} || {r}"))
             }
             ShellValue::CommandSubst(cmd) => {
                 // Check if this is a predicate function (returns bool via exit code)
