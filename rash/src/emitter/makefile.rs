@@ -8,7 +8,7 @@
 //! The generated Makefile is passed through the existing Makefile generator
 //! infrastructure for consistent formatting.
 
-use crate::ast::restricted::{BinaryOp, Literal};
+use crate::ast::restricted::{BinaryOp, Function, Literal};
 use crate::ast::{Expr, RestrictedAst, Stmt};
 use crate::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, Span, VarFlavor};
 use crate::make_parser::generators::generate_purified_makefile;
@@ -31,18 +31,43 @@ use crate::models::{Error, Result};
 /// }
 /// ```
 pub fn emit_makefile(ast: &RestrictedAst) -> Result<String> {
-    let converter = MakefileConverter::new();
+    let mut converter = MakefileConverter::new();
+
+    // Detect if the entry uses exec()/println! for raw output
+    let entry_fn = ast
+        .functions
+        .iter()
+        .find(|f| f.name == ast.entry_point)
+        .ok_or_else(|| Error::IrGeneration("Entry point not found".to_string()))?;
+
+    let has_raw_output = entry_fn.body.iter().any(|stmt| {
+        matches!(stmt, Stmt::Expr(Expr::FunctionCall { name, .. })
+            if name == "exec" || name == "rash_println" || name == "println"
+                || name == "rash_print" || name == "print")
+    });
+
+    if has_raw_output {
+        // Raw output mode: collect resolved lines from exec/println
+        return converter.emit_raw_lines(entry_fn);
+    }
+
+    // DSL mode: use target()/phony_target()/let bindings → MakeAst
     let make_ast = converter.convert(ast)?;
     Ok(generate_purified_makefile(&make_ast))
 }
 
 struct MakefileConverter {
     line: usize,
+    /// Track variable bindings for println! format string resolution
+    vars: std::collections::HashMap<String, String>,
 }
 
 impl MakefileConverter {
     fn new() -> Self {
-        Self { line: 1 }
+        Self {
+            line: 1,
+            vars: std::collections::HashMap::new(),
+        }
     }
 
     fn next_span(&mut self) -> Span {
@@ -53,6 +78,47 @@ impl MakefileConverter {
         };
         self.line += 1;
         span
+    }
+
+    /// Emit raw makefile lines from exec()/println!() calls.
+    ///
+    /// First pass: collect variable bindings for format resolution.
+    /// Second pass: resolve and emit each exec/println line.
+    fn emit_raw_lines(&mut self, entry_fn: &Function) -> Result<String> {
+        // First pass: collect variable bindings
+        for stmt in &entry_fn.body {
+            if let Stmt::Let { name, value, .. } = stmt {
+                if let Expr::Literal(Literal::Str(s)) = value {
+                    self.vars.insert(name.to_string(), s.clone());
+                }
+            }
+        }
+
+        // Second pass: collect output lines
+        let mut output = String::new();
+        for stmt in &entry_fn.body {
+            if let Stmt::Expr(Expr::FunctionCall { name, args }) = stmt {
+                let is_output = name == "exec"
+                    || name == "rash_println"
+                    || name == "println"
+                    || name == "rash_print"
+                    || name == "print";
+                if is_output {
+                    if let Some(first_arg) = args.first() {
+                        let resolved = self.resolve_concat_expr(first_arg);
+                        if !resolved.is_empty() {
+                            output.push_str(&resolved);
+                            // println adds newline, print doesn't
+                            if name != "rash_print" && name != "print" {
+                                output.push('\n');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(output)
     }
 
     fn convert(&self, ast: &RestrictedAst) -> Result<MakeAst> {
@@ -124,6 +190,11 @@ impl MakefileConverter {
         let var_value = self.expr_to_string(value)?;
         let var_name = name.to_uppercase();
 
+        // Track binding for println! format resolution
+        if let Expr::Literal(Literal::Str(s)) = value {
+            self.vars.insert(name.to_string(), s.clone());
+        }
+
         Ok(Some(MakeItem::Variable {
             name: var_name,
             value: var_value,
@@ -137,12 +208,188 @@ impl MakefileConverter {
             Expr::FunctionCall { name, args } => {
                 if name == "target" || name == "phony_target" {
                     self.convert_target_call(name, args)
+                } else if (name == "println"
+                    || name == "rash_println"
+                    || name == "rash_print"
+                    || name == "rash_eprintln")
+                    && !args.is_empty()
+                {
+                    self.convert_println(args)
+                } else if name == "exec" && !args.is_empty() {
+                    self.convert_exec(args)
                 } else {
-                    Ok(None) // Ignore other function calls
+                    Ok(None)
                 }
             }
             _ => Ok(None),
         }
+    }
+
+    /// Convert a println!() call into a MakeItem by resolving its argument.
+    ///
+    /// The parser converts `println!("fmt", args...)` into:
+    ///   `FunctionCall { name: "rash_println", args: [resolved_expr] }`
+    /// where resolved_expr is either a literal string or a `__format_concat` call.
+    ///
+    /// The resolved line is analyzed:
+    /// - Contains `:` with no `=` → Target rule (name: deps)
+    /// - Contains `:=` or `=` → Variable assignment
+    /// - Otherwise → Comment (raw line)
+    fn convert_println(&mut self, args: &[Expr]) -> Result<Option<MakeItem>> {
+        let resolved = match args.first() {
+            Some(expr) => self.resolve_concat_expr(expr),
+            None => return Ok(None),
+        };
+        if resolved.is_empty() {
+            return Ok(None);
+        }
+        self.analyze_makefile_line(&resolved)
+    }
+
+    /// Analyze a raw makefile line and convert it to the appropriate MakeItem.
+    ///
+    /// Detection rules (in priority order):
+    /// 1. `.PHONY:` → Target with phony=true
+    /// 2. Tab-prefixed → Comment (recipe line, will be associated with preceding target)
+    /// 3. `NAME :=` → Variable (Simple flavor)
+    /// 4. `name:` with no `=` → Target rule
+    /// 5. `NAME =` → Variable (Recursive flavor)
+    /// 6. Otherwise → Comment
+    fn analyze_makefile_line(&mut self, line: &str) -> Result<Option<MakeItem>> {
+        // .PHONY line (check before general colon detection)
+        if line.starts_with(".PHONY") {
+            if let Some(colon_pos) = line.find(':') {
+                let _targets: Vec<String> = line[colon_pos + 1..]
+                    .split_whitespace()
+                    .map(String::from)
+                    .collect();
+                // Emit a .PHONY comment — the targets will be marked phony individually
+                return Ok(Some(MakeItem::Comment {
+                    text: line.to_string(),
+                    span: self.next_span(),
+                }));
+            }
+        }
+
+        // Tab-prefixed lines are recipe lines (emit as comment to preserve content)
+        if line.starts_with('\t') {
+            return Ok(Some(MakeItem::Comment {
+                text: line.to_string(),
+                span: self.next_span(),
+            }));
+        }
+
+        // Detect variable assignment: "NAME := value" (Simple)
+        if let Some(eq_idx) = line.find(":=") {
+            let var_name = line[..eq_idx].trim().to_string();
+            let var_val = line[eq_idx + 2..].trim().to_string();
+            if !var_name.is_empty() && !var_name.contains(' ') {
+                return Ok(Some(MakeItem::Variable {
+                    name: var_name,
+                    value: var_val,
+                    flavor: VarFlavor::Simple,
+                    span: self.next_span(),
+                }));
+            }
+        }
+
+        // Detect target rule: "name: deps" (but not after := which was handled above)
+        if let Some(colon_idx) = line.find(':') {
+            // Make sure this isn't a := (already handled)
+            let after_colon = line.get(colon_idx + 1..colon_idx + 2).unwrap_or("");
+            if after_colon != "=" {
+                let target_name = line[..colon_idx].trim().to_string();
+                let deps_str = line[colon_idx + 1..].trim();
+                if !target_name.is_empty()
+                    && !target_name.contains(' ')
+                    && !target_name.starts_with('#')
+                {
+                    let prerequisites: Vec<String> = if deps_str.is_empty() {
+                        vec![]
+                    } else {
+                        deps_str.split_whitespace().map(String::from).collect()
+                    };
+                    return Ok(Some(MakeItem::Target {
+                        name: target_name,
+                        prerequisites,
+                        recipe: vec![],
+                        phony: false,
+                        recipe_metadata: None,
+                        span: self.next_span(),
+                    }));
+                }
+            }
+        }
+
+        // Detect recursive variable assignment: "NAME = value"
+        if let Some(eq_idx) = line.find('=') {
+            let before = line[..eq_idx].trim();
+            if !before.is_empty()
+                && !before.contains(' ')
+                && !before.starts_with('\t')
+                && !before.starts_with('.')
+                && !before.starts_with('#')
+            {
+                let var_val = line[eq_idx + 1..].trim().to_string();
+                return Ok(Some(MakeItem::Variable {
+                    name: before.to_string(),
+                    value: var_val,
+                    flavor: VarFlavor::Recursive,
+                    span: self.next_span(),
+                }));
+            }
+        }
+
+        // Default: emit as comment
+        Ok(Some(MakeItem::Comment {
+            text: line.to_string(),
+            span: self.next_span(),
+        }))
+    }
+
+    /// Resolve an expression (possibly a `__format_concat` call) to its string value.
+    ///
+    /// The parser converts `println!("{}: {}", a, b)` to:
+    ///   `FunctionCall { name: "__format_concat", args: [Variable("a"), Literal(": "), Variable("b")] }`
+    fn resolve_concat_expr(&self, expr: &Expr) -> String {
+        match expr {
+            Expr::Literal(Literal::Str(s)) => s.clone(),
+            Expr::Literal(Literal::I32(n)) => n.to_string(),
+            Expr::Literal(Literal::U16(n)) => n.to_string(),
+            Expr::Literal(Literal::U32(n)) => n.to_string(),
+            Expr::Literal(Literal::Bool(b)) => b.to_string(),
+            Expr::Variable(name) => {
+                // Try to resolve from tracked bindings, fall back to $(NAME)
+                if let Some(val) = self.vars.get(name.as_str()) {
+                    val.clone()
+                } else {
+                    format!("$({})", name.to_uppercase())
+                }
+            }
+            Expr::FunctionCall { name, args } if name == "__format_concat" => {
+                // Concatenate all parts
+                args.iter().map(|a| self.resolve_concat_expr(a)).collect()
+            }
+            _ => String::new(),
+        }
+    }
+
+    /// Convert an exec() call to a MakeItem.
+    ///
+    /// `exec("CC := gcc")` → Variable { name: "CC", value: "gcc", flavor: Simple }
+    /// `exec("build: main.o")` → Target { name: "build", deps: ["main.o"] }
+    /// `exec("\tcargo build")` → appended as recipe to previous target
+    ///
+    /// This reuses the same analysis logic as convert_println.
+    fn convert_exec(&mut self, args: &[Expr]) -> Result<Option<MakeItem>> {
+        let resolved = match args.first() {
+            Some(expr) => self.resolve_concat_expr(expr),
+            None => return Ok(None),
+        };
+        if resolved.is_empty() {
+            return Ok(None);
+        }
+        self.analyze_makefile_line(&resolved)
     }
 
     fn convert_target_call(&mut self, func_name: &str, args: &[Expr]) -> Result<Option<MakeItem>> {
@@ -320,12 +567,10 @@ mod tests {
             name: "target".to_string(),
             args: vec![
                 Expr::Literal(Literal::Str("build".to_string())),
-                Expr::Array(vec![
-                    Expr::Literal(Literal::Str("src/main.c".to_string())),
-                ]),
-                Expr::Array(vec![
-                    Expr::Literal(Literal::Str("$(CC) -o build src/main.c".to_string())),
-                ]),
+                Expr::Array(vec![Expr::Literal(Literal::Str("src/main.c".to_string()))]),
+                Expr::Array(vec![Expr::Literal(Literal::Str(
+                    "$(CC) -o build src/main.c".to_string(),
+                ))]),
             ],
         })]);
 
@@ -341,9 +586,7 @@ mod tests {
             args: vec![
                 Expr::Literal(Literal::Str("clean".to_string())),
                 Expr::Array(vec![]),
-                Expr::Array(vec![
-                    Expr::Literal(Literal::Str("rm -f build".to_string())),
-                ]),
+                Expr::Array(vec![Expr::Literal(Literal::Str("rm -f build".to_string()))]),
             ],
         })]);
 
@@ -388,17 +631,11 @@ mod tests {
     fn test_MAKE_BUILD_007_target_non_string_name() {
         let ast = make_simple_ast(vec![Stmt::Expr(Expr::FunctionCall {
             name: "target".to_string(),
-            args: vec![
-                Expr::Literal(Literal::I32(42)),
-                Expr::Array(vec![]),
-            ],
+            args: vec![Expr::Literal(Literal::I32(42)), Expr::Array(vec![])],
         })]);
 
         let err = emit_makefile(&ast).unwrap_err();
-        assert!(
-            format!("{err}").contains("string literal"),
-            "Error: {err}"
-        );
+        assert!(format!("{err}").contains("string literal"), "Error: {err}");
     }
 
     #[test]
@@ -456,9 +693,9 @@ mod tests {
             args: vec![
                 Expr::Literal(Literal::Str("build".to_string())),
                 Expr::Literal(Literal::Str("main.c".to_string())),
-                Expr::Array(vec![
-                    Expr::Literal(Literal::Str("gcc -o build main.c".to_string())),
-                ]),
+                Expr::Array(vec![Expr::Literal(Literal::Str(
+                    "gcc -o build main.c".to_string(),
+                ))]),
             ],
         })]);
 
@@ -474,9 +711,7 @@ mod tests {
             args: vec![
                 Expr::Literal(Literal::Str("clean".to_string())),
                 Expr::Literal(Literal::Str("".to_string())),
-                Expr::Array(vec![
-                    Expr::Literal(Literal::Str("rm -f build".to_string())),
-                ]),
+                Expr::Array(vec![Expr::Literal(Literal::Str("rm -f build".to_string()))]),
             ],
         })]);
 
@@ -505,9 +740,7 @@ mod tests {
                     return_type: Type::Void,
                     body: vec![Stmt::Expr(Expr::FunctionCall {
                         name: "echo".to_string(),
-                        args: vec![Expr::Literal(Literal::Str(
-                            "Usage: make build".to_string(),
-                        ))],
+                        args: vec![Expr::Literal(Literal::Str("Usage: make build".to_string()))],
                     })],
                 },
             ],
@@ -649,9 +882,9 @@ mod tests {
                         Expr::Literal(Literal::Str("dep2".to_string())),
                     ],
                 },
-                Expr::Array(vec![
-                    Expr::Literal(Literal::Str("gcc -o build".to_string())),
-                ]),
+                Expr::Array(vec![Expr::Literal(Literal::Str(
+                    "gcc -o build".to_string(),
+                ))]),
             ],
         })]);
 
@@ -667,9 +900,9 @@ mod tests {
             args: vec![
                 Expr::Literal(Literal::Str("build".to_string())),
                 Expr::Variable("deps_var".to_string()),
-                Expr::Array(vec![
-                    Expr::Literal(Literal::Str("gcc -o build".to_string())),
-                ]),
+                Expr::Array(vec![Expr::Literal(Literal::Str(
+                    "gcc -o build".to_string(),
+                ))]),
             ],
         })]);
 
@@ -690,7 +923,11 @@ mod tests {
         }]);
 
         let result = emit_makefile(&ast);
-        assert!(result.is_ok(), "Array should convert to Makefile value: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Array should convert to Makefile value: {:?}",
+            result
+        );
         let output = result.expect("verified ok above");
         assert!(output.contains("DATA := a b"), "Output: {}", output);
     }
@@ -730,13 +967,11 @@ mod tests {
                     name: "check".to_string(),
                     params: vec![],
                     return_type: Type::Void,
-                    body: vec![
-                        Stmt::Let {
-                            name: "x".to_string(),
-                            value: Expr::Literal(Literal::Str("val".to_string())),
-                            declaration: true,
-                        },
-                    ],
+                    body: vec![Stmt::Let {
+                        name: "x".to_string(),
+                        value: Expr::Literal(Literal::Str("val".to_string())),
+                        declaration: true,
+                    }],
                 },
             ],
             entry_point: "main".to_string(),
@@ -765,9 +1000,7 @@ mod tests {
                 name: "phony_target".to_string(),
                 args: vec![
                     Expr::Literal(Literal::Str("all".to_string())),
-                    Expr::Array(vec![
-                        Expr::Literal(Literal::Str("build".to_string())),
-                    ]),
+                    Expr::Array(vec![Expr::Literal(Literal::Str("build".to_string()))]),
                     Expr::Array(vec![]),
                 ],
             }),
@@ -775,12 +1008,10 @@ mod tests {
                 name: "target".to_string(),
                 args: vec![
                     Expr::Literal(Literal::Str("build".to_string())),
-                    Expr::Array(vec![
-                        Expr::Literal(Literal::Str("main.c".to_string())),
-                    ]),
-                    Expr::Array(vec![
-                        Expr::Literal(Literal::Str("$(CC) $(CFLAGS) -o build main.c".to_string())),
-                    ]),
+                    Expr::Array(vec![Expr::Literal(Literal::Str("main.c".to_string()))]),
+                    Expr::Array(vec![Expr::Literal(Literal::Str(
+                        "$(CC) $(CFLAGS) -o build main.c".to_string(),
+                    ))]),
                 ],
             }),
         ]);

@@ -80,9 +80,8 @@ impl IrConverter {
                     let is_last = i == function.body.len() - 1;
                     // Pass should_echo=true for last stmt in non-void functions;
                     // convert_stmt_in_function also handles explicit `return` at any position
-                    body_stmts.push(
-                        self.convert_stmt_in_function(stmt, is_last && has_return_type)?,
-                    );
+                    body_stmts
+                        .push(self.convert_stmt_in_function(stmt, is_last && has_return_type)?);
                 }
 
                 // Generate function with body (empty functions get Noop via emit_sequence)
@@ -139,9 +138,7 @@ impl IrConverter {
                 let test_expr = self.convert_expr_to_value(condition)?;
                 let then_ir = self.convert_stmts_in_function(then_block, true)?;
                 let else_ir = if let Some(else_stmts) = else_block {
-                    Some(Box::new(
-                        self.convert_stmts_in_function(else_stmts, true)?,
-                    ))
+                    Some(Box::new(self.convert_stmts_in_function(else_stmts, true)?))
                 } else {
                     None
                 };
@@ -161,9 +158,7 @@ impl IrConverter {
                 let test_expr = self.convert_expr_to_value(condition)?;
                 let then_ir = self.convert_stmts_in_function(then_block, false)?;
                 let else_ir = if let Some(else_stmts) = else_block {
-                    Some(Box::new(
-                        self.convert_stmts_in_function(else_stmts, false)?,
-                    ))
+                    Some(Box::new(self.convert_stmts_in_function(else_stmts, false)?))
                 } else {
                     None
                 };
@@ -176,10 +171,14 @@ impl IrConverter {
 
             // Explicit return expr → echo value + return (not exit!)
             Stmt::Return(Some(expr)) => {
+                // Check if the return expression is __if_expr — lower to If with Return in each branch
+                if let crate::ast::Expr::FunctionCall { name, args } = expr {
+                    if name == "__if_expr" && args.len() == 3 {
+                        return self.lower_return_if_expr(args);
+                    }
+                }
                 let value = self.convert_expr_to_value(expr)?;
-                Ok(ShellIR::Return {
-                    value: Some(value),
-                })
+                Ok(ShellIR::Return { value: Some(value) })
             }
 
             // Explicit return without value
@@ -294,11 +293,7 @@ impl IrConverter {
 
                 // Range patterns require if-elif-else chain (case can't do ranges)
                 if Self::has_range_patterns(arms) {
-                    return self.convert_range_match_fn(
-                        scrutinee_value,
-                        arms,
-                        should_echo,
-                    );
+                    return self.convert_range_match_fn(scrutinee_value, arms, should_echo);
                 }
 
                 let mut case_arms = Vec::new();
@@ -309,8 +304,7 @@ impl IrConverter {
                     } else {
                         None
                     };
-                    let body =
-                        self.convert_stmts_in_function(&arm.body, should_echo)?;
+                    let body = self.convert_stmts_in_function(&arm.body, should_echo)?;
                     case_arms.push(shell_ir::CaseArm {
                         pattern,
                         guard,
@@ -347,7 +341,11 @@ impl IrConverter {
         use crate::ast::Stmt;
 
         match stmt {
-            Stmt::Let { name, value, declaration } => {
+            Stmt::Let {
+                name,
+                value,
+                declaration,
+            } => {
                 // Handle __if_expr: let x = if cond { a } else { b }
                 // Lower to: if cond; then x=a; else x=b; fi
                 // Supports nested else-if chains: __if_expr(c1, v1, __if_expr(c2, v2, v3))
@@ -386,8 +384,18 @@ impl IrConverter {
                             return self.lower_let_match(name, scrutinee, arms);
                         }
                         // Handle let x = if cond { ... } else { ... }
-                        if let crate::ast::Stmt::If { condition, then_block, else_block } = &block_stmts[0] {
-                            return self.lower_let_if(name, condition, then_block, else_block.as_deref());
+                        if let crate::ast::Stmt::If {
+                            condition,
+                            then_block,
+                            else_block,
+                        } = &block_stmts[0]
+                        {
+                            return self.lower_let_if(
+                                name,
+                                condition,
+                                then_block,
+                                else_block.as_deref(),
+                            );
                         }
                     }
                     // Handle let x = { stmt1; stmt2; ...; last_expr }
@@ -604,7 +612,12 @@ impl IrConverter {
         let mut shadows = Vec::new();
         let mut seen = std::collections::HashSet::new();
         for stmt in body {
-            if let crate::ast::Stmt::Let { name, declaration: true, .. } = stmt {
+            if let crate::ast::Stmt::Let {
+                name,
+                declaration: true,
+                ..
+            } = stmt
+            {
                 if declared.contains(name) && seen.insert(name.clone()) {
                     shadows.push(name.clone());
                 }
@@ -635,10 +648,13 @@ impl IrConverter {
 
         let mut ir_stmts = Vec::new();
         for stmt in body {
-            if let crate::ast::Stmt::Let { name, value, declaration: true } = stmt {
-                if shadow_set.contains(name.as_str())
-                    && !processed_shadows.contains(name)
-                {
+            if let crate::ast::Stmt::Let {
+                name,
+                value,
+                declaration: true,
+            } = stmt
+            {
+                if shadow_set.contains(name.as_str()) && !processed_shadows.contains(name) {
                     // This is the first shadow of `name` in the loop body.
                     // Convert the value expression, then replace references to `name`
                     // in the result with the saved outer value `__shadow_{name}_save`.
@@ -702,11 +718,7 @@ impl IrConverter {
     }
 
     /// Replace all references to `old_name` with `new_name` in a ShellValue.
-    fn replace_var_refs_in_value(
-        value: &ShellValue,
-        old_name: &str,
-        new_name: &str,
-    ) -> ShellValue {
+    fn replace_var_refs_in_value(value: &ShellValue, old_name: &str, new_name: &str) -> ShellValue {
         match value {
             ShellValue::Variable(name) if name == old_name => {
                 ShellValue::Variable(new_name.to_string())
@@ -736,13 +748,9 @@ impl IrConverter {
                     right: Box::new(new_right),
                 }
             }
-            ShellValue::LogicalNot { operand } => {
-                ShellValue::LogicalNot {
-                    operand: Box::new(
-                        Self::replace_var_refs_in_value(operand, old_name, new_name),
-                    ),
-                }
-            }
+            ShellValue::LogicalNot { operand } => ShellValue::LogicalNot {
+                operand: Box::new(Self::replace_var_refs_in_value(operand, old_name, new_name)),
+            },
             ShellValue::LogicalAnd { left, right } => {
                 let new_left = Self::replace_var_refs_in_value(left, old_name, new_name);
                 let new_right = Self::replace_var_refs_in_value(right, old_name, new_name);
@@ -1419,7 +1427,12 @@ impl IrConverter {
                 then_block,
                 else_block,
             } => {
-                ir_stmts.push(self.lower_let_if(target, condition, then_block, else_block.as_deref())?);
+                ir_stmts.push(self.lower_let_if(
+                    target,
+                    condition,
+                    then_block,
+                    else_block.as_deref(),
+                )?);
             }
             other => {
                 ir_stmts.push(self.convert_stmt(other)?);
@@ -1452,22 +1465,14 @@ impl IrConverter {
     }
 
     /// Convert a block of statements where the last expression assigns to `target`.
-    fn convert_block_for_let(
-        &self,
-        target: &str,
-        stmts: &[crate::ast::Stmt],
-    ) -> Result<ShellIR> {
+    fn convert_block_for_let(&self, target: &str, stmts: &[crate::ast::Stmt]) -> Result<ShellIR> {
         self.convert_match_arm_for_let(target, stmts)
     }
 
     /// Check if any match arm uses range patterns (requiring if-chain instead of case).
     fn has_range_patterns(arms: &[crate::ast::restricted::MatchArm]) -> bool {
-        arms.iter().any(|arm| {
-            matches!(
-                &arm.pattern,
-                crate::ast::restricted::Pattern::Range { .. }
-            )
-        })
+        arms.iter()
+            .any(|arm| matches!(&arm.pattern, crate::ast::restricted::Pattern::Range { .. }))
     }
 
     /// Convert a literal to its string representation for shell comparisons.
@@ -1638,21 +1643,40 @@ impl IrConverter {
 
     /// Lower `let target = __if_expr(cond, then_val, else_val)` into If IR.
     /// Handles nested else-if chains where else_val is itself `__if_expr(...)`.
-    fn lower_let_if_expr(
-        &self,
-        target: &str,
-        args: &[crate::ast::Expr],
-    ) -> Result<ShellIR> {
+    fn lower_let_if_expr(&self, target: &str, args: &[crate::ast::Expr]) -> Result<ShellIR> {
         let cond_val = self.convert_expr_to_value(&args[0])?;
-        let then_val = self.convert_expr_to_value(&args[1])?;
-        let then_ir = ShellIR::Let {
-            name: target.to_string(),
-            value: then_val,
-            effects: EffectSet::pure(),
+
+        // Check if then-value is a nested __if_expr (nested conditional in then-branch)
+        let then_ir = if let crate::ast::Expr::FunctionCall {
+            name: fn_name,
+            args: inner_args,
+        } = &args[1]
+        {
+            if fn_name == "__if_expr" && inner_args.len() == 3 {
+                self.lower_let_if_expr(target, inner_args)?
+            } else {
+                let then_val = self.convert_expr_to_value(&args[1])?;
+                ShellIR::Let {
+                    name: target.to_string(),
+                    value: then_val,
+                    effects: EffectSet::pure(),
+                }
+            }
+        } else {
+            let then_val = self.convert_expr_to_value(&args[1])?;
+            ShellIR::Let {
+                name: target.to_string(),
+                value: then_val,
+                effects: EffectSet::pure(),
+            }
         };
 
         // Check if else-value is a nested __if_expr (else-if chain)
-        let else_ir = if let crate::ast::Expr::FunctionCall { name: fn_name, args: inner_args } = &args[2] {
+        let else_ir = if let crate::ast::Expr::FunctionCall {
+            name: fn_name,
+            args: inner_args,
+        } = &args[2]
+        {
             if fn_name == "__if_expr" && inner_args.len() == 3 {
                 // Recursive: else-if chain
                 self.lower_let_if_expr(target, inner_args)?
@@ -1670,6 +1694,60 @@ impl IrConverter {
                 name: target.to_string(),
                 value: else_val,
                 effects: EffectSet::pure(),
+            }
+        };
+
+        Ok(ShellIR::If {
+            test: cond_val,
+            then_branch: Box::new(then_ir),
+            else_branch: Some(Box::new(else_ir)),
+        })
+    }
+
+    /// Lower `return __if_expr(cond, then_val, else_val)` into If IR with Return in each branch.
+    /// Handles nested else-if chains where else_val is itself `__if_expr(...)`.
+    fn lower_return_if_expr(&self, args: &[crate::ast::Expr]) -> Result<ShellIR> {
+        let cond_val = self.convert_expr_to_value(&args[0])?;
+
+        // Check if then-value is a nested __if_expr
+        let then_ir = if let crate::ast::Expr::FunctionCall {
+            name: fn_name,
+            args: inner_args,
+        } = &args[1]
+        {
+            if fn_name == "__if_expr" && inner_args.len() == 3 {
+                self.lower_return_if_expr(inner_args)?
+            } else {
+                let then_val = self.convert_expr_to_value(&args[1])?;
+                ShellIR::Return {
+                    value: Some(then_val),
+                }
+            }
+        } else {
+            let then_val = self.convert_expr_to_value(&args[1])?;
+            ShellIR::Return {
+                value: Some(then_val),
+            }
+        };
+
+        // Check if else-value is a nested __if_expr (else-if chain)
+        let else_ir = if let crate::ast::Expr::FunctionCall {
+            name: fn_name,
+            args: inner_args,
+        } = &args[2]
+        {
+            if fn_name == "__if_expr" && inner_args.len() == 3 {
+                self.lower_return_if_expr(inner_args)?
+            } else {
+                let else_val = self.convert_expr_to_value(&args[2])?;
+                ShellIR::Return {
+                    value: Some(else_val),
+                }
+            }
+        } else {
+            let else_val = self.convert_expr_to_value(&args[2])?;
+            ShellIR::Return {
+                value: Some(else_val),
             }
         };
 
@@ -2562,10 +2640,7 @@ mod convert_expr_tests {
                 assert_eq!(*position, 2);
                 assert_eq!(default, "fallback");
             }
-            other => panic!(
-                "Expected ArgWithDefault {{ 2, fallback }}, got {:?}",
-                other
-            ),
+            other => panic!("Expected ArgWithDefault {{ 2, fallback }}, got {:?}", other),
         }
     }
 

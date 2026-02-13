@@ -24,54 +24,67 @@
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
+/// Check whether `eval` at the given column is a standalone command (word boundaries).
+fn is_standalone_eval(line: &str, col: usize) -> bool {
+    let before_ok = if col == 0 {
+        true
+    } else {
+        let char_before = line.chars().nth(col - 1);
+        matches!(
+            char_before,
+            Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(')
+        )
+    };
+
+    let after_idx = col + 4; // "eval" is 4 chars
+    let after_ok = if after_idx >= line.len() {
+        true
+    } else {
+        let char_after = line.chars().nth(after_idx);
+        matches!(
+            char_after,
+            Some(' ') | Some('\t') | Some('"') | Some('\'') | Some(';')
+        )
+    };
+
+    before_ok && after_ok
+}
+
+/// Check whether this eval is a safe POSIX variable indirection pattern:
+/// `$(eval "printf '%s' ...")` is common for dynamic array access in POSIX sh.
+fn is_safe_eval_indirection(line: &str, col: usize) -> bool {
+    let before_ctx = if col >= 2 { &line[..col] } else { "" };
+    before_ctx.ends_with("$(") && line[col..].contains("printf")
+}
+
 /// Check for command injection via eval
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
-        // Look for eval usage as a command (not part of another word)
-        // Valid patterns: "eval ", "eval\"", "eval'", or eval at end of line
         if let Some(col) = line.find("eval") {
-            // Check if it's a standalone command (word boundary)
-            let before_ok = if col == 0 {
-                true
-            } else {
-                let char_before = line.chars().nth(col - 1);
-                matches!(
-                    char_before,
-                    Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(')
-                )
-            };
-
-            let after_idx = col + 4; // "eval" is 4 chars
-            let after_ok = if after_idx >= line.len() {
-                true
-            } else {
-                let char_after = line.chars().nth(after_idx);
-                matches!(
-                    char_after,
-                    Some(' ') | Some('\t') | Some('"') | Some('\'') | Some(';')
-                )
-            };
-
-            if before_ok && after_ok {
-                let span = Span::new(
-                    line_num + 1,
-                    col + 1,
-                    line_num + 1,
-                    col + 5, // "eval" is 4 chars, +1 for 1-indexed
-                );
-
-                let diag = Diagnostic::new(
-                    "SEC001",
-                    Severity::Error,
-                    "Command injection risk via eval - manual review required",
-                    span,
-                );
-                // NO AUTO-FIX: eval replacement requires manual review
-
-                result.add(diag);
+            if !is_standalone_eval(line, col) {
+                continue;
             }
+            if is_safe_eval_indirection(line, col) {
+                continue;
+            }
+
+            let span = Span::new(
+                line_num + 1,
+                col + 1,
+                line_num + 1,
+                col + 5, // "eval" is 4 chars, +1 for 1-indexed
+            );
+
+            let diag = Diagnostic::new(
+                "SEC001",
+                Severity::Error,
+                "Command injection risk via eval - manual review required",
+                span,
+            );
+
+            result.add(diag);
         }
     }
 

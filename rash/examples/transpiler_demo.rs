@@ -26,22 +26,33 @@ mod colors {
 fn print_header(text: &str) {
     println!(
         "\n{}{}======================================================================{}",
-        colors::BOLD, colors::BLUE, colors::RESET
+        colors::BOLD,
+        colors::BLUE,
+        colors::RESET
     );
     println!(
         "{}{}  {}  {}",
-        colors::BOLD, colors::BLUE, text, colors::RESET
+        colors::BOLD,
+        colors::BLUE,
+        text,
+        colors::RESET
     );
     println!(
         "{}{}======================================================================{}",
-        colors::BOLD, colors::BLUE, colors::RESET
+        colors::BOLD,
+        colors::BLUE,
+        colors::RESET
     );
 }
 
 fn print_section(num: u32, text: &str) {
     println!(
         "\n{}{}--- {}. {} ---{}",
-        colors::BOLD, colors::CYAN, num, text, colors::RESET
+        colors::BOLD,
+        colors::CYAN,
+        num,
+        text,
+        colors::RESET
     );
 }
 
@@ -72,7 +83,9 @@ fn transpile_and_run(rust_code: &str, temp_dir: &std::path::Path) -> Result<(Str
 
     // Run the generated shell script
     let run_result = Command::new("sh").arg(&output_path).output()?;
-    let output = String::from_utf8_lossy(&run_result.stdout).trim().to_string();
+    let output = String::from_utf8_lossy(&run_result.stdout)
+        .trim()
+        .to_string();
 
     Ok((shell_code, output))
 }
@@ -111,10 +124,7 @@ fn show_result(rust_code: &str, shell_code: &str, output: &str) {
         println!("  {}{}{}", colors::GREEN, line, colors::RESET);
     }
 
-    println!(
-        "\n{}Output:{} {}",
-        colors::BOLD, colors::RESET, output
-    );
+    println!("\n{}Output:{} {}", colors::BOLD, colors::RESET, output);
 }
 
 fn demo_basic_function(temp_dir: &std::path::Path) -> Result<()> {
@@ -134,7 +144,9 @@ fn main() {
     assert_eq!(output, "42", "Expected 42");
     println!(
         "  {}{}Correct: double(21) = 42{}",
-        colors::BOLD, colors::GREEN, colors::RESET
+        colors::BOLD,
+        colors::GREEN,
+        colors::RESET
     );
     Ok(())
 }
@@ -161,10 +173,15 @@ fn main() {
 
     let (shell, output) = transpile_and_run(rust_code, temp_dir)?;
     show_result(rust_code, &shell, &output);
-    assert_eq!(output, "38", "Expected 38: double(add_ten(square(3))) = double(add_ten(9)) = double(19) = 38");
+    assert_eq!(
+        output, "38",
+        "Expected 38: double(add_ten(square(3))) = double(add_ten(9)) = double(19) = 38"
+    );
     println!(
         "  {}{}Correct: double(add_ten(square(3))) = 38{}",
-        colors::BOLD, colors::GREEN, colors::RESET
+        colors::BOLD,
+        colors::GREEN,
+        colors::RESET
     );
     Ok(())
 }
@@ -195,7 +212,9 @@ fn main() {
     assert_eq!(output, "235", "Expected 235");
     println!(
         "  {}{}Correct: classify(8)+classify(9)+classify(10) = 80+45+110 = 235{}",
-        colors::BOLD, colors::GREEN, colors::RESET
+        colors::BOLD,
+        colors::GREEN,
+        colors::RESET
     );
     Ok(())
 }
@@ -224,7 +243,9 @@ fn main() {
     assert_eq!(output, "7", "Expected 7");
     println!(
         "  {}{}Correct: first i where i*i%%7==0 is 7{}",
-        colors::BOLD, colors::GREEN, colors::RESET
+        colors::BOLD,
+        colors::GREEN,
+        colors::RESET
     );
     Ok(())
 }
@@ -258,7 +279,9 @@ fn main() {
     assert_eq!(output, "53", "Expected 53");
     println!(
         "  {}{}Correct: weighted_sum(6) = 0+3+10+3+12+25 = 53{}",
-        colors::BOLD, colors::GREEN, colors::RESET
+        colors::BOLD,
+        colors::GREEN,
+        colors::RESET
     );
     Ok(())
 }
@@ -285,7 +308,9 @@ fn main() {
     assert_eq!(output, "55", "Expected fib(10) = 55");
     println!(
         "  {}{}Correct: fib(10) = 55{}",
-        colors::BOLD, colors::GREEN, colors::RESET
+        colors::BOLD,
+        colors::GREEN,
+        colors::RESET
     );
     Ok(())
 }
@@ -319,7 +344,9 @@ fn main() {
     assert_eq!(output, "36", "Expected lcm(12,18) = 36");
     println!(
         "  {}{}Correct: lcm(12, 18) = 36{}",
-        colors::BOLD, colors::GREEN, colors::RESET
+        colors::BOLD,
+        colors::GREEN,
+        colors::RESET
     );
     Ok(())
 }
@@ -329,11 +356,13 @@ fn main() -> Result<()> {
 
     println!(
         "\n{}Demonstrating bashrs transpilation: write Rust, get safe POSIX shell.{}",
-        colors::DIM, colors::RESET
+        colors::DIM,
+        colors::RESET
     );
     println!(
         "{}Every generated script uses set -euf, proper quoting, and passes shellcheck.{}\n",
-        colors::DIM, colors::RESET
+        colors::DIM,
+        colors::RESET
     );
 
     let temp_dir = TempDir::new()?;
@@ -349,7 +378,11 @@ fn main() -> Result<()> {
 
     print_header("All 7 Demos Passed");
 
-    println!("\n{}Supported Rust constructs:{}", colors::BOLD, colors::RESET);
+    println!(
+        "\n{}Supported Rust constructs:{}",
+        colors::BOLD,
+        colors::RESET
+    );
     println!("  - Functions with parameters and return values");
     println!("  - Nested function calls: f(g(h(x)))");
     println!("  - match expressions (let x = match y {{ ... }})");
@@ -367,7 +400,8 @@ fn main() -> Result<()> {
 
     println!(
         "\n{}Try it:{} bashrs build your_code.rs -o output.sh",
-        colors::BOLD, colors::RESET
+        colors::BOLD,
+        colors::RESET
     );
 
     Ok(())
