@@ -72,6 +72,17 @@ fi
 rm -rf "$USER_INPUT"
 ```
 
+### Safe Eval Patterns (v6.63.0+)
+
+SEC001 now recognizes safe POSIX variable indirection patterns and does **not** flag them:
+
+```bash
+# This is safe — uses eval with printf for dynamic array access
+value=$(eval "printf '%s' \"\$arr_$index\"")
+```
+
+This pattern is common in POSIX sh where named arrays are not available.
+
 ### Auto-fix
 
 Not auto-fixable - requires manual security review.
@@ -82,7 +93,7 @@ Not auto-fixable - requires manual security review.
 
 ### What it Detects
 
-Variables used in commands without proper quoting.
+Variables used in commands without proper quoting. As of v6.63.0, SEC002 uses **word-boundary matching** to avoid false positives when dangerous command names appear as substrings of other words (e.g., `curl_handler` no longer triggers a `curl` warning).
 
 ### Why This Matters
 

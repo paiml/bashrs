@@ -122,6 +122,54 @@ let result = double(add_ten(square(3)));
 // Shell: result="$(double "$(add_ten "$(square 3)")")"
 ```
 
+## If-Else as Expressions
+
+If-else can be used in let bindings and return statements, including nested else-if chains:
+
+```rust
+fn classify(n: i32) -> &'static str {
+    if n > 0 {
+        "positive"
+    } else if n < 0 {
+        "negative"
+    } else {
+        "zero"
+    }
+}
+```
+
+Generates:
+
+```sh
+classify() {
+    n="$1"
+    if [ "$n" -gt 0 ]; then
+        echo positive
+    elif [ "$n" -lt 0 ]; then
+        echo negative
+    else
+        echo zero
+    fi
+}
+```
+
+## Makefile Transpilation
+
+Rust code using `println!()` and `exec()` can transpile to Makefile output. The emitter detects raw output mode automatically and emits resolved lines directly:
+
+```rust
+fn main() {
+    let project = "myapp";
+    println!("{}: build test", project);
+}
+```
+
+Transpiles to:
+
+```makefile
+myapp: build test
+```
+
 ## Limitations
 
 The transpiler supports a **restricted subset** of Rust designed for shell-compatible operations:
