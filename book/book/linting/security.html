@@ -213,12 +213,18 @@ fi
 <span class="boring"> Use explicit command construction
 </span>rm -rf "$USER_INPUT"
 </code></pre>
+<h3 id="safe-eval-patterns-v6630"><a class="header" href="#safe-eval-patterns-v6630">Safe Eval Patterns (v6.63.0+)</a></h3>
+<p>SEC001 now recognizes safe POSIX variable indirection patterns and does <strong>not</strong> flag them:</p>
+<pre><code class="language-bash"><span class="boring"> This is safe — uses eval with printf for dynamic array access
+</span>value=$(eval "printf '%s' \"\$arr_$index\"")
+</code></pre>
+<p>This pattern is common in POSIX sh where named arrays are not available.</p>
 <h3 id="auto-fix"><a class="header" href="#auto-fix">Auto-fix</a></h3>
 <p>Not auto-fixable - requires manual security review.</p>
 <h2 id="sec002-unquoted-variables-in-commands"><a class="header" href="#sec002-unquoted-variables-in-commands">SEC002: Unquoted Variables in Commands</a></h2>
 <p><strong>Severity</strong>: Error (Critical)</p>
 <h3 id="what-it-detects-1"><a class="header" href="#what-it-detects-1">What it Detects</a></h3>
-<p>Variables used in commands without proper quoting.</p>
+<p>Variables used in commands without proper quoting. As of v6.63.0, SEC002 uses <strong>word-boundary matching</strong> to avoid false positives when dangerous command names appear as substrings of other words (e.g., <code>curl_handler</code> no longer triggers a <code>curl</code> warning).</p>
 <h3 id="why-this-matters-1"><a class="header" href="#why-this-matters-1">Why This Matters</a></h3>
 <p>Unquoted variables can lead to:</p>
 <ul>

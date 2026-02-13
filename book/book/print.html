@@ -251,7 +251,7 @@ fn main() {
 <pre><code class="language-bash">bashrs --version
 </code></pre>
 <p>You should see output like:</p>
-<pre><code class="language-text">bashrs 6.61.0
+<pre><code class="language-text">bashrs 6.63.0
 </code></pre>
 <h2 id="from-source"><a class="header" href="#from-source">From Source</a></h2>
 <p>If you want the latest development version:</p>
@@ -268,7 +268,7 @@ sudo cp target/release/bashrs /usr/local/bin/
 <p>For now, use <code>cargo install bashrs</code>.</p>
 <h3 id="linux"><a class="header" href="#linux">Linux</a></h3>
 <h4 id="debianubuntu-coming-soon"><a class="header" href="#debianubuntu-coming-soon">Debian/Ubuntu (coming soon)</a></h4>
-<pre><code class="language-bash"><span class="boring"> wget https://github.com/paiml/bashrs/releases/download/v6.61.0/bashrs_6.61.0_amd64.deb
+<pre><code class="language-bash"><span class="boring"> wget https://github.com/paiml/bashrs/releases/download/v6.63.0/bashrs_6.61.0_amd64.deb
 </span><span class="boring"> sudo dpkg -i bashrs_6.61.0_amd64.deb
 </span></code></pre>
 <h4 id="arch-linux-coming-soon"><a class="header" href="#arch-linux-coming-soon">Arch Linux (coming soon)</a></h4>
@@ -4874,12 +4874,18 @@ fi
 <span class="boring"> Use explicit command construction
 </span>rm -rf "$USER_INPUT"
 </code></pre>
+<h3 id="safe-eval-patterns-v6630"><a class="header" href="#safe-eval-patterns-v6630">Safe Eval Patterns (v6.63.0+)</a></h3>
+<p>SEC001 now recognizes safe POSIX variable indirection patterns and does <strong>not</strong> flag them:</p>
+<pre><code class="language-bash"><span class="boring"> This is safe — uses eval with printf for dynamic array access
+</span>value=$(eval "printf '%s' \"\$arr_$index\"")
+</code></pre>
+<p>This pattern is common in POSIX sh where named arrays are not available.</p>
 <h3 id="auto-fix"><a class="header" href="#auto-fix">Auto-fix</a></h3>
 <p>Not auto-fixable - requires manual security review.</p>
 <h2 id="sec002-unquoted-variables-in-commands"><a class="header" href="#sec002-unquoted-variables-in-commands">SEC002: Unquoted Variables in Commands</a></h2>
 <p><strong>Severity</strong>: Error (Critical)</p>
 <h3 id="what-it-detects-1"><a class="header" href="#what-it-detects-1">What it Detects</a></h3>
-<p>Variables used in commands without proper quoting.</p>
+<p>Variables used in commands without proper quoting. As of v6.63.0, SEC002 uses <strong>word-boundary matching</strong> to avoid false positives when dangerous command names appear as substrings of other words (e.g., <code>curl_handler</code> no longer triggers a <code>curl</code> warning).</p>
 <h3 id="why-this-matters-1"><a class="header" href="#why-this-matters-1">Why This Matters</a></h3>
 <p>Unquoted variables can lead to:</p>
 <ul>
@@ -7551,6 +7557,41 @@ fn main() {
 </span>let result = double(add_ten(square(3)));
 // Shell: result="$(double "$(add_ten "$(square 3)")")"
 <span class="boring">}</span></code></pre></pre>
+<h2 id="if-else-as-expressions"><a class="header" href="#if-else-as-expressions">If-Else as Expressions</a></h2>
+<p>If-else can be used in let bindings and return statements, including nested else-if chains:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn classify(n: i32) -&gt; &amp;'static str {
+    if n &gt; 0 {
+        "positive"
+    } else if n &lt; 0 {
+        "negative"
+    } else {
+        "zero"
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Generates:</p>
+<pre><code class="language-sh">classify() {
+    n="$1"
+    if [ "$n" -gt 0 ]; then
+        echo positive
+    elif [ "$n" -lt 0 ]; then
+        echo negative
+    else
+        echo zero
+    fi
+}
+</code></pre>
+<h2 id="makefile-transpilation"><a class="header" href="#makefile-transpilation">Makefile Transpilation</a></h2>
+<p>Rust code using <code>println!()</code> and <code>exec()</code> can transpile to Makefile output. The emitter detects raw output mode automatically and emits resolved lines directly:</p>
+<pre><pre class="playground"><code class="language-rust">fn main() {
+    let project = "myapp";
+    println!("{}: build test", project);
+}</code></pre></pre>
+<p>Transpiles to:</p>
+<pre><code class="language-makefile">myapp: build test
+</code></pre>
 <h2 id="limitations"><a class="header" href="#limitations">Limitations</a></h2>
 <p>The transpiler supports a <strong>restricted subset</strong> of Rust designed for shell-compatible operations:</p>
 <ul>
@@ -7606,29 +7647,40 @@ fn main() {
 </span>bashrs corpus history
 </code></pre>
 <h2 id="entry-format"><a class="header" href="#entry-format">Entry Format</a></h2>
-<p>Each corpus entry in <code>registry.rs</code> specifies:</p>
-<pre><pre class="playground"><code class="language-rust">CorpusEntry {
-    id: "B-001",
-    name: "hello_world",
-    rust_source: r#"fn main() { println!("Hello"); }"#,
-    expected_output: "Hello",
-    expected_contains: "printf '%s\\n'",
-    category: "basic",
-    format: CorpusFormat::Bash,
-}</code></pre></pre>
+<p>Each corpus entry in <code>registry.rs</code> uses the <code>CorpusEntry::new</code> constructor:</p>
+<pre><pre class="playground"><code class="language-rust">CorpusEntry::new(
+    "B-001",                                    // id
+    "hello_world",                              // name
+    "Basic println transpilation",              // description
+    CorpusFormat::Bash,                         // format
+    CorpusTier::Basic,                          // tier
+    r#"fn main() { println!("Hello"); }"#,     // rust_source (input)
+    "Hello",                                    // expected_contains
+)</code></pre></pre>
 <ul>
 <li><code>rust_source</code>: The Rust code to transpile</li>
-<li><code>expected_output</code>: What <code>sh output.sh</code> should print (B1 containment check)</li>
-<li><code>expected_contains</code>: A line that must appear in the generated shell (B2 exact match)</li>
+<li><code>expected_contains</code>: A line that must appear in the generated shell output (used for B1 containment and B2 exact match)</li>
 </ul>
-<h2 id="current-status"><a class="header" href="#current-status">Current Status</a></h2>
+<h2 id="current-status-v6630"><a class="header" href="#current-status-v6630">Current Status (v6.63.0)</a></h2>
 <ul>
-<li><strong>14,712 entries</strong> (13,397 Bash + 695 Makefile + 620 Dockerfile)</li>
-<li><strong>97.5/100 (A+)</strong> overall score</li>
-<li><strong>0 failures</strong> across all entries</li>
-<li><strong>100%</strong> transpilation pass rate</li>
+<li><strong>17,882 entries</strong> (16,411 Bash + 784 Makefile + 687 Dockerfile)</li>
+<li><strong>97.0/100 (A+)</strong> overall score</li>
+<li><strong>100%</strong> transpilation pass rate (A dimension: 30/30)</li>
+<li><strong>100%</strong> determinism (E dimension: 10/10)</li>
+<li><strong>99.9%</strong> lint clean (D dimension: 10/10)</li>
+<li><strong>99.6%</strong> metamorphic (F dimension: 5/5)</li>
+<li><strong>98.6%</strong> behavioral (B3 dimension: 6.9/7)</li>
+<li><strong>95.4%</strong> containment (B1 dimension: 9.5/10)</li>
+<li><strong>96.0%</strong> cross-shell (G dimension: 4.8/5)</li>
+<li><strong>84.7%</strong> exact match (B2 dimension: 6.8/8)</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-file-management"><a class="header" href="#configuration-file-management">Configuration File Management</a></h1>
+<h3 id="per-format-scores"><a class="header" href="#per-format-scores">Per-Format Scores</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Format</th><th>Score</th><th>Grade</th><th>Entries</th></tr></thead><tbody>
+<tr><td>Bash</td><td>97.0/100</td><td>A+</td><td>16,411</td></tr>
+<tr><td>Makefile</td><td>94.3/100</td><td>A</td><td>784</td></tr>
+<tr><td>Dockerfile</td><td>99.3/100</td><td>A+</td><td>687</td></tr>
+</tbody></table>
+</div><div style="break-before: page; page-break-before: always;"></div><h1 id="configuration-file-management"><a class="header" href="#configuration-file-management">Configuration File Management</a></h1>
 <p><strong>Rash</strong> provides specialized support for analyzing and purifying shell configuration files like <code>.bashrc</code>, <code>.zshrc</code>, <code>.bash_profile</code>, and <code>.profile</code>. These files are critical infrastructure - they set up your shell environment for every new session.</p>
 <h2 id="why-config-file-management-matters"><a class="header" href="#why-config-file-management-matters">Why Config File Management Matters</a></h2>
 <p>Shell configuration files are:</p>

@@ -257,6 +257,41 @@ fn main() {
 </span>let result = double(add_ten(square(3)));
 // Shell: result="$(double "$(add_ten "$(square 3)")")"
 <span class="boring">}</span></code></pre></pre>
+<h2 id="if-else-as-expressions"><a class="header" href="#if-else-as-expressions">If-Else as Expressions</a></h2>
+<p>If-else can be used in let bindings and return statements, including nested else-if chains:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn classify(n: i32) -&gt; &amp;'static str {
+    if n &gt; 0 {
+        "positive"
+    } else if n &lt; 0 {
+        "negative"
+    } else {
+        "zero"
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Generates:</p>
+<pre><code class="language-sh">classify() {
+    n="$1"
+    if [ "$n" -gt 0 ]; then
+        echo positive
+    elif [ "$n" -lt 0 ]; then
+        echo negative
+    else
+        echo zero
+    fi
+}
+</code></pre>
+<h2 id="makefile-transpilation"><a class="header" href="#makefile-transpilation">Makefile Transpilation</a></h2>
+<p>Rust code using <code>println!()</code> and <code>exec()</code> can transpile to Makefile output. The emitter detects raw output mode automatically and emits resolved lines directly:</p>
+<pre><pre class="playground"><code class="language-rust">fn main() {
+    let project = "myapp";
+    println!("{}: build test", project);
+}</code></pre></pre>
+<p>Transpiles to:</p>
+<pre><code class="language-makefile">myapp: build test
+</code></pre>
 <h2 id="limitations"><a class="header" href="#limitations">Limitations</a></h2>
 <p>The transpiler supports a <strong>restricted subset</strong> of Rust designed for shell-compatible operations:</p>
 <ul>

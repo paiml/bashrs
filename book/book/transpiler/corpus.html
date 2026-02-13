@@ -198,29 +198,40 @@
 </span>bashrs corpus history
 </code></pre>
 <h2 id="entry-format"><a class="header" href="#entry-format">Entry Format</a></h2>
-<p>Each corpus entry in <code>registry.rs</code> specifies:</p>
-<pre><pre class="playground"><code class="language-rust">CorpusEntry {
-    id: "B-001",
-    name: "hello_world",
-    rust_source: r#"fn main() { println!("Hello"); }"#,
-    expected_output: "Hello",
-    expected_contains: "printf '%s\\n'",
-    category: "basic",
-    format: CorpusFormat::Bash,
-}</code></pre></pre>
+<p>Each corpus entry in <code>registry.rs</code> uses the <code>CorpusEntry::new</code> constructor:</p>
+<pre><pre class="playground"><code class="language-rust">CorpusEntry::new(
+    "B-001",                                    // id
+    "hello_world",                              // name
+    "Basic println transpilation",              // description
+    CorpusFormat::Bash,                         // format
+    CorpusTier::Basic,                          // tier
+    r#"fn main() { println!("Hello"); }"#,     // rust_source (input)
+    "Hello",                                    // expected_contains
+)</code></pre></pre>
 <ul>
 <li><code>rust_source</code>: The Rust code to transpile</li>
-<li><code>expected_output</code>: What <code>sh output.sh</code> should print (B1 containment check)</li>
-<li><code>expected_contains</code>: A line that must appear in the generated shell (B2 exact match)</li>
+<li><code>expected_contains</code>: A line that must appear in the generated shell output (used for B1 containment and B2 exact match)</li>
 </ul>
-<h2 id="current-status"><a class="header" href="#current-status">Current Status</a></h2>
+<h2 id="current-status-v6630"><a class="header" href="#current-status-v6630">Current Status (v6.63.0)</a></h2>
 <ul>
-<li><strong>14,712 entries</strong> (13,397 Bash + 695 Makefile + 620 Dockerfile)</li>
-<li><strong>97.5/100 (A+)</strong> overall score</li>
-<li><strong>0 failures</strong> across all entries</li>
-<li><strong>100%</strong> transpilation pass rate</li>
+<li><strong>17,882 entries</strong> (16,411 Bash + 784 Makefile + 687 Dockerfile)</li>
+<li><strong>97.0/100 (A+)</strong> overall score</li>
+<li><strong>100%</strong> transpilation pass rate (A dimension: 30/30)</li>
+<li><strong>100%</strong> determinism (E dimension: 10/10)</li>
+<li><strong>99.9%</strong> lint clean (D dimension: 10/10)</li>
+<li><strong>99.6%</strong> metamorphic (F dimension: 5/5)</li>
+<li><strong>98.6%</strong> behavioral (B3 dimension: 6.9/7)</li>
+<li><strong>95.4%</strong> containment (B1 dimension: 9.5/10)</li>
+<li><strong>96.0%</strong> cross-shell (G dimension: 4.8/5)</li>
+<li><strong>84.7%</strong> exact match (B2 dimension: 6.8/8)</li>
 </ul>
-
+<h3 id="per-format-scores"><a class="header" href="#per-format-scores">Per-Format Scores</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Format</th><th>Score</th><th>Grade</th><th>Entries</th></tr></thead><tbody>
+<tr><td>Bash</td><td>97.0/100</td><td>A+</td><td>16,411</td></tr>
+<tr><td>Makefile</td><td>94.3/100</td><td>A</td><td>784</td></tr>
+<tr><td>Dockerfile</td><td>99.3/100</td><td>A+</td><td>687</td></tr>
+</tbody></table>
+</div>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
