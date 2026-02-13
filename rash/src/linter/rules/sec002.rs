@@ -39,11 +39,25 @@ fn is_comment_line(line: &str) -> bool {
     line.trim_start().starts_with('#')
 }
 
+/// Check if a command appears as a whole word in the line
+fn is_word_boundary(line: &str, pos: usize, cmd_len: usize) -> bool {
+    let before_ok = pos == 0
+        || !line.as_bytes()[pos - 1].is_ascii_alphanumeric() && line.as_bytes()[pos - 1] != b'_';
+    let after_pos = pos + cmd_len;
+    let after_ok = after_pos >= line.len()
+        || !line.as_bytes()[after_pos].is_ascii_alphanumeric()
+            && line.as_bytes()[after_pos] != b'_';
+    before_ok && after_ok
+}
+
 /// Find which dangerous command (if any) is in the line
 fn find_dangerous_command(line: &str) -> Option<&'static str> {
     DANGEROUS_COMMANDS
         .iter()
-        .find(|&cmd| line.contains(cmd))
+        .find(|&cmd| {
+            line.match_indices(cmd)
+                .any(|(pos, _)| is_word_boundary(line, pos, cmd.len()))
+        })
         .copied()
 }
 
