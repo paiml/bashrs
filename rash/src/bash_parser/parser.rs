@@ -1252,20 +1252,83 @@ impl BashParser {
             }
 
             // Parse patterns (can be multiple patterns separated by |)
+            // Case patterns can contain dots, globs, etc. (e.g., server.host, db.*, \#*)
+            // These may be tokenized as multiple consecutive tokens that need concatenation.
+            // Also handle Variable tokens for patterns like $VAR) and Number for 1|2|3).
             let mut patterns = Vec::new();
-            while let Some(Token::Identifier(pat)) | Some(Token::String(pat)) = self.peek() {
-                // BUG-008, BUG-009 FIX: Skip case terminators when parsing patterns
-                if pat == ";;" || pat == ";&" || pat == ";;&" {
-                    break;
+            loop {
+                let mut pattern = String::new();
+
+                // Concatenate consecutive tokens that form a single pattern
+                // Stop at: RightParen, Pipe, Semicolon, Newline, Esac, Eof
+                while !self.is_at_end()
+                    && !self.check(&Token::RightParen)
+                    && !self.check(&Token::Pipe)
+                    && !self.check(&Token::Semicolon)
+                    && !self.check(&Token::Newline)
+                    && !self.check(&Token::Esac)
+                {
+                    match self.peek() {
+                        Some(Token::Identifier(s)) => {
+                            if s == ";;" || s == ";&" || s == ";;&" {
+                                break;
+                            }
+                            pattern.push_str(s);
+                            self.advance();
+                        }
+                        Some(Token::String(s)) => {
+                            pattern.push_str(s);
+                            self.advance();
+                        }
+                        Some(Token::Variable(v)) => {
+                            pattern.push('$');
+                            pattern.push_str(v);
+                            self.advance();
+                        }
+                        Some(Token::Number(n)) => {
+                            pattern.push_str(&n.to_string());
+                            self.advance();
+                        }
+                        // Bracket char class in patterns: 5[0-9][0-9], [a-z]*, etc.
+                        Some(Token::LeftBracket) => {
+                            pattern.push('[');
+                            self.advance();
+                            while !self.is_at_end() && !self.check(&Token::RightBracket) {
+                                match self.peek() {
+                                    Some(Token::Identifier(s)) => {
+                                        pattern.push_str(s);
+                                        self.advance();
+                                    }
+                                    Some(Token::Number(n)) => {
+                                        pattern.push_str(&n.to_string());
+                                        self.advance();
+                                    }
+                                    Some(Token::Not) => {
+                                        pattern.push('!');
+                                        self.advance();
+                                    }
+                                    _ => break,
+                                }
+                            }
+                            if self.check(&Token::RightBracket) {
+                                pattern.push(']');
+                                self.advance();
+                            }
+                        }
+                        _ => break,
+                    }
                 }
-                patterns.push(pat.clone());
-                self.advance();
+
+                if !pattern.is_empty() {
+                    patterns.push(pattern);
+                }
 
                 // Check for | (alternative pattern)
-                if !self.check(&Token::Pipe) {
+                if self.check(&Token::Pipe) {
+                    self.advance();
+                } else {
                     break;
                 }
-                self.advance();
             }
 
             // Expect )
@@ -2683,6 +2746,39 @@ impl BashParser {
                 let content_str = content.clone();
                 self.advance();
                 Ok(BashExpr::Literal(content_str))
+            }
+            // Glob bracket pattern: [0-9], [a-z], [!abc], etc.
+            // Common in for loop items like: for f in /tmp/[0-9]*.sql
+            Some(Token::LeftBracket) => {
+                let mut pattern = String::from("[");
+                self.advance(); // consume '['
+                while !self.is_at_end() && !self.check(&Token::RightBracket) {
+                    match self.peek() {
+                        Some(Token::Identifier(s)) => {
+                            pattern.push_str(s);
+                            self.advance();
+                        }
+                        Some(Token::Number(n)) => {
+                            pattern.push_str(&n.to_string());
+                            self.advance();
+                        }
+                        Some(Token::Not) => {
+                            pattern.push('!');
+                            self.advance();
+                        }
+                        _ => break,
+                    }
+                }
+                if self.check(&Token::RightBracket) {
+                    pattern.push(']');
+                    self.advance();
+                }
+                // Absorb trailing glob/identifier parts: [0-9]*.sql → "[0-9]*.sql"
+                while let Some(Token::Identifier(s)) = self.peek() {
+                    pattern.push_str(s);
+                    self.advance();
+                }
+                Ok(BashExpr::Glob(pattern))
             }
             // Keyword tokens used as literal strings in argument context
             // e.g., `echo done`, `echo fi`, `echo then`
@@ -5264,6 +5360,50 @@ func_b() {
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse().expect("should parse heredoc + following statement");
         assert_eq!(ast.statements.len(), 2);
+    }
+
+    #[test]
+    fn test_CASE_PATTERN_001_dotted_patterns() {
+        // Case patterns with dots: server.host), db.*)
+        let input = r#"case "$key" in
+    server.host) HOST="$value" ;;
+    db.*) echo "db" ;;
+    *) echo "other" ;;
+esac"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse dotted case patterns");
+        assert!(matches!(&ast.statements[0], BashStmt::Case { arms, .. } if arms.len() == 3));
+    }
+
+    #[test]
+    fn test_CASE_PATTERN_002_bracket_char_class() {
+        // Case patterns with bracket char class: 5[0-9][0-9])
+        let input = r#"case "$status" in
+    200|201) echo ok ;;
+    5[0-9][0-9]) echo error ;;
+    *) echo unknown ;;
+esac"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse bracket char class in case pattern");
+        assert!(matches!(&ast.statements[0], BashStmt::Case { arms, .. } if arms.len() == 3));
+    }
+
+    #[test]
+    fn test_CASE_PATTERN_003_pipe_alternatives() {
+        // Case patterns with pipe alternatives including empty string
+        let input = "case \"$key\" in\n    \\#*|\"\") continue ;;\n    *) echo other ;;\nesac";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse pipe alternative patterns");
+        assert!(matches!(&ast.statements[0], BashStmt::Case { arms, .. } if arms.len() == 2));
+    }
+
+    #[test]
+    fn test_GLOB_BRACKET_001_for_loop_glob() {
+        // Glob bracket pattern in for loop items: [0-9]*.sql
+        let input = "for f in /tmp/[0-9]*.sql; do\n    echo \"$f\"\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse glob bracket in for items");
+        assert!(matches!(&ast.statements[0], BashStmt::For { .. }));
     }
 
     #[test]
