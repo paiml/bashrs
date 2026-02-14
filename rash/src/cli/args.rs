@@ -206,6 +206,18 @@ pub enum Commands {
         /// Generate property-based tests (100+ cases)
         #[arg(long)]
         property_tests: bool,
+
+        /// Enable gradual type checking (check type annotations in comments)
+        #[arg(long)]
+        type_check: bool,
+
+        /// Emit runtime type guards in purified output (implies --type-check)
+        #[arg(long)]
+        emit_guards: bool,
+
+        /// Treat type warnings as errors
+        #[arg(long)]
+        type_strict: bool,
     },
 
     /// Makefile parsing, purification, and transformation

@@ -763,6 +763,34 @@ fn extract_var_name(s: &str) -> String {
         s.to_string()
     }
 }
+
+/// Generate purified bash with runtime type guards inserted after annotated assignments.
+///
+/// This function takes a purified AST and a TypeChecker (which has already been run
+/// via `check_ast`), and emits guards for variables that have type annotations.
+pub fn generate_purified_bash_with_guards(ast: &BashAst, checker: &crate::bash_transpiler::type_check::TypeChecker) -> String {
+    let mut output = String::new();
+    output.push_str("#!/bin/sh\n");
+
+    for stmt in &ast.statements {
+        let stmt_str = generate_statement(stmt);
+        output.push_str(&stmt_str);
+        output.push('\n');
+
+        // After assignments, check if the variable has a known type and emit a guard
+        if let BashStmt::Assignment { name, .. } = stmt {
+            if let Some(ty) = checker.context().lookup(name) {
+                if let Some(guard) = crate::bash_transpiler::type_check::generate_guard_for_type(name, ty) {
+                    output.push_str(&guard);
+                    output.push('\n');
+                }
+            }
+        }
+    }
+
+    output
+}
+
 #[cfg(test)]
 mod codegen_tests {
     use super::*;

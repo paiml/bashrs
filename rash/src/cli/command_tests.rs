@@ -1692,7 +1692,7 @@ fn test_purify_command_basic() {
 
     fs::write(&input_path, "#!/bin/bash\necho $RANDOM").unwrap();
 
-    let result = purify_command(&input_path, Some(&output_path), false, false, false);
+    let result = purify_command(&input_path, Some(&output_path), false, false, false, false, false, false);
     let _ = result;
 }
 
@@ -1703,7 +1703,7 @@ fn test_purify_command_with_lint() {
 
     fs::write(&input_path, "#!/bin/bash\necho hello world").unwrap();
 
-    let result = purify_command(&input_path, None, true, false, false);
+    let result = purify_command(&input_path, None, true, false, false, false, false, false);
     let _ = result;
 }
 
@@ -2315,7 +2315,7 @@ fn test_purify_command_with_output_and_report() {
     let output = temp_dir.path().join("purified.sh");
     fs::write(&input, "#!/bin/bash\nmkdir /tmp/test\necho $RANDOM\n").unwrap();
 
-    let result = purify_command(&input, Some(&output), true, false, false);
+    let result = purify_command(&input, Some(&output), true, false, false, false, false, false);
     assert!(result.is_ok());
     assert!(output.exists());
 }
@@ -2326,7 +2326,7 @@ fn test_purify_command_to_stdout() {
     let input = temp_dir.path().join("script.sh");
     fs::write(&input, "#!/bin/bash\necho hello\n").unwrap();
 
-    let result = purify_command(&input, None, false, false, false);
+    let result = purify_command(&input, None, false, false, false, false, false, false);
     assert!(result.is_ok());
 }
 
@@ -2337,7 +2337,7 @@ fn test_purify_command_with_tests() {
     let output = temp_dir.path().join("purified.sh");
     fs::write(&input, "#!/bin/bash\necho hello\n").unwrap();
 
-    let result = purify_command(&input, Some(&output), false, true, false);
+    let result = purify_command(&input, Some(&output), false, true, false, false, false, false);
     assert!(result.is_ok());
     // Test file should be generated
     let test_path = temp_dir.path().join("purified_test.sh");
@@ -2351,7 +2351,7 @@ fn test_purify_command_with_property_tests() {
     let output = temp_dir.path().join("purified.sh");
     fs::write(&input, "#!/bin/bash\necho hello\n").unwrap();
 
-    let result = purify_command(&input, Some(&output), true, true, true);
+    let result = purify_command(&input, Some(&output), true, true, true, false, false, false);
     assert!(result.is_ok());
 }
 
@@ -2361,7 +2361,7 @@ fn test_purify_command_with_tests_requires_output() {
     let input = temp_dir.path().join("script.sh");
     fs::write(&input, "#!/bin/bash\necho hello\n").unwrap();
 
-    let result = purify_command(&input, None, false, true, false);
+    let result = purify_command(&input, None, false, true, false, false, false, false);
     assert!(result.is_err()); // --with-tests requires -o flag
 }
 
@@ -2370,6 +2370,9 @@ fn test_purify_command_nonexistent_file() {
     let result = purify_command(
         &PathBuf::from("/nonexistent/purify.sh"),
         None,
+        false,
+        false,
+        false,
         false,
         false,
         false,
