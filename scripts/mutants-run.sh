@@ -22,7 +22,7 @@ echo "This will take 3-5 hours to complete..."
 echo "Press Ctrl+C within 5 seconds to cancel"
 sleep 5
 
-cd "$PROJECT_ROOT/rash"
+cd "$PROJECT_ROOT/rash" || exit 1
 
 echo ""
 echo "Starting mutation testing at $(date)"
