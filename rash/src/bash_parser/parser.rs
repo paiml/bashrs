@@ -1350,6 +1350,12 @@ impl BashParser {
                 self.advance();
                 cmd
             }
+            // Handle $VAR as command name (e.g., $KUBECTL scale ...)
+            Some(Token::Variable(v)) => {
+                let cmd = format!("${}", v);
+                self.advance();
+                cmd
+            }
             // Handle keyword tokens as command names (rare but valid bash)
             Some(t) if Self::keyword_as_str(t).is_some() => {
                 let cmd = Self::keyword_as_str(t).expect("checked is_some").to_string();
@@ -2462,39 +2468,41 @@ impl BashParser {
         // Example: `if grep -q pattern file; then` - the command's exit code is the condition
         // Issue #133: Handle pipeline commands as condition
         // Example: `if cmd1 | cmd2; then` - the pipeline's exit code is the condition
-        // Check if we have a command identifier (not a unary test operator)
-        if let Some(Token::Identifier(name)) = self.peek() {
-            // Don't treat test operators as commands
-            if !name.starts_with('-') {
-                let cmd = self.parse_condition_command()?;
-                // Issue #133: If next token is Pipe, build a pipeline
-                let stmt = if self.check(&Token::Pipe) {
-                    let mut commands = vec![cmd];
-                    while self.check(&Token::Pipe) {
-                        self.advance(); // consume |
-                        let next_cmd = self.parse_condition_command()?;
-                        commands.push(next_cmd);
-                    }
-                    BashStmt::Pipeline {
-                        commands,
-                        span: Span::new(self.current_line, 0, self.current_line, 0),
-                    }
-                } else {
-                    cmd
-                };
+        // Also handle $VAR as command: `if ! $KUBECTL rollout; then`
+        let is_command_condition = match self.peek() {
+            Some(Token::Identifier(name)) => !name.starts_with('-'),
+            Some(Token::Variable(_)) => true,
+            _ => false,
+        };
+        if is_command_condition {
+            let cmd = self.parse_condition_command()?;
+            // Issue #133: If next token is Pipe, build a pipeline
+            let stmt = if self.check(&Token::Pipe) {
+                let mut commands = vec![cmd];
+                while self.check(&Token::Pipe) {
+                    self.advance(); // consume |
+                    let next_cmd = self.parse_condition_command()?;
+                    commands.push(next_cmd);
+                }
+                BashStmt::Pipeline {
+                    commands,
+                    span: Span::new(self.current_line, 0, self.current_line, 0),
+                }
+            } else {
+                cmd
+            };
 
-                // Issue #133: Wrap in Negated if ! was present
-                let final_stmt = if negated {
-                    BashStmt::Negated {
-                        command: Box::new(stmt),
-                        span: Span::new(self.current_line, 0, self.current_line, 0),
-                    }
-                } else {
-                    stmt
-                };
+            // Issue #133: Wrap in Negated if ! was present
+            let final_stmt = if negated {
+                BashStmt::Negated {
+                    command: Box::new(stmt),
+                    span: Span::new(self.current_line, 0, self.current_line, 0),
+                }
+            } else {
+                stmt
+            };
 
-                return Ok(BashExpr::CommandCondition(Box::new(final_stmt)));
-            }
+            return Ok(BashExpr::CommandCondition(Box::new(final_stmt)));
         }
 
         // If we consumed ! but didn't find a command, handle negated test expressions
@@ -2559,6 +2567,11 @@ impl BashParser {
             }
             Some(Token::String(s)) => {
                 let cmd = s.clone();
+                self.advance();
+                cmd
+            }
+            Some(Token::Variable(v)) => {
+                let cmd = format!("${}", v);
                 self.advance();
                 cmd
             }
@@ -4692,6 +4705,40 @@ EOF"#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse().expect("should parse local -r");
         assert!(!ast.statements.is_empty());
+    }
+
+    #[test]
+    fn test_VARCMD_001_variable_as_command() {
+        let input = r#"$CMD foo bar"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse $VAR as command");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "$CMD");
+                assert_eq!(args.len(), 2);
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_VARCMD_002_variable_command_in_function() {
+        let input = r#"deploy() {
+    $KUBECTL scale deployment/foo --replicas=3
+}"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse $VAR command in function");
+        match &ast.statements[0] {
+            BashStmt::Function { body, .. } => {
+                match &body[0] {
+                    BashStmt::Command { name, .. } => {
+                        assert_eq!(name, "$KUBECTL");
+                    }
+                    other => panic!("Expected Command in function body, got {other:?}"),
+                }
+            }
+            other => panic!("Expected Function, got {other:?}"),
+        }
     }
 
     #[test]
