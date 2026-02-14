@@ -139,7 +139,7 @@ impl std::fmt::Display for Violation {
 /// Check a single rule against an artifact's content
 pub fn check_rule(rule: RuleId, content: &str, artifact: &Artifact) -> RuleResult {
     match rule {
-        RuleId::Determinism => check_determinism(content),
+        RuleId::Determinism => check_determinism(content, artifact),
         RuleId::Idempotency => check_idempotency(content, artifact),
         RuleId::Security => check_security(content),
         RuleId::Quoting => check_quoting(content),
@@ -156,7 +156,8 @@ pub fn check_rule(rule: RuleId, content: &str, artifact: &Artifact) -> RuleResul
     }
 }
 
-fn check_determinism(content: &str) -> RuleResult {
+fn check_determinism(content: &str, artifact: &Artifact) -> RuleResult {
+    let is_makefile = artifact.kind == ArtifactKind::Makefile;
     let mut violations = Vec::new();
 
     for (i, line) in content.lines().enumerate() {
@@ -164,7 +165,7 @@ fn check_determinism(content: &str) -> RuleResult {
         if trimmed.starts_with('#') {
             continue;
         }
-        check_determinism_line(trimmed, i + 1, &mut violations);
+        check_determinism_line(trimmed, i + 1, is_makefile, &mut violations);
     }
 
     RuleResult {
@@ -174,7 +175,12 @@ fn check_determinism(content: &str) -> RuleResult {
     }
 }
 
-fn check_determinism_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
+fn check_determinism_line(
+    trimmed: &str,
+    line_num: usize,
+    is_makefile: bool,
+    violations: &mut Vec<Violation>,
+) {
     if trimmed.contains("$RANDOM") {
         violations.push(Violation {
             rule: RuleId::Determinism,
@@ -182,7 +188,8 @@ fn check_determinism_line(trimmed: &str, line_num: usize, violations: &mut Vec<V
             message: "Non-deterministic: $RANDOM".to_string(),
         });
     }
-    if is_pid_usage(trimmed) {
+    // In Makefiles, $$ is always Make's escape for a literal $, never bash's $$ PID.
+    if !is_makefile && is_pid_usage(trimmed) {
         violations.push(Violation {
             rule: RuleId::Determinism,
             line: Some(line_num),
@@ -196,6 +203,25 @@ fn check_determinism_line(trimmed: &str, line_num: usize, violations: &mut Vec<V
             message: "Non-deterministic: timestamp command".to_string(),
         });
     }
+}
+
+/// Check if `eval` appears as a shell command (first token), not as a subcommand
+/// of another tool (e.g. `yq eval`, `jq eval`, `helm eval`).
+fn is_eval_command(trimmed: &str) -> bool {
+    // eval as first word on the line
+    if trimmed.starts_with("eval ") {
+        return true;
+    }
+    // eval after command separators: ; && || |
+    for sep in &["; ", "&& ", "|| "] {
+        if let Some(pos) = trimmed.find(sep) {
+            let after = trimmed[pos + sep.len()..].trim_start();
+            if after.starts_with("eval ") {
+                return true;
+            }
+        }
+    }
+    false
 }
 
 /// Detect $$ PID usage (not Makefile $$ escaping like $$@, $$<, $$^)
@@ -285,7 +311,11 @@ fn check_security(content: &str) -> RuleResult {
         }
 
         // SEC001: eval with variable input
-        if trimmed.contains("eval ") && (trimmed.contains('$') || trimmed.contains('`')) {
+        // Only flag when eval is the command itself, not a subcommand of another
+        // tool (e.g. `yq eval`, `jq eval`, `helm eval`).
+        if is_eval_command(trimmed)
+            && (trimmed.contains('$') || trimmed.contains('`'))
+        {
             violations.push(Violation {
                 rule: RuleId::Security,
                 line: Some(i + 1),
