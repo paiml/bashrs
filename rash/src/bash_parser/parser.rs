@@ -2399,7 +2399,9 @@ impl BashParser {
             self.advance();
             let expr = self.parse_test_condition()?;
             self.expect(Token::RightBracket)?;
-            return Ok(BashExpr::Test(Box::new(expr)));
+            let left = BashExpr::Test(Box::new(expr));
+            // Handle compound conditions: [ cond1 ] && [ cond2 ] or [ cond1 ] || [ cond2 ]
+            return self.parse_compound_test(left);
         }
 
         // Handle [[ ... ]] test syntax
@@ -2407,7 +2409,8 @@ impl BashParser {
             self.advance();
             let expr = self.parse_test_condition()?;
             self.expect(Token::DoubleRightBracket)?;
-            return Ok(BashExpr::Test(Box::new(expr)));
+            let left = BashExpr::Test(Box::new(expr));
+            return self.parse_compound_test(left);
         }
 
         // Issue #133: Handle negated command/pipeline condition
@@ -2478,6 +2481,35 @@ impl BashParser {
 
         // Fallback to regular expression (for backwards compatibility)
         self.parse_expression()
+    }
+
+    /// Handle compound test conditions: `[ cond1 ] && [ cond2 ]` or `[ cond1 ] || [ cond2 ]`
+    fn parse_compound_test(&mut self, left: BashExpr) -> ParseResult<BashExpr> {
+        // Helper to extract TestExpr from BashExpr::Test, or wrap in StringNonEmpty
+        fn unwrap_test(expr: BashExpr) -> TestExpr {
+            match expr {
+                BashExpr::Test(inner) => *inner,
+                other => TestExpr::StringNonEmpty(other),
+            }
+        }
+
+        if self.check(&Token::And) {
+            self.advance(); // consume &&
+            let right = self.parse_test_expression()?;
+            Ok(BashExpr::Test(Box::new(TestExpr::And(
+                Box::new(unwrap_test(left)),
+                Box::new(unwrap_test(right)),
+            ))))
+        } else if self.check(&Token::Or) {
+            self.advance(); // consume ||
+            let right = self.parse_test_expression()?;
+            Ok(BashExpr::Test(Box::new(TestExpr::Or(
+                Box::new(unwrap_test(left)),
+                Box::new(unwrap_test(right)),
+            ))))
+        } else {
+            Ok(left)
+        }
     }
 
     /// Issue #93: Parse a command used as a condition in if/while statements
@@ -4953,6 +4985,58 @@ done"#;
                 );
             }
             other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_COMPOUND_001_if_and_condition() {
+        let input = r#"if [ "$X" = "a" ] && [ "$Y" -gt 0 ]; then
+    echo yes
+fi"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse && in if condition");
+        assert_eq!(ast.statements.len(), 1);
+        match &ast.statements[0] {
+            BashStmt::If { condition, then_block, .. } => {
+                // Condition should be a compound test with And
+                let cond_str = format!("{condition:?}");
+                assert!(cond_str.contains("And"), "condition should contain And: {cond_str}");
+                assert!(!then_block.is_empty());
+            }
+            other => panic!("Expected If, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_COMPOUND_002_if_or_condition() {
+        let input = r#"if [ -f /tmp/a ] || [ -f /tmp/b ]; then
+    echo found
+fi"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse || in if condition");
+        match &ast.statements[0] {
+            BashStmt::If { condition, .. } => {
+                let cond_str = format!("{condition:?}");
+                assert!(cond_str.contains("Or"), "condition should contain Or: {cond_str}");
+            }
+            other => panic!("Expected If, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_COMPOUND_003_while_and_condition() {
+        let input = r#"while [ "$i" -lt 10 ] && [ "$done" = "false" ]; do
+    echo loop
+    break
+done"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse && in while condition");
+        match &ast.statements[0] {
+            BashStmt::While { condition, .. } => {
+                let cond_str = format!("{condition:?}");
+                assert!(cond_str.contains("And"), "condition should contain And: {cond_str}");
+            }
+            other => panic!("Expected While, got {other:?}"),
         }
     }
 
