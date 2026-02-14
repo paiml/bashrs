@@ -261,6 +261,13 @@ impl Lexer {
             let ch = self.current_char();
             if ch == ' ' || ch == '\t' || ch == '\r' {
                 self.advance();
+            } else if ch == '\\' && self.peek_char(1) == Some('\n') {
+                // Backslash-newline is line continuation — skip both characters
+                // and continue reading the next line as part of the current command
+                self.advance(); // skip backslash
+                self.advance(); // skip newline
+                self.line += 1;
+                self.column = 1;
             } else {
                 break;
             }
@@ -845,7 +852,27 @@ impl Lexer {
             // Issue #131: ',' added for Docker mount options like type=bind,source=...,target=...
             // Issue #131: '=' added for key=value arguments like --mount type=bind
             // '@' added for email addresses (admin@example.com)
-            if ch.is_alphanumeric()
+            // Handle extended glob patterns inline: @(...), +(...), ?(...), !(...)
+            if (ch == '@' || ch == '+' || ch == '?' || ch == '!')
+                && self.peek_char(1) == Some('(')
+            {
+                word.push(self.advance()); // push @/+/?/!
+                word.push(self.advance()); // push (
+                let mut depth = 1;
+                while !self.is_at_end() && depth > 0 {
+                    let c = self.current_char();
+                    if c == '(' {
+                        depth += 1;
+                    } else if c == ')' {
+                        depth -= 1;
+                        if depth == 0 {
+                            word.push(self.advance());
+                            break;
+                        }
+                    }
+                    word.push(self.advance());
+                }
+            } else if ch.is_alphanumeric()
                 || ch == '/'
                 || ch == '.'
                 || ch == '-'
@@ -1107,6 +1134,31 @@ impl Lexer {
                 self.advance(); // skip '+'
                 self.advance(); // skip '='
                 Token::Identifier("+=".to_string())
+            }
+            ('=', Some('~')) => {
+                // =~ regex match operator (used in [[ ... =~ pattern ]])
+                self.advance(); // skip '='
+                self.advance(); // skip '~'
+                self.skip_whitespace_except_newline();
+                // Read regex pattern until ]] or end of line
+                let mut pattern = String::new();
+                while !self.is_at_end() {
+                    let c = self.current_char();
+                    if c == '\n' {
+                        break;
+                    }
+                    // Check for ]]
+                    if c == ']' && self.peek_char(1) == Some(']') {
+                        break;
+                    }
+                    // Check for unquoted ; (statement terminator)
+                    if c == ';' {
+                        break;
+                    }
+                    pattern.push(self.advance());
+                }
+                let pattern = pattern.trim_end().to_string();
+                Token::Identifier(format!("=~ {}", pattern))
             }
             ('=', _) => {
                 self.advance();
