@@ -1141,18 +1141,26 @@ impl Lexer {
                 self.advance(); // skip '~'
                 self.skip_whitespace_except_newline();
                 // Read regex pattern until ]] or end of line
+                // Track bracket depth to avoid breaking on ]] inside [[:class:]]
                 let mut pattern = String::new();
+                let mut bracket_depth = 0i32;
                 while !self.is_at_end() {
                     let c = self.current_char();
                     if c == '\n' {
                         break;
                     }
-                    // Check for ]]
-                    if c == ']' && self.peek_char(1) == Some(']') {
-                        break;
+                    if c == '[' {
+                        bracket_depth += 1;
+                    } else if c == ']' {
+                        if bracket_depth > 0 {
+                            bracket_depth -= 1;
+                        } else if self.peek_char(1) == Some(']') {
+                            // Only break on ]] when not inside brackets
+                            break;
+                        }
                     }
-                    // Check for unquoted ; (statement terminator)
-                    if c == ';' {
+                    // Check for unquoted ; (statement terminator) outside brackets
+                    if c == ';' && bracket_depth == 0 {
                         break;
                     }
                     pattern.push(self.advance());

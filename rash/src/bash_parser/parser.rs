@@ -497,7 +497,10 @@ impl BashParser {
         let mut statements = Vec::new();
         let parse_result = (|| -> ParseResult<BashAst> {
             while !self.is_at_end() {
-                self.skip_newlines();
+                // Skip newlines and semicolons between statements
+                while self.check(&Token::Newline) || self.check(&Token::Semicolon) {
+                    self.advance();
+                }
                 if self.is_at_end() {
                     break;
                 }
@@ -513,7 +516,10 @@ impl BashParser {
                 }
 
                 statements.push(stmt);
-                self.skip_newlines();
+                // Skip newlines and semicolons after statement
+                while self.check(&Token::Newline) || self.check(&Token::Semicolon) {
+                    self.advance();
+                }
             }
 
             let duration = start_time.elapsed();
@@ -2956,11 +2962,16 @@ impl BashParser {
         // Handle assignment-as-condition: `if pid=$(check_pid); then`
         // The assignment's exit status is the condition. This is NOT an env prefix.
         // Detect: Identifier + Assign + (CommandSubstitution|Variable|String) + (;|then|newline)
+        // BUT NOT env prefix: `while IFS='=' read -r key value; do` where token after value is a command
         if matches!(self.peek(), Some(Token::Identifier(_)))
             && self.peek_ahead(1) == Some(&Token::Assign)
             && matches!(
                 self.peek_ahead(2),
                 Some(Token::CommandSubstitution(_) | Token::Variable(_) | Token::String(_))
+            )
+            && !matches!(
+                self.peek_ahead(3),
+                Some(Token::Identifier(_))
             )
         {
             let var_name = if let Some(Token::Identifier(n)) = self.peek() {
@@ -3188,6 +3199,7 @@ impl BashParser {
         let mut redirects = Vec::new();
 
         // Parse arguments until semicolon, newline, then, do, or special tokens
+        // Stop at standalone & (background) but NOT &> (combined redirect)
         while !self.is_at_end()
             && !self.check(&Token::Newline)
             && !self.check(&Token::Semicolon)
@@ -3196,6 +3208,8 @@ impl BashParser {
             && !self.check(&Token::Pipe)
             && !self.check(&Token::And)
             && !self.check(&Token::Or)
+            && !(self.check(&Token::Ampersand) && !matches!(self.peek_ahead(1), Some(Token::Gt)))
+            && !self.check(&Token::RightParen)
             && !matches!(self.peek(), Some(Token::Comment(_)))
         {
             // Handle redirections (same as parse_command)
@@ -3226,6 +3240,28 @@ impl BashParser {
                 self.advance();
                 let target = self.parse_redirect_target()?;
                 redirects.push(Redirect::Error { target });
+            } else if matches!(self.peek(), Some(Token::Ampersand))
+                && matches!(self.peek_ahead(1), Some(Token::Gt))
+            {
+                // Combined redirection: &> file (redirects both stdout and stderr)
+                self.advance(); // consume '&'
+                self.advance(); // consume '>'
+                let target = self.parse_redirect_target()?;
+                redirects.push(Redirect::Combined { target });
+            } else if matches!(self.peek(), Some(Token::Gt))
+                && matches!(self.peek_ahead(1), Some(Token::Ampersand))
+                && matches!(self.peek_ahead(2), Some(Token::Number(_)))
+            {
+                // File descriptor duplication shorthand: >&2
+                self.advance(); // consume '>'
+                self.advance(); // consume '&'
+                let to_fd = if let Some(Token::Number(n)) = self.peek() {
+                    *n as i32
+                } else {
+                    unreachable!()
+                };
+                self.advance();
+                redirects.push(Redirect::Duplicate { from_fd: 1, to_fd });
             } else if matches!(self.peek(), Some(Token::Gt)) {
                 self.advance();
                 let target = self.parse_redirect_target()?;
@@ -3275,11 +3311,11 @@ impl BashParser {
                     let expr = self.parse_expression()?;
                     return Ok(TestExpr::StringEmpty(expr));
                 }
-                "-f" | "-e" | "-s" => {
+                "-f" | "-e" | "-s" | "-v" => {
                     // -f: file exists and is regular file
                     // -e: file exists (any type)
                     // -s: file exists and has size > 0
-                    // Issue #62: Added -s support
+                    // -v: variable is set (bash 4.2+)
                     self.advance();
                     let expr = self.parse_expression()?;
                     return Ok(TestExpr::FileExists(expr));
@@ -7673,5 +7709,160 @@ fi"#;
             // 1 , 2 , 3  =>  Number(3) (comma returns rightmost)
             assert_eq!(parse_arith("1 , 2 , 3"), ArithExpr::Number(3));
         }
+    }
+
+    // --- Batch 2: semicolons, -v test, env prefix, &> in conditions ---
+
+    #[test]
+    fn test_SEMICOLON_SEP_001_simple() {
+        let input = "a=10; b=3";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "Semicolon-separated assignments should parse: {:?}", ast.err());
+        assert_eq!(ast.as_ref().expect("ok").statements.len(), 2);
+    }
+
+    #[test]
+    fn test_SEMICOLON_SEP_002_multiple() {
+        let input = "echo a; echo b; echo c";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "Multiple semicolons should parse: {:?}", ast.err());
+        assert_eq!(ast.as_ref().expect("ok").statements.len(), 3);
+    }
+
+    #[test]
+    fn test_V_TEST_001_variable_set() {
+        let input = "if [[ -v MYVAR ]]; then\n    echo set\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "-v test operator should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_ENV_PREFIX_001_while_ifs() {
+        // IFS='=' before read — env prefix, not assignment condition
+        let input = "while IFS='=' read -r key value; do\n    echo \"$key=$value\"\ndone < input.txt";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "IFS= env prefix in while should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_REGEX_POSIX_CLASS_001_bracket_depth() {
+        // =~ with POSIX char class [[:space:]] should not break on ]] inside
+        let input = "if [[ \"$key\" =~ ^[[:space:]]*# ]]; then\n    echo comment\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "=~ with [[:space:]] should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_COMBINED_REDIR_001_if_condition() {
+        // &>/dev/null in if command condition
+        let input = "if command -v git &>/dev/null; then\n    echo found\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "&>/dev/null in if condition should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_COMBINED_REDIR_002_negated_condition() {
+        // ! command -v ... &>/dev/null
+        let input = "if ! command -v git &>/dev/null; then\n    echo missing\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "negated &>/dev/null in condition should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_COMBINED_REDIR_003_in_command() {
+        // &> in regular command (already tested but verify no regression)
+        let input = "echo hello &> output.log";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "&> in command should parse: {:?}", ast.err());
+        if let BashStmt::Command { redirects, .. } = &ast.expect("ok").statements[0] {
+            assert_eq!(redirects.len(), 1, "Should have one Combined redirect");
+            assert!(matches!(&redirects[0], Redirect::Combined { .. }));
+        }
+    }
+
+    #[test]
+    fn test_DOGFOOD_022_assoc_arrays_and_arithmetic() {
+        // Full dogfood_22 constructs
+        let input = r#"declare -A config
+config[host]="localhost"
+config[port]="8080"
+for key in "${!config[@]}"; do
+    printf "%s = %s\n" "$key" "${config[$key]}"
+done
+arr=(zero one two three four five)
+echo "Elements 2-4: ${arr[@]:2:3}"
+echo "Last element: ${arr[-1]}"
+a=10; b=3
+echo "Add: $((a + b))"
+echo "Mul: $((a * b))"
+max=$((a > b ? a : b))
+echo "Max: $max"
+"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "dogfood_22 constructs should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_DOGFOOD_023_deployment_script() {
+        // Key constructs from dogfood_23
+        let input = r#"set -euo pipefail
+readonly LOG_FILE="/var/log/deploy.log"
+readonly TIMESTAMP_FMT="+%Y-%m-%d %H:%M:%S"
+
+log() {
+    local level="$1"
+    shift
+    local msg="$*"
+    echo "[$level] $msg" >&2
+}
+
+info()  { log "INFO"  "$@"; }
+
+health_check() {
+    local url="$1"
+    local max_retries="${2:-10}"
+    local attempt=0
+    while (( attempt < max_retries )); do
+        if curl -sf -o /dev/null "$url" 2>/dev/null; then
+            return 0
+        fi
+        attempt=$((attempt + 1))
+        sleep 5
+    done
+    return 1
+}
+
+deploy_service() {
+    local service_name="$1"
+    for cmd in docker curl jq; do
+        if ! command -v "$cmd" &>/dev/null; then
+            return 1
+        fi
+    done
+    if ! docker pull "$service_name" 2>/dev/null; then
+        return 1
+    fi
+}
+
+main() {
+    info "Starting deployment"
+    deploy_service "${SERVICE_NAME:-myapp}"
+    health_check "${HEALTH_URL:-http://localhost:8080/health}"
+}
+
+main "$@"
+"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "dogfood_23 key constructs should parse: {:?}", ast.err());
     }
 }
