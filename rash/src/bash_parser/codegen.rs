@@ -97,6 +97,7 @@ fn generate_stmt(stmt: &BashStmt, indent: usize) -> String {
         BashStmt::If {
             condition,
             then_block,
+            elif_blocks,
             else_block,
             ..
         } => {
@@ -104,6 +105,17 @@ fn generate_stmt(stmt: &BashStmt, indent: usize) -> String {
             for stmt in then_block {
                 s.push_str(&generate_stmt(stmt, indent + 1));
                 s.push('\n');
+            }
+            for (elif_cond, elif_body) in elif_blocks {
+                s.push_str(&format!(
+                    "{}elif {}; then\n",
+                    pad,
+                    generate_condition(elif_cond)
+                ));
+                for stmt in elif_body {
+                    s.push_str(&generate_stmt(stmt, indent + 1));
+                    s.push('\n');
+                }
             }
             if let Some(else_stmts) = else_block {
                 s.push_str(&format!("{}else\n", pad));
@@ -2055,5 +2067,58 @@ mod test_issue_64 {
             "Output should contain valid assignment: {}",
             output
         );
+    }
+
+    #[test]
+    fn test_ELIF_001_basic_elif_preserved() {
+        let input = r#"if [ "$1" = "a" ]; then
+    echo alpha
+elif [ "$1" = "b" ]; then
+    echo beta
+else
+    echo unknown
+fi"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("parse");
+        let output = generate_purified_bash(&ast);
+        assert!(output.contains("elif"), "elif should be preserved in output: {output}");
+        assert!(output.contains("echo alpha"), "then branch preserved: {output}");
+        assert!(output.contains("echo beta"), "elif branch preserved: {output}");
+        assert!(output.contains("echo unknown"), "else branch preserved: {output}");
+    }
+
+    #[test]
+    fn test_ELIF_002_multiple_elif_preserved() {
+        let input = r#"if [ "$1" = "a" ]; then
+    echo alpha
+elif [ "$1" = "b" ]; then
+    echo beta
+elif [ "$1" = "c" ]; then
+    echo gamma
+else
+    echo unknown
+fi"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("parse");
+        let output = generate_purified_bash(&ast);
+        let elif_count = output.matches("elif").count();
+        assert_eq!(
+            elif_count, 2,
+            "should have 2 elif branches, got {elif_count}: {output}"
+        );
+    }
+
+    #[test]
+    fn test_ELIF_003_elif_no_else() {
+        let input = r#"if [ "$1" = "a" ]; then
+    echo alpha
+elif [ "$1" = "b" ]; then
+    echo beta
+fi"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("parse");
+        let output = generate_purified_bash(&ast);
+        assert!(output.contains("elif"), "elif preserved: {output}");
+        assert!(!output.contains("else"), "no else block: {output}");
     }
 }
