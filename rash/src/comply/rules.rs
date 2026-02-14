@@ -61,6 +61,53 @@ impl RuleId {
         }
     }
 
+    pub fn description(&self) -> &'static str {
+        match self {
+            RuleId::Posix => "Detects bash-specific constructs: [[ ]], (( )), <<<, select, ${var/}, pipefail, &>",
+            RuleId::Determinism => "Flags non-deterministic commands: $RANDOM, $$, date +%s, /dev/urandom",
+            RuleId::Idempotency => "Requires safe-to-rerun operations: mkdir -p, rm -f, ln -sf",
+            RuleId::Security => "Checks SEC001-SEC008: eval injection, curl|bash, rm -rf, secrets, temp files",
+            RuleId::Quoting => "Detects unquoted variable expansions that risk word splitting or globbing",
+            RuleId::ShellCheck => "Lightweight ShellCheck: SC2006 backticks, SC2115 rm, SC2164 cd, SC2012 ls",
+            RuleId::MakefileSafety => "Makefile risks: eval in recipes, bare make, rm -rf with vars, missing .PHONY",
+            RuleId::DockerfileBest => "Dockerfile hygiene: unpinned base, ADD vs COPY, apt cleanup, USER directive",
+            RuleId::ConfigHygiene => "Config file quality: PATH manipulation, alias complexity, source safety",
+            RuleId::PzshBudget => "pzsh shell startup time budget enforcement",
+        }
+    }
+
+    /// Artifact types this rule applies to
+    pub fn applies_to(&self) -> &'static [&'static str] {
+        match self {
+            RuleId::Posix => &["shell"],
+            RuleId::Determinism => &["shell", "makefile"],
+            RuleId::Idempotency => &["shell", "makefile"],
+            RuleId::Security => &["shell", "makefile", "dockerfile", "config", "workflow"],
+            RuleId::Quoting => &["shell", "config"],
+            RuleId::ShellCheck => &["shell"],
+            RuleId::MakefileSafety => &["makefile"],
+            RuleId::DockerfileBest => &["dockerfile"],
+            RuleId::ConfigHygiene => &["config"],
+            RuleId::PzshBudget => &["config"],
+        }
+    }
+
+    /// All rule IDs in order
+    pub fn all() -> &'static [RuleId] {
+        &[
+            RuleId::Posix,
+            RuleId::Determinism,
+            RuleId::Idempotency,
+            RuleId::Security,
+            RuleId::Quoting,
+            RuleId::ShellCheck,
+            RuleId::MakefileSafety,
+            RuleId::DockerfileBest,
+            RuleId::ConfigHygiene,
+            RuleId::PzshBudget,
+        ]
+    }
+
     pub fn weight(&self) -> u32 {
         match self {
             RuleId::Posix => 20,

@@ -607,3 +607,48 @@ fn test_comply_suppression_line_level() {
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("bashrs-comply-check-v1"));
 }
+
+// ═══════════════════════════════════════════════════════════════
+// comply rules
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_COMPLY_CLI_060_rules_text() {
+    bashrs_cmd()
+        .arg("comply")
+        .arg("rules")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("COMPLY-001"))
+        .stdout(predicate::str::contains("COMPLY-010"))
+        .stdout(predicate::str::contains("10 rules"));
+}
+
+#[test]
+fn test_COMPLY_CLI_061_rules_json() {
+    let output = bashrs_cmd()
+        .arg("comply")
+        .arg("rules")
+        .arg("--format")
+        .arg("json")
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("bashrs-comply-rules-v1"));
+    assert!(stdout.contains("COMPLY-001"));
+    assert!(stdout.contains("\"weight\":"));
+}
+
+#[test]
+fn test_COMPLY_CLI_062_rules_markdown() {
+    bashrs_cmd()
+        .arg("comply")
+        .arg("rules")
+        .arg("--format")
+        .arg("markdown")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("# Compliance Rules"))
+        .stdout(predicate::str::contains("comply:disable"));
+}
