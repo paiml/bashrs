@@ -828,7 +828,7 @@ impl Purifier {
                 // Build mkdir -p command
                 let mut mkdir_args = if !purified_args
                     .iter()
-                    .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-p")))
+                    .any(|arg| matches!(arg, BashExpr::Literal(s) if s.starts_with('-') && s.contains('p')))
                 {
                     vec![BashExpr::Literal("-p".to_string())]
                 } else {
@@ -849,10 +849,11 @@ impl Purifier {
 
             "rm" => {
                 // rm should use -f flag for idempotency
-                if !args
-                    .iter()
-                    .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-f")))
-                {
+                // Check for -f in any flag arg (e.g., -f, -rf, -fr, -fR)
+                let has_f_flag = args.iter().any(|arg| {
+                    matches!(arg, BashExpr::Literal(s) if s.starts_with('-') && s.contains('f'))
+                });
+                if !has_f_flag {
                     // Add -f flag for idempotency (like mkdir -p)
                     let purified_args: Result<Vec<_>, _> =
                         args.iter().map(|arg| self.purify_expression(arg)).collect();

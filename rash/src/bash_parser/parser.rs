@@ -1145,6 +1145,17 @@ impl BashParser {
     fn parse_local(&mut self) -> ParseResult<BashStmt> {
         self.expect(Token::Local)?;
 
+        // Skip flags like -i, -r, -a, -A (bash-specific, dropped for POSIX)
+        while !self.is_at_end() {
+            if let Some(Token::Identifier(s)) = self.peek() {
+                if s.starts_with('-') && s.len() > 1 && s[1..].chars().all(|c| c.is_alphabetic()) {
+                    self.advance(); // skip flag like "-i", "-r"
+                    continue;
+                }
+            }
+            break;
+        }
+
         // Check if there's content after local
         if !self.is_at_end() && !self.check(&Token::Newline) && !self.check(&Token::Semicolon) {
             // Check if it's an assignment (identifier followed by =) or just declaration
@@ -4652,6 +4663,35 @@ EOF"#;
             }
             other => panic!("Expected BraceGroup(subshell), got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_LOCAL_FLAG_001_local_dash_i() {
+        let input = r#"foo() {
+    local -i num=5
+    echo $num
+}"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse local -i");
+        match &ast.statements[0] {
+            BashStmt::Function { body, .. } => {
+                // local -i num=5 should produce an assignment (flag skipped)
+                assert!(
+                    body.len() >= 2,
+                    "function should have at least 2 statements: {:?}",
+                    body
+                );
+            }
+            other => panic!("Expected Function, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_LOCAL_FLAG_002_local_dash_r() {
+        let input = "local -r FOO=\"bar\"";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse local -r");
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
