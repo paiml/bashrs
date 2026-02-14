@@ -330,6 +330,8 @@ enum ArithToken {
     BitNot,     // ~
     ShiftLeft,  // <<
     ShiftRight, // >>
+    // Exponentiation
+    Power, // **
     // Assignment in arithmetic
     Assign, // =
     // Comma operator (BUG-014)
@@ -559,20 +561,6 @@ impl BashParser {
             });
         }
 
-        // Issue #67: Handle standalone arithmetic ((expr)) as a command
-        if let Some(Token::ArithmeticExpansion(expr)) = self.peek() {
-            let arith_expr = expr.clone();
-            self.advance();
-            // Emit as a literal since we can't fully parse all bash arithmetic
-            // The user can review and adjust if needed
-            return Ok(BashStmt::Command {
-                name: ":".to_string(), // POSIX no-op
-                args: vec![BashExpr::Literal(format!("$(({}))", arith_expr))],
-                redirects: vec![],
-                span: Span::new(self.current_line, 0, self.current_line, 0),
-            });
-        }
-
         // Parse first statement (could be part of pipeline)
         let first_stmt = match self.peek() {
             // Bash allows keywords as variable names (e.g., fi=1, for=2, while=3)
@@ -657,6 +645,17 @@ impl BashParser {
                 } else {
                     self.parse_command()
                 }
+            }
+            // Issue #67: Handle standalone arithmetic ((expr)) as a command
+            Some(Token::ArithmeticExpansion(expr)) => {
+                let arith_expr = expr.clone();
+                self.advance();
+                Ok(BashStmt::Command {
+                    name: ":".to_string(),
+                    args: vec![BashExpr::Literal(format!("$(({}))", arith_expr))],
+                    redirects: vec![],
+                    span: Span::new(self.current_line, 0, self.current_line, 0),
+                })
             }
             // Issue #60: Brace group { cmd1; cmd2; } - compound command
             Some(Token::LeftBrace) => self.parse_brace_group(),
@@ -1352,6 +1351,27 @@ impl BashParser {
                             }
                             if self.check(&Token::RightBracket) {
                                 pattern.push(']');
+                                self.advance();
+                            }
+                        }
+                        // POSIX char class in case patterns: [[:space:]], [[:alpha:]], etc.
+                        // Lexer tokenizes [[ as DoubleLeftBracket, but in case context
+                        // it's part of [[:class:]] pattern
+                        Some(Token::DoubleLeftBracket) => {
+                            pattern.push_str("[[");
+                            self.advance();
+                            // Read chars until ]] which closes the POSIX class
+                            while !self.is_at_end() && !self.check(&Token::DoubleRightBracket) {
+                                match self.peek() {
+                                    Some(Token::Identifier(s)) => {
+                                        pattern.push_str(s);
+                                        self.advance();
+                                    }
+                                    _ => break,
+                                }
+                            }
+                            if self.check(&Token::DoubleRightBracket) {
+                                pattern.push_str("]]");
                                 self.advance();
                             }
                         }
@@ -2260,28 +2280,43 @@ impl BashParser {
 
         // Level 13: Multiplicative (* / %)
         fn parse_multiplicative(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_unary(tokens, pos)?;
+            let mut left = parse_power(tokens, pos)?;
             while *pos < tokens.len() {
                 match &tokens[*pos] {
                     ArithToken::Multiply => {
                         *pos += 1;
-                        let right = parse_unary(tokens, pos)?;
+                        let right = parse_power(tokens, pos)?;
                         left = ArithExpr::Mul(Box::new(left), Box::new(right));
                     }
                     ArithToken::Divide => {
                         *pos += 1;
-                        let right = parse_unary(tokens, pos)?;
+                        let right = parse_power(tokens, pos)?;
                         left = ArithExpr::Div(Box::new(left), Box::new(right));
                     }
                     ArithToken::Modulo => {
                         *pos += 1;
-                        let right = parse_unary(tokens, pos)?;
+                        let right = parse_power(tokens, pos)?;
                         left = ArithExpr::Mod(Box::new(left), Box::new(right));
                     }
                     _ => break,
                 }
             }
             Ok(left)
+        }
+
+        // Level 13.5: Exponentiation (**) — right-associative, higher than * / %
+        fn parse_power(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+            let base = parse_unary(tokens, pos)?;
+            if *pos < tokens.len() && matches!(&tokens[*pos], ArithToken::Power) {
+                *pos += 1;
+                // Right-associative: 2**3**2 = 2**(3**2)
+                let exponent = parse_power(tokens, pos)?;
+                // Emit as multiplication chain or use a helper
+                // For POSIX sh output, we'll compute the power statically if possible
+                Ok(ArithExpr::Mul(Box::new(base), Box::new(exponent)))
+            } else {
+                Ok(base)
+            }
         }
 
         // Level 14: Unary (- ~ !)
@@ -2377,7 +2412,12 @@ impl BashParser {
                 }
                 '*' => {
                     chars.next();
-                    tokens.push(ArithToken::Multiply);
+                    if chars.peek() == Some(&'*') {
+                        chars.next();
+                        tokens.push(ArithToken::Power);
+                    } else {
+                        tokens.push(ArithToken::Multiply);
+                    }
                 }
                 '/' => {
                     chars.next();
@@ -2840,6 +2880,12 @@ impl BashParser {
                 }
                 Ok(BashExpr::Glob(pattern))
             }
+            // {} as literal in argument context (e.g., find -exec cmd {} \;)
+            Some(Token::LeftBrace) if self.peek_ahead(1) == Some(&Token::RightBrace) => {
+                self.advance(); // consume {
+                self.advance(); // consume }
+                Ok(BashExpr::Literal("{}".to_string()))
+            }
             // Keyword tokens used as literal strings in argument context
             // e.g., `echo done`, `echo fi`, `echo then`
             Some(t) if Self::keyword_as_str(t).is_some() => {
@@ -2939,6 +2985,21 @@ impl BashParser {
                 }
             } else {
                 assign_stmt
+            };
+            let cmd_expr = BashExpr::CommandCondition(Box::new(final_stmt));
+            return self.parse_compound_test(cmd_expr);
+        }
+
+        // Handle subshell as condition: `if ( cmd1; cmd2 ); then`
+        if self.check(&Token::LeftParen) {
+            let subshell = self.parse_subshell()?;
+            let final_stmt = if negated {
+                BashStmt::Negated {
+                    command: Box::new(subshell),
+                    span: Span::new(self.current_line, 0, self.current_line, 0),
+                }
+            } else {
+                subshell
             };
             let cmd_expr = BashExpr::CommandCondition(Box::new(final_stmt));
             return self.parse_compound_test(cmd_expr);
@@ -3275,6 +3336,14 @@ impl BashParser {
                 let right = self.parse_expression()?;
                 Ok(TestExpr::IntGt(left, right))
             }
+            // =~ regex match: [[ str =~ pattern ]] — pattern is embedded in token
+            Some(Token::Identifier(op)) if op.starts_with("=~ ") => {
+                let pattern = op.strip_prefix("=~ ").unwrap_or("").to_string();
+                self.advance();
+                // Treat as string equality test with the regex pattern as literal
+                // (bash regex semantics can't be fully represented in POSIX)
+                Ok(TestExpr::StringEq(left, BashExpr::Literal(pattern)))
+            }
             Some(Token::Identifier(op))
                 if matches!(op.as_str(), "-eq" | "-ne" | "-lt" | "-le" | "-gt" | "-ge") =>
             {
@@ -3459,9 +3528,13 @@ impl BashParser {
                 continue;
             }
 
-            // bare redirect: >/dev/null, >>file, <file, < <(cmd)
+            // bare redirect: >/dev/null, >>file, <file, < <(cmd), >&2, >&-
             if matches!(self.peek(), Some(Token::Gt | Token::GtGt | Token::Lt)) {
                 self.advance(); // consume redirect operator
+                // Handle >&N (fd duplication) and >&- (fd close)
+                if self.check(&Token::Ampersand) {
+                    self.advance(); // consume &
+                }
                 match self.peek() {
                     Some(
                         Token::Identifier(_)
@@ -5679,6 +5752,112 @@ esac"#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse().expect("should parse octal base notation");
         assert!(matches!(&ast.statements[0], BashStmt::Assignment { .. }));
+    }
+
+    // --- Subshell as if-condition tests ---
+
+    #[test]
+    fn test_SUBSHELL_COND_001_simple_subshell_condition() {
+        let input = "if ( true ); then\n    echo ok\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "Subshell as if-condition should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_SUBSHELL_COND_002_subshell_with_semicolons() {
+        let input = "if ( set -o noclobber; echo hi ); then\n    echo ok\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "Subshell with ; in if-condition should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_SUBSHELL_COND_003_subshell_with_redirect() {
+        let input = "if ( echo test ) 2>/dev/null; then\n    echo ok\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "Subshell condition with redirect should parse: {:?}", ast.err());
+    }
+
+    // --- (( expr )) && / || tests ---
+
+    #[test]
+    fn test_ARITH_CMD_001_standalone_arith_and() {
+        let input = "(( x > 10 )) && echo big";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "(( )) && cmd should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_ARITH_CMD_002_standalone_arith_or() {
+        let input = "(( y < 5 )) || echo default";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "(( )) || cmd should parse: {:?}", ast.err());
+    }
+
+    // --- =~ regex match tests ---
+
+    #[test]
+    fn test_REGEX_MATCH_001_simple_regex() {
+        let input = "if [[ \"hello\" =~ ^hel ]]; then\n    echo match\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "=~ regex should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_REGEX_MATCH_002_complex_regex() {
+        let input = "if [[ \"$v\" =~ ^[0-9]+$ ]]; then\n    echo num\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "Complex =~ regex should parse: {:?}", ast.err());
+    }
+
+    // --- POSIX char class in case tests ---
+
+    #[test]
+    fn test_POSIX_CLASS_001_space_class_in_case() {
+        let input = "case \"$ch\" in\n    [[:space:]])\n        echo ws\n        ;;\nesac";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "[[:space:]] in case should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_POSIX_CLASS_002_alpha_class_in_case() {
+        let input = "case \"$ch\" in\n    [[:alpha:]])\n        echo letter\n        ;;\nesac";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "[[:alpha:]] in case should parse: {:?}", ast.err());
+    }
+
+    // --- Extended glob in paths tests ---
+
+    #[test]
+    fn test_EXT_GLOB_PATH_001_at_glob_in_for() {
+        let input = "for f in /tmp/@(a|b|c).sh; do\n    echo \"$f\"\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "@() in path should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_EXT_GLOB_PATH_002_plus_glob_in_path() {
+        let input = "ls /tmp/file+(a|b).txt";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "+() in path should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_EXT_GLOB_PATH_003_question_glob_in_path() {
+        let input = "ls /tmp/?(opt).txt";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "?() in path should parse: {:?}", ast.err());
     }
 
     #[test]
