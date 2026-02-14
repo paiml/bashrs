@@ -309,29 +309,7 @@ fn check_security(content: &str) -> RuleResult {
         if trimmed.starts_with('#') {
             continue;
         }
-
-        // SEC001: eval with variable input
-        // Only flag when eval is the command itself, not a subcommand of another
-        // tool (e.g. `yq eval`, `jq eval`, `helm eval`).
-        if is_eval_command(trimmed)
-            && (trimmed.contains('$') || trimmed.contains('`'))
-        {
-            violations.push(Violation {
-                rule: RuleId::Security,
-                line: Some(i + 1),
-                message: "SEC001: eval with variable input (injection risk)".to_string(),
-            });
-        }
-        // SEC002: curl | bash
-        if (trimmed.contains("curl") || trimmed.contains("wget"))
-            && (trimmed.contains("| bash") || trimmed.contains("| sh") || trimmed.contains("|sh"))
-        {
-            violations.push(Violation {
-                rule: RuleId::Security,
-                line: Some(i + 1),
-                message: "SEC002: piping remote content to shell".to_string(),
-            });
-        }
+        check_security_line(trimmed, i + 1, &mut violations);
     }
 
     RuleResult {
@@ -339,6 +317,134 @@ fn check_security(content: &str) -> RuleResult {
         passed: violations.is_empty(),
         violations,
     }
+}
+
+fn check_security_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
+    // SEC001: eval with variable input
+    if is_eval_command(trimmed) && (trimmed.contains('$') || trimmed.contains('`')) {
+        violations.push(Violation {
+            rule: RuleId::Security,
+            line: Some(line_num),
+            message: "SEC001: eval with variable input (injection risk)".to_string(),
+        });
+    }
+    // SEC002: curl | bash
+    if is_pipe_to_shell(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Security,
+            line: Some(line_num),
+            message: "SEC002: piping remote content to shell".to_string(),
+        });
+    }
+    // SEC004: TLS verification disabled
+    if is_tls_disabled(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Security,
+            line: Some(line_num),
+            message: "SEC004: TLS verification disabled".to_string(),
+        });
+    }
+    // SEC005: Hardcoded secrets in assignments
+    if is_hardcoded_secret(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Security,
+            line: Some(line_num),
+            message: "SEC005: hardcoded secret in variable assignment".to_string(),
+        });
+    }
+    // SEC006: Unsafe temporary file
+    if is_unsafe_tmp(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Security,
+            line: Some(line_num),
+            message: "SEC006: unsafe temp file (use mktemp instead of /tmp/ literal)".to_string(),
+        });
+    }
+    // SEC007: sudo with dangerous command and unquoted variable
+    if is_sudo_danger(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Security,
+            line: Some(line_num),
+            message: "SEC007: sudo with dangerous command and unquoted variable".to_string(),
+        });
+    }
+}
+
+fn is_pipe_to_shell(trimmed: &str) -> bool {
+    (trimmed.contains("curl") || trimmed.contains("wget"))
+        && (trimmed.contains("| bash") || trimmed.contains("| sh") || trimmed.contains("|sh"))
+}
+
+fn is_tls_disabled(trimmed: &str) -> bool {
+    trimmed.contains("--no-check-certificate")
+        || trimmed.contains("--insecure")
+        || is_curl_k(trimmed)
+}
+
+/// Detect `curl -k` as a separate flag (not part of another word)
+fn is_curl_k(trimmed: &str) -> bool {
+    trimmed.contains("curl") && trimmed.split_whitespace().any(|w| w == "-k")
+}
+
+/// Detect hardcoded secrets: KEY="literal_value" (not KEY="$VAR" or KEY="${VAR}")
+fn is_hardcoded_secret(trimmed: &str) -> bool {
+    const SECRET_PREFIXES: &[&str] = &[
+        "API_KEY=",
+        "SECRET=",
+        "PASSWORD=",
+        "TOKEN=",
+        "AWS_SECRET",
+        "PRIVATE_KEY=",
+    ];
+    const SECRET_LITERALS: &[&str] = &["sk-", "ghp_", "gho_", "glpat-"];
+
+    // Check for secret-named assignments with literal values
+    for prefix in SECRET_PREFIXES {
+        if let Some(pos) = trimmed.find(prefix) {
+            let after = &trimmed[pos + prefix.len()..];
+            // Has a value that's not a variable expansion
+            if has_literal_value(after) {
+                return true;
+            }
+        }
+    }
+
+    // Check for known secret token prefixes in assignment values
+    for literal in SECRET_LITERALS {
+        if trimmed.contains('=') && trimmed.contains(literal) {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Check if an assignment value is a literal (not a variable expansion)
+fn has_literal_value(after: &str) -> bool {
+    let val = after.trim_start_matches(|c: char| c == '"' || c == '\'');
+    !val.is_empty() && !val.starts_with('$') && !val.starts_with('}')
+}
+
+/// Detect unsafe temp file usage: assignment to /tmp/ path without mktemp
+fn is_unsafe_tmp(trimmed: &str) -> bool {
+    // Only flag assignments (VAR=/tmp/...) not usage
+    trimmed.contains("=\"/tmp/") && !trimmed.contains("mktemp")
+}
+
+/// Detect sudo with dangerous commands and unquoted variables
+fn is_sudo_danger(trimmed: &str) -> bool {
+    if !trimmed.contains("sudo ") {
+        return false;
+    }
+    let has_dangerous = trimmed.contains("rm -rf")
+        || trimmed.contains("chmod 777")
+        || trimmed.contains("chmod -R")
+        || trimmed.contains("chown -R");
+    // Unquoted variable: space followed by $ then alpha (not in quotes)
+    let has_unquoted_var = trimmed.contains(" $")
+        && !trimmed.contains(" \"$")
+        && !trimmed.contains(" '");
+    has_dangerous && has_unquoted_var
 }
 
 fn check_quoting(content: &str) -> RuleResult {

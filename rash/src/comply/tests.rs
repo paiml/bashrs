@@ -1098,6 +1098,159 @@ fn test_workflow_only_has_security() {
 // COMPLY-005 quote tracker: escaped quotes and subshell handling
 // ═══════════════════════════════════════════════════════════════
 
+// ═══════════════════════════════════════════════════════════════
+// SEC004: TLS verification disabled
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_sec004_wget_no_check_certificate() {
+    let content = "#!/bin/sh\nwget --no-check-certificate https://example.com/file\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC004: --no-check-certificate should be flagged");
+    assert!(result.violations.iter().any(|v| v.message.contains("SEC004")));
+}
+
+#[test]
+fn test_sec004_curl_insecure() {
+    let content = "#!/bin/sh\ncurl --insecure https://api.example.com/data\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC004: --insecure should be flagged");
+}
+
+#[test]
+fn test_sec004_curl_k_flag() {
+    let content = "#!/bin/sh\ncurl -k https://api.example.com/data\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC004: curl -k should be flagged");
+}
+
+#[test]
+fn test_sec004_curl_without_k_is_ok() {
+    let content = "#!/bin/sh\ncurl https://api.example.com/data\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(result.passed, "curl without TLS flags should pass");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEC005: Hardcoded secrets
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_sec005_hardcoded_api_key() {
+    let content = "#!/bin/sh\nAPI_KEY=\"sk-1234567890abcdef\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC005: hardcoded API_KEY should be flagged");
+    assert!(result.violations.iter().any(|v| v.message.contains("SEC005")));
+}
+
+#[test]
+fn test_sec005_hardcoded_password() {
+    let content = "#!/bin/sh\nPASSWORD=\"MyS3cret!\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC005: hardcoded PASSWORD should be flagged");
+}
+
+#[test]
+fn test_sec005_github_token_prefix() {
+    let content = "#!/bin/sh\nTOKEN=\"ghp_xxxxxxxxxxxxxxxxxxxx\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC005: ghp_ token prefix should be flagged");
+}
+
+#[test]
+fn test_sec005_variable_expansion_not_flagged() {
+    let content = "#!/bin/sh\nAPI_KEY=\"$MY_API_KEY\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    // Should not flag variable expansion as hardcoded secret
+    let sec005_violations: Vec<_> = result.violations.iter()
+        .filter(|v| v.message.contains("SEC005"))
+        .collect();
+    assert!(sec005_violations.is_empty(), "Variable expansion should not trigger SEC005: {:?}", sec005_violations);
+}
+
+#[test]
+fn test_sec005_empty_value_not_flagged() {
+    let content = "#!/bin/sh\nAPI_KEY=\"\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    let sec005_violations: Vec<_> = result.violations.iter()
+        .filter(|v| v.message.contains("SEC005"))
+        .collect();
+    assert!(sec005_violations.is_empty(), "Empty value should not trigger SEC005");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEC006: Unsafe temporary files
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_sec006_unsafe_tmp_path() {
+    let content = "#!/bin/sh\nTMPFILE=\"/tmp/myapp.tmp\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC006: /tmp/ literal path should be flagged");
+    assert!(result.violations.iter().any(|v| v.message.contains("SEC006")));
+}
+
+#[test]
+fn test_sec006_mktemp_is_ok() {
+    let content = "#!/bin/sh\nTMPFILE=\"$(mktemp)\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(result.passed, "mktemp usage should not be flagged");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEC007: sudo with dangerous command
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_sec007_sudo_rm_rf_unquoted() {
+    let content = "#!/bin/sh\nsudo rm -rf $DIR\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC007: sudo rm -rf with unquoted var should be flagged");
+    assert!(result.violations.iter().any(|v| v.message.contains("SEC007")));
+}
+
+#[test]
+fn test_sec007_sudo_chmod_777() {
+    let content = "#!/bin/sh\nsudo chmod 777 $FILE\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(!result.passed, "SEC007: sudo chmod 777 with unquoted var should be flagged");
+}
+
+#[test]
+fn test_sec007_sudo_rm_rf_quoted_is_ok() {
+    let content = "#!/bin/sh\nsudo rm -rf \"$DIR\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    let sec007_violations: Vec<_> = result.violations.iter()
+        .filter(|v| v.message.contains("SEC007"))
+        .collect();
+    assert!(sec007_violations.is_empty(), "Quoted variable with sudo should not trigger SEC007");
+}
+
+#[test]
+fn test_sec007_sudo_safe_command_not_flagged() {
+    let content = "#!/bin/sh\nsudo apt-get update\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Security, content, &artifact);
+    let sec007_violations: Vec<_> = result.violations.iter()
+        .filter(|v| v.message.contains("SEC007"))
+        .collect();
+    assert!(sec007_violations.is_empty(), "sudo with safe command should not trigger SEC007");
+}
+
 #[test]
 fn test_quoting_escaped_quotes_no_false_positive() {
     // echo "echo \"Line $i: Hello\"" — $i is inside double quotes (escaped inner quotes)
