@@ -38,6 +38,10 @@ fn generate_statement(stmt: &BashStmt) -> String {
             redirects,
             ..
         } => {
+            // Convert declare/typeset to POSIX equivalents
+            if name == "declare" || name == "typeset" {
+                return generate_declare_posix(args, redirects);
+            }
             let mut cmd = name.clone();
             for arg in args {
                 cmd.push(' ');
@@ -397,15 +401,19 @@ fn generate_expr(expr: &BashExpr) -> String {
             // that don't need protection
 
             // Check if this is a simple "safe" identifier that doesn't need quotes
+            // Includes '=' for name=value patterns (declare, export, env)
             let is_simple_word = !s.is_empty()
                 && s.chars()
-                    .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.' || c == '/');
+                    .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.' || c == '/' || c == '=');
 
             // Check if string contains expansions that require double quotes
             let needs_double_quotes = s.contains("$(") || s.contains("${") || s.contains('$');
 
-            if is_simple_word {
+            if is_simple_word && !is_shell_keyword(s) {
                 s.clone()
+            } else if is_shell_keyword(s) {
+                // Quote shell keywords to avoid SC1010 and POSIX ambiguity
+                format!("\"{}\"", s)
             } else if needs_double_quotes {
                 // Issue #72: Use double quotes to preserve command substitution and variable expansion
                 // Escape any double quotes in the string
@@ -508,6 +516,104 @@ fn generate_expr(expr: &BashExpr) -> String {
 /// Strip surrounding quotes (both single and double) from a string
 fn strip_quotes(s: &str) -> &str {
     s.trim_matches(|c| c == '"' || c == '\'')
+}
+
+/// Check if a string is a POSIX/bash shell keyword that needs quoting in argument context.
+/// These keywords can confuse POSIX sh parsers when unquoted (shellcheck SC1010).
+fn is_shell_keyword(s: &str) -> bool {
+    matches!(
+        s,
+        "if" | "then"
+            | "elif"
+            | "else"
+            | "fi"
+            | "for"
+            | "while"
+            | "until"
+            | "do"
+            | "done"
+            | "case"
+            | "esac"
+            | "in"
+            | "function"
+            | "select"
+            | "coproc"
+    )
+}
+
+/// Convert `declare`/`typeset` to POSIX equivalents.
+/// - `declare -i var=val` → `var=val` (integer attribute is a hint, not POSIX)
+/// - `declare -r var=val` → `readonly var=val`
+/// - `declare -x var=val` → `export var=val`
+/// - `declare -a var` → comment (arrays are not POSIX)
+/// - `declare -A var` → comment (assoc arrays are not POSIX)
+/// - `declare var=val` → `var=val` (plain declare → plain assignment)
+fn generate_declare_posix(args: &[BashExpr], redirects: &[Redirect]) -> String {
+    let mut flags = Vec::new();
+    let mut assignments = Vec::new();
+
+    for arg in args {
+        match arg {
+            BashExpr::Literal(s) if s.starts_with('-') => {
+                flags.push(s.as_str());
+            }
+            _ => {
+                assignments.push(generate_expr(arg));
+            }
+        }
+    }
+
+    let has_readonly = flags.iter().any(|f| f.contains('r'));
+    let has_export = flags.iter().any(|f| f.contains('x'));
+    let has_array = flags.iter().any(|f| f.contains('a'));
+    let has_assoc = flags.iter().any(|f| f.contains('A'));
+
+    // Arrays and associative arrays have no POSIX equivalent
+    if has_array || has_assoc {
+        let flag_str = flags.join(" ");
+        let assign_str = assignments.join(" ");
+        if assignments.is_empty() || !assign_str.contains('=') {
+            return format!("# declare {} {} (not POSIX)", flag_str, assign_str).trim_end().to_string();
+        }
+        // Array with assignment: declare -a arr=(items) — emit comment
+        return format!("# declare {} {} (not POSIX)", flag_str, assign_str).trim_end().to_string();
+    }
+
+    let mut output = String::new();
+
+    // Build the POSIX command prefix
+    if has_readonly && has_export {
+        output.push_str("export ");
+        // Note: readonly + export in a single declare; emit export first, readonly after
+        let assign_str = assignments.join(" ");
+        output.push_str(&assign_str);
+        // Append redirects
+        for redirect in redirects {
+            output.push(' ');
+            output.push_str(&generate_redirect(redirect));
+        }
+        // Add a second line for readonly
+        output.push('\n');
+        output.push_str("readonly ");
+        output.push_str(&assign_str);
+    } else if has_readonly {
+        output.push_str("readonly ");
+        output.push_str(&assignments.join(" "));
+    } else if has_export {
+        output.push_str("export ");
+        output.push_str(&assignments.join(" "));
+    } else {
+        // Plain declare or declare -i/-l/-u → just emit the assignment
+        output.push_str(&assignments.join(" "));
+    }
+
+    // Append redirects
+    for redirect in redirects {
+        output.push(' ');
+        output.push_str(&generate_redirect(redirect));
+    }
+
+    output
 }
 
 /// Generate arithmetic expression

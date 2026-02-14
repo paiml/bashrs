@@ -1314,6 +1314,12 @@ impl BashParser {
                 self.advance();
                 cmd
             }
+            // Handle keyword tokens as command names (rare but valid bash)
+            Some(t) if Self::keyword_as_str(t).is_some() => {
+                let cmd = Self::keyword_as_str(t).expect("checked is_some").to_string();
+                self.advance();
+                cmd
+            }
             _ => {
                 return Err(ParseError::InvalidSyntax(
                     "Expected command name".to_string(),
@@ -2324,7 +2330,41 @@ impl BashParser {
                 self.advance();
                 Ok(BashExpr::Literal(content_str))
             }
+            // Keyword tokens used as literal strings in argument context
+            // e.g., `echo done`, `echo fi`, `echo then`
+            Some(t) if Self::keyword_as_str(t).is_some() => {
+                let kw = Self::keyword_as_str(t).expect("checked is_some");
+                self.advance();
+                Ok(BashExpr::Literal(kw.to_string()))
+            }
             _ => Err(ParseError::InvalidSyntax("Expected expression".to_string())),
+        }
+    }
+
+    /// Convert a keyword token to its string representation.
+    /// Returns None for non-keyword tokens.
+    fn keyword_as_str(token: &Token) -> Option<&'static str> {
+        match token {
+            Token::If => Some("if"),
+            Token::Then => Some("then"),
+            Token::Elif => Some("elif"),
+            Token::Else => Some("else"),
+            Token::Fi => Some("fi"),
+            Token::For => Some("for"),
+            Token::While => Some("while"),
+            Token::Until => Some("until"),
+            Token::Do => Some("do"),
+            Token::Done => Some("done"),
+            Token::Case => Some("case"),
+            Token::Esac => Some("esac"),
+            Token::In => Some("in"),
+            Token::Function => Some("function"),
+            Token::Return => Some("return"),
+            Token::Export => Some("export"),
+            Token::Local => Some("local"),
+            Token::Coproc => Some("coproc"),
+            Token::Select => Some("select"),
+            _ => None,
         }
     }
 
@@ -4628,6 +4668,99 @@ done"#;
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
         assert!(!ast.statements.is_empty());
+    }
+
+    #[test]
+    fn test_KEYWORD_001_echo_done_parses() {
+        let input = "echo done";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "echo");
+                assert_eq!(args.len(), 1);
+                assert!(matches!(&args[0], BashExpr::Literal(s) if s == "done"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_KEYWORD_002_echo_fi_then_else() {
+        let input = "echo fi then else";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "echo");
+                assert_eq!(args.len(), 3);
+                assert!(matches!(&args[0], BashExpr::Literal(s) if s == "fi"));
+                assert!(matches!(&args[1], BashExpr::Literal(s) if s == "then"));
+                assert!(matches!(&args[2], BashExpr::Literal(s) if s == "else"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_KEYWORD_003_echo_done_in_for_loop() {
+        // echo done inside a for loop — done as arg, then done terminates loop
+        let input = "for i in 1 2; do\necho done\ndone";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        match &ast.statements[0] {
+            BashStmt::For { body, .. } => {
+                assert_eq!(body.len(), 1);
+                match &body[0] {
+                    BashStmt::Command { name, args, .. } => {
+                        assert_eq!(name, "echo");
+                        assert_eq!(args.len(), 1);
+                        assert!(matches!(&args[0], BashExpr::Literal(s) if s == "done"));
+                    }
+                    other => panic!("Expected Command in body, got {other:?}"),
+                }
+            }
+            other => panic!("Expected For, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_KEYWORD_004_echo_all_keywords() {
+        // All keyword tokens should be parseable as echo arguments
+        let input = "echo if then elif else fi for while until do done case esac in";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "echo");
+                let kws: Vec<&str> = args
+                    .iter()
+                    .map(|a| match a {
+                        BashExpr::Literal(s) => s.as_str(),
+                        _ => panic!("Expected Literal"),
+                    })
+                    .collect();
+                assert_eq!(
+                    kws,
+                    vec!["if", "then", "elif", "else", "fi", "for", "while", "until", "do", "done", "case", "esac", "in"]
+                );
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_KEYWORD_005_for_in_done_item() {
+        // `done` as a for-in item
+        let input = "for word in hello done world; do echo $word; done";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        assert_eq!(ast.statements.len(), 1);
+        assert!(matches!(&ast.statements[0], BashStmt::For { .. }));
     }
 
     #[test]
