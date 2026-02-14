@@ -522,3 +522,22 @@ fn test_gh135_workflow_yq_eval_not_flagged() {
         result.violations
     );
 }
+
+// BH-MUT-0015: is_eval_command separator coverage
+// Kills mutation of removing "|| " from the separator list
+
+#[test]
+fn test_gh135_eval_after_or_still_flagged() {
+    // eval after || is still a command
+    let content = "#!/bin/sh\ntest -f config || eval \"$FALLBACK\"\n";
+    let artifact = Artifact::new(
+        PathBuf::from("test.sh"),
+        Scope::Project,
+        ArtifactKind::ShellScript,
+    );
+    let result = check_rule(RuleId::Security, content, &artifact);
+    assert!(
+        !result.passed,
+        "eval after || should still be flagged"
+    );
+}
