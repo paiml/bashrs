@@ -1457,10 +1457,15 @@ fn purify_command(
     let read_time = read_start.elapsed();
 
     let parse_start = Instant::now();
-    let mut parser = BashParser::new(&source)
-        .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
-    let ast = parser.parse()
-        .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
+    let file_str = input.display().to_string();
+    let mut parser = BashParser::new(&source).map_err(|e| {
+        let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, &source, Some(&file_str));
+        Error::CommandFailed { message: format!("{diag}") }
+    })?;
+    let ast = parser.parse().map_err(|e| {
+        let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, parser.source(), Some(&file_str));
+        Error::CommandFailed { message: format!("{diag}") }
+    })?;
     let parse_time = parse_start.elapsed();
 
     // --emit-guards and --type-strict both imply --type-check
