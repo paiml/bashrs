@@ -375,6 +375,8 @@ impl BashParser {
             }
             // Issue #60: Brace group { cmd1; cmd2; } - compound command
             Some(Token::LeftBrace) => self.parse_brace_group(),
+            // Subshell: ( cmd1; cmd2 )
+            Some(Token::LeftParen) => self.parse_subshell(),
             // Standalone [ ] test as command
             Some(Token::LeftBracket) => self.parse_test_command(),
             // Issue #62: Standalone [[ ]] extended test as command
@@ -556,6 +558,22 @@ impl BashParser {
 
         Ok(BashStmt::BraceGroup {
             body,
+            subshell: false,
+            span: Span::new(self.current_line, 0, self.current_line, 0),
+        })
+    }
+
+    fn parse_subshell(&mut self) -> ParseResult<BashStmt> {
+        self.expect(Token::LeftParen)?;
+        self.skip_newlines();
+
+        let body = self.parse_block_until(&[Token::RightParen])?;
+
+        self.expect(Token::RightParen)?;
+
+        Ok(BashStmt::BraceGroup {
+            body,
+            subshell: true,
             span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
@@ -4610,12 +4628,30 @@ EOF"#;
     }
 
     #[test]
-    fn test_coverage_subshell_unsupported() {
-        // Subshell syntax with parentheses not supported as standalone - verify error handling
+    fn test_SUBSHELL_001_basic() {
         let input = "(cd /tmp && ls)";
-        let mut parser = BashParser::new(input).unwrap();
-        // Should fail - parentheses as subshell grouping not supported
-        assert!(parser.parse().is_err());
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse subshell");
+        match &ast.statements[0] {
+            BashStmt::BraceGroup { subshell, body, .. } => {
+                assert!(subshell, "should be marked as subshell");
+                assert!(!body.is_empty(), "subshell should have body");
+            }
+            other => panic!("Expected BraceGroup(subshell), got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_SUBSHELL_002_simple_echo() {
+        let input = "(echo hello)";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse subshell");
+        match &ast.statements[0] {
+            BashStmt::BraceGroup { subshell, .. } => {
+                assert!(subshell, "should be marked as subshell");
+            }
+            other => panic!("Expected BraceGroup(subshell), got {other:?}"),
+        }
     }
 
     #[test]

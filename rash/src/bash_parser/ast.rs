@@ -129,10 +129,14 @@ pub enum BashStmt {
         span: Span,
     },
 
-    /// Brace group: { cmd1; cmd2; }
+    /// Brace group: { cmd1; cmd2; } or subshell: ( cmd1; cmd2 )
     /// Groups commands together as a compound command
     /// Issue #60: Support for brace groups in || and && contexts
-    BraceGroup { body: Vec<BashStmt>, span: Span },
+    BraceGroup {
+        body: Vec<BashStmt>,
+        subshell: bool,
+        span: Span,
+    },
 
     /// Coprocess: coproc NAME { COMMAND; } or coproc { COMMAND; }
     /// Runs command asynchronously in a subprocess with bidirectional pipes
@@ -679,6 +683,7 @@ mod tests {
     fn test_bracegroup_construction() {
         let stmt = BashStmt::BraceGroup {
             body: vec![],
+            subshell: false,
             span: Span::dummy(),
         };
         assert!(matches!(stmt, BashStmt::BraceGroup { .. }));
@@ -906,6 +911,7 @@ mod tests {
                 redirects: vec![],
                 span: Span::dummy(),
             }],
+            subshell: false,
             span: Span::dummy(),
         };
         assert_eq!(format!("{}", stmt), "BraceGroup(1 stmts)");

@@ -1305,6 +1305,7 @@ mod tests {
                         span: Span::dummy(),
                     },
                 ],
+                subshell: false,
                 span: Span::dummy(),
             }],
             metadata: AstMetadata {
