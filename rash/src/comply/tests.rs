@@ -1768,3 +1768,101 @@ fn test_docker_multiple_violations() {
     assert!(result.violations.len() >= 4,
         "Expected at least 4 violations, got {}: {:?}", result.violations.len(), result.violations);
 }
+
+// ─── COMPLY-007 Makefile Safety Expansion ───
+
+#[test]
+fn test_make_eval_in_recipe_detected() {
+    let content = ".PHONY: all\nall:\n\teval \"$(SOME_CMD)\"\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    assert!(result.violations.iter().any(|v| v.message.contains("MAKE001")),
+        "eval in recipe should be detected: {:?}", result.violations);
+}
+
+#[test]
+fn test_make_recursive_bare_detected() {
+    let content = ".PHONY: all\nall:\n\tmake clean\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    assert!(result.violations.iter().any(|v| v.message.contains("MAKE002")),
+        "bare make should be detected: {:?}", result.violations);
+}
+
+#[test]
+fn test_make_recursive_dollar_make_no_false_positive() {
+    let content = ".PHONY: all\nall:\n\t$(MAKE) clean\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    let m002: Vec<_> = result.violations.iter().filter(|v| v.message.contains("MAKE002")).collect();
+    assert!(m002.is_empty(), "$(MAKE) should not trigger MAKE002: {:?}", m002);
+}
+
+#[test]
+fn test_make_recursive_chained_detected() {
+    let content = ".PHONY: all\nall:\n\techo starting && make clean\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    assert!(result.violations.iter().any(|v| v.message.contains("MAKE002")));
+}
+
+#[test]
+fn test_make_dangerous_rm_detected() {
+    let content = ".PHONY: clean\nclean:\n\trm -rf $(BUILD_DIR)\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    assert!(result.violations.iter().any(|v| v.message.contains("MAKE003")),
+        "rm -rf with variable should be detected: {:?}", result.violations);
+}
+
+#[test]
+fn test_make_safe_rm_literal_no_false_positive() {
+    // rm -rf on a literal path (no variable) is fine
+    let content = ".PHONY: clean\nclean:\n\trm -rf /tmp/build\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    let m003: Vec<_> = result.violations.iter().filter(|v| v.message.contains("MAKE003")).collect();
+    assert!(m003.is_empty(), "rm -rf on literal path should not trigger MAKE003: {:?}", m003);
+}
+
+#[test]
+fn test_make_missing_phony_detected() {
+    // Common targets without .PHONY declaration
+    let content = "all:\n\techo building\nclean:\n\trm -f output\ntest:\n\tcargo test\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    assert!(result.violations.iter().any(|v| v.message.contains("MAKE004")),
+        "Missing .PHONY should be detected: {:?}", result.violations);
+    // Should flag all three: all, clean, test
+    let m004: Vec<_> = result.violations.iter().filter(|v| v.message.contains("MAKE004")).collect();
+    assert!(m004.len() >= 3, "Expected at least 3 missing .PHONY, got {}: {:?}", m004.len(), m004);
+}
+
+#[test]
+fn test_make_with_phony_no_false_positive() {
+    let content = ".PHONY: all clean test\nall:\n\techo building\nclean:\n\trm -f output\ntest:\n\tcargo test\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    let m004: Vec<_> = result.violations.iter().filter(|v| v.message.contains("MAKE004")).collect();
+    assert!(m004.is_empty(), "Declared .PHONY should not trigger MAKE004: {:?}", m004);
+}
+
+#[test]
+fn test_make_non_standard_target_no_false_positive() {
+    // Custom targets not in COMMON_PHONY_TARGETS should not be flagged
+    let content = "my-custom-target:\n\techo custom\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    let m004: Vec<_> = result.violations.iter().filter(|v| v.message.contains("MAKE004")).collect();
+    assert!(m004.is_empty(), "Custom target should not trigger MAKE004: {:?}", m004);
+}
+
+#[test]
+fn test_make_multiple_violations() {
+    let content = "all:\n\teval \"$CMD\"\n\tmake clean\n\trm -rf $(DIR)\n";
+    let artifact = Artifact::new(PathBuf::from("Makefile"), Scope::Project, ArtifactKind::Makefile);
+    let result = check_rule(RuleId::MakefileSafety, content, &artifact);
+    // MAKE001 (eval) + MAKE002 (bare make) + MAKE003 (rm -rf) + MAKE004 (no .PHONY all)
+    assert!(result.violations.len() >= 4,
+        "Expected at least 4 violations, got {}: {:?}", result.violations.len(), result.violations);
+}
