@@ -480,7 +480,25 @@ mod tests {
         let mut e = ConvergenceEntry::default();
         e.iteration = iteration;
         e.passed = passed_count;
-        e.date = "2026-02-11".to_string();
+        // Use today's date dynamically to prevent time-coupled test flakiness (Five Whys #2)
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap();
+        let days = now.as_secs() / 86400;
+        // Convert days since epoch to YYYY-MM-DD
+        let (y, m, d) = {
+            // Inverse Julian day: epoch 1970-01-01 is JDN 2440588
+            let jdn = days as i64 + 2_440_588;
+            let f = jdn + 1401 + (((4 * jdn + 274277) / 146097) * 3) / 4 - 38;
+            let e2 = 4 * f + 3;
+            let g = (e2 % 1461) / 4;
+            let h = 5 * g + 2;
+            let d = (h % 153) / 5 + 1;
+            let m = ((h / 153 + 2) % 12) + 1;
+            let y = e2 / 1461 - 4716 + (14 - m) / 12;
+            (y, m, d)
+        };
+        e.date = format!("{y:04}-{m:02}-{d:02}");
         e
     }
 
