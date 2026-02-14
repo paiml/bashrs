@@ -768,8 +768,9 @@ impl Lexer {
             // Dashes are allowed if followed by alphanumeric (not at end, not before operator)
             if ch.is_alphanumeric() || ch == '_' {
                 ident.push(self.advance());
-            } else if ch == '-' || ch == '.' || ch == ':' {
-                // Allow dash/dot/colon in identifiers for function names
+            } else if ch == '-' || ch == '.' || ch == ':' || ch == '@' {
+                // Allow dash/dot/colon/at in identifiers for function names,
+                // URLs, and email addresses (admin@example.com)
                 // But only if followed by alphanumeric (not operators like -eq)
                 // Also allow colon followed by / for URLs (http://...)
                 if let Some(next) = self.peek_char(1) {
@@ -796,6 +797,7 @@ impl Lexer {
             && !ident.contains('/')
             && !ident.contains('*')
             && !ident.contains('?')
+            && !ident.contains('@')
         {
             match ident.as_str() {
                 "if" => return Token::If,
@@ -842,6 +844,7 @@ impl Lexer {
             // Note: '+' and '%' added for date +%FORMAT support (PARSER-ENH-001)
             // Issue #131: ',' added for Docker mount options like type=bind,source=...,target=...
             // Issue #131: '=' added for key=value arguments like --mount type=bind
+            // '@' added for email addresses (admin@example.com)
             if ch.is_alphanumeric()
                 || ch == '/'
                 || ch == '.'
@@ -855,6 +858,7 @@ impl Lexer {
                 || ch == '%'
                 || ch == ','
                 || ch == '='
+                || ch == '@'
             {
                 word.push(self.advance());
             } else {
