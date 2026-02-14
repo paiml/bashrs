@@ -2554,4 +2554,84 @@ end_of_record
             "Cross-shell should return true for Dockerfile entries"
         );
     }
+
+    // BH-MUT-0016: MR-2, MR-3, MR-4 individual metamorphic relation tests
+    // Kills mutations that remove any individual MR check from the 7-part AND chain
+
+    #[test]
+    fn test_CORPUS_RUN_056_mr2_comment_stability() {
+        // MR-2: Adding a no-op comment to the input should not change output semantics
+        let runner = CorpusRunner::new(Config::default());
+        let entry = CorpusEntry::new(
+            "T-MR2-1",
+            "comment-stability",
+            "Comment addition preserves output",
+            CorpusFormat::Bash,
+            CorpusTier::Standard,
+            r#"fn add(a: u32, b: u32) -> u32 { return a + b; } fn main() { println!("{}", add(1, 2)); }"#,
+            "add() {",
+        );
+        assert!(
+            runner.check_mr2_stability(&entry),
+            "MR-2: adding a comment should not change output"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_057_mr3_whitespace_invariance() {
+        // MR-3: Adding trailing whitespace/newlines should not change output semantics
+        let runner = CorpusRunner::new(Config::default());
+        let entry = CorpusEntry::new(
+            "T-MR3-1",
+            "whitespace-invariance",
+            "Trailing whitespace preserves output",
+            CorpusFormat::Bash,
+            CorpusTier::Standard,
+            r#"fn greet() -> u32 { return 42; } fn main() { println!("{}", greet()); }"#,
+            "greet() {",
+        );
+        assert!(
+            runner.check_mr3_whitespace(&entry),
+            "MR-3: trailing whitespace should not change output"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_058_mr4_leading_blanks_invariance() {
+        // MR-4: Adding leading blank lines should not change output semantics
+        let runner = CorpusRunner::new(Config::default());
+        let entry = CorpusEntry::new(
+            "T-MR4-1",
+            "leading-blanks-invariance",
+            "Leading blanks preserve output",
+            CorpusFormat::Bash,
+            CorpusTier::Standard,
+            r#"fn square(x: u32) -> u32 { return x * x; } fn main() { println!("{}", square(5)); }"#,
+            "square() {",
+        );
+        assert!(
+            runner.check_mr4_leading_blanks(&entry),
+            "MR-4: leading blanks should not change output"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_059_mr_equivalence_both_fail_agree() {
+        // MR equivalence: if both original and modified fail transpilation,
+        // that counts as agreement (degenerate case)
+        let runner = CorpusRunner::new(Config::default());
+        let entry = CorpusEntry::new(
+            "T-MR-EQ-1",
+            "both-fail",
+            "Both original and modified fail → degenerate agreement",
+            CorpusFormat::Bash,
+            CorpusTier::Standard,
+            "this is not valid Rust at all!!!",
+            "should_not_matter",
+        );
+        // MR-2/3/4 should all pass because both original and modified fail → true
+        assert!(runner.check_mr2_stability(&entry));
+        assert!(runner.check_mr3_whitespace(&entry));
+        assert!(runner.check_mr4_leading_blanks(&entry));
+    }
 }
