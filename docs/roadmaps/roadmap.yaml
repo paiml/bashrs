@@ -118,3 +118,35 @@ roadmap:
   - phase1
   - spec
   notes: null
+- id: GH-135
+  github_issue: 135
+  item_type: task
+  title: 'Issue #135'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-02-13T16:35:03.380412422+00:00
+  updated: 2026-02-13T16:35:03.380412422+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: GH-134
+  github_issue: 134
+  item_type: task
+  title: 'Issue #134'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-02-13T16:35:04.264336840+00:00
+  updated: 2026-02-13T16:35:04.264336840+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
