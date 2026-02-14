@@ -2499,4 +2499,59 @@ end_of_record
             "Dockerfile schema should accept output with valid instructions"
         );
     }
+
+    /// BH-MUT-0007: Verify cross-shell agreement requires BOTH dialects to contain expected output.
+    /// Kills mutation changing `posix_has && bash_has` to `posix_has || bash_has`.
+    #[test]
+    fn test_CORPUS_RUN_054_cross_shell_both_dialects_required() {
+        let runner = CorpusRunner::new(Config::default());
+        // Entry with valid Rust that transpiles to shell containing "greet() {"
+        let entry = CorpusEntry::new(
+            "T-XS-1",
+            "cross-shell-valid",
+            "Valid cross-shell entry",
+            CorpusFormat::Bash,
+            CorpusTier::Standard,
+            r#"fn greet() -> u32 { return 42; } fn main() { println!("{}", greet()); }"#,
+            "greet() {",
+        );
+        // Both Posix and Bash dialects should contain "greet() {"
+        assert!(
+            runner.check_cross_shell(&entry),
+            "Cross-shell should pass when both dialects contain expected output"
+        );
+    }
+
+    /// Verify cross-shell skips non-Bash formats (always returns true).
+    #[test]
+    fn test_CORPUS_RUN_055_cross_shell_skips_non_bash() {
+        let runner = CorpusRunner::new(Config::default());
+        let makefile_entry = CorpusEntry::new(
+            "T-XS-2",
+            "cross-shell-makefile",
+            "Makefile entry should skip cross-shell",
+            CorpusFormat::Makefile,
+            CorpusTier::Standard,
+            r#"fn main() { let cc = "gcc"; } "#,
+            "CC := gcc",
+        );
+        assert!(
+            runner.check_cross_shell(&makefile_entry),
+            "Cross-shell should return true for non-Bash entries"
+        );
+
+        let docker_entry = CorpusEntry::new(
+            "T-XS-3",
+            "cross-shell-docker",
+            "Dockerfile entry should skip cross-shell",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Standard,
+            r#"fn from_image(i: &str, t: &str) {} fn main() { from_image("alpine", "3.18"); }"#,
+            "FROM alpine:3.18",
+        );
+        assert!(
+            runner.check_cross_shell(&docker_entry),
+            "Cross-shell should return true for Dockerfile entries"
+        );
+    }
 }
