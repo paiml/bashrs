@@ -5086,8 +5086,8 @@ fn simulate_trace(input: &Path, seed: u64, lines: &[&str], is_deterministic: boo
 fn handle_comply_command(command: ComplyCommands) -> Result<()> {
     match command {
         ComplyCommands::Init { scope, pzsh, strict } => comply_init_command(scope, pzsh, strict),
-        ComplyCommands::Check { path, scope, strict, failures_only: _, format } => {
-            comply_check_command(&path, scope, strict, format)
+        ComplyCommands::Check { path, scope, strict, failures_only, min_score, format } => {
+            comply_check_command(&path, scope, strict, failures_only, min_score, format)
         }
         ComplyCommands::Status { path, format } => comply_status_command(&path, format),
         ComplyCommands::Track { command } => handle_comply_track_command(command),
@@ -12371,22 +12371,73 @@ fn comply_check_command(
     path: &Path,
     scope: Option<ComplyScopeArg>,
     strict: bool,
+    failures_only: bool,
+    min_score: Option<u32>,
     format: ComplyFormat,
 ) -> Result<()> {
     use crate::comply::{runner, scoring::Grade};
 
     info!("Running compliance check on {}", path.display());
 
+    let has_config = crate::comply::config::ComplyConfig::exists(path);
     let config = comply_load_or_default(path);
     let score = runner::run_check(path, comply_scope_filter(scope), &config);
-    comply_output_score(&score, format);
+    comply_output_score(&score, format, failures_only);
 
+    // --strict: exit non-zero on grade F
     if strict && score.grade == Grade::F {
         return Err(Error::Validation(format!(
             "Compliance check failed: grade {} (score {:.0}/100)",
             score.grade, score.score
         )));
     }
+
+    // --min-score N: exit non-zero if score < N
+    if let Some(min) = min_score {
+        if score.score < f64::from(min) {
+            return Err(Error::Validation(format!(
+                "Score {:.0} below minimum {} (grade {})",
+                score.score, min, score.grade
+            )));
+        }
+    }
+
+    // Config thresholds: only enforce when explicit comply.toml exists
+    if has_config {
+        comply_enforce_thresholds(&score, &config)?;
+    }
+
+    Ok(())
+}
+
+/// Enforce thresholds from comply.toml (min_score, max_violations)
+fn comply_enforce_thresholds(
+    score: &crate::comply::scoring::ProjectScore,
+    config: &crate::comply::config::ComplyConfig,
+) -> Result<()> {
+    use crate::comply::scoring::Grade;
+
+    if config.thresholds.min_score > 0 && score.score < f64::from(config.thresholds.min_score) {
+        return Err(Error::Validation(format!(
+            "Score {:.0} below config threshold {} (grade {})",
+            score.score, config.thresholds.min_score, score.grade
+        )));
+    }
+    if config.thresholds.max_violations > 0 {
+        let total_violations: usize = score
+            .artifact_scores
+            .iter()
+            .map(|a| a.violations)
+            .sum();
+        if total_violations > config.thresholds.max_violations as usize {
+            return Err(Error::Validation(format!(
+                "Violations {} exceed config max {} (grade {})",
+                total_violations, config.thresholds.max_violations, score.grade
+            )));
+        }
+    }
+    // Suppress unused warning — Grade is used for formatting
+    let _ = Grade::F;
     Ok(())
 }
 
@@ -12396,14 +12447,24 @@ fn comply_status_command(path: &Path, format: ComplyFormat) -> Result<()> {
     info!("Checking compliance status for {}", path.display());
     let config = comply_load_or_default(path);
     let score = runner::run_check(path, None, &config);
-    comply_output_score(&score, format);
+    comply_output_score(&score, format, false);
     Ok(())
 }
 
-fn comply_output_score(score: &crate::comply::scoring::ProjectScore, format: ComplyFormat) {
+fn comply_output_score(
+    score: &crate::comply::scoring::ProjectScore,
+    format: ComplyFormat,
+    failures_only: bool,
+) {
     use crate::comply::runner;
     match format {
-        ComplyFormat::Text => print!("{}", runner::format_human(score)),
+        ComplyFormat::Text => {
+            if failures_only {
+                print!("{}", runner::format_human_failures_only(score));
+            } else {
+                print!("{}", runner::format_human(score));
+            }
+        }
         ComplyFormat::Json => println!("{}", runner::format_json(score)),
         ComplyFormat::Markdown => {
             println!("# Compliance Report\n");
@@ -12411,8 +12472,18 @@ fn comply_output_score(score: &crate::comply::scoring::ProjectScore, format: Com
             println!("| Artifact | Score | Grade | Status |");
             println!("|----------|-------|-------|--------|");
             for a in &score.artifact_scores {
-                let status = if a.violations == 0 { "COMPLIANT" } else { "NON-COMPLIANT" };
-                println!("| {} | {:.0} | {} | {} |", a.artifact_name, a.score, a.grade, status);
+                if failures_only && a.violations == 0 {
+                    continue;
+                }
+                let status = if a.violations == 0 {
+                    "COMPLIANT"
+                } else {
+                    "NON-COMPLIANT"
+                };
+                println!(
+                    "| {} | {:.0} | {} | {} |",
+                    a.artifact_name, a.score, a.grade, status
+                );
             }
         }
     }

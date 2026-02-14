@@ -183,6 +183,57 @@ pub fn format_human(score: &ProjectScore) -> String {
     out
 }
 
+/// Format check results showing only non-compliant artifacts
+pub fn format_human_failures_only(score: &ProjectScore) -> String {
+    let mut out = String::new();
+
+    out.push_str("═══════════════════════════════════════════════════════════\n");
+    out.push_str("  COMPLIANCE CHECK — Failures Only\n");
+    out.push_str("═══════════════════════════════════════════════════════════\n\n");
+
+    let failures: Vec<_> = score
+        .artifact_scores
+        .iter()
+        .filter(|a| a.violations > 0)
+        .collect();
+
+    if failures.is_empty() {
+        out.push_str(" No violations found.\n");
+    } else {
+        out.push_str(&format!(
+            " {:<35} {:>5}  {}\n",
+            "Artifact", "Score", "Violations"
+        ));
+        out.push_str(&format!("{}\n", "─".repeat(57)));
+
+        for artifact_score in &failures {
+            out.push_str(&format!(
+                " {:<35} {:>3.0}    ! NON-COMPLIANT\n",
+                truncate(&artifact_score.artifact_name, 35),
+                artifact_score.score,
+            ));
+
+            for result in &artifact_score.results {
+                for v in &result.violations {
+                    out.push_str(&format!("   {}\n", v));
+                }
+            }
+        }
+    }
+
+    out.push_str(&format!("\n{}\n", "─".repeat(57)));
+    out.push_str(&format!(
+        " Overall: {:.0}/100 | {} failures / {} artifacts\n",
+        score.score,
+        score.total_artifacts - score.compliant_artifacts,
+        score.total_artifacts
+    ));
+    out.push_str(&format!(" Grade: {}\n", score.grade));
+    out.push_str("═══════════════════════════════════════════════════════════\n");
+
+    out
+}
+
 /// Format check results as JSON
 pub fn format_json(score: &ProjectScore) -> String {
     let mut artifacts = Vec::new();

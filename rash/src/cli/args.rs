@@ -1299,13 +1299,17 @@ pub enum ComplyCommands {
         #[arg(long, value_enum)]
         scope: Option<ComplyScopeArg>,
 
-        /// Exit with error if non-compliant
+        /// Exit with error if non-compliant (grade F)
         #[arg(long)]
         strict: bool,
 
-        /// Show only failures
+        /// Show only non-compliant artifacts
         #[arg(long)]
         failures_only: bool,
+
+        /// Minimum acceptable score (exit non-zero if below)
+        #[arg(long)]
+        min_score: Option<u32>,
 
         /// Output format
         #[arg(short, long, value_enum, default_value = "text")]
