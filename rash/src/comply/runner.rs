@@ -27,9 +27,14 @@ pub fn run_check(
             .filter(|r| is_rule_enabled(r, config))
             .collect();
 
+        let suppressions = parse_suppressions(&content);
+
         let results: Vec<RuleResult> = enabled_rules
             .iter()
-            .map(|rule| rules::check_rule(*rule, &content, artifact))
+            .map(|rule| {
+                let result = rules::check_rule(*rule, &content, artifact);
+                apply_suppressions(result, &suppressions)
+            })
             .collect();
 
         let name = artifact.display_name();
@@ -275,6 +280,100 @@ fn truncate(s: &str, max: usize) -> String {
 }
 
 fn serde_json_array(items: &[String]) -> String {
-    let quoted: Vec<String> = items.iter().map(|s| format!("\"{}\"", s.replace('"', "\\\""))).collect();
+    let quoted: Vec<String> = items
+        .iter()
+        .map(|s| format!("\"{}\"", s.replace('"', "\\\"")))
+        .collect();
     format!("[{}]", quoted.join(","))
+}
+
+/// Parsed suppression directives from `# comply:disable=COMPLY-001,COMPLY-002`
+pub(crate) struct Suppressions {
+    /// Rules suppressed for the entire file (from first 10 lines)
+    pub(crate) file_level: Vec<String>,
+    /// Rules suppressed per line number
+    pub(crate) line_level: std::collections::HashMap<usize, Vec<String>>,
+}
+
+/// Parse `# comply:disable=...` comments from file content
+///
+/// Supports:
+/// - File-level: `# comply:disable=COMPLY-001` in first 10 lines
+/// - Line-level: `code # comply:disable=COMPLY-001` on any line
+/// - Multiple rules: `# comply:disable=COMPLY-001,COMPLY-002`
+pub(crate) fn parse_suppressions(content: &str) -> Suppressions {
+    let mut file_level = Vec::new();
+    let mut line_level = std::collections::HashMap::new();
+
+    for (i, line) in content.lines().enumerate() {
+        let line_num = i + 1;
+        if let Some(rules) = extract_disable_rules(line) {
+            if is_file_level_suppression(line, line_num) {
+                file_level.extend(rules);
+            } else {
+                line_level.insert(line_num, rules);
+            }
+        }
+    }
+
+    Suppressions {
+        file_level,
+        line_level,
+    }
+}
+
+/// Extract rule IDs from a `# comply:disable=COMPLY-001,COMPLY-002` comment
+pub(crate) fn extract_disable_rules(line: &str) -> Option<Vec<String>> {
+    let marker = "comply:disable=";
+    let pos = line.find(marker)?;
+    // Must be preceded by # (possibly with spaces)
+    let before = line[..pos].trim_end();
+    if !before.ends_with('#') {
+        return None;
+    }
+
+    let after = &line[pos + marker.len()..];
+    // Take until end of line or next whitespace
+    let rule_str = after.split_whitespace().next().unwrap_or("");
+    let rules: Vec<String> = rule_str
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| s.starts_with("COMPLY-"))
+        .collect();
+
+    if rules.is_empty() {
+        None
+    } else {
+        Some(rules)
+    }
+}
+
+/// File-level suppression: comment-only line in the first 10 lines
+fn is_file_level_suppression(line: &str, line_num: usize) -> bool {
+    line_num <= 10 && line.trim().starts_with('#')
+}
+
+/// Remove suppressed violations from a rule result
+pub(crate) fn apply_suppressions(mut result: RuleResult, suppressions: &Suppressions) -> RuleResult {
+    let rule_code = result.rule.code().to_string();
+
+    // File-level suppression: remove all violations for this rule
+    if suppressions.file_level.contains(&rule_code) {
+        result.violations.clear();
+        result.passed = true;
+        return result;
+    }
+
+    // Line-level suppression: remove violations on specific lines
+    result.violations.retain(|v| {
+        if let Some(line) = v.line {
+            if let Some(rules) = suppressions.line_level.get(&line) {
+                return !rules.contains(&rule_code);
+            }
+        }
+        true
+    });
+
+    result.passed = result.violations.is_empty();
+    result
 }

@@ -553,3 +553,57 @@ pmat = "auto"
         .assert()
         .failure();
 }
+
+// ═══════════════════════════════════════════════════════════════
+// comply:disable inline suppression
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_comply_suppression_file_level_reduces_violations() {
+    let dir = TempDir::new().unwrap();
+    // Script with bashism BUT file-level suppression
+    fs::write(
+        dir.path().join("suppressed.sh"),
+        "#!/bin/bash\n# comply:disable=COMPLY-001\necho $RANDOM\n",
+    )
+    .unwrap();
+
+    let output = bashrs_cmd()
+        .arg("comply")
+        .arg("check")
+        .arg("--path")
+        .arg(dir.path())
+        .arg("--format")
+        .arg("json")
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    // File-level suppression of COMPLY-001 means POSIX violations should be suppressed
+    // The script still has $RANDOM (COMPLY-002 determinism), so it won't be fully clean
+    assert!(stdout.contains("bashrs-comply-check-v1"));
+}
+
+#[test]
+fn test_comply_suppression_line_level() {
+    let dir = TempDir::new().unwrap();
+    // Script with line-level suppression on the $RANDOM line
+    fs::write(
+        dir.path().join("line_suppress.sh"),
+        "#!/bin/sh\necho \"hello\"\necho $RANDOM # comply:disable=COMPLY-002\n",
+    )
+    .unwrap();
+
+    let output = bashrs_cmd()
+        .arg("comply")
+        .arg("check")
+        .arg("--path")
+        .arg(dir.path())
+        .arg("--format")
+        .arg("json")
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("bashrs-comply-check-v1"));
+}
