@@ -102,7 +102,7 @@ echo "  Failed: $FAILED"
 echo "  Total:  $((PASSED + FAILED))"
 echo "================================================"
 
-if [ $FAILED -eq 0 ]; then
+if [ "$FAILED" -eq 0 ]; then
     echo ""
     echo "${GREEN}✅ All examples transpiled successfully!${NC}"
     exit 0
