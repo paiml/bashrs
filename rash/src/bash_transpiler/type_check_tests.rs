@@ -600,21 +600,30 @@ fn test_generate_nonempty_guard() {
 
 #[test]
 fn test_generate_guard_for_integer_type() {
-    let guard = generate_guard_for_type("x", &ShellType::Integer);
+    let guard = generate_guard_for_type("x", &ShellType::Integer, None);
     assert!(guard.is_some());
     assert!(guard.unwrap().contains("*[!0-9]*"));
 }
 
 #[test]
 fn test_generate_guard_for_string_type() {
-    let guard = generate_guard_for_type("x", &ShellType::String);
+    let guard = generate_guard_for_type("x", &ShellType::String, None);
     assert!(guard.is_some());
     assert!(guard.unwrap().contains("-z"));
 }
 
 #[test]
+fn test_generate_guard_for_path_type() {
+    let guard = generate_guard_for_type("x", &ShellType::String, Some("path"));
+    assert!(guard.is_some());
+    let g = guard.unwrap();
+    assert!(g.contains("/*|./*|../*"));
+    assert!(g.contains("type error: x must be a path"));
+}
+
+#[test]
 fn test_generate_guard_for_boolean_type() {
-    let guard = generate_guard_for_type("x", &ShellType::Boolean);
+    let guard = generate_guard_for_type("x", &ShellType::Boolean, None);
     assert!(guard.is_none());
 }
 
@@ -822,4 +831,114 @@ fn test_default_type_checker() {
 fn test_default_type_context() {
     let ctx = TypeContext::default();
     assert_eq!(ctx.scope_depth(), 1);
+}
+
+// ============================================================================
+// StringInArithmetic Tests
+// ============================================================================
+
+#[test]
+fn test_string_in_arithmetic_warns() {
+    let mut checker = TypeChecker::new();
+    let ast = make_ast(vec![
+        BashStmt::Comment {
+            text: " @type name: str".to_string(),
+            span: Span::dummy(),
+        },
+        BashStmt::Assignment {
+            name: "name".to_string(),
+            index: None,
+            value: BashExpr::Literal("hello".to_string()),
+            exported: false,
+            span: Span::dummy(),
+        },
+        BashStmt::Assignment {
+            name: "result".to_string(),
+            index: None,
+            value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
+                Box::new(ArithExpr::Variable("name".to_string())),
+                Box::new(ArithExpr::Number(1)),
+            ))),
+            exported: false,
+            span: Span::dummy(),
+        },
+    ]);
+
+    let diags = checker.check_ast(&ast);
+    assert!(!diags.is_empty());
+    assert!(matches!(
+        diags[0].kind,
+        DiagnosticKind::StringInArithmetic { .. }
+    ));
+}
+
+#[test]
+fn test_integer_in_arithmetic_no_warning() {
+    let mut checker = TypeChecker::new();
+    let ast = make_ast(vec![
+        BashStmt::Comment {
+            text: " @type count: int".to_string(),
+            span: Span::dummy(),
+        },
+        BashStmt::Assignment {
+            name: "count".to_string(),
+            index: None,
+            value: BashExpr::Literal("5".to_string()),
+            exported: false,
+            span: Span::dummy(),
+        },
+        BashStmt::Assignment {
+            name: "result".to_string(),
+            index: None,
+            value: BashExpr::Arithmetic(Box::new(ArithExpr::Add(
+                Box::new(ArithExpr::Variable("count".to_string())),
+                Box::new(ArithExpr::Number(1)),
+            ))),
+            exported: false,
+            span: Span::dummy(),
+        },
+    ]);
+
+    let diags = checker.check_ast(&ast);
+    assert!(diags.is_empty());
+}
+
+// ============================================================================
+// Annotation Hint Tests
+// ============================================================================
+
+#[test]
+fn test_annotation_hint_preserved() {
+    let mut checker = TypeChecker::new();
+    let ast = make_ast(vec![
+        BashStmt::Comment {
+            text: " @type config: path".to_string(),
+            span: Span::dummy(),
+        },
+        BashStmt::Assignment {
+            name: "config".to_string(),
+            index: None,
+            value: BashExpr::Literal("/etc/app.conf".to_string()),
+            exported: false,
+            span: Span::dummy(),
+        },
+    ]);
+
+    checker.check_ast(&ast);
+    assert_eq!(checker.annotation_hint("config"), Some("path"));
+}
+
+#[test]
+fn test_annotation_hint_missing_returns_none() {
+    let mut checker = TypeChecker::new();
+    let ast = make_ast(vec![BashStmt::Assignment {
+        name: "x".to_string(),
+        index: None,
+        value: BashExpr::Literal("5".to_string()),
+        exported: false,
+        span: Span::dummy(),
+    }]);
+
+    checker.check_ast(&ast);
+    assert_eq!(checker.annotation_hint("x"), None);
 }

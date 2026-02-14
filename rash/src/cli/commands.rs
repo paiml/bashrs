@@ -1448,7 +1448,6 @@ fn purify_command(
     use crate::bash_parser::codegen::{generate_purified_bash, generate_purified_bash_with_guards};
     use crate::bash_parser::parser::BashParser;
     use crate::bash_transpiler::purification::{PurificationOptions, Purifier};
-    use crate::bash_transpiler::type_check::TypeChecker;
     use std::time::Instant;
 
     let start = Instant::now();
@@ -1481,9 +1480,11 @@ fn purify_command(
 
     let codegen_start = Instant::now();
     let purified_bash = if emit_guards {
-        let mut checker = TypeChecker::new();
-        checker.check_ast(&purified_ast);
-        generate_purified_bash_with_guards(&purified_ast, &checker)
+        if let Some(checker) = purifier.type_checker() {
+            generate_purified_bash_with_guards(&purified_ast, checker)
+        } else {
+            generate_purified_bash(&purified_ast)
+        }
     } else {
         generate_purified_bash(&purified_ast)
     };

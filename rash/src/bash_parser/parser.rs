@@ -270,7 +270,7 @@ impl BashParser {
             self.advance();
             return Ok(BashStmt::Comment {
                 text: comment,
-                span: Span::dummy(),
+                span: Span::new(self.current_line, 0, self.current_line, 0),
             });
         }
 
@@ -284,7 +284,7 @@ impl BashParser {
                 name: ":".to_string(), // POSIX no-op
                 args: vec![BashExpr::Literal(format!("$(({}))", arith_expr))],
                 redirects: vec![],
-                span: Span::dummy(),
+                span: Span::new(self.current_line, 0, self.current_line, 0),
             });
         }
 
@@ -401,7 +401,7 @@ impl BashParser {
             // Return pipeline with all collected commands
             BashStmt::Pipeline {
                 commands,
-                span: Span::dummy(),
+                span: Span::new(self.current_line, 0, self.current_line, 0),
             }
         } else {
             first_stmt
@@ -420,7 +420,7 @@ impl BashParser {
             return Ok(BashStmt::AndList {
                 left: Box::new(stmt),
                 right: Box::new(right),
-                span: Span::dummy(),
+                span: Span::new(self.current_line, 0, self.current_line, 0),
             });
         }
 
@@ -434,7 +434,7 @@ impl BashParser {
             return Ok(BashStmt::OrList {
                 left: Box::new(stmt),
                 right: Box::new(right),
-                span: Span::dummy(),
+                span: Span::new(self.current_line, 0, self.current_line, 0),
             });
         }
 
@@ -490,7 +490,7 @@ impl BashParser {
             then_block,
             elif_blocks,
             else_block,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -515,7 +515,7 @@ impl BashParser {
         Ok(BashStmt::While {
             condition,
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -539,7 +539,7 @@ impl BashParser {
         Ok(BashStmt::Until {
             condition,
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -556,7 +556,7 @@ impl BashParser {
 
         Ok(BashStmt::BraceGroup {
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -591,7 +591,7 @@ impl BashParser {
         Ok(BashStmt::Coproc {
             name,
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -608,7 +608,7 @@ impl BashParser {
             name: "[".to_string(),
             args: vec![BashExpr::Test(Box::new(test_expr))],
             redirects: vec![],
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -625,7 +625,7 @@ impl BashParser {
             name: "[[".to_string(),
             args: vec![BashExpr::Test(Box::new(test_expr))],
             redirects: vec![],
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -700,7 +700,7 @@ impl BashParser {
             variable,
             items,
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -759,7 +759,7 @@ impl BashParser {
             variable,
             items,
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -884,7 +884,7 @@ impl BashParser {
             condition,
             increment,
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -921,7 +921,7 @@ impl BashParser {
             condition,
             increment,
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -1011,7 +1011,7 @@ impl BashParser {
         Ok(BashStmt::Case {
             word,
             arms,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -1044,7 +1044,7 @@ impl BashParser {
         Ok(BashStmt::Function {
             name,
             body,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -1079,7 +1079,7 @@ impl BashParser {
             Ok(BashStmt::Function {
                 name,
                 body,
-                span: Span::dummy(),
+                span: Span::new(self.current_line, 0, self.current_line, 0),
             })
         } else {
             // Standard brace body: myfunc() { ... }
@@ -1092,7 +1092,7 @@ impl BashParser {
             Ok(BashStmt::Function {
                 name,
                 body,
-                span: Span::dummy(),
+                span: Span::new(self.current_line, 0, self.current_line, 0),
             })
         }
     }
@@ -1108,7 +1108,7 @@ impl BashParser {
 
         Ok(BashStmt::Return {
             code,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -1147,7 +1147,7 @@ impl BashParser {
                     name: "local".to_string(),
                     args,
                     redirects: vec![],
-                    span: Span::dummy(),
+                    span: Span::new(self.current_line, 0, self.current_line, 0),
                 })
             }
         } else {
@@ -1156,7 +1156,7 @@ impl BashParser {
                 name: "local".to_string(),
                 args: vec![],
                 redirects: vec![],
-                span: Span::dummy(),
+                span: Span::new(self.current_line, 0, self.current_line, 0),
             })
         }
     }
@@ -1298,7 +1298,7 @@ impl BashParser {
             index,
             value,
             exported,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -1514,7 +1514,7 @@ impl BashParser {
             name,
             args,
             redirects,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 
@@ -2346,7 +2346,7 @@ impl BashParser {
                     }
                     BashStmt::Pipeline {
                         commands,
-                        span: Span::dummy(),
+                        span: Span::new(self.current_line, 0, self.current_line, 0),
                     }
                 } else {
                     cmd
@@ -2356,7 +2356,7 @@ impl BashParser {
                 let final_stmt = if negated {
                     BashStmt::Negated {
                         command: Box::new(stmt),
-                        span: Span::dummy(),
+                        span: Span::new(self.current_line, 0, self.current_line, 0),
                     }
                 } else {
                     stmt
@@ -2473,7 +2473,7 @@ impl BashParser {
             name,
             args,
             redirects,
-            span: Span::dummy(),
+            span: Span::new(self.current_line, 0, self.current_line, 0),
         })
     }
 

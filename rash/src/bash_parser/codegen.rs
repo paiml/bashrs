@@ -780,7 +780,8 @@ pub fn generate_purified_bash_with_guards(ast: &BashAst, checker: &crate::bash_t
         // After assignments, check if the variable has a known type and emit a guard
         if let BashStmt::Assignment { name, .. } = stmt {
             if let Some(ty) = checker.context().lookup(name) {
-                if let Some(guard) = crate::bash_transpiler::type_check::generate_guard_for_type(name, ty) {
+                let hint = checker.annotation_hint(name);
+                if let Some(guard) = crate::bash_transpiler::type_check::generate_guard_for_type(name, ty, hint) {
                     output.push_str(&guard);
                     output.push('\n');
                 }

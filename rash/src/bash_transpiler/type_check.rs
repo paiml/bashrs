@@ -201,6 +201,8 @@ pub struct TypeChecker {
     diagnostics: Vec<TypeDiagnostic>,
     /// Pending type annotations from comment parsing
     pending_annotations: Vec<TypeAnnotation>,
+    /// Original annotation type names (for guard generation, e.g., "path" vs "str")
+    annotation_hints: HashMap<String, String>,
 }
 
 /// A parsed type annotation from a comment
@@ -210,6 +212,8 @@ pub struct TypeAnnotation {
     pub name: String,
     /// The annotated type
     pub shell_type: ShellType,
+    /// Original type name string (e.g., "path", "int", "str")
+    pub type_hint: String,
     /// Whether this is a return type annotation
     pub is_return: bool,
     /// Whether this is a parameter annotation
@@ -222,6 +226,7 @@ impl TypeChecker {
             ctx: TypeContext::new(),
             diagnostics: Vec::new(),
             pending_annotations: Vec::new(),
+            annotation_hints: HashMap::new(),
         }
     }
 
@@ -437,8 +442,9 @@ impl TypeChecker {
                 Some(ShellType::String)
             }
 
-            BashExpr::Arithmetic(_arith) => {
-                // Arithmetic expressions always produce integers
+            BashExpr::Arithmetic(arith) => {
+                // Check variables used in arithmetic context
+                self.check_arithmetic_variables(arith);
                 Some(ShellType::Integer)
             }
 
@@ -510,6 +516,38 @@ impl TypeChecker {
         ShellType::Boolean
     }
 
+    /// Check variables used in arithmetic context for type mismatches
+    fn check_arithmetic_variables(&mut self, arith: &ArithExpr) {
+        match arith {
+            ArithExpr::Variable(name) => {
+                if let Some(ty) = self.ctx.lookup(name) {
+                    if matches!(ty, ShellType::String) {
+                        self.diagnostics.push(TypeDiagnostic {
+                            span: Span::dummy(),
+                            kind: DiagnosticKind::StringInArithmetic {
+                                variable: name.clone(),
+                            },
+                            severity: Severity::Warning,
+                            message: format!(
+                                "variable '{}' used in arithmetic but typed as string",
+                                name
+                            ),
+                        });
+                    }
+                }
+            }
+            ArithExpr::Number(_) => {}
+            ArithExpr::Add(l, r)
+            | ArithExpr::Sub(l, r)
+            | ArithExpr::Mul(l, r)
+            | ArithExpr::Div(l, r)
+            | ArithExpr::Mod(l, r) => {
+                self.check_arithmetic_variables(l);
+                self.check_arithmetic_variables(r);
+            }
+        }
+    }
+
     /// Get collected diagnostics
     pub fn diagnostics(&self) -> &[TypeDiagnostic] {
         &self.diagnostics
@@ -526,7 +564,15 @@ impl TypeChecker {
             .pending_annotations
             .iter()
             .position(|a| a.name == name && !a.is_return && !a.is_param)?;
-        Some(self.pending_annotations.remove(pos).shell_type)
+        let annotation = self.pending_annotations.remove(pos);
+        self.annotation_hints
+            .insert(name.to_string(), annotation.type_hint.clone());
+        Some(annotation.shell_type)
+    }
+
+    /// Get the original annotation type name for a variable (e.g., "path", "int")
+    pub fn annotation_hint(&self, name: &str) -> Option<&str> {
+        self.annotation_hints.get(name).map(|s| s.as_str())
     }
 
     /// Collect pending param/return annotations into a function signature
@@ -612,10 +658,11 @@ pub fn parse_type_annotation(comment: &str) -> Option<TypeAnnotation> {
 
     // @type varname: type
     if let Some(rest) = trimmed.strip_prefix("@type ") {
-        let (name, ty) = parse_name_type(rest)?;
+        let (name, ty, hint) = parse_name_type(rest)?;
         return Some(TypeAnnotation {
             name,
             shell_type: ty,
+            type_hint: hint,
             is_return: false,
             is_param: false,
         });
@@ -623,10 +670,11 @@ pub fn parse_type_annotation(comment: &str) -> Option<TypeAnnotation> {
 
     // @param name: type
     if let Some(rest) = trimmed.strip_prefix("@param ") {
-        let (name, ty) = parse_name_type(rest)?;
+        let (name, ty, hint) = parse_name_type(rest)?;
         return Some(TypeAnnotation {
             name,
             shell_type: ty,
+            type_hint: hint,
             is_return: false,
             is_param: true,
         });
@@ -634,10 +682,12 @@ pub fn parse_type_annotation(comment: &str) -> Option<TypeAnnotation> {
 
     // @returns: type
     if let Some(rest) = trimmed.strip_prefix("@returns: ") {
-        let ty = parse_type_name(rest.trim())?;
+        let raw_type = rest.trim().to_string();
+        let ty = parse_type_name(&raw_type)?;
         return Some(TypeAnnotation {
             name: String::new(),
             shell_type: ty,
+            type_hint: raw_type,
             is_return: true,
             is_param: false,
         });
@@ -646,15 +696,16 @@ pub fn parse_type_annotation(comment: &str) -> Option<TypeAnnotation> {
     None
 }
 
-/// Parse "name: type" from annotation text
-fn parse_name_type(text: &str) -> Option<(String, ShellType)> {
+/// Parse "name: type" from annotation text, returning (name, ShellType, raw_type_name)
+fn parse_name_type(text: &str) -> Option<(String, ShellType, String)> {
     let parts: Vec<&str> = text.splitn(2, ':').collect();
     if parts.len() != 2 {
         return None;
     }
     let name = parts[0].trim().to_string();
-    let ty = parse_type_name(parts[1].trim())?;
-    Some((name, ty))
+    let raw_type = parts[1].trim().to_string();
+    let ty = parse_type_name(&raw_type)?;
+    Some((name, ty, raw_type))
 }
 
 /// Parse a type name string into a ShellType
@@ -712,12 +763,19 @@ fi"#,
     )
 }
 
-/// Mapping of annotation type names to guard generators
-pub fn generate_guard_for_type(var_name: &str, ty: &ShellType) -> Option<String> {
+/// Generate a runtime guard for a typed variable.
+/// `hint` is the original annotation name (e.g., "path") to distinguish subtypes.
+pub fn generate_guard_for_type(var_name: &str, ty: &ShellType, hint: Option<&str>) -> Option<String> {
     match ty {
         ShellType::Integer => Some(generate_integer_guard(var_name)),
-        ShellType::String => Some(generate_nonempty_guard(var_name)),
-        ShellType::Boolean => None, // No specific guard for booleans
+        ShellType::String => {
+            if hint == Some("path") {
+                Some(generate_path_guard(var_name))
+            } else {
+                Some(generate_nonempty_guard(var_name))
+            }
+        }
+        ShellType::Boolean => None,
         ShellType::Array(_) => None,
         ShellType::AssocArray { .. } => None,
         ShellType::FileDescriptor => None,
