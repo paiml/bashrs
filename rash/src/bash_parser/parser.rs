@@ -342,6 +342,8 @@ enum ArithToken {
 
 pub struct BashParser {
     tokens: Vec<Token>,
+    /// Character positions of each token in the source string
+    token_positions: Vec<usize>,
     position: usize,
     current_line: usize,
     tracer: Option<crate::tracing::TraceManager>,
@@ -399,10 +401,11 @@ impl BashParser {
     /// ```
     pub fn new(input: &str) -> ParseResult<Self> {
         let mut lexer = Lexer::new(input);
-        let tokens = lexer.tokenize()?;
+        let (tokens, token_positions) = lexer.tokenize_with_positions()?;
 
         Ok(Self {
             tokens,
+            token_positions,
             position: 0,
             current_line: 1,
             tracer: None,
@@ -795,6 +798,11 @@ impl BashParser {
 
         let body = self.parse_block_until(&[Token::Done])?;
         self.expect(Token::Done)?;
+
+        // Handle trailing redirects on compound commands:
+        // `done < <(cmd)` or `done < file` or `done <<< "string"`
+        // Process substitution is a bash-ism; purified output drops it (not POSIX).
+        self.skip_compound_redirects();
 
         Ok(BashStmt::While {
             condition,
@@ -2774,7 +2782,9 @@ impl BashParser {
                 stmt
             };
 
-            return Ok(BashExpr::CommandCondition(Box::new(final_stmt)));
+            let cmd_expr = BashExpr::CommandCondition(Box::new(final_stmt));
+            // Handle compound conditions: `if cmd1 && cmd2; then` or `if cmd1 || cmd2; then`
+            return self.parse_compound_test(cmd_expr);
         }
 
         // If we consumed ! but didn't find a command, handle negated test expressions
@@ -2831,7 +2841,58 @@ impl BashParser {
     /// Issue #93: Parse a command used as a condition in if/while statements
     /// Similar to parse_command but stops at `then`, `do`, and doesn't include redirections
     fn parse_condition_command(&mut self) -> ParseResult<BashStmt> {
-        let name = match self.peek() {
+        // Handle env prefix assignments: `IFS= read -r line` or `LC_ALL=C sort`
+        // In bash, VAR=value before a command sets the variable for that command only.
+        // Collect any prefix assignments, then parse the actual command.
+        let mut env_prefixes: Vec<String> = Vec::new();
+        while matches!(self.peek(), Some(Token::Identifier(_)))
+            && self.peek_ahead(1) == Some(&Token::Assign)
+        {
+            let var_name = if let Some(Token::Identifier(n)) = self.peek() {
+                n.clone()
+            } else {
+                break;
+            };
+            self.advance(); // consume identifier
+            let assign_idx = self.position;
+            self.advance(); // consume =
+
+            // Parse the value: use token positions to check for whitespace.
+            // `LC_ALL=C` (no space) → = is adjacent to C → C is the value
+            // `IFS= read` (space) → = is NOT adjacent to read → value is empty
+            let has_value = self.tokens_adjacent(assign_idx);
+
+            let value = if has_value {
+                match self.peek() {
+                    Some(Token::Identifier(id)) => {
+                        let v = id.clone();
+                        self.advance();
+                        v
+                    }
+                    Some(Token::String(s)) => {
+                        let v = s.clone();
+                        self.advance();
+                        v
+                    }
+                    Some(Token::Number(n)) => {
+                        let v = n.to_string();
+                        self.advance();
+                        v
+                    }
+                    _ => String::new(),
+                }
+            } else {
+                String::new()
+            };
+
+            if value.is_empty() {
+                env_prefixes.push(format!("{var_name}="));
+            } else {
+                env_prefixes.push(format!("{var_name}={value}"));
+            }
+        }
+
+        let cmd_name = match self.peek() {
             Some(Token::Identifier(n)) => {
                 let cmd = n.clone();
                 self.advance();
@@ -2850,6 +2911,16 @@ impl BashParser {
             _ => {
                 return Err(self.syntax_error("command name"))
             }
+        };
+
+        // Build the full name with env prefixes: "IFS= read" or "LC_ALL=C sort"
+        let name = if env_prefixes.is_empty() {
+            cmd_name
+        } else {
+            let mut full = env_prefixes.join(" ");
+            full.push(' ');
+            full.push_str(&cmd_name);
+            full
         };
 
         let mut args = Vec::new();
@@ -3117,6 +3188,44 @@ impl BashParser {
         while self.check(&Token::Newline) {
             self.advance();
             self.current_line += 1;
+        }
+    }
+
+    /// Check if the token at the given index ends immediately before the next token
+    /// (no whitespace between them). Used to distinguish `VAR=VALUE` from `VAR= VALUE`.
+    fn tokens_adjacent(&self, token_index: usize) -> bool {
+        if token_index + 1 >= self.token_positions.len() {
+            return false;
+        }
+        let current_pos = self.token_positions[token_index];
+        let next_pos = self.token_positions[token_index + 1];
+        // The current token's end position = start + length of the token text
+        // For Token::Assign (=), length is 1
+        let current_end = match &self.tokens[token_index] {
+            Token::Assign => current_pos + 1,
+            Token::Identifier(s) | Token::String(s) | Token::Variable(s) => {
+                // Approximate: identifier length = string length
+                // (may not be exact for strings with quotes, but close enough)
+                current_pos + s.len()
+            }
+            _ => current_pos + 1, // fallback
+        };
+        current_end == next_pos
+    }
+
+    /// Skip trailing redirects on compound commands (while/for/if/until).
+    /// Bash allows `done < file`, `done < <(cmd)`, `done <<< "str"`, etc.
+    /// Process substitution `<(cmd)` is not POSIX, so we drop it during purification.
+    fn skip_compound_redirects(&mut self) {
+        while matches!(self.peek(), Some(Token::Lt | Token::Gt | Token::GtGt)) {
+            self.advance(); // consume redirect operator
+            // Consume the redirect target (filename, process substitution, etc.)
+            match self.peek() {
+                Some(Token::Identifier(_) | Token::String(_) | Token::Variable(_) | Token::Number(_)) => {
+                    self.advance();
+                }
+                _ => break,
+            }
         }
     }
 }
@@ -5032,6 +5141,83 @@ EOF"#;
             }
             other => panic!("Expected Function, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn test_ENVPREFIX_001_ifs_read_while_condition() {
+        // IFS= read -r line is a common pattern: env prefix before command in while condition
+        let input = "while IFS= read -r line; do\n    echo \"$line\"\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse IFS= read in while condition");
+        match &ast.statements[0] {
+            BashStmt::While { condition, body, .. } => {
+                // Condition should be a CommandCondition with "IFS= read" as name
+                match condition {
+                    BashExpr::CommandCondition(stmt) => match stmt.as_ref() {
+                        BashStmt::Command { name, args, .. } => {
+                            assert_eq!(name, "IFS= read");
+                            assert!(args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "-r")));
+                        }
+                        other => panic!("Expected Command in condition, got {other:?}"),
+                    },
+                    other => panic!("Expected CommandCondition, got {other:?}"),
+                }
+                assert!(!body.is_empty());
+            }
+            other => panic!("Expected While, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_ENVPREFIX_002_lc_all_sort_condition() {
+        // LC_ALL=C sort is another common env prefix pattern
+        let input = "while LC_ALL=C read -r line; do\n    echo \"$line\"\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse LC_ALL=C read in while");
+        match &ast.statements[0] {
+            BashStmt::While { condition, .. } => match condition {
+                BashExpr::CommandCondition(stmt) => match stmt.as_ref() {
+                    BashStmt::Command { name, .. } => {
+                        assert!(name.starts_with("LC_ALL=C"));
+                    }
+                    other => panic!("Expected Command, got {other:?}"),
+                },
+                other => panic!("Expected CommandCondition, got {other:?}"),
+            },
+            other => panic!("Expected While, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_ENVPREFIX_003_while_with_process_substitution() {
+        // `done < <(cmd)` — process substitution redirect on while loop
+        let input = "while IFS= read -r line; do\n    echo \"$line\"\ndone < <(echo test)";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse while with process substitution redirect");
+        assert!(matches!(&ast.statements[0], BashStmt::While { .. }));
+    }
+
+    #[test]
+    fn test_ENVPREFIX_004_multiple_functions_with_ifs_read() {
+        // Regression: multiple functions + IFS= read crashed parser
+        let input = r#"func_a() {
+    if [ $? -eq 0 ]; then
+        echo ok
+    else
+        echo fail
+    fi
+}
+
+func_b() {
+    while IFS= read -r db; do
+        echo "$db"
+    done
+}"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse multiple functions with IFS= read");
+        assert_eq!(ast.statements.len(), 2);
+        assert!(matches!(&ast.statements[0], BashStmt::Function { name, .. } if name == "func_a"));
+        assert!(matches!(&ast.statements[1], BashStmt::Function { name, .. } if name == "func_b"));
     }
 
     #[test]

@@ -139,6 +139,34 @@ impl Lexer {
         Ok(tokens)
     }
 
+    /// Tokenize with character positions for each token.
+    /// Returns (tokens, positions) where positions[i] is the byte offset of tokens[i].
+    pub fn tokenize_with_positions(&mut self) -> Result<(Vec<Token>, Vec<usize>), LexerError> {
+        let mut tokens = Vec::new();
+        let mut positions = Vec::new();
+
+        loop {
+            self.skip_whitespace_except_newline();
+
+            if self.is_at_end() {
+                positions.push(self.position);
+                tokens.push(Token::Eof);
+                break;
+            }
+
+            let pos = self.position;
+            let token = self.next_token()?;
+            positions.push(pos);
+            tokens.push(token.clone());
+
+            if token == Token::Eof {
+                break;
+            }
+        }
+
+        Ok((tokens, positions))
+    }
+
     fn next_token(&mut self) -> Result<Token, LexerError> {
         if self.is_at_end() {
             return Ok(Token::Eof);
