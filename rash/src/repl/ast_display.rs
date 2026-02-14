@@ -597,6 +597,7 @@ mod tests {
                         span: dummy_span(),
                     },
                 ],
+                subshell: false,
                 span: dummy_span(),
             }],
             metadata: AstMetadata {

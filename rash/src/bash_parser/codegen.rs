@@ -248,16 +248,29 @@ fn generate_stmt(stmt: &BashStmt, indent: usize) -> String {
                 generate_statement(right)
             )
         }
-        BashStmt::BraceGroup { body, .. } => {
-            let mut brace = format!("{}{{ ", pad);
-            for (i, stmt) in body.iter().enumerate() {
-                if i > 0 {
-                    brace.push_str("; ");
+        BashStmt::BraceGroup {
+            body, subshell, ..
+        } => {
+            if *subshell {
+                let mut s = format!("{}(\n", pad);
+                for stmt in body {
+                    s.push_str(&generate_stmt(stmt, indent + 1));
+                    s.push('\n');
                 }
-                brace.push_str(&generate_statement(stmt));
+                s.push_str(&pad);
+                s.push(')');
+                s
+            } else {
+                let mut brace = format!("{}{{ ", pad);
+                for (i, stmt) in body.iter().enumerate() {
+                    if i > 0 {
+                        brace.push_str("; ");
+                    }
+                    brace.push_str(&generate_statement(stmt));
+                }
+                brace.push_str("; }");
+                brace
             }
-            brace.push_str("; }");
-            brace
         }
         BashStmt::Coproc { name, body, .. } => {
             let mut coproc = format!("{}coproc ", pad);

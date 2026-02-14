@@ -1570,6 +1570,7 @@ fi
                 redirects: vec![],
                 span: Span::dummy(),
             }],
+            subshell: false,
             span: Span::dummy(),
         };
         let mut transpiler = BashToRashTranspiler::new(TranspileOptions::default());

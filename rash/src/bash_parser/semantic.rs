@@ -933,6 +933,7 @@ mod tests {
                 redirects: vec![],
                 span: Span::dummy(),
             }],
+            subshell: false,
             span: Span::dummy(),
         }]);
 
