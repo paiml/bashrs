@@ -673,10 +673,11 @@ pub fn parse_type_name(name: &str) -> Option<ShellType> {
 
 /// Check gradual compatibility — untyped is compatible with everything
 fn is_gradual_compatible(expected: &ShellType, actual: &ShellType) -> bool {
-    // Integer literals are compatible with String context (shell semantics)
+    // Integer is compatible with String context (integers are valid strings)
+    // But NOT the reverse — String→Integer should warn (not every string is a number)
     matches!(
         (expected, actual),
-        (ShellType::String, ShellType::Integer) | (ShellType::Integer, ShellType::String)
+        (ShellType::String, ShellType::Integer)
     )
 }
 
