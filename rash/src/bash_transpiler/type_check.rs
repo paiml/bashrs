@@ -257,24 +257,27 @@ impl TypeChecker {
                 // Infer the type of the value
                 let inferred = self.infer_expr(value);
 
-                if let Some(ref ann_ty) = annotated_type {
-                    // Register the annotated type
-                    self.ctx.set_type(name, ann_ty.clone());
+                // Determine the expected type: from annotation, or from existing context (e.g., declare -i)
+                let expected_type = annotated_type.or_else(|| self.ctx.lookup(name).cloned());
+
+                if let Some(ref exp_ty) = expected_type {
+                    // Register/keep the expected type
+                    self.ctx.set_type(name, exp_ty.clone());
 
                     // Check compatibility if both sides are typed
                     if let Some(ref inf_ty) = inferred {
-                        if !ann_ty.is_compatible(inf_ty) && !is_gradual_compatible(ann_ty, inf_ty) {
+                        if !exp_ty.is_compatible(inf_ty) && !is_gradual_compatible(exp_ty, inf_ty) {
                             self.diagnostics.push(TypeDiagnostic {
                                 span: *span,
                                 kind: DiagnosticKind::TypeMismatch {
-                                    expected: ann_ty.clone(),
+                                    expected: exp_ty.clone(),
                                     actual: inf_ty.clone(),
                                 },
                                 severity: Severity::Warning,
                                 message: format!(
                                     "variable '{}' annotated as {} but assigned {}",
                                     name,
-                                    ann_ty.display(),
+                                    exp_ty.display(),
                                     inf_ty.display()
                                 ),
                             });

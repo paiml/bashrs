@@ -1459,8 +1459,35 @@ impl BashParser {
                         redirects.push(Redirect::Input { target }); // Treat as input for now
                     }
                     _ => {
-                        // Regular argument
-                        args.push(self.parse_expression()?);
+                        // Check for name=value pattern in declare/local/export
+                        if (name == "declare" || name == "local" || name == "typeset" || name == "export" || name == "readonly")
+                            && self.peek_ahead(1) == Some(&Token::Assign)
+                        {
+                            let var_name = s.clone();
+                            self.advance(); // consume name
+                            self.advance(); // consume '='
+                            if self.is_at_end()
+                                || self.check(&Token::Newline)
+                                || self.check(&Token::Semicolon)
+                                || matches!(self.peek(), Some(Token::Comment(_)))
+                            {
+                                args.push(BashExpr::Literal(format!("{}=", var_name)));
+                            } else {
+                                let val = self.parse_expression()?;
+                                match val {
+                                    BashExpr::Literal(v) => {
+                                        args.push(BashExpr::Literal(format!("{}={}", var_name, v)));
+                                    }
+                                    other => {
+                                        args.push(BashExpr::Literal(format!("{}=", var_name)));
+                                        args.push(other);
+                                    }
+                                }
+                            }
+                        } else {
+                            // Regular argument
+                            args.push(self.parse_expression()?);
+                        }
                     }
                 }
             } else if self.check(&Token::LeftBracket) {
@@ -4595,12 +4622,12 @@ done"#;
     }
 
     #[test]
-    fn test_coverage_readonly_statement_unsupported() {
-        // readonly is not a recognized keyword - verify error handling
+    fn test_coverage_readonly_statement() {
+        // readonly with name=value should parse as a command with literal arg
         let input = "readonly VAR=value";
         let mut parser = BashParser::new(input).unwrap();
-        // Should fail - readonly not a recognized statement type
-        assert!(parser.parse().is_err());
+        let ast = parser.parse().unwrap();
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
