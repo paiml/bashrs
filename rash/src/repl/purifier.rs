@@ -434,6 +434,7 @@ mod tests {
             determinism_fixes: vec!["$RANDOM removed".to_string()],
             side_effects_isolated: vec![],
             warnings: vec!["Complex pattern".to_string()],
+            type_diagnostics: vec![],
         };
 
         let formatted = format_purification_report(&report);
@@ -668,6 +669,7 @@ mod tests {
             determinism_fixes: vec![],
             side_effects_isolated: vec![],
             warnings: vec![],
+            type_diagnostics: vec![],
         };
         let formatted = format_purification_report(&report);
         // Empty report should produce empty or minimal output
@@ -888,6 +890,7 @@ mod property_tests {
                 determinism_fixes: vec![],
                 side_effects_isolated: vec![],
                 warnings: warnings.clone(),
+                type_diagnostics: vec![],
             };
 
             let formatted = format_purification_report(&report);

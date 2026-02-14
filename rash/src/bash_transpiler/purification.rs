@@ -6,6 +6,7 @@
 //! - Side-effect isolation: Clear tracking of mutations
 
 use crate::bash_parser::ast::*;
+use crate::bash_transpiler::type_check::{TypeChecker, TypeDiagnostic};
 use std::collections::HashSet;
 use thiserror::Error;
 
@@ -31,6 +32,15 @@ pub struct PurificationOptions {
 
     /// Track all side effects
     pub track_side_effects: bool,
+
+    /// Enable gradual type checking during purification
+    pub type_check: bool,
+
+    /// Emit runtime type guards in purified output
+    pub emit_guards: bool,
+
+    /// Treat type warnings as errors
+    pub type_strict: bool,
 }
 
 impl Default for PurificationOptions {
@@ -39,6 +49,9 @@ impl Default for PurificationOptions {
             strict_idempotency: true,
             remove_non_deterministic: true,
             track_side_effects: true,
+            type_check: false,
+            emit_guards: false,
+            type_strict: false,
         }
     }
 }
@@ -50,6 +63,8 @@ pub struct PurificationReport {
     pub determinism_fixes: Vec<String>,
     pub side_effects_isolated: Vec<String>,
     pub warnings: Vec<String>,
+    /// Type diagnostics collected during type checking
+    pub type_diagnostics: Vec<TypeDiagnostic>,
 }
 
 impl PurificationReport {
@@ -59,6 +74,7 @@ impl PurificationReport {
             determinism_fixes: Vec::new(),
             side_effects_isolated: Vec::new(),
             warnings: Vec::new(),
+            type_diagnostics: Vec::new(),
         }
     }
 }
@@ -94,10 +110,19 @@ impl Purifier {
             purified_statements.push(purified);
         }
 
-        Ok(BashAst {
+        let purified_ast = BashAst {
             statements: purified_statements,
             metadata: ast.metadata.clone(),
-        })
+        };
+
+        // Optional type checking phase
+        if self.options.type_check || self.options.emit_guards {
+            let mut checker = TypeChecker::new();
+            let diagnostics = checker.check_ast(&purified_ast);
+            self.report.type_diagnostics = diagnostics;
+        }
+
+        Ok(purified_ast)
     }
 
     pub fn report(&self) -> &PurificationReport {
@@ -1224,6 +1249,9 @@ mod tests {
             strict_idempotency: false,
             remove_non_deterministic: true,
             track_side_effects: false,
+            type_check: false,
+            emit_guards: false,
+            type_strict: false,
         };
         let cloned = opts.clone();
         assert!(!cloned.strict_idempotency);
@@ -1400,6 +1428,9 @@ mod tests {
             strict_idempotency: true,
             remove_non_deterministic: false,
             track_side_effects: false,
+            type_check: false,
+            emit_guards: false,
+            type_strict: false,
         };
 
         let mut purifier = Purifier::new(opts);

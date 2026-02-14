@@ -169,6 +169,9 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             report,
             with_tests,
             property_tests,
+            type_check,
+            emit_guards,
+            type_strict,
         } => {
             info!("Purifying {}", input.display());
             purify_command(
@@ -177,6 +180,9 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 report,
                 with_tests,
                 property_tests,
+                type_check,
+                emit_guards,
+                type_strict,
             )
         }
 
@@ -1394,16 +1400,55 @@ fn output_lint_results(
     Ok(())
 }
 
+/// Print type diagnostics to stderr and return whether any errors were found
+fn purify_emit_type_diagnostics(
+    input: &Path,
+    diagnostics: &[crate::bash_transpiler::type_check::TypeDiagnostic],
+    type_strict: bool,
+) -> bool {
+    use crate::bash_transpiler::type_check::Severity;
+
+    let mut has_errors = false;
+    for diag in diagnostics {
+        let severity_str = match diag.severity {
+            Severity::Error => {
+                has_errors = true;
+                "error"
+            }
+            Severity::Warning => {
+                if type_strict {
+                    has_errors = true;
+                }
+                "warning"
+            }
+            Severity::Info => "info",
+        };
+        eprintln!(
+            "{}:{}:{}: {}: {}",
+            input.display(),
+            diag.span.start_line,
+            diag.span.start_col,
+            severity_str,
+            diag.message,
+        );
+    }
+    has_errors
+}
+
 fn purify_command(
     input: &Path,
     output: Option<&Path>,
     report: bool,
     with_tests: bool,
     property_tests: bool,
+    type_check: bool,
+    emit_guards: bool,
+    type_strict: bool,
 ) -> Result<()> {
-    use crate::bash_parser::codegen::generate_purified_bash;
+    use crate::bash_parser::codegen::{generate_purified_bash, generate_purified_bash_with_guards};
     use crate::bash_parser::parser::BashParser;
     use crate::bash_transpiler::purification::{PurificationOptions, Purifier};
+    use crate::bash_transpiler::type_check::TypeChecker;
     use std::time::Instant;
 
     let start = Instant::now();
@@ -1419,15 +1464,41 @@ fn purify_command(
         .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
     let parse_time = parse_start.elapsed();
 
+    // --emit-guards implies --type-check
+    let do_type_check = type_check || emit_guards;
+
     let purify_start = Instant::now();
-    let mut purifier = Purifier::new(PurificationOptions::default());
+    let opts = PurificationOptions {
+        type_check: do_type_check,
+        emit_guards,
+        type_strict,
+        ..PurificationOptions::default()
+    };
+    let mut purifier = Purifier::new(opts);
     let purified_ast = purifier.purify(&ast)
         .map_err(|e| Error::Internal(format!("Failed to purify bash: {e}")))?;
     let purify_time = purify_start.elapsed();
 
     let codegen_start = Instant::now();
-    let purified_bash = generate_purified_bash(&purified_ast);
+    let purified_bash = if emit_guards {
+        let mut checker = TypeChecker::new();
+        checker.check_ast(&purified_ast);
+        generate_purified_bash_with_guards(&purified_ast, &checker)
+    } else {
+        generate_purified_bash(&purified_ast)
+    };
     let codegen_time = codegen_start.elapsed();
+
+    if do_type_check {
+        let has_errors = purify_emit_type_diagnostics(
+            input,
+            &purifier.report().type_diagnostics,
+            type_strict,
+        );
+        if has_errors {
+            return Err(Error::Internal("type checking failed".to_string()));
+        }
+    }
 
     let write_start = Instant::now();
     if let Some(output_path) = output {
