@@ -2728,4 +2728,28 @@ end_of_record
             "Invalid input should fail determinism check"
         );
     }
+
+    // BH-MUT-0019: check_lint per-format dispatch
+    // Kills mutations that swap format linter or negate has_errors()
+
+    #[test]
+    fn test_CORPUS_RUN_066_lint_bash_clean_passes() {
+        let runner = CorpusRunner::new(Config::default());
+        // Clean POSIX shell should pass bash lint
+        assert!(runner.check_lint("#!/bin/sh\necho \"hello\"\n", CorpusFormat::Bash));
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_067_lint_makefile_clean_passes() {
+        let runner = CorpusRunner::new(Config::default());
+        // Clean Makefile should pass makefile lint
+        assert!(runner.check_lint("CC := gcc\n\nall:\n\t$(CC) -o main main.c\n", CorpusFormat::Makefile));
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_068_lint_dockerfile_clean_passes() {
+        let runner = CorpusRunner::new(Config::default());
+        // Clean Dockerfile should pass dockerfile lint
+        assert!(runner.check_lint("FROM alpine:3.18\nRUN apk add curl\n", CorpusFormat::Dockerfile));
+    }
 }
