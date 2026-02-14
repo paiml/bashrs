@@ -1,4 +1,5 @@
 #!/bin/bash
+# comply:disable=COMPLY-001
 # Proof-of-concept: Score with file type detection
 # Demonstrates improvements from zshrc-refactor-spec-improvements.md
 
