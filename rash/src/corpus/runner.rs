@@ -2475,4 +2475,28 @@ end_of_record
         let dims: Vec<&str> = report.regressions.iter().map(|r| r.dimension.as_str()).collect();
         assert!(dims.contains(&"lint_passed"));
     }
+
+    /// BH-MUT-0008: Verify Dockerfile schema rejects comment-only output.
+    /// Kills mutation that negates `!trimmed.starts_with('#')` in check_schema.
+    #[test]
+    fn test_CORPUS_RUN_052_dockerfile_schema_rejects_comments_only() {
+        let runner = CorpusRunner::new(Config::default());
+        // Output with only comments and blank lines — no valid instructions
+        let comment_only = "# This is a comment\n# Another comment\n\n# No instructions";
+        assert!(
+            !runner.check_schema(comment_only, CorpusFormat::Dockerfile),
+            "Dockerfile schema should reject output with only comments"
+        );
+    }
+
+    /// Verify Dockerfile schema accepts output with valid instructions.
+    #[test]
+    fn test_CORPUS_RUN_053_dockerfile_schema_accepts_valid() {
+        let runner = CorpusRunner::new(Config::default());
+        let valid = "# Comment\nFROM alpine:3.18\nWORKDIR /app";
+        assert!(
+            runner.check_schema(valid, CorpusFormat::Dockerfile),
+            "Dockerfile schema should accept output with valid instructions"
+        );
+    }
 }
