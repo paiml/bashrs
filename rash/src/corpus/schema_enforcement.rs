@@ -1098,6 +1098,60 @@ mod tests {
         assert!(!check_unquoted_expansion("echo \\$HOME"));
     }
 
+    // BH-MUT-0013: is_unquoted_var_at mutation targets
+    // Kills mutations of the $( exclusion and ${}/$ _ detection at lines 277-287
+
+    #[test]
+    fn test_SCHEMA_MUT_013a_subshell_not_flagged() {
+        // $(...) subshell is NOT a bare variable expansion
+        assert!(!check_unquoted_expansion("echo $(date)"));
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_013b_brace_expansion_flagged() {
+        // ${VAR} outside quotes IS an unquoted expansion
+        assert!(check_unquoted_expansion("echo ${HOME}"));
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_013c_underscore_var_flagged() {
+        // $_ outside quotes IS an unquoted expansion
+        assert!(check_unquoted_expansion("echo $_"));
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_013d_mixed_quotes_var_flagged() {
+        // Var between quoted segments is still unquoted
+        assert!(check_unquoted_expansion("echo \"hello\" $var 'world'"));
+    }
+
+    // BH-MUT-0014: extract_make_var mutation targets
+    // Kills mutations of tab/comment filtering at lines 321-322
+
+    #[test]
+    fn test_SCHEMA_MUT_014a_extract_make_var_comment() {
+        assert!(extract_make_var("# CC := gcc").is_none());
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_014b_extract_make_var_tab() {
+        assert!(extract_make_var("\t$(CC) -o main main.c").is_none());
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_014c_extract_make_var_valid() {
+        assert_eq!(
+            extract_make_var("CC := gcc"),
+            Some("CC".to_string())
+        );
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_014d_extract_make_var_invalid_name() {
+        // Variable name with spaces should not match
+        assert!(extract_make_var("bad name := value").is_none());
+    }
+
     #[test]
     fn test_multiple_violations_same_entry() {
         let entry = make_entry(
