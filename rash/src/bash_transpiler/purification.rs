@@ -370,16 +370,6 @@ impl Purifier {
             }
 
             BashStmt::Pipeline { commands, span } => {
-                // Check if this is already a "permission check + mkdir" pipeline
-                // If so, don't re-purify to avoid duplication (idempotency bug fix)
-                if self.is_permission_check_mkdir_pipeline(commands) {
-                    // Already purified - return as-is to maintain idempotency
-                    return Ok(BashStmt::Pipeline {
-                        commands: commands.clone(),
-                        span: *span,
-                    });
-                }
-
                 // Purify each command in the pipeline
                 let mut purified_commands = Vec::new();
                 for cmd in commands {
@@ -810,92 +800,6 @@ impl Purifier {
         }
     }
 
-    /// Check if a pipeline is already a "permission check + mkdir" pattern
-    ///
-    /// Returns true if the pipeline contains:
-    /// 1. An If statement with permission check (contains "Permission denied")
-    /// 2. Followed by a mkdir -p command
-    ///
-    /// This prevents re-purification from adding duplicate permission checks.
-    fn is_permission_check_mkdir_pipeline(&self, commands: &[BashStmt]) -> bool {
-        if commands.len() != 2 {
-            return false;
-        }
-
-        // First command should be If statement with permission check
-        let has_permission_check = commands.first().is_some_and(|cmd| {
-            matches!(cmd, BashStmt::If { else_block, .. } if {
-                // Check if else block contains "Permission denied" error message
-                else_block.as_ref().is_some_and(|stmts| {
-                    stmts.iter().any(|stmt| {
-                        matches!(stmt, BashStmt::Command { name, args, .. }
-                            if name == "echo" && args.iter().any(|arg| {
-                                matches!(arg, BashExpr::Literal(s) if s.contains("Permission denied"))
-                            }))
-                    })
-                })
-            })
-        });
-
-        // Second command should be mkdir -p
-        let has_mkdir_p = commands.get(1).is_some_and(|cmd| {
-            matches!(cmd, BashStmt::Command { name, args, .. }
-            if name == "mkdir" && args.iter().any(|arg| {
-                matches!(arg, BashExpr::Literal(s) if s.contains("-p"))
-            }))
-        });
-
-        has_permission_check && has_mkdir_p
-    }
-
-    /// Generate a permission check for file operations
-    ///
-    /// Creates an If statement that checks if a parent directory is writable
-    /// before attempting to create a subdirectory. If not writable, exits with error.
-    fn generate_permission_check(
-        &self,
-        target_dir: &BashExpr,
-        operation: &str,
-        span: Span,
-    ) -> BashStmt {
-        let error_message = format!(
-            "{}: Permission denied: {}",
-            operation,
-            match target_dir {
-                BashExpr::Literal(s) => s.clone(),
-                _ => "target".to_string(),
-            }
-        );
-
-        BashStmt::If {
-            condition: BashExpr::Test(Box::new(TestExpr::FileWritable(BashExpr::CommandSubst(
-                Box::new(BashStmt::Command {
-                    name: "dirname".to_string(),
-                    args: vec![target_dir.clone()],
-                    redirects: vec![],
-                    span,
-                }),
-            )))),
-            then_block: vec![], // Empty - continue if writable
-            elif_blocks: vec![],
-            else_block: Some(vec![
-                BashStmt::Command {
-                    name: "echo".to_string(),
-                    args: vec![BashExpr::Literal(error_message)],
-                    redirects: vec![],
-                    span,
-                },
-                BashStmt::Command {
-                    name: "exit".to_string(),
-                    args: vec![BashExpr::Literal("1".to_string())],
-                    redirects: vec![],
-                    span,
-                },
-            ]),
-            span,
-        }
-    }
-
     fn make_command_idempotent(
         &mut self,
         name: &str,
@@ -911,20 +815,10 @@ impl Purifier {
             }
 
             "mkdir" => {
-                // mkdir should use -p flag for idempotency AND check permissions
+                // mkdir should use -p flag for idempotency
                 let purified_args: Result<Vec<_>, _> =
                     args.iter().map(|arg| self.purify_expression(arg)).collect();
                 let purified_args = purified_args?;
-
-                // Extract target directory (last argument)
-                let target_dir = purified_args.last().ok_or_else(|| {
-                    PurificationError::NonIdempotentSideEffect(
-                        "mkdir requires a target directory".to_string(),
-                    )
-                })?;
-
-                // Generate permission check: [ -w "$(dirname "$TARGET")" ] || { echo "error" >&2; exit 1; }
-                let permission_check = self.generate_permission_check(target_dir, "mkdir", span);
 
                 // Build mkdir -p command
                 let mut mkdir_args = if !purified_args
@@ -937,19 +831,14 @@ impl Purifier {
                 };
                 mkdir_args.extend(purified_args);
 
-                let mkdir_cmd = BashStmt::Command {
-                    name: name.to_string(),
-                    args: mkdir_args,
-                    redirects: redirects.to_vec(), // Issue #72: Preserve redirects
-                    span,
-                };
-
                 return Ok((
-                    vec![permission_check, mkdir_cmd],
-                    Some(
-                        "Added permission check and -p flag to mkdir for safety and idempotency"
-                            .to_string(),
-                    ),
+                    vec![BashStmt::Command {
+                        name: name.to_string(),
+                        args: mkdir_args,
+                        redirects: redirects.to_vec(),
+                        span,
+                    }],
+                    Some("Added -p flag to mkdir for idempotency".to_string()),
                 ));
             }
 
@@ -1106,10 +995,7 @@ mod tests {
     }
 
     #[test]
-    fn test_PHASE2_001_permission_aware_mkdir() {
-        // RED PHASE: This test should FAIL initially
-        // Testing permission-aware purification (Toyota Way review §6.2)
-
+    fn test_PHASE2_001_mkdir_gets_p_flag() {
         let ast = BashAst {
             statements: vec![BashStmt::Command {
                 name: "mkdir".to_string(),
@@ -1125,71 +1011,21 @@ mod tests {
         };
 
         let mut purifier = Purifier::new(PurificationOptions::default());
-        let purified = purifier.purify(&ast).unwrap();
+        let purified = purifier.purify(&ast).expect("purification should succeed");
 
-        // Should generate 1 Pipeline containing 2 statements:
-        // 1. If statement with permission check
-        // 2. mkdir -p command
-        assert_eq!(
-            purified.statements.len(),
-            1,
-            "Expected single Pipeline statement wrapping permission check + mkdir"
-        );
-
-        // The statement should be a Pipeline
+        // Should produce a single mkdir -p command
+        assert_eq!(purified.statements.len(), 1);
         match &purified.statements[0] {
-            BashStmt::Pipeline { commands, .. } => {
-                assert_eq!(
-                    commands.len(),
-                    2,
-                    "Expected 2 commands in pipeline: permission check + mkdir"
-                );
-
-                // First command should be If statement with permission check
-                match &commands[0] {
-                    BashStmt::If {
-                        condition,
-                        else_block,
-                        ..
-                    } => {
-                        // Condition should test file writability
-                        let condition_str = format!("{:?}", condition);
-                        assert!(
-                            condition_str.contains("FileWritable") || condition_str.contains("-w"),
-                            "Expected FileWritable permission check, got: {}",
-                            condition_str
-                        );
-
-                        // Should have else block with error handling
-                        assert!(
-                            else_block.is_some(),
-                            "Expected else block with error handling"
-                        );
-                    }
-                    other => panic!(
-                        "Expected If statement for permission check, got: {:?}",
-                        other
-                    ),
-                }
-
-                // Second command should be mkdir -p
-                match &commands[1] {
-                    BashStmt::Command { name, args, .. } => {
-                        assert_eq!(name, "mkdir", "Expected mkdir command");
-
-                        // Should have -p flag
-                        let has_p_flag = args
-                            .iter()
-                            .any(|arg| matches!(arg, BashExpr::Literal(s) if s.contains("-p")));
-                        assert!(has_p_flag, "mkdir should have -p flag for idempotency");
-                    }
-                    other => panic!("Expected mkdir command, got: {:?}", other),
-                }
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "mkdir");
+                let has_p_flag = args
+                    .iter()
+                    .any(|arg| matches!(arg, BashExpr::Literal(s) if s == "-p"));
+                assert!(has_p_flag, "mkdir should have -p flag: {args:?}");
             }
-            other => panic!("Expected Pipeline statement, got: {:?}", other),
+            other => panic!("Expected Command, got: {other:?}"),
         }
 
-        // Report should mention permission check injection
         assert!(
             !purifier.report().idempotency_fixes.is_empty(),
             "Should report idempotency fix"
@@ -1197,8 +1033,7 @@ mod tests {
     }
 
     #[test]
-    fn test_PHASE2_002_permission_aware_mkdir_integration() {
-        // Integration test: Verify generated code is valid shell
+    fn test_PHASE2_002_mkdir_p_integration() {
         use crate::bash_parser::codegen::generate_purified_bash;
 
         let ast = BashAst {
@@ -1216,23 +1051,8 @@ mod tests {
         };
 
         let mut purifier = Purifier::new(PurificationOptions::default());
-        let purified = purifier.purify(&ast).unwrap();
+        let purified = purifier.purify(&ast).expect("purification should succeed");
         let generated_code = generate_purified_bash(&purified);
-
-        // Generated code should contain permission check
-        assert!(
-            generated_code.contains("-w") || generated_code.contains("writable"),
-            "Generated code should check write permission: {}",
-            generated_code
-        );
-
-        // Generated code should contain error message for permission denied
-        assert!(
-            generated_code.contains("Permission denied")
-                || generated_code.contains("permission denied"),
-            "Generated code should have permission denied error: {}",
-            generated_code
-        );
 
         // Generated code should have mkdir -p
         assert!(
@@ -2908,75 +2728,6 @@ mod tests {
         }
     }
 
-    // ============== Pipeline permission check detection tests ==============
-
-    #[test]
-    fn test_is_permission_check_mkdir_pipeline_false_for_wrong_len() {
-        let purifier = Purifier::new(PurificationOptions::default());
-
-        // Single command - not a permission check pipeline
-        let single = vec![BashStmt::Command {
-            name: "mkdir".to_string(),
-            args: vec![BashExpr::Literal("-p".to_string())],
-            redirects: vec![],
-            span: Span::dummy(),
-        }];
-        assert!(!purifier.is_permission_check_mkdir_pipeline(&single));
-
-        // Three commands - not a permission check pipeline
-        let three = vec![
-            BashStmt::Command {
-                name: "echo".to_string(),
-                args: vec![],
-                redirects: vec![],
-                span: Span::dummy(),
-            },
-            BashStmt::Command {
-                name: "mkdir".to_string(),
-                args: vec![],
-                redirects: vec![],
-                span: Span::dummy(),
-            },
-            BashStmt::Command {
-                name: "ls".to_string(),
-                args: vec![],
-                redirects: vec![],
-                span: Span::dummy(),
-            },
-        ];
-        assert!(!purifier.is_permission_check_mkdir_pipeline(&three));
-    }
-
-    #[test]
-    fn test_is_permission_check_mkdir_pipeline_true() {
-        let purifier = Purifier::new(PurificationOptions::default());
-
-        let pipeline = vec![
-            BashStmt::If {
-                condition: BashExpr::Test(Box::new(TestExpr::FileWritable(BashExpr::Literal(
-                    "/tmp".to_string(),
-                )))),
-                then_block: vec![],
-                elif_blocks: vec![],
-                else_block: Some(vec![BashStmt::Command {
-                    name: "echo".to_string(),
-                    args: vec![BashExpr::Literal("Permission denied: target".to_string())],
-                    redirects: vec![],
-                    span: Span::dummy(),
-                }]),
-                span: Span::dummy(),
-            },
-            BashStmt::Command {
-                name: "mkdir".to_string(),
-                args: vec![BashExpr::Literal("-p".to_string())],
-                redirects: vec![],
-                span: Span::dummy(),
-            },
-        ];
-
-        assert!(purifier.is_permission_check_mkdir_pipeline(&pipeline));
-    }
-
     // ============== Report accessor test ==============
 
     #[test]
@@ -3034,53 +2785,4 @@ mod tests {
         }
     }
 
-    // ============== generate_permission_check test ==============
-
-    #[test]
-    fn test_generate_permission_check() {
-        let purifier = Purifier::new(PurificationOptions::default());
-        let target = BashExpr::Literal("/app/releases".to_string());
-        let check = purifier.generate_permission_check(&target, "mkdir", Span::dummy());
-
-        match check {
-            BashStmt::If {
-                condition,
-                else_block,
-                ..
-            } => {
-                // Condition should test writability
-                let cond_str = format!("{:?}", condition);
-                assert!(cond_str.contains("FileWritable"));
-
-                // Else block should have error message
-                assert!(else_block.is_some());
-                let else_stmts = else_block.unwrap();
-                assert!(else_stmts.len() >= 2);
-            }
-            _ => panic!("Expected If statement"),
-        }
-    }
-
-    #[test]
-    fn test_generate_permission_check_with_non_literal() {
-        let purifier = Purifier::new(PurificationOptions::default());
-        let target = BashExpr::Variable("DIR".to_string());
-        let check = purifier.generate_permission_check(&target, "mkdir", Span::dummy());
-
-        match check {
-            BashStmt::If { else_block, .. } => {
-                let else_stmts = else_block.unwrap();
-                // Should have generic "target" in message for non-literal
-                let echo = &else_stmts[0];
-                match echo {
-                    BashStmt::Command { args, .. } => {
-                        let msg = format!("{:?}", args);
-                        assert!(msg.contains("target"));
-                    }
-                    _ => panic!("Expected echo command"),
-                }
-            }
-            _ => panic!("Expected If statement"),
-        }
-    }
 }
