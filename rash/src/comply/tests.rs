@@ -2154,3 +2154,180 @@ fn test_rule_all_weights_consistent() {
         assert!(rule.weight() > 0, "{} has zero weight", rule.code());
     }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// COMPLY-002 Determinism expansion tests
+// ═══════════════════════════════════════════════════════════════
+
+fn sh_artifact() -> Artifact {
+    Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript)
+}
+
+#[test]
+fn test_determinism_srandom_detected() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "echo $SRANDOM\n", &artifact);
+    assert!(!result.passed, "$SRANDOM should be non-deterministic");
+}
+
+#[test]
+fn test_determinism_bashpid_detected() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "echo $BASHPID\n", &artifact);
+    assert!(!result.passed, "$BASHPID should be non-deterministic");
+}
+
+#[test]
+fn test_determinism_dev_urandom_detected() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "dd if=/dev/urandom bs=16 count=1\n", &artifact);
+    assert!(!result.passed, "/dev/urandom should be non-deterministic");
+}
+
+#[test]
+fn test_determinism_dev_random_detected() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "head -c 32 /dev/random\n", &artifact);
+    assert!(!result.passed, "/dev/random should be non-deterministic");
+}
+
+#[test]
+fn test_determinism_mktemp_detected() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "TMPDIR=$(mktemp -d)\n", &artifact);
+    assert!(!result.passed, "mktemp should be non-deterministic");
+}
+
+#[test]
+fn test_determinism_mktemp_standalone() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "mktemp /tmp/test.XXXXXX\n", &artifact);
+    assert!(!result.passed, "mktemp standalone should be non-deterministic");
+}
+
+#[test]
+fn test_determinism_shuf_detected() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "shuf -n 1 wordlist.txt\n", &artifact);
+    assert!(!result.passed, "shuf should be non-deterministic");
+}
+
+#[test]
+fn test_determinism_shuf_piped() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "cat list.txt | shuf\n", &artifact);
+    assert!(!result.passed, "piped shuf should be non-deterministic");
+}
+
+#[test]
+fn test_determinism_clean_script_passes() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Determinism, "#!/bin/sh\necho hello\nmkdir -p /tmp/test\n", &artifact);
+    assert!(result.passed, "Clean script should be deterministic");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// COMPLY-003 Idempotency expansion tests
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_idempotency_useradd_unguarded() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Idempotency, "useradd deploy\n", &artifact);
+    assert!(!result.passed, "useradd without guard is non-idempotent");
+}
+
+#[test]
+fn test_idempotency_useradd_guarded_ok() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Idempotency, "useradd deploy || true\n", &artifact);
+    assert!(result.passed, "useradd with || true is guarded");
+}
+
+#[test]
+fn test_idempotency_groupadd_unguarded() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Idempotency, "groupadd www-data\n", &artifact);
+    assert!(!result.passed, "groupadd without guard is non-idempotent");
+}
+
+#[test]
+fn test_idempotency_git_clone_unguarded() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Idempotency, "git clone https://github.com/user/repo.git\n", &artifact);
+    assert!(!result.passed, "git clone without dir check is non-idempotent");
+}
+
+#[test]
+fn test_idempotency_git_clone_guarded_ok() {
+    let artifact = sh_artifact();
+    let result = check_rule(
+        RuleId::Idempotency,
+        "if [ ! -d repo ]; then git clone https://github.com/user/repo.git; fi\n",
+        &artifact,
+    );
+    // The git clone is on a line containing "if " so it's guarded
+    assert!(result.passed, "git clone with directory check is guarded");
+}
+
+#[test]
+fn test_idempotency_createdb_unguarded() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Idempotency, "createdb myapp\n", &artifact);
+    assert!(!result.passed, "createdb without guard is non-idempotent");
+}
+
+#[test]
+fn test_idempotency_createdb_guarded_ok() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Idempotency, "createdb myapp 2>/dev/null || true\n", &artifact);
+    assert!(result.passed, "createdb with error suppression is guarded");
+}
+
+#[test]
+fn test_idempotency_append_to_bashrc() {
+    let artifact = sh_artifact();
+    let result = check_rule(
+        RuleId::Idempotency,
+        "echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc\n",
+        &artifact,
+    );
+    assert!(!result.passed, "Appending to .bashrc is non-idempotent");
+}
+
+#[test]
+fn test_idempotency_append_guarded_grep_ok() {
+    let artifact = sh_artifact();
+    let result = check_rule(
+        RuleId::Idempotency,
+        "grep -q '/usr/local/bin' ~/.bashrc || echo 'export PATH=/usr/local/bin:$PATH' >> ~/.bashrc\n",
+        &artifact,
+    );
+    // Contains grep -q guard
+    assert!(result.passed, "Append with grep -q guard is idempotent");
+}
+
+#[test]
+fn test_idempotency_append_to_profile() {
+    let artifact = sh_artifact();
+    let result = check_rule(
+        RuleId::Idempotency,
+        "echo 'source /opt/env.sh' >> /etc/profile\n",
+        &artifact,
+    );
+    assert!(!result.passed, "Appending to /etc/profile is non-idempotent");
+}
+
+#[test]
+fn test_idempotency_mkdir_with_p_ok() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Idempotency, "mkdir -p /tmp/dir\n", &artifact);
+    assert!(result.passed, "mkdir -p is idempotent");
+}
+
+#[test]
+fn test_idempotency_rm_with_f_ok() {
+    let artifact = sh_artifact();
+    let result = check_rule(RuleId::Idempotency, "rm -f /tmp/file\n", &artifact);
+    assert!(result.passed, "rm -f is idempotent");
+}
