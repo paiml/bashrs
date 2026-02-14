@@ -974,16 +974,7 @@ fn check_dockerfile_best(content: &str) -> RuleResult {
             has_user = true;
         }
 
-        // DOCKER010: Missing USER directive check (done at end)
-
-        // DOCKER008: ADD instead of COPY for local files
-        if trimmed.starts_with("ADD ") && !trimmed.contains("http://") && !trimmed.contains("https://") {
-            violations.push(Violation {
-                rule: RuleId::DockerfileBest,
-                line: Some(i + 1),
-                message: "DOCKER008: Use COPY instead of ADD for local files".to_string(),
-            });
-        }
+        check_dockerfile_line(trimmed, i + 1, &mut violations);
     }
 
     if !has_user && !content.is_empty() {
@@ -999,6 +990,79 @@ fn check_dockerfile_best(content: &str) -> RuleResult {
         passed: violations.is_empty(),
         violations,
     }
+}
+
+fn check_dockerfile_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
+    // DOCKER008: ADD instead of COPY for local files
+    if trimmed.starts_with("ADD ")
+        && !trimmed.contains("http://")
+        && !trimmed.contains("https://")
+    {
+        violations.push(Violation {
+            rule: RuleId::DockerfileBest,
+            line: Some(line_num),
+            message: "DOCKER008: Use COPY instead of ADD for local files".to_string(),
+        });
+    }
+
+    // DOCKER001: Untagged or :latest base image (non-deterministic)
+    if is_unpinned_from(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::DockerfileBest,
+            line: Some(line_num),
+            message: "DOCKER001: Pin base image version (avoid untagged or :latest)"
+                .to_string(),
+        });
+    }
+
+    // DOCKER003: apt-get install without cleanup
+    if is_apt_without_clean(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::DockerfileBest,
+            line: Some(line_num),
+            message: "DOCKER003: apt-get install without cleanup (add rm -rf /var/lib/apt/lists/*)"
+                .to_string(),
+        });
+    }
+
+    // DOCKER004: EXPOSE with no port number
+    if trimmed == "EXPOSE" {
+        violations.push(Violation {
+            rule: RuleId::DockerfileBest,
+            line: Some(line_num),
+            message: "DOCKER004: EXPOSE requires a port number".to_string(),
+        });
+    }
+}
+
+/// Detect FROM without a pinned tag (FROM image or FROM image:latest)
+fn is_unpinned_from(trimmed: &str) -> bool {
+    if !trimmed.starts_with("FROM ") {
+        return false;
+    }
+    let image = trimmed[5..].split_whitespace().next().unwrap_or("");
+    // Skip scratch (no tag needed) and $ARG references
+    if image == "scratch" || image.starts_with('$') {
+        return false;
+    }
+    // Check for tag: image:tag (but not image:latest)
+    if let Some(tag) = image.split(':').nth(1) {
+        tag == "latest"
+    } else {
+        // No tag at all — unpinned
+        !image.contains('@') // @sha256: is pinned by digest
+    }
+}
+
+/// Detect apt-get install without cleanup in the same RUN layer
+fn is_apt_without_clean(trimmed: &str) -> bool {
+    if !trimmed.contains("apt-get install") {
+        return false;
+    }
+    // Check if cleanup is in the same RUN command
+    !trimmed.contains("rm -rf /var/lib/apt")
+        && !trimmed.contains("apt-get clean")
+        && !trimmed.contains("apt-get autoremove")
 }
 
 fn check_config_hygiene(content: &str) -> RuleResult {

@@ -1665,3 +1665,106 @@ fn test_shellcheck_multiple_violations() {
     assert!(result.violations.len() >= 4,
         "Expected at least 4 violations, got {}: {:?}", result.violations.len(), result.violations);
 }
+
+// ─── COMPLY-008 Dockerfile Pattern Expansion ───
+
+#[test]
+fn test_docker_untagged_from_detected() {
+    let content = "FROM ubuntu\nRUN echo hello\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER001")),
+        "Untagged FROM should be detected: {:?}", result.violations);
+}
+
+#[test]
+fn test_docker_latest_tag_detected() {
+    let content = "FROM ubuntu:latest\nRUN echo hello\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER001")),
+        "FROM :latest should be detected: {:?}", result.violations);
+}
+
+#[test]
+fn test_docker_pinned_tag_no_false_positive() {
+    let content = "FROM ubuntu:22.04\nRUN echo hello\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    let d001: Vec<_> = result.violations.iter().filter(|v| v.message.contains("DOCKER001")).collect();
+    assert!(d001.is_empty(), "Pinned FROM should not trigger DOCKER001: {:?}", d001);
+}
+
+#[test]
+fn test_docker_digest_pin_no_false_positive() {
+    let content = "FROM ubuntu@sha256:abc123\nRUN echo hello\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    let d001: Vec<_> = result.violations.iter().filter(|v| v.message.contains("DOCKER001")).collect();
+    assert!(d001.is_empty(), "Digest-pinned FROM should not trigger DOCKER001: {:?}", d001);
+}
+
+#[test]
+fn test_docker_scratch_no_false_positive() {
+    let content = "FROM scratch\nCOPY binary /app\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    let d001: Vec<_> = result.violations.iter().filter(|v| v.message.contains("DOCKER001")).collect();
+    assert!(d001.is_empty(), "FROM scratch should not trigger DOCKER001: {:?}", d001);
+}
+
+#[test]
+fn test_docker_arg_from_no_false_positive() {
+    let content = "ARG BASE=ubuntu:22.04\nFROM $BASE\nRUN echo hello\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    let d001: Vec<_> = result.violations.iter().filter(|v| v.message.contains("DOCKER001")).collect();
+    assert!(d001.is_empty(), "FROM $ARG should not trigger DOCKER001: {:?}", d001);
+}
+
+#[test]
+fn test_docker_apt_without_clean_detected() {
+    let content = "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER003")),
+        "apt-get install without cleanup should be detected: {:?}", result.violations);
+}
+
+#[test]
+fn test_docker_apt_with_clean_no_false_positive() {
+    let content = "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    let d003: Vec<_> = result.violations.iter().filter(|v| v.message.contains("DOCKER003")).collect();
+    assert!(d003.is_empty(), "apt-get with cleanup should not trigger DOCKER003: {:?}", d003);
+}
+
+#[test]
+fn test_docker_apt_autoremove_no_false_positive() {
+    let content = "FROM ubuntu:22.04\nRUN apt-get update && apt-get install -y curl && apt-get autoremove\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    let d003: Vec<_> = result.violations.iter().filter(|v| v.message.contains("DOCKER003")).collect();
+    assert!(d003.is_empty(), "apt-get autoremove should not trigger DOCKER003: {:?}", d003);
+}
+
+#[test]
+fn test_docker_multistage_from_as_no_false_positive() {
+    // Multi-stage: FROM image:tag AS builder
+    let content = "FROM rust:1.75 AS builder\nRUN cargo build\nFROM debian:bookworm-slim\nCOPY --from=builder /app /app\nUSER app\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    let d001: Vec<_> = result.violations.iter().filter(|v| v.message.contains("DOCKER001")).collect();
+    assert!(d001.is_empty(), "Pinned multi-stage FROM should not trigger DOCKER001: {:?}", d001);
+}
+
+#[test]
+fn test_docker_multiple_violations() {
+    let content = "FROM ubuntu\nADD . /app\nRUN apt-get install -y curl\n";
+    let artifact = Artifact::new(PathBuf::from("Dockerfile"), Scope::Project, ArtifactKind::Dockerfile);
+    let result = check_rule(RuleId::DockerfileBest, content, &artifact);
+    // DOCKER001 (untagged) + DOCKER008 (ADD) + DOCKER003 (apt) + DOCKER010 (no USER)
+    assert!(result.violations.len() >= 4,
+        "Expected at least 4 violations, got {}: {:?}", result.violations.len(), result.violations);
+}
