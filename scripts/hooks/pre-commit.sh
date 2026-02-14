@@ -32,7 +32,7 @@ if [ -n "$STAGED_RS" ]; then
     COMPLEXITY_DETAILS=""
     for RS_FILE in $STAGED_RS; do
         if [ -f "$RS_FILE" ]; then
-            FILE_OUTPUT=$(pmat analyze complexity --path "$RS_FILE" --max-cyclomatic $PMAT_MAX_CYCLOMATIC_COMPLEXITY --max-cognitive $PMAT_MAX_COGNITIVE_COMPLEXITY 2>&1)
+            FILE_OUTPUT=$(pmat analyze complexity --path "$RS_FILE" --max-cyclomatic "$PMAT_MAX_CYCLOMATIC_COMPLEXITY" --max-cognitive "$PMAT_MAX_COGNITIVE_COMPLEXITY" 2>&1)
             if echo "$FILE_OUTPUT" | grep -q 'Errors.*: [1-9]'; then
                 COMPLEXITY_FAILED=1
                 # Extract the offending file and functions

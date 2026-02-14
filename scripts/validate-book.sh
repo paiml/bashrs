@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Book Validation Pre-commit Hook
 # Validates that all book examples compile successfully
 

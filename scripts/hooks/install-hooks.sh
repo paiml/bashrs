@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 # Install bashrs git hooks
 # Run this script to set up pre-commit quality gates
 
