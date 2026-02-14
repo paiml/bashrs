@@ -680,8 +680,22 @@ impl BashParser {
                 // Skip newlines after pipe
                 self.skip_newlines();
 
-                // Parse next command in pipeline
-                let next_cmd = self.parse_command()?;
+                // Parse next command in pipeline — compound commands
+                // are valid on the right side of a pipe:
+                //   cmd | while read line; do ...; done
+                //   cmd | if ...; then ...; fi
+                //   cmd | { cmd1; cmd2; }
+                let next_cmd = match self.peek() {
+                    Some(Token::While) => self.parse_while()?,
+                    Some(Token::Until) => self.parse_until()?,
+                    Some(Token::For) => self.parse_for()?,
+                    Some(Token::If) => self.parse_if()?,
+                    Some(Token::Case) => self.parse_case()?,
+                    Some(Token::LeftBrace) => self.parse_brace_group()?,
+                    Some(Token::LeftParen) => self.parse_subshell()?,
+                    Some(Token::Select) => self.parse_select()?,
+                    _ => self.parse_command()?,
+                };
                 commands.push(next_cmd);
             }
 
@@ -725,6 +739,11 @@ impl BashParser {
             });
         }
 
+        // Consume trailing & (background operator) — acts as statement terminator
+        if self.check(&Token::Ampersand) {
+            self.advance();
+        }
+
         // Not a pipeline or logical list, return the statement
         Ok(stmt)
     }
@@ -733,6 +752,9 @@ impl BashParser {
         self.expect(Token::If)?;
 
         let condition = self.parse_test_expression()?;
+
+        // Skip redirections on test expressions: `if [ cond ] 2>/dev/null; then`
+        self.skip_condition_redirects();
 
         // Skip optional semicolon before then
         if self.check(&Token::Semicolon) {
@@ -749,6 +771,9 @@ impl BashParser {
         while self.check(&Token::Elif) {
             self.advance();
             let elif_condition = self.parse_test_expression()?;
+
+            // Skip redirections on test expressions: `elif [ cond ] 2>/dev/null; then`
+            self.skip_condition_redirects();
 
             // Skip optional semicolon before then
             if self.check(&Token::Semicolon) {
@@ -772,6 +797,9 @@ impl BashParser {
 
         self.expect(Token::Fi)?;
 
+        // Handle trailing redirects: `fi > log` or `fi 2>/dev/null`
+        self.skip_compound_redirects();
+
         Ok(BashStmt::If {
             condition,
             then_block,
@@ -785,6 +813,9 @@ impl BashParser {
         self.expect(Token::While)?;
 
         let condition = self.parse_test_expression()?;
+
+        // Skip redirections on test expressions: `while [ cond ] 2>/dev/null; do`
+        self.skip_condition_redirects();
         self.skip_newlines();
 
         // PARSER-ENH-003: Optionally consume semicolon before 'do'
@@ -815,6 +846,9 @@ impl BashParser {
         self.expect(Token::Until)?;
 
         let condition = self.parse_test_expression()?;
+
+        // Skip redirections on test expressions
+        self.skip_condition_redirects();
         self.skip_newlines();
 
         // Optionally consume semicolon before 'do'
@@ -846,6 +880,9 @@ impl BashParser {
 
         self.expect(Token::RightBrace)?;
 
+        // Handle trailing redirects: `{ cmd; } > out 2> err`
+        self.skip_compound_redirects();
+
         Ok(BashStmt::BraceGroup {
             body,
             subshell: false,
@@ -860,6 +897,9 @@ impl BashParser {
         let body = self.parse_block_until(&[Token::RightParen])?;
 
         self.expect(Token::RightParen)?;
+
+        // Handle trailing redirects: `( cmd ) > out 2> err`
+        self.skip_compound_redirects();
 
         Ok(BashStmt::BraceGroup {
             body,
@@ -1726,6 +1766,8 @@ impl BashParser {
             && !self.check(&Token::Pipe)
             && !self.check(&Token::And)
             && !self.check(&Token::Or)
+            // Stop at standalone & (background) but NOT &> (combined redirect)
+            && !(self.check(&Token::Ampersand) && !matches!(self.peek_ahead(1), Some(Token::Gt)))
             && !self.check(&Token::RightParen)
             && !self.check(&Token::RightBrace)
             && !matches!(self.peek(), Some(Token::Comment(_)))
@@ -2494,10 +2536,28 @@ impl BashParser {
                                 break;
                             }
                         }
-                        let num = num_str.parse::<i64>().map_err(|_| {
-                            ParseError::InvalidSyntax(format!("Invalid number: {}", num_str))
-                        })?;
-                        tokens.push(ArithToken::Number(num));
+                        // Handle base#value notation: 16#FF, 8#77, 2#1010
+                        if chars.peek() == Some(&'#') {
+                            chars.next(); // consume #
+                            let base = num_str.parse::<u32>().unwrap_or(10);
+                            let mut value_str = String::new();
+                            while let Some(&c) = chars.peek() {
+                                if c.is_ascii_alphanumeric() || c == '_' {
+                                    value_str.push(c);
+                                    chars.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                            let num = i64::from_str_radix(&value_str, base)
+                                .unwrap_or(0);
+                            tokens.push(ArithToken::Number(num));
+                        } else {
+                            let num = num_str.parse::<i64>().map_err(|_| {
+                                ParseError::InvalidSyntax(format!("Invalid number: {}", num_str))
+                            })?;
+                            tokens.push(ArithToken::Number(num));
+                        }
                     }
                 }
                 // Variables (including $var references)
@@ -3240,9 +3300,13 @@ impl BashParser {
         let mut statements = Vec::new();
 
         while !self.is_at_end() {
-            // Skip newlines and semicolons between statements
+            // Skip newlines, semicolons, and background operators between statements
             // Issue #60: Brace groups use semicolons as statement separators
-            while self.check(&Token::Newline) || self.check(&Token::Semicolon) {
+            // & (ampersand) is a statement terminator that backgrounds the command
+            while self.check(&Token::Newline)
+                || self.check(&Token::Semicolon)
+                || self.check(&Token::Ampersand)
+            {
                 self.advance();
             }
 
@@ -3353,20 +3417,74 @@ impl BashParser {
         current_end == next_pos
     }
 
-    /// Skip trailing redirects on compound commands (while/for/if/until).
-    /// Bash allows `done < file`, `done < <(cmd)`, `done <<< "str"`, etc.
-    /// Process substitution `<(cmd)` is not POSIX, so we drop it during purification.
-    fn skip_compound_redirects(&mut self) {
-        while matches!(self.peek(), Some(Token::Lt | Token::Gt | Token::GtGt)) {
-            self.advance(); // consume redirect operator
-            // Consume the redirect target (filename, process substitution, etc.)
-            match self.peek() {
-                Some(Token::Identifier(_) | Token::String(_) | Token::Variable(_) | Token::Number(_)) => {
-                    self.advance();
-                }
-                _ => break,
+    /// Skip trailing redirects on compound commands and test expressions.
+    /// Handles all redirect patterns:
+    /// - `N>file`, `N>&M`, `N>&-` (fd-prefixed)
+    /// - `>file`, `>>file`, `<file` (bare redirects)
+    /// - `< <(cmd)`, `> >(cmd)` (process substitution targets)
+    /// - `<<< "str"` (here-strings)
+    fn skip_condition_redirects(&mut self) {
+        loop {
+            // Here-string: <<< "string"
+            if matches!(self.peek(), Some(Token::HereString(_))) {
+                self.advance();
+                continue;
             }
+
+            // fd-prefixed redirect: 2>/dev/null, 2>&1, 2>&-
+            if matches!(self.peek(), Some(Token::Number(_)))
+                && matches!(
+                    self.peek_ahead(1),
+                    Some(Token::Gt | Token::GtGt | Token::Lt)
+                )
+            {
+                self.advance(); // consume fd number
+                self.advance(); // consume redirect operator
+                // Handle >&N or >&- (fd duplication / close)
+                if self.check(&Token::Ampersand) {
+                    self.advance(); // consume &
+                }
+                // Consume redirect target (process sub <(cmd) is tokenized as Identifier)
+                match self.peek() {
+                    Some(
+                        Token::Identifier(_)
+                        | Token::String(_)
+                        | Token::Variable(_)
+                        | Token::Number(_),
+                    ) => {
+                        self.advance();
+                    }
+                    _ => break,
+                }
+                continue;
+            }
+
+            // bare redirect: >/dev/null, >>file, <file, < <(cmd)
+            if matches!(self.peek(), Some(Token::Gt | Token::GtGt | Token::Lt)) {
+                self.advance(); // consume redirect operator
+                match self.peek() {
+                    Some(
+                        Token::Identifier(_)
+                        | Token::String(_)
+                        | Token::Variable(_)
+                        | Token::Number(_),
+                    ) => {
+                        self.advance();
+                    }
+                    _ => break,
+                }
+                continue;
+            }
+
+            break;
         }
+    }
+
+    /// Skip trailing redirects on compound commands (while/for/if/brace/subshell).
+    /// Handles: `done < file`, `} > out 2> err`, `done < <(cmd)`, `fi 2>/dev/null`
+    fn skip_compound_redirects(&mut self) {
+        // Reuse skip_condition_redirects since it handles all redirect patterns
+        self.skip_condition_redirects();
     }
 }
 
@@ -5177,12 +5295,13 @@ EOF"#;
     }
 
     #[test]
-    fn test_coverage_background_job_unsupported() {
-        // Background jobs with & are not fully supported - verify error handling
+    fn test_coverage_background_job_supported() {
+        // Background jobs with & are now supported as a statement terminator
         let input = "sleep 10 &";
         let mut parser = BashParser::new(input).unwrap();
-        // Should fail to parse - & as background operator not supported
-        assert!(parser.parse().is_err());
+        let ast = parser.parse().expect("should parse background command");
+        assert_eq!(ast.statements.len(), 1);
+        assert!(matches!(&ast.statements[0], BashStmt::Command { name, .. } if name == "sleep"));
     }
 
     #[test]
@@ -5460,6 +5579,106 @@ esac"#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse().expect("should parse glob bracket in for items");
         assert!(matches!(&ast.statements[0], BashStmt::For { .. }));
+    }
+
+    #[test]
+    fn test_PIPE_COMPOUND_001_pipe_into_while() {
+        // Pipeline with while loop on the right side: cmd | while read line; do ...; done
+        let input = "find /etc -name \"*.conf\" | while read -r conf; do\n    echo \"$conf\"\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse pipe into while");
+        assert_eq!(ast.statements.len(), 1);
+        assert!(matches!(&ast.statements[0], BashStmt::Pipeline { commands, .. } if commands.len() == 2));
+    }
+
+    #[test]
+    fn test_PIPE_COMPOUND_002_pipe_into_if() {
+        // Pipeline with if on the right side: cmd | if ...; then ...; fi
+        let input = "cat file | if read line; then echo \"$line\"; fi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse pipe into if");
+        assert!(matches!(&ast.statements[0], BashStmt::Pipeline { .. }));
+    }
+
+    #[test]
+    fn test_PIPE_COMPOUND_003_pipe_into_brace_group() {
+        // Pipeline with brace group: cmd | { cmd1; cmd2; }
+        let input = "echo hello | { read line; echo \"$line\"; }";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse pipe into brace group");
+        assert!(matches!(&ast.statements[0], BashStmt::Pipeline { .. }));
+    }
+
+    #[test]
+    fn test_COND_REDIRECT_001_if_test_with_stderr_redirect() {
+        // if [ condition ] 2>/dev/null; then
+        let input = "if [ \"$x\" -ge 10 ] 2>/dev/null; then\n    echo yes\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse test with stderr redirect");
+        assert!(matches!(&ast.statements[0], BashStmt::If { .. }));
+    }
+
+    #[test]
+    fn test_COND_REDIRECT_002_while_test_with_redirect() {
+        // while [ condition ] 2>/dev/null; do
+        let input = "while [ -f /tmp/lock ] 2>/dev/null; do\n    sleep 1\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse while test with redirect");
+        assert!(matches!(&ast.statements[0], BashStmt::While { .. }));
+    }
+
+    #[test]
+    fn test_COMPOUND_REDIRECT_001_brace_group_with_redirects() {
+        // { cmd; } > out 2> err
+        let input = "{\n    echo stdout\n    echo stderr >&2\n} > /tmp/out.log 2> /tmp/err.log";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse brace group with redirects");
+        assert!(matches!(&ast.statements[0], BashStmt::BraceGroup { .. }));
+    }
+
+    #[test]
+    fn test_COMPOUND_REDIRECT_002_subshell_with_redirects() {
+        // ( cmd ) > out
+        let input = "(\n    echo hello\n) > /tmp/out.log";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse subshell with redirects");
+        assert!(matches!(&ast.statements[0], BashStmt::BraceGroup { subshell: true, .. }));
+    }
+
+    #[test]
+    fn test_BACKGROUND_001_subshell_with_ampersand() {
+        // ( cmd ) & — background subshell
+        let input = "for i in 1 2 3; do\n    (\n        echo \"$i\"\n    ) &\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse background subshell in loop");
+        assert!(matches!(&ast.statements[0], BashStmt::For { .. }));
+    }
+
+    #[test]
+    fn test_BACKGROUND_002_command_with_ampersand() {
+        // cmd & — background command
+        let input = "sleep 10 &\necho running";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse background command");
+        assert_eq!(ast.statements.len(), 2);
+    }
+
+    #[test]
+    fn test_ARITH_BASE_001_hex_base_notation() {
+        // $((16#FF)) — hex base notation
+        let input = "hex_val=$((16#FF))";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse hex base notation");
+        assert!(matches!(&ast.statements[0], BashStmt::Assignment { .. }));
+    }
+
+    #[test]
+    fn test_ARITH_BASE_002_octal_base_notation() {
+        // $((8#77)) — octal base notation
+        let input = "oct_val=$((8#77))";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse octal base notation");
+        assert!(matches!(&ast.statements[0], BashStmt::Assignment { .. }));
     }
 
     #[test]
