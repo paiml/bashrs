@@ -484,8 +484,11 @@ impl Lexer {
             if ch == '\n' {
                 // Check if current_line matches delimiter
                 if current_line.trim() == delimiter {
-                    // Found delimiter - skip the newline and stop
-                    self.advance();
+                    // Don't consume the trailing newline — let it become a
+                    // Token::Newline so the parser sees the statement boundary.
+                    // This is essential for heredocs inside loop/if bodies where
+                    // the parser needs the newline to stop parse_command before
+                    // encountering block terminators like `done`, `fi`, etc.
                     break;
                 }
 
@@ -500,6 +503,14 @@ impl Lexer {
             } else {
                 current_line.push(self.advance());
             }
+        }
+
+        // Handle delimiter on last line without trailing newline
+        if !current_line.is_empty() && current_line.trim() != delimiter {
+            if !content.is_empty() {
+                content.push('\n');
+            }
+            content.push_str(&current_line);
         }
 
         Ok(Token::Heredoc { delimiter, content })
@@ -569,7 +580,7 @@ impl Lexer {
                 // Strip leading tabs and check for delimiter
                 let trimmed = current_line.trim_start_matches('\t');
                 if trimmed == delimiter {
-                    self.advance();
+                    // Don't consume the trailing newline (same as read_heredoc)
                     break;
                 }
 
@@ -583,6 +594,17 @@ impl Lexer {
                 self.advance();
             } else {
                 current_line.push(self.advance());
+            }
+        }
+
+        // Handle delimiter on last line without trailing newline
+        if !current_line.is_empty() {
+            let trimmed = current_line.trim_start_matches('\t');
+            if trimmed != delimiter {
+                if !content.is_empty() {
+                    content.push('\n');
+                }
+                content.push_str(trimmed);
             }
         }
 

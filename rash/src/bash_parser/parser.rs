@@ -1728,6 +1728,13 @@ impl BashParser {
                 self.advance(); // consume '>>'
                 let target = self.parse_redirect_target()?;
                 redirects.push(Redirect::AppendError { target });
+            } else if let Some(Token::Heredoc { content, delimiter }) = self.peek() {
+                // Heredoc: <<EOF ... EOF
+                // Treat as a redirect — the heredoc provides stdin to the command
+                let content = content.clone();
+                let _delimiter = delimiter.clone();
+                self.advance(); // consume Heredoc token
+                redirects.push(Redirect::HereString { content });
             } else if let Some(Token::HereString(content)) = self.peek() {
                 // Issue #61: Here-string: <<< "string"
                 let content = content.clone();
@@ -5218,6 +5225,45 @@ func_b() {
         assert_eq!(ast.statements.len(), 2);
         assert!(matches!(&ast.statements[0], BashStmt::Function { name, .. } if name == "func_a"));
         assert!(matches!(&ast.statements[1], BashStmt::Function { name, .. } if name == "func_b"));
+    }
+
+    #[test]
+    fn test_HEREDOC_001_heredoc_in_for_loop_body() {
+        // BUG: heredoc inside for loop caused "expected 'done', found Eof"
+        // because read_heredoc consumed the trailing newline, preventing the
+        // parser from seeing the statement boundary before `done`
+        let input = "for i in 1 2 3; do\n    cat <<EOF\nhello\nEOF\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse heredoc in for loop");
+        assert_eq!(ast.statements.len(), 1);
+        assert!(matches!(&ast.statements[0], BashStmt::For { body, .. } if body.len() == 1));
+    }
+
+    #[test]
+    fn test_HEREDOC_002_heredoc_in_while_loop_body() {
+        let input = "while true; do\n    cat <<EOF\ndata\nEOF\ndone";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse heredoc in while loop");
+        assert_eq!(ast.statements.len(), 1);
+        assert!(matches!(&ast.statements[0], BashStmt::While { .. }));
+    }
+
+    #[test]
+    fn test_HEREDOC_003_heredoc_in_for_loop_in_function() {
+        let input = "send_alert() {\n    for email in a b c; do\n        mail -s ALERT \"$email\" <<EOF\nalert content\nEOF\n    done\n}";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse heredoc in for loop in function");
+        assert_eq!(ast.statements.len(), 1);
+        assert!(matches!(&ast.statements[0], BashStmt::Function { .. }));
+    }
+
+    #[test]
+    fn test_HEREDOC_004_heredoc_followed_by_more_statements() {
+        // Verify heredoc doesn't eat following statements
+        let input = "cat <<EOF\nhello\nEOF\necho after";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse heredoc + following statement");
+        assert_eq!(ast.statements.len(), 2);
     }
 
     #[test]
