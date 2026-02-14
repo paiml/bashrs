@@ -2149,8 +2149,8 @@ impl BashParser {
     /// Parse variable expansion patterns like ${VAR:-default}, ${VAR:=default}, etc.
     fn parse_variable_expansion(&self, var_content: &str) -> ParseResult<BashExpr> {
         // Check for parameter expansion patterns
-        // ${#VAR} - string length
-        if var_content.starts_with('#') && !var_content.contains(':') {
+        // ${#VAR} - string length (but NOT $# which is argument count)
+        if var_content.starts_with('#') && var_content.len() > 1 && !var_content.contains(':') {
             let variable = var_content[1..].to_string();
             return Ok(BashExpr::StringLength { variable });
         }
@@ -5036,6 +5036,69 @@ done"#;
                 let cond_str = format!("{condition:?}");
                 assert!(cond_str.contains("And"), "condition should contain And: {cond_str}");
             }
+            other => panic!("Expected While, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_SPECIAL_001_dollar_hash() {
+        let input = r#"echo $#"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse $#");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "echo");
+                assert_eq!(args.len(), 1);
+                assert!(
+                    matches!(&args[0], BashExpr::Variable(v) if v == "#"),
+                    "should have $# as variable: {args:?}"
+                );
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_SPECIAL_002_dollar_question() {
+        let input = r#"echo $?"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse $?");
+        match &ast.statements[0] {
+            BashStmt::Command { args, .. } => {
+                assert!(
+                    matches!(&args[0], BashExpr::Variable(v) if v == "?"),
+                    "should have $? as variable: {args:?}"
+                );
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_SPECIAL_003_dollar_bang() {
+        let input = r#"echo $!"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse $!");
+        match &ast.statements[0] {
+            BashStmt::Command { args, .. } => {
+                assert!(
+                    matches!(&args[0], BashExpr::Variable(v) if v == "!"),
+                    "should have $! as variable: {args:?}"
+                );
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_SPECIAL_004_while_dollar_hash_gt() {
+        let input = r#"while [ $# -gt 0 ]; do
+    shift
+done"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse while [ $# -gt 0 ]");
+        match &ast.statements[0] {
+            BashStmt::While { .. } => {} // just needs to parse
             other => panic!("Expected While, got {other:?}"),
         }
     }
