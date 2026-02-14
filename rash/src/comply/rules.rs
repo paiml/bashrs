@@ -64,8 +64,8 @@ impl RuleId {
     pub fn description(&self) -> &'static str {
         match self {
             RuleId::Posix => "Detects bash-specific constructs: [[ ]], (( )), <<<, select, ${var/}, pipefail, &>",
-            RuleId::Determinism => "Flags non-deterministic commands: $RANDOM, $$, date +%s, /dev/urandom",
-            RuleId::Idempotency => "Requires safe-to-rerun operations: mkdir -p, rm -f, ln -sf",
+            RuleId::Determinism => "Flags non-deterministic: $RANDOM, $SRANDOM, $BASHPID, $$, date, mktemp, shuf, /dev/urandom",
+            RuleId::Idempotency => "Requires safe-to-rerun: mkdir -p, rm -f, ln -sf, useradd guards, git clone checks",
             RuleId::Security => "Checks SEC001-SEC008: eval injection, curl|bash, rm -rf, secrets, temp files",
             RuleId::Quoting => "Detects unquoted variable expansions that risk word splitting or globbing",
             RuleId::ShellCheck => "Lightweight ShellCheck: SC2006 backticks, SC2115 rm, SC2164 cd, SC2012 ls",
@@ -235,6 +235,21 @@ fn check_determinism_line(
             message: "Non-deterministic: $RANDOM".to_string(),
         });
     }
+    // $SRANDOM (bash 5.1+) and $BASHPID are non-deterministic
+    if trimmed.contains("$SRANDOM") {
+        violations.push(Violation {
+            rule: RuleId::Determinism,
+            line: Some(line_num),
+            message: "Non-deterministic: $SRANDOM".to_string(),
+        });
+    }
+    if trimmed.contains("$BASHPID") {
+        violations.push(Violation {
+            rule: RuleId::Determinism,
+            line: Some(line_num),
+            message: "Non-deterministic: $BASHPID".to_string(),
+        });
+    }
     // In Makefiles, $$ is always Make's escape for a literal $, never bash's $$ PID.
     if !is_makefile && is_pid_usage(trimmed) {
         violations.push(Violation {
@@ -250,6 +265,46 @@ fn check_determinism_line(
             message: "Non-deterministic: timestamp command".to_string(),
         });
     }
+    // /dev/urandom and /dev/random — entropy sources
+    if trimmed.contains("/dev/urandom") || trimmed.contains("/dev/random") {
+        violations.push(Violation {
+            rule: RuleId::Determinism,
+            line: Some(line_num),
+            message: "Non-deterministic: /dev/urandom or /dev/random".to_string(),
+        });
+    }
+    // mktemp generates random filenames
+    if is_mktemp_call(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Determinism,
+            line: Some(line_num),
+            message: "Non-deterministic: mktemp generates random names".to_string(),
+        });
+    }
+    // shuf — random shuffle
+    if is_shuf_call(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Determinism,
+            line: Some(line_num),
+            message: "Non-deterministic: shuf produces random output".to_string(),
+        });
+    }
+}
+
+/// Detect mktemp as a command (not in comments or strings)
+fn is_mktemp_call(trimmed: &str) -> bool {
+    trimmed.starts_with("mktemp")
+        || trimmed.contains("$(mktemp")
+        || trimmed.contains("`mktemp")
+        || trimmed.contains("| mktemp")
+}
+
+/// Detect shuf as a command
+fn is_shuf_call(trimmed: &str) -> bool {
+    trimmed.starts_with("shuf ")
+        || trimmed.starts_with("shuf\t")
+        || trimmed.contains("| shuf")
+        || trimmed.contains("$(shuf")
 }
 
 /// Check if `eval` appears as a shell command (first token), not as a subcommand
@@ -313,18 +368,15 @@ fn check_idempotency(content: &str, artifact: &Artifact) -> RuleResult {
 
 fn check_idempotency_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
     // mkdir without -p
-    if (trimmed.starts_with("mkdir ") || trimmed.contains("&& mkdir "))
-        && !trimmed.contains("-p")
-        && !trimmed.contains("--parents")
-    {
+    if is_cmd(trimmed, "mkdir") && !trimmed.contains("-p") && !trimmed.contains("--parents") {
         violations.push(Violation {
             rule: RuleId::Idempotency,
             line: Some(line_num),
-            message: "Non-idempotent: mkdir without -p".to_string(),
+            message: "Non-idempotent: mkdir without -p (fails if dir exists)".to_string(),
         });
     }
     // rm without -f (but not rm -r or rm -rf which are fine)
-    if (trimmed.starts_with("rm ") || trimmed.contains("&& rm "))
+    if is_cmd(trimmed, "rm")
         && !trimmed.contains("-f")
         && !trimmed.contains("-rf")
         && !trimmed.contains("--force")
@@ -332,10 +384,10 @@ fn check_idempotency_line(trimmed: &str, line_num: usize, violations: &mut Vec<V
         violations.push(Violation {
             rule: RuleId::Idempotency,
             line: Some(line_num),
-            message: "Non-idempotent: rm without -f".to_string(),
+            message: "Non-idempotent: rm without -f (fails if file missing)".to_string(),
         });
     }
-    // ln without -sf
+    // ln -s without -f
     if (trimmed.starts_with("ln -s ") || trimmed.contains("&& ln -s "))
         && !trimmed.contains("-sf")
         && !trimmed.contains("-snf")
@@ -343,9 +395,89 @@ fn check_idempotency_line(trimmed: &str, line_num: usize, violations: &mut Vec<V
         violations.push(Violation {
             rule: RuleId::Idempotency,
             line: Some(line_num),
-            message: "Non-idempotent: ln -s without -f".to_string(),
+            message: "Non-idempotent: ln -s without -f (fails if link exists)".to_string(),
         });
     }
+    // useradd / groupadd without guard — fails if user/group already exists
+    if is_unguarded_adduser(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Idempotency,
+            line: Some(line_num),
+            message: "Non-idempotent: useradd/groupadd without existence check".to_string(),
+        });
+    }
+    // git clone without checking if directory exists
+    if is_unguarded_git_clone(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Idempotency,
+            line: Some(line_num),
+            message: "Non-idempotent: git clone without directory check".to_string(),
+        });
+    }
+    // createdb / CREATE DATABASE — fails if database exists
+    if is_unguarded_createdb(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Idempotency,
+            line: Some(line_num),
+            message: "Non-idempotent: createdb without --if-not-exists guard".to_string(),
+        });
+    }
+    // Append redirection (>>) to config files — duplicates content on rerun
+    if is_append_to_config(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::Idempotency,
+            line: Some(line_num),
+            message: "Non-idempotent: >> append may duplicate content on rerun".to_string(),
+        });
+    }
+}
+
+/// Check if trimmed line starts with or chains a given command
+fn is_cmd(trimmed: &str, cmd: &str) -> bool {
+    trimmed.starts_with(cmd)
+        && trimmed.as_bytes().get(cmd.len()).map_or(false, |&b| b == b' ' || b == b'\t')
+        || trimmed.contains(&format!("&& {} ", cmd))
+}
+
+/// useradd / groupadd without || true or id -u check
+fn is_unguarded_adduser(trimmed: &str) -> bool {
+    (trimmed.starts_with("useradd ") || trimmed.starts_with("groupadd "))
+        && !trimmed.contains("|| true")
+        && !trimmed.contains("|| :")
+        && !trimmed.contains("2>/dev/null")
+        && !trimmed.contains("if ")
+}
+
+/// git clone without directory existence check
+fn is_unguarded_git_clone(trimmed: &str) -> bool {
+    trimmed.starts_with("git clone ")
+        && !trimmed.contains("|| true")
+        && !trimmed.contains("if ")
+        && !trimmed.contains("[ -d")
+        && !trimmed.contains("test -d")
+}
+
+/// createdb without IF NOT EXISTS guard
+fn is_unguarded_createdb(trimmed: &str) -> bool {
+    if trimmed.starts_with("createdb ") {
+        return !trimmed.contains("|| true") && !trimmed.contains("2>/dev/null");
+    }
+    false
+}
+
+/// Append redirection to config-like files (profile, rc, env)
+fn is_append_to_config(trimmed: &str) -> bool {
+    if !trimmed.contains(">>") {
+        return false;
+    }
+    // Only flag appends to common config files
+    let config_patterns = [
+        ".bashrc", ".bash_profile", ".profile", ".zshrc", "/etc/profile",
+        "/etc/environment", ".env", "crontab",
+    ];
+    config_patterns.iter().any(|p| trimmed.contains(p))
+        && !trimmed.contains("grep -q")
+        && !trimmed.contains("if ")
 }
 
 fn check_security(content: &str) -> RuleResult {
