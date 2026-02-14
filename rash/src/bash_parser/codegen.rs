@@ -22,15 +22,23 @@ pub fn generate_purified_bash(ast: &BashAst) -> String {
 
     // Generate statements
     for stmt in &ast.statements {
-        output.push_str(&generate_statement(stmt));
+        output.push_str(&generate_stmt(stmt, 0));
         output.push('\n');
     }
 
     output
 }
 
-/// Generate a single statement
+/// Generate a single statement (top-level, no indentation)
 fn generate_statement(stmt: &BashStmt) -> String {
+    generate_stmt(stmt, 0)
+}
+
+/// Generate a statement with proper indentation at the given nesting level.
+/// Each level adds 4 spaces of indentation.
+fn generate_stmt(stmt: &BashStmt, indent: usize) -> String {
+    let pad = "    ".repeat(indent);
+    let inner_pad = "    ".repeat(indent + 1);
     match stmt {
         BashStmt::Command {
             name,
@@ -40,9 +48,9 @@ fn generate_statement(stmt: &BashStmt) -> String {
         } => {
             // Convert declare/typeset to POSIX equivalents
             if name == "declare" || name == "typeset" {
-                return generate_declare_posix(args, redirects);
+                return format!("{}{}", pad, generate_declare_posix(args, redirects));
             }
-            let mut cmd = name.clone();
+            let mut cmd = format!("{}{}", pad, name);
             for arg in args {
                 cmd.push(' ');
                 cmd.push_str(&generate_expr(arg));
@@ -60,7 +68,7 @@ fn generate_statement(stmt: &BashStmt) -> String {
             exported,
             ..
         } => {
-            let mut assign = String::new();
+            let mut assign = pad.clone();
             if *exported {
                 assign.push_str("export ");
             }
@@ -71,19 +79,18 @@ fn generate_statement(stmt: &BashStmt) -> String {
         }
         BashStmt::Comment { text, .. } => {
             // Skip shebang comments to maintain idempotency
-            // Shebangs look like "!/bin/bash" or "!/bin/sh" when parsed as comments
             if text.starts_with("!/bin/") || text.starts_with(" !/bin/") {
                 return String::new();
             }
-            format!("# {}", text)
+            format!("{}# {}", pad, text)
         }
         BashStmt::Function { name, body, .. } => {
-            let mut func = format!("{}() {{\n", name);
+            let mut func = format!("{}{}() {{\n", pad, name);
             for stmt in body {
-                func.push_str("    ");
-                func.push_str(&generate_statement(stmt));
+                func.push_str(&generate_stmt(stmt, indent + 1));
                 func.push('\n');
             }
+            func.push_str(&pad);
             func.push('}');
             func
         }
@@ -93,22 +100,21 @@ fn generate_statement(stmt: &BashStmt) -> String {
             else_block,
             ..
         } => {
-            let mut if_stmt = format!("if {}; then\n", generate_condition(condition));
+            let mut s = format!("{}if {}; then\n", pad, generate_condition(condition));
             for stmt in then_block {
-                if_stmt.push_str("    ");
-                if_stmt.push_str(&generate_statement(stmt));
-                if_stmt.push('\n');
+                s.push_str(&generate_stmt(stmt, indent + 1));
+                s.push('\n');
             }
             if let Some(else_stmts) = else_block {
-                if_stmt.push_str("else\n");
+                s.push_str(&format!("{}else\n", pad));
                 for stmt in else_stmts {
-                    if_stmt.push_str("    ");
-                    if_stmt.push_str(&generate_statement(stmt));
-                    if_stmt.push('\n');
+                    s.push_str(&generate_stmt(stmt, indent + 1));
+                    s.push('\n');
                 }
             }
-            if_stmt.push_str("fi");
-            if_stmt
+            s.push_str(&pad);
+            s.push_str("fi");
+            s
         }
         BashStmt::For {
             variable,
@@ -116,14 +122,14 @@ fn generate_statement(stmt: &BashStmt) -> String {
             body,
             ..
         } => {
-            let mut for_stmt = format!("for {} in {}; do\n", variable, generate_expr(items));
+            let mut s = format!("{}for {} in {}; do\n", pad, variable, generate_expr(items));
             for stmt in body {
-                for_stmt.push_str("    ");
-                for_stmt.push_str(&generate_statement(stmt));
-                for_stmt.push('\n');
+                s.push_str(&generate_stmt(stmt, indent + 1));
+                s.push('\n');
             }
-            for_stmt.push_str("done");
-            for_stmt
+            s.push_str(&pad);
+            s.push_str("done");
+            s
         }
         // Issue #68: C-style for loop → POSIX while loop transformation
         BashStmt::ForCStyle {
@@ -133,122 +139,105 @@ fn generate_statement(stmt: &BashStmt) -> String {
             body,
             ..
         } => {
-            // Convert C-style for loop to POSIX while loop:
-            // for ((i=0; i<10; i++)); do ... done
-            // →
-            // i=0
-            // while [ "$i" -lt 10 ]; do
-            //     ...
-            //     i=$((i + 1))
-            // done
-            let mut output = String::new();
-
-            // Emit initialization (e.g., i=0)
+            let mut s = String::new();
             if !init.is_empty() {
-                output.push_str(&convert_c_init_to_posix(init));
-                output.push('\n');
+                s.push_str(&pad);
+                s.push_str(&convert_c_init_to_posix(init));
+                s.push('\n');
             }
-
-            // Emit while loop with condition
             let posix_condition = convert_c_condition_to_posix(condition);
-            output.push_str(&format!("while {}; do\n", posix_condition));
-
-            // Emit body
+            s.push_str(&format!("{}while {}; do\n", pad, posix_condition));
             for stmt in body {
-                output.push_str("    ");
-                output.push_str(&generate_statement(stmt));
-                output.push('\n');
+                s.push_str(&generate_stmt(stmt, indent + 1));
+                s.push('\n');
             }
-
-            // Emit increment at end of loop body
             if !increment.is_empty() {
-                output.push_str("    ");
-                output.push_str(&convert_c_increment_to_posix(increment));
-                output.push('\n');
+                s.push_str(&inner_pad);
+                s.push_str(&convert_c_increment_to_posix(increment));
+                s.push('\n');
             }
-
-            output.push_str("done");
-            output
+            s.push_str(&pad);
+            s.push_str("done");
+            s
         }
         BashStmt::While {
             condition, body, ..
         } => {
-            let mut while_stmt = format!("while {}; do\n", generate_condition(condition));
+            let mut s = format!("{}while {}; do\n", pad, generate_condition(condition));
             for stmt in body {
-                while_stmt.push_str("    ");
-                while_stmt.push_str(&generate_statement(stmt));
-                while_stmt.push('\n');
+                s.push_str(&generate_stmt(stmt, indent + 1));
+                s.push('\n');
             }
-            while_stmt.push_str("done");
-            while_stmt
+            s.push_str(&pad);
+            s.push_str("done");
+            s
         }
         BashStmt::Until {
             condition, body, ..
         } => {
-            // Transform until loop to while loop with negated condition
-            // until [ $i -gt 5 ] → while [ ! "$i" -gt 5 ]
             let negated_condition = negate_condition(condition);
-            let mut while_stmt = format!("while {}; do\n", negated_condition);
+            let mut s = format!("{}while {}; do\n", pad, negated_condition);
             for stmt in body {
-                while_stmt.push_str("    ");
-                while_stmt.push_str(&generate_statement(stmt));
-                while_stmt.push('\n');
+                s.push_str(&generate_stmt(stmt, indent + 1));
+                s.push('\n');
             }
-            while_stmt.push_str("done");
-            while_stmt
+            s.push_str(&pad);
+            s.push_str("done");
+            s
         }
         BashStmt::Return { code, .. } => {
             if let Some(c) = code {
-                format!("return {}", generate_expr(c))
+                format!("{}return {}", pad, generate_expr(c))
             } else {
-                String::from("return")
+                format!("{}return", pad)
             }
         }
         BashStmt::Case { word, arms, .. } => {
-            let mut case_stmt = format!("case {} in\n", generate_expr(word));
+            let arm_pad = "    ".repeat(indent + 1);
+            let body_pad = "    ".repeat(indent + 2);
+            let mut s = format!("{}case {} in\n", pad, generate_expr(word));
             for arm in arms {
                 let pattern_str = arm.patterns.join("|");
-                case_stmt.push_str(&format!("    {})\n", pattern_str));
+                s.push_str(&format!("{}{})\n", arm_pad, pattern_str));
                 for stmt in &arm.body {
-                    case_stmt.push_str("        ");
-                    case_stmt.push_str(&generate_statement(stmt));
-                    case_stmt.push('\n');
+                    s.push_str(&generate_stmt(stmt, indent + 2));
+                    s.push('\n');
                 }
-                case_stmt.push_str("        ;;\n");
+                s.push_str(&format!("{};;\n", body_pad));
             }
-            case_stmt.push_str("esac");
-            case_stmt
+            s.push_str(&pad);
+            s.push_str("esac");
+            s
         }
         BashStmt::Pipeline { commands, .. } => {
-            // Generate pipeline: cmd1 | cmd2 | cmd3
-            let mut pipeline = String::new();
+            let mut pipeline = pad.clone();
             for (i, cmd) in commands.iter().enumerate() {
                 if i > 0 {
                     pipeline.push_str(" | ");
                 }
+                // Pipeline components don't add their own padding
                 pipeline.push_str(&generate_statement(cmd));
             }
             pipeline
         }
         BashStmt::AndList { left, right, .. } => {
-            // Generate AND list: cmd1 && cmd2
             format!(
-                "{} && {}",
+                "{}{} && {}",
+                pad,
                 generate_statement(left),
                 generate_statement(right)
             )
         }
         BashStmt::OrList { left, right, .. } => {
-            // Generate OR list: cmd1 || cmd2
             format!(
-                "{} || {}",
+                "{}{} || {}",
+                pad,
                 generate_statement(left),
                 generate_statement(right)
             )
         }
         BashStmt::BraceGroup { body, .. } => {
-            // Generate brace group: { cmd1; cmd2; }
-            let mut brace = String::from("{ ");
+            let mut brace = format!("{}{{ ", pad);
             for (i, stmt) in body.iter().enumerate() {
                 if i > 0 {
                     brace.push_str("; ");
@@ -259,8 +248,7 @@ fn generate_statement(stmt: &BashStmt) -> String {
             brace
         }
         BashStmt::Coproc { name, body, .. } => {
-            // Generate coproc: coproc NAME { cmd; }
-            let mut coproc = String::from("coproc ");
+            let mut coproc = format!("{}coproc ", pad);
             if let Some(n) = name {
                 coproc.push_str(n);
                 coproc.push(' ');
@@ -281,22 +269,19 @@ fn generate_statement(stmt: &BashStmt) -> String {
             body,
             ..
         } => {
-            // F017: Generate select statement
-            let mut select = format!("select {} in ", variable);
-            select.push_str(&generate_expr(items));
-            select.push_str("; do\n");
+            let mut s = format!("{}select {} in ", pad, variable);
+            s.push_str(&generate_expr(items));
+            s.push_str("; do\n");
             for stmt in body {
-                select.push_str("    ");
-                select.push_str(&generate_statement(stmt));
-                select.push('\n');
+                s.push_str(&generate_stmt(stmt, indent + 1));
+                s.push('\n');
             }
-            select.push_str("done");
-            select
+            s.push_str(&pad);
+            s.push_str("done");
+            s
         }
-
         BashStmt::Negated { command, .. } => {
-            // Issue #133: Generate negated command: ! cmd
-            format!("! {}", generate_statement(command))
+            format!("{}! {}", pad, generate_statement(command))
         }
     }
 }
