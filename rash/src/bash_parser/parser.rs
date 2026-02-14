@@ -2847,6 +2847,43 @@ impl BashParser {
             false
         };
 
+        // Handle assignment-as-condition: `if pid=$(check_pid); then`
+        // The assignment's exit status is the condition. This is NOT an env prefix.
+        // Detect: Identifier + Assign + (CommandSubstitution|Variable|String) + (;|then|newline)
+        if matches!(self.peek(), Some(Token::Identifier(_)))
+            && self.peek_ahead(1) == Some(&Token::Assign)
+            && matches!(
+                self.peek_ahead(2),
+                Some(Token::CommandSubstitution(_) | Token::Variable(_) | Token::String(_))
+            )
+        {
+            let var_name = if let Some(Token::Identifier(n)) = self.peek() {
+                n.clone()
+            } else {
+                unreachable!()
+            };
+            self.advance(); // consume variable name
+            self.advance(); // consume =
+            let value = self.parse_expression()?;
+            let assign_stmt = BashStmt::Assignment {
+                name: var_name,
+                index: None,
+                value,
+                exported: false,
+                span: Span::new(self.current_line, 0, self.current_line, 0),
+            };
+            let final_stmt = if negated {
+                BashStmt::Negated {
+                    command: Box::new(assign_stmt),
+                    span: Span::new(self.current_line, 0, self.current_line, 0),
+                }
+            } else {
+                assign_stmt
+            };
+            let cmd_expr = BashExpr::CommandCondition(Box::new(final_stmt));
+            return self.parse_compound_test(cmd_expr);
+        }
+
         // Issue #93: Handle bare command as condition
         // Example: `if grep -q pattern file; then` - the command's exit code is the condition
         // Issue #133: Handle pipeline commands as condition
@@ -5360,6 +5397,25 @@ func_b() {
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse().expect("should parse heredoc + following statement");
         assert_eq!(ast.statements.len(), 2);
+    }
+
+    #[test]
+    fn test_ASSIGN_COND_001_if_assignment_as_condition() {
+        // `if pid=$(check_pid); then` — assignment exit status is the condition
+        let input = "if pid=$(check_pid); then\n    echo \"$pid\"\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse assignment-as-condition");
+        assert_eq!(ast.statements.len(), 1);
+        assert!(matches!(&ast.statements[0], BashStmt::If { .. }));
+    }
+
+    #[test]
+    fn test_ASSIGN_COND_002_negated_assignment_condition() {
+        // `if ! pid=$(check_pid); then` — negated assignment condition
+        let input = "if ! pid=$(check_pid); then\n    echo fail\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse().expect("should parse negated assignment condition");
+        assert_eq!(ast.statements.len(), 1);
     }
 
     #[test]
