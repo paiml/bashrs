@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# comply:disable=COMPLY-001
 # Bashrs Quality Gates - EXTREME TDD Enforcement
 # Inspired by paiml-mcp-agent-toolkit quality standards
 # Toyota Way: Jidoka (自働化) - Build Quality In

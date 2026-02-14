@@ -5,7 +5,7 @@
 set -e
 
 EXAMPLES_DIR="examples"
-OUTPUT_DIR="/tmp/rash-example-tests"
+OUTPUT_DIR="${TMPDIR:-/tmp}/rash-example-tests"
 FAILED=0
 PASSED=0
 

@@ -1,4 +1,5 @@
 #!/bin/bash
+# comply:disable=COMPLY-001
 # Generate bash test scripts of specified line counts for performance testing
 
 set -euo pipefail

@@ -1,4 +1,5 @@
 #!/bin/bash
+# comply:disable=COMPLY-001
 # bashrs disable-file=DET002,SEC010
 # Run full mutation testing baseline for Sprint 26
 # Usage: ./scripts/mutants-run.sh

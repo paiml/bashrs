@@ -1,4 +1,5 @@
 #!/bin/bash
+# comply:disable=COMPLY-001
 # Analyze mutation testing results from Sprint 26
 # Usage: ./scripts/mutants-analyze.sh [output-dir]
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # check-book-updated.sh - Enforce book updates before release
 #
 # Toyota Way (自働化 Jidoka): Build quality into the release process
@@ -9,7 +9,7 @@
 # 2. All examples pass tests (mdbook test)
 # 3. CHANGELOG and book are in sync (both updated in same commit range)
 
-set -euo pipefail
+set -eu
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 echo "🔍 Checking book status before release..."
 
 # Check 1: mdbook is installed
-if ! command -v mdbook &> /dev/null; then
+if ! command -v mdbook >/dev/null 2>&1; then
     echo -e "${RED}❌ mdbook not found!${NC}"
     echo "Install with: cargo install mdbook"
     exit 1
