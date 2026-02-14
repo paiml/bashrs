@@ -1133,4 +1133,196 @@ mod tests {
         assert!(!result.valid);
         assert_eq!(result.violations[0].category, GrammarCategory::ShellFormCmd);
     }
+
+    // BH-MUT-0009: is_space_indented_recipe mutation targets
+    // Kills mutations of the 4-part AND + OR in lines 337-340
+
+    #[test]
+    fn test_SCHEMA_MUT_009a_space_recipe_requires_in_recipe() {
+        // Space-indented line NOT inside a recipe context → should NOT flag
+        let entry = make_entry(
+            "M-MUT-009a",
+            CorpusFormat::Makefile,
+            "CC := gcc\n    echo hello\n",
+        );
+        let result = validate_entry(&entry);
+        // No GRAM-003 because there's no preceding target rule
+        assert!(
+            !result
+                .violations
+                .iter()
+                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
+        );
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_009b_tab_recipe_not_flagged() {
+        // Tab-indented recipe line → should NOT flag (correct indentation)
+        let entry = make_entry(
+            "M-MUT-009b",
+            CorpusFormat::Makefile,
+            "all:\n\techo hello\n",
+        );
+        let result = validate_entry(&entry);
+        assert!(result.valid);
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_009c_two_space_recipe_flagged() {
+        // Two-space indented recipe → should flag GRAM-003
+        let entry = make_entry(
+            "M-MUT-009c",
+            CorpusFormat::Makefile,
+            "all:\n  echo hello\n",
+        );
+        let result = validate_entry(&entry);
+        assert!(!result.valid);
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
+        );
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_009d_empty_line_resets_recipe() {
+        // Empty line between target and space-indented line → NOT in recipe context
+        let entry = make_entry(
+            "M-MUT-009d",
+            CorpusFormat::Makefile,
+            "all:\n\n    echo hello\n",
+        );
+        let result = validate_entry(&entry);
+        // Empty line resets in_recipe, so the space line is not flagged
+        assert!(
+            !result
+                .violations
+                .iter()
+                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
+        );
+    }
+
+    // BH-MUT-0010: Dockerfile ENTRYPOINT exec form
+    // Kills mutation of || to && and negation of contains('[')
+
+    #[test]
+    fn test_SCHEMA_MUT_010a_entrypoint_exec_form_ok() {
+        // ENTRYPOINT with exec form → should NOT flag
+        let entry = make_entry(
+            "D-MUT-010a",
+            CorpusFormat::Dockerfile,
+            "FROM alpine:3.18\nENTRYPOINT [\"sh\", \"-c\", \"echo hello\"]\n",
+        );
+        let result = validate_entry(&entry);
+        assert!(result.valid);
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_010b_cmd_and_entrypoint_shell_form() {
+        // Both CMD and ENTRYPOINT in shell form → should flag both
+        let entry = make_entry(
+            "D-MUT-010b",
+            CorpusFormat::Dockerfile,
+            "FROM alpine:3.18\nCMD echo hello\nENTRYPOINT /bin/sh\n",
+        );
+        let result = validate_entry(&entry);
+        assert!(!result.valid);
+        let shell_form_count = result
+            .violations
+            .iter()
+            .filter(|v| v.category == GrammarCategory::ShellFormCmd)
+            .count();
+        assert_eq!(shell_form_count, 2);
+    }
+
+    // BH-MUT-0011: Makefile := assignment vs target rule distinction
+    // Kills mutation of !line.contains(":=") at line 367
+
+    #[test]
+    fn test_SCHEMA_MUT_011a_assignment_not_target() {
+        // := assignment should NOT set in_recipe, so next space line is not flagged
+        let entry = make_entry(
+            "M-MUT-011a",
+            CorpusFormat::Makefile,
+            "CC := gcc\n    echo hello\n",
+        );
+        let result = validate_entry(&entry);
+        // No tab/space confusion because CC := gcc is assignment, not target
+        assert!(
+            !result
+                .violations
+                .iter()
+                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
+        );
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_011b_target_then_space_recipe() {
+        // Real target rule followed by space-indented recipe → SHOULD flag
+        let entry = make_entry(
+            "M-MUT-011b",
+            CorpusFormat::Makefile,
+            "build:\n    gcc -o main main.c\n",
+        );
+        let result = validate_entry(&entry);
+        assert!(!result.valid);
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
+        );
+    }
+
+    // BH-MUT-0012: Bash arithmetic (( vs $(( coexistence
+    // Kills mutation of && to || and negation removal at line 228
+
+    #[test]
+    fn test_SCHEMA_MUT_012a_posix_arithmetic_not_flagged() {
+        // $(( )) is POSIX arithmetic → should NOT flag
+        let entry = make_entry(
+            "B-MUT-012a",
+            CorpusFormat::Bash,
+            "#!/bin/sh\nx=$(( x + 1 ))\n",
+        );
+        let result = validate_entry(&entry);
+        assert!(result.valid);
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_012b_bash_arithmetic_flagged() {
+        // (( )) without $( prefix → SHOULD flag
+        let entry = make_entry(
+            "B-MUT-012b",
+            CorpusFormat::Bash,
+            "#!/bin/sh\n(( x = x + 1 ))\n",
+        );
+        let result = validate_entry(&entry);
+        assert!(!result.valid);
+        assert!(
+            result
+                .violations
+                .iter()
+                .any(|v| v.category == GrammarCategory::InvalidArithmetic)
+        );
+    }
+
+    #[test]
+    fn test_SCHEMA_MUT_012c_mixed_arithmetic_not_flagged() {
+        // Line has both (( and $(( — the $(( takes precedence, NOT a bashism
+        let entry = make_entry(
+            "B-MUT-012c",
+            CorpusFormat::Bash,
+            "#!/bin/sh\necho \"result: $(( 1 + 2 ))\"\n",
+        );
+        let result = validate_entry(&entry);
+        // $(( is valid POSIX arithmetic expansion, should not flag
+        assert!(
+            !result
+                .violations
+                .iter()
+                .any(|v| v.category == GrammarCategory::InvalidArithmetic)
+        );
+    }
 }
