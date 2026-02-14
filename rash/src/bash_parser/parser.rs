@@ -2242,7 +2242,12 @@ impl BashParser {
             Some(Token::Identifier(s)) => {
                 let ident = s.clone();
                 self.advance();
-                Ok(BashExpr::Literal(ident))
+                // Unquoted identifiers with glob characters should be Glob, not Literal
+                if ident.contains('*') || ident.contains('?') {
+                    Ok(BashExpr::Glob(ident))
+                } else {
+                    Ok(BashExpr::Literal(ident))
+                }
             }
             // BUG-012, BUG-013 FIX: Array literals (value1 value2) or ([0]=a [5]=b)
             Some(Token::LeftParen) => {
@@ -4761,6 +4766,60 @@ done"#;
         let ast = parser.parse().unwrap();
         assert_eq!(ast.statements.len(), 1);
         assert!(matches!(&ast.statements[0], BashStmt::For { .. }));
+    }
+
+    #[test]
+    fn test_GLOB_001_unquoted_star_is_glob() {
+        let input = "ls *.sh";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        match &ast.statements[0] {
+            BashStmt::Command { args, .. } => {
+                assert!(matches!(&args[0], BashExpr::Glob(p) if p == "*.sh"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_GLOB_002_path_glob_preserved() {
+        let input = "cp dist/* /tmp/";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        match &ast.statements[0] {
+            BashStmt::Command { args, .. } => {
+                assert!(matches!(&args[0], BashExpr::Glob(p) if p == "dist/*"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_GLOB_003_absolute_path_glob() {
+        let input = "rm -f /tmp/*.log";
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        match &ast.statements[0] {
+            BashStmt::Command { args, .. } => {
+                assert!(matches!(&args[1], BashExpr::Glob(p) if p == "/tmp/*.log"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_GLOB_004_quoted_star_not_glob() {
+        // Quoted * should remain a Literal, not a Glob
+        let input = r#"find . -name "*.txt""#;
+        let mut parser = BashParser::new(input).unwrap();
+        let ast = parser.parse().unwrap();
+        match &ast.statements[0] {
+            BashStmt::Command { args, .. } => {
+                // The "*.txt" comes from Token::String, so it's a Literal
+                assert!(matches!(&args[2], BashExpr::Literal(s) if s == "*.txt"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
     }
 
     #[test]

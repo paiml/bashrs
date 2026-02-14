@@ -712,13 +712,22 @@ impl Lexer {
                 } else {
                     break;
                 }
+            } else if ch == '/' || ch == '*' || ch == '?' {
+                // Path/glob continuation: dist/*, src/*.rs, path/to/file, etc.
+                ident.push(self.advance());
             } else {
                 break;
             }
         }
 
         // Check for keywords (only if no special chars in identifier)
-        if !ident.contains('-') && !ident.contains('.') && !ident.contains(':') {
+        if !ident.contains('-')
+            && !ident.contains('.')
+            && !ident.contains(':')
+            && !ident.contains('/')
+            && !ident.contains('*')
+            && !ident.contains('?')
+        {
             match ident.as_str() {
                 "if" => return Token::If,
                 "then" => return Token::Then,
