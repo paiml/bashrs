@@ -180,11 +180,14 @@ pub fn process_purify_bash(source: &str) -> Result<PurifyProcessResult> {
     let input_bytes = source.len();
 
     // Parse and purify
-    let mut parser =
-        BashParser::new(source).map_err(|e| Error::Internal(format!("Parse: {}", e)))?;
-    let ast = parser
-        .parse()
-        .map_err(|e| Error::Internal(format!("Parse: {}", e)))?;
+    let mut parser = BashParser::new(source).map_err(|e| {
+        let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, source, None);
+        Error::CommandFailed { message: format!("{diag}") }
+    })?;
+    let ast = parser.parse().map_err(|e| {
+        let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, parser.source(), None);
+        Error::CommandFailed { message: format!("{diag}") }
+    })?;
     let purified_source = generate_purified_bash(&ast);
 
     let total_time = start.elapsed();

@@ -8,11 +8,14 @@ fn main() {
     let cli = Cli::parse();
 
     if let Err(error) = execute_command(cli) {
-        // Create rich diagnostic from error (handles WithContext automatically)
-        let diagnostic = Diagnostic::from_error(&error, None);
-
-        // Print formatted diagnostic
-        eprintln!("{diagnostic}");
+        // CommandFailed errors already have fully formatted output (e.g. parse diagnostics)
+        if let bashrs::models::Error::CommandFailed { message } = &error {
+            eprintln!("{message}");
+        } else {
+            // Create rich diagnostic from error (handles WithContext automatically)
+            let diagnostic = Diagnostic::from_error(&error, None);
+            eprintln!("{diagnostic}");
+        }
 
         // Optional: Print original error chain for debugging
         if std::env::var("RASH_DEBUG").is_ok() {
