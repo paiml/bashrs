@@ -3311,11 +3311,10 @@ impl BashParser {
                     let expr = self.parse_expression()?;
                     return Ok(TestExpr::StringEmpty(expr));
                 }
-                "-f" | "-e" | "-s" | "-v" => {
-                    // -f: file exists and is regular file
-                    // -e: file exists (any type)
-                    // -s: file exists and has size > 0
-                    // -v: variable is set (bash 4.2+)
+                "-f" | "-e" | "-s" | "-v" | "-L" | "-h" | "-p" | "-b" | "-c"
+                | "-g" | "-k" | "-u" | "-t" | "-O" | "-G" | "-N" => {
+                    // File test operators: -f, -e, -s, -L/-h, -p, -b, -c,
+                    // -g, -k, -u, -t, -O, -G, -N, -v
                     self.advance();
                     let expr = self.parse_expression()?;
                     return Ok(TestExpr::FileExists(expr));
@@ -3530,6 +3529,12 @@ impl BashParser {
     /// - `<<< "str"` (here-strings)
     fn skip_condition_redirects(&mut self) {
         loop {
+            // Heredoc: <<DELIMITER ... DELIMITER
+            if matches!(self.peek(), Some(Token::Heredoc { .. })) {
+                self.advance();
+                continue;
+            }
+
             // Here-string: <<< "string"
             if matches!(self.peek(), Some(Token::HereString(_))) {
                 self.advance();
@@ -7864,5 +7869,133 @@ main "$@"
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
         assert!(ast.is_ok(), "dogfood_23 key constructs should parse: {:?}", ast.err());
+    }
+
+    // --- Batch 3: $'...' ANSI-C quoting, heredoc on done, -L test op ---
+
+    #[test]
+    fn test_ANSI_C_QUOTE_001_tab() {
+        let input = "IFS=$'\\t' read -r a b";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "$'\\t' ANSI-C quoting should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_ANSI_C_QUOTE_002_newline() {
+        let input = "echo $'hello\\nworld'";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "$'\\n' ANSI-C quoting should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_HEREDOC_COMPOUND_001_done_heredoc() {
+        let input = "while read -r line; do\n    echo \"$line\"\ndone <<EOF\napple\nbanana\nEOF";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "done <<EOF should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_FILE_TEST_001_symlink() {
+        let input = "if [ -L /tmp/link ]; then echo symlink; fi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "-L test should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_FILE_TEST_002_all_operators() {
+        // Test all file test operators
+        for op in ["-f", "-e", "-s", "-d", "-r", "-w", "-x", "-L", "-h", "-p",
+                   "-b", "-c", "-g", "-k", "-u", "-t", "-O", "-G", "-N", "-v", "-n", "-z"] {
+            let input = format!("[ {} /tmp/test ]", op);
+            let mut parser = BashParser::new(&input).expect("parser");
+            let ast = parser.parse();
+            assert!(ast.is_ok(), "{} test should parse: {:?}", op, ast.err());
+        }
+    }
+
+    #[test]
+    fn test_TRIPLE_ELIF_001_with_else() {
+        let input = "if [ -f x ]; then\n    echo a\nelif [ -d x ]; then\n    echo b\nelif [ -L x ]; then\n    echo c\nelse\n    echo d\nfi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "triple elif should parse: {:?}", ast.err());
+        if let BashStmt::If { elif_blocks, else_block, .. } = &ast.expect("ok").statements[0] {
+            assert_eq!(elif_blocks.len(), 2, "Should have 2 elif blocks");
+            assert!(else_block.is_some(), "Should have else block");
+        }
+    }
+
+    #[test]
+    fn test_DOGFOOD_024_traps_and_ansi_c() {
+        let input = r#"set -euo pipefail
+TMPDIR=$(mktemp -d)
+cleanup() {
+    local exit_code=$?
+    rm -rf "$TMPDIR"
+    exit "$exit_code"
+}
+trap cleanup EXIT
+trap 'echo "Caught SIGINT" >&2; cleanup' INT
+exec 200>"$LOCKFILE"
+flock -n 200 || { echo "Already running" >&2; exit 1; }
+"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "dogfood_24 traps should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_DOGFOOD_026_git_and_find() {
+        let input = r#"current_branch=$(git branch --show-current)
+default_branch=$(git symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|origin/||' || echo "main")
+if [[ "$current_branch" != "$default_branch" ]]; then
+    echo "Not on $default_branch branch"
+fi
+find /var/log -type f -name "*.log" -exec gzip {} \;
+find . -name "*.txt" -print0 | xargs -0 grep -l "pattern" 2>/dev/null || true
+"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "dogfood_26 git/find should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_DOGFOOD_027_detect_os_and_install() {
+        let input = r#"detect_os() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        echo "$ID"
+    elif [[ -f /etc/redhat-release ]]; then
+        echo "rhel"
+    elif command -v sw_vers &>/dev/null; then
+        echo "macos"
+    else
+        echo "unknown"
+    fi
+}
+
+install_package() {
+    local pkg="$1"
+    case "$(detect_os)" in
+        ubuntu|debian)
+            sudo apt-get install -y "$pkg"
+            ;;
+        centos|rhel|fedora)
+            sudo yum install -y "$pkg"
+            ;;
+        *)
+            echo "Unknown OS" >&2
+            return 1
+            ;;
+    esac
+}
+"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "dogfood_27 detect_os should parse: {:?}", ast.err());
     }
 }

@@ -286,6 +286,44 @@ impl Lexer {
     fn read_variable(&mut self) -> Result<Token, LexerError> {
         self.advance(); // skip '$'
 
+        // Handle $'...' ANSI-C quoting: $'\t' $'\n' etc.
+        if !self.is_at_end() && self.current_char() == '\'' {
+            self.advance(); // skip opening '
+            let mut value = String::new();
+            while !self.is_at_end() && self.current_char() != '\'' {
+                if self.current_char() == '\\' {
+                    self.advance(); // skip backslash
+                    if !self.is_at_end() {
+                        let escaped = match self.current_char() {
+                            'n' => '\n',
+                            't' => '\t',
+                            'r' => '\r',
+                            'a' => '\x07',
+                            'b' => '\x08',
+                            'e' | 'E' => '\x1b',
+                            'f' => '\x0c',
+                            'v' => '\x0b',
+                            '\\' => '\\',
+                            '\'' => '\'',
+                            '"' => '"',
+                            other => {
+                                value.push('\\');
+                                other
+                            }
+                        };
+                        value.push(escaped);
+                        self.advance();
+                    }
+                } else {
+                    value.push(self.advance());
+                }
+            }
+            if !self.is_at_end() {
+                self.advance(); // skip closing '
+            }
+            return Ok(Token::String(value));
+        }
+
         // Check for arithmetic expansion $((...)) vs command substitution $(cmd)
         if !self.is_at_end() && self.current_char() == '(' {
             if let Some('(') = self.peek_char(1) {
