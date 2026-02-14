@@ -1842,6 +1842,36 @@ mod tests {
         assert!(runner.check_behavioral("", CorpusFormat::Dockerfile));
     }
 
+    // BH-MUT-0017: check_behavioral mutation targets
+    // Kills mutations of timeout detection and format dispatch
+
+    #[test]
+    fn test_CORPUS_RUN_060_behavioral_nonzero_exit_passes() {
+        // Non-zero exit code should PASS (not timeout, just "false")
+        let runner = CorpusRunner::new(Config::default());
+        assert!(
+            runner.check_behavioral("exit 1", CorpusFormat::Bash),
+            "Non-zero exit (not timeout) should still pass behavioral check"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_061_behavioral_timeout_fails() {
+        // Infinite loop should be killed by timeout → exit 124 → FAIL
+        let runner = CorpusRunner::new(Config::default());
+        assert!(
+            !runner.check_behavioral("while true; do :; done", CorpusFormat::Bash),
+            "Infinite loop should fail behavioral check via timeout"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_062_behavioral_makefile_delegates() {
+        // Makefile behavioral check delegates to make dry-run
+        let runner = CorpusRunner::new(Config::default());
+        assert!(runner.check_behavioral("all:\n\techo ok\n", CorpusFormat::Makefile));
+    }
+
     #[test]
     fn test_CORPUS_RUN_024_shellcheck_integration() {
         let runner = CorpusRunner::new(Config::default());
@@ -2633,5 +2663,69 @@ end_of_record
         assert!(runner.check_mr2_stability(&entry));
         assert!(runner.check_mr3_whitespace(&entry));
         assert!(runner.check_mr4_leading_blanks(&entry));
+    }
+
+    // BH-MUT-0018: check_determinism mutation targets
+    // Kills mutations of the skip flag and equality comparison
+
+    #[test]
+    fn test_CORPUS_RUN_063_determinism_valid_entry() {
+        // A valid deterministic entry should pass determinism check
+        let runner = CorpusRunner::new(Config::default());
+        let entry = CorpusEntry::new(
+            "T-DET-1",
+            "det-valid",
+            "Valid deterministic entry",
+            CorpusFormat::Bash,
+            CorpusTier::Standard,
+            r#"fn greet() -> u32 { return 42; } fn main() { println!("{}", greet()); }"#,
+            "greet() {",
+        );
+        assert!(
+            runner.check_determinism(&entry),
+            "Valid entry should be deterministic"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_064_determinism_skip_non_deterministic() {
+        // Entry with deterministic=false should skip check (return true)
+        let runner = CorpusRunner::new(Config::default());
+        let mut entry = CorpusEntry::new(
+            "T-DET-2",
+            "det-skip",
+            "Non-deterministic flag skips check",
+            CorpusFormat::Bash,
+            CorpusTier::Standard,
+            "this is invalid and would fail",
+            "should_not_matter",
+        );
+        entry.deterministic = false;
+        assert!(
+            runner.check_determinism(&entry),
+            "Entry with deterministic=false should return true (skip)"
+        );
+    }
+
+    #[test]
+    fn test_CORPUS_RUN_065_determinism_invalid_input_fails() {
+        // Invalid input that fails transpilation → determinism check returns false
+        let runner = CorpusRunner::new(Config::default());
+        let entry = CorpusEntry::new(
+            "T-DET-3",
+            "det-invalid",
+            "Invalid input fails determinism",
+            CorpusFormat::Bash,
+            CorpusTier::Standard,
+            "not valid rust code at all!!!",
+            "x",
+        );
+        // Both transpilations fail → match arm `_ => false`
+        // Wait — actually (Err, Err) is covered by `_ => false`
+        // This tests the error path
+        assert!(
+            !runner.check_determinism(&entry),
+            "Invalid input should fail determinism check"
+        );
     }
 }
