@@ -1463,8 +1463,8 @@ fn purify_command(
         .map_err(|e| Error::Internal(format!("Failed to parse bash: {e}")))?;
     let parse_time = parse_start.elapsed();
 
-    // --emit-guards implies --type-check
-    let do_type_check = type_check || emit_guards;
+    // --emit-guards and --type-strict both imply --type-check
+    let do_type_check = type_check || emit_guards || type_strict;
 
     let purify_start = Instant::now();
     let opts = PurificationOptions {
@@ -1497,7 +1497,7 @@ fn purify_command(
             type_strict,
         );
         if has_errors {
-            return Err(Error::Internal("type checking failed".to_string()));
+            return Err(Error::Validation("type checking failed with --type-strict".to_string()));
         }
     }
 

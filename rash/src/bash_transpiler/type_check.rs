@@ -430,6 +430,8 @@ impl TypeChecker {
                     && s != "-"
                 {
                     Some(ShellType::Integer)
+                } else if s == "true" || s == "false" {
+                    Some(ShellType::Boolean)
                 } else {
                     Some(ShellType::String)
                 }
