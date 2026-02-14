@@ -84,6 +84,8 @@ pub struct Purifier {
     options: PurificationOptions,
     report: PurificationReport,
     non_deterministic_vars: HashSet<String>,
+    /// Retained type checker for guard generation (avoids double-checking)
+    type_checker: Option<TypeChecker>,
 }
 
 impl Purifier {
@@ -99,6 +101,7 @@ impl Purifier {
             options,
             report: PurificationReport::new(),
             non_deterministic_vars,
+            type_checker: None,
         }
     }
 
@@ -120,6 +123,7 @@ impl Purifier {
             let mut checker = TypeChecker::new();
             let diagnostics = checker.check_ast(&purified_ast);
             self.report.type_diagnostics = diagnostics;
+            self.type_checker = Some(checker);
         }
 
         Ok(purified_ast)
@@ -127,6 +131,11 @@ impl Purifier {
 
     pub fn report(&self) -> &PurificationReport {
         &self.report
+    }
+
+    /// Get the type checker (if type checking was enabled)
+    pub fn type_checker(&self) -> Option<&TypeChecker> {
+        self.type_checker.as_ref()
     }
 
     fn purify_statement(&mut self, stmt: &BashStmt) -> PurificationResult<BashStmt> {
