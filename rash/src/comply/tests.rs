@@ -1093,3 +1093,52 @@ fn test_workflow_only_has_security() {
     assert_eq!(rules.len(), 1);
     assert_eq!(rules[0], RuleId::Security);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// COMPLY-005 quote tracker: escaped quotes and subshell handling
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_quoting_escaped_quotes_no_false_positive() {
+    // echo "echo \"Line $i: Hello\"" — $i is inside double quotes (escaped inner quotes)
+    let content = "#!/bin/sh\necho \"echo \\\"Line $i: Hello\\\"\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Quoting, content, &artifact);
+    assert!(result.passed, "Escaped quotes should not cause false positive: {:?}", result.violations);
+}
+
+#[test]
+fn test_quoting_subshell_no_false_positive() {
+    // SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    let content = "#!/bin/sh\nSCRIPT_DIR=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Quoting, content, &artifact);
+    assert!(result.passed, "Subshell with nested quotes should not flag: {:?}", result.violations);
+}
+
+#[test]
+fn test_quoting_simple_subshell_not_flagged() {
+    // OUTPUT=$(date +%Y-%m-%d) — inside $() is a separate context
+    let content = "#!/bin/sh\nOUTPUT=\"$(date +%Y-%m-%d)\"\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Quoting, content, &artifact);
+    assert!(result.passed, "Variable in subshell should not be flagged");
+}
+
+#[test]
+fn test_quoting_unquoted_still_detected() {
+    // Plain unquoted $VAR should still be detected
+    let content = "#!/bin/sh\necho $UNQUOTED\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Quoting, content, &artifact);
+    assert!(!result.passed, "Unquoted $UNQUOTED should still be detected");
+}
+
+#[test]
+fn test_quoting_backslash_dollar_not_flagged() {
+    // \$VAR is literal, not an expansion
+    let content = "#!/bin/sh\necho \\$NOTAVAR\n";
+    let artifact = Artifact::new(PathBuf::from("test.sh"), Scope::Project, ArtifactKind::ShellScript);
+    let result = check_rule(RuleId::Quoting, content, &artifact);
+    assert!(result.passed, "Escaped \\$VAR should not be flagged: {:?}", result.violations);
+}
