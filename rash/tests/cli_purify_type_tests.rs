@@ -155,3 +155,58 @@ fn test_TYPE_003_type_check_combined_with_report() {
         .assert()
         .success();
 }
+
+#[test]
+fn test_TYPE_003_type_strict_passes_clean_script() {
+    let script = create_temp_script("#!/bin/bash\n# @type x: int\nx=42\n");
+
+    bashrs_cmd()
+        .arg("purify")
+        .arg(script.path())
+        .arg("--type-strict")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_TYPE_003_type_strict_fails_on_mismatch() {
+    let script = create_temp_script("#!/bin/bash\n# @type x: int\nx=not_a_number\n");
+
+    bashrs_cmd()
+        .arg("purify")
+        .arg(script.path())
+        .arg("--type-strict")
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_TYPE_002_emit_guards_path_type() {
+    let script = create_temp_script(
+        "#!/bin/bash\n# @type cfg: path\ncfg=/etc/app.conf\necho $cfg\n",
+    );
+
+    bashrs_cmd()
+        .arg("purify")
+        .arg(script.path())
+        .arg("--emit-guards")
+        .assert()
+        .success()
+        .stdout(
+            predicate::str::contains("/*|./*|../*"),
+        );
+}
+
+#[test]
+fn test_TYPE_001_bool_true_no_warning() {
+    let script = create_temp_script(
+        "#!/bin/bash\n# @type debug: bool\ndebug=true\necho $debug\n",
+    );
+
+    bashrs_cmd()
+        .arg("purify")
+        .arg(script.path())
+        .arg("--type-strict")
+        .assert()
+        .success();
+}
