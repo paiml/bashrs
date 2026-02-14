@@ -974,15 +974,22 @@ impl BashParser {
             // Parse body until case terminator (;;, ;&, ;;&) or esac
             let mut body = Vec::new();
             while !self.is_at_end() && !self.check(&Token::Esac) {
-                // Check for case terminators
+                // Check for case terminators (lexed as single identifier token)
                 if let Some(Token::Identifier(s)) = self.peek() {
                     if s == ";;" || s == ";&" || s == ";;&" {
                         break;
                     }
                 }
+                // Check for ;; as two Semicolon tokens
                 if self.check(&Token::Semicolon) {
-                    // Check if this is start of ;; or ;& or ;;&
-                    break;
+                    if self.peek_ahead(1) == Some(&Token::Semicolon) {
+                        // This is ;; — arm terminator, break
+                        break;
+                    }
+                    // Single ; is a statement separator within the arm
+                    self.advance(); // consume ;
+                    self.skip_newlines();
+                    continue;
                 }
                 body.push(self.parse_statement()?);
                 self.skip_newlines();
@@ -5100,6 +5107,78 @@ done"#;
         match &ast.statements[0] {
             BashStmt::While { .. } => {} // just needs to parse
             other => panic!("Expected While, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_CASE_MULTI_001_shift_then_assign() {
+        let input = r#"case "$1" in
+    -c) shift; CONFIG="$1" ;;
+    *) break ;;
+esac"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse multi-statement case arm");
+        match &ast.statements[0] {
+            BashStmt::Case { arms, .. } => {
+                assert_eq!(arms.len(), 2, "should have 2 arms");
+                assert!(
+                    arms[0].body.len() >= 2,
+                    "first arm should have >=2 statements (shift + assign), got {}: {:?}",
+                    arms[0].body.len(),
+                    arms[0].body
+                );
+            }
+            other => panic!("Expected Case, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_CASE_MULTI_002_option_loop() {
+        let input = r#"while [ $# -gt 0 ]; do
+    case "$1" in
+        -v) VERBOSE=true ;;
+        -d) DAEMON=true ;;
+        -c) shift; CONFIG="$1" ;;
+        -*) echo "Unknown option: $1" >&2; exit 1 ;;
+        *) break ;;
+    esac
+    shift
+done"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse option loop with multi-stmt arms");
+        match &ast.statements[0] {
+            BashStmt::While { body, .. } => {
+                assert!(!body.is_empty(), "while body should not be empty");
+            }
+            other => panic!("Expected While, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_CASE_MULTI_003_three_statements() {
+        let input = r#"case "$1" in
+    start) echo "starting"; setup; run ;;
+    stop) cleanup; echo "stopped" ;;
+esac"#;
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse 3-statement case arm");
+        match &ast.statements[0] {
+            BashStmt::Case { arms, .. } => {
+                assert_eq!(arms.len(), 2);
+                assert!(
+                    arms[0].body.len() >= 3,
+                    "first arm should have >=3 statements, got {}: {:?}",
+                    arms[0].body.len(),
+                    arms[0].body
+                );
+                assert!(
+                    arms[1].body.len() >= 2,
+                    "second arm should have >=2 statements, got {}: {:?}",
+                    arms[1].body.len(),
+                    arms[1].body
+                );
+            }
+            other => panic!("Expected Case, got {other:?}"),
         }
     }
 
