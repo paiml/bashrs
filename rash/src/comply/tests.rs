@@ -1866,3 +1866,38 @@ fn test_make_multiple_violations() {
     assert!(result.violations.len() >= 4,
         "Expected at least 4 violations, got {}: {:?}", result.violations.len(), result.violations);
 }
+
+// ─── Runner output format tests ───
+
+#[test]
+fn test_format_human_failures_only_excludes_compliant() {
+    use super::runner;
+    let scores = vec![
+        super::scoring::compute_artifact_score("clean.sh", &[]),
+        super::scoring::compute_artifact_score("bad.sh", &[RuleResult {
+            rule: RuleId::Determinism,
+            passed: false,
+            violations: vec![Violation {
+                rule: RuleId::Determinism,
+                line: Some(1),
+                message: "test violation".to_string(),
+            }],
+        }]),
+    ];
+    let project = super::scoring::compute_project_score(scores);
+    let output = runner::format_human_failures_only(&project);
+    assert!(output.contains("bad.sh"), "Should show non-compliant artifact");
+    assert!(!output.contains("clean.sh"), "Should NOT show compliant artifact");
+    assert!(output.contains("Failures Only"), "Should have failures-only header");
+}
+
+#[test]
+fn test_format_human_failures_only_all_compliant() {
+    use super::runner;
+    let scores = vec![
+        super::scoring::compute_artifact_score("clean.sh", &[]),
+    ];
+    let project = super::scoring::compute_project_score(scores);
+    let output = runner::format_human_failures_only(&project);
+    assert!(output.contains("No violations found"), "Should show no-violations message");
+}

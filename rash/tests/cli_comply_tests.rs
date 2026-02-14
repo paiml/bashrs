@@ -388,3 +388,168 @@ fn test_COMPLY_CLI_051_check_json_has_all_fields() {
     assert!(stdout.contains("\"grade\""));
     assert!(stdout.contains("\"falsification_attempts\""));
 }
+
+// ─── --failures-only flag tests ───
+
+#[test]
+fn test_comply_check_failures_only_shows_only_violations() {
+    let dir = create_test_project();
+    // Add a compliant and a non-compliant script
+    fs::write(dir.path().join("compliant.sh"), "#!/bin/sh\necho \"hello\"\n").unwrap();
+    fs::write(dir.path().join("noncompliant.sh"), "#!/bin/bash\necho $RANDOM\n").unwrap();
+
+    let output = bashrs_cmd()
+        .arg("comply")
+        .arg("check")
+        .arg("--path")
+        .arg(dir.path())
+        .arg("--failures-only")
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("Failures Only"), "Should show failures-only header");
+    assert!(stdout.contains("NON-COMPLIANT"), "Should show non-compliant artifacts");
+    // Compliant artifacts should not appear in the artifact list
+    assert!(!stdout.contains("+ COMPLIANT"), "Should NOT show compliant artifacts");
+}
+
+#[test]
+fn test_comply_check_failures_only_markdown() {
+    let dir = create_test_project();
+    fs::write(dir.path().join("compliant.sh"), "#!/bin/sh\necho \"hello\"\n").unwrap();
+    fs::write(dir.path().join("noncompliant.sh"), "#!/bin/bash\necho $RANDOM\n").unwrap();
+
+    let output = bashrs_cmd()
+        .arg("comply")
+        .arg("check")
+        .arg("--path")
+        .arg(dir.path())
+        .arg("--failures-only")
+        .arg("--format")
+        .arg("markdown")
+        .output()
+        .unwrap();
+
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    // Markdown --failures-only should filter compliant rows
+    assert!(stdout.contains("NON-COMPLIANT"));
+}
+
+// ─── --min-score flag tests ───
+
+#[test]
+fn test_comply_check_min_score_pass() {
+    let dir = create_test_project();
+    fs::write(dir.path().join("clean.sh"), "#!/bin/sh\necho \"hello\"\n").unwrap();
+
+    // Min score 0 should always pass
+    bashrs_cmd()
+        .arg("comply")
+        .arg("check")
+        .arg("--path")
+        .arg(dir.path())
+        .arg("--min-score")
+        .arg("0")
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_comply_check_min_score_fail() {
+    let dir = create_test_project();
+    fs::write(dir.path().join("bad.sh"), "#!/bin/bash\necho $RANDOM\nmkdir /tmp/foo\n").unwrap();
+
+    // Min score 100 should fail for any project with violations
+    bashrs_cmd()
+        .arg("comply")
+        .arg("check")
+        .arg("--path")
+        .arg(dir.path())
+        .arg("--min-score")
+        .arg("100")
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_comply_check_min_score_error_message() {
+    let dir = create_test_project();
+    fs::write(dir.path().join("bad.sh"), "#!/bin/bash\necho $RANDOM\n").unwrap();
+
+    let output = bashrs_cmd()
+        .arg("comply")
+        .arg("check")
+        .arg("--path")
+        .arg(dir.path())
+        .arg("--min-score")
+        .arg("100")
+        .output()
+        .unwrap();
+
+    let stderr = String::from_utf8(output.stderr).unwrap();
+    assert!(stderr.contains("below minimum"), "Error should mention below minimum: {}", stderr);
+}
+
+// ─── Config threshold enforcement tests ───
+
+#[test]
+fn test_comply_check_config_min_score_enforced() {
+    let dir = create_test_project();
+    fs::write(dir.path().join("bad.sh"), "#!/bin/bash\necho $RANDOM\n").unwrap();
+
+    // Create config with min_score=100
+    let config_dir = dir.path().join(".bashrs");
+    fs::create_dir_all(&config_dir).unwrap();
+    fs::write(
+        config_dir.join("comply.toml"),
+        r#"
+[comply]
+version = "1.0.0"
+bashrs_version = "7.1.0"
+created = "0"
+
+[scopes]
+project = true
+user = false
+system = false
+
+[project]
+artifacts = []
+
+[user]
+artifacts = []
+
+[rules]
+posix = true
+determinism = true
+idempotency = true
+security = true
+quoting = true
+shellcheck = true
+makefile_safety = true
+dockerfile_best = true
+config_hygiene = true
+pzsh_budget = "auto"
+
+[thresholds]
+min_score = 100
+max_violations = 0
+shellcheck_severity = "warning"
+
+[integration]
+pzsh = "auto"
+pmat = "auto"
+"#,
+    )
+    .unwrap();
+
+    // Config min_score=100 should cause failure
+    bashrs_cmd()
+        .arg("comply")
+        .arg("check")
+        .arg("--path")
+        .arg(dir.path())
+        .assert()
+        .failure();
+}
