@@ -400,6 +400,62 @@ fn test_declare_with_assignment() {
 }
 
 // ============================================================================
+// declare -i name=value Integration Tests
+// ============================================================================
+
+#[test]
+fn test_declare_i_name_equals_value_tracks_type() {
+    let mut checker = TypeChecker::new();
+    let ast = make_ast(vec![
+        BashStmt::Command {
+            name: "declare".to_string(),
+            args: vec![
+                BashExpr::Literal("-i".to_string()),
+                BashExpr::Literal("counter=0".to_string()),
+            ],
+            redirects: vec![],
+            span: Span::dummy(),
+        },
+    ]);
+
+    checker.check_ast(&ast);
+    assert_eq!(
+        checker.context().lookup("counter"),
+        Some(&ShellType::Integer)
+    );
+}
+
+#[test]
+fn test_declare_i_then_string_assign_warns() {
+    let mut checker = TypeChecker::new();
+    let ast = make_ast(vec![
+        BashStmt::Command {
+            name: "declare".to_string(),
+            args: vec![
+                BashExpr::Literal("-i".to_string()),
+                BashExpr::Literal("counter=0".to_string()),
+            ],
+            redirects: vec![],
+            span: Span::dummy(),
+        },
+        BashStmt::Assignment {
+            name: "counter".to_string(),
+            index: None,
+            value: BashExpr::Literal("not_a_number".to_string()),
+            exported: false,
+            span: Span::new(3, 0, 3, 0),
+        },
+    ]);
+
+    let diags = checker.check_ast(&ast);
+    assert!(!diags.is_empty(), "string assigned to declare -i var should warn");
+    assert!(matches!(
+        diags[0].kind,
+        DiagnosticKind::TypeMismatch { .. }
+    ));
+}
+
+// ============================================================================
 // Type Annotation + Assignment Integration Tests
 // ============================================================================
 
