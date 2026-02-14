@@ -685,6 +685,20 @@ impl Lexer {
             num_str.push(self.advance());
         }
 
+        // If followed by ':' + digit, treat as word (port mapping 8080:8080, version 1:2:3)
+        if !self.is_at_end()
+            && self.current_char() == ':'
+            && self.peek_char(1).is_some_and(|c| c.is_ascii_digit())
+        {
+            num_str.push(self.advance()); // consume ':'
+            while !self.is_at_end()
+                && (self.current_char().is_ascii_digit() || self.current_char() == ':')
+            {
+                num_str.push(self.advance());
+            }
+            return Ok(Token::Identifier(num_str));
+        }
+
         num_str
             .parse::<i64>()
             .map(Token::Number)
@@ -703,8 +717,9 @@ impl Lexer {
             } else if ch == '-' || ch == '.' || ch == ':' {
                 // Allow dash/dot/colon in identifiers for function names
                 // But only if followed by alphanumeric (not operators like -eq)
+                // Also allow colon followed by / for URLs (http://...)
                 if let Some(next) = self.peek_char(1) {
-                    if next.is_alphanumeric() {
+                    if next.is_alphanumeric() || (ch == ':' && next == '/') {
                         ident.push(self.advance());
                     } else {
                         break;
