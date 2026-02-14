@@ -386,6 +386,8 @@ fn scan_quoting_char(
     violations: &mut Vec<Violation>,
 ) -> usize {
     match chars[j] {
+        // Backslash escapes: skip the next character entirely
+        '\\' if !state.in_single_quote => j + 2,
         '\'' if !state.in_double_quote => {
             state.in_single_quote = !state.in_single_quote;
             j + 1
@@ -393,6 +395,10 @@ fn scan_quoting_char(
         '"' if !state.in_single_quote => {
             state.in_double_quote = !state.in_double_quote;
             j + 1
+        }
+        // $() subshell: skip to matching closing paren (nested quote context)
+        '$' if !state.in_single_quote && j + 1 < chars.len() && chars[j + 1] == '(' => {
+            skip_subshell(chars, j + 1)
         }
         '$' if !state.in_single_quote && !state.in_double_quote => {
             if is_unquoted_var_expansion(chars, j, trimmed) {
@@ -408,6 +414,29 @@ fn scan_quoting_char(
         }
         _ => j + 1,
     }
+}
+
+/// Skip past a $() or $(()) subshell, handling nested parens
+fn skip_subshell(chars: &[char], start: usize) -> usize {
+    let mut depth = 0;
+    let mut j = start;
+    while j < chars.len() {
+        match chars[j] {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return j + 1;
+                }
+            }
+            '\\' => {
+                j += 1; // skip escaped char
+            }
+            _ => {}
+        }
+        j += 1;
+    }
+    j // unterminated subshell, consume rest
 }
 
 fn skip_var_name(chars: &[char], start: usize) -> usize {
