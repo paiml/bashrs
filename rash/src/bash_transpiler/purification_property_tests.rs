@@ -405,10 +405,9 @@ proptest! {
         }
     }
 
-    /// Property: mkdir commands always get permission check (Phase 2)
-    /// EXTREME TDD: Permission-aware purification (Toyota Way review §6.2)
+    /// Property: mkdir commands always get -p flag for idempotency
     #[test]
-    fn prop_mkdir_has_permission_check(
+    fn prop_mkdir_has_p_flag(
         dir_name in "/[a-z]{1,10}(/[a-z]{1,10}){0,2}"
     ) {
         let bash_code = format!("#!/bin/bash\nmkdir {}", dir_name);
@@ -419,17 +418,10 @@ proptest! {
                 if let Ok(purified_ast) = purifier.purify(&ast) {
                     let output = generate_purified_bash(&purified_ast);
 
-                    // INVARIANT: Must contain permission check
+                    // INVARIANT: Must have mkdir -p
                     prop_assert!(
-                        output.contains("-w") || output.contains("FileWritable"),
-                        "mkdir must have write permission check, got: {}",
-                        output
-                    );
-
-                    // INVARIANT: Must check parent directory
-                    prop_assert!(
-                        output.contains("dirname"),
-                        "mkdir permission check must verify parent directory, got: {}",
+                        output.contains("mkdir -p") || (output.contains("mkdir") && output.contains("-p")),
+                        "mkdir must have -p flag for idempotency, got: {}",
                         output
                     );
                 }
@@ -437,10 +429,9 @@ proptest! {
         }
     }
 
-    /// Property: mkdir permission check has error handling (Phase 2)
-    /// EXTREME TDD: Permission-aware purification (Toyota Way review §6.2)
+    /// Property: mkdir purified output is valid POSIX (no broken permission checks)
     #[test]
-    fn prop_mkdir_permission_error_handling(
+    fn prop_mkdir_purified_is_simple(
         dir_name in "/[a-z]{1,10}"
     ) {
         let bash_code = format!("#!/bin/bash\nmkdir {}", dir_name);
@@ -451,17 +442,10 @@ proptest! {
                 if let Ok(purified_ast) = purifier.purify(&ast) {
                     let output = generate_purified_bash(&purified_ast);
 
-                    // INVARIANT: Must have Permission denied error message
+                    // INVARIANT: Should be a single mkdir -p command, not a pipeline
                     prop_assert!(
-                        output.contains("Permission denied") || output.contains("permission denied"),
-                        "mkdir must have permission denied error message, got: {}",
-                        output
-                    );
-
-                    // INVARIANT: Must exit on permission error
-                    prop_assert!(
-                        output.contains("exit 1") || output.contains("exit"),
-                        "mkdir must exit on permission error, got: {}",
+                        !output.contains("| mkdir"),
+                        "mkdir should not be in a pipeline, got: {}",
                         output
                     );
                 }

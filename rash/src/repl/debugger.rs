@@ -1328,11 +1328,11 @@ mod tests {
 
         let cmp = comparison.unwrap();
         assert_eq!(cmp.original, "mkdir /tmp/test");
-        // Phase 2 adds permission checks, so purified is multi-line
-        // Line 0 is now the permission check
+        // Purified adds -p flag for idempotency
         assert!(
-            cmp.purified.contains("dirname"),
-            "Purified should contain permission check"
+            cmp.purified.contains("mkdir") && cmp.purified.contains("-p"),
+            "Purified should add -p flag, got: {}",
+            cmp.purified
         );
         assert!(cmp.differs, "Original and purified should differ");
     }
