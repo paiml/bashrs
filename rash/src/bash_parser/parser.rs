@@ -1465,9 +1465,9 @@ impl BashParser {
                         redirects.push(Redirect::Input { target }); // Treat as input for now
                     }
                     _ => {
-                        // Check for name=value pattern in declare/local/export
-                        if (name == "declare" || name == "local" || name == "typeset" || name == "export" || name == "readonly")
-                            && self.peek_ahead(1) == Some(&Token::Assign)
+                        // Handle name=value patterns in command arguments
+                        // e.g., docker ps --filter name=myapp, env VAR=value cmd
+                        if self.peek_ahead(1) == Some(&Token::Assign)
                         {
                             let var_name = s.clone();
                             self.advance(); // consume name
@@ -1537,6 +1537,26 @@ impl BashParser {
                 }
 
                 args.push(BashExpr::Literal(pattern));
+            } else if self.check(&Token::Assign) {
+                // Standalone '=' in argument position (edge case)
+                self.advance();
+                if !self.is_at_end()
+                    && !self.check(&Token::Newline)
+                    && !self.check(&Token::Semicolon)
+                {
+                    let val = self.parse_expression()?;
+                    match val {
+                        BashExpr::Literal(v) => {
+                            args.push(BashExpr::Literal(format!("={}", v)));
+                        }
+                        other => {
+                            args.push(BashExpr::Literal("=".to_string()));
+                            args.push(other);
+                        }
+                    }
+                } else {
+                    args.push(BashExpr::Literal("=".to_string()));
+                }
             } else {
                 // Regular argument
                 args.push(self.parse_expression()?);
@@ -4817,6 +4837,120 @@ done"#;
             BashStmt::Command { args, .. } => {
                 // The "*.txt" comes from Token::String, so it's a Literal
                 assert!(matches!(&args[2], BashExpr::Literal(s) if s == "*.txt"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_NAMEVALUE_001_echo_name_equals_value() {
+        let input = "echo name=myapp";
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse name=value in argument");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "echo");
+                assert_eq!(args.len(), 1);
+                assert!(matches!(&args[0], BashExpr::Literal(s) if s == "name=myapp"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_NAMEVALUE_002_docker_filter() {
+        let input = "docker ps --filter name=myapp";
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse docker --filter name=value");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "docker");
+                assert!(args.len() >= 3); // ps, --filter, name=myapp
+                // Find the name=myapp argument
+                let has_namevalue = args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "name=myapp"));
+                assert!(has_namevalue, "args should contain name=myapp: {args:?}");
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_NAMEVALUE_003_env_var_equals_val() {
+        let input = "env LANG=C sort file.txt";
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse env VAR=value");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "env");
+                assert!(matches!(&args[0], BashExpr::Literal(s) if s == "LANG=C"));
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_NAMEVALUE_004_multiple_equals() {
+        let input = "docker run -e DB_HOST=localhost -e DB_PORT=5432 myimage";
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse multiple name=value args");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "docker");
+                let has_host = args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "DB_HOST=localhost"));
+                let has_port = args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "DB_PORT=5432"));
+                assert!(has_host, "should have DB_HOST=localhost: {args:?}");
+                assert!(has_port, "should have DB_PORT=5432: {args:?}");
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_URL_001_http_url_single_token() {
+        let input = "curl http://localhost:8080/health";
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse URL as single token");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "curl");
+                assert_eq!(args.len(), 1);
+                assert!(
+                    matches!(&args[0], BashExpr::Literal(s) if s == "http://localhost:8080/health"),
+                    "URL should be single token: {args:?}"
+                );
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_URL_002_port_mapping_single_token() {
+        let input = "docker run -p 8080:8080 myimage";
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse port mapping as single token");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "docker");
+                let has_port = args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "8080:8080"));
+                assert!(has_port, "should have 8080:8080 as single token: {args:?}");
+            }
+            other => panic!("Expected Command, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_URL_003_https_url() {
+        let input = "wget https://example.com/file.tar.gz";
+        let mut parser = BashParser::new(input).expect("parser should init");
+        let ast = parser.parse().expect("should parse HTTPS URL");
+        match &ast.statements[0] {
+            BashStmt::Command { name, args, .. } => {
+                assert_eq!(name, "wget");
+                assert_eq!(args.len(), 1);
+                assert!(
+                    matches!(&args[0], BashExpr::Literal(s) if s == "https://example.com/file.tar.gz"),
+                    "HTTPS URL should be single token: {args:?}"
+                );
             }
             other => panic!("Expected Command, got {other:?}"),
         }
