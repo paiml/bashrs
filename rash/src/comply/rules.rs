@@ -801,27 +801,7 @@ fn check_shellcheck_patterns(content: &str) -> RuleResult {
         if trimmed.starts_with('#') {
             continue;
         }
-
-        // SC2006: Use $(...) instead of backticks
-        if trimmed.contains('`') && !trimmed.contains("\\`") {
-            violations.push(Violation {
-                rule: RuleId::ShellCheck,
-                line: Some(i + 1),
-                message: "SC2006: Use $(...) instead of backticks".to_string(),
-            });
-        }
-
-        // SC2115: Use "${var:?}" to fail if empty
-        if (trimmed.starts_with("rm -rf /") || trimmed.starts_with("rm -rf \"/$"))
-            && trimmed.contains('$')
-            && !trimmed.contains(":?")
-        {
-            violations.push(Violation {
-                rule: RuleId::ShellCheck,
-                line: Some(i + 1),
-                message: "SC2115: Dangerous rm -rf with variable path".to_string(),
-            });
-        }
+        check_shellcheck_line(trimmed, i + 1, &mut violations);
     }
 
     RuleResult {
@@ -829,6 +809,132 @@ fn check_shellcheck_patterns(content: &str) -> RuleResult {
         passed: violations.is_empty(),
         violations,
     }
+}
+
+fn check_shellcheck_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
+    // SC2006: Use $(...) instead of backticks
+    if trimmed.contains('`') && !trimmed.contains("\\`") {
+        violations.push(Violation {
+            rule: RuleId::ShellCheck,
+            line: Some(line_num),
+            message: "SC2006: Use $(...) instead of backticks".to_string(),
+        });
+    }
+
+    // SC2115: Use "${var:?}" to fail if empty
+    if is_dangerous_rm_rf(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::ShellCheck,
+            line: Some(line_num),
+            message: "SC2115: Dangerous rm -rf with variable path".to_string(),
+        });
+    }
+
+    // SC2164: cd without || exit (silent failure)
+    if is_bare_cd(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::ShellCheck,
+            line: Some(line_num),
+            message: "SC2164: Use cd ... || exit in case cd fails".to_string(),
+        });
+    }
+
+    // SC2162: read without -r (mangles backslashes)
+    if is_read_without_r(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::ShellCheck,
+            line: Some(line_num),
+            message: "SC2162: read without -r mangles backslashes".to_string(),
+        });
+    }
+
+    // SC2181: if [ $? ... ] instead of direct command check
+    if is_dollar_question_check(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::ShellCheck,
+            line: Some(line_num),
+            message: "SC2181: Check exit code directly with if cmd, not $?".to_string(),
+        });
+    }
+
+    // SC2012: for f in $(ls ...) — use glob instead
+    if is_ls_iteration(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::ShellCheck,
+            line: Some(line_num),
+            message: "SC2012: Use glob instead of ls to iterate files".to_string(),
+        });
+    }
+
+    // SC2035: Use ./* glob to avoid filenames starting with -
+    if is_bare_glob(trimmed) {
+        violations.push(Violation {
+            rule: RuleId::ShellCheck,
+            line: Some(line_num),
+            message: "SC2035: Use ./* instead of * to avoid - filename issues".to_string(),
+        });
+    }
+}
+
+fn is_dangerous_rm_rf(trimmed: &str) -> bool {
+    (trimmed.starts_with("rm -rf /") || trimmed.starts_with("rm -rf \"/$"))
+        && trimmed.contains('$')
+        && !trimmed.contains(":?")
+}
+
+/// SC2164: cd without error handling (|| exit, || return, || die)
+fn is_bare_cd(trimmed: &str) -> bool {
+    if !trimmed.starts_with("cd ") {
+        return false;
+    }
+    // Allow: cd ... || exit, cd ... || return, cd ... && ..., cd alone (cd ~)
+    let has_error_handling = trimmed.contains("|| exit")
+        || trimmed.contains("|| return")
+        || trimmed.contains("|| die")
+        || trimmed.contains("|| {");
+    // cd to home (just "cd" or "cd ~") is always safe
+    let is_safe_cd = trimmed == "cd" || trimmed == "cd ~";
+    !has_error_handling && !is_safe_cd
+}
+
+/// SC2162: read without -r flag
+fn is_read_without_r(trimmed: &str) -> bool {
+    if !trimmed.starts_with("read ") && !trimmed.contains("| read ") {
+        return false;
+    }
+    // Extract the read command portion
+    let read_part = if let Some(pos) = trimmed.find("| read ") {
+        &trimmed[pos + 2..]
+    } else {
+        trimmed
+    };
+    // Check if -r is present (as a flag, not part of a variable name)
+    !read_part.split_whitespace().any(|w| w == "-r" || w.starts_with("-r") && w.len() > 2 && w.as_bytes()[2] != b' ')
+}
+
+/// SC2181: if [ $? ... ] pattern
+fn is_dollar_question_check(trimmed: &str) -> bool {
+    trimmed.contains("$?") && (trimmed.contains("[ $?") || trimmed.contains("[$?"))
+}
+
+/// SC2012: for f in $(ls ...) iteration
+fn is_ls_iteration(trimmed: &str) -> bool {
+    trimmed.contains("$(ls") || trimmed.contains("`ls ")
+}
+
+/// SC2035: Bare * glob in command arguments (use ./* instead)
+fn is_bare_glob(trimmed: &str) -> bool {
+    // Only flag: for f in *; (bare * as sole glob, not *.txt or ./*)
+    if trimmed.starts_with("for ") {
+        if let Some(pos) = trimmed.find(" in ") {
+            let after_in = trimmed[pos + 4..].trim_start();
+            // Bare * followed by ; or end-of-line
+            return after_in.starts_with("*;")
+                || after_in.starts_with("* ;")
+                || after_in == "*";
+        }
+    }
+    false
 }
 
 fn check_makefile_safety(content: &str) -> RuleResult {
