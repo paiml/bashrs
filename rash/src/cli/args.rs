@@ -1332,6 +1332,13 @@ pub enum ComplyCommands {
         #[command(subcommand)]
         command: ComplyTrackCommands,
     },
+
+    /// List all compliance rules with descriptions and weights
+    Rules {
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "text")]
+        format: ComplyFormat,
+    },
 }
 
 /// Track subcommands

@@ -5091,6 +5091,7 @@ fn handle_comply_command(command: ComplyCommands) -> Result<()> {
         }
         ComplyCommands::Status { path, format } => comply_status_command(&path, format),
         ComplyCommands::Track { command } => handle_comply_track_command(command),
+        ComplyCommands::Rules { format } => comply_rules_command(format),
     }
 }
 
@@ -12448,6 +12449,84 @@ fn comply_status_command(path: &Path, format: ComplyFormat) -> Result<()> {
     let config = comply_load_or_default(path);
     let score = runner::run_check(path, None, &config);
     comply_output_score(&score, format, false);
+    Ok(())
+}
+
+fn comply_rules_command(format: ComplyFormat) -> Result<()> {
+    use crate::comply::rules::RuleId;
+
+    match format {
+        ComplyFormat::Text => {
+            println!("═══════════════════════════════════════════════════════════");
+            println!("  COMPLIANCE RULES — 10 Falsifiable Hypotheses");
+            println!("═══════════════════════════════════════════════════════════\n");
+            println!(
+                " {:<12} {:<22} {:>6}  {}",
+                "Code", "Name", "Weight", "Applies To"
+            );
+            println!("{}", "─".repeat(70));
+
+            for rule in RuleId::all() {
+                println!(
+                    " {:<12} {:<22} {:>4}    {}",
+                    rule.code(),
+                    rule.name(),
+                    rule.weight(),
+                    rule.applies_to().join(", ")
+                );
+                println!("              {}", rule.description());
+                println!();
+            }
+
+            let total_weight: u32 = RuleId::all().iter().map(|r| r.weight()).sum();
+            println!("{}", "─".repeat(70));
+            println!(
+                " {} rules | total weight: {} | suppress: # comply:disable=COMPLY-NNN",
+                RuleId::all().len(),
+                total_weight
+            );
+            println!("═══════════════════════════════════════════════════════════");
+        }
+        ComplyFormat::Json => {
+            let rules: Vec<String> = RuleId::all()
+                .iter()
+                .map(|r| {
+                    format!(
+                        r#"  {{"code":"{}","name":"{}","weight":{},"applies_to":[{}],"description":"{}"}}"#,
+                        r.code(),
+                        r.name(),
+                        r.weight(),
+                        r.applies_to()
+                            .iter()
+                            .map(|s| format!("\"{}\"", s))
+                            .collect::<Vec<_>>()
+                            .join(","),
+                        r.description()
+                    )
+                })
+                .collect();
+            println!(
+                "{{\"schema\":\"bashrs-comply-rules-v1\",\"rules\":[\n{}\n]}}",
+                rules.join(",\n")
+            );
+        }
+        ComplyFormat::Markdown => {
+            println!("# Compliance Rules\n");
+            println!("| Code | Name | Weight | Applies To | Description |");
+            println!("|------|------|--------|------------|-------------|");
+            for rule in RuleId::all() {
+                println!(
+                    "| {} | {} | {} | {} | {} |",
+                    rule.code(),
+                    rule.name(),
+                    rule.weight(),
+                    rule.applies_to().join(", "),
+                    rule.description()
+                );
+            }
+            println!("\n*Suppress with: `# comply:disable=COMPLY-NNN`*");
+        }
+    }
     Ok(())
 }
 

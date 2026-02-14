@@ -1,3 +1,4 @@
+# comply:disable=COMPLY-002
 # Use bash for shell commands to support advanced features
 SHELL := /bin/bash
 

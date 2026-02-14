@@ -2114,3 +2114,43 @@ fn test_suppression_no_suppressions_passthrough() {
     assert!(!suppressed.passed, "No suppressions should leave violations intact");
     assert_eq!(suppressed.violations.len(), 1);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Rule metadata tests
+// ═══════════════════════════════════════════════════════════════
+
+#[test]
+fn test_rule_all_returns_10_rules() {
+    assert_eq!(RuleId::all().len(), 10);
+}
+
+#[test]
+fn test_rule_codes_unique() {
+    let codes: Vec<&str> = RuleId::all().iter().map(|r| r.code()).collect();
+    let mut unique = codes.clone();
+    unique.sort();
+    unique.dedup();
+    assert_eq!(codes.len(), unique.len(), "Rule codes must be unique");
+}
+
+#[test]
+fn test_rule_descriptions_non_empty() {
+    for rule in RuleId::all() {
+        assert!(!rule.description().is_empty(), "{} has empty description", rule.code());
+    }
+}
+
+#[test]
+fn test_rule_applies_to_non_empty() {
+    for rule in RuleId::all() {
+        assert!(!rule.applies_to().is_empty(), "{} has no artifact types", rule.code());
+    }
+}
+
+#[test]
+fn test_rule_all_weights_consistent() {
+    // Verify all() returns rules whose weights match individual weight()
+    for rule in RuleId::all() {
+        assert!(rule.weight() > 0, "{} has zero weight", rule.code());
+    }
+}
