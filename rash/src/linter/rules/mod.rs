@@ -343,6 +343,7 @@ pub mod idem003;
 pub mod bash001;
 pub mod bash002;
 pub mod bash003;
+pub mod bash004;
 pub mod bash005;
 pub mod bash006;
 pub mod bash007;
@@ -364,6 +365,10 @@ pub mod sec010;
 pub mod sec010_logic;
 pub mod sec011;
 pub mod sec012;
+pub mod sec013;
+pub mod sec014;
+pub mod sec015;
+pub mod sec016;
 pub mod sec017;
 pub mod sec018;
 pub mod sec019;
@@ -676,6 +681,7 @@ fn lint_shell_filtered(
     result.merge(bash001::check(source));
     result.merge(bash002::check(source));
     result.merge(bash003::check(source));
+    result.merge(bash004::check(source));
     result.merge(bash005::check(source));
     result.merge(bash006::check(source));
     result.merge(bash007::check(source));
@@ -696,6 +702,10 @@ fn lint_shell_filtered(
     result.merge(sec010::check(source));
     result.merge(sec011::check(source));
     result.merge(sec012::check(source));
+    result.merge(sec013::check(source));
+    result.merge(sec014::check(source));
+    result.merge(sec015::check(source));
+    result.merge(sec016::check(source));
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
 
@@ -1110,6 +1120,10 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sec010::check(source));
     result.merge(sec011::check(source));
     result.merge(sec012::check(source));
+    result.merge(sec013::check(source));
+    result.merge(sec014::check(source));
+    result.merge(sec015::check(source));
+    result.merge(sec016::check(source));
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
 

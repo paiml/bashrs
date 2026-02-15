@@ -196,8 +196,9 @@ fn main() {
 #[test]
 fn test_CLI_003_check_invalid_rust() {
     let invalid_rust = r#"
-struct Foo;  // Structs not supported
-fn main() {}
+fn main() {
+    unsafe { let ptr = std::ptr::null::<i32>(); }
+}
 "#;
 
     let input_file = create_temp_rust_file(invalid_rust);
