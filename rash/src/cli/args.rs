@@ -1248,6 +1248,17 @@ pub enum CorpusCommands {
 
     /// Combined quality gate + metrics status overview (§9)
     GateStatus,
+
+    /// Diagnose B2 exact match failures: show expected vs actual line mismatches
+    DiagnoseB2 {
+        /// Filter by format (bash, makefile, dockerfile)
+        #[arg(long, value_enum)]
+        filter: Option<CorpusFormatArg>,
+
+        /// Maximum entries to show (default: 50)
+        #[arg(long, default_value = "50")]
+        limit: usize,
+    },
 }
 
 /// Dataset export format

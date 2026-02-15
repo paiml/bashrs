@@ -5191,6 +5191,9 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
 
             corpus_print_score(&score, &format)?;
 
+            // Always cache results for instant diagnosis later
+            corpus_save_last_run(&score);
+
             if log {
                 corpus_write_convergence_log(&runner, &score)?;
             }
@@ -5629,6 +5632,10 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
 
         CorpusCommands::GateStatus => {
             corpus_gate_status_cmd()
+        }
+
+        CorpusCommands::DiagnoseB2 { filter, limit } => {
+            corpus_diagnose_b2(filter.as_ref(), limit)
         }
     }
 }
@@ -12730,6 +12737,170 @@ fn comply_print_artifact_list(scope: crate::comply::config::Scope, artifacts: &[
     for a in artifacts {
         println!("  {} [{:?}]", a.display_name(), a.kind);
     }
+}
+
+const CORPUS_CACHE_PATH: &str = ".quality/last-corpus-run.json";
+
+/// Save corpus run results to cache file for instant diagnosis.
+fn corpus_save_last_run(score: &crate::corpus::runner::CorpusScore) {
+    let path = std::path::Path::new(CORPUS_CACHE_PATH);
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    if let Ok(json) = serde_json::to_string(score) {
+        let _ = std::fs::write(path, json);
+    }
+}
+
+/// Load cached corpus results. Returns None if no cache exists.
+fn corpus_load_last_run() -> Option<crate::corpus::runner::CorpusScore> {
+    let data = std::fs::read_to_string(CORPUS_CACHE_PATH).ok()?;
+    serde_json::from_str(&data).ok()
+}
+
+/// Classify a B2-only failure (B1 passes but B2 fails).
+fn classify_b2_only(expected: &str, actual: &str) -> (String, String) {
+    let actual_lines: Vec<&str> = actual.lines().map(str::trim).collect();
+    let matching: Vec<&&str> = actual_lines.iter().filter(|l| l.contains(expected)).collect();
+
+    let category = if matching.is_empty() {
+        "multiline_mismatch"
+    } else {
+        let line = matching[0];
+        if *line == expected {
+            "false_positive"
+        } else if line.starts_with("printf ") && expected.starts_with("echo ") {
+            "echo_to_printf"
+        } else if line.contains('\'') && !expected.contains('\'') {
+            "quoting_added"
+        } else if line.len() > expected.len() {
+            "line_wider"
+        } else {
+            "other"
+        }
+    };
+
+    let best = matching.first().map(|l| l.to_string()).unwrap_or_default();
+    (category.to_string(), best)
+}
+
+/// Classify a B1+B2 failure (neither containment nor exact match).
+fn classify_b1b2(expected: &str, actual: &str) -> String {
+    if expected.is_empty() {
+        return "empty_expected".to_string();
+    }
+    let actual_lines: Vec<&str> = actual.lines().map(str::trim).collect();
+
+    if let Some(arg) = expected.strip_prefix("echo ") {
+        if actual_lines.iter().any(|l| l.contains(arg)) {
+            return "echo_vs_printf".to_string();
+        }
+        return "echo_missing".to_string();
+    }
+
+    let best = actual_lines.iter()
+        .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("set "))
+        .min_by_key(|l| {
+            let common = expected.chars().zip(l.chars()).take_while(|(a, b)| a == b).count();
+            expected.len().saturating_sub(common)
+        });
+
+    match best {
+        Some(closest) => {
+            let prefix_len = expected.chars().zip(closest.chars())
+                .take_while(|(a, b)| a == b).count();
+            if prefix_len > expected.len() / 2 { "partial_match" } else { "diverged" }
+        }
+        None => "no_output",
+    }.to_string()
+}
+
+/// Print a categorized group of failures.
+fn print_b2_category(cat: &str, items: &[(String, String, String)], limit: usize) {
+    use crate::cli::color::*;
+    let show = limit.min(5);
+    println!("  {CYAN}{cat}{RESET}: {} entries", items.len());
+    for (id, expected, actual_line) in items.iter().take(show) {
+        println!("    {DIM}{id}{RESET}");
+        println!("      expected: {RED}{}{RESET}", truncate_str(expected, 100));
+        println!("      actual:   {GREEN}{}{RESET}", truncate_str(actual_line, 100));
+    }
+    if items.len() > show {
+        println!("    {DIM}... +{} more{RESET}", items.len() - show);
+    }
+    println!();
+}
+
+/// Diagnose B2 exact match failures from cached results (instant, no re-transpilation).
+fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize) -> Result<()> {
+    use crate::cli::color::*;
+
+    let score = corpus_load_last_run().ok_or_else(|| {
+        Error::Validation("No cached corpus results. Run `bashrs corpus run` first.".to_string())
+    })?;
+
+    let mut b2_only_cats: std::collections::HashMap<String, Vec<(String, String, String)>> =
+        std::collections::HashMap::new();
+    let mut b1b2_cats: std::collections::HashMap<String, Vec<(String, String, String)>> =
+        std::collections::HashMap::new();
+    let mut b2_only_count = 0usize;
+    let mut b1b2_count = 0usize;
+
+    for r in &score.results {
+        if !r.transpiled || r.output_exact { continue; }
+        let expected = r.expected_output.as_deref().unwrap_or("").trim().to_string();
+        let actual = r.actual_output.as_deref().unwrap_or("");
+
+        if r.output_contains {
+            b2_only_count += 1;
+            let (cat, best) = classify_b2_only(&expected, actual);
+            b2_only_cats.entry(cat).or_default().push((r.id.clone(), expected, best));
+        } else {
+            b1b2_count += 1;
+            let cat = classify_b1b2(&expected, actual);
+            let closest = actual.lines().map(str::trim)
+                .find(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("set "))
+                .unwrap_or("").to_string();
+            b1b2_cats.entry(cat).or_default().push((r.id.clone(), expected, closest));
+        }
+    }
+
+    println!("{WHITE}B2 Exact Match Diagnosis{RESET} {DIM}(from cache){RESET}");
+    println!("{DIM}────────────────────────────────────────{RESET}");
+    println!("Total B2 failures:       {RED}{}{RESET}", b2_only_count + b1b2_count);
+    println!("  B2-only (B1 passes):   {YELLOW}{b2_only_count}{RESET}  <- update expected_contains");
+    println!("  B1+B2 (neither match): {RED}{b1b2_count}{RESET}  <- transpiler diverged");
+    println!();
+
+    if b2_only_count > 0 {
+        println!("{WHITE}B2-ONLY (expected is substring but not full line):{RESET}");
+        println!();
+        let mut sorted: Vec<_> = b2_only_cats.iter().collect();
+        sorted.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+        for (cat, items) in &sorted {
+            print_b2_category(cat, items, limit);
+        }
+    }
+
+    if b1b2_count > 0 {
+        println!("{WHITE}B1+B2 (expected string not in output at all):{RESET}");
+        println!();
+        let mut sorted: Vec<_> = b1b2_cats.iter().collect();
+        sorted.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+        for (cat, items) in &sorted {
+            print_b2_category(cat, items, limit);
+        }
+    }
+
+    println!("{WHITE}Action Items:{RESET}");
+    if b2_only_count > 0 {
+        println!("  1. B2-only ({b2_only_count} entries): Update expected_contains to full output line");
+    }
+    if b1b2_count > 0 {
+        println!("  2. B1+B2 ({b1b2_count} entries): Fix emitter or update expected");
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
