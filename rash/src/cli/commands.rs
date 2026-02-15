@@ -5637,6 +5637,10 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::DiagnoseB2 { filter, limit } => {
             corpus_diagnose_b2(filter.as_ref(), limit)
         }
+
+        CorpusCommands::FixB2 => {
+            corpus_fix_b2()
+        }
     }
 }
 
@@ -12895,10 +12899,47 @@ fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize) -> Result
     println!("{WHITE}Action Items:{RESET}");
     if b2_only_count > 0 {
         println!("  1. B2-only ({b2_only_count} entries): Update expected_contains to full output line");
+        println!("     Run: bashrs corpus fix-b2 > b2_fixes.json");
     }
     if b1b2_count > 0 {
         println!("  2. B1+B2 ({b1b2_count} entries): Fix emitter or update expected");
     }
+
+    Ok(())
+}
+
+/// Output corrected expected_contains for all B2-only failures as JSON.
+/// For each entry where B1 passes but B2 fails, finds the actual full line
+/// that contains the expected substring and outputs the correction.
+fn corpus_fix_b2() -> Result<()> {
+    let score = corpus_load_last_run().ok_or_else(|| {
+        Error::Validation("No cached corpus results. Run `bashrs corpus run` first.".to_string())
+    })?;
+
+    let mut fixes: Vec<serde_json::Value> = Vec::new();
+
+    for r in &score.results {
+        if !r.transpiled || r.output_exact || !r.output_contains { continue; }
+        let expected = r.expected_output.as_deref().unwrap_or("").trim();
+        if expected.is_empty() { continue; }
+        let actual = r.actual_output.as_deref().unwrap_or("");
+        let actual_lines: Vec<&str> = actual.lines().map(str::trim).collect();
+
+        // Find the actual line that contains the expected string
+        if let Some(full_line) = actual_lines.iter().find(|l| l.contains(expected)) {
+            if *full_line != expected {
+                fixes.push(serde_json::json!({
+                    "id": r.id,
+                    "old": expected,
+                    "new": full_line,
+                }));
+            }
+        }
+    }
+
+    eprintln!("Generated {} B2 fixes", fixes.len());
+    println!("{}", serde_json::to_string_pretty(&fixes)
+        .map_err(|e| Error::Internal(format!("JSON: {e}")))?);
 
     Ok(())
 }
