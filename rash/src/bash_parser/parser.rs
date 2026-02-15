@@ -953,7 +953,18 @@ impl BashParser {
     /// Example: [ -d /tmp ] && echo "exists"
     fn parse_test_command(&mut self) -> ParseResult<BashStmt> {
         self.expect(Token::LeftBracket)?;
-        let test_expr = self.parse_test_condition()?;
+        let mut test_expr = self.parse_test_condition()?;
+        // Handle -a (AND) and -o (OR) inside [ ]: [ cond1 -a cond2 -o cond3 ]
+        while matches!(self.peek(), Some(Token::Identifier(s)) if s == "-a" || s == "-o") {
+            let is_and = matches!(self.peek(), Some(Token::Identifier(s)) if s == "-a");
+            self.advance();
+            let right = self.parse_test_condition()?;
+            if is_and {
+                test_expr = TestExpr::And(Box::new(test_expr), Box::new(right));
+            } else {
+                test_expr = TestExpr::Or(Box::new(test_expr), Box::new(right));
+            }
+        }
         self.expect(Token::RightBracket)?;
 
         // Return as a Command with name "[" containing the test as an argument
@@ -970,7 +981,18 @@ impl BashParser {
     /// Example: [[ -d /tmp ]] && echo "exists"
     fn parse_extended_test_command(&mut self) -> ParseResult<BashStmt> {
         self.expect(Token::DoubleLeftBracket)?;
-        let test_expr = self.parse_test_condition()?;
+        let mut test_expr = self.parse_test_condition()?;
+        // Handle && and || inside [[ ]]: [[ cond1 && cond2 || cond3 ]]
+        while self.check(&Token::And) || self.check(&Token::Or) {
+            let is_and = self.check(&Token::And);
+            self.advance();
+            let right = self.parse_test_condition()?;
+            if is_and {
+                test_expr = TestExpr::And(Box::new(test_expr), Box::new(right));
+            } else {
+                test_expr = TestExpr::Or(Box::new(test_expr), Box::new(right));
+            }
+        }
         self.expect(Token::DoubleRightBracket)?;
 
         // Return as a Command with name "[[" containing the test as an argument
@@ -2934,7 +2956,18 @@ impl BashParser {
         // Handle [ ... ] test syntax
         if self.check(&Token::LeftBracket) {
             self.advance();
-            let expr = self.parse_test_condition()?;
+            let mut expr = self.parse_test_condition()?;
+            // Handle -a (AND) and -o (OR) inside [ ]: [ cond1 -a cond2 -o cond3 ]
+            while matches!(self.peek(), Some(Token::Identifier(s)) if s == "-a" || s == "-o") {
+                let is_and = matches!(self.peek(), Some(Token::Identifier(s)) if s == "-a");
+                self.advance(); // consume -a or -o
+                let right = self.parse_test_condition()?;
+                if is_and {
+                    expr = TestExpr::And(Box::new(expr), Box::new(right));
+                } else {
+                    expr = TestExpr::Or(Box::new(expr), Box::new(right));
+                }
+            }
             self.expect(Token::RightBracket)?;
             let left = BashExpr::Test(Box::new(expr));
             // Handle compound conditions: [ cond1 ] && [ cond2 ] or [ cond1 ] || [ cond2 ]
@@ -2944,7 +2977,18 @@ impl BashParser {
         // Handle [[ ... ]] test syntax
         if self.check(&Token::DoubleLeftBracket) {
             self.advance();
-            let expr = self.parse_test_condition()?;
+            let mut expr = self.parse_test_condition()?;
+            // Handle && and || inside [[ ]]: [[ cond1 && cond2 || cond3 ]]
+            while self.check(&Token::And) || self.check(&Token::Or) {
+                let is_and = self.check(&Token::And);
+                self.advance(); // consume && or ||
+                let right = self.parse_test_condition()?;
+                if is_and {
+                    expr = TestExpr::And(Box::new(expr), Box::new(right));
+                } else {
+                    expr = TestExpr::Or(Box::new(expr), Box::new(right));
+                }
+            }
             self.expect(Token::DoubleRightBracket)?;
             let left = BashExpr::Test(Box::new(expr));
             return self.parse_compound_test(left);
@@ -7997,5 +8041,85 @@ install_package() {
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
         assert!(ast.is_ok(), "dogfood_27 detect_os should parse: {:?}", ast.err());
+    }
+
+    // --- Batch 4: && || inside [[ ]], -a -o inside [ ] ---
+
+    #[test]
+    fn test_TEST_AND_001_double_bracket() {
+        let input = r#"if [[ "$a" == "1" && "$b" == "2" ]]; then echo ok; fi"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "&& inside [[ ]] should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_TEST_OR_001_double_bracket() {
+        let input = r#"if [[ "$a" == "1" || "$b" == "2" ]]; then echo ok; fi"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "|| inside [[ ]] should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_TEST_AND_002_single_bracket() {
+        let input = "if [ -f /etc/passwd -a -r /etc/passwd ]; then echo ok; fi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "-a inside [ ] should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_TEST_OR_002_single_bracket() {
+        let input = "if [ -f /tmp/a -o -f /tmp/b ]; then echo ok; fi";
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "-o inside [ ] should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_TEST_COMPOUND_001_triple_and() {
+        let input = r#"[[ "$a" == "1" && "$b" == "2" && "$c" == "3" ]]"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "triple && inside [[ ]] should parse: {:?}", ast.err());
+    }
+
+    #[test]
+    fn test_DOGFOOD_029_edge_cases() {
+        let input = r#"result=$(echo "$(basename "$(dirname "$(pwd)")")")
+echo "Grandparent: $result"
+echo "${UNDEFINED:-default value with spaces}"
+outer="hello"
+echo "${outer:-${inner:-deep_default}}"
+x=10
+(( x += 5 ))
+echo "x=$x"
+for i in 1 2 3; do
+    for j in a b c; do
+        if [[ "$j" == "b" ]]; then
+            continue
+        fi
+        if [[ "$i" == "2" && "$j" == "c" ]]; then
+            break 2
+        fi
+        echo "$i-$j"
+    done
+done
+n=5
+until [[ $n -le 0 ]]; do
+    echo "Countdown: $n"
+    n=$((n - 1))
+done
+if (( age >= 18 && age < 65 )); then
+    echo "Working age"
+fi
+if [ -f /etc/passwd -a -r /etc/passwd ]; then
+    echo "readable"
+fi
+"#;
+        let mut parser = BashParser::new(input).expect("parser");
+        let ast = parser.parse();
+        assert!(ast.is_ok(), "dogfood_29 edge cases should parse: {:?}", ast.err());
     }
 }
