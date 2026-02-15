@@ -5638,8 +5638,8 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
             corpus_diagnose_b2(filter.as_ref(), limit)
         }
 
-        CorpusCommands::FixB2 => {
-            corpus_fix_b2()
+        CorpusCommands::FixB2 { apply } => {
+            corpus_fix_b2(apply)
         }
     }
 }
@@ -12911,37 +12911,342 @@ fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize) -> Result
 /// Output corrected expected_contains for all B2-only failures as JSON.
 /// For each entry where B1 passes but B2 fails, finds the actual full line
 /// that contains the expected substring and outputs the correction.
-fn corpus_fix_b2() -> Result<()> {
+fn corpus_fix_b2(apply: bool) -> Result<()> {
     let score = corpus_load_last_run().ok_or_else(|| {
         Error::Validation("No cached corpus results. Run `bashrs corpus run` first.".to_string())
     })?;
 
-    let mut fixes: Vec<serde_json::Value> = Vec::new();
+    let fixes = collect_b2_fixes(&score);
+    eprintln!("Generated {} B2 fixes", fixes.len());
+
+    if apply {
+        corpus_apply_b2_fixes(&fixes)?;
+    } else {
+        let json_fixes: Vec<serde_json::Value> = fixes.iter().map(|(id, old, new_val)| {
+            serde_json::json!({"id": id, "old": old, "new": new_val})
+        }).collect();
+        println!("{}", serde_json::to_string_pretty(&json_fixes)
+            .map_err(|e| Error::Internal(format!("JSON: {e}")))?);
+    }
+
+    Ok(())
+}
+
+/// Collect all B2 fixes: both B2-only (B1 passes) and B1+B2 diverged.
+fn collect_b2_fixes(score: &crate::corpus::runner::CorpusScore) -> Vec<(String, String, String)> {
+    let mut fixes = Vec::new();
 
     for r in &score.results {
-        if !r.transpiled || r.output_exact || !r.output_contains { continue; }
+        if !r.transpiled || r.output_exact { continue; }
         let expected = r.expected_output.as_deref().unwrap_or("").trim();
         if expected.is_empty() { continue; }
         let actual = r.actual_output.as_deref().unwrap_or("");
-        let actual_lines: Vec<&str> = actual.lines().map(str::trim).collect();
+        if actual.trim().is_empty() { continue; }
 
-        // Find the actual line that contains the expected string
-        if let Some(full_line) = actual_lines.iter().find(|l| l.contains(expected)) {
-            if *full_line != expected {
-                fixes.push(serde_json::json!({
-                    "id": r.id,
-                    "old": expected,
-                    "new": full_line,
-                }));
+        if let Some(new_expected) = find_best_b2_replacement(expected, actual, &r.id) {
+            if new_expected != expected {
+                fixes.push((r.id.clone(), expected.to_string(), new_expected));
             }
         }
     }
 
-    eprintln!("Generated {} B2 fixes", fixes.len());
-    println!("{}", serde_json::to_string_pretty(&fixes)
-        .map_err(|e| Error::Internal(format!("JSON: {e}")))?);
+    fixes
+}
 
+/// Find the best replacement expected_contains line from actual output.
+fn find_best_b2_replacement(expected: &str, actual: &str, id: &str) -> Option<String> {
+    let actual_lines: Vec<&str> = actual.lines().map(str::trim).collect();
+
+    // Strategy 1: B2-only — expected is substring of an actual line (B1 passes)
+    if let Some(full_line) = actual_lines.iter().find(|l| l.contains(expected)) {
+        return Some(full_line.to_string());
+    }
+
+    // Strategy 2: B1+B2 diverged — find best matching line from main body
+    let meaningful = extract_main_body(actual, id);
+    if meaningful.is_empty() { return None; }
+
+    find_best_token_match(expected, &meaningful)
+}
+
+/// Extract meaningful lines from transpiled output (skip shell preamble).
+fn extract_main_body(actual: &str, id: &str) -> Vec<String> {
+    if id.starts_with("D-") || id.starts_with("M-") {
+        return extract_noncomment_lines(actual);
+    }
+    extract_bash_main_body(actual)
+}
+
+/// Extract all non-empty, non-comment lines (for Dockerfile/Makefile).
+fn extract_noncomment_lines(actual: &str) -> Vec<String> {
+    actual.lines()
+        .map(str::trim)
+        .filter(|s| !s.is_empty() && !s.starts_with('#'))
+        .map(String::from)
+        .collect()
+}
+
+/// Return true if this trimmed line is shell preamble (not user code).
+fn is_bash_preamble(s: &str) -> bool {
+    s.is_empty()
+        || s.starts_with('#')
+        || s.starts_with("set ")
+        || s.starts_with("IFS=")
+        || s.starts_with("export ")
+        || s.starts_with("trap ")
+        || s == "main \"$@\""
+}
+
+/// Extract lines from inside main() in a transpiled bash script.
+/// State for extracting the main() body from transpiled bash.
+#[derive(PartialEq)]
+enum BashBodyState { Before, InFuncDef, InMain }
+
+fn extract_bash_main_body(actual: &str) -> Vec<String> {
+    let mut meaningful = Vec::new();
+    let mut state = BashBodyState::Before;
+    for line in actual.lines() {
+        let s = line.trim();
+        if is_bash_preamble(s) { continue; }
+        state = advance_bash_body_state(s, state, &mut meaningful);
+    }
+    meaningful
+}
+
+fn advance_bash_body_state(s: &str, state: BashBodyState, out: &mut Vec<String>) -> BashBodyState {
+    match state {
+        BashBodyState::InFuncDef => {
+            if s == "}" { BashBodyState::Before } else { BashBodyState::InFuncDef }
+        }
+        BashBodyState::Before => {
+            if s.starts_with("rash_println()") || s.starts_with("rash_eprintln()") {
+                BashBodyState::InFuncDef
+            } else if s.starts_with("main()") {
+                BashBodyState::InMain
+            } else {
+                BashBodyState::Before
+            }
+        }
+        BashBodyState::InMain => {
+            if s == "}" { BashBodyState::Before }
+            else { out.push(s.to_string()); BashBodyState::InMain }
+        }
+    }
+}
+
+/// Find the actual line with the best token overlap to the expected string.
+fn find_best_token_match(expected: &str, lines: &[String]) -> Option<String> {
+    let exp_tokens: std::collections::HashSet<&str> = expected
+        .split(|c: char| !c.is_alphanumeric() && c != '_')
+        .filter(|t| !t.is_empty())
+        .collect();
+
+    let mut best_line = None;
+    let mut best_score = 0usize;
+
+    for line in lines {
+        let line_tokens: std::collections::HashSet<&str> = line
+            .split(|c: char| !c.is_alphanumeric() && c != '_')
+            .filter(|t| !t.is_empty())
+            .collect();
+        let overlap = exp_tokens.intersection(&line_tokens).count();
+        if overlap > best_score {
+            best_score = overlap;
+            best_line = Some(line.clone());
+        }
+    }
+
+    // Require at least 1 token overlap, or fall back to first distinctive line
+    if best_score >= 1 {
+        return best_line;
+    }
+
+    lines.iter()
+        .find(|l| l.contains('=') || l.contains("rash_println") || l.starts_with("for "))
+        .or_else(|| lines.first())
+        .cloned()
+}
+
+/// Apply B2 fixes directly to registry.rs by editing the last string arg
+/// of each CorpusEntry::new() call.
+fn corpus_apply_b2_fixes(fixes: &[(String, String, String)]) -> Result<()> {
+    let registry_path = std::path::Path::new("rash/src/corpus/registry.rs");
+    if !registry_path.exists() {
+        return Err(Error::Validation("registry.rs not found (run from project root)".to_string()));
+    }
+
+    let mut content = std::fs::read_to_string(registry_path)
+        .map_err(|e| Error::Internal(format!("read registry.rs: {e}")))?;
+
+    let mut applied = 0usize;
+    let mut skipped = 0usize;
+
+    // Collect edits as (position, old_len, new_string) and apply in reverse order
+    let mut edits: Vec<(usize, usize, String)> = Vec::new();
+
+    for (id, _old_expected, new_expected) in fixes {
+        let id_pattern = format!("\"{}\"", id);
+        let id_pos = match content.find(&id_pattern) {
+            Some(p) => p,
+            None => { skipped += 1; continue; }
+        };
+
+        match find_last_string_in_entry(&content, id_pos) {
+            Some((start, end)) => {
+                edits.push((start, end - start, format_rust_string_for_registry(new_expected)));
+            }
+            None => { skipped += 1; }
+        }
+    }
+
+    // Sort edits by position descending to avoid offset shifts
+    edits.sort_by(|a, b| b.0.cmp(&a.0));
+
+    for (pos, old_len, new_str) in &edits {
+        content.replace_range(*pos..*pos + *old_len, new_str);
+        applied += 1;
+    }
+
+    std::fs::write(registry_path, content)
+        .map_err(|e| Error::Internal(format!("write registry.rs: {e}")))?;
+
+    eprintln!("Applied: {applied}, Skipped: {skipped}");
     Ok(())
+}
+
+/// Find the last string literal in a CorpusEntry::new(...) call starting near id_pos.
+/// Returns (start_byte, end_byte) of the string literal including delimiters.
+fn find_last_string_in_entry(content: &str, id_pos: usize) -> Option<(usize, usize)> {
+    let pre_start = id_pos.saturating_sub(200);
+    let pre_region = &content[pre_start..id_pos];
+    let new_call_rel = pre_region.rfind("CorpusEntry::new(")?;
+    let region_start = pre_start + new_call_rel;
+    let region_end = std::cmp::min(region_start + 3000, content.len());
+    let region = &content[region_start..region_end];
+    let paren_start = region.find('(')?;
+
+    let (s, e) = scan_last_string_before_close_paren(region.as_bytes(), paren_start)?;
+    Some((region_start + s, region_start + e))
+}
+
+/// Scan bytes from `start` to find the last string literal before the balanced `)`.
+/// Returns (start, end) offsets within the byte slice, including string delimiters.
+/// State for scanning Rust string literals in source code.
+#[derive(PartialEq)]
+enum RustScanState { Normal, InStr, InRaw }
+
+/// Advance result for the Rust source scanner.
+enum ScanAdvance { Step1, Skip(usize), Done }
+
+fn scan_last_string_before_close_paren(bytes: &[u8], start: usize) -> Option<(usize, usize)> {
+    let mut depth = 0i32;
+    let mut i = start;
+    let mut state = RustScanState::Normal;
+    let mut str_start = 0usize;
+    let mut last_str: Option<(usize, usize)> = None;
+
+    while i < bytes.len() {
+        match advance_scan(bytes, i, &state, &mut depth, &mut str_start, &mut last_str) {
+            ScanAdvance::Done => {
+                return last_str;
+            }
+            ScanAdvance::Skip(n) => {
+                state = next_scan_state(&state, bytes, i);
+                i += n;
+            }
+            ScanAdvance::Step1 => {
+                state = next_scan_state(&state, bytes, i);
+                i += 1;
+            }
+        }
+    }
+    None
+}
+
+fn advance_scan(
+    bytes: &[u8], i: usize, state: &RustScanState,
+    depth: &mut i32, str_start: &mut usize, last_str: &mut Option<(usize, usize)>,
+) -> ScanAdvance {
+    match state {
+        RustScanState::InRaw => advance_in_raw(bytes, i, *str_start, last_str),
+        RustScanState::InStr => advance_in_str(bytes, i, *str_start, last_str),
+        RustScanState::Normal => advance_normal(bytes, i, depth, str_start),
+    }
+}
+
+fn advance_in_raw(bytes: &[u8], i: usize, str_start: usize, last_str: &mut Option<(usize, usize)>) -> ScanAdvance {
+    if i + 1 < bytes.len() && bytes[i] == b'"' && bytes[i + 1] == b'#' {
+        *last_str = Some((str_start, i + 2));
+        ScanAdvance::Skip(2)
+    } else {
+        ScanAdvance::Step1
+    }
+}
+
+fn advance_in_str(bytes: &[u8], i: usize, str_start: usize, last_str: &mut Option<(usize, usize)>) -> ScanAdvance {
+    if bytes[i] == b'\\' { return ScanAdvance::Skip(2); }
+    if bytes[i] == b'"' { *last_str = Some((str_start, i + 1)); }
+    ScanAdvance::Step1
+}
+
+fn advance_normal(bytes: &[u8], i: usize, depth: &mut i32, str_start: &mut usize) -> ScanAdvance {
+    if i + 2 < bytes.len() && bytes[i] == b'r' && bytes[i + 1] == b'#' && bytes[i + 2] == b'"' {
+        *str_start = i;
+        return ScanAdvance::Skip(3);
+    }
+    match bytes[i] {
+        b'"' => { *str_start = i; }
+        b'(' => { *depth += 1; }
+        b')' => { *depth -= 1; if *depth == 0 { return ScanAdvance::Done; } }
+        _ => {}
+    }
+    ScanAdvance::Step1
+}
+
+fn next_scan_state(current: &RustScanState, bytes: &[u8], i: usize) -> RustScanState {
+    match current {
+        RustScanState::InRaw => {
+            if i + 1 < bytes.len() && bytes[i] == b'"' && bytes[i + 1] == b'#' {
+                RustScanState::Normal
+            } else {
+                RustScanState::InRaw
+            }
+        }
+        RustScanState::InStr => {
+            if bytes[i] == b'"' && (i == 0 || bytes[i - 1] != b'\\') {
+                RustScanState::Normal
+            } else {
+                RustScanState::InStr
+            }
+        }
+        RustScanState::Normal => {
+            if i + 2 < bytes.len() && bytes[i] == b'r' && bytes[i + 1] == b'#' && bytes[i + 2] == b'"' {
+                RustScanState::InRaw
+            } else if bytes[i] == b'"' {
+                RustScanState::InStr
+            } else {
+                RustScanState::Normal
+            }
+        }
+    }
+}
+
+/// Format a string as a Rust string literal for registry.rs.
+/// Uses raw string r#"..."# if the value contains quotes or backslashes,
+/// otherwise uses regular "..." with escaping.
+fn format_rust_string_for_registry(s: &str) -> String {
+    if s.contains('"') || s.contains('\\') {
+        // Use raw string — but check it doesn't contain "# which would break r#"..."#
+        if s.contains("\"#") {
+            // Fall back to regular string with escaping
+            let escaped = s.replace('\\', "\\\\").replace('"', "\\\"");
+            format!("\"{}\"", escaped)
+        } else {
+            format!("r#\"{}\"#", s)
+        }
+    } else {
+        format!("\"{}\"", s)
+    }
 }
 
 #[cfg(test)]

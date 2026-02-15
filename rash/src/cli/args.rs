@@ -1260,9 +1260,13 @@ pub enum CorpusCommands {
         limit: usize,
     },
 
-    /// Output corrected expected_contains for B2-only failures as JSON
-    /// (reads from cached corpus run results)
-    FixB2,
+    /// Fix B2 expected_contains values (reads from cached corpus run results).
+    /// Without --apply, outputs JSON fixes. With --apply, updates registry.rs directly.
+    FixB2 {
+        /// Apply fixes directly to registry.rs instead of outputting JSON
+        #[arg(long)]
+        apply: bool,
+    },
 }
 
 /// Dataset export format
