@@ -402,6 +402,7 @@ mod tests {
             deterministic: true,
             metamorphic_consistent: true,
             cross_shell_agree: transpiled,
+            expected_output: None,
             actual_output: if transpiled {
                 Some("expected".to_string())
             } else {

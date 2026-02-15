@@ -478,6 +478,7 @@ mod tests {
             deterministic: transpiled,
             metamorphic_consistent: transpiled,
             cross_shell_agree: transpiled,
+            expected_output: None,
             actual_output: if transpiled { Some("#!/bin/sh\n".into()) } else { None },
             error: if !lint_clean {
                 Some("SEC003: unquoted variable".into())
