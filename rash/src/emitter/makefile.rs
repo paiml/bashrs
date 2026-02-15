@@ -48,12 +48,47 @@ pub fn emit_makefile(ast: &RestrictedAst) -> Result<String> {
 
     if has_raw_output {
         // Raw output mode: collect resolved lines from exec/println
-        return converter.emit_raw_lines(entry_fn);
+        let raw = converter.emit_raw_lines(entry_fn)?;
+        if !raw.trim().is_empty() {
+            return Ok(raw);
+        }
     }
 
     // DSL mode: use target()/phony_target()/let bindings → MakeAst
-    let make_ast = converter.convert(ast)?;
-    Ok(generate_purified_makefile(&make_ast))
+    if !has_raw_output {
+        let make_ast = converter.convert(ast)?;
+        let dsl_output = generate_purified_makefile(&make_ast);
+        if !dsl_output.trim().is_empty() {
+            return Ok(dsl_output);
+        }
+    }
+
+    // Fallback: transpile to bash, wrap in Makefile all: target
+    emit_bash_as_makefile(ast)
+}
+
+/// Fallback: transpile Rust to bash shell code and wrap in a Makefile `all:` target.
+fn emit_bash_as_makefile(ast: &RestrictedAst) -> Result<String> {
+    let ir = crate::ir::from_ast(ast)?;
+    let config = crate::models::Config::default();
+    let shell = crate::emitter::emit(&ir, &config)?;
+    wrap_shell_in_makefile(&shell)
+}
+
+/// Wrap shell script lines into a Makefile `all:` target recipe.
+/// Each line is prefixed with a tab and shell continuation where needed.
+fn wrap_shell_in_makefile(shell: &str) -> Result<String> {
+    let mut out = String::from(".PHONY: all\nall:\n");
+    for line in shell.lines() {
+        let trimmed = line.trim();
+        // Skip shebang and shell config lines
+        if trimmed.starts_with("#!") || trimmed.starts_with("set -") { continue; }
+        if trimmed.is_empty() { continue; }
+        out.push('\t');
+        out.push_str(trimmed);
+        out.push('\n');
+    }
+    Ok(out)
 }
 
 struct MakefileConverter {
