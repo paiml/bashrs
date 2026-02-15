@@ -50,25 +50,27 @@ fn main() {
     let config = Config::default();
     let result = transpile(source, config).unwrap();
 
-    // Accept both arithmetic expansion syntax OR constant-folded results
-    // Current behavior: Constant folding (x=3)
-    // Desired behavior (TICKET-5006): Arithmetic expansion (x=$((1 + 2)))
+    // Accept arithmetic expansion syntax OR constant-folded results (possibly single-quoted)
+    // Current behavior: Constant folding with single-quoting (x='3')
     assert!(
-        result.contains("$((1 + 2))") || result.contains("x=3"),
+        result.contains("$((1 + 2))") || result.contains("x=3") || result.contains("x='3'"),
         "Should use arithmetic expansion OR constant-fold: addition. Got: {}",
         result
     );
     assert!(
-        result.contains("$((10 - 3))") || result.contains("y=7"),
-        "Should use arithmetic expansion OR constant-fold: subtraction"
+        result.contains("$((10 - 3))") || result.contains("y=7") || result.contains("y='7'"),
+        "Should use arithmetic expansion OR constant-fold: subtraction. Got: {}",
+        result
     );
     assert!(
-        result.contains("$((4 * 5))") || result.contains("z=20"),
-        "Should use arithmetic expansion OR constant-fold: multiplication"
+        result.contains("$((4 * 5))") || result.contains("z=20") || result.contains("z='20'"),
+        "Should use arithmetic expansion OR constant-fold: multiplication. Got: {}",
+        result
     );
     assert!(
-        result.contains("$((20 / 4))") || result.contains("w=5"),
-        "Should use arithmetic expansion OR constant-fold: division"
+        result.contains("$((20 / 4))") || result.contains("w=5") || result.contains("w='5'"),
+        "Should use arithmetic expansion OR constant-fold: division. Got: {}",
+        result
     );
 
     // Should NOT contain string concatenation patterns
@@ -97,16 +99,22 @@ fn main() {
         "Negative integers should not transpile to 'unknown'"
     );
 
-    // Should contain actual negative numbers
+    // Should contain actual negative numbers (may be single-quoted)
     assert!(
         result.contains("x=-1") || result.contains("x='-1'"),
-        "Should assign x=-1"
+        "Should assign x=-1. Got: {}",
+        result
     );
     assert!(
         result.contains("y=-42") || result.contains("y='-42'"),
-        "Should assign y=-42"
+        "Should assign y=-42. Got: {}",
+        result
     );
-    assert!(result.contains("z=0"), "Should assign z=0");
+    assert!(
+        result.contains("z=0") || result.contains("z='0'"),
+        "Should assign z=0. Got: {}",
+        result
+    );
 }
 
 #[test]

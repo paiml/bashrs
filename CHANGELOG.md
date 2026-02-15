@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.64.0] - 2026-02-15
+
+### Added
+
+- **COMPLY System (Phase 1)**: Complete shell artifact compliance framework
+  - 8 compliance rules (COMPLY-001 through COMPLY-008): bashism detection, determinism,
+    idempotency, security, quoting, ShellCheck, Makefile safety, Dockerfile detection
+  - Inline suppression comments (`# comply:disable=COMPLY-001`)
+  - CI integration with `--failures-only`, `--min-score`, config thresholds
+  - `comply rules` subcommand to list all rules with descriptions and weights
+  - 104 unit tests + 21 CLI integration tests
+  - Dogfood score: 99/100 (Grade A+)
+
+- **Gradual Type System (Layer 1)**: Type inference and checking for shell purification
+  - Real spans, path guards, StringInArithmetic warnings
+  - Bool literals, guard scoping, strict implies check
+
+- **Bash Parser Improvements**:
+  - Subshell syntax `(cmd1; cmd2)` support
+  - World-class parse error diagnostics with source context, caret indicators, and suggestions
+  - `$'...'` ANSI-C quoting, 12+ additional test operators (-L, -v, etc.)
+  - Compound test conditions (`-a`/`-o` in `[ ]`, `&&`/`||` in `[[ ]]`)
+  - Env prefix assignments (`IFS= read`), process substitution redirects
+  - `$VARIABLE` as command name, `declare`/`readonly` name=value parsing
+  - Multi-statement case arms, special variable lexing ($#, $?, $!)
+
+- **Corpus Quality Tooling**:
+  - `corpus fix-b2 --apply`: Native Rust tool to auto-fix B2 expected_contains
+  - `corpus diagnose-b2`: Result caching (50ms vs 5min) for B2 failure diagnostics
+  - Corpus expansion 204: 60 git-history-driven gap coverage entries
+
+- **New Linter Rules**: BASH004, SEC013-SEC016 (missing input validation and more)
+
+### Fixed
+
+- **30+ Bash Parser/Purifier Fixes**:
+  - Compound redirects, pipe-into-compound, background `&`, `base#val` arithmetic
+  - Assignment-as-condition in if/while (`pid=$(cmd)`)
+  - `@` in identifiers and bare words for email addresses
+  - Case patterns with dots/globs and bracket char classes
+  - Heredoc in loop bodies, trailing newline handling
+  - elif branch preservation in purified output
+  - Proper nested indentation in purified output
+  - Glob pattern preservation in purified output
+  - Keyword-as-argument parsing, name=value argument parsing, URL/port token splitting
+  - `rm -rf` no longer gets duplicate `-f`, `local -i/-r` flags handled
+  - Makefile `$` false positive and eval subcommand false positive (GH-134)
+
+- **Corpus Score 97.5 → 99.2/100 (A+)**:
+  - B1 containment: 95.3% → 100.0%
+  - B2 exact match: 84.8% → 100.0%
+  - Makefile bash fallback for B3 behavioral testing
+
+- **Test Suite Updates**: Fixed 11 stale integration tests that tested for errors on
+  constructs the transpiler now handles (traits, impl blocks, generics, loop, use statements)
+
+### Quality
+
+- **Tests**: 11,780+ passing (100% pass rate, 0 failures)
+- **Corpus**: 99.2/100 (A+) — 17,942 entries
+- **Comply**: 99/100 (A+) — 19/20 artifacts compliant
+- **Mutation-killing tests**: BH-MUT-0007 through BH-MUT-0019 (13 new)
+
+## [6.63.0] - 2026-02-13
+
 ## [6.62.0] - 2026-02-10
 
 ### Fixed
