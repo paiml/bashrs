@@ -106,6 +106,7 @@ fn test_CORPUS_005_score_perfect_v2() {
         metamorphic_consistent: true,
         cross_shell_agree: true,
         actual_output: Some("output".to_string()),
+        expected_output: None,
         error: None,
         error_category: None,
         error_confidence: None,
@@ -136,6 +137,7 @@ fn test_CORPUS_006_score_gateway_barrier() {
         metamorphic_consistent: true, // should be ignored
         cross_shell_agree: true,   // should be ignored
         actual_output: None,
+        expected_output: None,
         error: Some("parse error".to_string()),
         error_category: None,
         error_confidence: None,

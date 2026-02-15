@@ -1259,6 +1259,10 @@ pub enum CorpusCommands {
         #[arg(long, default_value = "50")]
         limit: usize,
     },
+
+    /// Output corrected expected_contains for B2-only failures as JSON
+    /// (reads from cached corpus run results)
+    FixB2,
 }
 
 /// Dataset export format
