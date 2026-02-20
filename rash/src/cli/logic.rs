@@ -1134,13 +1134,9 @@ pub fn format_timestamp(timestamp: u64) -> String {
     }
 }
 
-/// Truncate string to max length with ellipsis
+/// Truncate string to max length with ellipsis (delegates to batuta-common).
 pub fn truncate_str(s: &str, max_len: usize) -> String {
-    if s.len() <= max_len {
-        s.to_string()
-    } else {
-        format!("{}...", &s[..max_len.saturating_sub(3)])
-    }
+    batuta_common::display::truncate_str(s, max_len)
 }
 
 /// Generate diff lines between original and purified content

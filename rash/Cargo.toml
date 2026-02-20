@@ -41,6 +41,7 @@ lazy_static.workspace = true
 phf.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.9"  # Added for testing module
+batuta-common = { path = "../../batuta-common" }
 static_assertions = "1.1"
 regex = "1.10"  # For linter pattern matching
 glob = "0.3"    # For .bashrsignore pattern matching (Issue #58)
