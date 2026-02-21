@@ -255,10 +255,16 @@ fn validate_bash_entry(
         }
     }
 
-    if violations.iter().all(|v| v.layer != ValidationLayer::Syntactic) {
+    if violations
+        .iter()
+        .all(|v| v.layer != ValidationLayer::Syntactic)
+    {
         layers_passed.push(ValidationLayer::Syntactic);
     }
-    if violations.iter().all(|v| v.layer != ValidationLayer::Semantic) {
+    if violations
+        .iter()
+        .all(|v| v.layer != ValidationLayer::Semantic)
+    {
         layers_passed.push(ValidationLayer::Semantic);
     }
 }
@@ -266,7 +272,7 @@ fn validate_bash_entry(
 /// Check for unquoted expansions in a shell line (heuristic)
 /// Check if a line is a simple shell assignment (VAR=value)
 fn is_shell_assignment(line: &str) -> bool {
-    line.find('=').map_or(false, |eq_pos| {
+    line.find('=').is_some_and(|eq_pos| {
         line[..eq_pos]
             .chars()
             .all(|c| c.is_alphanumeric() || c == '_')
@@ -383,10 +389,16 @@ fn validate_makefile_entry(
     // Collect defined variables (GRAM-005 preparation)
     let _defined_vars: Vec<String> = output.lines().filter_map(extract_make_var).collect();
 
-    if violations.iter().all(|v| v.layer != ValidationLayer::Syntactic) {
+    if violations
+        .iter()
+        .all(|v| v.layer != ValidationLayer::Syntactic)
+    {
         layers_passed.push(ValidationLayer::Syntactic);
     }
-    if violations.iter().all(|v| v.layer != ValidationLayer::Semantic) {
+    if violations
+        .iter()
+        .all(|v| v.layer != ValidationLayer::Semantic)
+    {
         layers_passed.push(ValidationLayer::Semantic);
     }
 }
@@ -428,8 +440,7 @@ fn validate_dockerfile_entry(
     for (i, line) in output.lines().enumerate() {
         let trimmed = line.trim();
         let upper = trimmed.to_uppercase();
-        if (upper.starts_with("CMD ") || upper.starts_with("ENTRYPOINT "))
-            && !trimmed.contains('[')
+        if (upper.starts_with("CMD ") || upper.starts_with("ENTRYPOINT ")) && !trimmed.contains('[')
         {
             violations.push(GrammarViolation {
                 category: GrammarCategory::ShellFormCmd,
@@ -441,10 +452,16 @@ fn validate_dockerfile_entry(
         }
     }
 
-    if violations.iter().all(|v| v.layer != ValidationLayer::Syntactic) {
+    if violations
+        .iter()
+        .all(|v| v.layer != ValidationLayer::Syntactic)
+    {
         layers_passed.push(ValidationLayer::Syntactic);
     }
-    if violations.iter().all(|v| v.layer != ValidationLayer::Semantic) {
+    if violations
+        .iter()
+        .all(|v| v.layer != ValidationLayer::Semantic)
+    {
         layers_passed.push(ValidationLayer::Semantic);
     }
 }
@@ -494,8 +511,11 @@ pub fn format_schema_report(report: &SchemaReport) -> String {
         CorpusFormat::Makefile,
         CorpusFormat::Dockerfile,
     ] {
-        let fmt_results: Vec<&SchemaResult> =
-            report.results.iter().filter(|r| r.format == *format).collect();
+        let fmt_results: Vec<&SchemaResult> = report
+            .results
+            .iter()
+            .filter(|r| r.format == *format)
+            .collect();
         let total = fmt_results.len();
         let valid = fmt_results.iter().filter(|r| r.valid).count();
         let violations: usize = fmt_results.iter().map(|r| r.violations.len()).sum();
@@ -587,7 +607,10 @@ pub fn format_grammar_errors(report: &SchemaReport) -> String {
                 result.violations.len(),
             ));
             for v in &result.violations {
-                out.push_str(&format!("    L{}: {} ({})\n", v.line, v.message, v.category));
+                out.push_str(&format!(
+                    "    L{}: {} ({})\n",
+                    v.line, v.message, v.category
+                ));
             }
         }
         if entries_with_violations.len() > 20 {
@@ -615,7 +638,8 @@ fn posix_grammar_spec() -> String {
     out.push_str("POSIX Shell Grammar (IEEE Std 1003.1-2017, Section 2)\n");
     out.push_str(&"\u{2500}".repeat(60));
     out.push('\n');
-    out.push_str("\
+    out.push_str(
+        "\
 complete_command : list separator_op
                | list
                ;
@@ -657,7 +681,8 @@ Validation Layers:
   L2: Syntactic — shellcheck -s sh, POSIX grammar compliance
   L3: Semantic  — bashrs linter (SEC/DET/IDEM rules)
   L4: Behavioral — cross-shell execution (dash, bash, ash)
-");
+",
+    );
     out
 }
 
@@ -666,7 +691,8 @@ fn makefile_grammar_spec() -> String {
     out.push_str("GNU Make Grammar (GNU Make Manual 4.4, Section 3.7)\n");
     out.push_str(&"\u{2500}".repeat(60));
     out.push('\n');
-    out.push_str("\
+    out.push_str(
+        "\
 makefile     : (rule | assignment | directive | comment | empty_line)*
 rule         : targets ':' prerequisites '\\n' recipe
 targets      : target (' ' target)*
@@ -681,7 +707,8 @@ Validation Layers:
   L2: Syntactic — make -n --warn-undefined-variables
   L3: Semantic  — bashrs Makefile linter (MAKE001-MAKE020)
   L4: Behavioral — make -n dry-run comparison
-");
+",
+    );
     out
 }
 
@@ -690,7 +717,8 @@ fn dockerfile_grammar_spec() -> String {
     out.push_str("Dockerfile Grammar (Docker Engine v25+)\n");
     out.push_str(&"\u{2500}".repeat(60));
     out.push('\n');
-    out.push_str("\
+    out.push_str(
+        "\
 dockerfile   : (instruction | comment | empty_line)*
 instruction  : FROM from_args
              | RUN run_args
@@ -715,7 +743,8 @@ Validation Layers:
   L2: Syntactic — bashrs Dockerfile parser
   L3: Semantic  — bashrs Dockerfile linter (DOCKER001-012) + Hadolint
   L4: Behavioral — docker build --no-cache
-");
+",
+    );
     out
 }
 
@@ -819,34 +848,25 @@ mod tests {
 
     #[test]
     fn test_validate_bash_unquoted_expansion() {
-        let entry = make_entry(
-            "B-003",
-            CorpusFormat::Bash,
-            "#!/bin/sh\necho $HOME\n",
-        );
+        let entry = make_entry("B-003", CorpusFormat::Bash, "#!/bin/sh\necho $HOME\n");
         let result = validate_entry(&entry);
         assert!(!result.valid);
-        assert_eq!(result.violations[0].category, GrammarCategory::MissingQuoting);
+        assert_eq!(
+            result.violations[0].category,
+            GrammarCategory::MissingQuoting
+        );
     }
 
     #[test]
     fn test_validate_bash_quoted_expansion_ok() {
-        let entry = make_entry(
-            "B-004",
-            CorpusFormat::Bash,
-            "#!/bin/sh\necho \"$HOME\"\n",
-        );
+        let entry = make_entry("B-004", CorpusFormat::Bash, "#!/bin/sh\necho \"$HOME\"\n");
         let result = validate_entry(&entry);
         assert!(result.valid);
     }
 
     #[test]
     fn test_validate_bash_assignment_not_flagged() {
-        let entry = make_entry(
-            "B-005",
-            CorpusFormat::Bash,
-            "#!/bin/sh\nFOO=$HOME\n",
-        );
+        let entry = make_entry("B-005", CorpusFormat::Bash, "#!/bin/sh\nFOO=$HOME\n");
         let result = validate_entry(&entry);
         // Assignments are not flagged for unquoted expansions
         assert!(result.valid);
@@ -854,11 +874,7 @@ mod tests {
 
     #[test]
     fn test_validate_bash_invalid_arithmetic() {
-        let entry = make_entry(
-            "B-006",
-            CorpusFormat::Bash,
-            "#!/bin/sh\n(( x = x + 1 ))\n",
-        );
+        let entry = make_entry("B-006", CorpusFormat::Bash, "#!/bin/sh\n(( x = x + 1 ))\n");
         let result = validate_entry(&entry);
         assert!(!result.valid);
         assert_eq!(
@@ -869,11 +885,7 @@ mod tests {
 
     #[test]
     fn test_validate_bash_posix_arithmetic_ok() {
-        let entry = make_entry(
-            "B-007",
-            CorpusFormat::Bash,
-            "#!/bin/sh\nx=$((x + 1))\n",
-        );
+        let entry = make_entry("B-007", CorpusFormat::Bash, "#!/bin/sh\nx=$((x + 1))\n");
         let result = validate_entry(&entry);
         assert!(result.valid);
     }
@@ -891,11 +903,7 @@ mod tests {
 
     #[test]
     fn test_validate_makefile_space_recipe() {
-        let entry = make_entry(
-            "M-002",
-            CorpusFormat::Makefile,
-            "all:\n    echo hello\n",
-        );
+        let entry = make_entry("M-002", CorpusFormat::Makefile, "all:\n    echo hello\n");
         let result = validate_entry(&entry);
         assert!(!result.valid);
         assert_eq!(
@@ -917,11 +925,7 @@ mod tests {
 
     #[test]
     fn test_validate_dockerfile_missing_from() {
-        let entry = make_entry(
-            "D-002",
-            CorpusFormat::Dockerfile,
-            "RUN apt-get update\n",
-        );
+        let entry = make_entry("D-002", CorpusFormat::Dockerfile, "RUN apt-get update\n");
         let result = validate_entry(&entry);
         assert!(!result.valid);
         assert_eq!(result.violations[0].category, GrammarCategory::MissingFrom);
@@ -965,9 +969,17 @@ mod tests {
     fn test_validate_corpus_report() {
         let entries = vec![
             make_entry("B-001", CorpusFormat::Bash, "#!/bin/sh\necho \"ok\"\n"),
-            make_entry("B-002", CorpusFormat::Bash, "#!/bin/sh\nif [[ 1 ]]; then echo ok; fi\n"),
+            make_entry(
+                "B-002",
+                CorpusFormat::Bash,
+                "#!/bin/sh\nif [[ 1 ]]; then echo ok; fi\n",
+            ),
             make_entry("M-001", CorpusFormat::Makefile, "all:\n\techo ok\n"),
-            make_entry("D-001", CorpusFormat::Dockerfile, "FROM alpine:3.18\nRUN echo ok\n"),
+            make_entry(
+                "D-001",
+                CorpusFormat::Dockerfile,
+                "FROM alpine:3.18\nRUN echo ok\n",
+            ),
         ];
         let registry = CorpusRegistry {
             entries,
@@ -1024,9 +1036,11 @@ mod tests {
 
     #[test]
     fn test_format_grammar_errors() {
-        let entries = vec![
-            make_entry("B-001", CorpusFormat::Bash, "#!/bin/sh\nif [[ 1 ]]; then echo ok; fi\n"),
-        ];
+        let entries = vec![make_entry(
+            "B-001",
+            CorpusFormat::Bash,
+            "#!/bin/sh\nif [[ 1 ]]; then echo ok; fi\n",
+        )];
         let registry = CorpusRegistry {
             entries,
             ..Default::default()
@@ -1040,9 +1054,11 @@ mod tests {
 
     #[test]
     fn test_format_grammar_errors_clean() {
-        let entries = vec![
-            make_entry("B-001", CorpusFormat::Bash, "#!/bin/sh\necho \"ok\"\n"),
-        ];
+        let entries = vec![make_entry(
+            "B-001",
+            CorpusFormat::Bash,
+            "#!/bin/sh\necho \"ok\"\n",
+        )];
         let registry = CorpusRegistry {
             entries,
             ..Default::default()
@@ -1140,10 +1156,7 @@ mod tests {
 
     #[test]
     fn test_SCHEMA_MUT_014c_extract_make_var_valid() {
-        assert_eq!(
-            extract_make_var("CC := gcc"),
-            Some("CC".to_string())
-        );
+        assert_eq!(extract_make_var("CC := gcc"), Some("CC".to_string()));
     }
 
     #[test]
@@ -1201,22 +1214,16 @@ mod tests {
         );
         let result = validate_entry(&entry);
         // No GRAM-003 because there's no preceding target rule
-        assert!(
-            !result
-                .violations
-                .iter()
-                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
-        );
+        assert!(!result
+            .violations
+            .iter()
+            .any(|v| v.category == GrammarCategory::TabSpaceConfusion));
     }
 
     #[test]
     fn test_SCHEMA_MUT_009b_tab_recipe_not_flagged() {
         // Tab-indented recipe line → should NOT flag (correct indentation)
-        let entry = make_entry(
-            "M-MUT-009b",
-            CorpusFormat::Makefile,
-            "all:\n\techo hello\n",
-        );
+        let entry = make_entry("M-MUT-009b", CorpusFormat::Makefile, "all:\n\techo hello\n");
         let result = validate_entry(&entry);
         assert!(result.valid);
     }
@@ -1224,19 +1231,13 @@ mod tests {
     #[test]
     fn test_SCHEMA_MUT_009c_two_space_recipe_flagged() {
         // Two-space indented recipe → should flag GRAM-003
-        let entry = make_entry(
-            "M-MUT-009c",
-            CorpusFormat::Makefile,
-            "all:\n  echo hello\n",
-        );
+        let entry = make_entry("M-MUT-009c", CorpusFormat::Makefile, "all:\n  echo hello\n");
         let result = validate_entry(&entry);
         assert!(!result.valid);
-        assert!(
-            result
-                .violations
-                .iter()
-                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
-        );
+        assert!(result
+            .violations
+            .iter()
+            .any(|v| v.category == GrammarCategory::TabSpaceConfusion));
     }
 
     #[test]
@@ -1249,12 +1250,10 @@ mod tests {
         );
         let result = validate_entry(&entry);
         // Empty line resets in_recipe, so the space line is not flagged
-        assert!(
-            !result
-                .violations
-                .iter()
-                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
-        );
+        assert!(!result
+            .violations
+            .iter()
+            .any(|v| v.category == GrammarCategory::TabSpaceConfusion));
     }
 
     // BH-MUT-0010: Dockerfile ENTRYPOINT exec form
@@ -1303,12 +1302,10 @@ mod tests {
         );
         let result = validate_entry(&entry);
         // No tab/space confusion because CC := gcc is assignment, not target
-        assert!(
-            !result
-                .violations
-                .iter()
-                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
-        );
+        assert!(!result
+            .violations
+            .iter()
+            .any(|v| v.category == GrammarCategory::TabSpaceConfusion));
     }
 
     #[test]
@@ -1321,12 +1318,10 @@ mod tests {
         );
         let result = validate_entry(&entry);
         assert!(!result.valid);
-        assert!(
-            result
-                .violations
-                .iter()
-                .any(|v| v.category == GrammarCategory::TabSpaceConfusion)
-        );
+        assert!(result
+            .violations
+            .iter()
+            .any(|v| v.category == GrammarCategory::TabSpaceConfusion));
     }
 
     // BH-MUT-0012: Bash arithmetic (( vs $(( coexistence
@@ -1354,12 +1349,10 @@ mod tests {
         );
         let result = validate_entry(&entry);
         assert!(!result.valid);
-        assert!(
-            result
-                .violations
-                .iter()
-                .any(|v| v.category == GrammarCategory::InvalidArithmetic)
-        );
+        assert!(result
+            .violations
+            .iter()
+            .any(|v| v.category == GrammarCategory::InvalidArithmetic));
     }
 
     #[test]
@@ -1372,11 +1365,9 @@ mod tests {
         );
         let result = validate_entry(&entry);
         // $(( is valid POSIX arithmetic expansion, should not flag
-        assert!(
-            !result
-                .violations
-                .iter()
-                .any(|v| v.category == GrammarCategory::InvalidArithmetic)
-        );
+        assert!(!result
+            .violations
+            .iter()
+            .any(|v| v.category == GrammarCategory::InvalidArithmetic));
     }
 }

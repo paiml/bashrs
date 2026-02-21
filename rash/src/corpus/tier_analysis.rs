@@ -454,8 +454,12 @@ mod tests {
     #[test]
     fn test_analyze_single_tier() {
         let mut registry = CorpusRegistry::new();
-        registry.entries.push(make_entry("B-001", CorpusTier::Trivial));
-        registry.entries.push(make_entry("B-002", CorpusTier::Trivial));
+        registry
+            .entries
+            .push(make_entry("B-001", CorpusTier::Trivial));
+        registry
+            .entries
+            .push(make_entry("B-002", CorpusTier::Trivial));
 
         let results = vec![make_result("B-001", true), make_result("B-002", true)];
         let score = make_score(results);
@@ -472,8 +476,12 @@ mod tests {
     #[test]
     fn test_analyze_mixed_tiers() {
         let mut registry = CorpusRegistry::new();
-        registry.entries.push(make_entry("B-001", CorpusTier::Trivial));
-        registry.entries.push(make_entry("B-002", CorpusTier::Production));
+        registry
+            .entries
+            .push(make_entry("B-001", CorpusTier::Trivial));
+        registry
+            .entries
+            .push(make_entry("B-002", CorpusTier::Production));
 
         let results = vec![
             make_result("B-001", true),
@@ -499,8 +507,12 @@ mod tests {
     #[test]
     fn test_weight_delta_all_pass() {
         let mut registry = CorpusRegistry::new();
-        registry.entries.push(make_entry("B-001", CorpusTier::Trivial));
-        registry.entries.push(make_entry("B-002", CorpusTier::Production));
+        registry
+            .entries
+            .push(make_entry("B-001", CorpusTier::Trivial));
+        registry
+            .entries
+            .push(make_entry("B-002", CorpusTier::Production));
 
         let results = vec![make_result("B-001", true), make_result("B-002", true)];
         let score = make_score(results);
@@ -515,7 +527,9 @@ mod tests {
     #[test]
     fn test_all_targets_met() {
         let mut registry = CorpusRegistry::new();
-        registry.entries.push(make_entry("B-001", CorpusTier::Trivial));
+        registry
+            .entries
+            .push(make_entry("B-001", CorpusTier::Trivial));
         let results = vec![make_result("B-001", true)];
         let score = make_score(results);
         let analysis = analyze_tiers(&registry, &score);
@@ -525,7 +539,9 @@ mod tests {
     #[test]
     fn test_targets_not_met() {
         let mut registry = CorpusRegistry::new();
-        registry.entries.push(make_entry("B-001", CorpusTier::Trivial));
+        registry
+            .entries
+            .push(make_entry("B-001", CorpusTier::Trivial));
         let results = vec![make_result("B-001", false)];
         let score = make_score(results);
         let analysis = analyze_tiers(&registry, &score);
@@ -708,7 +724,8 @@ mod tests {
 
         let mut reg2 = CorpusRegistry::new();
         reg2.entries.push(make_entry("B-001", CorpusTier::Trivial));
-        reg2.entries.push(make_entry("B-002", CorpusTier::Production));
+        reg2.entries
+            .push(make_entry("B-002", CorpusTier::Production));
 
         let score2 = make_score(vec![
             make_result("B-001", true),
@@ -738,9 +755,15 @@ mod tests {
     #[test]
     fn test_tier_stats_fields() {
         let mut registry = CorpusRegistry::new();
-        registry.entries.push(make_entry("B-001", CorpusTier::Complex));
-        registry.entries.push(make_entry("B-002", CorpusTier::Complex));
-        registry.entries.push(make_entry("B-003", CorpusTier::Complex));
+        registry
+            .entries
+            .push(make_entry("B-001", CorpusTier::Complex));
+        registry
+            .entries
+            .push(make_entry("B-002", CorpusTier::Complex));
+        registry
+            .entries
+            .push(make_entry("B-003", CorpusTier::Complex));
 
         let results = vec![
             make_result("B-001", true),

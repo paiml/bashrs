@@ -620,7 +620,7 @@ impl MacroArgSplitter {
         if ch == '\\' {
             self.escape_count += 1;
         } else {
-            if ch == '"' && self.escape_count % 2 == 0 {
+            if ch == '"' && self.escape_count.is_multiple_of(2) {
                 self.in_string = false;
             }
             self.escape_count = 0;

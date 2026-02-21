@@ -10,7 +10,6 @@
 //! - Selective runtime emission (only used functions included)
 
 use assert_cmd::Command;
-use predicates::prelude::*;
 use std::io::Write;
 use tempfile::NamedTempFile;
 

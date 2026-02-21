@@ -158,14 +158,11 @@ impl DockerfileConverter {
                 }
 
                 let (image, tag) = if args.len() == 1 {
-                    let combined =
-                        self.expr_to_string(args.first().expect("verified len >= 1"))?;
+                    let combined = self.expr_to_string(args.first().expect("verified len >= 1"))?;
                     split_image_tag(&combined)
                 } else {
-                    let image =
-                        self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                    let tag =
-                        self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+                    let image = self.expr_to_string(args.first().expect("verified len >= 2"))?;
+                    let tag = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
                     (image, tag)
                 };
 
@@ -187,19 +184,14 @@ impl DockerfileConverter {
                 }
 
                 let (image, tag, alias) = if args.len() == 2 {
-                    let combined =
-                        self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                    let alias =
-                        self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+                    let combined = self.expr_to_string(args.first().expect("verified len >= 2"))?;
+                    let alias = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
                     let (img, tg) = split_image_tag(&combined);
                     (img, tg, alias)
                 } else {
-                    let image =
-                        self.expr_to_string(args.first().expect("verified len >= 3"))?;
-                    let tag =
-                        self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
-                    let alias =
-                        self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
+                    let image = self.expr_to_string(args.first().expect("verified len >= 3"))?;
+                    let tag = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
+                    let alias = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
                     (image, tag, alias)
                 };
 
@@ -225,12 +217,9 @@ impl DockerfileConverter {
                 }
                 if args.len() == 3 {
                     // 3 args: (src1, src2, dst) → "COPY src1 src2 dst"
-                    let src1 =
-                        self.expr_to_string(args.first().expect("verified len >= 3"))?;
-                    let src2 =
-                        self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
-                    let dst =
-                        self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
+                    let src1 = self.expr_to_string(args.first().expect("verified len >= 3"))?;
+                    let src2 = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
+                    let dst = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
                     if let Some(stage) = current_stage {
                         // Use "src1 src2" as compound src
                         stage.add_instruction(DockerInstruction::Copy {
@@ -240,10 +229,8 @@ impl DockerfileConverter {
                         });
                     }
                 } else {
-                    let src =
-                        self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                    let dst =
-                        self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+                    let src = self.expr_to_string(args.first().expect("verified len >= 2"))?;
+                    let dst = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
                     if let Some(stage) = current_stage {
                         stage.add_instruction(DockerInstruction::Copy {
                             src,
@@ -787,10 +774,7 @@ mod tests {
         ]);
 
         let result = emit_dockerfile(&ast).unwrap();
-        assert!(
-            result.contains("ENV APP_PORT=8080"),
-            "Let→ENV in: {result}"
-        );
+        assert!(result.contains("ENV APP_PORT=8080"), "Let→ENV in: {result}");
     }
 
     #[test]
@@ -920,10 +904,7 @@ mod tests {
         ]);
 
         let err = emit_dockerfile(&ast).unwrap_err();
-        assert!(
-            format!("{err}").contains("integer"),
-            "Error: {err}"
-        );
+        assert!(format!("{err}").contains("integer"), "Error: {err}");
     }
 
     #[test]
@@ -966,10 +947,7 @@ mod tests {
         ]);
 
         let result = emit_dockerfile(&ast).unwrap();
-        assert!(
-            result.contains("${APP_DIR}"),
-            "Variable ref in: {result}"
-        );
+        assert!(result.contains("${APP_DIR}"), "Variable ref in: {result}");
     }
 
     // --- Coverage tests for uncovered lines ---
@@ -1289,7 +1267,10 @@ mod tests {
         assert!(!result.contains("WORKDIR"), "No WORKDIR with empty args");
         assert!(!result.contains("EXPOSE"), "No EXPOSE with empty args");
         assert!(!result.contains("USER"), "No USER with empty args");
-        assert!(!result.contains("HEALTHCHECK"), "No HEALTHCHECK with empty args");
+        assert!(
+            !result.contains("HEALTHCHECK"),
+            "No HEALTHCHECK with empty args"
+        );
     }
 
     // ============================================================================
@@ -1532,7 +1513,10 @@ mod tests {
             }),
         ]);
         let result = emit_dockerfile(&ast).unwrap();
-        assert!(result.contains("FROM rust:1.75"), "First stage in: {result}");
+        assert!(
+            result.contains("FROM rust:1.75"),
+            "First stage in: {result}"
+        );
         assert!(
             result.contains("FROM alpine:3.18"),
             "Second stage in: {result}"
@@ -1558,10 +1542,7 @@ mod tests {
             }),
         ]);
         let result = emit_dockerfile(&ast).unwrap();
-        assert!(
-            result.contains("LABEL maintainer"),
-            "LABEL in: {result}"
-        );
+        assert!(result.contains("LABEL maintainer"), "LABEL in: {result}");
     }
 
     #[test]
@@ -1576,9 +1557,7 @@ mod tests {
             }),
             Stmt::Expr(Expr::FunctionCall {
                 name: "comment".to_string(),
-                args: vec![Expr::Literal(Literal::Str(
-                    "This is a comment".to_string(),
-                ))],
+                args: vec![Expr::Literal(Literal::Str("This is a comment".to_string()))],
             }),
         ]);
         let result = emit_dockerfile(&ast).unwrap();
@@ -1604,10 +1583,7 @@ mod tests {
             }),
         ]);
         let result = emit_dockerfile(&ast).unwrap();
-        assert!(
-            result.contains("ENTRYPOINT"),
-            "ENTRYPOINT in: {result}"
-        );
+        assert!(result.contains("ENTRYPOINT"), "ENTRYPOINT in: {result}");
     }
 
     #[test]
@@ -1634,9 +1610,9 @@ mod tests {
             }),
             Stmt::Expr(Expr::FunctionCall {
                 name: "run".to_string(),
-                args: vec![Expr::Array(vec![
-                    Expr::Literal(Literal::Str("cargo build --release".to_string())),
-                ])],
+                args: vec![Expr::Array(vec![Expr::Literal(Literal::Str(
+                    "cargo build --release".to_string(),
+                ))])],
             }),
             // Runtime stage
             Stmt::Expr(Expr::FunctionCall {
@@ -1910,7 +1886,8 @@ mod tests {
             ]);
             let result = emit_dockerfile(&ast).expect("should emit dockerfile");
             assert!(
-                result.contains("COPY --from=builder /app/target/release/myapp /usr/local/bin/myapp"),
+                result
+                    .contains("COPY --from=builder /app/target/release/myapp /usr/local/bin/myapp"),
                 "Expected COPY --from=builder, got: {result}"
             );
         }

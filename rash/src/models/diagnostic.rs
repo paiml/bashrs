@@ -289,7 +289,8 @@ impl Diagnostic {
                 ErrorCategory::Syntax,
                 Some("An unexpected token was encountered.".to_string()),
                 Some(
-                    "Check for typos or unsupported syntax near the indicated location.".to_string(),
+                    "Check for typos or unsupported syntax near the indicated location."
+                        .to_string(),
                 ),
             )
         } else if msg.contains("expected") && msg.contains("found") {
@@ -315,7 +316,10 @@ impl Diagnostic {
             (
                 ErrorCategory::Syntax,
                 Some("The Rust parser could not parse this code.".to_string()),
-                Some("Ensure your code is valid Rust syntax. Rash supports a subset of Rust.".to_string()),
+                Some(
+                    "Ensure your code is valid Rust syntax. Rash supports a subset of Rust."
+                        .to_string(),
+                ),
             )
         }
     }
@@ -382,8 +386,7 @@ impl Diagnostic {
 
 /// Check if stderr is a terminal (for ANSI color support)
 fn use_color() -> bool {
-    std::env::var("NO_COLOR").is_err()
-        && std::env::var("TERM").map_or(true, |t| t != "dumb")
+    std::env::var("NO_COLOR").is_err() && std::env::var("TERM").map_or(true, |t| t != "dumb")
 }
 
 impl fmt::Display for Diagnostic {
@@ -530,7 +533,10 @@ mod tests {
         let output = format_no_color(&diag);
         assert!(output.contains("error[syntax]"), "got: {output}");
         assert!(output.contains("--> main.rs:5:10"), "got: {output}");
-        assert!(output.contains("note: Expected a semicolon"), "got: {output}");
+        assert!(
+            output.contains("note: Expected a semicolon"),
+            "got: {output}"
+        );
         assert!(output.contains("help: Add ';'"), "got: {output}");
     }
 
@@ -550,7 +556,10 @@ mod tests {
         };
 
         let output = format_no_color(&diag);
-        assert!(output.contains("error[syntax]: parse error"), "got: {output}");
+        assert!(
+            output.contains("error[syntax]: parse error"),
+            "got: {output}"
+        );
         assert!(!output.contains("-->"), "got: {output}");
     }
 
@@ -780,8 +789,7 @@ mod tests {
 
     #[test]
     fn test_categorize_io_error_permission_denied() {
-        let io_err =
-            std::io::Error::new(std::io::ErrorKind::PermissionDenied, "permission denied");
+        let io_err = std::io::Error::new(std::io::ErrorKind::PermissionDenied, "permission denied");
         let error = Error::Io(io_err);
         let diag = Diagnostic::from_error(&error, None);
 
@@ -902,12 +910,12 @@ mod tests {
     #[test]
     fn test_from_error_with_source() {
         let source = "fn main() {\n    let x = 42\n    let y = 10;\n}";
-        let error = Error::Parse(syn::Error::new(proc_macro2::Span::call_site(), "expected `;`"));
-        let diag = Diagnostic::from_error_with_source(
-            &error,
-            Some("test.rs".to_string()),
-            Some(source),
-        );
+        let error = Error::Parse(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "expected `;`",
+        ));
+        let diag =
+            Diagnostic::from_error_with_source(&error, Some("test.rs".to_string()), Some(source));
 
         assert_eq!(diag.category, ErrorCategory::Syntax);
         assert_eq!(diag.file, Some("test.rs".to_string()));
@@ -916,7 +924,10 @@ mod tests {
 
     #[test]
     fn test_from_error_unwraps_with_context() {
-        let inner = Error::Parse(syn::Error::new(proc_macro2::Span::call_site(), "test error"));
+        let inner = Error::Parse(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "test error",
+        ));
         let error = Error::WithContext {
             inner: Box::new(inner),
             file: Some("ctx.rs".to_string()),

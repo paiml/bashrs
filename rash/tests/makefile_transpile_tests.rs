@@ -7,7 +7,6 @@
 //! Uses assert_cmd for CLI testing (MANDATORY per CLAUDE.md).
 
 use assert_cmd::Command;
-use predicates::prelude::*;
 use std::io::Write;
 use tempfile::NamedTempFile;
 

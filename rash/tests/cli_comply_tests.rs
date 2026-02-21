@@ -18,8 +18,11 @@ fn bashrs_cmd() -> Command {
 /// Create a temp project with shell artifacts for testing
 fn create_test_project() -> TempDir {
     let dir = TempDir::new().expect("Failed to create temp dir");
-    fs::write(dir.path().join("clean.sh"), "#!/bin/sh\necho \"hello\"\nmkdir -p /tmp/test\n")
-        .unwrap();
+    fs::write(
+        dir.path().join("clean.sh"),
+        "#!/bin/sh\necho \"hello\"\nmkdir -p /tmp/test\n",
+    )
+    .unwrap();
     fs::write(
         dir.path().join("Makefile"),
         "all:\n\techo \"building\"\n\nclean:\n\trm -f *.o\n",
@@ -395,8 +398,16 @@ fn test_COMPLY_CLI_051_check_json_has_all_fields() {
 fn test_comply_check_failures_only_shows_only_violations() {
     let dir = create_test_project();
     // Add a compliant and a non-compliant script
-    fs::write(dir.path().join("compliant.sh"), "#!/bin/sh\necho \"hello\"\n").unwrap();
-    fs::write(dir.path().join("noncompliant.sh"), "#!/bin/bash\necho $RANDOM\n").unwrap();
+    fs::write(
+        dir.path().join("compliant.sh"),
+        "#!/bin/sh\necho \"hello\"\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("noncompliant.sh"),
+        "#!/bin/bash\necho $RANDOM\n",
+    )
+    .unwrap();
 
     let output = bashrs_cmd()
         .arg("comply")
@@ -408,17 +419,34 @@ fn test_comply_check_failures_only_shows_only_violations() {
         .unwrap();
 
     let stdout = String::from_utf8(output.stdout).unwrap();
-    assert!(stdout.contains("Failures Only"), "Should show failures-only header");
-    assert!(stdout.contains("NON-COMPLIANT"), "Should show non-compliant artifacts");
+    assert!(
+        stdout.contains("Failures Only"),
+        "Should show failures-only header"
+    );
+    assert!(
+        stdout.contains("NON-COMPLIANT"),
+        "Should show non-compliant artifacts"
+    );
     // Compliant artifacts should not appear in the artifact list
-    assert!(!stdout.contains("+ COMPLIANT"), "Should NOT show compliant artifacts");
+    assert!(
+        !stdout.contains("+ COMPLIANT"),
+        "Should NOT show compliant artifacts"
+    );
 }
 
 #[test]
 fn test_comply_check_failures_only_markdown() {
     let dir = create_test_project();
-    fs::write(dir.path().join("compliant.sh"), "#!/bin/sh\necho \"hello\"\n").unwrap();
-    fs::write(dir.path().join("noncompliant.sh"), "#!/bin/bash\necho $RANDOM\n").unwrap();
+    fs::write(
+        dir.path().join("compliant.sh"),
+        "#!/bin/sh\necho \"hello\"\n",
+    )
+    .unwrap();
+    fs::write(
+        dir.path().join("noncompliant.sh"),
+        "#!/bin/bash\necho $RANDOM\n",
+    )
+    .unwrap();
 
     let output = bashrs_cmd()
         .arg("comply")
@@ -458,7 +486,11 @@ fn test_comply_check_min_score_pass() {
 #[test]
 fn test_comply_check_min_score_fail() {
     let dir = create_test_project();
-    fs::write(dir.path().join("bad.sh"), "#!/bin/bash\necho $RANDOM\nmkdir /tmp/foo\n").unwrap();
+    fs::write(
+        dir.path().join("bad.sh"),
+        "#!/bin/bash\necho $RANDOM\nmkdir /tmp/foo\n",
+    )
+    .unwrap();
 
     // Min score 100 should fail for any project with violations
     bashrs_cmd()
@@ -488,7 +520,11 @@ fn test_comply_check_min_score_error_message() {
         .unwrap();
 
     let stderr = String::from_utf8(output.stderr).unwrap();
-    assert!(stderr.contains("below minimum"), "Error should mention below minimum: {}", stderr);
+    assert!(
+        stderr.contains("below minimum"),
+        "Error should mention below minimum: {}",
+        stderr
+    );
 }
 
 // ─── Config threshold enforcement tests ───

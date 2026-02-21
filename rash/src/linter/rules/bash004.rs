@@ -110,10 +110,7 @@ fn has_unguarded_variable(line: &str) -> bool {
         for target in targets {
             let t = target.trim_matches('"').trim_matches('\'');
             // Has variable but NOT guarded with :? or :-
-            if (t.contains('$') && !t.contains("\\$"))
-                && !t.contains(":?")
-                && !t.contains(":-")
-            {
+            if (t.contains('$') && !t.contains("\\$")) && !t.contains(":?") && !t.contains(":-") {
                 // Also not a simple known-safe variable like $HOME
                 return true;
             }

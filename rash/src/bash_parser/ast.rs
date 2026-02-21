@@ -160,10 +160,7 @@ pub enum BashStmt {
     /// Negated command/pipeline: ! command
     /// Inverts the exit status of the command or pipeline
     /// Issue #133: Support for `if ! cmd1 | cmd2; then` patterns
-    Negated {
-        command: Box<BashStmt>,
-        span: Span,
-    },
+    Negated { command: Box<BashStmt>, span: Span },
 }
 
 /// Case statement arm

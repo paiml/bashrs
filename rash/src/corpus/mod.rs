@@ -29,9 +29,9 @@ pub mod graph_priority;
 pub mod oip;
 pub mod pattern_store;
 pub mod quality_gates;
-pub mod schema_enforcement;
 pub mod registry;
 pub mod runner;
+pub mod schema_enforcement;
 pub mod tier_analysis;
 
 pub use pattern_store::{PatternStore, ShellFixPattern};

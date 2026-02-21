@@ -391,7 +391,7 @@ mod tests {
 
     #[test]
     fn test_unit_test_generator_default() {
-        let gen = UnitTestGenerator::default();
+        let gen = UnitTestGenerator;
         let empty_ast = BashAst {
             statements: vec![],
             metadata: AstMetadata {

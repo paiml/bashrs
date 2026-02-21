@@ -576,7 +576,11 @@ mod tests {
             entry_point: "main".to_string(),
         };
         let result = pipeline.validate_ast(&ast);
-        assert!(result.is_ok(), "Bare semicolons in quoted strings are safe: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "Bare semicolons in quoted strings are safe: {:?}",
+            result
+        );
     }
 
     #[test]

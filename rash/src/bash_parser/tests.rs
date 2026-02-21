@@ -24418,10 +24418,14 @@ fn test_ASSIGN_COV_001_keyword_if_as_variable_name() {
     let script = "if=1\necho $if";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "if")
-    });
-    assert!(has_assignment, "Should parse 'if' as variable name in 'if=1'");
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "if"));
+    assert!(
+        has_assignment,
+        "Should parse 'if' as variable name in 'if=1'"
+    );
 }
 
 #[test]
@@ -24429,9 +24433,10 @@ fn test_ASSIGN_COV_002_keyword_then_as_variable_name() {
     let script = "then=hello";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "then")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "then"));
     assert!(has_assignment, "Should parse 'then' as variable name");
 }
 
@@ -24440,9 +24445,10 @@ fn test_ASSIGN_COV_003_keyword_elif_as_variable_name() {
     let script = "elif=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "elif")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "elif"));
     assert!(has_assignment, "Should parse 'elif' as variable name");
 }
 
@@ -24451,9 +24457,10 @@ fn test_ASSIGN_COV_004_keyword_else_as_variable_name() {
     let script = "else=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "else")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "else"));
     assert!(has_assignment, "Should parse 'else' as variable name");
 }
 
@@ -24462,9 +24469,10 @@ fn test_ASSIGN_COV_005_keyword_fi_as_variable_name() {
     let script = "fi=1";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "fi")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "fi"));
     assert!(has_assignment, "Should parse 'fi' as variable name");
 }
 
@@ -24473,9 +24481,10 @@ fn test_ASSIGN_COV_006_keyword_for_as_variable_name() {
     let script = "for=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "for")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "for"));
     assert!(has_assignment, "Should parse 'for' as variable name");
 }
 
@@ -24484,9 +24493,10 @@ fn test_ASSIGN_COV_007_keyword_while_as_variable_name() {
     let script = "while=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "while")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "while"));
     assert!(has_assignment, "Should parse 'while' as variable name");
 }
 
@@ -24495,9 +24505,10 @@ fn test_ASSIGN_COV_008_keyword_do_as_variable_name() {
     let script = "do=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "do")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "do"));
     assert!(has_assignment, "Should parse 'do' as variable name");
 }
 
@@ -24506,9 +24517,10 @@ fn test_ASSIGN_COV_009_keyword_done_as_variable_name() {
     let script = "done=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "done")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "done"));
     assert!(has_assignment, "Should parse 'done' as variable name");
 }
 
@@ -24517,9 +24529,10 @@ fn test_ASSIGN_COV_010_keyword_case_as_variable_name() {
     let script = "case=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "case")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "case"));
     assert!(has_assignment, "Should parse 'case' as variable name");
 }
 
@@ -24528,9 +24541,10 @@ fn test_ASSIGN_COV_011_keyword_esac_as_variable_name() {
     let script = "esac=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "esac")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "esac"));
     assert!(has_assignment, "Should parse 'esac' as variable name");
 }
 
@@ -24539,9 +24553,10 @@ fn test_ASSIGN_COV_012_keyword_in_as_variable_name() {
     let script = "in=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "in")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "in"));
     assert!(has_assignment, "Should parse 'in' as variable name");
 }
 
@@ -24550,9 +24565,10 @@ fn test_ASSIGN_COV_013_keyword_function_as_variable_name() {
     let script = "function=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "function")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "function"));
     assert!(has_assignment, "Should parse 'function' as variable name");
 }
 
@@ -24561,9 +24577,10 @@ fn test_ASSIGN_COV_014_keyword_return_as_variable_name() {
     let script = "return=value";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "return")
-    });
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "return"));
     assert!(has_assignment, "Should parse 'return' as variable name");
 }
 
@@ -24605,9 +24622,10 @@ fn test_ASSIGN_COV_017_array_element_string_index() {
     let script = r#"arr["quoted"]=value"#;
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_indexed_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, index: Some(_), .. } if name == "arr")
-    });
+    let has_indexed_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, index: Some(_), .. } if name == "arr"));
     assert!(
         has_indexed_assignment,
         "Should parse array element assignment with string index"
@@ -24662,10 +24680,14 @@ fn test_ASSIGN_COV_021_empty_assignment_before_comment() {
     let script = "x= # comment";
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
-    let has_assignment = ast.statements.iter().any(|s| {
-        matches!(s, BashStmt::Assignment { name, .. } if name == "x")
-    });
-    assert!(has_assignment, "Should parse empty assignment before comment");
+    let has_assignment = ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Assignment { name, .. } if name == "x"));
+    assert!(
+        has_assignment,
+        "Should parse empty assignment before comment"
+    );
 }
 
 #[test]

@@ -72,7 +72,10 @@ const PROJECT_PATTERNS: &[(&str, ArtifactKind)] = &[
     ("docker-compose.yaml", ArtifactKind::Workflow),
     (".github/workflows/*.yml", ArtifactKind::Workflow),
     (".github/workflows/*.yaml", ArtifactKind::Workflow),
-    (".devcontainer/devcontainer.json", ArtifactKind::DevContainer),
+    (
+        ".devcontainer/devcontainer.json",
+        ArtifactKind::DevContainer,
+    ),
 ];
 
 /// User scope known paths
@@ -189,8 +192,7 @@ pub fn classify(path: &Path) -> Option<ArtifactKind> {
     let name = path.file_name()?.to_str()?;
     let name_lower = name.to_lowercase();
 
-    classify_by_name(&name_lower, name, path)
-        .or_else(|| classify_by_shebang(path))
+    classify_by_name(&name_lower, name, path).or_else(|| classify_by_shebang(path))
 }
 
 /// Classify by filename patterns
@@ -215,7 +217,12 @@ fn classify_by_name(name_lower: &str, name: &str, path: &Path) -> Option<Artifac
     }
     // User shell config files
     const CONFIG_NAMES: &[&str] = &[
-        ".zshrc", ".bashrc", ".bash_profile", ".profile", ".zprofile", ".zshenv",
+        ".zshrc",
+        ".bashrc",
+        ".bash_profile",
+        ".profile",
+        ".zprofile",
+        ".zshenv",
     ];
     if CONFIG_NAMES.contains(&name) {
         return Some(ArtifactKind::ShellConfig);
@@ -233,7 +240,10 @@ fn is_workflow_yaml(name_lower: &str, path: &Path) -> bool {
 fn classify_by_shebang(path: &Path) -> Option<ArtifactKind> {
     let content = std::fs::read_to_string(path).ok()?;
     const SHELL_SHEBANGS: &[&str] = &[
-        "#!/bin/sh", "#!/bin/bash", "#!/usr/bin/env bash", "#!/usr/bin/env sh",
+        "#!/bin/sh",
+        "#!/bin/bash",
+        "#!/usr/bin/env bash",
+        "#!/usr/bin/env sh",
     ];
     if SHELL_SHEBANGS.iter().any(|s| content.starts_with(s)) {
         return Some(ArtifactKind::ShellScript);

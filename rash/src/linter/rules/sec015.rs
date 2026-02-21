@@ -89,10 +89,20 @@ fn is_pipe_to_shell(line: &str) -> bool {
 
     // Check for pipe to shell patterns
     let shell_targets = [
-        "| sh", "| bash", "| zsh", "| dash", "| ksh",
-        "|sh", "|bash", "|zsh", "|dash", "|ksh",
-        "| sudo sh", "| sudo bash",
-        "|sudo sh", "|sudo bash",
+        "| sh",
+        "| bash",
+        "| zsh",
+        "| dash",
+        "| ksh",
+        "|sh",
+        "|bash",
+        "|zsh",
+        "|dash",
+        "|ksh",
+        "| sudo sh",
+        "| sudo bash",
+        "|sudo sh",
+        "|sudo bash",
     ];
 
     shell_targets.iter().any(|target| line.contains(target))

@@ -115,10 +115,7 @@ fn group_failures_by_signal(
         if !signals.is_empty() {
             seen_failing.insert(id.clone());
             for signal in signals {
-                signal_failures
-                    .entry(signal)
-                    .or_default()
-                    .push(id.clone());
+                signal_failures.entry(signal).or_default().push(id.clone());
             }
         }
     }
@@ -374,7 +371,10 @@ mod tests {
 
     #[test]
     fn test_derive_fix_type_quoting() {
-        assert_eq!(derive_fix_type("assignment_value:single_quote"), "quoting_strategy");
+        assert_eq!(
+            derive_fix_type("assignment_value:single_quote"),
+            "quoting_strategy"
+        );
     }
 
     #[test]
@@ -389,7 +389,10 @@ mod tests {
 
     #[test]
     fn test_derive_fix_type_variable() {
-        assert_eq!(derive_fix_type("variable_expansion:braced"), "expansion_strategy");
+        assert_eq!(
+            derive_fix_type("variable_expansion:braced"),
+            "expansion_strategy"
+        );
     }
 
     #[test]
@@ -406,7 +409,10 @@ mod tests {
     #[test]
     fn test_derive_fix_type_arithmetic() {
         assert_eq!(derive_fix_type("arithmetic:expr"), "arithmetic_strategy");
-        assert_eq!(derive_fix_type("arithmetic_emit:expr"), "arithmetic_strategy");
+        assert_eq!(
+            derive_fix_type("arithmetic_emit:expr"),
+            "arithmetic_strategy"
+        );
     }
 
     #[test]
@@ -434,12 +440,18 @@ mod tests {
 
     #[test]
     fn test_derive_fix_type_string_interpolation() {
-        assert_eq!(derive_fix_type("string_interpolation:double"), "string_handling");
+        assert_eq!(
+            derive_fix_type("string_interpolation:double"),
+            "string_handling"
+        );
     }
 
     #[test]
     fn test_derive_fix_type_command_substitution() {
-        assert_eq!(derive_fix_type("command_substitution:backtick"), "substitution_strategy");
+        assert_eq!(
+            derive_fix_type("command_substitution:backtick"),
+            "substitution_strategy"
+        );
     }
 
     #[test]

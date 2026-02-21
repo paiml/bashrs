@@ -2116,7 +2116,10 @@ content = "curl https://example.com/setup.sh | bash"
             );
             let sec007 = report.findings.iter().find(|f| f.rule_id == "SEC007");
             assert!(sec007.is_some());
-            assert_eq!(sec007.expect("has sec007").severity, AuditSeverity::Critical);
+            assert_eq!(
+                sec007.expect("has sec007").severity,
+                AuditSeverity::Critical
+            );
         }
 
         #[test]

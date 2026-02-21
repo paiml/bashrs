@@ -2030,7 +2030,7 @@ mod tests {
         };
 
         let mut purifier = Purifier::new(PurificationOptions::default());
-        let purified = purifier.purify(&ast).unwrap();
+        let _purified = purifier.purify(&ast).unwrap();
 
         // Should generate a warning about command substitution
         assert!(!purifier.report().warnings.is_empty());
@@ -2094,7 +2094,7 @@ mod tests {
         };
 
         let mut purifier = Purifier::new(PurificationOptions::default());
-        let purified = purifier.purify(&ast).unwrap();
+        let _purified = purifier.purify(&ast).unwrap();
 
         // RANDOM in concat should be replaced
         assert!(!purifier.report().determinism_fixes.is_empty());
@@ -2791,5 +2791,4 @@ mod tests {
             _ => panic!("Expected assignment"),
         }
     }
-
 }

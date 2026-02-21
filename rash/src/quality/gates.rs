@@ -1731,7 +1731,7 @@ max_memory_mb_per_entry = 20
 
 /// Performance metrics configuration loaded from `.pmat-metrics.toml`.
 /// Controls performance budgets, staleness tracking, and trend analysis.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MetricsConfig {
     #[serde(default)]
     pub thresholds: MetricsThresholds,
@@ -1745,19 +1745,6 @@ pub struct MetricsConfig {
     pub quality_gates: MetricsQualityGates,
     #[serde(default)]
     pub performance: PerformanceBudget,
-}
-
-impl Default for MetricsConfig {
-    fn default() -> Self {
-        Self {
-            thresholds: MetricsThresholds::default(),
-            staleness: StalenessConfig::default(),
-            enforcement: MetricsEnforcement::default(),
-            trend_analysis: TrendAnalysisConfig::default(),
-            quality_gates: MetricsQualityGates::default(),
-            performance: PerformanceBudget::default(),
-        }
-    }
 }
 
 impl MetricsConfig {
@@ -1797,10 +1784,18 @@ pub struct MetricsThresholds {
     pub binary_size_kb: f64,
 }
 
-fn default_lint_ms() -> f64 { 5000.0 }
-fn default_test_ms() -> f64 { 60000.0 }
-fn default_coverage_ms() -> f64 { 120000.0 }
-fn default_binary_size_kb() -> f64 { 10240.0 }
+fn default_lint_ms() -> f64 {
+    5000.0
+}
+fn default_test_ms() -> f64 {
+    60000.0
+}
+fn default_coverage_ms() -> f64 {
+    120000.0
+}
+fn default_binary_size_kb() -> f64 {
+    10240.0
+}
 
 impl Default for MetricsThresholds {
     fn default() -> Self {
@@ -1819,11 +1814,15 @@ pub struct StalenessConfig {
     pub max_age_days: u32,
 }
 
-fn default_max_age_days() -> u32 { 7 }
+fn default_max_age_days() -> u32 {
+    7
+}
 
 impl Default for StalenessConfig {
     fn default() -> Self {
-        Self { max_age_days: default_max_age_days() }
+        Self {
+            max_age_days: default_max_age_days(),
+        }
     }
 }
 
@@ -1852,7 +1851,9 @@ pub struct TrendAnalysisConfig {
     pub retention_days: u32,
 }
 
-fn default_retention_days() -> u32 { 90 }
+fn default_retention_days() -> u32 {
+    90
+}
 
 impl Default for TrendAnalysisConfig {
     fn default() -> Self {
@@ -1873,9 +1874,15 @@ pub struct MetricsQualityGates {
     pub min_tdg_grade: String,
 }
 
-fn default_min_coverage() -> f64 { 95.0 }
-fn default_min_mutation_score() -> f64 { 90.0 }
-fn default_min_tdg_grade() -> String { "A".to_string() }
+fn default_min_coverage() -> f64 {
+    95.0
+}
+fn default_min_mutation_score() -> f64 {
+    90.0
+}
+fn default_min_tdg_grade() -> String {
+    "A".to_string()
+}
 
 impl Default for MetricsQualityGates {
     fn default() -> Self {
@@ -1895,8 +1902,12 @@ pub struct PerformanceBudget {
     pub max_memory_mb_per_entry: f64,
 }
 
-fn default_max_transpile_ms() -> f64 { 100.0 }
-fn default_max_memory_mb() -> f64 { 10.0 }
+fn default_max_transpile_ms() -> f64 {
+    100.0
+}
+fn default_max_memory_mb() -> f64 {
+    10.0
+}
 
 impl Default for PerformanceBudget {
     fn default() -> Self {

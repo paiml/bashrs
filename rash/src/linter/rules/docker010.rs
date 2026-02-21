@@ -69,10 +69,9 @@ mod tests {
     fn test_DOCKER010_COV_001_healthcheck_none_triggers_info() {
         let dockerfile = "FROM ubuntu:22.04\nHEALTHCHECK NONE\nCMD echo hello";
         let result = check(dockerfile);
-        assert!(result
-            .diagnostics
-            .iter()
-            .any(|d| d.message.contains("HEALTHCHECK NONE disables health monitoring")));
+        assert!(result.diagnostics.iter().any(|d| d
+            .message
+            .contains("HEALTHCHECK NONE disables health monitoring")));
     }
 
     #[test]

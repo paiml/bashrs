@@ -51,7 +51,10 @@ fn write_human<W: Write>(
     use crate::cli::color::*;
 
     if result.diagnostics.is_empty() {
-        writeln!(writer, "{GREEN}✓ No issues found in {CYAN}{file_path}{RESET}")?;
+        writeln!(
+            writer,
+            "{GREEN}✓ No issues found in {CYAN}{file_path}{RESET}"
+        )?;
         return Ok(());
     }
 
@@ -67,7 +70,11 @@ fn write_human<W: Write>(
             Severity::Note => ("→", DIM),
         };
 
-        writeln!(writer, "{color}{icon}{RESET} {DIM}{}{RESET} {color}{}{RESET}", diag.span, diag)?;
+        writeln!(
+            writer,
+            "{color}{icon}{RESET} {DIM}{}{RESET} {color}{}{RESET}",
+            diag.span, diag
+        )?;
 
         if let Some(ref fix) = diag.fix {
             writeln!(writer, "  {GREEN}Fix:{RESET} {}", fix.replacement)?;

@@ -82,8 +82,12 @@ fn wrap_shell_in_makefile(shell: &str) -> Result<String> {
     for line in shell.lines() {
         let trimmed = line.trim();
         // Skip shebang and shell config lines
-        if trimmed.starts_with("#!") || trimmed.starts_with("set -") { continue; }
-        if trimmed.is_empty() { continue; }
+        if trimmed.starts_with("#!") || trimmed.starts_with("set -") {
+            continue;
+        }
+        if trimmed.is_empty() {
+            continue;
+        }
         out.push('\t');
         out.push_str(trimmed);
         out.push('\n');

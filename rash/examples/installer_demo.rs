@@ -19,13 +19,13 @@ use tempfile::TempDir;
 
 /// ANSI color codes for output
 mod colors {
-    pub const RESET: &str = "\x1b[0m";
-    pub const BOLD: &str = "\x1b[1m";
-    pub const GREEN: &str = "\x1b[32m";
-    pub const BLUE: &str = "\x1b[34m";
-    pub const YELLOW: &str = "\x1b[33m";
-    pub const CYAN: &str = "\x1b[36m";
-    pub const RED: &str = "\x1b[31m";
+    pub(crate) const RESET: &str = "\x1b[0m";
+    pub(crate) const BOLD: &str = "\x1b[1m";
+    pub(crate) const GREEN: &str = "\x1b[32m";
+    pub(crate) const BLUE: &str = "\x1b[34m";
+    pub(crate) const YELLOW: &str = "\x1b[33m";
+    pub(crate) const CYAN: &str = "\x1b[36m";
+    pub(crate) const RED: &str = "\x1b[31m";
 }
 
 fn print_header(text: &str) {

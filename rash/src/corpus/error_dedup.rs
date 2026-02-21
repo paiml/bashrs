@@ -158,7 +158,10 @@ fn default_signal_risk(signals: &[String]) -> RiskLevel {
     if signals.iter().any(|s| s.starts_with("A_")) {
         return RiskLevel::High;
     }
-    if signals.iter().any(|s| s.starts_with("B1_") || s.starts_with("B2_")) {
+    if signals
+        .iter()
+        .any(|s| s.starts_with("B1_") || s.starts_with("B2_"))
+    {
         return RiskLevel::Low;
     }
     RiskLevel::Medium
@@ -256,7 +259,10 @@ fn evaluate_rules(signals: &[String], error_msg: &str) -> [bool; 5] {
 }
 
 /// Count how many entries each labeling rule matches.
-pub fn count_rule_matches(registry: &CorpusRegistry, runner: &CorpusRunner) -> Vec<(LabelingRule, usize)> {
+pub fn count_rule_matches(
+    registry: &CorpusRegistry,
+    runner: &CorpusRunner,
+) -> Vec<(LabelingRule, usize)> {
     let rules = labeling_rules();
     let mut counts = [0usize; 5];
 
@@ -357,7 +363,10 @@ mod tests {
     #[test]
     fn test_classify_risk_quoting() {
         let signals = vec!["D_lint_fail".to_string()];
-        assert_eq!(classify_risk(&signals, "SC2086 unquoted var"), RiskLevel::Medium);
+        assert_eq!(
+            classify_risk(&signals, "SC2086 unquoted var"),
+            RiskLevel::Medium
+        );
     }
 
     #[test]
@@ -388,17 +397,20 @@ mod tests {
     fn test_labeling_rules_names() {
         let rules = labeling_rules();
         let names: Vec<&str> = rules.iter().map(|r| r.name).collect();
-        assert_eq!(names, vec!["SEC_RULE", "B3_FAIL", "G_FAIL", "QUOTING", "LINT_ONLY"]);
+        assert_eq!(
+            names,
+            vec!["SEC_RULE", "B3_FAIL", "G_FAIL", "QUOTING", "LINT_ONLY"]
+        );
     }
 
     #[test]
     fn test_labeling_rules_risk_levels() {
         let rules = labeling_rules();
-        assert_eq!(rules[0].risk, RiskLevel::High);   // SEC_RULE
-        assert_eq!(rules[1].risk, RiskLevel::High);   // B3_FAIL
-        assert_eq!(rules[2].risk, RiskLevel::Medium);  // G_FAIL
-        assert_eq!(rules[3].risk, RiskLevel::Medium);  // QUOTING
-        assert_eq!(rules[4].risk, RiskLevel::Low);     // LINT_ONLY
+        assert_eq!(rules[0].risk, RiskLevel::High); // SEC_RULE
+        assert_eq!(rules[1].risk, RiskLevel::High); // B3_FAIL
+        assert_eq!(rules[2].risk, RiskLevel::Medium); // G_FAIL
+        assert_eq!(rules[3].risk, RiskLevel::Medium); // QUOTING
+        assert_eq!(rules[4].risk, RiskLevel::Low); // LINT_ONLY
     }
 
     #[test]

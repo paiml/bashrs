@@ -659,10 +659,7 @@ mod tests {
         let pipeline = create_test_pipeline();
         // Quote-escape + semicolon IS injection (breaks out of quotes)
         let result = pipeline.validate_string_literal("value'; rm -rf /");
-        assert!(
-            result.is_err(),
-            "Quote-escape semicolon should be flagged"
-        );
+        assert!(result.is_err(), "Quote-escape semicolon should be flagged");
     }
 
     #[test]

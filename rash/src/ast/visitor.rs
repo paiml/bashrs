@@ -124,21 +124,21 @@ mod tests {
     }
 
     impl Visitor<()> for CountingVisitor {
-        fn visit_ast(&mut self, ast: &RestrictedAst) -> () {
+        fn visit_ast(&mut self, ast: &RestrictedAst) {
             self.count += 1;
             for func in &ast.functions {
                 self.visit_function(func);
             }
         }
 
-        fn visit_function(&mut self, function: &Function) -> () {
+        fn visit_function(&mut self, function: &Function) {
             self.count += 1;
             for stmt in &function.body {
                 self.visit_stmt(stmt);
             }
         }
 
-        fn visit_stmt(&mut self, stmt: &Stmt) -> () {
+        fn visit_stmt(&mut self, stmt: &Stmt) {
             self.count += 1;
             match stmt {
                 Stmt::Let { value, .. } => self.visit_expr(value),
@@ -148,7 +148,7 @@ mod tests {
             }
         }
 
-        fn visit_expr(&mut self, _expr: &Expr) -> () {
+        fn visit_expr(&mut self, _expr: &Expr) {
             self.count += 1;
         }
     }

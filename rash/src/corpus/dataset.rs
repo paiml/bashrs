@@ -62,10 +62,7 @@ pub struct DatasetInfo {
 }
 
 /// Build dataset rows from corpus entries and results
-pub fn build_dataset(
-    registry: &CorpusRegistry,
-    score: &CorpusScore,
-) -> Vec<DatasetRow> {
+pub fn build_dataset(registry: &CorpusRegistry, score: &CorpusScore) -> Vec<DatasetRow> {
     let version = env!("CARGO_PKG_VERSION").to_string();
     let date = current_date();
     let commit = current_commit();
@@ -188,7 +185,11 @@ fn csv_escape(s: &str) -> String {
 /// Get dataset info (schema and metadata)
 pub fn dataset_info(registry: &CorpusRegistry) -> DatasetInfo {
     let mut format_counts: Vec<(String, usize)> = Vec::new();
-    for fmt in &[CorpusFormat::Bash, CorpusFormat::Makefile, CorpusFormat::Dockerfile] {
+    for fmt in &[
+        CorpusFormat::Bash,
+        CorpusFormat::Makefile,
+        CorpusFormat::Dockerfile,
+    ] {
         let count = registry.entries.iter().filter(|e| e.format == *fmt).count();
         format_counts.push((fmt.to_string(), count));
     }
@@ -229,7 +230,10 @@ pub fn format_dataset_info(info: &DatasetInfo) -> String {
     let mut out = String::new();
     let line = "\u{2500}".repeat(64);
 
-    out.push_str(&format!("bashrs v{} \u{2014} {}\n\n", info.bashrs_version, info.date));
+    out.push_str(&format!(
+        "bashrs v{} \u{2014} {}\n\n",
+        info.bashrs_version, info.date
+    ));
 
     out.push_str(&format!("Corpus: {} entries\n", info.total_entries));
     for (fmt, count) in &info.format_counts {
@@ -237,7 +241,10 @@ pub fn format_dataset_info(info: &DatasetInfo) -> String {
     }
 
     out.push_str(&format!("\nDataset Schema (\u{00a7}10.3):\n{}\n", line));
-    out.push_str(&format!("{:<18} {:<10} {}\n", "Field", "Type", "Description"));
+    out.push_str(&format!(
+        "{:<18} {:<10} {}\n",
+        "Field", "Type", "Description"
+    ));
     out.push_str(&format!("{}\n", line));
     for (name, dtype, desc) in &info.schema_fields {
         out.push_str(&format!("{:<18} {:<10} {}\n", name, dtype, desc));
@@ -294,10 +301,20 @@ pub fn format_publish_checks(checks: &[PublishCheck]) -> String {
     let mut out = String::new();
     let line = "\u{2500}".repeat(56);
 
-    out.push_str(&format!("{}\n{:<36} {:<10} {}\n{}\n", line, "Check", "Status", "Value", line));
+    out.push_str(&format!(
+        "{}\n{:<36} {:<10} {}\n{}\n",
+        line, "Check", "Status", "Value", line
+    ));
     for check in checks {
-        let status = if check.passed { "\u{2713} PASS" } else { "\u{2717} FAIL" };
-        out.push_str(&format!("{:<36} {:<10} {}\n", check.name, status, check.value));
+        let status = if check.passed {
+            "\u{2713} PASS"
+        } else {
+            "\u{2717} FAIL"
+        };
+        out.push_str(&format!(
+            "{:<36} {:<10} {}\n",
+            check.name, status, check.value
+        ));
     }
     out.push_str(&format!("{}\n", line));
 
@@ -306,7 +323,10 @@ pub fn format_publish_checks(checks: &[PublishCheck]) -> String {
         out.push_str("\nReady to publish to Hugging Face.\n");
     } else {
         let failed = checks.iter().filter(|c| !c.passed).count();
-        out.push_str(&format!("\n{} check(s) failed. Fix before publishing.\n", failed));
+        out.push_str(&format!(
+            "\n{} check(s) failed. Fix before publishing.\n",
+            failed
+        ));
     }
 
     out
@@ -375,7 +395,7 @@ fn days_to_ymd(total_days: u64) -> (u64, u64, u64) {
 }
 
 fn is_leap_year(y: u64) -> bool {
-    (y % 4 == 0 && y % 100 != 0) || y % 400 == 0
+    (y.is_multiple_of(4) && !y.is_multiple_of(100)) || y.is_multiple_of(400)
 }
 
 fn current_commit() -> String {
@@ -591,9 +611,7 @@ mod tests {
 
     #[test]
     fn test_format_dataset_info() {
-        let entries = vec![
-            make_entry("B-001", CorpusFormat::Bash),
-        ];
+        let entries = vec![make_entry("B-001", CorpusFormat::Bash)];
         let registry = CorpusRegistry {
             entries,
             ..Default::default()
@@ -670,13 +688,11 @@ mod tests {
 
     #[test]
     fn test_format_publish_checks() {
-        let checks = vec![
-            PublishCheck {
-                name: "Test check",
-                passed: true,
-                value: "ok".to_string(),
-            },
-        ];
+        let checks = vec![PublishCheck {
+            name: "Test check",
+            passed: true,
+            value: "ok".to_string(),
+        }];
         let table = format_publish_checks(&checks);
         assert!(table.contains("Test check"));
         assert!(table.contains("PASS"));
@@ -685,13 +701,11 @@ mod tests {
 
     #[test]
     fn test_format_publish_checks_failure() {
-        let checks = vec![
-            PublishCheck {
-                name: "Failing check",
-                passed: false,
-                value: "bad".to_string(),
-            },
-        ];
+        let checks = vec![PublishCheck {
+            name: "Failing check",
+            passed: false,
+            value: "bad".to_string(),
+        }];
         let table = format_publish_checks(&checks);
         assert!(table.contains("FAIL"));
         assert!(table.contains("check(s) failed"));

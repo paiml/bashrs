@@ -140,18 +140,11 @@ impl RuleId {
                 RuleId::Security,
                 RuleId::MakefileSafety,
             ],
-            ArtifactKind::Dockerfile => vec![
-                RuleId::Security,
-                RuleId::DockerfileBest,
-            ],
-            ArtifactKind::ShellConfig => vec![
-                RuleId::Security,
-                RuleId::Quoting,
-                RuleId::ConfigHygiene,
-            ],
-            ArtifactKind::Workflow => vec![
-                RuleId::Security,
-            ],
+            ArtifactKind::Dockerfile => vec![RuleId::Security, RuleId::DockerfileBest],
+            ArtifactKind::ShellConfig => {
+                vec![RuleId::Security, RuleId::Quoting, RuleId::ConfigHygiene]
+            }
+            ArtifactKind::Workflow => vec![RuleId::Security],
             ArtifactKind::DevContainer => vec![],
         }
     }
@@ -435,7 +428,10 @@ fn check_idempotency_line(trimmed: &str, line_num: usize, violations: &mut Vec<V
 /// Check if trimmed line starts with or chains a given command
 fn is_cmd(trimmed: &str, cmd: &str) -> bool {
     trimmed.starts_with(cmd)
-        && trimmed.as_bytes().get(cmd.len()).map_or(false, |&b| b == b' ' || b == b'\t')
+        && trimmed
+            .as_bytes()
+            .get(cmd.len())
+            .is_some_and(|&b| b == b' ' || b == b'\t')
         || trimmed.contains(&format!("&& {} ", cmd))
 }
 
@@ -472,8 +468,14 @@ fn is_append_to_config(trimmed: &str) -> bool {
     }
     // Only flag appends to common config files
     let config_patterns = [
-        ".bashrc", ".bash_profile", ".profile", ".zshrc", "/etc/profile",
-        "/etc/environment", ".env", "crontab",
+        ".bashrc",
+        ".bash_profile",
+        ".profile",
+        ".zshrc",
+        "/etc/profile",
+        "/etc/environment",
+        ".env",
+        "crontab",
     ];
     config_patterns.iter().any(|p| trimmed.contains(p))
         && !trimmed.contains("grep -q")
@@ -620,9 +622,8 @@ fn is_sudo_danger(trimmed: &str) -> bool {
         || trimmed.contains("chmod -R")
         || trimmed.contains("chown -R");
     // Unquoted variable: space followed by $ then alpha (not in quotes)
-    let has_unquoted_var = trimmed.contains(" $")
-        && !trimmed.contains(" \"$")
-        && !trimmed.contains(" '");
+    let has_unquoted_var =
+        trimmed.contains(" $") && !trimmed.contains(" \"$") && !trimmed.contains(" '");
     has_dangerous && has_unquoted_var
 }
 
@@ -810,8 +811,7 @@ fn check_posix_line(trimmed: &str, i: usize, violations: &mut Vec<Violation>) {
         violations.push(Violation {
             rule: RuleId::Posix,
             line: Some(i + 1),
-            message: "Bash-specific: <<< here-string (use echo | or heredoc for POSIX)"
-                .to_string(),
+            message: "Bash-specific: <<< here-string (use echo | or heredoc for POSIX)".to_string(),
         });
     }
 
@@ -1088,7 +1088,9 @@ fn is_read_without_r(trimmed: &str) -> bool {
         trimmed
     };
     // Check if -r is present (as a flag, not part of a variable name)
-    !read_part.split_whitespace().any(|w| w == "-r" || w.starts_with("-r") && w.len() > 2 && w.as_bytes()[2] != b' ')
+    !read_part
+        .split_whitespace()
+        .any(|w| w == "-r" || w.starts_with("-r") && w.len() > 2 && w.as_bytes()[2] != b' ')
 }
 
 /// SC2181: if [ $? ... ] pattern
@@ -1108,9 +1110,7 @@ fn is_bare_glob(trimmed: &str) -> bool {
         if let Some(pos) = trimmed.find(" in ") {
             let after_in = trimmed[pos + 4..].trim_start();
             // Bare * followed by ; or end-of-line
-            return after_in.starts_with("*;")
-                || after_in.starts_with("* ;")
-                || after_in == "*";
+            return after_in.starts_with("*;") || after_in.starts_with("* ;") || after_in == "*";
         }
     }
     false
@@ -1167,8 +1167,7 @@ fn check_makefile_recipe(trimmed: &str, line_num: usize, violations: &mut Vec<Vi
         violations.push(Violation {
             rule: RuleId::MakefileSafety,
             line: Some(line_num),
-            message: "MAKE002: Use $(MAKE) instead of bare make for recursive calls"
-                .to_string(),
+            message: "MAKE002: Use $(MAKE) instead of bare make for recursive calls".to_string(),
         });
     }
 
@@ -1186,9 +1185,8 @@ fn check_makefile_recipe(trimmed: &str, line_num: usize, violations: &mut Vec<Vi
 fn is_recursive_make_bare(trimmed: &str) -> bool {
     // Match: starts with make, or has `&& make`, `; make`, `|| make`
     let starts_bare = trimmed.starts_with("make ") || trimmed == "make";
-    let has_chained = trimmed.contains("&& make ")
-        || trimmed.contains("; make ")
-        || trimmed.contains("|| make ");
+    let has_chained =
+        trimmed.contains("&& make ") || trimmed.contains("; make ") || trimmed.contains("|| make ");
     // Exclude $(MAKE) and ${MAKE} and @make (suppressed)
     let is_variable = trimmed.contains("$(MAKE)") || trimmed.contains("${MAKE}");
     (starts_bare || has_chained) && !is_variable
@@ -1234,8 +1232,8 @@ fn extract_target_name(line: &str) -> Option<String> {
 
 /// Common targets that should always have .PHONY
 const COMMON_PHONY_TARGETS: &[&str] = &[
-    "all", "clean", "test", "build", "install", "check", "lint", "format",
-    "help", "dist", "release", "deploy", "coverage", "bench",
+    "all", "clean", "test", "build", "install", "check", "lint", "format", "help", "dist",
+    "release", "deploy", "coverage", "bench",
 ];
 
 fn check_missing_phony(
@@ -1288,9 +1286,7 @@ fn check_dockerfile_best(content: &str) -> RuleResult {
 
 fn check_dockerfile_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
     // DOCKER008: ADD instead of COPY for local files
-    if trimmed.starts_with("ADD ")
-        && !trimmed.contains("http://")
-        && !trimmed.contains("https://")
+    if trimmed.starts_with("ADD ") && !trimmed.contains("http://") && !trimmed.contains("https://")
     {
         violations.push(Violation {
             rule: RuleId::DockerfileBest,
@@ -1304,8 +1300,7 @@ fn check_dockerfile_line(trimmed: &str, line_num: usize, violations: &mut Vec<Vi
         violations.push(Violation {
             rule: RuleId::DockerfileBest,
             line: Some(line_num),
-            message: "DOCKER001: Pin base image version (avoid untagged or :latest)"
-                .to_string(),
+            message: "DOCKER001: Pin base image version (avoid untagged or :latest)".to_string(),
         });
     }
 

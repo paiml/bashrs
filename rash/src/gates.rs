@@ -370,7 +370,7 @@ mod tests {
             patterns: vec!["TODO".to_string(), "FIXME".to_string()],
         };
         let cloned = gate.clone();
-        assert_eq!(cloned.enabled, true);
+        assert!(cloned.enabled);
         assert_eq!(cloned.max_count, 5);
         assert_eq!(cloned.patterns.len(), 2);
     }
@@ -382,7 +382,7 @@ mod tests {
             min_score: 90.0,
         };
         let cloned = gate.clone();
-        assert_eq!(cloned.enabled, true);
+        assert!(cloned.enabled);
         assert_eq!(cloned.min_score, 90.0);
     }
 
@@ -393,7 +393,7 @@ mod tests {
             max_unsafe_blocks: 3,
         };
         let cloned = gate.clone();
-        assert_eq!(cloned.enabled, true);
+        assert!(cloned.enabled);
         assert_eq!(cloned.max_unsafe_blocks, 3);
     }
 

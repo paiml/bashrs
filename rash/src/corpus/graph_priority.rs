@@ -65,9 +65,7 @@ pub fn build_connectivity(
     let mut map: BTreeMap<String, BTreeSet<String>> = BTreeMap::new();
     for (entry_id, _passed, locations) in coverage_data {
         for loc in locations {
-            map.entry(loc.clone())
-                .or_default()
-                .insert(entry_id.clone());
+            map.entry(loc.clone()).or_default().insert(entry_id.clone());
         }
     }
     map
@@ -86,9 +84,7 @@ pub fn compute_graph_priorities(
     let mut priorities: Vec<GraphPriority> = rankings
         .iter()
         .map(|r| {
-            let usage_count = connectivity
-                .get(&r.location)
-                .map_or(0, |s| s.len());
+            let usage_count = connectivity.get(&r.location).map_or(0, |s| s.len());
             let entry_ids: Vec<String> = connectivity
                 .get(&r.location)
                 .map(|s| {
@@ -203,10 +199,7 @@ mod tests {
         assert_eq!(conn.get("ir_dispatch:Assignment").unwrap().len(), 3);
         assert_eq!(conn.get("value_emit:string").unwrap().len(), 1);
         assert_eq!(conn.get("ir_dispatch:If").unwrap().len(), 1);
-        assert_eq!(
-            conn.get("assignment_value:bool_literal").unwrap().len(),
-            1
-        );
+        assert_eq!(conn.get("assignment_value:bool_literal").unwrap().len(), 1);
     }
 
     #[test]

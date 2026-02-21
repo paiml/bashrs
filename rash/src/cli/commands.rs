@@ -2,12 +2,11 @@
 use crate::cli::args::ExplainErrorFormat;
 use crate::cli::args::{
     AuditOutputFormat, CompileRuntime, ComplyCommands, ComplyFormat, ComplyScopeArg,
-    ComplyTrackCommands, ConfigCommands, ConfigOutputFormat, ContainerFormatArg,
-    CorpusCommands, CorpusFormatArg, CorpusOutputFormat, DatasetExportFormat, DevContainerCommands,
-    DockerfileCommands, InspectionFormat, InstallerCommands, InstallerGraphFormat,
-    KeyringCommands, LintFormat, LintLevel, LintProfileArg, MakeCommands, MakeOutputFormat,
-    MutateFormat, PlaybookFormat, ReportFormat, ScoreOutputFormat, SimulateFormat,
-    TestOutputFormat,
+    ComplyTrackCommands, ConfigCommands, ConfigOutputFormat, ContainerFormatArg, CorpusCommands,
+    CorpusFormatArg, CorpusOutputFormat, DatasetExportFormat, DevContainerCommands,
+    DockerfileCommands, InspectionFormat, InstallerCommands, InstallerGraphFormat, KeyringCommands,
+    LintFormat, LintLevel, LintProfileArg, MakeCommands, MakeOutputFormat, MutateFormat,
+    PlaybookFormat, ReportFormat, ScoreOutputFormat, SimulateFormat, TestOutputFormat,
 };
 #[cfg(feature = "oracle")]
 use crate::cli::logic::extract_exit_code;
@@ -649,8 +648,8 @@ fn build_command(input: &Path, output: &Path, config: Config) -> Result<()> {
     let source = fs::read_to_string(input).map_err(Error::Io)?;
 
     // Transpile (wrap errors with source context)
-    let shell_code = transpile(&source, config.clone())
-        .map_err(|e| with_context(e, input, &source))?;
+    let shell_code =
+        transpile(&source, config.clone()).map_err(|e| with_context(e, input, &source))?;
 
     // Write output
     fs::write(output, shell_code).map_err(Error::Io)?;
@@ -1459,12 +1458,21 @@ fn purify_command(
     let parse_start = Instant::now();
     let file_str = input.display().to_string();
     let mut parser = BashParser::new(&source).map_err(|e| {
-        let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, &source, Some(&file_str));
-        Error::CommandFailed { message: format!("{diag}") }
+        let diag =
+            crate::bash_parser::parser::format_parse_diagnostic(&e, &source, Some(&file_str));
+        Error::CommandFailed {
+            message: format!("{diag}"),
+        }
     })?;
     let ast = parser.parse().map_err(|e| {
-        let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, parser.source(), Some(&file_str));
-        Error::CommandFailed { message: format!("{diag}") }
+        let diag = crate::bash_parser::parser::format_parse_diagnostic(
+            &e,
+            parser.source(),
+            Some(&file_str),
+        );
+        Error::CommandFailed {
+            message: format!("{diag}"),
+        }
     })?;
     let parse_time = parse_start.elapsed();
 
@@ -1479,7 +1487,8 @@ fn purify_command(
         ..PurificationOptions::default()
     };
     let mut purifier = Purifier::new(opts);
-    let purified_ast = purifier.purify(&ast)
+    let purified_ast = purifier
+        .purify(&ast)
         .map_err(|e| Error::Internal(format!("Failed to purify bash: {e}")))?;
     let purify_time = purify_start.elapsed();
 
@@ -1496,13 +1505,12 @@ fn purify_command(
     let codegen_time = codegen_start.elapsed();
 
     if do_type_check {
-        let has_errors = purify_emit_type_diagnostics(
-            input,
-            &purifier.report().type_diagnostics,
-            type_strict,
-        );
+        let has_errors =
+            purify_emit_type_diagnostics(input, &purifier.report().type_diagnostics, type_strict);
         if has_errors {
-            return Err(Error::Validation("type checking failed with --type-strict".to_string()));
+            return Err(Error::Validation(
+                "type checking failed with --type-strict".to_string(),
+            ));
         }
     }
 
@@ -1518,7 +1526,18 @@ fn purify_command(
     let total_time = start.elapsed();
 
     if report {
-        purify_print_report(input, output, &source, &purified_bash, read_time, parse_time, purify_time, codegen_time, write_time, total_time);
+        purify_print_report(
+            input,
+            output,
+            &source,
+            &purified_bash,
+            read_time,
+            parse_time,
+            purify_time,
+            codegen_time,
+            write_time,
+            total_time,
+        );
     }
 
     if with_tests {
@@ -1529,10 +1548,16 @@ fn purify_command(
 }
 
 fn purify_print_report(
-    input: &Path, output: Option<&Path>, source: &str, purified_bash: &str,
-    read_time: std::time::Duration, parse_time: std::time::Duration,
-    purify_time: std::time::Duration, codegen_time: std::time::Duration,
-    write_time: std::time::Duration, total_time: std::time::Duration,
+    input: &Path,
+    output: Option<&Path>,
+    source: &str,
+    purified_bash: &str,
+    read_time: std::time::Duration,
+    parse_time: std::time::Duration,
+    purify_time: std::time::Duration,
+    codegen_time: std::time::Duration,
+    write_time: std::time::Duration,
+    total_time: std::time::Duration,
 ) {
     use crate::cli::color::*;
 
@@ -1543,8 +1568,16 @@ fn purify_print_report(
         println!("Output: {CYAN}{}{RESET}", output_path.display());
     }
     println!();
-    println!("Input size:  {WHITE}{} lines{RESET}, {} bytes", source.lines().count(), source.len());
-    println!("Output size: {WHITE}{} lines{RESET}, {} bytes", purified_bash.lines().count(), purified_bash.len());
+    println!(
+        "Input size:  {WHITE}{} lines{RESET}, {} bytes",
+        source.lines().count(),
+        source.len()
+    );
+    println!(
+        "Output size: {WHITE}{} lines{RESET}, {} bytes",
+        purified_bash.lines().count(),
+        purified_bash.len()
+    );
 
     println!();
     println!("{BOLD}Transformations Applied:{RESET}");
@@ -1568,7 +1601,12 @@ fn purify_print_report(
     println!("Throughput: {WHITE}{:.2} MB/s{RESET}", throughput);
 }
 
-fn purify_generate_tests(output: Option<&Path>, purified_bash: &str, property_tests: bool, report: bool) -> Result<()> {
+fn purify_generate_tests(
+    output: Option<&Path>,
+    purified_bash: &str,
+    property_tests: bool,
+    report: bool,
+) -> Result<()> {
     use crate::bash_transpiler::test_generator::{TestGenerator, TestGeneratorOptions};
 
     let output_path = output.ok_or_else(|| {
@@ -1577,12 +1615,20 @@ fn purify_generate_tests(output: Option<&Path>, purified_bash: &str, property_te
 
     let test_file_name = format!(
         "{}_test.sh",
-        output_path.file_stem().and_then(|s| s.to_str())
+        output_path
+            .file_stem()
+            .and_then(|s| s.to_str())
             .ok_or_else(|| Error::Internal("Invalid output file name".to_string()))?
     );
-    let test_path = output_path.parent().unwrap_or_else(|| Path::new(".")).join(&test_file_name);
+    let test_path = output_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."))
+        .join(&test_file_name);
 
-    let test_options = TestGeneratorOptions { property_tests, property_test_count: 100 };
+    let test_options = TestGeneratorOptions {
+        property_tests,
+        property_test_count: 100,
+    };
     let generator = TestGenerator::new(test_options);
     let tests = generator.generate_tests(output_path, purified_bash);
 
@@ -1592,7 +1638,14 @@ fn purify_generate_tests(output: Option<&Path>, purified_bash: &str, property_te
     if report {
         println!("\nTest Suite:");
         println!("  Location: {}", test_path.display());
-        println!("  Property tests: {}", if property_tests { "Enabled (100 cases)" } else { "Disabled" });
+        println!(
+            "  Property tests: {}",
+            if property_tests {
+                "Enabled (100 cases)"
+            } else {
+                "Disabled"
+            }
+        );
     }
     Ok(())
 }
@@ -1777,12 +1830,20 @@ fn handle_dockerfile_command(command: DockerfileCommands) -> Result<()> {
 fn handle_devcontainer_command(command: DevContainerCommands) -> Result<()> {
     match command {
         DevContainerCommands::Validate {
-            path, format, lint_dockerfile, list_rules,
+            path,
+            format,
+            lint_dockerfile,
+            list_rules,
         } => devcontainer_validate(&path, format, lint_dockerfile, list_rules),
     }
 }
 
-fn devcontainer_validate(path: &Path, format: LintFormat, lint_dockerfile: bool, list_rules: bool) -> Result<()> {
+fn devcontainer_validate(
+    path: &Path,
+    format: LintFormat,
+    lint_dockerfile: bool,
+    list_rules: bool,
+) -> Result<()> {
     use crate::linter::output::{write_results, OutputFormat};
     use crate::linter::rules::devcontainer::{list_devcontainer_rules, validate_devcontainer};
 
@@ -1809,16 +1870,26 @@ fn devcontainer_validate(path: &Path, format: LintFormat, lint_dockerfile: bool,
     };
 
     let mut stdout = std::io::stdout();
-    write_results(&mut stdout, &result, output_format, devcontainer_path.to_str().unwrap_or("devcontainer.json"))
-        .map_err(Error::Io)?;
+    write_results(
+        &mut stdout,
+        &result,
+        output_format,
+        devcontainer_path.to_str().unwrap_or("devcontainer.json"),
+    )
+    .map_err(Error::Io)?;
 
     if lint_dockerfile {
         lint_referenced_dockerfile(&content, &devcontainer_path, format)?;
     }
 
-    let has_errors = result.diagnostics.iter().any(|d| d.severity == crate::linter::Severity::Error);
+    let has_errors = result
+        .diagnostics
+        .iter()
+        .any(|d| d.severity == crate::linter::Severity::Error);
     if has_errors {
-        Err(Error::Validation("devcontainer.json validation failed".to_string()))
+        Err(Error::Validation(
+            "devcontainer.json validation failed".to_string(),
+        ))
     } else {
         Ok(())
     }
@@ -1851,10 +1922,16 @@ fn lint_referenced_dockerfile(
         .join(dockerfile);
 
     if dockerfile_path.exists() {
-        info!("Linting referenced Dockerfile: {}", dockerfile_path.display());
+        info!(
+            "Linting referenced Dockerfile: {}",
+            dockerfile_path.display()
+        );
         dockerfile_lint_command(&dockerfile_path, format, None)?;
     } else {
-        warn!("Referenced Dockerfile not found: {}", dockerfile_path.display());
+        warn!(
+            "Referenced Dockerfile not found: {}",
+            dockerfile_path.display()
+        );
     }
 
     Ok(())
@@ -2082,9 +2159,7 @@ fn dockerfile_profile_command(
     full: bool,
     format: ReportFormat,
 ) -> Result<()> {
-    use crate::linter::docker_profiler::{
-        estimate_size, is_docker_available, PlatformProfile,
-    };
+    use crate::linter::docker_profiler::{estimate_size, is_docker_available, PlatformProfile};
 
     info!("Profiling {} for runtime performance", input.display());
 
@@ -2104,7 +2179,18 @@ fn dockerfile_profile_command(
 
     match format {
         ReportFormat::Human => {
-            docker_profile_human(input, &estimate, platform, build, layers, startup, memory, cpu, simulate_limits, full);
+            docker_profile_human(
+                input,
+                &estimate,
+                platform,
+                build,
+                layers,
+                startup,
+                memory,
+                cpu,
+                simulate_limits,
+                full,
+            );
         }
         ReportFormat::Json => docker_profile_json(input, &estimate, platform),
         ReportFormat::Markdown => docker_profile_markdown(input, &estimate),
@@ -2252,10 +2338,7 @@ fn docker_profile_json(
     );
 }
 
-fn docker_profile_markdown(
-    input: &Path,
-    estimate: &crate::linter::docker_profiler::SizeEstimate,
-) {
+fn docker_profile_markdown(input: &Path, estimate: &crate::linter::docker_profiler::SizeEstimate) {
     println!("# Docker Image Profile\n");
     println!("**File**: {}\n", input.display());
     println!("## Build Analysis\n");
@@ -2335,12 +2418,18 @@ fn dockerfile_size_check_command(
     let custom_limit = parse_size_limit(max_size);
 
     match format {
-        ReportFormat::Human => {
-            size_check_human_output(
-                &estimate, &platform, custom_limit, verbose, layers,
-                detect_bloat, verify, docker_verify, compression_analysis, strict,
-            )
-        }
+        ReportFormat::Human => size_check_human_output(
+            &estimate,
+            &platform,
+            custom_limit,
+            verbose,
+            layers,
+            detect_bloat,
+            verify,
+            docker_verify,
+            compression_analysis,
+            strict,
+        ),
         ReportFormat::Json => {
             println!("{}", format_size_estimate_json(&estimate));
             Ok(())
@@ -2356,9 +2445,17 @@ fn parse_size_limit(max_size: Option<&str>) -> Option<u64> {
     max_size.and_then(|s| {
         let s = s.to_uppercase();
         if s.ends_with("GB") {
-            s[..s.len() - 2].trim().parse::<f64>().ok().map(|n| (n * 1_000_000_000.0) as u64)
+            s[..s.len() - 2]
+                .trim()
+                .parse::<f64>()
+                .ok()
+                .map(|n| (n * 1_000_000_000.0) as u64)
         } else if s.ends_with("MB") {
-            s[..s.len() - 2].trim().parse::<f64>().ok().map(|n| (n * 1_000_000.0) as u64)
+            s[..s.len() - 2]
+                .trim()
+                .parse::<f64>()
+                .ok()
+                .map(|n| (n * 1_000_000.0) as u64)
         } else {
             None
         }
@@ -2384,7 +2481,10 @@ fn size_check_human_output(
     if detect_bloat && !estimate.bloat_patterns.is_empty() {
         println!("Bloat Detection Results:");
         for pattern in &estimate.bloat_patterns {
-            println!("  {} [line {}]: {}", pattern.code, pattern.line, pattern.description);
+            println!(
+                "  {} [line {}]: {}",
+                pattern.code, pattern.line, pattern.description
+            );
             println!("    Wasted: ~{}MB", pattern.wasted_bytes / 1_000_000);
             println!("    Fix: {}", pattern.remediation);
             println!();
@@ -2413,22 +2513,31 @@ fn size_check_limit_check(
     strict: bool,
 ) -> Result<()> {
     let effective_limit = custom_limit.unwrap_or(platform.max_size_bytes());
-    if effective_limit == u64::MAX { return Ok(()); }
+    if effective_limit == u64::MAX {
+        return Ok(());
+    }
 
     let limit_gb = effective_limit as f64 / 1_000_000_000.0;
     let estimated_gb = estimate.total_estimated as f64 / 1_000_000_000.0;
 
     println!("Size Limit Check:");
     if estimate.total_estimated > effective_limit {
-        println!("  \u{2717} EXCEEDS LIMIT: {:.2}GB > {:.0}GB", estimated_gb, limit_gb);
+        println!(
+            "  \u{2717} EXCEEDS LIMIT: {:.2}GB > {:.0}GB",
+            estimated_gb, limit_gb
+        );
         if strict {
             return Err(Error::Validation(format!(
-                "Image size ({:.2}GB) exceeds limit ({:.0}GB)", estimated_gb, limit_gb
+                "Image size ({:.2}GB) exceeds limit ({:.0}GB)",
+                estimated_gb, limit_gb
             )));
         }
     } else {
         let percentage = (estimate.total_estimated as f64 / effective_limit as f64) * 100.0;
-        println!("  \u{2713} Within limit: {:.2}GB / {:.0}GB ({:.0}%)", estimated_gb, limit_gb, percentage);
+        println!(
+            "  \u{2713} Within limit: {:.2}GB / {:.0}GB ({:.0}%)",
+            estimated_gb, limit_gb, percentage
+        );
     }
     println!();
     Ok(())
@@ -2442,12 +2551,18 @@ fn size_check_markdown_output(
     println!("**File**: {}\n", input.display());
     println!("## Summary\n");
     println!("- **Base image**: {}", estimate.base_image);
-    println!("- **Estimated total**: {:.2}GB\n", estimate.total_estimated as f64 / 1_000_000_000.0);
+    println!(
+        "- **Estimated total**: {:.2}GB\n",
+        estimate.total_estimated as f64 / 1_000_000_000.0
+    );
 
     if !estimate.bloat_patterns.is_empty() {
         println!("## Bloat Patterns\n");
         for pattern in &estimate.bloat_patterns {
-            println!("- **{}** (line {}): {}", pattern.code, pattern.line, pattern.description);
+            println!(
+                "- **{}** (line {}): {}",
+                pattern.code, pattern.line, pattern.description
+            );
         }
         println!();
     }
@@ -2462,8 +2577,8 @@ fn dockerfile_full_validate_command(
     strict: bool,
     format: ReportFormat,
 ) -> Result<()> {
-    use crate::linter::rules::LintProfile;
     use crate::linter::docker_profiler::PlatformProfile;
+    use crate::linter::rules::LintProfile;
 
     info!("Full validation of {}", input.display());
 
@@ -2481,11 +2596,14 @@ fn dockerfile_full_validate_command(
     };
 
     match format {
-        ReportFormat::Human => {
-            dockerfile_full_validate_human(
-                &source, lint_profile, platform_profile, size_check, runtime, strict,
-            )
-        }
+        ReportFormat::Human => dockerfile_full_validate_human(
+            &source,
+            lint_profile,
+            platform_profile,
+            size_check,
+            runtime,
+            strict,
+        ),
         ReportFormat::Json => {
             dockerfile_full_validate_json(input, &source, lint_profile, platform_profile);
             Ok(())
@@ -2511,11 +2629,15 @@ fn dockerfile_full_validate_human(
     let mut all_passed = true;
 
     let lint_passed = dockerfile_validate_lint_step(source, lint_profile);
-    if !lint_passed { all_passed = false; }
+    if !lint_passed {
+        all_passed = false;
+    }
 
     if size_check {
         let size_passed = dockerfile_validate_size_step(source, platform_profile);
-        if !size_passed { all_passed = false; }
+        if !size_passed {
+            all_passed = false;
+        }
     }
 
     if runtime {
@@ -2525,15 +2647,24 @@ fn dockerfile_full_validate_human(
     dockerfile_validate_summary(all_passed, lint_profile, strict)
 }
 
-fn dockerfile_validate_lint_step(source: &str, lint_profile: crate::linter::rules::LintProfile) -> bool {
+fn dockerfile_validate_lint_step(
+    source: &str,
+    lint_profile: crate::linter::rules::LintProfile,
+) -> bool {
     use crate::linter::rules::lint_dockerfile_with_profile;
 
     println!("1. Linting Dockerfile...");
     let lint_result = lint_dockerfile_with_profile(source, lint_profile);
-    let error_count = lint_result.diagnostics.iter()
-        .filter(|d| d.severity == crate::linter::Severity::Error).count();
-    let warning_count = lint_result.diagnostics.iter()
-        .filter(|d| d.severity == crate::linter::Severity::Warning).count();
+    let error_count = lint_result
+        .diagnostics
+        .iter()
+        .filter(|d| d.severity == crate::linter::Severity::Error)
+        .count();
+    let warning_count = lint_result
+        .diagnostics
+        .iter()
+        .filter(|d| d.severity == crate::linter::Severity::Warning)
+        .count();
 
     if error_count == 0 && warning_count == 0 {
         println!("   \u{2713} No lint issues found\n");
@@ -2547,13 +2678,19 @@ fn dockerfile_validate_lint_step(source: &str, lint_profile: crate::linter::rule
             crate::linter::Severity::Warning => "\u{26a0}",
             _ => "\u{2139}",
         };
-        println!("   {} [{}] Line {}: {}", icon, diag.code, diag.span.start_line, diag.message);
+        println!(
+            "   {} [{}] Line {}: {}",
+            icon, diag.code, diag.span.start_line, diag.message
+        );
     }
     println!();
     error_count == 0
 }
 
-fn dockerfile_validate_size_step(source: &str, platform_profile: crate::linter::docker_profiler::PlatformProfile) -> bool {
+fn dockerfile_validate_size_step(
+    source: &str,
+    platform_profile: crate::linter::docker_profiler::PlatformProfile,
+) -> bool {
     use crate::linter::docker_profiler::estimate_size;
 
     println!("2. Checking image size...");
@@ -2563,14 +2700,22 @@ fn dockerfile_validate_size_step(source: &str, platform_profile: crate::linter::
 
     let passed = estimate.total_estimated < platform_profile.max_size_bytes();
     if passed {
-        println!("   \u{2713} Size OK: {:.2}GB (limit: {:.0}GB)\n", size_gb, limit_gb);
+        println!(
+            "   \u{2713} Size OK: {:.2}GB (limit: {:.0}GB)\n",
+            size_gb, limit_gb
+        );
     } else {
-        println!("   \u{2717} Size exceeds limit: {:.2}GB > {:.0}GB\n", size_gb, limit_gb);
+        println!(
+            "   \u{2717} Size exceeds limit: {:.2}GB > {:.0}GB\n",
+            size_gb, limit_gb
+        );
     }
     for pattern in &estimate.bloat_patterns {
         println!("   - {}: {}", pattern.code, pattern.description);
     }
-    if !estimate.bloat_patterns.is_empty() { println!(); }
+    if !estimate.bloat_patterns.is_empty() {
+        println!();
+    }
     passed
 }
 
@@ -2585,7 +2730,11 @@ fn dockerfile_validate_runtime_step() {
     }
 }
 
-fn dockerfile_validate_summary(all_passed: bool, lint_profile: crate::linter::rules::LintProfile, strict: bool) -> Result<()> {
+fn dockerfile_validate_summary(
+    all_passed: bool,
+    lint_profile: crate::linter::rules::LintProfile,
+    strict: bool,
+) -> Result<()> {
     println!("Validation Result:");
     if all_passed {
         println!("\u{2713} All checks passed");
@@ -2639,7 +2788,10 @@ fn dockerfile_full_validate_json(
         },
         "passed": true
     });
-    println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&json).unwrap_or_default()
+    );
 }
 
 fn dockerfile_full_validate_markdown(
@@ -2655,20 +2807,30 @@ fn dockerfile_full_validate_markdown(
     println!("**File**: {}\n", input.display());
 
     let lint_result = lint_dockerfile_with_profile(source, lint_profile);
-    let error_count = lint_result.diagnostics.iter()
-        .filter(|d| d.severity == crate::linter::Severity::Error).count();
+    let error_count = lint_result
+        .diagnostics
+        .iter()
+        .filter(|d| d.severity == crate::linter::Severity::Error)
+        .count();
 
     println!("## Lint Results\n");
     println!("- **Errors**: {}", error_count);
-    println!("- **Warnings**: {}\n",
-        lint_result.diagnostics.iter()
-            .filter(|d| d.severity == crate::linter::Severity::Warning).count()
+    println!(
+        "- **Warnings**: {}\n",
+        lint_result
+            .diagnostics
+            .iter()
+            .filter(|d| d.severity == crate::linter::Severity::Warning)
+            .count()
     );
 
     if size_check {
         let estimate = estimate_size(source);
         println!("## Size Analysis\n");
-        println!("- **Estimated size**: {:.2}GB\n", estimate.total_estimated as f64 / 1_000_000_000.0);
+        println!(
+            "- **Estimated size**: {:.2}GB\n",
+            estimate.total_estimated as f64 / 1_000_000_000.0
+        );
     }
 
     println!("## Result\n");
@@ -2759,7 +2921,10 @@ fn make_purify_command(
     }
 
     let generator_options = MakefileGeneratorOptions {
-        preserve_formatting, max_line_length, skip_blank_line_removal, skip_consolidation,
+        preserve_formatting,
+        max_line_length,
+        skip_blank_line_removal,
+        skip_consolidation,
     };
     let purified = generate_purified_makefile_with_options(&purify_result.ast, &generator_options);
 
@@ -2774,7 +2939,12 @@ fn make_purify_command(
     Ok(())
 }
 
-fn make_purify_write_output(input: &Path, output: Option<&Path>, fix: bool, purified: &str) -> Result<()> {
+fn make_purify_write_output(
+    input: &Path,
+    output: Option<&Path>,
+    fix: bool,
+    purified: &str,
+) -> Result<()> {
     if let Some(output_path) = output {
         fs::write(output_path, purified).map_err(Error::Io)?;
         info!("Purified Makefile written to {}", output_path.display());
@@ -2790,7 +2960,11 @@ fn make_purify_write_output(input: &Path, output: Option<&Path>, fix: bool, puri
     Ok(())
 }
 
-fn make_purify_generate_tests(output_path: &Path, purified: &str, property_tests: bool) -> Result<()> {
+fn make_purify_generate_tests(
+    output_path: &Path,
+    purified: &str,
+    property_tests: bool,
+) -> Result<()> {
     use crate::make_parser::{MakefileTestGenerator, MakefileTestGeneratorOptions};
 
     let test_options = MakefileTestGeneratorOptions {
@@ -2800,7 +2974,8 @@ fn make_purify_generate_tests(output_path: &Path, purified: &str, property_tests
     let test_generator = MakefileTestGenerator::new(test_options);
     let test_suite = test_generator.generate_tests(output_path, purified);
 
-    let file_name = output_path.file_name()
+    let file_name = output_path
+        .file_name()
         .ok_or_else(|| Error::Internal("Invalid output path".to_string()))?
         .to_str()
         .ok_or_else(|| Error::Internal("Invalid UTF-8 in filename".to_string()))?;
@@ -3071,7 +3246,10 @@ fn config_analyze_command(input: &Path, format: ConfigOutputFormat) -> Result<()
 
 fn config_analyze_human(input: &Path, analysis: &crate::config::ConfigAnalysis) {
     println!("Analysis: {}", input.display());
-    println!("=========={}=", "=".repeat(input.display().to_string().len()));
+    println!(
+        "=========={}=",
+        "=".repeat(input.display().to_string().len())
+    );
     println!();
     println!("Statistics:");
     println!("  - Lines: {}", analysis.line_count);
@@ -3089,9 +3267,15 @@ fn config_analyze_human(input: &Path, analysis: &crate::config::ConfigAnalysis) 
     }
 
     if !analysis.performance_issues.is_empty() {
-        println!("Performance Issues ({}):", analysis.performance_issues.len());
+        println!(
+            "Performance Issues ({}):",
+            analysis.performance_issues.len()
+        );
         for issue in &analysis.performance_issues {
-            println!("  - Line {}: {} (~{}ms)", issue.line, issue.command, issue.estimated_cost_ms);
+            println!(
+                "  - Line {}: {} (~{}ms)",
+                issue.line, issue.command, issue.estimated_cost_ms
+            );
             println!("    Suggestion: {}", issue.suggestion);
         }
         println!();
@@ -3112,7 +3296,10 @@ fn config_analyze_human_issues(issues: &[crate::config::ConfigIssue]) {
             crate::config::Severity::Warning => "⚠",
             crate::config::Severity::Info => "ℹ",
         };
-        println!("  {} [{}] Line {}: {}", severity_marker, issue.rule_id, issue.line, issue.message);
+        println!(
+            "  {} [{}] Line {}: {}",
+            severity_marker, issue.rule_id, issue.line, issue.message
+        );
         if let Some(suggestion) = &issue.suggestion {
             println!("    → {}", suggestion);
         }
@@ -3125,10 +3312,17 @@ fn config_analyze_json(input: &Path, analysis: &crate::config::ConfigAnalysis) {
     println!("  \"line_count\": {},", analysis.line_count);
     println!("  \"complexity_score\": {},", analysis.complexity_score);
     println!("  \"path_entries\": {},", analysis.path_entries.len());
-    println!("  \"performance_issues\": {},", analysis.performance_issues.len());
+    println!(
+        "  \"performance_issues\": {},",
+        analysis.performance_issues.len()
+    );
     println!("  \"issues\": [");
     for (i, issue) in analysis.issues.iter().enumerate() {
-        let comma = if i < analysis.issues.len() - 1 { "," } else { "" };
+        let comma = if i < analysis.issues.len() - 1 {
+            ","
+        } else {
+            ""
+        };
         println!("    {{");
         println!("      \"rule_id\": \"{}\",", issue.rule_id);
         println!("      \"line\": {},", issue.line);
@@ -3541,9 +3735,16 @@ fn keyring_init_command(keyring_path: &Path, import: Vec<PathBuf>) -> Result<()>
             continue;
         }
         let content = std::fs::read_to_string(&key_path).map_err(|e| {
-            Error::Io(std::io::Error::new(e.kind(), format!("Failed to read key file: {}", e)))
+            Error::Io(std::io::Error::new(
+                e.kind(),
+                format!("Failed to read key file: {}", e),
+            ))
         })?;
-        let key_id = key_path.file_stem().and_then(|s| s.to_str()).unwrap_or("imported-key").to_string();
+        let key_id = key_path
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("imported-key")
+            .to_string();
         let public_key = parse_public_key(content.trim())?;
         let trusted_key = TrustedKey::new(&key_id, public_key);
         keyring.add_key(trusted_key)?;
@@ -3561,7 +3762,10 @@ fn keyring_add_command(keyring_path: &Path, key: &Path, id: &str) -> Result<()> 
 
     let mut keyring = Keyring::with_storage(keyring_path)?;
     let content = std::fs::read_to_string(key).map_err(|e| {
-        Error::Io(std::io::Error::new(e.kind(), format!("Failed to read key file: {}", e)))
+        Error::Io(std::io::Error::new(
+            e.kind(),
+            format!("Failed to read key file: {}", e),
+        ))
     })?;
 
     let public_key = parse_public_key(content.trim())?;
@@ -3610,7 +3814,11 @@ fn keyring_list_command(keyring_path: &Path) -> Result<()> {
 
     println!();
     println!("  Keyring path: {}", keyring_path.display());
-    let tofu_status = if keyring.is_tofu_enabled() { "enabled" } else { "disabled" };
+    let tofu_status = if keyring.is_tofu_enabled() {
+        "enabled"
+    } else {
+        "disabled"
+    };
     println!("  TOFU mode: {}", tofu_status);
 
     Ok(())
@@ -3810,8 +4018,7 @@ fn installer_run_command(
     }
 
     // Phase 6: Set up tracing context
-    let mut tracing_ctx =
-        installer_setup_tracing(trace, trace_file, path, &result, hermetic);
+    let mut tracing_ctx = installer_setup_tracing(trace, trace_file, path, &result, hermetic);
 
     // Phase 7: Render initial progress header
     let renderer = TerminalRenderer::new();
@@ -3979,10 +4186,7 @@ fn installer_setup_tracing(
         "installer.path",
         AttributeValue::string(path.display().to_string()),
     );
-    ctx.set_attribute(
-        "installer.steps",
-        AttributeValue::int(result.steps as i64),
-    );
+    ctx.set_attribute("installer.steps", AttributeValue::int(result.steps as i64));
     ctx.set_attribute("installer.hermetic", AttributeValue::bool(hermetic));
     println!("Tracing enabled");
     println!("  Trace ID: {}", ctx.trace_id());
@@ -4332,7 +4536,10 @@ fn installer_lock_command(path: &Path, update: bool, verify: bool) -> Result<()>
     } else if update {
         let existing = Lockfile::load(&lockfile_path)?;
         println!("Updating lockfile...");
-        println!("  Existing lockfile has {} artifacts", existing.artifacts.len());
+        println!(
+            "  Existing lockfile has {} artifacts",
+            existing.artifacts.len()
+        );
     }
 
     installer_lock_generate(path, &lockfile_path, &result)
@@ -4350,7 +4557,8 @@ fn installer_lock_verify(
             println!("\u{2713} No lockfile needed (no external artifacts)");
         } else {
             return Err(Error::Validation(format!(
-                "Lockfile required but not found. Run 'bashrs installer lock {}' first.", path.display()
+                "Lockfile required but not found. Run 'bashrs installer lock {}' first.",
+                path.display()
             )));
         }
         return Ok(());
@@ -4368,8 +4576,15 @@ fn installer_lock_verify(
 
     if lockfile.artifacts.len() != result.artifacts {
         println!("\u{26a0} Lockfile may be outdated:");
-        println!("    Lockfile has {} artifacts, spec has {}", lockfile.artifacts.len(), result.artifacts);
-        println!("    Run 'bashrs installer lock {} --update' to refresh", path.display());
+        println!(
+            "    Lockfile has {} artifacts, spec has {}",
+            lockfile.artifacts.len(),
+            result.artifacts
+        );
+        println!(
+            "    Run 'bashrs installer lock {} --update' to refresh",
+            path.display()
+        );
     } else {
         println!("\u{2713} Lockfile is valid and up-to-date");
     }
@@ -4401,7 +4616,10 @@ fn installer_lock_generate(
         lockfile.finalize();
         lockfile.save(lockfile_path)?;
         println!("  Created: {}", lockfile_path.display());
-        println!("  SOURCE_DATE_EPOCH: {}", lockfile.environment.source_date_epoch);
+        println!(
+            "  SOURCE_DATE_EPOCH: {}",
+            lockfile.environment.source_date_epoch
+        );
         return Ok(());
     }
 
@@ -4410,8 +4628,11 @@ fn installer_lock_generate(
 
     for i in 0..result.artifacts {
         let artifact = LockedArtifact::new(
-            &format!("artifact-{}", i + 1), "1.0.0",
-            "https://example.com/artifact.tar.gz", "sha256:placeholder", 0,
+            &format!("artifact-{}", i + 1),
+            "1.0.0",
+            "https://example.com/artifact.tar.gz",
+            "sha256:placeholder",
+            0,
         );
         lockfile.add_artifact(artifact);
     }
@@ -4423,10 +4644,16 @@ fn installer_lock_generate(
     println!("  Version: {}", LOCKFILE_VERSION);
     println!("  Content hash: {}", lockfile.content_hash);
     println!("  Artifacts locked: {}", lockfile.artifacts.len());
-    println!("  SOURCE_DATE_EPOCH: {}", lockfile.environment.source_date_epoch);
+    println!(
+        "  SOURCE_DATE_EPOCH: {}",
+        lockfile.environment.source_date_epoch
+    );
     println!();
     println!("Note: Run with real artifact URLs to generate proper hashes.");
-    println!("      Use 'bashrs installer run {} --hermetic' to execute.", path.display());
+    println!(
+        "      Use 'bashrs installer run {} --hermetic' to execute.",
+        path.display()
+    );
 
     Ok(())
 }
@@ -4849,8 +5076,18 @@ fn playbook_command(
     }
 
     match format {
-        PlaybookFormat::Human => playbook_human(input, &version, &machine_id, &initial_state, run, verbose, dry_run),
-        PlaybookFormat::Json => playbook_json(input, &version, &machine_id, &initial_state, run, dry_run),
+        PlaybookFormat::Human => playbook_human(
+            input,
+            &version,
+            &machine_id,
+            &initial_state,
+            run,
+            verbose,
+            dry_run,
+        ),
+        PlaybookFormat::Json => {
+            playbook_json(input, &version, &machine_id, &initial_state, run, dry_run)
+        }
         PlaybookFormat::Junit => playbook_junit(&machine_id),
     }
 
@@ -4865,11 +5102,23 @@ fn playbook_parse_yaml(content: &str) -> (String, String, String) {
     for line in content.lines() {
         let line = line.trim();
         if line.starts_with("version:") {
-            version = line.trim_start_matches("version:").trim().trim_matches('"').to_string();
+            version = line
+                .trim_start_matches("version:")
+                .trim()
+                .trim_matches('"')
+                .to_string();
         } else if line.starts_with("id:") {
-            machine_id = line.trim_start_matches("id:").trim().trim_matches('"').to_string();
+            machine_id = line
+                .trim_start_matches("id:")
+                .trim()
+                .trim_matches('"')
+                .to_string();
         } else if line.starts_with("initial:") {
-            initial_state = line.trim_start_matches("initial:").trim().trim_matches('"').to_string();
+            initial_state = line
+                .trim_start_matches("initial:")
+                .trim()
+                .trim_matches('"')
+                .to_string();
         }
     }
 
@@ -4877,8 +5126,13 @@ fn playbook_parse_yaml(content: &str) -> (String, String, String) {
 }
 
 fn playbook_human(
-    input: &Path, version: &str, machine_id: &str, initial_state: &str,
-    run: bool, verbose: bool, dry_run: bool,
+    input: &Path,
+    version: &str,
+    machine_id: &str,
+    initial_state: &str,
+    run: bool,
+    verbose: bool,
+    dry_run: bool,
 ) {
     println!("╔══════════════════════════════════════════════════════════════╗");
     println!("║                    PLAYBOOK EXECUTION                         ║");
@@ -4907,13 +5161,23 @@ fn playbook_human(
     }
 }
 
-fn playbook_json(input: &Path, version: &str, machine_id: &str, initial_state: &str, run: bool, dry_run: bool) {
+fn playbook_json(
+    input: &Path,
+    version: &str,
+    machine_id: &str,
+    initial_state: &str,
+    run: bool,
+    dry_run: bool,
+) {
     println!("{{");
     println!("  \"file\": \"{}\",", input.display());
     println!("  \"version\": \"{}\",", version);
     println!("  \"machine_id\": \"{}\",", machine_id);
     println!("  \"initial_state\": \"{}\",", initial_state);
-    println!("  \"mode\": \"{}\",", if run { "execute" } else { "validate" });
+    println!(
+        "  \"mode\": \"{}\",",
+        if run { "execute" } else { "validate" }
+    );
     println!("  \"dry_run\": {},", dry_run);
     println!("  \"status\": \"success\"");
     println!("}}");
@@ -4921,7 +5185,10 @@ fn playbook_json(input: &Path, version: &str, machine_id: &str, initial_state: &
 
 fn playbook_junit(machine_id: &str) {
     println!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-    println!("<testsuite name=\"{}\" tests=\"1\" failures=\"0\">", machine_id);
+    println!(
+        "<testsuite name=\"{}\" tests=\"1\" failures=\"0\">",
+        machine_id
+    );
     println!("  <testcase name=\"playbook_validation\" time=\"0.001\"/>");
     println!("</testsuite>");
 }
@@ -4954,7 +5221,17 @@ fn mutate_command(
     };
 
     match format {
-        MutateFormat::Human => mutate_human(input, config, mutants_generated, killed, survived, kill_rate, show_survivors, &mutant_locations, output),
+        MutateFormat::Human => mutate_human(
+            input,
+            config,
+            mutants_generated,
+            killed,
+            survived,
+            kill_rate,
+            show_survivors,
+            &mutant_locations,
+            output,
+        ),
         MutateFormat::Json => mutate_json(input, mutants_generated, killed, survived, kill_rate),
         MutateFormat::Csv => mutate_csv(input, mutants_generated, killed, survived, kill_rate),
     }
@@ -4990,9 +5267,15 @@ fn mutate_find_mutations(content: &str, count: usize) -> (usize, Vec<(usize, Str
 }
 
 fn mutate_human(
-    input: &Path, config: Option<&Path>,
-    mutants_generated: usize, killed: usize, survived: usize, kill_rate: f64,
-    show_survivors: bool, mutant_locations: &[(usize, String, String)], output: Option<&Path>,
+    input: &Path,
+    config: Option<&Path>,
+    mutants_generated: usize,
+    killed: usize,
+    survived: usize,
+    kill_rate: f64,
+    show_survivors: bool,
+    mutant_locations: &[(usize, String, String)],
+    output: Option<&Path>,
 ) {
     println!("╔══════════════════════════════════════════════════════════════╗");
     println!("║                    MUTATION TESTING                          ║");
@@ -5024,7 +5307,13 @@ fn mutate_human(
     }
 }
 
-fn mutate_json(input: &Path, mutants_generated: usize, killed: usize, survived: usize, kill_rate: f64) {
+fn mutate_json(
+    input: &Path,
+    mutants_generated: usize,
+    killed: usize,
+    survived: usize,
+    kill_rate: f64,
+) {
     println!("{{");
     println!("  \"script\": \"{}\",", input.display());
     println!("  \"mutants_generated\": {},", mutants_generated);
@@ -5035,9 +5324,23 @@ fn mutate_json(input: &Path, mutants_generated: usize, killed: usize, survived: 
     println!("}}");
 }
 
-fn mutate_csv(input: &Path, mutants_generated: usize, killed: usize, survived: usize, kill_rate: f64) {
+fn mutate_csv(
+    input: &Path,
+    mutants_generated: usize,
+    killed: usize,
+    survived: usize,
+    kill_rate: f64,
+) {
     println!("script,mutants,killed,survived,kill_rate,passed");
-    println!("{},{},{},{},{:.1},{}", input.display(), mutants_generated, killed, survived, kill_rate, kill_rate >= 90.0);
+    println!(
+        "{},{},{},{},{:.1},{}",
+        input.display(),
+        mutants_generated,
+        killed,
+        survived,
+        kill_rate,
+        kill_rate >= 90.0
+    );
 }
 
 /// Deterministic simulation replay
@@ -5062,8 +5365,25 @@ fn simulate_command(
     let is_deterministic = nondeterministic_count == 0;
 
     match format {
-        SimulateFormat::Human => simulate_human(input, seed, verify, mock_externals, trace, &lines, nondeterministic_count, is_deterministic),
-        SimulateFormat::Json => simulate_json(input, seed, verify, mock_externals, &lines, nondeterministic_count, is_deterministic),
+        SimulateFormat::Human => simulate_human(
+            input,
+            seed,
+            verify,
+            mock_externals,
+            trace,
+            &lines,
+            nondeterministic_count,
+            is_deterministic,
+        ),
+        SimulateFormat::Json => simulate_json(
+            input,
+            seed,
+            verify,
+            mock_externals,
+            &lines,
+            nondeterministic_count,
+            is_deterministic,
+        ),
         SimulateFormat::Trace => simulate_trace(input, seed, &lines, is_deterministic),
     }
 
@@ -5084,8 +5404,14 @@ fn simulate_count_nondet(lines: &[&str]) -> usize {
 }
 
 fn simulate_human(
-    input: &Path, seed: u64, verify: bool, mock_externals: bool, trace: bool,
-    lines: &[&str], nondeterministic_count: usize, is_deterministic: bool,
+    input: &Path,
+    seed: u64,
+    verify: bool,
+    mock_externals: bool,
+    trace: bool,
+    lines: &[&str],
+    nondeterministic_count: usize,
+    is_deterministic: bool,
 ) {
     println!("╔══════════════════════════════════════════════════════════════╗");
     println!("║                 DETERMINISTIC SIMULATION                      ║");
@@ -5093,7 +5419,10 @@ fn simulate_human(
     println!("║  Script: {:<52} ║", input.display());
     println!("║  Seed: {:<54} ║", seed);
     println!("║  Lines: {:<53} ║", lines.len());
-    println!("║  Non-deterministic patterns: {:<32} ║", nondeterministic_count);
+    println!(
+        "║  Non-deterministic patterns: {:<32} ║",
+        nondeterministic_count
+    );
     println!("╠══════════════════════════════════════════════════════════════╣");
     if mock_externals {
         println!("║  External commands: MOCKED                                  ║");
@@ -5105,7 +5434,10 @@ fn simulate_human(
     if is_deterministic {
         println!("║  ✓ DETERMINISTIC: Script produces identical output          ║");
     } else {
-        println!("║  ✗ NON-DETERMINISTIC: {} pattern(s) found              ║", nondeterministic_count);
+        println!(
+            "║  ✗ NON-DETERMINISTIC: {} pattern(s) found              ║",
+            nondeterministic_count
+        );
     }
     println!("╚══════════════════════════════════════════════════════════════╝");
     if trace {
@@ -5118,22 +5450,40 @@ fn simulate_print_trace(seed: u64, verify: bool, is_deterministic: bool) {
     println!("  1. Initialize environment");
     println!("  2. Set RANDOM seed to {}", seed);
     println!("  3. Execute script");
-    println!("  4. Capture output hash: 0x{:08x}", seed.wrapping_mul(0x5DEECE66D));
+    println!(
+        "  4. Capture output hash: 0x{:08x}",
+        seed.wrapping_mul(0x5DEECE66D)
+    );
     if verify {
         println!("  5. Re-execute with same seed");
-        println!("  6. Compare output hashes: {}", if is_deterministic { "MATCH" } else { "MISMATCH" });
+        println!(
+            "  6. Compare output hashes: {}",
+            if is_deterministic {
+                "MATCH"
+            } else {
+                "MISMATCH"
+            }
+        );
     }
 }
 
 fn simulate_json(
-    input: &Path, seed: u64, verify: bool, mock_externals: bool,
-    lines: &[&str], nondeterministic_count: usize, is_deterministic: bool,
+    input: &Path,
+    seed: u64,
+    verify: bool,
+    mock_externals: bool,
+    lines: &[&str],
+    nondeterministic_count: usize,
+    is_deterministic: bool,
 ) {
     println!("{{");
     println!("  \"script\": \"{}\",", input.display());
     println!("  \"seed\": {},", seed);
     println!("  \"lines\": {},", lines.len());
-    println!("  \"nondeterministic_patterns\": {},", nondeterministic_count);
+    println!(
+        "  \"nondeterministic_patterns\": {},",
+        nondeterministic_count
+    );
     println!("  \"is_deterministic\": {},", is_deterministic);
     println!("  \"mock_externals\": {},", mock_externals);
     println!("  \"verify\": {}", verify);
@@ -5152,7 +5502,14 @@ fn simulate_trace(input: &Path, seed: u64, lines: &[&str], is_deterministic: boo
         }
     }
     println!();
-    println!("# Result: {}", if is_deterministic { "DETERMINISTIC" } else { "NON-DETERMINISTIC" });
+    println!(
+        "# Result: {}",
+        if is_deterministic {
+            "DETERMINISTIC"
+        } else {
+            "NON-DETERMINISTIC"
+        }
+    );
 }
 
 // ============================================================================
@@ -5162,10 +5519,19 @@ fn simulate_trace(input: &Path, seed: u64, lines: &[&str], is_deterministic: boo
 
 fn handle_comply_command(command: ComplyCommands) -> Result<()> {
     match command {
-        ComplyCommands::Init { scope, pzsh, strict } => comply_init_command(scope, pzsh, strict),
-        ComplyCommands::Check { path, scope, strict, failures_only, min_score, format } => {
-            comply_check_command(&path, scope, strict, failures_only, min_score, format)
-        }
+        ComplyCommands::Init {
+            scope,
+            pzsh,
+            strict,
+        } => comply_init_command(scope, pzsh, strict),
+        ComplyCommands::Check {
+            path,
+            scope,
+            strict,
+            failures_only,
+            min_score,
+            format,
+        } => comply_check_command(&path, scope, strict, failures_only, min_score, format),
         ComplyCommands::Status { path, format } => comply_status_command(&path, format),
         ComplyCommands::Track { command } => handle_comply_track_command(command),
         ComplyCommands::Rules { format } => comply_rules_command(format),
@@ -5177,15 +5543,24 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
     match command {
-        CorpusCommands::Run { format, filter, min_score, log } => {
+        CorpusCommands::Run {
+            format,
+            filter,
+            min_score,
+            log,
+        } => {
             let config = Config::default();
             let registry = CorpusRegistry::load_full();
             let runner = CorpusRunner::new(config);
 
             let score = match filter {
                 Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
-                Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
-                Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
+                Some(CorpusFormatArg::Makefile) => {
+                    runner.run_format(&registry, CorpusFormat::Makefile)
+                }
+                Some(CorpusFormatArg::Dockerfile) => {
+                    runner.run_format(&registry, CorpusFormat::Dockerfile)
+                }
                 None => runner.run(&registry),
             };
 
@@ -5210,437 +5585,247 @@ fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
             Ok(())
         }
 
-        CorpusCommands::Show { id, format } => {
-            corpus_show_entry(&id, &format)
-        }
+        CorpusCommands::Show { id, format } => corpus_show_entry(&id, &format),
 
-        CorpusCommands::History { format, last } => {
-            corpus_show_history(&format, last)
-        }
+        CorpusCommands::History { format, last } => corpus_show_history(&format, last),
 
-        CorpusCommands::Report { output } => {
-            corpus_generate_report(output.as_deref())
-        }
+        CorpusCommands::Report { output } => corpus_generate_report(output.as_deref()),
 
-        CorpusCommands::Failures { format, filter, dimension } => {
-            corpus_show_failures(&format, filter.as_ref(), dimension.as_deref())
-        }
+        CorpusCommands::Failures {
+            format,
+            filter,
+            dimension,
+        } => corpus_show_failures(&format, filter.as_ref(), dimension.as_deref()),
 
-        CorpusCommands::Diff { format, from, to } => {
-            corpus_show_diff(&format, from, to)
-        }
+        CorpusCommands::Diff { format, from, to } => corpus_show_diff(&format, from, to),
 
         CorpusCommands::Export { output, filter } => {
             corpus_export(output.as_deref(), filter.as_ref())
         }
 
-        CorpusCommands::Stats { format } => {
-            corpus_show_stats(&format)
-        }
+        CorpusCommands::Stats { format } => corpus_show_stats(&format),
 
-        CorpusCommands::Check { id, format } => {
-            corpus_check_entry(&id, &format)
-        }
+        CorpusCommands::Check { id, format } => corpus_check_entry(&id, &format),
 
-        CorpusCommands::Difficulty { id, format } => {
-            corpus_classify_difficulty(&id, &format)
-        }
+        CorpusCommands::Difficulty { id, format } => corpus_classify_difficulty(&id, &format),
 
-        CorpusCommands::Summary => {
-            corpus_summary()
-        }
+        CorpusCommands::Summary => corpus_summary(),
 
-        CorpusCommands::Growth { format } => {
-            corpus_growth(&format)
-        }
+        CorpusCommands::Growth { format } => corpus_growth(&format),
 
-        CorpusCommands::Coverage { format } => {
-            corpus_coverage(&format)
-        }
+        CorpusCommands::Coverage { format } => corpus_coverage(&format),
 
-        CorpusCommands::Validate { format } => {
-            corpus_validate(&format)
-        }
+        CorpusCommands::Validate { format } => corpus_validate(&format),
 
-        CorpusCommands::Pareto { format, filter, top } => {
-            corpus_pareto_analysis(&format, filter.as_ref(), top)
-        }
+        CorpusCommands::Pareto {
+            format,
+            filter,
+            top,
+        } => corpus_pareto_analysis(&format, filter.as_ref(), top),
 
-        CorpusCommands::Risk { format, level } => {
-            corpus_risk_analysis(&format, level.as_deref())
-        }
+        CorpusCommands::Risk { format, level } => corpus_risk_analysis(&format, level.as_deref()),
 
-        CorpusCommands::WhyFailed { id, format } => {
-            corpus_why_failed(&id, &format)
-        }
+        CorpusCommands::WhyFailed { id, format } => corpus_why_failed(&id, &format),
 
-        CorpusCommands::Regressions { format } => {
-            corpus_regressions(&format)
-        }
+        CorpusCommands::Regressions { format } => corpus_regressions(&format),
 
-        CorpusCommands::Heatmap { limit, filter } => {
-            corpus_heatmap(limit, filter.as_ref())
-        }
+        CorpusCommands::Heatmap { limit, filter } => corpus_heatmap(limit, filter.as_ref()),
 
-        CorpusCommands::Dashboard => {
-            corpus_dashboard()
-        }
+        CorpusCommands::Dashboard => corpus_dashboard(),
 
-        CorpusCommands::Search { pattern, format, filter } => {
-            corpus_search(&pattern, &format, filter.as_ref())
-        }
+        CorpusCommands::Search {
+            pattern,
+            format,
+            filter,
+        } => corpus_search(&pattern, &format, filter.as_ref()),
 
-        CorpusCommands::Sparkline => {
-            corpus_sparkline()
-        }
+        CorpusCommands::Sparkline => corpus_sparkline(),
 
-        CorpusCommands::Top { limit, worst, filter } => {
-            corpus_top(limit, worst, filter.as_ref())
-        }
+        CorpusCommands::Top {
+            limit,
+            worst,
+            filter,
+        } => corpus_top(limit, worst, filter.as_ref()),
 
-        CorpusCommands::Categories { format } => {
-            corpus_categories(&format)
-        }
+        CorpusCommands::Categories { format } => corpus_categories(&format),
 
         CorpusCommands::Dimensions { format, filter } => {
             corpus_dimensions(&format, filter.as_ref())
         }
 
-        CorpusCommands::Dupes => {
-            corpus_dupes()
-        }
+        CorpusCommands::Dupes => corpus_dupes(),
 
-        CorpusCommands::Converged { min_rate, max_delta, min_stable } => {
-            corpus_converged(min_rate, max_delta, min_stable)
-        }
+        CorpusCommands::Converged {
+            min_rate,
+            max_delta,
+            min_stable,
+        } => corpus_converged(min_rate, max_delta, min_stable),
 
-        CorpusCommands::Benchmark { max_ms, filter } => {
-            corpus_benchmark(max_ms, filter.as_ref())
-        }
+        CorpusCommands::Benchmark { max_ms, filter } => corpus_benchmark(max_ms, filter.as_ref()),
 
-        CorpusCommands::Errors { format, filter } => {
-            corpus_errors(&format, filter.as_ref())
-        }
+        CorpusCommands::Errors { format, filter } => corpus_errors(&format, filter.as_ref()),
 
-        CorpusCommands::Sample { count, filter } => {
-            corpus_sample(count, filter.as_ref())
-        }
+        CorpusCommands::Sample { count, filter } => corpus_sample(count, filter.as_ref()),
 
-        CorpusCommands::Completeness => {
-            corpus_completeness()
-        }
+        CorpusCommands::Completeness => corpus_completeness(),
 
-        CorpusCommands::Gate { min_score, max_ms } => {
-            corpus_gate(min_score, max_ms)
-        }
+        CorpusCommands::Gate { min_score, max_ms } => corpus_gate(min_score, max_ms),
 
         CorpusCommands::Outliers { threshold, filter } => {
             corpus_outliers(threshold, filter.as_ref())
         }
 
-        CorpusCommands::Matrix => {
-            corpus_matrix()
-        }
-
-        CorpusCommands::Timeline => {
-            corpus_timeline()
-        }
-
-        CorpusCommands::Drift => {
-            corpus_drift()
-        }
-
-        CorpusCommands::Slow { limit, filter } => {
-            corpus_slow(limit, filter.as_ref())
-        }
-
-        CorpusCommands::Tags => {
-            corpus_tags()
-        }
-
-        CorpusCommands::Health => {
-            corpus_health()
-        }
-
-        CorpusCommands::Compare { id1, id2 } => {
-            corpus_compare(&id1, &id2)
-        }
-
-        CorpusCommands::Density => {
-            corpus_density()
-        }
-
-        CorpusCommands::Perf { filter } => {
-            corpus_perf(filter.as_ref())
-        }
-
-        CorpusCommands::Citl { filter } => {
-            corpus_citl(filter.as_ref())
-        }
-
-        CorpusCommands::Streak => {
-            corpus_streak()
-        }
-
-        CorpusCommands::Weight => {
-            corpus_weight()
-        }
-
-        CorpusCommands::Format { format } => {
-            corpus_format_report(&format)
-        }
-
-        CorpusCommands::Budget => {
-            corpus_budget()
-        }
-
-        CorpusCommands::Entropy => {
-            corpus_entropy()
-        }
-
-        CorpusCommands::Todo => {
-            corpus_todo()
-        }
-
-        CorpusCommands::Scatter => {
-            corpus_scatter()
-        }
-
-        CorpusCommands::GradeDist => {
-            corpus_grade_dist()
-        }
-
-        CorpusCommands::Pivot => {
-            corpus_pivot()
-        }
-
-        CorpusCommands::Corr => {
-            corpus_corr()
-        }
-
-        CorpusCommands::Schema => {
-            corpus_schema()
-        }
-
-        CorpusCommands::HistoryChart => {
-            corpus_history_chart()
-        }
-
-        CorpusCommands::Flaky { threshold } => {
-            corpus_flaky(threshold)
-        }
-
-        CorpusCommands::Profile => {
-            corpus_profile()
-        }
-
-        CorpusCommands::Gaps => {
-            corpus_gaps()
-        }
-
-        CorpusCommands::SummaryJson => {
-            corpus_summary_json()
-        }
-
-        CorpusCommands::Audit => {
-            corpus_audit()
-        }
-
-        CorpusCommands::TierDetail => {
-            corpus_tier_detail()
-        }
-
-        CorpusCommands::IdRange => {
-            corpus_id_range()
-        }
-
-        CorpusCommands::Tiers => {
-            corpus_tiers()
-        }
-
-        CorpusCommands::FailMap => {
-            corpus_fail_map()
-        }
-
-        CorpusCommands::ScoreRange => {
-            corpus_score_range()
-        }
-
-        CorpusCommands::Topk { limit } => {
-            corpus_topk(limit)
-        }
-
-        CorpusCommands::FormatCmp => {
-            corpus_format_cmp()
-        }
-
-        CorpusCommands::Stability => {
-            corpus_stability()
-        }
-
-        CorpusCommands::Version => {
-            corpus_version()
-        }
-
-        CorpusCommands::Rate => {
-            corpus_rate()
-        }
-
-        CorpusCommands::Dist => {
-            corpus_dist()
-        }
-
-        CorpusCommands::Trace { id } => {
-            corpus_trace(&id)
-        }
-
-        CorpusCommands::Suspicious { limit } => {
-            corpus_suspicious(limit)
-        }
-
-        CorpusCommands::Decisions => {
-            corpus_decisions()
-        }
-
-        CorpusCommands::Patterns => {
-            corpus_patterns()
-        }
-
-        CorpusCommands::PatternQuery { signal } => {
-            corpus_pattern_query(&signal)
-        }
-
-        CorpusCommands::FixSuggest { id } => {
-            corpus_fix_suggest(&id)
-        }
-
-        CorpusCommands::Graph => {
-            corpus_graph()
-        }
-
-        CorpusCommands::Impact { limit } => {
-            corpus_impact(limit)
-        }
-
-        CorpusCommands::BlastRadius { decision } => {
-            corpus_blast_radius(&decision)
-        }
-
-        CorpusCommands::Dedup => {
-            corpus_dedup()
-        }
-
-        CorpusCommands::Triage => {
-            corpus_triage()
-        }
-
-        CorpusCommands::LabelRules => {
-            corpus_label_rules()
-        }
-
-        CorpusCommands::ConvergeTable => {
-            corpus_converge_table()
-        }
-
-        CorpusCommands::ConvergeDiff { from, to } => {
-            corpus_converge_diff(from, to)
-        }
-
-        CorpusCommands::ConvergeStatus => {
-            corpus_converge_status()
-        }
-
-        CorpusCommands::Mine { limit } => {
-            corpus_mine(limit)
-        }
-
-        CorpusCommands::FixGaps { limit } => {
-            corpus_fix_gaps(limit)
-        }
-
-        CorpusCommands::OrgPatterns => {
-            corpus_org_patterns()
-        }
-
-        CorpusCommands::SchemaValidate => {
-            corpus_schema_validate()
-        }
-
-        CorpusCommands::GrammarErrors => {
-            corpus_grammar_errors()
-        }
-
-        CorpusCommands::FormatGrammar { format } => {
-            corpus_format_grammar(format)
-        }
-
-        CorpusCommands::ExportDataset { format, output } => {
-            corpus_export_dataset(format, output)
-        }
-
-        CorpusCommands::DatasetInfo => {
-            corpus_dataset_info()
-        }
-
-        CorpusCommands::PublishCheck => {
-            corpus_publish_check()
-        }
-
-        CorpusCommands::LintPipeline => {
-            corpus_lint_pipeline()
-        }
-
-        CorpusCommands::RegressionCheck => {
-            corpus_regression_check()
-        }
-
-        CorpusCommands::ConvergenceCheck => {
-            corpus_convergence_check()
-        }
-
-        CorpusCommands::DomainCategories => {
-            corpus_domain_categories()
-        }
-
-        CorpusCommands::DomainCoverage => {
-            corpus_domain_coverage()
-        }
-
-        CorpusCommands::DomainMatrix => {
-            corpus_domain_matrix()
-        }
-
-        CorpusCommands::TierWeights => {
-            corpus_tier_weights()
-        }
-
-        CorpusCommands::TierAnalysis => {
-            corpus_tier_analysis()
-        }
-
-        CorpusCommands::TierTargets => {
-            corpus_tier_targets()
-        }
-
-        CorpusCommands::QualityGates => {
-            corpus_quality_gates()
-        }
-
-        CorpusCommands::MetricsCheck => {
-            corpus_metrics_check()
-        }
-
-        CorpusCommands::GateStatus => {
-            corpus_gate_status_cmd()
-        }
-
-        CorpusCommands::DiagnoseB2 { filter, limit } => {
-            corpus_diagnose_b2(filter.as_ref(), limit)
-        }
-
-        CorpusCommands::FixB2 { apply } => {
-            corpus_fix_b2(apply)
-        }
+        CorpusCommands::Matrix => corpus_matrix(),
+
+        CorpusCommands::Timeline => corpus_timeline(),
+
+        CorpusCommands::Drift => corpus_drift(),
+
+        CorpusCommands::Slow { limit, filter } => corpus_slow(limit, filter.as_ref()),
+
+        CorpusCommands::Tags => corpus_tags(),
+
+        CorpusCommands::Health => corpus_health(),
+
+        CorpusCommands::Compare { id1, id2 } => corpus_compare(&id1, &id2),
+
+        CorpusCommands::Density => corpus_density(),
+
+        CorpusCommands::Perf { filter } => corpus_perf(filter.as_ref()),
+
+        CorpusCommands::Citl { filter } => corpus_citl(filter.as_ref()),
+
+        CorpusCommands::Streak => corpus_streak(),
+
+        CorpusCommands::Weight => corpus_weight(),
+
+        CorpusCommands::Format { format } => corpus_format_report(&format),
+
+        CorpusCommands::Budget => corpus_budget(),
+
+        CorpusCommands::Entropy => corpus_entropy(),
+
+        CorpusCommands::Todo => corpus_todo(),
+
+        CorpusCommands::Scatter => corpus_scatter(),
+
+        CorpusCommands::GradeDist => corpus_grade_dist(),
+
+        CorpusCommands::Pivot => corpus_pivot(),
+
+        CorpusCommands::Corr => corpus_corr(),
+
+        CorpusCommands::Schema => corpus_schema(),
+
+        CorpusCommands::HistoryChart => corpus_history_chart(),
+
+        CorpusCommands::Flaky { threshold } => corpus_flaky(threshold),
+
+        CorpusCommands::Profile => corpus_profile(),
+
+        CorpusCommands::Gaps => corpus_gaps(),
+
+        CorpusCommands::SummaryJson => corpus_summary_json(),
+
+        CorpusCommands::Audit => corpus_audit(),
+
+        CorpusCommands::TierDetail => corpus_tier_detail(),
+
+        CorpusCommands::IdRange => corpus_id_range(),
+
+        CorpusCommands::Tiers => corpus_tiers(),
+
+        CorpusCommands::FailMap => corpus_fail_map(),
+
+        CorpusCommands::ScoreRange => corpus_score_range(),
+
+        CorpusCommands::Topk { limit } => corpus_topk(limit),
+
+        CorpusCommands::FormatCmp => corpus_format_cmp(),
+
+        CorpusCommands::Stability => corpus_stability(),
+
+        CorpusCommands::Version => corpus_version(),
+
+        CorpusCommands::Rate => corpus_rate(),
+
+        CorpusCommands::Dist => corpus_dist(),
+
+        CorpusCommands::Trace { id } => corpus_trace(&id),
+
+        CorpusCommands::Suspicious { limit } => corpus_suspicious(limit),
+
+        CorpusCommands::Decisions => corpus_decisions(),
+
+        CorpusCommands::Patterns => corpus_patterns(),
+
+        CorpusCommands::PatternQuery { signal } => corpus_pattern_query(&signal),
+
+        CorpusCommands::FixSuggest { id } => corpus_fix_suggest(&id),
+
+        CorpusCommands::Graph => corpus_graph(),
+
+        CorpusCommands::Impact { limit } => corpus_impact(limit),
+
+        CorpusCommands::BlastRadius { decision } => corpus_blast_radius(&decision),
+
+        CorpusCommands::Dedup => corpus_dedup(),
+
+        CorpusCommands::Triage => corpus_triage(),
+
+        CorpusCommands::LabelRules => corpus_label_rules(),
+
+        CorpusCommands::ConvergeTable => corpus_converge_table(),
+
+        CorpusCommands::ConvergeDiff { from, to } => corpus_converge_diff(from, to),
+
+        CorpusCommands::ConvergeStatus => corpus_converge_status(),
+
+        CorpusCommands::Mine { limit } => corpus_mine(limit),
+
+        CorpusCommands::FixGaps { limit } => corpus_fix_gaps(limit),
+
+        CorpusCommands::OrgPatterns => corpus_org_patterns(),
+
+        CorpusCommands::SchemaValidate => corpus_schema_validate(),
+
+        CorpusCommands::GrammarErrors => corpus_grammar_errors(),
+
+        CorpusCommands::FormatGrammar { format } => corpus_format_grammar(format),
+
+        CorpusCommands::ExportDataset { format, output } => corpus_export_dataset(format, output),
+
+        CorpusCommands::DatasetInfo => corpus_dataset_info(),
+
+        CorpusCommands::PublishCheck => corpus_publish_check(),
+
+        CorpusCommands::LintPipeline => corpus_lint_pipeline(),
+
+        CorpusCommands::RegressionCheck => corpus_regression_check(),
+
+        CorpusCommands::ConvergenceCheck => corpus_convergence_check(),
+
+        CorpusCommands::DomainCategories => corpus_domain_categories(),
+
+        CorpusCommands::DomainCoverage => corpus_domain_coverage(),
+
+        CorpusCommands::DomainMatrix => corpus_domain_matrix(),
+
+        CorpusCommands::TierWeights => corpus_tier_weights(),
+
+        CorpusCommands::TierAnalysis => corpus_tier_analysis(),
+
+        CorpusCommands::TierTargets => corpus_tier_targets(),
+
+        CorpusCommands::QualityGates => corpus_quality_gates(),
+
+        CorpusCommands::MetricsCheck => corpus_metrics_check(),
+
+        CorpusCommands::GateStatus => corpus_gate_status_cmd(),
+
+        CorpusCommands::DiagnoseB2 { filter, limit } => corpus_diagnose_b2(filter.as_ref(), limit),
+
+        CorpusCommands::FixB2 { apply } => corpus_fix_b2(apply),
     }
 }
 
@@ -5692,10 +5877,14 @@ fn corpus_print_score(
                 let b3_pass = score.results.iter().filter(|r| r.output_behavioral).count();
                 let d_pass = score.results.iter().filter(|r| r.lint_clean).count();
                 let e_pass = score.results.iter().filter(|r| r.deterministic).count();
-                let f_pass = score.results.iter().filter(|r| r.metamorphic_consistent).count();
+                let f_pass = score
+                    .results
+                    .iter()
+                    .filter(|r| r.metamorphic_consistent)
+                    .count();
                 let g_pass = score.results.iter().filter(|r| r.cross_shell_agree).count();
-                let c_avg: f64 = score.results.iter().map(|r| r.coverage_ratio).sum::<f64>()
-                    / n as f64;
+                let c_avg: f64 =
+                    score.results.iter().map(|r| r.coverage_ratio).sum::<f64>() / n as f64;
 
                 let pct_val = |pass: usize| -> f64 { pass as f64 / n as f64 * 100.0 };
                 let pts = |pass: usize, max: f64| -> f64 { pass as f64 / n as f64 * max };
@@ -5742,7 +5931,11 @@ fn corpus_print_score(
                 println!("{BRIGHT_RED}Failed entries ({}):{RESET}", failures.len());
                 for f in &failures {
                     let err = f.error.as_deref().unwrap_or("unknown error");
-                    println!("  {CYAN}{}{RESET} — {DIM}{}{RESET}", f.id, truncate_str(err, 80));
+                    println!(
+                        "  {CYAN}{}{RESET} — {DIM}{}{RESET}",
+                        f.id,
+                        truncate_str(err, 80)
+                    );
                 }
             }
         }
@@ -5766,7 +5959,7 @@ fn corpus_write_convergence_log(
     let iteration = previous.len() as u32 + 1;
     let prev_rate = previous.last().map_or(0.0, |e| e.rate);
     let date = chrono_free_date();
-    let entry = runner.convergence_entry(&score, iteration, &date, prev_rate, "CLI corpus run");
+    let entry = runner.convergence_entry(score, iteration, &date, prev_rate, "CLI corpus run");
     CorpusRunner::append_convergence_log(&entry, &log_path)
         .map_err(|e| Error::Internal(format!("Failed to write convergence log: {e}")))?;
     use crate::cli::color::*;
@@ -5780,13 +5973,20 @@ fn corpus_write_convergence_log(
     // Per-format breakdown (spec §11.10.5)
     if entry.bash_total > 0 || entry.makefile_total > 0 || entry.dockerfile_total > 0 {
         let fmt_part = |name: &str, passed: usize, total: usize| -> String {
-            if total > 0 { format!("{name} {passed}/{total}") } else { String::new() }
+            if total > 0 {
+                format!("{name} {passed}/{total}")
+            } else {
+                String::new()
+            }
         };
         let parts: Vec<String> = [
             fmt_part("Bash", entry.bash_passed, entry.bash_total),
             fmt_part("Make", entry.makefile_passed, entry.makefile_total),
             fmt_part("Docker", entry.dockerfile_passed, entry.dockerfile_total),
-        ].into_iter().filter(|s| !s.is_empty()).collect();
+        ]
+        .into_iter()
+        .filter(|s| !s.is_empty())
+        .collect();
         if !parts.is_empty() {
             println!("{DIM}  Per-format:{RESET} {}", parts.join(", "));
         }
@@ -5796,9 +5996,15 @@ fn corpus_write_convergence_log(
         let lint_pct = entry.lint_rate * 100.0;
         let lc = pct_color(lint_pct);
         let gap = ((entry.rate - entry.lint_rate) * 100.0).abs();
-        let gap_str = if gap > 0.1 { format!(" {DIM}(gap: {gap:.1}%){RESET}") } else { String::new() };
-        println!("{DIM}  Lint rate:{RESET} {lc}{lint_pct:.1}%{RESET} ({}/{}){}",
-            entry.lint_passed, entry.total, gap_str);
+        let gap_str = if gap > 0.1 {
+            format!(" {DIM}(gap: {gap:.1}%){RESET}")
+        } else {
+            String::new()
+        };
+        println!(
+            "{DIM}  Lint rate:{RESET} {lc}{lint_pct:.1}%{RESET} ({}/{}){}",
+            entry.lint_passed, entry.total, gap_str
+        );
     }
     // Regression detection (spec §5.3 — Jidoka)
     if let Some(prev) = previous.last() {
@@ -5870,14 +6076,20 @@ fn corpus_show_stats(format: &CorpusOutputFormat) -> Result<()> {
             // V2 score
             let sc = pct_color(score.score);
             println!();
-            println!("{BOLD}V2 Score:{RESET} {sc}{:.1}/100{RESET} ({tg}{}{RESET})", score.score, score.grade);
+            println!(
+                "{BOLD}V2 Score:{RESET} {sc}{:.1}/100{RESET} ({tg}{}{RESET})",
+                score.score, score.grade
+            );
 
             // Convergence trend from log
             let log_path = PathBuf::from(".quality/convergence.log");
             if let Ok(entries) = CorpusRunner::load_convergence_log(&log_path) {
                 if entries.len() >= 2 {
                     println!();
-                    println!("{BOLD}Convergence Trend{RESET} (last {} runs):", entries.len().min(10));
+                    println!(
+                        "{BOLD}Convergence Trend{RESET} (last {} runs):",
+                        entries.len().min(10)
+                    );
                     let recent: &[_] = if entries.len() > 10 {
                         &entries[entries.len() - 10..]
                     } else {
@@ -5927,14 +6139,18 @@ fn corpus_show_stats(format: &CorpusOutputFormat) -> Result<()> {
                 rate: score.rate,
                 score: score.score,
                 grade: score.grade.to_string(),
-                formats: score.format_scores.iter().map(|fs| FormatStats {
-                    format: fs.format.to_string(),
-                    total: fs.total,
-                    passed: fs.passed,
-                    rate: fs.rate,
-                    score: fs.score,
-                    grade: fs.grade.to_string(),
-                }).collect(),
+                formats: score
+                    .format_scores
+                    .iter()
+                    .map(|fs| FormatStats {
+                        format: fs.format.to_string(),
+                        total: fs.total,
+                        passed: fs.passed,
+                        rate: fs.rate,
+                        score: fs.score,
+                        grade: fs.grade.to_string(),
+                    })
+                    .collect(),
             };
             let json = serde_json::to_string_pretty(&stats)
                 .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
@@ -5961,8 +6177,17 @@ fn corpus_stats_sparkline(entries: &[crate::corpus::runner::ConvergenceEntry]) {
         .collect();
     let first = scores.first().copied().unwrap_or(0.0);
     let last = scores.last().copied().unwrap_or(0.0);
-    let trend = if last > first { GREEN } else if last < first { BRIGHT_RED } else { DIM };
-    println!("  {DIM}Score:{RESET} {trend}{sparkline}{RESET}  ({:.1} → {:.1})", first, last);
+    let trend = if last > first {
+        GREEN
+    } else if last < first {
+        BRIGHT_RED
+    } else {
+        DIM
+    };
+    println!(
+        "  {DIM}Score:{RESET} {trend}{sparkline}{RESET}  ({:.1} → {:.1})",
+        first, last
+    );
 }
 
 /// Run metamorphic relation checks on a single corpus entry (spec §11.2).
@@ -5989,7 +6214,11 @@ fn corpus_check_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
             println!();
 
             let mr_pass = |name: &str, ok: bool, desc: &str| {
-                let mark = if ok { format!("{GREEN}PASS{RESET}") } else { format!("{BRIGHT_RED}FAIL{RESET}") };
+                let mark = if ok {
+                    format!("{GREEN}PASS{RESET}")
+                } else {
+                    format!("{BRIGHT_RED}FAIL{RESET}")
+                };
                 println!("  {name:<22} {mark}  {DIM}{desc}{RESET}");
             };
 
@@ -5999,51 +6228,131 @@ fn corpus_check_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
             mr_pass("MR-1 Determinism", mr1, "transpile(X) == transpile(X)");
 
             // MR-2: Transpilation success
-            mr_pass("MR-2 Transpilation", result.transpiled, "transpile(X) succeeds");
+            mr_pass(
+                "MR-2 Transpilation",
+                result.transpiled,
+                "transpile(X) succeeds",
+            );
 
             // MR-3: Containment
-            mr_pass("MR-3 Containment", result.output_contains, "output ⊇ expected_contains");
+            mr_pass(
+                "MR-3 Containment",
+                result.output_contains,
+                "output ⊇ expected_contains",
+            );
 
             // MR-4: Exact match
-            mr_pass("MR-4 Exact match", result.output_exact, "output lines == expected_contains");
+            mr_pass(
+                "MR-4 Exact match",
+                result.output_exact,
+                "output lines == expected_contains",
+            );
 
             // MR-5: Behavioral execution
-            mr_pass("MR-5 Behavioral", result.output_behavioral, "sh -c output terminates");
+            mr_pass(
+                "MR-5 Behavioral",
+                result.output_behavioral,
+                "sh -c output terminates",
+            );
 
             // MR-6: Lint clean
-            mr_pass("MR-6 Lint clean", result.lint_clean, "shellcheck/make -n passes");
+            mr_pass(
+                "MR-6 Lint clean",
+                result.lint_clean,
+                "shellcheck/make -n passes",
+            );
 
             // MR-7: Cross-shell agree
-            mr_pass("MR-7 Cross-shell", result.cross_shell_agree, "sh + dash agree");
+            mr_pass(
+                "MR-7 Cross-shell",
+                result.cross_shell_agree,
+                "sh + dash agree",
+            );
 
             let total = 7u32;
-            let passed = [mr1, result.transpiled, result.output_contains, result.output_exact,
-                result.output_behavioral, result.lint_clean, result.cross_shell_agree]
-                .iter().filter(|&&b| b).count() as u32;
+            let passed = [
+                mr1,
+                result.transpiled,
+                result.output_contains,
+                result.output_exact,
+                result.output_behavioral,
+                result.lint_clean,
+                result.cross_shell_agree,
+            ]
+            .iter()
+            .filter(|&&b| b)
+            .count() as u32;
             let pct = (passed as f64 / total as f64) * 100.0;
             let pc = pct_color(pct);
             println!();
             println!("{BOLD}MR Pass Rate:{RESET} {pc}{passed}/{total} ({pct:.0}%){RESET}");
-            println!("{BOLD}V2 Score:{RESET} {pc}{:.1}/100{RESET}", result.score());
+            println!(
+                "{BOLD}V2 Score:{RESET} {pc}{:.1}/100{RESET}",
+                result.score()
+            );
         }
         CorpusOutputFormat::Json => {
             #[derive(serde::Serialize)]
-            struct MrCheck { name: String, passed: bool, description: String }
+            struct MrCheck {
+                name: String,
+                passed: bool,
+                description: String,
+            }
             #[derive(serde::Serialize)]
-            struct CheckResult { id: String, checks: Vec<MrCheck>, passed: u32, total: u32, score: f64 }
+            struct CheckResult {
+                id: String,
+                checks: Vec<MrCheck>,
+                passed: u32,
+                total: u32,
+                score: f64,
+            }
             let result2 = runner.run_single(entry);
             let mr1 = result.actual_output == result2.actual_output;
             let checks = vec![
-                MrCheck { name: "MR-1 Determinism".into(), passed: mr1, description: "transpile(X) == transpile(X)".into() },
-                MrCheck { name: "MR-2 Transpilation".into(), passed: result.transpiled, description: "transpile(X) succeeds".into() },
-                MrCheck { name: "MR-3 Containment".into(), passed: result.output_contains, description: "output ⊇ expected".into() },
-                MrCheck { name: "MR-4 Exact match".into(), passed: result.output_exact, description: "output == expected".into() },
-                MrCheck { name: "MR-5 Behavioral".into(), passed: result.output_behavioral, description: "sh -c terminates".into() },
-                MrCheck { name: "MR-6 Lint clean".into(), passed: result.lint_clean, description: "linter passes".into() },
-                MrCheck { name: "MR-7 Cross-shell".into(), passed: result.cross_shell_agree, description: "sh + dash agree".into() },
+                MrCheck {
+                    name: "MR-1 Determinism".into(),
+                    passed: mr1,
+                    description: "transpile(X) == transpile(X)".into(),
+                },
+                MrCheck {
+                    name: "MR-2 Transpilation".into(),
+                    passed: result.transpiled,
+                    description: "transpile(X) succeeds".into(),
+                },
+                MrCheck {
+                    name: "MR-3 Containment".into(),
+                    passed: result.output_contains,
+                    description: "output ⊇ expected".into(),
+                },
+                MrCheck {
+                    name: "MR-4 Exact match".into(),
+                    passed: result.output_exact,
+                    description: "output == expected".into(),
+                },
+                MrCheck {
+                    name: "MR-5 Behavioral".into(),
+                    passed: result.output_behavioral,
+                    description: "sh -c terminates".into(),
+                },
+                MrCheck {
+                    name: "MR-6 Lint clean".into(),
+                    passed: result.lint_clean,
+                    description: "linter passes".into(),
+                },
+                MrCheck {
+                    name: "MR-7 Cross-shell".into(),
+                    passed: result.cross_shell_agree,
+                    description: "sh + dash agree".into(),
+                },
             ];
             let passed = checks.iter().filter(|c| c.passed).count() as u32;
-            let cr = CheckResult { id: id.to_string(), checks, passed, total: 7, score: result.score() };
+            let cr = CheckResult {
+                id: id.to_string(),
+                checks,
+                passed,
+                total: 7,
+                score: result.score(),
+            };
             let json = serde_json::to_string_pretty(&cr)
                 .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
             println!("{json}");
@@ -6055,7 +6364,11 @@ fn corpus_check_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
 /// Truncate a string to max_len, adding "..." if truncated.
 fn truncate_line(s: &str, max_len: usize) -> String {
     let line = s.lines().next().unwrap_or(s);
-    if line.len() <= max_len { line.to_string() } else { format!("{}...", &line[..max_len]) }
+    if line.len() <= max_len {
+        line.to_string()
+    } else {
+        format!("{}...", &line[..max_len])
+    }
 }
 
 /// Classify a corpus entry's difficulty based on input features (spec §2.3).
@@ -6070,11 +6383,14 @@ fn classify_difficulty(input: &str) -> (u8, Vec<(&'static str, bool)>) {
     let has_match = input.contains("match ");
     let has_nested = input.matches('{').count() > 3;
     let has_special = input.contains('\\') || input.contains("\\n") || input.contains("\\t");
-    let has_unicode = input.chars().any(|c| !c.is_ascii());
+    let has_unicode = !input.is_ascii();
     let has_unsafe = input.contains("unsafe") || input.contains("exec") || input.contains("eval");
 
     let mut factors = vec![
-        ("Simple (single construct)", line_count <= 3 && !has_loop && !has_fn),
+        (
+            "Simple (single construct)",
+            line_count <= 3 && !has_loop && !has_fn,
+        ),
         ("Has loops", has_loop),
         ("Has multiple functions", has_fn),
         ("Has pipes/redirects", has_pipe),
@@ -6158,24 +6474,45 @@ fn corpus_classify_difficulty(id: &str, format: &CorpusOutputFormat) -> Result<(
                 4 => BRIGHT_RED,
                 _ => BRIGHT_CYAN,
             };
-            println!("{BOLD}Predicted Tier:{RESET} {tc}{tier} ({}){RESET}", tier_label(tier));
+            println!(
+                "{BOLD}Predicted Tier:{RESET} {tc}{tier} ({}){RESET}",
+                tier_label(tier)
+            );
             println!();
             println!("{BOLD}Complexity Factors:{RESET}");
             for (label, present) in &factors {
-                let mark = if *present { format!("{GREEN}+{RESET}") } else { format!("{DIM}-{RESET}") };
+                let mark = if *present {
+                    format!("{GREEN}+{RESET}")
+                } else {
+                    format!("{DIM}-{RESET}")
+                };
                 println!("  {mark} {label}");
             }
         }
         CorpusOutputFormat::Json => {
             #[derive(serde::Serialize)]
-            struct DiffResult { id: String, tier: u8, label: String, factors: Vec<Factor> }
+            struct DiffResult {
+                id: String,
+                tier: u8,
+                label: String,
+                factors: Vec<Factor>,
+            }
             #[derive(serde::Serialize)]
-            struct Factor { name: String, present: bool }
+            struct Factor {
+                name: String,
+                present: bool,
+            }
             let dr = DiffResult {
                 id: id.to_string(),
                 tier,
                 label: tier_label(tier).to_string(),
-                factors: factors.iter().map(|(n, p)| Factor { name: n.to_string(), present: *p }).collect(),
+                factors: factors
+                    .iter()
+                    .map(|(n, p)| Factor {
+                        name: n.to_string(),
+                        present: *p,
+                    })
+                    .collect(),
             };
             let json = serde_json::to_string_pretty(&dr)
                 .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
@@ -6191,7 +6528,8 @@ fn corpus_classify_all(
     format: &CorpusOutputFormat,
 ) -> Result<()> {
     let mut tier_counts = [0u32; 6]; // index 0 unused, 1-5
-    let mut format_tiers: std::collections::HashMap<String, [u32; 6]> = std::collections::HashMap::new();
+    let mut format_tiers: std::collections::HashMap<String, [u32; 6]> =
+        std::collections::HashMap::new();
 
     for entry in &registry.entries {
         let (tier, _) = classify_difficulty(&entry.input);
@@ -6204,7 +6542,10 @@ fn corpus_classify_all(
     match format {
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
-            println!("{BOLD}Corpus Tier Distribution{RESET} ({} entries)", registry.entries.len());
+            println!(
+                "{BOLD}Corpus Tier Distribution{RESET} ({} entries)",
+                registry.entries.len()
+            );
             println!("{DIM}════════════════════════════════════════{RESET}");
             println!(
                 "{DIM}{:>6}  {:<15} {:>7} {:>16}{RESET}",
@@ -6212,10 +6553,24 @@ fn corpus_classify_all(
             );
             for t in 1..=5u8 {
                 let count = tier_counts[t as usize];
-                let pct = if registry.entries.is_empty() { 0.0 } else { count as f64 / registry.entries.len() as f64 * 100.0 };
+                let pct = if registry.entries.is_empty() {
+                    0.0
+                } else {
+                    count as f64 / registry.entries.len() as f64 * 100.0
+                };
                 let bar = stats_bar(pct, 16);
-                let tc = match t { 1 => GREEN, 2 => CYAN, 3 => YELLOW, 4 => BRIGHT_RED, _ => BRIGHT_CYAN };
-                println!("  {tc}{t:>4}{RESET}  {:<15} {:>7} {tc}{bar}{RESET}", tier_label(t), count);
+                let tc = match t {
+                    1 => GREEN,
+                    2 => CYAN,
+                    3 => YELLOW,
+                    4 => BRIGHT_RED,
+                    _ => BRIGHT_CYAN,
+                };
+                println!(
+                    "  {tc}{t:>4}{RESET}  {:<15} {:>7} {tc}{bar}{RESET}",
+                    tier_label(t),
+                    count
+                );
             }
 
             // Per-format breakdown
@@ -6235,16 +6590,25 @@ fn corpus_classify_all(
         }
         CorpusOutputFormat::Json => {
             #[derive(serde::Serialize)]
-            struct AllResult { total: usize, tiers: Vec<TierCount> }
+            struct AllResult {
+                total: usize,
+                tiers: Vec<TierCount>,
+            }
             #[derive(serde::Serialize)]
-            struct TierCount { tier: u8, label: String, count: u32 }
+            struct TierCount {
+                tier: u8,
+                label: String,
+                count: u32,
+            }
             let result = AllResult {
                 total: registry.entries.len(),
-                tiers: (1..=5u8).map(|t| TierCount {
-                    tier: t,
-                    label: tier_label(t).to_string(),
-                    count: tier_counts[t as usize],
-                }).collect(),
+                tiers: (1..=5u8)
+                    .map(|t| TierCount {
+                        tier: t,
+                        label: tier_label(t).to_string(),
+                        count: tier_counts[t as usize],
+                    })
+                    .collect(),
             };
             let json = serde_json::to_string_pretty(&result)
                 .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
@@ -6257,14 +6621,14 @@ fn corpus_classify_all(
 /// Classify a V2 dimension failure by risk level (spec §11.10.4).
 fn dimension_risk(dim: &str) -> &'static str {
     match dim {
-        "A" => "HIGH",     // transpilation failure = can't use output at all
-        "B3" => "HIGH",    // behavioral = execution fails/hangs
-        "E" => "HIGH",     // non-deterministic = unreliable output
-        "D" => "MEDIUM",   // lint violations = quality issue
-        "G" => "MEDIUM",   // cross-shell = portability issue
-        "F" => "MEDIUM",   // metamorphic = consistency issue
-        "B1" => "LOW",     // containment = output semantics
-        "B2" => "LOW",     // exact match = cosmetic
+        "A" => "HIGH",   // transpilation failure = can't use output at all
+        "B3" => "HIGH",  // behavioral = execution fails/hangs
+        "E" => "HIGH",   // non-deterministic = unreliable output
+        "D" => "MEDIUM", // lint violations = quality issue
+        "G" => "MEDIUM", // cross-shell = portability issue
+        "F" => "MEDIUM", // metamorphic = consistency issue
+        "B1" => "LOW",   // containment = output semantics
+        "B2" => "LOW",   // exact match = cosmetic
         _ => "LOW",
     }
 }
@@ -6278,7 +6642,7 @@ fn collect_risk_failures<'a>(
     for r in results {
         for dim in result_fail_dims(r) {
             let risk = dimension_risk(dim);
-            if level_filter.map_or(true, |f| risk.eq_ignore_ascii_case(f)) {
+            if level_filter.is_none_or(|f| risk.eq_ignore_ascii_case(f)) {
                 classified.push((r.id.as_str(), dim, risk));
             }
         }
@@ -6289,7 +6653,9 @@ fn collect_risk_failures<'a>(
 /// Print risk group for a given level.
 fn risk_print_group(classified: &[(&str, &str, &str)], label: &str, color: &str, count: usize) {
     use crate::cli::color::*;
-    if count == 0 { return; }
+    if count == 0 {
+        return;
+    }
     println!("  {color}{BOLD}{label}{RESET} ({count}):");
     for (id, dim, risk) in classified {
         if *risk == label {
@@ -6317,8 +6683,10 @@ fn corpus_risk_analysis(format: &CorpusOutputFormat, level_filter: Option<&str>)
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
             println!("{BOLD}Risk Classification: Corpus Failures{RESET}");
-            println!("{DIM}Total failures: {} (HIGH: {high}, MEDIUM: {medium}, LOW: {low}){RESET}",
-                classified.len());
+            println!(
+                "{DIM}Total failures: {} (HIGH: {high}, MEDIUM: {medium}, LOW: {low}){RESET}",
+                classified.len()
+            );
             println!();
             if classified.is_empty() {
                 println!("  {GREEN}No failures to classify.{RESET}");
@@ -6353,16 +6721,29 @@ fn corpus_summary() -> Result<()> {
     let runner = CorpusRunner::new(Config::default());
     let score = runner.run(&registry);
 
-    let failures: Vec<_> = score.results.iter().filter(|r| !result_fail_dims(r).is_empty()).collect();
+    let failures: Vec<_> = score
+        .results
+        .iter()
+        .filter(|r| !result_fail_dims(r).is_empty())
+        .collect();
     let fail_ids: Vec<_> = failures.iter().map(|r| r.id.as_str()).collect();
 
     if failures.is_empty() {
-        println!("{} entries, {:.1}/100 {}, 0 failures",
-            score.results.len(), score.score, score.grade);
+        println!(
+            "{} entries, {:.1}/100 {}, 0 failures",
+            score.results.len(),
+            score.score,
+            score.grade
+        );
     } else {
-        println!("{} entries, {:.1}/100 {}, {} failure(s) ({})",
-            score.results.len(), score.score, score.grade,
-            failures.len(), fail_ids.join(", "));
+        println!(
+            "{} entries, {:.1}/100 {}, {} failure(s) ({})",
+            score.results.len(),
+            score.score,
+            score.grade,
+            failures.len(),
+            fail_ids.join(", ")
+        );
     }
     Ok(())
 }
@@ -6384,19 +6765,23 @@ fn corpus_growth(format: &CorpusOutputFormat) -> Result<()> {
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
             println!("{BOLD}Corpus Growth (from convergence log){RESET}");
-            println!("{DIM}{:>4}  {:>10}  {:>5}  {:>6}  {}{RESET}",
-                "Iter", "Date", "Total", "Added", "Notes");
+            println!(
+                "{DIM}{:>4}  {:>10}  {:>5}  {:>6}  Notes{RESET}",
+                "Iter", "Date", "Total", "Added"
+            );
 
             let mut prev_total = 0;
             for e in &entries {
-                let added = if e.total > prev_total { e.total - prev_total } else { 0 };
+                let added = e.total.saturating_sub(prev_total);
                 let added_str = if added > 0 {
                     format!("{GREEN}+{added}{RESET}")
                 } else {
                     format!("{DIM}  0{RESET}")
                 };
-                println!("{:>4}  {:>10}  {:>5}  {}  {}",
-                    e.iteration, e.date, e.total, added_str, e.notes);
+                println!(
+                    "{:>4}  {:>10}  {:>5}  {}  {}",
+                    e.iteration, e.date, e.total, added_str, e.notes
+                );
                 prev_total = e.total;
             }
 
@@ -6408,14 +6793,17 @@ fn corpus_growth(format: &CorpusOutputFormat) -> Result<()> {
                 entries.len());
         }
         CorpusOutputFormat::Json => {
-            let growth: Vec<_> = entries.windows(2).map(|w| {
-                serde_json::json!({
-                    "iteration": w[1].iteration,
-                    "date": w[1].date,
-                    "total": w[1].total,
-                    "added": w[1].total.saturating_sub(w[0].total),
+            let growth: Vec<_> = entries
+                .windows(2)
+                .map(|w| {
+                    serde_json::json!({
+                        "iteration": w[1].iteration,
+                        "date": w[1].date,
+                        "total": w[1].total,
+                        "added": w[1].total.saturating_sub(w[0].total),
+                    })
                 })
-            }).collect();
+                .collect();
             let result = serde_json::json!({
                 "first_total": entries.first().map(|e| e.total),
                 "last_total": entries.last().map(|e| e.total),
@@ -6444,7 +6832,11 @@ fn corpus_coverage(format: &CorpusOutputFormat) -> Result<()> {
         (CorpusTier::Production, "Production"),
     ];
     let count = |t: &CorpusTier, f: &CorpusFormat| -> usize {
-        registry.entries.iter().filter(|e| &e.tier == t && &e.format == f).count()
+        registry
+            .entries
+            .iter()
+            .filter(|e| &e.tier == t && &e.format == f)
+            .count()
     };
 
     match format {
@@ -6452,8 +6844,10 @@ fn corpus_coverage(format: &CorpusOutputFormat) -> Result<()> {
             use crate::cli::color::*;
             println!("{BOLD}Corpus Coverage: Tier × Format Matrix{RESET}");
             println!();
-            println!("  {BOLD}{:<14} {:>6} {:>9} {:>11}  {:>5}{RESET}",
-                "Tier", "Bash", "Makefile", "Dockerfile", "Total");
+            println!(
+                "  {BOLD}{:<14} {:>6} {:>9} {:>11}  {:>5}{RESET}",
+                "Tier", "Bash", "Makefile", "Dockerfile", "Total"
+            );
 
             let mut grand_total = 0;
             for (tier, label) in &tiers {
@@ -6462,25 +6856,32 @@ fn corpus_coverage(format: &CorpusOutputFormat) -> Result<()> {
                 let dock = count(tier, &CorpusFormat::Dockerfile);
                 let total = bash + make + dock;
                 grand_total += total;
-                println!("  {:<14} {:>6} {:>9} {:>11}  {:>5}",
-                    label, bash, make, dock, total);
+                println!(
+                    "  {:<14} {:>6} {:>9} {:>11}  {:>5}",
+                    label, bash, make, dock, total
+                );
             }
-            println!("  {DIM}{:<14} {:>6} {:>9} {:>11}  {:>5}{RESET}",
+            println!(
+                "  {DIM}{:<14} {:>6} {:>9} {:>11}  {:>5}{RESET}",
                 "Total",
                 count_format(&registry, &CorpusFormat::Bash),
                 count_format(&registry, &CorpusFormat::Makefile),
                 count_format(&registry, &CorpusFormat::Dockerfile),
-                grand_total);
+                grand_total
+            );
         }
         CorpusOutputFormat::Json => {
-            let matrix: Vec<_> = tiers.iter().map(|(tier, label)| {
-                serde_json::json!({
-                    "tier": label,
-                    "bash": count(tier, &CorpusFormat::Bash),
-                    "makefile": count(tier, &CorpusFormat::Makefile),
-                    "dockerfile": count(tier, &CorpusFormat::Dockerfile),
+            let matrix: Vec<_> = tiers
+                .iter()
+                .map(|(tier, label)| {
+                    serde_json::json!({
+                        "tier": label,
+                        "bash": count(tier, &CorpusFormat::Bash),
+                        "makefile": count(tier, &CorpusFormat::Makefile),
+                        "dockerfile": count(tier, &CorpusFormat::Dockerfile),
+                    })
                 })
-            }).collect();
+                .collect();
             let result = serde_json::json!({
                 "total": registry.entries.len(),
                 "matrix": matrix,
@@ -6497,7 +6898,11 @@ fn count_format(
     registry: &crate::corpus::registry::CorpusRegistry,
     format: &crate::corpus::registry::CorpusFormat,
 ) -> usize {
-    registry.entries.iter().filter(|e| &e.format == format).count()
+    registry
+        .entries
+        .iter()
+        .filter(|e| &e.format == format)
+        .count()
 }
 
 /// Validate a single corpus entry and return issues found.
@@ -6519,10 +6924,18 @@ fn validate_corpus_entry(
     if !valid_prefix {
         issues.push(format!("ID prefix doesn't match format {:?}", entry.format));
     }
-    if entry.name.is_empty() { issues.push("Empty name".to_string()); }
-    if entry.description.is_empty() { issues.push("Empty description".to_string()); }
-    if entry.input.is_empty() { issues.push("Empty input".to_string()); }
-    if entry.expected_output.is_empty() { issues.push("Empty expected_output".to_string()); }
+    if entry.name.is_empty() {
+        issues.push("Empty name".to_string());
+    }
+    if entry.description.is_empty() {
+        issues.push("Empty description".to_string());
+    }
+    if entry.input.is_empty() {
+        issues.push("Empty input".to_string());
+    }
+    if entry.expected_output.is_empty() {
+        issues.push("Empty expected_output".to_string());
+    }
     if entry.format == CorpusFormat::Bash && !entry.input.contains("fn main()") {
         issues.push("Bash entry missing fn main()".to_string());
     }
@@ -6546,10 +6959,25 @@ fn corpus_validate(format: &CorpusOutputFormat) -> Result<()> {
     match format {
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
-            println!("{BOLD}Corpus Validation: {} entries{RESET}", registry.entries.len());
-            let bash_count = registry.entries.iter().filter(|e| e.format == CorpusFormat::Bash).count();
-            let make_count = registry.entries.iter().filter(|e| e.format == CorpusFormat::Makefile).count();
-            let dock_count = registry.entries.iter().filter(|e| e.format == CorpusFormat::Dockerfile).count();
+            println!(
+                "{BOLD}Corpus Validation: {} entries{RESET}",
+                registry.entries.len()
+            );
+            let bash_count = registry
+                .entries
+                .iter()
+                .filter(|e| e.format == CorpusFormat::Bash)
+                .count();
+            let make_count = registry
+                .entries
+                .iter()
+                .filter(|e| e.format == CorpusFormat::Makefile)
+                .count();
+            let dock_count = registry
+                .entries
+                .iter()
+                .filter(|e| e.format == CorpusFormat::Dockerfile)
+                .count();
             println!("  {DIM}Bash: {bash_count}, Makefile: {make_count}, Dockerfile: {dock_count}{RESET}");
             println!();
             if all_issues.is_empty() {
@@ -6588,20 +7016,49 @@ fn result_fail_dims(r: &crate::corpus::runner::CorpusResult) -> Vec<&'static str
         (!r.deterministic, "E"),
         (!r.metamorphic_consistent, "F"),
         (!r.cross_shell_agree, "G"),
-    ].iter().filter_map(|(f, d)| if *f { Some(*d) } else { None }).collect()
+    ]
+    .iter()
+    .filter_map(|(f, d)| if *f { Some(*d) } else { None })
+    .collect()
 }
 
 /// Count failures per V2 dimension from corpus results.
-fn count_dimension_failures(results: &[crate::corpus::runner::CorpusResult]) -> Vec<(&'static str, usize)> {
+fn count_dimension_failures(
+    results: &[crate::corpus::runner::CorpusResult],
+) -> Vec<(&'static str, usize)> {
     let dims = [
-        ("A  Transpilation", results.iter().filter(|r| !r.transpiled).count()),
-        ("B1 Containment", results.iter().filter(|r| !r.output_contains).count()),
-        ("B2 Exact match", results.iter().filter(|r| !r.output_exact).count()),
-        ("B3 Behavioral", results.iter().filter(|r| !r.output_behavioral).count()),
-        ("D  Lint clean", results.iter().filter(|r| !r.lint_clean).count()),
-        ("E  Deterministic", results.iter().filter(|r| !r.deterministic).count()),
-        ("F  Metamorphic", results.iter().filter(|r| !r.metamorphic_consistent).count()),
-        ("G  Cross-shell", results.iter().filter(|r| !r.cross_shell_agree).count()),
+        (
+            "A  Transpilation",
+            results.iter().filter(|r| !r.transpiled).count(),
+        ),
+        (
+            "B1 Containment",
+            results.iter().filter(|r| !r.output_contains).count(),
+        ),
+        (
+            "B2 Exact match",
+            results.iter().filter(|r| !r.output_exact).count(),
+        ),
+        (
+            "B3 Behavioral",
+            results.iter().filter(|r| !r.output_behavioral).count(),
+        ),
+        (
+            "D  Lint clean",
+            results.iter().filter(|r| !r.lint_clean).count(),
+        ),
+        (
+            "E  Deterministic",
+            results.iter().filter(|r| !r.deterministic).count(),
+        ),
+        (
+            "F  Metamorphic",
+            results.iter().filter(|r| !r.metamorphic_consistent).count(),
+        ),
+        (
+            "G  Cross-shell",
+            results.iter().filter(|r| !r.cross_shell_agree).count(),
+        ),
         ("Schema", results.iter().filter(|r| !r.schema_valid).count()),
     ];
     let mut sorted: Vec<_> = dims.into_iter().filter(|(_, c)| *c > 0).collect();
@@ -6612,8 +7069,10 @@ fn count_dimension_failures(results: &[crate::corpus::runner::CorpusResult]) -> 
 /// Print Pareto table rows with cumulative percentages.
 fn pareto_print_table(sorted: &[(&str, usize)], total: usize, limit: usize) {
     use crate::cli::color::*;
-    println!("  {BOLD}{:<18} {:>5} {:>6} {:>6}  {:<20}{RESET}",
-        "Dimension", "Count", "Pct", "Cum%", "Bar");
+    println!(
+        "  {BOLD}{:<18} {:>5} {:>6} {:>6}  {:<20}{RESET}",
+        "Dimension", "Count", "Pct", "Cum%", "Bar"
+    );
 
     let mut cumulative = 0usize;
     for (i, (name, count)) in sorted.iter().take(limit).enumerate() {
@@ -6625,8 +7084,10 @@ fn pareto_print_table(sorted: &[(&str, usize)], total: usize, limit: usize) {
         let pad: String = "░".repeat(16 - bar_width);
         let color = if cum_pct <= 80.0 { BRIGHT_RED } else { YELLOW };
         let marker = if i == 0 { " ←vital few" } else { "" };
-        println!("  {color}{:<18} {:>5} {:>5.1}% {:>5.1}%  {bar}{pad}{RESET}{DIM}{marker}{RESET}",
-            name, count, pct, cum_pct);
+        println!(
+            "  {color}{:<18} {:>5} {:>5.1}% {:>5.1}%  {bar}{pad}{RESET}{DIM}{marker}{RESET}",
+            name, count, pct, cum_pct
+        );
     }
 }
 
@@ -6635,11 +7096,18 @@ fn pareto_print_affected(results: &[crate::corpus::runner::CorpusResult]) {
     use crate::cli::color::*;
     println!("  {BOLD}Affected entries:{RESET}");
     let mut shown = 0;
-    let total_failing = results.iter().filter(|r| !result_fail_dims(r).is_empty()).count();
+    let total_failing = results
+        .iter()
+        .filter(|r| !result_fail_dims(r).is_empty())
+        .count();
     for r in results {
         let fails = result_fail_dims(r);
         if !fails.is_empty() {
-            println!("    {BRIGHT_RED}{:<8}{RESET} {DIM}fails:{RESET} {}", r.id, fails.join(", "));
+            println!(
+                "    {BRIGHT_RED}{:<8}{RESET} {DIM}fails:{RESET} {}",
+                r.id,
+                fails.join(", ")
+            );
             shown += 1;
             if shown >= 20 && total_failing > shown {
                 println!("    {DIM}... and {} more{RESET}", total_failing - shown);
@@ -6675,8 +7143,11 @@ fn corpus_pareto_analysis(
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
             println!("{BOLD}Pareto Analysis: Corpus Failures by Dimension{RESET}");
-            println!("{DIM}Total entries: {}, Total dimension-failures: {}{RESET}",
-                score.results.len(), total_failures);
+            println!(
+                "{DIM}Total entries: {}, Total dimension-failures: {}{RESET}",
+                score.results.len(),
+                total_failures
+            );
             println!();
 
             if total_failures == 0 {
@@ -6688,7 +7159,8 @@ fn corpus_pareto_analysis(
 
             // Vital few insight
             println!();
-            let vital_few: Vec<_> = sorted.iter()
+            let vital_few: Vec<_> = sorted
+                .iter()
                 .scan(0usize, |acc, (name, count)| {
                     *acc += count;
                     Some((*name, *acc as f64 / total_failures as f64 * 100.0))
@@ -6698,22 +7170,29 @@ fn corpus_pareto_analysis(
             if !vital_few.is_empty() {
                 let names: Vec<_> = vital_few.iter().map(|(n, _)| n.trim()).collect();
                 println!("  {BOLD}Vital few{RESET} (80/20): {}", names.join(", "));
-                println!("  {DIM}Fix these {} dimension(s) to resolve ~80% of failures{RESET}", names.len());
+                println!(
+                    "  {DIM}Fix these {} dimension(s) to resolve ~80% of failures{RESET}",
+                    names.len()
+                );
             }
 
             println!();
             pareto_print_affected(&score.results);
         }
         CorpusOutputFormat::Json => {
-            let json_dims: Vec<_> = sorted.iter().take(limit).scan(0usize, |acc, (name, count)| {
-                *acc += count;
-                Some(serde_json::json!({
-                    "dimension": name.trim(),
-                    "count": count,
-                    "pct": *count as f64 / total_failures as f64 * 100.0,
-                    "cumulative_pct": *acc as f64 / total_failures as f64 * 100.0,
-                }))
-            }).collect();
+            let json_dims: Vec<_> = sorted
+                .iter()
+                .take(limit)
+                .scan(0usize, |acc, (name, count)| {
+                    *acc += count;
+                    Some(serde_json::json!({
+                        "dimension": name.trim(),
+                        "count": count,
+                        "pct": *count as f64 / total_failures as f64 * 100.0,
+                        "cumulative_pct": *acc as f64 / total_failures as f64 * 100.0,
+                    }))
+                })
+                .collect();
             let result = serde_json::json!({
                 "total_entries": score.results.len(),
                 "total_failures": total_failures,
@@ -6745,15 +7224,45 @@ fn corpus_why_failed(id: &str, format: &CorpusOutputFormat) -> Result<()> {
 
     // Collect failing dimensions
     let failures: Vec<(&str, &str)> = [
-        (!result.transpiled, ("A: Transpilation", "Parser/emitter cannot handle this construct")),
-        (!result.output_contains, ("B1: Containment", "Output missing expected content")),
-        (!result.output_exact, ("B2: Exact match", "Output lines don't match expected")),
-        (!result.output_behavioral, ("B3: Behavioral", "Shell execution fails or times out")),
-        (!result.lint_clean, ("D: Lint clean", "Shellcheck/make -n reports errors")),
-        (!result.deterministic, ("E: Deterministic", "Output varies between runs")),
-        (!result.metamorphic_consistent, ("F: Metamorphic", "Metamorphic relation violated")),
-        (!result.cross_shell_agree, ("G: Cross-shell", "sh and dash produce different output")),
-    ].iter().filter_map(|(fail, info)| if *fail { Some(*info) } else { None }).collect();
+        (
+            !result.transpiled,
+            (
+                "A: Transpilation",
+                "Parser/emitter cannot handle this construct",
+            ),
+        ),
+        (
+            !result.output_contains,
+            ("B1: Containment", "Output missing expected content"),
+        ),
+        (
+            !result.output_exact,
+            ("B2: Exact match", "Output lines don't match expected"),
+        ),
+        (
+            !result.output_behavioral,
+            ("B3: Behavioral", "Shell execution fails or times out"),
+        ),
+        (
+            !result.lint_clean,
+            ("D: Lint clean", "Shellcheck/make -n reports errors"),
+        ),
+        (
+            !result.deterministic,
+            ("E: Deterministic", "Output varies between runs"),
+        ),
+        (
+            !result.metamorphic_consistent,
+            ("F: Metamorphic", "Metamorphic relation violated"),
+        ),
+        (
+            !result.cross_shell_agree,
+            ("G: Cross-shell", "sh and dash produce different output"),
+        ),
+    ]
+    .iter()
+    .filter_map(|(fail, info)| if *fail { Some(*info) } else { None })
+    .collect();
 
     match format {
         CorpusOutputFormat::Human => {
@@ -6862,38 +7371,51 @@ fn corpus_regressions(format: &CorpusOutputFormat) -> Result<()> {
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
             if all_regressions.is_empty() {
-                println!("{GREEN}No regressions detected across {} iterations.{RESET}", entries.len());
+                println!(
+                    "{GREEN}No regressions detected across {} iterations.{RESET}",
+                    entries.len()
+                );
             } else {
                 println!("{BOLD}Regressions Detected (Jidoka — spec §5.3){RESET}");
                 println!();
                 for (from, to, report) in &all_regressions {
                     println!("  {BRIGHT_RED}Iteration {from} → {to}:{RESET}");
                     for r in &report.regressions {
-                        println!("    {RED}• {}{RESET}  ({} → {})",
-                            r.message, r.previous, r.current);
+                        println!(
+                            "    {RED}• {}{RESET}  ({} → {})",
+                            r.message, r.previous, r.current
+                        );
                     }
                 }
                 println!();
-                println!("  {BRIGHT_RED}Total: {} regression(s) across {} transition(s){RESET}",
-                    all_regressions.iter().map(|(_, _, r)| r.regressions.len()).sum::<usize>(),
-                    all_regressions.len());
+                println!(
+                    "  {BRIGHT_RED}Total: {} regression(s) across {} transition(s){RESET}",
+                    all_regressions
+                        .iter()
+                        .map(|(_, _, r)| r.regressions.len())
+                        .sum::<usize>(),
+                    all_regressions.len()
+                );
             }
         }
         CorpusOutputFormat::Json => {
-            let regressions: Vec<_> = all_regressions.iter().map(|(from, to, report)| {
-                serde_json::json!({
-                    "from_iteration": from,
-                    "to_iteration": to,
-                    "regressions": report.regressions.iter().map(|r| {
-                        serde_json::json!({
-                            "dimension": r.dimension,
-                            "previous": r.previous,
-                            "current": r.current,
-                            "message": r.message,
-                        })
-                    }).collect::<Vec<_>>(),
+            let regressions: Vec<_> = all_regressions
+                .iter()
+                .map(|(from, to, report)| {
+                    serde_json::json!({
+                        "from_iteration": from,
+                        "to_iteration": to,
+                        "regressions": report.regressions.iter().map(|r| {
+                            serde_json::json!({
+                                "dimension": r.dimension,
+                                "previous": r.previous,
+                                "current": r.current,
+                                "message": r.message,
+                            })
+                        }).collect::<Vec<_>>(),
+                    })
                 })
-            }).collect();
+                .collect();
             let result = serde_json::json!({
                 "iterations": entries.len(),
                 "regression_count": all_regressions.iter().map(|(_, _, r)| r.regressions.len()).sum::<usize>(),
@@ -6908,10 +7430,7 @@ fn corpus_regressions(format: &CorpusOutputFormat) -> Result<()> {
 }
 
 /// Visual heatmap of entries × V2 dimensions (pass/fail matrix).
-fn corpus_heatmap(
-    limit: usize,
-    filter: Option<&CorpusFormatArg>,
-) -> Result<()> {
+fn corpus_heatmap(limit: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
@@ -6941,29 +7460,49 @@ fn corpus_heatmap(
         heatmap_print_row(r);
     }
     println!();
-    let total_fails = score.results.iter().filter(|r| !result_fail_dims(r).is_empty()).count();
-    println!("  {DIM}Showing {}/{} entries ({} with failures){RESET}",
-        results.len(), score.results.len(), total_fails);
+    let total_fails = score
+        .results
+        .iter()
+        .filter(|r| !result_fail_dims(r).is_empty())
+        .count();
+    println!(
+        "  {DIM}Showing {}/{} entries ({} with failures){RESET}",
+        results.len(),
+        score.results.len(),
+        total_fails
+    );
     Ok(())
 }
 
 fn heatmap_print_header() {
     use crate::cli::color::*;
-    println!("  {BOLD}{:<8} {:>2} {:>3} {:>3} {:>3}  {:>2} {:>2} {:>2} {:>2}{RESET}",
-        "ID", "A", "B1", "B2", "B3", "D", "E", "F", "G");
+    println!(
+        "  {BOLD}{:<8} {:>2} {:>3} {:>3} {:>3}  {:>2} {:>2} {:>2} {:>2}{RESET}",
+        "ID", "A", "B1", "B2", "B3", "D", "E", "F", "G"
+    );
 }
 
 fn heatmap_print_row(r: &crate::corpus::runner::CorpusResult) {
     use crate::cli::color::*;
     let g = |pass: bool| -> String {
-        if pass { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") }
+        if pass {
+            format!("{GREEN}\u{2713}{RESET}")
+        } else {
+            format!("{RED}\u{2717}{RESET}")
+        }
     };
-    println!("  {:<8} {:>2} {:>3} {:>3} {:>3}  {:>2} {:>2} {:>2} {:>2}",
+    println!(
+        "  {:<8} {:>2} {:>3} {:>3} {:>3}  {:>2} {:>2} {:>2} {:>2}",
         r.id,
-        g(r.transpiled), g(r.output_contains), g(r.output_exact),
+        g(r.transpiled),
+        g(r.output_contains),
+        g(r.output_exact),
         g(r.output_behavioral),
-        g(r.lint_clean), g(r.deterministic), g(r.metamorphic_consistent),
-        g(r.cross_shell_agree));
+        g(r.lint_clean),
+        g(r.deterministic),
+        g(r.metamorphic_consistent),
+        g(r.cross_shell_agree)
+    );
 }
 
 /// Compact multi-corpus convergence dashboard (spec §11.10.5).
@@ -6988,7 +7527,9 @@ fn corpus_dashboard() -> Result<()> {
     dashboard_print_formats(&score);
 
     // Failures summary
-    let failures: Vec<_> = score.results.iter()
+    let failures: Vec<_> = score
+        .results
+        .iter()
         .filter(|r| !result_fail_dims(r).is_empty())
         .collect();
     if failures.is_empty() {
@@ -7021,8 +7562,10 @@ fn dashboard_print_formats(score: &crate::corpus::runner::CorpusScore) {
     for fs in &score.format_scores {
         let gc = grade_color(&format!("{}", fs.grade));
         let pc = pass_count(fs.passed, fs.total);
-        println!("    {CYAN}{:<12}{RESET} {BOLD}{WHITE}{:.1}/100{RESET} {gc}{}{RESET} \u{2014} {pc}",
-            fs.format, fs.score, fs.grade);
+        println!(
+            "    {CYAN}{:<12}{RESET} {BOLD}{WHITE}{:.1}/100{RESET} {gc}{}{RESET} \u{2014} {pc}",
+            fs.format, fs.score, fs.grade
+        );
     }
     println!();
 }
@@ -7034,8 +7577,10 @@ fn dashboard_print_history(entries: &[crate::corpus::runner::ConvergenceEntry]) 
     for e in recent.iter().rev() {
         let sc = pct_color(e.score);
         let dc = delta_color(e.delta);
-        println!("    {DIM}#{:<3}{RESET} {}{:.1}/100{RESET} {dc} {DIM}{}{RESET}",
-            e.iteration, sc, e.score, e.notes);
+        println!(
+            "    {DIM}#{:<3}{RESET} {}{:.1}/100{RESET} {dc} {DIM}{}{RESET}",
+            e.iteration, sc, e.score, e.notes
+        );
     }
     println!();
 }
@@ -7051,19 +7596,22 @@ fn corpus_search(
     let registry = CorpusRegistry::load_full();
     let pat = pattern.to_lowercase();
 
-    let matches: Vec<_> = registry.entries.iter().filter(|e| {
-        let format_match = match filter {
-            Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
-            Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
-            Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
-            None => true,
-        };
-        format_match && (
-            e.id.to_lowercase().contains(&pat)
-            || e.name.to_lowercase().contains(&pat)
-            || e.description.to_lowercase().contains(&pat)
-        )
-    }).collect();
+    let matches: Vec<_> = registry
+        .entries
+        .iter()
+        .filter(|e| {
+            let format_match = match filter {
+                Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
+                Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
+                Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
+                None => true,
+            };
+            format_match
+                && (e.id.to_lowercase().contains(&pat)
+                    || e.name.to_lowercase().contains(&pat)
+                    || e.description.to_lowercase().contains(&pat))
+        })
+        .collect();
 
     match format {
         CorpusOutputFormat::Human => {
@@ -7071,12 +7619,17 @@ fn corpus_search(
             if matches.is_empty() {
                 println!("No entries matching \"{pattern}\".");
             } else {
-                println!("{BOLD}Search results for \"{pattern}\" ({} matches):{RESET}", matches.len());
+                println!(
+                    "{BOLD}Search results for \"{pattern}\" ({} matches):{RESET}",
+                    matches.len()
+                );
                 println!();
                 for e in &matches {
                     let fmt = format!("{}", e.format);
-                    println!("  {CYAN}{:<8}{RESET} {DIM}[{:<10}]{RESET} {BOLD}{}{RESET}",
-                        e.id, fmt, e.name);
+                    println!(
+                        "  {CYAN}{:<8}{RESET} {DIM}[{:<10}]{RESET} {BOLD}{}{RESET}",
+                        e.id, fmt, e.name
+                    );
                     if !e.description.is_empty() {
                         let desc = if e.description.len() > 72 {
                             format!("{}...", &e.description[..69])
@@ -7089,20 +7642,24 @@ fn corpus_search(
             }
         }
         CorpusOutputFormat::Json => {
-            let results: Vec<_> = matches.iter().map(|e| {
-                serde_json::json!({
-                    "id": e.id,
-                    "name": e.name,
-                    "description": e.description,
-                    "format": format!("{}", e.format),
-                    "tier": format!("{:?}", e.tier),
+            let results: Vec<_> = matches
+                .iter()
+                .map(|e| {
+                    serde_json::json!({
+                        "id": e.id,
+                        "name": e.name,
+                        "description": e.description,
+                        "format": format!("{}", e.format),
+                        "tier": format!("{:?}", e.tier),
+                    })
                 })
-            }).collect();
+                .collect();
             let json = serde_json::to_string_pretty(&serde_json::json!({
                 "pattern": pattern,
                 "count": matches.len(),
                 "results": results,
-            })).map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            }))
+            .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
             println!("{json}");
         }
     }
@@ -7154,26 +7711,27 @@ fn sparkline_str(data: &[f64]) -> String {
     if data.is_empty() {
         return String::new();
     }
-    let blocks = ['\u{2581}', '\u{2582}', '\u{2583}', '\u{2584}', '\u{2585}', '\u{2586}', '\u{2587}', '\u{2588}'];
+    let blocks = [
+        '\u{2581}', '\u{2582}', '\u{2583}', '\u{2584}', '\u{2585}', '\u{2586}', '\u{2587}',
+        '\u{2588}',
+    ];
     let min = data.iter().copied().fold(f64::INFINITY, f64::min);
     let max = data.iter().copied().fold(f64::NEG_INFINITY, f64::max);
     let range = max - min;
-    data.iter().map(|&v| {
-        if range < 0.001 {
-            blocks[7] // All same value → full block
-        } else {
-            let idx = ((v - min) / range * 7.0).round() as usize;
-            blocks[idx.min(7)]
-        }
-    }).collect()
+    data.iter()
+        .map(|&v| {
+            if range < 0.001 {
+                blocks[7] // All same value → full block
+            } else {
+                let idx = ((v - min) / range * 7.0).round() as usize;
+                blocks[idx.min(7)]
+            }
+        })
+        .collect()
 }
 
 /// Show top/bottom entries ranked by failure count.
-fn corpus_top(
-    limit: usize,
-    worst: bool,
-    filter: Option<&CorpusFormatArg>,
-) -> Result<()> {
+fn corpus_top(limit: usize, worst: bool, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
@@ -7187,10 +7745,14 @@ fn corpus_top(
         None => runner.run(&registry),
     };
 
-    let mut ranked: Vec<_> = score.results.iter().map(|r| {
-        let fail_count = result_fail_dims(r).len();
-        (r, fail_count)
-    }).collect();
+    let mut ranked: Vec<_> = score
+        .results
+        .iter()
+        .map(|r| {
+            let fail_count = result_fail_dims(r).len();
+            (r, fail_count)
+        })
+        .collect();
 
     if worst {
         // Most failures first
@@ -7204,7 +7766,10 @@ fn corpus_top(
     let label = if worst { "Bottom" } else { "Top" };
     println!("{BOLD}{label} {limit} Entries (by failure count):{RESET}");
     println!();
-    println!("  {BOLD}{:<8} {:>5}  {}{RESET}", "ID", "Fails", "Failing Dimensions");
+    println!(
+        "  {BOLD}{:<8} {:>5}  Failing Dimensions{RESET}",
+        "ID", "Fails"
+    );
     for (r, fail_count) in &ranked {
         let dims = result_fail_dims(r);
         let dim_str = if dims.is_empty() {
@@ -7225,15 +7790,29 @@ fn corpus_top(
 /// Classify entry into domain-specific category based on name/description (spec §11.11).
 fn classify_category(name: &str) -> &'static str {
     let n = name.to_lowercase();
-    if n.contains("config") || n.contains("bashrc") || n.contains("profile") || n.contains("alias") || n.contains("xdg") || n.contains("history") {
+    if n.contains("config")
+        || n.contains("bashrc")
+        || n.contains("profile")
+        || n.contains("alias")
+        || n.contains("xdg")
+        || n.contains("history")
+    {
         "Config (A)"
-    } else if n.contains("oneliner") || n.contains("one-liner") || n.contains("pipe-") || n.contains("pipeline") {
+    } else if n.contains("oneliner")
+        || n.contains("one-liner")
+        || n.contains("pipe-")
+        || n.contains("pipeline")
+    {
         "One-liner (B)"
     } else if n.contains("coreutil") || n.contains("reimpl") {
         "Coreutils (G)"
     } else if n.contains("regex") || n.contains("pattern-match") || n.contains("glob-match") {
         "Regex (H)"
-    } else if n.contains("daemon") || n.contains("cron") || n.contains("startup") || n.contains("service") {
+    } else if n.contains("daemon")
+        || n.contains("cron")
+        || n.contains("startup")
+        || n.contains("service")
+    {
         "System (F)"
     } else if n.contains("milestone") {
         "Milestone"
@@ -7260,7 +7839,10 @@ fn corpus_categories(format: &CorpusOutputFormat) -> Result<()> {
             use crate::cli::color::*;
             println!("{BOLD}Domain-Specific Categories (spec §11.11){RESET}");
             println!();
-            println!("  {BOLD}{:<18} {:>5}  {}{RESET}", "Category", "Count", "Sample IDs");
+            println!(
+                "  {BOLD}{:<18} {:>5}  Sample IDs{RESET}",
+                "Category", "Count"
+            );
             let total = registry.entries.len();
             for (cat, ids) in &cats {
                 let sample: Vec<_> = ids.iter().take(5).copied().collect();
@@ -7270,24 +7852,36 @@ fn corpus_categories(format: &CorpusOutputFormat) -> Result<()> {
                     String::new()
                 };
                 let pct = ids.len() as f64 / total as f64 * 100.0;
-                println!("  {CYAN}{:<18}{RESET} {:>5}  {DIM}({pct:>5.1}%){RESET}  {}{}",
-                    cat, ids.len(), sample.join(", "), more);
+                println!(
+                    "  {CYAN}{:<18}{RESET} {:>5}  {DIM}({pct:>5.1}%){RESET}  {}{}",
+                    cat,
+                    ids.len(),
+                    sample.join(", "),
+                    more
+                );
             }
             println!();
-            println!("  {DIM}Total: {total} entries in {} categories{RESET}", cats.len());
+            println!(
+                "  {DIM}Total: {total} entries in {} categories{RESET}",
+                cats.len()
+            );
         }
         CorpusOutputFormat::Json => {
-            let result: Vec<_> = cats.iter().map(|(cat, ids)| {
-                serde_json::json!({
-                    "category": cat,
-                    "count": ids.len(),
-                    "ids": ids,
+            let result: Vec<_> = cats
+                .iter()
+                .map(|(cat, ids)| {
+                    serde_json::json!({
+                        "category": cat,
+                        "count": ids.len(),
+                        "ids": ids,
+                    })
                 })
-            }).collect();
+                .collect();
             let json = serde_json::to_string_pretty(&serde_json::json!({
                 "total": registry.entries.len(),
                 "categories": result,
-            })).map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            }))
+            .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
             println!("{json}");
         }
     }
@@ -7295,10 +7889,7 @@ fn corpus_categories(format: &CorpusOutputFormat) -> Result<()> {
 }
 
 /// Show per-dimension pass rates, weights, and point contributions.
-fn corpus_dimensions(
-    format: &CorpusOutputFormat,
-    filter: Option<&CorpusFormatArg>,
-) -> Result<()> {
+fn corpus_dimensions(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
 
@@ -7319,31 +7910,47 @@ fn corpus_dimensions(
             use crate::cli::color::*;
             println!("{BOLD}V2 Dimension Analysis ({total} entries){RESET}");
             println!();
-            println!("  {BOLD}{:<4} {:<16} {:>6} {:>6} {:>7}  {:>6} {:>6}{RESET}",
-                "Dim", "Name", "Pass", "Fail", "Rate", "Weight", "Points");
+            println!(
+                "  {BOLD}{:<4} {:<16} {:>6} {:>6} {:>7}  {:>6} {:>6}{RESET}",
+                "Dim", "Name", "Pass", "Fail", "Rate", "Weight", "Points"
+            );
             for d in &dims {
                 let rc = pct_color(d.rate * 100.0);
-                println!("  {:<4} {:<16} {:>6} {:>6} {rc}{:>6.1}%{RESET}  {:>6.0} {:>6.1}",
-                    d.code, d.name, d.pass, d.fail, d.rate * 100.0, d.weight, d.points);
+                println!(
+                    "  {:<4} {:<16} {:>6} {:>6} {rc}{:>6.1}%{RESET}  {:>6.0} {:>6.1}",
+                    d.code,
+                    d.name,
+                    d.pass,
+                    d.fail,
+                    d.rate * 100.0,
+                    d.weight,
+                    d.points
+                );
             }
             let total_pts: f64 = dims.iter().map(|d| d.points).sum();
             let total_wt: f64 = dims.iter().map(|d| d.weight).sum();
             println!();
-            println!("  {BOLD}{:<4} {:<16} {:>6} {:>6} {:>7}  {:>6.0} {:>6.1}{RESET}",
-                "", "Total", "", "", "", total_wt, total_pts);
+            println!(
+                "  {BOLD}{:<4} {:<16} {:>6} {:>6} {:>7}  {:>6.0} {:>6.1}{RESET}",
+                "", "Total", "", "", "", total_wt, total_pts
+            );
         }
         CorpusOutputFormat::Json => {
-            let result: Vec<_> = dims.iter().map(|d| {
-                serde_json::json!({
-                    "code": d.code, "name": d.name,
-                    "pass": d.pass, "fail": d.fail,
-                    "rate": d.rate, "weight": d.weight, "points": d.points,
+            let result: Vec<_> = dims
+                .iter()
+                .map(|d| {
+                    serde_json::json!({
+                        "code": d.code, "name": d.name,
+                        "pass": d.pass, "fail": d.fail,
+                        "rate": d.rate, "weight": d.weight, "points": d.points,
+                    })
                 })
-            }).collect();
+                .collect();
             let json = serde_json::to_string_pretty(&serde_json::json!({
                 "total_entries": total,
                 "dimensions": result,
-            })).map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            }))
+            .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
             println!("{json}");
         }
     }
@@ -7360,26 +7967,46 @@ struct DimStat {
     points: f64,
 }
 
-fn compute_dimension_stats(results: &[crate::corpus::runner::CorpusResult], total: usize) -> Vec<DimStat> {
+fn compute_dimension_stats(
+    results: &[crate::corpus::runner::CorpusResult],
+    total: usize,
+) -> Vec<DimStat> {
     let count = |f: &dyn Fn(&crate::corpus::runner::CorpusResult) -> bool| -> usize {
         results.iter().filter(|r| f(r)).count()
     };
     let dim = |code: &'static str, name: &'static str, pass: usize, weight: f64| -> DimStat {
         let fail = total - pass;
-        let rate = if total > 0 { pass as f64 / total as f64 } else { 0.0 };
+        let rate = if total > 0 {
+            pass as f64 / total as f64
+        } else {
+            0.0
+        };
         let points = rate * weight;
-        DimStat { code, name, pass, fail, rate, weight, points }
+        DimStat {
+            code,
+            name,
+            pass,
+            fail,
+            rate,
+            weight,
+            points,
+        }
     };
     vec![
-        dim("A",  "Transpilation",  count(&|r| r.transpiled), 30.0),
-        dim("B1", "Containment",    count(&|r| r.output_contains), 10.0),
-        dim("B2", "Exact match",    count(&|r| r.output_exact), 8.0),
-        dim("B3", "Behavioral",     count(&|r| r.output_behavioral), 7.0),
-        dim("C",  "Coverage",       total, 15.0), // coverage is always "pass" (ratio-based)
-        dim("D",  "Lint clean",     count(&|r| r.lint_clean), 10.0),
-        dim("E",  "Deterministic",  count(&|r| r.deterministic), 10.0),
-        dim("F",  "Metamorphic",    count(&|r| r.metamorphic_consistent), 5.0),
-        dim("G",  "Cross-shell",    count(&|r| r.cross_shell_agree), 5.0),
+        dim("A", "Transpilation", count(&|r| r.transpiled), 30.0),
+        dim("B1", "Containment", count(&|r| r.output_contains), 10.0),
+        dim("B2", "Exact match", count(&|r| r.output_exact), 8.0),
+        dim("B3", "Behavioral", count(&|r| r.output_behavioral), 7.0),
+        dim("C", "Coverage", total, 15.0), // coverage is always "pass" (ratio-based)
+        dim("D", "Lint clean", count(&|r| r.lint_clean), 10.0),
+        dim("E", "Deterministic", count(&|r| r.deterministic), 10.0),
+        dim(
+            "F",
+            "Metamorphic",
+            count(&|r| r.metamorphic_consistent),
+            5.0,
+        ),
+        dim("G", "Cross-shell", count(&|r| r.cross_shell_agree), 5.0),
     ]
 }
 
@@ -7452,7 +8079,10 @@ fn corpus_converged(min_rate: f64, max_delta: f64, min_stable: usize) -> Result<
         .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
 
     if entries.len() < min_stable {
-        println!("{YELLOW}NOT CONVERGED{RESET}: need {min_stable} iterations, have {}", entries.len());
+        println!(
+            "{YELLOW}NOT CONVERGED{RESET}: need {min_stable} iterations, have {}",
+            entries.len()
+        );
         return Err(Error::Internal("Not converged".to_string()));
     }
 
@@ -7468,16 +8098,27 @@ fn corpus_converged(min_rate: f64, max_delta: f64, min_stable: usize) -> Result<
 
     println!("{BOLD}Convergence Check (spec §5.2){RESET}");
     println!();
-    converged_print_check(&format!("Rate >= {min_rate}% for {min_stable} iters"), all_above_rate);
-    converged_print_check(&format!("Delta < {max_delta}% for {min_stable} iters"), all_stable);
-    converged_print_check(&format!("No regressions in last {min_stable} iters"), no_regressions);
+    converged_print_check(
+        &format!("Rate >= {min_rate}% for {min_stable} iters"),
+        all_above_rate,
+    );
+    converged_print_check(
+        &format!("Delta < {max_delta}% for {min_stable} iters"),
+        all_stable,
+    );
+    converged_print_check(
+        &format!("No regressions in last {min_stable} iters"),
+        no_regressions,
+    );
     println!();
 
     if all_above_rate && all_stable && no_regressions {
-        println!("  {BRIGHT_GREEN}CONVERGED{RESET} at iteration {} ({} entries, {:.1}/100)",
+        println!(
+            "  {BRIGHT_GREEN}CONVERGED{RESET} at iteration {} ({} entries, {:.1}/100)",
             entries.last().map(|e| e.iteration).unwrap_or(0),
             entries.last().map(|e| e.total).unwrap_or(0),
-            entries.last().map(|e| e.score).unwrap_or(0.0));
+            entries.last().map(|e| e.score).unwrap_or(0.0)
+        );
         println!("  {DIM}Per spec §5.2: expand corpus with harder entries.{RESET}");
         Ok(())
     } else {
@@ -7488,7 +8129,11 @@ fn corpus_converged(min_rate: f64, max_delta: f64, min_stable: usize) -> Result<
 
 fn converged_print_check(label: &str, pass: bool) {
     use crate::cli::color::*;
-    let mark = if pass { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") };
+    let mark = if pass {
+        format!("{GREEN}\u{2713}{RESET}")
+    } else {
+        format!("{RED}\u{2717}{RESET}")
+    };
     println!("  {mark} {label}");
 }
 
@@ -7516,14 +8161,16 @@ fn corpus_benchmark(max_ms: u64, filter: Option<&CorpusFormatArg>) -> Result<()>
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
-    let entries: Vec<_> = registry.entries.iter().filter(|e| {
-        match filter {
+    let entries: Vec<_> = registry
+        .entries
+        .iter()
+        .filter(|e| match filter {
             Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
             Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
             Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
             None => true,
-        }
-    }).collect();
+        })
+        .collect();
 
     let mut timings: Vec<(String, u128)> = Vec::with_capacity(entries.len());
     let start_all = Instant::now();
@@ -7544,9 +8191,16 @@ fn corpus_benchmark(max_ms: u64, filter: Option<&CorpusFormatArg>) -> Result<()>
     let min_time = times.last().copied().unwrap_or(0);
     let p95_idx = (times.len() as f64 * 0.05) as usize;
     let p95 = times.get(p95_idx).copied().unwrap_or(0);
-    let violations: Vec<_> = timings.iter().filter(|(_, t)| *t > max_ms as u128).collect();
+    let violations: Vec<_> = timings
+        .iter()
+        .filter(|(_, t)| *t > max_ms as u128)
+        .collect();
 
-    println!("{BOLD}Corpus Benchmark ({} entries, {}ms total){RESET}", entries.len(), total_ms);
+    println!(
+        "{BOLD}Corpus Benchmark ({} entries, {}ms total){RESET}",
+        entries.len(),
+        total_ms
+    );
     println!();
     println!("  {BOLD}Timing Statistics:{RESET}");
     println!("    Min:  {min_time}ms");
@@ -7558,7 +8212,10 @@ fn corpus_benchmark(max_ms: u64, filter: Option<&CorpusFormatArg>) -> Result<()>
     if violations.is_empty() {
         println!("  {GREEN}All entries under {max_ms}ms threshold.{RESET}");
     } else {
-        println!("  {BRIGHT_RED}{} entries exceed {max_ms}ms threshold:{RESET}", violations.len());
+        println!(
+            "  {BRIGHT_RED}{} entries exceed {max_ms}ms threshold:{RESET}",
+            violations.len()
+        );
         for (id, t) in violations.iter().take(10) {
             println!("    {RED}{id}{RESET}: {t}ms");
         }
@@ -7589,14 +8246,18 @@ fn corpus_errors(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) 
     };
 
     // Collect entries with errors or failures
-    let mut categories: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
+    let mut categories: std::collections::BTreeMap<String, Vec<String>> =
+        std::collections::BTreeMap::new();
     for r in &score.results {
         let fails = result_fail_dims(r);
         if fails.is_empty() {
             continue;
         }
         let cat = r.error_category.as_deref().unwrap_or("uncategorized");
-        categories.entry(cat.to_string()).or_default().push(r.id.clone());
+        categories
+            .entry(cat.to_string())
+            .or_default()
+            .push(r.id.clone());
     }
 
     match format {
@@ -7605,9 +8266,12 @@ fn corpus_errors(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) 
             if categories.is_empty() {
                 println!("{GREEN}No errors in corpus.{RESET}");
             } else {
-                println!("{BOLD}Error Categories ({} categories){RESET}", categories.len());
+                println!(
+                    "{BOLD}Error Categories ({} categories){RESET}",
+                    categories.len()
+                );
                 println!();
-                println!("  {BOLD}{:<24} {:>5}  {}{RESET}", "Category", "Count", "Entries");
+                println!("  {BOLD}{:<24} {:>5}  Entries{RESET}", "Category", "Count");
                 for (cat, ids) in &categories {
                     let sample: Vec<_> = ids.iter().take(5).map(|s| s.as_str()).collect();
                     let more = if ids.len() > 5 {
@@ -7615,23 +8279,32 @@ fn corpus_errors(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) 
                     } else {
                         String::new()
                     };
-                    println!("  {YELLOW}{:<24}{RESET} {:>5}  {}{}",
-                        cat, ids.len(), sample.join(", "), more);
+                    println!(
+                        "  {YELLOW}{:<24}{RESET} {:>5}  {}{}",
+                        cat,
+                        ids.len(),
+                        sample.join(", "),
+                        more
+                    );
                 }
             }
         }
         CorpusOutputFormat::Json => {
-            let result: Vec<_> = categories.iter().map(|(cat, ids)| {
-                serde_json::json!({
-                    "category": cat,
-                    "count": ids.len(),
-                    "entries": ids,
+            let result: Vec<_> = categories
+                .iter()
+                .map(|(cat, ids)| {
+                    serde_json::json!({
+                        "category": cat,
+                        "count": ids.len(),
+                        "entries": ids,
+                    })
                 })
-            }).collect();
+                .collect();
             let json = serde_json::to_string_pretty(&serde_json::json!({
                 "total_errors": categories.values().map(|v| v.len()).sum::<usize>(),
                 "categories": result,
-            })).map_err(|e| Error::Internal(format!("JSON: {e}")))?;
+            }))
+            .map_err(|e| Error::Internal(format!("JSON: {e}")))?;
             println!("{json}");
         }
     }
@@ -7647,14 +8320,16 @@ fn corpus_sample(count: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
-    let entries: Vec<_> = registry.entries.iter().filter(|e| {
-        match filter {
+    let entries: Vec<_> = registry
+        .entries
+        .iter()
+        .filter(|e| match filter {
             Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
             Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
             Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
             None => true,
-        }
-    }).collect();
+        })
+        .collect();
 
     // Deterministic pseudo-random sampling using hash of current time
     let seed = std::time::SystemTime::now()
@@ -7662,15 +8337,22 @@ fn corpus_sample(count: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
         .map(|d| d.as_nanos() as usize)
         .unwrap_or(42);
     let n = entries.len();
-    let sampled: Vec<_> = (0..count.min(n)).map(|i| {
-        let idx = (seed.wrapping_mul(6364136223846793005).wrapping_add(i * 1442695040888963407)) % n;
-        entries[idx]
-    }).collect();
+    let sampled: Vec<_> = (0..count.min(n))
+        .map(|i| {
+            let idx = (seed
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(i * 1442695040888963407))
+                % n;
+            entries[idx]
+        })
+        .collect();
 
     println!("{BOLD}Random Sample ({count} of {n} entries){RESET}");
     println!();
-    println!("  {BOLD}{:<8} {:<10} {:<12} {:>5}  {}{RESET}",
-        "ID", "Format", "Tier", "Dims", "Status");
+    println!(
+        "  {BOLD}{:<8} {:<10} {:<12} {:>5}  Status{RESET}",
+        "ID", "Format", "Tier", "Dims"
+    );
     for entry in &sampled {
         let result = runner.run_single(entry);
         let fails = result_fail_dims(&result);
@@ -7679,9 +8361,14 @@ fn corpus_sample(count: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
         } else {
             format!("{RED}FAIL{RESET} ({})", fails.join(", "))
         };
-        println!("  {:<8} {:<10} {:<12} {:>5}  {}",
-            entry.id, format!("{}", entry.format), format!("{:?}", entry.tier),
-            format!("{}/{}", 9 - fails.len(), 9), status);
+        println!(
+            "  {:<8} {:<10} {:<12} {:>5}  {}",
+            entry.id,
+            format!("{}", entry.format),
+            format!("{:?}", entry.tier),
+            format!("{}/{}", 9 - fails.len(), 9),
+            status
+        );
     }
     Ok(())
 }
@@ -7732,8 +8419,10 @@ fn corpus_completeness() -> Result<()> {
     for (tier, label, target_pct) in &tiers {
         let count = registry.entries.iter().filter(|e| &e.tier == tier).count();
         let actual_pct = count as f64 / total as f64 * 100.0;
-        println!("    {:<14} {:>4} ({:>5.1}%)  {DIM}target: ~{target_pct}%{RESET}",
-            label, count, actual_pct);
+        println!(
+            "    {:<14} {:>4} ({:>5.1}%)  {DIM}target: ~{target_pct}%{RESET}",
+            label, count, actual_pct
+        );
     }
 
     println!();
@@ -7767,7 +8456,11 @@ fn corpus_gate(min_score: f64, max_ms: u64) -> Result<()> {
     );
 
     // Gate 2: Check for failures
-    let failure_count = score.results.iter().filter(|r| !result_fail_dims(r).is_empty()).count();
+    let failure_count = score
+        .results
+        .iter()
+        .filter(|r| !result_fail_dims(r).is_empty())
+        .count();
     let fail_pass = failure_count <= 1; // Allow B-143 known failure
     gate_print_check(
         &format!("Failures <= 1 (actual: {failure_count})"),
@@ -7816,7 +8509,11 @@ fn corpus_gate(min_score: f64, max_ms: u64) -> Result<()> {
 
 fn gate_print_check(label: &str, pass: bool) {
     use crate::cli::color::*;
-    let mark = if pass { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") };
+    let mark = if pass {
+        format!("{GREEN}\u{2713}{RESET}")
+    } else {
+        format!("{RED}\u{2717}{RESET}")
+    };
     println!("  {mark} {label}");
 }
 
@@ -7830,14 +8527,16 @@ fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) -> Result<(
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
-    let entries: Vec<_> = registry.entries.iter().filter(|e| {
-        match filter {
+    let entries: Vec<_> = registry
+        .entries
+        .iter()
+        .filter(|e| match filter {
             Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
             Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
             Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
             None => true,
-        }
-    }).collect();
+        })
+        .collect();
 
     // Time each entry
     let mut timings: Vec<(&str, f64)> = Vec::new();
@@ -7859,31 +8558,57 @@ fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) -> Result<(
     let stddev = variance.sqrt();
 
     // Find outliers by z-score
-    let mut outliers: Vec<(&str, f64, f64)> = timings.iter()
+    let mut outliers: Vec<(&str, f64, f64)> = timings
+        .iter()
         .filter_map(|(id, ms)| {
-            let z = if stddev > 0.0 { (ms - mean) / stddev } else { 0.0 };
-            if z.abs() >= threshold { Some((*id, *ms, z)) } else { None }
+            let z = if stddev > 0.0 {
+                (ms - mean) / stddev
+            } else {
+                0.0
+            };
+            if z.abs() >= threshold {
+                Some((*id, *ms, z))
+            } else {
+                None
+            }
         })
         .collect();
     outliers.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
 
     println!("{BOLD}Timing Outlier Detection{RESET} (z-score >= {threshold:.1})");
-    println!("{DIM}  Mean: {mean:.1}ms | StdDev: {stddev:.1}ms | Entries: {}{RESET}", timings.len());
+    println!(
+        "{DIM}  Mean: {mean:.1}ms | StdDev: {stddev:.1}ms | Entries: {}{RESET}",
+        timings.len()
+    );
     println!();
 
     if outliers.is_empty() {
         println!("  {GREEN}No outliers detected.{RESET}");
     } else {
-        println!("  {BOLD}{:<8} {:>8} {:>8}  {}{RESET}",
-            "ID", "Time", "Z-Score", "Status");
+        println!(
+            "  {BOLD}{:<8} {:>8} {:>8}  Status{RESET}",
+            "ID", "Time", "Z-Score"
+        );
         for (id, ms, z) in &outliers {
-            let color = if *z > 3.0 { BRIGHT_RED } else if *z > 2.0 { YELLOW } else { DIM };
+            let color = if *z > 3.0 {
+                BRIGHT_RED
+            } else if *z > 2.0 {
+                YELLOW
+            } else {
+                DIM
+            };
             let status = if *z > 3.0 { "EXTREME" } else { "OUTLIER" };
-            println!("  {CYAN}{:<8}{RESET} {color}{:>7.1}ms {:>+7.2}{RESET}  {status}",
-                id, ms, z);
+            println!(
+                "  {CYAN}{:<8}{RESET} {color}{:>7.1}ms {:>+7.2}{RESET}  {status}",
+                id, ms, z
+            );
         }
         println!();
-        println!("  {DIM}{} outliers found out of {} entries{RESET}", outliers.len(), timings.len());
+        println!(
+            "  {DIM}{} outliers found out of {} entries{RESET}",
+            outliers.len(),
+            timings.len()
+        );
     }
     Ok(())
 }
@@ -7898,8 +8623,16 @@ fn corpus_matrix() -> Result<()> {
     let runner = CorpusRunner::new(Config::default());
 
     // Classify entries by category and collect results
-    let categories = ["Config (A)", "One-liner (B)", "Coreutils (G)", "Regex (H)",
-                      "System (F)", "Adversarial", "General", "Milestone"];
+    let categories = [
+        "Config (A)",
+        "One-liner (B)",
+        "Coreutils (G)",
+        "Regex (H)",
+        "System (F)",
+        "Adversarial",
+        "General",
+        "Milestone",
+    ];
     let properties = ["POSIX", "Determ", "Idempot", "X-Shell", "Lint", "B3-Behav"];
 
     // Collect per-category pass rates for each property
@@ -7907,7 +8640,9 @@ fn corpus_matrix() -> Result<()> {
     let mut cat_counts: Vec<usize> = Vec::new();
 
     for cat in &categories {
-        let cat_entries: Vec<_> = registry.entries.iter()
+        let cat_entries: Vec<_> = registry
+            .entries
+            .iter()
             .filter(|e| classify_category(&e.name) == *cat)
             .collect();
         let count = cat_entries.len();
@@ -7918,16 +8653,14 @@ fn corpus_matrix() -> Result<()> {
             continue;
         }
 
-        let results: Vec<_> = cat_entries.iter()
-            .map(|e| runner.run_single(e))
-            .collect();
+        let results: Vec<_> = cat_entries.iter().map(|e| runner.run_single(e)).collect();
 
         let rates = vec![
             results.iter().filter(|r| r.lint_clean).count() as f64 / count as f64, // POSIX (lint)
             results.iter().filter(|r| r.deterministic).count() as f64 / count as f64, // Deterministic
             results.iter().filter(|r| r.transpiled).count() as f64 / count as f64, // Idempotent (approx via transpile)
             results.iter().filter(|r| r.cross_shell_agree).count() as f64 / count as f64, // Cross-shell
-            results.iter().filter(|r| r.lint_clean).count() as f64 / count as f64, // Lint
+            results.iter().filter(|r| r.lint_clean).count() as f64 / count as f64,        // Lint
             results.iter().filter(|r| r.output_behavioral).count() as f64 / count as f64, // B3 Behavioral
         ];
         matrix.push(rates);
@@ -7945,11 +8678,19 @@ fn corpus_matrix() -> Result<()> {
 
     // Rows
     for (i, cat) in categories.iter().enumerate() {
-        if cat_counts[i] == 0 { continue; }
+        if cat_counts[i] == 0 {
+            continue;
+        }
         print!("  {CYAN}{:<16}{RESET} {:>4}", cat, cat_counts[i]);
         for rate in &matrix[i] {
             let pct = rate * 100.0;
-            let color = if pct >= 99.0 { GREEN } else if pct >= 95.0 { YELLOW } else { RED };
+            let color = if pct >= 99.0 {
+                GREEN
+            } else if pct >= 95.0 {
+                YELLOW
+            } else {
+                RED
+            };
             print!("  {color}{:>6.1}%{RESET}", pct);
         }
         println!();
@@ -7981,8 +8722,10 @@ fn corpus_timeline() -> Result<()> {
     // Find max total for bar scaling
     let max_total = entries.iter().map(|e| e.total).max().unwrap_or(1) as f64;
 
-    println!("  {BOLD}{:<4} {:<12} {:>6} {:>6} {:>7} {:>7}  {}{RESET}",
-        "Iter", "Date", "Total", "Pass", "Rate", "Score", "Growth Bar");
+    println!(
+        "  {BOLD}{:<4} {:<12} {:>6} {:>6} {:>7} {:>7}  Growth Bar{RESET}",
+        "Iter", "Date", "Total", "Pass", "Rate", "Score"
+    );
 
     for entry in &entries {
         let bar_len = ((entry.total as f64 / max_total) * 30.0) as usize;
@@ -7998,7 +8741,11 @@ fn corpus_timeline() -> Result<()> {
         };
 
         let delta_str = if entry.delta != 0.0 {
-            let arrow = if entry.delta > 0.0 { "\u{2191}" } else { "\u{2193}" };
+            let arrow = if entry.delta > 0.0 {
+                "\u{2191}"
+            } else {
+                "\u{2193}"
+            };
             format!(" {arrow}{:.1}%", entry.delta.abs() * 100.0)
         } else {
             String::new()
@@ -8019,8 +8766,17 @@ fn corpus_timeline() -> Result<()> {
         println!("  {DIM}Growth: +{growth} entries over {iters} iterations{RESET}");
         if last.score > 0.0 && first.score > 0.0 {
             let score_delta = last.score - first.score;
-            let arrow = if score_delta >= 0.0 { "\u{2191}" } else { "\u{2193}" };
-            println!("  {DIM}Score: {:.1} → {:.1} ({arrow}{:.2}){RESET}", first.score, last.score, score_delta.abs());
+            let arrow = if score_delta >= 0.0 {
+                "\u{2191}"
+            } else {
+                "\u{2193}"
+            };
+            println!(
+                "  {DIM}Score: {:.1} → {:.1} ({arrow}{:.2}){RESET}",
+                first.score,
+                last.score,
+                score_delta.abs()
+            );
         }
     }
     Ok(())
@@ -8029,16 +8785,34 @@ fn corpus_timeline() -> Result<()> {
 /// Print format drift line for a single format dimension.
 fn drift_print_format(name: &str, fp: usize, ft: usize, fs: f64, lp: usize, lt: usize, ls: f64) {
     use crate::cli::color::*;
-    if ft == 0 && lt == 0 { return; }
-    let first_rate = if ft > 0 { fp as f64 / ft as f64 * 100.0 } else { 0.0 };
-    let last_rate = if lt > 0 { lp as f64 / lt as f64 * 100.0 } else { 0.0 };
+    if ft == 0 && lt == 0 {
+        return;
+    }
+    let first_rate = if ft > 0 {
+        fp as f64 / ft as f64 * 100.0
+    } else {
+        0.0
+    };
+    let last_rate = if lt > 0 {
+        lp as f64 / lt as f64 * 100.0
+    } else {
+        0.0
+    };
     let rate_delta = last_rate - first_rate;
     let score_delta = ls - fs;
-    let arrow_r = if rate_delta >= 0.0 { "\u{2191}" } else { "\u{2193}" };
+    let arrow_r = if rate_delta >= 0.0 {
+        "\u{2191}"
+    } else {
+        "\u{2193}"
+    };
     let rc = if rate_delta >= 0.0 { GREEN } else { RED };
     print!("    {CYAN}{name:<12}{RESET} rate: {rc}{arrow_r}{rate_delta:+.1}%{RESET}");
     if fs > 0.0 || ls > 0.0 {
-        let arrow_s = if score_delta >= 0.0 { "\u{2191}" } else { "\u{2193}" };
+        let arrow_s = if score_delta >= 0.0 {
+            "\u{2191}"
+        } else {
+            "\u{2193}"
+        };
         let sc = if score_delta >= 0.0 { GREEN } else { RED };
         print!("  score: {sc}{arrow_s}{score_delta:+.1}{RESET}");
     }
@@ -8072,18 +8846,52 @@ fn corpus_drift() -> Result<()> {
     let first = scored[0];
     let last = scored[scored.len() - 1];
     println!("  {BOLD}Overall Score:{RESET}");
-    let arrow = if last.score >= first.score { "\u{2191}" } else { "\u{2193}" };
-    let color = if last.score >= first.score { GREEN } else { RED };
-    println!("    {:.1} \u{2192} {:.1} ({color}{arrow}{:.2}{RESET})", first.score, last.score, (last.score - first.score).abs());
+    let arrow = if last.score >= first.score {
+        "\u{2191}"
+    } else {
+        "\u{2193}"
+    };
+    let color = if last.score >= first.score {
+        GREEN
+    } else {
+        RED
+    };
+    println!(
+        "    {:.1} \u{2192} {:.1} ({color}{arrow}{:.2}{RESET})",
+        first.score,
+        last.score,
+        (last.score - first.score).abs()
+    );
     println!();
 
     println!("  {BOLD}Per-Format Drift:{RESET}");
-    drift_print_format("Bash", first.bash_passed, first.bash_total, first.bash_score,
-                       last.bash_passed, last.bash_total, last.bash_score);
-    drift_print_format("Makefile", first.makefile_passed, first.makefile_total, first.makefile_score,
-                       last.makefile_passed, last.makefile_total, last.makefile_score);
-    drift_print_format("Dockerfile", first.dockerfile_passed, first.dockerfile_total, first.dockerfile_score,
-                       last.dockerfile_passed, last.dockerfile_total, last.dockerfile_score);
+    drift_print_format(
+        "Bash",
+        first.bash_passed,
+        first.bash_total,
+        first.bash_score,
+        last.bash_passed,
+        last.bash_total,
+        last.bash_score,
+    );
+    drift_print_format(
+        "Makefile",
+        first.makefile_passed,
+        first.makefile_total,
+        first.makefile_score,
+        last.makefile_passed,
+        last.makefile_total,
+        last.makefile_score,
+    );
+    drift_print_format(
+        "Dockerfile",
+        first.dockerfile_passed,
+        first.dockerfile_total,
+        first.dockerfile_score,
+        last.dockerfile_passed,
+        last.dockerfile_total,
+        last.dockerfile_score,
+    );
 
     println!();
     println!("  {BOLD}Pass Rate History:{RESET}");
@@ -8095,14 +8903,19 @@ fn corpus_drift() -> Result<()> {
         } else {
             String::new()
         };
-        println!("    iter {:<3} {rc}{:>6.1}%{RESET}  ({}/{} passed){lint_str}",
-            entry.iteration, rate_pct, entry.passed, entry.total);
+        println!(
+            "    iter {:<3} {rc}{:>6.1}%{RESET}  ({}/{} passed){lint_str}",
+            entry.iteration, rate_pct, entry.passed, entry.total
+        );
     }
 
     println!();
     if last.rate < first.rate {
-        println!("  {YELLOW}WARNING: Overall pass rate has decreased ({:.2}% \u{2192} {:.2}%){RESET}",
-            first.rate * 100.0, last.rate * 100.0);
+        println!(
+            "  {YELLOW}WARNING: Overall pass rate has decreased ({:.2}% \u{2192} {:.2}%){RESET}",
+            first.rate * 100.0,
+            last.rate * 100.0
+        );
     } else {
         println!("  {GREEN}No negative drift detected.{RESET}");
     }
@@ -8119,14 +8932,16 @@ fn corpus_slow(limit: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
-    let entries: Vec<_> = registry.entries.iter().filter(|e| {
-        match filter {
+    let entries: Vec<_> = registry
+        .entries
+        .iter()
+        .filter(|e| match filter {
             Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
             Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
             Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
             None => true,
-        }
-    }).collect();
+        })
+        .collect();
 
     // Time each entry
     let mut timings: Vec<(&str, &str, f64)> = Vec::new();
@@ -8144,17 +8959,30 @@ fn corpus_slow(limit: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
     let n = timings.len();
 
     println!("{BOLD}Slowest Corpus Entries{RESET} (top {limit} of {n})");
-    println!("{DIM}  Total: {total_ms:.0}ms | Avg: {:.1}ms{RESET}", total_ms / n as f64);
+    println!(
+        "{DIM}  Total: {total_ms:.0}ms | Avg: {:.1}ms{RESET}",
+        total_ms / n as f64
+    );
     println!();
 
-    println!("  {BOLD}{:<8} {:>8} {:>6}  {}{RESET}",
-        "ID", "Time", "% Tot", "Name");
+    println!(
+        "  {BOLD}{:<8} {:>8} {:>6}  Name{RESET}",
+        "ID", "Time", "% Tot"
+    );
     for (id, name, ms) in timings.iter().take(limit) {
         let pct = ms / total_ms * 100.0;
-        let color = if *ms > 1000.0 { BRIGHT_RED } else if *ms > 100.0 { YELLOW } else { DIM };
+        let color = if *ms > 1000.0 {
+            BRIGHT_RED
+        } else if *ms > 100.0 {
+            YELLOW
+        } else {
+            DIM
+        };
         let name_short = if name.len() > 40 { &name[..40] } else { name };
-        println!("  {CYAN}{:<8}{RESET} {color}{:>7.1}ms{RESET} {:>5.1}%  {DIM}{name_short}{RESET}",
-            id, ms, pct);
+        println!(
+            "  {CYAN}{:<8}{RESET} {color}{:>7.1}ms{RESET} {:>5.1}%  {DIM}{name_short}{RESET}",
+            id, ms, pct
+        );
     }
 
     // Cumulative top-N percentage
@@ -8174,21 +9002,66 @@ fn corpus_tags() -> Result<()> {
 
     // Tag classification based on entry name/description keywords
     let tag_rules: &[(&str, &[&str])] = &[
-        ("variable", &["variable", "assignment", "var-", "let ", "readonly", "export"]),
-        ("loop", &["loop", "for-", "while-", "until-", "iteration", "seq"]),
-        ("conditional", &["if-", "elif", "conditional", "ternary", "case-", "test-"]),
-        ("pipe", &["pipe", "pipeline", "redirect", "heredoc", "herestring"]),
-        ("arithmetic", &["arithmetic", "math", "calc", "expr", "integer", "modulo"]),
-        ("string", &["string", "concat", "substr", "trim", "quote", "escape"]),
-        ("function", &["function", "func-", "return-", "recursion", "scope"]),
+        (
+            "variable",
+            &[
+                "variable",
+                "assignment",
+                "var-",
+                "let ",
+                "readonly",
+                "export",
+            ],
+        ),
+        (
+            "loop",
+            &["loop", "for-", "while-", "until-", "iteration", "seq"],
+        ),
+        (
+            "conditional",
+            &["if-", "elif", "conditional", "ternary", "case-", "test-"],
+        ),
+        (
+            "pipe",
+            &["pipe", "pipeline", "redirect", "heredoc", "herestring"],
+        ),
+        (
+            "arithmetic",
+            &["arithmetic", "math", "calc", "expr", "integer", "modulo"],
+        ),
+        (
+            "string",
+            &["string", "concat", "substr", "trim", "quote", "escape"],
+        ),
+        (
+            "function",
+            &["function", "func-", "return-", "recursion", "scope"],
+        ),
         ("array", &["array", "list", "assoc"]),
-        ("process", &["process", "subshell", "background", "trap", "signal", "exit"]),
-        ("file-io", &["file", "read-", "write-", "mkdir", "chmod", "path", "temp"]),
+        (
+            "process",
+            &[
+                "process",
+                "subshell",
+                "background",
+                "trap",
+                "signal",
+                "exit",
+            ],
+        ),
+        (
+            "file-io",
+            &["file", "read-", "write-", "mkdir", "chmod", "path", "temp"],
+        ),
         ("regex", &["regex", "pattern", "glob", "match", "replace"]),
-        ("security", &["injection", "sec-", "sanitize", "adversarial"]),
+        (
+            "security",
+            &["injection", "sec-", "sanitize", "adversarial"],
+        ),
     ];
 
-    let mut tag_map: std::collections::BTreeMap<&str, Vec<&str>> = std::collections::BTreeMap::new();
+    let mut tag_map: std::collections::BTreeMap<&str, Vec<&str>> =
+        std::collections::BTreeMap::new();
     let mut untagged = Vec::new();
 
     for entry in &registry.entries {
@@ -8196,7 +9069,10 @@ fn corpus_tags() -> Result<()> {
         let desc_lower = entry.description.to_lowercase();
         let mut tagged = false;
         for (tag, keywords) in tag_rules {
-            if keywords.iter().any(|kw| name_lower.contains(kw) || desc_lower.contains(kw)) {
+            if keywords
+                .iter()
+                .any(|kw| name_lower.contains(kw) || desc_lower.contains(kw))
+            {
                 tag_map.entry(tag).or_default().push(&entry.id);
                 tagged = true;
                 break; // first match wins
@@ -8211,26 +9087,42 @@ fn corpus_tags() -> Result<()> {
     println!("{BOLD}Corpus Construct Tags{RESET} ({total} entries)");
     println!();
 
-    println!("  {BOLD}{:<14} {:>5} {:>6}  {}{RESET}",
-        "Tag", "Count", "% Tot", "Sample IDs");
+    println!(
+        "  {BOLD}{:<14} {:>5} {:>6}  Sample IDs{RESET}",
+        "Tag", "Count", "% Tot"
+    );
     for (tag, ids) in &tag_map {
         let pct = ids.len() as f64 / total as f64 * 100.0;
         let sample: Vec<_> = ids.iter().take(3).copied().collect();
         let sample_str = sample.join(", ");
-        let more = if ids.len() > 3 { format!(", +{}", ids.len() - 3) } else { String::new() };
-        println!("  {CYAN}{:<14}{RESET} {:>5} {:>5.1}%  {DIM}{sample_str}{more}{RESET}",
-            tag, ids.len(), pct);
+        let more = if ids.len() > 3 {
+            format!(", +{}", ids.len() - 3)
+        } else {
+            String::new()
+        };
+        println!(
+            "  {CYAN}{:<14}{RESET} {:>5} {:>5.1}%  {DIM}{sample_str}{more}{RESET}",
+            tag,
+            ids.len(),
+            pct
+        );
     }
     if !untagged.is_empty() {
         let pct = untagged.len() as f64 / total as f64 * 100.0;
-        println!("  {DIM}{:<14} {:>5} {:>5.1}%  (no construct tag){RESET}",
-            "untagged", untagged.len(), pct);
+        println!(
+            "  {DIM}{:<14} {:>5} {:>5.1}%  (no construct tag){RESET}",
+            "untagged",
+            untagged.len(),
+            pct
+        );
     }
 
     println!();
     let tagged_count: usize = tag_map.values().map(|v| v.len()).sum();
-    println!("  {DIM}{tagged_count} tagged / {total} total ({:.1}% tagged){RESET}",
-        tagged_count as f64 / total as f64 * 100.0);
+    println!(
+        "  {DIM}{tagged_count} tagged / {total} total ({:.1}% tagged){RESET}",
+        tagged_count as f64 / total as f64 * 100.0
+    );
     Ok(())
 }
 
@@ -8248,11 +9140,17 @@ fn corpus_health() -> Result<()> {
     let gc = grade_color(&grade_str);
 
     // Per-format compact
-    let fmt_parts: Vec<String> = score.format_scores.iter().map(|fs| {
-        format!("{}:{}/{}", fs.format, fs.passed, fs.total)
-    }).collect();
+    let fmt_parts: Vec<String> = score
+        .format_scores
+        .iter()
+        .map(|fs| format!("{}:{}/{}", fs.format, fs.passed, fs.total))
+        .collect();
 
-    let status = if score.failed == 0 { "HEALTHY" } else { "DEGRADED" };
+    let status = if score.failed == 0 {
+        "HEALTHY"
+    } else {
+        "DEGRADED"
+    };
     let status_color = if score.failed == 0 { GREEN } else { YELLOW };
 
     println!("{status_color}{status}{RESET} | {WHITE}{:.1}/100{RESET} {gc}{grade_str}{RESET} | {}/{} passed | {} | {DIM}failures:{}{RESET}",
@@ -8270,9 +9168,15 @@ fn corpus_compare(id1: &str, id2: &str) -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
-    let entry1 = registry.entries.iter().find(|e| e.id == id1)
+    let entry1 = registry
+        .entries
+        .iter()
+        .find(|e| e.id == id1)
         .ok_or_else(|| Error::Validation(format!("Entry '{id1}' not found")))?;
-    let entry2 = registry.entries.iter().find(|e| e.id == id2)
+    let entry2 = registry
+        .entries
+        .iter()
+        .find(|e| e.id == id2)
         .ok_or_else(|| Error::Validation(format!("Entry '{id2}' not found")))?;
 
     let start1 = Instant::now();
@@ -8290,31 +9194,93 @@ fn corpus_compare(id1: &str, id2: &str) -> Result<()> {
     println!();
     println!("  {BOLD}{:<18} {:<20} {:<20}{RESET}", "", id1, id2);
     println!("  {:<18} {:<20} {:<20}", "Name", entry1.name, entry2.name);
-    println!("  {:<18} {:<20} {:<20}", "Format", format!("{}", entry1.format), format!("{}", entry2.format));
-    println!("  {:<18} {:<20} {:<20}", "Tier", format!("{:?}", entry1.tier), format!("{:?}", entry2.tier));
-    println!("  {:<18} {:<20} {:<20}", "Time",
-        format!("{t1:.1}ms"), format!("{t2:.1}ms"));
+    println!(
+        "  {:<18} {:<20} {:<20}",
+        "Format",
+        format!("{}", entry1.format),
+        format!("{}", entry2.format)
+    );
+    println!(
+        "  {:<18} {:<20} {:<20}",
+        "Tier",
+        format!("{:?}", entry1.tier),
+        format!("{:?}", entry2.tier)
+    );
+    println!(
+        "  {:<18} {:<20} {:<20}",
+        "Time",
+        format!("{t1:.1}ms"),
+        format!("{t2:.1}ms")
+    );
 
-    let s1 = if dims1.is_empty() { format!("{GREEN}PASS{RESET}") } else { format!("{RED}FAIL{RESET}") };
-    let s2 = if dims2.is_empty() { format!("{GREEN}PASS{RESET}") } else { format!("{RED}FAIL{RESET}") };
+    let s1 = if dims1.is_empty() {
+        format!("{GREEN}PASS{RESET}")
+    } else {
+        format!("{RED}FAIL{RESET}")
+    };
+    let s2 = if dims2.is_empty() {
+        format!("{GREEN}PASS{RESET}")
+    } else {
+        format!("{RED}FAIL{RESET}")
+    };
     println!("  {:<18} {:<20} {:<20}", "Status", s1, s2);
-    println!("  {:<18} {:<20} {:<20}", "Pass Dims",
-        format!("{}/9", 9 - dims1.len()), format!("{}/9", 9 - dims2.len()));
+    println!(
+        "  {:<18} {:<20} {:<20}",
+        "Pass Dims",
+        format!("{}/9", 9 - dims1.len()),
+        format!("{}/9", 9 - dims2.len())
+    );
 
     // Per-dimension comparison
     println!();
     println!("  {BOLD}Dimension Comparison:{RESET}");
-    let dim_names = ["A-Transpile", "B1-Contain", "B2-Exact", "B3-Behav",
-                     "D-Lint", "E-Determ", "F-Meta", "G-XShell"];
-    let bools1 = [r1.transpiled, r1.output_contains, r1.output_exact, r1.output_behavioral,
-                  r1.lint_clean, r1.deterministic, r1.metamorphic_consistent, r1.cross_shell_agree];
-    let bools2 = [r2.transpiled, r2.output_contains, r2.output_exact, r2.output_behavioral,
-                  r2.lint_clean, r2.deterministic, r2.metamorphic_consistent, r2.cross_shell_agree];
+    let dim_names = [
+        "A-Transpile",
+        "B1-Contain",
+        "B2-Exact",
+        "B3-Behav",
+        "D-Lint",
+        "E-Determ",
+        "F-Meta",
+        "G-XShell",
+    ];
+    let bools1 = [
+        r1.transpiled,
+        r1.output_contains,
+        r1.output_exact,
+        r1.output_behavioral,
+        r1.lint_clean,
+        r1.deterministic,
+        r1.metamorphic_consistent,
+        r1.cross_shell_agree,
+    ];
+    let bools2 = [
+        r2.transpiled,
+        r2.output_contains,
+        r2.output_exact,
+        r2.output_behavioral,
+        r2.lint_clean,
+        r2.deterministic,
+        r2.metamorphic_consistent,
+        r2.cross_shell_agree,
+    ];
 
     for i in 0..dim_names.len() {
-        let v1 = if bools1[i] { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") };
-        let v2 = if bools2[i] { format!("{GREEN}\u{2713}{RESET}") } else { format!("{RED}\u{2717}{RESET}") };
-        let diff = if bools1[i] != bools2[i] { format!(" {YELLOW}<-{RESET}") } else { String::new() };
+        let v1 = if bools1[i] {
+            format!("{GREEN}\u{2713}{RESET}")
+        } else {
+            format!("{RED}\u{2717}{RESET}")
+        };
+        let v2 = if bools2[i] {
+            format!("{GREEN}\u{2713}{RESET}")
+        } else {
+            format!("{RED}\u{2717}{RESET}")
+        };
+        let diff = if bools1[i] != bools2[i] {
+            format!(" {YELLOW}<-{RESET}")
+        } else {
+            String::new()
+        };
         println!("    {:<14} {:>6}  {:>6}{diff}", dim_names[i], v1, v2);
     }
     Ok(())
@@ -8337,7 +9303,9 @@ fn corpus_density() -> Result<()> {
     println!();
 
     for (prefix, fmt, max_id) in &formats {
-        let ids: std::collections::BTreeSet<usize> = registry.entries.iter()
+        let ids: std::collections::BTreeSet<usize> = registry
+            .entries
+            .iter()
             .filter(|e| e.format == *fmt)
             .filter_map(|e| {
                 e.id.strip_prefix(&format!("{prefix}-"))
@@ -8351,20 +9319,44 @@ fn corpus_density() -> Result<()> {
         let expected_range = max_found - min_id + 1;
         let gaps: Vec<usize> = (min_id..=max_found).filter(|n| !ids.contains(n)).collect();
 
-        let density = if expected_range > 0 { count as f64 / expected_range as f64 * 100.0 } else { 0.0 };
-        let dc = if density >= 99.0 { GREEN } else if density >= 90.0 { YELLOW } else { RED };
+        let density = if expected_range > 0 {
+            count as f64 / expected_range as f64 * 100.0
+        } else {
+            0.0
+        };
+        let dc = if density >= 99.0 {
+            GREEN
+        } else if density >= 90.0 {
+            YELLOW
+        } else {
+            RED
+        };
 
         println!("  {CYAN}{prefix}{RESET}-{min_id:03}..{prefix}-{max_found:03} ({count}/{max_id} target)");
-        println!("    Density: {dc}{density:.1}%{RESET}  ({count} present / {expected_range} in range)");
+        println!(
+            "    Density: {dc}{density:.1}%{RESET}  ({count} present / {expected_range} in range)"
+        );
         if gaps.is_empty() {
             println!("    {GREEN}No gaps detected.{RESET}");
         } else if gaps.len() <= 10 {
             let gap_strs: Vec<String> = gaps.iter().map(|g| format!("{prefix}-{g:03}")).collect();
-            println!("    {YELLOW}Gaps ({}):{RESET} {}", gaps.len(), gap_strs.join(", "));
+            println!(
+                "    {YELLOW}Gaps ({}):{RESET} {}",
+                gaps.len(),
+                gap_strs.join(", ")
+            );
         } else {
-            let first_gaps: Vec<String> = gaps.iter().take(5).map(|g| format!("{prefix}-{g:03}")).collect();
-            println!("    {YELLOW}Gaps ({}):{RESET} {}... +{} more",
-                gaps.len(), first_gaps.join(", "), gaps.len() - 5);
+            let first_gaps: Vec<String> = gaps
+                .iter()
+                .take(5)
+                .map(|g| format!("{prefix}-{g:03}"))
+                .collect();
+            println!(
+                "    {YELLOW}Gaps ({}):{RESET} {}... +{} more",
+                gaps.len(),
+                first_gaps.join(", "),
+                gaps.len() - 5
+            );
         }
         println!();
     }
@@ -8373,7 +9365,9 @@ fn corpus_density() -> Result<()> {
 
 /// Compute percentile from sorted data.
 fn percentile(sorted: &[f64], p: f64) -> f64 {
-    if sorted.is_empty() { return 0.0; }
+    if sorted.is_empty() {
+        return 0.0;
+    }
     let idx = (p / 100.0 * (sorted.len() - 1) as f64).round() as usize;
     sorted[idx.min(sorted.len() - 1)]
 }
@@ -8388,35 +9382,46 @@ fn corpus_perf(filter: Option<&CorpusFormatArg>) -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
-    let entries: Vec<_> = registry.entries.iter().filter(|e| {
-        match filter {
+    let entries: Vec<_> = registry
+        .entries
+        .iter()
+        .filter(|e| match filter {
             Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
             Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
             Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
             None => true,
-        }
-    }).collect();
+        })
+        .collect();
 
     // Time each entry, collecting per-format buckets
     let mut all_timings: Vec<f64> = Vec::new();
-    let mut format_timings: std::collections::HashMap<String, Vec<f64>> = std::collections::HashMap::new();
+    let mut format_timings: std::collections::HashMap<String, Vec<f64>> =
+        std::collections::HashMap::new();
 
     for entry in &entries {
         let start = Instant::now();
         let _ = runner.run_single(entry);
         let ms = start.elapsed().as_secs_f64() * 1000.0;
         all_timings.push(ms);
-        format_timings.entry(format!("{}", entry.format)).or_default().push(ms);
+        format_timings
+            .entry(format!("{}", entry.format))
+            .or_default()
+            .push(ms);
     }
 
     all_timings.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
 
-    println!("{BOLD}Performance Percentile Breakdown{RESET} ({} entries)", entries.len());
+    println!(
+        "{BOLD}Performance Percentile Breakdown{RESET} ({} entries)",
+        entries.len()
+    );
     println!();
 
     let pcts = [50.0, 90.0, 95.0, 99.0];
-    println!("  {BOLD}{:<12} {:>8} {:>8} {:>8} {:>8} {:>8} {:>8}{RESET}",
-        "Format", "P50", "P90", "P95", "P99", "Max", "Mean");
+    println!(
+        "  {BOLD}{:<12} {:>8} {:>8} {:>8} {:>8} {:>8} {:>8}{RESET}",
+        "Format", "P50", "P90", "P95", "P99", "Max", "Mean"
+    );
 
     // Overall
     let mean = all_timings.iter().sum::<f64>() / all_timings.len().max(1) as f64;
@@ -8424,10 +9429,22 @@ fn corpus_perf(filter: Option<&CorpusFormatArg>) -> Result<()> {
     print!("  {WHITE}{:<12}{RESET}", "ALL");
     for p in &pcts {
         let v = percentile(&all_timings, *p);
-        let color = if v > 1000.0 { BRIGHT_RED } else if v > 100.0 { YELLOW } else { GREEN };
+        let color = if v > 1000.0 {
+            BRIGHT_RED
+        } else if v > 100.0 {
+            YELLOW
+        } else {
+            GREEN
+        };
         print!(" {color}{:>7.1}ms{RESET}", v);
     }
-    let mc = if max > 1000.0 { BRIGHT_RED } else if max > 100.0 { YELLOW } else { GREEN };
+    let mc = if max > 1000.0 {
+        BRIGHT_RED
+    } else if max > 100.0 {
+        YELLOW
+    } else {
+        GREEN
+    };
     println!(" {mc}{:>7.1}ms{RESET} {:>7.1}ms", max, mean);
 
     // Per-format
@@ -8441,10 +9458,22 @@ fn corpus_perf(filter: Option<&CorpusFormatArg>) -> Result<()> {
         print!("  {CYAN}{:<12}{RESET}", key);
         for p in &pcts {
             let v = percentile(&ts, *p);
-            let color = if v > 1000.0 { BRIGHT_RED } else if v > 100.0 { YELLOW } else { GREEN };
+            let color = if v > 1000.0 {
+                BRIGHT_RED
+            } else if v > 100.0 {
+                YELLOW
+            } else {
+                GREEN
+            };
             print!(" {color}{:>7.1}ms{RESET}", v);
         }
-        let mc = if fmt_max > 1000.0 { BRIGHT_RED } else if fmt_max > 100.0 { YELLOW } else { GREEN };
+        let mc = if fmt_max > 1000.0 {
+            BRIGHT_RED
+        } else if fmt_max > 100.0 {
+            YELLOW
+        } else {
+            GREEN
+        };
         println!(" {mc}{:>7.1}ms{RESET} {:>7.1}ms", fmt_max, fmt_mean);
     }
     Ok(())
@@ -8459,14 +9488,16 @@ fn corpus_citl(filter: Option<&CorpusFormatArg>) -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
-    let entries: Vec<_> = registry.entries.iter().filter(|e| {
-        match filter {
+    let entries: Vec<_> = registry
+        .entries
+        .iter()
+        .filter(|e| match filter {
             Some(CorpusFormatArg::Bash) => e.format == CorpusFormat::Bash,
             Some(CorpusFormatArg::Makefile) => e.format == CorpusFormat::Makefile,
             Some(CorpusFormatArg::Dockerfile) => e.format == CorpusFormat::Dockerfile,
             None => true,
-        }
-    }).collect();
+        })
+        .collect();
 
     let mut lint_pass = 0usize;
     let mut lint_fail = 0usize;
@@ -8527,7 +9558,9 @@ fn corpus_streak() -> Result<()> {
     println!();
 
     for (name, fmt) in &formats {
-        let mut entries: Vec<_> = registry.entries.iter()
+        let mut entries: Vec<_> = registry
+            .entries
+            .iter()
             .filter(|e| e.format == *fmt)
             .collect();
         entries.sort_by(|a, b| a.id.cmp(&b.id));
@@ -8542,7 +9575,9 @@ fn corpus_streak() -> Result<()> {
             let result = runner.run_single(entry);
             let pass = result_fail_dims(&result).is_empty();
             if pass {
-                if current_streak == 0 { cur_start = &entry.id; }
+                if current_streak == 0 {
+                    cur_start = &entry.id;
+                }
                 current_streak += 1;
                 if current_streak > max_streak {
                     max_streak = current_streak;
@@ -8556,7 +9591,13 @@ fn corpus_streak() -> Result<()> {
 
         let total = entries.len();
         let pct = max_streak as f64 / total.max(1) as f64 * 100.0;
-        let sc = if max_streak == total { GREEN } else if pct >= 90.0 { YELLOW } else { RED };
+        let sc = if max_streak == total {
+            GREEN
+        } else if pct >= 90.0 {
+            YELLOW
+        } else {
+            RED
+        };
         println!("  {CYAN}{name:<12}{RESET} {sc}{max_streak}{RESET}/{total} ({sc}{pct:.1}%{RESET})  {DIM}{max_start}..{max_end}{RESET}");
     }
     Ok(())
@@ -8574,23 +9615,61 @@ fn corpus_weight() -> Result<()> {
     let n = score.results.len().max(1) as f64;
 
     let dims: &[(&str, f64, usize)] = &[
-        ("A  Transpilation", 30.0, score.results.iter().filter(|r| r.transpiled).count()),
-        ("B1 Containment", 10.0, score.results.iter().filter(|r| r.output_contains).count()),
-        ("B2 Exact match", 8.0, score.results.iter().filter(|r| r.output_exact).count()),
-        ("B3 Behavioral", 7.0, score.results.iter().filter(|r| r.output_behavioral).count()),
+        (
+            "A  Transpilation",
+            30.0,
+            score.results.iter().filter(|r| r.transpiled).count(),
+        ),
+        (
+            "B1 Containment",
+            10.0,
+            score.results.iter().filter(|r| r.output_contains).count(),
+        ),
+        (
+            "B2 Exact match",
+            8.0,
+            score.results.iter().filter(|r| r.output_exact).count(),
+        ),
+        (
+            "B3 Behavioral",
+            7.0,
+            score.results.iter().filter(|r| r.output_behavioral).count(),
+        ),
         ("C  Coverage", 15.0, 0), // handled separately
-        ("D  Lint clean", 10.0, score.results.iter().filter(|r| r.lint_clean).count()),
-        ("E  Deterministic", 10.0, score.results.iter().filter(|r| r.deterministic).count()),
-        ("F  Metamorphic", 5.0, score.results.iter().filter(|r| r.metamorphic_consistent).count()),
-        ("G  Cross-shell", 5.0, score.results.iter().filter(|r| r.cross_shell_agree).count()),
+        (
+            "D  Lint clean",
+            10.0,
+            score.results.iter().filter(|r| r.lint_clean).count(),
+        ),
+        (
+            "E  Deterministic",
+            10.0,
+            score.results.iter().filter(|r| r.deterministic).count(),
+        ),
+        (
+            "F  Metamorphic",
+            5.0,
+            score
+                .results
+                .iter()
+                .filter(|r| r.metamorphic_consistent)
+                .count(),
+        ),
+        (
+            "G  Cross-shell",
+            5.0,
+            score.results.iter().filter(|r| r.cross_shell_agree).count(),
+        ),
     ];
 
     let c_avg: f64 = score.results.iter().map(|r| r.coverage_ratio).sum::<f64>() / n;
 
     println!("{BOLD}V2 Scoring Weight Analysis{RESET} (100-point scale)");
     println!();
-    println!("  {BOLD}{:<18} {:>6} {:>6} {:>8} {:>8} {:>7}{RESET}",
-        "Dimension", "Weight", "Rate", "Points", "Max", "Eff%");
+    println!(
+        "  {BOLD}{:<18} {:>6} {:>6} {:>8} {:>8} {:>7}{RESET}",
+        "Dimension", "Weight", "Rate", "Points", "Max", "Eff%"
+    );
 
     let mut total_pts = 0.0f64;
     for (label, weight, pass) in dims {
@@ -8603,12 +9682,21 @@ fn corpus_weight() -> Result<()> {
         total_pts += pts;
         let rc = pct_color(rate);
         let eff = pts / weight * 100.0;
-        let ec = if eff >= 99.0 { GREEN } else if eff >= 90.0 { YELLOW } else { RED };
+        let ec = if eff >= 99.0 {
+            GREEN
+        } else if eff >= 90.0 {
+            YELLOW
+        } else {
+            RED
+        };
         println!("  {CYAN}{:<18}{RESET} {:>5.0}  {rc}{:>5.1}%{RESET}  {:>7.1}  {:>7.0}  {ec}{:>5.1}%{RESET}",
             label, weight, rate, pts, weight, eff);
     }
     println!();
-    println!("  {WHITE}Total: {:.1}/100{RESET}  (spec max: 100.0)", total_pts);
+    println!(
+        "  {WHITE}Total: {:.1}/100{RESET}  (spec max: 100.0)",
+        total_pts
+    );
     Ok(())
 }
 
@@ -8630,35 +9718,64 @@ fn corpus_format_report(output_format: &CorpusOutputFormat) -> Result<()> {
     match output_format {
         CorpusOutputFormat::Human => {
             for (name, fmt) in &formats {
-                let entries: Vec<_> = registry.entries.iter()
+                let entries: Vec<_> = registry
+                    .entries
+                    .iter()
                     .filter(|e| e.format == *fmt)
                     .collect();
-                let results: Vec<_> = entries.iter()
-                    .map(|e| runner.run_single(e))
-                    .collect();
+                let results: Vec<_> = entries.iter().map(|e| runner.run_single(e)).collect();
                 let n = results.len();
-                let fails = results.iter()
+                let fails = results
+                    .iter()
                     .filter(|r| !result_fail_dims(r).is_empty())
                     .count();
 
-                println!("{BOLD}{name}{RESET} ({n} entries, {GREEN}{}{RESET} passed, {}{}{})",
-                    n - fails, if fails > 0 { RED } else { GREEN }, fails, RESET);
+                println!(
+                    "{BOLD}{name}{RESET} ({n} entries, {GREEN}{}{RESET} passed, {}{}{})",
+                    n - fails,
+                    if fails > 0 { RED } else { GREEN },
+                    fails,
+                    RESET
+                );
 
                 // Per-dimension breakdown
                 let dim_data = [
-                    ("A  Transpile", results.iter().filter(|r| r.transpiled).count()),
-                    ("B1 Contain", results.iter().filter(|r| r.output_contains).count()),
-                    ("B2 Exact", results.iter().filter(|r| r.output_exact).count()),
-                    ("B3 Behav", results.iter().filter(|r| r.output_behavioral).count()),
+                    (
+                        "A  Transpile",
+                        results.iter().filter(|r| r.transpiled).count(),
+                    ),
+                    (
+                        "B1 Contain",
+                        results.iter().filter(|r| r.output_contains).count(),
+                    ),
+                    (
+                        "B2 Exact",
+                        results.iter().filter(|r| r.output_exact).count(),
+                    ),
+                    (
+                        "B3 Behav",
+                        results.iter().filter(|r| r.output_behavioral).count(),
+                    ),
                     ("D  Lint", results.iter().filter(|r| r.lint_clean).count()),
-                    ("E  Determ", results.iter().filter(|r| r.deterministic).count()),
-                    ("F  Meta", results.iter().filter(|r| r.metamorphic_consistent).count()),
-                    ("G  XShell", results.iter().filter(|r| r.cross_shell_agree).count()),
+                    (
+                        "E  Determ",
+                        results.iter().filter(|r| r.deterministic).count(),
+                    ),
+                    (
+                        "F  Meta",
+                        results.iter().filter(|r| r.metamorphic_consistent).count(),
+                    ),
+                    (
+                        "G  XShell",
+                        results.iter().filter(|r| r.cross_shell_agree).count(),
+                    ),
                 ];
                 for (dim, pass) in &dim_data {
                     let rate = *pass as f64 / n.max(1) as f64 * 100.0;
                     let rc = pct_color(rate);
-                    println!("  {CYAN}{dim:<12}{RESET} {rc}{pass}/{n}{RESET} ({rc}{rate:.1}%{RESET})");
+                    println!(
+                        "  {CYAN}{dim:<12}{RESET} {rc}{pass}/{n}{RESET} ({rc}{rate:.1}%{RESET})"
+                    );
                 }
                 println!();
             }
@@ -8680,8 +9797,10 @@ fn corpus_budget() -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
-    let mut format_time: std::collections::HashMap<String, (f64, usize)> = std::collections::HashMap::new();
-    let mut tier_time: std::collections::HashMap<String, (f64, usize)> = std::collections::HashMap::new();
+    let mut format_time: std::collections::HashMap<String, (f64, usize)> =
+        std::collections::HashMap::new();
+    let mut tier_time: std::collections::HashMap<String, (f64, usize)> =
+        std::collections::HashMap::new();
 
     for entry in &registry.entries {
         let start = Instant::now();
@@ -8702,13 +9821,20 @@ fn corpus_budget() -> Result<()> {
     let total_ms: f64 = format_time.values().map(|(t, _)| t).sum();
 
     println!("{BOLD}Time Budget Analysis{RESET}");
-    println!("{DIM}  Total: {total_ms:.0}ms across {} entries{RESET}", registry.entries.len());
+    println!(
+        "{DIM}  Total: {total_ms:.0}ms across {} entries{RESET}",
+        registry.entries.len()
+    );
     println!();
 
     // By format
     println!("  {BOLD}By Format:{RESET}");
     let mut fmt_sorted: Vec<_> = format_time.iter().collect();
-    fmt_sorted.sort_by(|a, b| b.1.0.partial_cmp(&a.1.0).unwrap_or(std::cmp::Ordering::Equal));
+    fmt_sorted.sort_by(|a, b| {
+        b.1 .0
+            .partial_cmp(&a.1 .0)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     for (fmt, (time, count)) in &fmt_sorted {
         let pct = time / total_ms * 100.0;
         let avg = time / *count as f64;
@@ -8720,7 +9846,13 @@ fn corpus_budget() -> Result<()> {
     // By tier
     println!();
     println!("  {BOLD}By Tier:{RESET}");
-    let tier_order = ["Trivial", "Standard", "Complex", "Adversarial", "Production"];
+    let tier_order = [
+        "Trivial",
+        "Standard",
+        "Complex",
+        "Adversarial",
+        "Production",
+    ];
     for tier_name in &tier_order {
         if let Some((time, count)) = tier_time.get(*tier_name) {
             let pct = time / total_ms * 100.0;
@@ -8751,23 +9883,36 @@ fn corpus_entropy() -> Result<()> {
     let mut h_cat = 0.0f64;
     for count in cat_counts.values() {
         let p = *count as f64 / total;
-        if p > 0.0 { h_cat -= p * p.log2(); }
+        if p > 0.0 {
+            h_cat -= p * p.log2();
+        }
     }
     let max_h_cat = (cat_counts.len() as f64).log2();
-    let cat_norm = if max_h_cat > 0.0 { h_cat / max_h_cat } else { 0.0 };
+    let cat_norm = if max_h_cat > 0.0 {
+        h_cat / max_h_cat
+    } else {
+        0.0
+    };
 
     // Tier distribution entropy
-    let mut tier_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut tier_counts: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
     for entry in &registry.entries {
         *tier_counts.entry(format!("{:?}", entry.tier)).or_insert(0) += 1;
     }
     let mut h_tier = 0.0f64;
     for count in tier_counts.values() {
         let p = *count as f64 / total;
-        if p > 0.0 { h_tier -= p * p.log2(); }
+        if p > 0.0 {
+            h_tier -= p * p.log2();
+        }
     }
     let max_h_tier = (tier_counts.len() as f64).log2();
-    let tier_norm = if max_h_tier > 0.0 { h_tier / max_h_tier } else { 0.0 };
+    let tier_norm = if max_h_tier > 0.0 {
+        h_tier / max_h_tier
+    } else {
+        0.0
+    };
 
     // Format distribution entropy
     let mut fmt_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
@@ -8777,33 +9922,51 @@ fn corpus_entropy() -> Result<()> {
     let mut h_fmt = 0.0f64;
     for count in fmt_counts.values() {
         let p = *count as f64 / total;
-        if p > 0.0 { h_fmt -= p * p.log2(); }
+        if p > 0.0 {
+            h_fmt -= p * p.log2();
+        }
     }
     let max_h_fmt = (fmt_counts.len() as f64).log2();
-    let fmt_norm = if max_h_fmt > 0.0 { h_fmt / max_h_fmt } else { 0.0 };
+    let fmt_norm = if max_h_fmt > 0.0 {
+        h_fmt / max_h_fmt
+    } else {
+        0.0
+    };
 
     println!("{BOLD}Corpus Diversity (Shannon Entropy){RESET}");
     println!();
-    println!("  {BOLD}{:<18} {:>6} {:>8} {:>8} {:>8}{RESET}",
-        "Distribution", "H", "H_max", "Norm", "Rating");
+    println!(
+        "  {BOLD}{:<18} {:>6} {:>8} {:>8} {:>8}{RESET}",
+        "Distribution", "H", "H_max", "Norm", "Rating"
+    );
 
     let rating = |norm: f64| -> (&str, &str) {
-        if norm >= 0.8 { (GREEN, "Diverse") }
-        else if norm >= 0.5 { (YELLOW, "Moderate") }
-        else { (RED, "Clustered") }
+        if norm >= 0.8 {
+            (GREEN, "Diverse")
+        } else if norm >= 0.5 {
+            (YELLOW, "Moderate")
+        } else {
+            (RED, "Clustered")
+        }
     };
 
     let (cc, cr) = rating(cat_norm);
-    println!("  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {cc}{cr}{RESET}",
-        "Category", h_cat, max_h_cat, cat_norm);
+    println!(
+        "  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {cc}{cr}{RESET}",
+        "Category", h_cat, max_h_cat, cat_norm
+    );
 
     let (tc, tr) = rating(tier_norm);
-    println!("  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {tc}{tr}{RESET}",
-        "Tier", h_tier, max_h_tier, tier_norm);
+    println!(
+        "  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {tc}{tr}{RESET}",
+        "Tier", h_tier, max_h_tier, tier_norm
+    );
 
     let (fc, fr) = rating(fmt_norm);
-    println!("  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {fc}{fr}{RESET}",
-        "Format", h_fmt, max_h_fmt, fmt_norm);
+    println!(
+        "  {CYAN}{:<18}{RESET} {:>5.2}  {:>7.2}  {:>7.2}  {fc}{fr}{RESET}",
+        "Format", h_fmt, max_h_fmt, fmt_norm
+    );
 
     println!();
     println!("  {DIM}H=Shannon entropy (bits), Norm=H/H_max (0=uniform, 1=max diversity){RESET}");
@@ -8826,45 +9989,76 @@ fn corpus_todo() -> Result<()> {
     let mut suggestions: Vec<(u8, String)> = Vec::new(); // (priority, suggestion)
 
     // Check for failures
-    let failures: Vec<_> = score.results.iter()
+    let failures: Vec<_> = score
+        .results
+        .iter()
         .enumerate()
         .filter(|(_, r)| !result_fail_dims(r).is_empty())
         .collect();
     if !failures.is_empty() {
-        let fail_ids: Vec<String> = failures.iter()
+        let fail_ids: Vec<String> = failures
+            .iter()
             .filter_map(|(i, _)| registry.entries.get(*i).map(|e| e.id.clone()))
             .collect();
-        suggestions.push((1, format!("Fix {} failing entries: {}", fail_ids.len(), fail_ids.join(", "))));
+        suggestions.push((
+            1,
+            format!(
+                "Fix {} failing entries: {}",
+                fail_ids.len(),
+                fail_ids.join(", ")
+            ),
+        ));
     }
 
     // Check coverage
     let c_avg: f64 = score.results.iter().map(|r| r.coverage_ratio).sum::<f64>()
         / score.results.len().max(1) as f64;
     if c_avg < 0.99 {
-        suggestions.push((2, format!("Improve coverage: {:.1}% → target 99%+ (run LCOV, add tests)", c_avg * 100.0)));
+        suggestions.push((
+            2,
+            format!(
+                "Improve coverage: {:.1}% → target 99%+ (run LCOV, add tests)",
+                c_avg * 100.0
+            ),
+        ));
     }
 
     // Check category diversity
     let mut cat_counts: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
     for entry in &registry.entries {
-        *cat_counts.entry(classify_category(&entry.name)).or_insert(0) += 1;
+        *cat_counts
+            .entry(classify_category(&entry.name))
+            .or_insert(0) += 1;
     }
     let untagged = cat_counts.get("General").copied().unwrap_or(0);
     let pct_untagged = untagged as f64 / registry.entries.len() as f64 * 100.0;
     if pct_untagged > 40.0 {
-        suggestions.push((3, format!("Reduce unclassified entries: {untagged} ({pct_untagged:.0}%) are 'General'")));
+        suggestions.push((
+            3,
+            format!("Reduce unclassified entries: {untagged} ({pct_untagged:.0}%) are 'General'"),
+        ));
     }
 
     // Check format balance
     for fs in &score.format_scores {
         if fs.score < 99.5 {
-            suggestions.push((2, format!("{} score {:.1}/100 — investigate dimension gaps", fs.format, fs.score)));
+            suggestions.push((
+                2,
+                format!(
+                    "{} score {:.1}/100 — investigate dimension gaps",
+                    fs.format, fs.score
+                ),
+            ));
         }
     }
 
     // Check if score is capped
     if score.score >= 99.9 && score.score < 100.0 {
-        suggestions.push((4, "Score at 99.9 — theoretical max limited by B-143 (unfixable shell semantics)".to_string()));
+        suggestions.push((
+            4,
+            "Score at 99.9 — theoretical max limited by B-143 (unfixable shell semantics)"
+                .to_string(),
+        ));
     }
 
     if suggestions.is_empty() {
@@ -8920,30 +10114,45 @@ fn corpus_scatter() -> Result<()> {
         ("> 500ms", 500.0, f64::MAX),
     ];
 
-    println!("{BOLD}Timing × Failure Scatter{RESET} ({} entries)", data.len());
+    println!(
+        "{BOLD}Timing × Failure Scatter{RESET} ({} entries)",
+        data.len()
+    );
     println!();
 
-    println!("  {BOLD}{:<12} {:>6} {:>6} {:>6}{RESET}",
-        "Timing", "0 fail", "1 fail", "2+ fail");
+    println!(
+        "  {BOLD}{:<12} {:>6} {:>6} {:>6}{RESET}",
+        "Timing", "0 fail", "1 fail", "2+ fail"
+    );
 
     for (label, lo, hi) in &ranges {
-        let in_range: Vec<_> = data.iter().filter(|(_, ms, _)| *ms >= *lo && *ms < *hi).collect();
-        if in_range.is_empty() { continue; }
+        let in_range: Vec<_> = data
+            .iter()
+            .filter(|(_, ms, _)| *ms >= *lo && *ms < *hi)
+            .collect();
+        if in_range.is_empty() {
+            continue;
+        }
         let f0 = in_range.iter().filter(|(_, _, f)| *f == 0).count();
         let f1 = in_range.iter().filter(|(_, _, f)| *f == 1).count();
         let f2 = in_range.iter().filter(|(_, _, f)| *f >= 2).count();
         let f0c = if f0 > 0 { GREEN } else { DIM };
         let f1c = if f1 > 0 { YELLOW } else { DIM };
         let f2c = if f2 > 0 { RED } else { DIM };
-        println!("  {CYAN}{:<12}{RESET} {f0c}{:>6}{RESET} {f1c}{:>6}{RESET} {f2c}{:>6}{RESET}",
-            label, f0, f1, f2);
+        println!(
+            "  {CYAN}{:<12}{RESET} {f0c}{:>6}{RESET} {f1c}{:>6}{RESET} {f2c}{:>6}{RESET}",
+            label, f0, f1, f2
+        );
     }
 
     // Summary
     let total_pass = data.iter().filter(|(_, _, f)| *f == 0).count();
     let total_fail = data.len() - total_pass;
     println!();
-    println!("  {DIM}Pass: {total_pass} | Fail: {total_fail} | Entries: {}{RESET}", data.len());
+    println!(
+        "  {DIM}Pass: {total_pass} | Fail: {total_fail} | Entries: {}{RESET}",
+        data.len()
+    );
     Ok(())
 }
 
@@ -8978,7 +10187,10 @@ fn corpus_grade_dist() -> Result<()> {
         *counts.entry(entry_grade.to_string()).or_default() += 1;
     }
 
-    println!("{BOLD}Grade Distribution{RESET} ({} entries)", score.results.len());
+    println!(
+        "{BOLD}Grade Distribution{RESET} ({} entries)",
+        score.results.len()
+    );
     println!();
 
     let max_count = counts.values().copied().max().unwrap_or(1);
@@ -8987,20 +10199,35 @@ fn corpus_grade_dist() -> Result<()> {
 
     for grade in &grade_order {
         let count = counts.get(*grade).copied().unwrap_or(0);
-        let bar_len = if max_count > 0 { count * bar_width / max_count } else { 0 };
+        let bar_len = if max_count > 0 {
+            count * bar_width / max_count
+        } else {
+            0
+        };
         let bar: String = "█".repeat(bar_len);
-        let pct = if score.results.is_empty() { 0.0 } else { count as f64 / score.results.len() as f64 * 100.0 };
+        let pct = if score.results.is_empty() {
+            0.0
+        } else {
+            count as f64 / score.results.len() as f64 * 100.0
+        };
         let color = match *grade {
             "A+" | "A" => GREEN,
             "B" => YELLOW,
             "C" => BRIGHT_YELLOW,
             _ => RED,
         };
-        println!("  {color}{:<3}{RESET} {color}{bar}{RESET} {BOLD}{count:>4}{RESET} ({pct:.1}%)", grade);
+        println!(
+            "  {color}{:<3}{RESET} {color}{bar}{RESET} {BOLD}{count:>4}{RESET} ({pct:.1}%)",
+            grade
+        );
     }
 
     println!();
-    println!("  {DIM}Overall: {:.1}/100 {}{RESET}", score.score, Grade::from_score(score.score));
+    println!(
+        "  {DIM}Overall: {:.1}/100 {}{RESET}",
+        score.score,
+        Grade::from_score(score.score)
+    );
     Ok(())
 }
 
@@ -9015,7 +10242,13 @@ fn corpus_pivot() -> Result<()> {
     let score = runner.run(&registry);
 
     // Build tier × format grid
-    let tiers = ["Trivial", "Standard", "Complex", "Adversarial", "Production"];
+    let tiers = [
+        "Trivial",
+        "Standard",
+        "Complex",
+        "Adversarial",
+        "Production",
+    ];
     let formats = ["Bash", "Makefile", "Dockerfile"];
 
     // Collect data: (tier_idx, format_str) -> (passed, total)
@@ -9132,7 +10365,10 @@ fn corpus_corr() -> Result<()> {
         fail_vecs.push(fails);
     }
 
-    println!("{BOLD}Dimension Failure Correlation{RESET} ({} entries)", fail_vecs.len());
+    println!(
+        "{BOLD}Dimension Failure Correlation{RESET} ({} entries)",
+        fail_vecs.len()
+    );
     println!();
     println!("  {DIM}Shows how often two dimensions fail together (co-occurrence count).{RESET}");
     println!();
@@ -9163,7 +10399,10 @@ fn corpus_corr() -> Result<()> {
     }
 
     // Summary of entries with multi-dimension failures
-    let multi_fail = fail_vecs.iter().filter(|f| f.iter().filter(|&&x| x).count() >= 2).count();
+    let multi_fail = fail_vecs
+        .iter()
+        .filter(|f| f.iter().filter(|&&x| x).count() >= 2)
+        .count();
     println!();
     println!("  {DIM}Multi-dimension failures: {multi_fail} entries{RESET}");
 
@@ -9181,10 +10420,18 @@ fn schema_layer_counts(
     let mut l4 = 0usize;
     for (i, _) in indices {
         if let Some(r) = results.get(*i) {
-            if r.transpiled { l1 += 1; }
-            if r.lint_clean { l2 += 1; }
-            if r.deterministic && r.metamorphic_consistent { l3 += 1; }
-            if r.output_behavioral && r.cross_shell_agree { l4 += 1; }
+            if r.transpiled {
+                l1 += 1;
+            }
+            if r.lint_clean {
+                l2 += 1;
+            }
+            if r.deterministic && r.metamorphic_consistent {
+                l3 += 1;
+            }
+            if r.output_behavioral && r.cross_shell_agree {
+                l4 += 1;
+            }
         }
     }
     (l1, l2, l3, l4)
@@ -9204,8 +10451,10 @@ fn corpus_schema() -> Result<()> {
 
     println!("{BOLD}Schema Enforcement Layers{RESET} (spec §11.8)");
     println!();
-    println!("  {BOLD}{:<12} {:>8} {:>8} {:>8} {:>8} {:>8}{RESET}",
-        "Format", "Total", "L1:Lex", "L2:Syn", "L3:Sem", "L4:Beh");
+    println!(
+        "  {BOLD}{:<12} {:>8} {:>8} {:>8} {:>8} {:>8}{RESET}",
+        "Format", "Total", "L1:Lex", "L2:Syn", "L3:Sem", "L4:Beh"
+    );
 
     for fmt_name in &formats {
         let fmt_filter = match *fmt_name {
@@ -9214,7 +10463,10 @@ fn corpus_schema() -> Result<()> {
             _ => crate::corpus::registry::CorpusFormat::Dockerfile,
         };
 
-        let entries: Vec<_> = registry.entries.iter().enumerate()
+        let entries: Vec<_> = registry
+            .entries
+            .iter()
+            .enumerate()
             .filter(|(_, e)| e.format == fmt_filter)
             .collect();
 
@@ -9260,7 +10512,13 @@ fn history_chart_cell(score: f64, row: usize, min_score: f64, range: f64, height
     } else {
         let normalized = (score - min_score) / range * height as f64;
         if normalized >= row as f64 {
-            let color = if score >= 99.0 { GREEN } else if score >= 95.0 { YELLOW } else { RED };
+            let color = if score >= 99.0 {
+                GREEN
+            } else if score >= 95.0 {
+                YELLOW
+            } else {
+                RED
+            };
             print!("{color}█{RESET}");
         } else {
             print!(" ");
@@ -9271,8 +10529,7 @@ fn history_chart_cell(score: f64, row: usize, min_score: f64, range: f64, height
 fn corpus_history_chart_from(path: &std::path::Path) -> Result<()> {
     use crate::cli::color::*;
 
-    let content = std::fs::read_to_string(path)
-        .map_err(Error::Io)?;
+    let content = std::fs::read_to_string(path).map_err(Error::Io)?;
 
     let entries: Vec<crate::corpus::runner::ConvergenceEntry> = content
         .lines()
@@ -9285,10 +10542,14 @@ fn corpus_history_chart_from(path: &std::path::Path) -> Result<()> {
         return Ok(());
     }
 
-    println!("{BOLD}Score History Chart{RESET} ({} iterations)", entries.len());
+    println!(
+        "{BOLD}Score History Chart{RESET} ({} iterations)",
+        entries.len()
+    );
     println!();
 
-    let scores: Vec<f64> = entries.iter()
+    let scores: Vec<f64> = entries
+        .iter()
         .filter_map(|e| if e.score > 0.0 { Some(e.score) } else { None })
         .collect();
 
@@ -9307,16 +10568,22 @@ fn corpus_history_chart_from(path: &std::path::Path) -> Result<()> {
     }
 
     print!("  {DIM}{:>6}{RESET} └", "");
-    for _ in &entries { print!("─"); }
+    for _ in &entries {
+        print!("─");
+    }
     println!();
     print!("  {DIM}{:>6}  ", "");
-    for entry in &entries { print!("{}", entry.iteration % 10); }
+    for entry in &entries {
+        print!("{}", entry.iteration % 10);
+    }
     println!("{RESET}");
 
     println!();
     if let Some(last) = entries.last() {
-        println!("  {DIM}Latest: iter {} | {:.1}/100 | {} entries{RESET}",
-            last.iteration, last.score, last.total);
+        println!(
+            "  {DIM}Latest: iter {} | {:.1}/100 | {} entries{RESET}",
+            last.iteration, last.score, last.total
+        );
     }
 
     Ok(())
@@ -9333,7 +10600,9 @@ fn corpus_flaky(threshold: f64) -> Result<()> {
     let runner = CorpusRunner::new(Config::default());
 
     let num_runs = 3;
-    let mut timings: Vec<(&str, Vec<f64>, Vec<bool>)> = registry.entries.iter()
+    let mut timings: Vec<(&str, Vec<f64>, Vec<bool>)> = registry
+        .entries
+        .iter()
         .map(|e| (e.id.as_str(), Vec::new(), Vec::new()))
         .collect();
 
@@ -9373,13 +10642,21 @@ fn corpus_flaky(threshold: f64) -> Result<()> {
         println!("  {GREEN}No flaky entries detected{RESET}");
         println!("  {DIM}All entries have consistent timing (CV < {threshold:.1}) and stable results{RESET}");
     } else {
-        println!("  {BOLD}{:<10} {:>8} {:>8} {:>6} {:>8}{RESET}",
-            "ID", "Mean(ms)", "Std(ms)", "CV", "Result");
+        println!(
+            "  {BOLD}{:<10} {:>8} {:>8} {:>6} {:>8}{RESET}",
+            "ID", "Mean(ms)", "Std(ms)", "CV", "Result"
+        );
         for (id, mean, stddev, cv, result_flaky) in &flaky_entries {
-            let rv = if *result_flaky { format!("{RED}FLAKY{RESET}") } else { format!("{DIM}stable{RESET}") };
+            let rv = if *result_flaky {
+                format!("{RED}FLAKY{RESET}")
+            } else {
+                format!("{DIM}stable{RESET}")
+            };
             let cv_color = if *cv > 1.0 { RED } else { YELLOW };
-            println!("  {CYAN}{:<10}{RESET} {:>8.1} {:>8.1} {cv_color}{:>6.2}{RESET} {rv}",
-                id, mean, stddev, cv);
+            println!(
+                "  {CYAN}{:<10}{RESET} {:>8.1} {:>8.1} {cv_color}{:>6.2}{RESET} {rv}",
+                id, mean, stddev, cv
+            );
         }
     }
 
@@ -9404,7 +10681,8 @@ fn corpus_profile() -> Result<()> {
 
     // Format breakdown
     println!("  {BOLD}By Format:{RESET}");
-    let mut fmt_counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let mut fmt_counts: std::collections::BTreeMap<String, usize> =
+        std::collections::BTreeMap::new();
     for entry in &registry.entries {
         *fmt_counts.entry(format!("{}", entry.format)).or_default() += 1;
     }
@@ -9416,7 +10694,8 @@ fn corpus_profile() -> Result<()> {
     // Tier breakdown
     println!();
     println!("  {BOLD}By Tier:{RESET}");
-    let mut tier_counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let mut tier_counts: std::collections::BTreeMap<String, usize> =
+        std::collections::BTreeMap::new();
     for entry in &registry.entries {
         *tier_counts.entry(format!("{:?}", entry.tier)).or_default() += 1;
     }
@@ -9428,7 +10707,8 @@ fn corpus_profile() -> Result<()> {
     // Category breakdown
     println!();
     println!("  {BOLD}By Category:{RESET}");
-    let mut cat_counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
+    let mut cat_counts: std::collections::BTreeMap<String, usize> =
+        std::collections::BTreeMap::new();
     for entry in &registry.entries {
         let cat = classify_category(&entry.name);
         *cat_counts.entry(cat.to_string()).or_default() += 1;
@@ -9473,13 +10753,21 @@ fn dim_format_rate(
     let mut pass = 0usize;
     let mut total = 0usize;
     for (i, entry) in registry.entries.iter().enumerate() {
-        if entry.format != fmt { continue; }
+        if entry.format != fmt {
+            continue;
+        }
         if let Some(r) = results.get(i) {
             total += 1;
-            if result_dim_pass(r, dim_idx) { pass += 1; }
+            if result_dim_pass(r, dim_idx) {
+                pass += 1;
+            }
         }
     }
-    if total > 0 { pass as f64 / total as f64 * 100.0 } else { 100.0 }
+    if total > 0 {
+        pass as f64 / total as f64 * 100.0
+    } else {
+        100.0
+    }
 }
 
 /// Find quality gaps: dimensions where specific formats underperform.
@@ -9503,7 +10791,9 @@ fn corpus_gaps() -> Result<()> {
     println!();
 
     print!("  {BOLD}{:<5}", "Dim");
-    for (name, _) in &formats { print!("{:>12}", name); }
+    for (name, _) in &formats {
+        print!("{:>12}", name);
+    }
     println!("   Gap{RESET}");
 
     for (d_idx, dim) in dims.iter().enumerate() {
@@ -9558,7 +10848,10 @@ fn corpus_summary_json() -> Result<()> {
         }).collect::<Vec<_>>(),
     });
 
-    println!("{}", serde_json::to_string_pretty(&json).unwrap_or_default());
+    println!(
+        "{}",
+        serde_json::to_string_pretty(&json).unwrap_or_default()
+    );
     Ok(())
 }
 
@@ -9579,9 +10872,21 @@ fn corpus_audit() -> Result<()> {
     println!();
 
     // Entry inventory
-    let bash_count = registry.entries.iter().filter(|e| e.format == crate::corpus::registry::CorpusFormat::Bash).count();
-    let make_count = registry.entries.iter().filter(|e| e.format == crate::corpus::registry::CorpusFormat::Makefile).count();
-    let dock_count = registry.entries.iter().filter(|e| e.format == crate::corpus::registry::CorpusFormat::Dockerfile).count();
+    let bash_count = registry
+        .entries
+        .iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Bash)
+        .count();
+    let make_count = registry
+        .entries
+        .iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Makefile)
+        .count();
+    let dock_count = registry
+        .entries
+        .iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Dockerfile)
+        .count();
 
     println!("  {BOLD}Entries:{RESET}");
     println!("    Total:      {}", registry.entries.len());
@@ -9595,31 +10900,52 @@ fn corpus_audit() -> Result<()> {
     println!("    Score:  {GREEN}{:.1}/100{RESET}", score.score);
     println!("    Grade:  {GREEN}{}{RESET}", score.grade);
     println!("    Pass:   {GREEN}{}{RESET}/{}", score.passed, score.total);
-    println!("    Fail:   {}{}{RESET}", if score.failed > 0 { RED } else { GREEN }, score.failed);
+    println!(
+        "    Fail:   {}{}{RESET}",
+        if score.failed > 0 { RED } else { GREEN },
+        score.failed
+    );
 
     // Dimension pass rates
     println!();
     println!("  {BOLD}Dimensions:{RESET}");
     let dims = ["A", "B1", "B2", "B3", "D", "E", "F", "G"];
     for (d_idx, dim) in dims.iter().enumerate() {
-        let pass = score.results.iter().filter(|r| result_dim_pass(r, d_idx)).count();
+        let pass = score
+            .results
+            .iter()
+            .filter(|r| result_dim_pass(r, d_idx))
+            .count();
         let rate = pass as f64 / score.results.len().max(1) as f64 * 100.0;
         let color = pct_color(rate);
-        println!("    {:<3} {color}{:>4}/{:<4} {:>5.1}%{RESET}", dim, pass, score.total, rate);
+        println!(
+            "    {:<3} {color}{:>4}/{:<4} {:>5.1}%{RESET}",
+            dim, pass, score.total, rate
+        );
     }
 
     // Performance
     println!();
     println!("  {BOLD}Performance:{RESET}");
     println!("    Run time: {:.1}s", elapsed.as_secs_f64());
-    println!("    Per entry: {:.1}ms", elapsed.as_secs_f64() * 1000.0 / score.total.max(1) as f64);
+    println!(
+        "    Per entry: {:.1}ms",
+        elapsed.as_secs_f64() * 1000.0 / score.total.max(1) as f64
+    );
 
     // Convergence log
     let log_exists = std::path::Path::new(".quality/convergence.log").exists()
         || std::path::Path::new("../.quality/convergence.log").exists();
     println!();
     println!("  {BOLD}Infrastructure:{RESET}");
-    println!("    Convergence log: {}", if log_exists { format!("{GREEN}present{RESET}") } else { format!("{YELLOW}missing{RESET}") });
+    println!(
+        "    Convergence log: {}",
+        if log_exists {
+            format!("{GREEN}present{RESET}")
+        } else {
+            format!("{YELLOW}missing{RESET}")
+        }
+    );
 
     Ok(())
 }
@@ -9638,34 +10964,62 @@ fn corpus_tier_detail() -> Result<()> {
         ("Trivial", crate::corpus::registry::CorpusTier::Trivial),
         ("Standard", crate::corpus::registry::CorpusTier::Standard),
         ("Complex", crate::corpus::registry::CorpusTier::Complex),
-        ("Adversarial", crate::corpus::registry::CorpusTier::Adversarial),
-        ("Production", crate::corpus::registry::CorpusTier::Production),
+        (
+            "Adversarial",
+            crate::corpus::registry::CorpusTier::Adversarial,
+        ),
+        (
+            "Production",
+            crate::corpus::registry::CorpusTier::Production,
+        ),
     ];
 
     println!("{BOLD}Tier Detail{RESET}");
     println!();
 
     for (name, tier) in &tiers {
-        let entries: Vec<_> = registry.entries.iter().enumerate()
+        let entries: Vec<_> = registry
+            .entries
+            .iter()
+            .enumerate()
             .filter(|(_, e)| e.tier == *tier)
             .collect();
 
         let total = entries.len();
-        let passed = entries.iter()
-            .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_fail_dims(r).is_empty()))
+        let passed = entries
+            .iter()
+            .filter(|(i, _)| {
+                score
+                    .results
+                    .get(*i)
+                    .is_some_and(|r| result_fail_dims(r).is_empty())
+            })
             .count();
-        let rate = if total > 0 { passed as f64 / total as f64 * 100.0 } else { 100.0 };
+        let rate = if total > 0 {
+            passed as f64 / total as f64 * 100.0
+        } else {
+            100.0
+        };
         let color = pct_color(rate);
 
         println!("  {BOLD}{name}{RESET} ({total} entries)");
-        println!("    Pass rate: {color}{:.1}%{RESET} ({passed}/{total})", rate);
+        println!(
+            "    Pass rate: {color}{:.1}%{RESET} ({passed}/{total})",
+            rate
+        );
 
         // Per-dimension breakdown for this tier
         let dims = ["A", "B1", "B2", "B3", "D", "E", "F", "G"];
         print!("    Dims:     ");
         for (d_idx, dim) in dims.iter().enumerate() {
-            let dim_pass = entries.iter()
-                .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_dim_pass(r, d_idx)))
+            let dim_pass = entries
+                .iter()
+                .filter(|(i, _)| {
+                    score
+                        .results
+                        .get(*i)
+                        .is_some_and(|r| result_dim_pass(r, d_idx))
+                })
                 .count();
             let dc = if dim_pass == total { GREEN } else { YELLOW };
             print!("{dc}{dim}:{dim_pass}{RESET} ");
@@ -9673,12 +11027,21 @@ fn corpus_tier_detail() -> Result<()> {
         println!();
 
         // Show failures if any
-        let failures: Vec<_> = entries.iter()
-            .filter(|(i, _)| !score.results.get(*i).map_or(true, |r| result_fail_dims(r).is_empty()))
+        let failures: Vec<_> = entries
+            .iter()
+            .filter(|(i, _)| {
+                !score
+                    .results
+                    .get(*i)
+                    .is_none_or(|r| result_fail_dims(r).is_empty())
+            })
             .collect();
         if !failures.is_empty() {
             for (i, entry) in &failures {
-                let fails = score.results.get(*i).map_or_else(Vec::new, result_fail_dims);
+                let fails = score
+                    .results
+                    .get(*i)
+                    .map_or_else(Vec::new, result_fail_dims);
                 println!("    {RED}FAIL{RESET}: {} [{}]", entry.id, fails.join(","));
             }
         }
@@ -9700,21 +11063,34 @@ fn corpus_id_range() -> Result<()> {
 
     let formats = [
         ("Bash", "B-", crate::corpus::registry::CorpusFormat::Bash),
-        ("Makefile", "M-", crate::corpus::registry::CorpusFormat::Makefile),
-        ("Dockerfile", "D-", crate::corpus::registry::CorpusFormat::Dockerfile),
+        (
+            "Makefile",
+            "M-",
+            crate::corpus::registry::CorpusFormat::Makefile,
+        ),
+        (
+            "Dockerfile",
+            "D-",
+            crate::corpus::registry::CorpusFormat::Dockerfile,
+        ),
     ];
 
-    println!("  {BOLD}{:<12} {:>6} {:>8} {:>8} {:>8}{RESET}",
-        "Format", "Count", "First", "Last", "Max#");
+    println!(
+        "  {BOLD}{:<12} {:>6} {:>8} {:>8} {:>8}{RESET}",
+        "Format", "Count", "First", "Last", "Max#"
+    );
 
     for (name, prefix, fmt) in &formats {
-        let ids: Vec<&str> = registry.entries.iter()
+        let ids: Vec<&str> = registry
+            .entries
+            .iter()
             .filter(|e| e.format == *fmt)
             .map(|e| e.id.as_str())
             .collect();
 
         let count = ids.len();
-        let nums: Vec<usize> = ids.iter()
+        let nums: Vec<usize> = ids
+            .iter()
             .filter_map(|id| id.strip_prefix(prefix).and_then(|n| n.parse().ok()))
             .collect();
 
@@ -9722,8 +11098,10 @@ fn corpus_id_range() -> Result<()> {
         let last = ids.last().copied().unwrap_or("-");
         let max_num = nums.iter().copied().max().unwrap_or(0);
 
-        println!("  {CYAN}{:<12}{RESET} {:>6} {:>8} {:>8} {:>8}",
-            name, count, first, last, max_num);
+        println!(
+            "  {CYAN}{:<12}{RESET} {:>6} {:>8} {:>8} {:>8}",
+            name, count, first, last, max_num
+        );
     }
 
     println!();
@@ -9744,29 +11122,58 @@ fn corpus_tiers() -> Result<()> {
 
     let tiers = [
         ("Trivial", crate::corpus::registry::CorpusTier::Trivial, 1.0),
-        ("Standard", crate::corpus::registry::CorpusTier::Standard, 1.5),
+        (
+            "Standard",
+            crate::corpus::registry::CorpusTier::Standard,
+            1.5,
+        ),
         ("Complex", crate::corpus::registry::CorpusTier::Complex, 2.0),
-        ("Adversarial", crate::corpus::registry::CorpusTier::Adversarial, 2.5),
-        ("Production", crate::corpus::registry::CorpusTier::Production, 3.0),
+        (
+            "Adversarial",
+            crate::corpus::registry::CorpusTier::Adversarial,
+            2.5,
+        ),
+        (
+            "Production",
+            crate::corpus::registry::CorpusTier::Production,
+            3.0,
+        ),
     ];
 
     println!("{BOLD}Tier Summary{RESET}");
     println!();
-    println!("  {BOLD}{:<14} {:>6} {:>6} {:>7} {:>6}{RESET}",
-        "Tier", "Count", "Pass", "Rate", "Weight");
+    println!(
+        "  {BOLD}{:<14} {:>6} {:>6} {:>7} {:>6}{RESET}",
+        "Tier", "Count", "Pass", "Rate", "Weight"
+    );
 
     for (name, tier, weight) in &tiers {
-        let entries: Vec<_> = registry.entries.iter().enumerate()
+        let entries: Vec<_> = registry
+            .entries
+            .iter()
+            .enumerate()
             .filter(|(_, e)| e.tier == *tier)
             .collect();
         let total = entries.len();
-        let passed = entries.iter()
-            .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_fail_dims(r).is_empty()))
+        let passed = entries
+            .iter()
+            .filter(|(i, _)| {
+                score
+                    .results
+                    .get(*i)
+                    .is_some_and(|r| result_fail_dims(r).is_empty())
+            })
             .count();
-        let rate = if total > 0 { passed as f64 / total as f64 * 100.0 } else { 100.0 };
+        let rate = if total > 0 {
+            passed as f64 / total as f64 * 100.0
+        } else {
+            100.0
+        };
         let color = pct_color(rate);
-        println!("  {CYAN}{:<14}{RESET} {:>6} {color}{:>6}{RESET} {color}{:>6.1}%{RESET} {:>6.1}x",
-            name, total, passed, rate, weight);
+        println!(
+            "  {CYAN}{:<14}{RESET} {:>6} {color}{:>6}{RESET} {color}{:>6.1}%{RESET} {:>6.1}x",
+            name, total, passed, rate, weight
+        );
     }
 
     Ok(())
@@ -9782,11 +11189,18 @@ fn corpus_fail_map() -> Result<()> {
     let runner = CorpusRunner::new(Config::default());
     let score = runner.run(&registry);
 
-    let failures: Vec<_> = registry.entries.iter().enumerate()
+    let failures: Vec<_> = registry
+        .entries
+        .iter()
+        .enumerate()
         .filter_map(|(i, entry)| {
             score.results.get(i).and_then(|r| {
                 let fails = result_fail_dims(r);
-                if fails.is_empty() { None } else { Some((entry, fails)) }
+                if fails.is_empty() {
+                    None
+                } else {
+                    Some((entry, fails))
+                }
             })
         })
         .collect();
@@ -9795,21 +11209,34 @@ fn corpus_fail_map() -> Result<()> {
     println!();
 
     if failures.is_empty() {
-        println!("  {GREEN}No failures across all {} entries{RESET}", score.total);
+        println!(
+            "  {GREEN}No failures across all {} entries{RESET}",
+            score.total
+        );
         println!("  {DIM}(Note: B-143 shows 0 dimension failures because pass/fail{RESET}");
         println!("  {DIM} is evaluated per entry, not per dimension for this view){RESET}");
     } else {
-        println!("  {BOLD}{:<10} {:<12} {:<14} {}{RESET}",
-            "ID", "Format", "Tier", "Failed Dimensions");
+        println!(
+            "  {BOLD}{:<10} {:<12} {:<14} Failed Dimensions{RESET}",
+            "ID", "Format", "Tier"
+        );
         for (entry, fails) in &failures {
             let fail_str = fails.join(", ");
-            println!("  {RED}{:<10}{RESET} {:<12} {:<14} {YELLOW}{fail_str}{RESET}",
-                entry.id, format!("{}", entry.format), format!("{:?}", entry.tier));
+            println!(
+                "  {RED}{:<10}{RESET} {:<12} {:<14} {YELLOW}{fail_str}{RESET}",
+                entry.id,
+                format!("{}", entry.format),
+                format!("{:?}", entry.tier)
+            );
         }
     }
 
     println!();
-    println!("  {DIM}Total: {} failures out of {} entries{RESET}", failures.len(), score.total);
+    println!(
+        "  {DIM}Total: {} failures out of {} entries{RESET}",
+        failures.len(),
+        score.total
+    );
 
     Ok(())
 }
@@ -9831,38 +11258,59 @@ fn corpus_score_range() -> Result<()> {
     let formats = [
         ("Bash", crate::corpus::registry::CorpusFormat::Bash),
         ("Makefile", crate::corpus::registry::CorpusFormat::Makefile),
-        ("Dockerfile", crate::corpus::registry::CorpusFormat::Dockerfile),
+        (
+            "Dockerfile",
+            crate::corpus::registry::CorpusFormat::Dockerfile,
+        ),
     ];
 
-    println!("  {BOLD}{:<12} {:>8} {:>8} {:>8} {:>8} {:>8}{RESET}",
-        "Format", "Score", "Pass%", "Dims/9", "Min", "Max");
+    println!(
+        "  {BOLD}{:<12} {:>8} {:>8} {:>8} {:>8} {:>8}{RESET}",
+        "Format", "Score", "Pass%", "Dims/9", "Min", "Max"
+    );
 
     for (name, fmt) in &formats {
-        let entries: Vec<_> = registry.entries.iter().enumerate()
+        let entries: Vec<_> = registry
+            .entries
+            .iter()
+            .enumerate()
             .filter(|(_, e)| e.format == *fmt)
             .collect();
 
         let total = entries.len();
-        let passed = entries.iter()
-            .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_fail_dims(r).is_empty()))
+        let passed = entries
+            .iter()
+            .filter(|(i, _)| {
+                score
+                    .results
+                    .get(*i)
+                    .is_some_and(|r| result_fail_dims(r).is_empty())
+            })
             .count();
 
         // Per-entry dimension pass count
-        let dim_passes: Vec<usize> = entries.iter()
-            .filter_map(|(i, _)| {
-                score.results.get(*i).map(|r| 9 - result_fail_dims(r).len())
-            })
+        let dim_passes: Vec<usize> = entries
+            .iter()
+            .filter_map(|(i, _)| score.results.get(*i).map(|r| 9 - result_fail_dims(r).len()))
             .collect();
 
         let min_dims = dim_passes.iter().copied().min().unwrap_or(9);
         let max_dims = dim_passes.iter().copied().max().unwrap_or(9);
 
-        let rate = if total > 0 { passed as f64 / total as f64 * 100.0 } else { 100.0 };
-        let avg_dims = if dim_passes.is_empty() { 9.0 } else {
+        let rate = if total > 0 {
+            passed as f64 / total as f64 * 100.0
+        } else {
+            100.0
+        };
+        let avg_dims = if dim_passes.is_empty() {
+            9.0
+        } else {
             dim_passes.iter().sum::<usize>() as f64 / dim_passes.len() as f64
         };
 
-        let fmt_score = score.format_scores.iter()
+        let fmt_score = score
+            .format_scores
+            .iter()
             .find(|fs| fs.format == *fmt)
             .map(|fs| fs.score)
             .unwrap_or(0.0);
@@ -9874,16 +11322,27 @@ fn corpus_score_range() -> Result<()> {
 
     // Overall
     println!();
-    let total_dims: Vec<usize> = score.results.iter()
+    let total_dims: Vec<usize> = score
+        .results
+        .iter()
         .map(|r| 9 - result_fail_dims(r).len())
         .collect();
     let min_all = total_dims.iter().copied().min().unwrap_or(9);
     let max_all = total_dims.iter().copied().max().unwrap_or(9);
-    let avg_all = if total_dims.is_empty() { 9.0 } else {
+    let avg_all = if total_dims.is_empty() {
+        9.0
+    } else {
         total_dims.iter().sum::<usize>() as f64 / total_dims.len() as f64
     };
-    println!("  {BOLD}{:<12}{RESET} {:>7.1} {:>7.1}% {:>7.1} {:>8} {:>8}",
-        "Overall", score.score, score.rate * 100.0, avg_all, min_all, max_all);
+    println!(
+        "  {BOLD}{:<12}{RESET} {:>7.1} {:>7.1}% {:>7.1} {:>8} {:>8}",
+        "Overall",
+        score.score,
+        score.rate * 100.0,
+        avg_all,
+        min_all,
+        max_all
+    );
 
     Ok(())
 }
@@ -9899,7 +11358,9 @@ fn corpus_topk(limit: usize) -> Result<()> {
     let score = runner.run(&registry);
 
     // Collect entries sorted by fewest failures (worst first)
-    let mut entries_with_dims: Vec<(&str, &str, usize, Vec<&str>)> = registry.entries.iter()
+    let mut entries_with_dims: Vec<(&str, &str, usize, Vec<&str>)> = registry
+        .entries
+        .iter()
         .enumerate()
         .filter_map(|(i, entry)| {
             score.results.get(i).map(|r| {
@@ -9915,15 +11376,29 @@ fn corpus_topk(limit: usize) -> Result<()> {
 
     println!("{BOLD}Top-K Entries by Dimension Pass Count{RESET} (worst first)");
     println!();
-    println!("  {BOLD}{:<10} {:>5} {:<30} {}{RESET}",
-        "ID", "Pass", "Name", "Failures");
+    println!(
+        "  {BOLD}{:<10} {:>5} {:<30} Failures{RESET}",
+        "ID", "Pass", "Name"
+    );
 
     for (id, name, pass_count, fails) in entries_with_dims.iter().take(limit) {
         let truncated_name: String = name.chars().take(28).collect();
-        let color = if *pass_count == 9 { GREEN } else if *pass_count >= 7 { YELLOW } else { RED };
-        let fail_str = if fails.is_empty() { "-".to_string() } else { fails.join(",") };
-        println!("  {CYAN}{:<10}{RESET} {color}{:>4}/9{RESET} {:<30} {DIM}{fail_str}{RESET}",
-            id, pass_count, truncated_name);
+        let color = if *pass_count == 9 {
+            GREEN
+        } else if *pass_count >= 7 {
+            YELLOW
+        } else {
+            RED
+        };
+        let fail_str = if fails.is_empty() {
+            "-".to_string()
+        } else {
+            fails.join(",")
+        };
+        println!(
+            "  {CYAN}{:<10}{RESET} {color}{:>4}/9{RESET} {:<30} {DIM}{fail_str}{RESET}",
+            id, pass_count, truncated_name
+        );
     }
 
     Ok(())
@@ -9943,12 +11418,26 @@ fn corpus_format_cmp() -> Result<()> {
     println!();
 
     let metrics = [
-        "Total", "Passed", "Failed", "Rate", "Score", "Grade",
-        "A (Transpile)", "B1 (Contains)", "B2 (Exact)", "B3 (Behavioral)",
-        "D (Lint)", "E (Determinism)", "F (Metamorphic)", "G (Cross-shell)",
+        "Total",
+        "Passed",
+        "Failed",
+        "Rate",
+        "Score",
+        "Grade",
+        "A (Transpile)",
+        "B1 (Contains)",
+        "B2 (Exact)",
+        "B3 (Behavioral)",
+        "D (Lint)",
+        "E (Determinism)",
+        "F (Metamorphic)",
+        "G (Cross-shell)",
     ];
 
-    println!("  {BOLD}{:<18} {:>12} {:>12} {:>12}{RESET}", "Metric", "Bash", "Makefile", "Dockerfile");
+    println!(
+        "  {BOLD}{:<18} {:>12} {:>12} {:>12}{RESET}",
+        "Metric", "Bash", "Makefile", "Dockerfile"
+    );
 
     for fs in &score.format_scores {
         // Handled below per-metric
@@ -9959,7 +11448,10 @@ fn corpus_format_cmp() -> Result<()> {
     let formats = [
         ("Bash", crate::corpus::registry::CorpusFormat::Bash),
         ("Makefile", crate::corpus::registry::CorpusFormat::Makefile),
-        ("Dockerfile", crate::corpus::registry::CorpusFormat::Dockerfile),
+        (
+            "Dockerfile",
+            crate::corpus::registry::CorpusFormat::Dockerfile,
+        ),
     ];
 
     for (m_idx, metric) in metrics.iter().enumerate() {
@@ -9972,7 +11464,9 @@ fn corpus_format_cmp() -> Result<()> {
                 2 => format!("{}", fs.map_or(0, |f| f.total - f.passed)),
                 3 => format!("{:.1}%", fs.map_or(0.0, |f| f.rate * 100.0)),
                 4 => format!("{:.1}", fs.map_or(0.0, |f| f.score)),
-                5 => format!("{}", fs.map_or_else(|| "?".to_string(), |f| format!("{}", f.grade))),
+                5 => fs
+                    .map_or_else(|| "?".to_string(), |f| format!("{}", f.grade))
+                    .to_string(),
                 d @ 6..=13 => {
                     let dim_idx = d - 6;
                     let rate = dim_format_rate(&registry, &score.results, *fmt, dim_idx);
@@ -10006,9 +11500,17 @@ fn corpus_stability() -> Result<()> {
     let score = runner.run(&registry);
 
     // Current stability: entries with zero failures
-    let stable = score.results.iter().filter(|r| result_fail_dims(r).is_empty()).count();
+    let stable = score
+        .results
+        .iter()
+        .filter(|r| result_fail_dims(r).is_empty())
+        .count();
     let total = score.results.len();
-    let stability = if total > 0 { stable as f64 / total as f64 * 100.0 } else { 100.0 };
+    let stability = if total > 0 {
+        stable as f64 / total as f64 * 100.0
+    } else {
+        100.0
+    };
 
     println!("{BOLD}Stability Index{RESET}");
     println!();
@@ -10019,25 +11521,47 @@ fn corpus_stability() -> Result<()> {
 
     // Per-format stability
     println!();
-    println!("  {BOLD}{:<14} {:>8} {:>8} {:>8}{RESET}", "Format", "Stable", "Total", "Rate");
+    println!(
+        "  {BOLD}{:<14} {:>8} {:>8} {:>8}{RESET}",
+        "Format", "Stable", "Total", "Rate"
+    );
 
     let formats = [
         ("Bash", crate::corpus::registry::CorpusFormat::Bash),
         ("Makefile", crate::corpus::registry::CorpusFormat::Makefile),
-        ("Dockerfile", crate::corpus::registry::CorpusFormat::Dockerfile),
+        (
+            "Dockerfile",
+            crate::corpus::registry::CorpusFormat::Dockerfile,
+        ),
     ];
 
     for (name, fmt) in &formats {
-        let fmt_entries: Vec<_> = registry.entries.iter().enumerate()
+        let fmt_entries: Vec<_> = registry
+            .entries
+            .iter()
+            .enumerate()
             .filter(|(_, e)| e.format == *fmt)
             .collect();
         let fmt_total = fmt_entries.len();
-        let fmt_stable = fmt_entries.iter()
-            .filter(|(i, _)| score.results.get(*i).map_or(false, |r| result_fail_dims(r).is_empty()))
+        let fmt_stable = fmt_entries
+            .iter()
+            .filter(|(i, _)| {
+                score
+                    .results
+                    .get(*i)
+                    .is_some_and(|r| result_fail_dims(r).is_empty())
+            })
             .count();
-        let fmt_rate = if fmt_total > 0 { fmt_stable as f64 / fmt_total as f64 * 100.0 } else { 100.0 };
+        let fmt_rate = if fmt_total > 0 {
+            fmt_stable as f64 / fmt_total as f64 * 100.0
+        } else {
+            100.0
+        };
         let fc = pct_color(fmt_rate);
-        println!("  {CYAN}{:<14}{RESET} {:>8} {:>8} {fc}{:>7.1}%{RESET}", name, fmt_stable, fmt_total, fmt_rate);
+        println!(
+            "  {CYAN}{:<14}{RESET} {:>8} {:>8} {fc}{:>7.1}%{RESET}",
+            name, fmt_stable, fmt_total, fmt_rate
+        );
     }
 
     // Stability assessment
@@ -10063,12 +11587,21 @@ fn corpus_version() -> Result<()> {
 
     let registry = CorpusRegistry::load_full();
 
-    let bash_count = registry.entries.iter()
-        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Bash).count();
-    let make_count = registry.entries.iter()
-        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Makefile).count();
-    let dock_count = registry.entries.iter()
-        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Dockerfile).count();
+    let bash_count = registry
+        .entries
+        .iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Bash)
+        .count();
+    let make_count = registry
+        .entries
+        .iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Makefile)
+        .count();
+    let dock_count = registry
+        .entries
+        .iter()
+        .filter(|e| e.format == crate::corpus::registry::CorpusFormat::Dockerfile)
+        .count();
 
     println!("{BOLD}Corpus Version{RESET}");
     println!();
@@ -10100,15 +11633,22 @@ fn corpus_rate() -> Result<()> {
     for fs in &score.format_scores {
         let rate = fs.rate * 100.0;
         let color = pct_color(rate);
-        println!("  {CYAN}{:<12}{RESET} {color}{:>4}/{:<4} {:.1}%{RESET}",
-            format!("{}", fs.format), fs.passed, fs.total, rate);
+        println!(
+            "  {CYAN}{:<12}{RESET} {color}{:>4}/{:<4} {:.1}%{RESET}",
+            format!("{}", fs.format),
+            fs.passed,
+            fs.total,
+            rate
+        );
     }
 
     println!();
     let total_rate = score.rate * 100.0;
     let tc = pct_color(total_rate);
-    println!("  {BOLD}Total{RESET}        {tc}{:>4}/{:<4} {:.1}%{RESET}",
-        score.passed, score.total, total_rate);
+    println!(
+        "  {BOLD}Total{RESET}        {tc}{:>4}/{:<4} {:.1}%{RESET}",
+        score.passed, score.total, total_rate
+    );
 
     Ok(())
 }
@@ -10140,21 +11680,31 @@ fn corpus_dist() -> Result<()> {
         ("100ms+", 100.0, f64::MAX),
     ];
 
-    println!("{BOLD}Timing Distribution{RESET} ({} entries)", timings.len());
+    println!(
+        "{BOLD}Timing Distribution{RESET} ({} entries)",
+        timings.len()
+    );
     println!();
 
-    let max_count = buckets.iter()
+    let max_count = buckets
+        .iter()
         .map(|(_, lo, hi)| timings.iter().filter(|t| **t >= *lo && **t < *hi).count())
         .max()
         .unwrap_or(1);
 
     for (label, lo, hi) in &buckets {
         let count = timings.iter().filter(|t| **t >= *lo && **t < *hi).count();
-        let bar_len = if max_count > 0 { count * 40 / max_count } else { 0 };
+        let bar_len = if max_count > 0 {
+            count * 40 / max_count
+        } else {
+            0
+        };
         let bar: String = "█".repeat(bar_len);
         let pct = count as f64 / timings.len().max(1) as f64 * 100.0;
         let color = if count == 0 { DIM } else { CYAN };
-        println!("  {color}{label:<10}{RESET} {CYAN}{bar}{RESET} {BOLD}{count:>4}{RESET} ({pct:.1}%)");
+        println!(
+            "  {color}{label:<10}{RESET} {CYAN}{bar}{RESET} {BOLD}{count:>4}{RESET} ({pct:.1}%)"
+        );
     }
 
     // Summary stats
@@ -10164,8 +11714,10 @@ fn corpus_dist() -> Result<()> {
     let median = percentile(&timings, 50.0);
 
     println!();
-    println!("  {DIM}Mean: {mean:.1}ms | Median: {median:.1}ms | Total: {:.1}s{RESET}",
-        total / 1000.0);
+    println!(
+        "  {DIM}Mean: {mean:.1}ms | Median: {median:.1}ms | Total: {:.1}s{RESET}",
+        total / 1000.0
+    );
 
     Ok(())
 }
@@ -10192,14 +11744,8 @@ fn corpus_trace(id: &str) -> Result<()> {
         format!("{BRIGHT_RED}FAIL{RESET}")
     };
 
-    println!(
-        "\n  {BOLD}Decision Trace for {CYAN}{id}{RESET} [{pass_fail}]"
-    );
-    println!(
-        "  {DIM}{}{}",
-        "─".repeat(60),
-        RESET
-    );
+    println!("\n  {BOLD}Decision Trace for {CYAN}{id}{RESET} [{pass_fail}]");
+    println!("  {DIM}{}{}", "─".repeat(60), RESET);
 
     match &result.decision_trace {
         Some(trace) if !trace.is_empty() => {
@@ -10207,10 +11753,7 @@ fn corpus_trace(id: &str) -> Result<()> {
                 "  {DIM}{:<4}  {:<22}  {:<24}  {:<12}{RESET}",
                 "#", "Decision Type", "Choice", "IR Node"
             );
-            println!(
-                "  {DIM}{}{RESET}",
-                "─".repeat(60)
-            );
+            println!("  {DIM}{}{RESET}", "─".repeat(60));
             for (i, d) in trace.iter().enumerate() {
                 println!(
                     "  {DIM}{:<4}{RESET}  {CYAN}{:<22}{RESET}  {WHITE}{:<24}{RESET}  {DIM}{:<12}{RESET}",
@@ -10221,10 +11764,7 @@ fn corpus_trace(id: &str) -> Result<()> {
                 );
             }
             println!();
-            println!(
-                "  {DIM}Total decisions: {}{RESET}",
-                trace.len()
-            );
+            println!("  {DIM}Total decisions: {}{RESET}", trace.len());
         }
         _ => {
             println!(
@@ -10258,9 +11798,17 @@ fn collect_trace_coverage(
             let locations: Vec<String> = result
                 .decision_trace
                 .as_ref()
-                .map(|t| t.iter().map(|d| format!("{}:{}", d.decision_type, d.choice)).collect())
+                .map(|t| {
+                    t.iter()
+                        .map(|d| format!("{}:{}", d.decision_type, d.choice))
+                        .collect()
+                })
                 .unwrap_or_default();
-            if locations.is_empty() { None } else { Some((entry.id.clone(), passed, locations)) }
+            if locations.is_empty() {
+                None
+            } else {
+                Some((entry.id.clone(), passed, locations))
+            }
         })
         .collect()
 }
@@ -10281,7 +11829,9 @@ fn corpus_suspicious(limit: usize) -> Result<()> {
     let failed = total - passed;
 
     if failed == 0 {
-        println!("\n  {BRIGHT_GREEN}All {total} traced entries pass — no suspicious decisions{RESET}\n");
+        println!(
+            "\n  {BRIGHT_GREEN}All {total} traced entries pass — no suspicious decisions{RESET}\n"
+        );
         return Ok(());
     }
 
@@ -10301,7 +11851,10 @@ fn corpus_suspicious(limit: usize) -> Result<()> {
         let (impact, color) = score_impact_color(ranking.score);
         println!(
             "  {:<36}  {color}{:>14.4}{RESET}  {:>8}  {DIM}{:>8}{RESET}",
-            ranking.location, ranking.score, impact, format!("#{}", ranking.rank)
+            ranking.location,
+            ranking.score,
+            impact,
+            format!("#{}", ranking.rank)
         );
     }
 
@@ -10348,7 +11901,11 @@ fn accumulate_decision_stats(
         let key = format!("{}:{}", d.decision_type, d.choice);
         let entry = stats.entry(key).or_insert((0, 0, 0));
         entry.0 += 1;
-        if passed { entry.1 += 1; } else { entry.2 += 1; }
+        if passed {
+            entry.1 += 1;
+        } else {
+            entry.2 += 1;
+        }
     }
 
     !trace.is_empty()
@@ -10377,7 +11934,7 @@ fn corpus_decisions() -> Result<()> {
     }
 
     let mut sorted: Vec<_> = stats.into_iter().collect();
-    sorted.sort_by(|a, b| b.1.0.cmp(&a.1.0));
+    sorted.sort_by(|a, b| b.1 .0.cmp(&a.1 .0));
 
     println!(
         "\n  {BOLD}Decision Frequency Summary{RESET}  ({traced_entries}/{total_entries} entries traced)"
@@ -10395,7 +11952,13 @@ fn corpus_decisions() -> Result<()> {
         } else {
             0.0
         };
-        let color = if fail_pct >= 50.0 { RED } else if fail_pct >= 20.0 { YELLOW } else { "" };
+        let color = if fail_pct >= 50.0 {
+            RED
+        } else if fail_pct >= 20.0 {
+            YELLOW
+        } else {
+            ""
+        };
         let end = if color.is_empty() { "" } else { RESET };
         println!(
             "  {color}{:<36}  {:>8}  {:>10}  {:>10}  {:>7.1}%{end}",
@@ -10537,9 +12100,7 @@ fn corpus_fix_suggest(id: &str) -> Result<()> {
     }
 
     let signal_list = signals.join(", ");
-    println!(
-        "\n  {BOLD}Fix Suggestions for {CYAN}{id}{RESET} ({BRIGHT_RED}{signal_list}{RESET})"
-    );
+    println!("\n  {BOLD}Fix Suggestions for {CYAN}{id}{RESET} ({BRIGHT_RED}{signal_list}{RESET})");
     println!("  {DIM}{}{RESET}", "─".repeat(72));
 
     let store = mine_patterns(&registry, &runner);
@@ -10547,9 +12108,7 @@ fn corpus_fix_suggest(id: &str) -> Result<()> {
 
     if suggestions.is_empty() {
         println!("  {DIM}No pattern-based suggestions available for this entry{RESET}");
-        println!(
-            "  {DIM}(decision trace may not match any known failure patterns){RESET}"
-        );
+        println!("  {DIM}(decision trace may not match any known failure patterns){RESET}");
         println!();
         return Ok(());
     }
@@ -10596,8 +12155,8 @@ fn corpus_graph() -> Result<()> {
     );
     println!("  {DIM}{}{RESET}", "─".repeat(78));
     println!(
-        "  {DIM}{:<36}  {:>6}  {:<14}  {}{RESET}",
-        "Decision", "Usage", "Connectivity", "Entries (sample)"
+        "  {DIM}{:<36}  {:>6}  {:<14}  Entries (sample){RESET}",
+        "Decision", "Usage", "Connectivity"
     );
     println!("  {DIM}{}{RESET}", "─".repeat(78));
 
@@ -10624,7 +12183,10 @@ fn corpus_graph() -> Result<()> {
         };
         println!(
             "  {:<36}  {:>6}  {:<14}  {DIM}{}{RESET}",
-            row.decision, row.usage_count, format!("{bar}  {conn_label}"), sample
+            row.decision,
+            row.usage_count,
+            format!("{bar}  {conn_label}"),
+            sample
         );
     }
 
@@ -10715,9 +12277,7 @@ fn corpus_blast_radius(decision: &str) -> Result<()> {
             v
         }
         None => {
-            println!(
-                "\n  {YELLOW}Decision '{decision}' not found in any traced entry{RESET}"
-            );
+            println!("\n  {YELLOW}Decision '{decision}' not found in any traced entry{RESET}");
             println!("  {DIM}Use 'bashrs corpus graph' to see available decisions{RESET}\n");
             return Ok(());
         }
@@ -10745,9 +12305,7 @@ fn corpus_blast_radius(decision: &str) -> Result<()> {
         0.0
     };
 
-    println!(
-        "\n  {BOLD}Blast Radius for:{RESET} {CYAN}{decision}{RESET}"
-    );
+    println!("\n  {BOLD}Blast Radius for:{RESET} {CYAN}{decision}{RESET}");
     println!("  {DIM}{}{RESET}", "─".repeat(60));
     println!(
         "  Total entries using this decision: {WHITE}{}{RESET}",
@@ -10765,11 +12323,7 @@ fn corpus_blast_radius(decision: &str) -> Result<()> {
         let display = if passing.len() <= 8 {
             passing.join(", ")
         } else {
-            format!(
-                "{}, ... +{}",
-                passing[..6].join(", "),
-                passing.len() - 6
-            )
+            format!("{}, ... +{}", passing[..6].join(", "), passing.len() - 6)
         };
         println!("  Passing entries: {BRIGHT_GREEN}{display}{RESET}");
     }
@@ -10805,8 +12359,8 @@ fn corpus_dedup() -> Result<()> {
     }
 
     println!(
-        "  {DIM}{:<22}  {:<32}  {:>5}  {:<8}  {}{RESET}",
-        "Error Code", "Message (normalized)", "Count", "Risk", "Entries"
+        "  {DIM}{:<22}  {:<32}  {:>5}  {:<8}  Entries{RESET}",
+        "Error Code", "Message (normalized)", "Count", "Risk"
     );
     println!("  {DIM}{}{RESET}", "─".repeat(72));
 
@@ -10869,8 +12423,8 @@ fn corpus_triage() -> Result<()> {
     }
 
     println!(
-        "  {DIM}{:<8}  {:<8}  {:<24}  {:>5}  {}{RESET}",
-        "Priority", "Risk", "Error Code", "Count", "Fix Impact"
+        "  {DIM}{:<8}  {:<8}  {:<24}  {:>5}  Fix Impact{RESET}",
+        "Priority", "Risk", "Error Code", "Count"
     );
     println!("  {DIM}{}{RESET}", "─".repeat(72));
 
@@ -11048,10 +12602,7 @@ fn corpus_converge_status() -> Result<()> {
                 "\u{2191} Improving",
                 &format!("{GREEN}\u{2191} Improving{RESET}"),
             )
-            .replace(
-                "\u{2192} Stable",
-                &format!("{CYAN}\u{2192} Stable{RESET}"),
-            )
+            .replace("\u{2192} Stable", &format!("{CYAN}\u{2192} Stable{RESET}"))
             .replace(
                 "\u{2193} Regressing",
                 &format!("{RED}\u{2193} Regressing{RESET}"),
@@ -11093,8 +12644,7 @@ fn corpus_mine(limit: usize) -> Result<()> {
         .collect();
 
     for commit in &mut commits {
-        commit.has_corpus_entry =
-            oip::has_matching_corpus_entry(&commit.message, &descriptions);
+        commit.has_corpus_entry = oip::has_matching_corpus_entry(&commit.message, &descriptions);
     }
 
     println!("{BOLD}OIP Fix Pattern Mining (\u{00a7}11.9){RESET}");
@@ -11107,8 +12657,14 @@ fn corpus_mine(limit: usize) -> Result<()> {
             .replace("\u{2717}", &format!("{RED}\u{2717}{RESET}"))
             .replace("HIGH", &format!("{BRIGHT_RED}HIGH{RESET}"))
             .replace("ASTTransform", &format!("{CYAN}ASTTransform{RESET}"))
-            .replace("SecurityVulnerabilities", &format!("{BRIGHT_RED}SecurityVulnerabilities{RESET}"))
-            .replace("OperatorPrecedence", &format!("{YELLOW}OperatorPrecedence{RESET}"));
+            .replace(
+                "SecurityVulnerabilities",
+                &format!("{BRIGHT_RED}SecurityVulnerabilities{RESET}"),
+            )
+            .replace(
+                "OperatorPrecedence",
+                &format!("{YELLOW}OperatorPrecedence{RESET}"),
+            );
         println!("  {colored}");
     }
 
@@ -11146,8 +12702,7 @@ fn corpus_fix_gaps(limit: usize) -> Result<()> {
         .collect();
 
     for commit in &mut commits {
-        commit.has_corpus_entry =
-            oip::has_matching_corpus_entry(&commit.message, &descriptions);
+        commit.has_corpus_entry = oip::has_matching_corpus_entry(&commit.message, &descriptions);
     }
 
     let gaps = oip::find_fix_gaps(&commits, &descriptions);
@@ -11185,11 +12740,23 @@ fn corpus_org_patterns() -> Result<()> {
     for line in table.lines() {
         let colored = line
             .replace("ASTTransform", &format!("{CYAN}ASTTransform{RESET}"))
-            .replace("ComprehensionBugs", &format!("{YELLOW}ComprehensionBugs{RESET}"))
-            .replace("OperatorPrecedence", &format!("{YELLOW}OperatorPrecedence{RESET}"))
-            .replace("ConfigurationErrors", &format!("{YELLOW}ConfigurationErrors{RESET}"))
+            .replace(
+                "ComprehensionBugs",
+                &format!("{YELLOW}ComprehensionBugs{RESET}"),
+            )
+            .replace(
+                "OperatorPrecedence",
+                &format!("{YELLOW}OperatorPrecedence{RESET}"),
+            )
+            .replace(
+                "ConfigurationErrors",
+                &format!("{YELLOW}ConfigurationErrors{RESET}"),
+            )
             .replace("TypeErrors", &format!("{YELLOW}TypeErrors{RESET}"))
-            .replace("IntegrationFailures", &format!("{YELLOW}IntegrationFailures{RESET}"));
+            .replace(
+                "IntegrationFailures",
+                &format!("{YELLOW}IntegrationFailures{RESET}"),
+            );
         println!("  {colored}");
     }
 
@@ -11199,10 +12766,7 @@ fn corpus_org_patterns() -> Result<()> {
         let coverage = if p.covered_entries.is_empty() {
             format!("{RED}\u{2717} No coverage{RESET}")
         } else {
-            format!(
-                "{GREEN}\u{2713} {}{RESET}",
-                p.covered_entries.join(", ")
-            )
+            format!("{GREEN}\u{2713} {}{RESET}", p.covered_entries.join(", "))
         };
         println!("    {:<30} {}", p.name, coverage);
     }
@@ -11218,9 +12782,7 @@ fn corpus_schema_validate() -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let report = schema_enforcement::validate_corpus(&registry);
 
-    println!(
-        "{BOLD}Formal Schema Enforcement (\u{00a7}11.8){RESET}"
-    );
+    println!("{BOLD}Formal Schema Enforcement (\u{00a7}11.8){RESET}");
     println!();
 
     let table = schema_enforcement::format_schema_report(&report);
@@ -11239,9 +12801,7 @@ fn corpus_schema_validate() -> Result<()> {
         let passed = report
             .results
             .iter()
-            .filter(|r| {
-                r.layers_passed.iter().any(|l| format!("{l}") == *layer)
-            })
+            .filter(|r| r.layers_passed.iter().any(|l| format!("{l}") == *layer))
             .count();
         let pct = if report.total_entries > 0 {
             (passed as f64 / report.total_entries as f64) * 100.0
@@ -11284,9 +12844,7 @@ fn corpus_grammar_errors() -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let report = schema_enforcement::validate_corpus(&registry);
 
-    println!(
-        "{BOLD}Grammar Violations by Category (\u{00a7}11.8.5){RESET}"
-    );
+    println!("{BOLD}Grammar Violations by Category (\u{00a7}11.8.5){RESET}");
     println!();
 
     let table = schema_enforcement::format_grammar_errors(&report);
@@ -11335,9 +12893,7 @@ fn corpus_format_grammar(format: CorpusFormatArg) -> Result<()> {
 
     let spec = schema_enforcement::format_grammar_spec(corpus_format);
 
-    println!(
-        "{BOLD}Formal Grammar Specification (\u{00a7}11.8){RESET}"
-    );
+    println!("{BOLD}Formal Grammar Specification (\u{00a7}11.8){RESET}");
     println!();
 
     for line in spec.lines() {
@@ -11373,9 +12929,7 @@ fn corpus_lint_pipeline() -> Result<()> {
 
     let suggestions = citl::lint_pipeline(&registry, &score);
 
-    println!(
-        "{BOLD}CITL Lint Pipeline (\u{00a7}7.3){RESET}"
-    );
+    println!("{BOLD}CITL Lint Pipeline (\u{00a7}7.3){RESET}");
     println!();
 
     let table = citl::format_lint_pipeline(&suggestions);
@@ -11419,16 +12973,17 @@ fn corpus_regression_check() -> Result<()> {
 
     let report = citl::check_regressions(&score, &history);
 
-    println!(
-        "{BOLD}Jidoka Regression Check (\u{00a7}5.3){RESET}"
-    );
+    println!("{BOLD}Jidoka Regression Check (\u{00a7}5.3){RESET}");
     println!();
 
     let table = citl::format_regression_report(&report);
     for line in table.lines() {
         let colored = line
             .replace("No regressions", &format!("{GREEN}No regressions{RESET}"))
-            .replace("REGRESSIONS DETECTED", &format!("{RED}REGRESSIONS DETECTED{RESET}"))
+            .replace(
+                "REGRESSIONS DETECTED",
+                &format!("{RED}REGRESSIONS DETECTED{RESET}"),
+            )
             .replace("ANDON CORD", &format!("{BRIGHT_RED}ANDON CORD{RESET}"))
             .replace("Status: OK", &format!("{GREEN}Status: OK{RESET}"));
         println!("  {colored}");
@@ -11452,9 +13007,7 @@ fn corpus_convergence_check() -> Result<()> {
 
     let criteria = citl::check_convergence(&score, &history);
 
-    println!(
-        "{BOLD}Convergence Criteria Check (\u{00a7}5.2){RESET}"
-    );
+    println!("{BOLD}Convergence Criteria Check (\u{00a7}5.2){RESET}");
     println!();
 
     let table = citl::format_convergence_criteria(&criteria);
@@ -11481,9 +13034,7 @@ fn corpus_domain_categories() -> Result<()> {
     let score = runner.run(&registry);
     let stats = domain_categories::categorize_corpus(&registry, &score.results);
 
-    println!(
-        "{BOLD}Domain-Specific Corpus Categories (\u{00a7}11.11){RESET}"
-    );
+    println!("{BOLD}Domain-Specific Corpus Categories (\u{00a7}11.11){RESET}");
     println!();
 
     let report = domain_categories::format_categories_report(&stats);
@@ -11510,9 +13061,7 @@ fn corpus_domain_coverage() -> Result<()> {
     let score = runner.run(&registry);
     let stats = domain_categories::categorize_corpus(&registry, &score.results);
 
-    println!(
-        "{BOLD}Domain Coverage Analysis (\u{00a7}11.11){RESET}"
-    );
+    println!("{BOLD}Domain Coverage Analysis (\u{00a7}11.11){RESET}");
     println!();
 
     let report = domain_categories::format_domain_coverage(&stats, &score);
@@ -11540,9 +13089,7 @@ fn corpus_domain_matrix() -> Result<()> {
     let score = runner.run(&registry);
     let stats = domain_categories::categorize_corpus(&registry, &score.results);
 
-    println!(
-        "{BOLD}Cross-Category Quality Matrix (\u{00a7}11.11.9){RESET}"
-    );
+    println!("{BOLD}Cross-Category Quality Matrix (\u{00a7}11.11.9){RESET}");
     println!();
 
     let report = domain_categories::format_quality_matrix(&stats);
@@ -11567,9 +13114,7 @@ fn corpus_tier_weights() -> Result<()> {
     let score = runner.run(&registry);
     let analysis = tier_analysis::analyze_tiers(&registry, &score);
 
-    println!(
-        "{BOLD}Tier-Weighted Corpus Scoring (\u{00a7}4.3){RESET}"
-    );
+    println!("{BOLD}Tier-Weighted Corpus Scoring (\u{00a7}4.3){RESET}");
     println!();
 
     let report = tier_analysis::format_tier_weights(&analysis);
@@ -11595,9 +13140,7 @@ fn corpus_tier_analysis() -> Result<()> {
     let score = runner.run(&registry);
     let analysis = tier_analysis::analyze_tiers(&registry, &score);
 
-    println!(
-        "{BOLD}Tier Difficulty Analysis (\u{00a7}4.3){RESET}"
-    );
+    println!("{BOLD}Tier Difficulty Analysis (\u{00a7}4.3){RESET}");
     println!();
 
     let report = tier_analysis::format_tier_analysis(&analysis);
@@ -11605,7 +13148,10 @@ fn corpus_tier_analysis() -> Result<()> {
         let colored = line
             .replace("No difference", &format!("{GREEN}No difference{RESET}"))
             .replace("Distribution:", &format!("{BOLD}Distribution:{RESET}"))
-            .replace("Scoring Comparison:", &format!("{BOLD}Scoring Comparison:{RESET}"))
+            .replace(
+                "Scoring Comparison:",
+                &format!("{BOLD}Scoring Comparison:{RESET}"),
+            )
             .replace("Weight Impact", &format!("{BOLD}Weight Impact{RESET}"));
         println!("  {colored}");
     }
@@ -11624,9 +13170,7 @@ fn corpus_tier_targets() -> Result<()> {
     let score = runner.run(&registry);
     let analysis = tier_analysis::analyze_tiers(&registry, &score);
 
-    println!(
-        "{BOLD}Tier Target Rate Comparison (\u{00a7}2.3/\u{00a7}4.3){RESET}"
-    );
+    println!("{BOLD}Tier Target Rate Comparison (\u{00a7}2.3/\u{00a7}4.3){RESET}");
     println!();
 
     let report = tier_analysis::format_tier_targets(&analysis);
@@ -11656,8 +13200,7 @@ fn corpus_quality_gates() -> Result<()> {
     let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
     let score = runner.run(&registry);
-    let history = CorpusRunner::load_convergence_log(&log_path)
-        .unwrap_or_default();
+    let history = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
     let thresholds = quality_gates::QualityThresholds::default();
     let gates = quality_gates::check_quality_gates(&score, &history, &thresholds);
 
@@ -11687,8 +13230,7 @@ fn corpus_metrics_check() -> Result<()> {
     let start = std::time::Instant::now();
     let score = runner.run(&registry);
     let duration = start.elapsed();
-    let history = CorpusRunner::load_convergence_log(&log_path)
-        .unwrap_or_default();
+    let history = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
     let thresholds = quality_gates::PerformanceThresholds::default();
     let metrics = quality_gates::check_metrics(&score, duration, &history, &thresholds);
 
@@ -11718,8 +13260,7 @@ fn corpus_gate_status_cmd() -> Result<()> {
     let start = std::time::Instant::now();
     let score = runner.run(&registry);
     let duration = start.elapsed();
-    let history = CorpusRunner::load_convergence_log(&log_path)
-        .unwrap_or_default();
+    let history = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
     let status = quality_gates::build_gate_status(&score, duration, &history);
 
     println!("{BOLD}Corpus Gate Status Summary (\u{00a7}9){RESET}");
@@ -11730,7 +13271,10 @@ fn corpus_gate_status_cmd() -> Result<()> {
         let colored = line
             .replace("\u{2713}", &format!("{GREEN}\u{2713}{RESET}"))
             .replace("\u{2717}", &format!("{RED}\u{2717}{RESET}"))
-            .replace("ALL GATES PASSED", &format!("{GREEN}ALL GATES PASSED{RESET}"))
+            .replace(
+                "ALL GATES PASSED",
+                &format!("{GREEN}ALL GATES PASSED{RESET}"),
+            )
             .replace("GATES FAILED", &format!("{RED}GATES FAILED{RESET}"));
         println!("  {colored}");
     }
@@ -11812,9 +13356,7 @@ fn corpus_publish_check() -> Result<()> {
 
     let checks = dataset::check_publish_readiness(&score);
 
-    println!(
-        "{BOLD}Hugging Face Publish Readiness (\u{00a7}10.3){RESET}"
-    );
+    println!("{BOLD}Hugging Face Publish Readiness (\u{00a7}10.3){RESET}");
     println!();
 
     let table = dataset::format_publish_checks(&checks);
@@ -11822,7 +13364,10 @@ fn corpus_publish_check() -> Result<()> {
         let colored = line
             .replace("\u{2713} PASS", &format!("{GREEN}\u{2713} PASS{RESET}"))
             .replace("\u{2717} FAIL", &format!("{RED}\u{2717} FAIL{RESET}"))
-            .replace("Ready to publish", &format!("{GREEN}Ready to publish{RESET}"))
+            .replace(
+                "Ready to publish",
+                &format!("{GREEN}Ready to publish{RESET}"),
+            )
             .replace("check(s) failed", &format!("{RED}check(s) failed{RESET}"));
         println!("  {colored}");
     }
@@ -11837,9 +13382,21 @@ fn corpus_publish_check() -> Result<()> {
         ("paiml/bashrs-convergence", "Convergence"),
     ] {
         let count = match *fmt {
-            "Bash" => registry.entries.iter().filter(|e| e.format == CorpusFormat::Bash).count(),
-            "Makefile" => registry.entries.iter().filter(|e| e.format == CorpusFormat::Makefile).count(),
-            "Dockerfile" => registry.entries.iter().filter(|e| e.format == CorpusFormat::Dockerfile).count(),
+            "Bash" => registry
+                .entries
+                .iter()
+                .filter(|e| e.format == CorpusFormat::Bash)
+                .count(),
+            "Makefile" => registry
+                .entries
+                .iter()
+                .filter(|e| e.format == CorpusFormat::Makefile)
+                .count(),
+            "Dockerfile" => registry
+                .entries
+                .iter()
+                .filter(|e| e.format == CorpusFormat::Dockerfile)
+                .count(),
             _ => 0,
         };
         if count > 0 {
@@ -11870,25 +13427,64 @@ fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
 
-            println!("{WHITE}Entry:{RESET} {CYAN}{}{RESET} ({})", entry.id, entry.name);
-            println!("{DIM}Format: {} | Tier: {:?}{RESET}", entry.format, entry.tier);
+            println!(
+                "{WHITE}Entry:{RESET} {CYAN}{}{RESET} ({})",
+                entry.id, entry.name
+            );
+            println!(
+                "{DIM}Format: {} | Tier: {:?}{RESET}",
+                entry.format, entry.tier
+            );
             println!("{DIM}Description: {}{RESET}", entry.description);
             println!();
             let s = result.score();
-            let gc = grade_color(if s >= 90.0 { "A" } else if s >= 70.0 { "B" } else { "D" });
+            let gc = grade_color(if s >= 90.0 {
+                "A"
+            } else if s >= 70.0 {
+                "B"
+            } else {
+                "D"
+            });
             println!("Score: {gc}{:.1}/100{RESET}", s);
             println!();
             let check = |b: bool| -> String { pass_fail(b) };
-            println!("  {WHITE}A  Transpilation{RESET} (30):  {}", check(result.transpiled));
-            println!("  {WHITE}B1 Containment{RESET}  (10):  {}", check(result.output_contains));
-            println!("  {WHITE}B2 Exact match{RESET}  ( 8):  {}", check(result.output_exact));
-            println!("  {WHITE}B3 Behavioral{RESET}   ( 7):  {}", check(result.output_behavioral));
+            println!(
+                "  {WHITE}A  Transpilation{RESET} (30):  {}",
+                check(result.transpiled)
+            );
+            println!(
+                "  {WHITE}B1 Containment{RESET}  (10):  {}",
+                check(result.output_contains)
+            );
+            println!(
+                "  {WHITE}B2 Exact match{RESET}  ( 8):  {}",
+                check(result.output_exact)
+            );
+            println!(
+                "  {WHITE}B3 Behavioral{RESET}   ( 7):  {}",
+                check(result.output_behavioral)
+            );
             let cc = pct_color(result.coverage_ratio * 100.0);
-            println!("  {WHITE}C  Coverage{RESET}     (15):  {cc}{:.1}%{RESET}", result.coverage_ratio * 100.0);
-            println!("  {WHITE}D  Lint{RESET}         (10):  {}", check(result.lint_clean));
-            println!("  {WHITE}E  Determinism{RESET}  (10):  {}", check(result.deterministic));
-            println!("  {WHITE}F  Metamorphic{RESET}  ( 5):  {}", check(result.metamorphic_consistent));
-            println!("  {WHITE}G  Cross-shell{RESET}  ( 5):  {}", check(result.cross_shell_agree));
+            println!(
+                "  {WHITE}C  Coverage{RESET}     (15):  {cc}{:.1}%{RESET}",
+                result.coverage_ratio * 100.0
+            );
+            println!(
+                "  {WHITE}D  Lint{RESET}         (10):  {}",
+                check(result.lint_clean)
+            );
+            println!(
+                "  {WHITE}E  Determinism{RESET}  (10):  {}",
+                check(result.deterministic)
+            );
+            println!(
+                "  {WHITE}F  Metamorphic{RESET}  ( 5):  {}",
+                check(result.metamorphic_consistent)
+            );
+            println!(
+                "  {WHITE}G  Cross-shell{RESET}  ( 5):  {}",
+                check(result.cross_shell_agree)
+            );
             println!("  Schema valid:          {}", check(result.schema_valid));
             if let Some(ref output) = result.actual_output {
                 println!();
@@ -11946,24 +13542,28 @@ fn corpus_export(output: Option<&str>, filter: Option<&CorpusFormatArg>) -> Resu
         cross_shell: bool,
     }
 
-    let entries: Vec<ExportEntry<'_>> = registry.entries.iter().filter_map(|e| {
-        let r = results_map.get(e.id.as_str())?;
-        Some(ExportEntry {
-            id: &e.id,
-            name: &e.name,
-            format: &e.format,
-            tier: &e.tier,
-            transpiled: r.transpiled,
-            score: r.score(),
-            grade: crate::corpus::registry::Grade::from_score(r.score()).to_string(),
-            actual_output: &r.actual_output,
-            error: &r.error,
-            lint_clean: r.lint_clean,
-            deterministic: r.deterministic,
-            behavioral: r.output_behavioral,
-            cross_shell: r.cross_shell_agree,
+    let entries: Vec<ExportEntry<'_>> = registry
+        .entries
+        .iter()
+        .filter_map(|e| {
+            let r = results_map.get(e.id.as_str())?;
+            Some(ExportEntry {
+                id: &e.id,
+                name: &e.name,
+                format: &e.format,
+                tier: &e.tier,
+                transpiled: r.transpiled,
+                score: r.score(),
+                grade: crate::corpus::registry::Grade::from_score(r.score()).to_string(),
+                actual_output: &r.actual_output,
+                error: &r.error,
+                lint_clean: r.lint_clean,
+                deterministic: r.deterministic,
+                behavioral: r.output_behavioral,
+                cross_shell: r.cross_shell_agree,
+            })
         })
-    }).collect();
+        .collect();
 
     #[derive(serde::Serialize)]
     struct ExportDocument<'a> {
@@ -12000,14 +13600,22 @@ fn corpus_export(output: Option<&str>, filter: Option<&CorpusFormatArg>) -> Resu
 
 /// Format a per-format pass/total column (e.g. "499/500" or "-" if no data).
 fn fmt_pass_total(passed: usize, total: usize) -> String {
-    if total > 0 { format!("{passed}/{total}") } else { "-".to_string() }
+    if total > 0 {
+        format!("{passed}/{total}")
+    } else {
+        "-".to_string()
+    }
 }
 
 /// Compute a trend arrow by comparing two values.
 fn trend_arrow(current: usize, previous: usize) -> &'static str {
-    if current > previous { "↑" }
-    else if current < previous { "↓" }
-    else { "→" }
+    if current > previous {
+        "↑"
+    } else if current < previous {
+        "↓"
+    } else {
+        "→"
+    }
 }
 
 /// Print a single convergence history row (human-readable).
@@ -12023,17 +13631,23 @@ fn corpus_print_history_row(
     let dc = delta_color(e.delta);
     let score_part = if has_score_data {
         let sc = pct_color(e.score);
-        let gr = if e.grade.is_empty() { "-".to_string() } else { e.grade.clone() };
+        let gr = if e.grade.is_empty() {
+            "-".to_string()
+        } else {
+            e.grade.clone()
+        };
         format!("  {sc}{:>5.1}{RESET} {:>2}", e.score, gr)
     } else {
         String::new()
     };
     if has_format_data {
         let trend = match prev {
-            Some(p) => format!("{}{}{}",
+            Some(p) => format!(
+                "{}{}{}",
                 trend_arrow(e.bash_passed, p.bash_passed),
                 trend_arrow(e.makefile_passed, p.makefile_passed),
-                trend_arrow(e.dockerfile_passed, p.dockerfile_passed)),
+                trend_arrow(e.dockerfile_passed, p.dockerfile_passed)
+            ),
             None => "---".to_string(),
         };
         println!(
@@ -12070,25 +13684,30 @@ fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Resu
     };
 
     // Detect if any entry has per-format data (spec §11.10.5)
-    let has_format_data = display.iter().any(|e| e.bash_total > 0 || e.makefile_total > 0 || e.dockerfile_total > 0);
+    let has_format_data = display
+        .iter()
+        .any(|e| e.bash_total > 0 || e.makefile_total > 0 || e.dockerfile_total > 0);
     // Detect if any entry has V2 score data (spec §5.1)
     let has_score_data = display.iter().any(|e| e.score > 0.0);
 
     match format {
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
-            println!("{BOLD}Convergence History ({} entries):{RESET}", entries.len());
+            println!(
+                "{BOLD}Convergence History ({} entries):{RESET}",
+                entries.len()
+            );
             let score_hdr = if has_score_data { "  Score Gr" } else { "" };
             if has_format_data {
                 println!(
-                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}{score_hdr}  {:>9} {:>9} {:>9}  {:<5}{}{RESET}",
+                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}{score_hdr}  {:>9} {:>9} {:>9}  {:<5}Notes{RESET}",
                     "Iter", "Date", "Pass", "Total", "Rate", "Delta",
-                    "Bash", "Make", "Docker", "Trend", "Notes"
+                    "Bash", "Make", "Docker", "Trend"
                 );
             } else {
                 println!(
-                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}{score_hdr}  {}{RESET}",
-                    "Iter", "Date", "Pass", "Total", "Rate", "Delta", "Notes"
+                    "{DIM}{:>4}  {:>10}  {:>5}/{:<5}  {:>6}  {:>8}{score_hdr}  Notes{RESET}",
+                    "Iter", "Date", "Pass", "Total", "Rate", "Delta"
                 );
             }
             for (i, e) in display.iter().enumerate() {
@@ -12122,32 +13741,36 @@ fn corpus_show_failures(
         None => runner.run(&registry),
     };
 
-    let failures: Vec<_> = score.results.iter().filter(|r| {
-        let has_any_failure = !r.transpiled
-            || !r.output_contains
-            || !r.output_exact
-            || !r.output_behavioral
-            || !r.lint_clean
-            || !r.deterministic
-            || !r.metamorphic_consistent
-            || !r.cross_shell_agree
-            || !r.schema_valid;
-        if !has_any_failure {
-            return false;
-        }
-        match dimension {
-            Some("a") => !r.transpiled,
-            Some("b1") => !r.output_contains,
-            Some("b2") => !r.output_exact,
-            Some("b3") => !r.output_behavioral,
-            Some("d") => !r.lint_clean,
-            Some("e") => !r.deterministic,
-            Some("f") => !r.metamorphic_consistent,
-            Some("g") => !r.cross_shell_agree,
-            Some("schema") => !r.schema_valid,
-            _ => true,
-        }
-    }).collect();
+    let failures: Vec<_> = score
+        .results
+        .iter()
+        .filter(|r| {
+            let has_any_failure = !r.transpiled
+                || !r.output_contains
+                || !r.output_exact
+                || !r.output_behavioral
+                || !r.lint_clean
+                || !r.deterministic
+                || !r.metamorphic_consistent
+                || !r.cross_shell_agree
+                || !r.schema_valid;
+            if !has_any_failure {
+                return false;
+            }
+            match dimension {
+                Some("a") => !r.transpiled,
+                Some("b1") => !r.output_contains,
+                Some("b2") => !r.output_exact,
+                Some("b3") => !r.output_behavioral,
+                Some("d") => !r.lint_clean,
+                Some("e") => !r.deterministic,
+                Some("f") => !r.metamorphic_consistent,
+                Some("g") => !r.cross_shell_agree,
+                Some("schema") => !r.schema_valid,
+                _ => true,
+            }
+        })
+        .collect();
 
     corpus_print_failures(&failures, format)
 }
@@ -12165,15 +13788,21 @@ fn corpus_print_failures(
                 return Ok(());
             }
             println!("{BRIGHT_RED}Failures ({} entries):{RESET}", failures.len());
-            println!(
-                "{DIM}{:<8} {:>6}  {}{RESET}",
-                "ID", "Score", "Failing Dimensions"
-            );
+            println!("{DIM}{:<8} {:>6}  Failing Dimensions{RESET}", "ID", "Score");
             for r in failures {
                 let dims = corpus_failing_dims(r);
                 let sc = r.score();
-                let gc = grade_color(if sc >= 90.0 { "A" } else if sc >= 70.0 { "B" } else { "D" });
-                println!("{CYAN}{:<8}{RESET} {gc}{:>5.1}{RESET}  {RED}{}{RESET}", r.id, sc, dims);
+                let gc = grade_color(if sc >= 90.0 {
+                    "A"
+                } else if sc >= 70.0 {
+                    "B"
+                } else {
+                    "D"
+                });
+                println!(
+                    "{CYAN}{:<8}{RESET} {gc}{:>5.1}{RESET}  {RED}{}{RESET}",
+                    r.id, sc, dims
+                );
             }
         }
         CorpusOutputFormat::Json => {
@@ -12187,23 +13816,37 @@ fn corpus_print_failures(
 
 fn corpus_failing_dims(r: &crate::corpus::runner::CorpusResult) -> String {
     let mut dims = Vec::new();
-    if !r.transpiled { dims.push("A"); }
-    if !r.output_contains { dims.push("B1"); }
-    if !r.output_exact { dims.push("B2"); }
-    if !r.output_behavioral { dims.push("B3"); }
-    if !r.lint_clean { dims.push("D"); }
-    if !r.deterministic { dims.push("E"); }
-    if !r.metamorphic_consistent { dims.push("F"); }
-    if !r.cross_shell_agree { dims.push("G"); }
-    if !r.schema_valid { dims.push("Schema"); }
+    if !r.transpiled {
+        dims.push("A");
+    }
+    if !r.output_contains {
+        dims.push("B1");
+    }
+    if !r.output_exact {
+        dims.push("B2");
+    }
+    if !r.output_behavioral {
+        dims.push("B3");
+    }
+    if !r.lint_clean {
+        dims.push("D");
+    }
+    if !r.deterministic {
+        dims.push("E");
+    }
+    if !r.metamorphic_consistent {
+        dims.push("F");
+    }
+    if !r.cross_shell_agree {
+        dims.push("G");
+    }
+    if !r.schema_valid {
+        dims.push("Schema");
+    }
     dims.join(", ")
 }
 
-fn corpus_show_diff(
-    format: &CorpusOutputFormat,
-    from: Option<u32>,
-    to: Option<u32>,
-) -> Result<()> {
+fn corpus_show_diff(format: &CorpusOutputFormat, from: Option<u32>, to: Option<u32>) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
     let log_path = PathBuf::from(".quality/convergence.log");
@@ -12217,14 +13860,23 @@ fn corpus_show_diff(
     }
 
     let from_entry = match from {
-        Some(iter) => entries.iter().find(|e| e.iteration == iter)
-            .ok_or_else(|| Error::Validation(format!("Iteration {iter} not found in convergence log")))?,
+        Some(iter) => entries
+            .iter()
+            .find(|e| e.iteration == iter)
+            .ok_or_else(|| {
+                Error::Validation(format!("Iteration {iter} not found in convergence log"))
+            })?,
         None => &entries[entries.len() - 2],
     };
     let to_entry = match to {
-        Some(iter) => entries.iter().find(|e| e.iteration == iter)
-            .ok_or_else(|| Error::Validation(format!("Iteration {iter} not found in convergence log")))?,
-        None => entries.last()
+        Some(iter) => entries
+            .iter()
+            .find(|e| e.iteration == iter)
+            .ok_or_else(|| {
+                Error::Validation(format!("Iteration {iter} not found in convergence log"))
+            })?,
+        None => entries
+            .last()
             .ok_or_else(|| Error::Validation("Empty convergence log".to_string()))?,
     };
 
@@ -12232,24 +13884,45 @@ fn corpus_show_diff(
         CorpusOutputFormat::Human => {
             use crate::cli::color::*;
 
-            println!("{BOLD}Convergence Diff:{RESET} iteration {} → {}", from_entry.iteration, to_entry.iteration);
+            println!(
+                "{BOLD}Convergence Diff:{RESET} iteration {} → {}",
+                from_entry.iteration, to_entry.iteration
+            );
             println!();
             println!("  {DIM}{:>12}  {:>10}  {:>10}{RESET}", "", "From", "To");
-            println!("  {:>12}  {:>10}  {:>10}", "Date", from_entry.date, to_entry.date);
-            println!("  {:>12}  {:>10}  {:>10}", "Passed", from_entry.passed, to_entry.passed);
-            println!("  {:>12}  {:>10}  {:>10}", "Total", from_entry.total, to_entry.total);
+            println!(
+                "  {:>12}  {:>10}  {:>10}",
+                "Date", from_entry.date, to_entry.date
+            );
+            println!(
+                "  {:>12}  {:>10}  {:>10}",
+                "Passed", from_entry.passed, to_entry.passed
+            );
+            println!(
+                "  {:>12}  {:>10}  {:>10}",
+                "Total", from_entry.total, to_entry.total
+            );
             let from_pct = from_entry.rate * 100.0;
             let to_pct = to_entry.rate * 100.0;
             let frc = pct_color(from_pct);
             let trc = pct_color(to_pct);
-            println!("  {:>12}  {frc}{:>9.1}%{RESET}  {trc}{:>9.1}%{RESET}", "Rate", from_pct, to_pct);
+            println!(
+                "  {:>12}  {frc}{:>9.1}%{RESET}  {trc}{:>9.1}%{RESET}",
+                "Rate", from_pct, to_pct
+            );
             let rate_delta = to_entry.rate - from_entry.rate;
             let passed_delta = to_entry.passed as i64 - from_entry.passed as i64;
             println!();
             if rate_delta > 0.0 {
-                println!("  {GREEN}Improvement: +{passed_delta} entries, +{:.4}% rate{RESET}", rate_delta * 100.0);
+                println!(
+                    "  {GREEN}Improvement: +{passed_delta} entries, +{:.4}% rate{RESET}",
+                    rate_delta * 100.0
+                );
             } else if rate_delta < 0.0 {
-                println!("  {BRIGHT_RED}Regression: {passed_delta} entries, {:.4}% rate{RESET}", rate_delta * 100.0);
+                println!(
+                    "  {BRIGHT_RED}Regression: {passed_delta} entries, {:.4}% rate{RESET}",
+                    rate_delta * 100.0
+                );
             } else {
                 println!("  {DIM}No change in pass rate.{RESET}");
             }
@@ -12278,7 +13951,7 @@ fn corpus_generate_report(output: Option<&str>) -> Result<()> {
 
     let date = chrono_free_date();
     let mut report = String::new();
-    report.push_str(&format!("# V2 Corpus Quality Report\n\n"));
+    report.push_str("# V2 Corpus Quality Report\n\n");
     report.push_str(&format!("**Date**: {date}\n\n"));
     report.push_str(&format!(
         "## Score: {:.1}/100 ({})\n\n",
@@ -12291,7 +13964,7 @@ fn corpus_generate_report(output: Option<&str>) -> Result<()> {
     report.push_str(&format!("| Passed | {} |\n", score.passed));
     report.push_str(&format!("| Failed | {} |\n", score.failed));
     report.push_str(&format!("| Pass rate | {:.1}% |\n", score.rate * 100.0));
-    report.push_str("\n");
+    report.push('\n');
 
     // Per-format breakdown
     report.push_str("## Format Breakdown\n\n");
@@ -12303,17 +13976,21 @@ fn corpus_generate_report(output: Option<&str>) -> Result<()> {
             fs.format, fs.score, fs.grade, fs.passed, fs.total
         ));
     }
-    report.push_str("\n");
+    report.push('\n');
 
     // Failures
-    let failures: Vec<_> = score.results.iter().filter(|r| {
-        !r.transpiled
-            || !r.output_behavioral
-            || !r.cross_shell_agree
-            || !r.lint_clean
-            || !r.deterministic
-            || !r.schema_valid
-    }).collect();
+    let failures: Vec<_> = score
+        .results
+        .iter()
+        .filter(|r| {
+            !r.transpiled
+                || !r.output_behavioral
+                || !r.cross_shell_agree
+                || !r.lint_clean
+                || !r.deterministic
+                || !r.schema_valid
+        })
+        .collect();
 
     if failures.is_empty() {
         report.push_str("## Failures\n\nNone.\n\n");
@@ -12325,7 +14002,7 @@ fn corpus_generate_report(output: Option<&str>) -> Result<()> {
             let dims = corpus_failing_dims(r);
             report.push_str(&format!("| {} | {:.1} | {} |\n", r.id, r.score(), dims));
         }
-        report.push_str("\n");
+        report.push('\n');
     }
 
     // Convergence history
@@ -12343,10 +14020,15 @@ fn corpus_generate_report(output: Option<&str>) -> Result<()> {
         for e in display {
             report.push_str(&format!(
                 "| {} | {} | {}/{} | {:.1}% | {:+.4} |\n",
-                e.iteration, e.date, e.passed, e.total, e.rate * 100.0, e.delta
+                e.iteration,
+                e.date,
+                e.passed,
+                e.total,
+                e.rate * 100.0,
+                e.delta
             ));
         }
-        report.push_str("\n");
+        report.push('\n');
     }
 
     // V2 scoring formula reference
@@ -12419,27 +14101,50 @@ fn comply_init_command(scope: ComplyScopeArg, pzsh: bool, strict: bool) -> Resul
     let mut config = ComplyConfig::new_default(env!("CARGO_PKG_VERSION"));
     apply_comply_scope(&mut config, scope);
 
-    if pzsh { config.integration.pzsh = "enabled".to_string(); }
-    if strict { apply_comply_strict(&mut config); }
+    if pzsh {
+        config.integration.pzsh = "enabled".to_string();
+    }
+    if strict {
+        apply_comply_strict(&mut config);
+    }
 
-    config.save(Path::new("."))
+    config
+        .save(Path::new("."))
         .map_err(|e| Error::Internal(format!("Failed to save comply.toml: {e}")))?;
 
     println!("Initialized .bashrs/comply.toml");
-    println!("  Scopes: project={} user={} system={}",
-        config.scopes.project, config.scopes.user, config.scopes.system);
-    if pzsh { println!("  pzsh integration: enabled"); }
-    if strict { println!("  Mode: strict (all rules enforced)"); }
+    println!(
+        "  Scopes: project={} user={} system={}",
+        config.scopes.project, config.scopes.user, config.scopes.system
+    );
+    if pzsh {
+        println!("  pzsh integration: enabled");
+    }
+    if strict {
+        println!("  Mode: strict (all rules enforced)");
+    }
 
     Ok(())
 }
 
 fn apply_comply_scope(config: &mut crate::comply::config::ComplyConfig, scope: ComplyScopeArg) {
     match scope {
-        ComplyScopeArg::Project => { config.scopes.user = false; config.scopes.system = false; }
-        ComplyScopeArg::User => { config.scopes.user = true; config.scopes.system = false; }
-        ComplyScopeArg::System => { config.scopes.user = false; config.scopes.system = true; }
-        ComplyScopeArg::All => { config.scopes.user = true; config.scopes.system = true; }
+        ComplyScopeArg::Project => {
+            config.scopes.user = false;
+            config.scopes.system = false;
+        }
+        ComplyScopeArg::User => {
+            config.scopes.user = true;
+            config.scopes.system = false;
+        }
+        ComplyScopeArg::System => {
+            config.scopes.user = false;
+            config.scopes.system = true;
+        }
+        ComplyScopeArg::All => {
+            config.scopes.user = true;
+            config.scopes.system = true;
+        }
     }
 }
 
@@ -12513,11 +14218,7 @@ fn comply_enforce_thresholds(
         )));
     }
     if config.thresholds.max_violations > 0 {
-        let total_violations: usize = score
-            .artifact_scores
-            .iter()
-            .map(|a| a.violations)
-            .sum();
+        let total_violations: usize = score.artifact_scores.iter().map(|a| a.violations).sum();
         if total_violations > config.thresholds.max_violations as usize {
             return Err(Error::Validation(format!(
                 "Violations {} exceed config max {} (grade {})",
@@ -12548,10 +14249,7 @@ fn comply_rules_command(format: ComplyFormat) -> Result<()> {
             println!("═══════════════════════════════════════════════════════════");
             println!("  COMPLIANCE RULES — 10 Falsifiable Hypotheses");
             println!("═══════════════════════════════════════════════════════════\n");
-            println!(
-                " {:<12} {:<22} {:>6}  {}",
-                "Code", "Name", "Weight", "Applies To"
-            );
+            println!(" {:<12} {:<22} {:>6}  Applies To", "Code", "Name", "Weight");
             println!("{}", "─".repeat(70));
 
             for rule in RuleId::all() {
@@ -12736,7 +14434,10 @@ fn comply_scope_to_internal(scope: ComplyScopeArg) -> crate::comply::config::Sco
     }
 }
 
-fn comply_print_artifact_list(scope: crate::comply::config::Scope, artifacts: &[crate::comply::discovery::Artifact]) {
+fn comply_print_artifact_list(
+    scope: crate::comply::config::Scope,
+    artifacts: &[crate::comply::discovery::Artifact],
+) {
     println!("{:?} scope ({} artifacts):", scope, artifacts.len());
     for a in artifacts {
         println!("  {} [{:?}]", a.display_name(), a.kind);
@@ -12765,7 +14466,10 @@ fn corpus_load_last_run() -> Option<crate::corpus::runner::CorpusScore> {
 /// Classify a B2-only failure (B1 passes but B2 fails).
 fn classify_b2_only(expected: &str, actual: &str) -> (String, String) {
     let actual_lines: Vec<&str> = actual.lines().map(str::trim).collect();
-    let matching: Vec<&&str> = actual_lines.iter().filter(|l| l.contains(expected)).collect();
+    let matching: Vec<&&str> = actual_lines
+        .iter()
+        .filter(|l| l.contains(expected))
+        .collect();
 
     let category = if matching.is_empty() {
         "multiline_mismatch"
@@ -12802,21 +14506,34 @@ fn classify_b1b2(expected: &str, actual: &str) -> String {
         return "echo_missing".to_string();
     }
 
-    let best = actual_lines.iter()
+    let best = actual_lines
+        .iter()
         .filter(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("set "))
         .min_by_key(|l| {
-            let common = expected.chars().zip(l.chars()).take_while(|(a, b)| a == b).count();
+            let common = expected
+                .chars()
+                .zip(l.chars())
+                .take_while(|(a, b)| a == b)
+                .count();
             expected.len().saturating_sub(common)
         });
 
     match best {
         Some(closest) => {
-            let prefix_len = expected.chars().zip(closest.chars())
-                .take_while(|(a, b)| a == b).count();
-            if prefix_len > expected.len() / 2 { "partial_match" } else { "diverged" }
+            let prefix_len = expected
+                .chars()
+                .zip(closest.chars())
+                .take_while(|(a, b)| a == b)
+                .count();
+            if prefix_len > expected.len() / 2 {
+                "partial_match"
+            } else {
+                "diverged"
+            }
         }
         None => "no_output",
-    }.to_string()
+    }
+    .to_string()
 }
 
 /// Print a categorized group of failures.
@@ -12826,8 +14543,14 @@ fn print_b2_category(cat: &str, items: &[(String, String, String)], limit: usize
     println!("  {CYAN}{cat}{RESET}: {} entries", items.len());
     for (id, expected, actual_line) in items.iter().take(show) {
         println!("    {DIM}{id}{RESET}");
-        println!("      expected: {RED}{}{RESET}", truncate_str(expected, 100));
-        println!("      actual:   {GREEN}{}{RESET}", truncate_str(actual_line, 100));
+        println!(
+            "      expected: {RED}{}{RESET}",
+            truncate_str(expected, 100)
+        );
+        println!(
+            "      actual:   {GREEN}{}{RESET}",
+            truncate_str(actual_line, 100)
+        );
     }
     if items.len() > show {
         println!("    {DIM}... +{} more{RESET}", items.len() - show);
@@ -12851,28 +14574,49 @@ fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize) -> Result
     let mut b1b2_count = 0usize;
 
     for r in &score.results {
-        if !r.transpiled || r.output_exact { continue; }
-        let expected = r.expected_output.as_deref().unwrap_or("").trim().to_string();
+        if !r.transpiled || r.output_exact {
+            continue;
+        }
+        let expected = r
+            .expected_output
+            .as_deref()
+            .unwrap_or("")
+            .trim()
+            .to_string();
         let actual = r.actual_output.as_deref().unwrap_or("");
 
         if r.output_contains {
             b2_only_count += 1;
             let (cat, best) = classify_b2_only(&expected, actual);
-            b2_only_cats.entry(cat).or_default().push((r.id.clone(), expected, best));
+            b2_only_cats
+                .entry(cat)
+                .or_default()
+                .push((r.id.clone(), expected, best));
         } else {
             b1b2_count += 1;
             let cat = classify_b1b2(&expected, actual);
-            let closest = actual.lines().map(str::trim)
+            let closest = actual
+                .lines()
+                .map(str::trim)
                 .find(|l| !l.is_empty() && !l.starts_with('#') && !l.starts_with("set "))
-                .unwrap_or("").to_string();
-            b1b2_cats.entry(cat).or_default().push((r.id.clone(), expected, closest));
+                .unwrap_or("")
+                .to_string();
+            b1b2_cats
+                .entry(cat)
+                .or_default()
+                .push((r.id.clone(), expected, closest));
         }
     }
 
     println!("{WHITE}B2 Exact Match Diagnosis{RESET} {DIM}(from cache){RESET}");
     println!("{DIM}────────────────────────────────────────{RESET}");
-    println!("Total B2 failures:       {RED}{}{RESET}", b2_only_count + b1b2_count);
-    println!("  B2-only (B1 passes):   {YELLOW}{b2_only_count}{RESET}  <- update expected_contains");
+    println!(
+        "Total B2 failures:       {RED}{}{RESET}",
+        b2_only_count + b1b2_count
+    );
+    println!(
+        "  B2-only (B1 passes):   {YELLOW}{b2_only_count}{RESET}  <- update expected_contains"
+    );
     println!("  B1+B2 (neither match): {RED}{b1b2_count}{RESET}  <- transpiler diverged");
     println!();
 
@@ -12898,7 +14642,9 @@ fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize) -> Result
 
     println!("{WHITE}Action Items:{RESET}");
     if b2_only_count > 0 {
-        println!("  1. B2-only ({b2_only_count} entries): Update expected_contains to full output line");
+        println!(
+            "  1. B2-only ({b2_only_count} entries): Update expected_contains to full output line"
+        );
         println!("     Run: bashrs corpus fix-b2 > b2_fixes.json");
     }
     if b1b2_count > 0 {
@@ -12922,11 +14668,15 @@ fn corpus_fix_b2(apply: bool) -> Result<()> {
     if apply {
         corpus_apply_b2_fixes(&fixes)?;
     } else {
-        let json_fixes: Vec<serde_json::Value> = fixes.iter().map(|(id, old, new_val)| {
-            serde_json::json!({"id": id, "old": old, "new": new_val})
-        }).collect();
-        println!("{}", serde_json::to_string_pretty(&json_fixes)
-            .map_err(|e| Error::Internal(format!("JSON: {e}")))?);
+        let json_fixes: Vec<serde_json::Value> = fixes
+            .iter()
+            .map(|(id, old, new_val)| serde_json::json!({"id": id, "old": old, "new": new_val}))
+            .collect();
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&json_fixes)
+                .map_err(|e| Error::Internal(format!("JSON: {e}")))?
+        );
     }
 
     Ok(())
@@ -12937,11 +14687,17 @@ fn collect_b2_fixes(score: &crate::corpus::runner::CorpusScore) -> Vec<(String, 
     let mut fixes = Vec::new();
 
     for r in &score.results {
-        if !r.transpiled || r.output_exact { continue; }
+        if !r.transpiled || r.output_exact {
+            continue;
+        }
         let expected = r.expected_output.as_deref().unwrap_or("").trim();
-        if expected.is_empty() { continue; }
+        if expected.is_empty() {
+            continue;
+        }
         let actual = r.actual_output.as_deref().unwrap_or("");
-        if actual.trim().is_empty() { continue; }
+        if actual.trim().is_empty() {
+            continue;
+        }
 
         if let Some(new_expected) = find_best_b2_replacement(expected, actual, &r.id) {
             if new_expected != expected {
@@ -12964,7 +14720,9 @@ fn find_best_b2_replacement(expected: &str, actual: &str, id: &str) -> Option<St
 
     // Strategy 2: B1+B2 diverged — find best matching line from main body
     let meaningful = extract_main_body(actual, id);
-    if meaningful.is_empty() { return None; }
+    if meaningful.is_empty() {
+        return None;
+    }
 
     find_best_token_match(expected, &meaningful)
 }
@@ -12979,7 +14737,8 @@ fn extract_main_body(actual: &str, id: &str) -> Vec<String> {
 
 /// Extract all non-empty, non-comment lines (for Dockerfile/Makefile).
 fn extract_noncomment_lines(actual: &str) -> Vec<String> {
-    actual.lines()
+    actual
+        .lines()
         .map(str::trim)
         .filter(|s| !s.is_empty() && !s.starts_with('#'))
         .map(String::from)
@@ -13000,14 +14759,20 @@ fn is_bash_preamble(s: &str) -> bool {
 /// Extract lines from inside main() in a transpiled bash script.
 /// State for extracting the main() body from transpiled bash.
 #[derive(PartialEq)]
-enum BashBodyState { Before, InFuncDef, InMain }
+enum BashBodyState {
+    Before,
+    InFuncDef,
+    InMain,
+}
 
 fn extract_bash_main_body(actual: &str) -> Vec<String> {
     let mut meaningful = Vec::new();
     let mut state = BashBodyState::Before;
     for line in actual.lines() {
         let s = line.trim();
-        if is_bash_preamble(s) { continue; }
+        if is_bash_preamble(s) {
+            continue;
+        }
         state = advance_bash_body_state(s, state, &mut meaningful);
     }
     meaningful
@@ -13016,7 +14781,11 @@ fn extract_bash_main_body(actual: &str) -> Vec<String> {
 fn advance_bash_body_state(s: &str, state: BashBodyState, out: &mut Vec<String>) -> BashBodyState {
     match state {
         BashBodyState::InFuncDef => {
-            if s == "}" { BashBodyState::Before } else { BashBodyState::InFuncDef }
+            if s == "}" {
+                BashBodyState::Before
+            } else {
+                BashBodyState::InFuncDef
+            }
         }
         BashBodyState::Before => {
             if s.starts_with("rash_println()") || s.starts_with("rash_eprintln()") {
@@ -13028,8 +14797,12 @@ fn advance_bash_body_state(s: &str, state: BashBodyState, out: &mut Vec<String>)
             }
         }
         BashBodyState::InMain => {
-            if s == "}" { BashBodyState::Before }
-            else { out.push(s.to_string()); BashBodyState::InMain }
+            if s == "}" {
+                BashBodyState::Before
+            } else {
+                out.push(s.to_string());
+                BashBodyState::InMain
+            }
         }
     }
 }
@@ -13061,7 +14834,8 @@ fn find_best_token_match(expected: &str, lines: &[String]) -> Option<String> {
         return best_line;
     }
 
-    lines.iter()
+    lines
+        .iter()
         .find(|l| l.contains('=') || l.contains("rash_println") || l.starts_with("for "))
         .or_else(|| lines.first())
         .cloned()
@@ -13072,7 +14846,9 @@ fn find_best_token_match(expected: &str, lines: &[String]) -> Option<String> {
 fn corpus_apply_b2_fixes(fixes: &[(String, String, String)]) -> Result<()> {
     let registry_path = std::path::Path::new("rash/src/corpus/registry.rs");
     if !registry_path.exists() {
-        return Err(Error::Validation("registry.rs not found (run from project root)".to_string()));
+        return Err(Error::Validation(
+            "registry.rs not found (run from project root)".to_string(),
+        ));
     }
 
     let mut content = std::fs::read_to_string(registry_path)
@@ -13088,14 +14864,23 @@ fn corpus_apply_b2_fixes(fixes: &[(String, String, String)]) -> Result<()> {
         let id_pattern = format!("\"{}\"", id);
         let id_pos = match content.find(&id_pattern) {
             Some(p) => p,
-            None => { skipped += 1; continue; }
+            None => {
+                skipped += 1;
+                continue;
+            }
         };
 
         match find_last_string_in_entry(&content, id_pos) {
             Some((start, end)) => {
-                edits.push((start, end - start, format_rust_string_for_registry(new_expected)));
+                edits.push((
+                    start,
+                    end - start,
+                    format_rust_string_for_registry(new_expected),
+                ));
             }
-            None => { skipped += 1; }
+            None => {
+                skipped += 1;
+            }
         }
     }
 
@@ -13133,10 +14918,18 @@ fn find_last_string_in_entry(content: &str, id_pos: usize) -> Option<(usize, usi
 /// Returns (start, end) offsets within the byte slice, including string delimiters.
 /// State for scanning Rust string literals in source code.
 #[derive(PartialEq)]
-enum RustScanState { Normal, InStr, InRaw }
+enum RustScanState {
+    Normal,
+    InStr,
+    InRaw,
+}
 
 /// Advance result for the Rust source scanner.
-enum ScanAdvance { Step1, Skip(usize), Done }
+enum ScanAdvance {
+    Step1,
+    Skip(usize),
+    Done,
+}
 
 fn scan_last_string_before_close_paren(bytes: &[u8], start: usize) -> Option<(usize, usize)> {
     let mut depth = 0i32;
@@ -13164,8 +14957,12 @@ fn scan_last_string_before_close_paren(bytes: &[u8], start: usize) -> Option<(us
 }
 
 fn advance_scan(
-    bytes: &[u8], i: usize, state: &RustScanState,
-    depth: &mut i32, str_start: &mut usize, last_str: &mut Option<(usize, usize)>,
+    bytes: &[u8],
+    i: usize,
+    state: &RustScanState,
+    depth: &mut i32,
+    str_start: &mut usize,
+    last_str: &mut Option<(usize, usize)>,
 ) -> ScanAdvance {
     match state {
         RustScanState::InRaw => advance_in_raw(bytes, i, *str_start, last_str),
@@ -13174,7 +14971,12 @@ fn advance_scan(
     }
 }
 
-fn advance_in_raw(bytes: &[u8], i: usize, str_start: usize, last_str: &mut Option<(usize, usize)>) -> ScanAdvance {
+fn advance_in_raw(
+    bytes: &[u8],
+    i: usize,
+    str_start: usize,
+    last_str: &mut Option<(usize, usize)>,
+) -> ScanAdvance {
     if i + 1 < bytes.len() && bytes[i] == b'"' && bytes[i + 1] == b'#' {
         *last_str = Some((str_start, i + 2));
         ScanAdvance::Skip(2)
@@ -13183,9 +14985,18 @@ fn advance_in_raw(bytes: &[u8], i: usize, str_start: usize, last_str: &mut Optio
     }
 }
 
-fn advance_in_str(bytes: &[u8], i: usize, str_start: usize, last_str: &mut Option<(usize, usize)>) -> ScanAdvance {
-    if bytes[i] == b'\\' { return ScanAdvance::Skip(2); }
-    if bytes[i] == b'"' { *last_str = Some((str_start, i + 1)); }
+fn advance_in_str(
+    bytes: &[u8],
+    i: usize,
+    str_start: usize,
+    last_str: &mut Option<(usize, usize)>,
+) -> ScanAdvance {
+    if bytes[i] == b'\\' {
+        return ScanAdvance::Skip(2);
+    }
+    if bytes[i] == b'"' {
+        *last_str = Some((str_start, i + 1));
+    }
     ScanAdvance::Step1
 }
 
@@ -13195,9 +15006,18 @@ fn advance_normal(bytes: &[u8], i: usize, depth: &mut i32, str_start: &mut usize
         return ScanAdvance::Skip(3);
     }
     match bytes[i] {
-        b'"' => { *str_start = i; }
-        b'(' => { *depth += 1; }
-        b')' => { *depth -= 1; if *depth == 0 { return ScanAdvance::Done; } }
+        b'"' => {
+            *str_start = i;
+        }
+        b'(' => {
+            *depth += 1;
+        }
+        b')' => {
+            *depth -= 1;
+            if *depth == 0 {
+                return ScanAdvance::Done;
+            }
+        }
         _ => {}
     }
     ScanAdvance::Step1
@@ -13220,7 +15040,11 @@ fn next_scan_state(current: &RustScanState, bytes: &[u8], i: usize) -> RustScanS
             }
         }
         RustScanState::Normal => {
-            if i + 2 < bytes.len() && bytes[i] == b'r' && bytes[i + 1] == b'#' && bytes[i + 2] == b'"' {
+            if i + 2 < bytes.len()
+                && bytes[i] == b'r'
+                && bytes[i + 1] == b'#'
+                && bytes[i + 2] == b'"'
+            {
                 RustScanState::InRaw
             } else if bytes[i] == b'"' {
                 RustScanState::InStr
@@ -13490,12 +15314,16 @@ fn print_human_test_results(report: &crate::bash_quality::testing::TestReport, d
         match result {
             TestResult::Pass => {
                 println!("\u{2713} {}", test_name);
-                if detailed { print_test_detail(report, test_name, true); }
+                if detailed {
+                    print_test_detail(report, test_name, true);
+                }
             }
             TestResult::Fail(msg) => {
                 println!("\u{2717} {}", test_name);
                 println!("  Error: {}", msg);
-                if detailed { print_test_detail(report, test_name, false); }
+                if detailed {
+                    print_test_detail(report, test_name, false);
+                }
             }
             TestResult::Skip(reason) => {
                 println!("\u{2298} {} (skipped: {})", test_name, reason);
@@ -13515,11 +15343,19 @@ fn print_test_detail(
         Some(t) => t,
         None => return,
     };
-    if let Some(desc) = &test.description { println!("  Description: {}", desc); }
+    if let Some(desc) = &test.description {
+        println!("  Description: {}", desc);
+    }
     if full {
-        if let Some(given) = &test.given { println!("  Given: {}", given); }
-        if let Some(when) = &test.when { println!("  When: {}", when); }
-        if let Some(then) = &test.then { println!("  Then: {}", then); }
+        if let Some(given) = &test.given {
+            println!("  Given: {}", given);
+        }
+        if let Some(when) = &test.when {
+            println!("  When: {}", when);
+        }
+        if let Some(then) = &test.then {
+            println!("  Then: {}", then);
+        }
     }
 }
 
@@ -14038,9 +15874,13 @@ fn print_human_score_results(score: &crate::bash_quality::scoring::QualityScore,
         "A+" => println!("{GREEN}✓ Excellent! Near-perfect code quality.{RESET}"),
         "A" => println!("{GREEN}✓ Great! Very good code quality.{RESET}"),
         "B+" | "B" => println!("{GREEN}✓ Good code quality with room for improvement.{RESET}"),
-        "C+" | "C" => println!("{YELLOW}⚠ Average code quality. Consider addressing suggestions.{RESET}"),
+        "C+" | "C" => {
+            println!("{YELLOW}⚠ Average code quality. Consider addressing suggestions.{RESET}")
+        }
         "D" => println!("{RED}⚠ Below average. Multiple improvements needed.{RESET}"),
-        "F" => println!("{BRIGHT_RED}✗ Poor code quality. Significant improvements required.{RESET}"),
+        "F" => {
+            println!("{BRIGHT_RED}✗ Poor code quality. Significant improvements required.{RESET}")
+        }
         _ => {}
     }
 }
@@ -14190,10 +16030,16 @@ fn audit_command(
 
     // Lint check
     let lint_result = lint_shell(&source);
-    results.lint_errors = lint_result.diagnostics.iter()
-        .filter(|d| matches!(d.severity, Severity::Error)).count();
-    results.lint_warnings = lint_result.diagnostics.iter()
-        .filter(|d| matches!(d.severity, Severity::Warning)).count();
+    results.lint_errors = lint_result
+        .diagnostics
+        .iter()
+        .filter(|d| matches!(d.severity, Severity::Error))
+        .count();
+    results.lint_warnings = lint_result
+        .diagnostics
+        .iter()
+        .filter(|d| matches!(d.severity, Severity::Warning))
+        .count();
 
     audit_check_lint(&mut results, strict);
     audit_run_tests(&source, &mut results);
@@ -14207,7 +16053,8 @@ fn audit_command(
     }
 
     if !results.overall_pass {
-        let reason = results.failure_reason
+        let reason = results
+            .failure_reason
             .unwrap_or_else(|| "Quality audit failed".to_string());
         return Err(Error::Internal(reason));
     }
@@ -14222,7 +16069,10 @@ fn audit_check_lint(results: &mut AuditResults, strict: bool) {
     }
     if strict && results.lint_warnings > 0 {
         results.overall_pass = false;
-        results.failure_reason = Some(format!("Strict mode: {} warnings found", results.lint_warnings));
+        results.failure_reason = Some(format!(
+            "Strict mode: {} warnings found",
+            results.lint_warnings
+        ));
     }
 }
 
@@ -14239,14 +16089,23 @@ fn audit_run_tests(source: &str, results: &mut AuditResults) {
     };
 
     results.test_total = test_report.results.len();
-    results.test_passed = test_report.results.iter()
-        .filter(|(_, result)| matches!(result, TestResult::Pass)).count();
-    results.test_failed = test_report.results.iter()
-        .filter(|(_, result)| matches!(result, TestResult::Fail(_))).count();
+    results.test_passed = test_report
+        .results
+        .iter()
+        .filter(|(_, result)| matches!(result, TestResult::Pass))
+        .count();
+    results.test_failed = test_report
+        .results
+        .iter()
+        .filter(|(_, result)| matches!(result, TestResult::Fail(_)))
+        .count();
 
     if results.test_failed > 0 {
         results.overall_pass = false;
-        results.failure_reason = Some(format!("{}/{} tests failed", results.test_failed, results.test_total));
+        results.failure_reason = Some(format!(
+            "{}/{} tests failed",
+            results.test_failed, results.test_total
+        ));
     }
 }
 
@@ -14311,7 +16170,10 @@ fn print_human_audit_results(results: &AuditResults, detailed: bool, input: &Pat
             results.lint_errors, results.lint_warnings
         );
     } else {
-        println!("{YELLOW}⚠{RESET} Lint:     {YELLOW}{} warnings{RESET}", results.lint_warnings);
+        println!(
+            "{YELLOW}⚠{RESET} Lint:     {YELLOW}{} warnings{RESET}",
+            results.lint_warnings
+        );
     }
 
     // Test
@@ -14334,7 +16196,10 @@ fn print_human_audit_results(results: &AuditResults, detailed: bool, input: &Pat
     // Score
     if let Some(score) = &results.score {
         let gc = grade_color(&score.grade);
-        println!("{GREEN}✓{RESET} Score:    {gc}{}{RESET} ({WHITE}{:.1}/10.0{RESET})", score.grade, score.score);
+        println!(
+            "{GREEN}✓{RESET} Score:    {gc}{}{RESET} ({WHITE}{:.1}/10.0{RESET})",
+            score.grade, score.score
+        );
 
         if detailed {
             println!();
@@ -14564,7 +16429,10 @@ fn print_terminal_coverage(
     use crate::cli::color::*;
 
     println!();
-    println!("{BOLD}Coverage Report:{RESET} {CYAN}{}{RESET}", input.display());
+    println!(
+        "{BOLD}Coverage Report:{RESET} {CYAN}{}{RESET}",
+        input.display()
+    );
     println!();
 
     let line_pct = coverage.line_coverage_percent();
@@ -14574,7 +16442,11 @@ fn print_terminal_coverage(
     let lc = score_color(line_pct);
     let fc = score_color(func_pct);
     let line_bar = progress_bar(coverage.covered_lines.len(), coverage.total_lines, 16);
-    let func_bar = progress_bar(coverage.covered_functions.len(), coverage.all_functions.len(), 16);
+    let func_bar = progress_bar(
+        coverage.covered_functions.len(),
+        coverage.all_functions.len(),
+        16,
+    );
 
     println!(
         "Lines:     {lc}{}/{}{RESET}  ({lc}{:.1}%{RESET})  {line_bar}",
@@ -14604,7 +16476,10 @@ fn print_terminal_coverage(
                     .join(", ")
             );
         } else {
-            println!("{YELLOW}Uncovered Lines:{RESET} {} lines", uncovered_lines.len());
+            println!(
+                "{YELLOW}Uncovered Lines:{RESET} {} lines",
+                uncovered_lines.len()
+            );
         }
         println!();
     }
@@ -14617,7 +16492,10 @@ fn print_terminal_coverage(
                 println!("  {DIM}-{RESET} {}", func);
             }
         } else {
-            println!("{YELLOW}Uncovered Functions:{RESET} {}", uncovered_funcs.len());
+            println!(
+                "{YELLOW}Uncovered Functions:{RESET} {}",
+                uncovered_funcs.len()
+            );
         }
         println!();
     }
@@ -14809,9 +16687,8 @@ fn format_read_and_format(input_path: &Path) -> Result<(String, String)> {
     let config = format_load_config(input_path);
     let mut formatter = Formatter::with_config(config);
 
-    let source = fs::read_to_string(input_path).map_err(|e| {
-        Error::Internal(format!("Failed to read {}: {}", input_path.display(), e))
-    })?;
+    let source = fs::read_to_string(input_path)
+        .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input_path.display(), e)))?;
     let formatted = formatter.format_source(&source).map_err(|e| {
         Error::Internal(format!("Failed to format {}: {}", input_path.display(), e))
     })?;
@@ -14860,7 +16737,11 @@ fn format_apply_file(
         fs::write(out_path, formatted).map_err(|e| {
             Error::Internal(format!("Failed to write {}: {}", out_path.display(), e))
         })?;
-        println!("✓ Formatted {} -> {}", input_path.display(), out_path.display());
+        println!(
+            "✓ Formatted {} -> {}",
+            input_path.display(),
+            out_path.display()
+        );
     } else {
         fs::write(input_path, formatted).map_err(|e| {
             Error::Internal(format!("Failed to write {}: {}", input_path.display(), e))
@@ -14895,11 +16776,18 @@ fn print_human_dockerfile_score_results(
         println!("{DIM}─────────────────{RESET}");
         let dim_line = |name: &str, val: f64, weight: &str| {
             let sc = score_color(val * 10.0);
-            println!("{:<21} {sc}{:.1}/10.0{RESET}  {DIM}({weight}){RESET}", name, val);
+            println!(
+                "{:<21} {sc}{:.1}/10.0{RESET}  {DIM}({weight}){RESET}",
+                name, val
+            );
         };
         dim_line("Safety:", score.safety, "30% weight");
         dim_line("Complexity:", score.complexity, "25% weight");
-        dim_line("Layer Optimization:", score.layer_optimization, "20% weight");
+        dim_line(
+            "Layer Optimization:",
+            score.layer_optimization,
+            "20% weight",
+        );
         dim_line("Determinism:", score.determinism, "15% weight");
         dim_line("Security:", score.security, "10% weight");
         println!();

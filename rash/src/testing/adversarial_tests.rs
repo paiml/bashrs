@@ -526,13 +526,7 @@ fn test_semicolon_in_filename_is_safe() {
 fn test_validation_catches_known_patterns() {
     // Test that our validation catches known-bad patterns
     // Note: bare "; " is NOT dangerous inside double-quoted shell strings
-    let patterns = vec![
-        "| cat",
-        "$(curl",
-        "`wget",
-        "&& malicious",
-        "|| evil",
-    ];
+    let patterns = vec!["| cat", "$(curl", "`wget", "&& malicious", "|| evil"];
 
     for pattern in patterns {
         let source = format!(

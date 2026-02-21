@@ -307,11 +307,13 @@ impl TypeChecker {
                 // Collect pending param/return annotations into a signature
                 let sig = self.collect_function_sig();
                 if sig.is_some() {
-                    self.ctx
-                        .set_function_sig(name, sig.as_ref().cloned().unwrap_or(FunctionSig {
+                    self.ctx.set_function_sig(
+                        name,
+                        sig.as_ref().cloned().unwrap_or(FunctionSig {
                             params: Vec::new(),
                             return_type: None,
-                        }));
+                        }),
+                    );
                 }
 
                 // Enter function scope
@@ -357,8 +359,12 @@ impl TypeChecker {
                 }
             }
 
-            BashStmt::While { condition, body, .. }
-            | BashStmt::Until { condition, body, .. } => {
+            BashStmt::While {
+                condition, body, ..
+            }
+            | BashStmt::Until {
+                condition, body, ..
+            } => {
                 self.infer_expr(condition);
                 for stmt in body {
                     self.check_statement(stmt);
@@ -428,10 +434,7 @@ impl TypeChecker {
         match expr {
             BashExpr::Literal(s) => {
                 // Try to detect integer literals
-                if s.chars().all(|c| c.is_ascii_digit() || c == '-')
-                    && !s.is_empty()
-                    && s != "-"
-                {
+                if s.chars().all(|c| c.is_ascii_digit() || c == '-') && !s.is_empty() && s != "-" {
                     Some(ShellType::Integer)
                 } else if s == "true" || s == "false" {
                     Some(ShellType::Boolean)
@@ -618,10 +621,12 @@ impl TypeChecker {
                 match s.as_str() {
                     "-i" => current_type = Some(ShellType::Integer),
                     "-a" => current_type = Some(ShellType::Array(Box::new(ShellType::String))),
-                    "-A" => current_type = Some(ShellType::AssocArray {
-                        key: Box::new(ShellType::String),
-                        value: Box::new(ShellType::String),
-                    }),
+                    "-A" => {
+                        current_type = Some(ShellType::AssocArray {
+                            key: Box::new(ShellType::String),
+                            value: Box::new(ShellType::String),
+                        })
+                    }
                     _ => {
                         // Check for name=value patterns
                         if let Some(eq_pos) = s.find('=') {
@@ -731,10 +736,7 @@ pub fn parse_type_name(name: &str) -> Option<ShellType> {
 fn is_gradual_compatible(expected: &ShellType, actual: &ShellType) -> bool {
     // Integer is compatible with String context (integers are valid strings)
     // But NOT the reverse — String→Integer should warn (not every string is a number)
-    matches!(
-        (expected, actual),
-        (ShellType::String, ShellType::Integer)
-    )
+    matches!((expected, actual), (ShellType::String, ShellType::Integer))
 }
 
 /// Generate a POSIX sh runtime guard for an integer-typed variable
@@ -770,7 +772,11 @@ fi"#,
 
 /// Generate a runtime guard for a typed variable.
 /// `hint` is the original annotation name (e.g., "path") to distinguish subtypes.
-pub fn generate_guard_for_type(var_name: &str, ty: &ShellType, hint: Option<&str>) -> Option<String> {
+pub fn generate_guard_for_type(
+    var_name: &str,
+    ty: &ShellType,
+    hint: Option<&str>,
+) -> Option<String> {
     match ty {
         ShellType::Integer => Some(generate_integer_guard(var_name)),
         ShellType::String => {

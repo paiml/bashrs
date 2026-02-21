@@ -14,7 +14,6 @@
                      // Note: These tests are for Rust→Shell transpilation which is PLANNED (v3.0+)
                      // They have race conditions when run in parallel. Run with --test-threads=1 if needed.
 
-use assert_cmd::Command;
 use std::fs;
 use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -261,22 +260,20 @@ fn test_t013_byte_string() {
 fn test_t014_constant() {
     // PROG: const X: i32 = 1; - should produce readonly
     let (ok, output) = transpile_prog("const X: i32 = 1; fn main() {}");
-    if ok {
-        if !output.contains("readonly") && !output.contains("X=") {
+    if ok
+        && !output.contains("readonly") && !output.contains("X=") {
             println!("T014: WARNING - const should produce readonly or assignment");
         }
-    }
 }
 
 #[test]
 fn test_t015_static() {
     // PROG: static X: i32 = 1; - should produce global
     let (ok, output) = transpile_prog("static X: i32 = 1; fn main() {}");
-    if ok {
-        if !output.contains("X=") {
+    if ok
+        && !output.contains("X=") {
             println!("T015: WARNING - static should produce global variable");
         }
-    }
 }
 
 // ============================================================================
@@ -377,22 +374,20 @@ fn test_t023_unary_minus() {
 fn test_t024_shift_left() {
     // STMT: let _ = 1 << 2; - should produce << in shell
     let (ok, output) = transpile_stmt("let _ = 1 << 2;");
-    if ok {
-        if !output.contains("<<") && !output.contains("4") {
+    if ok
+        && !output.contains("<<") && !output.contains("4") {
             println!("T024: WARNING - Shift left may not be supported");
         }
-    }
 }
 
 #[test]
 fn test_t025_shift_right() {
     // STMT: let _ = 8 >> 2; - should produce >> in shell
     let (ok, output) = transpile_stmt("let _ = 8 >> 2;");
-    if ok {
-        if !output.contains(">>") && !output.contains("2") {
+    if ok
+        && !output.contains(">>") && !output.contains("2") {
             println!("T025: WARNING - Shift right may not be supported");
         }
-    }
 }
 
 #[test]
@@ -447,44 +442,40 @@ fn test_t030_compound_add() {
 fn test_t031_compound_sub() {
     // STMT: let mut m = 1; m -= 1;
     let (ok, output) = transpile_stmt("let mut m = 5; m -= 1;");
-    if ok {
-        if !output.contains("m=") && !output.contains("((") {
+    if ok
+        && !output.contains("m=") && !output.contains("((") {
             println!("T031: WARNING - Compound sub may not be correct");
         }
-    }
 }
 
 #[test]
 fn test_t032_compound_mul() {
     // STMT: let mut m = 1; m *= 2;
     let (ok, output) = transpile_stmt("let mut m = 3; m *= 2;");
-    if ok {
-        if !output.contains("m=") && !output.contains("((") {
+    if ok
+        && !output.contains("m=") && !output.contains("((") {
             println!("T032: WARNING - Compound mul may not be correct");
         }
-    }
 }
 
 #[test]
 fn test_t033_compound_div() {
     // STMT: let mut m = 10; m /= 2;
     let (ok, output) = transpile_stmt("let mut m = 10; m /= 2;");
-    if ok {
-        if !output.contains("m=") && !output.contains("((") {
+    if ok
+        && !output.contains("m=") && !output.contains("((") {
             println!("T033: WARNING - Compound div may not be correct");
         }
-    }
 }
 
 #[test]
 fn test_t034_compound_mod() {
     // STMT: let mut m = 10; m %= 3;
     let (ok, output) = transpile_stmt("let mut m = 10; m %= 3;");
-    if ok {
-        if !output.contains("m=") && !output.contains("((") {
+    if ok
+        && !output.contains("m=") && !output.contains("((") {
             println!("T034: WARNING - Compound mod may not be correct");
         }
-    }
 }
 
 #[test]
@@ -519,11 +510,10 @@ fn test_t036_empty_if() {
 fn test_t039_if_else() {
     // STMT: if true { } else { } - should have else
     let (ok, output) = transpile_stmt("if true { } else { }");
-    if ok {
-        if !output.contains("else") {
+    if ok
+        && !output.contains("else") {
             println!("T039: WARNING - Missing else clause");
         }
-    }
 }
 
 #[test]
@@ -606,22 +596,20 @@ fn test_t044_reverse_range() {
 fn test_t045_break() {
     // STMT: loop { break; } - break statement
     let (ok, output) = transpile_stmt("loop { break; }");
-    if ok {
-        if !output.contains("break") {
+    if ok
+        && !output.contains("break") {
             println!("T045: WARNING - break should be preserved");
         }
-    }
 }
 
 #[test]
 fn test_t046_continue() {
     // STMT: loop { continue; } - continue statement
     let (ok, output) = transpile_stmt("let mut i = 0; while i < 5 { i += 1; continue; }");
-    if ok {
-        if !output.contains("continue") {
+    if ok
+        && !output.contains("continue") {
             println!("T046: WARNING - continue should be preserved");
         }
-    }
 }
 
 #[test]
@@ -689,11 +677,10 @@ fn test_t052_logical_or() {
 fn test_t053_logical_not() {
     // STMT: if !b { } - logical NOT
     let (ok, output) = transpile_stmt("let b = true; if !b { }");
-    if ok {
-        if !output.contains("!") && !output.contains("if") {
+    if ok
+        && !output.contains("!") && !output.contains("if") {
             println!("T053: WARNING - Logical NOT may not be correct");
         }
-    }
 }
 
 #[test]
@@ -870,12 +857,11 @@ fn test_t071_function_definition() {
     // PROG: fn foo() {} fn main() { foo(); } - KNOWN BUG TB-001
     let code = "fn foo() {} fn main() { foo(); }";
     let (ok, output) = transpile_prog(code);
-    if ok {
-        if !output.contains("foo()") {
+    if ok
+        && !output.contains("foo()") {
             println!("T071: KNOWN BUG TB-001 - User functions not transpiled");
             println!("      Output does not contain foo()");
         }
-    }
 }
 
 #[test]
@@ -883,11 +869,10 @@ fn test_t072_function_params() {
     // PROG: fn foo(x: i32) {} fn main() { foo(1); } - KNOWN BUG TB-002
     let code = "fn foo(x: i32) { let _ = x; } fn main() { foo(1); }";
     let (ok, output) = transpile_prog(code);
-    if ok {
-        if !output.contains("$1") && !output.contains("foo ") {
+    if ok
+        && !output.contains("$1") && !output.contains("foo ") {
             println!("T072: KNOWN BUG TB-002 - Function params not passed");
         }
-    }
 }
 
 #[test]
@@ -908,11 +893,10 @@ fn test_t078_multi_param() {
     // PROG: fn foo(x:i32, y:i32){} fn main(){foo(1,2);} - KNOWN BUG TB-002
     let code = "fn foo(x: i32, y: i32) { let _ = (x, y); } fn main() { foo(1, 2); }";
     let (ok, output) = transpile_prog(code);
-    if ok {
-        if !output.contains("$2") {
+    if ok
+        && !output.contains("$2") {
             println!("T078: KNOWN BUG TB-002 - Multiple params not handled");
         }
-    }
 }
 
 #[test]
@@ -920,11 +904,10 @@ fn test_t082_multiple_functions() {
     // PROG: fn main() {} fn foo() {} - KNOWN BUG TB-003
     let code = "fn main() {} fn foo() {}";
     let (ok, output) = transpile_prog(code);
-    if ok {
-        if !output.contains("foo()") {
+    if ok
+        && !output.contains("foo()") {
             println!("T082: KNOWN BUG TB-003 - Multiple functions fail");
         }
-    }
 }
 
 #[test]
@@ -933,11 +916,10 @@ fn test_t073_function_call() {
     // Note: Requires foo to be defined, using PROG instead
     let code = "fn foo(x: i32) { let _ = x; } fn main() { foo(1); }";
     let (ok, output) = transpile_prog(code);
-    if ok {
-        if !output.contains("foo") {
+    if ok
+        && !output.contains("foo") {
             println!("T073: WARNING - Function call missing");
         }
-    }
 }
 
 #[test]
@@ -945,11 +927,10 @@ fn test_t075_capture_return() {
     // STMT: let _ = foo(1); - capture return value
     let code = "fn foo(x: i32) -> i32 { x + 1 } fn main() { let r = foo(1); let _ = r; }";
     let (ok, output) = transpile_prog(code);
-    if ok {
-        if !output.contains("$(") && !output.contains("r=") {
+    if ok
+        && !output.contains("$(") && !output.contains("r=") {
             println!("T075: WARNING - Return capture may not work");
         }
-    }
 }
 
 #[test]
@@ -990,11 +971,10 @@ fn test_t080_recursion() {
     // PROG: fn f(n:i32){if n>0{f(n-1)}} - recursive function
     let code = "fn f(n: i32) { if n > 0 { f(n - 1); } } fn main() { f(5); }";
     let (ok, output) = transpile_prog(code);
-    if ok {
-        if !output.contains("f()") && !output.contains("f ") {
+    if ok
+        && !output.contains("f()") && !output.contains("f ") {
             println!("T080: WARNING - Recursion may not work");
         }
-    }
 }
 
 #[test]
@@ -1003,11 +983,10 @@ fn test_t081_attribute() {
     let code = "#[bashrs::main] fn main() {}";
     let (ok, output) = transpile_prog(code);
     // Attributes may or may not affect output
-    if ok {
-        if !output.contains("main") {
+    if ok
+        && !output.contains("main") {
             println!("T081: WARNING - main should still be generated");
         }
-    }
 }
 
 #[test]
@@ -1092,11 +1071,10 @@ fn test_t089_println_macro() {
 fn test_t090_eprintln_macro() {
     // STMT: eprintln!("{}", x); - should have >&2
     let (ok, output) = transpile_stmt(r#"eprintln!("{}", x);"#);
-    if ok {
-        if !output.contains(">&2") && !output.contains("1>&2") {
+    if ok
+        && !output.contains(">&2") && !output.contains("1>&2") {
             println!("T090: WARNING - eprintln! should redirect to stderr");
         }
-    }
 }
 
 // ============================================================================
@@ -1107,77 +1085,70 @@ fn test_t090_eprintln_macro() {
 fn test_t091_file_read() {
     // STMT: let _ = std::fs::read_to_string("f"); - file read
     let (ok, output) = transpile_stmt(r#"let _ = std::fs::read_to_string("f");"#);
-    if ok {
-        if !output.contains("cat") && !output.contains("<") {
+    if ok
+        && !output.contains("cat") && !output.contains("<") {
             println!("T091: WARNING - File read should produce cat or <");
         }
-    }
 }
 
 #[test]
 fn test_t092_file_write() {
     // STMT: std::fs::write("f", "x"); - file write
     let (ok, output) = transpile_stmt(r#"std::fs::write("f", "x");"#);
-    if ok {
-        if !output.contains(">") && !output.contains("echo") {
+    if ok
+        && !output.contains(">") && !output.contains("echo") {
             println!("T092: WARNING - File write should produce > redirect");
         }
-    }
 }
 
 #[test]
 fn test_t093_env_get() {
     // STMT: let _ = std::env::var("X"); - env get
     let (ok, output) = transpile_stmt(r#"let _ = std::env::var("X");"#);
-    if ok {
-        if !output.contains("$") && !output.contains("X") {
+    if ok
+        && !output.contains("$") && !output.contains("X") {
             println!("T093: WARNING - Env get should produce $X or similar");
         }
-    }
 }
 
 #[test]
 fn test_t094_env_set() {
     // STMT: std::env::set_var("X", "v"); - env set
     let (ok, output) = transpile_stmt(r#"std::env::set_var("X", "v");"#);
-    if ok {
-        if !output.contains("export") && !output.contains("X=") {
+    if ok
+        && !output.contains("export") && !output.contains("X=") {
             println!("T094: WARNING - Env set should produce export or X=");
         }
-    }
 }
 
 #[test]
 fn test_t095_process_exit() {
     // STMT: std::process::exit(0); - should produce exit
     let (ok, output) = transpile_stmt("std::process::exit(0);");
-    if ok {
-        if !output.contains("exit") {
+    if ok
+        && !output.contains("exit") {
             println!("T095: WARNING - exit() should produce shell exit");
         }
-    }
 }
 
 #[test]
 fn test_t096_remove_file() {
     // STMT: std::fs::remove_file("f"); - delete file
     let (ok, output) = transpile_stmt(r#"std::fs::remove_file("f");"#);
-    if ok {
-        if !output.contains("rm") {
+    if ok
+        && !output.contains("rm") {
             println!("T096: WARNING - remove_file should produce rm");
         }
-    }
 }
 
 #[test]
 fn test_t097_create_dir() {
     // STMT: std::fs::create_dir("d"); - mkdir
     let (ok, output) = transpile_stmt(r#"std::fs::create_dir("d");"#);
-    if ok {
-        if !output.contains("mkdir") {
+    if ok
+        && !output.contains("mkdir") {
             println!("T097: WARNING - create_dir should produce mkdir");
         }
-    }
 }
 
 #[test]
@@ -1196,77 +1167,70 @@ fn test_t098_path_new() {
 fn test_t099_sleep() {
     // STMT: std::thread::sleep(std::time::Duration::from_secs(1)); - sleep
     let (ok, output) = transpile_stmt("std::thread::sleep(std::time::Duration::from_secs(1));");
-    if ok {
-        if !output.contains("sleep") {
+    if ok
+        && !output.contains("sleep") {
             println!("T099: WARNING - sleep should produce shell sleep");
         }
-    }
 }
 
 #[test]
 fn test_t100_command() {
     // STMT: std::process::Command::new("ls"); - subprocess
     let (ok, output) = transpile_stmt(r#"let _ = std::process::Command::new("ls");"#);
-    if ok {
-        if !output.contains("ls") {
+    if ok
+        && !output.contains("ls") {
             println!("T100: WARNING - Command should produce shell command");
         }
-    }
 }
 
 #[test]
 fn test_t101_instant() {
     // STMT: std::time::Instant::now(); - timing
     let (ok, output) = transpile_stmt("let _ = std::time::Instant::now();");
-    if ok {
-        if !output.contains("date") && !output.contains("$(") {
+    if ok
+        && !output.contains("date") && !output.contains("$(") {
             println!("T101: WARNING - Instant::now should produce date +%s or similar");
         }
-    }
 }
 
 #[test]
 fn test_t102_stdin() {
     // STMT: std::io::stdin(); - stdin access
     let (ok, output) = transpile_stmt("let _ = std::io::stdin();");
-    if ok {
-        if !output.contains("read") && !output.contains("stdin") {
+    if ok
+        && !output.contains("read") && !output.contains("stdin") {
             println!("T102: WARNING - stdin should produce read or stdin reference");
         }
-    }
 }
 
 #[test]
 fn test_t103_stdout() {
     // STMT: std::io::stdout(); - stdout access
     let (ok, output) = transpile_stmt("let _ = std::io::stdout();");
-    if ok {
-        if !output.contains("stdout") && !output.contains("/dev/stdout") {
+    if ok
+        && !output.contains("stdout") && !output.contains("/dev/stdout") {
             println!("T103: INFO - stdout access may be implicit");
         }
-    }
 }
 
 #[test]
 fn test_t104_cli_args() {
     // STMT: std::env::args(); - CLI arguments
     let (ok, output) = transpile_stmt("let _ = std::env::args();");
-    if ok {
-        if !output.contains("$@") && !output.contains("$*") {
+    if ok
+        && !output.contains("$@") && !output.contains("$*") {
             println!("T104: WARNING - args() should produce $@ or $*");
         }
-    }
 }
 
 #[test]
 fn test_t105_current_dir() {
     // STMT: std::env::current_dir(); - CWD
     let (ok, output) = transpile_stmt("let _ = std::env::current_dir();");
-    if ok {
-        if !output.contains("pwd") && !output.contains("PWD") {
+    if ok
+        && !output.contains("pwd") && !output.contains("PWD") {
             println!("T105: WARNING - current_dir should produce pwd");
         }
-    }
 }
 
 // ============================================================================
@@ -1341,33 +1305,30 @@ fn test_t112_try_operator() {
 fn test_t113_panic() {
     // STMT: panic!("msg"); - panic
     let (ok, output) = transpile_stmt(r#"panic!("msg");"#);
-    if ok {
-        if !output.contains("exit") && !output.contains("1") {
+    if ok
+        && !output.contains("exit") && !output.contains("1") {
             println!("T113: WARNING - panic should produce exit 1");
         }
-    }
 }
 
 #[test]
 fn test_t114_assert() {
     // STMT: assert!(x == 10); - assert
     let (ok, output) = transpile_stmt("assert!(x == 10);");
-    if ok {
-        if !output.contains("if") && !output.contains("[") && !output.contains("exit") {
+    if ok
+        && !output.contains("if") && !output.contains("[") && !output.contains("exit") {
             println!("T114: WARNING - assert should produce condition check");
         }
-    }
 }
 
 #[test]
 fn test_t115_assert_eq() {
     // STMT: assert_eq!(x, 10); - assert_eq
     let (ok, output) = transpile_stmt("assert_eq!(x, 10);");
-    if ok {
-        if !output.contains("if") && !output.contains("[") && !output.contains("exit") {
+    if ok
+        && !output.contains("if") && !output.contains("[") && !output.contains("exit") {
             println!("T115: WARNING - assert_eq should produce equality check");
         }
-    }
 }
 
 #[test]
@@ -1392,22 +1353,20 @@ fn test_t117_vec_push() {
 fn test_t118_vec_len() {
     // STMT: let v = vec![1]; let _ = v.len(); - vec length
     let (ok, output) = transpile_stmt("let v = vec![1]; let _ = v.len();");
-    if ok {
-        if !output.contains("${#") && !output.contains("len") {
+    if ok
+        && !output.contains("${#") && !output.contains("len") {
             println!("T118: WARNING - vec.len() should produce ${{#v[@]}} or similar");
         }
-    }
 }
 
 #[test]
 fn test_t119_vec_index() {
     // STMT: let v = vec![1]; let _ = v[0]; - vec indexing
     let (ok, output) = transpile_stmt("let v = vec![1]; let _ = v[0];");
-    if ok {
-        if !output.contains("${v[0]}") && !output.contains("[0]") {
+    if ok
+        && !output.contains("${v[0]}") && !output.contains("[0]") {
             println!("T119: WARNING - v[0] should produce ${{v[0]}} or similar");
         }
-    }
 }
 
 #[test]

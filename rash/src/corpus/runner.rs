@@ -277,24 +277,90 @@ impl ConvergenceEntry {
             }
         };
         check("score", previous.score, self.score, "V2 score dropped");
-        check("passed", previous.passed as f64, self.passed as f64, "Total passed dropped");
-        check("bash_passed", previous.bash_passed as f64, self.bash_passed as f64, "Bash passed dropped");
-        check("makefile_passed", previous.makefile_passed as f64, self.makefile_passed as f64, "Makefile passed dropped");
-        check("dockerfile_passed", previous.dockerfile_passed as f64, self.dockerfile_passed as f64, "Dockerfile passed dropped");
-        check("bash_score", previous.bash_score, self.bash_score, "Bash score dropped");
-        check("makefile_score", previous.makefile_score, self.makefile_score, "Makefile score dropped");
-        check("dockerfile_score", previous.dockerfile_score, self.dockerfile_score, "Dockerfile score dropped");
-        check("lint_passed", previous.lint_passed as f64, self.lint_passed as f64, "Lint passed dropped");
+        check(
+            "passed",
+            previous.passed as f64,
+            self.passed as f64,
+            "Total passed dropped",
+        );
+        check(
+            "bash_passed",
+            previous.bash_passed as f64,
+            self.bash_passed as f64,
+            "Bash passed dropped",
+        );
+        check(
+            "makefile_passed",
+            previous.makefile_passed as f64,
+            self.makefile_passed as f64,
+            "Makefile passed dropped",
+        );
+        check(
+            "dockerfile_passed",
+            previous.dockerfile_passed as f64,
+            self.dockerfile_passed as f64,
+            "Dockerfile passed dropped",
+        );
+        check(
+            "bash_score",
+            previous.bash_score,
+            self.bash_score,
+            "Bash score dropped",
+        );
+        check(
+            "makefile_score",
+            previous.makefile_score,
+            self.makefile_score,
+            "Makefile score dropped",
+        );
+        check(
+            "dockerfile_score",
+            previous.dockerfile_score,
+            self.dockerfile_score,
+            "Dockerfile score dropped",
+        );
+        check(
+            "lint_passed",
+            previous.lint_passed as f64,
+            self.lint_passed as f64,
+            "Lint passed dropped",
+        );
         RegressionReport { regressions }
     }
 }
 
 /// Valid Dockerfile instruction prefixes (per Dockerfile reference).
 const DOCKERFILE_INSTRUCTIONS: &[&str] = &[
-    "FROM ", "RUN ", "CMD ", "LABEL ", "EXPOSE ", "ENV ", "ADD ", "COPY ", "ENTRYPOINT ",
-    "VOLUME ", "USER ", "WORKDIR ", "ARG ", "ONBUILD ", "STOPSIGNAL ", "HEALTHCHECK ", "SHELL ",
-    "FROM\t", "RUN\t", "CMD\t", "LABEL\t", "EXPOSE\t", "ENV\t", "ADD\t", "COPY\t",
-    "ENTRYPOINT\t", "VOLUME\t", "USER\t", "WORKDIR\t", "ARG\t",
+    "FROM ",
+    "RUN ",
+    "CMD ",
+    "LABEL ",
+    "EXPOSE ",
+    "ENV ",
+    "ADD ",
+    "COPY ",
+    "ENTRYPOINT ",
+    "VOLUME ",
+    "USER ",
+    "WORKDIR ",
+    "ARG ",
+    "ONBUILD ",
+    "STOPSIGNAL ",
+    "HEALTHCHECK ",
+    "SHELL ",
+    "FROM\t",
+    "RUN\t",
+    "CMD\t",
+    "LABEL\t",
+    "EXPOSE\t",
+    "ENV\t",
+    "ADD\t",
+    "COPY\t",
+    "ENTRYPOINT\t",
+    "VOLUME\t",
+    "USER\t",
+    "WORKDIR\t",
+    "ARG\t",
 ];
 
 /// Check exact match: whether expected output appears as exact trimmed lines in actual output.
@@ -312,9 +378,7 @@ fn check_exact_match(actual: &str, expected: &str) -> bool {
 
     if expected_lines.len() == 1 {
         // Single line: check if any actual line matches exactly
-        actual_lines
-            .iter()
-            .any(|line| *line == expected_lines[0])
+        actual_lines.iter().any(|line| *line == expected_lines[0])
     } else {
         // Multi-line: check for consecutive line sequence match
         actual_lines
@@ -337,15 +401,16 @@ fn classify_error(error_msg: &str) -> (Option<String>, Option<f32>) {
     {
         // Lightweight keyword classification without oracle dependency
         let msg = error_msg.to_lowercase();
-        let category = if msg.contains("parse") || msg.contains("syntax") || msg.contains("unexpected") {
-            "syntax_error"
-        } else if msg.contains("unsupported") || msg.contains("not implemented") {
-            "unsupported_construct"
-        } else if msg.contains("type") || msg.contains("mismatch") {
-            "type_error"
-        } else {
-            "unknown"
-        };
+        let category =
+            if msg.contains("parse") || msg.contains("syntax") || msg.contains("unexpected") {
+                "syntax_error"
+            } else if msg.contains("unsupported") || msg.contains("not implemented") {
+                "unsupported_construct"
+            } else if msg.contains("type") || msg.contains("mismatch") {
+                "type_error"
+            } else {
+                "unknown"
+            };
         (Some(category.to_string()), Some(0.5))
     }
 }
@@ -423,9 +488,9 @@ fn detect_test_exists(entry_id: &str) -> bool {
     let normalized_no_sep = entry_id.replace('-', "");
 
     // Check if any test name contains either normalized form
-    test_names.iter().any(|name| {
-        name.contains(&normalized_underscore) || name.contains(&normalized_no_sep)
-    })
+    test_names
+        .iter()
+        .any(|name| name.contains(&normalized_underscore) || name.contains(&normalized_no_sep))
 }
 
 /// Per-format LLVM coverage ratios, lazily loaded from LCOV data.
@@ -449,10 +514,7 @@ const LCOV_SEARCH_PATHS: &[&str] = &[
 /// Used to attribute LCOV line coverage to the correct format.
 fn format_file_patterns(format: CorpusFormat) -> &'static [&'static str] {
     match format {
-        CorpusFormat::Bash => &[
-            "emitter/posix",
-            "bash_transpiler/",
-        ],
+        CorpusFormat::Bash => &["emitter/posix", "bash_transpiler/"],
         CorpusFormat::Makefile => &["emitter/makefile"],
         CorpusFormat::Dockerfile => &["emitter/dockerfile"],
     }
@@ -475,7 +537,11 @@ fn load_format_coverage() -> HashMap<String, f64> {
     // Parse LCOV and compute per-format coverage
     let file_coverage = parse_lcov_file_coverage(&content);
 
-    for format in [CorpusFormat::Bash, CorpusFormat::Makefile, CorpusFormat::Dockerfile] {
+    for format in [
+        CorpusFormat::Bash,
+        CorpusFormat::Makefile,
+        CorpusFormat::Dockerfile,
+    ] {
         let patterns = format_file_patterns(format);
         let mut total_lines = 0u64;
         let mut hit_lines = 0u64;
@@ -595,8 +661,7 @@ impl CorpusRunner {
             return self.run_entry(entry);
         }
 
-        let transpile_result =
-            crate::transpile_with_trace(&entry.input, self.config.clone());
+        let transpile_result = crate::transpile_with_trace(&entry.input, self.config.clone());
 
         match transpile_result {
             Ok((output, trace)) => {
@@ -802,10 +867,9 @@ impl CorpusRunner {
         }
         let input = &entry.input;
         // Pattern: fn main() { <stmts> }
-        if let Some(body_start) =
-            input
-                .find("fn main()")
-                .and_then(|i| input[i..].find('{').map(|j| i + j + 1))
+        if let Some(body_start) = input
+            .find("fn main()")
+            .and_then(|i| input[i..].find('{').map(|j| i + j + 1))
         {
             if let Some(body_end) = input.rfind('}') {
                 if body_end <= body_start {
@@ -827,11 +891,7 @@ impl CorpusRunner {
                     let simplified_body = &body[..semi_pos];
                     // Need at least one remaining top-level statement
                     if simplified_body.contains(';') {
-                        let simplified = format!(
-                            "{}{}; }}",
-                            &input[..body_start],
-                            simplified_body
-                        );
+                        let simplified = format!("{}{}; }}", &input[..body_start], simplified_body);
                         return self.transpile_entry(&simplified, entry.format).is_ok();
                     }
                 }
@@ -1074,11 +1134,9 @@ impl CorpusRunner {
         // Parse JSON array of findings; fail only on "error" level
         match serde_json::from_str::<Vec<serde_json::Value>>(&stdout) {
             Ok(findings) => {
-                let has_errors = findings.iter().any(|f| {
-                    f.get("level")
-                        .and_then(|l| l.as_str())
-                        .map_or(false, |l| l == "error")
-                });
+                let has_errors = findings
+                    .iter()
+                    .any(|f| f.get("level").and_then(|l| l.as_str()) == Some("error"));
                 Some(!has_errors)
             }
             Err(_) => Some(true), // can't parse, trust internal
@@ -1149,8 +1207,8 @@ impl CorpusRunner {
         let tmp_str = tmp_path.to_string_lossy().to_string();
 
         // Write Makefile content
-        let write_ok = std::fs::File::create(&tmp_path)
-            .and_then(|mut f| f.write_all(output.as_bytes()));
+        let write_ok =
+            std::fs::File::create(&tmp_path).and_then(|mut f| f.write_all(output.as_bytes()));
         if write_ok.is_err() {
             return true; // can't write temp file, graceful pass
         }
@@ -1174,8 +1232,7 @@ impl CorpusRunner {
                 // "No rule to make target" means valid syntax but unresolvable
                 // prerequisites — acceptable for syntax validation.
                 let stderr = String::from_utf8_lossy(&r.stderr);
-                stderr.contains("No targets")
-                    || stderr.contains("No rule to make target")
+                stderr.contains("No targets") || stderr.contains("No rule to make target")
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => true, // make not installed
             Err(_) => true, // other error, graceful pass
@@ -1257,7 +1314,11 @@ impl CorpusRunner {
     ) -> Vec<FormatScore> {
         let mut scores = Vec::new();
 
-        for format in &[CorpusFormat::Bash, CorpusFormat::Makefile, CorpusFormat::Dockerfile] {
+        for format in &[
+            CorpusFormat::Bash,
+            CorpusFormat::Makefile,
+            CorpusFormat::Dockerfile,
+        ] {
             // Map results to format by matching entry IDs
             let format_results: Vec<&CorpusResult> = results
                 .iter()
@@ -1377,9 +1438,7 @@ impl CorpusRunner {
 
     /// Load convergence entries from a JSONL log file.
     /// Returns empty vec if file does not exist.
-    pub fn load_convergence_log(
-        path: &std::path::Path,
-    ) -> std::io::Result<Vec<ConvergenceEntry>> {
+    pub fn load_convergence_log(path: &std::path::Path) -> std::io::Result<Vec<ConvergenceEntry>> {
         let content = match std::fs::read_to_string(path) {
             Ok(c) => c,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
@@ -1682,8 +1741,8 @@ mod tests {
             id: "T-009".to_string(),
             transpiled: true,
             output_contains: false,
-            output_exact: true,  // gated by L1
-            output_behavioral: true,  // gated by L1
+            output_exact: true,      // gated by L1
+            output_behavioral: true, // gated by L1
             schema_valid: true,
             has_test: true,
             coverage_ratio: 1.0,
@@ -2435,7 +2494,11 @@ end_of_record
         assert!(report.has_regressions());
         // makefile_passed (200→198) and makefile_score (100→98) regressed
         assert_eq!(report.regressions.len(), 2);
-        let dims: Vec<&str> = report.regressions.iter().map(|r| r.dimension.as_str()).collect();
+        let dims: Vec<&str> = report
+            .regressions
+            .iter()
+            .map(|r| r.dimension.as_str())
+            .collect();
         assert!(dims.contains(&"makefile_passed"));
         assert!(dims.contains(&"makefile_score"));
     }
@@ -2475,9 +2538,24 @@ end_of_record
             grade: Grade::APlus,
             format_scores: vec![],
             results: vec![
-                CorpusResult { id: "B-001".into(), transpiled: true, lint_clean: true, ..Default::default() },
-                CorpusResult { id: "B-002".into(), transpiled: true, lint_clean: true, ..Default::default() },
-                CorpusResult { id: "B-003".into(), transpiled: true, lint_clean: false, ..Default::default() },
+                CorpusResult {
+                    id: "B-001".into(),
+                    transpiled: true,
+                    lint_clean: true,
+                    ..Default::default()
+                },
+                CorpusResult {
+                    id: "B-002".into(),
+                    transpiled: true,
+                    lint_clean: true,
+                    ..Default::default()
+                },
+                CorpusResult {
+                    id: "B-003".into(),
+                    transpiled: true,
+                    lint_clean: false,
+                    ..Default::default()
+                },
             ],
         };
         let entry = runner.convergence_entry(&score, 1, "2026-02-08", 0.0, "lint test");
@@ -2520,7 +2598,11 @@ end_of_record
         };
         let report = curr.detect_regressions(&prev);
         assert!(report.has_regressions());
-        let dims: Vec<&str> = report.regressions.iter().map(|r| r.dimension.as_str()).collect();
+        let dims: Vec<&str> = report
+            .regressions
+            .iter()
+            .map(|r| r.dimension.as_str())
+            .collect();
         assert!(dims.contains(&"lint_passed"));
     }
 
@@ -2761,13 +2843,19 @@ end_of_record
     fn test_CORPUS_RUN_067_lint_makefile_clean_passes() {
         let runner = CorpusRunner::new(Config::default());
         // Clean Makefile should pass makefile lint
-        assert!(runner.check_lint("CC := gcc\n\nall:\n\t$(CC) -o main main.c\n", CorpusFormat::Makefile));
+        assert!(runner.check_lint(
+            "CC := gcc\n\nall:\n\t$(CC) -o main main.c\n",
+            CorpusFormat::Makefile
+        ));
     }
 
     #[test]
     fn test_CORPUS_RUN_068_lint_dockerfile_clean_passes() {
         let runner = CorpusRunner::new(Config::default());
         // Clean Dockerfile should pass dockerfile lint
-        assert!(runner.check_lint("FROM alpine:3.18\nRUN apk add curl\n", CorpusFormat::Dockerfile));
+        assert!(runner.check_lint(
+            "FROM alpine:3.18\nRUN apk add curl\n",
+            CorpusFormat::Dockerfile
+        ));
     }
 }
