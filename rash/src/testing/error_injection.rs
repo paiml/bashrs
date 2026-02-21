@@ -510,12 +510,14 @@ mod tests {
 
     #[test]
     fn test_failure_type_variants() {
-        let types = [FailureType::MemoryAllocation,
+        let types = [
+            FailureType::MemoryAllocation,
             FailureType::FileIO,
             FailureType::NetworkIO,
             FailureType::Parse,
             FailureType::Validation,
-            FailureType::CodeGeneration];
+            FailureType::CodeGeneration,
+        ];
         assert_eq!(types.len(), 6);
 
         // Test cloning
