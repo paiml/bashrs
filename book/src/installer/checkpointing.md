@@ -200,6 +200,6 @@ commands = [
 
 ## Next Steps
 
-- [Artifacts](./artifacts.md) - Download and verify files
+- Artifacts - Download and verify files (coming soon)
 - [Testing](./testing.md) - Container-based testing
-- [Hermetic Builds](./hermetic.md) - Reproducible installations
+- Hermetic Builds - Reproducible installations (coming soon)

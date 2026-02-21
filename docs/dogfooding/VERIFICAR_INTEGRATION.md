@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document describes the integration of [verificar](../verificar) for synthetic bash test generation with bashrs. verificar is a Synthetic Data Factory for Domain-Specific Code Intelligence.
+This document describes the integration of verificar for synthetic bash test generation with bashrs. verificar is a Synthetic Data Factory for Domain-Specific Code Intelligence.
 
 ## Current Capabilities
 

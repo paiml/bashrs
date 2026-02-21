@@ -201,6 +201,6 @@ docker exec -it bashrs-test-alpine-3.19 /bin/sh
 
 ## Next Steps
 
-- [Hermetic Builds](./hermetic.md) - Reproducible installations
-- [Artifacts](./artifacts.md) - Download and verify files
-- [CLI Reference](./cli-reference.md) - All command options
+- Hermetic Builds - Reproducible installations (coming soon)
+- Artifacts - Download and verify files (coming soon)
+- [CLI Reference](../reference/cli.md) - All command options

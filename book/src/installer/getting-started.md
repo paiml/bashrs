@@ -194,4 +194,4 @@ bashrs installer resume my-app-installer --from download-binary
 
 - Learn about [Step Types](./step-types.md)
 - Configure [Checkpointing](./checkpointing.md)
-- Set up [Artifact Verification](./artifacts.md)
+- Set up Artifact Verification (coming soon)

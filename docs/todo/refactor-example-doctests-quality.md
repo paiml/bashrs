@@ -189,7 +189,7 @@ required-features = ["verification"]
    ```markdown
    [![Crates.io](https://img.shields.io/crates/v/bashrs.svg)](https://crates.io/crates/bashrs)
    [![Documentation](https://docs.rs/bashrs/badge.svg)](https://docs.rs/bashrs)
-   [![License](https://img.shields.io/crates/l/bashrs.svg)](LICENSE)
+   [![License](https://img.shields.io/crates/l/bashrs.svg)](../../LICENSE)
    [![CI](https://github.com/paiml/bashrs/workflows/CI/badge.svg)](https://github.com/paiml/bashrs/actions)
    ```
 
