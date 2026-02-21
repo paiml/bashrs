@@ -182,11 +182,15 @@ pub fn process_purify_bash(source: &str) -> Result<PurifyProcessResult> {
     // Parse and purify
     let mut parser = BashParser::new(source).map_err(|e| {
         let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, source, None);
-        Error::CommandFailed { message: format!("{diag}") }
+        Error::CommandFailed {
+            message: format!("{diag}"),
+        }
     })?;
     let ast = parser.parse().map_err(|e| {
         let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, parser.source(), None);
-        Error::CommandFailed { message: format!("{diag}") }
+        Error::CommandFailed {
+            message: format!("{diag}"),
+        }
     })?;
     let purified_source = generate_purified_bash(&ast);
 
@@ -373,33 +377,32 @@ pub struct FormatProcessResult {
 /// - Has a shell extension (.sh, .bash, .ksh, .zsh)
 /// - Has a shell shebang (#!/bin/sh, #!/bin/bash, etc.)
 pub fn is_shell_script_file(path: &Path, content: &str) -> bool {
-    // Check file extension
-    if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-        let ext_lower = ext.to_lowercase();
-        if matches!(ext_lower.as_str(), "sh" | "bash" | "ksh" | "zsh" | "ash") {
-            return true;
-        }
-    }
+    has_shell_extension(path) || has_shell_shebang(content)
+}
 
-    // Check shebang
-    let first_line = content.lines().next().unwrap_or("");
-    if first_line.starts_with("#!") {
-        let shebang_lower = first_line.to_lowercase();
-        // Check for common shell interpreters
-        if shebang_lower.contains("/sh")
-            || shebang_lower.contains("/bash")
-            || shebang_lower.contains("/zsh")
-            || shebang_lower.contains("/ksh")
-            || shebang_lower.contains("/ash")
-            || shebang_lower.contains("/dash")
-            || shebang_lower.contains("env sh")
-            || shebang_lower.contains("env bash")
-        {
-            return true;
-        }
-    }
+/// Check if a file has a shell script extension
+fn has_shell_extension(path: &Path) -> bool {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .map(|e| matches!(e.to_lowercase().as_str(), "sh" | "bash" | "ksh" | "zsh" | "ash"))
+        .unwrap_or(false)
+}
 
-    false
+/// Check if content starts with a shell shebang line
+fn has_shell_shebang(content: &str) -> bool {
+    const SHELL_PATTERNS: &[&str] = &[
+        "/sh", "/bash", "/zsh", "/ksh", "/ash", "/dash", "env sh", "env bash",
+    ];
+
+    content
+        .lines()
+        .next()
+        .filter(|line| line.starts_with("#!"))
+        .map(|line| {
+            let lower = line.to_lowercase();
+            SHELL_PATTERNS.iter().any(|p| lower.contains(p))
+        })
+        .unwrap_or(false)
 }
 
 /// Normalize a shell script for comparison
@@ -1003,32 +1006,19 @@ pub fn find_devcontainer_json(path: &Path) -> Result<PathBuf> {
         return Ok(path.to_path_buf());
     }
 
-    // If path is a directory, search standard locations
+    // Search standard locations
     let candidates = [
         path.join(".devcontainer/devcontainer.json"),
         path.join(".devcontainer.json"),
     ];
 
-    for candidate in &candidates {
-        if candidate.exists() {
-            return Ok(candidate.clone());
-        }
+    if let Some(found) = candidates.iter().find(|c| c.exists()) {
+        return Ok(found.clone());
     }
 
     // Check for .devcontainer/<folder>/devcontainer.json
-    let devcontainer_dir = path.join(".devcontainer");
-    if devcontainer_dir.is_dir() {
-        if let Ok(entries) = std::fs::read_dir(&devcontainer_dir) {
-            for entry in entries.flatten() {
-                let subdir = entry.path();
-                if subdir.is_dir() {
-                    let candidate = subdir.join("devcontainer.json");
-                    if candidate.exists() {
-                        return Ok(candidate);
-                    }
-                }
-            }
-        }
+    if let Some(found) = find_devcontainer_in_subdirs(path) {
+        return Ok(found);
     }
 
     Err(Error::Validation(format!(
@@ -1038,6 +1028,17 @@ pub fn find_devcontainer_json(path: &Path) -> Result<PathBuf> {
          - .devcontainer/<folder>/devcontainer.json",
         path.display()
     )))
+}
+
+/// Search .devcontainer subdirectories for devcontainer.json
+fn find_devcontainer_in_subdirs(path: &Path) -> Option<PathBuf> {
+    let devcontainer_dir = path.join(".devcontainer");
+    let entries = std::fs::read_dir(&devcontainer_dir).ok()?;
+    entries
+        .flatten()
+        .filter(|e| e.path().is_dir())
+        .map(|e| e.path().join("devcontainer.json"))
+        .find(|c| c.exists())
 }
 
 /// Parse custom size limit from string (e.g., "2GB", "500MB")
