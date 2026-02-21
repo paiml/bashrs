@@ -38,277 +38,263 @@ fn generate_statement(stmt: &BashStmt) -> String {
 /// Each level adds 4 spaces of indentation.
 fn generate_stmt(stmt: &BashStmt, indent: usize) -> String {
     let pad = "    ".repeat(indent);
-    let inner_pad = "    ".repeat(indent + 1);
     match stmt {
-        BashStmt::Command {
-            name,
-            args,
-            redirects,
-            ..
-        } => {
-            // Convert declare/typeset to POSIX equivalents
-            if name == "declare" || name == "typeset" {
-                return format!("{}{}", pad, generate_declare_posix(args, redirects));
-            }
-            let mut cmd = format!("{}{}", pad, name);
-            for arg in args {
-                cmd.push(' ');
-                cmd.push_str(&generate_expr(arg));
-            }
-            // Issue #72: Emit redirects
-            for redirect in redirects {
-                cmd.push(' ');
-                cmd.push_str(&generate_redirect(redirect));
-            }
-            cmd
+        BashStmt::Command { name, args, redirects, .. } => {
+            generate_command_stmt(&pad, name, args, redirects)
         }
-        BashStmt::Assignment {
-            name,
-            value,
-            exported,
-            ..
-        } => {
-            let mut assign = pad.clone();
-            if *exported {
-                assign.push_str("export ");
-            }
-            assign.push_str(name);
-            assign.push('=');
-            assign.push_str(&generate_expr(value));
-            assign
+        BashStmt::Assignment { name, value, exported, .. } => {
+            generate_assignment_stmt(&pad, name, value, *exported)
         }
-        BashStmt::Comment { text, .. } => {
-            // Skip shebang comments to maintain idempotency
-            if text.starts_with("!/bin/") || text.starts_with(" !/bin/") {
-                return String::new();
-            }
-            format!("{}# {}", pad, text)
-        }
+        BashStmt::Comment { text, .. } => generate_comment_stmt(&pad, text),
         BashStmt::Function { name, body, .. } => {
-            let mut func = format!("{}{}() {{\n", pad, name);
-            for stmt in body {
-                func.push_str(&generate_stmt(stmt, indent + 1));
-                func.push('\n');
-            }
-            func.push_str(&pad);
-            func.push('}');
-            func
+            generate_function_stmt(&pad, name, body, indent)
         }
-        BashStmt::If {
-            condition,
-            then_block,
-            elif_blocks,
-            else_block,
-            ..
-        } => {
-            let mut s = format!("{}if {}; then\n", pad, generate_condition(condition));
-            for stmt in then_block {
-                s.push_str(&generate_stmt(stmt, indent + 1));
-                s.push('\n');
-            }
-            for (elif_cond, elif_body) in elif_blocks {
-                s.push_str(&format!(
-                    "{}elif {}; then\n",
-                    pad,
-                    generate_condition(elif_cond)
-                ));
-                for stmt in elif_body {
-                    s.push_str(&generate_stmt(stmt, indent + 1));
-                    s.push('\n');
-                }
-            }
-            if let Some(else_stmts) = else_block {
-                s.push_str(&format!("{}else\n", pad));
-                for stmt in else_stmts {
-                    s.push_str(&generate_stmt(stmt, indent + 1));
-                    s.push('\n');
-                }
-            }
-            s.push_str(&pad);
-            s.push_str("fi");
-            s
+        BashStmt::If { condition, then_block, elif_blocks, else_block, .. } => {
+            generate_if_stmt(&pad, condition, then_block, elif_blocks, else_block, indent)
         }
-        BashStmt::For {
-            variable,
-            items,
-            body,
-            ..
-        } => {
-            let mut s = format!("{}for {} in {}; do\n", pad, variable, generate_expr(items));
-            for stmt in body {
-                s.push_str(&generate_stmt(stmt, indent + 1));
-                s.push('\n');
-            }
-            s.push_str(&pad);
-            s.push_str("done");
-            s
+        BashStmt::For { variable, items, body, .. } => {
+            generate_loop_body(&format!("{}for {} in {}; do", pad, variable, generate_expr(items)), &pad, body, indent)
         }
-        // Issue #68: C-style for loop → POSIX while loop transformation
-        BashStmt::ForCStyle {
-            init,
-            condition,
-            increment,
-            body,
-            ..
-        } => {
-            let mut s = String::new();
-            if !init.is_empty() {
-                s.push_str(&pad);
-                s.push_str(&convert_c_init_to_posix(init));
-                s.push('\n');
-            }
-            let posix_condition = convert_c_condition_to_posix(condition);
-            s.push_str(&format!("{}while {}; do\n", pad, posix_condition));
-            for stmt in body {
-                s.push_str(&generate_stmt(stmt, indent + 1));
-                s.push('\n');
-            }
-            if !increment.is_empty() {
-                s.push_str(&inner_pad);
-                s.push_str(&convert_c_increment_to_posix(increment));
-                s.push('\n');
-            }
-            s.push_str(&pad);
-            s.push_str("done");
-            s
+        BashStmt::ForCStyle { init, condition, increment, body, .. } => {
+            let inner_pad = "    ".repeat(indent + 1);
+            generate_for_c_style(&pad, &inner_pad, init, condition, increment, body, indent)
         }
-        BashStmt::While {
-            condition, body, ..
-        } => {
-            let mut s = format!("{}while {}; do\n", pad, generate_condition(condition));
-            for stmt in body {
-                s.push_str(&generate_stmt(stmt, indent + 1));
-                s.push('\n');
-            }
-            s.push_str(&pad);
-            s.push_str("done");
-            s
+        BashStmt::While { condition, body, .. } => {
+            generate_loop_body(&format!("{}while {}; do", pad, generate_condition(condition)), &pad, body, indent)
         }
-        BashStmt::Until {
-            condition, body, ..
-        } => {
-            let negated_condition = negate_condition(condition);
-            let mut s = format!("{}while {}; do\n", pad, negated_condition);
-            for stmt in body {
-                s.push_str(&generate_stmt(stmt, indent + 1));
-                s.push('\n');
-            }
-            s.push_str(&pad);
-            s.push_str("done");
-            s
+        BashStmt::Until { condition, body, .. } => {
+            generate_loop_body(&format!("{}while {}; do", pad, negate_condition(condition)), &pad, body, indent)
         }
         BashStmt::Return { code, .. } => {
-            if let Some(c) = code {
-                format!("{}return {}", pad, generate_expr(c))
-            } else {
-                format!("{}return", pad)
-            }
+            code.as_ref().map_or_else(|| format!("{}return", pad), |c| format!("{}return {}", pad, generate_expr(c)))
         }
-        BashStmt::Case { word, arms, .. } => {
-            let arm_pad = "    ".repeat(indent + 1);
-            let body_pad = "    ".repeat(indent + 2);
-            let mut s = format!("{}case {} in\n", pad, generate_expr(word));
-            for arm in arms {
-                let pattern_str = arm.patterns.join("|");
-                s.push_str(&format!("{}{})\n", arm_pad, pattern_str));
-                for stmt in &arm.body {
-                    s.push_str(&generate_stmt(stmt, indent + 2));
-                    s.push('\n');
-                }
-                s.push_str(&format!("{};;\n", body_pad));
-            }
-            s.push_str(&pad);
-            s.push_str("esac");
-            s
-        }
-        BashStmt::Pipeline { commands, .. } => {
-            let mut pipeline = pad.clone();
-            for (i, cmd) in commands.iter().enumerate() {
-                if i > 0 {
-                    pipeline.push_str(" | ");
-                }
-                // Pipeline components don't add their own padding
-                pipeline.push_str(&generate_statement(cmd));
-            }
-            pipeline
-        }
+        BashStmt::Case { word, arms, .. } => generate_case_stmt(&pad, word, arms, indent),
+        BashStmt::Pipeline { commands, .. } => generate_pipeline(&pad, commands),
         BashStmt::AndList { left, right, .. } => {
-            format!(
-                "{}{} && {}",
-                pad,
-                generate_statement(left),
-                generate_statement(right)
-            )
+            format!("{}{} && {}", pad, generate_statement(left), generate_statement(right))
         }
         BashStmt::OrList { left, right, .. } => {
-            format!(
-                "{}{} || {}",
-                pad,
-                generate_statement(left),
-                generate_statement(right)
-            )
+            format!("{}{} || {}", pad, generate_statement(left), generate_statement(right))
         }
-        BashStmt::BraceGroup {
-            body, subshell, ..
-        } => {
-            if *subshell {
-                let mut s = format!("{}(\n", pad);
-                for stmt in body {
-                    s.push_str(&generate_stmt(stmt, indent + 1));
-                    s.push('\n');
-                }
-                s.push_str(&pad);
-                s.push(')');
-                s
-            } else {
-                let mut brace = format!("{}{{ ", pad);
-                for (i, stmt) in body.iter().enumerate() {
-                    if i > 0 {
-                        brace.push_str("; ");
-                    }
-                    brace.push_str(&generate_statement(stmt));
-                }
-                brace.push_str("; }");
-                brace
-            }
+        BashStmt::BraceGroup { body, subshell, .. } => {
+            generate_brace_group(&pad, body, *subshell, indent)
         }
-        BashStmt::Coproc { name, body, .. } => {
-            let mut coproc = format!("{}coproc ", pad);
-            if let Some(n) = name {
-                coproc.push_str(n);
-                coproc.push(' ');
-            }
-            coproc.push_str("{ ");
-            for (i, stmt) in body.iter().enumerate() {
-                if i > 0 {
-                    coproc.push_str("; ");
-                }
-                coproc.push_str(&generate_statement(stmt));
-            }
-            coproc.push_str("; }");
-            coproc
-        }
-        BashStmt::Select {
-            variable,
-            items,
-            body,
-            ..
-        } => {
-            let mut s = format!("{}select {} in ", pad, variable);
-            s.push_str(&generate_expr(items));
-            s.push_str("; do\n");
-            for stmt in body {
-                s.push_str(&generate_stmt(stmt, indent + 1));
-                s.push('\n');
-            }
-            s.push_str(&pad);
-            s.push_str("done");
-            s
+        BashStmt::Coproc { name, body, .. } => generate_coproc(&pad, name, body),
+        BashStmt::Select { variable, items, body, .. } => {
+            generate_loop_body(&format!("{}select {} in {}; do", pad, variable, generate_expr(items)), &pad, body, indent)
         }
         BashStmt::Negated { command, .. } => {
             format!("{}! {}", pad, generate_statement(command))
         }
     }
+}
+
+/// Generate a command statement (including declare/typeset POSIX conversion)
+fn generate_command_stmt(pad: &str, name: &str, args: &[BashExpr], redirects: &[Redirect]) -> String {
+    if name == "declare" || name == "typeset" {
+        return format!("{}{}", pad, generate_declare_posix(args, redirects));
+    }
+    let mut cmd = format!("{}{}", pad, name);
+    for arg in args {
+        cmd.push(' ');
+        cmd.push_str(&generate_expr(arg));
+    }
+    for redirect in redirects {
+        cmd.push(' ');
+        cmd.push_str(&generate_redirect(redirect));
+    }
+    cmd
+}
+
+/// Generate an assignment statement
+fn generate_assignment_stmt(pad: &str, name: &str, value: &BashExpr, exported: bool) -> String {
+    let mut assign = pad.to_string();
+    if exported {
+        assign.push_str("export ");
+    }
+    assign.push_str(name);
+    assign.push('=');
+    assign.push_str(&generate_expr(value));
+    assign
+}
+
+/// Generate a comment statement (skipping shebangs)
+fn generate_comment_stmt(pad: &str, text: &str) -> String {
+    if text.starts_with("!/bin/") || text.starts_with(" !/bin/") {
+        return String::new();
+    }
+    format!("{}# {}", pad, text)
+}
+
+/// Generate a function definition
+fn generate_function_stmt(pad: &str, name: &str, body: &[BashStmt], indent: usize) -> String {
+    let mut func = format!("{}{}() {{\n", pad, name);
+    for stmt in body {
+        func.push_str(&generate_stmt(stmt, indent + 1));
+        func.push('\n');
+    }
+    func.push_str(pad);
+    func.push('}');
+    func
+}
+
+/// Generate a loop body with header and "done" terminator
+fn generate_loop_body(header: &str, pad: &str, body: &[BashStmt], indent: usize) -> String {
+    let mut s = format!("{}\n", header);
+    for stmt in body {
+        s.push_str(&generate_stmt(stmt, indent + 1));
+        s.push('\n');
+    }
+    s.push_str(pad);
+    s.push_str("done");
+    s
+}
+
+/// Generate a pipeline
+fn generate_pipeline(pad: &str, commands: &[BashStmt]) -> String {
+    let mut pipeline = pad.to_string();
+    for (i, cmd) in commands.iter().enumerate() {
+        if i > 0 {
+            pipeline.push_str(" | ");
+        }
+        pipeline.push_str(&generate_statement(cmd));
+    }
+    pipeline
+}
+
+/// Generate an if/elif/else statement
+fn generate_if_stmt(
+    pad: &str,
+    condition: &BashExpr,
+    then_block: &[BashStmt],
+    elif_blocks: &[(BashExpr, Vec<BashStmt>)],
+    else_block: &Option<Vec<BashStmt>>,
+    indent: usize,
+) -> String {
+    let mut s = format!("{}if {}; then\n", pad, generate_condition(condition));
+    for stmt in then_block {
+        s.push_str(&generate_stmt(stmt, indent + 1));
+        s.push('\n');
+    }
+    for (elif_cond, elif_body) in elif_blocks {
+        s.push_str(&format!(
+            "{}elif {}; then\n",
+            pad,
+            generate_condition(elif_cond)
+        ));
+        for stmt in elif_body {
+            s.push_str(&generate_stmt(stmt, indent + 1));
+            s.push('\n');
+        }
+    }
+    if let Some(else_stmts) = else_block {
+        s.push_str(&format!("{}else\n", pad));
+        for stmt in else_stmts {
+            s.push_str(&generate_stmt(stmt, indent + 1));
+            s.push('\n');
+        }
+    }
+    s.push_str(pad);
+    s.push_str("fi");
+    s
+}
+
+/// Generate a C-style for loop as POSIX while loop
+fn generate_for_c_style(
+    pad: &str,
+    inner_pad: &str,
+    init: &str,
+    condition: &str,
+    increment: &str,
+    body: &[BashStmt],
+    indent: usize,
+) -> String {
+    let mut s = String::new();
+    if !init.is_empty() {
+        s.push_str(pad);
+        s.push_str(&convert_c_init_to_posix(init));
+        s.push('\n');
+    }
+    let posix_condition = convert_c_condition_to_posix(condition);
+    s.push_str(&format!("{}while {}; do\n", pad, posix_condition));
+    for stmt in body {
+        s.push_str(&generate_stmt(stmt, indent + 1));
+        s.push('\n');
+    }
+    if !increment.is_empty() {
+        s.push_str(inner_pad);
+        s.push_str(&convert_c_increment_to_posix(increment));
+        s.push('\n');
+    }
+    s.push_str(pad);
+    s.push_str("done");
+    s
+}
+
+/// Generate a case statement
+fn generate_case_stmt(pad: &str, word: &BashExpr, arms: &[CaseArm], indent: usize) -> String {
+    let arm_pad = "    ".repeat(indent + 1);
+    let body_pad = "    ".repeat(indent + 2);
+    let mut s = format!("{}case {} in\n", pad, generate_expr(word));
+    for arm in arms {
+        let pattern_str = arm.patterns.join("|");
+        s.push_str(&format!("{}{})\n", arm_pad, pattern_str));
+        for stmt in &arm.body {
+            s.push_str(&generate_stmt(stmt, indent + 2));
+            s.push('\n');
+        }
+        s.push_str(&format!("{};;\n", body_pad));
+    }
+    s.push_str(pad);
+    s.push_str("esac");
+    s
+}
+
+/// Generate a brace group or subshell
+fn generate_brace_group(
+    pad: &str,
+    body: &[BashStmt],
+    subshell: bool,
+    indent: usize,
+) -> String {
+    if subshell {
+        let mut s = format!("{}(\n", pad);
+        for stmt in body {
+            s.push_str(&generate_stmt(stmt, indent + 1));
+            s.push('\n');
+        }
+        s.push_str(pad);
+        s.push(')');
+        s
+    } else {
+        let mut brace = format!("{}{{ ", pad);
+        for (i, stmt) in body.iter().enumerate() {
+            if i > 0 {
+                brace.push_str("; ");
+            }
+            brace.push_str(&generate_statement(stmt));
+        }
+        brace.push_str("; }");
+        brace
+    }
+}
+
+/// Generate a coproc statement
+fn generate_coproc(pad: &str, name: &Option<String>, body: &[BashStmt]) -> String {
+    let mut coproc = format!("{}coproc ", pad);
+    if let Some(n) = name {
+        coproc.push_str(n);
+        coproc.push(' ');
+    }
+    coproc.push_str("{ ");
+    for (i, stmt) in body.iter().enumerate() {
+        if i > 0 {
+            coproc.push_str("; ");
+        }
+        coproc.push_str(&generate_statement(stmt));
+    }
+    coproc.push_str("; }");
+    coproc
 }
 
 /// Negate a condition for until → while transformation
@@ -404,123 +390,81 @@ fn generate_condition(expr: &BashExpr) -> String {
 /// Generate an expression
 fn generate_expr(expr: &BashExpr) -> String {
     match expr {
-        BashExpr::Literal(s) => {
-            // Issue #64: Quote string literals for safety
-            // Issue #72: Use double quotes if string contains command substitution or variables
-            // Only skip quoting for simple alphanumeric words (commands, filenames)
-            // that don't need protection
-
-            // Check if this is a simple "safe" identifier that doesn't need quotes
-            // Includes '=' for name=value patterns (declare, export, env)
-            let is_simple_word = !s.is_empty()
-                && s.chars()
-                    .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.' || c == '/' || c == '=');
-
-            // Check if string contains expansions that require double quotes
-            let needs_double_quotes = s.contains("$(") || s.contains("${") || s.contains('$');
-
-            if is_simple_word && !is_shell_keyword(s) {
-                s.clone()
-            } else if is_shell_keyword(s) {
-                // Quote shell keywords to avoid SC1010 and POSIX ambiguity
-                format!("\"{}\"", s)
-            } else if needs_double_quotes {
-                // Issue #72: Use double quotes to preserve command substitution and variable expansion
-                // Escape any double quotes in the string
-                let escaped = s.replace('"', "\\\"");
-                format!("\"{}\"", escaped)
-            } else {
-                // Use single quotes for literals without expansions
-                // Escape any single quotes in the string
-                let escaped = s.replace('\'', "'\\''");
-                format!("'{}'", escaped)
-            }
-        }
-        BashExpr::Variable(name) => {
-            // Always quote variables for safety
-            format!("\"${}\"", name)
-        }
-        BashExpr::Array(items) => {
-            let elements: Vec<String> = items.iter().map(generate_expr).collect();
-            elements.join(" ")
-        }
-        BashExpr::Arithmetic(arith) => {
-            format!("$(({}))", generate_arith_expr(arith))
-        }
+        BashExpr::Literal(s) => generate_literal_expr(s),
+        BashExpr::Variable(name) => format!("\"${}\"", name),
+        BashExpr::Array(items) => items.iter().map(generate_expr).collect::<Vec<_>>().join(" "),
+        BashExpr::Arithmetic(arith) => format!("$(({}))", generate_arith_expr(arith)),
         BashExpr::Test(test) => generate_test_expr(test),
-        BashExpr::CommandSubst(cmd) => {
-            format!("$({})", generate_statement(cmd))
-        }
+        BashExpr::CommandSubst(cmd) => format!("$({})", generate_statement(cmd)),
         BashExpr::Concat(exprs) => exprs.iter().map(generate_expr).collect::<Vec<_>>().join(""),
         BashExpr::Glob(pattern) => pattern.clone(),
         BashExpr::DefaultValue { variable, default } => {
-            // Generate ${VAR:-default} syntax
-            let default_val = generate_expr(default);
-            let default_unquoted = strip_quotes(&default_val);
-            format!("\"${{{}:-{}}}\"", variable, default_unquoted)
+            format_param_expansion(variable, ":-", default)
         }
         BashExpr::AssignDefault { variable, default } => {
-            // Generate ${VAR:=default} syntax
-            let default_val = generate_expr(default);
-            let default_unquoted = strip_quotes(&default_val);
-            format!("\"${{{}:={}}}\"", variable, default_unquoted)
+            format_param_expansion(variable, ":=", default)
         }
-        BashExpr::ErrorIfUnset { variable, message } => {
-            // Generate ${VAR:?message} syntax
-            // Note: Quotes in error messages ARE significant - they show in output
-            // So we preserve them (don't strip)
-            let msg_val = generate_expr(message);
-            // Only strip outer double quotes (from the overall ${} quoting), keep single quotes
-            let msg_for_expansion = if msg_val.starts_with('"') && msg_val.ends_with('"') {
-                msg_val.trim_start_matches('"').trim_end_matches('"')
-            } else {
-                &msg_val
-            };
-            format!("\"${{{}:?{}}}\"", variable, msg_for_expansion)
+        BashExpr::ErrorIfUnset { variable, message } => generate_error_if_unset(variable, message),
+        BashExpr::AlternativeValue { variable, alternative } => {
+            format_param_expansion(variable, ":+", alternative)
         }
-        BashExpr::AlternativeValue {
-            variable,
-            alternative,
-        } => {
-            // Generate ${VAR:+alt_value} syntax
-            let alt_val = generate_expr(alternative);
-            let alt_unquoted = strip_quotes(&alt_val);
-            format!("\"${{{}:+{}}}\"", variable, alt_unquoted)
-        }
-        BashExpr::StringLength { variable } => {
-            // Generate ${#VAR} syntax
-            format!("\"${{#{}}}\"", variable)
-        }
+        BashExpr::StringLength { variable } => format!("\"${{#{}}}\"", variable),
         BashExpr::RemoveSuffix { variable, pattern } => {
-            // Generate ${VAR%pattern} syntax
-            let pattern_val = generate_expr(pattern);
-            let pattern_unquoted = strip_quotes(&pattern_val);
-            format!("\"${{{}%{}}}\"", variable, pattern_unquoted)
+            format_param_expansion(variable, "%", pattern)
         }
         BashExpr::RemovePrefix { variable, pattern } => {
-            // Generate ${VAR#pattern} syntax
-            let pattern_val = generate_expr(pattern);
-            let pattern_unquoted = strip_quotes(&pattern_val);
-            format!("\"${{{}#{}}}\"", variable, pattern_unquoted)
+            format_param_expansion(variable, "#", pattern)
         }
         BashExpr::RemoveLongestPrefix { variable, pattern } => {
-            // Generate ${VAR##pattern} syntax (greedy prefix removal)
-            let pattern_val = generate_expr(pattern);
-            let pattern_unquoted = strip_quotes(&pattern_val);
-            format!("\"${{{}##{}}}\"", variable, pattern_unquoted)
+            format_param_expansion(variable, "##", pattern)
         }
         BashExpr::RemoveLongestSuffix { variable, pattern } => {
-            // Generate ${VAR%%pattern} syntax (greedy suffix removal)
-            let pattern_val = generate_expr(pattern);
-            let pattern_unquoted = strip_quotes(&pattern_val);
-            format!("\"${{{}%%{}}}\"", variable, pattern_unquoted)
+            format_param_expansion(variable, "%%", pattern)
         }
-        BashExpr::CommandCondition(cmd) => {
-            // Issue #93: Command condition - generate the command directly
-            // The command's exit code determines the condition result
-            generate_statement(cmd)
-        }
+        BashExpr::CommandCondition(cmd) => generate_statement(cmd),
     }
+}
+
+/// Generate a quoted literal expression with proper quoting strategy
+fn generate_literal_expr(s: &str) -> String {
+    let is_simple_word = !s.is_empty()
+        && s.chars().all(|c| {
+            c.is_alphanumeric() || c == '_' || c == '-' || c == '.' || c == '/' || c == '='
+        });
+
+    if is_simple_word && !is_shell_keyword(s) {
+        return s.to_string();
+    }
+    if is_shell_keyword(s) {
+        return format!("\"{}\"", s);
+    }
+
+    let needs_double_quotes = s.contains("$(") || s.contains("${") || s.contains('$');
+    if needs_double_quotes {
+        let escaped = s.replace('"', "\\\"");
+        format!("\"{}\"", escaped)
+    } else {
+        let escaped = s.replace('\'', "'\\''");
+        format!("'{}'", escaped)
+    }
+}
+
+/// Format a parameter expansion like ${VAR:-default}, ${VAR%pattern}, etc.
+fn format_param_expansion(variable: &str, operator: &str, operand: &BashExpr) -> String {
+    let val = generate_expr(operand);
+    let unquoted = strip_quotes(&val);
+    format!("\"${{{}{}{}}}\"", variable, operator, unquoted)
+}
+
+/// Generate ${VAR:?message} with special quote handling
+fn generate_error_if_unset(variable: &str, message: &BashExpr) -> String {
+    let msg_val = generate_expr(message);
+    let msg_for_expansion = if msg_val.starts_with('"') && msg_val.ends_with('"') {
+        msg_val.trim_start_matches('"').trim_end_matches('"')
+    } else {
+        &msg_val
+    };
+    format!("\"${{{}:?{}}}\"", variable, msg_for_expansion)
 }
 
 /// Strip surrounding quotes (both single and double) from a string
@@ -583,10 +527,14 @@ fn generate_declare_posix(args: &[BashExpr], redirects: &[Redirect]) -> String {
         let flag_str = flags.join(" ");
         let assign_str = assignments.join(" ");
         if assignments.is_empty() || !assign_str.contains('=') {
-            return format!("# declare {} {} (not POSIX)", flag_str, assign_str).trim_end().to_string();
+            return format!("# declare {} {} (not POSIX)", flag_str, assign_str)
+                .trim_end()
+                .to_string();
         }
         // Array with assignment: declare -a arr=(items) — emit comment
-        return format!("# declare {} {} (not POSIX)", flag_str, assign_str).trim_end().to_string();
+        return format!("# declare {} {} (not POSIX)", flag_str, assign_str)
+            .trim_end()
+            .to_string();
     }
 
     let mut output = String::new();
@@ -884,7 +832,10 @@ fn extract_var_name(s: &str) -> String {
 ///
 /// This function takes a purified AST and a TypeChecker (which has already been run
 /// via `check_ast`), and emits guards for variables that have type annotations.
-pub fn generate_purified_bash_with_guards(ast: &BashAst, checker: &crate::bash_transpiler::type_check::TypeChecker) -> String {
+pub fn generate_purified_bash_with_guards(
+    ast: &BashAst,
+    checker: &crate::bash_transpiler::type_check::TypeChecker,
+) -> String {
     let mut output = String::new();
     output.push_str("#!/bin/sh\n");
 
@@ -897,7 +848,11 @@ pub fn generate_purified_bash_with_guards(ast: &BashAst, checker: &crate::bash_t
         if let BashStmt::Assignment { name, .. } = stmt {
             if let Some(hint) = checker.annotation_hint(name) {
                 if let Some(ty) = checker.context().lookup(name) {
-                    if let Some(guard) = crate::bash_transpiler::type_check::generate_guard_for_type(name, ty, Some(hint)) {
+                    if let Some(guard) = crate::bash_transpiler::type_check::generate_guard_for_type(
+                        name,
+                        ty,
+                        Some(hint),
+                    ) {
                         output.push_str(&guard);
                         output.push('\n');
                     }
@@ -2094,10 +2049,22 @@ fi"#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse().expect("parse");
         let output = generate_purified_bash(&ast);
-        assert!(output.contains("elif"), "elif should be preserved in output: {output}");
-        assert!(output.contains("echo alpha"), "then branch preserved: {output}");
-        assert!(output.contains("echo beta"), "elif branch preserved: {output}");
-        assert!(output.contains("echo unknown"), "else branch preserved: {output}");
+        assert!(
+            output.contains("elif"),
+            "elif should be preserved in output: {output}"
+        );
+        assert!(
+            output.contains("echo alpha"),
+            "then branch preserved: {output}"
+        );
+        assert!(
+            output.contains("echo beta"),
+            "elif branch preserved: {output}"
+        );
+        assert!(
+            output.contains("echo unknown"),
+            "else branch preserved: {output}"
+        );
     }
 
     #[test]
