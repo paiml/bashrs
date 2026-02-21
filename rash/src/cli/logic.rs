@@ -384,7 +384,12 @@ pub fn is_shell_script_file(path: &Path, content: &str) -> bool {
 fn has_shell_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
-        .map(|e| matches!(e.to_lowercase().as_str(), "sh" | "bash" | "ksh" | "zsh" | "ash"))
+        .map(|e| {
+            matches!(
+                e.to_lowercase().as_str(),
+                "sh" | "bash" | "ksh" | "zsh" | "ash"
+            )
+        })
         .unwrap_or(false)
 }
 
