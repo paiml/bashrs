@@ -503,12 +503,12 @@ impl Lexer {
         }
 
         if delimiter.is_empty() {
-            let ch = if self.is_at_end() { '\0' } else { self.current_char() };
-            return Err(LexerError::UnexpectedChar(
-                ch,
-                self.line,
-                self.column,
-            ));
+            let ch = if self.is_at_end() {
+                '\0'
+            } else {
+                self.current_char()
+            };
+            return Err(LexerError::UnexpectedChar(ch, self.line, self.column));
         }
 
         // Skip to end of line (heredoc content starts on next line)
@@ -598,12 +598,12 @@ impl Lexer {
         }
 
         if delimiter.is_empty() {
-            let ch = if self.is_at_end() { '\0' } else { self.current_char() };
-            return Err(LexerError::UnexpectedChar(
-                ch,
-                self.line,
-                self.column,
-            ));
+            let ch = if self.is_at_end() {
+                '\0'
+            } else {
+                self.current_char()
+            };
+            return Err(LexerError::UnexpectedChar(ch, self.line, self.column));
         }
 
         // Skip to end of line
@@ -891,8 +891,7 @@ impl Lexer {
             // Issue #131: '=' added for key=value arguments like --mount type=bind
             // '@' added for email addresses (admin@example.com)
             // Handle extended glob patterns inline: @(...), +(...), ?(...), !(...)
-            if (ch == '@' || ch == '+' || ch == '?' || ch == '!')
-                && self.peek_char(1) == Some('(')
+            if (ch == '@' || ch == '+' || ch == '?' || ch == '!') && self.peek_char(1) == Some('(')
             {
                 word.push(self.advance()); // push @/+/?/!
                 word.push(self.advance()); // push (

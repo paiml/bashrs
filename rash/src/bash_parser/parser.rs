@@ -86,7 +86,9 @@ fn token_display(tok: &Token) -> String {
         Token::Export => "'export'".to_string(),
         Token::Dollar => "'$'".to_string(),
         Token::Heredoc { delimiter, .. } => format!("heredoc '<<{delimiter}'"),
-        Token::HereString(s) => format!("herestring '<<<{}'", s.chars().take(20).collect::<String>()),
+        Token::HereString(s) => {
+            format!("herestring '<<<{}'", s.chars().take(20).collect::<String>())
+        }
         Token::CommandSubstitution(s) => format!("'$({s})'"),
         Token::ArithmeticExpansion(s) => format!("'$(({s}))'"),
         Token::Comment(_) => "comment".to_string(),
@@ -120,30 +122,17 @@ fn suggest_fix(expected: &Token, found: Option<&Token>) -> Option<String> {
         (Token::Then, Some(Token::Identifier(_) | Token::Variable(_))) => {
             Some("add 'then' after the condition: `if [ ... ]; then`".to_string())
         }
-        (Token::Then, _) => {
-            Some("'if' requires 'then' after the condition".to_string())
-        }
-        (Token::Do, Some(Token::Identifier(_) | Token::Variable(_))) => {
-            Some("add 'do' after the loop condition: `while [ ... ]; do` or `for x in ...; do`".to_string())
-        }
-        (Token::Do, _) => {
-            Some("loops require 'do' after the condition/iterator".to_string())
-        }
-        (Token::Fi, _) => {
-            Some("'if' block must be closed with 'fi'".to_string())
-        }
-        (Token::Done, _) => {
-            Some("loop must be closed with 'done'".to_string())
-        }
-        (Token::RightBrace, _) => {
-            Some("unmatched '{' — did you forget '}'?".to_string())
-        }
-        (Token::RightParen, _) => {
-            Some("unmatched '(' — did you forget ')'?".to_string())
-        }
-        (Token::In, _) => {
-            Some("'for' loop requires 'in': `for var in list; do`".to_string())
-        }
+        (Token::Then, _) => Some("'if' requires 'then' after the condition".to_string()),
+        (Token::Do, Some(Token::Identifier(_) | Token::Variable(_))) => Some(
+            "add 'do' after the loop condition: `while [ ... ]; do` or `for x in ...; do`"
+                .to_string(),
+        ),
+        (Token::Do, _) => Some("loops require 'do' after the condition/iterator".to_string()),
+        (Token::Fi, _) => Some("'if' block must be closed with 'fi'".to_string()),
+        (Token::Done, _) => Some("loop must be closed with 'done'".to_string()),
+        (Token::RightBrace, _) => Some("unmatched '{' — did you forget '}'?".to_string()),
+        (Token::RightParen, _) => Some("unmatched '(' — did you forget ')'?".to_string()),
+        (Token::In, _) => Some("'for' loop requires 'in': `for var in list; do`".to_string()),
         _ => None,
     }
 }
@@ -156,7 +145,12 @@ fn suggest_fix(expected: &Token, found: Option<&Token>) -> Option<String> {
 ///   3 |    echo missing then
 ///     |    ^^^^ expected 'then', found 'echo'
 /// ```
-pub fn build_snippet(source: &str, line: usize, col: Option<usize>, highlight_len: usize) -> String {
+pub fn build_snippet(
+    source: &str,
+    line: usize,
+    col: Option<usize>,
+    highlight_len: usize,
+) -> String {
     let lines: Vec<&str> = source.lines().collect();
     let line_idx = line.saturating_sub(1);
     let gutter_width = format!("{}", line.min(lines.len()) + 1).len();
@@ -168,7 +162,12 @@ pub fn build_snippet(source: &str, line: usize, col: Option<usize>, highlight_le
         let prev = line_idx - 1;
         let _ = std::fmt::Write::write_fmt(
             &mut snippet,
-            format_args!("{:>width$} | {}\n", prev + 1, lines.get(prev).unwrap_or(&""), width = gutter_width),
+            format_args!(
+                "{:>width$} | {}\n",
+                prev + 1,
+                lines.get(prev).unwrap_or(&""),
+                width = gutter_width
+            ),
         );
     }
 
@@ -195,7 +194,12 @@ pub fn build_snippet(source: &str, line: usize, col: Option<usize>, highlight_le
     if let Some(next_line) = lines.get(line_idx + 1) {
         let _ = std::fmt::Write::write_fmt(
             &mut snippet,
-            format_args!("{:>width$} | {}\n", line + 1, next_line, width = gutter_width),
+            format_args!(
+                "{:>width$} | {}\n",
+                line + 1,
+                next_line,
+                width = gutter_width
+            ),
         );
     }
 
@@ -211,13 +215,20 @@ pub fn format_parse_diagnostic(
     use crate::models::diagnostic::{Diagnostic, ErrorCategory};
 
     match error {
-        ParseError::UnexpectedToken { expected, found, line } => {
+        ParseError::UnexpectedToken {
+            expected,
+            found,
+            line,
+        } => {
             let snippet = build_snippet(source, *line, None, found.len().min(20));
             // Derive contextual help from the expected token
             let help = if expected.contains("then") {
                 Some("add 'then' after the condition: `if [ ... ]; then`".to_string())
             } else if expected.contains("do") {
-                Some("add 'do' after the loop header: `while [ ... ]; do` or `for x in ...; do`".to_string())
+                Some(
+                    "add 'do' after the loop header: `while [ ... ]; do` or `for x in ...; do`"
+                        .to_string(),
+                )
             } else if expected.contains("fi") {
                 Some("every 'if' must be closed with 'fi'".to_string())
             } else if expected.contains("done") {
@@ -253,23 +264,26 @@ pub fn format_parse_diagnostic(
                 line: Some(total_lines),
                 column: None,
                 category: ErrorCategory::Syntax,
-                note: Some("the file ended while the parser was still expecting more input".to_string()),
-                help: Some("check for unclosed quotes, brackets, or missing keywords (fi, done, esac)".to_string()),
+                note: Some(
+                    "the file ended while the parser was still expecting more input".to_string(),
+                ),
+                help: Some(
+                    "check for unclosed quotes, brackets, or missing keywords (fi, done, esac)"
+                        .to_string(),
+                ),
                 snippet: Some(snippet),
             }
         }
-        ParseError::InvalidSyntax(msg) => {
-            Diagnostic {
-                error: msg.clone(),
-                file: file.map(String::from),
-                line: None,
-                column: None,
-                category: ErrorCategory::Syntax,
-                note: None,
-                help: None,
-                snippet: None,
-            }
-        }
+        ParseError::InvalidSyntax(msg) => Diagnostic {
+            error: msg.clone(),
+            file: file.map(String::from),
+            line: None,
+            column: None,
+            category: ErrorCategory::Syntax,
+            note: None,
+            help: None,
+            snippet: None,
+        },
         ParseError::LexerError(lex_err) => {
             let (line, col) = match lex_err {
                 LexerError::UnexpectedChar(_, l, c) => (Some(*l), Some(*c)),
@@ -284,9 +298,7 @@ pub fn format_parse_diagnostic(
                 LexerError::UnexpectedChar(ch, _, _) => {
                     Some(format!("'{ch}' is not valid in this context"))
                 }
-                LexerError::InvalidNumber(s) => {
-                    Some(format!("'{s}' is not a valid number"))
-                }
+                LexerError::InvalidNumber(s) => Some(format!("'{s}' is not a valid number")),
             };
             Diagnostic {
                 error: format!("{lex_err}"),
@@ -1791,13 +1803,13 @@ impl BashParser {
             }
             // Handle keyword tokens as command names (rare but valid bash)
             Some(t) if Self::keyword_as_str(t).is_some() => {
-                let cmd = Self::keyword_as_str(t).expect("checked is_some").to_string();
+                let cmd = Self::keyword_as_str(t)
+                    .expect("checked is_some")
+                    .to_string();
                 self.advance();
                 cmd
             }
-            _ => {
-                return Err(self.syntax_error("command name"))
-            }
+            _ => return Err(self.syntax_error("command name")),
         };
 
         let mut args = Vec::new();
@@ -1949,8 +1961,7 @@ impl BashParser {
                     _ => {
                         // Handle name=value patterns in command arguments
                         // e.g., docker ps --filter name=myapp, env VAR=value cmd
-                        if self.peek_ahead(1) == Some(&Token::Assign)
-                        {
+                        if self.peek_ahead(1) == Some(&Token::Assign) {
                             let var_name = s.clone();
                             self.advance(); // consume name
                             self.advance(); // consume '='
@@ -2617,8 +2628,7 @@ impl BashParser {
                                     break;
                                 }
                             }
-                            let num = i64::from_str_radix(&value_str, base)
-                                .unwrap_or(0);
+                            let num = i64::from_str_radix(&value_str, base).unwrap_or(0);
                             tokens.push(ArithToken::Number(num));
                         } else {
                             let num = num_str.parse::<i64>().map_err(|_| {
@@ -3013,10 +3023,7 @@ impl BashParser {
                 self.peek_ahead(2),
                 Some(Token::CommandSubstitution(_) | Token::Variable(_) | Token::String(_))
             )
-            && !matches!(
-                self.peek_ahead(3),
-                Some(Token::Identifier(_))
-            )
+            && !matches!(self.peek_ahead(3), Some(Token::Identifier(_)))
         {
             let var_name = if let Some(Token::Identifier(n)) = self.peek() {
                 n.clone()
@@ -3224,9 +3231,7 @@ impl BashParser {
                 self.advance();
                 cmd
             }
-            _ => {
-                return Err(self.syntax_error("command name"))
-            }
+            _ => return Err(self.syntax_error("command name")),
         };
 
         // Build the full name with env prefixes: "IFS= read" or "LC_ALL=C sort"
@@ -3355,8 +3360,8 @@ impl BashParser {
                     let expr = self.parse_expression()?;
                     return Ok(TestExpr::StringEmpty(expr));
                 }
-                "-f" | "-e" | "-s" | "-v" | "-L" | "-h" | "-p" | "-b" | "-c"
-                | "-g" | "-k" | "-u" | "-t" | "-O" | "-G" | "-N" => {
+                "-f" | "-e" | "-s" | "-v" | "-L" | "-h" | "-p" | "-b" | "-c" | "-g" | "-k"
+                | "-u" | "-t" | "-O" | "-G" | "-N" => {
                     // File test operators: -f, -e, -s, -L/-h, -p, -b, -c,
                     // -g, -k, -u, -t, -O, -G, -N, -v
                     self.advance();
@@ -3594,7 +3599,7 @@ impl BashParser {
             {
                 self.advance(); // consume fd number
                 self.advance(); // consume redirect operator
-                // Handle >&N or >&- (fd duplication / close)
+                                // Handle >&N or >&- (fd duplication / close)
                 if self.check(&Token::Ampersand) {
                     self.advance(); // consume &
                 }
@@ -3616,7 +3621,7 @@ impl BashParser {
             // bare redirect: >/dev/null, >>file, <file, < <(cmd), >&2, >&-
             if matches!(self.peek(), Some(Token::Gt | Token::GtGt | Token::Lt)) {
                 self.advance(); // consume redirect operator
-                // Handle >&N (fd duplication) and >&- (fd close)
+                                // Handle >&N (fd duplication) and >&- (fd close)
                 if self.check(&Token::Ampersand) {
                     self.advance(); // consume &
                 }
@@ -4004,58 +4009,45 @@ function greet() {
 
     #[test]
     fn test_FORCSTYLE_COV_001_le_operator() {
-        let (_, cond, _) = parse_for_c_style_parts(
-            "for ((i=0; i<=10; i++)); do echo $i; done",
-        );
+        let (_, cond, _) = parse_for_c_style_parts("for ((i=0; i<=10; i++)); do echo $i; done");
         assert!(cond.contains("<="));
     }
 
     #[test]
     fn test_FORCSTYLE_COV_002_ge_operator() {
-        let (_, cond, _) = parse_for_c_style_parts(
-            "for ((i=10; i>=0; i--)); do echo $i; done",
-        );
+        let (_, cond, _) = parse_for_c_style_parts("for ((i=10; i>=0; i--)); do echo $i; done");
         assert!(cond.contains(">="));
     }
 
     #[test]
     fn test_FORCSTYLE_COV_003_eq_operator() {
-        let (_, cond, _) = parse_for_c_style_parts(
-            "for ((i=0; i==0; i++)); do echo $i; done",
-        );
+        let (_, cond, _) = parse_for_c_style_parts("for ((i=0; i==0; i++)); do echo $i; done");
         assert!(cond.contains("=="));
     }
 
     #[test]
     fn test_FORCSTYLE_COV_004_ne_operator() {
-        let (_, cond, _) = parse_for_c_style_parts(
-            "for ((i=0; i!=10; i++)); do echo $i; done",
-        );
+        let (_, cond, _) = parse_for_c_style_parts("for ((i=0; i!=10; i++)); do echo $i; done");
         assert!(cond.contains("!="));
     }
 
     #[test]
     fn test_FORCSTYLE_COV_005_gt_operator() {
-        let (_, cond, _) = parse_for_c_style_parts(
-            "for ((i=10; i>0; i--)); do echo $i; done",
-        );
+        let (_, cond, _) = parse_for_c_style_parts("for ((i=10; i>0; i--)); do echo $i; done");
         assert!(cond.contains(">"));
     }
 
     #[test]
     fn test_FORCSTYLE_COV_006_variable_token() {
-        let (init, _, _) = parse_for_c_style_parts(
-            "for (($i=0; $i<10; i++)); do echo $i; done",
-        );
+        let (init, _, _) = parse_for_c_style_parts("for (($i=0; $i<10; i++)); do echo $i; done");
         assert!(init.contains("$i"));
     }
 
     #[test]
     fn test_FORCSTYLE_COV_007_no_semicolon_before_do() {
         // No semicolon between )) and do
-        let (init, cond, incr) = parse_for_c_style_parts(
-            "for ((i=0; i<10; i++))\ndo\necho $i\ndone",
-        );
+        let (init, cond, incr) =
+            parse_for_c_style_parts("for ((i=0; i<10; i++))\ndo\necho $i\ndone");
         assert_eq!(init, "i=0");
         assert!(cond.contains("i<10") || cond.contains("i <10") || cond.contains("i< 10"));
         assert!(!incr.is_empty());
@@ -4064,26 +4056,21 @@ function greet() {
     #[test]
     fn test_FORCSTYLE_COV_008_semicolon_before_do() {
         // Explicit semicolon between )) and do
-        let (init, _, _) = parse_for_c_style_parts(
-            "for ((i=0; i<10; i++)); do echo $i; done",
-        );
+        let (init, _, _) = parse_for_c_style_parts("for ((i=0; i<10; i++)); do echo $i; done");
         assert_eq!(init, "i=0");
     }
 
     #[test]
     fn test_FORCSTYLE_COV_009_nested_parentheses() {
         // Nested parens in arithmetic
-        let (init, _, _) = parse_for_c_style_parts(
-            "for (((i)=0; i<10; i++)); do echo $i; done",
-        );
+        let (init, _, _) = parse_for_c_style_parts("for (((i)=0; i<10; i++)); do echo $i; done");
         assert!(init.contains("(i)"));
     }
 
     #[test]
     fn test_FORCSTYLE_COV_010_number_tokens() {
-        let (init, cond, incr) = parse_for_c_style_parts(
-            "for ((i=0; i<100; i++)); do echo $i; done",
-        );
+        let (init, cond, incr) =
+            parse_for_c_style_parts("for ((i=0; i<100; i++)); do echo $i; done");
         assert!(init.contains("0"));
         assert!(cond.contains("100"));
         assert!(!incr.is_empty());
@@ -4110,7 +4097,12 @@ function greet() {
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
         match &ast.statements[0] {
-            BashStmt::ForCStyle { init, condition, increment, .. } => {
+            BashStmt::ForCStyle {
+                init,
+                condition,
+                increment,
+                ..
+            } => {
                 assert!(!init.is_empty());
                 assert!(!condition.is_empty());
                 assert!(!increment.is_empty());
@@ -4122,18 +4114,15 @@ function greet() {
     #[test]
     fn test_FORCSTYLE_COV_013_assign_token() {
         // Tests the Token::Assign (=) path in the content reader
-        let (init, _, _) = parse_for_c_style_parts(
-            "for ((i=0; i<10; i++)); do echo ok; done",
-        );
+        let (init, _, _) = parse_for_c_style_parts("for ((i=0; i<10; i++)); do echo ok; done");
         assert!(init.contains("=") || init.contains("0"));
     }
 
     #[test]
     fn test_FORCSTYLE_COV_014_identifier_and_number() {
         // Tests both Token::Identifier and Token::Number paths
-        let (init, cond, incr) = parse_for_c_style_parts(
-            "for ((count=0; count<5; count++)); do echo $count; done",
-        );
+        let (init, cond, incr) =
+            parse_for_c_style_parts("for ((count=0; count<5; count++)); do echo $count; done");
         assert!(init.contains("count"));
         assert!(cond.contains("count"));
         assert!(incr.contains("count"));
@@ -4383,7 +4372,7 @@ esac
         let input = r#"[ "$x" = "foo" ]"#;
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4391,7 +4380,7 @@ esac
         let input = r#"[ "$x" != "bar" ]"#;
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4399,7 +4388,7 @@ esac
         let input = "[ $x -eq 5 ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4407,7 +4396,7 @@ esac
         let input = "[ $x -ne 0 ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4415,7 +4404,7 @@ esac
         let input = "[ $x -lt 10 ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4423,7 +4412,7 @@ esac
         let input = "[ $x -le 100 ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4431,7 +4420,7 @@ esac
         let input = "[ $x -gt 0 ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4439,7 +4428,7 @@ esac
         let input = "[ $x -ge 1 ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4447,7 +4436,7 @@ esac
         let input = "[ -e /tmp/file ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4455,7 +4444,7 @@ esac
         let input = "[ -r /tmp/file ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4463,7 +4452,7 @@ esac
         let input = "[ -w /tmp/file ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4471,7 +4460,7 @@ esac
         let input = "[ -x /bin/sh ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4479,7 +4468,7 @@ esac
         let input = "[ -d /tmp ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4487,7 +4476,7 @@ esac
         let input = "[ -z \"$x\" ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -4495,7 +4484,7 @@ esac
         let input = "[ -n \"$x\" ]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     // ============================================================================
@@ -4507,7 +4496,7 @@ esac
         let input = "[[ $x == pattern ]]";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     // ============================================================================
@@ -5082,7 +5071,7 @@ esac
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
         // Should parse successfully; shebang may be comment or handled specially
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     // ============================================================================
@@ -5094,7 +5083,7 @@ esac
         let input = "cat <<EOF\nhello world\nEOF";
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     // ============================================================================
@@ -5131,7 +5120,7 @@ esac
         let mut parser = BashParser::new(input).unwrap();
         let ast = parser.parse().unwrap();
         // Should parse successfully, skipping empty lines
-        assert!(ast.statements.len() >= 1);
+        assert!(!ast.statements.is_empty());
     }
 
     #[test]
@@ -5546,16 +5535,16 @@ EOF"#;
     $KUBECTL scale deployment/foo --replicas=3
 }"#;
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse $VAR command in function");
+        let ast = parser
+            .parse()
+            .expect("should parse $VAR command in function");
         match &ast.statements[0] {
-            BashStmt::Function { body, .. } => {
-                match &body[0] {
-                    BashStmt::Command { name, .. } => {
-                        assert_eq!(name, "$KUBECTL");
-                    }
-                    other => panic!("Expected Command in function body, got {other:?}"),
+            BashStmt::Function { body, .. } => match &body[0] {
+                BashStmt::Command { name, .. } => {
+                    assert_eq!(name, "$KUBECTL");
                 }
-            }
+                other => panic!("Expected Command in function body, got {other:?}"),
+            },
             other => panic!("Expected Function, got {other:?}"),
         }
     }
@@ -5565,15 +5554,21 @@ EOF"#;
         // IFS= read -r line is a common pattern: env prefix before command in while condition
         let input = "while IFS= read -r line; do\n    echo \"$line\"\ndone";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse IFS= read in while condition");
+        let ast = parser
+            .parse()
+            .expect("should parse IFS= read in while condition");
         match &ast.statements[0] {
-            BashStmt::While { condition, body, .. } => {
+            BashStmt::While {
+                condition, body, ..
+            } => {
                 // Condition should be a CommandCondition with "IFS= read" as name
                 match condition {
                     BashExpr::CommandCondition(stmt) => match stmt.as_ref() {
                         BashStmt::Command { name, args, .. } => {
                             assert_eq!(name, "IFS= read");
-                            assert!(args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "-r")));
+                            assert!(args
+                                .iter()
+                                .any(|a| matches!(a, BashExpr::Literal(s) if s == "-r")));
                         }
                         other => panic!("Expected Command in condition, got {other:?}"),
                     },
@@ -5610,7 +5605,9 @@ EOF"#;
         // `done < <(cmd)` — process substitution redirect on while loop
         let input = "while IFS= read -r line; do\n    echo \"$line\"\ndone < <(echo test)";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse while with process substitution redirect");
+        let ast = parser
+            .parse()
+            .expect("should parse while with process substitution redirect");
         assert!(matches!(&ast.statements[0], BashStmt::While { .. }));
     }
 
@@ -5631,7 +5628,9 @@ func_b() {
     done
 }"#;
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse multiple functions with IFS= read");
+        let ast = parser
+            .parse()
+            .expect("should parse multiple functions with IFS= read");
         assert_eq!(ast.statements.len(), 2);
         assert!(matches!(&ast.statements[0], BashStmt::Function { name, .. } if name == "func_a"));
         assert!(matches!(&ast.statements[1], BashStmt::Function { name, .. } if name == "func_b"));
@@ -5662,7 +5661,9 @@ func_b() {
     fn test_HEREDOC_003_heredoc_in_for_loop_in_function() {
         let input = "send_alert() {\n    for email in a b c; do\n        mail -s ALERT \"$email\" <<EOF\nalert content\nEOF\n    done\n}";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse heredoc in for loop in function");
+        let ast = parser
+            .parse()
+            .expect("should parse heredoc in for loop in function");
         assert_eq!(ast.statements.len(), 1);
         assert!(matches!(&ast.statements[0], BashStmt::Function { .. }));
     }
@@ -5672,7 +5673,9 @@ func_b() {
         // Verify heredoc doesn't eat following statements
         let input = "cat <<EOF\nhello\nEOF\necho after";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse heredoc + following statement");
+        let ast = parser
+            .parse()
+            .expect("should parse heredoc + following statement");
         assert_eq!(ast.statements.len(), 2);
     }
 
@@ -5681,7 +5684,9 @@ func_b() {
         // `if pid=$(check_pid); then` — assignment exit status is the condition
         let input = "if pid=$(check_pid); then\n    echo \"$pid\"\nfi";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse assignment-as-condition");
+        let ast = parser
+            .parse()
+            .expect("should parse assignment-as-condition");
         assert_eq!(ast.statements.len(), 1);
         assert!(matches!(&ast.statements[0], BashStmt::If { .. }));
     }
@@ -5691,7 +5696,9 @@ func_b() {
         // `if ! pid=$(check_pid); then` — negated assignment condition
         let input = "if ! pid=$(check_pid); then\n    echo fail\nfi";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse negated assignment condition");
+        let ast = parser
+            .parse()
+            .expect("should parse negated assignment condition");
         assert_eq!(ast.statements.len(), 1);
     }
 
@@ -5717,7 +5724,9 @@ esac"#;
     *) echo unknown ;;
 esac"#;
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse bracket char class in case pattern");
+        let ast = parser
+            .parse()
+            .expect("should parse bracket char class in case pattern");
         assert!(matches!(&ast.statements[0], BashStmt::Case { arms, .. } if arms.len() == 3));
     }
 
@@ -5726,7 +5735,9 @@ esac"#;
         // Case patterns with pipe alternatives including empty string
         let input = "case \"$key\" in\n    \\#*|\"\") continue ;;\n    *) echo other ;;\nesac";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse pipe alternative patterns");
+        let ast = parser
+            .parse()
+            .expect("should parse pipe alternative patterns");
         assert!(matches!(&ast.statements[0], BashStmt::Case { arms, .. } if arms.len() == 2));
     }
 
@@ -5735,7 +5746,9 @@ esac"#;
         // Glob bracket pattern in for loop items: [0-9]*.sql
         let input = "for f in /tmp/[0-9]*.sql; do\n    echo \"$f\"\ndone";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse glob bracket in for items");
+        let ast = parser
+            .parse()
+            .expect("should parse glob bracket in for items");
         assert!(matches!(&ast.statements[0], BashStmt::For { .. }));
     }
 
@@ -5746,7 +5759,9 @@ esac"#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse().expect("should parse pipe into while");
         assert_eq!(ast.statements.len(), 1);
-        assert!(matches!(&ast.statements[0], BashStmt::Pipeline { commands, .. } if commands.len() == 2));
+        assert!(
+            matches!(&ast.statements[0], BashStmt::Pipeline { commands, .. } if commands.len() == 2)
+        );
     }
 
     #[test]
@@ -5772,7 +5787,9 @@ esac"#;
         // if [ condition ] 2>/dev/null; then
         let input = "if [ \"$x\" -ge 10 ] 2>/dev/null; then\n    echo yes\nfi";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse test with stderr redirect");
+        let ast = parser
+            .parse()
+            .expect("should parse test with stderr redirect");
         assert!(matches!(&ast.statements[0], BashStmt::If { .. }));
     }
 
@@ -5781,7 +5798,9 @@ esac"#;
         // while [ condition ] 2>/dev/null; do
         let input = "while [ -f /tmp/lock ] 2>/dev/null; do\n    sleep 1\ndone";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse while test with redirect");
+        let ast = parser
+            .parse()
+            .expect("should parse while test with redirect");
         assert!(matches!(&ast.statements[0], BashStmt::While { .. }));
     }
 
@@ -5790,7 +5809,9 @@ esac"#;
         // { cmd; } > out 2> err
         let input = "{\n    echo stdout\n    echo stderr >&2\n} > /tmp/out.log 2> /tmp/err.log";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse brace group with redirects");
+        let ast = parser
+            .parse()
+            .expect("should parse brace group with redirects");
         assert!(matches!(&ast.statements[0], BashStmt::BraceGroup { .. }));
     }
 
@@ -5799,8 +5820,13 @@ esac"#;
         // ( cmd ) > out
         let input = "(\n    echo hello\n) > /tmp/out.log";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse subshell with redirects");
-        assert!(matches!(&ast.statements[0], BashStmt::BraceGroup { subshell: true, .. }));
+        let ast = parser
+            .parse()
+            .expect("should parse subshell with redirects");
+        assert!(matches!(
+            &ast.statements[0],
+            BashStmt::BraceGroup { subshell: true, .. }
+        ));
     }
 
     #[test]
@@ -5808,7 +5834,9 @@ esac"#;
         // ( cmd ) & — background subshell
         let input = "for i in 1 2 3; do\n    (\n        echo \"$i\"\n    ) &\ndone";
         let mut parser = BashParser::new(input).expect("parser");
-        let ast = parser.parse().expect("should parse background subshell in loop");
+        let ast = parser
+            .parse()
+            .expect("should parse background subshell in loop");
         assert!(matches!(&ast.statements[0], BashStmt::For { .. }));
     }
 
@@ -5846,7 +5874,11 @@ esac"#;
         let input = "if ( true ); then\n    echo ok\nfi";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "Subshell as if-condition should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "Subshell as if-condition should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -5854,7 +5886,11 @@ esac"#;
         let input = "if ( set -o noclobber; echo hi ); then\n    echo ok\nfi";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "Subshell with ; in if-condition should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "Subshell with ; in if-condition should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -5862,7 +5898,11 @@ esac"#;
         let input = "if ( echo test ) 2>/dev/null; then\n    echo ok\nfi";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "Subshell condition with redirect should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "Subshell condition with redirect should parse: {:?}",
+            ast.err()
+        );
     }
 
     // --- (( expr )) && / || tests ---
@@ -5898,7 +5938,11 @@ esac"#;
         let input = "if [[ \"$v\" =~ ^[0-9]+$ ]]; then\n    echo num\nfi";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "Complex =~ regex should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "Complex =~ regex should parse: {:?}",
+            ast.err()
+        );
     }
 
     // --- POSIX char class in case tests ---
@@ -5908,7 +5952,11 @@ esac"#;
         let input = "case \"$ch\" in\n    [[:space:]])\n        echo ws\n        ;;\nesac";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "[[:space:]] in case should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "[[:space:]] in case should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -5916,7 +5964,11 @@ esac"#;
         let input = "case \"$ch\" in\n    [[:alpha:]])\n        echo letter\n        ;;\nesac";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "[[:alpha:]] in case should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "[[:alpha:]] in case should parse: {:?}",
+            ast.err()
+        );
     }
 
     // --- Extended glob in paths tests ---
@@ -6137,7 +6189,10 @@ done"#;
                     .collect();
                 assert_eq!(
                     kws,
-                    vec!["if", "then", "elif", "else", "fi", "for", "while", "until", "do", "done", "case", "esac", "in"]
+                    vec![
+                        "if", "then", "elif", "else", "fi", "for", "while", "until", "do", "done",
+                        "case", "esac", "in"
+                    ]
                 );
             }
             other => panic!("Expected Command, got {other:?}"),
@@ -6227,13 +6282,17 @@ done"#;
     fn test_NAMEVALUE_002_docker_filter() {
         let input = "docker ps --filter name=myapp";
         let mut parser = BashParser::new(input).expect("parser should init");
-        let ast = parser.parse().expect("should parse docker --filter name=value");
+        let ast = parser
+            .parse()
+            .expect("should parse docker --filter name=value");
         match &ast.statements[0] {
             BashStmt::Command { name, args, .. } => {
                 assert_eq!(name, "docker");
                 assert!(args.len() >= 3); // ps, --filter, name=myapp
-                // Find the name=myapp argument
-                let has_namevalue = args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "name=myapp"));
+                                          // Find the name=myapp argument
+                let has_namevalue = args
+                    .iter()
+                    .any(|a| matches!(a, BashExpr::Literal(s) if s == "name=myapp"));
                 assert!(has_namevalue, "args should contain name=myapp: {args:?}");
             }
             other => panic!("Expected Command, got {other:?}"),
@@ -6258,12 +6317,18 @@ done"#;
     fn test_NAMEVALUE_004_multiple_equals() {
         let input = "docker run -e DB_HOST=localhost -e DB_PORT=5432 myimage";
         let mut parser = BashParser::new(input).expect("parser should init");
-        let ast = parser.parse().expect("should parse multiple name=value args");
+        let ast = parser
+            .parse()
+            .expect("should parse multiple name=value args");
         match &ast.statements[0] {
             BashStmt::Command { name, args, .. } => {
                 assert_eq!(name, "docker");
-                let has_host = args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "DB_HOST=localhost"));
-                let has_port = args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "DB_PORT=5432"));
+                let has_host = args
+                    .iter()
+                    .any(|a| matches!(a, BashExpr::Literal(s) if s == "DB_HOST=localhost"));
+                let has_port = args
+                    .iter()
+                    .any(|a| matches!(a, BashExpr::Literal(s) if s == "DB_PORT=5432"));
                 assert!(has_host, "should have DB_HOST=localhost: {args:?}");
                 assert!(has_port, "should have DB_PORT=5432: {args:?}");
             }
@@ -6293,11 +6358,15 @@ done"#;
     fn test_URL_002_port_mapping_single_token() {
         let input = "docker run -p 8080:8080 myimage";
         let mut parser = BashParser::new(input).expect("parser should init");
-        let ast = parser.parse().expect("should parse port mapping as single token");
+        let ast = parser
+            .parse()
+            .expect("should parse port mapping as single token");
         match &ast.statements[0] {
             BashStmt::Command { name, args, .. } => {
                 assert_eq!(name, "docker");
-                let has_port = args.iter().any(|a| matches!(a, BashExpr::Literal(s) if s == "8080:8080"));
+                let has_port = args
+                    .iter()
+                    .any(|a| matches!(a, BashExpr::Literal(s) if s == "8080:8080"));
                 assert!(has_port, "should have 8080:8080 as single token: {args:?}");
             }
             other => panic!("Expected Command, got {other:?}"),
@@ -6331,10 +6400,17 @@ fi"#;
         let ast = parser.parse().expect("should parse && in if condition");
         assert_eq!(ast.statements.len(), 1);
         match &ast.statements[0] {
-            BashStmt::If { condition, then_block, .. } => {
+            BashStmt::If {
+                condition,
+                then_block,
+                ..
+            } => {
                 // Condition should be a compound test with And
                 let cond_str = format!("{condition:?}");
-                assert!(cond_str.contains("And"), "condition should contain And: {cond_str}");
+                assert!(
+                    cond_str.contains("And"),
+                    "condition should contain And: {cond_str}"
+                );
                 assert!(!then_block.is_empty());
             }
             other => panic!("Expected If, got {other:?}"),
@@ -6351,7 +6427,10 @@ fi"#;
         match &ast.statements[0] {
             BashStmt::If { condition, .. } => {
                 let cond_str = format!("{condition:?}");
-                assert!(cond_str.contains("Or"), "condition should contain Or: {cond_str}");
+                assert!(
+                    cond_str.contains("Or"),
+                    "condition should contain Or: {cond_str}"
+                );
             }
             other => panic!("Expected If, got {other:?}"),
         }
@@ -6368,7 +6447,10 @@ done"#;
         match &ast.statements[0] {
             BashStmt::While { condition, .. } => {
                 let cond_str = format!("{condition:?}");
-                assert!(cond_str.contains("And"), "condition should contain And: {cond_str}");
+                assert!(
+                    cond_str.contains("And"),
+                    "condition should contain And: {cond_str}"
+                );
             }
             other => panic!("Expected While, got {other:?}"),
         }
@@ -6444,7 +6526,9 @@ done"#;
     *) break ;;
 esac"#;
         let mut parser = BashParser::new(input).expect("parser should init");
-        let ast = parser.parse().expect("should parse multi-statement case arm");
+        let ast = parser
+            .parse()
+            .expect("should parse multi-statement case arm");
         match &ast.statements[0] {
             BashStmt::Case { arms, .. } => {
                 assert_eq!(arms.len(), 2, "should have 2 arms");
@@ -6472,7 +6556,9 @@ esac"#;
     shift
 done"#;
         let mut parser = BashParser::new(input).expect("parser should init");
-        let ast = parser.parse().expect("should parse option loop with multi-stmt arms");
+        let ast = parser
+            .parse()
+            .expect("should parse option loop with multi-stmt arms");
         match &ast.statements[0] {
             BashStmt::While { body, .. } => {
                 assert!(!body.is_empty(), "while body should not be empty");
@@ -6778,10 +6864,7 @@ fi"#;
         #[test]
         fn test_arith_tok_011_bitwise_xor_and_not() {
             let tokens = tokenize("^ ~");
-            assert_eq!(
-                tokens,
-                vec![ArithToken::BitXor, ArithToken::BitNot]
-            );
+            assert_eq!(tokens, vec![ArithToken::BitXor, ArithToken::BitNot]);
         }
 
         #[test]
@@ -6836,37 +6919,22 @@ fi"#;
         #[test]
         fn test_arith_tok_016_dollar_variable() {
             let tokens = tokenize("$var");
-            assert_eq!(
-                tokens,
-                vec![ArithToken::Variable("var".to_string())]
-            );
+            assert_eq!(tokens, vec![ArithToken::Variable("var".to_string())]);
 
             let tokens = tokenize("$foo_bar");
-            assert_eq!(
-                tokens,
-                vec![ArithToken::Variable("foo_bar".to_string())]
-            );
+            assert_eq!(tokens, vec![ArithToken::Variable("foo_bar".to_string())]);
         }
 
         #[test]
         fn test_arith_tok_017_bare_identifier_variable() {
             let tokens = tokenize("count");
-            assert_eq!(
-                tokens,
-                vec![ArithToken::Variable("count".to_string())]
-            );
+            assert_eq!(tokens, vec![ArithToken::Variable("count".to_string())]);
 
             let tokens = tokenize("_private");
-            assert_eq!(
-                tokens,
-                vec![ArithToken::Variable("_private".to_string())]
-            );
+            assert_eq!(tokens, vec![ArithToken::Variable("_private".to_string())]);
 
             let tokens = tokenize("Var2");
-            assert_eq!(
-                tokens,
-                vec![ArithToken::Variable("Var2".to_string())]
-            );
+            assert_eq!(tokens, vec![ArithToken::Variable("Var2".to_string())]);
         }
 
         #[test]
@@ -6948,10 +7016,7 @@ fi"#;
             let tokens = tokenize("$+");
             assert_eq!(
                 tokens,
-                vec![
-                    ArithToken::Variable(String::new()),
-                    ArithToken::Plus,
-                ]
+                vec![ArithToken::Variable(String::new()), ArithToken::Plus,]
             );
         }
 
@@ -7022,7 +7087,12 @@ fi"#;
                     increment,
                     body,
                     ..
-                } => (init.clone(), condition.clone(), increment.clone(), body.len()),
+                } => (
+                    init.clone(),
+                    condition.clone(),
+                    increment.clone(),
+                    body.len(),
+                ),
                 other => panic!("Expected ForCStyle, got {other:?}"),
             }
         }
@@ -7048,16 +7118,14 @@ fi"#;
 
         #[test]
         fn test_FOR_C_STYLE_003_number_tokens() {
-            let (init, cond, _, _) =
-                parse_c_for("for ((i=100; i<200; i++)); do echo $i; done");
+            let (init, cond, _, _) = parse_c_for("for ((i=100; i<200; i++)); do echo $i; done");
             assert!(init.contains("100"));
             assert!(cond.contains("200"));
         }
 
         #[test]
         fn test_FOR_C_STYLE_004_assign_operator() {
-            let (init, _, _, _) =
-                parse_c_for("for ((i=0; i<10; i++)); do echo $i; done");
+            let (init, _, _, _) = parse_c_for("for ((i=0; i<10; i++)); do echo $i; done");
             assert!(init.contains("="));
             assert!(init.contains("i"));
             assert!(init.contains("0"));
@@ -7065,80 +7133,69 @@ fi"#;
 
         #[test]
         fn test_FOR_C_STYLE_005_lt_operator() {
-            let (_, cond, _, _) =
-                parse_c_for("for ((i=0; i<10; i++)); do echo $i; done");
+            let (_, cond, _, _) = parse_c_for("for ((i=0; i<10; i++)); do echo $i; done");
             assert!(cond.contains("<"));
         }
 
         #[test]
         fn test_FOR_C_STYLE_006_gt_operator() {
-            let (_, cond, _, _) =
-                parse_c_for("for ((i=10; i>0; i--)); do echo $i; done");
+            let (_, cond, _, _) = parse_c_for("for ((i=10; i>0; i--)); do echo $i; done");
             assert!(cond.contains(">"));
         }
 
         #[test]
         fn test_FOR_C_STYLE_007_le_operator() {
-            let (_, cond, _, _) =
-                parse_c_for("for ((i=0; i<=10; i++)); do echo $i; done");
+            let (_, cond, _, _) = parse_c_for("for ((i=0; i<=10; i++)); do echo $i; done");
             assert!(cond.contains("<="));
         }
 
         #[test]
         fn test_FOR_C_STYLE_008_ge_operator() {
-            let (_, cond, _, _) =
-                parse_c_for("for ((i=10; i>=0; i--)); do echo $i; done");
+            let (_, cond, _, _) = parse_c_for("for ((i=10; i>=0; i--)); do echo $i; done");
             assert!(cond.contains(">="));
         }
 
         #[test]
         fn test_FOR_C_STYLE_009_eq_operator() {
-            let (_, cond, _, _) =
-                parse_c_for("for ((i=0; i==0; i++)); do echo ok; done");
+            let (_, cond, _, _) = parse_c_for("for ((i=0; i==0; i++)); do echo ok; done");
             assert!(cond.contains("=="));
         }
 
         #[test]
         fn test_FOR_C_STYLE_010_ne_operator() {
-            let (_, cond, _, _) =
-                parse_c_for("for ((i=0; i!=10; i++)); do echo $i; done");
+            let (_, cond, _, _) = parse_c_for("for ((i=0; i!=10; i++)); do echo $i; done");
             assert!(cond.contains("!="));
         }
 
         #[test]
         fn test_FOR_C_STYLE_011_variable_with_dollar() {
-            let (init, cond, _, _) =
-                parse_c_for("for (($x=0; $x<10; x++)); do echo ok; done");
+            let (init, cond, _, _) = parse_c_for("for (($x=0; $x<10; x++)); do echo ok; done");
             assert!(init.contains("$x"));
             assert!(cond.contains("$x"));
         }
 
         #[test]
         fn test_FOR_C_STYLE_012_nested_parens_in_init() {
-            let (init, _, _, _) =
-                parse_c_for("for (((i)=0; i<10; i++)); do echo $i; done");
+            let (init, _, _, _) = parse_c_for("for (((i)=0; i<10; i++)); do echo $i; done");
             assert!(init.contains("(i)"));
         }
 
         #[test]
         fn test_FOR_C_STYLE_013_nested_parens_in_condition() {
-            let (_, cond, _, _) =
-                parse_c_for("for ((i=0; (i)<10; i++)); do echo $i; done");
+            let (_, cond, _, _) = parse_c_for("for ((i=0; (i)<10; i++)); do echo $i; done");
             assert!(cond.contains("(i)"));
         }
 
         #[test]
         fn test_FOR_C_STYLE_014_nested_parens_in_increment() {
-            let (_, _, incr, _) =
-                parse_c_for("for ((i=0; i<10; (i)++)); do echo $i; done");
+            let (_, _, incr, _) = parse_c_for("for ((i=0; i<10; (i)++)); do echo $i; done");
             assert!(incr.contains("(i)"));
         }
 
         #[test]
         fn test_FOR_C_STYLE_015_semicolon_before_do() {
             // With explicit semicolon between )) and do
-            let (init, cond, incr, _) =
-                parse_c_for("for ((i=0; i<10; i++)); do echo $i; done");
+            let (init, cond, incr, _) = parse_c_for("for ((i=0; i<10; i++)); do echo $i; done");
             assert_eq!(init, "i=0");
             assert!(!cond.is_empty());
             assert!(!incr.is_empty());
@@ -7147,8 +7204,7 @@ fi"#;
         #[test]
         fn test_FOR_C_STYLE_016_no_semicolon_before_do() {
             // No semicolon, newline separates )) and do
-            let (init, cond, incr, _) =
-                parse_c_for("for ((i=0; i<5; i++))\ndo\necho ok\ndone");
+            let (init, cond, incr, _) = parse_c_for("for ((i=0; i<5; i++))\ndo\necho ok\ndone");
             assert_eq!(init, "i=0");
             assert!(!cond.is_empty());
             assert!(!incr.is_empty());
@@ -7171,23 +7227,20 @@ fi"#;
 
         #[test]
         fn test_FOR_C_STYLE_019_body_with_assignment() {
-            let (_, _, _, body_len) =
-                parse_c_for("for ((i=0; i<3; i++)); do\nx=1\necho $x\ndone");
+            let (_, _, _, body_len) = parse_c_for("for ((i=0; i<3; i++)); do\nx=1\necho $x\ndone");
             assert!(body_len >= 2);
         }
 
         #[test]
         fn test_FOR_C_STYLE_020_complex_increment_expression() {
-            let (_, _, incr, _) =
-                parse_c_for("for ((i=0; i<100; i+=10)); do echo $i; done");
+            let (_, _, incr, _) = parse_c_for("for ((i=0; i<100; i+=10)); do echo $i; done");
             // The increment should contain something representing i+=10
             assert!(!incr.is_empty());
         }
 
         #[test]
         fn test_FOR_C_STYLE_021_decrementing_loop() {
-            let (init, cond, _, _) =
-                parse_c_for("for ((i=10; i>0; i--)); do echo $i; done");
+            let (init, cond, _, _) = parse_c_for("for ((i=10; i>0; i--)); do echo $i; done");
             assert!(init.contains("10"));
             assert!(cond.contains(">"));
         }
@@ -7215,8 +7268,7 @@ fi"#;
 
         #[test]
         fn test_FOR_C_STYLE_024_single_body_command() {
-            let (_, _, _, body_len) =
-                parse_c_for("for ((i=0; i<1; i++)); do echo only; done");
+            let (_, _, _, body_len) = parse_c_for("for ((i=0; i<1; i++)); do echo only; done");
             assert_eq!(body_len, 1);
         }
 
@@ -7271,10 +7323,7 @@ fi"#;
 
         #[test]
         fn test_ARITH_EXPR_002_variable() {
-            assert_eq!(
-                parse_arith("x"),
-                ArithExpr::Variable("x".to_string())
-            );
+            assert_eq!(parse_arith("x"), ArithExpr::Variable("x".to_string()));
         }
 
         #[test]
@@ -7623,10 +7672,7 @@ fi"#;
         #[test]
         fn test_ARITH_EXPR_030_comma() {
             // a , b  =>  returns b (right value)
-            assert_eq!(
-                parse_arith("a , b"),
-                ArithExpr::Variable("b".to_string())
-            );
+            assert_eq!(parse_arith("a , b"), ArithExpr::Variable("b".to_string()));
         }
 
         // ── Precedence / Complex ─────────────────────────────────────────
@@ -7767,7 +7813,11 @@ fi"#;
         let input = "a=10; b=3";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "Semicolon-separated assignments should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "Semicolon-separated assignments should parse: {:?}",
+            ast.err()
+        );
         assert_eq!(ast.as_ref().expect("ok").statements.len(), 2);
     }
 
@@ -7776,7 +7826,11 @@ fi"#;
         let input = "echo a; echo b; echo c";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "Multiple semicolons should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "Multiple semicolons should parse: {:?}",
+            ast.err()
+        );
         assert_eq!(ast.as_ref().expect("ok").statements.len(), 3);
     }
 
@@ -7785,16 +7839,25 @@ fi"#;
         let input = "if [[ -v MYVAR ]]; then\n    echo set\nfi";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "-v test operator should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "-v test operator should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
     fn test_ENV_PREFIX_001_while_ifs() {
         // IFS='=' before read — env prefix, not assignment condition
-        let input = "while IFS='=' read -r key value; do\n    echo \"$key=$value\"\ndone < input.txt";
+        let input =
+            "while IFS='=' read -r key value; do\n    echo \"$key=$value\"\ndone < input.txt";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "IFS= env prefix in while should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "IFS= env prefix in while should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -7803,7 +7866,11 @@ fi"#;
         let input = "if [[ \"$key\" =~ ^[[:space:]]*# ]]; then\n    echo comment\nfi";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "=~ with [[:space:]] should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "=~ with [[:space:]] should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -7812,7 +7879,11 @@ fi"#;
         let input = "if command -v git &>/dev/null; then\n    echo found\nfi";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "&>/dev/null in if condition should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "&>/dev/null in if condition should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -7821,7 +7892,11 @@ fi"#;
         let input = "if ! command -v git &>/dev/null; then\n    echo missing\nfi";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "negated &>/dev/null in condition should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "negated &>/dev/null in condition should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -7857,7 +7932,11 @@ echo "Max: $max"
 "#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "dogfood_22 constructs should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "dogfood_22 constructs should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -7912,7 +7991,11 @@ main "$@"
 "#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "dogfood_23 key constructs should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "dogfood_23 key constructs should parse: {:?}",
+            ast.err()
+        );
     }
 
     // --- Batch 3: $'...' ANSI-C quoting, heredoc on done, -L test op ---
@@ -7922,7 +8005,11 @@ main "$@"
         let input = "IFS=$'\\t' read -r a b";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "$'\\t' ANSI-C quoting should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "$'\\t' ANSI-C quoting should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -7930,7 +8017,11 @@ main "$@"
         let input = "echo $'hello\\nworld'";
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "$'\\n' ANSI-C quoting should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "$'\\n' ANSI-C quoting should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -7952,8 +8043,10 @@ main "$@"
     #[test]
     fn test_FILE_TEST_002_all_operators() {
         // Test all file test operators
-        for op in ["-f", "-e", "-s", "-d", "-r", "-w", "-x", "-L", "-h", "-p",
-                   "-b", "-c", "-g", "-k", "-u", "-t", "-O", "-G", "-N", "-v", "-n", "-z"] {
+        for op in [
+            "-f", "-e", "-s", "-d", "-r", "-w", "-x", "-L", "-h", "-p", "-b", "-c", "-g", "-k",
+            "-u", "-t", "-O", "-G", "-N", "-v", "-n", "-z",
+        ] {
             let input = format!("[ {} /tmp/test ]", op);
             let mut parser = BashParser::new(&input).expect("parser");
             let ast = parser.parse();
@@ -7967,7 +8060,12 @@ main "$@"
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
         assert!(ast.is_ok(), "triple elif should parse: {:?}", ast.err());
-        if let BashStmt::If { elif_blocks, else_block, .. } = &ast.expect("ok").statements[0] {
+        if let BashStmt::If {
+            elif_blocks,
+            else_block,
+            ..
+        } = &ast.expect("ok").statements[0]
+        {
             assert_eq!(elif_blocks.len(), 2, "Should have 2 elif blocks");
             assert!(else_block.is_some(), "Should have else block");
         }
@@ -7989,7 +8087,11 @@ flock -n 200 || { echo "Already running" >&2; exit 1; }
 "#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "dogfood_24 traps should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "dogfood_24 traps should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -8004,7 +8106,11 @@ find . -name "*.txt" -print0 | xargs -0 grep -l "pattern" 2>/dev/null || true
 "#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "dogfood_26 git/find should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "dogfood_26 git/find should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -8040,7 +8146,11 @@ install_package() {
 "#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "dogfood_27 detect_os should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "dogfood_27 detect_os should parse: {:?}",
+            ast.err()
+        );
     }
 
     // --- Batch 4: && || inside [[ ]], -a -o inside [ ] ---
@@ -8082,7 +8192,11 @@ install_package() {
         let input = r#"[[ "$a" == "1" && "$b" == "2" && "$c" == "3" ]]"#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "triple && inside [[ ]] should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "triple && inside [[ ]] should parse: {:?}",
+            ast.err()
+        );
     }
 
     #[test]
@@ -8120,6 +8234,10 @@ fi
 "#;
         let mut parser = BashParser::new(input).expect("parser");
         let ast = parser.parse();
-        assert!(ast.is_ok(), "dogfood_29 edge cases should parse: {:?}", ast.err());
+        assert!(
+            ast.is_ok(),
+            "dogfood_29 edge cases should parse: {:?}",
+            ast.err()
+        );
     }
 }

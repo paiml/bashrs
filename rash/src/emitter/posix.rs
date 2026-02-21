@@ -779,12 +779,7 @@ impl PosixEmitter {
         Ok(())
     }
 
-    fn emit_elif_chain(
-        &self,
-        output: &mut String,
-        else_ir: &ShellIR,
-        indent: usize,
-    ) -> Result<()> {
+    fn emit_elif_chain(&self, output: &mut String, else_ir: &ShellIR, indent: usize) -> Result<()> {
         let indent_str = "    ".repeat(indent + 1);
         let unwrapped = unwrap_single_if(else_ir);
         if let ShellIR::If {
@@ -1122,8 +1117,12 @@ impl PosixEmitter {
             ShellValue::Concat(_) => "concat",
             ShellValue::Comparison { .. } => "comparison",
             ShellValue::Arithmetic { .. } => "arithmetic",
-            ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => "logical",
-            ShellValue::Arg { .. } | ShellValue::ArgWithDefault { .. } | ShellValue::ArgCount => "arg_access",
+            ShellValue::LogicalAnd { .. }
+            | ShellValue::LogicalOr { .. }
+            | ShellValue::LogicalNot { .. } => "logical",
+            ShellValue::Arg { .. } | ShellValue::ArgWithDefault { .. } | ShellValue::ArgCount => {
+                "arg_access"
+            }
             ShellValue::EnvVar { .. } => "env_var",
             ShellValue::ExitCode => "exit_code",
             ShellValue::DynamicArrayAccess { .. } => "dynamic_array",
@@ -1188,8 +1187,9 @@ impl PosixEmitter {
             ShellValue::DynamicArrayAccess { array, index } => {
                 let idx_expr = self.emit_dynamic_index_expr(index)?;
                 Ok(format!(
-                    "\"$(eval \"printf '%s' \\\"\\${}_{}\\\"\")\""
-                    , escape_variable_name(array), idx_expr
+                    "\"$(eval \"printf '%s' \\\"\\${}_{}\\\"\")\"",
+                    escape_variable_name(array),
+                    idx_expr
                 ))
             }
         }
@@ -1260,9 +1260,7 @@ impl PosixEmitter {
                 if let Some(parent) = parent_op {
                     let child_prec = arithmetic_precedence(op);
                     let parent_prec = arithmetic_precedence(parent);
-                    if child_prec < parent_prec
-                        || (child_prec == parent_prec && is_right)
-                    {
+                    if child_prec < parent_prec || (child_prec == parent_prec && is_right) {
                         return Ok(format!("({expr})"));
                     }
                 }
@@ -1282,7 +1280,8 @@ impl PosixEmitter {
                 let idx_expr = self.emit_dynamic_index_expr(index)?;
                 Ok(format!(
                     "$(eval \"printf '%s' \\\"\\${}_{}\\\"\")",
-                    escape_variable_name(array), idx_expr
+                    escape_variable_name(array),
+                    idx_expr
                 ))
             }
             _ => Err(crate::models::Error::Emission(format!(
@@ -1319,9 +1318,7 @@ impl PosixEmitter {
                 let op_str = arithmetic_op_str(op);
                 Ok(format!("({l} {op_str} {r})"))
             }
-            ShellValue::Comparison { op, left, right } => {
-                self.emit_comparison(op, left, right)
-            }
+            ShellValue::Comparison { op, left, right } => self.emit_comparison(op, left, right),
             _ => self.emit_shell_value(value),
         }
     }
@@ -1419,7 +1416,8 @@ impl PosixEmitter {
                 let idx_expr = self.emit_dynamic_index_expr(index)?;
                 result.push_str(&format!(
                     "$(eval \"printf '%s' \\\"\\${}_{}\\\"\")",
-                    escape_variable_name(array), idx_expr
+                    escape_variable_name(array),
+                    idx_expr
                 ));
             }
         }
@@ -1452,7 +1450,9 @@ impl PosixEmitter {
             ShellValue::Variable(_) => "variable_test",
             ShellValue::String(_) => "string_check",
             ShellValue::Comparison { .. } => "bracket_test",
-            ShellValue::LogicalAnd { .. } | ShellValue::LogicalOr { .. } | ShellValue::LogicalNot { .. } => "logical_op",
+            ShellValue::LogicalAnd { .. }
+            | ShellValue::LogicalOr { .. }
+            | ShellValue::LogicalNot { .. } => "logical_op",
             ShellValue::CommandSubst(_) => "cmd_subst_test",
             _ => "other_test",
         };
@@ -1738,10 +1738,7 @@ mod tests {
                 effects: Default::default(),
             };
             let result = emitter.emit(&ir).expect("emit should succeed");
-            assert!(
-                result.contains(sym),
-                "expected '{sym}' in output: {result}"
-            );
+            assert!(result.contains(sym), "expected '{sym}' in output: {result}");
         }
     }
 
@@ -2164,9 +2161,7 @@ mod tests {
             name: "msg".to_string(),
             value: ShellValue::Concat(vec![
                 ShellValue::String("arg1=".to_string()),
-                ShellValue::Arg {
-                    position: Some(1),
-                },
+                ShellValue::Arg { position: Some(1) },
                 ShellValue::String(" all=".to_string()),
                 ShellValue::Arg { position: None },
             ]),

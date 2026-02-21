@@ -7,11 +7,7 @@ use super::scoring::{self, ProjectScore};
 use std::path::Path;
 
 /// Run compliance check for a project
-pub fn run_check(
-    project_path: &Path,
-    scope: Option<Scope>,
-    config: &ComplyConfig,
-) -> ProjectScore {
+pub fn run_check(project_path: &Path, scope: Option<Scope>, config: &ComplyConfig) -> ProjectScore {
     let artifacts = collect_artifacts(project_path, scope, config);
     let mut artifact_scores = Vec::new();
 
@@ -110,15 +106,9 @@ fn is_rule_enabled(rule: &RuleId, config: &ComplyConfig) -> bool {
 pub fn format_human(score: &ProjectScore) -> String {
     let mut out = String::new();
 
-    out.push_str(
-        "═══════════════════════════════════════════════════════════\n",
-    );
-    out.push_str(
-        "  COMPLIANCE CHECK — Layer 1 (Jidoka)\n",
-    );
-    out.push_str(
-        "═══════════════════════════════════════════════════════════\n\n",
-    );
+    out.push_str("═══════════════════════════════════════════════════════════\n");
+    out.push_str("  COMPLIANCE CHECK — Layer 1 (Jidoka)\n");
+    out.push_str("═══════════════════════════════════════════════════════════\n\n");
 
     // pzsh detection
     if let Some(pzsh) = discovery::detect_pzsh() {
@@ -181,9 +171,7 @@ pub fn format_human(score: &ProjectScore) -> String {
         " Falsifications succeeded: {}\n",
         score.successful_falsifications
     ));
-    out.push_str(
-        "═══════════════════════════════════════════════════════════\n",
-    );
+    out.push_str("═══════════════════════════════════════════════════════════\n");
 
     out
 }
@@ -354,7 +342,10 @@ fn is_file_level_suppression(line: &str, line_num: usize) -> bool {
 }
 
 /// Remove suppressed violations from a rule result
-pub(crate) fn apply_suppressions(mut result: RuleResult, suppressions: &Suppressions) -> RuleResult {
+pub(crate) fn apply_suppressions(
+    mut result: RuleResult,
+    suppressions: &Suppressions,
+) -> RuleResult {
     let rule_code = result.rule.code().to_string();
 
     // File-level suppression: remove all violations for this rule

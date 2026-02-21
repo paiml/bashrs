@@ -2260,7 +2260,7 @@ fn test_return_inside_while_in_function_produces_return_ir() {
                 contains_return_not_exit(then_branch)
                     || else_branch
                         .as_ref()
-                        .map_or(false, |e| contains_return_not_exit(e))
+                        .is_some_and(|e| contains_return_not_exit(e))
             }
             ShellIR::Function { body, .. } => contains_return_not_exit(body),
             _ => false,
@@ -2281,68 +2281,70 @@ fn test_let_match_expression_produces_case_with_assignment() {
     // Test: let score = match bucket { 0 => 10, 1 => 5, _ => 1 }
     // Should produce Case with Let assignments, NOT score='unknown'
     let ast = RestrictedAst {
-        functions: vec![Function {
-            name: "classify".to_string(),
-            params: vec![Parameter {
-                name: "n".to_string(),
-                param_type: Type::U32,
-            }],
-            return_type: Type::U32,
-            body: vec![
-                Stmt::Let {
-                    name: "bucket".to_string(),
-                    value: Expr::Binary {
-                        op: BinaryOp::Rem,
-                        left: Box::new(Expr::Variable("n".to_string())),
-                        right: Box::new(Expr::Literal(Literal::U32(4))),
+        functions: vec![
+            Function {
+                name: "classify".to_string(),
+                params: vec![Parameter {
+                    name: "n".to_string(),
+                    param_type: Type::U32,
+                }],
+                return_type: Type::U32,
+                body: vec![
+                    Stmt::Let {
+                        name: "bucket".to_string(),
+                        value: Expr::Binary {
+                            op: BinaryOp::Rem,
+                            left: Box::new(Expr::Variable("n".to_string())),
+                            right: Box::new(Expr::Literal(Literal::U32(4))),
+                        },
+                        declaration: true,
+                    },
+                    Stmt::Let {
+                        name: "score".to_string(),
+                        // Parser produces Expr::Block([Stmt::Match{...}]) for match-in-let
+                        value: Expr::Block(vec![Stmt::Match {
+                            scrutinee: Expr::Variable("bucket".to_string()),
+                            arms: vec![
+                                MatchArm {
+                                    pattern: Pattern::Literal(Literal::U32(0)),
+                                    guard: None,
+                                    body: vec![Stmt::Expr(Expr::Binary {
+                                        op: BinaryOp::Mul,
+                                        left: Box::new(Expr::Variable("n".to_string())),
+                                        right: Box::new(Expr::Literal(Literal::U32(10))),
+                                    })],
+                                },
+                                MatchArm {
+                                    pattern: Pattern::Literal(Literal::U32(1)),
+                                    guard: None,
+                                    body: vec![Stmt::Expr(Expr::Literal(Literal::U32(5)))],
+                                },
+                                MatchArm {
+                                    pattern: Pattern::Wildcard,
+                                    guard: None,
+                                    body: vec![Stmt::Expr(Expr::Literal(Literal::U32(1)))],
+                                },
+                            ],
+                        }]),
+                        declaration: true,
+                    },
+                    Stmt::Return(Some(Expr::Variable("score".to_string()))),
+                ],
+            },
+            Function {
+                name: "main".to_string(),
+                params: vec![],
+                return_type: Type::Void,
+                body: vec![Stmt::Let {
+                    name: "r".to_string(),
+                    value: Expr::FunctionCall {
+                        name: "classify".to_string(),
+                        args: vec![Expr::Literal(Literal::U32(8))],
                     },
                     declaration: true,
-                },
-                Stmt::Let {
-                    name: "score".to_string(),
-                    // Parser produces Expr::Block([Stmt::Match{...}]) for match-in-let
-                    value: Expr::Block(vec![Stmt::Match {
-                        scrutinee: Expr::Variable("bucket".to_string()),
-                        arms: vec![
-                            MatchArm {
-                                pattern: Pattern::Literal(Literal::U32(0)),
-                                guard: None,
-                                body: vec![Stmt::Expr(Expr::Binary {
-                                    op: BinaryOp::Mul,
-                                    left: Box::new(Expr::Variable("n".to_string())),
-                                    right: Box::new(Expr::Literal(Literal::U32(10))),
-                                })],
-                            },
-                            MatchArm {
-                                pattern: Pattern::Literal(Literal::U32(1)),
-                                guard: None,
-                                body: vec![Stmt::Expr(Expr::Literal(Literal::U32(5)))],
-                            },
-                            MatchArm {
-                                pattern: Pattern::Wildcard,
-                                guard: None,
-                                body: vec![Stmt::Expr(Expr::Literal(Literal::U32(1)))],
-                            },
-                        ],
-                    }]),
-                    declaration: true,
-                },
-                Stmt::Return(Some(Expr::Variable("score".to_string()))),
-            ],
-        },
-        Function {
-            name: "main".to_string(),
-            params: vec![],
-            return_type: Type::Void,
-            body: vec![Stmt::Let {
-                name: "r".to_string(),
-                value: Expr::FunctionCall {
-                    name: "classify".to_string(),
-                    args: vec![Expr::Literal(Literal::U32(8))],
-                },
-                declaration: true,
-            }],
-        }],
+                }],
+            },
+        ],
         entry_point: "main".to_string(),
     };
 
@@ -2362,9 +2364,7 @@ fn test_let_match_expression_produces_case_with_assignment() {
                 ..
             } => {
                 contains_case(then_branch)
-                    || else_branch
-                        .as_ref()
-                        .map_or(false, |e| contains_case(e))
+                    || else_branch.as_ref().is_some_and(|e| contains_case(e))
             }
             _ => false,
         }
@@ -2438,8 +2438,7 @@ fn dispatch(state: u32, bit: u32) -> u32 {
 fn main() { println!("{}", dispatch(0, 1)); }
 "#;
 
-    let ast = crate::services::parser::parse(source)
-        .expect("should parse");
+    let ast = crate::services::parser::parse(source).expect("should parse");
     let ir = super::from_ast(&ast).expect("should lower");
 
     // Walk the IR tree to find a nested Case inside a Case arm
@@ -2583,10 +2582,7 @@ fn test_range_patterns_produce_if_chain_not_case() {
                 then_branch,
                 else_branch,
                 ..
-            } => {
-                has_case(then_branch)
-                    || else_branch.as_ref().map_or(false, |e| has_case(e))
-            }
+            } => has_case(then_branch) || else_branch.as_ref().is_some_and(|e| has_case(e)),
             _ => false,
         }
     }

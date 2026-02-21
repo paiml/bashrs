@@ -189,7 +189,10 @@ fn test_return_statement_parsing() {
         crate::ast::Stmt::Return(Some(crate::ast::Expr::Literal(Literal::Str(s)))) => {
             assert_eq!(s, "success");
         }
-        _ => panic!("Expected Stmt::Return with string literal, got {:?}", main_func.body[0]),
+        _ => panic!(
+            "Expected Stmt::Return with string literal, got {:?}",
+            main_func.body[0]
+        ),
     }
 }
 

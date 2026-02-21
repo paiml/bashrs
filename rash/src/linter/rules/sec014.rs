@@ -28,8 +28,8 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// Commands that operate on file paths and are path traversal vectors
 const FILE_COMMANDS: &[&str] = &[
-    "cat", "rm", "cp", "mv", "source", ".", "less", "more", "head", "tail",
-    "chmod", "chown", "ln", "tar", "unzip",
+    "cat", "rm", "cp", "mv", "source", ".", "less", "more", "head", "tail", "chmod", "chown", "ln",
+    "tar", "unzip",
 ];
 
 /// Check a single line for path traversal, returning a diagnostic if found
@@ -91,12 +91,18 @@ fn contains_command(line: &str, cmd: &str) -> bool {
     if let Some(pos) = line.find(cmd) {
         let before_ok = pos == 0 || {
             let c = line.as_bytes().get(pos - 1);
-            matches!(c, Some(b' ') | Some(b'\t') | Some(b';') | Some(b'|') | Some(b'&') | Some(b'('))
+            matches!(
+                c,
+                Some(b' ') | Some(b'\t') | Some(b';') | Some(b'|') | Some(b'&') | Some(b'(')
+            )
         };
         let after_idx = pos + cmd.len();
         let after_ok = after_idx >= line.len() || {
             let c = line.as_bytes().get(after_idx);
-            matches!(c, Some(b' ') | Some(b'\t') | Some(b';') | Some(b'|') | Some(b'&') | Some(b')'))
+            matches!(
+                c,
+                Some(b' ') | Some(b'\t') | Some(b';') | Some(b'|') | Some(b'&') | Some(b')')
+            )
         };
         before_ok && after_ok
     } else {
@@ -130,7 +136,8 @@ fn has_variable_in_path(args: &str) -> bool {
         return false;
     }
 
-    args.split('/').any(|part| part.contains('$') && has_bare_variable(part))
+    args.split('/')
+        .any(|part| part.contains('$') && has_bare_variable(part))
 }
 
 #[cfg(test)]

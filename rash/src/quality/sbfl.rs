@@ -708,7 +708,7 @@ mod tests {
     #[test]
     fn test_formula_clone() {
         let formula = SbflFormula::DStar { power: 3 };
-        let cloned = formula.clone();
+        let cloned = formula;
         assert_eq!(cloned, SbflFormula::DStar { power: 3 });
     }
 

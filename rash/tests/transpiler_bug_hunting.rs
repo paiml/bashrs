@@ -6,7 +6,6 @@
 #![allow(clippy::unwrap_used)]
 #![allow(deprecated)]
 
-use assert_cmd::Command;
 use std::fs;
 use std::process::Command as StdCommand;
 

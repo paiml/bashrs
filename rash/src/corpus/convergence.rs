@@ -89,8 +89,8 @@ pub fn format_convergence_table(entries: &[ConvergenceEntry]) -> String {
     let _ = writeln!(out, "{divider}");
     let _ = writeln!(
         out,
-        "{:<6}{:<12}{:<14}{:<16}{:<18}{:<9}{}",
-        "Iter", "Date", "Bash (500)", "Makefile (200)", "Dockerfile (200)", "Score", "Grade"
+        "{:<6}{:<12}{:<14}{:<16}{:<18}{:<9}Grade",
+        "Iter", "Date", "Bash (500)", "Makefile (200)", "Dockerfile (200)", "Score"
     );
     let _ = writeln!(out, "{divider}");
 
@@ -269,11 +269,7 @@ pub fn format_iteration_diff(diff: &IterationDiff) -> String {
     );
     let divider = "\u{2500}".repeat(56);
     let _ = writeln!(out, "{divider}");
-    let _ = writeln!(
-        out,
-        "{:<13}{:<11}{:<11}{}",
-        "Format", "Before", "After", "Delta"
-    );
+    let _ = writeln!(out, "{:<13}{:<11}{:<11}Delta", "Format", "Before", "After");
     let _ = writeln!(out, "{divider}");
 
     let _ = writeln!(
@@ -330,8 +326,8 @@ pub fn format_convergence_status(statuses: &[FormatConvergenceStatus]) -> String
     let _ = writeln!(out, "{divider}");
     let _ = writeln!(
         out,
-        "{:<13}{:<10}{:<14}{}",
-        "Format", "Rate", "Trend", "Stable Iters"
+        "{:<13}{:<10}{:<14}Stable Iters",
+        "Format", "Rate", "Trend"
     );
     let _ = writeln!(out, "{divider}");
 
@@ -376,11 +372,7 @@ pub fn format_convergence_status(statuses: &[FormatConvergenceStatus]) -> String
         if regressing.is_empty() {
             let _ = writeln!(out, "\nOverall: IMPROVING (not yet converged)");
         } else {
-            let _ = writeln!(
-                out,
-                "\nOverall: REGRESSING ({})",
-                regressing.join(", ")
-            );
+            let _ = writeln!(out, "\nOverall: REGRESSING ({})", regressing.join(", "));
         }
     }
 
@@ -429,7 +421,14 @@ mod tests {
 
     #[test]
     fn test_convergence_table_renders_header() {
-        let entries = vec![make_entry(1, (500, 500), (200, 200), (200, 200), 99.9, "A+")];
+        let entries = vec![make_entry(
+            1,
+            (500, 500),
+            (200, 200),
+            (200, 200),
+            99.9,
+            "A+",
+        )];
         let table = format_convergence_table(&entries);
         assert!(table.contains("Multi-Corpus Convergence Table"));
         assert!(table.contains("Bash (500)"));
@@ -524,7 +523,14 @@ mod tests {
 
     #[test]
     fn test_convergence_status_single_entry() {
-        let entries = vec![make_entry(1, (500, 500), (200, 200), (200, 200), 99.9, "A+")];
+        let entries = vec![make_entry(
+            1,
+            (500, 500),
+            (200, 200),
+            (200, 200),
+            99.9,
+            "A+",
+        )];
         let statuses = convergence_status(&entries);
         for s in &statuses {
             assert_eq!(s.trend, Trend::Stable);

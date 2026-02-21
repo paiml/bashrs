@@ -27,9 +27,7 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// Dangerous commands that should never use unvalidated input
-const DANGEROUS_WITH_INPUT: &[&str] = &[
-    "eval", "exec", "rm -rf", "dd ",
-];
+const DANGEROUS_WITH_INPUT: &[&str] = &["eval", "exec", "rm -rf", "dd "];
 
 /// Validation patterns that indicate positional parameters are checked
 const VALIDATION_PATTERNS: &[&str] = &[

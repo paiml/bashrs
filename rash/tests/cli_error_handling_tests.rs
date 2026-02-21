@@ -11,7 +11,6 @@
 // 4. CLI flags work correctly (--help, --version, --check)
 #![allow(dead_code)] // score() method reserved for future quality analysis
 
-use assert_cmd::Command;
 use predicates::prelude::*;
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -34,7 +33,8 @@ struct ErrorMessageQuality {
 impl ErrorMessageQuality {
     fn from_stderr(stderr: &str) -> Self {
         Self {
-            has_error_prefix: stderr.contains("error:") || stderr.contains("Error:")
+            has_error_prefix: stderr.contains("error:")
+                || stderr.contains("Error:")
                 || stderr.contains("error["),
             has_source_location: stderr.contains(':')
                 && stderr.chars().filter(|c| c.is_numeric()).count() > 0,
@@ -440,7 +440,8 @@ fn test_error_message_quality_baseline() {
         assert!(
             quality.has_error_prefix || !output.status.success(),
             "Error message for '{}' should have error prefix or non-zero exit. Quality: {:?}",
-            feature, quality
+            feature,
+            quality
         );
     }
 }
@@ -473,10 +474,13 @@ fn test_multiple_errors_detected() {
 
     // Should detect at least one error
     assert!(
-        stderr.contains("error") || stderr.contains("Error")
-            || stdout.contains("error") || !output.status.success(),
+        stderr.contains("error")
+            || stderr.contains("Error")
+            || stdout.contains("error")
+            || !output.status.success(),
         "Should detect errors. stderr: {}, stdout: {}",
-        stderr, stdout
+        stderr,
+        stdout
     );
 
     assert!(

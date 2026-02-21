@@ -366,8 +366,7 @@ pub fn format_domain_coverage(stats: &[CategoryStats], score: &CorpusScore) -> S
     // Overall score context
     out.push_str(&format!(
         "Corpus Score: {:.1}/100 ({})\n\n",
-        score.score,
-        score.grade.to_string()
+        score.score, score.grade
     ));
 
     // Per-category coverage with gap identification
@@ -453,10 +452,10 @@ const QUALITY_PROPERTIES: &[(&str, [QualityReq; 8])] = &[
         "Idempotent",
         [
             QualityReq::Required,      // A: Config
-            QualityReq::NotApplicable,  // B: One-liner
+            QualityReq::NotApplicable, // B: One-liner
             QualityReq::Required,      // C: Provability
-            QualityReq::NotApplicable,  // D: Unix tools
-            QualityReq::NotApplicable,  // E: Lang integ
+            QualityReq::NotApplicable, // D: Unix tools
+            QualityReq::NotApplicable, // E: Lang integ
             QualityReq::Required,      // F: System
             QualityReq::Required,      // G: Coreutils
             QualityReq::Required,      // H: Regex
@@ -465,73 +464,118 @@ const QUALITY_PROPERTIES: &[(&str, [QualityReq; 8])] = &[
     (
         "POSIX",
         [
-            QualityReq::Required, QualityReq::Required, QualityReq::Required,
-            QualityReq::Required, QualityReq::Required, QualityReq::Required,
-            QualityReq::Required, QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
         ],
     ),
     (
         "Deterministic",
         [
-            QualityReq::Required, QualityReq::Required, QualityReq::Required,
-            QualityReq::Required, QualityReq::Required, QualityReq::Required,
-            QualityReq::Required, QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
         ],
     ),
     (
         "Miri-verifiable",
         [
-            QualityReq::NotApplicable, QualityReq::NotApplicable, QualityReq::Required,
-            QualityReq::NotApplicable, QualityReq::NotApplicable, QualityReq::NotApplicable,
-            QualityReq::Required, QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
+            QualityReq::NotApplicable,
         ],
     ),
     (
         "Cross-shell",
         [
-            QualityReq::Required, QualityReq::Required, QualityReq::Required,
-            QualityReq::Required, QualityReq::Required, QualityReq::Required,
-            QualityReq::Required, QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
         ],
     ),
     (
         "Shellcheck-clean",
         [
-            QualityReq::Required, QualityReq::Required, QualityReq::Required,
-            QualityReq::Required, QualityReq::Required, QualityReq::Required,
-            QualityReq::Required, QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::Required,
         ],
     ),
     (
         "Pipeline-safe",
         [
-            QualityReq::NotApplicable, QualityReq::Required, QualityReq::NotApplicable,
-            QualityReq::Required, QualityReq::Required, QualityReq::NotApplicable,
-            QualityReq::Required, QualityReq::Required,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
+            QualityReq::Required,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
+            QualityReq::Required,
         ],
     ),
     (
         "1:1 parity",
         [
-            QualityReq::NotApplicable, QualityReq::NotApplicable, QualityReq::NotApplicable,
-            QualityReq::NotApplicable, QualityReq::NotApplicable, QualityReq::NotApplicable,
-            QualityReq::Required, QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
+            QualityReq::NotApplicable,
         ],
     ),
     (
         "Signal-aware",
         [
-            QualityReq::NotApplicable, QualityReq::NotApplicable, QualityReq::NotApplicable,
-            QualityReq::NotApplicable, QualityReq::NotApplicable, QualityReq::Required,
-            QualityReq::NotApplicable, QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
         ],
     ),
     (
         "Terminates",
         [
-            QualityReq::NotApplicable, QualityReq::NotApplicable, QualityReq::Required,
-            QualityReq::NotApplicable, QualityReq::NotApplicable, QualityReq::NotApplicable,
-            QualityReq::NotApplicable, QualityReq::Required,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::NotApplicable,
+            QualityReq::Required,
         ],
     ),
 ];
@@ -540,8 +584,9 @@ const QUALITY_PROPERTIES: &[(&str, [QualityReq; 8])] = &[
 pub fn format_quality_matrix(stats: &[CategoryStats]) -> String {
     let mut out = String::new();
     let cats = DomainCategory::all_specific();
-    let cat_labels: Vec<&str> = cats.iter().map(|c| {
-        match c {
+    let cat_labels: Vec<&str> = cats
+        .iter()
+        .map(|c| match c {
             DomainCategory::ShellConfig => "Config",
             DomainCategory::OneLiners => "1-Liner",
             DomainCategory::Provability => "Prove",
@@ -551,8 +596,8 @@ pub fn format_quality_matrix(stats: &[CategoryStats]) -> String {
             DomainCategory::Coreutils => "Core",
             DomainCategory::RegexPatterns => "Regex",
             DomainCategory::General => "Gen",
-        }
-    }).collect();
+        })
+        .collect();
 
     out.push_str("Cross-Category Quality Matrix (\u{00a7}11.11.9)\n");
     out.push_str(
@@ -803,10 +848,18 @@ mod tests {
     #[test]
     fn test_categorize_mixed_entries() {
         let mut registry = CorpusRegistry::new();
-        registry.entries.push(make_entry("B-001", CorpusFormat::Bash));
-        registry.entries.push(make_entry("B-375", CorpusFormat::Bash));
-        registry.entries.push(make_entry("B-450", CorpusFormat::Bash));
-        registry.entries.push(make_entry("M-001", CorpusFormat::Makefile));
+        registry
+            .entries
+            .push(make_entry("B-001", CorpusFormat::Bash));
+        registry
+            .entries
+            .push(make_entry("B-375", CorpusFormat::Bash));
+        registry
+            .entries
+            .push(make_entry("B-450", CorpusFormat::Bash));
+        registry
+            .entries
+            .push(make_entry("M-001", CorpusFormat::Makefile));
 
         let results = vec![
             make_result("B-001", true),
@@ -818,14 +871,18 @@ mod tests {
         let stats = categorize_corpus(&registry, &results);
 
         // ShellConfig should have 1 entry
-        let config = stats.iter().find(|s| s.category == DomainCategory::ShellConfig);
+        let config = stats
+            .iter()
+            .find(|s| s.category == DomainCategory::ShellConfig);
         assert!(config.is_some());
         let config = config.expect("config stat should exist");
         assert_eq!(config.total, 1);
         assert_eq!(config.passed, 1);
 
         // Coreutils should have 1 entry (failed)
-        let core = stats.iter().find(|s| s.category == DomainCategory::Coreutils);
+        let core = stats
+            .iter()
+            .find(|s| s.category == DomainCategory::Coreutils);
         assert!(core.is_some());
         let core = core.expect("coreutils stat should exist");
         assert_eq!(core.total, 1);
@@ -968,8 +1025,8 @@ mod tests {
 
     #[test]
     fn test_format_domain_coverage_gaps() {
-        use crate::corpus::runner::{CorpusScore, FormatScore};
         use crate::corpus::registry::Grade;
+        use crate::corpus::runner::{CorpusScore, FormatScore};
 
         let stats = vec![
             CategoryStats {

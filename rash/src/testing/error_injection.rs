@@ -160,19 +160,19 @@ impl ErrorInjectionTester {
 
         // Malformed inputs that should be rejected gracefully
         let malformed_inputs = vec![
-            "",                            // Empty input
-            "fn",                          // Incomplete syntax
-            "fn main(",                    // Incomplete function
-            "fn main() {",                 // Incomplete body
-            "fn main() { let; }",          // Incomplete let
-            "fn main() { let x; }",        // Missing initializer
-            "fn main() { let x = ; }",     // Missing value
-            "fn main() { 42 }",            // Missing let
-            "fn main() { let x = y }",     // Undefined variable
+            "",                                        // Empty input
+            "fn",                                      // Incomplete syntax
+            "fn main(",                                // Incomplete function
+            "fn main() {",                             // Incomplete body
+            "fn main() { let; }",                      // Incomplete let
+            "fn main() { let x; }",                    // Missing initializer
+            "fn main() { let x = ; }",                 // Missing value
+            "fn main() { 42 }",                        // Missing let
+            "fn main() { let x = y }",                 // Undefined variable
             "fn main() { let x: Vec<u32> = vec![]; }", // Unsupported types
-            "fn main() { unsafe { } }",       // Unsupported unsafe
-            "async fn main() {}",             // Unsupported async
-            "fn main<T>() {}",                // Unsupported generics
+            "fn main() { unsafe { } }",                // Unsupported unsafe
+            "async fn main() {}",                      // Unsupported async
+            "fn main<T>() {}",                         // Unsupported generics
             "fn main() -> impl Iterator<Item=u32> {}", // Unsupported return types
         ];
 
@@ -202,11 +202,11 @@ impl ErrorInjectionTester {
         // Inputs that are now supported (non-fn items skipped, loop/while handled)
         // These should succeed gracefully
         let now_supported_inputs = vec![
-            "struct Foo {}",                      // Non-fn items gracefully skipped
-            "impl Foo {}",                        // Non-fn items gracefully skipped
-            "fn main() { loop {} }",              // Loop converts to while true
-            "fn main() { while true {} }",        // While now supported
-            "use std::collections::HashMap;",     // Use items gracefully skipped
+            "struct Foo {}",                  // Non-fn items gracefully skipped
+            "impl Foo {}",                    // Non-fn items gracefully skipped
+            "fn main() { loop {} }",          // Loop converts to while true
+            "fn main() { while true {} }",    // While now supported
+            "use std::collections::HashMap;", // Use items gracefully skipped
         ];
 
         for input in now_supported_inputs {
@@ -510,14 +510,12 @@ mod tests {
 
     #[test]
     fn test_failure_type_variants() {
-        let types = vec![
-            FailureType::MemoryAllocation,
+        let types = [FailureType::MemoryAllocation,
             FailureType::FileIO,
             FailureType::NetworkIO,
             FailureType::Parse,
             FailureType::Validation,
-            FailureType::CodeGeneration,
-        ];
+            FailureType::CodeGeneration];
         assert_eq!(types.len(), 6);
 
         // Test cloning

@@ -254,10 +254,7 @@ fn test_infer_array() {
         BashExpr::Literal("a".to_string()),
         BashExpr::Literal("b".to_string()),
     ]));
-    assert_eq!(
-        ty,
-        Some(ShellType::Array(Box::new(ShellType::String)))
-    );
+    assert_eq!(ty, Some(ShellType::Array(Box::new(ShellType::String))));
 }
 
 #[test]
@@ -299,10 +296,7 @@ fn test_infer_variable_after_assignment() {
     }]);
 
     checker.check_ast(&ast);
-    assert_eq!(
-        checker.context().lookup("port"),
-        Some(&ShellType::Integer)
-    );
+    assert_eq!(checker.context().lookup("port"), Some(&ShellType::Integer));
 }
 
 #[test]
@@ -330,10 +324,7 @@ fn test_declare_i_sets_integer() {
     }]);
 
     checker.check_ast(&ast);
-    assert_eq!(
-        checker.context().lookup("count"),
-        Some(&ShellType::Integer)
-    );
+    assert_eq!(checker.context().lookup("count"), Some(&ShellType::Integer));
 }
 
 #[test]
@@ -393,10 +384,7 @@ fn test_declare_with_assignment() {
     }]);
 
     checker.check_ast(&ast);
-    assert_eq!(
-        checker.context().lookup("count"),
-        Some(&ShellType::Integer)
-    );
+    assert_eq!(checker.context().lookup("count"), Some(&ShellType::Integer));
 }
 
 // ============================================================================
@@ -406,17 +394,15 @@ fn test_declare_with_assignment() {
 #[test]
 fn test_declare_i_name_equals_value_tracks_type() {
     let mut checker = TypeChecker::new();
-    let ast = make_ast(vec![
-        BashStmt::Command {
-            name: "declare".to_string(),
-            args: vec![
-                BashExpr::Literal("-i".to_string()),
-                BashExpr::Literal("counter=0".to_string()),
-            ],
-            redirects: vec![],
-            span: Span::dummy(),
-        },
-    ]);
+    let ast = make_ast(vec![BashStmt::Command {
+        name: "declare".to_string(),
+        args: vec![
+            BashExpr::Literal("-i".to_string()),
+            BashExpr::Literal("counter=0".to_string()),
+        ],
+        redirects: vec![],
+        span: Span::dummy(),
+    }]);
 
     checker.check_ast(&ast);
     assert_eq!(
@@ -448,11 +434,11 @@ fn test_declare_i_then_string_assign_warns() {
     ]);
 
     let diags = checker.check_ast(&ast);
-    assert!(!diags.is_empty(), "string assigned to declare -i var should warn");
-    assert!(matches!(
-        diags[0].kind,
-        DiagnosticKind::TypeMismatch { .. }
-    ));
+    assert!(
+        !diags.is_empty(),
+        "string assigned to declare -i var should warn"
+    );
+    assert!(matches!(diags[0].kind, DiagnosticKind::TypeMismatch { .. }));
 }
 
 // ============================================================================
@@ -477,10 +463,7 @@ fn test_comment_annotation_sets_variable_type() {
     ]);
 
     checker.check_ast(&ast);
-    assert_eq!(
-        checker.context().lookup("port"),
-        Some(&ShellType::Integer)
-    );
+    assert_eq!(checker.context().lookup("port"), Some(&ShellType::Integer));
 }
 
 #[test]
@@ -502,10 +485,7 @@ fn test_annotation_mismatch_produces_warning() {
 
     let diags = checker.check_ast(&ast);
     assert!(!diags.is_empty());
-    assert!(matches!(
-        diags[0].kind,
-        DiagnosticKind::TypeMismatch { .. }
-    ));
+    assert!(matches!(diags[0].kind, DiagnosticKind::TypeMismatch { .. }));
     assert_eq!(diags[0].severity, Severity::Warning);
 }
 
@@ -546,7 +526,10 @@ fn test_gradual_untyped_variable_no_error() {
     }]);
 
     let diags = checker.check_ast(&ast);
-    assert!(diags.is_empty(), "gradual typing: untyped var should not produce errors");
+    assert!(
+        diags.is_empty(),
+        "gradual typing: untyped var should not produce errors"
+    );
 }
 
 #[test]
@@ -569,7 +552,10 @@ fn test_gradual_fully_untyped_script() {
     ]);
 
     let diags = checker.check_ast(&ast);
-    assert!(diags.is_empty(), "fully untyped script should produce no diagnostics");
+    assert!(
+        diags.is_empty(),
+        "fully untyped script should produce no diagnostics"
+    );
 }
 
 // ============================================================================
@@ -606,19 +592,17 @@ fn test_function_param_annotation() {
 #[test]
 fn test_function_scope_isolation() {
     let mut checker = TypeChecker::new();
-    let ast = make_ast(vec![
-        BashStmt::Function {
-            name: "myfunc".to_string(),
-            body: vec![BashStmt::Assignment {
-                name: "local_var".to_string(),
-                index: None,
-                value: BashExpr::Literal("42".to_string()),
-                exported: false,
-                span: Span::dummy(),
-            }],
+    let ast = make_ast(vec![BashStmt::Function {
+        name: "myfunc".to_string(),
+        body: vec![BashStmt::Assignment {
+            name: "local_var".to_string(),
+            index: None,
+            value: BashExpr::Literal("42".to_string()),
+            exported: false,
             span: Span::dummy(),
-        },
-    ]);
+        }],
+        span: Span::dummy(),
+    }]);
 
     checker.check_ast(&ast);
     // local_var should not be visible in the outer scope
@@ -750,9 +734,9 @@ fn test_parse_type_name_all_variants() {
 fn test_check_if_statement() {
     let mut checker = TypeChecker::new();
     let ast = make_ast(vec![BashStmt::If {
-        condition: BashExpr::Test(Box::new(TestExpr::FileExists(
-            BashExpr::Literal("/tmp".to_string()),
-        ))),
+        condition: BashExpr::Test(Box::new(TestExpr::FileExists(BashExpr::Literal(
+            "/tmp".to_string(),
+        )))),
         then_block: vec![BashStmt::Assignment {
             name: "found".to_string(),
             index: None,
@@ -767,10 +751,7 @@ fn test_check_if_statement() {
 
     let diags = checker.check_ast(&ast);
     assert!(diags.is_empty());
-    assert_eq!(
-        checker.context().lookup("found"),
-        Some(&ShellType::Integer)
-    );
+    assert_eq!(checker.context().lookup("found"), Some(&ShellType::Integer));
 }
 
 #[test]
@@ -1035,5 +1016,8 @@ fn test_bool_annotation_with_true_literal_no_warning() {
     ]);
 
     let diags = checker.check_ast(&ast);
-    assert!(diags.is_empty(), "true should be compatible with bool annotation");
+    assert!(
+        diags.is_empty(),
+        "true should be compatible with bool annotation"
+    );
 }

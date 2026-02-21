@@ -47,9 +47,7 @@ fn test_TYPE_001_type_check_basic_script() {
 
 #[test]
 fn test_TYPE_001_type_check_with_annotations() {
-    let script = create_temp_script(
-        "#!/bin/bash\n# @type port: int\nport=8080\necho $port\n",
-    );
+    let script = create_temp_script("#!/bin/bash\n# @type port: int\nport=8080\necho $port\n");
 
     bashrs_cmd()
         .arg("purify")
@@ -82,9 +80,7 @@ fn test_TYPE_001_type_check_no_flag_no_diagnostics() {
 
 #[test]
 fn test_TYPE_002_emit_guards_integer_variable() {
-    let script = create_temp_script(
-        "#!/bin/bash\n# @type port: int\nport=8080\necho $port\n",
-    );
+    let script = create_temp_script("#!/bin/bash\n# @type port: int\nport=8080\necho $port\n");
 
     bashrs_cmd()
         .arg("purify")
@@ -92,10 +88,7 @@ fn test_TYPE_002_emit_guards_integer_variable() {
         .arg("--emit-guards")
         .assert()
         .success()
-        .stdout(
-            predicate::str::contains("#!/bin/sh")
-                .and(predicate::str::contains("*[!0-9]*")),
-        );
+        .stdout(predicate::str::contains("#!/bin/sh").and(predicate::str::contains("*[!0-9]*")));
 }
 
 #[test]
@@ -182,9 +175,8 @@ fn test_TYPE_003_type_strict_fails_on_mismatch() {
 
 #[test]
 fn test_TYPE_002_emit_guards_path_type() {
-    let script = create_temp_script(
-        "#!/bin/bash\n# @type cfg: path\ncfg=/etc/app.conf\necho $cfg\n",
-    );
+    let script =
+        create_temp_script("#!/bin/bash\n# @type cfg: path\ncfg=/etc/app.conf\necho $cfg\n");
 
     bashrs_cmd()
         .arg("purify")
@@ -192,16 +184,12 @@ fn test_TYPE_002_emit_guards_path_type() {
         .arg("--emit-guards")
         .assert()
         .success()
-        .stdout(
-            predicate::str::contains("/*|./*|../*"),
-        );
+        .stdout(predicate::str::contains("/*|./*|../*"));
 }
 
 #[test]
 fn test_TYPE_001_bool_true_no_warning() {
-    let script = create_temp_script(
-        "#!/bin/bash\n# @type debug: bool\ndebug=true\necho $debug\n",
-    );
+    let script = create_temp_script("#!/bin/bash\n# @type debug: bool\ndebug=true\necho $debug\n");
 
     bashrs_cmd()
         .arg("purify")

@@ -728,8 +728,7 @@ mod tests {
 
     #[test]
     fn test_ROLLBACK_010_action_descriptions() {
-        let actions = vec![
-            RollbackAction::Command("rm -f /tmp/test".to_string()),
+        let actions = [RollbackAction::Command("rm -f /tmp/test".to_string()),
             RollbackAction::RestoreFile {
                 original_path: PathBuf::from("/etc/config"),
                 backup_path: PathBuf::from("/backup/config"),
@@ -746,8 +745,7 @@ mod tests {
                 group: "docker".to_string(),
                 was_member: false,
             },
-            RollbackAction::None,
-        ];
+            RollbackAction::None];
 
         let descriptions: Vec<_> = actions.iter().map(|a| a.description()).collect();
 

@@ -68,10 +68,7 @@ pub struct ConvergenceCriteria {
 }
 
 /// Scan transpiled output for lint violations and suggest new corpus entries (§7.3)
-pub fn lint_pipeline(
-    registry: &CorpusRegistry,
-    score: &CorpusScore,
-) -> Vec<LintPipelineEntry> {
+pub fn lint_pipeline(registry: &CorpusRegistry, score: &CorpusScore) -> Vec<LintPipelineEntry> {
     let mut suggestions = Vec::new();
     let max_id = find_max_corpus_id(registry);
     let mut next_id = max_id + 1;
@@ -114,7 +111,7 @@ fn find_max_corpus_id(registry: &CorpusRegistry) -> usize {
         .iter()
         .filter_map(|e| {
             e.id.split('-')
-                .last()
+                .next_back()
                 .and_then(|n| n.parse::<usize>().ok())
         })
         .max()
@@ -159,10 +156,7 @@ fn generate_entry_name(rule: &str, source_id: &str) -> String {
 }
 
 /// Check for regressions by comparing current results against the last convergence entry (§5.3)
-pub fn check_regressions(
-    score: &CorpusScore,
-    history: &[ConvergenceEntry],
-) -> RegressionReport {
+pub fn check_regressions(score: &CorpusScore, history: &[ConvergenceEntry]) -> RegressionReport {
     let total = score.total;
 
     // If no history, no regressions possible
@@ -224,10 +218,7 @@ fn guess_format(id: &str) -> CorpusFormat {
 }
 
 /// Verify convergence criteria (§5.2)
-pub fn check_convergence(
-    score: &CorpusScore,
-    history: &[ConvergenceEntry],
-) -> ConvergenceCriteria {
+pub fn check_convergence(score: &CorpusScore, history: &[ConvergenceEntry]) -> ConvergenceCriteria {
     let target_size = 900; // 500 bash + 200 makefile + 200 dockerfile
 
     // Criterion 1: Rate >= 99% for last 3 iterations
@@ -300,7 +291,10 @@ pub fn format_lint_pipeline(suggestions: &[LintPipelineEntry]) -> String {
     }
 
     out.push_str(&format!("{}\n", line));
-    out.push_str(&format!("{} suggestion(s) from CITL lint pipeline\n", suggestions.len()));
+    out.push_str(&format!(
+        "{} suggestion(s) from CITL lint pipeline\n",
+        suggestions.len()
+    ));
 
     out
 }
@@ -333,7 +327,7 @@ pub fn format_regression_report(report: &RegressionReport) -> String {
     }
 
     if !report.improvements.is_empty() {
-        out.push_str(&format!("\nImprovements:\n"));
+        out.push_str("\nImprovements:\n");
         for imp in &report.improvements {
             out.push_str(&format!("  + {}\n", imp));
         }
@@ -429,7 +423,11 @@ pub fn format_convergence_criteria(criteria: &ConvergenceCriteria) -> String {
             (!criteria.growth_met, "growth"),
             (!criteria.no_regressions, "regressions"),
         ];
-        let names: Vec<&str> = failing.iter().filter(|(f, _)| *f).map(|(_, n)| *n).collect();
+        let names: Vec<&str> = failing
+            .iter()
+            .filter(|(f, _)| *f)
+            .map(|(_, n)| *n)
+            .collect();
         out.push_str(&format!(
             "NOT CONVERGED: {} criteria failing ({})\n",
             names.len(),
@@ -441,7 +439,11 @@ pub fn format_convergence_criteria(criteria: &ConvergenceCriteria) -> String {
 }
 
 fn status_str(passed: bool) -> &'static str {
-    if passed { "\u{2713} PASS" } else { "\u{2717} FAIL" }
+    if passed {
+        "\u{2713} PASS"
+    } else {
+        "\u{2717} FAIL"
+    }
 }
 
 #[cfg(test)]
@@ -479,7 +481,11 @@ mod tests {
             metamorphic_consistent: transpiled,
             cross_shell_agree: transpiled,
             expected_output: None,
-            actual_output: if transpiled { Some("#!/bin/sh\n".into()) } else { None },
+            actual_output: if transpiled {
+                Some("#!/bin/sh\n".into())
+            } else {
+                None
+            },
             error: if !lint_clean {
                 Some("SEC003: unquoted variable".into())
             } else if !transpiled {
@@ -493,7 +499,13 @@ mod tests {
         }
     }
 
-    fn make_convergence(iter: u32, rate: f64, delta: f64, total: usize, passed: usize) -> ConvergenceEntry {
+    fn make_convergence(
+        iter: u32,
+        rate: f64,
+        delta: f64,
+        total: usize,
+        passed: usize,
+    ) -> ConvergenceEntry {
         ConvergenceEntry {
             iteration: iter,
             date: "2026-02-09".into(),

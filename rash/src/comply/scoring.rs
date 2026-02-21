@@ -129,10 +129,7 @@ pub fn compute_project_score(artifact_scores: Vec<ArtifactScore>) -> ProjectScor
     }
 
     let total = artifact_scores.len();
-    let compliant = artifact_scores
-        .iter()
-        .filter(|s| s.violations == 0)
-        .count();
+    let compliant = artifact_scores.iter().filter(|s| s.violations == 0).count();
     let total_tested: usize = artifact_scores.iter().map(|s| s.rules_tested).sum();
     let total_violations: usize = artifact_scores.iter().map(|s| s.violations).sum();
 

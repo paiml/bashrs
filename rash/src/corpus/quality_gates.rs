@@ -287,10 +287,7 @@ pub fn format_quality_gates(gates: &[GateCheck]) -> String {
     let total = gates.len();
     out.push_str(&sep);
     out.push('\n');
-    out.push_str(&format!(
-        "Result: {}/{} gates passed\n",
-        passed, total
-    ));
+    out.push_str(&format!("Result: {}/{} gates passed\n", passed, total));
 
     out
 }
@@ -322,10 +319,7 @@ pub fn format_metrics_check(metrics: &[MetricCheck]) -> String {
     let total = metrics.len();
     out.push_str(&sep);
     out.push('\n');
-    out.push_str(&format!(
-        "Result: {}/{} metrics passed\n",
-        passed, total
-    ));
+    out.push_str(&format!("Result: {}/{} metrics passed\n", passed, total));
 
     out
 }
@@ -352,7 +346,11 @@ pub fn format_gate_status(status: &GateStatus) -> String {
     // Metrics section
     out.push_str("\nPerformance Metrics:\n");
     for metric in &status.metrics {
-        let icon = if metric.passed { "\u{2713}" } else { "\u{2717}" };
+        let icon = if metric.passed {
+            "\u{2713}"
+        } else {
+            "\u{2717}"
+        };
         out.push_str(&format!(
             "  {} {:<22} {} {} ({})\n",
             icon, metric.name, metric.actual, metric.unit, metric.threshold,

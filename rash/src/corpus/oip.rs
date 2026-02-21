@@ -136,19 +136,55 @@ pub struct OrgPattern {
 /// Each rule is a (keywords, category) pair. The first rule where ANY keyword
 /// matches wins. Order matters: more specific patterns come first.
 const CATEGORY_RULES: &[(&[&str], OipCategory)] = &[
-    (&["ast", "parser", "emit", "heredoc", "bracket", "brace", "command substit", "transpil"], OipCategory::AstTransform),
-    (&["precedence", "arithmetic", "operator", "parenthes"], OipCategory::OperatorPrecedence),
-    (&["security", "injection", "quoting", "escap", "sec0"], OipCategory::SecurityVulnerabilities),
-    (&["idempoten", "mkdir -p", "atomic", "idem0"], OipCategory::IdempotencyViolation),
-    (&["comprehension", "iterator", "accumulat", "filter"], OipCategory::ComprehensionBugs),
-    (&["config", "env var", "default value"], OipCategory::ConfigurationErrors),
-    (&["cross-shell", "compat", "dash", "posix"], OipCategory::IntegrationFailures),
-    (&["false positive", "false-positive"], OipCategory::FalsePositives),
+    (
+        &[
+            "ast",
+            "parser",
+            "emit",
+            "heredoc",
+            "bracket",
+            "brace",
+            "command substit",
+            "transpil",
+        ],
+        OipCategory::AstTransform,
+    ),
+    (
+        &["precedence", "arithmetic", "operator", "parenthes"],
+        OipCategory::OperatorPrecedence,
+    ),
+    (
+        &["security", "injection", "quoting", "escap", "sec0"],
+        OipCategory::SecurityVulnerabilities,
+    ),
+    (
+        &["idempoten", "mkdir -p", "atomic", "idem0"],
+        OipCategory::IdempotencyViolation,
+    ),
+    (
+        &["comprehension", "iterator", "accumulat", "filter"],
+        OipCategory::ComprehensionBugs,
+    ),
+    (
+        &["config", "env var", "default value"],
+        OipCategory::ConfigurationErrors,
+    ),
+    (
+        &["cross-shell", "compat", "dash", "posix"],
+        OipCategory::IntegrationFailures,
+    ),
+    (
+        &["false positive", "false-positive"],
+        OipCategory::FalsePositives,
+    ),
     (&["perf", "optimi", "speed"], OipCategory::Performance),
     (&["doc", "readme", "comment"], OipCategory::Documentation),
     (&["test"], OipCategory::TestInfrastructure),
     (&["build", "ci"], OipCategory::BuildSystem),
-    (&["dep", "version", "upgrade"], OipCategory::DependencyManagement),
+    (
+        &["dep", "version", "upgrade"],
+        OipCategory::DependencyManagement,
+    ),
 ];
 
 /// Classify a commit message into an OIP defect category.
@@ -279,7 +315,12 @@ pub fn has_matching_corpus_entry(message: &str, descriptions: &[String]) -> bool
     let keywords: Vec<&str> = lower
         .split_whitespace()
         .filter(|w| w.len() > 3)
-        .filter(|w| !["fix:", "feat:", "the", "and", "for", "with", "from", "that", "this"].contains(w))
+        .filter(|w| {
+            ![
+                "fix:", "feat:", "the", "and", "for", "with", "from", "that", "this",
+            ]
+            .contains(w)
+        })
         .take(5)
         .collect();
 
@@ -305,13 +346,17 @@ pub fn format_mine_table(commits: &[FixCommit]) -> String {
     let _ = writeln!(out, "{divider}");
     let _ = writeln!(
         out,
-        "{:<10}{:<12}{:<24}{:<8}{}",
-        "Hash", "Date", "Category", "Corpus", "Message"
+        "{:<10}{:<12}{:<24}{:<8}Message",
+        "Hash", "Date", "Category", "Corpus"
     );
     let _ = writeln!(out, "{divider}");
 
     for c in commits {
-        let corpus_marker = if c.has_corpus_entry { "\u{2713}" } else { "\u{2717}" };
+        let corpus_marker = if c.has_corpus_entry {
+            "\u{2713}"
+        } else {
+            "\u{2717}"
+        };
         let _ = writeln!(
             out,
             "{:<10}{:<12}{:<24}{:<8}{}",
@@ -359,8 +404,8 @@ pub fn format_fix_gaps_table(gaps: &[FixGap]) -> String {
     let _ = writeln!(out, "{divider}");
     let _ = writeln!(
         out,
-        "{:<10}{:<10}{:<24}{:<8}{}",
-        "ID", "Hash", "Category", "Priority", "Suggested Description"
+        "{:<10}{:<10}{:<24}{:<8}Suggested Description",
+        "ID", "Hash", "Category", "Priority"
     );
     let _ = writeln!(out, "{divider}");
 
@@ -378,8 +423,14 @@ pub fn format_fix_gaps_table(gaps: &[FixGap]) -> String {
 
     let _ = writeln!(out, "{divider}");
 
-    let high = gaps.iter().filter(|g| g.priority == GapPriority::High).count();
-    let medium = gaps.iter().filter(|g| g.priority == GapPriority::Medium).count();
+    let high = gaps
+        .iter()
+        .filter(|g| g.priority == GapPriority::High)
+        .count();
+    let medium = gaps
+        .iter()
+        .filter(|g| g.priority == GapPriority::Medium)
+        .count();
     let _ = writeln!(
         out,
         "\n{} gaps total: {} HIGH priority, {} MEDIUM priority",
@@ -401,8 +452,8 @@ pub fn format_org_patterns_table(patterns: &[OrgPattern]) -> String {
     let _ = writeln!(out, "{divider}");
     let _ = writeln!(
         out,
-        "{:<30}{:<24}{:<8}{}",
-        "Pattern", "Category", "Count", "Relevance"
+        "{:<30}{:<24}{:<8}Relevance",
+        "Pattern", "Category", "Count"
     );
     let _ = writeln!(out, "{divider}");
 
@@ -473,7 +524,11 @@ pub fn known_org_patterns() -> Vec<OrgPattern> {
             category: OipCategory::AstTransform,
             occurrences: 9,
             relevance: "+=/-=/*= operator lowering".to_string(),
-            covered_entries: vec!["B-036".to_string(), "B-037".to_string(), "B-038".to_string()],
+            covered_entries: vec![
+                "B-036".to_string(),
+                "B-037".to_string(),
+                "B-038".to_string(),
+            ],
         },
         OrgPattern {
             name: "Cross-shell output divergence".to_string(),
@@ -684,10 +739,22 @@ mod tests {
 
     #[test]
     fn test_category_priority() {
-        assert_eq!(category_priority(OipCategory::AstTransform), GapPriority::High);
-        assert_eq!(category_priority(OipCategory::SecurityVulnerabilities), GapPriority::High);
-        assert_eq!(category_priority(OipCategory::IdempotencyViolation), GapPriority::Medium);
-        assert_eq!(category_priority(OipCategory::Documentation), GapPriority::Low);
+        assert_eq!(
+            category_priority(OipCategory::AstTransform),
+            GapPriority::High
+        );
+        assert_eq!(
+            category_priority(OipCategory::SecurityVulnerabilities),
+            GapPriority::High
+        );
+        assert_eq!(
+            category_priority(OipCategory::IdempotencyViolation),
+            GapPriority::Medium
+        );
+        assert_eq!(
+            category_priority(OipCategory::Documentation),
+            GapPriority::Low
+        );
     }
 
     #[test]
@@ -743,7 +810,10 @@ mod tests {
             "fix: handle nested quoting in command substitution",
             &descriptions
         ));
-        assert!(!has_matching_corpus_entry("fix: random unrelated fix", &descriptions));
+        assert!(!has_matching_corpus_entry(
+            "fix: random unrelated fix",
+            &descriptions
+        ));
     }
 
     #[test]
