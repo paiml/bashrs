@@ -39,50 +39,101 @@ fn generate_statement(stmt: &BashStmt) -> String {
 fn generate_stmt(stmt: &BashStmt, indent: usize) -> String {
     let pad = "    ".repeat(indent);
     match stmt {
-        BashStmt::Command { name, args, redirects, .. } => {
-            generate_command_stmt(&pad, name, args, redirects)
-        }
-        BashStmt::Assignment { name, value, exported, .. } => {
-            generate_assignment_stmt(&pad, name, value, *exported)
-        }
+        BashStmt::Command {
+            name,
+            args,
+            redirects,
+            ..
+        } => generate_command_stmt(&pad, name, args, redirects),
+        BashStmt::Assignment {
+            name,
+            value,
+            exported,
+            ..
+        } => generate_assignment_stmt(&pad, name, value, *exported),
         BashStmt::Comment { text, .. } => generate_comment_stmt(&pad, text),
-        BashStmt::Function { name, body, .. } => {
-            generate_function_stmt(&pad, name, body, indent)
-        }
-        BashStmt::If { condition, then_block, elif_blocks, else_block, .. } => {
-            generate_if_stmt(&pad, condition, then_block, elif_blocks, else_block, indent)
-        }
-        BashStmt::For { variable, items, body, .. } => {
-            generate_loop_body(&format!("{}for {} in {}; do", pad, variable, generate_expr(items)), &pad, body, indent)
-        }
-        BashStmt::ForCStyle { init, condition, increment, body, .. } => {
+        BashStmt::Function { name, body, .. } => generate_function_stmt(&pad, name, body, indent),
+        BashStmt::If {
+            condition,
+            then_block,
+            elif_blocks,
+            else_block,
+            ..
+        } => generate_if_stmt(&pad, condition, then_block, elif_blocks, else_block, indent),
+        BashStmt::For {
+            variable,
+            items,
+            body,
+            ..
+        } => generate_loop_body(
+            &format!("{}for {} in {}; do", pad, variable, generate_expr(items)),
+            &pad,
+            body,
+            indent,
+        ),
+        BashStmt::ForCStyle {
+            init,
+            condition,
+            increment,
+            body,
+            ..
+        } => {
             let inner_pad = "    ".repeat(indent + 1);
             generate_for_c_style(&pad, &inner_pad, init, condition, increment, body, indent)
         }
-        BashStmt::While { condition, body, .. } => {
-            generate_loop_body(&format!("{}while {}; do", pad, generate_condition(condition)), &pad, body, indent)
-        }
-        BashStmt::Until { condition, body, .. } => {
-            generate_loop_body(&format!("{}while {}; do", pad, negate_condition(condition)), &pad, body, indent)
-        }
-        BashStmt::Return { code, .. } => {
-            code.as_ref().map_or_else(|| format!("{}return", pad), |c| format!("{}return {}", pad, generate_expr(c)))
-        }
+        BashStmt::While {
+            condition, body, ..
+        } => generate_loop_body(
+            &format!("{}while {}; do", pad, generate_condition(condition)),
+            &pad,
+            body,
+            indent,
+        ),
+        BashStmt::Until {
+            condition, body, ..
+        } => generate_loop_body(
+            &format!("{}while {}; do", pad, negate_condition(condition)),
+            &pad,
+            body,
+            indent,
+        ),
+        BashStmt::Return { code, .. } => code.as_ref().map_or_else(
+            || format!("{}return", pad),
+            |c| format!("{}return {}", pad, generate_expr(c)),
+        ),
         BashStmt::Case { word, arms, .. } => generate_case_stmt(&pad, word, arms, indent),
         BashStmt::Pipeline { commands, .. } => generate_pipeline(&pad, commands),
         BashStmt::AndList { left, right, .. } => {
-            format!("{}{} && {}", pad, generate_statement(left), generate_statement(right))
+            format!(
+                "{}{} && {}",
+                pad,
+                generate_statement(left),
+                generate_statement(right)
+            )
         }
         BashStmt::OrList { left, right, .. } => {
-            format!("{}{} || {}", pad, generate_statement(left), generate_statement(right))
+            format!(
+                "{}{} || {}",
+                pad,
+                generate_statement(left),
+                generate_statement(right)
+            )
         }
         BashStmt::BraceGroup { body, subshell, .. } => {
             generate_brace_group(&pad, body, *subshell, indent)
         }
         BashStmt::Coproc { name, body, .. } => generate_coproc(&pad, name, body),
-        BashStmt::Select { variable, items, body, .. } => {
-            generate_loop_body(&format!("{}select {} in {}; do", pad, variable, generate_expr(items)), &pad, body, indent)
-        }
+        BashStmt::Select {
+            variable,
+            items,
+            body,
+            ..
+        } => generate_loop_body(
+            &format!("{}select {} in {}; do", pad, variable, generate_expr(items)),
+            &pad,
+            body,
+            indent,
+        ),
         BashStmt::Negated { command, .. } => {
             format!("{}! {}", pad, generate_statement(command))
         }
@@ -90,7 +141,12 @@ fn generate_stmt(stmt: &BashStmt, indent: usize) -> String {
 }
 
 /// Generate a command statement (including declare/typeset POSIX conversion)
-fn generate_command_stmt(pad: &str, name: &str, args: &[BashExpr], redirects: &[Redirect]) -> String {
+fn generate_command_stmt(
+    pad: &str,
+    name: &str,
+    args: &[BashExpr],
+    redirects: &[Redirect],
+) -> String {
     if name == "declare" || name == "typeset" {
         return format!("{}{}", pad, generate_declare_posix(args, redirects));
     }
@@ -251,12 +307,7 @@ fn generate_case_stmt(pad: &str, word: &BashExpr, arms: &[CaseArm], indent: usiz
 }
 
 /// Generate a brace group or subshell
-fn generate_brace_group(
-    pad: &str,
-    body: &[BashStmt],
-    subshell: bool,
-    indent: usize,
-) -> String {
+fn generate_brace_group(pad: &str, body: &[BashStmt], subshell: bool, indent: usize) -> String {
     if subshell {
         let mut s = format!("{}(\n", pad);
         for stmt in body {
@@ -392,7 +443,11 @@ fn generate_expr(expr: &BashExpr) -> String {
     match expr {
         BashExpr::Literal(s) => generate_literal_expr(s),
         BashExpr::Variable(name) => format!("\"${}\"", name),
-        BashExpr::Array(items) => items.iter().map(generate_expr).collect::<Vec<_>>().join(" "),
+        BashExpr::Array(items) => items
+            .iter()
+            .map(generate_expr)
+            .collect::<Vec<_>>()
+            .join(" "),
         BashExpr::Arithmetic(arith) => format!("$(({}))", generate_arith_expr(arith)),
         BashExpr::Test(test) => generate_test_expr(test),
         BashExpr::CommandSubst(cmd) => format!("$({})", generate_statement(cmd)),
@@ -405,9 +460,10 @@ fn generate_expr(expr: &BashExpr) -> String {
             format_param_expansion(variable, ":=", default)
         }
         BashExpr::ErrorIfUnset { variable, message } => generate_error_if_unset(variable, message),
-        BashExpr::AlternativeValue { variable, alternative } => {
-            format_param_expansion(variable, ":+", alternative)
-        }
+        BashExpr::AlternativeValue {
+            variable,
+            alternative,
+        } => format_param_expansion(variable, ":+", alternative),
         BashExpr::StringLength { variable } => format!("\"${{#{}}}\"", variable),
         BashExpr::RemoveSuffix { variable, pattern } => {
             format_param_expansion(variable, "%", pattern)

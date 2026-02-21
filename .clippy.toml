@@ -2,8 +2,5 @@
 # These are defensive assertions that don't harm anything
 # TODO: Clean up these assertions properly in next release
 
-# Disallowed methods — prevent Cloudflare-class defects
-disallowed-methods = [
-    { path = "std::option::Option::unwrap", reason = "Use expect() with descriptive message instead — unwrap() causes panics (Cloudflare 2025-11-18)" },
-    { path = "std::result::Result::unwrap", reason = "Use expect() with descriptive message instead — unwrap() causes panics (Cloudflare 2025-11-18)" },
-]
+# Disallowed methods configured via workspace lint `unwrap_used = "deny"` in Cargo.toml
+# Not duplicated here to avoid double-reporting with clippy::unwrap_used
