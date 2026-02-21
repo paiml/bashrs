@@ -553,4 +553,4 @@ arr=(🚀 🔥 💻); echo ${arr[@]}
 - [Probar Documentation](https://github.com/paiml/probar)
 - [jugar-probar crate](https://crates.io/crates/jugar-probar)
 - [ratatui Documentation](https://docs.rs/ratatui)
-- [bashrs REPL Architecture](../../rash/src/repl/mod.rs)
+- [bashrs REPL Architecture](../../../rash/src/repl/mod.rs)

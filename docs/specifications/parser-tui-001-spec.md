@@ -148,5 +148,5 @@ fn parse_with_coverage(
 ## References
 
 - [jugar-probar documentation](https://github.com/paiml/probar)
-- [aprender probar example](../aprender/crates/apr-cli/examples/probar_tui_testing.rs)
+- aprender probar example (external project, not in this repository)
 - [Parser playbook](../../rash/playbooks/parser.yaml)

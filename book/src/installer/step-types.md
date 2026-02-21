@@ -246,5 +246,5 @@ apt-get install -y my-package
 ## Next Steps
 
 - [Checkpointing](./checkpointing.md) - Resume from failures
-- [Artifacts](./artifacts.md) - Download and verify files
+- Artifacts - Download and verify files (coming soon)
 - [Testing](./testing.md) - Container-based testing

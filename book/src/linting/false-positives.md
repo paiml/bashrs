@@ -333,5 +333,5 @@ All tests must pass before any release.
 
 ## See Also
 
-- [Specification: False Positives](../reference/false-positives-spec.md)
-- [ShellCheck Compatibility](../reference/shellcheck.md)
+- [Linting Rules Reference](../reference/rules.md)
+- [Configuration Reference](../reference/configuration.md)

@@ -325,7 +325,7 @@ These examples demonstrate features coming in future releases:
 - `control_flow/conditionals.rs` - Match expressions
 - `safety/*` - Advanced safety features
 
-See [KNOWN_LIMITATIONS.md](../KNOWN_LIMITATIONS.md) for details.
+See the Known Limitations section in the release readiness docs for details.
 ```
 
 **Priority**: Low (nice to have)
