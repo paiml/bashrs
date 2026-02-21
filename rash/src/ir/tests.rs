@@ -2363,8 +2363,7 @@ fn test_let_match_expression_produces_case_with_assignment() {
                 else_branch,
                 ..
             } => {
-                contains_case(then_branch)
-                    || else_branch.as_ref().is_some_and(|e| contains_case(e))
+                contains_case(then_branch) || else_branch.as_ref().is_some_and(|e| contains_case(e))
             }
             _ => false,
         }
@@ -2441,28 +2440,8 @@ fn main() { println!("{}", dispatch(0, 1)); }
     let ast = crate::services::parser::parse(source).expect("should parse");
     let ir = super::from_ast(&ast).expect("should lower");
 
-    // Walk the IR tree to find a nested Case inside a Case arm
-    fn has_nested_case(ir: &super::ShellIR) -> bool {
-        match ir {
-            super::ShellIR::Case { arms, .. } => {
-                for arm in arms {
-                    if matches!(&*arm.body, super::ShellIR::Case { .. }) {
-                        return true;
-                    }
-                    if has_nested_case(&arm.body) {
-                        return true;
-                    }
-                }
-                false
-            }
-            super::ShellIR::Sequence(stmts) => stmts.iter().any(has_nested_case),
-            super::ShellIR::Function { body, .. } => has_nested_case(body),
-            _ => false,
-        }
-    }
-
     assert!(
-        has_nested_case(&ir),
+        ir_has_nested_case(&ir),
         "nested match-in-match-arm should produce nested Case IR"
     );
 }
@@ -2486,34 +2465,41 @@ fn main() { println!("{}", categorize(12)); }
     let ast = crate::services::parser::parse(source).expect("should parse");
     let ir = super::from_ast(&ast).expect("should lower");
 
-    // Walk IR tree to find If inside a Case arm (if-else assigns to let target)
-    fn has_if_in_case(ir: &super::ShellIR) -> bool {
-        match ir {
-            super::ShellIR::Case { arms, .. } => {
-                for arm in arms {
-                    if has_if_inside(&arm.body) {
-                        return true;
-                    }
-                }
-                false
-            }
-            super::ShellIR::Sequence(stmts) => stmts.iter().any(has_if_in_case),
-            super::ShellIR::Function { body, .. } => has_if_in_case(body),
-            _ => false,
-        }
-    }
-    fn has_if_inside(ir: &super::ShellIR) -> bool {
-        match ir {
-            super::ShellIR::If { .. } => true,
-            super::ShellIR::Sequence(stmts) => stmts.iter().any(has_if_inside),
-            _ => false,
-        }
-    }
-
     assert!(
-        has_if_in_case(&ir),
+        ir_has_if_in_case(&ir),
         "if-else expression in match block arm should produce If IR inside Case arm"
     );
+}
+
+/// Walk the IR tree to find a nested Case inside a Case arm
+fn ir_has_nested_case(ir: &super::ShellIR) -> bool {
+    match ir {
+        super::ShellIR::Case { arms, .. } => arms.iter().any(|arm| {
+            matches!(&*arm.body, super::ShellIR::Case { .. }) || ir_has_nested_case(&arm.body)
+        }),
+        super::ShellIR::Sequence(stmts) => stmts.iter().any(ir_has_nested_case),
+        super::ShellIR::Function { body, .. } => ir_has_nested_case(body),
+        _ => false,
+    }
+}
+
+/// Walk IR tree to find If inside a Case arm
+fn ir_has_if_in_case(ir: &super::ShellIR) -> bool {
+    match ir {
+        super::ShellIR::Case { arms, .. } => arms.iter().any(|arm| ir_has_if_inside(&arm.body)),
+        super::ShellIR::Sequence(stmts) => stmts.iter().any(ir_has_if_in_case),
+        super::ShellIR::Function { body, .. } => ir_has_if_in_case(body),
+        _ => false,
+    }
+}
+
+/// Check if IR node contains an If statement
+fn ir_has_if_inside(ir: &super::ShellIR) -> bool {
+    match ir {
+        super::ShellIR::If { .. } => true,
+        super::ShellIR::Sequence(stmts) => stmts.iter().any(ir_has_if_inside),
+        _ => false,
+    }
 }
 
 /// Regression test: match with range patterns produces If chain (not Case)

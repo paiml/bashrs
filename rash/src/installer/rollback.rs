@@ -101,40 +101,48 @@ impl RollbackAction {
             Self::RemoveFile(path) => format!("Remove file: {}", path.display()),
             Self::RemoveDirectory(path) => format!("Remove directory: {}", path.display()),
             Self::RestorePackages { install, remove } => {
-                let mut desc = String::new();
-                if !install.is_empty() {
-                    desc.push_str(&format!("Reinstall: {}", install.join(", ")));
-                }
-                if !remove.is_empty() {
-                    if !desc.is_empty() {
-                        desc.push_str("; ");
-                    }
-                    desc.push_str(&format!("Remove: {}", remove.join(", ")));
-                }
-                desc
+                describe_restore_packages(install, remove)
             }
             Self::RestoreService {
                 name,
                 was_enabled,
                 was_running,
-            } => {
-                let enabled = if *was_enabled { "enable" } else { "disable" };
-                let running = if *was_running { "start" } else { "stop" };
-                format!("Service {}: {}, {}", name, enabled, running)
-            }
+            } => describe_restore_service(name, *was_enabled, *was_running),
             Self::RestoreUserGroup {
                 user,
                 group,
                 was_member,
-            } => {
-                if *was_member {
-                    format!("Add {} back to group {}", user, group)
-                } else {
-                    format!("Remove {} from group {}", user, group)
-                }
-            }
+            } => describe_restore_user_group(user, group, *was_member),
             Self::None => "No action required".to_string(),
         }
+    }
+}
+
+/// Describe package restore action
+fn describe_restore_packages(install: &[String], remove: &[String]) -> String {
+    let mut parts = Vec::new();
+    if !install.is_empty() {
+        parts.push(format!("Reinstall: {}", install.join(", ")));
+    }
+    if !remove.is_empty() {
+        parts.push(format!("Remove: {}", remove.join(", ")));
+    }
+    parts.join("; ")
+}
+
+/// Describe service restore action
+fn describe_restore_service(name: &str, was_enabled: bool, was_running: bool) -> String {
+    let enabled = if was_enabled { "enable" } else { "disable" };
+    let running = if was_running { "start" } else { "stop" };
+    format!("Service {}: {}, {}", name, enabled, running)
+}
+
+/// Describe user/group restore action
+fn describe_restore_user_group(user: &str, group: &str, was_member: bool) -> String {
+    if was_member {
+        format!("Add {} back to group {}", user, group)
+    } else {
+        format!("Remove {} from group {}", user, group)
     }
 }
 
@@ -728,7 +736,8 @@ mod tests {
 
     #[test]
     fn test_ROLLBACK_010_action_descriptions() {
-        let actions = [RollbackAction::Command("rm -f /tmp/test".to_string()),
+        let actions = [
+            RollbackAction::Command("rm -f /tmp/test".to_string()),
             RollbackAction::RestoreFile {
                 original_path: PathBuf::from("/etc/config"),
                 backup_path: PathBuf::from("/backup/config"),
@@ -745,7 +754,8 @@ mod tests {
                 group: "docker".to_string(),
                 was_member: false,
             },
-            RollbackAction::None];
+            RollbackAction::None,
+        ];
 
         let descriptions: Vec<_> = actions.iter().map(|a| a.description()).collect();
 
