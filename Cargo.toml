@@ -5,7 +5,7 @@ members = [
     "rash-mcp",
     "bashrs-oracle",
 ]
-exclude = ["fuzz"]
+exclude = ["fuzz", "target/", ".profraw", ".profdata", ".vscode/", ".idea/", ".pmat", "proptest-regressions"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -42,6 +42,7 @@ regex-syntax = "0.9"
 [workspace.package]
 version = "6.64.0"
 edition = "2021"
+rust-version = "1.82"
 authors = ["Pragmatic AI Labs"]
 license = "MIT"
 repository = "https://github.com/paiml/bashrs"

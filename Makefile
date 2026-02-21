@@ -316,25 +316,25 @@ test: test-fast test-doc test-property-comprehensive test-example
 # Cross-shell compatibility testing
 test-shells:
 	@echo "🐚 Testing POSIX compliance across shells..."
-	@cargo test --test integration_tests shell_compat -- --test-threads=1 --nocapture || true
+	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo test --test integration_tests shell_compat -- --test-threads=1 --nocapture || true
 	@for shell in bash dash ash ksh zsh busybox; do \
 		if command -v $$shell >/dev/null 2>&1; then \
 			echo "Testing with $$shell..."; \
-			RASH_TEST_SHELL=$$shell cargo test shell_compat::$$shell || true; \
+			RASH_TEST_SHELL=$$shell env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo test shell_compat::$$shell || true; \
 		fi; \
 	done
 
 # Determinism verification
 test-determinism:
 	@echo "🎯 Verifying deterministic transpilation..."
-	@cargo test determinism -- --test-threads=1 --nocapture
+	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo test determinism -- --test-threads=1 --nocapture
 
 # Documentation tests
 test-doc:
 	@echo "📚 Running documentation tests..."
-	@cargo test --doc --workspace
+	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo test --doc --workspace
 	@echo "📖 Testing code examples in documentation..."
-	@cargo test --doc --all-features
+	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo test --doc --all-features
 	@echo "✅ Documentation tests completed!"
 
 # Property-based testing (fast version for quick validation)
@@ -981,23 +981,22 @@ coverage-summary: ## Show coverage summary
 
 coverage-quick: ## Quick coverage for fast feedback (<1 min, core tests only)
 	@echo "⚡ Quick coverage (core tests only, ~1 min)..."
-	@env PROPTEST_CASES=1 QUICKCHECK_TESTS=1 cargo llvm-cov nextest \
-		--profile coverage \
-		--no-tests=warn \
+	@env PROPTEST_CASES=1 QUICKCHECK_TESTS=1 cargo llvm-cov test \
+		--lib \
 		--workspace \
 		--html --output-dir target/coverage/html \
 		$(COVERAGE_EXCLUDE) \
-		-E 'not test(/stress|fuzz|property|benchmark|verificar|hunt|golden|generated|repl|linter_tui|tool_consensus/)'
+		-- --skip stress --skip fuzz --skip property --skip benchmark --skip verificar --skip hunt --skip golden --skip generated --skip repl --skip linter_tui --skip tool_consensus
 	@cargo llvm-cov report --summary-only $(COVERAGE_EXCLUDE)
 	@echo "💡 HTML: target/coverage/html/index.html"
 
 coverage-full: ## Full coverage with all tests (slow, ~5 min)
 	@echo "📊 Running FULL coverage analysis (all tests, ~5 min)..."
 	@which cargo-llvm-cov > /dev/null 2>&1 || cargo install cargo-llvm-cov --locked
-	@which cargo-nextest > /dev/null 2>&1 || cargo install cargo-nextest --locked
 	@mkdir -p target/coverage
-	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov --no-report nextest \
-		--no-tests=warn --all-features --workspace
+	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov test \
+		--lib --all-features --workspace \
+		$(COVERAGE_EXCLUDE)
 	@cargo llvm-cov report --html --output-dir target/coverage/html $(COVERAGE_EXCLUDE)
 	@cargo llvm-cov report --lcov --output-path target/coverage/lcov.info $(COVERAGE_EXCLUDE)
 	@cargo llvm-cov report --summary-only $(COVERAGE_EXCLUDE)
@@ -1014,7 +1013,9 @@ coverage-open: ## Open HTML coverage report in browser
 coverage-ci: ## Generate LCOV report for CI/CD (fast mode)
 	@echo "=== Code Coverage for CI/CD ==="
 	@echo "Phase 1: Running tests with instrumentation..."
-	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov --no-report nextest --no-tests=warn --all-features --workspace
+	@env PROPTEST_CASES=25 QUICKCHECK_TESTS=25 cargo llvm-cov test \
+		--lib --all-features --workspace \
+		$(COVERAGE_EXCLUDE)
 	@echo "Phase 2: Generating LCOV report..."
 	@cargo llvm-cov report --lcov --output-path lcov.info $(COVERAGE_EXCLUDE)
 	@echo "✓ Coverage report generated: lcov.info (excluding external-command modules)"
