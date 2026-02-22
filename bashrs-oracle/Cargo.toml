@@ -16,9 +16,9 @@ gpu = ["aprender/gpu"]  # RTX 4090 via wgpu/trueno (opt-in, adds ~120 deps)
 compressed-models = ["aprender/format-compression"]  # zstd lossless (14x smaller)
 
 [dependencies]
-# ML models from aprender (crates.io v0.25)
+# ML models from aprender (crates.io v0.26)
 # GPU acceleration opt-in via `features = ["gpu"]` (adds wgpu/trueno ~120 deps)
-aprender = { version = "0.25", default-features = false, features = ["parallel"] }
+aprender = { version = "0.26", default-features = false, features = ["parallel"] }
 
 # Serialization
 serde = { workspace = true }
