@@ -307,7 +307,7 @@ fn keyring_remove_command(keyring_path: &Path, id: &str) -> Result<()> {
 }
 
 /// Parse a hex-encoded public key (64 hex chars = 32 bytes)
-fn parse_public_key(hex_str: &str) -> Result<crate::installer::PublicKey> {
+pub(crate) fn parse_public_key(hex_str: &str) -> Result<crate::installer::PublicKey> {
     if hex_str.len() != 64 {
         return Err(Error::Validation(format!(
             "Invalid public key length: expected 64 hex chars, got {}",
