@@ -157,10 +157,16 @@ use config_cmds::{
 // Re-export their public functions so command_tests.rs (`super::*`) can reach them.
 #[cfg(test)]
 use super::dockerfile_commands::{
-    dockerfile_full_validate_command, dockerfile_lint_command, dockerfile_profile_command,
-    dockerfile_purify_command, dockerfile_size_check_command, estimate_build_time,
-    parse_public_key, purify_dockerfile,
+    dockerfile_lint_command, dockerfile_purify_command, purify_dockerfile,
 };
+#[cfg(test)]
+use super::dockerfile_profile_commands::{
+    dockerfile_profile_command, dockerfile_size_check_command, estimate_build_time,
+};
+#[cfg(test)]
+use super::dockerfile_validate_commands::dockerfile_full_validate_command;
+#[cfg(test)]
+use super::installer_commands::parse_public_key;
 
 pub fn execute_command(cli: Cli) -> Result<()> {
     // Initialize logging
