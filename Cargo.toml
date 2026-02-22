@@ -2,10 +2,9 @@
 members = [
     "rash",
     "rash-runtime",
-    "rash-mcp",
     "bashrs-oracle",
 ]
-exclude = ["fuzz", "target/", ".profraw", ".profdata", ".vscode/", ".idea/", ".pmat", "proptest-regressions"]
+exclude = ["fuzz", "rash-mcp", "target/", ".profraw", ".profdata", ".vscode/", ".idea/", ".pmat", "proptest-regressions"]
 resolver = "2"
 
 [workspace.dependencies]
