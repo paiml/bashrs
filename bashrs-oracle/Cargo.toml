@@ -11,14 +11,14 @@ keywords = ["shell", "bash", "linter", "machine-learning", "error-classification
 categories = ["command-line-utilities", "development-tools"]
 
 [features]
-default = ["gpu", "compressed-models"]
-gpu = ["aprender/gpu"]  # RTX 4090 via wgpu/trueno
+default = ["compressed-models"]
+gpu = ["aprender/gpu"]  # RTX 4090 via wgpu/trueno (opt-in, adds ~120 deps)
 compressed-models = ["aprender/format-compression"]  # zstd lossless (14x smaller)
 
 [dependencies]
-# ML models from aprender (crates.io v0.24)
-# Features: parallel (rayon), gpu (wgpu via trueno)
-aprender = { version = "0.25", default-features = true }
+# ML models from aprender (crates.io v0.25)
+# GPU acceleration opt-in via `features = ["gpu"]` (adds wgpu/trueno ~120 deps)
+aprender = { version = "0.25", default-features = false, features = ["parallel"] }
 
 # Serialization
 serde = { workspace = true }
