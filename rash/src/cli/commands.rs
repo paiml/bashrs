@@ -5539,293 +5539,236 @@ fn handle_comply_command(command: ComplyCommands) -> Result<()> {
 }
 
 fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
-    use crate::corpus::runner::CorpusRunner;
-
     match command {
+        // Core commands: run, show, check
         CorpusCommands::Run {
             format,
             filter,
             min_score,
             log,
-        } => {
-            let config = Config::default();
-            let registry = CorpusRegistry::load_full();
-            let runner = CorpusRunner::new(config);
-
-            let score = match filter {
-                Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
-                Some(CorpusFormatArg::Makefile) => {
-                    runner.run_format(&registry, CorpusFormat::Makefile)
-                }
-                Some(CorpusFormatArg::Dockerfile) => {
-                    runner.run_format(&registry, CorpusFormat::Dockerfile)
-                }
-                None => runner.run(&registry),
-            };
-
-            corpus_print_score(&score, &format)?;
-
-            // Always cache results for instant diagnosis later
-            corpus_save_last_run(&score);
-
-            if log {
-                corpus_write_convergence_log(&runner, &score)?;
-            }
-
-            if let Some(threshold) = min_score {
-                if score.score < threshold {
-                    return Err(Error::Validation(format!(
-                        "Score {:.1} is below minimum threshold {:.1}",
-                        score.score, threshold
-                    )));
-                }
-            }
-
-            Ok(())
-        }
-
+        } => handle_corpus_run(format, filter, min_score, log),
         CorpusCommands::Show { id, format } => corpus_show_entry(&id, &format),
+        CorpusCommands::Check { id, format } => corpus_check_entry(&id, &format),
+        CorpusCommands::Validate { format } => corpus_validate(&format),
+        // Reporting and analysis
+        _ => handle_corpus_analysis(command),
+    }
+}
 
+fn handle_corpus_run(
+    format: CorpusOutputFormat,
+    filter: Option<CorpusFormatArg>,
+    min_score: Option<f64>,
+    log: bool,
+) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::runner::CorpusRunner;
+
+    let config = Config::default();
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(config);
+
+    let score = match filter {
+        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => {
+            runner.run_format(&registry, CorpusFormat::Dockerfile)
+        }
+        None => runner.run(&registry),
+    };
+
+    corpus_print_score(&score, &format)?;
+    corpus_save_last_run(&score);
+
+    if log {
+        corpus_write_convergence_log(&runner, &score)?;
+    }
+
+    if let Some(threshold) = min_score {
+        if score.score < threshold {
+            return Err(Error::Validation(format!(
+                "Score {:.1} is below minimum threshold {:.1}",
+                score.score, threshold
+            )));
+        }
+    }
+
+    Ok(())
+}
+
+fn handle_corpus_analysis(command: CorpusCommands) -> Result<()> {
+    match command {
+        // Reports and history
         CorpusCommands::History { format, last } => corpus_show_history(&format, last),
-
         CorpusCommands::Report { output } => corpus_generate_report(output.as_deref()),
-
+        CorpusCommands::Diff { format, from, to } => corpus_show_diff(&format, from, to),
+        CorpusCommands::Export { output, filter } => {
+            corpus_export(output.as_deref(), filter.as_ref())
+        }
+        CorpusCommands::Stats { format } => corpus_show_stats(&format),
+        CorpusCommands::Summary => corpus_summary(),
+        CorpusCommands::SummaryJson => corpus_summary_json(),
+        CorpusCommands::Dashboard => corpus_dashboard(),
+        CorpusCommands::Sparkline => corpus_sparkline(),
+        CorpusCommands::HistoryChart => corpus_history_chart(),
+        // Failure analysis
         CorpusCommands::Failures {
             format,
             filter,
             dimension,
         } => corpus_show_failures(&format, filter.as_ref(), dimension.as_deref()),
-
-        CorpusCommands::Diff { format, from, to } => corpus_show_diff(&format, from, to),
-
-        CorpusCommands::Export { output, filter } => {
-            corpus_export(output.as_deref(), filter.as_ref())
-        }
-
-        CorpusCommands::Stats { format } => corpus_show_stats(&format),
-
-        CorpusCommands::Check { id, format } => corpus_check_entry(&id, &format),
-
-        CorpusCommands::Difficulty { id, format } => corpus_classify_difficulty(&id, &format),
-
-        CorpusCommands::Summary => corpus_summary(),
-
-        CorpusCommands::Growth { format } => corpus_growth(&format),
-
-        CorpusCommands::Coverage { format } => corpus_coverage(&format),
-
-        CorpusCommands::Validate { format } => corpus_validate(&format),
-
-        CorpusCommands::Pareto {
-            format,
-            filter,
-            top,
-        } => corpus_pareto_analysis(&format, filter.as_ref(), top),
-
-        CorpusCommands::Risk { format, level } => corpus_risk_analysis(&format, level.as_deref()),
-
         CorpusCommands::WhyFailed { id, format } => corpus_why_failed(&id, &format),
-
         CorpusCommands::Regressions { format } => corpus_regressions(&format),
+        CorpusCommands::FailMap => corpus_fail_map(),
+        CorpusCommands::Errors { format, filter } => corpus_errors(&format, filter.as_ref()),
+        CorpusCommands::Flaky { threshold } => corpus_flaky(threshold),
+        CorpusCommands::Suspicious { limit } => corpus_suspicious(limit),
+        // Metrics and scoring
+        _ => handle_corpus_metrics(command),
+    }
+}
 
-        CorpusCommands::Heatmap { limit, filter } => corpus_heatmap(limit, filter.as_ref()),
-
-        CorpusCommands::Dashboard => corpus_dashboard(),
-
+fn handle_corpus_metrics(command: CorpusCommands) -> Result<()> {
+    match command {
+        // Coverage and quality
+        CorpusCommands::Growth { format } => corpus_growth(&format),
+        CorpusCommands::Coverage { format } => corpus_coverage(&format),
+        CorpusCommands::Difficulty { id, format } => corpus_classify_difficulty(&id, &format),
+        CorpusCommands::Completeness => corpus_completeness(),
+        CorpusCommands::Gaps => corpus_gaps(),
+        CorpusCommands::Density => corpus_density(),
+        CorpusCommands::Entropy => corpus_entropy(),
+        // Search, filter, ranking
         CorpusCommands::Search {
             pattern,
             format,
             filter,
         } => corpus_search(&pattern, &format, filter.as_ref()),
-
-        CorpusCommands::Sparkline => corpus_sparkline(),
-
         CorpusCommands::Top {
             limit,
             worst,
             filter,
         } => corpus_top(limit, worst, filter.as_ref()),
-
+        CorpusCommands::Topk { limit } => corpus_topk(limit),
+        CorpusCommands::Sample { count, filter } => corpus_sample(count, filter.as_ref()),
+        CorpusCommands::Outliers { threshold, filter } => {
+            corpus_outliers(threshold, filter.as_ref())
+        }
+        // Categorization and structure
         CorpusCommands::Categories { format } => corpus_categories(&format),
-
         CorpusCommands::Dimensions { format, filter } => {
             corpus_dimensions(&format, filter.as_ref())
         }
+        CorpusCommands::Tiers => corpus_tiers(),
+        CorpusCommands::TierDetail => corpus_tier_detail(),
+        CorpusCommands::Tags => corpus_tags(),
+        CorpusCommands::IdRange => corpus_id_range(),
+        // Performance and benchmarks
+        _ => handle_corpus_ops(command),
+    }
+}
 
+fn handle_corpus_ops(command: CorpusCommands) -> Result<()> {
+    match command {
+        // Risk and analysis
+        CorpusCommands::Pareto {
+            format,
+            filter,
+            top,
+        } => corpus_pareto_analysis(&format, filter.as_ref(), top),
+        CorpusCommands::Risk { format, level } => corpus_risk_analysis(&format, level.as_deref()),
+        CorpusCommands::Heatmap { limit, filter } => corpus_heatmap(limit, filter.as_ref()),
         CorpusCommands::Dupes => corpus_dupes(),
-
+        CorpusCommands::Dedup => corpus_dedup(),
+        // Convergence
         CorpusCommands::Converged {
             min_rate,
             max_delta,
             min_stable,
         } => corpus_converged(min_rate, max_delta, min_stable),
-
-        CorpusCommands::Benchmark { max_ms, filter } => corpus_benchmark(max_ms, filter.as_ref()),
-
-        CorpusCommands::Errors { format, filter } => corpus_errors(&format, filter.as_ref()),
-
-        CorpusCommands::Sample { count, filter } => corpus_sample(count, filter.as_ref()),
-
-        CorpusCommands::Completeness => corpus_completeness(),
-
-        CorpusCommands::Gate { min_score, max_ms } => corpus_gate(min_score, max_ms),
-
-        CorpusCommands::Outliers { threshold, filter } => {
-            corpus_outliers(threshold, filter.as_ref())
-        }
-
-        CorpusCommands::Matrix => corpus_matrix(),
-
-        CorpusCommands::Timeline => corpus_timeline(),
-
-        CorpusCommands::Drift => corpus_drift(),
-
-        CorpusCommands::Slow { limit, filter } => corpus_slow(limit, filter.as_ref()),
-
-        CorpusCommands::Tags => corpus_tags(),
-
-        CorpusCommands::Health => corpus_health(),
-
-        CorpusCommands::Compare { id1, id2 } => corpus_compare(&id1, &id2),
-
-        CorpusCommands::Density => corpus_density(),
-
-        CorpusCommands::Perf { filter } => corpus_perf(filter.as_ref()),
-
-        CorpusCommands::Citl { filter } => corpus_citl(filter.as_ref()),
-
-        CorpusCommands::Streak => corpus_streak(),
-
-        CorpusCommands::Weight => corpus_weight(),
-
-        CorpusCommands::Format { format } => corpus_format_report(&format),
-
-        CorpusCommands::Budget => corpus_budget(),
-
-        CorpusCommands::Entropy => corpus_entropy(),
-
-        CorpusCommands::Todo => corpus_todo(),
-
-        CorpusCommands::Scatter => corpus_scatter(),
-
-        CorpusCommands::GradeDist => corpus_grade_dist(),
-
-        CorpusCommands::Pivot => corpus_pivot(),
-
-        CorpusCommands::Corr => corpus_corr(),
-
-        CorpusCommands::Schema => corpus_schema(),
-
-        CorpusCommands::HistoryChart => corpus_history_chart(),
-
-        CorpusCommands::Flaky { threshold } => corpus_flaky(threshold),
-
-        CorpusCommands::Profile => corpus_profile(),
-
-        CorpusCommands::Gaps => corpus_gaps(),
-
-        CorpusCommands::SummaryJson => corpus_summary_json(),
-
-        CorpusCommands::Audit => corpus_audit(),
-
-        CorpusCommands::TierDetail => corpus_tier_detail(),
-
-        CorpusCommands::IdRange => corpus_id_range(),
-
-        CorpusCommands::Tiers => corpus_tiers(),
-
-        CorpusCommands::FailMap => corpus_fail_map(),
-
-        CorpusCommands::ScoreRange => corpus_score_range(),
-
-        CorpusCommands::Topk { limit } => corpus_topk(limit),
-
-        CorpusCommands::FormatCmp => corpus_format_cmp(),
-
-        CorpusCommands::Stability => corpus_stability(),
-
-        CorpusCommands::Version => corpus_version(),
-
-        CorpusCommands::Rate => corpus_rate(),
-
-        CorpusCommands::Dist => corpus_dist(),
-
-        CorpusCommands::Trace { id } => corpus_trace(&id),
-
-        CorpusCommands::Suspicious { limit } => corpus_suspicious(limit),
-
-        CorpusCommands::Decisions => corpus_decisions(),
-
-        CorpusCommands::Patterns => corpus_patterns(),
-
-        CorpusCommands::PatternQuery { signal } => corpus_pattern_query(&signal),
-
-        CorpusCommands::FixSuggest { id } => corpus_fix_suggest(&id),
-
-        CorpusCommands::Graph => corpus_graph(),
-
-        CorpusCommands::Impact { limit } => corpus_impact(limit),
-
-        CorpusCommands::BlastRadius { decision } => corpus_blast_radius(&decision),
-
-        CorpusCommands::Dedup => corpus_dedup(),
-
-        CorpusCommands::Triage => corpus_triage(),
-
-        CorpusCommands::LabelRules => corpus_label_rules(),
-
         CorpusCommands::ConvergeTable => corpus_converge_table(),
-
         CorpusCommands::ConvergeDiff { from, to } => corpus_converge_diff(from, to),
-
         CorpusCommands::ConvergeStatus => corpus_converge_status(),
-
-        CorpusCommands::Mine { limit } => corpus_mine(limit),
-
-        CorpusCommands::FixGaps { limit } => corpus_fix_gaps(limit),
-
-        CorpusCommands::OrgPatterns => corpus_org_patterns(),
-
-        CorpusCommands::SchemaValidate => corpus_schema_validate(),
-
-        CorpusCommands::GrammarErrors => corpus_grammar_errors(),
-
-        CorpusCommands::FormatGrammar { format } => corpus_format_grammar(format),
-
-        CorpusCommands::ExportDataset { format, output } => corpus_export_dataset(format, output),
-
-        CorpusCommands::DatasetInfo => corpus_dataset_info(),
-
-        CorpusCommands::PublishCheck => corpus_publish_check(),
-
-        CorpusCommands::LintPipeline => corpus_lint_pipeline(),
-
-        CorpusCommands::RegressionCheck => corpus_regression_check(),
-
         CorpusCommands::ConvergenceCheck => corpus_convergence_check(),
+        // Performance
+        CorpusCommands::Benchmark { max_ms, filter } => corpus_benchmark(max_ms, filter.as_ref()),
+        CorpusCommands::Slow { limit, filter } => corpus_slow(limit, filter.as_ref()),
+        CorpusCommands::Perf { filter } => corpus_perf(filter.as_ref()),
+        CorpusCommands::Profile => corpus_profile(),
+        // Stability and drift
+        CorpusCommands::Drift => corpus_drift(),
+        CorpusCommands::Stability => corpus_stability(),
+        CorpusCommands::Timeline => corpus_timeline(),
+        CorpusCommands::Matrix => corpus_matrix(),
+        CorpusCommands::Streak => corpus_streak(),
+        // Comparison and diagnostics
+        CorpusCommands::Compare { id1, id2 } => corpus_compare(&id1, &id2),
+        CorpusCommands::Trace { id } => corpus_trace(&id),
+        CorpusCommands::Health => corpus_health(),
+        CorpusCommands::Citl { filter } => corpus_citl(filter.as_ref()),
+        // Weights, formats, scoring
+        CorpusCommands::Weight => corpus_weight(),
+        CorpusCommands::Format { format } => corpus_format_report(&format),
+        CorpusCommands::FormatCmp => corpus_format_cmp(),
+        CorpusCommands::Budget => corpus_budget(),
+        CorpusCommands::ScoreRange => corpus_score_range(),
+        CorpusCommands::Rate => corpus_rate(),
+        CorpusCommands::Dist => corpus_dist(),
+        // Remaining ops
+        _ => handle_corpus_quality_ops(command),
+    }
+}
 
-        CorpusCommands::DomainCategories => corpus_domain_categories(),
-
-        CorpusCommands::DomainCoverage => corpus_domain_coverage(),
-
-        CorpusCommands::DomainMatrix => corpus_domain_matrix(),
-
-        CorpusCommands::TierWeights => corpus_tier_weights(),
-
-        CorpusCommands::TierAnalysis => corpus_tier_analysis(),
-
-        CorpusCommands::TierTargets => corpus_tier_targets(),
-
-        CorpusCommands::QualityGates => corpus_quality_gates(),
-
-        CorpusCommands::MetricsCheck => corpus_metrics_check(),
-
+fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
+    match command {
+        CorpusCommands::GradeDist => corpus_grade_dist(),
+        CorpusCommands::Scatter => corpus_scatter(),
+        CorpusCommands::Pivot => corpus_pivot(),
+        CorpusCommands::Corr => corpus_corr(),
+        CorpusCommands::Schema => corpus_schema(),
+        CorpusCommands::Todo => corpus_todo(),
+        CorpusCommands::Audit => corpus_audit(),
+        // Patterns and decisions
+        CorpusCommands::Decisions => corpus_decisions(),
+        CorpusCommands::Patterns => corpus_patterns(),
+        CorpusCommands::PatternQuery { signal } => corpus_pattern_query(&signal),
+        CorpusCommands::FixSuggest { id } => corpus_fix_suggest(&id),
+        CorpusCommands::Graph => corpus_graph(),
+        CorpusCommands::Impact { limit } => corpus_impact(limit),
+        CorpusCommands::BlastRadius { decision } => corpus_blast_radius(&decision),
+        CorpusCommands::Triage => corpus_triage(),
+        CorpusCommands::LabelRules => corpus_label_rules(),
+        CorpusCommands::OrgPatterns => corpus_org_patterns(),
+        // Gates and quality checks
+        CorpusCommands::Gate { min_score, max_ms } => corpus_gate(min_score, max_ms),
         CorpusCommands::GateStatus => corpus_gate_status_cmd(),
-
+        CorpusCommands::QualityGates => corpus_quality_gates(),
+        CorpusCommands::MetricsCheck => corpus_metrics_check(),
+        CorpusCommands::RegressionCheck => corpus_regression_check(),
+        CorpusCommands::LintPipeline => corpus_lint_pipeline(),
+        CorpusCommands::PublishCheck => corpus_publish_check(),
+        // Mining and fixes
+        CorpusCommands::Mine { limit } => corpus_mine(limit),
+        CorpusCommands::FixGaps { limit } => corpus_fix_gaps(limit),
         CorpusCommands::DiagnoseB2 { filter, limit } => corpus_diagnose_b2(filter.as_ref(), limit),
-
         CorpusCommands::FixB2 { apply } => corpus_fix_b2(apply),
+        // Grammar and dataset
+        CorpusCommands::SchemaValidate => corpus_schema_validate(),
+        CorpusCommands::GrammarErrors => corpus_grammar_errors(),
+        CorpusCommands::FormatGrammar { format } => corpus_format_grammar(format),
+        CorpusCommands::ExportDataset { format, output } => corpus_export_dataset(format, output),
+        CorpusCommands::DatasetInfo => corpus_dataset_info(),
+        // Domain analysis
+        CorpusCommands::DomainCategories => corpus_domain_categories(),
+        CorpusCommands::DomainCoverage => corpus_domain_coverage(),
+        CorpusCommands::DomainMatrix => corpus_domain_matrix(),
+        // Tier configuration
+        CorpusCommands::TierWeights => corpus_tier_weights(),
+        CorpusCommands::TierAnalysis => corpus_tier_analysis(),
+        CorpusCommands::TierTargets => corpus_tier_targets(),
+        CorpusCommands::Version => corpus_version(),
+        // Handled in parent dispatchers
+        _ => unreachable!(),
     }
 }
 

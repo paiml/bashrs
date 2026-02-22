@@ -21,9 +21,42 @@ rash/src/make_parser/generators.rs
 rash/src/bash_parser/codegen.rs
 rash/src/bash_transpiler/codegen.rs
 
+# Purification/formatting uses large match arms over AST variants
+rash/src/bash_transpiler/purification.rs
+rash/src/bash_quality/formatter.rs
+
+# Emitter and IR have inherently complex match-heavy dispatch
+rash/src/emitter/dockerfile.rs
+rash/src/ir/mod.rs
+
+# Oracle feature extraction is a large enum dispatch
+bashrs-oracle/src/features.rs
+
+# Corpus registry is a data file (17k+ CorpusEntry declarations)
+rash/src/corpus/registry.rs
+
 # Linter rules have many match arms by design
 rash/src/linter/rules/*.rs
 
 # Test files should not be analyzed for production metrics
 *_test.rs
 **/tests/**
+rash/tests/*
+
+# Example files are educational, not production code
+examples/*
+
+# Python utility scripts (corpus generators, fixers)
+gen_*.py
+fix_*.py
+apply_*.py
+gen_round*.py
+gen_pathological*.py
+scripts/corpus-generators/*
+scripts/*.py
+
+# Benchmark code
+benches/*
+
+# WASM test fixtures
+rash/examples/wasm/*

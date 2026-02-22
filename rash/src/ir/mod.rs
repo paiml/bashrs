@@ -860,315 +860,352 @@ impl IrConverter {
                 Literal::Str(s) => Ok(ShellValue::String(s.clone())),
             },
             Expr::Variable(name) => Ok(ShellValue::Variable(name.clone())),
-            Expr::FunctionCall { name, args } => {
-                // Sprint 27a: Handle env() and env_var_or() specially
-                if name == "env" || name == "env_var_or" {
-                    // Extract variable name from first argument
-                    let first_arg = args.first().ok_or_else(|| {
-                        crate::models::Error::Validation(format!(
-                            "{}() requires at least one argument",
-                            name
-                        ))
-                    })?;
-                    let var_name = match first_arg {
-                        Expr::Literal(Literal::Str(s)) => s.clone(),
-                        _ => {
-                            return Err(crate::models::Error::Validation(format!(
-                                "{}() requires string literal for variable name",
-                                name
-                            )))
-                        }
-                    };
-
-                    // Validate var name (security)
-                    if !var_name
-                        .chars()
-                        .all(|c| c.is_ascii_alphanumeric() || c == '_')
-                    {
-                        return Err(crate::models::Error::Validation(format!(
-                            "Invalid environment variable name: '{}'",
-                            var_name
-                        )));
-                    }
-
-                    // Extract default value for env_var_or()
-                    let default = if name == "env_var_or" {
-                        match &args.get(1) {
-                            Some(Expr::Literal(Literal::Str(s))) => Some(s.clone()),
-                            _ => {
-                                return Err(crate::models::Error::Validation(
-                                    "env_var_or() requires string literal for default value"
-                                        .to_string(),
-                                ))
-                            }
-                        }
-                    } else {
-                        None
-                    };
-
-                    return Ok(ShellValue::EnvVar {
-                        name: var_name,
-                        default,
-                    });
-                }
-
-                // Sprint 27b: Handle arg(), args(), and arg_count() specially
-                if name == "arg" {
-                    // Extract position from first argument
-                    let first_arg = args.first().ok_or_else(|| {
-                        crate::models::Error::Validation(
-                            "arg() requires at least one argument".to_string(),
-                        )
-                    })?;
-                    let position = match first_arg {
-                        Expr::Literal(Literal::U32(n)) => *n as usize,
-                        Expr::Literal(Literal::I32(n)) => *n as usize,
-                        _ => {
-                            return Err(crate::models::Error::Validation(
-                                "arg() requires integer literal for position".to_string(),
-                            ))
-                        }
-                    };
-
-                    // Validate position (must be >= 1)
-                    if position == 0 {
-                        return Err(crate::models::Error::Validation(
-                            "arg() position must be >= 1 (use arg(1) for first argument)"
-                                .to_string(),
-                        ));
-                    }
-
-                    return Ok(ShellValue::Arg {
-                        position: Some(position),
-                    });
-                }
-
-                if name == "args" {
-                    return Ok(ShellValue::Arg { position: None }); // None = $@
-                }
-
-                if name == "arg_count" {
-                    return Ok(ShellValue::ArgCount);
-                }
-
-                // Sprint 27c: Handle exit_code() specially
-                if name == "exit_code" {
-                    return Ok(ShellValue::ExitCode);
-                }
-
-                // Handle __format_concat: convert format string interpolation to ShellValue::Concat
-                if name == "__format_concat" {
-                    let mut parts = Vec::new();
-                    for arg in args {
-                        parts.push(self.convert_expr_to_value(arg)?);
-                    }
-                    return Ok(ShellValue::Concat(parts));
-                }
-
-                // Handle __if_expr in value position: use then-value as fallback
-                // (full if-expr lowering happens in convert_stmt for let bindings)
-                if name == "__if_expr" && args.len() == 3 {
-                    // In value position, we just use the then-branch value
-                    return self.convert_expr_to_value(&args[1]);
-                }
-
-                // Function call used as value - capture output with command substitution
-                let mut cmd_args = Vec::new();
-                for arg in args {
-                    cmd_args.push(self.convert_expr_to_value(arg)?);
-                }
-
-                // Check if this is a stdlib function - if so, use the shell function name
-                let program = if crate::stdlib::is_stdlib_function(name) {
-                    crate::stdlib::get_shell_function_name(name)
-                } else {
-                    name.clone()
-                };
-
-                Ok(ShellValue::CommandSubst(Command {
-                    program,
-                    args: cmd_args,
-                }))
-            }
-            Expr::Unary { op, operand } => {
-                use crate::ast::restricted::UnaryOp;
-                let operand_val = self.convert_expr_to_value(operand)?;
-
-                match op {
-                    UnaryOp::Not => Ok(ShellValue::LogicalNot {
-                        operand: Box::new(operand_val),
-                    }),
-                    UnaryOp::Neg => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::Sub,
-                        left: Box::new(ShellValue::String("0".to_string())),
-                        right: Box::new(operand_val),
-                    }),
-                }
-            }
-            Expr::Binary { op, left, right } => {
-                use crate::ast::restricted::BinaryOp;
-                let left_val = self.convert_expr_to_value(left)?;
-                let right_val = self.convert_expr_to_value(right)?;
-
-                // Convert comparison and arithmetic operators to proper variants
-                match op {
-                    // Comparison operators - detect string vs numeric
-                    BinaryOp::Eq => {
-                        let is_string = is_string_value(&left_val) || is_string_value(&right_val);
-                        Ok(ShellValue::Comparison {
-                            op: if is_string {
-                                shell_ir::ComparisonOp::StrEq
-                            } else {
-                                shell_ir::ComparisonOp::NumEq
-                            },
-                            left: Box::new(left_val),
-                            right: Box::new(right_val),
-                        })
-                    }
-                    BinaryOp::Ne => {
-                        let is_string = is_string_value(&left_val) || is_string_value(&right_val);
-                        Ok(ShellValue::Comparison {
-                            op: if is_string {
-                                shell_ir::ComparisonOp::StrNe
-                            } else {
-                                shell_ir::ComparisonOp::NumNe
-                            },
-                            left: Box::new(left_val),
-                            right: Box::new(right_val),
-                        })
-                    }
-                    BinaryOp::Gt => Ok(ShellValue::Comparison {
-                        op: shell_ir::ComparisonOp::Gt,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Ge => Ok(ShellValue::Comparison {
-                        op: shell_ir::ComparisonOp::Ge,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Lt => Ok(ShellValue::Comparison {
-                        op: shell_ir::ComparisonOp::Lt,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Le => Ok(ShellValue::Comparison {
-                        op: shell_ir::ComparisonOp::Le,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    // Arithmetic operators
-                    BinaryOp::Add => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::Add,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Sub => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::Sub,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Mul => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::Mul,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Div => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::Div,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Rem => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::Mod,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    // Logical operators
-                    BinaryOp::And => Ok(ShellValue::LogicalAnd {
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Or => Ok(ShellValue::LogicalOr {
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    // Bitwise operators
-                    BinaryOp::BitAnd => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::BitAnd,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::BitOr => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::BitOr,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::BitXor => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::BitXor,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Shl => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::Shl,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                    BinaryOp::Shr => Ok(ShellValue::Arithmetic {
-                        op: shell_ir::ArithmeticOp::Shr,
-                        left: Box::new(left_val),
-                        right: Box::new(right_val),
-                    }),
-                }
-            }
+            Expr::FunctionCall { name, args } => self.convert_fn_call_to_value(name, args),
+            Expr::Unary { op, operand } => self.convert_unary_to_value(op, operand),
+            Expr::Binary { op, left, right } => self.convert_binary_to_value(op, left, right),
             Expr::MethodCall {
                 receiver,
                 method,
                 args,
-            } => {
-                // PARAM-SPEC-005: Detect std::env::args().nth(N).unwrap() pattern (without default)
-                // This becomes $N in shell (e.g., $0 for script name, $1 for first arg)
-                if method == "unwrap" && args.is_empty() {
-                    if let Expr::MethodCall {
-                        receiver: inner_receiver,
-                        method: inner_method,
-                        args: inner_args,
-                    } = &**receiver
+            } => self.convert_method_call_to_value(receiver, method, args),
+            Expr::PositionalArgs => Ok(ShellValue::Arg { position: None }),
+            Expr::Index { object, index } => self.convert_index_to_value(object, index),
+            Expr::Array(elems) => {
+                if let Some(first) = elems.first() {
+                    self.convert_expr_to_value(first)
+                } else {
+                    Ok(ShellValue::String("".to_string()))
+                }
+            }
+            _ => Ok(ShellValue::String("unknown".to_string())),
+        }
+    }
+
+    fn convert_fn_call_to_value(
+        &self,
+        name: &str,
+        args: &[crate::ast::Expr],
+    ) -> Result<ShellValue> {
+        use crate::ast::{restricted::Literal, Expr};
+
+        if name == "env" || name == "env_var_or" {
+            return self.convert_env_call_to_value(name, args);
+        }
+
+        if name == "arg" {
+            let first_arg = args.first().ok_or_else(|| {
+                crate::models::Error::Validation(
+                    "arg() requires at least one argument".to_string(),
+                )
+            })?;
+            let position = match first_arg {
+                Expr::Literal(Literal::U32(n)) => *n as usize,
+                Expr::Literal(Literal::I32(n)) => *n as usize,
+                _ => {
+                    return Err(crate::models::Error::Validation(
+                        "arg() requires integer literal for position".to_string(),
+                    ))
+                }
+            };
+            if position == 0 {
+                return Err(crate::models::Error::Validation(
+                    "arg() position must be >= 1 (use arg(1) for first argument)".to_string(),
+                ));
+            }
+            return Ok(ShellValue::Arg {
+                position: Some(position),
+            });
+        }
+
+        if name == "args" {
+            return Ok(ShellValue::Arg { position: None });
+        }
+        if name == "arg_count" {
+            return Ok(ShellValue::ArgCount);
+        }
+        if name == "exit_code" {
+            return Ok(ShellValue::ExitCode);
+        }
+
+        if name == "__format_concat" {
+            let mut parts = Vec::new();
+            for arg in args {
+                parts.push(self.convert_expr_to_value(arg)?);
+            }
+            return Ok(ShellValue::Concat(parts));
+        }
+
+        if name == "__if_expr" && args.len() == 3 {
+            return self.convert_expr_to_value(&args[1]);
+        }
+
+        let mut cmd_args = Vec::new();
+        for arg in args {
+            cmd_args.push(self.convert_expr_to_value(arg)?);
+        }
+
+        let program = if crate::stdlib::is_stdlib_function(name) {
+            crate::stdlib::get_shell_function_name(name)
+        } else {
+            name.to_string()
+        };
+
+        Ok(ShellValue::CommandSubst(Command {
+            program,
+            args: cmd_args,
+        }))
+    }
+
+    fn convert_env_call_to_value(
+        &self,
+        name: &str,
+        args: &[crate::ast::Expr],
+    ) -> Result<ShellValue> {
+        use crate::ast::{restricted::Literal, Expr};
+
+        let first_arg = args.first().ok_or_else(|| {
+            crate::models::Error::Validation(format!(
+                "{}() requires at least one argument",
+                name
+            ))
+        })?;
+        let var_name = match first_arg {
+            Expr::Literal(Literal::Str(s)) => s.clone(),
+            _ => {
+                return Err(crate::models::Error::Validation(format!(
+                    "{}() requires string literal for variable name",
+                    name
+                )))
+            }
+        };
+
+        if !var_name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        {
+            return Err(crate::models::Error::Validation(format!(
+                "Invalid environment variable name: '{}'",
+                var_name
+            )));
+        }
+
+        let default = if name == "env_var_or" {
+            match &args.get(1) {
+                Some(Expr::Literal(Literal::Str(s))) => Some(s.clone()),
+                _ => {
+                    return Err(crate::models::Error::Validation(
+                        "env_var_or() requires string literal for default value".to_string(),
+                    ))
+                }
+            }
+        } else {
+            None
+        };
+
+        Ok(ShellValue::EnvVar {
+            name: var_name,
+            default,
+        })
+    }
+
+    fn convert_unary_to_value(
+        &self,
+        op: &crate::ast::restricted::UnaryOp,
+        operand: &crate::ast::Expr,
+    ) -> Result<ShellValue> {
+        use crate::ast::restricted::UnaryOp;
+        let operand_val = self.convert_expr_to_value(operand)?;
+
+        match op {
+            UnaryOp::Not => Ok(ShellValue::LogicalNot {
+                operand: Box::new(operand_val),
+            }),
+            UnaryOp::Neg => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::Sub,
+                left: Box::new(ShellValue::String("0".to_string())),
+                right: Box::new(operand_val),
+            }),
+        }
+    }
+
+    fn convert_binary_to_value(
+        &self,
+        op: &crate::ast::restricted::BinaryOp,
+        left: &crate::ast::Expr,
+        right: &crate::ast::Expr,
+    ) -> Result<ShellValue> {
+        use crate::ast::restricted::BinaryOp;
+        let left_val = self.convert_expr_to_value(left)?;
+        let right_val = self.convert_expr_to_value(right)?;
+
+        match op {
+            BinaryOp::Eq => {
+                let is_string = is_string_value(&left_val) || is_string_value(&right_val);
+                Ok(ShellValue::Comparison {
+                    op: if is_string {
+                        shell_ir::ComparisonOp::StrEq
+                    } else {
+                        shell_ir::ComparisonOp::NumEq
+                    },
+                    left: Box::new(left_val),
+                    right: Box::new(right_val),
+                })
+            }
+            BinaryOp::Ne => {
+                let is_string = is_string_value(&left_val) || is_string_value(&right_val);
+                Ok(ShellValue::Comparison {
+                    op: if is_string {
+                        shell_ir::ComparisonOp::StrNe
+                    } else {
+                        shell_ir::ComparisonOp::NumNe
+                    },
+                    left: Box::new(left_val),
+                    right: Box::new(right_val),
+                })
+            }
+            BinaryOp::Gt => Ok(ShellValue::Comparison {
+                op: shell_ir::ComparisonOp::Gt,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Ge => Ok(ShellValue::Comparison {
+                op: shell_ir::ComparisonOp::Ge,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Lt => Ok(ShellValue::Comparison {
+                op: shell_ir::ComparisonOp::Lt,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Le => Ok(ShellValue::Comparison {
+                op: shell_ir::ComparisonOp::Le,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Add => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::Add,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Sub => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::Sub,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Mul => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::Mul,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Div => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::Div,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Rem => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::Mod,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::And => Ok(ShellValue::LogicalAnd {
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Or => Ok(ShellValue::LogicalOr {
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::BitAnd => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::BitAnd,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::BitOr => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::BitOr,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::BitXor => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::BitXor,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Shl => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::Shl,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+            BinaryOp::Shr => Ok(ShellValue::Arithmetic {
+                op: shell_ir::ArithmeticOp::Shr,
+                left: Box::new(left_val),
+                right: Box::new(right_val),
+            }),
+        }
+    }
+
+    fn convert_method_call_to_value(
+        &self,
+        receiver: &crate::ast::Expr,
+        method: &str,
+        args: &[crate::ast::Expr],
+    ) -> Result<ShellValue> {
+        use crate::ast::{restricted::Literal, Expr};
+
+        // PARAM-SPEC-005: Detect std::env::args().nth(N).unwrap() pattern
+        if method == "unwrap" && args.is_empty() {
+            if let Expr::MethodCall {
+                receiver: inner_receiver,
+                method: inner_method,
+                args: inner_args,
+            } = receiver
+            {
+                if inner_method == "nth" && inner_args.len() == 1 {
+                    if let Expr::FunctionCall {
+                        name,
+                        args: fn_args,
+                    } = &**inner_receiver
                     {
-                        if inner_method == "nth" && inner_args.len() == 1 {
-                            // Check if inner receiver is std::env::args()
-                            if let Expr::FunctionCall {
-                                name,
-                                args: fn_args,
-                            } = &**inner_receiver
-                            {
-                                if name == "std::env::args" && fn_args.is_empty() {
-                                    // Extract the position number
-                                    if let Some(Expr::Literal(Literal::U32(n))) = inner_args.first()
-                                    {
-                                        return Ok(ShellValue::Arg {
-                                            position: Some(*n as usize),
-                                        });
-                                    }
-                                }
+                        if name == "std::env::args" && fn_args.is_empty() {
+                            if let Some(Expr::Literal(Literal::U32(n))) = inner_args.first() {
+                                return Ok(ShellValue::Arg {
+                                    position: Some(*n as usize),
+                                });
                             }
                         }
                     }
                 }
+            }
+        }
 
-                // P0-POSITIONAL-PARAMETERS: Detect args.get(N).unwrap_or(default) pattern
-                // This becomes ${N:-default} in shell
-                if method == "unwrap_or" && args.len() == 1 {
-                    // Check if receiver is args.get(N)
-                    if let Expr::MethodCall {
-                        receiver: inner_receiver,
-                        method: inner_method,
-                        args: inner_args,
-                    } = &**receiver
+        // P0-POSITIONAL-PARAMETERS: Detect args.get(N).unwrap_or(default) pattern
+        if method == "unwrap_or" && args.len() == 1 {
+            if let Expr::MethodCall {
+                receiver: inner_receiver,
+                method: inner_method,
+                args: inner_args,
+            } = receiver
+            {
+                if inner_method == "get" && inner_args.len() == 1 {
+                    if let Some(Expr::Literal(Literal::U32(n))) = inner_args.first() {
+                        if let Some(Expr::Literal(Literal::Str(default_val))) = args.first() {
+                            return Ok(ShellValue::ArgWithDefault {
+                                position: *n as usize,
+                                default: default_val.clone(),
+                            });
+                        }
+                    }
+                }
+
+                // PARAM-SPEC-005: Detect std::env::args().nth(N).unwrap_or(default) pattern
+                if inner_method == "nth" && inner_args.len() == 1 {
+                    if let Expr::FunctionCall {
+                        name,
+                        args: fn_args,
+                    } = &**inner_receiver
                     {
-                        if inner_method == "get" && inner_args.len() == 1 {
-                            // Extract the position number
+                        if name == "std::env::args" && fn_args.is_empty() {
                             if let Some(Expr::Literal(Literal::U32(n))) = inner_args.first() {
-                                // Extract the default value
                                 if let Some(Expr::Literal(Literal::Str(default_val))) = args.first()
                                 {
                                     return Ok(ShellValue::ArgWithDefault {
@@ -1178,74 +1215,35 @@ impl IrConverter {
                                 }
                             }
                         }
-
-                        // PARAM-SPEC-005: Detect std::env::args().nth(N).unwrap_or(default) pattern
-                        // This becomes ${N:-default} in shell (e.g., ${0:-default} for script name)
-                        if inner_method == "nth" && inner_args.len() == 1 {
-                            // Check if inner receiver is std::env::args()
-                            if let Expr::FunctionCall {
-                                name,
-                                args: fn_args,
-                            } = &**inner_receiver
-                            {
-                                if name == "std::env::args" && fn_args.is_empty() {
-                                    // Extract the position number
-                                    if let Some(Expr::Literal(Literal::U32(n))) = inner_args.first()
-                                    {
-                                        // Extract the default value
-                                        if let Some(Expr::Literal(Literal::Str(default_val))) =
-                                            args.first()
-                                        {
-                                            return Ok(ShellValue::ArgWithDefault {
-                                                position: *n as usize,
-                                                default: default_val.clone(),
-                                            });
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     }
                 }
+            }
+        }
 
-                // Not a recognized pattern - fall through to unknown
-                Ok(ShellValue::String("unknown".to_string()))
-            }
-            Expr::PositionalArgs => {
-                // std::env::args().collect() → $@ (all positional parameters)
-                Ok(ShellValue::Arg { position: None })
-            }
-            Expr::Index { object, index } => {
-                // arr[i] → $arr_i (naming convention for simulated arrays)
-                if let Expr::Variable(name) = &**object {
-                    let idx_val = self.convert_expr_to_value(index)?;
-                    match idx_val {
-                        ShellValue::String(s) => {
-                            Ok(ShellValue::Variable(format!("{}_{}", name, s)))
-                        }
-                        ShellValue::Variable(_) | ShellValue::Arithmetic { .. } => {
-                            // Dynamic index: arr[i] where i is a runtime variable
-                            // → eval-based POSIX lookup
-                            Ok(ShellValue::DynamicArrayAccess {
-                                array: name.clone(),
-                                index: Box::new(idx_val),
-                            })
-                        }
-                        _ => Ok(ShellValue::Variable(format!("{}_0", name))),
-                    }
-                } else {
-                    Ok(ShellValue::String("unknown".to_string()))
+        Ok(ShellValue::String("unknown".to_string()))
+    }
+
+    fn convert_index_to_value(
+        &self,
+        object: &crate::ast::Expr,
+        index: &crate::ast::Expr,
+    ) -> Result<ShellValue> {
+        use crate::ast::Expr;
+
+        if let Expr::Variable(name) = object {
+            let idx_val = self.convert_expr_to_value(index)?;
+            match idx_val {
+                ShellValue::String(s) => Ok(ShellValue::Variable(format!("{}_{}", name, s))),
+                ShellValue::Variable(_) | ShellValue::Arithmetic { .. } => {
+                    Ok(ShellValue::DynamicArrayAccess {
+                        array: name.clone(),
+                        index: Box::new(idx_val),
+                    })
                 }
+                _ => Ok(ShellValue::Variable(format!("{}_0", name))),
             }
-            Expr::Array(elems) => {
-                // Array in value position: use first element as representative
-                if let Some(first) = elems.first() {
-                    self.convert_expr_to_value(first)
-                } else {
-                    Ok(ShellValue::String("".to_string()))
-                }
-            }
-            _ => Ok(ShellValue::String("unknown".to_string())), // Fallback
+        } else {
+            Ok(ShellValue::String("unknown".to_string()))
         }
     }
 
