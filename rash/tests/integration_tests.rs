@@ -95,12 +95,13 @@ fn main() {
     let script_path = temp_dir.path().join("test.sh");
 
     // Modify script to print variables for verification
+    // Transpiler single-quotes string values in assignments (e.g., x='42')
     let modified_script = shell_script
-        .replace("x=42", "x=42\n    echo \"x=$x\"")
-        .replace("name=test", "name=test\n    echo \"name=$name\"")
+        .replace("x='42'", "x='42'\n    echo \"x=$x\"")
+        .replace("name='test'", "name='test'\n    echo \"name=$name\"")
         .replace(
-            "greeting=Hello",
-            "greeting=Hello\n    echo \"greeting=$greeting\"",
+            "greeting='Hello'",
+            "greeting='Hello'\n    echo \"greeting=$greeting\"",
         );
 
     fs::write(&script_path, modified_script).unwrap();
@@ -207,9 +208,9 @@ fn echo(msg: &str) {}
     let optimized = transpile(source, config_optimized).unwrap();
     let unoptimized = transpile(source, config_unoptimized).unwrap();
 
-    // Both should work
-    assert!(optimized.contains("part1=Hello"));
-    assert!(unoptimized.contains("part1=Hello"));
+    // Both should work - transpiler single-quotes string values
+    assert!(optimized.contains("part1='Hello'"));
+    assert!(unoptimized.contains("part1='Hello'"));
 
     // Optimization might affect the output structure, but both should be valid
     // For now, just ensure both contain the expected output
