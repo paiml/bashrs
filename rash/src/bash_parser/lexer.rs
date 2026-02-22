@@ -1077,17 +1077,117 @@ impl Lexer {
         let ch = self.current_char();
         let next_ch = self.peek_char(1);
 
-        let token = match (ch, next_ch) {
-            ('=', Some('=')) => {
-                self.advance();
-                self.advance();
-                Token::Eq
+        // Delegate to specialized helpers based on the first character
+        let token = match ch {
+            '<' | '>' => return self.read_redirect_or_comparison(ch, next_ch),
+            '=' => return self.read_equality_or_assign(next_ch),
+            '@' | '+' | '?' if next_ch == Some('(') => {
+                return self.read_extended_glob(ch);
             }
+            '!' if next_ch == Some('(') => return self.read_extended_glob(ch),
+            ';' => return self.read_semicolon_operator(next_ch),
+            _ => {}
+        };
+
+        // Handle remaining operators inline (simple single/double char ops)
+        let _ = token; // discard unit from match above
+        let token = match (ch, next_ch) {
             ('!', Some('=')) => {
                 self.advance();
                 self.advance();
                 Token::Ne
             }
+            ('!', _) => {
+                self.advance();
+                Token::Not
+            }
+            ('&', Some('&')) => {
+                self.advance();
+                self.advance();
+                Token::And
+            }
+            ('&', _) => {
+                self.advance();
+                Token::Ampersand
+            }
+            ('|', Some('|')) => {
+                self.advance();
+                self.advance();
+                Token::Or
+            }
+            ('|', _) => {
+                self.advance();
+                Token::Pipe
+            }
+            ('[', Some('[')) => {
+                self.advance();
+                self.advance();
+                Token::DoubleLeftBracket
+            }
+            ('[', _) => {
+                self.advance();
+                Token::LeftBracket
+            }
+            (']', Some(']')) => {
+                self.advance();
+                self.advance();
+                Token::DoubleRightBracket
+            }
+            (']', _) => {
+                self.advance();
+                Token::RightBracket
+            }
+            ('+', Some('=')) => {
+                // BUG-012 FIX: Array append +=
+                self.advance(); // skip '+'
+                self.advance(); // skip '='
+                Token::Identifier("+=".to_string())
+            }
+            ('(', Some('(')) => {
+                // Issue #67: Standalone arithmetic ((expr))
+                return self.read_standalone_arithmetic();
+            }
+            ('(', _) => {
+                self.advance();
+                Token::LeftParen
+            }
+            (')', _) => {
+                self.advance();
+                Token::RightParen
+            }
+            ('{', _) => {
+                // Issue #69: Check for brace expansion {a,b,c} or {1..10}
+                if self.is_brace_expansion() {
+                    return self.read_brace_expansion();
+                }
+                self.advance();
+                Token::LeftBrace
+            }
+            ('}', _) => {
+                self.advance();
+                Token::RightBrace
+            }
+            ('?', _) => {
+                // Single-char glob: file?.txt
+                self.advance();
+                Token::Identifier("?".to_string())
+            }
+            _ => {
+                return Err(LexerError::UnexpectedChar(ch, self.line, self.column));
+            }
+        };
+
+        Ok(token)
+    }
+
+    /// Handle operators starting with `<` or `>`: redirects, comparisons, and
+    /// process substitutions.
+    fn read_redirect_or_comparison(
+        &mut self,
+        ch: char,
+        next_ch: Option<char>,
+    ) -> Result<Token, LexerError> {
+        let token = match (ch, next_ch) {
             ('<', Some('<')) => {
                 // Check for here-string (<<<) vs heredoc (<<) vs indented heredoc (<<-)
                 // Issue #61: Here-strings must be checked before heredocs
@@ -1146,33 +1246,32 @@ impl Lexer {
                 self.advance();
                 Token::Ge
             }
-            ('&', Some('&')) => {
+            ('<', _) => {
                 self.advance();
-                self.advance();
-                Token::And
+                Token::Lt
             }
-            ('|', Some('|')) => {
+            ('>', _) => {
                 self.advance();
-                self.advance();
-                Token::Or
+                Token::Gt
             }
-            ('[', Some('[')) => {
+            _ => return Err(LexerError::UnexpectedChar(ch, self.line, self.column)),
+        };
+        Ok(token)
+    }
+
+    /// Handle operators starting with `=`: equality (`==`), regex match (`=~`),
+    /// and plain assignment (`=`).
+    fn read_equality_or_assign(
+        &mut self,
+        next_ch: Option<char>,
+    ) -> Result<Token, LexerError> {
+        match next_ch {
+            Some('=') => {
                 self.advance();
                 self.advance();
-                Token::DoubleLeftBracket
+                Ok(Token::Eq)
             }
-            (']', Some(']')) => {
-                self.advance();
-                self.advance();
-                Token::DoubleRightBracket
-            }
-            ('+', Some('=')) => {
-                // BUG-012 FIX: Array append +=
-                self.advance(); // skip '+'
-                self.advance(); // skip '='
-                Token::Identifier("+=".to_string())
-            }
-            ('=', Some('~')) => {
+            Some('~') => {
                 // =~ regex match operator (used in [[ ... =~ pattern ]])
                 self.advance(); // skip '='
                 self.advance(); // skip '~'
@@ -1203,162 +1302,67 @@ impl Lexer {
                     pattern.push(self.advance());
                 }
                 let pattern = pattern.trim_end().to_string();
-                Token::Identifier(format!("=~ {}", pattern))
+                Ok(Token::Identifier(format!("=~ {}", pattern)))
             }
-            ('=', _) => {
+            _ => {
                 self.advance();
-                Token::Assign
+                Ok(Token::Assign)
             }
-            ('<', _) => {
-                self.advance();
-                Token::Lt
-            }
-            ('>', _) => {
-                self.advance();
-                Token::Gt
-            }
-            ('!', Some('(')) => {
-                // BUG-020 FIX: Extended glob: !(...)
-                self.advance(); // consume !
-                self.advance(); // consume (
-                let mut pattern = String::new();
-                let mut depth = 1;
-                while !self.is_at_end() && depth > 0 {
-                    let c = self.current_char();
-                    if c == '(' {
-                        depth += 1;
-                    } else if c == ')' {
-                        depth -= 1;
-                        if depth == 0 {
-                            self.advance();
-                            break;
-                        }
-                    }
-                    pattern.push(self.advance());
+        }
+    }
+
+    /// Handle extended glob patterns: `@(...)`, `+(...)`, `?(...)`, `!(...)`.
+    /// The `glob_char` parameter is the leading character (`@`, `+`, `?`, or `!`).
+    fn read_extended_glob(&mut self, _glob_char: char) -> Result<Token, LexerError> {
+        let glob_type = self.advance(); // consume glob_char (@, +, ?, or !)
+        self.advance(); // consume (
+        let mut pattern = String::new();
+        let mut depth = 1;
+        while !self.is_at_end() && depth > 0 {
+            let c = self.current_char();
+            if c == '(' {
+                depth += 1;
+            } else if c == ')' {
+                depth -= 1;
+                if depth == 0 {
+                    self.advance();
+                    break;
                 }
-                Token::Identifier(format!("!({})", pattern))
             }
-            ('!', _) => {
-                self.advance();
-                Token::Not
-            }
-            ('|', _) => {
-                self.advance();
-                Token::Pipe
-            }
-            (';', Some(';')) => {
+            pattern.push(self.advance());
+        }
+        Ok(Token::Identifier(format!("{}({})", glob_type, pattern)))
+    }
+
+    /// Handle operators starting with `;`: double-semicolon (`;;`),
+    /// case resume (`;;&`), case fall-through (`;&`), and plain semicolon.
+    fn read_semicolon_operator(
+        &mut self,
+        next_ch: Option<char>,
+    ) -> Result<Token, LexerError> {
+        match next_ch {
+            Some(';') => {
                 // BUG-008, BUG-009 FIX: Check for ;;& (case resume) before ;;
                 self.advance(); // skip first ';'
                 self.advance(); // skip second ';'
                 if self.peek_char(0) == Some('&') {
                     self.advance(); // skip '&'
-                    Token::Identifier(";;&".to_string()) // Case resume
+                    Ok(Token::Identifier(";;&".to_string())) // Case resume
                 } else {
-                    Token::Identifier(";;".to_string()) // Case terminator
+                    Ok(Token::Identifier(";;".to_string())) // Case terminator
                 }
             }
-            (';', Some('&')) => {
+            Some('&') => {
                 // BUG-008 FIX: Case fall-through ;&
                 self.advance(); // skip ';'
                 self.advance(); // skip '&'
-                Token::Identifier(";&".to_string())
-            }
-            (';', _) => {
-                self.advance();
-                Token::Semicolon
-            }
-            ('&', _) => {
-                self.advance();
-                Token::Ampersand
-            }
-            ('(', Some('(')) => {
-                // Issue #67: Standalone arithmetic ((expr))
-                return self.read_standalone_arithmetic();
-            }
-            ('(', _) => {
-                self.advance();
-                Token::LeftParen
-            }
-            (')', _) => {
-                self.advance();
-                Token::RightParen
-            }
-            ('{', _) => {
-                // Issue #69: Check for brace expansion {a,b,c} or {1..10}
-                if self.is_brace_expansion() {
-                    return self.read_brace_expansion();
-                }
-                self.advance();
-                Token::LeftBrace
-            }
-            ('}', _) => {
-                self.advance();
-                Token::RightBrace
-            }
-            ('[', _) => {
-                self.advance();
-                Token::LeftBracket
-            }
-            (']', _) => {
-                self.advance();
-                Token::RightBracket
-            }
-            // BUG-019, BUG-020, BUG-021 FIX: Extended globs and glob patterns
-            // @(pattern|pattern), !(pattern), +(pattern), *(pattern), ?(pattern)
-            // and ? as single-char glob
-            ('@', Some('(')) | ('+', Some('(')) => {
-                // Extended glob: @(...) or +(...)
-                let glob_type = self.advance(); // consume @ or +
-                self.advance(); // consume (
-                let mut pattern = String::new();
-                let mut depth = 1;
-                while !self.is_at_end() && depth > 0 {
-                    let c = self.current_char();
-                    if c == '(' {
-                        depth += 1;
-                    } else if c == ')' {
-                        depth -= 1;
-                        if depth == 0 {
-                            self.advance();
-                            break;
-                        }
-                    }
-                    pattern.push(self.advance());
-                }
-                Token::Identifier(format!("{}({})", glob_type, pattern))
-            }
-            ('?', Some('(')) => {
-                // Extended glob: ?(...)
-                self.advance(); // consume ?
-                self.advance(); // consume (
-                let mut pattern = String::new();
-                let mut depth = 1;
-                while !self.is_at_end() && depth > 0 {
-                    let c = self.current_char();
-                    if c == '(' {
-                        depth += 1;
-                    } else if c == ')' {
-                        depth -= 1;
-                        if depth == 0 {
-                            self.advance();
-                            break;
-                        }
-                    }
-                    pattern.push(self.advance());
-                }
-                Token::Identifier(format!("?({})", pattern))
-            }
-            ('?', _) => {
-                // Single-char glob: file?.txt
-                self.advance();
-                Token::Identifier("?".to_string())
+                Ok(Token::Identifier(";&".to_string()))
             }
             _ => {
-                return Err(LexerError::UnexpectedChar(ch, self.line, self.column));
+                self.advance();
+                Ok(Token::Semicolon)
             }
-        };
-
-        Ok(token)
+        }
     }
 }
 

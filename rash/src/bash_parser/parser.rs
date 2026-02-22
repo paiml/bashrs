@@ -354,6 +354,305 @@ enum ArithToken {
     LogicalNot, // !
 }
 
+/// Arithmetic expression precedence-climbing parser.
+///
+/// Extracted from `BashParser::parse_arithmetic_expr` to reduce function complexity.
+/// Each function handles one or two precedence levels, calling down the chain.
+mod arith_prec {
+    use super::{ArithExpr, ArithToken, ParseError, ParseResult};
+
+    // Level 1: Comma operator (lowest precedence)
+    pub(super) fn parse_comma(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_assign(tokens, pos)?;
+        while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::Comma) {
+            *pos += 1;
+            let right = parse_assign(tokens, pos)?;
+            // Comma returns the right value, but we need to represent both
+            // For now, just return right (simplified)
+            left = right;
+        }
+        Ok(left)
+    }
+
+    // Level 2: Assignment
+    fn parse_assign(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        parse_ternary(tokens, pos)
+    }
+
+    // Level 3: Ternary (? :)
+    fn parse_ternary(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let cond = parse_logical_or(tokens, pos)?;
+        if *pos < tokens.len() && matches!(tokens[*pos], ArithToken::Question) {
+            *pos += 1;
+            let then_expr = parse_ternary(tokens, pos)?;
+            if *pos >= tokens.len() || !matches!(tokens[*pos], ArithToken::Colon) {
+                return Err(ParseError::InvalidSyntax(
+                    "Expected ':' in ternary expression".to_string(),
+                ));
+            }
+            *pos += 1;
+            let else_expr = parse_ternary(tokens, pos)?;
+            // Represent as: cond ? then : else
+            // We'll use a hack: (cond * then) + (!cond * else) conceptually
+            // But for parsing, we just accept it - evaluation handles it
+            // Store as Add with special marker or just accept the structure
+            return Ok(ArithExpr::Add(
+                Box::new(ArithExpr::Mul(Box::new(cond.clone()), Box::new(then_expr))),
+                Box::new(ArithExpr::Mul(
+                    Box::new(ArithExpr::Sub(
+                        Box::new(ArithExpr::Number(1)),
+                        Box::new(cond),
+                    )),
+                    Box::new(else_expr),
+                )),
+            ));
+        }
+        Ok(cond)
+    }
+
+    // Level 4: Logical OR
+    fn parse_logical_or(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_logical_and(tokens, pos)?;
+        while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::LogicalOr) {
+            *pos += 1;
+            let right = parse_logical_and(tokens, pos)?;
+            // OR: if left != 0 then 1 else (right != 0)
+            left = ArithExpr::Add(Box::new(left), Box::new(right)); // Simplified
+        }
+        Ok(left)
+    }
+
+    // Level 5: Logical AND
+    fn parse_logical_and(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_bitwise_or(tokens, pos)?;
+        while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::LogicalAnd) {
+            *pos += 1;
+            let right = parse_bitwise_or(tokens, pos)?;
+            left = ArithExpr::Mul(Box::new(left), Box::new(right)); // Simplified
+        }
+        Ok(left)
+    }
+
+    // Level 6: Bitwise OR
+    fn parse_bitwise_or(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_bitwise_xor(tokens, pos)?;
+        while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::BitOr) {
+            *pos += 1;
+            let right = parse_bitwise_xor(tokens, pos)?;
+            // Represent bitwise OR - for now store as add (semantic loss)
+            left = ArithExpr::Add(Box::new(left), Box::new(right));
+        }
+        Ok(left)
+    }
+
+    // Level 7: Bitwise XOR
+    fn parse_bitwise_xor(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_bitwise_and(tokens, pos)?;
+        while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::BitXor) {
+            *pos += 1;
+            let right = parse_bitwise_and(tokens, pos)?;
+            left = ArithExpr::Sub(Box::new(left), Box::new(right)); // Placeholder
+        }
+        Ok(left)
+    }
+
+    // Level 8: Bitwise AND
+    fn parse_bitwise_and(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_equality(tokens, pos)?;
+        while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::BitAnd) {
+            *pos += 1;
+            let right = parse_equality(tokens, pos)?;
+            left = ArithExpr::Mul(Box::new(left), Box::new(right)); // Placeholder
+        }
+        Ok(left)
+    }
+
+    // Level 9: Equality (== !=)
+    fn parse_equality(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_comparison(tokens, pos)?;
+        while *pos < tokens.len() {
+            match &tokens[*pos] {
+                ArithToken::Eq | ArithToken::Ne => {
+                    *pos += 1;
+                    let right = parse_comparison(tokens, pos)?;
+                    // Represent as subtraction (0 if equal)
+                    left = ArithExpr::Sub(Box::new(left), Box::new(right));
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    // Level 10: Comparison (< <= > >=)
+    fn parse_comparison(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_shift(tokens, pos)?;
+        while *pos < tokens.len() {
+            match &tokens[*pos] {
+                ArithToken::Lt | ArithToken::Le | ArithToken::Gt | ArithToken::Ge => {
+                    *pos += 1;
+                    let right = parse_shift(tokens, pos)?;
+                    left = ArithExpr::Sub(Box::new(left), Box::new(right));
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    // Level 11: Shift (<< >>)
+    fn parse_shift(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_additive(tokens, pos)?;
+        while *pos < tokens.len() {
+            match &tokens[*pos] {
+                ArithToken::ShiftLeft => {
+                    *pos += 1;
+                    let right = parse_additive(tokens, pos)?;
+                    left = ArithExpr::Mul(Box::new(left), Box::new(right));
+                }
+                ArithToken::ShiftRight => {
+                    *pos += 1;
+                    let right = parse_additive(tokens, pos)?;
+                    left = ArithExpr::Div(Box::new(left), Box::new(right));
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    // Level 12: Additive (+ -)
+    fn parse_additive(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_multiplicative(tokens, pos)?;
+        while *pos < tokens.len() {
+            match &tokens[*pos] {
+                ArithToken::Plus => {
+                    *pos += 1;
+                    let right = parse_multiplicative(tokens, pos)?;
+                    left = ArithExpr::Add(Box::new(left), Box::new(right));
+                }
+                ArithToken::Minus => {
+                    *pos += 1;
+                    let right = parse_multiplicative(tokens, pos)?;
+                    left = ArithExpr::Sub(Box::new(left), Box::new(right));
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    // Level 13: Multiplicative (* / %)
+    fn parse_multiplicative(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let mut left = parse_power(tokens, pos)?;
+        while *pos < tokens.len() {
+            match &tokens[*pos] {
+                ArithToken::Multiply => {
+                    *pos += 1;
+                    let right = parse_power(tokens, pos)?;
+                    left = ArithExpr::Mul(Box::new(left), Box::new(right));
+                }
+                ArithToken::Divide => {
+                    *pos += 1;
+                    let right = parse_power(tokens, pos)?;
+                    left = ArithExpr::Div(Box::new(left), Box::new(right));
+                }
+                ArithToken::Modulo => {
+                    *pos += 1;
+                    let right = parse_power(tokens, pos)?;
+                    left = ArithExpr::Mod(Box::new(left), Box::new(right));
+                }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    // Level 13.5: Exponentiation (**) — right-associative, higher than * / %
+    fn parse_power(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        let base = parse_unary(tokens, pos)?;
+        if *pos < tokens.len() && matches!(&tokens[*pos], ArithToken::Power) {
+            *pos += 1;
+            // Right-associative: 2**3**2 = 2**(3**2)
+            let exponent = parse_power(tokens, pos)?;
+            // Emit as multiplication chain or use a helper
+            // For POSIX sh output, we'll compute the power statically if possible
+            Ok(ArithExpr::Mul(Box::new(base), Box::new(exponent)))
+        } else {
+            Ok(base)
+        }
+    }
+
+    // Level 14: Unary (- ~ !)
+    fn parse_unary(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        if *pos >= tokens.len() {
+            return Err(ParseError::InvalidSyntax(
+                "Unexpected end of arithmetic expression".to_string(),
+            ));
+        }
+        match &tokens[*pos] {
+            ArithToken::Minus => {
+                *pos += 1;
+                let operand = parse_unary(tokens, pos)?;
+                Ok(ArithExpr::Sub(
+                    Box::new(ArithExpr::Number(0)),
+                    Box::new(operand),
+                ))
+            }
+            ArithToken::BitNot | ArithToken::LogicalNot => {
+                *pos += 1;
+                let operand = parse_unary(tokens, pos)?;
+                // Represent as -1 - x for bitwise not (approximation)
+                Ok(ArithExpr::Sub(
+                    Box::new(ArithExpr::Number(-1)),
+                    Box::new(operand),
+                ))
+            }
+            ArithToken::Plus => {
+                *pos += 1;
+                parse_unary(tokens, pos)
+            }
+            _ => parse_primary(tokens, pos),
+        }
+    }
+
+    // Level 15: Primary (number, variable, parentheses)
+    fn parse_primary(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
+        if *pos >= tokens.len() {
+            return Err(ParseError::InvalidSyntax(
+                "Unexpected end of arithmetic expression".to_string(),
+            ));
+        }
+        match &tokens[*pos] {
+            ArithToken::Number(n) => {
+                let num = *n;
+                *pos += 1;
+                Ok(ArithExpr::Number(num))
+            }
+            ArithToken::Variable(v) => {
+                let var = v.clone();
+                *pos += 1;
+                Ok(ArithExpr::Variable(var))
+            }
+            ArithToken::LeftParen => {
+                *pos += 1;
+                let expr = parse_comma(tokens, pos)?;
+                if *pos >= tokens.len() || !matches!(tokens[*pos], ArithToken::RightParen) {
+                    return Err(ParseError::InvalidSyntax(
+                        "Expected closing parenthesis".to_string(),
+                    ));
+                }
+                *pos += 1;
+                Ok(expr)
+            }
+            _ => Err(ParseError::InvalidSyntax(format!(
+                "Unexpected token in arithmetic: {:?}",
+                tokens[*pos]
+            ))),
+        }
+    }
+}
+
 pub struct BashParser {
     tokens: Vec<Token>,
     /// Character positions of each token in the source string
@@ -583,109 +882,103 @@ impl BashParser {
         let first_stmt = match self.peek() {
             // Bash allows keywords as variable names (e.g., fi=1, for=2, while=3)
             // Check for assignment pattern first before treating as control structure
-            Some(Token::If) if self.peek_ahead(1) == Some(&Token::Assign) => {
+            Some(t) if Self::is_keyword_token(t) && self.peek_ahead(1) == Some(&Token::Assign) => {
                 self.parse_assignment(false)
             }
-            Some(Token::Then) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Elif) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Else) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Fi) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::While) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Until) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::For) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Do) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Done) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Case) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Esac) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::In) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Function) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            Some(Token::Return) if self.peek_ahead(1) == Some(&Token::Assign) => {
-                self.parse_assignment(false)
-            }
-            // Now handle keywords as control structures (only if not assignments)
+            // Control flow statements (if/for/while/until/case/select)
             Some(Token::If) => self.parse_if(),
             Some(Token::While) => self.parse_while(),
             Some(Token::Until) => self.parse_until(),
             Some(Token::For) => self.parse_for(),
             Some(Token::Select) => self.parse_select(), // F017: select statement
             Some(Token::Case) => self.parse_case(),
+            // Declaration statements (function/return/export/local/coproc)
             Some(Token::Function) => self.parse_function(),
             Some(Token::Return) => self.parse_return(),
             Some(Token::Export) => self.parse_export(),
             Some(Token::Local) => self.parse_local(),
             Some(Token::Coproc) => self.parse_coproc(), // BUG-018
-            Some(Token::Identifier(_)) => {
-                // Could be assignment, function, or command
-                // BUG-012 FIX: Also handle += for array append
-                // F019 FIX: Also handle array element assignment: name[index]=value
-                if self.peek_ahead(1) == Some(&Token::Assign)
-                    || matches!(self.peek_ahead(1), Some(Token::Identifier(s)) if s == "+=")
-                {
-                    self.parse_assignment(false)
-                } else if self.peek_ahead(1) == Some(&Token::LeftBracket)
-                    && self.peek_ahead(3) == Some(&Token::RightBracket)
-                    && self.peek_ahead(4) == Some(&Token::Assign)
-                {
-                    // F019: Array element assignment: hash[key]=value
-                    // Must have pattern: name[index]=value (with ] followed by =)
-                    self.parse_assignment(false)
-                } else if self.peek_ahead(1) == Some(&Token::LeftParen)
-                    && self.peek_ahead(2) == Some(&Token::RightParen)
-                {
-                    // This is a function definition: name() { ... }
-                    self.parse_function_shorthand()
-                } else {
-                    self.parse_command()
-                }
-            }
+            // Identifiers: assignment, function def shorthand, or command
+            Some(Token::Identifier(_)) => self.parse_identifier_statement(),
             // Issue #67: Handle standalone arithmetic ((expr)) as a command
-            Some(Token::ArithmeticExpansion(expr)) => {
-                let arith_expr = expr.clone();
-                self.advance();
-                Ok(BashStmt::Command {
-                    name: ":".to_string(),
-                    args: vec![BashExpr::Literal(format!("$(({}))", arith_expr))],
-                    redirects: vec![],
-                    span: Span::new(self.current_line, 0, self.current_line, 0),
-                })
-            }
-            // Issue #60: Brace group { cmd1; cmd2; } - compound command
+            Some(Token::ArithmeticExpansion(_)) => self.parse_standalone_arithmetic(),
+            // Compound commands: brace group, subshell, test, extended test
             Some(Token::LeftBrace) => self.parse_brace_group(),
-            // Subshell: ( cmd1; cmd2 )
             Some(Token::LeftParen) => self.parse_subshell(),
-            // Standalone [ ] test as command
             Some(Token::LeftBracket) => self.parse_test_command(),
-            // Issue #62: Standalone [[ ]] extended test as command
             Some(Token::DoubleLeftBracket) => self.parse_extended_test_command(),
             _ => self.parse_command(),
         }?;
 
+        // Handle pipeline, logical operators, and background
+        self.parse_statement_tail(first_stmt)
+    }
+
+    /// Check if a token is a keyword that can also serve as a variable name in assignments
+    fn is_keyword_token(token: &Token) -> bool {
+        matches!(
+            token,
+            Token::If
+                | Token::Then
+                | Token::Elif
+                | Token::Else
+                | Token::Fi
+                | Token::While
+                | Token::Until
+                | Token::For
+                | Token::Do
+                | Token::Done
+                | Token::Case
+                | Token::Esac
+                | Token::In
+                | Token::Function
+                | Token::Return
+        )
+    }
+
+    /// Parse an identifier that could be an assignment, function definition, or command
+    fn parse_identifier_statement(&mut self) -> ParseResult<BashStmt> {
+        // Could be assignment, function, or command
+        // BUG-012 FIX: Also handle += for array append
+        // F019 FIX: Also handle array element assignment: name[index]=value
+        if self.peek_ahead(1) == Some(&Token::Assign)
+            || matches!(self.peek_ahead(1), Some(Token::Identifier(s)) if s == "+=")
+        {
+            self.parse_assignment(false)
+        } else if self.peek_ahead(1) == Some(&Token::LeftBracket)
+            && self.peek_ahead(3) == Some(&Token::RightBracket)
+            && self.peek_ahead(4) == Some(&Token::Assign)
+        {
+            // F019: Array element assignment: hash[key]=value
+            // Must have pattern: name[index]=value (with ] followed by =)
+            self.parse_assignment(false)
+        } else if self.peek_ahead(1) == Some(&Token::LeftParen)
+            && self.peek_ahead(2) == Some(&Token::RightParen)
+        {
+            // This is a function definition: name() { ... }
+            self.parse_function_shorthand()
+        } else {
+            self.parse_command()
+        }
+    }
+
+    /// Issue #67: Handle standalone arithmetic ((expr)) as a command
+    fn parse_standalone_arithmetic(&mut self) -> ParseResult<BashStmt> {
+        let arith_expr = match self.peek() {
+            Some(Token::ArithmeticExpansion(expr)) => expr.clone(),
+            _ => return Err(self.syntax_error("arithmetic expansion")),
+        };
+        self.advance();
+        Ok(BashStmt::Command {
+            name: ":".to_string(),
+            args: vec![BashExpr::Literal(format!("$(({}))", arith_expr))],
+            redirects: vec![],
+            span: Span::new(self.current_line, 0, self.current_line, 0),
+        })
+    }
+
+    /// Parse pipeline, logical operators (&&, ||), and background (&) after the first statement
+    fn parse_statement_tail(&mut self, first_stmt: BashStmt) -> ParseResult<BashStmt> {
         // Check for pipeline: cmd1 | cmd2 | cmd3
         let stmt = if self.check(&Token::Pipe) {
             let mut commands = vec![first_stmt];
@@ -702,17 +995,7 @@ impl BashParser {
                 //   cmd | while read line; do ...; done
                 //   cmd | if ...; then ...; fi
                 //   cmd | { cmd1; cmd2; }
-                let next_cmd = match self.peek() {
-                    Some(Token::While) => self.parse_while()?,
-                    Some(Token::Until) => self.parse_until()?,
-                    Some(Token::For) => self.parse_for()?,
-                    Some(Token::If) => self.parse_if()?,
-                    Some(Token::Case) => self.parse_case()?,
-                    Some(Token::LeftBrace) => self.parse_brace_group()?,
-                    Some(Token::LeftParen) => self.parse_subshell()?,
-                    Some(Token::Select) => self.parse_select()?,
-                    _ => self.parse_command()?,
-                };
+                let next_cmd = self.parse_pipeline_rhs()?;
                 commands.push(next_cmd);
             }
 
@@ -763,6 +1046,21 @@ impl BashParser {
 
         // Not a pipeline or logical list, return the statement
         Ok(stmt)
+    }
+
+    /// Parse the right-hand side of a pipeline (compound commands are valid)
+    fn parse_pipeline_rhs(&mut self) -> ParseResult<BashStmt> {
+        match self.peek() {
+            Some(Token::While) => self.parse_while(),
+            Some(Token::Until) => self.parse_until(),
+            Some(Token::For) => self.parse_for(),
+            Some(Token::If) => self.parse_if(),
+            Some(Token::Case) => self.parse_case(),
+            Some(Token::LeftBrace) => self.parse_brace_group(),
+            Some(Token::LeftParen) => self.parse_subshell(),
+            Some(Token::Select) => self.parse_select(),
+            _ => self.parse_command(),
+        }
     }
 
     fn parse_if(&mut self) -> ParseResult<BashStmt> {
@@ -1816,244 +2114,12 @@ impl BashParser {
         let mut redirects = Vec::new();
 
         // Parse arguments and redirections until newline or special token
-        // Also stop at comments (BUILTIN-001: colon no-op with comments)
-        // Issue #59: Also stop at && and || for logical operator support
-        // BUG-008, BUG-009 FIX: Also stop at case terminators
-        // BUG-011 FIX: Also stop at RightParen and RightBrace for function/subshell/brace bodies
-        while !self.is_at_end()
-            && !self.check(&Token::Newline)
-            && !self.check(&Token::Semicolon)
-            && !self.check(&Token::Pipe)
-            && !self.check(&Token::And)
-            && !self.check(&Token::Or)
-            // Stop at standalone & (background) but NOT &> (combined redirect)
-            && !(self.check(&Token::Ampersand) && !matches!(self.peek_ahead(1), Some(Token::Gt)))
-            && !self.check(&Token::RightParen)
-            && !self.check(&Token::RightBrace)
-            && !matches!(self.peek(), Some(Token::Comment(_)))
-            && !matches!(self.peek(), Some(Token::Identifier(s)) if s == ";;" || s == ";&" || s == ";;&")
-        {
-            // BUG-015 FIX: Check for close fd syntax FIRST: 3>&-
-            // Lexer tokenizes "3>&-" as Number(3) + Gt + Ampersand + Identifier("-")
-            if matches!(self.peek(), Some(Token::Number(_)))
-                && matches!(self.peek_ahead(1), Some(Token::Gt))
-                && matches!(self.peek_ahead(2), Some(Token::Ampersand))
-                && matches!(self.peek_ahead(3), Some(Token::Identifier(s)) if s == "-" || s.starts_with('-'))
-            {
-                // Close file descriptor: 3>&-
-                let from_fd = if let Some(Token::Number(n)) = self.peek() {
-                    *n as i32
-                } else {
-                    unreachable!()
-                };
-                self.advance(); // consume fd number
-                self.advance(); // consume '>'
-                self.advance(); // consume '&'
-                self.advance(); // consume '-'
-                                // Represent close fd as duplicate to -1
-                redirects.push(Redirect::Duplicate { from_fd, to_fd: -1 });
+        while !self.at_command_boundary() {
+            // Try redirect first; if not a redirect, parse as argument
+            if self.try_parse_redirect(&mut redirects)? {
+                continue;
             }
-            // Check for file descriptor duplication: 2>&1
-            // Lexer tokenizes "2>&1" as Number(2) + Gt + Ampersand + Number(1)
-            // Must check this BEFORE error redirection since it's a longer pattern
-            else if matches!(self.peek(), Some(Token::Number(_)))
-                && matches!(self.peek_ahead(1), Some(Token::Gt))
-                && matches!(self.peek_ahead(2), Some(Token::Ampersand))
-                && matches!(self.peek_ahead(3), Some(Token::Number(_)))
-            {
-                // File descriptor duplication: 2>&1
-                let from_fd = if let Some(Token::Number(n)) = self.peek() {
-                    *n as i32
-                } else {
-                    unreachable!()
-                };
-                self.advance(); // consume from_fd number
-                self.advance(); // consume '>'
-                self.advance(); // consume '&'
-                let to_fd = if let Some(Token::Number(n)) = self.peek() {
-                    *n as i32
-                } else {
-                    unreachable!()
-                };
-                self.advance(); // consume to_fd number
-                redirects.push(Redirect::Duplicate { from_fd, to_fd });
-            } else if matches!(self.peek(), Some(Token::Number(_)))
-                && matches!(self.peek_ahead(1), Some(Token::Gt))
-            {
-                // Error redirection: 2> file
-                self.advance(); // consume number (file descriptor)
-                self.advance(); // consume '>'
-                let target = self.parse_redirect_target()?;
-                redirects.push(Redirect::Error { target });
-            } else if matches!(self.peek(), Some(Token::Number(_)))
-                && matches!(self.peek_ahead(1), Some(Token::GtGt))
-            {
-                // Append error redirection: 2>> file
-                self.advance(); // consume number (file descriptor)
-                self.advance(); // consume '>>'
-                let target = self.parse_redirect_target()?;
-                redirects.push(Redirect::AppendError { target });
-            } else if let Some(Token::Heredoc { content, delimiter }) = self.peek() {
-                // Heredoc: <<EOF ... EOF
-                // Treat as a redirect — the heredoc provides stdin to the command
-                let content = content.clone();
-                let _delimiter = delimiter.clone();
-                self.advance(); // consume Heredoc token
-                redirects.push(Redirect::HereString { content });
-            } else if let Some(Token::HereString(content)) = self.peek() {
-                // Issue #61: Here-string: <<< "string"
-                let content = content.clone();
-                self.advance(); // consume HereString token
-                redirects.push(Redirect::HereString { content });
-            } else if matches!(self.peek(), Some(Token::Lt)) {
-                // Input redirection: < file
-                self.advance(); // consume '<'
-                let target = self.parse_redirect_target()?;
-                redirects.push(Redirect::Input { target });
-            } else if matches!(self.peek(), Some(Token::GtGt)) {
-                // Append redirection: >> file
-                self.advance(); // consume '>>'
-                let target = self.parse_redirect_target()?;
-                redirects.push(Redirect::Append { target });
-            } else if matches!(self.peek(), Some(Token::Ampersand))
-                && matches!(self.peek_ahead(1), Some(Token::Gt))
-            {
-                // Combined redirection: &> file (redirects both stdout and stderr)
-                self.advance(); // consume '&'
-                self.advance(); // consume '>'
-                let target = self.parse_redirect_target()?;
-                redirects.push(Redirect::Combined { target });
-            } else if matches!(self.peek(), Some(Token::Gt))
-                && matches!(self.peek_ahead(1), Some(Token::Ampersand))
-                && matches!(self.peek_ahead(2), Some(Token::Number(_)))
-            {
-                // F004 FIX: File descriptor duplication shorthand: >&2 (shorthand for 1>&2)
-                // Redirects stdout to the specified file descriptor
-                self.advance(); // consume '>'
-                self.advance(); // consume '&'
-                let to_fd = if let Some(Token::Number(n)) = self.peek() {
-                    *n as i32
-                } else {
-                    unreachable!()
-                };
-                self.advance(); // consume fd number
-                redirects.push(Redirect::Duplicate { from_fd: 1, to_fd });
-            } else if matches!(self.peek(), Some(Token::Gt)) {
-                // Output redirection: > file
-                self.advance(); // consume '>'
-                let target = self.parse_redirect_target()?;
-                redirects.push(Redirect::Output { target });
-            } else if let Some(Token::Identifier(s)) = self.peek() {
-                // BUG-015, BUG-016, BUG-017 FIX: Handle special redirect operators
-                match s.as_str() {
-                    ">|" => {
-                        // Noclobber redirect: >| file
-                        self.advance(); // consume '>|'
-                        let target = self.parse_redirect_target()?;
-                        redirects.push(Redirect::Output { target });
-                    }
-                    "<>" => {
-                        // Read-write redirect: <> file
-                        self.advance(); // consume '<>'
-                        let target = self.parse_redirect_target()?;
-                        redirects.push(Redirect::Input { target }); // Treat as input for now
-                    }
-                    _ => {
-                        // Handle name=value patterns in command arguments
-                        // e.g., docker ps --filter name=myapp, env VAR=value cmd
-                        if self.peek_ahead(1) == Some(&Token::Assign) {
-                            let var_name = s.clone();
-                            self.advance(); // consume name
-                            self.advance(); // consume '='
-                            if self.is_at_end()
-                                || self.check(&Token::Newline)
-                                || self.check(&Token::Semicolon)
-                                || matches!(self.peek(), Some(Token::Comment(_)))
-                            {
-                                args.push(BashExpr::Literal(format!("{}=", var_name)));
-                            } else {
-                                let val = self.parse_expression()?;
-                                match val {
-                                    BashExpr::Literal(v) => {
-                                        args.push(BashExpr::Literal(format!("{}={}", var_name, v)));
-                                    }
-                                    other => {
-                                        args.push(BashExpr::Literal(format!("{}=", var_name)));
-                                        args.push(other);
-                                    }
-                                }
-                            }
-                        } else {
-                            // Regular argument
-                            args.push(self.parse_expression()?);
-                        }
-                    }
-                }
-            } else if self.check(&Token::LeftBracket) {
-                // Glob bracket pattern: [abc], [a-z], [!abc], [^abc], etc.
-                // Collect the entire bracket expression as a literal
-                let mut pattern = String::from("[");
-                self.advance(); // consume '['
-
-                // Collect characters until ']'
-                while !self.is_at_end() && !self.check(&Token::RightBracket) {
-                    match self.peek() {
-                        Some(Token::Identifier(s)) => {
-                            pattern.push_str(s);
-                            self.advance();
-                        }
-                        Some(Token::Number(n)) => {
-                            pattern.push_str(&n.to_string());
-                            self.advance();
-                        }
-                        Some(Token::Not) => {
-                            // [!abc] negation pattern
-                            pattern.push('!');
-                            self.advance();
-                        }
-                        _ => break,
-                    }
-                }
-
-                if self.check(&Token::RightBracket) {
-                    pattern.push(']');
-                    self.advance(); // consume ']'
-                }
-
-                // If followed by more identifier parts, append them (.txt, etc.)
-                while let Some(Token::Identifier(s)) = self.peek() {
-                    if s == ";" || s == ";;" || s == ";&" || s == ";;&" {
-                        break;
-                    }
-                    pattern.push_str(s);
-                    self.advance();
-                }
-
-                args.push(BashExpr::Literal(pattern));
-            } else if self.check(&Token::Assign) {
-                // Standalone '=' in argument position (edge case)
-                self.advance();
-                if !self.is_at_end()
-                    && !self.check(&Token::Newline)
-                    && !self.check(&Token::Semicolon)
-                {
-                    let val = self.parse_expression()?;
-                    match val {
-                        BashExpr::Literal(v) => {
-                            args.push(BashExpr::Literal(format!("={}", v)));
-                        }
-                        other => {
-                            args.push(BashExpr::Literal("=".to_string()));
-                            args.push(other);
-                        }
-                    }
-                } else {
-                    args.push(BashExpr::Literal("=".to_string()));
-                }
-            } else {
-                // Regular argument
-                args.push(self.parse_expression()?);
-            }
+            self.parse_command_argument(&mut args)?;
         }
 
         Ok(BashStmt::Command {
@@ -2062,6 +2128,286 @@ impl BashParser {
             redirects,
             span: Span::new(self.current_line, 0, self.current_line, 0),
         })
+    }
+
+    /// Check if the parser is at a command boundary (end of command arguments/redirects)
+    fn at_command_boundary(&self) -> bool {
+        // Also stop at comments (BUILTIN-001: colon no-op with comments)
+        // Issue #59: Also stop at && and || for logical operator support
+        // BUG-008, BUG-009 FIX: Also stop at case terminators
+        // BUG-011 FIX: Also stop at RightParen and RightBrace for function/subshell/brace bodies
+        self.is_at_end()
+            || self.check(&Token::Newline)
+            || self.check(&Token::Semicolon)
+            || self.check(&Token::Pipe)
+            || self.check(&Token::And)
+            || self.check(&Token::Or)
+            // Stop at standalone & (background) but NOT &> (combined redirect)
+            || (self.check(&Token::Ampersand) && !matches!(self.peek_ahead(1), Some(Token::Gt)))
+            || self.check(&Token::RightParen)
+            || self.check(&Token::RightBrace)
+            || matches!(self.peek(), Some(Token::Comment(_)))
+            || matches!(self.peek(), Some(Token::Identifier(s)) if s == ";;" || s == ";&" || s == ";;&")
+    }
+
+    /// Try to parse a redirect operator from the current position.
+    /// Returns Ok(true) if a redirect was consumed, Ok(false) if not a redirect.
+    fn try_parse_redirect(&mut self, redirects: &mut Vec<Redirect>) -> ParseResult<bool> {
+        // BUG-015 FIX: Check for close fd syntax FIRST: 3>&-
+        // Lexer tokenizes "3>&-" as Number(3) + Gt + Ampersand + Identifier("-")
+        if matches!(self.peek(), Some(Token::Number(_)))
+            && matches!(self.peek_ahead(1), Some(Token::Gt))
+            && matches!(self.peek_ahead(2), Some(Token::Ampersand))
+            && matches!(self.peek_ahead(3), Some(Token::Identifier(s)) if s == "-" || s.starts_with('-'))
+        {
+            // Close file descriptor: 3>&-
+            let from_fd = if let Some(Token::Number(n)) = self.peek() {
+                *n as i32
+            } else {
+                unreachable!()
+            };
+            self.advance(); // consume fd number
+            self.advance(); // consume '>'
+            self.advance(); // consume '&'
+            self.advance(); // consume '-'
+            redirects.push(Redirect::Duplicate { from_fd, to_fd: -1 });
+            return Ok(true);
+        }
+        // Check for file descriptor duplication: 2>&1
+        // Lexer tokenizes "2>&1" as Number(2) + Gt + Ampersand + Number(1)
+        // Must check this BEFORE error redirection since it's a longer pattern
+        if matches!(self.peek(), Some(Token::Number(_)))
+            && matches!(self.peek_ahead(1), Some(Token::Gt))
+            && matches!(self.peek_ahead(2), Some(Token::Ampersand))
+            && matches!(self.peek_ahead(3), Some(Token::Number(_)))
+        {
+            // File descriptor duplication: 2>&1
+            let from_fd = if let Some(Token::Number(n)) = self.peek() {
+                *n as i32
+            } else {
+                unreachable!()
+            };
+            self.advance(); // consume from_fd number
+            self.advance(); // consume '>'
+            self.advance(); // consume '&'
+            let to_fd = if let Some(Token::Number(n)) = self.peek() {
+                *n as i32
+            } else {
+                unreachable!()
+            };
+            self.advance(); // consume to_fd number
+            redirects.push(Redirect::Duplicate { from_fd, to_fd });
+            return Ok(true);
+        }
+        if matches!(self.peek(), Some(Token::Number(_)))
+            && matches!(self.peek_ahead(1), Some(Token::Gt))
+        {
+            // Error redirection: 2> file
+            self.advance(); // consume number (file descriptor)
+            self.advance(); // consume '>'
+            let target = self.parse_redirect_target()?;
+            redirects.push(Redirect::Error { target });
+            return Ok(true);
+        }
+        if matches!(self.peek(), Some(Token::Number(_)))
+            && matches!(self.peek_ahead(1), Some(Token::GtGt))
+        {
+            // Append error redirection: 2>> file
+            self.advance(); // consume number (file descriptor)
+            self.advance(); // consume '>>'
+            let target = self.parse_redirect_target()?;
+            redirects.push(Redirect::AppendError { target });
+            return Ok(true);
+        }
+        if let Some(Token::Heredoc { content, delimiter }) = self.peek() {
+            // Heredoc: <<EOF ... EOF
+            // Treat as a redirect — the heredoc provides stdin to the command
+            let content = content.clone();
+            let _delimiter = delimiter.clone();
+            self.advance(); // consume Heredoc token
+            redirects.push(Redirect::HereString { content });
+            return Ok(true);
+        }
+        if let Some(Token::HereString(content)) = self.peek() {
+            // Issue #61: Here-string: <<< "string"
+            let content = content.clone();
+            self.advance(); // consume HereString token
+            redirects.push(Redirect::HereString { content });
+            return Ok(true);
+        }
+        if matches!(self.peek(), Some(Token::Lt)) {
+            // Input redirection: < file
+            self.advance(); // consume '<'
+            let target = self.parse_redirect_target()?;
+            redirects.push(Redirect::Input { target });
+            return Ok(true);
+        }
+        if matches!(self.peek(), Some(Token::GtGt)) {
+            // Append redirection: >> file
+            self.advance(); // consume '>>'
+            let target = self.parse_redirect_target()?;
+            redirects.push(Redirect::Append { target });
+            return Ok(true);
+        }
+        if matches!(self.peek(), Some(Token::Ampersand))
+            && matches!(self.peek_ahead(1), Some(Token::Gt))
+        {
+            // Combined redirection: &> file (redirects both stdout and stderr)
+            self.advance(); // consume '&'
+            self.advance(); // consume '>'
+            let target = self.parse_redirect_target()?;
+            redirects.push(Redirect::Combined { target });
+            return Ok(true);
+        }
+        if matches!(self.peek(), Some(Token::Gt))
+            && matches!(self.peek_ahead(1), Some(Token::Ampersand))
+            && matches!(self.peek_ahead(2), Some(Token::Number(_)))
+        {
+            // F004 FIX: File descriptor duplication shorthand: >&2 (shorthand for 1>&2)
+            // Redirects stdout to the specified file descriptor
+            self.advance(); // consume '>'
+            self.advance(); // consume '&'
+            let to_fd = if let Some(Token::Number(n)) = self.peek() {
+                *n as i32
+            } else {
+                unreachable!()
+            };
+            self.advance(); // consume fd number
+            redirects.push(Redirect::Duplicate { from_fd: 1, to_fd });
+            return Ok(true);
+        }
+        if matches!(self.peek(), Some(Token::Gt)) {
+            // Output redirection: > file
+            self.advance(); // consume '>'
+            let target = self.parse_redirect_target()?;
+            redirects.push(Redirect::Output { target });
+            return Ok(true);
+        }
+        // BUG-015, BUG-016, BUG-017 FIX: Handle special redirect operators as identifiers
+        if let Some(Token::Identifier(s)) = self.peek() {
+            match s.as_str() {
+                ">|" => {
+                    // Noclobber redirect: >| file
+                    self.advance(); // consume '>|'
+                    let target = self.parse_redirect_target()?;
+                    redirects.push(Redirect::Output { target });
+                    return Ok(true);
+                }
+                "<>" => {
+                    // Read-write redirect: <> file
+                    self.advance(); // consume '<>'
+                    let target = self.parse_redirect_target()?;
+                    redirects.push(Redirect::Input { target }); // Treat as input for now
+                    return Ok(true);
+                }
+                _ => {}
+            }
+        }
+        Ok(false)
+    }
+
+    /// Parse a single command argument (identifier with name=value, glob bracket, assign, or expression)
+    fn parse_command_argument(&mut self, args: &mut Vec<BashExpr>) -> ParseResult<()> {
+        if let Some(Token::Identifier(s)) = self.peek() {
+            // Handle name=value patterns in command arguments
+            // e.g., docker ps --filter name=myapp, env VAR=value cmd
+            if self.peek_ahead(1) == Some(&Token::Assign) {
+                let var_name = s.clone();
+                self.advance(); // consume name
+                self.advance(); // consume '='
+                if self.is_at_end()
+                    || self.check(&Token::Newline)
+                    || self.check(&Token::Semicolon)
+                    || matches!(self.peek(), Some(Token::Comment(_)))
+                {
+                    args.push(BashExpr::Literal(format!("{}=", var_name)));
+                } else {
+                    let val = self.parse_expression()?;
+                    match val {
+                        BashExpr::Literal(v) => {
+                            args.push(BashExpr::Literal(format!("{}={}", var_name, v)));
+                        }
+                        other => {
+                            args.push(BashExpr::Literal(format!("{}=", var_name)));
+                            args.push(other);
+                        }
+                    }
+                }
+                return Ok(());
+            }
+            // Fall through to regular expression parsing below
+        }
+
+        if self.check(&Token::LeftBracket) {
+            // Glob bracket pattern: [abc], [a-z], [!abc], [^abc], etc.
+            // Collect the entire bracket expression as a literal
+            let mut pattern = String::from("[");
+            self.advance(); // consume '['
+
+            // Collect characters until ']'
+            while !self.is_at_end() && !self.check(&Token::RightBracket) {
+                match self.peek() {
+                    Some(Token::Identifier(s)) => {
+                        pattern.push_str(s);
+                        self.advance();
+                    }
+                    Some(Token::Number(n)) => {
+                        pattern.push_str(&n.to_string());
+                        self.advance();
+                    }
+                    Some(Token::Not) => {
+                        // [!abc] negation pattern
+                        pattern.push('!');
+                        self.advance();
+                    }
+                    _ => break,
+                }
+            }
+
+            if self.check(&Token::RightBracket) {
+                pattern.push(']');
+                self.advance(); // consume ']'
+            }
+
+            // If followed by more identifier parts, append them (.txt, etc.)
+            while let Some(Token::Identifier(s)) = self.peek() {
+                if s == ";" || s == ";;" || s == ";&" || s == ";;&" {
+                    break;
+                }
+                pattern.push_str(s);
+                self.advance();
+            }
+
+            args.push(BashExpr::Literal(pattern));
+            return Ok(());
+        }
+
+        if self.check(&Token::Assign) {
+            // Standalone '=' in argument position (edge case)
+            self.advance();
+            if !self.is_at_end()
+                && !self.check(&Token::Newline)
+                && !self.check(&Token::Semicolon)
+            {
+                let val = self.parse_expression()?;
+                match val {
+                    BashExpr::Literal(v) => {
+                        args.push(BashExpr::Literal(format!("={}", v)));
+                    }
+                    other => {
+                        args.push(BashExpr::Literal("=".to_string()));
+                        args.push(other);
+                    }
+                }
+            } else {
+                args.push(BashExpr::Literal("=".to_string()));
+            }
+            return Ok(());
+        }
+
+        // Regular argument
+        args.push(self.parse_expression()?);
+        Ok(())
     }
 
     /// Parse redirect target (filename)
@@ -2135,299 +2481,7 @@ impl BashParser {
     fn parse_arithmetic_expr(&mut self, input: &str) -> ParseResult<ArithExpr> {
         let tokens = self.tokenize_arithmetic(input)?;
         let mut pos = 0;
-
-        // Level 1: Comma operator (lowest precedence)
-        fn parse_comma(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_assign(tokens, pos)?;
-            while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::Comma) {
-                *pos += 1;
-                let right = parse_assign(tokens, pos)?;
-                // Comma returns the right value, but we need to represent both
-                // For now, just return right (simplified)
-                left = right;
-            }
-            Ok(left)
-        }
-
-        // Level 2: Assignment
-        fn parse_assign(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            parse_ternary(tokens, pos)
-        }
-
-        // Level 3: Ternary (? :)
-        fn parse_ternary(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let cond = parse_logical_or(tokens, pos)?;
-            if *pos < tokens.len() && matches!(tokens[*pos], ArithToken::Question) {
-                *pos += 1;
-                let then_expr = parse_ternary(tokens, pos)?;
-                if *pos >= tokens.len() || !matches!(tokens[*pos], ArithToken::Colon) {
-                    return Err(ParseError::InvalidSyntax(
-                        "Expected ':' in ternary expression".to_string(),
-                    ));
-                }
-                *pos += 1;
-                let else_expr = parse_ternary(tokens, pos)?;
-                // Represent as: cond ? then : else
-                // We'll use a hack: (cond * then) + (!cond * else) conceptually
-                // But for parsing, we just accept it - evaluation handles it
-                // Store as Add with special marker or just accept the structure
-                return Ok(ArithExpr::Add(
-                    Box::new(ArithExpr::Mul(Box::new(cond.clone()), Box::new(then_expr))),
-                    Box::new(ArithExpr::Mul(
-                        Box::new(ArithExpr::Sub(
-                            Box::new(ArithExpr::Number(1)),
-                            Box::new(cond),
-                        )),
-                        Box::new(else_expr),
-                    )),
-                ));
-            }
-            Ok(cond)
-        }
-
-        // Level 4: Logical OR
-        fn parse_logical_or(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_logical_and(tokens, pos)?;
-            while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::LogicalOr) {
-                *pos += 1;
-                let right = parse_logical_and(tokens, pos)?;
-                // OR: if left != 0 then 1 else (right != 0)
-                left = ArithExpr::Add(Box::new(left), Box::new(right)); // Simplified
-            }
-            Ok(left)
-        }
-
-        // Level 5: Logical AND
-        fn parse_logical_and(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_bitwise_or(tokens, pos)?;
-            while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::LogicalAnd) {
-                *pos += 1;
-                let right = parse_bitwise_or(tokens, pos)?;
-                left = ArithExpr::Mul(Box::new(left), Box::new(right)); // Simplified
-            }
-            Ok(left)
-        }
-
-        // Level 6: Bitwise OR
-        fn parse_bitwise_or(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_bitwise_xor(tokens, pos)?;
-            while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::BitOr) {
-                *pos += 1;
-                let right = parse_bitwise_xor(tokens, pos)?;
-                // Represent bitwise OR - for now store as add (semantic loss)
-                left = ArithExpr::Add(Box::new(left), Box::new(right));
-            }
-            Ok(left)
-        }
-
-        // Level 7: Bitwise XOR
-        fn parse_bitwise_xor(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_bitwise_and(tokens, pos)?;
-            while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::BitXor) {
-                *pos += 1;
-                let right = parse_bitwise_and(tokens, pos)?;
-                left = ArithExpr::Sub(Box::new(left), Box::new(right)); // Placeholder
-            }
-            Ok(left)
-        }
-
-        // Level 8: Bitwise AND
-        fn parse_bitwise_and(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_equality(tokens, pos)?;
-            while *pos < tokens.len() && matches!(tokens[*pos], ArithToken::BitAnd) {
-                *pos += 1;
-                let right = parse_equality(tokens, pos)?;
-                left = ArithExpr::Mul(Box::new(left), Box::new(right)); // Placeholder
-            }
-            Ok(left)
-        }
-
-        // Level 9: Equality (== !=)
-        fn parse_equality(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_comparison(tokens, pos)?;
-            while *pos < tokens.len() {
-                match &tokens[*pos] {
-                    ArithToken::Eq | ArithToken::Ne => {
-                        *pos += 1;
-                        let right = parse_comparison(tokens, pos)?;
-                        // Represent as subtraction (0 if equal)
-                        left = ArithExpr::Sub(Box::new(left), Box::new(right));
-                    }
-                    _ => break,
-                }
-            }
-            Ok(left)
-        }
-
-        // Level 10: Comparison (< <= > >=)
-        fn parse_comparison(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_shift(tokens, pos)?;
-            while *pos < tokens.len() {
-                match &tokens[*pos] {
-                    ArithToken::Lt | ArithToken::Le | ArithToken::Gt | ArithToken::Ge => {
-                        *pos += 1;
-                        let right = parse_shift(tokens, pos)?;
-                        left = ArithExpr::Sub(Box::new(left), Box::new(right));
-                    }
-                    _ => break,
-                }
-            }
-            Ok(left)
-        }
-
-        // Level 11: Shift (<< >>)
-        fn parse_shift(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_additive(tokens, pos)?;
-            while *pos < tokens.len() {
-                match &tokens[*pos] {
-                    ArithToken::ShiftLeft => {
-                        *pos += 1;
-                        let right = parse_additive(tokens, pos)?;
-                        left = ArithExpr::Mul(Box::new(left), Box::new(right));
-                    }
-                    ArithToken::ShiftRight => {
-                        *pos += 1;
-                        let right = parse_additive(tokens, pos)?;
-                        left = ArithExpr::Div(Box::new(left), Box::new(right));
-                    }
-                    _ => break,
-                }
-            }
-            Ok(left)
-        }
-
-        // Level 12: Additive (+ -)
-        fn parse_additive(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_multiplicative(tokens, pos)?;
-            while *pos < tokens.len() {
-                match &tokens[*pos] {
-                    ArithToken::Plus => {
-                        *pos += 1;
-                        let right = parse_multiplicative(tokens, pos)?;
-                        left = ArithExpr::Add(Box::new(left), Box::new(right));
-                    }
-                    ArithToken::Minus => {
-                        *pos += 1;
-                        let right = parse_multiplicative(tokens, pos)?;
-                        left = ArithExpr::Sub(Box::new(left), Box::new(right));
-                    }
-                    _ => break,
-                }
-            }
-            Ok(left)
-        }
-
-        // Level 13: Multiplicative (* / %)
-        fn parse_multiplicative(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let mut left = parse_power(tokens, pos)?;
-            while *pos < tokens.len() {
-                match &tokens[*pos] {
-                    ArithToken::Multiply => {
-                        *pos += 1;
-                        let right = parse_power(tokens, pos)?;
-                        left = ArithExpr::Mul(Box::new(left), Box::new(right));
-                    }
-                    ArithToken::Divide => {
-                        *pos += 1;
-                        let right = parse_power(tokens, pos)?;
-                        left = ArithExpr::Div(Box::new(left), Box::new(right));
-                    }
-                    ArithToken::Modulo => {
-                        *pos += 1;
-                        let right = parse_power(tokens, pos)?;
-                        left = ArithExpr::Mod(Box::new(left), Box::new(right));
-                    }
-                    _ => break,
-                }
-            }
-            Ok(left)
-        }
-
-        // Level 13.5: Exponentiation (**) — right-associative, higher than * / %
-        fn parse_power(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            let base = parse_unary(tokens, pos)?;
-            if *pos < tokens.len() && matches!(&tokens[*pos], ArithToken::Power) {
-                *pos += 1;
-                // Right-associative: 2**3**2 = 2**(3**2)
-                let exponent = parse_power(tokens, pos)?;
-                // Emit as multiplication chain or use a helper
-                // For POSIX sh output, we'll compute the power statically if possible
-                Ok(ArithExpr::Mul(Box::new(base), Box::new(exponent)))
-            } else {
-                Ok(base)
-            }
-        }
-
-        // Level 14: Unary (- ~ !)
-        fn parse_unary(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            if *pos >= tokens.len() {
-                return Err(ParseError::InvalidSyntax(
-                    "Unexpected end of arithmetic expression".to_string(),
-                ));
-            }
-            match &tokens[*pos] {
-                ArithToken::Minus => {
-                    *pos += 1;
-                    let operand = parse_unary(tokens, pos)?;
-                    Ok(ArithExpr::Sub(
-                        Box::new(ArithExpr::Number(0)),
-                        Box::new(operand),
-                    ))
-                }
-                ArithToken::BitNot | ArithToken::LogicalNot => {
-                    *pos += 1;
-                    let operand = parse_unary(tokens, pos)?;
-                    // Represent as -1 - x for bitwise not (approximation)
-                    Ok(ArithExpr::Sub(
-                        Box::new(ArithExpr::Number(-1)),
-                        Box::new(operand),
-                    ))
-                }
-                ArithToken::Plus => {
-                    *pos += 1;
-                    parse_unary(tokens, pos)
-                }
-                _ => parse_primary(tokens, pos),
-            }
-        }
-
-        // Level 15: Primary (number, variable, parentheses)
-        fn parse_primary(tokens: &[ArithToken], pos: &mut usize) -> ParseResult<ArithExpr> {
-            if *pos >= tokens.len() {
-                return Err(ParseError::InvalidSyntax(
-                    "Unexpected end of arithmetic expression".to_string(),
-                ));
-            }
-            match &tokens[*pos] {
-                ArithToken::Number(n) => {
-                    let num = *n;
-                    *pos += 1;
-                    Ok(ArithExpr::Number(num))
-                }
-                ArithToken::Variable(v) => {
-                    let var = v.clone();
-                    *pos += 1;
-                    Ok(ArithExpr::Variable(var))
-                }
-                ArithToken::LeftParen => {
-                    *pos += 1;
-                    let expr = parse_comma(tokens, pos)?;
-                    if *pos >= tokens.len() || !matches!(tokens[*pos], ArithToken::RightParen) {
-                        return Err(ParseError::InvalidSyntax(
-                            "Expected closing parenthesis".to_string(),
-                        ));
-                    }
-                    *pos += 1;
-                    Ok(expr)
-                }
-                _ => Err(ParseError::InvalidSyntax(format!(
-                    "Unexpected token in arithmetic: {:?}",
-                    tokens[*pos]
-                ))),
-            }
-        }
-
-        parse_comma(&tokens, &mut pos)
+        arith_prec::parse_comma(&tokens, &mut pos)
     }
 
     /// Tokenize arithmetic expression string
@@ -2441,228 +2495,18 @@ impl BashParser {
                 ' ' | '\t' | '\n' => {
                     chars.next();
                 }
-                '+' => {
-                    chars.next();
-                    tokens.push(ArithToken::Plus);
+                // Operators and punctuation
+                '+' | '-' | '*' | '/' | '%' | '(' | ')' | '<' | '>' | '=' | '!' | '?' | ':'
+                | '&' | '|' | '^' | '~' | ',' => {
+                    Self::tokenize_arith_operator(ch, &mut chars, &mut tokens);
                 }
-                '-' => {
-                    chars.next();
-                    tokens.push(ArithToken::Minus);
-                }
-                '*' => {
-                    chars.next();
-                    if chars.peek() == Some(&'*') {
-                        chars.next();
-                        tokens.push(ArithToken::Power);
-                    } else {
-                        tokens.push(ArithToken::Multiply);
-                    }
-                }
-                '/' => {
-                    chars.next();
-                    tokens.push(ArithToken::Divide);
-                }
-                '%' => {
-                    chars.next();
-                    tokens.push(ArithToken::Modulo);
-                }
-                '(' => {
-                    chars.next();
-                    tokens.push(ArithToken::LeftParen);
-                }
-                ')' => {
-                    chars.next();
-                    tokens.push(ArithToken::RightParen);
-                }
-                // BUG-003 FIX: Comparison operators
-                '<' => {
-                    chars.next();
-                    if chars.peek() == Some(&'=') {
-                        chars.next();
-                        tokens.push(ArithToken::Le);
-                    } else if chars.peek() == Some(&'<') {
-                        chars.next();
-                        tokens.push(ArithToken::ShiftLeft);
-                    } else {
-                        tokens.push(ArithToken::Lt);
-                    }
-                }
-                '>' => {
-                    chars.next();
-                    if chars.peek() == Some(&'=') {
-                        chars.next();
-                        tokens.push(ArithToken::Ge);
-                    } else if chars.peek() == Some(&'>') {
-                        chars.next();
-                        tokens.push(ArithToken::ShiftRight);
-                    } else {
-                        tokens.push(ArithToken::Gt);
-                    }
-                }
-                '=' => {
-                    chars.next();
-                    if chars.peek() == Some(&'=') {
-                        chars.next();
-                        tokens.push(ArithToken::Eq);
-                    } else {
-                        tokens.push(ArithToken::Assign);
-                    }
-                }
-                '!' => {
-                    chars.next();
-                    if chars.peek() == Some(&'=') {
-                        chars.next();
-                        tokens.push(ArithToken::Ne);
-                    } else {
-                        tokens.push(ArithToken::LogicalNot);
-                    }
-                }
-                '?' => {
-                    chars.next();
-                    tokens.push(ArithToken::Question);
-                }
-                ':' => {
-                    chars.next();
-                    tokens.push(ArithToken::Colon);
-                }
-                // BUG-004 FIX: Bitwise operators
-                '&' => {
-                    chars.next();
-                    if chars.peek() == Some(&'&') {
-                        chars.next();
-                        tokens.push(ArithToken::LogicalAnd);
-                    } else {
-                        tokens.push(ArithToken::BitAnd);
-                    }
-                }
-                '|' => {
-                    chars.next();
-                    if chars.peek() == Some(&'|') {
-                        chars.next();
-                        tokens.push(ArithToken::LogicalOr);
-                    } else {
-                        tokens.push(ArithToken::BitOr);
-                    }
-                }
-                '^' => {
-                    chars.next();
-                    tokens.push(ArithToken::BitXor);
-                }
-                '~' => {
-                    chars.next();
-                    tokens.push(ArithToken::BitNot);
-                }
-                // BUG-014 FIX: Comma operator
-                ',' => {
-                    chars.next();
-                    tokens.push(ArithToken::Comma);
-                }
+                // Numeric literals (decimal, hex, octal, base#value)
                 '0'..='9' => {
-                    let mut num_str = String::new();
-                    // Check for hex (0x) or octal (0) prefix
-                    if ch == '0' {
-                        num_str.push(ch);
-                        chars.next();
-                        if chars.peek() == Some(&'x') || chars.peek() == Some(&'X') {
-                            // Hex number - we just verified peek() so next() is guaranteed
-                            if let Some(x_char) = chars.next() {
-                                num_str.push(x_char);
-                            }
-                            while let Some(&c) = chars.peek() {
-                                if c.is_ascii_hexdigit() {
-                                    num_str.push(c);
-                                    chars.next();
-                                } else {
-                                    break;
-                                }
-                            }
-                            let num = i64::from_str_radix(&num_str[2..], 16).map_err(|_| {
-                                ParseError::InvalidSyntax(format!(
-                                    "Invalid hex number: {}",
-                                    num_str
-                                ))
-                            })?;
-                            tokens.push(ArithToken::Number(num));
-                            continue;
-                        }
-                        // Check if it's octal (starts with 0 and has more digits)
-                        let mut is_octal = false;
-                        while let Some(&c) = chars.peek() {
-                            if c.is_ascii_digit() {
-                                num_str.push(c);
-                                chars.next();
-                                is_octal = true;
-                            } else {
-                                break;
-                            }
-                        }
-                        if is_octal && num_str.len() > 1 {
-                            // Parse as octal
-                            let num = i64::from_str_radix(&num_str, 8).unwrap_or_else(|_| {
-                                // Fall back to decimal if not valid octal
-                                num_str.parse::<i64>().unwrap_or(0)
-                            });
-                            tokens.push(ArithToken::Number(num));
-                        } else {
-                            tokens.push(ArithToken::Number(0));
-                        }
-                    } else {
-                        while let Some(&c) = chars.peek() {
-                            if c.is_ascii_digit() {
-                                num_str.push(c);
-                                chars.next();
-                            } else {
-                                break;
-                            }
-                        }
-                        // Handle base#value notation: 16#FF, 8#77, 2#1010
-                        if chars.peek() == Some(&'#') {
-                            chars.next(); // consume #
-                            let base = num_str.parse::<u32>().unwrap_or(10);
-                            let mut value_str = String::new();
-                            while let Some(&c) = chars.peek() {
-                                if c.is_ascii_alphanumeric() || c == '_' {
-                                    value_str.push(c);
-                                    chars.next();
-                                } else {
-                                    break;
-                                }
-                            }
-                            let num = i64::from_str_radix(&value_str, base).unwrap_or(0);
-                            tokens.push(ArithToken::Number(num));
-                        } else {
-                            let num = num_str.parse::<i64>().map_err(|_| {
-                                ParseError::InvalidSyntax(format!("Invalid number: {}", num_str))
-                            })?;
-                            tokens.push(ArithToken::Number(num));
-                        }
-                    }
+                    Self::tokenize_arith_number(ch, &mut chars, &mut tokens)?;
                 }
-                // Variables (including $var references)
-                '$' => {
-                    chars.next();
-                    let mut ident = String::new();
-                    while let Some(&c) = chars.peek() {
-                        if c.is_alphanumeric() || c == '_' {
-                            ident.push(c);
-                            chars.next();
-                        } else {
-                            break;
-                        }
-                    }
-                    tokens.push(ArithToken::Variable(ident));
-                }
-                'a'..='z' | 'A'..='Z' | '_' => {
-                    let mut ident = String::new();
-                    while let Some(&c) = chars.peek() {
-                        if c.is_alphanumeric() || c == '_' {
-                            ident.push(c);
-                            chars.next();
-                        } else {
-                            break;
-                        }
-                    }
-                    tokens.push(ArithToken::Variable(ident));
+                // Variables (including $var references) and bare identifiers
+                '$' | 'a'..='z' | 'A'..='Z' | '_' => {
+                    Self::tokenize_arith_variable(ch, &mut chars, &mut tokens);
                 }
                 _ => {
                     return Err(ParseError::InvalidSyntax(format!(
@@ -2674,6 +2518,251 @@ impl BashParser {
         }
 
         Ok(tokens)
+    }
+
+    /// Tokenize a single arithmetic operator character (possibly multi-char like **, <=, &&, etc.)
+    fn tokenize_arith_operator(
+        ch: char,
+        chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
+        tokens: &mut Vec<ArithToken>,
+    ) {
+        match ch {
+            '+' => {
+                chars.next();
+                tokens.push(ArithToken::Plus);
+            }
+            '-' => {
+                chars.next();
+                tokens.push(ArithToken::Minus);
+            }
+            '*' => {
+                chars.next();
+                if chars.peek() == Some(&'*') {
+                    chars.next();
+                    tokens.push(ArithToken::Power);
+                } else {
+                    tokens.push(ArithToken::Multiply);
+                }
+            }
+            '/' => {
+                chars.next();
+                tokens.push(ArithToken::Divide);
+            }
+            '%' => {
+                chars.next();
+                tokens.push(ArithToken::Modulo);
+            }
+            '(' => {
+                chars.next();
+                tokens.push(ArithToken::LeftParen);
+            }
+            ')' => {
+                chars.next();
+                tokens.push(ArithToken::RightParen);
+            }
+            // BUG-003 FIX: Comparison operators
+            '<' => {
+                chars.next();
+                if chars.peek() == Some(&'=') {
+                    chars.next();
+                    tokens.push(ArithToken::Le);
+                } else if chars.peek() == Some(&'<') {
+                    chars.next();
+                    tokens.push(ArithToken::ShiftLeft);
+                } else {
+                    tokens.push(ArithToken::Lt);
+                }
+            }
+            '>' => {
+                chars.next();
+                if chars.peek() == Some(&'=') {
+                    chars.next();
+                    tokens.push(ArithToken::Ge);
+                } else if chars.peek() == Some(&'>') {
+                    chars.next();
+                    tokens.push(ArithToken::ShiftRight);
+                } else {
+                    tokens.push(ArithToken::Gt);
+                }
+            }
+            '=' => {
+                chars.next();
+                if chars.peek() == Some(&'=') {
+                    chars.next();
+                    tokens.push(ArithToken::Eq);
+                } else {
+                    tokens.push(ArithToken::Assign);
+                }
+            }
+            '!' => {
+                chars.next();
+                if chars.peek() == Some(&'=') {
+                    chars.next();
+                    tokens.push(ArithToken::Ne);
+                } else {
+                    tokens.push(ArithToken::LogicalNot);
+                }
+            }
+            '?' => {
+                chars.next();
+                tokens.push(ArithToken::Question);
+            }
+            ':' => {
+                chars.next();
+                tokens.push(ArithToken::Colon);
+            }
+            // BUG-004 FIX: Bitwise operators
+            '&' => {
+                chars.next();
+                if chars.peek() == Some(&'&') {
+                    chars.next();
+                    tokens.push(ArithToken::LogicalAnd);
+                } else {
+                    tokens.push(ArithToken::BitAnd);
+                }
+            }
+            '|' => {
+                chars.next();
+                if chars.peek() == Some(&'|') {
+                    chars.next();
+                    tokens.push(ArithToken::LogicalOr);
+                } else {
+                    tokens.push(ArithToken::BitOr);
+                }
+            }
+            '^' => {
+                chars.next();
+                tokens.push(ArithToken::BitXor);
+            }
+            '~' => {
+                chars.next();
+                tokens.push(ArithToken::BitNot);
+            }
+            // BUG-014 FIX: Comma operator
+            ',' => {
+                chars.next();
+                tokens.push(ArithToken::Comma);
+            }
+            _ => {} // unreachable when called from tokenize_arithmetic
+        }
+    }
+
+    /// Tokenize a numeric literal (decimal, hex 0x, octal 0nnn, or base#value notation)
+    fn tokenize_arith_number(
+        ch: char,
+        chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
+        tokens: &mut Vec<ArithToken>,
+    ) -> ParseResult<()> {
+        let mut num_str = String::new();
+        // Check for hex (0x) or octal (0) prefix
+        if ch == '0' {
+            num_str.push(ch);
+            chars.next();
+            if chars.peek() == Some(&'x') || chars.peek() == Some(&'X') {
+                // Hex number - we just verified peek() so next() is guaranteed
+                if let Some(x_char) = chars.next() {
+                    num_str.push(x_char);
+                }
+                while let Some(&c) = chars.peek() {
+                    if c.is_ascii_hexdigit() {
+                        num_str.push(c);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                let num = i64::from_str_radix(&num_str[2..], 16).map_err(|_| {
+                    ParseError::InvalidSyntax(format!("Invalid hex number: {}", num_str))
+                })?;
+                tokens.push(ArithToken::Number(num));
+                return Ok(());
+            }
+            // Check if it's octal (starts with 0 and has more digits)
+            let mut is_octal = false;
+            while let Some(&c) = chars.peek() {
+                if c.is_ascii_digit() {
+                    num_str.push(c);
+                    chars.next();
+                    is_octal = true;
+                } else {
+                    break;
+                }
+            }
+            if is_octal && num_str.len() > 1 {
+                // Parse as octal
+                let num = i64::from_str_radix(&num_str, 8).unwrap_or_else(|_| {
+                    // Fall back to decimal if not valid octal
+                    num_str.parse::<i64>().unwrap_or(0)
+                });
+                tokens.push(ArithToken::Number(num));
+            } else {
+                tokens.push(ArithToken::Number(0));
+            }
+        } else {
+            while let Some(&c) = chars.peek() {
+                if c.is_ascii_digit() {
+                    num_str.push(c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            // Handle base#value notation: 16#FF, 8#77, 2#1010
+            if chars.peek() == Some(&'#') {
+                chars.next(); // consume #
+                let base = num_str.parse::<u32>().unwrap_or(10);
+                let mut value_str = String::new();
+                while let Some(&c) = chars.peek() {
+                    if c.is_ascii_alphanumeric() || c == '_' {
+                        value_str.push(c);
+                        chars.next();
+                    } else {
+                        break;
+                    }
+                }
+                let num = i64::from_str_radix(&value_str, base).unwrap_or(0);
+                tokens.push(ArithToken::Number(num));
+            } else {
+                let num = num_str.parse::<i64>().map_err(|_| {
+                    ParseError::InvalidSyntax(format!("Invalid number: {}", num_str))
+                })?;
+                tokens.push(ArithToken::Number(num));
+            }
+        }
+        Ok(())
+    }
+
+    /// Tokenize a variable reference ($var or bare identifier)
+    fn tokenize_arith_variable(
+        ch: char,
+        chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
+        tokens: &mut Vec<ArithToken>,
+    ) {
+        if ch == '$' {
+            chars.next();
+            let mut ident = String::new();
+            while let Some(&c) = chars.peek() {
+                if c.is_alphanumeric() || c == '_' {
+                    ident.push(c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            tokens.push(ArithToken::Variable(ident));
+        } else {
+            // 'a'..='z' | 'A'..='Z' | '_'
+            let mut ident = String::new();
+            while let Some(&c) = chars.peek() {
+                if c.is_alphanumeric() || c == '_' {
+                    ident.push(c);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            tokens.push(ArithToken::Variable(ident));
+        }
     }
 
     /// Parse variable expansion patterns like ${VAR:-default}, ${VAR:=default}, etc.

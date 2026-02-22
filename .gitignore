@@ -108,6 +108,7 @@ Dockerfile
 shellcheck
 shellcheck-stable/
 analyze_*.py
+scripts/corpus-generators/
 
 # Temporary directories
 test-*/
