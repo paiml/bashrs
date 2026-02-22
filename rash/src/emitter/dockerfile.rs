@@ -148,114 +148,142 @@ impl DockerfileConverter {
         current_stage: &mut Option<DockerStage>,
     ) -> Result<()> {
         match name {
-            "from_image" => {
-                // from_image("image:tag") - 1 arg: split on last colon
-                // from_image("image", "tag") - 2 args: existing behavior
-                if args.is_empty() {
-                    return Err(Error::Validation(
-                        "from_image() requires at least 1 argument".to_string(),
-                    ));
-                }
+            "from_image" => self.convert_from_image(args, ir, current_stage),
+            "from_image_as" => self.convert_from_image_as(args, ir, current_stage),
+            "copy" => self.convert_copy(args, current_stage),
+            "copy_from" => self.convert_copy_from(args, current_stage),
+            _ => self.convert_simple_instruction(name, args, current_stage),
+        }
+    }
 
-                let (image, tag) = if args.len() == 1 {
-                    let combined = self.expr_to_string(args.first().expect("verified len >= 1"))?;
-                    split_image_tag(&combined)
-                } else {
-                    let image = self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                    let tag = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
-                    (image, tag)
-                };
+    fn convert_from_image(
+        &self,
+        args: &[Expr],
+        ir: &mut DockerfileIR,
+        current_stage: &mut Option<DockerStage>,
+    ) -> Result<()> {
+        if args.is_empty() {
+            return Err(Error::Validation(
+                "from_image() requires at least 1 argument".to_string(),
+            ));
+        }
 
-                // Push current stage if exists
-                if let Some(stage) = current_stage.take() {
-                    ir.add_stage(stage);
-                }
+        let (image, tag) = if args.len() == 1 {
+            let combined = self.expr_to_string(args.first().expect("verified len >= 1"))?;
+            split_image_tag(&combined)
+        } else {
+            let image = self.expr_to_string(args.first().expect("verified len >= 2"))?;
+            let tag = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+            (image, tag)
+        };
 
-                *current_stage = Some(DockerStage::new(&image, &tag));
-                Ok(())
+        if let Some(stage) = current_stage.take() {
+            ir.add_stage(stage);
+        }
+        *current_stage = Some(DockerStage::new(&image, &tag));
+        Ok(())
+    }
+
+    fn convert_from_image_as(
+        &self,
+        args: &[Expr],
+        ir: &mut DockerfileIR,
+        current_stage: &mut Option<DockerStage>,
+    ) -> Result<()> {
+        if args.len() < 2 {
+            return Err(Error::Validation(
+                "from_image_as() requires at least 2 arguments".to_string(),
+            ));
+        }
+
+        let (image, tag, alias) = if args.len() == 2 {
+            let combined = self.expr_to_string(args.first().expect("verified len >= 2"))?;
+            let alias = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+            let (img, tg) = split_image_tag(&combined);
+            (img, tg, alias)
+        } else {
+            let image = self.expr_to_string(args.first().expect("verified len >= 3"))?;
+            let tag = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
+            let alias = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
+            (image, tag, alias)
+        };
+
+        if let Some(stage) = current_stage.take() {
+            ir.add_stage(stage);
+        }
+        *current_stage = Some(DockerStage::new_named(&image, &tag, &alias));
+        Ok(())
+    }
+
+    fn convert_copy(
+        &self,
+        args: &[Expr],
+        current_stage: &mut Option<DockerStage>,
+    ) -> Result<()> {
+        if args.len() < 2 {
+            return Err(Error::Validation(
+                "copy() requires at least 2 arguments: src, dst".to_string(),
+            ));
+        }
+        if args.len() == 3 {
+            let src1 = self.expr_to_string(args.first().expect("verified len >= 3"))?;
+            let src2 = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
+            let dst = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
+            if let Some(stage) = current_stage {
+                stage.add_instruction(DockerInstruction::Copy {
+                    src: format!("{src1} {src2}"),
+                    dst,
+                    from: None,
+                });
             }
-            "from_image_as" => {
-                // from_image_as("image:tag", "alias") - 2 args: split image:tag
-                // from_image_as("image", "tag", "alias") - 3 args: existing behavior
-                if args.len() < 2 {
-                    return Err(Error::Validation(
-                        "from_image_as() requires at least 2 arguments".to_string(),
-                    ));
-                }
-
-                let (image, tag, alias) = if args.len() == 2 {
-                    let combined = self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                    let alias = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
-                    let (img, tg) = split_image_tag(&combined);
-                    (img, tg, alias)
-                } else {
-                    let image = self.expr_to_string(args.first().expect("verified len >= 3"))?;
-                    let tag = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
-                    let alias = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
-                    (image, tag, alias)
-                };
-
-                if let Some(stage) = current_stage.take() {
-                    ir.add_stage(stage);
-                }
-
-                *current_stage = Some(DockerStage::new_named(&image, &tag, &alias));
-                Ok(())
+        } else {
+            let src = self.expr_to_string(args.first().expect("verified len >= 2"))?;
+            let dst = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+            if let Some(stage) = current_stage {
+                stage.add_instruction(DockerInstruction::Copy {
+                    src,
+                    dst,
+                    from: None,
+                });
             }
+        }
+        Ok(())
+    }
+
+    fn convert_copy_from(
+        &self,
+        args: &[Expr],
+        current_stage: &mut Option<DockerStage>,
+    ) -> Result<()> {
+        if args.len() < 3 {
+            return Err(Error::Validation(
+                "copy_from() requires 3 arguments: stage, src, dst".to_string(),
+            ));
+        }
+        let from_stage = self.expr_to_string(args.first().expect("verified len >= 3"))?;
+        let src = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
+        let dst = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
+        if let Some(stage) = current_stage {
+            stage.add_instruction(DockerInstruction::Copy {
+                src,
+                dst,
+                from: Some(from_stage),
+            });
+        }
+        Ok(())
+    }
+
+    fn convert_simple_instruction(
+        &self,
+        name: &str,
+        args: &[Expr],
+        current_stage: &mut Option<DockerStage>,
+    ) -> Result<()> {
+        match name {
             "run" => {
                 let cmds = self.extract_string_args(args)?;
                 if let Some(stage) = current_stage {
                     stage.add_instruction(DockerInstruction::Run(cmds));
-                }
-                Ok(())
-            }
-            "copy" => {
-                if args.len() < 2 {
-                    return Err(Error::Validation(
-                        "copy() requires at least 2 arguments: src, dst".to_string(),
-                    ));
-                }
-                if args.len() == 3 {
-                    // 3 args: (src1, src2, dst) → "COPY src1 src2 dst"
-                    let src1 = self.expr_to_string(args.first().expect("verified len >= 3"))?;
-                    let src2 = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
-                    let dst = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
-                    if let Some(stage) = current_stage {
-                        // Use "src1 src2" as compound src
-                        stage.add_instruction(DockerInstruction::Copy {
-                            src: format!("{src1} {src2}"),
-                            dst,
-                            from: None,
-                        });
-                    }
-                } else {
-                    let src = self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                    let dst = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
-                    if let Some(stage) = current_stage {
-                        stage.add_instruction(DockerInstruction::Copy {
-                            src,
-                            dst,
-                            from: None,
-                        });
-                    }
-                }
-                Ok(())
-            }
-            "copy_from" => {
-                if args.len() < 3 {
-                    return Err(Error::Validation(
-                        "copy_from() requires 3 arguments: stage, src, dst".to_string(),
-                    ));
-                }
-                let from_stage = self.expr_to_string(args.first().expect("verified len >= 3"))?;
-                let src = self.expr_to_string(args.get(1).expect("verified len >= 3"))?;
-                let dst = self.expr_to_string(args.get(2).expect("verified len >= 3"))?;
-                if let Some(stage) = current_stage {
-                    stage.add_instruction(DockerInstruction::Copy {
-                        src,
-                        dst,
-                        from: Some(from_stage),
-                    });
                 }
                 Ok(())
             }
@@ -357,7 +385,7 @@ impl DockerfileConverter {
                 }
                 Ok(())
             }
-            _ => Ok(()), // Ignore unknown function calls
+            _ => Ok(()),
         }
     }
 

@@ -55,7 +55,7 @@ impl Formatter {
         self.format(&ast)
     }
 
-    /// Format a statement
+    /// Format a statement (thin dispatcher)
     fn format_stmt(&self, stmt: &BashStmt, indent: usize) -> String {
         let indent_str = self.make_indent(indent);
 
@@ -89,28 +89,42 @@ impl Formatter {
                 result
             }
 
-            BashStmt::Function { name, body, .. } => {
-                let brace_space = if self.config.space_before_brace {
-                    " "
+            BashStmt::Return { code, .. } => {
+                if let Some(expr) = code {
+                    format!("{}return {}", indent_str, self.format_expr(expr))
                 } else {
-                    ""
-                };
-                let mut result = if self.config.normalize_functions {
-                    format!("{}{}(){}{{", indent_str, name, brace_space)
-                } else {
-                    format!("{}function {}(){}{{", indent_str, name, brace_space)
-                };
-                result.push('\n');
-
-                for stmt in body {
-                    result.push_str(&self.format_stmt(stmt, indent + 1));
-                    result.push('\n');
+                    format!("{}return", indent_str)
                 }
-
-                result.push_str(&format!("{}}}", indent_str));
-                result
             }
 
+            // Control flow: if/for/while/until/case/select
+            BashStmt::If { .. }
+            | BashStmt::While { .. }
+            | BashStmt::Until { .. }
+            | BashStmt::For { .. }
+            | BashStmt::ForCStyle { .. }
+            | BashStmt::Case { .. }
+            | BashStmt::Select { .. } => self.format_control_flow_stmt(stmt, indent, &indent_str),
+
+            // Compound: function/pipeline/and/or/brace/coproc/negated
+            BashStmt::Function { .. }
+            | BashStmt::Pipeline { .. }
+            | BashStmt::AndList { .. }
+            | BashStmt::OrList { .. }
+            | BashStmt::BraceGroup { .. }
+            | BashStmt::Coproc { .. }
+            | BashStmt::Negated { .. } => self.format_compound_stmt(stmt, indent, &indent_str),
+        }
+    }
+
+    /// Format control flow statements: if/for/while/until/case/select
+    fn format_control_flow_stmt(
+        &self,
+        stmt: &BashStmt,
+        indent: usize,
+        indent_str: &str,
+    ) -> String {
+        match stmt {
             BashStmt::If {
                 condition,
                 then_block,
@@ -232,14 +246,6 @@ impl Formatter {
                 result
             }
 
-            BashStmt::Return { code, .. } => {
-                if let Some(expr) = code {
-                    format!("{}return {}", indent_str, self.format_expr(expr))
-                } else {
-                    format!("{}return", indent_str)
-                }
-            }
-
             BashStmt::Case { word, arms, .. } => {
                 let mut result = format!("{}case {} in", indent_str, self.format_expr(word));
                 result.push('\n');
@@ -262,6 +268,58 @@ impl Formatter {
                 }
 
                 result.push_str(&format!("{}esac", indent_str));
+                result
+            }
+
+            BashStmt::Select {
+                variable,
+                items,
+                body,
+                ..
+            } => {
+                // F017: Format select statement
+                let items_str = self.format_expr(items);
+                let body_stmts: Vec<String> = body
+                    .iter()
+                    .map(|s| self.format_stmt(s, indent + 1))
+                    .collect();
+                format!(
+                    "{}select {} in {}; do\n{}\n{}done",
+                    indent_str,
+                    variable,
+                    items_str,
+                    body_stmts.join("\n"),
+                    indent_str
+                )
+            }
+
+            // Unreachable: caller only passes control flow variants
+            _ => unreachable!(),
+        }
+    }
+
+    /// Format compound statements: function/pipeline/and/or/brace/coproc/negated
+    fn format_compound_stmt(&self, stmt: &BashStmt, indent: usize, indent_str: &str) -> String {
+        match stmt {
+            BashStmt::Function { name, body, .. } => {
+                let brace_space = if self.config.space_before_brace {
+                    " "
+                } else {
+                    ""
+                };
+                let mut result = if self.config.normalize_functions {
+                    format!("{}{}(){}{{", indent_str, name, brace_space)
+                } else {
+                    format!("{}function {}(){}{{", indent_str, name, brace_space)
+                };
+                result.push('\n');
+
+                for stmt in body {
+                    result.push_str(&self.format_stmt(stmt, indent + 1));
+                    result.push('\n');
+                }
+
+                result.push_str(&format!("{}}}", indent_str));
                 result
             }
 
@@ -309,32 +367,14 @@ impl Formatter {
                     format!("{}coproc {{ {}; }}", indent_str, stmts.join("; "))
                 }
             }
-            BashStmt::Select {
-                variable,
-                items,
-                body,
-                ..
-            } => {
-                // F017: Format select statement
-                let items_str = self.format_expr(items);
-                let body_stmts: Vec<String> = body
-                    .iter()
-                    .map(|s| self.format_stmt(s, indent + 1))
-                    .collect();
-                format!(
-                    "{}select {} in {}; do\n{}\n{}done",
-                    indent_str,
-                    variable,
-                    items_str,
-                    body_stmts.join("\n"),
-                    indent_str
-                )
-            }
 
             BashStmt::Negated { command, .. } => {
                 // Issue #133: Format negated command: ! cmd
                 format!("{}! {}", indent_str, self.format_stmt(command, 0).trim())
             }
+
+            // Unreachable: caller only passes compound variants
+            _ => unreachable!(),
         }
     }
 

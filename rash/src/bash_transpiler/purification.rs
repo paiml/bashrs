@@ -159,6 +159,206 @@ impl Purifier {
                 })
             }
 
+            BashStmt::Command { .. }
+            | BashStmt::Pipeline { .. }
+            | BashStmt::AndList { .. }
+            | BashStmt::OrList { .. }
+            | BashStmt::BraceGroup { .. }
+            | BashStmt::Coproc { .. } => self.purify_command_stmt(stmt),
+
+            BashStmt::Function { name, body, span } => {
+                let purified_body = self.purify_body(body)?;
+
+                Ok(BashStmt::Function {
+                    name: name.clone(),
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+
+            BashStmt::If { .. }
+            | BashStmt::While { .. }
+            | BashStmt::Until { .. }
+            | BashStmt::For { .. }
+            | BashStmt::ForCStyle { .. }
+            | BashStmt::Case { .. }
+            | BashStmt::Select { .. } => self.purify_control_flow(stmt),
+
+            BashStmt::Return { code, span } => {
+                let purified_code = if let Some(expr) = code {
+                    Some(self.purify_expression(expr)?)
+                } else {
+                    None
+                };
+
+                Ok(BashStmt::Return {
+                    code: purified_code,
+                    span: *span,
+                })
+            }
+
+            BashStmt::Comment { .. } => Ok(stmt.clone()),
+
+            BashStmt::Negated { command, span } => {
+                // Issue #133: Purify negated command
+                let purified_cmd = self.purify_statement(command)?;
+                Ok(BashStmt::Negated {
+                    command: Box::new(purified_cmd),
+                    span: *span,
+                })
+            }
+        }
+    }
+
+    /// Purify control flow statements: If, While, Until, For, ForCStyle, Case, Select
+    fn purify_control_flow(&mut self, stmt: &BashStmt) -> PurificationResult<BashStmt> {
+        match stmt {
+            BashStmt::If {
+                condition,
+                then_block,
+                elif_blocks,
+                else_block,
+                span,
+            } => {
+                let purified_condition = self.purify_expression(condition)?;
+
+                let purified_then = self.purify_body(then_block)?;
+
+                let mut purified_elif = Vec::new();
+                for (cond, body) in elif_blocks {
+                    let p_cond = self.purify_expression(cond)?;
+                    let p_body = self.purify_body(body)?;
+                    purified_elif.push((p_cond, p_body));
+                }
+
+                let purified_else = if let Some(else_body) = else_block {
+                    Some(self.purify_body(else_body)?)
+                } else {
+                    None
+                };
+
+                Ok(BashStmt::If {
+                    condition: purified_condition,
+                    then_block: purified_then,
+                    elif_blocks: purified_elif,
+                    else_block: purified_else,
+                    span: *span,
+                })
+            }
+
+            BashStmt::While {
+                condition,
+                body,
+                span,
+            } => {
+                let purified_condition = self.purify_expression(condition)?;
+                let purified_body = self.purify_body(body)?;
+
+                Ok(BashStmt::While {
+                    condition: purified_condition,
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+
+            BashStmt::Until {
+                condition,
+                body,
+                span,
+            } => {
+                let purified_condition = self.purify_expression(condition)?;
+                let purified_body = self.purify_body(body)?;
+
+                Ok(BashStmt::Until {
+                    condition: purified_condition,
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+
+            BashStmt::For {
+                variable,
+                items,
+                body,
+                span,
+            } => {
+                let purified_items = self.purify_expression(items)?;
+                let purified_body = self.purify_body(body)?;
+
+                Ok(BashStmt::For {
+                    variable: variable.clone(),
+                    items: purified_items,
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+
+            // Issue #68: Purify C-style for loop (already handled by codegen)
+            BashStmt::ForCStyle {
+                init,
+                condition,
+                increment,
+                body,
+                span,
+            } => {
+                // Purify the body statements
+                let purified_body = self.purify_body(body)?;
+
+                // Return the purified C-style for loop as-is
+                // The codegen will convert it to POSIX while loop
+                Ok(BashStmt::ForCStyle {
+                    init: init.clone(),
+                    condition: condition.clone(),
+                    increment: increment.clone(),
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+
+            BashStmt::Case { word, arms, span } => {
+                let purified_word = self.purify_expression(word)?;
+
+                let mut purified_arms = Vec::new();
+                for arm in arms {
+                    let purified_body = self.purify_body(&arm.body)?;
+                    purified_arms.push(crate::bash_parser::ast::CaseArm {
+                        patterns: arm.patterns.clone(),
+                        body: purified_body,
+                    });
+                }
+
+                Ok(BashStmt::Case {
+                    word: purified_word,
+                    arms: purified_arms,
+                    span: *span,
+                })
+            }
+
+            BashStmt::Select {
+                variable,
+                items,
+                body,
+                span,
+            } => {
+                // F017: Purify select statement
+                let purified_items = self.purify_expression(items)?;
+                let purified_body = self.purify_body(body)?;
+
+                Ok(BashStmt::Select {
+                    variable: variable.clone(),
+                    items: purified_items,
+                    body: purified_body,
+                    span: *span,
+                })
+            }
+
+            _ => Ok(stmt.clone()),
+        }
+    }
+
+    /// Purify command-related statements: Command, Pipeline, AndList, OrList, BraceGroup, Coproc
+    fn purify_command_stmt(&mut self, stmt: &BashStmt) -> PurificationResult<BashStmt> {
+        match stmt {
             BashStmt::Command {
                 name,
                 args,
@@ -195,186 +395,9 @@ impl Purifier {
                 }
             }
 
-            BashStmt::Function { name, body, span } => {
-                let mut purified_body = Vec::new();
-                for stmt in body {
-                    purified_body.push(self.purify_statement(stmt)?);
-                }
-
-                Ok(BashStmt::Function {
-                    name: name.clone(),
-                    body: purified_body,
-                    span: *span,
-                })
-            }
-
-            BashStmt::If {
-                condition,
-                then_block,
-                elif_blocks,
-                else_block,
-                span,
-            } => {
-                let purified_condition = self.purify_expression(condition)?;
-
-                let mut purified_then = Vec::new();
-                for stmt in then_block {
-                    purified_then.push(self.purify_statement(stmt)?);
-                }
-
-                let mut purified_elif = Vec::new();
-                for (cond, body) in elif_blocks {
-                    let p_cond = self.purify_expression(cond)?;
-                    let mut p_body = Vec::new();
-                    for stmt in body {
-                        p_body.push(self.purify_statement(stmt)?);
-                    }
-                    purified_elif.push((p_cond, p_body));
-                }
-
-                let purified_else = if let Some(else_body) = else_block {
-                    let mut p_else = Vec::new();
-                    for stmt in else_body {
-                        p_else.push(self.purify_statement(stmt)?);
-                    }
-                    Some(p_else)
-                } else {
-                    None
-                };
-
-                Ok(BashStmt::If {
-                    condition: purified_condition,
-                    then_block: purified_then,
-                    elif_blocks: purified_elif,
-                    else_block: purified_else,
-                    span: *span,
-                })
-            }
-
-            BashStmt::While {
-                condition,
-                body,
-                span,
-            } => {
-                let purified_condition = self.purify_expression(condition)?;
-                let mut purified_body = Vec::new();
-                for stmt in body {
-                    purified_body.push(self.purify_statement(stmt)?);
-                }
-
-                Ok(BashStmt::While {
-                    condition: purified_condition,
-                    body: purified_body,
-                    span: *span,
-                })
-            }
-
-            BashStmt::Until {
-                condition,
-                body,
-                span,
-            } => {
-                let purified_condition = self.purify_expression(condition)?;
-                let mut purified_body = Vec::new();
-                for stmt in body {
-                    purified_body.push(self.purify_statement(stmt)?);
-                }
-
-                Ok(BashStmt::Until {
-                    condition: purified_condition,
-                    body: purified_body,
-                    span: *span,
-                })
-            }
-
-            BashStmt::For {
-                variable,
-                items,
-                body,
-                span,
-            } => {
-                let purified_items = self.purify_expression(items)?;
-                let mut purified_body = Vec::new();
-                for stmt in body {
-                    purified_body.push(self.purify_statement(stmt)?);
-                }
-
-                Ok(BashStmt::For {
-                    variable: variable.clone(),
-                    items: purified_items,
-                    body: purified_body,
-                    span: *span,
-                })
-            }
-
-            // Issue #68: Purify C-style for loop (already handled by codegen)
-            BashStmt::ForCStyle {
-                init,
-                condition,
-                increment,
-                body,
-                span,
-            } => {
-                // Purify the body statements
-                let mut purified_body = Vec::new();
-                for stmt in body {
-                    purified_body.push(self.purify_statement(stmt)?);
-                }
-
-                // Return the purified C-style for loop as-is
-                // The codegen will convert it to POSIX while loop
-                Ok(BashStmt::ForCStyle {
-                    init: init.clone(),
-                    condition: condition.clone(),
-                    increment: increment.clone(),
-                    body: purified_body,
-                    span: *span,
-                })
-            }
-
-            BashStmt::Return { code, span } => {
-                let purified_code = if let Some(expr) = code {
-                    Some(self.purify_expression(expr)?)
-                } else {
-                    None
-                };
-
-                Ok(BashStmt::Return {
-                    code: purified_code,
-                    span: *span,
-                })
-            }
-
-            BashStmt::Comment { .. } => Ok(stmt.clone()),
-
-            BashStmt::Case { word, arms, span } => {
-                let purified_word = self.purify_expression(word)?;
-
-                let mut purified_arms = Vec::new();
-                for arm in arms {
-                    let mut purified_body = Vec::new();
-                    for stmt in &arm.body {
-                        purified_body.push(self.purify_statement(stmt)?);
-                    }
-                    purified_arms.push(crate::bash_parser::ast::CaseArm {
-                        patterns: arm.patterns.clone(),
-                        body: purified_body,
-                    });
-                }
-
-                Ok(BashStmt::Case {
-                    word: purified_word,
-                    arms: purified_arms,
-                    span: *span,
-                })
-            }
-
             BashStmt::Pipeline { commands, span } => {
                 // Purify each command in the pipeline
-                let mut purified_commands = Vec::new();
-                for cmd in commands {
-                    purified_commands.push(self.purify_statement(cmd)?);
-                }
+                let purified_commands = self.purify_body(commands)?;
 
                 Ok(BashStmt::Pipeline {
                     commands: purified_commands,
@@ -412,10 +435,7 @@ impl Purifier {
                 span,
             } => {
                 // Purify all statements in the brace group/subshell
-                let mut purified_body = Vec::new();
-                for stmt in body {
-                    purified_body.push(self.purify_statement(stmt)?);
-                }
+                let purified_body = self.purify_body(body)?;
 
                 Ok(BashStmt::BraceGroup {
                     body: purified_body,
@@ -426,10 +446,7 @@ impl Purifier {
 
             BashStmt::Coproc { name, body, span } => {
                 // Purify all statements in the coproc body
-                let mut purified_body = Vec::new();
-                for stmt in body {
-                    purified_body.push(self.purify_statement(stmt)?);
-                }
+                let purified_body = self.purify_body(body)?;
 
                 Ok(BashStmt::Coproc {
                     name: name.clone(),
@@ -437,36 +454,18 @@ impl Purifier {
                     span: *span,
                 })
             }
-            BashStmt::Select {
-                variable,
-                items,
-                body,
-                span,
-            } => {
-                // F017: Purify select statement
-                let purified_items = self.purify_expression(items)?;
-                let mut purified_body = Vec::new();
-                for stmt in body {
-                    purified_body.push(self.purify_statement(stmt)?);
-                }
 
-                Ok(BashStmt::Select {
-                    variable: variable.clone(),
-                    items: purified_items,
-                    body: purified_body,
-                    span: *span,
-                })
-            }
-
-            BashStmt::Negated { command, span } => {
-                // Issue #133: Purify negated command
-                let purified_cmd = self.purify_statement(command)?;
-                Ok(BashStmt::Negated {
-                    command: Box::new(purified_cmd),
-                    span: *span,
-                })
-            }
+            _ => Ok(stmt.clone()),
         }
+    }
+
+    /// Purify a list of statements (shared helper for body blocks)
+    fn purify_body(&mut self, stmts: &[BashStmt]) -> PurificationResult<Vec<BashStmt>> {
+        let mut purified = Vec::new();
+        for stmt in stmts {
+            purified.push(self.purify_statement(stmt)?);
+        }
+        Ok(purified)
     }
 
     fn purify_expression(&mut self, expr: &BashExpr) -> PurificationResult<BashExpr> {
