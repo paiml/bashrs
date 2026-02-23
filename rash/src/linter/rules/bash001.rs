@@ -32,63 +32,41 @@
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
+/// Check if a trimmed line sets the `-e` flag (via `set -e`, `set -euo`, or `set -o errexit`)
+fn line_sets_errexit(trimmed: &str) -> bool {
+    if trimmed.contains("set") && trimmed.contains("-o") && trimmed.contains("errexit") {
+        return true;
+    }
+    if (trimmed.starts_with("set ") || trimmed == "set") && trimmed.contains('-') {
+        if let Some(flags_start) = trimmed.find('-') {
+            let flags_part = &trimmed[flags_start..];
+            for flag_group in flags_part.split_whitespace() {
+                if flag_group.starts_with('-')
+                    && !flag_group.starts_with("--")
+                    && flag_group.contains('e')
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
 /// Check for missing `set -e` in scripts
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     let lines: Vec<&str> = source.lines().collect();
     if lines.is_empty() {
-        return result; // Empty file, no warning
+        return result;
     }
 
-    let mut has_set_e = false;
-    let mut has_shebang = false;
-    let mut shebang_line = 0;
+    let has_shebang = lines[0].trim().starts_with("#!");
+    let has_set_e = lines.iter().any(|line| line_sets_errexit(line.trim()));
 
-    for (line_num, line) in lines.iter().enumerate() {
-        let trimmed = line.trim();
-
-        // Check for shebang on first line
-        if line_num == 0 && trimmed.starts_with("#!") {
-            has_shebang = true;
-            shebang_line = line_num;
-        }
-
-        // Check for various forms of set -e
-        // set -e, set -ex, set -euo pipefail, etc.
-        if (trimmed.starts_with("set ") || trimmed == "set") && trimmed.contains("-") {
-            // Check if 'e' is in the flags
-            if let Some(flags_start) = trimmed.find('-') {
-                let flags_part = &trimmed[flags_start..];
-                // Handle multiple flag groups like: set -e -u -o pipefail
-                for flag_group in flags_part.split_whitespace() {
-                    if flag_group.starts_with('-') && !flag_group.starts_with("--") {
-                        // Single dash flags like -e, -ex, -euo
-                        if flag_group.contains('e') {
-                            has_set_e = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Also check for `set -o errexit` (equivalent to set -e)
-        if trimmed.contains("set") && trimmed.contains("-o") && trimmed.contains("errexit") {
-            has_set_e = true;
-        }
-    }
-
-    // Only warn if script has shebang but missing set -e
-    // Scripts without shebang might be sourced libraries
     if has_shebang && !has_set_e {
-        let span = Span::new(
-            shebang_line + 1,
-            1,
-            shebang_line + 1,
-            lines[shebang_line].len(),
-        );
-
+        let span = Span::new(1, 1, 1, lines[0].len());
         let diag = Diagnostic::new(
             "BASH001",
             Severity::Warning,

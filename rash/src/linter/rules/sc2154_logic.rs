@@ -219,6 +219,37 @@ pub fn is_parameter_expansion_with_operator(line: &str, match_end: usize) -> boo
     false
 }
 
+/// Check if a trimmed line is an esac statement
+fn is_esac_line(trimmed: &str) -> bool {
+    trimmed == "esac" || trimmed.starts_with("esac;") || trimmed.starts_with("esac ")
+}
+
+/// Extract assigned variable names from a case block that has a default branch
+fn extract_case_block_vars(case_block: &[&str], assign_pattern: &Regex) -> Vec<String> {
+    let has_default = case_block.iter().any(|l| {
+        let t = l.trim();
+        t.starts_with("*)") || t.starts_with("* )") || t.contains("*)")
+    });
+
+    if !has_default {
+        return Vec::new();
+    }
+
+    let mut vars = Vec::new();
+    for case_line in case_block {
+        let t = case_line.trim();
+        if t.ends_with(')') && !t.contains('=') {
+            continue;
+        }
+        for cap in assign_pattern.captures_iter(case_line) {
+            if let Some(var) = cap.get(1) {
+                vars.push(var.as_str().to_string());
+            }
+        }
+    }
+    vars
+}
+
 /// Find variables assigned inside case statements with default branches
 /// If a case has a *) default branch, variables assigned in ANY branch are considered defined
 #[allow(clippy::expect_used)] // Compile-time regex
@@ -243,29 +274,14 @@ pub fn collect_case_statement_variables(source: &str) -> HashSet<String> {
             case_depth += 1;
         }
 
-        if trimmed == "esac" || trimmed.starts_with("esac;") || trimmed.starts_with("esac ") {
+        if is_esac_line(trimmed) {
             if case_depth > 0 {
                 case_depth -= 1;
             }
             if case_depth == 0 && in_case {
                 let case_block: Vec<&str> = lines[case_start..=i].to_vec();
-                let has_default = case_block.iter().any(|l| {
-                    let t = l.trim();
-                    t.starts_with("*)") || t.starts_with("* )") || t.contains("*)")
-                });
-
-                if has_default {
-                    for case_line in &case_block {
-                        let t = case_line.trim();
-                        if t.ends_with(')') && !t.contains('=') {
-                            continue;
-                        }
-                        for cap in assign_pattern.captures_iter(case_line) {
-                            if let Some(var) = cap.get(1) {
-                                case_vars.insert(var.as_str().to_string());
-                            }
-                        }
-                    }
+                for var in extract_case_block_vars(&case_block, &assign_pattern) {
+                    case_vars.insert(var);
                 }
                 in_case = false;
             }

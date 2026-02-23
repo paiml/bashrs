@@ -384,80 +384,99 @@ fn lookup_base_image_size(image: &str) -> u64 {
     0
 }
 
+/// Estimate apt-get packages size and check for bloat
+fn estimate_apt_size(
+    cmd: &str,
+    line: usize,
+    total: &mut u64,
+    notes: &mut Vec<String>,
+    bloat: &mut Vec<BloatPattern>,
+) {
+    let packages = extract_apt_packages(cmd);
+    for pkg in &packages {
+        let pkg_size = lookup_package_size(pkg);
+        if pkg_size > 0 {
+            *total += pkg_size;
+            notes.push(format!("{}: ~{}MB", pkg, pkg_size / 1_000_000));
+        }
+    }
+    if !cmd.contains("--no-install-recommends") && !packages.is_empty() {
+        bloat.push(BloatPattern {
+            code: "SIZE002".to_string(),
+            description: "apt-get install without --no-install-recommends".to_string(),
+            line,
+            wasted_bytes: 100_000_000,
+            remediation: "Add '--no-install-recommends' to apt-get install".to_string(),
+        });
+    }
+}
+
+/// Estimate pip packages size and check for bloat
+fn estimate_pip_size(
+    cmd: &str,
+    line: usize,
+    total: &mut u64,
+    notes: &mut Vec<String>,
+    bloat: &mut Vec<BloatPattern>,
+) {
+    let packages = extract_pip_packages(cmd);
+    for pkg in &packages {
+        let pkg_size = lookup_package_size(pkg);
+        if pkg_size > 0 {
+            *total += pkg_size;
+            notes.push(format!("{}: ~{}MB", pkg, pkg_size / 1_000_000));
+        }
+    }
+    if !cmd.contains("--no-cache-dir") {
+        bloat.push(BloatPattern {
+            code: "SIZE003".to_string(),
+            description: "pip install without --no-cache-dir".to_string(),
+            line,
+            wasted_bytes: 50_000_000,
+            remediation: "Add '--no-cache-dir' to pip install".to_string(),
+        });
+    }
+}
+
+/// Estimate npm packages size and check for bloat
+fn estimate_npm_size(
+    cmd: &str,
+    line: usize,
+    total: &mut u64,
+    notes: &mut Vec<String>,
+    bloat: &mut Vec<BloatPattern>,
+) {
+    *total += 200_000_000;
+    notes.push("npm dependencies".to_string());
+    if !cmd.contains("--production") && !cmd.contains("ci") {
+        bloat.push(BloatPattern {
+            code: "SIZE004".to_string(),
+            description: "npm install includes dev dependencies".to_string(),
+            line,
+            wasted_bytes: 100_000_000,
+            remediation: "Use 'npm ci --only=production' for smaller image".to_string(),
+        });
+    }
+}
+
 /// Estimate size of a RUN layer
 fn estimate_run_layer_size(cmd: &str, line: usize) -> (u64, Option<String>, Vec<BloatPattern>) {
     let mut total: u64 = 0;
     let mut notes = Vec::new();
     let mut bloat = Vec::new();
 
-    // Check for apt-get install
     if cmd.contains("apt-get install") || cmd.contains("apt install") {
-        // Extract package names
-        let packages = extract_apt_packages(cmd);
-        for pkg in &packages {
-            let pkg_size = lookup_package_size(pkg);
-            if pkg_size > 0 {
-                total += pkg_size;
-                notes.push(format!("{}: ~{}MB", pkg, pkg_size / 1_000_000));
-            }
-        }
-
-        // Check for missing --no-install-recommends
-        if !cmd.contains("--no-install-recommends") && !packages.is_empty() {
-            bloat.push(BloatPattern {
-                code: "SIZE002".to_string(),
-                description: "apt-get install without --no-install-recommends".to_string(),
-                line,
-                wasted_bytes: 100_000_000, // ~100MB typically
-                remediation: "Add '--no-install-recommends' to apt-get install".to_string(),
-            });
-        }
+        estimate_apt_size(cmd, line, &mut total, &mut notes, &mut bloat);
     }
-
-    // Check for pip install
     if cmd.contains("pip install") || cmd.contains("pip3 install") {
-        let packages = extract_pip_packages(cmd);
-        for pkg in &packages {
-            let pkg_size = lookup_package_size(pkg);
-            if pkg_size > 0 {
-                total += pkg_size;
-                notes.push(format!("{}: ~{}MB", pkg, pkg_size / 1_000_000));
-            }
-        }
-
-        // Check for missing --no-cache-dir
-        if !cmd.contains("--no-cache-dir") {
-            bloat.push(BloatPattern {
-                code: "SIZE003".to_string(),
-                description: "pip install without --no-cache-dir".to_string(),
-                line,
-                wasted_bytes: 50_000_000, // ~50MB typically
-                remediation: "Add '--no-cache-dir' to pip install".to_string(),
-            });
-        }
+        estimate_pip_size(cmd, line, &mut total, &mut notes, &mut bloat);
     }
-
-    // Check for npm install
     if cmd.contains("npm install") || cmd.contains("npm i ") {
-        // NPM packages can be large
-        total += 200_000_000; // ~200MB base estimate
-        notes.push("npm dependencies".to_string());
-
-        // Check for node_modules
-        if !cmd.contains("--production") && !cmd.contains("ci") {
-            bloat.push(BloatPattern {
-                code: "SIZE004".to_string(),
-                description: "npm install includes dev dependencies".to_string(),
-                line,
-                wasted_bytes: 100_000_000,
-                remediation: "Use 'npm ci --only=production' for smaller image".to_string(),
-            });
-        }
+        estimate_npm_size(cmd, line, &mut total, &mut notes, &mut bloat);
     }
 
-    // Default minimum estimate for RUN commands with no detected packages
     if total == 0 {
-        total = 10_000_000; // 10MB default for misc RUN commands
+        total = 10_000_000;
     }
 
     let notes_str = if notes.is_empty() {

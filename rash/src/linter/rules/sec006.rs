@@ -25,43 +25,36 @@
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
+/// Check a single line for predictable /tmp/ assignment and emit diagnostic if found
+fn check_tmp_assignment(line: &str, line_num: usize, result: &mut LintResult) {
+    if !line.contains("/tmp/") || line.contains("mktemp") {
+        return;
+    }
+    let Some(eq_pos) = line.find('=') else { return };
+    let after_eq = &line[eq_pos + 1..].trim_start();
+
+    if !after_eq.starts_with("\"/tmp/") && !after_eq.starts_with("'/tmp/") {
+        return;
+    }
+    if let Some(col) = line.find("/tmp/") {
+        let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 6);
+        let diag = Diagnostic::new(
+            "SEC006",
+            Severity::Warning,
+            "Unsafe temp file - use mktemp for secure random names",
+            span,
+        )
+        .with_fix(Fix::new("$(mktemp)"));
+        result.add(diag);
+    }
+}
+
 /// Check for unsafe temporary file creation
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
     for (line_num, line) in source.lines().enumerate() {
-        // Look for predictable /tmp/ assignments
-        if line.contains("/tmp/") && !line.contains("mktemp") {
-            // Check if it's an assignment (VAR="/tmp/...")
-            if let Some(eq_pos) = line.find('=') {
-                let after_eq = &line[eq_pos + 1..].trim_start();
-
-                // Check for quoted /tmp/ path (predictable filename)
-                if after_eq.starts_with("\"/tmp/") || after_eq.starts_with("'/tmp/") {
-                    // Check if it uses $$ (process ID) - still vulnerable
-                    if let Some(col) = line.find("/tmp/") {
-                        let span = Span::new(
-                            line_num + 1,
-                            col + 1,
-                            line_num + 1,
-                            col + 6, // "/tmp/" is 5 chars
-                        );
-
-                        let diag = Diagnostic::new(
-                            "SEC006",
-                            Severity::Warning,
-                            "Unsafe temp file - use mktemp for secure random names",
-                            span,
-                        )
-                        .with_fix(Fix::new("$(mktemp)"));
-
-                        result.add(diag);
-                    }
-                }
-            }
-        }
+        check_tmp_assignment(line, line_num, &mut result);
     }
-
     result
 }
 

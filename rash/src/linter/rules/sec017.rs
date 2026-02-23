@@ -106,37 +106,41 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
 }
 
 /// Check if line contains a specific permission mode
+/// Check that the character boundary before `mode` in `word` is not a digit
+fn is_mode_boundary_before(word: &str, pos: usize) -> bool {
+    if pos == 0 {
+        return true;
+    }
+    let char_before = word.chars().nth(pos - 1);
+    !matches!(char_before, Some('0'..='9'))
+}
+
+/// Check that the character boundary after `mode` in `word` is not a digit
+fn is_mode_boundary_after(word: &str, pos: usize, mode_len: usize) -> bool {
+    let after_idx = pos + mode_len;
+    if after_idx >= word.len() {
+        return true;
+    }
+    let char_after = word.chars().nth(after_idx);
+    !matches!(char_after, Some('0'..='9'))
+}
+
+/// Check if `word` contains `mode` as a standalone token (not part of a larger number)
+fn word_contains_standalone_mode(word: &str, mode: &str) -> bool {
+    if let Some(pos) = word.find(mode) {
+        is_mode_boundary_before(word, pos) && is_mode_boundary_after(word, pos, mode.len())
+    } else {
+        false
+    }
+}
+
 fn contains_mode(line: &str, mode: &str) -> bool {
-    // Look for the mode as a standalone token (not part of another number)
     for word in line.split_whitespace() {
-        // Check exact match or with -R flag
         if word == mode || word == format!("-R {}", mode) || word.ends_with(&format!(" {}", mode)) {
             return true;
         }
-        // Handle cases like "chmod -R 777" or "chmod 777"
-        if word.contains(mode) {
-            // Ensure it's not part of a larger number (e.g., 1777)
-            let mode_pos = word.find(mode);
-            if let Some(pos) = mode_pos {
-                let before_ok = if pos == 0 {
-                    true
-                } else {
-                    let char_before = word.chars().nth(pos - 1);
-                    !matches!(char_before, Some('0'..='9'))
-                };
-
-                let after_idx = pos + mode.len();
-                let after_ok = if after_idx >= word.len() {
-                    true
-                } else {
-                    let char_after = word.chars().nth(after_idx);
-                    !matches!(char_after, Some('0'..='9'))
-                };
-
-                if before_ok && after_ok {
-                    return true;
-                }
-            }
+        if word.contains(mode) && word_contains_standalone_mode(word, mode) {
+            return true;
         }
     }
     false

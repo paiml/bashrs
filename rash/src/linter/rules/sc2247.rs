@@ -8,6 +8,33 @@ static STRING_MULTIPLY: Lazy<Regex> = Lazy::new(|| {
     Regex::new(r#"(["'][\w\s]+['"]|\$\w+)\s*\*\s*\d+"#).unwrap()
 });
 
+/// Extract heredoc delimiter from a line containing "<<"
+fn extract_heredoc_delimiter(line: &str) -> Option<String> {
+    let pos = line.find("<<")?;
+    let after_heredoc = &line[pos + 2..];
+    let delim_start = after_heredoc.trim_start_matches('-');
+    let delim: String = delim_start
+        .trim_start()
+        .trim_start_matches(['\'', '"'])
+        .chars()
+        .take_while(|c| c.is_alphanumeric() || *c == '_')
+        .collect();
+    if delim.is_empty() { None } else { Some(delim) }
+}
+
+/// Check if a line should be skipped for SC2247 analysis (arithmetic, awk, bc, etc.)
+fn should_skip_sc2247(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+        || line.contains("((")
+        || line.contains("awk")
+        || line.contains("| bc")
+        || line.contains("|bc")
+        || line.contains("expr")
+        || line.contains("python")
+        || line.contains("perl")
+        || line.contains("ruby")
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let mut in_heredoc = false;
@@ -16,8 +43,6 @@ pub fn check(source: &str) -> LintResult {
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        // Issue #120: Handle heredoc boundaries
-        // If we're in a heredoc, check if this line ends it
         if in_heredoc {
             if let Some(ref delim) = heredoc_delimiter {
                 if line.trim() == delim {
@@ -25,51 +50,17 @@ pub fn check(source: &str) -> LintResult {
                     heredoc_delimiter = None;
                 }
             }
-            continue; // Skip all lines inside heredoc
+            continue;
         }
 
-        // Check if this line starts a heredoc
         if line.contains("<<") {
-            // Extract heredoc delimiter (handles <<EOF, <<'EOF', <<"EOF", <<-EOF)
-            if let Some(pos) = line.find("<<") {
-                let after_heredoc = &line[pos + 2..];
-                let delim_start = after_heredoc.trim_start_matches('-');
-                let delim = delim_start
-                    .trim_start()
-                    .trim_start_matches(['\'', '"'])
-                    .chars()
-                    .take_while(|c| c.is_alphanumeric() || *c == '_')
-                    .collect::<String>();
-                if !delim.is_empty() {
-                    in_heredoc = true;
-                    heredoc_delimiter = Some(delim);
-                }
+            if let Some(delim) = extract_heredoc_delimiter(line) {
+                in_heredoc = true;
+                heredoc_delimiter = Some(delim);
             }
-            // Process the line that starts heredoc (before the content)
         }
 
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        // Skip if inside $(( )) or (( ))
-        if line.contains("((") {
-            continue;
-        }
-
-        // Skip if inside awk command or bc pipeline (issue #22)
-        // awk and bc use * for legitimate mathematical operations
-        if line.contains("awk") || line.contains("| bc") || line.contains("|bc") {
-            continue;
-        }
-
-        // Skip expr command (already handled but making explicit)
-        if line.contains("expr") {
-            continue;
-        }
-
-        // Issue #120: Skip if line contains python/perl/ruby (embedded code)
-        if line.contains("python") || line.contains("perl") || line.contains("ruby") {
+        if should_skip_sc2247(line) {
             continue;
         }
 

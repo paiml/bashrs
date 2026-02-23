@@ -31,42 +31,34 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 /// Dangerous commands that should never be run with sudo + unquoted vars
 const DANGEROUS_SUDO_COMMANDS: &[&str] = &["rm -rf", "chmod 777", "chmod -R", "chown -R"];
 
-/// Check for unsafe sudo operations
-pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
-
-    for (line_num, line) in source.lines().enumerate() {
-        if line.contains("sudo") {
-            // Check for dangerous sudo + command combinations
-            for cmd in DANGEROUS_SUDO_COMMANDS {
-                if line.contains(cmd) {
-                    // Check for unquoted variables after the command
-                    if line.contains(" $") {
-                        if let Some(col) = line.find("sudo") {
-                            let span = Span::new(
-                                line_num + 1,
-                                col + 1,
-                                line_num + 1,
-                                col + 5, // "sudo" is 4 chars
-                            );
-
-                            let diag = Diagnostic::new(
-                                "SEC007",
-                                Severity::Warning,
-                                format!("Unsafe root operation: sudo {} with unquoted variable - add validation", cmd),
-                                span,
-                            );
-                            // NO AUTO-FIX: requires context-dependent validation logic
-
-                            result.add(diag);
-                            break; // Only report once per line
-                        }
-                    }
-                }
+/// Check a single line for unsafe sudo + dangerous command + unquoted variable
+fn check_sudo_line(line: &str, line_num: usize, result: &mut LintResult) {
+    if !line.contains("sudo") {
+        return;
+    }
+    for cmd in DANGEROUS_SUDO_COMMANDS {
+        if line.contains(cmd) && line.contains(" $") {
+            if let Some(col) = line.find("sudo") {
+                let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 5);
+                let diag = Diagnostic::new(
+                    "SEC007",
+                    Severity::Warning,
+                    format!("Unsafe root operation: sudo {} with unquoted variable - add validation", cmd),
+                    span,
+                );
+                result.add(diag);
+                break;
             }
         }
     }
+}
 
+/// Check for unsafe sudo operations
+pub fn check(source: &str) -> LintResult {
+    let mut result = LintResult::new();
+    for (line_num, line) in source.lines().enumerate() {
+        check_sudo_line(line, line_num, &mut result);
+    }
     result
 }
 

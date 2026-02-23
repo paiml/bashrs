@@ -86,112 +86,88 @@ fn is_safe_env_var(var_name: &str) -> bool {
     false
 }
 
+/// Strip comments from a trimmed line and return the code portion
+fn strip_comments(trimmed: &str) -> &str {
+    if let Some(pos) = trimmed.find('#') {
+        trimmed[..pos].trim()
+    } else {
+        trimmed
+    }
+}
+
+/// Track validation patterns and update the validated vars set
+fn track_validation(
+    trimmed: &str,
+    validated_vars: &mut std::collections::HashSet<String>,
+) {
+    if trimmed.starts_with("if ") && (trimmed.contains("[ -z") || trimmed.contains("[ -n")) {
+        if let Some(var_name) = extract_validated_variable(trimmed) {
+            validated_vars.insert(var_name);
+        }
+    }
+}
+
+/// Check a dangerous operation and emit diagnostic if variable is unvalidated
+fn check_dangerous_op(
+    var_name: &str,
+    op_desc: &str,
+    validated_vars: &std::collections::HashSet<String>,
+    inline_validated: &std::collections::HashSet<String>,
+    line_num: usize,
+    line_len: usize,
+    result: &mut LintResult,
+) {
+    if !validated_vars.contains(var_name) && !inline_validated.contains(var_name) {
+        let span = Span::new(line_num + 1, 1, line_num + 1, line_len);
+        let diag = Diagnostic::new(
+            "SEC011",
+            Severity::Error,
+            format!("Missing validation for '{}' before '{}' - {}", var_name, op_desc,
+                match op_desc {
+                    "rm -rf" => "could delete critical files if variable is empty or '/'",
+                    "chmod -R 777" => "could expose sensitive files if variable is unset",
+                    _ => "could change ownership of critical files if variable is unset",
+                }),
+            span,
+        );
+        result.add(diag);
+    }
+}
+
 /// Check for missing input validation before dangerous operations
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
-    // Track which variables have been validated
     let mut validated_vars: std::collections::HashSet<String> = std::collections::HashSet::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim();
+        let code_only = strip_comments(trimmed);
 
-        // Strip comments (everything after #)
-        let code_only = if let Some(pos) = trimmed.find('#') {
-            &trimmed[..pos]
-        } else {
-            trimmed
-        };
-        let code_only = code_only.trim();
+        track_validation(trimmed, &mut validated_vars);
 
-        // Detect validation patterns (mark variables as validated)
-        // Pattern: if [ -z "$VAR" ] || [ "$VAR" = "/" ]
-        // Pattern: if [ -n "$VAR" ] && [ "$VAR" != "/" ]
-        if trimmed.starts_with("if ") && (trimmed.contains("[ -z") || trimmed.contains("[ -n")) {
-            // Extract variable name from validation
-            if let Some(var_name) = extract_validated_variable(trimmed) {
-                validated_vars.insert(var_name);
-            }
-        }
-
-        // Issue #89: Detect inline validation with && chains
-        // Pattern: [ -n "$VAR" ] && [ -d "$VAR" ] && rm -rf "$VAR"
         let inline_validated = extract_inline_validated_vars(code_only);
 
-        // Detect dangerous operations
         // Pattern: rm -rf "$VAR"
         if code_only.contains("rm") && code_only.contains("-rf") {
-            if let Some(var_name) = extract_variable_from_rm(code_only) {
-                // Issue #105: Skip known-safe environment variables
-                if is_safe_env_var(&var_name) {
-                    continue;
-                }
-                // Check if variable is validated (either from previous lines or inline)
-                if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
-                    let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
-
-                    let diag = Diagnostic::new(
-                        "SEC011",
-                        Severity::Error,
-                        format!(
-                            "Missing validation for '{}' before 'rm -rf' - could delete critical files if variable is empty or '/'",
-                            var_name
-                        ),
-                        span,
-                    );
-
-                    result.add(diag);
-                }
+            if let Some(ref var_name) = extract_variable_from_rm(code_only) {
+                if is_safe_env_var(var_name) { continue; }
+                check_dangerous_op(var_name, "rm -rf", &validated_vars, &inline_validated, line_num, line.len(), &mut result);
             }
         }
 
         // Pattern: chmod -R 777 "$VAR"
         if code_only.contains("chmod") && code_only.contains("-R") && code_only.contains("777") {
-            if let Some(var_name) = extract_variable_from_chmod(code_only) {
-                // Issue #105: Skip known-safe environment variables
-                if is_safe_env_var(&var_name) {
-                    continue;
-                }
-                if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
-                    let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
-
-                    let diag = Diagnostic::new(
-                        "SEC011",
-                        Severity::Error,
-                        format!(
-                            "Missing validation for '{}' before 'chmod -R 777' - could expose sensitive files if variable is unset",
-                            var_name
-                        ),
-                        span,
-                    );
-
-                    result.add(diag);
-                }
+            if let Some(ref var_name) = extract_variable_from_chmod(code_only) {
+                if is_safe_env_var(var_name) { continue; }
+                check_dangerous_op(var_name, "chmod -R 777", &validated_vars, &inline_validated, line_num, line.len(), &mut result);
             }
         }
 
         // Pattern: chown -R user:group "$VAR"
         if code_only.contains("chown") && code_only.contains("-R") {
-            if let Some(var_name) = extract_variable_from_chown(code_only) {
-                // Issue #105: Skip known-safe environment variables
-                if is_safe_env_var(&var_name) {
-                    continue;
-                }
-                if !validated_vars.contains(&var_name) && !inline_validated.contains(&var_name) {
-                    let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
-
-                    let diag = Diagnostic::new(
-                        "SEC011",
-                        Severity::Error,
-                        format!(
-                            "Missing validation for '{}' before 'chown -R' - could change ownership of critical files if variable is unset",
-                            var_name
-                        ),
-                        span,
-                    );
-
-                    result.add(diag);
-                }
+            if let Some(ref var_name) = extract_variable_from_chown(code_only) {
+                if is_safe_env_var(var_name) { continue; }
+                check_dangerous_op(var_name, "chown -R", &validated_vars, &inline_validated, line_num, line.len(), &mut result);
             }
         }
     }
