@@ -545,238 +545,20 @@ impl AuditContext {
     /// Audit security configuration from parsed spec
     fn audit_security_parsed(&self, spec: &super::spec::InstallerSpec, report: &mut AuditReport) {
         let security = &spec.installer.security;
-
-        // SEC001: Check if signatures are required
-        if !security.require_signatures {
-            report.add_finding(
-                AuditFinding::new(
-                    "SEC001",
-                    AuditSeverity::Warning,
-                    AuditCategory::Security,
-                    "Signatures not required",
-                    "Artifact signature verification is disabled. This allows potentially tampered artifacts.",
-                )
-                .with_suggestion("Set require_signatures = true in [installer.security]"),
-            );
-        }
-
-        // SEC002: Check trust model
-        if security.trust_model == "tofu" {
-            report.add_finding(
-                AuditFinding::new(
-                    "SEC002",
-                    AuditSeverity::Info,
-                    AuditCategory::Security,
-                    "Using Trust-On-First-Use model",
-                    "TOFU is suitable for development but explicit keyring is recommended for production.",
-                )
-                .with_suggestion("Consider using trust_model = \"keyring\" for production"),
-            );
-        }
-
-        // SEC004: Check artifacts for signatures
-        for artifact in &spec.artifact {
-            if artifact.signature.is_none() && artifact.signed_by.is_none() {
-                report.add_finding(
-                    AuditFinding::new(
-                        "SEC004",
-                        AuditSeverity::Warning,
-                        AuditCategory::Security,
-                        "Unsigned artifact",
-                        format!(
-                            "Artifact '{}' has no signature or signer specified.",
-                            artifact.id
-                        ),
-                    )
-                    .with_location(&artifact.id)
-                    .with_suggestion("Add signature and signed_by fields to artifact"),
-                );
-            }
-
-            // SEC005: Check for SHA256
-            if artifact.sha256.is_none() {
-                report.add_finding(
-                    AuditFinding::new(
-                        "SEC005",
-                        AuditSeverity::Error,
-                        AuditCategory::Security,
-                        "Missing artifact hash",
-                        format!(
-                            "Artifact '{}' has no SHA256 hash for integrity verification.",
-                            artifact.id
-                        ),
-                    )
-                    .with_location(&artifact.id)
-                    .with_suggestion("Add sha256 field with the artifact's content hash"),
-                );
-            }
-        }
-
-        // SEC006: Check for privilege escalation
-        if spec.installer.requirements.privileges == "root" {
-            report.add_finding(
-                AuditFinding::new(
-                    "SEC006",
-                    AuditSeverity::Info,
-                    AuditCategory::Security,
-                    "Root privileges required",
-                    "This installer requires root privileges. Ensure this is necessary.",
-                )
-                .with_suggestion("Review if all steps truly require root access"),
-            );
-        }
-
-        // SEC007: Check for unsafe script patterns
-        for step in &spec.step {
-            if let Some(ref script) = step.script {
-                // Check for common unsafe patterns
-                if script.content.contains("curl") && script.content.contains("| bash") {
-                    report.add_finding(
-                        AuditFinding::new(
-                            "SEC007",
-                            AuditSeverity::Critical,
-                            AuditCategory::Security,
-                            "Unsafe curl pipe to bash",
-                            "Step contains 'curl ... | bash' pattern which is vulnerable to MITM attacks.",
-                        )
-                        .with_location(&step.id)
-                        .with_suggestion("Download artifact first, verify signature, then execute"),
-                    );
-                }
-
-                if script.content.contains("eval") {
-                    report.add_finding(
-                        AuditFinding::new(
-                            "SEC008",
-                            AuditSeverity::Warning,
-                            AuditCategory::Security,
-                            "Use of eval",
-                            "Step contains 'eval' which can execute arbitrary code.",
-                        )
-                        .with_location(&step.id)
-                        .with_suggestion("Avoid eval; use direct commands or safe alternatives"),
-                    );
-                }
-            }
-        }
+        audit_sec001_signatures(security, report);
+        audit_sec002_trust_model(security, report);
+        audit_artifact_security(&spec.artifact, report);
+        audit_sec006_privileges(spec, report);
+        audit_step_script_security(&spec.step, report);
     }
 
     /// Audit quality configuration from parsed spec
     fn audit_quality_parsed(&self, spec: &super::spec::InstallerSpec, report: &mut AuditReport) {
-        // QUAL001: Check for postconditions (non-empty postcondition indicates presence)
-        // Issue #112: Check ALL postcondition fields and verification.commands
-        for step in &spec.step {
-            let has_postconditions = step.postconditions.file_exists.is_some()
-                || step.postconditions.file_mode.is_some()
-                || step.postconditions.command_succeeds.is_some()
-                || !step.postconditions.packages_absent.is_empty()
-                || step.postconditions.service_active.is_some()
-                || step.postconditions.user_in_group.is_some()
-                || !step.postconditions.env_matches.is_empty()
-                || step
-                    .verification
-                    .as_ref()
-                    .is_some_and(|v| !v.commands.is_empty());
-
-            if !has_postconditions {
-                report.add_finding(
-                    AuditFinding::new(
-                        "QUAL001",
-                        AuditSeverity::Warning,
-                        AuditCategory::Quality,
-                        "Missing postconditions",
-                        format!(
-                            "Step '{}' has no postconditions to verify success.",
-                            step.id
-                        ),
-                    )
-                    .with_location(&step.id)
-                    .with_suggestion("Add postconditions to verify step completed successfully"),
-                );
-            }
-        }
-
-        // QUAL002: Check for checkpoints
-        let mut steps_without_checkpoint = 0;
-        for step in &spec.step {
-            if !step.checkpoint.enabled {
-                steps_without_checkpoint += 1;
-            }
-        }
-
-        if steps_without_checkpoint > 0 && spec.step.len() > 1 {
-            report.add_finding(
-                AuditFinding::new(
-                    "QUAL002",
-                    AuditSeverity::Suggestion,
-                    AuditCategory::Quality,
-                    "Steps without checkpoints",
-                    format!(
-                        "{} of {} steps have no checkpoint configuration.",
-                        steps_without_checkpoint,
-                        spec.step.len()
-                    ),
-                )
-                .with_suggestion("Enable checkpoints for resumable installations"),
-            );
-        }
-
-        // QUAL003: Check for timeouts
-        for step in &spec.step {
-            if step.timing.timeout.is_none() {
-                report.add_finding(
-                    AuditFinding::new(
-                        "QUAL003",
-                        AuditSeverity::Suggestion,
-                        AuditCategory::Quality,
-                        "No timeout specified",
-                        format!("Step '{}' has no timeout configuration.", step.id),
-                    )
-                    .with_location(&step.id)
-                    .with_suggestion("Add timing configuration with appropriate timeout"),
-                );
-            }
-        }
-
-        // QUAL004: Check for duplicate step IDs
-        let mut seen_ids: HashSet<&str> = HashSet::new();
-        for step in &spec.step {
-            if seen_ids.contains(step.id.as_str()) {
-                report.add_finding(
-                    AuditFinding::new(
-                        "QUAL004",
-                        AuditSeverity::Error,
-                        AuditCategory::Quality,
-                        "Duplicate step ID",
-                        format!("Step ID '{}' is used more than once.", step.id),
-                    )
-                    .with_location(&step.id),
-                );
-            }
-            seen_ids.insert(&step.id);
-        }
-
-        // QUAL005: Check dependency references
-        let step_ids: HashSet<&str> = spec.step.iter().map(|s| s.id.as_str()).collect();
-        for step in &spec.step {
-            for dep in &step.depends_on {
-                if !step_ids.contains(dep.as_str()) {
-                    report.add_finding(
-                        AuditFinding::new(
-                            "QUAL005",
-                            AuditSeverity::Error,
-                            AuditCategory::Quality,
-                            "Invalid dependency reference",
-                            format!(
-                                "Step '{}' depends on '{}' which does not exist.",
-                                step.id, dep
-                            ),
-                        )
-                        .with_location(&step.id),
-                    );
-                }
-            }
-        }
+        audit_qual001_postconditions(&spec.step, report);
+        audit_qual002_checkpoints(&spec.step, report);
+        audit_qual003_timeouts(&spec.step, report);
+        audit_qual004_duplicate_ids(&spec.step, report);
+        audit_qual005_dependencies(&spec.step, report);
     }
 
     /// Audit hermetic configuration from parsed spec
@@ -853,107 +635,383 @@ impl AuditContext {
         spec: &super::spec::InstallerSpec,
         report: &mut AuditReport,
     ) {
-        // BP001: Check for description
-        if spec.installer.description.is_empty() {
+        audit_bp001_description(&spec.installer, report);
+        audit_bp002_author(&spec.installer, report);
+        audit_bp003_step_names(&spec.step, report);
+        audit_bp004_orphan_steps(&spec.step, report);
+        audit_bp005_long_scripts(&spec.step, report);
+    }
+}
+
+/// BP001: Check for description
+fn audit_bp001_description(
+    installer: &super::spec::InstallerMetadata,
+    report: &mut AuditReport,
+) {
+    if installer.description.is_empty() {
+        report.add_finding(
+            AuditFinding::new(
+                "BP001",
+                AuditSeverity::Suggestion,
+                AuditCategory::BestPractices,
+                "Missing installer description",
+                "The installer has no description field.",
+            )
+            .with_suggestion("Add a description in [installer] section"),
+        );
+    }
+}
+
+/// BP002: Check for author
+fn audit_bp002_author(
+    installer: &super::spec::InstallerMetadata,
+    report: &mut AuditReport,
+) {
+    if installer.author.is_empty() {
+        report.add_finding(
+            AuditFinding::new(
+                "BP002",
+                AuditSeverity::Suggestion,
+                AuditCategory::BestPractices,
+                "Missing author information",
+                "The installer has no author field.",
+            )
+            .with_suggestion("Add an author in [installer] section"),
+        );
+    }
+}
+
+/// BP003: Check for step names
+fn audit_bp003_step_names(steps: &[super::spec::Step], report: &mut AuditReport) {
+    for step in steps {
+        if step.name.is_empty() {
             report.add_finding(
                 AuditFinding::new(
-                    "BP001",
+                    "BP003",
                     AuditSeverity::Suggestion,
                     AuditCategory::BestPractices,
-                    "Missing installer description",
-                    "The installer has no description field.",
+                    "Missing step name",
+                    format!("Step '{}' has no human-readable name.", step.id),
                 )
-                .with_suggestion("Add a description in [installer] section"),
+                .with_location(&step.id)
+                .with_suggestion("Add a descriptive name for better progress reporting"),
             );
         }
+    }
+}
 
-        // BP002: Check for author
-        if spec.installer.author.is_empty() {
+/// BP004: Check for orphan steps (no dependencies and not depended upon)
+fn audit_bp004_orphan_steps(steps: &[super::spec::Step], report: &mut AuditReport) {
+    if steps.len() <= 1 {
+        return;
+    }
+    let depended_upon: HashSet<&str> = steps
+        .iter()
+        .flat_map(|s| s.depends_on.iter().map(|d| d.as_str()))
+        .collect();
+    let first_step = steps.first().map(|s| s.id.as_str());
+    for step in steps {
+        if step.depends_on.is_empty()
+            && !depended_upon.contains(step.id.as_str())
+            && Some(step.id.as_str()) != first_step
+        {
             report.add_finding(
                 AuditFinding::new(
-                    "BP002",
-                    AuditSeverity::Suggestion,
+                    "BP004",
+                    AuditSeverity::Warning,
                     AuditCategory::BestPractices,
-                    "Missing author information",
-                    "The installer has no author field.",
+                    "Orphan step detected",
+                    format!(
+                        "Step '{}' has no dependencies and nothing depends on it.",
+                        step.id
+                    ),
                 )
-                .with_suggestion("Add an author in [installer] section"),
+                .with_location(&step.id)
+                .with_suggestion("Add depends_on to establish execution order"),
             );
         }
+    }
+}
 
-        // BP003: Check for step names
-        for step in &spec.step {
-            if step.name.is_empty() {
+/// BP005: Check for very long scripts
+fn audit_bp005_long_scripts(steps: &[super::spec::Step], report: &mut AuditReport) {
+    for step in steps {
+        let Some(ref script) = step.script else {
+            continue;
+        };
+        let line_count = script.content.lines().count();
+        if line_count > 50 {
+            report.add_finding(
+                AuditFinding::new(
+                    "BP005",
+                    AuditSeverity::Suggestion,
+                    AuditCategory::BestPractices,
+                    "Long script step",
+                    format!(
+                        "Step '{}' has {} lines. Consider breaking into smaller steps.",
+                        step.id, line_count
+                    ),
+                )
+                .with_location(&step.id)
+                .with_suggestion("Split into multiple smaller, focused steps"),
+            );
+        }
+    }
+}
+
+/// Check whether a step has any postconditions defined
+fn step_has_postconditions(step: &super::spec::Step) -> bool {
+    step.postconditions.file_exists.is_some()
+        || step.postconditions.file_mode.is_some()
+        || step.postconditions.command_succeeds.is_some()
+        || !step.postconditions.packages_absent.is_empty()
+        || step.postconditions.service_active.is_some()
+        || step.postconditions.user_in_group.is_some()
+        || !step.postconditions.env_matches.is_empty()
+        || step
+            .verification
+            .as_ref()
+            .is_some_and(|v| !v.commands.is_empty())
+}
+
+/// QUAL001: Check for postconditions
+fn audit_qual001_postconditions(steps: &[super::spec::Step], report: &mut AuditReport) {
+    for step in steps {
+        if !step_has_postconditions(step) {
+            report.add_finding(
+                AuditFinding::new(
+                    "QUAL001",
+                    AuditSeverity::Warning,
+                    AuditCategory::Quality,
+                    "Missing postconditions",
+                    format!(
+                        "Step '{}' has no postconditions to verify success.",
+                        step.id
+                    ),
+                )
+                .with_location(&step.id)
+                .with_suggestion("Add postconditions to verify step completed successfully"),
+            );
+        }
+    }
+}
+
+/// QUAL002: Check for checkpoints
+fn audit_qual002_checkpoints(steps: &[super::spec::Step], report: &mut AuditReport) {
+    let steps_without_checkpoint = steps.iter().filter(|s| !s.checkpoint.enabled).count();
+    if steps_without_checkpoint > 0 && steps.len() > 1 {
+        report.add_finding(
+            AuditFinding::new(
+                "QUAL002",
+                AuditSeverity::Suggestion,
+                AuditCategory::Quality,
+                "Steps without checkpoints",
+                format!(
+                    "{} of {} steps have no checkpoint configuration.",
+                    steps_without_checkpoint,
+                    steps.len()
+                ),
+            )
+            .with_suggestion("Enable checkpoints for resumable installations"),
+        );
+    }
+}
+
+/// QUAL003: Check for timeouts
+fn audit_qual003_timeouts(steps: &[super::spec::Step], report: &mut AuditReport) {
+    for step in steps {
+        if step.timing.timeout.is_none() {
+            report.add_finding(
+                AuditFinding::new(
+                    "QUAL003",
+                    AuditSeverity::Suggestion,
+                    AuditCategory::Quality,
+                    "No timeout specified",
+                    format!("Step '{}' has no timeout configuration.", step.id),
+                )
+                .with_location(&step.id)
+                .with_suggestion("Add timing configuration with appropriate timeout"),
+            );
+        }
+    }
+}
+
+/// QUAL004: Check for duplicate step IDs
+fn audit_qual004_duplicate_ids(steps: &[super::spec::Step], report: &mut AuditReport) {
+    let mut seen_ids: HashSet<&str> = HashSet::new();
+    for step in steps {
+        if seen_ids.contains(step.id.as_str()) {
+            report.add_finding(
+                AuditFinding::new(
+                    "QUAL004",
+                    AuditSeverity::Error,
+                    AuditCategory::Quality,
+                    "Duplicate step ID",
+                    format!("Step ID '{}' is used more than once.", step.id),
+                )
+                .with_location(&step.id),
+            );
+        }
+        seen_ids.insert(&step.id);
+    }
+}
+
+/// QUAL005: Check dependency references
+fn audit_qual005_dependencies(steps: &[super::spec::Step], report: &mut AuditReport) {
+    let step_ids: HashSet<&str> = steps.iter().map(|s| s.id.as_str()).collect();
+    for step in steps {
+        for dep in &step.depends_on {
+            if !step_ids.contains(dep.as_str()) {
                 report.add_finding(
                     AuditFinding::new(
-                        "BP003",
-                        AuditSeverity::Suggestion,
-                        AuditCategory::BestPractices,
-                        "Missing step name",
-                        format!("Step '{}' has no human-readable name.", step.id),
+                        "QUAL005",
+                        AuditSeverity::Error,
+                        AuditCategory::Quality,
+                        "Invalid dependency reference",
+                        format!(
+                            "Step '{}' depends on '{}' which does not exist.",
+                            step.id, dep
+                        ),
                     )
-                    .with_location(&step.id)
-                    .with_suggestion("Add a descriptive name for better progress reporting"),
+                    .with_location(&step.id),
                 );
             }
         }
+    }
+}
 
-        // BP004: Check for orphan steps (no dependencies and not depended upon)
-        if spec.step.len() > 1 {
-            let mut depended_upon: HashSet<&str> = HashSet::new();
+/// SEC001: Check if signatures are required
+fn audit_sec001_signatures(
+    security: &super::spec::InstallerSecurity,
+    report: &mut AuditReport,
+) {
+    if !security.require_signatures {
+        report.add_finding(
+            AuditFinding::new(
+                "SEC001",
+                AuditSeverity::Warning,
+                AuditCategory::Security,
+                "Signatures not required",
+                "Artifact signature verification is disabled. This allows potentially tampered artifacts.",
+            )
+            .with_suggestion("Set require_signatures = true in [installer.security]"),
+        );
+    }
+}
 
-            for step in &spec.step {
-                for dep in &step.depends_on {
-                    depended_upon.insert(dep.as_str());
-                }
-            }
+/// SEC002: Check trust model
+fn audit_sec002_trust_model(
+    security: &super::spec::InstallerSecurity,
+    report: &mut AuditReport,
+) {
+    if security.trust_model == "tofu" {
+        report.add_finding(
+            AuditFinding::new(
+                "SEC002",
+                AuditSeverity::Info,
+                AuditCategory::Security,
+                "Using Trust-On-First-Use model",
+                "TOFU is suitable for development but explicit keyring is recommended for production.",
+            )
+            .with_suggestion("Consider using trust_model = \"keyring\" for production"),
+        );
+    }
+}
 
-            let first_step = spec.step.first().map(|s| s.id.as_str());
-
-            for step in &spec.step {
-                if step.depends_on.is_empty()
-                    && !depended_upon.contains(step.id.as_str())
-                    && Some(step.id.as_str()) != first_step
-                {
-                    report.add_finding(
-                        AuditFinding::new(
-                            "BP004",
-                            AuditSeverity::Warning,
-                            AuditCategory::BestPractices,
-                            "Orphan step detected",
-                            format!(
-                                "Step '{}' has no dependencies and nothing depends on it.",
-                                step.id
-                            ),
-                        )
-                        .with_location(&step.id)
-                        .with_suggestion("Add depends_on to establish execution order"),
-                    );
-                }
-            }
+/// SEC004/SEC005: Check artifacts for signatures and hashes
+fn audit_artifact_security(
+    artifacts: &[super::spec::Artifact],
+    report: &mut AuditReport,
+) {
+    for artifact in artifacts {
+        if artifact.signature.is_none() && artifact.signed_by.is_none() {
+            report.add_finding(
+                AuditFinding::new(
+                    "SEC004",
+                    AuditSeverity::Warning,
+                    AuditCategory::Security,
+                    "Unsigned artifact",
+                    format!(
+                        "Artifact '{}' has no signature or signer specified.",
+                        artifact.id
+                    ),
+                )
+                .with_location(&artifact.id)
+                .with_suggestion("Add signature and signed_by fields to artifact"),
+            );
         }
+        if artifact.sha256.is_none() {
+            report.add_finding(
+                AuditFinding::new(
+                    "SEC005",
+                    AuditSeverity::Error,
+                    AuditCategory::Security,
+                    "Missing artifact hash",
+                    format!(
+                        "Artifact '{}' has no SHA256 hash for integrity verification.",
+                        artifact.id
+                    ),
+                )
+                .with_location(&artifact.id)
+                .with_suggestion("Add sha256 field with the artifact's content hash"),
+            );
+        }
+    }
+}
 
-        // BP005: Check for very long scripts
-        for step in &spec.step {
-            if let Some(ref script) = step.script {
-                let line_count = script.content.lines().count();
-                if line_count > 50 {
-                    report.add_finding(
-                        AuditFinding::new(
-                            "BP005",
-                            AuditSeverity::Suggestion,
-                            AuditCategory::BestPractices,
-                            "Long script step",
-                            format!(
-                                "Step '{}' has {} lines. Consider breaking into smaller steps.",
-                                step.id, line_count
-                            ),
-                        )
-                        .with_location(&step.id)
-                        .with_suggestion("Split into multiple smaller, focused steps"),
-                    );
-                }
-            }
+/// SEC006: Check for privilege escalation
+fn audit_sec006_privileges(
+    spec: &super::spec::InstallerSpec,
+    report: &mut AuditReport,
+) {
+    if spec.installer.requirements.privileges == "root" {
+        report.add_finding(
+            AuditFinding::new(
+                "SEC006",
+                AuditSeverity::Info,
+                AuditCategory::Security,
+                "Root privileges required",
+                "This installer requires root privileges. Ensure this is necessary.",
+            )
+            .with_suggestion("Review if all steps truly require root access"),
+        );
+    }
+}
+
+/// SEC007/SEC008: Check for unsafe script patterns in steps
+fn audit_step_script_security(
+    steps: &[super::spec::Step],
+    report: &mut AuditReport,
+) {
+    for step in steps {
+        let Some(ref script) = step.script else {
+            continue;
+        };
+        if script.content.contains("curl") && script.content.contains("| bash") {
+            report.add_finding(
+                AuditFinding::new(
+                    "SEC007",
+                    AuditSeverity::Critical,
+                    AuditCategory::Security,
+                    "Unsafe curl pipe to bash",
+                    "Step contains 'curl ... | bash' pattern which is vulnerable to MITM attacks.",
+                )
+                .with_location(&step.id)
+                .with_suggestion("Download artifact first, verify signature, then execute"),
+            );
+        }
+        if script.content.contains("eval") {
+            report.add_finding(
+                AuditFinding::new(
+                    "SEC008",
+                    AuditSeverity::Warning,
+                    AuditCategory::Security,
+                    "Use of eval",
+                    "Step contains 'eval' which can execute arbitrary code.",
+                )
+                .with_location(&step.id)
+                .with_suggestion("Avoid eval; use direct commands or safe alternatives"),
+            );
         }
     }
 }
@@ -1062,28 +1120,26 @@ mod tests {
     /// Simple audit for test specs (mimics real audit logic)
     fn audit_test_spec(spec: &TestSpec, path: &Path) -> AuditReport {
         let mut report = AuditReport::new(&spec.name, &spec.version, path.to_path_buf());
+        audit_test_security(&spec.security, &mut report);
+        audit_test_artifacts(&spec.artifacts, &mut report);
+        audit_test_steps(&spec.steps, &mut report);
+        if spec.description.is_empty() {
+            report.add_finding(AuditFinding::new(
+                "BP001",
+                AuditSeverity::Suggestion,
+                AuditCategory::BestPractices,
+                "Missing installer description",
+                "No description field.",
+            ));
+        }
+        report.metadata.audited_at = chrono_timestamp();
+        report.metadata.steps_audited = spec.steps.len();
+        report.metadata.artifacts_audited = spec.artifacts.len();
+        report
+    }
 
-        // Security checks
-        if let Some(ref security) = spec.security {
-            if !security.require_signatures {
-                report.add_finding(AuditFinding::new(
-                    "SEC001",
-                    AuditSeverity::Warning,
-                    AuditCategory::Security,
-                    "Signatures not required",
-                    "Artifact signature verification is disabled.",
-                ));
-            }
-            if security.trust_model == "tofu" {
-                report.add_finding(AuditFinding::new(
-                    "SEC002",
-                    AuditSeverity::Info,
-                    AuditCategory::Security,
-                    "Using TOFU model",
-                    "TOFU is suitable for development.",
-                ));
-            }
-        } else {
+    fn audit_test_security(security: &Option<TestSecurity>, report: &mut AuditReport) {
+        let Some(ref security) = security else {
             report.add_finding(AuditFinding::new(
                 "SEC003",
                 AuditSeverity::Warning,
@@ -1091,10 +1147,30 @@ mod tests {
                 "No security configuration",
                 "No security section defined.",
             ));
+            return;
+        };
+        if !security.require_signatures {
+            report.add_finding(AuditFinding::new(
+                "SEC001",
+                AuditSeverity::Warning,
+                AuditCategory::Security,
+                "Signatures not required",
+                "Artifact signature verification is disabled.",
+            ));
         }
+        if security.trust_model == "tofu" {
+            report.add_finding(AuditFinding::new(
+                "SEC002",
+                AuditSeverity::Info,
+                AuditCategory::Security,
+                "Using TOFU model",
+                "TOFU is suitable for development.",
+            ));
+        }
+    }
 
-        // Artifact checks
-        for artifact in &spec.artifacts {
+    fn audit_test_artifacts(artifacts: &[TestArtifact], report: &mut AuditReport) {
+        for artifact in artifacts {
             if artifact.signature.is_none() && artifact.signed_by.is_none() {
                 report.add_finding(
                     AuditFinding::new(
@@ -1132,91 +1208,80 @@ mod tests {
                 );
             }
         }
+    }
 
-        // Step checks
+    fn audit_test_steps(steps: &[TestStep], report: &mut AuditReport) {
         let step_ids: std::collections::HashSet<&str> =
-            spec.steps.iter().map(|s| s.id.as_str()).collect();
+            steps.iter().map(|s| s.id.as_str()).collect();
         let mut seen_ids: std::collections::HashSet<&str> = std::collections::HashSet::new();
 
-        for step in &spec.steps {
-            // Check for duplicates
-            if seen_ids.contains(step.id.as_str()) {
+        for step in steps {
+            audit_test_step_quality(step, &step_ids, &mut seen_ids, report);
+        }
+    }
+
+    fn audit_test_step_quality<'a>(
+        step: &'a TestStep,
+        step_ids: &std::collections::HashSet<&str>,
+        seen_ids: &mut std::collections::HashSet<&'a str>,
+        report: &mut AuditReport,
+    ) {
+        if seen_ids.contains(step.id.as_str()) {
+            report.add_finding(
+                AuditFinding::new(
+                    "QUAL004",
+                    AuditSeverity::Error,
+                    AuditCategory::Quality,
+                    "Duplicate step ID",
+                    format!("Step ID '{}' is duplicated.", step.id),
+                )
+                .with_location(&step.id),
+            );
+        }
+        seen_ids.insert(&step.id);
+
+        for dep in &step.depends_on {
+            if !step_ids.contains(dep.as_str()) {
                 report.add_finding(
                     AuditFinding::new(
-                        "QUAL004",
+                        "QUAL005",
                         AuditSeverity::Error,
                         AuditCategory::Quality,
-                        "Duplicate step ID",
-                        format!("Step ID '{}' is duplicated.", step.id),
+                        "Invalid dependency reference",
+                        format!("Step '{}' depends on non-existent '{}'.", step.id, dep),
                     )
                     .with_location(&step.id),
                 );
             }
-            seen_ids.insert(&step.id);
+        }
 
-            // Check dependencies
-            for dep in &step.depends_on {
-                if !step_ids.contains(dep.as_str()) {
-                    report.add_finding(
-                        AuditFinding::new(
-                            "QUAL005",
-                            AuditSeverity::Error,
-                            AuditCategory::Quality,
-                            "Invalid dependency reference",
-                            format!("Step '{}' depends on non-existent '{}'.", step.id, dep),
-                        )
-                        .with_location(&step.id),
-                    );
-                }
-            }
+        if !step.has_postconditions {
+            report.add_finding(
+                AuditFinding::new(
+                    "QUAL001",
+                    AuditSeverity::Warning,
+                    AuditCategory::Quality,
+                    "Missing postconditions",
+                    format!("Step '{}' has no postconditions.", step.id),
+                )
+                .with_location(&step.id),
+            );
+        }
 
-            // Check postconditions
-            if !step.has_postconditions {
+        if let TestAction::Script { ref content } = step.action {
+            if content.contains("curl") && content.contains("| bash") {
                 report.add_finding(
                     AuditFinding::new(
-                        "QUAL001",
-                        AuditSeverity::Warning,
-                        AuditCategory::Quality,
-                        "Missing postconditions",
-                        format!("Step '{}' has no postconditions.", step.id),
+                        "SEC007",
+                        AuditSeverity::Critical,
+                        AuditCategory::Security,
+                        "Unsafe curl pipe to bash",
+                        "Step contains 'curl ... | bash' pattern.",
                     )
                     .with_location(&step.id),
                 );
             }
-
-            // Check script patterns
-            if let TestAction::Script { ref content } = step.action {
-                if content.contains("curl") && content.contains("| bash") {
-                    report.add_finding(
-                        AuditFinding::new(
-                            "SEC007",
-                            AuditSeverity::Critical,
-                            AuditCategory::Security,
-                            "Unsafe curl pipe to bash",
-                            "Step contains 'curl ... | bash' pattern.",
-                        )
-                        .with_location(&step.id),
-                    );
-                }
-            }
         }
-
-        // Best practices
-        if spec.description.is_empty() {
-            report.add_finding(AuditFinding::new(
-                "BP001",
-                AuditSeverity::Suggestion,
-                AuditCategory::BestPractices,
-                "Missing installer description",
-                "No description field.",
-            ));
-        }
-
-        report.metadata.audited_at = chrono_timestamp();
-        report.metadata.steps_audited = spec.steps.len();
-        report.metadata.artifacts_audited = spec.artifacts.len();
-
-        report
     }
 
     #[test]
