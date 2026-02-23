@@ -152,6 +152,26 @@ impl Lockfile {
         toml
     }
 
+    /// Apply a key-value pair to the lockfile header section
+    fn apply_lockfile_field(&mut self, key: &str, value: &str) {
+        match key {
+            "generated_at" => self.generated_at = value.parse().unwrap_or(0),
+            "generator" => self.generator = value.to_string(),
+            "content_hash" => self.content_hash = value.to_string(),
+            _ => {}
+        }
+    }
+
+    /// Apply a key-value pair to the environment section
+    fn apply_environment_field(&mut self, key: &str, value: &str) {
+        match key {
+            "source_date_epoch" => self.environment.source_date_epoch = value.parse().unwrap_or(0),
+            "lc_all" => self.environment.lc_all = value.to_string(),
+            "tz" => self.environment.tz = value.to_string(),
+            _ => {}
+        }
+    }
+
     /// Parse from TOML string
     pub fn from_toml(content: &str) -> Result<Self> {
         let mut lockfile = Lockfile::new();
@@ -194,48 +214,17 @@ impl Lockfile {
 
             if let Some((key, value)) = parse_toml_line(line) {
                 if in_lockfile {
-                    match key {
-                        "generated_at" => {
-                            lockfile.generated_at = value.parse().unwrap_or(0);
-                        }
-                        "generator" => {
-                            lockfile.generator = value.to_string();
-                        }
-                        "content_hash" => {
-                            lockfile.content_hash = value.to_string();
-                        }
-                        _ => {}
-                    }
+                    lockfile.apply_lockfile_field(key, value);
                 } else if in_environment {
-                    match key {
-                        "source_date_epoch" => {
-                            lockfile.environment.source_date_epoch = value.parse().unwrap_or(0);
-                        }
-                        "lc_all" => {
-                            lockfile.environment.lc_all = value.to_string();
-                        }
-                        "tz" => {
-                            lockfile.environment.tz = value.to_string();
-                        }
-                        _ => {}
-                    }
+                    lockfile.apply_environment_field(key, value);
                 } else if in_artifact {
                     if let Some(ref mut artifact) = current_artifact {
-                        match key {
-                            "id" => artifact.id = value.to_string(),
-                            "version" => artifact.version = value.to_string(),
-                            "url" => artifact.url = value.to_string(),
-                            "sha256" => artifact.sha256 = value.to_string(),
-                            "size" => artifact.size = value.parse().unwrap_or(0),
-                            "fetched_at" => artifact.fetched_at = value.parse().unwrap_or(0),
-                            _ => {}
-                        }
+                        artifact.apply_field(key, value);
                     }
                 }
             }
         }
 
-        // Don't forget the last artifact
         if let Some(artifact) = current_artifact {
             lockfile.artifacts.push(artifact);
         }
@@ -273,6 +262,19 @@ pub struct LockedArtifact {
 }
 
 impl LockedArtifact {
+    /// Apply a key-value pair to this artifact
+    fn apply_field(&mut self, key: &str, value: &str) {
+        match key {
+            "id" => self.id = value.to_string(),
+            "version" => self.version = value.to_string(),
+            "url" => self.url = value.to_string(),
+            "sha256" => self.sha256 = value.to_string(),
+            "size" => self.size = value.parse().unwrap_or(0),
+            "fetched_at" => self.fetched_at = value.parse().unwrap_or(0),
+            _ => {}
+        }
+    }
+
     /// Create a new locked artifact
     pub fn new(id: &str, version: &str, url: &str, sha256: &str, size: u64) -> Self {
         Self {

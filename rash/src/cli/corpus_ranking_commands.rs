@@ -127,41 +127,27 @@ pub(crate) fn corpus_top(limit: usize, worst: bool, filter: Option<&CorpusFormat
     Ok(())
 }
 
+/// Category classification rules: each entry is (&[keywords], category_label)
+const CATEGORY_RULES: &[(&[&str], &str)] = &[
+    (&["config", "bashrc", "profile", "alias", "xdg", "history"], "Config (A)"),
+    (&["oneliner", "one-liner", "pipe-", "pipeline"], "One-liner (B)"),
+    (&["coreutil", "reimpl"], "Coreutils (G)"),
+    (&["regex", "pattern-match", "glob-match"], "Regex (H)"),
+    (&["daemon", "cron", "startup", "service"], "System (F)"),
+    (&["milestone"], "Milestone"),
+    (&["adversarial", "injection", "fuzz"], "Adversarial"),
+];
+
 /// Classify entry into domain-specific category based on name/description (spec §11.11).
 
 pub(crate) fn classify_category(name: &str) -> &'static str {
     let n = name.to_lowercase();
-    if n.contains("config")
-        || n.contains("bashrc")
-        || n.contains("profile")
-        || n.contains("alias")
-        || n.contains("xdg")
-        || n.contains("history")
-    {
-        "Config (A)"
-    } else if n.contains("oneliner")
-        || n.contains("one-liner")
-        || n.contains("pipe-")
-        || n.contains("pipeline")
-    {
-        "One-liner (B)"
-    } else if n.contains("coreutil") || n.contains("reimpl") {
-        "Coreutils (G)"
-    } else if n.contains("regex") || n.contains("pattern-match") || n.contains("glob-match") {
-        "Regex (H)"
-    } else if n.contains("daemon")
-        || n.contains("cron")
-        || n.contains("startup")
-        || n.contains("service")
-    {
-        "System (F)"
-    } else if n.contains("milestone") {
-        "Milestone"
-    } else if n.contains("adversarial") || n.contains("injection") || n.contains("fuzz") {
-        "Adversarial"
-    } else {
-        "General"
+    for (keywords, category) in CATEGORY_RULES {
+        if keywords.iter().any(|kw| n.contains(kw)) {
+            return category;
+        }
     }
+    "General"
 }
 
 /// Show entries grouped by domain-specific category (spec §11.11).

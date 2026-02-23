@@ -253,6 +253,32 @@ pub fn is_common_phony_target(target_name: &str) -> bool {
 /// assert_eq!(issues.len(), 1);
 /// assert_eq!(issues[0].rule, "NO_TIMESTAMPS");
 /// ```
+/// Check a variable for non-deterministic patterns
+fn check_variable_determinism(
+    name: &str,
+    value: &str,
+    span: Span,
+    issues: &mut Vec<SemanticIssue>,
+) {
+    let checks: &[(fn(&str) -> bool, &str, IssueSeverity, &str, &str)] = &[
+        (detect_shell_date, "uses non-deterministic $(shell date) - replace with explicit version", IssueSeverity::Critical, "NO_TIMESTAMPS", "1.0.0"),
+        (detect_wildcard, "uses non-deterministic $(wildcard) - replace with explicit sorted file list", IssueSeverity::High, "NO_WILDCARD", "file1.c file2.c file3.c"),
+        (detect_shell_find, "uses non-deterministic $(shell find) - replace with explicit sorted file list", IssueSeverity::High, "NO_UNORDERED_FIND", "src/a.c src/b.c src/main.c"),
+        (detect_random, "uses non-deterministic $RANDOM - replace with fixed value or seed", IssueSeverity::Critical, "NO_RANDOM", "42"),
+    ];
+    for (detect_fn, msg, severity, rule, suggestion) in checks {
+        if detect_fn(value) {
+            issues.push(SemanticIssue {
+                message: format!("Variable '{}' {}", name, msg),
+                severity: severity.clone(),
+                span,
+                rule: rule.to_string(),
+                suggestion: Some(format!("{} := {}", name, suggestion)),
+            });
+        }
+    }
+}
+
 pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
     let mut issues = Vec::new();
 
@@ -261,66 +287,11 @@ pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
             MakeItem::Variable {
                 name, value, span, ..
             } => {
-                // Check for non-deterministic shell date
-                if detect_shell_date(value) {
-                    issues.push(SemanticIssue {
-                        message: format!(
-                            "Variable '{}' uses non-deterministic $(shell date) - replace with explicit version",
-                            name
-                        ),
-                        severity: IssueSeverity::Critical,
-                        span: *span,
-                        rule: "NO_TIMESTAMPS".to_string(),
-                        suggestion: Some(format!("{} := 1.0.0", name)),
-                    });
-                }
-
-                // Check for non-deterministic wildcard
-                if detect_wildcard(value) {
-                    issues.push(SemanticIssue {
-                        message: format!(
-                            "Variable '{}' uses non-deterministic $(wildcard) - replace with explicit sorted file list",
-                            name
-                        ),
-                        severity: IssueSeverity::High,
-                        span: *span,
-                        rule: "NO_WILDCARD".to_string(),
-                        suggestion: Some(format!("{} := file1.c file2.c file3.c", name)),
-                    });
-                }
-
-                // Check for non-deterministic shell find
-                if detect_shell_find(value) {
-                    issues.push(SemanticIssue {
-                        message: format!(
-                            "Variable '{}' uses non-deterministic $(shell find) - replace with explicit sorted file list",
-                            name
-                        ),
-                        severity: IssueSeverity::High,
-                        span: *span,
-                        rule: "NO_UNORDERED_FIND".to_string(),
-                        suggestion: Some(format!("{} := src/a.c src/b.c src/main.c", name)),
-                    });
-                }
-
-                // Check for non-deterministic random values
-                if detect_random(value) {
-                    issues.push(SemanticIssue {
-                        message: format!(
-                            "Variable '{}' uses non-deterministic $RANDOM - replace with fixed value or seed",
-                            name
-                        ),
-                        severity: IssueSeverity::Critical,
-                        span: *span,
-                        rule: "NO_RANDOM".to_string(),
-                        suggestion: Some(format!("{} := 42", name)),
-                    });
-                }
+                check_variable_determinism(name, value, *span, &mut issues);
             }
             MakeItem::Target {
                 name, phony, span, ..
             } => {
-                // Check for missing .PHONY on common non-file targets
                 if !phony && is_common_phony_target(name) {
                     issues.push(SemanticIssue {
                         message: format!(
@@ -334,9 +305,7 @@ pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
                     });
                 }
             }
-            _ => {
-                // Ignore other MakeItem variants
-            }
+            _ => {}
         }
     }
 

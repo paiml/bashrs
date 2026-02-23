@@ -330,25 +330,8 @@ fn validate_options(options: &BenchOptions) -> Result<()> {
     Ok(())
 }
 
-/// Benchmark a single script
-fn benchmark_single_script(script: &Path, options: &BenchOptions) -> Result<BenchmarkResult> {
-    if !options.quiet {
-        println!("📊 Benchmarking: {}", script.display());
-        println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    }
-
-    // Quality gates (if strict mode)
-    let quality = if options.strict || options.verify_determinism {
-        run_quality_gates(script, options)?
-    } else {
-        Quality {
-            lint_passed: true,
-            determinism_score: 1.0,
-            output_identical: true,
-        }
-    };
-
-    // Warmup runs
+/// Run warmup iterations
+fn run_warmup(script: &Path, options: &BenchOptions) -> Result<()> {
     if !options.quiet {
         println!("\n🔥 Warmup ({} iterations)...", options.warmup);
     }
@@ -358,18 +341,17 @@ fn benchmark_single_script(script: &Path, options: &BenchOptions) -> Result<Benc
             println!("  ✓ Iteration {}: {:.2}ms", i, time_ms);
         }
     }
+    Ok(())
+}
 
-    // Measured runs
+/// Run measured iterations, returning time and optional memory results
+fn run_measured_iterations(
+    script: &Path,
+    options: &BenchOptions,
+) -> Result<(Vec<f64>, Vec<f64>)> {
     if !options.quiet {
-        let mem_str = if options.measure_memory {
-            " + memory"
-        } else {
-            ""
-        };
-        println!(
-            "\n⏱️  Measuring ({} iterations{})...",
-            options.iterations, mem_str
-        );
+        let mem_str = if options.measure_memory { " + memory" } else { "" };
+        println!("\n⏱️  Measuring ({} iterations{})...", options.iterations, mem_str);
     }
     let mut results = Vec::new();
     let mut memory_results = Vec::new();
@@ -391,8 +373,29 @@ fn benchmark_single_script(script: &Path, options: &BenchOptions) -> Result<Benc
             }
         }
     }
+    Ok((results, memory_results))
+}
 
-    // Calculate statistics
+/// Benchmark a single script
+fn benchmark_single_script(script: &Path, options: &BenchOptions) -> Result<BenchmarkResult> {
+    if !options.quiet {
+        println!("📊 Benchmarking: {}", script.display());
+        println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    }
+
+    let quality = if options.strict || options.verify_determinism {
+        run_quality_gates(script, options)?
+    } else {
+        Quality {
+            lint_passed: true,
+            determinism_score: 1.0,
+            output_identical: true,
+        }
+    };
+
+    run_warmup(script, options)?;
+    let (results, memory_results) = run_measured_iterations(script, options)?;
+
     let statistics = if options.measure_memory {
         Statistics::calculate_with_memory(&results, Some(&memory_results))
     } else {

@@ -389,11 +389,34 @@ fn use_color() -> bool {
     std::env::var("NO_COLOR").is_err() && std::env::var("TERM").map_or(true, |t| t != "dumb")
 }
 
+/// Colorize a snippet line with gutter pipes (blue) and carets (red)
+fn write_snippet_line(
+    f: &mut fmt::Formatter<'_>,
+    line: &str,
+    blue: &str,
+    red: &str,
+    reset: &str,
+) -> fmt::Result {
+    if line.contains('^') {
+        let (before_caret, from_caret) = line.split_at(line.find('^').unwrap_or(line.len()));
+        if let Some(pipe_pos) = before_caret.find('|') {
+            let (gutter, rest) = before_caret.split_at(pipe_pos + 1);
+            writeln!(f, "{blue}{gutter}{reset}{rest}{red}{from_caret}{reset}")
+        } else {
+            writeln!(f, "{before_caret}{red}{from_caret}{reset}")
+        }
+    } else if let Some(pipe_pos) = line.find('|') {
+        let (gutter, code) = line.split_at(pipe_pos + 1);
+        writeln!(f, "{blue}{gutter}{reset}{code}")
+    } else {
+        writeln!(f, "{line}")
+    }
+}
+
 impl fmt::Display for Diagnostic {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let color = use_color();
 
-        // ANSI codes
         let red = if color { "\x1b[1;31m" } else { "" };
         let blue = if color { "\x1b[1;34m" } else { "" };
         let cyan = if color { "\x1b[1;36m" } else { "" };
@@ -401,12 +424,9 @@ impl fmt::Display for Diagnostic {
         let bold = if color { "\x1b[1m" } else { "" };
         let reset = if color { "\x1b[0m" } else { "" };
 
-        // Error header: error[tag]: message
         let tag = self.category.tag();
-        write!(f, "{red}error[{tag}]{reset}: {bold}{}{reset}", self.error)?;
-        writeln!(f)?;
+        writeln!(f, "{red}error[{tag}]{reset}: {bold}{}{reset}", self.error)?;
 
-        // Location: --> file:line:col
         if let Some(file) = &self.file {
             write!(f, " {blue}-->{reset} {file}")?;
             if let Some(line) = self.line {
@@ -418,38 +438,16 @@ impl fmt::Display for Diagnostic {
             writeln!(f)?;
         }
 
-        // Code snippet with gutter
         if let Some(snippet) = &self.snippet {
-            // The snippet already has line numbers and pipe chars built in.
-            // We need to colorize the gutter pipes blue and the caret red.
             for line in snippet.lines() {
-                if line.contains('^') {
-                    // Caret line: colorize the caret red
-                    let (before_caret, from_caret) =
-                        line.split_at(line.find('^').unwrap_or(line.len()));
-                    // Colorize gutter pipe blue
-                    if let Some(pipe_pos) = before_caret.find('|') {
-                        let (gutter, rest) = before_caret.split_at(pipe_pos + 1);
-                        writeln!(f, "{blue}{gutter}{reset}{rest}{red}{from_caret}{reset}")?;
-                    } else {
-                        writeln!(f, "{before_caret}{red}{from_caret}{reset}")?;
-                    }
-                } else if let Some(pipe_pos) = line.find('|') {
-                    // Source line: colorize gutter pipe blue
-                    let (gutter, code) = line.split_at(pipe_pos + 1);
-                    writeln!(f, "{blue}{gutter}{reset}{code}")?;
-                } else {
-                    writeln!(f, "{line}")?;
-                }
+                write_snippet_line(f, line, blue, red, reset)?;
             }
         }
 
-        // Note (explanation)
         if let Some(note) = &self.note {
             writeln!(f, "  {cyan}note{reset}: {note}")?;
         }
 
-        // Help (suggestion)
         if let Some(help) = &self.help {
             writeln!(f, "  {green}help{reset}: {help}")?;
         }

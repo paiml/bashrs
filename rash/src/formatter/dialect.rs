@@ -227,23 +227,29 @@ impl ShellDialect {
 
     fn parse_shebang(source: &str) -> Option<&'static str> {
         let first_line = source.lines().next()?;
-        if first_line.starts_with("#!") {
-            if first_line.contains("bash") {
-                Some("bash")
-            } else if first_line.contains("zsh") {
-                Some("zsh")
-            } else if first_line.contains("ksh") {
-                Some("ksh")
-            } else if first_line.contains("dash") {
-                Some("dash")
-            } else if first_line.contains("/sh") || first_line.ends_with("sh") {
-                Some("sh")
-            } else {
-                None
-            }
-        } else {
-            None
+        if !first_line.starts_with("#!") {
+            return None;
         }
+        Self::detect_shell_from_shebang(first_line)
+    }
+
+    fn detect_shell_from_shebang(shebang: &str) -> Option<&'static str> {
+        if shebang.contains("bash") {
+            return Some("bash");
+        }
+        if shebang.contains("zsh") {
+            return Some("zsh");
+        }
+        if shebang.contains("ksh") {
+            return Some("ksh");
+        }
+        if shebang.contains("dash") {
+            return Some("dash");
+        }
+        if shebang.contains("/sh") || shebang.ends_with("sh") {
+            return Some("sh");
+        }
+        None
     }
 
     fn extract_syntax_features(source: &str) -> Vec<SyntaxFeature> {

@@ -3,6 +3,18 @@
 use crate::models::{Config, Error, Result};
 use super::corpus_failure_commands::result_fail_dims;
 
+/// Map a failure dimension count to a letter grade
+fn grade_from_fail_count(fail_count: usize) -> &'static str {
+    match fail_count {
+        0 => "A+",
+        1 => "A",
+        2 => "B",
+        3..=4 => "C",
+        5..=6 => "D",
+        _ => "F",
+    }
+}
+
 pub(crate) fn corpus_scatter() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -90,19 +102,7 @@ pub(crate) fn corpus_grade_dist() -> Result<()> {
     let mut counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
     for result in &score.results {
         let fail_count = result_fail_dims(result).len();
-        let entry_grade = if fail_count == 0 {
-            "A+"
-        } else if fail_count == 1 {
-            "A"
-        } else if fail_count <= 2 {
-            "B"
-        } else if fail_count <= 4 {
-            "C"
-        } else if fail_count <= 6 {
-            "D"
-        } else {
-            "F"
-        };
+        let entry_grade = grade_from_fail_count(fail_count);
         *counts.entry(entry_grade.to_string()).or_default() += 1;
     }
 

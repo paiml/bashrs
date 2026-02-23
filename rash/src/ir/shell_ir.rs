@@ -139,14 +139,9 @@ impl ShellIR {
         match self {
             ShellIR::Exec { cmd, .. } => {
                 used.insert(cmd.program.clone());
-                for arg in &cmd.args {
-                    arg.collect_functions(used);
-                }
+                collect_functions_from_values(&cmd.args, used);
             }
-            ShellIR::Let { value, .. } => {
-                value.collect_functions(used);
-            }
-            ShellIR::Echo { value } => {
+            ShellIR::Let { value, .. } | ShellIR::Echo { value } => {
                 value.collect_functions(used);
             }
             ShellIR::If {
@@ -165,9 +160,7 @@ impl ShellIR {
                     item.collect_functions_recursive(used);
                 }
             }
-            ShellIR::Function { body, .. } => {
-                body.collect_functions_recursive(used);
-            }
+            ShellIR::Function { body, .. } => body.collect_functions_recursive(used),
             ShellIR::For {
                 start, end, body, ..
             } => {
@@ -181,17 +174,10 @@ impl ShellIR {
             }
             ShellIR::Case { scrutinee, arms } => {
                 scrutinee.collect_functions(used);
-                for arm in arms {
-                    arm.body.collect_functions_recursive(used);
-                    if let Some(guard) = &arm.guard {
-                        guard.collect_functions(used);
-                    }
-                }
+                collect_functions_from_arms(arms, used);
             }
             ShellIR::ForIn { items, body, .. } => {
-                for item in items {
-                    item.collect_functions(used);
-                }
+                collect_functions_from_values(items, used);
                 body.collect_functions_recursive(used);
             }
             ShellIR::Return { value } => {
@@ -208,6 +194,26 @@ impl ShellIR {
 pub struct Command {
     pub program: String,
     pub args: Vec<ShellValue>,
+}
+
+/// Collect functions from a slice of ShellValues
+fn collect_functions_from_values(
+    values: &[ShellValue],
+    used: &mut std::collections::HashSet<String>,
+) {
+    for v in values {
+        v.collect_functions(used);
+    }
+}
+
+/// Collect functions from case arms
+fn collect_functions_from_arms(arms: &[CaseArm], used: &mut std::collections::HashSet<String>) {
+    for arm in arms {
+        arm.body.collect_functions_recursive(used);
+        if let Some(guard) = &arm.guard {
+            guard.collect_functions(used);
+        }
+    }
 }
 
 impl Command {

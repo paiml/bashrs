@@ -140,38 +140,31 @@ impl SourceMap {
         });
     }
 
+    /// Try to resolve position via identity mapping optimization.
+    /// Returns Some(pos) if the forward map is a 2-entry identity mapping, None otherwise.
+    fn try_identity_resolve(&self, pos: CharPos) -> Option<CharPos> {
+        if self.forward.map.len() != 2 {
+            return None;
+        }
+        let keys: Vec<_> = self.forward.map.keys().collect();
+        if keys.len() != 2 || keys[0] != &CharPos(0) {
+            return None;
+        }
+        let end_key = keys[1];
+        let start_val = self.forward.map.get(&CharPos(0));
+        let end_val = self.forward.map.get(end_key);
+        if start_val == Some(&CharPos(0)) && end_val == Some(end_key) {
+            Some(if pos.0 <= end_key.0 { pos } else { *end_key })
+        } else {
+            None
+        }
+    }
+
     /// Character-level precision with token boundary awareness
     pub fn resolve(&self, pos: CharPos) -> MappedPosition {
-        // Check if this appears to be an identity mapping
-        let char_pos = if self.forward.map.len() == 2 {
-            // Check if we have only start and end mappings
-            let keys: Vec<_> = self.forward.map.keys().collect();
-            if keys.len() == 2 && keys[0] == &CharPos(0) {
-                if let Some(end_key) = keys.get(1) {
-                    let start_val = self.forward.map.get(&CharPos(0));
-                    let end_val = self.forward.map.get(end_key);
-
-                    // Check if it's an identity mapping (0->0, n->n)
-                    if start_val == Some(&CharPos(0)) && end_val == Some(end_key) {
-                        // This is an identity mapping, return the position itself if within bounds
-                        if pos.0 <= end_key.0 {
-                            pos
-                        } else {
-                            **end_key
-                        }
-                    } else {
-                        // Not identity, use search
-                        self.forward.search(pos).unwrap_or(pos)
-                    }
-                } else {
-                    self.forward.search(pos).unwrap_or(pos)
-                }
-            } else {
-                self.forward.search(pos).unwrap_or(pos)
-            }
-        } else {
-            self.forward.search(pos).unwrap_or(pos)
-        };
+        let char_pos = self
+            .try_identity_resolve(pos)
+            .unwrap_or_else(|| self.forward.search(pos).unwrap_or(pos));
 
         let token_boundary = self.find_token_boundary(char_pos);
 

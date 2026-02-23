@@ -408,6 +408,49 @@ fn calculate_testing_score(source: &str) -> f64 {
     }
 }
 
+/// Score comment ratio on a 0-5 scale
+fn score_comment_ratio(ratio: f64) -> f64 {
+    if ratio >= 0.20 {
+        5.0
+    } else if ratio >= 0.15 {
+        4.0
+    } else if ratio >= 0.10 {
+        3.0
+    } else if ratio >= 0.05 {
+        1.5
+    } else if ratio > 0.0 {
+        0.5
+    } else {
+        0.0
+    }
+}
+
+/// Count comments, header comment presence, and documented functions
+fn analyze_comments(lines: &[&str]) -> (usize, bool, usize) {
+    let mut comment_lines = 0;
+    let mut header_comment = false;
+    let mut function_docs = 0;
+
+    for (i, line) in lines.iter().enumerate() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') && !trimmed.starts_with("#!") {
+            comment_lines += 1;
+            if i < 10 {
+                header_comment = true;
+            }
+        }
+        if (trimmed.contains("() {") || trimmed.starts_with("function ")) && i > 0 {
+            if let Some(prev_line) = lines.get(i - 1) {
+                if prev_line.trim().starts_with('#') {
+                    function_docs += 1;
+                }
+            }
+        }
+    }
+
+    (comment_lines, header_comment, function_docs)
+}
+
 /// Calculate documentation score (0.0-10.0)
 fn calculate_documentation_score(source: &str) -> f64 {
     let lines: Vec<&str> = source.lines().collect();
@@ -417,59 +460,14 @@ fn calculate_documentation_score(source: &str) -> f64 {
         return 0.0;
     }
 
-    let mut comment_lines = 0;
-    let mut header_comment = false;
-    let mut function_docs = 0;
-
-    for (i, line) in lines.iter().enumerate() {
-        let trimmed = line.trim();
-
-        // Count comments
-        if trimmed.starts_with('#') && !trimmed.starts_with("#!") {
-            comment_lines += 1;
-
-            // Check for header comments (first 10 lines)
-            if i < 10 {
-                header_comment = true;
-            }
-        }
-
-        // Check for function documentation
-        if trimmed.contains("() {") || trimmed.starts_with("function ") {
-            // Look at previous line for comment
-            if i > 0 {
-                if let Some(prev_line) = lines.get(i - 1) {
-                    if prev_line.trim().starts_with('#') {
-                        function_docs += 1;
-                    }
-                }
-            }
-        }
-    }
-
+    let (comment_lines, header_comment, function_docs) = analyze_comments(&lines);
     let comment_ratio = comment_lines as f64 / total_lines;
 
-    let mut score: f64 = 0.0;
+    let mut score = score_comment_ratio(comment_ratio);
 
-    // Good comment ratio (more granular scoring)
-    if comment_ratio >= 0.20 {
-        score += 5.0;
-    } else if comment_ratio >= 0.15 {
-        score += 4.0;
-    } else if comment_ratio >= 0.10 {
-        score += 3.0;
-    } else if comment_ratio >= 0.05 {
-        score += 1.5;
-    } else if comment_ratio > 0.0 {
-        score += 0.5;
-    }
-
-    // Has header comment
     if header_comment {
         score += 3.0;
     }
-
-    // Has function documentation (scale by number of documented functions)
     if function_docs > 0 {
         score += (function_docs as f64 * 0.5).min(2.0);
     }

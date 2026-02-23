@@ -179,56 +179,45 @@ fn explain_parameter_expansion(input: &str) -> Option<Explanation> {
     None
 }
 
+/// Control flow explanations: (prefix, syntax, category, description, example)
+const CONTROL_FLOW_ENTRIES: &[(&str, &str, &str, &str, &str)] = &[
+    (
+        "for ",
+        "For Loop: for name in words",
+        "Iterate Over List",
+        "Loop variable 'name' takes each value from the word list.\nExecutes commands for each iteration.",
+        "  for file in *.txt; do\n    echo \"Processing: $file\"\n  done",
+    ),
+    (
+        "if ",
+        "If Statement: if condition; then commands; fi",
+        "Conditional Execution",
+        "Execute commands only if condition succeeds (exit status 0).\nOptional elif and else clauses for alternatives.",
+        "  if [ -f file.txt ]; then\n    echo \"File exists\"\n  fi",
+    ),
+    (
+        "while ",
+        "While Loop: while condition; do commands; done",
+        "Conditional Loop",
+        "Execute commands repeatedly while condition succeeds.\nChecks condition before each iteration.",
+        "  counter=0\n  while [ $counter -lt 5 ]; do\n    echo $counter\n    counter=$((counter + 1))\n  done",
+    ),
+    (
+        "case ",
+        "Case Statement: case word in pattern) commands;; esac",
+        "Pattern Matching",
+        "Match 'word' against patterns and execute corresponding commands.\nSupports glob patterns and multiple alternatives.",
+        "  case $var in\n    start) echo \"Starting...\";;\n    stop)  echo \"Stopping...\";;\n    *)     echo \"Unknown\";;\n  esac",
+    ),
+];
+
 /// Explain control flow constructs
 fn explain_control_flow(input: &str) -> Option<Explanation> {
-    // for loop
-    if input.starts_with("for ") {
-        return Some(
-            Explanation::new(
-                "For Loop: for name in words",
-                "Iterate Over List",
-                "Loop variable 'name' takes each value from the word list.\nExecutes commands for each iteration."
-            )
-            .with_example("  for file in *.txt; do\n    echo \"Processing: $file\"\n  done")
-        );
+    for (prefix, syntax, category, description, example) in CONTROL_FLOW_ENTRIES {
+        if input.starts_with(prefix) {
+            return Some(Explanation::new(*syntax, *category, *description).with_example(*example));
+        }
     }
-
-    // if statement
-    if input.starts_with("if ") {
-        return Some(
-            Explanation::new(
-                "If Statement: if condition; then commands; fi",
-                "Conditional Execution",
-                "Execute commands only if condition succeeds (exit status 0).\nOptional elif and else clauses for alternatives."
-            )
-            .with_example("  if [ -f file.txt ]; then\n    echo \"File exists\"\n  fi")
-        );
-    }
-
-    // while loop
-    if input.starts_with("while ") {
-        return Some(
-            Explanation::new(
-                "While Loop: while condition; do commands; done",
-                "Conditional Loop",
-                "Execute commands repeatedly while condition succeeds.\nChecks condition before each iteration."
-            )
-            .with_example("  counter=0\n  while [ $counter -lt 5 ]; do\n    echo $counter\n    counter=$((counter + 1))\n  done")
-        );
-    }
-
-    // case statement
-    if input.starts_with("case ") {
-        return Some(
-            Explanation::new(
-                "Case Statement: case word in pattern) commands;; esac",
-                "Pattern Matching",
-                "Match 'word' against patterns and execute corresponding commands.\nSupports glob patterns and multiple alternatives."
-            )
-            .with_example("  case $var in\n    start) echo \"Starting...\";;\n    stop)  echo \"Stopping...\";;\n    *)     echo \"Unknown\";;\n  esac")
-        );
-    }
-
     None
 }
 
