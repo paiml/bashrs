@@ -279,114 +279,98 @@ impl DockerfileConverter {
         args: &[Expr],
         current_stage: &mut Option<DockerStage>,
     ) -> Result<()> {
-        match name {
-            "run" => {
-                let cmds = self.extract_string_args(args)?;
-                if let Some(stage) = current_stage {
-                    stage.add_instruction(DockerInstruction::Run(cmds));
-                }
-                Ok(())
-            }
-            "workdir" => {
-                if let Some(first) = args.first() {
-                    let path = self.expr_to_string(first)?;
-                    if let Some(stage) = current_stage {
-                        stage.add_instruction(DockerInstruction::Workdir(path));
-                    }
-                }
-                Ok(())
-            }
-            "env" | "env_set" => {
-                if args.len() < 2 {
-                    return Err(Error::Validation(
-                        "env()/env_set() requires 2 arguments: key, value".to_string(),
-                    ));
-                }
-                let key = self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                let value = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
-                if let Some(stage) = current_stage {
-                    stage.add_instruction(DockerInstruction::Env { key, value });
-                }
-                Ok(())
-            }
-            "expose" => {
-                if let Some(first) = args.first() {
-                    let port = match first {
-                        Expr::Literal(Literal::U16(n)) => *n,
-                        Expr::Literal(Literal::U32(n)) => *n as u16,
-                        Expr::Literal(Literal::I32(n)) => *n as u16,
-                        _ => {
-                            return Err(Error::Validation(
-                                "expose() requires an integer port number".to_string(),
-                            ))
-                        }
-                    };
-                    if let Some(stage) = current_stage {
-                        stage.add_instruction(DockerInstruction::Expose(port));
-                    }
-                }
-                Ok(())
-            }
-            "user" => {
-                if let Some(first) = args.first() {
-                    let user = self.expr_to_string(first)?;
-                    if let Some(stage) = current_stage {
-                        stage.add_instruction(DockerInstruction::User(user));
-                    }
-                }
-                Ok(())
-            }
-            "entrypoint" => {
-                let entries = self.extract_string_args(args)?;
-                if let Some(stage) = current_stage {
-                    stage.add_instruction(DockerInstruction::Entrypoint(entries));
-                }
-                Ok(())
-            }
-            "cmd" => {
-                let entries = self.extract_string_args(args)?;
-                if let Some(stage) = current_stage {
-                    stage.add_instruction(DockerInstruction::Cmd(entries));
-                }
-                Ok(())
-            }
-            "label" => {
-                if args.len() < 2 {
-                    return Err(Error::Validation(
-                        "label() requires 2 arguments: key, value".to_string(),
-                    ));
-                }
-                let key = self.expr_to_string(args.first().expect("verified len >= 2"))?;
-                let value = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
-                if let Some(stage) = current_stage {
-                    stage.add_instruction(DockerInstruction::Label { key, value });
-                }
-                Ok(())
-            }
-            "healthcheck" => {
-                if let Some(first) = args.first() {
-                    let cmd = self.expr_to_string(first)?;
-                    if let Some(stage) = current_stage {
-                        stage.add_instruction(DockerInstruction::Healthcheck {
-                            cmd,
-                            interval: None,
-                            timeout: None,
-                        });
-                    }
-                }
-                Ok(())
-            }
-            "comment" => {
-                if let Some(first) = args.first() {
-                    let text = self.expr_to_string(first)?;
-                    if let Some(stage) = current_stage {
-                        stage.add_instruction(DockerInstruction::Comment(text));
-                    }
-                }
-                Ok(())
-            }
-            _ => Ok(()),
+        let instruction = match name {
+            "run" => Some(self.build_run(args)?),
+            "workdir" => self.build_single_string_instruction(args, DockerInstruction::Workdir),
+            "env" | "env_set" => Some(self.build_env(args)?),
+            "expose" => self.build_expose(args)?,
+            "user" => self.build_single_string_instruction(args, DockerInstruction::User),
+            "entrypoint" => Some(self.build_string_list(args, DockerInstruction::Entrypoint)?),
+            "cmd" => Some(self.build_string_list(args, DockerInstruction::Cmd)?),
+            "label" => Some(self.build_label(args)?),
+            "healthcheck" => self.build_healthcheck(args)?,
+            "comment" => self.build_single_string_instruction(args, DockerInstruction::Comment),
+            _ => None,
+        };
+        if let (Some(inst), Some(stage)) = (instruction, current_stage.as_mut()) {
+            stage.add_instruction(inst);
         }
+        Ok(())
+    }
+
+    fn build_run(&self, args: &[Expr]) -> Result<DockerInstruction> {
+        let cmds = self.extract_string_args(args)?;
+        Ok(DockerInstruction::Run(cmds))
+    }
+
+    fn build_single_string_instruction(
+        &self,
+        args: &[Expr],
+        constructor: fn(String) -> DockerInstruction,
+    ) -> Option<DockerInstruction> {
+        args.first()
+            .and_then(|first| self.expr_to_string(first).ok())
+            .map(constructor)
+    }
+
+    fn build_env(&self, args: &[Expr]) -> Result<DockerInstruction> {
+        if args.len() < 2 {
+            return Err(Error::Validation(
+                "env()/env_set() requires 2 arguments: key, value".to_string(),
+            ));
+        }
+        let key = self.expr_to_string(args.first().expect("verified len >= 2"))?;
+        let value = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+        Ok(DockerInstruction::Env { key, value })
+    }
+
+    fn build_expose(&self, args: &[Expr]) -> Result<Option<DockerInstruction>> {
+        let Some(first) = args.first() else {
+            return Ok(None);
+        };
+        let port = match first {
+            Expr::Literal(Literal::U16(n)) => *n,
+            Expr::Literal(Literal::U32(n)) => *n as u16,
+            Expr::Literal(Literal::I32(n)) => *n as u16,
+            _ => {
+                return Err(Error::Validation(
+                    "expose() requires an integer port number".to_string(),
+                ))
+            }
+        };
+        Ok(Some(DockerInstruction::Expose(port)))
+    }
+
+    fn build_string_list(
+        &self,
+        args: &[Expr],
+        constructor: fn(Vec<String>) -> DockerInstruction,
+    ) -> Result<DockerInstruction> {
+        let entries = self.extract_string_args(args)?;
+        Ok(constructor(entries))
+    }
+
+    fn build_label(&self, args: &[Expr]) -> Result<DockerInstruction> {
+        if args.len() < 2 {
+            return Err(Error::Validation(
+                "label() requires 2 arguments: key, value".to_string(),
+            ));
+        }
+        let key = self.expr_to_string(args.first().expect("verified len >= 2"))?;
+        let value = self.expr_to_string(args.get(1).expect("verified len >= 2"))?;
+        Ok(DockerInstruction::Label { key, value })
+    }
+
+    fn build_healthcheck(&self, args: &[Expr]) -> Result<Option<DockerInstruction>> {
+        let Some(first) = args.first() else {
+            return Ok(None);
+        };
+        let cmd = self.expr_to_string(first)?;
+        Ok(Some(DockerInstruction::Healthcheck {
+            cmd,
+            interval: None,
+            timeout: None,
+        }))
     }
 
     fn extract_string_args(&self, args: &[Expr]) -> Result<Vec<String>> {
