@@ -101,9 +101,14 @@
 //! # }
 //! ```
 
+// All expect() calls in dockerfile emitter are guarded by preceding bounds
+// checks or is_some() guards — safe code-generation invariants.
+#[allow(clippy::expect_used)]
 pub mod dockerfile;
 pub mod escape;
+#[allow(clippy::expect_used)] // Makefile emitter uses expect() for code-generation invariants
 pub mod makefile;
+#[allow(clippy::expect_used)] // POSIX emitter uses expect() for code-generation invariants
 pub mod posix;
 pub mod trace;
 

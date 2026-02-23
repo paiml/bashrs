@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 #![allow(unused_imports)]
 
 use super::super::*;
@@ -346,9 +347,9 @@ mod property_tests_syntax_002 {
         ) {
             // ARRANGE: Variable with multiple continuations
             let mut makefile = format!("{} = {}", var_name, values[0]);
-            for i in 1..values.len() {
+            for value in values.iter().skip(1) {
                 makefile.push_str(" \\\n    ");
-                makefile.push_str(&values[i]);
+                makefile.push_str(value);
             }
 
             // ACT: Parse
@@ -1267,10 +1268,10 @@ mod recipe_002_property_tests {
             // ASSERT: Order must be preserved
             match &ast.items[0] {
                 MakeItem::Target { recipe, .. } => {
-                    for i in 0..num_lines {
+                    for (i, line) in recipe.iter().enumerate().take(num_lines) {
                         let expected = format!("step_{}", i);
                         prop_assert_eq!(
-                            &recipe[i],
+                            line,
                             &expected,
                             "Line {} should be in order",
                             i
@@ -2052,9 +2053,8 @@ fn test_INCLUDE_001_mut_keyword_detection() {
     // Invalid should NOT produce Include item (probably parsed as unknown/error)
     let ast_invalid = result_invalid.unwrap();
     if !ast_invalid.items.is_empty() {
-        match &ast_invalid.items[0] {
-            MakeItem::Include { .. } => panic!("Should not parse 'includes' as Include"),
-            _ => {} // Expected - parsed as something else
+        if let MakeItem::Include { .. } = &ast_invalid.items[0] {
+            panic!("Should not parse 'includes' as Include");
         }
     }
 }
@@ -2122,20 +2122,14 @@ fn test_INCLUDE_001_mut_empty_path() {
     // 1. Fail gracefully (preferred)
     // 2. Parse with empty path (acceptable if validated later)
     // Either way, should not panic
-    match result {
-        Ok(ast) => {
-            if !ast.items.is_empty() {
-                // If parsed, verify it doesn't have invalid state
-                match &ast.items[0] {
-                    MakeItem::Include { path, .. } => {
-                        // Empty path is detectable
-                        assert!(path.is_empty() || !path.is_empty());
-                    }
-                    _ => {} // Parsed as something else, that's fine
-                }
+    if let Ok(ast) = result {
+        if !ast.items.is_empty() {
+            // If parsed, verify it doesn't have invalid state
+            if let MakeItem::Include { path, .. } = &ast.items[0] {
+                // Empty path is detectable
+                assert!(path.is_empty() || !path.is_empty());
             }
         }
-        Err(_) => {} // Graceful error, that's fine
     }
 }
 

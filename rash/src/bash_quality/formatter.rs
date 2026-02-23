@@ -651,8 +651,10 @@ mod tests {
 
     #[test]
     fn test_formatter_with_config() {
-        let mut config = FormatterConfig::default();
-        config.indent_width = 4;
+        let config = FormatterConfig {
+            indent_width: 4,
+            ..Default::default()
+        };
         let formatter = Formatter::with_config(config);
         assert_eq!(formatter.config.indent_width, 4);
     }
@@ -764,8 +766,10 @@ mod tests {
 
     #[test]
     fn test_format_function_not_normalized() {
-        let mut config = FormatterConfig::default();
-        config.normalize_functions = false;
+        let config = FormatterConfig {
+            normalize_functions: false,
+            ..Default::default()
+        };
         let formatter = Formatter::with_config(config);
 
         let ast = BashAst {
@@ -783,8 +787,10 @@ mod tests {
 
     #[test]
     fn test_format_function_space_before_brace() {
-        let mut config = FormatterConfig::default();
-        config.space_before_brace = false;
+        let config = FormatterConfig {
+            space_before_brace: false,
+            ..Default::default()
+        };
         let formatter = Formatter::with_config(config);
 
         let ast = BashAst {
@@ -876,8 +882,10 @@ mod tests {
 
     #[test]
     fn test_format_if_inline_then() {
-        let mut config = FormatterConfig::default();
-        config.inline_then = false;
+        let config = FormatterConfig {
+            inline_then: false,
+            ..Default::default()
+        };
         let formatter = Formatter::with_config(config);
 
         let ast = BashAst {
@@ -1168,8 +1176,10 @@ mod tests {
 
     #[test]
     fn test_format_with_tabs() {
-        let mut config = FormatterConfig::default();
-        config.use_tabs = true;
+        let config = FormatterConfig {
+            use_tabs: true,
+            ..Default::default()
+        };
         let formatter = Formatter::with_config(config);
 
         let ast = BashAst {
@@ -1210,8 +1220,10 @@ mod tests {
 
     #[test]
     fn test_format_expr_variable_quoted() {
-        let mut config = FormatterConfig::default();
-        config.quote_variables = true;
+        let config = FormatterConfig {
+            quote_variables: true,
+            ..Default::default()
+        };
         let formatter = Formatter::with_config(config);
 
         let ast = BashAst {
@@ -1331,8 +1343,10 @@ mod tests {
 
     #[test]
     fn test_format_expr_test_double_brackets() {
-        let mut config = FormatterConfig::default();
-        config.use_double_brackets = true;
+        let config = FormatterConfig {
+            use_double_brackets: true,
+            ..Default::default()
+        };
         let formatter = Formatter::with_config(config);
 
         let ast = BashAst {

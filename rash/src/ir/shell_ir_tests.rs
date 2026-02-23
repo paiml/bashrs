@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 //! Tests for shell_ir.rs - improving coverage from 70% to 85%+
 
 use super::effects::EffectSet;

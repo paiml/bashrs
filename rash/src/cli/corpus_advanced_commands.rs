@@ -35,7 +35,7 @@ pub(crate) fn corpus_graph() -> Result<()> {
         } else {
             0
         };
-        let bar: String = "\u{2588}".repeat(bar_len.max(1).min(12));
+        let bar: String = "\u{2588}".repeat(bar_len.clamp(1, 12));
         let conn_label = if row.is_high_connectivity {
             format!("{RED}HIGH{RESET}")
         } else {
@@ -64,7 +64,6 @@ pub(crate) fn corpus_graph() -> Result<()> {
 }
 
 /// Impact-weighted decision priority combining suspiciousness × connectivity (§11.10.3).
-
 pub(crate) fn corpus_impact(limit: usize) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::graph_priority::{build_connectivity, compute_graph_priorities};
@@ -128,7 +127,6 @@ pub(crate) fn corpus_impact(limit: usize) -> Result<()> {
 }
 
 /// Show blast radius of fixing a specific decision (§11.10.3).
-
 pub(crate) fn corpus_blast_radius(decision: &str) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::graph_priority::build_connectivity;
@@ -208,7 +206,6 @@ pub(crate) fn corpus_blast_radius(decision: &str) -> Result<()> {
 }
 
 /// Deduplicated error view with counts and risk classification (§11.10.4).
-
 pub(crate) fn corpus_dedup() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::error_dedup::deduplicate_errors;
@@ -273,7 +270,6 @@ pub(crate) fn corpus_dedup() -> Result<()> {
 }
 
 /// Risk-prioritized fix backlog with weak supervision labels (§11.10.4).
-
 pub(crate) fn corpus_triage() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::error_dedup::deduplicate_errors;
@@ -331,7 +327,6 @@ pub(crate) fn corpus_triage() -> Result<()> {
 }
 
 /// Show programmatic labeling rules and match counts (§11.10.4).
-
 pub(crate) fn corpus_label_rules() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::error_dedup::count_rule_matches;

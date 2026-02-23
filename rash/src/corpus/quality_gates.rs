@@ -475,9 +475,11 @@ mod tests {
     }
 
     fn make_history_entry(iteration: u32, passed_count: usize) -> ConvergenceEntry {
-        let mut e = ConvergenceEntry::default();
-        e.iteration = iteration;
-        e.passed = passed_count;
+        let mut e = ConvergenceEntry {
+            iteration,
+            passed: passed_count,
+            ..Default::default()
+        };
         // Use today's date dynamically to prevent time-coupled test flakiness (Five Whys #2)
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)

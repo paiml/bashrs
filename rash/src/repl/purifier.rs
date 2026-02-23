@@ -826,10 +826,7 @@ mod property_tests {
                 let result = crate::repl::parser::parse_bash(&purified);
                 // Either the input was invalid (error) or purified output is valid
                 // Both are acceptable - just shouldn't panic
-                match result {
-                    Ok(_) => {}, // Valid purified output
-                    Err(_) => {}, // Input might have been invalid to begin with
-                }
+                let _ = result; // Either valid or invalid input - just shouldn't panic
             }
         }
     }

@@ -5,6 +5,9 @@
 
 use super::discovery::{Artifact, ArtifactKind};
 
+/// A compliance check: predicate function paired with a violation message.
+type ComplianceCheck<'a> = &'a [(&'a dyn Fn(&str) -> bool, &'a str)];
+
 /// Compliance rule identifier
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum RuleId {
@@ -360,7 +363,7 @@ fn check_idempotency(content: &str, artifact: &Artifact) -> RuleResult {
 }
 
 fn check_idempotency_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
-    let checks: &[(&dyn Fn(&str) -> bool, &str)] = &[
+    let checks: ComplianceCheck<'_> = &[
         (&|t| is_cmd(t, "mkdir") && !t.contains("-p") && !t.contains("--parents"),
          "Non-idempotent: mkdir without -p (fails if dir exists)"),
         (&|t| is_cmd(t, "rm") && !t.contains("-f") && !t.contains("-rf") && !t.contains("--force"),
@@ -734,7 +737,7 @@ fn check_posix_line(trimmed: &str, i: usize, violations: &mut Vec<Violation>) {
     }
 
     // Table-driven POSIX violation checks (all use line i+1)
-    let posix_checks: &[(&dyn Fn(&str) -> bool, &str)] = &[
+    let posix_checks: ComplianceCheck<'_> = &[
         (&|t| t.contains("declare -a") || t.contains("declare -A"),
          "Bash-specific: declare -a/-A (arrays)"),
         (&|t| t.contains("[[") && t.contains("]]"),

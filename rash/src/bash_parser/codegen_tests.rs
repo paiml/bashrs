@@ -7,6 +7,8 @@
 //! - Property tests: Determinism, idempotency, shellcheck compliance
 //! - Mutation tests: >90% kill rate
 
+#![allow(clippy::expect_used)]
+
 use super::ast::*;
 use super::codegen::*;
 

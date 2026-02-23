@@ -35,9 +35,9 @@ impl DoctestGenerator {
     /// Parse an "Example: ..." comment, returning either a complete Doctest or a pending example.
     /// Returns `Ok(Some(doctest))` for inline `=>` patterns, `Ok(None)` with side-effect on
     /// `current_example` for deferred patterns, and `Err` is never produced (kept for symmetry).
-    fn parse_example_comment<'a>(
+    fn parse_example_comment(
         &self,
-        text: &'a str,
+        text: &str,
     ) -> Option<Result<(String, String), String>> {
         let after = text
             .split_once("example:")
@@ -51,7 +51,7 @@ impl DoctestGenerator {
     }
 
     /// Parse a "Usage: ..." comment, returning the usage string if present.
-    fn parse_usage_comment<'a>(&self, text: &'a str) -> Option<String> {
+    fn parse_usage_comment(&self, text: &str) -> Option<String> {
         let after = text
             .split_once("usage:")
             .or_else(|| text.split_once("Usage:"))?;
@@ -59,7 +59,7 @@ impl DoctestGenerator {
     }
 
     /// Parse an "Output: ..." comment, returning the output string if present.
-    fn parse_output_comment<'a>(&self, text: &'a str) -> Option<String> {
+    fn parse_output_comment(&self, text: &str) -> Option<String> {
         let after = text
             .split_once("output:")
             .or_else(|| text.split_once("Output:"))?;

@@ -8,7 +8,7 @@
 //! - PROG: Full program, run as-is
 //! - STMT: Statement fragment, wrapped in standard harness
 
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 #![allow(deprecated)]
 #![allow(dead_code)] // Test helper functions may not be used in all configurations
                      // Note: These tests are for Rust→Shell transpilation which is PLANNED (v3.0+)

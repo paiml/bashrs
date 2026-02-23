@@ -172,6 +172,8 @@ impl BashParser {
             // Keyword tokens used as literal strings in argument context
             // e.g., `echo done`, `echo fi`, `echo then`
             Some(t) if Self::keyword_as_str(t).is_some() => {
+                // SAFETY: keyword_as_str(t).is_some() checked in guard
+                #[allow(clippy::expect_used)]
                 let kw = Self::keyword_as_str(t).expect("checked is_some");
                 self.advance();
                 Ok(BashExpr::Literal(kw.to_string()))

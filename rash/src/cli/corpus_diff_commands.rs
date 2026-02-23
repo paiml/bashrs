@@ -217,7 +217,6 @@ pub(crate) fn corpus_generate_report(output: Option<&str>) -> Result<()> {
 }
 
 /// Generate ISO 8601 date string without chrono dependency.
-
 pub(crate) fn chrono_free_date() -> String {
     use std::process::Command;
     Command::new("date")

@@ -475,17 +475,14 @@ fn test_dockerfile_purify_command_to_stdout() {
     let input = temp_dir.path().join("Dockerfile");
     fs::write(&input, "FROM ubuntu:20.04\nRUN apt-get update\n").unwrap();
 
-    let result = dockerfile_purify_command(
-        &input,
-        None,  // output
-        false, // fix
-        false, // no_backup
-        false, // dry_run
-        false, // report
-        ReportFormat::Human,
-        false, // skip_user
-        false, // skip_bash_purify
-    );
+    let result = dockerfile_purify_command(DockerfilePurifyCommandArgs {
+        input: &input,
+        output: None,
+        fix: false,
+        no_backup: false,
+        dry_run: false,
+        skip_user: false,
+    });
     assert!(result.is_ok());
 }
 
@@ -496,17 +493,14 @@ fn test_dockerfile_purify_command_to_output_file() {
     let output = temp_dir.path().join("Dockerfile.purified");
     fs::write(&input, "FROM ubuntu:20.04\nRUN apt-get update\n").unwrap();
 
-    let result = dockerfile_purify_command(
-        &input,
-        Some(&output),
-        false,
-        false,
-        false,
-        false,
-        ReportFormat::Human,
-        false,
-        false,
-    );
+    let result = dockerfile_purify_command(DockerfilePurifyCommandArgs {
+        input: &input,
+        output: Some(&output),
+        fix: false,
+        no_backup: false,
+        dry_run: false,
+        skip_user: false,
+    });
     assert!(result.is_ok());
     assert!(output.exists());
 }
@@ -517,17 +511,14 @@ fn test_dockerfile_purify_command_dry_run() {
     let input = temp_dir.path().join("Dockerfile");
     fs::write(&input, "FROM ubuntu:20.04\nRUN echo hello\n").unwrap();
 
-    let result = dockerfile_purify_command(
-        &input,
-        None,
-        false,
-        false,
-        true, // dry_run
-        false,
-        ReportFormat::Human,
-        false,
-        false,
-    );
+    let result = dockerfile_purify_command(DockerfilePurifyCommandArgs {
+        input: &input,
+        output: None,
+        fix: false,
+        no_backup: false,
+        dry_run: true,
+        skip_user: false,
+    });
     assert!(result.is_ok());
 }
 
@@ -537,17 +528,14 @@ fn test_dockerfile_purify_command_fix_inplace() {
     let input = temp_dir.path().join("Dockerfile");
     fs::write(&input, "FROM ubuntu:20.04\nRUN apt-get update\n").unwrap();
 
-    let result = dockerfile_purify_command(
-        &input,
-        None,
-        true,  // fix (in-place)
-        false, // no_backup (creates backup)
-        false,
-        false,
-        ReportFormat::Human,
-        false,
-        false,
-    );
+    let result = dockerfile_purify_command(DockerfilePurifyCommandArgs {
+        input: &input,
+        output: None,
+        fix: true,
+        no_backup: false,
+        dry_run: false,
+        skip_user: false,
+    });
     assert!(result.is_ok());
     // Backup should be created
     assert!(input.with_extension("bak").exists());
@@ -559,17 +547,14 @@ fn test_dockerfile_purify_command_fix_no_backup() {
     let input = temp_dir.path().join("Dockerfile");
     fs::write(&input, "FROM ubuntu:20.04\nRUN echo test\n").unwrap();
 
-    let result = dockerfile_purify_command(
-        &input,
-        None,
-        true, // fix
-        true, // no_backup
-        false,
-        false,
-        ReportFormat::Human,
-        false,
-        false,
-    );
+    let result = dockerfile_purify_command(DockerfilePurifyCommandArgs {
+        input: &input,
+        output: None,
+        fix: true,
+        no_backup: true,
+        dry_run: false,
+        skip_user: false,
+    });
     assert!(result.is_ok());
 }
 
@@ -579,17 +564,14 @@ fn test_dockerfile_purify_command_skip_user() {
     let input = temp_dir.path().join("Dockerfile");
     fs::write(&input, "FROM ubuntu:20.04\nRUN echo test\n").unwrap();
 
-    let result = dockerfile_purify_command(
-        &input,
-        None,
-        false,
-        false,
-        false,
-        false,
-        ReportFormat::Human,
-        true, // skip_user
-        false,
-    );
+    let result = dockerfile_purify_command(DockerfilePurifyCommandArgs {
+        input: &input,
+        output: None,
+        fix: false,
+        no_backup: false,
+        dry_run: false,
+        skip_user: true,
+    });
     assert!(result.is_ok());
 }
 

@@ -129,11 +129,7 @@ pub struct CategoryStats {
 
 /// Parse the numeric part of a Bash entry ID (e.g., "B-371" → 371)
 fn parse_bash_id_num(id: &str) -> Option<u32> {
-    if id.starts_with("B-") {
-        id[2..].parse::<u32>().ok()
-    } else {
-        None
-    }
+    id.strip_prefix("B-")?.parse::<u32>().ok()
 }
 
 /// Classify a single entry into a domain category

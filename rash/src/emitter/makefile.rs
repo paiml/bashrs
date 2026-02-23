@@ -139,10 +139,13 @@ impl MakefileConverter {
     /// Collect variable bindings from let statements
     fn collect_variable_bindings(&mut self, entry_fn: &Function) {
         for stmt in &entry_fn.body {
-            if let Stmt::Let { name, value, .. } = stmt {
-                if let Expr::Literal(Literal::Str(s)) = value {
-                    self.vars.insert(name.to_string(), s.clone());
-                }
+            if let Stmt::Let {
+                name,
+                value: Expr::Literal(Literal::Str(s)),
+                ..
+            } = stmt
+            {
+                self.vars.insert(name.to_string(), s.clone());
             }
         }
     }
@@ -459,7 +462,13 @@ impl MakefileConverter {
         }
 
         // Extract target name (safe indexing: we verified args.len() >= 2 above)
-        let target_name = match args.first().expect("verified args.len() >= 2") {
+        let Some(first_arg) = args.first() else {
+            return Err(Error::Validation(format!(
+                "{}() requires at least 2 arguments",
+                func_name
+            )));
+        };
+        let target_name = match first_arg {
             Expr::Literal(Literal::Str(s)) => s.clone(),
             _ => {
                 return Err(Error::Validation(format!(
@@ -470,7 +479,12 @@ impl MakefileConverter {
         };
 
         // Extract dependencies (from array literal) - safe: verified args.len() >= 2
-        let deps_arg = args.get(1).expect("verified args.len() >= 2");
+        let Some(deps_arg) = args.get(1) else {
+            return Err(Error::Validation(format!(
+                "{}() requires at least 2 arguments",
+                func_name
+            )));
+        };
         let deps = self.extract_string_array(deps_arg)?;
 
         // Extract recipes (optional third argument)

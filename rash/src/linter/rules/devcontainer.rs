@@ -420,10 +420,8 @@ fn strip_json_comments(content: &str) -> String {
             continue;
         }
 
-        if !in_string && ch == '/' {
-            if skip_comment(&mut chars) {
-                continue;
-            }
+        if !in_string && ch == '/' && skip_comment(&mut chars) {
+            continue;
         }
 
         result.push(ch);

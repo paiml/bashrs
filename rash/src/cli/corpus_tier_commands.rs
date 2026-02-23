@@ -105,7 +105,6 @@ pub(crate) fn corpus_tier_detail() -> Result<()> {
 }
 
 /// ID range info per format (first, last, count).
-
 pub(crate) fn corpus_id_range() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -165,7 +164,6 @@ pub(crate) fn corpus_id_range() -> Result<()> {
 }
 
 /// Compact tier summary table.
-
 pub(crate) fn corpus_tiers() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -235,7 +233,6 @@ pub(crate) fn corpus_tiers() -> Result<()> {
 }
 
 /// Map of failing entries with dimension failures.
-
 pub(crate) fn corpus_fail_map() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -298,7 +295,6 @@ pub(crate) fn corpus_fail_map() -> Result<()> {
 }
 
 /// Score range analysis: min, max, median, IQR per format.
-
 pub(crate) fn corpus_score_range() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;

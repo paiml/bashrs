@@ -176,7 +176,6 @@ pub(crate) fn corpus_check_entry(id: &str, format: &CorpusOutputFormat) -> Resul
 }
 
 /// Truncate a string to max_len, adding "..." if truncated.
-
 pub(crate) fn truncate_line(s: &str, max_len: usize) -> String {
     let line = s.lines().next().unwrap_or(s);
     if line.len() <= max_len {
@@ -188,7 +187,6 @@ pub(crate) fn truncate_line(s: &str, max_len: usize) -> String {
 
 /// Classify a corpus entry's difficulty based on input features (spec §2.3).
 /// Returns tier 1-5 with factor breakdown.
-
 pub(crate) fn classify_difficulty(input: &str) -> (u8, Vec<(&'static str, bool)>) {
     let lines: Vec<&str> = input.lines().collect();
     let line_count = lines.len();
@@ -248,7 +246,6 @@ pub(crate) fn classify_difficulty(input: &str) -> (u8, Vec<(&'static str, bool)>
 }
 
 /// Tier description string.
-
 pub(crate) fn tier_label(tier: u8) -> &'static str {
     match tier {
         1 => "Trivial",
@@ -261,7 +258,6 @@ pub(crate) fn tier_label(tier: u8) -> &'static str {
 }
 
 /// Classify corpus entry difficulty (spec §2.3).
-
 pub(crate) fn corpus_classify_difficulty(id: &str, format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
 
@@ -341,7 +337,6 @@ pub(crate) fn corpus_classify_difficulty(id: &str, format: &CorpusOutputFormat) 
 }
 
 /// Classify all corpus entries and show tier distribution.
-
 pub(crate) fn corpus_classify_all(
     registry: &crate::corpus::registry::CorpusRegistry,
     format: &CorpusOutputFormat,
@@ -438,7 +433,6 @@ pub(crate) fn corpus_classify_all(
 }
 
 /// Classify a V2 dimension failure by risk level (spec §11.10.4).
-
 pub(crate) fn dimension_risk(dim: &str) -> &'static str {
     match dim {
         "A" => "HIGH",   // transpilation failure = can't use output at all
@@ -454,7 +448,6 @@ pub(crate) fn dimension_risk(dim: &str) -> &'static str {
 }
 
 /// Collect classified failures from corpus results, optionally filtered by risk level.
-
 pub(crate) fn collect_risk_failures<'a>(
     results: &'a [crate::corpus::runner::CorpusResult],
     level_filter: Option<&str>,
@@ -472,7 +465,6 @@ pub(crate) fn collect_risk_failures<'a>(
 }
 
 /// Print risk group for a given level.
-
 pub(crate) fn risk_print_group(classified: &[(&str, &str, &str)], label: &str, color: &str, count: usize) {
     use crate::cli::color::*;
     if count == 0 {
@@ -488,7 +480,6 @@ pub(crate) fn risk_print_group(classified: &[(&str, &str, &str)], label: &str, c
 }
 
 /// Risk analysis: classify corpus failures by HIGH/MEDIUM/LOW risk (spec §11.10.4).
-
 pub(crate) fn corpus_risk_analysis(format: &CorpusOutputFormat, level_filter: Option<&str>) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;

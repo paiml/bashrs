@@ -23,7 +23,7 @@ fn assert_tokenizes(input: &str, msg: &str) {
 
 /// Helper: tokenize input and assert success with custom success message.
 /// Uses BashParser instead of Lexer - accepts both Ok and Err.
-fn assert_parses_or_errors(input: &str, _msg: &str) {
+fn _assert_parses_or_errors(input: &str, _msg: &str) {
     let result = BashParser::new(input);
     match result {
         Ok(mut parser) => {

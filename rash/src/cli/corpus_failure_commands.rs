@@ -22,7 +22,6 @@ pub(crate) fn result_fail_dims(r: &crate::corpus::runner::CorpusResult) -> Vec<&
 }
 
 /// Count failures per V2 dimension from corpus results.
-
 pub(crate) fn count_dimension_failures(
     results: &[crate::corpus::runner::CorpusResult],
 ) -> Vec<(&'static str, usize)> {
@@ -67,7 +66,6 @@ pub(crate) fn count_dimension_failures(
 }
 
 /// Print Pareto table rows with cumulative percentages.
-
 pub(crate) fn pareto_print_table(sorted: &[(&str, usize)], total: usize, limit: usize) {
     use crate::cli::color::*;
     println!(
@@ -93,7 +91,6 @@ pub(crate) fn pareto_print_table(sorted: &[(&str, usize)], total: usize, limit: 
 }
 
 /// Print affected entries summary (max 20).
-
 pub(crate) fn pareto_print_affected(results: &[crate::corpus::runner::CorpusResult]) {
     use crate::cli::color::*;
     println!("  {BOLD}Affected entries:{RESET}");
@@ -120,7 +117,6 @@ pub(crate) fn pareto_print_affected(results: &[crate::corpus::runner::CorpusResu
 }
 
 /// Pareto analysis: group failures by dimension, show 80/20 distribution (spec §11.10.4).
-
 pub(crate) fn corpus_pareto_analysis(
     format: &CorpusOutputFormat,
     filter: Option<&CorpusFormatArg>,
@@ -210,7 +206,6 @@ pub(crate) fn corpus_pareto_analysis(
 }
 
 /// Generate Five Whys root cause template for a failing corpus entry (spec §11.10.3).
-
 pub(crate) fn corpus_why_failed(id: &str, format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
@@ -351,7 +346,6 @@ pub(crate) fn corpus_why_failed(id: &str, format: &CorpusOutputFormat) -> Result
 }
 
 /// Detect regressions between consecutive convergence log iterations (spec §5.3 Jidoka).
-
 pub(crate) fn corpus_regressions(format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 

@@ -601,7 +601,6 @@ mod tests {
         ];
         let registry = CorpusRegistry {
             entries,
-            ..Default::default()
         };
         let info = dataset_info(&registry);
         assert_eq!(info.total_entries, 3);
@@ -614,7 +613,6 @@ mod tests {
         let entries = vec![make_entry("B-001", CorpusFormat::Bash)];
         let registry = CorpusRegistry {
             entries,
-            ..Default::default()
         };
         let info = dataset_info(&registry);
         let table = format_dataset_info(&info);

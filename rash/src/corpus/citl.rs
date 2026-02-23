@@ -570,7 +570,6 @@ mod tests {
                 make_entry("B-500", CorpusFormat::Bash),
                 make_entry("M-200", CorpusFormat::Makefile),
             ],
-            ..Default::default()
         };
         assert_eq!(find_max_corpus_id(&registry), 500);
     }
@@ -585,7 +584,6 @@ mod tests {
     fn test_lint_pipeline_clean() {
         let registry = CorpusRegistry {
             entries: vec![make_entry("B-001", CorpusFormat::Bash)],
-            ..Default::default()
         };
         let score = CorpusScore {
             total: 1,
@@ -606,7 +604,6 @@ mod tests {
     fn test_lint_pipeline_violation() {
         let registry = CorpusRegistry {
             entries: vec![make_entry("B-001", CorpusFormat::Bash)],
-            ..Default::default()
         };
         let score = CorpusScore {
             total: 1,
@@ -630,7 +627,6 @@ mod tests {
     fn test_lint_pipeline_not_transpiled() {
         let registry = CorpusRegistry {
             entries: vec![make_entry("B-001", CorpusFormat::Bash)],
-            ..Default::default()
         };
         let score = CorpusScore {
             total: 1,

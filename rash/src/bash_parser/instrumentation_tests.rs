@@ -5,6 +5,7 @@
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::expect_used)]
     use crate::bash_parser::BashParser;
     use crate::tracing::{ParseEvent, TraceEvent, TraceManager, TraceSignificance};
 

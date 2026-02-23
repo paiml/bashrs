@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 // Control flow IR generation and emission tests
 // Testing string comparisons, logical operators, and NOT operator
 // Following TDD: Write failing tests first, then fix implementation

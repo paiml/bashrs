@@ -5,7 +5,7 @@
 //!
 //! Run with: `cargo test --test verificar_integration`
 
-#![allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 
 use std::process::Command;
 use verificar::generator::BashEnumerator;

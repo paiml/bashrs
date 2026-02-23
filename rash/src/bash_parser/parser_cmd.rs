@@ -27,6 +27,8 @@ impl BashParser {
             }
             // Handle keyword tokens as command names (rare but valid bash)
             Some(t) if Self::keyword_as_str(t).is_some() => {
+                // SAFETY: keyword_as_str(t).is_some() checked in guard
+                #[allow(clippy::expect_used)]
                 let cmd = Self::keyword_as_str(t)
                     .expect("checked is_some")
                     .to_string();

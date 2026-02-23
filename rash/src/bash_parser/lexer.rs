@@ -777,10 +777,9 @@ impl Lexer {
             let ch = self.current_char();
             if ch.is_alphanumeric() || ch == '_' {
                 ident.push(self.advance());
-            } else if self.is_ident_continuation_char(ch) {
-                has_special_chars = true;
-                ident.push(self.advance());
-            } else if self.is_ident_separator_with_next(ch) {
+            } else if self.is_ident_continuation_char(ch)
+                || self.is_ident_separator_with_next(ch)
+            {
                 has_special_chars = true;
                 ident.push(self.advance());
             } else {
@@ -1050,7 +1049,7 @@ impl Lexer {
         let next_ch = self.peek_char(1);
 
         // Delegate to specialized helpers based on the first character
-        let token = match ch {
+        match ch {
             '<' | '>' => return self.read_redirect_or_comparison(ch, next_ch),
             '=' => return self.read_equality_or_assign(next_ch),
             '@' | '+' | '?' if next_ch == Some('(') => {
@@ -1059,10 +1058,9 @@ impl Lexer {
             '!' if next_ch == Some('(') => return self.read_extended_glob(ch),
             ';' => return self.read_semicolon_operator(next_ch),
             _ => {}
-        };
+        }
 
         // Handle remaining operators inline (simple single/double char ops)
-        let _ = token; // discard unit from match above
         let token = match (ch, next_ch) {
             ('!', Some('=')) => {
                 self.advance();

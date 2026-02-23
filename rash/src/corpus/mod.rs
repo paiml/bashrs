@@ -22,14 +22,19 @@
 
 pub mod citl;
 pub mod convergence;
+#[allow(clippy::expect_used)] // Dataset uses expect() for internal invariants
 pub mod dataset;
+#[allow(clippy::expect_used)] // Domain categories uses expect() for internal invariants
 pub mod domain_categories;
+#[allow(clippy::expect_used)] // Error dedup uses expect() for internal invariants
 pub mod error_dedup;
 pub mod graph_priority;
 pub mod oip;
 pub mod pattern_store;
+#[allow(clippy::expect_used)] // Quality gates uses expect() for internal invariants
 pub mod quality_gates;
 pub mod registry;
+#[allow(clippy::expect_used)] // Runner uses expect() for internal invariants
 pub mod runner;
 pub mod schema_enforcement;
 pub mod tier_analysis;

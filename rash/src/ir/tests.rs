@@ -1,3 +1,4 @@
+#![allow(clippy::expect_used)]
 use super::*;
 use crate::ast::restricted::{BinaryOp, Literal, UnaryOp};
 use crate::ast::{Expr, Function, RestrictedAst, Stmt, Type};

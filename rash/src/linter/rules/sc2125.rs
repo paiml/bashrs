@@ -72,10 +72,9 @@ fn has_brace_expansion(value: &str) -> bool {
 
     let chars: Vec<char> = value.chars().collect();
     for i in 0..chars.len() {
-        if chars[i] == '{' && (i == 0 || chars[i - 1] != '$') {
-            if is_brace_expansion_group(&chars, i) {
-                return true;
-            }
+        if chars[i] == '{' && (i == 0 || chars[i - 1] != '$') && is_brace_expansion_group(&chars, i)
+        {
+            return true;
         }
     }
     false

@@ -726,6 +726,8 @@ fn build_format_concat(segments: &[FormatSegment], args: &[Expr]) -> Expr {
 
     // If we have exactly one part, return it directly
     if parts.len() == 1 {
+        // SAFETY: len() == 1 checked above, so next() always returns Some
+        #[allow(clippy::expect_used)]
         return parts.into_iter().next().expect("verified len == 1");
     }
 

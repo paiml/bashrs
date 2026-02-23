@@ -13,6 +13,7 @@
 //! This is a performance optimization for hot paths (linting 1000s of lines).
 //! Some rules are placeholders with unused variables/statics during development.
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 #![allow(clippy::indexing_slicing)]
 #![allow(dead_code)]
 #![allow(unused_variables)]

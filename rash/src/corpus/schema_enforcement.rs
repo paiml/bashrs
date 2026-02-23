@@ -983,7 +983,6 @@ mod tests {
         ];
         let registry = CorpusRegistry {
             entries,
-            ..Default::default()
         };
 
         let report = validate_corpus(&registry);
@@ -1025,7 +1024,6 @@ mod tests {
         ];
         let registry = CorpusRegistry {
             entries,
-            ..Default::default()
         };
         let report = validate_corpus(&registry);
         let table = format_schema_report(&report);
@@ -1043,7 +1041,6 @@ mod tests {
         )];
         let registry = CorpusRegistry {
             entries,
-            ..Default::default()
         };
         let report = validate_corpus(&registry);
         let table = format_grammar_errors(&report);
@@ -1061,7 +1058,6 @@ mod tests {
         )];
         let registry = CorpusRegistry {
             entries,
-            ..Default::default()
         };
         let report = validate_corpus(&registry);
         let table = format_grammar_errors(&report);

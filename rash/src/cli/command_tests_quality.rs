@@ -405,7 +405,7 @@ fn test_format_command_basic_inplace() {
     let input = temp_dir.path().join("script.sh");
     fs::write(&input, "#!/bin/sh\necho  'hello'\n").unwrap();
 
-    let result = format_command(&[input.clone()], false, false, None);
+    let result = format_command(std::slice::from_ref(&input), false, false, None);
     assert!(result.is_ok());
 }
 
@@ -415,7 +415,7 @@ fn test_format_command_check_mode() {
     let input = temp_dir.path().join("script.sh");
     fs::write(&input, "#!/bin/sh\necho 'hello'\n").unwrap();
 
-    let result = format_command(&[input.clone()], true, false, None);
+    let result = format_command(std::slice::from_ref(&input), true, false, None);
     // May pass or fail depending on formatting rules
     let _ = result;
 }
@@ -427,7 +427,7 @@ fn test_format_command_dry_run() {
     let original = "#!/bin/sh\necho  'hello'\n";
     fs::write(&input, original).unwrap();
 
-    let result = format_command(&[input.clone()], false, true, None);
+    let result = format_command(std::slice::from_ref(&input), false, true, None);
     assert!(result.is_ok());
 
     // Dry run should not modify the file
@@ -442,7 +442,7 @@ fn test_format_command_to_output_file() {
     let output = temp_dir.path().join("formatted.sh");
     fs::write(&input, "#!/bin/sh\necho 'hello'\n").unwrap();
 
-    let result = format_command(&[input.clone()], false, false, Some(&output));
+    let result = format_command(std::slice::from_ref(&input), false, false, Some(&output));
     assert!(result.is_ok());
     assert!(output.exists());
 }

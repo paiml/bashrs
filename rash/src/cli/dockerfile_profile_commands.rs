@@ -47,13 +47,15 @@ pub(crate) fn dockerfile_profile_command(
                 input,
                 &estimate,
                 platform,
-                build,
-                layers,
-                startup,
-                memory,
-                cpu,
-                simulate_limits,
-                full,
+                ProfileSections {
+                    build,
+                    layers,
+                    startup,
+                    memory,
+                    cpu,
+                    simulate_limits,
+                    full,
+                },
             );
         }
         ReportFormat::Json => docker_profile_json(input, &estimate, platform),
@@ -63,10 +65,7 @@ pub(crate) fn dockerfile_profile_command(
     Ok(())
 }
 
-fn docker_profile_human(
-    _input: &Path,
-    estimate: &crate::linter::docker_profiler::SizeEstimate,
-    platform: crate::linter::docker_profiler::PlatformProfile,
+struct ProfileSections {
     build: bool,
     layers: bool,
     startup: bool,
@@ -74,7 +73,23 @@ fn docker_profile_human(
     cpu: bool,
     simulate_limits: bool,
     full: bool,
+}
+
+fn docker_profile_human(
+    _input: &Path,
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+    platform: crate::linter::docker_profiler::PlatformProfile,
+    sections: ProfileSections,
 ) {
+    let ProfileSections {
+        build,
+        layers,
+        startup,
+        memory,
+        cpu,
+        simulate_limits,
+        full,
+    } = sections;
     use crate::linter::docker_profiler::{format_size_estimate, PlatformProfile};
 
     println!("Docker Image Profile");
@@ -293,14 +308,16 @@ pub(crate) fn dockerfile_size_check_command(
         ReportFormat::Human => size_check_human_output(
             &estimate,
             &platform,
-            custom_limit,
-            verbose,
-            layers,
-            detect_bloat,
-            verify,
-            docker_verify,
-            compression_analysis,
-            strict,
+            SizeCheckOptions {
+                custom_limit,
+                verbose,
+                layers,
+                detect_bloat,
+                verify,
+                docker_verify,
+                compression_analysis,
+                strict,
+            },
         ),
         ReportFormat::Json => {
             println!("{}", format_size_estimate_json(&estimate));
@@ -334,9 +351,7 @@ fn parse_size_limit(max_size: Option<&str>) -> Option<u64> {
     })
 }
 
-fn size_check_human_output(
-    estimate: &crate::linter::docker_profiler::SizeEstimate,
-    platform: &crate::linter::docker_profiler::PlatformProfile,
+struct SizeCheckOptions {
     custom_limit: Option<u64>,
     verbose: bool,
     layers: bool,
@@ -345,7 +360,23 @@ fn size_check_human_output(
     docker_verify: bool,
     compression_analysis: bool,
     strict: bool,
+}
+
+fn size_check_human_output(
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+    platform: &crate::linter::docker_profiler::PlatformProfile,
+    opts: SizeCheckOptions,
 ) -> Result<()> {
+    let SizeCheckOptions {
+        custom_limit,
+        verbose,
+        layers,
+        detect_bloat,
+        verify,
+        docker_verify,
+        compression_analysis,
+        strict,
+    } = opts;
     use crate::linter::docker_profiler::{format_size_estimate, is_docker_available};
 
     println!("{}", format_size_estimate(estimate, verbose || layers));

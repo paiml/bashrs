@@ -9,6 +9,9 @@
 use std::fs;
 use std::process::Command as StdCommand;
 
+/// A transpiler test case: (id, rust_code, description, output_validator).
+type TranspilerTestCase<'a> = Vec<(&'a str, &'a str, &'a str, Box<dyn Fn(&str) -> bool>)>;
+
 /// Run transpiler and return (success, shell_output)
 fn transpile(rust_code: &str) -> (bool, String) {
     let tmp_rs = "/tmp/transpiler_test.rs";
@@ -73,7 +76,7 @@ impl BugReport {
 fn test_transpiler_bug_hunt_basic() {
     let mut bugs_found = 0;
 
-    let tests: Vec<(&str, &str, &str, Box<dyn Fn(&str) -> bool>)> = vec![
+    let tests: TranspilerTestCase<'_> = vec![
         // TB001: Empty main
         (
             "TB001",
@@ -155,7 +158,7 @@ fn test_transpiler_bug_hunt_basic() {
 fn test_transpiler_bug_hunt_arithmetic() {
     let mut bugs_found = 0;
 
-    let tests: Vec<(&str, &str, &str, Box<dyn Fn(&str) -> bool>)> = vec![
+    let tests: TranspilerTestCase<'_> = vec![
         // TB010: Addition
         (
             "TB010",
@@ -227,7 +230,7 @@ fn test_transpiler_bug_hunt_arithmetic() {
 fn test_transpiler_bug_hunt_control_flow() {
     let mut bugs_found = 0;
 
-    let tests: Vec<(&str, &str, &str, Box<dyn Fn(&str) -> bool>)> = vec![
+    let tests: TranspilerTestCase<'_> = vec![
         // TB020: If statement
         (
             "TB020",
@@ -296,7 +299,7 @@ fn test_transpiler_bug_hunt_control_flow() {
 fn test_transpiler_bug_hunt_functions() {
     let mut bugs_found = 0;
 
-    let tests: Vec<(&str, &str, &str, Box<dyn Fn(&str) -> bool>)> = vec![
+    let tests: TranspilerTestCase<'_> = vec![
         // TB030: Simple function
         (
             "TB030",

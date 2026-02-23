@@ -10,8 +10,11 @@
 //! This module provides the foundation for making bashrs the "cargo for bash".
 
 pub mod coverage;
+#[allow(clippy::expect_used)] // Dockerfile scoring uses expect() for internal invariants
 pub mod dockerfile_scoring;
+#[allow(clippy::expect_used)] // Formatter uses expect() for internal invariants
 pub mod formatter;
+#[allow(clippy::expect_used)] // Formatter config uses expect() for internal invariants
 pub mod formatter_config;
 pub mod linter;
 pub mod scoring;

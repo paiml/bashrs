@@ -6,6 +6,9 @@ use super::corpus_failure_commands::result_fail_dims;
 use std::path::PathBuf;
 use super::corpus_ranking_commands::classify_category;
 
+/// Z-score outlier result: (mean, stddev, outliers: [(name, value, z_score)]).
+type ZScoreOutliers<'a> = (f64, f64, Vec<(&'a str, f64, f64)>);
+
 pub(crate) fn corpus_errors(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
@@ -86,7 +89,6 @@ pub(crate) fn corpus_errors(format: &CorpusOutputFormat, filter: Option<&CorpusF
 }
 
 /// Random sample of N entries with results (spot-check).
-
 pub(crate) fn corpus_sample(count: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
@@ -149,7 +151,6 @@ pub(crate) fn corpus_sample(count: usize, filter: Option<&CorpusFormatArg>) -> R
 }
 
 /// Check corpus construct completeness by tier.
-
 pub(crate) fn corpus_completeness() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry, CorpusTier};
@@ -211,7 +212,6 @@ pub(crate) fn corpus_completeness() -> Result<()> {
 }
 
 /// CI quality gate: score + regressions + benchmark in one check.
-
 pub(crate) fn corpus_gate(min_score: f64, max_ms: u64) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -299,7 +299,7 @@ pub(crate) fn gate_print_check(label: &str, pass: bool) {
 fn find_zscore_outliers<'a>(
     timings: &[(&'a str, f64)],
     threshold: f64,
-) -> Option<(f64, f64, Vec<(&'a str, f64, f64)>)> {
+) -> Option<ZScoreOutliers<'a>> {
     let n = timings.len() as f64;
     if n < 2.0 {
         return None;
@@ -362,7 +362,6 @@ fn display_outliers(
 }
 
 /// Find statistical outliers by transpilation timing (z-score detection).
-
 pub(crate) fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
@@ -402,7 +401,6 @@ pub(crate) fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) 
 }
 
 /// Cross-category × quality property matrix (spec §11.11.9).
-
 pub(crate) fn corpus_matrix() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;

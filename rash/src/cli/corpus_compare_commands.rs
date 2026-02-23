@@ -36,7 +36,6 @@ pub(crate) fn corpus_health() -> Result<()> {
 }
 
 /// Compare two corpus entries side-by-side.
-
 pub(crate) fn corpus_compare(id1: &str, id2: &str) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -165,7 +164,6 @@ pub(crate) fn corpus_compare(id1: &str, id2: &str) -> Result<()> {
 }
 
 /// Show entry density by ID range (detect numbering gaps).
-
 pub(crate) fn corpus_density() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
@@ -243,7 +241,6 @@ pub(crate) fn corpus_density() -> Result<()> {
 }
 
 /// Compute percentile from sorted data.
-
 pub(crate) fn percentile(sorted: &[f64], p: f64) -> f64 {
     if sorted.is_empty() {
         return 0.0;
@@ -253,7 +250,6 @@ pub(crate) fn percentile(sorted: &[f64], p: f64) -> f64 {
 }
 
 /// Performance percentile breakdown (P50, P90, P95, P99) per format.
-
 fn perf_ms_color(ms: f64) -> &'static str {
     use crate::cli::color::*;
     if ms > 1000.0 {
@@ -340,7 +336,6 @@ pub(crate) fn corpus_perf(filter: Option<&CorpusFormatArg>) -> Result<()> {
 }
 
 /// CITL lint violation summary from transpiled output (spec §7.3).
-
 pub(crate) fn corpus_citl(filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
@@ -401,7 +396,6 @@ pub(crate) fn corpus_citl(filter: Option<&CorpusFormatArg>) -> Result<()> {
 }
 
 /// Show longest streak of consecutive passing entries.
-
 pub(crate) fn corpus_streak() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};

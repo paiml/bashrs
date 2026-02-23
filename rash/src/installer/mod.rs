@@ -25,21 +25,27 @@
 //! bashrs installer run ./my-installer --dry-run --diff
 //! ```
 
+#[allow(clippy::expect_used)] // Audit uses expect() for internal invariants
 mod audit;
 mod checkpoint;
 mod container;
+#[allow(clippy::expect_used)] // Distributed uses expect() for internal invariants
 mod distributed;
 mod dry_run;
+#[allow(clippy::expect_used)] // Executor uses expect() for internal invariants
 mod executor;
 mod falsification;
 mod from_bash;
+#[allow(clippy::expect_used)] // Golden trace uses expect() for internal invariants
 mod golden_trace;
 mod hermetic;
+#[allow(clippy::expect_used)] // Metrics uses expect() for internal invariants
 mod metrics;
 mod plan;
 mod progress;
 mod rollback;
 mod signature;
+#[allow(clippy::expect_used)] // Spec uses expect() for internal invariants
 mod spec;
 mod tracing;
 

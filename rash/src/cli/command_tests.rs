@@ -18,6 +18,7 @@ mod helpers;
 #[path = "command_tests_dockerfile.rs"]
 mod dockerfile;
 
+#[allow(clippy::expect_used)]
 #[path = "command_tests_quality.rs"]
 mod quality;
 

@@ -287,8 +287,10 @@ mod tests {
 
     #[test]
     fn test_should_ignore() {
-        let mut config = FormatterConfig::default();
-        config.ignore_patterns = vec!["**/target/**".to_string(), "**/test/**".to_string()];
+        let config = FormatterConfig {
+            ignore_patterns: vec!["**/target/**".to_string(), "**/test/**".to_string()],
+            ..Default::default()
+        };
 
         assert!(config.should_ignore("src/target/debug/script.sh"));
         assert!(config.should_ignore("src/test/integration.sh"));
@@ -298,9 +300,11 @@ mod tests {
     #[test]
     fn test_merge() {
         let mut base = FormatterConfig::default();
-        let mut override_config = FormatterConfig::default();
-        override_config.indent_width = 4;
-        override_config.use_tabs = true;
+        let override_config = FormatterConfig {
+            indent_width: 4,
+            use_tabs: true,
+            ..Default::default()
+        };
 
         base.merge(override_config);
 

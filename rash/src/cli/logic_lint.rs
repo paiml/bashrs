@@ -573,8 +573,10 @@ mod tests {
     #[test]
     fn test_process_lint_quiet_mode() {
         let source = "echo hello world";
-        let mut options = LintOptions::default();
-        options.quiet = true;
+        let options = LintOptions {
+            quiet: true,
+            ..Default::default()
+        };
         let result = process_lint(source, "test.sh", &options);
 
         // Info-level diagnostics should be filtered

@@ -103,7 +103,6 @@ pub(crate) fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result
 }
 
 /// Export per-entry corpus results as structured JSON (spec §10.3).
-
 pub(crate) fn corpus_export(output: Option<&str>, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
@@ -197,7 +196,6 @@ pub(crate) fn corpus_export(output: Option<&str>, filter: Option<&CorpusFormatAr
 }
 
 /// Format a per-format pass/total column (e.g. "499/500" or "-" if no data).
-
 pub(crate) fn fmt_pass_total(passed: usize, total: usize) -> String {
     if total > 0 {
         format!("{passed}/{total}")
@@ -207,7 +205,6 @@ pub(crate) fn fmt_pass_total(passed: usize, total: usize) -> String {
 }
 
 /// Compute a trend arrow by comparing two values.
-
 pub(crate) fn trend_arrow(current: usize, previous: usize) -> &'static str {
     if current > previous {
         "↑"
@@ -219,7 +216,6 @@ pub(crate) fn trend_arrow(current: usize, previous: usize) -> &'static str {
 }
 
 /// Print a single convergence history row (human-readable).
-
 pub(crate) fn corpus_print_history_row(
     e: &crate::corpus::runner::ConvergenceEntry,
     prev: Option<&crate::corpus::runner::ConvergenceEntry>,
