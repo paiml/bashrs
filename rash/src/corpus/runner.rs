@@ -866,38 +866,46 @@ impl CorpusRunner {
             return true;
         }
         let input = &entry.input;
-        // Pattern: fn main() { <stmts> }
-        if let Some(body_start) = input
+        let Some((body_start, body_end)) = Self::extract_main_body_range(input) else {
+            return true;
+        };
+        let body = input[body_start..body_end].trim();
+        let Some(semi_pos) = Self::find_last_top_level_semicolon(body) else {
+            return true;
+        };
+        let simplified_body = &body[..semi_pos];
+        if !simplified_body.contains(';') {
+            return true;
+        }
+        let simplified = format!("{}{}; }}", &input[..body_start], simplified_body);
+        self.transpile_entry(&simplified, entry.format).is_ok()
+    }
+
+    /// Extract the byte range of the main function body (between outer braces)
+    fn extract_main_body_range(input: &str) -> Option<(usize, usize)> {
+        let body_start = input
             .find("fn main()")
-            .and_then(|i| input[i..].find('{').map(|j| i + j + 1))
-        {
-            if let Some(body_end) = input.rfind('}') {
-                if body_end <= body_start {
-                    return true;
-                }
-                let body = input[body_start..body_end].trim();
-                // Find last top-level semicolon (brace depth = 0)
-                let mut depth = 0i32;
-                let mut last_top_semi = None;
-                for (i, ch) in body.char_indices() {
-                    match ch {
-                        '{' => depth += 1,
-                        '}' => depth -= 1,
-                        ';' if depth == 0 => last_top_semi = Some(i),
-                        _ => {}
-                    }
-                }
-                if let Some(semi_pos) = last_top_semi {
-                    let simplified_body = &body[..semi_pos];
-                    // Need at least one remaining top-level statement
-                    if simplified_body.contains(';') {
-                        let simplified = format!("{}{}; }}", &input[..body_start], simplified_body);
-                        return self.transpile_entry(&simplified, entry.format).is_ok();
-                    }
-                }
+            .and_then(|i| input[i..].find('{').map(|j| i + j + 1))?;
+        let body_end = input.rfind('}')?;
+        if body_end <= body_start {
+            return None;
+        }
+        Some((body_start, body_end))
+    }
+
+    /// Find the position of the last semicolon at brace depth 0
+    fn find_last_top_level_semicolon(body: &str) -> Option<usize> {
+        let mut depth = 0i32;
+        let mut last_top_semi = None;
+        for (i, ch) in body.char_indices() {
+            match ch {
+                '{' => depth += 1,
+                '}' => depth -= 1,
+                ';' if depth == 0 => last_top_semi = Some(i),
+                _ => {}
             }
         }
-        true // inapplicable — vacuously satisfied
+        last_top_semi
     }
 
     /// MR-6: Composition — for entries with multiple `let` statements,
