@@ -242,7 +242,6 @@ impl TypeChecker {
     pub fn check_statement(&mut self, stmt: &BashStmt) {
         match stmt {
             BashStmt::Comment { text, .. } => {
-                // Parse type annotations from comments
                 if let Some(annotation) = parse_type_annotation(text) {
                     self.pending_annotations.push(annotation);
                 }
@@ -250,90 +249,13 @@ impl TypeChecker {
 
             BashStmt::Assignment {
                 name, value, span, ..
-            } => {
-                // Check if there's a pending type annotation for this variable
-                let annotated_type = self.consume_annotation(name);
-
-                // Infer the type of the value
-                let inferred = self.infer_expr(value);
-
-                // Determine the expected type: from annotation, or from existing context (e.g., declare -i)
-                let expected_type = annotated_type.or_else(|| self.ctx.lookup(name).cloned());
-
-                if let Some(ref exp_ty) = expected_type {
-                    // Register/keep the expected type
-                    self.ctx.set_type(name, exp_ty.clone());
-
-                    // Check compatibility if both sides are typed
-                    if let Some(ref inf_ty) = inferred {
-                        if !exp_ty.is_compatible(inf_ty) && !is_gradual_compatible(exp_ty, inf_ty) {
-                            self.diagnostics.push(TypeDiagnostic {
-                                span: *span,
-                                kind: DiagnosticKind::TypeMismatch {
-                                    expected: exp_ty.clone(),
-                                    actual: inf_ty.clone(),
-                                },
-                                severity: Severity::Warning,
-                                message: format!(
-                                    "variable '{}' annotated as {} but assigned {}",
-                                    name,
-                                    exp_ty.display(),
-                                    inf_ty.display()
-                                ),
-                            });
-                        }
-                    }
-                } else if let Some(inf_ty) = inferred {
-                    // No annotation — use inferred type
-                    self.ctx.set_type(name, inf_ty);
-                }
-            }
+            } => self.check_assignment(name, value, *span),
 
             BashStmt::Command {
                 name, args, span, ..
-            } => {
-                // Check declare commands for type info
-                if name == "declare" || name == "typeset" || name == "local" {
-                    self.check_declare(args, *span);
-                }
+            } => self.check_command(name, args, *span),
 
-                // Check arguments
-                for arg in args {
-                    self.infer_expr(arg);
-                }
-            }
-
-            BashStmt::Function { name, body, .. } => {
-                // Collect pending param/return annotations into a signature
-                let sig = self.collect_function_sig();
-                if sig.is_some() {
-                    self.ctx.set_function_sig(
-                        name,
-                        sig.as_ref().cloned().unwrap_or(FunctionSig {
-                            params: Vec::new(),
-                            return_type: None,
-                        }),
-                    );
-                }
-
-                // Enter function scope
-                self.ctx.push_scope();
-
-                // Register parameter types from the signature
-                if let Some(ref sig) = sig {
-                    for (param_name, param_type) in &sig.params {
-                        self.ctx.set_type(param_name, param_type.clone());
-                    }
-                }
-
-                // Check body
-                for stmt in body {
-                    self.check_statement(stmt);
-                }
-
-                // Leave function scope
-                self.ctx.pop_scope();
-            }
+            BashStmt::Function { name, body, .. } => self.check_function(name, body),
 
             BashStmt::If {
                 condition,
@@ -341,23 +263,7 @@ impl TypeChecker {
                 elif_blocks,
                 else_block,
                 ..
-            } => {
-                self.infer_expr(condition);
-                for stmt in then_block {
-                    self.check_statement(stmt);
-                }
-                for (cond, block) in elif_blocks {
-                    self.infer_expr(cond);
-                    for stmt in block {
-                        self.check_statement(stmt);
-                    }
-                }
-                if let Some(else_body) = else_block {
-                    for stmt in else_body {
-                        self.check_statement(stmt);
-                    }
-                }
-            }
+            } => self.check_if(condition, then_block, elif_blocks, else_block),
 
             BashStmt::While {
                 condition, body, ..
@@ -366,30 +272,22 @@ impl TypeChecker {
                 condition, body, ..
             } => {
                 self.infer_expr(condition);
-                for stmt in body {
-                    self.check_statement(stmt);
-                }
+                self.check_body(body);
             }
 
-            BashStmt::For { body, items, .. } => {
+            BashStmt::For { body, items, .. } | BashStmt::Select { body, items, .. } => {
                 self.infer_expr(items);
-                for stmt in body {
-                    self.check_statement(stmt);
-                }
+                self.check_body(body);
             }
 
-            BashStmt::ForCStyle { body, .. } => {
-                for stmt in body {
-                    self.check_statement(stmt);
-                }
-            }
+            BashStmt::ForCStyle { body, .. }
+            | BashStmt::BraceGroup { body, .. }
+            | BashStmt::Coproc { body, .. } => self.check_body(body),
 
             BashStmt::Case { word, arms, .. } => {
                 self.infer_expr(word);
                 for arm in arms {
-                    for stmt in &arm.body {
-                        self.check_statement(stmt);
-                    }
+                    self.check_body(&arm.body);
                 }
             }
 
@@ -404,28 +302,114 @@ impl TypeChecker {
                 self.check_statement(right);
             }
 
-            BashStmt::BraceGroup { body, .. } | BashStmt::Coproc { body, .. } => {
-                for stmt in body {
-                    self.check_statement(stmt);
-                }
-            }
-
-            BashStmt::Select { body, items, .. } => {
-                self.infer_expr(items);
-                for stmt in body {
-                    self.check_statement(stmt);
-                }
-            }
-
-            BashStmt::Negated { command, .. } => {
-                self.check_statement(command);
-            }
+            BashStmt::Negated { command, .. } => self.check_statement(command),
 
             BashStmt::Return { code, .. } => {
                 if let Some(expr) = code {
                     self.infer_expr(expr);
                 }
             }
+        }
+    }
+
+    /// Check a variable assignment with optional type annotation
+    fn check_assignment(&mut self, name: &str, value: &BashExpr, span: Span) {
+        let annotated_type = self.consume_annotation(name);
+        let inferred = self.infer_expr(value);
+        let expected_type = annotated_type.or_else(|| self.ctx.lookup(name).cloned());
+
+        if let Some(ref exp_ty) = expected_type {
+            self.ctx.set_type(name, exp_ty.clone());
+            self.check_type_compatibility(name, exp_ty, &inferred, span);
+        } else if let Some(inf_ty) = inferred {
+            self.ctx.set_type(name, inf_ty);
+        }
+    }
+
+    /// Check type compatibility between expected and inferred types
+    fn check_type_compatibility(
+        &mut self,
+        name: &str,
+        expected: &ShellType,
+        inferred: &Option<ShellType>,
+        span: Span,
+    ) {
+        if let Some(ref inf_ty) = inferred {
+            if !expected.is_compatible(inf_ty) && !is_gradual_compatible(expected, inf_ty) {
+                self.diagnostics.push(TypeDiagnostic {
+                    span,
+                    kind: DiagnosticKind::TypeMismatch {
+                        expected: expected.clone(),
+                        actual: inf_ty.clone(),
+                    },
+                    severity: Severity::Warning,
+                    message: format!(
+                        "variable '{}' annotated as {} but assigned {}",
+                        name,
+                        expected.display(),
+                        inf_ty.display()
+                    ),
+                });
+            }
+        }
+    }
+
+    /// Check a command statement (declare/typeset/local and arguments)
+    fn check_command(&mut self, name: &str, args: &[BashExpr], span: Span) {
+        if name == "declare" || name == "typeset" || name == "local" {
+            self.check_declare(args, span);
+        }
+        for arg in args {
+            self.infer_expr(arg);
+        }
+    }
+
+    /// Check a function definition with optional type annotations
+    fn check_function(&mut self, name: &str, body: &[BashStmt]) {
+        let sig = self.collect_function_sig();
+        if sig.is_some() {
+            self.ctx.set_function_sig(
+                name,
+                sig.as_ref().cloned().unwrap_or(FunctionSig {
+                    params: Vec::new(),
+                    return_type: None,
+                }),
+            );
+        }
+
+        self.ctx.push_scope();
+        if let Some(ref sig) = sig {
+            for (param_name, param_type) in &sig.params {
+                self.ctx.set_type(param_name, param_type.clone());
+            }
+        }
+        self.check_body(body);
+        self.ctx.pop_scope();
+    }
+
+    /// Check an if/elif/else chain
+    fn check_if(
+        &mut self,
+        condition: &BashExpr,
+        then_block: &[BashStmt],
+        elif_blocks: &[(BashExpr, Vec<BashStmt>)],
+        else_block: &Option<Vec<BashStmt>>,
+    ) {
+        self.infer_expr(condition);
+        self.check_body(then_block);
+        for (cond, block) in elif_blocks {
+            self.infer_expr(cond);
+            self.check_body(block);
+        }
+        if let Some(else_body) = else_block {
+            self.check_body(else_body);
+        }
+    }
+
+    /// Check all statements in a block body
+    fn check_body(&mut self, body: &[BashStmt]) {
+        for stmt in body {
+            self.check_statement(stmt);
         }
     }
 
@@ -618,32 +602,40 @@ impl TypeChecker {
 
         for arg in args {
             if let BashExpr::Literal(s) = arg {
-                match s.as_str() {
-                    "-i" => current_type = Some(ShellType::Integer),
-                    "-a" => current_type = Some(ShellType::Array(Box::new(ShellType::String))),
-                    "-A" => {
-                        current_type = Some(ShellType::AssocArray {
-                            key: Box::new(ShellType::String),
-                            value: Box::new(ShellType::String),
-                        })
-                    }
-                    _ => {
-                        // Check for name=value patterns
-                        if let Some(eq_pos) = s.find('=') {
-                            let var_name = &s[..eq_pos];
-                            if let Some(ref ty) = current_type {
-                                self.ctx.set_type(var_name, ty.clone());
-                            }
-                        } else if !s.starts_with('-') {
-                            // Just a variable name without assignment
-                            if let Some(ref ty) = current_type {
-                                self.ctx.set_type(s, ty.clone());
-                            }
-                        }
-                    }
+                if let Some(ty) = parse_declare_flag(s) {
+                    current_type = Some(ty);
+                } else {
+                    self.register_declare_var(s, &current_type);
                 }
             }
         }
+    }
+
+    /// Register a variable from a declare argument (name or name=value)
+    fn register_declare_var(&mut self, s: &str, current_type: &Option<ShellType>) {
+        let var_name = if let Some(eq_pos) = s.find('=') {
+            Some(&s[..eq_pos])
+        } else if !s.starts_with('-') {
+            Some(s.as_ref())
+        } else {
+            None
+        };
+        if let (Some(name), Some(ty)) = (var_name, current_type) {
+            self.ctx.set_type(name, ty.clone());
+        }
+    }
+}
+
+/// Parse a declare flag (-i, -a, -A) into a ShellType
+fn parse_declare_flag(s: &str) -> Option<ShellType> {
+    match s {
+        "-i" => Some(ShellType::Integer),
+        "-a" => Some(ShellType::Array(Box::new(ShellType::String))),
+        "-A" => Some(ShellType::AssocArray {
+            key: Box::new(ShellType::String),
+            value: Box::new(ShellType::String),
+        }),
+        _ => None,
     }
 }
 
