@@ -370,15 +370,25 @@ fn calculate_determinism_score(source: &str) -> f64 {
         return 0.0;
     }
 
+    let (has_pinned_base_image, uses_latest_tag, package_installs, pinned_packages) =
+        scan_determinism_indicators(source);
+
+    let score = score_base_image_pinning(has_pinned_base_image, uses_latest_tag)
+        + score_package_pinning(package_installs, pinned_packages);
+
+    score.min(10.0)
+}
+
+/// Scan Dockerfile lines for determinism indicators (base image tags, package pinning)
+fn scan_determinism_indicators(source: &str) -> (bool, bool, u32, u32) {
     let mut has_pinned_base_image = false;
-    let mut package_installs = 0;
-    let mut pinned_packages = 0;
     let mut uses_latest_tag = false;
+    let mut package_installs = 0u32;
+    let mut pinned_packages = 0u32;
 
     for line in source.lines() {
         let trimmed = line.trim();
 
-        // Check FROM statement for tag specificity
         if trimmed.starts_with("FROM ") {
             if trimmed.contains(":latest") || (!trimmed.contains(':') && !trimmed.contains('@')) {
                 uses_latest_tag = true;
@@ -387,20 +397,14 @@ fn calculate_determinism_score(source: &str) -> f64 {
             }
         }
 
-        // Check RUN commands for package version pinning
         if trimmed.starts_with("RUN ") {
-            // Count package install commands
-            if trimmed.contains("apk add")
+            let is_pkg_install = trimmed.contains("apk add")
                 || trimmed.contains("apt-get install")
-                || trimmed.contains("yum install")
-            {
+                || trimmed.contains("yum install");
+            if is_pkg_install {
                 package_installs += 1;
-
-                // Check for version pinning
-                // apk: curl=8.2.1-r0
-                // apt: curl=7.68.0-1
-                // yum: curl-7.68.0
-                if trimmed.contains('=') && (trimmed.contains("apk add") || trimmed.contains("apt"))
+                if trimmed.contains('=')
+                    && (trimmed.contains("apk add") || trimmed.contains("apt"))
                 {
                     pinned_packages += 1;
                 }
@@ -408,26 +412,26 @@ fn calculate_determinism_score(source: &str) -> f64 {
         }
     }
 
-    let mut score = 0.0;
+    (has_pinned_base_image, uses_latest_tag, package_installs, pinned_packages)
+}
 
-    // Base image pinning (5 points)
-    if has_pinned_base_image && !uses_latest_tag {
-        score += 5.0;
-    } else if has_pinned_base_image {
-        score += 3.0;
-    } else if !uses_latest_tag {
-        score += 1.0;
+/// Score base image pinning (0-5 points)
+fn score_base_image_pinning(has_pinned: bool, uses_latest: bool) -> f64 {
+    match (has_pinned, uses_latest) {
+        (true, false) => 5.0,
+        (true, true) => 3.0,
+        (false, false) => 1.0,
+        (false, true) => 0.0,
     }
+}
 
-    // Package version pinning (5 points)
-    if package_installs > 0 {
-        let pinning_ratio = pinned_packages as f64 / package_installs as f64;
-        score += pinning_ratio * 5.0;
+/// Score package version pinning (0-5 points)
+fn score_package_pinning(installs: u32, pinned: u32) -> f64 {
+    if installs > 0 {
+        (pinned as f64 / installs as f64) * 5.0
     } else {
-        score += 2.5; // Neutral if no packages
+        2.5 // Neutral if no packages
     }
-
-    score.min(10.0)
 }
 
 /// Calculate security score (10% weight)
@@ -980,16 +984,7 @@ mod property_tests {
         #[test]
         fn prop_grade_consistent_with_score(dockerfile in "FROM [a-z]+:[0-9\\.]+\n.*{0,200}") {
             if let Ok(result) = score_dockerfile(&dockerfile) {
-                let expected_grade = match result.score {
-                    s if s >= 9.5 => "A+",
-                    s if s >= 9.0 => "A",
-                    s if s >= 8.5 => "B+",
-                    s if s >= 8.0 => "B",
-                    s if s >= 7.5 => "C+",
-                    s if s >= 7.0 => "C",
-                    s if s >= 6.0 => "D",
-                    _ => "F",
-                };
+                let expected_grade = calculate_grade(result.score);
                 prop_assert_eq!(result.grade, expected_grade,
                     "Grade should match score value");
             }
