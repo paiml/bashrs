@@ -34,232 +34,233 @@ pub fn generate_purified_bash(ast: &BashAst) -> String {
 /// Generate a single statement
 fn generate_statement(stmt: &BashStmt) -> String {
     match stmt {
-        BashStmt::Command { name, args, .. } => {
-            let mut cmd = name.clone();
-            for arg in args {
-                cmd.push(' ');
-                cmd.push_str(&generate_expr(arg));
-            }
-            cmd
-        }
+        BashStmt::Command { name, args, .. } => generate_stmt_command(name, args),
         BashStmt::Assignment {
             name,
             value,
             exported,
             ..
-        } => {
-            let mut assign = String::new();
-            if *exported {
-                assign.push_str("export ");
-            }
-            assign.push_str(name);
-            assign.push('=');
-            assign.push_str(&generate_expr(value));
-            assign
-        }
-        BashStmt::Comment { text, .. } => {
-            format!("# {}", text)
-        }
-        BashStmt::Function { name, body, .. } => {
-            let mut func = format!("{}() {{\n", name);
-            for stmt in body {
-                func.push_str("    ");
-                func.push_str(&generate_statement(stmt));
-                func.push('\n');
-            }
-            func.push('}');
-            func
-        }
+        } => generate_stmt_assignment(name, value, *exported),
+        BashStmt::Comment { text, .. } => format!("# {}", text),
+        BashStmt::Function { name, body, .. } => generate_stmt_function(name, body),
         BashStmt::If {
             condition,
             then_block,
             else_block,
             ..
-        } => {
-            let mut if_stmt = format!("if {}; then\n", generate_condition(condition));
-            for stmt in then_block {
-                if_stmt.push_str("    ");
-                if_stmt.push_str(&generate_statement(stmt));
-                if_stmt.push('\n');
-            }
-            if let Some(else_stmts) = else_block {
-                if_stmt.push_str("else\n");
-                for stmt in else_stmts {
-                    if_stmt.push_str("    ");
-                    if_stmt.push_str(&generate_statement(stmt));
-                    if_stmt.push('\n');
-                }
-            }
-            if_stmt.push_str("fi");
-            if_stmt
-        }
+        } => generate_stmt_if(condition, then_block, else_block.as_deref()),
         BashStmt::For {
             variable,
             items,
             body,
             ..
-        } => {
-            let mut for_stmt = format!("for {} in {}; do\n", variable, generate_expr(items));
-            for stmt in body {
-                for_stmt.push_str("    ");
-                for_stmt.push_str(&generate_statement(stmt));
-                for_stmt.push('\n');
-            }
-            for_stmt.push_str("done");
-            for_stmt
-        }
-        // Issue #68: C-style for loop generator
+        } => generate_stmt_for(variable, items, body),
         BashStmt::ForCStyle {
             init,
             condition,
             increment,
             body,
             ..
-        } => {
-            let mut for_stmt = format!("for (({}; {}; {})); do\n", init, condition, increment);
-            for stmt in body {
-                for_stmt.push_str("    ");
-                for_stmt.push_str(&generate_statement(stmt));
-                for_stmt.push('\n');
-            }
-            for_stmt.push_str("done");
-            for_stmt
-        }
+        } => generate_stmt_for_c_style(init, condition, increment, body),
         BashStmt::While {
             condition, body, ..
-        } => {
-            let mut while_stmt = format!("while {}; do\n", generate_condition(condition));
-            for stmt in body {
-                while_stmt.push_str("    ");
-                while_stmt.push_str(&generate_statement(stmt));
-                while_stmt.push('\n');
-            }
-            while_stmt.push_str("done");
-            while_stmt
-        }
+        } => generate_stmt_while(condition, body),
         BashStmt::Until {
             condition, body, ..
-        } => {
-            // Transform until loop to while loop with negated condition
-            // until [ $i -gt 5 ] → while [ ! "$i" -gt 5 ]
-            let negated_condition = negate_condition(condition);
-            let mut while_stmt = format!("while {}; do\n", negated_condition);
-            for stmt in body {
-                while_stmt.push_str("    ");
-                while_stmt.push_str(&generate_statement(stmt));
-                while_stmt.push('\n');
-            }
-            while_stmt.push_str("done");
-            while_stmt
-        }
-        BashStmt::Return { code, .. } => {
-            if let Some(c) = code {
-                format!("return {}", generate_expr(c))
-            } else {
-                String::from("return")
-            }
-        }
-        BashStmt::Case { word, arms, .. } => {
-            let mut case_stmt = format!("case {} in\n", generate_expr(word));
-            for arm in arms {
-                let pattern_str = arm.patterns.join("|");
-                case_stmt.push_str(&format!("    {})\n", pattern_str));
-                for stmt in &arm.body {
-                    case_stmt.push_str("        ");
-                    case_stmt.push_str(&generate_statement(stmt));
-                    case_stmt.push('\n');
-                }
-                case_stmt.push_str("        ;;\n");
-            }
-            case_stmt.push_str("esac");
-            case_stmt
-        }
-
-        BashStmt::Pipeline { commands, .. } => {
-            // Generate pipeline: cmd1 | cmd2 | cmd3
-            let mut pipeline = String::new();
-            for (i, cmd) in commands.iter().enumerate() {
-                if i > 0 {
-                    pipeline.push_str(" | ");
-                }
-                pipeline.push_str(&generate_statement(cmd));
-            }
-            pipeline
-        }
-
+        } => generate_stmt_until(condition, body),
+        BashStmt::Return { code, .. } => generate_stmt_return(code.as_ref()),
+        BashStmt::Case { word, arms, .. } => generate_stmt_case(word, arms),
+        BashStmt::Pipeline { commands, .. } => generate_stmt_pipeline(commands),
         BashStmt::AndList { left, right, .. } => {
-            // Generate AND list: cmd1 && cmd2
-            format!(
-                "{} && {}",
-                generate_statement(left),
-                generate_statement(right)
-            )
+            format!("{} && {}", generate_statement(left), generate_statement(right))
         }
-
         BashStmt::OrList { left, right, .. } => {
-            // Generate OR list: cmd1 || cmd2
-            format!(
-                "{} || {}",
-                generate_statement(left),
-                generate_statement(right)
-            )
+            format!("{} || {}", generate_statement(left), generate_statement(right))
         }
-
-        BashStmt::BraceGroup { body, .. } => {
-            // Generate brace group: { cmd1; cmd2; }
-            let mut brace = String::from("{ ");
-            for (i, stmt) in body.iter().enumerate() {
-                if i > 0 {
-                    brace.push_str("; ");
-                }
-                brace.push_str(&generate_statement(stmt));
-            }
-            brace.push_str("; }");
-            brace
-        }
-
-        BashStmt::Coproc { name, body, .. } => {
-            // Generate coproc: coproc NAME { cmd; }
-            let mut coproc = String::from("coproc ");
-            if let Some(n) = name {
-                coproc.push_str(n);
-                coproc.push(' ');
-            }
-            coproc.push_str("{ ");
-            for (i, stmt) in body.iter().enumerate() {
-                if i > 0 {
-                    coproc.push_str("; ");
-                }
-                coproc.push_str(&generate_statement(stmt));
-            }
-            coproc.push_str("; }");
-            coproc
-        }
-
+        BashStmt::BraceGroup { body, .. } => generate_stmt_brace_group(body),
+        BashStmt::Coproc { name, body, .. } => generate_stmt_coproc(name.as_deref(), body),
         BashStmt::Select {
             variable,
             items,
             body,
             ..
-        } => {
-            // Generate select: select VAR in ITEMS; do BODY; done
-            let mut select = format!("select {} in ", variable);
-            select.push_str(&generate_expr(items));
-            select.push_str("; do\n");
-            for stmt in body {
-                select.push_str("    ");
-                select.push_str(&generate_statement(stmt));
-                select.push('\n');
-            }
-            select.push_str("done");
-            select
-        }
-
-        BashStmt::Negated { command, .. } => {
-            // Issue #133: Generate negated command: ! cmd
-            format!("! {}", generate_statement(command))
-        }
+        } => generate_stmt_select(variable, items, body),
+        BashStmt::Negated { command, .. } => format!("! {}", generate_statement(command)),
     }
+}
+
+/// Append indented body statements to the output buffer
+fn append_indented_body(output: &mut String, body: &[BashStmt]) {
+    for stmt in body {
+        output.push_str("    ");
+        output.push_str(&generate_statement(stmt));
+        output.push('\n');
+    }
+}
+
+/// Generate a command statement: name arg1 arg2 ...
+fn generate_stmt_command(name: &str, args: &[BashExpr]) -> String {
+    let mut cmd = name.to_string();
+    for arg in args {
+        cmd.push(' ');
+        cmd.push_str(&generate_expr(arg));
+    }
+    cmd
+}
+
+/// Generate an assignment statement: [export] name=value
+fn generate_stmt_assignment(name: &str, value: &BashExpr, exported: bool) -> String {
+    let mut assign = String::new();
+    if exported {
+        assign.push_str("export ");
+    }
+    assign.push_str(name);
+    assign.push('=');
+    assign.push_str(&generate_expr(value));
+    assign
+}
+
+/// Generate a function definition: name() { body }
+fn generate_stmt_function(name: &str, body: &[BashStmt]) -> String {
+    let mut func = format!("{}() {{\n", name);
+    append_indented_body(&mut func, body);
+    func.push('}');
+    func
+}
+
+/// Generate an if statement with optional else block
+fn generate_stmt_if(
+    condition: &BashExpr,
+    then_block: &[BashStmt],
+    else_block: Option<&[BashStmt]>,
+) -> String {
+    let mut if_stmt = format!("if {}; then\n", generate_condition(condition));
+    append_indented_body(&mut if_stmt, then_block);
+    if let Some(else_stmts) = else_block {
+        if_stmt.push_str("else\n");
+        append_indented_body(&mut if_stmt, else_stmts);
+    }
+    if_stmt.push_str("fi");
+    if_stmt
+}
+
+/// Generate a for-in loop: for var in items; do body; done
+fn generate_stmt_for(variable: &str, items: &BashExpr, body: &[BashStmt]) -> String {
+    let mut for_stmt = format!("for {} in {}; do\n", variable, generate_expr(items));
+    append_indented_body(&mut for_stmt, body);
+    for_stmt.push_str("done");
+    for_stmt
+}
+
+/// Generate a C-style for loop: for ((init; cond; incr)); do body; done
+fn generate_stmt_for_c_style(
+    init: &str,
+    condition: &str,
+    increment: &str,
+    body: &[BashStmt],
+) -> String {
+    let mut for_stmt = format!("for (({}; {}; {})); do\n", init, condition, increment);
+    append_indented_body(&mut for_stmt, body);
+    for_stmt.push_str("done");
+    for_stmt
+}
+
+/// Generate a while loop: while cond; do body; done
+fn generate_stmt_while(condition: &BashExpr, body: &[BashStmt]) -> String {
+    let mut while_stmt = format!("while {}; do\n", generate_condition(condition));
+    append_indented_body(&mut while_stmt, body);
+    while_stmt.push_str("done");
+    while_stmt
+}
+
+/// Generate an until loop (transformed to while with negated condition)
+fn generate_stmt_until(condition: &BashExpr, body: &[BashStmt]) -> String {
+    // Transform until loop to while loop with negated condition
+    // until [ $i -gt 5 ] -> while [ ! "$i" -gt 5 ]
+    let negated_condition = negate_condition(condition);
+    let mut while_stmt = format!("while {}; do\n", negated_condition);
+    append_indented_body(&mut while_stmt, body);
+    while_stmt.push_str("done");
+    while_stmt
+}
+
+/// Generate a return statement: return [code]
+fn generate_stmt_return(code: Option<&BashExpr>) -> String {
+    if let Some(c) = code {
+        format!("return {}", generate_expr(c))
+    } else {
+        String::from("return")
+    }
+}
+
+/// Generate a case statement: case word in pattern) body;; ... esac
+fn generate_stmt_case(word: &BashExpr, arms: &[CaseArm]) -> String {
+    let mut case_stmt = format!("case {} in\n", generate_expr(word));
+    for arm in arms {
+        let pattern_str = arm.patterns.join("|");
+        case_stmt.push_str(&format!("    {})\n", pattern_str));
+        for stmt in &arm.body {
+            case_stmt.push_str("        ");
+            case_stmt.push_str(&generate_statement(stmt));
+            case_stmt.push('\n');
+        }
+        case_stmt.push_str("        ;;\n");
+    }
+    case_stmt.push_str("esac");
+    case_stmt
+}
+
+/// Generate a pipeline: cmd1 | cmd2 | cmd3
+fn generate_stmt_pipeline(commands: &[BashStmt]) -> String {
+    let mut pipeline = String::new();
+    for (i, cmd) in commands.iter().enumerate() {
+        if i > 0 {
+            pipeline.push_str(" | ");
+        }
+        pipeline.push_str(&generate_statement(cmd));
+    }
+    pipeline
+}
+
+/// Generate a brace group: { cmd1; cmd2; }
+fn generate_stmt_brace_group(body: &[BashStmt]) -> String {
+    let mut brace = String::from("{ ");
+    for (i, stmt) in body.iter().enumerate() {
+        if i > 0 {
+            brace.push_str("; ");
+        }
+        brace.push_str(&generate_statement(stmt));
+    }
+    brace.push_str("; }");
+    brace
+}
+
+/// Generate a coproc: coproc [NAME] { cmd; }
+fn generate_stmt_coproc(name: Option<&str>, body: &[BashStmt]) -> String {
+    let mut coproc = String::from("coproc ");
+    if let Some(n) = name {
+        coproc.push_str(n);
+        coproc.push(' ');
+    }
+    coproc.push_str("{ ");
+    for (i, stmt) in body.iter().enumerate() {
+        if i > 0 {
+            coproc.push_str("; ");
+        }
+        coproc.push_str(&generate_statement(stmt));
+    }
+    coproc.push_str("; }");
+    coproc
+}
+
+/// Generate a select: select VAR in ITEMS; do BODY; done
+fn generate_stmt_select(variable: &str, items: &BashExpr, body: &[BashStmt]) -> String {
+    let mut select = format!("select {} in ", variable);
+    select.push_str(&generate_expr(items));
+    select.push_str("; do\n");
+    append_indented_body(&mut select, body);
+    select.push_str("done");
+    select
 }
 
 /// Negate a condition for until → while transformation
