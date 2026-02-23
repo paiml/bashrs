@@ -21,6 +21,11 @@ pub mod ast;
 pub mod codegen; // Bash code generation (needed for purify command)
 pub mod lexer;
 pub mod parser;
+pub mod parser_arith;
+pub mod parser_cmd;
+pub mod parser_control;
+pub mod parser_decl;
+pub mod parser_expr;
 pub mod semantic;
 
 pub use ast::{BashAst, BashExpr, BashNode, BashStmt};
