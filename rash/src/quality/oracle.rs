@@ -172,6 +172,12 @@ pub struct FeatureVector {
     pub environment_operation: bool,
 }
 
+/// Convert a boolean to f64 (1.0 for true, 0.0 for false)
+#[inline]
+fn bool_f64(b: bool) -> f64 {
+    if b { 1.0 } else { 0.0 }
+}
+
 impl FeatureVector {
     /// Extract features from a diagnostic and source code
     pub fn extract(diagnostic: &Diagnostic, source: &str) -> Self {
@@ -289,32 +295,28 @@ impl FeatureVector {
         vec![
             self.code_numeric as f64,
             self.message_length as f64,
-            if self.has_variable_reference {
-                1.0
-            } else {
-                0.0
-            },
-            if self.has_path_reference { 1.0 } else { 0.0 },
-            if self.has_command_reference { 1.0 } else { 0.0 },
+            bool_f64(self.has_variable_reference),
+            bool_f64(self.has_path_reference),
+            bool_f64(self.has_command_reference),
             self.word_count as f64,
             self.special_char_count as f64,
             self.uppercase_ratio,
             self.digit_ratio,
             self.span_length as f64,
             self.start_line as f64,
-            if self.is_multiline { 1.0 } else { 0.0 },
+            bool_f64(self.is_multiline),
             self.nesting_depth as f64,
-            if self.in_function { 1.0 } else { 0.0 },
-            if self.in_loop { 1.0 } else { 0.0 },
-            if self.in_conditional { 1.0 } else { 0.0 },
+            bool_f64(self.in_function),
+            bool_f64(self.in_loop),
+            bool_f64(self.in_conditional),
             self.line_length as f64,
             self.indentation_level as f64,
-            if self.has_side_effects { 1.0 } else { 0.0 },
-            if self.is_deterministic { 1.0 } else { 0.0 },
-            if self.is_idempotent { 1.0 } else { 0.0 },
-            if self.random_operation { 1.0 } else { 0.0 },
-            if self.date_time_operation { 1.0 } else { 0.0 },
-            if self.process_operation { 1.0 } else { 0.0 },
+            bool_f64(self.has_side_effects),
+            bool_f64(self.is_deterministic),
+            bool_f64(self.is_idempotent),
+            bool_f64(self.random_operation),
+            bool_f64(self.date_time_operation),
+            bool_f64(self.process_operation),
         ]
     }
 }
@@ -577,45 +579,7 @@ impl KnnClassifier {
 
     /// Rule-based fallback classification
     fn rule_based_classify(&self, features: &FeatureVector) -> ClassificationResult {
-        let category = match features.code_prefix.to_uppercase().as_str() {
-            "SEC" => {
-                if features.code_numeric == 1 || features.code_numeric == 2 {
-                    ShellErrorCategory::CommandInjection
-                } else if features.code_numeric == 10 {
-                    ShellErrorCategory::PathTraversal
-                } else {
-                    ShellErrorCategory::UnsafeExpansion
-                }
-            }
-            "DET" => {
-                if features.random_operation {
-                    ShellErrorCategory::NonDeterministicRandom
-                } else if features.date_time_operation {
-                    ShellErrorCategory::TimestampUsage
-                } else if features.process_operation {
-                    ShellErrorCategory::ProcessIdDependency
-                } else {
-                    ShellErrorCategory::NonDeterministicRandom
-                }
-            }
-            "IDEM" => {
-                if features.is_write_operation {
-                    ShellErrorCategory::UnsafeOverwrite
-                } else {
-                    ShellErrorCategory::NonIdempotentOperation
-                }
-            }
-            "SC" => {
-                if features.code_numeric == 2086 {
-                    ShellErrorCategory::MissingQuotes
-                } else if features.has_glob {
-                    ShellErrorCategory::GlobbingRisk
-                } else {
-                    ShellErrorCategory::WordSplitting
-                }
-            }
-            _ => ShellErrorCategory::Unknown,
-        };
+        let category = classify_by_prefix(features);
 
         ClassificationResult {
             category,
@@ -630,6 +594,61 @@ impl KnnClassifier {
             .map(|(x, y)| (x - y).powi(2))
             .sum::<f64>()
             .sqrt()
+    }
+}
+
+/// Classify an error category based on the code prefix
+fn classify_by_prefix(features: &FeatureVector) -> ShellErrorCategory {
+    match features.code_prefix.to_uppercase().as_str() {
+        "SEC" => classify_sec(features),
+        "DET" => classify_det(features),
+        "IDEM" => classify_idem(features),
+        "SC" => classify_sc(features),
+        _ => ShellErrorCategory::Unknown,
+    }
+}
+
+/// Classify security (SEC) errors by code number
+fn classify_sec(features: &FeatureVector) -> ShellErrorCategory {
+    if features.code_numeric == 1 || features.code_numeric == 2 {
+        ShellErrorCategory::CommandInjection
+    } else if features.code_numeric == 10 {
+        ShellErrorCategory::PathTraversal
+    } else {
+        ShellErrorCategory::UnsafeExpansion
+    }
+}
+
+/// Classify determinism (DET) errors by operation type
+fn classify_det(features: &FeatureVector) -> ShellErrorCategory {
+    if features.random_operation {
+        ShellErrorCategory::NonDeterministicRandom
+    } else if features.date_time_operation {
+        ShellErrorCategory::TimestampUsage
+    } else if features.process_operation {
+        ShellErrorCategory::ProcessIdDependency
+    } else {
+        ShellErrorCategory::NonDeterministicRandom
+    }
+}
+
+/// Classify idempotency (IDEM) errors by write status
+fn classify_idem(features: &FeatureVector) -> ShellErrorCategory {
+    if features.is_write_operation {
+        ShellErrorCategory::UnsafeOverwrite
+    } else {
+        ShellErrorCategory::NonIdempotentOperation
+    }
+}
+
+/// Classify shellcheck (SC) errors by code number and features
+fn classify_sc(features: &FeatureVector) -> ShellErrorCategory {
+    if features.code_numeric == 2086 {
+        ShellErrorCategory::MissingQuotes
+    } else if features.has_glob {
+        ShellErrorCategory::GlobbingRisk
+    } else {
+        ShellErrorCategory::WordSplitting
     }
 }
 
