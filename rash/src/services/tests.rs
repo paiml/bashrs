@@ -735,6 +735,44 @@ fn test_all_binary_operators_converted() {
     }
 }
 
+fn assert_first_arm_is_wildcard(source: &str) {
+    let ast = parse(source).unwrap();
+    let main_func = &ast.functions[0];
+    match &main_func.body[0] {
+        crate::ast::Stmt::Match { arms, .. } => {
+            assert!(!arms.is_empty(), "Should have at least one match arm");
+            match &arms[0].pattern {
+                Pattern::Wildcard => {}
+                _ => panic!("Expected Wildcard pattern for _, got {:?}", arms[0].pattern),
+            }
+        }
+        _ => panic!("Expected match statement"),
+    }
+}
+
+fn assert_first_arm_is_variable(source: &str, expected_name: &str) {
+    let ast = parse(source).unwrap();
+    let main_func = &ast.functions[0];
+    match &main_func.body[0] {
+        crate::ast::Stmt::Match { arms, .. } => {
+            assert!(!arms.is_empty(), "Should have at least one match arm");
+            match &arms[0].pattern {
+                Pattern::Variable(name) => {
+                    assert_eq!(name, expected_name, "Expected variable pattern '{expected_name}'");
+                }
+                Pattern::Wildcard => {
+                    panic!("Named identifier '{expected_name}' should NOT be treated as Wildcard");
+                }
+                _ => panic!(
+                    "Expected Variable pattern for {expected_name}, got {:?}",
+                    arms[0].pattern
+                ),
+            }
+        }
+        _ => panic!("Expected match statement"),
+    }
+}
+
 #[test]
 fn test_pattern_wildcard_vs_identifier() {
     // RED: Targets mutation at line 567: replace == with !=
@@ -751,22 +789,7 @@ fn test_pattern_wildcard_vs_identifier() {
             }
         }
     "#;
-    let ast = parse(source_wildcard).unwrap();
-    let main_func = &ast.functions[0];
-
-    match &main_func.body[0] {
-        crate::ast::Stmt::Match { arms, .. } => {
-            assert!(!arms.is_empty(), "Should have at least one match arm");
-            // Wildcard pattern should be detected
-            match &arms[0].pattern {
-                Pattern::Wildcard => {
-                    // Success: _ was recognized as Wildcard
-                }
-                _ => panic!("Expected Wildcard pattern for _, got {:?}", arms[0].pattern),
-            }
-        }
-        _ => panic!("Expected match statement"),
-    }
+    assert_first_arm_is_wildcard(source_wildcard);
 
     // Test named identifier pattern (not wildcard)
     let source_ident = r#"
@@ -778,25 +801,7 @@ fn test_pattern_wildcard_vs_identifier() {
             }
         }
     "#;
-    let ast2 = parse(source_ident).unwrap();
-    let main_func2 = &ast2.functions[0];
-
-    match &main_func2.body[0] {
-        crate::ast::Stmt::Match { arms, .. } => {
-            assert!(!arms.is_empty(), "Should have at least one match arm");
-            // Named identifier should NOT be Wildcard
-            match &arms[0].pattern {
-                Pattern::Variable(name) => {
-                    assert_eq!(name, "x", "Expected variable pattern 'x'");
-                }
-                Pattern::Wildcard => {
-                    panic!("Named identifier 'x' should NOT be treated as Wildcard");
-                }
-                _ => panic!("Expected Variable pattern for x, got {:?}", arms[0].pattern),
-            }
-        }
-        _ => panic!("Expected match statement"),
-    }
+    assert_first_arm_is_variable(source_ident, "x");
 }
 
 #[test]
