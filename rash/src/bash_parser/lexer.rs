@@ -288,58 +288,21 @@ impl Lexer {
 
         // Handle $'...' ANSI-C quoting: $'\t' $'\n' etc.
         if !self.is_at_end() && self.current_char() == '\'' {
-            self.advance(); // skip opening '
-            let mut value = String::new();
-            while !self.is_at_end() && self.current_char() != '\'' {
-                if self.current_char() == '\\' {
-                    self.advance(); // skip backslash
-                    if !self.is_at_end() {
-                        let escaped = match self.current_char() {
-                            'n' => '\n',
-                            't' => '\t',
-                            'r' => '\r',
-                            'a' => '\x07',
-                            'b' => '\x08',
-                            'e' | 'E' => '\x1b',
-                            'f' => '\x0c',
-                            'v' => '\x0b',
-                            '\\' => '\\',
-                            '\'' => '\'',
-                            '"' => '"',
-                            other => {
-                                value.push('\\');
-                                other
-                            }
-                        };
-                        value.push(escaped);
-                        self.advance();
-                    }
-                } else {
-                    value.push(self.advance());
-                }
-            }
-            if !self.is_at_end() {
-                self.advance(); // skip closing '
-            }
-            return Ok(Token::String(value));
+            return Ok(self.read_ansi_c_string());
         }
 
         // Check for arithmetic expansion $((...)) vs command substitution $(cmd)
         if !self.is_at_end() && self.current_char() == '(' {
             if let Some('(') = self.peek_char(1) {
-                // Double paren: $((...)) = arithmetic expansion
                 return self.read_arithmetic_expansion();
             } else {
-                // Single paren: $(cmd) = command substitution
                 return self.read_command_substitution();
             }
         }
 
         // Check for $$ (process ID special variable)
         if !self.is_at_end() && self.current_char() == '$' {
-            self.advance(); // skip second '$'
-                            // Return special variable name for process ID
-                            // Using "$" as the variable name to represent $$
+            self.advance();
             return Ok(Token::Variable("$".to_string()));
         }
 
@@ -355,49 +318,100 @@ impl Lexer {
             return Ok(Token::Variable(special.to_string()));
         }
 
-        let mut var_name = String::new();
-
-        // Handle ${VAR} syntax
+        // Handle ${VAR} syntax (with nested expansion support)
         // BUG-001 FIX: Handle nested parameter expansion like ${foo:-${bar:-default}}
-        if !self.is_at_end() && self.current_char() == '{' {
-            self.advance();
-            let mut brace_depth = 1;
-            while !self.is_at_end() && brace_depth > 0 {
-                let ch = self.current_char();
-                if ch == '{' {
-                    brace_depth += 1;
-                    var_name.push(self.advance());
-                } else if ch == '}' {
-                    brace_depth -= 1;
-                    if brace_depth > 0 {
-                        var_name.push(self.advance());
-                    } else {
-                        self.advance(); // skip final '}'
-                    }
-                } else if ch == '$' && !self.is_at_end() {
-                    // Handle nested ${...} or $(...)
-                    var_name.push(self.advance());
-                    if !self.is_at_end() && self.current_char() == '{' {
-                        brace_depth += 1;
-                        var_name.push(self.advance());
-                    }
-                } else {
-                    var_name.push(self.advance());
-                }
-            }
+        let var_name = if !self.is_at_end() && self.current_char() == '{' {
+            self.read_braced_variable()
         } else {
-            // Handle $VAR syntax
-            while !self.is_at_end() {
-                let ch = self.current_char();
-                if ch.is_alphanumeric() || ch == '_' {
-                    var_name.push(self.advance());
-                } else {
-                    break;
-                }
-            }
-        }
+            self.read_simple_variable_name()
+        };
 
         Ok(Token::Variable(var_name))
+    }
+
+    /// Read ANSI-C quoted string: $'\t' $'\n' etc.
+    fn read_ansi_c_string(&mut self) -> Token {
+        self.advance(); // skip opening '
+        let mut value = String::new();
+        while !self.is_at_end() && self.current_char() != '\'' {
+            if self.current_char() == '\\' {
+                self.advance(); // skip backslash
+                if !self.is_at_end() {
+                    let escaped = self.decode_ansi_c_escape();
+                    value.push_str(&escaped);
+                    self.advance();
+                }
+            } else {
+                value.push(self.advance());
+            }
+        }
+        if !self.is_at_end() {
+            self.advance(); // skip closing '
+        }
+        Token::String(value)
+    }
+
+    /// Decode a single ANSI-C escape character at the current position.
+    /// Returns the replacement string (usually one char, two for unknown escapes).
+    fn decode_ansi_c_escape(&self) -> String {
+        match self.current_char() {
+            'n' => "\n".to_string(),
+            't' => "\t".to_string(),
+            'r' => "\r".to_string(),
+            'a' => "\x07".to_string(),
+            'b' => "\x08".to_string(),
+            'e' | 'E' => "\x1b".to_string(),
+            'f' => "\x0c".to_string(),
+            'v' => "\x0b".to_string(),
+            '\\' => "\\".to_string(),
+            '\'' => "'".to_string(),
+            '"' => "\"".to_string(),
+            other => format!("\\{}", other),
+        }
+    }
+
+    /// Read a braced variable expansion: ${VAR}, ${foo:-default}, ${foo:-${bar:-x}}
+    fn read_braced_variable(&mut self) -> String {
+        self.advance(); // skip '{'
+        let mut var_name = String::new();
+        let mut brace_depth = 1;
+        while !self.is_at_end() && brace_depth > 0 {
+            let ch = self.current_char();
+            if ch == '{' {
+                brace_depth += 1;
+                var_name.push(self.advance());
+            } else if ch == '}' {
+                brace_depth -= 1;
+                if brace_depth > 0 {
+                    var_name.push(self.advance());
+                } else {
+                    self.advance(); // skip final '}'
+                }
+            } else if ch == '$' {
+                var_name.push(self.advance());
+                if !self.is_at_end() && self.current_char() == '{' {
+                    brace_depth += 1;
+                    var_name.push(self.advance());
+                }
+            } else {
+                var_name.push(self.advance());
+            }
+        }
+        var_name
+    }
+
+    /// Read a simple (unbraced) variable name: alphanumeric and underscore chars.
+    fn read_simple_variable_name(&mut self) -> String {
+        let mut var_name = String::new();
+        while !self.is_at_end() {
+            let ch = self.current_char();
+            if ch.is_alphanumeric() || ch == '_' {
+                var_name.push(self.advance());
+            } else {
+                break;
+            }
+        }
+        var_name
     }
 
     fn read_arithmetic_expansion(&mut self) -> Result<Token, LexerError> {
@@ -465,14 +479,37 @@ impl Lexer {
     }
 
     fn read_heredoc(&mut self) -> Result<Token, LexerError> {
-        // BUG-006 FIX: Handle quoted delimiters <<'EOF' or <<"EOF"
+        let delimiter = self.read_heredoc_delimiter()?;
+        self.skip_to_next_line();
+
+        // Read heredoc content until we find a line matching the delimiter
+        let content = self.read_heredoc_content(&delimiter, false);
+
+        Ok(Token::Heredoc { delimiter, content })
+    }
+
+    /// BUG-007 FIX: Read indented heredoc (<<-DELIMITER)
+    /// In indented heredocs, leading tabs are stripped from content lines
+    /// and the delimiter can be indented with tabs
+    fn read_heredoc_indented(&mut self) -> Result<Token, LexerError> {
+        let delimiter = self.read_heredoc_delimiter()?;
+        self.skip_to_next_line();
+
+        // Read heredoc content - strip leading tabs
+        let content = self.read_heredoc_content(&delimiter, true);
+
+        Ok(Token::Heredoc { delimiter, content })
+    }
+
+    /// Read a heredoc delimiter, handling optional quoting (<<'EOF' or <<"EOF").
+    /// BUG-006 FIX: Handle quoted delimiters.
+    fn read_heredoc_delimiter(&mut self) -> Result<String, LexerError> {
         // Skip any leading whitespace
         while !self.is_at_end() && (self.current_char() == ' ' || self.current_char() == '\t') {
             self.advance();
         }
 
         // Check for quoted delimiter
-        let mut delimiter = String::new();
         let quote_char =
             if !self.is_at_end() && (self.current_char() == '\'' || self.current_char() == '"') {
                 let q = self.current_char();
@@ -482,111 +519,13 @@ impl Lexer {
                 None
             };
 
-        // Read delimiter
+        // Read delimiter characters
+        let mut delimiter = String::new();
         while !self.is_at_end() {
             let ch = self.current_char();
             if let Some(q) = quote_char {
-                // Quoted delimiter - read until closing quote
                 if ch == q {
                     self.advance(); // skip closing quote
-                    break;
-                }
-                delimiter.push(self.advance());
-            } else {
-                // Unquoted delimiter - alphanumeric and underscore
-                if ch.is_alphanumeric() || ch == '_' {
-                    delimiter.push(self.advance());
-                } else {
-                    break;
-                }
-            }
-        }
-
-        if delimiter.is_empty() {
-            let ch = if self.is_at_end() {
-                '\0'
-            } else {
-                self.current_char()
-            };
-            return Err(LexerError::UnexpectedChar(ch, self.line, self.column));
-        }
-
-        // Skip to end of line (heredoc content starts on next line)
-        while !self.is_at_end() && self.current_char() != '\n' {
-            self.advance();
-        }
-        if !self.is_at_end() {
-            self.advance(); // skip newline
-        }
-
-        // Read heredoc content until we find a line matching the delimiter
-        let mut content = String::new();
-        let mut current_line = String::new();
-
-        while !self.is_at_end() {
-            let ch = self.current_char();
-
-            if ch == '\n' {
-                // Check if current_line matches delimiter
-                if current_line.trim() == delimiter {
-                    // Don't consume the trailing newline — let it become a
-                    // Token::Newline so the parser sees the statement boundary.
-                    // This is essential for heredocs inside loop/if bodies where
-                    // the parser needs the newline to stop parse_command before
-                    // encountering block terminators like `done`, `fi`, etc.
-                    break;
-                }
-
-                // Not delimiter - add line to content (with newline)
-                if !content.is_empty() {
-                    content.push('\n');
-                }
-                content.push_str(&current_line);
-                current_line.clear();
-
-                self.advance(); // skip newline
-            } else {
-                current_line.push(self.advance());
-            }
-        }
-
-        // Handle delimiter on last line without trailing newline
-        if !current_line.is_empty() && current_line.trim() != delimiter {
-            if !content.is_empty() {
-                content.push('\n');
-            }
-            content.push_str(&current_line);
-        }
-
-        Ok(Token::Heredoc { delimiter, content })
-    }
-
-    /// BUG-007 FIX: Read indented heredoc (<<-DELIMITER)
-    /// In indented heredocs, leading tabs are stripped from content lines
-    /// and the delimiter can be indented with tabs
-    fn read_heredoc_indented(&mut self) -> Result<Token, LexerError> {
-        // Skip any leading whitespace
-        while !self.is_at_end() && (self.current_char() == ' ' || self.current_char() == '\t') {
-            self.advance();
-        }
-
-        // Check for quoted delimiter
-        let mut delimiter = String::new();
-        let quote_char =
-            if !self.is_at_end() && (self.current_char() == '\'' || self.current_char() == '"') {
-                let q = self.current_char();
-                self.advance();
-                Some(q)
-            } else {
-                None
-            };
-
-        // Read delimiter
-        while !self.is_at_end() {
-            let ch = self.current_char();
-            if let Some(q) = quote_char {
-                if ch == q {
-                    self.advance();
                     break;
                 }
                 delimiter.push(self.advance());
@@ -606,15 +545,22 @@ impl Lexer {
             return Err(LexerError::UnexpectedChar(ch, self.line, self.column));
         }
 
-        // Skip to end of line
+        Ok(delimiter)
+    }
+
+    /// Skip to the end of the current line and consume the newline character.
+    fn skip_to_next_line(&mut self) {
         while !self.is_at_end() && self.current_char() != '\n' {
             self.advance();
         }
         if !self.is_at_end() {
-            self.advance();
+            self.advance(); // skip newline
         }
+    }
 
-        // Read heredoc content - strip leading tabs
+    /// Read heredoc content lines until a line matches the delimiter.
+    /// If `strip_tabs` is true, leading tabs are stripped from each line (<<- mode).
+    fn read_heredoc_content(&mut self, delimiter: &str, strip_tabs: bool) -> String {
         let mut content = String::new();
         let mut current_line = String::new();
 
@@ -622,21 +568,31 @@ impl Lexer {
             let ch = self.current_char();
 
             if ch == '\n' {
-                // Strip leading tabs and check for delimiter
-                let trimmed = current_line.trim_start_matches('\t');
-                if trimmed == delimiter {
-                    // Don't consume the trailing newline (same as read_heredoc)
+                let check_line = if strip_tabs {
+                    current_line.trim_start_matches('\t')
+                } else {
+                    current_line.trim()
+                };
+
+                if check_line == delimiter {
+                    // Don't consume the trailing newline — let it become a
+                    // Token::Newline so the parser sees the statement boundary.
                     break;
                 }
 
-                // Add stripped line to content
+                // Not delimiter - add line to content (with newline)
                 if !content.is_empty() {
                     content.push('\n');
                 }
-                content.push_str(trimmed);
+                let line_to_add = if strip_tabs {
+                    current_line.trim_start_matches('\t')
+                } else {
+                    &current_line
+                };
+                content.push_str(line_to_add);
                 current_line.clear();
 
-                self.advance();
+                self.advance(); // skip newline
             } else {
                 current_line.push(self.advance());
             }
@@ -644,16 +600,25 @@ impl Lexer {
 
         // Handle delimiter on last line without trailing newline
         if !current_line.is_empty() {
-            let trimmed = current_line.trim_start_matches('\t');
-            if trimmed != delimiter {
+            let check_line = if strip_tabs {
+                current_line.trim_start_matches('\t')
+            } else {
+                current_line.trim()
+            };
+            if check_line != delimiter {
                 if !content.is_empty() {
                     content.push('\n');
                 }
-                content.push_str(trimmed);
+                let line_to_add = if strip_tabs {
+                    current_line.trim_start_matches('\t')
+                } else {
+                    &current_line
+                };
+                content.push_str(line_to_add);
             }
         }
 
-        Ok(Token::Heredoc { delimiter, content })
+        content
     }
 
     /// Issue #61: Read a here-string (<<< word)
@@ -806,68 +771,75 @@ impl Lexer {
 
     fn read_identifier_or_keyword(&mut self) -> Token {
         let mut ident = String::new();
+        let mut has_special_chars = false;
 
         while !self.is_at_end() {
             let ch = self.current_char();
-            // BUG-010 FIX: Allow dashes in identifiers for function names like my-func
-            // Dashes are allowed if followed by alphanumeric (not at end, not before operator)
             if ch.is_alphanumeric() || ch == '_' {
                 ident.push(self.advance());
-            } else if ch == '-' || ch == '.' || ch == ':' || ch == '@' {
-                // Allow dash/dot/colon/at in identifiers for function names,
-                // URLs, and email addresses (admin@example.com)
-                // But only if followed by alphanumeric (not operators like -eq)
-                // Also allow colon followed by / for URLs (http://...)
-                if let Some(next) = self.peek_char(1) {
-                    if next.is_alphanumeric() || (ch == ':' && next == '/') {
-                        ident.push(self.advance());
-                    } else {
-                        break;
-                    }
-                } else {
-                    break;
-                }
-            } else if ch == '/' || ch == '*' || ch == '?' {
-                // Path/glob continuation: dist/*, src/*.rs, path/to/file, etc.
+            } else if self.is_ident_continuation_char(ch) {
+                has_special_chars = true;
+                ident.push(self.advance());
+            } else if self.is_ident_separator_with_next(ch) {
+                has_special_chars = true;
                 ident.push(self.advance());
             } else {
                 break;
             }
         }
 
-        // Check for keywords (only if no special chars in identifier)
-        if !ident.contains('-')
-            && !ident.contains('.')
-            && !ident.contains(':')
-            && !ident.contains('/')
-            && !ident.contains('*')
-            && !ident.contains('?')
-            && !ident.contains('@')
-        {
-            match ident.as_str() {
-                "if" => return Token::If,
-                "then" => return Token::Then,
-                "elif" => return Token::Elif,
-                "else" => return Token::Else,
-                "fi" => return Token::Fi,
-                "for" => return Token::For,
-                "while" => return Token::While,
-                "until" => return Token::Until,
-                "select" => return Token::Select, // F017: select statement
-                "do" => return Token::Do,
-                "done" => return Token::Done,
-                "case" => return Token::Case,
-                "esac" => return Token::Esac,
-                "in" => return Token::In,
-                "function" => return Token::Function,
-                "return" => return Token::Return,
-                "export" => return Token::Export,
-                "local" => return Token::Local,
-                "coproc" => return Token::Coproc, // BUG-018
-                _ => {}
+        // Keywords can only match if the identifier has no special characters
+        if !has_special_chars {
+            if let Some(keyword) = Self::lookup_keyword(&ident) {
+                return keyword;
             }
         }
         Token::Identifier(ident)
+    }
+
+    /// Characters that are always allowed as identifier continuations (paths, globs).
+    fn is_ident_continuation_char(&self, ch: char) -> bool {
+        ch == '/' || ch == '*' || ch == '?'
+    }
+
+    /// Characters that are allowed in identifiers only when followed by an
+    /// alphanumeric character (or '/' for colon in URLs like http://...).
+    /// BUG-010 FIX: Allow dashes in identifiers for function names like my-func.
+    fn is_ident_separator_with_next(&self, ch: char) -> bool {
+        if !matches!(ch, '-' | '.' | ':' | '@') {
+            return false;
+        }
+        match self.peek_char(1) {
+            Some(next) => next.is_alphanumeric() || (ch == ':' && next == '/'),
+            None => false,
+        }
+    }
+
+    /// Look up a keyword token from an identifier string.
+    /// Returns `None` if the string is not a keyword.
+    fn lookup_keyword(ident: &str) -> Option<Token> {
+        match ident {
+            "if" => Some(Token::If),
+            "then" => Some(Token::Then),
+            "elif" => Some(Token::Elif),
+            "else" => Some(Token::Else),
+            "fi" => Some(Token::Fi),
+            "for" => Some(Token::For),
+            "while" => Some(Token::While),
+            "until" => Some(Token::Until),
+            "select" => Some(Token::Select),
+            "do" => Some(Token::Do),
+            "done" => Some(Token::Done),
+            "case" => Some(Token::Case),
+            "esac" => Some(Token::Esac),
+            "in" => Some(Token::In),
+            "function" => Some(Token::Function),
+            "return" => Some(Token::Return),
+            "export" => Some(Token::Export),
+            "local" => Some(Token::Local),
+            "coproc" => Some(Token::Coproc),
+            _ => None,
+        }
     }
 
     fn read_bare_word(&mut self) -> Token {
@@ -885,45 +857,10 @@ impl Lexer {
                 continue;
             }
 
-            // Bare words can contain alphanumeric, path separators, globs, dots, dashes, plus signs, percent signs
-            // Note: '+' and '%' added for date +%FORMAT support (PARSER-ENH-001)
-            // Issue #131: ',' added for Docker mount options like type=bind,source=...,target=...
-            // Issue #131: '=' added for key=value arguments like --mount type=bind
-            // '@' added for email addresses (admin@example.com)
             // Handle extended glob patterns inline: @(...), +(...), ?(...), !(...)
-            if (ch == '@' || ch == '+' || ch == '?' || ch == '!') && self.peek_char(1) == Some('(')
-            {
-                word.push(self.advance()); // push @/+/?/!
-                word.push(self.advance()); // push (
-                let mut depth = 1;
-                while !self.is_at_end() && depth > 0 {
-                    let c = self.current_char();
-                    if c == '(' {
-                        depth += 1;
-                    } else if c == ')' {
-                        depth -= 1;
-                        if depth == 0 {
-                            word.push(self.advance());
-                            break;
-                        }
-                    }
-                    word.push(self.advance());
-                }
-            } else if ch.is_alphanumeric()
-                || ch == '/'
-                || ch == '.'
-                || ch == '-'
-                || ch == '_'
-                || ch == '*'
-                || ch == '?'
-                || ch == '~'
-                || ch == ':'
-                || ch == '+'
-                || ch == '%'
-                || ch == ','
-                || ch == '='
-                || ch == '@'
-            {
+            if self.is_extended_glob_start(ch) {
+                self.read_inline_extended_glob(&mut word);
+            } else if Self::is_bare_word_char(ch) {
                 word.push(self.advance());
             } else {
                 break;
@@ -931,6 +868,41 @@ impl Lexer {
         }
 
         Token::Identifier(word)
+    }
+
+    /// Check if the current character starts an extended glob pattern: @(, +(, ?(, !(
+    fn is_extended_glob_start(&self, ch: char) -> bool {
+        matches!(ch, '@' | '+' | '?' | '!') && self.peek_char(1) == Some('(')
+    }
+
+    /// Read an extended glob pattern (@(...), +(...), etc.) and append it to `word`.
+    fn read_inline_extended_glob(&mut self, word: &mut String) {
+        word.push(self.advance()); // push @/+/?/!
+        word.push(self.advance()); // push (
+        let mut depth = 1;
+        while !self.is_at_end() && depth > 0 {
+            let c = self.current_char();
+            if c == '(' {
+                depth += 1;
+            } else if c == ')' {
+                depth -= 1;
+                if depth == 0 {
+                    word.push(self.advance());
+                    break;
+                }
+            }
+            word.push(self.advance());
+        }
+    }
+
+    /// Characters that are valid in bare words (unquoted strings).
+    /// Includes alphanumeric, path separators, globs, dots, dashes, plus, percent, etc.
+    fn is_bare_word_char(ch: char) -> bool {
+        ch.is_alphanumeric()
+            || matches!(
+                ch,
+                '/' | '.' | '-' | '_' | '*' | '?' | '~' | ':' | '+' | '%' | ',' | '=' | '@'
+            )
     }
 
     /// Issue #69: Check if current position starts a brace expansion
@@ -1276,38 +1248,51 @@ impl Lexer {
                 self.advance(); // skip '='
                 self.advance(); // skip '~'
                 self.skip_whitespace_except_newline();
-                // Read regex pattern until ]] or end of line
-                // Track bracket depth to avoid breaking on ]] inside [[:class:]]
-                let mut pattern = String::new();
-                let mut bracket_depth = 0i32;
-                while !self.is_at_end() {
-                    let c = self.current_char();
-                    if c == '\n' {
-                        break;
-                    }
-                    if c == '[' {
-                        bracket_depth += 1;
-                    } else if c == ']' {
-                        if bracket_depth > 0 {
-                            bracket_depth -= 1;
-                        } else if self.peek_char(1) == Some(']') {
-                            // Only break on ]] when not inside brackets
-                            break;
-                        }
-                    }
-                    // Check for unquoted ; (statement terminator) outside brackets
-                    if c == ';' && bracket_depth == 0 {
-                        break;
-                    }
-                    pattern.push(self.advance());
-                }
-                let pattern = pattern.trim_end().to_string();
+                let pattern = self.read_regex_pattern();
                 Ok(Token::Identifier(format!("=~ {}", pattern)))
             }
             _ => {
                 self.advance();
                 Ok(Token::Assign)
             }
+        }
+    }
+
+    /// Read a regex pattern after `=~` until `]]`, newline, or unquoted `;`.
+    /// Tracks bracket depth to avoid breaking on `]]` inside `[[:class:]]`.
+    fn read_regex_pattern(&mut self) -> String {
+        let mut pattern = String::new();
+        let mut bracket_depth = 0i32;
+        while !self.is_at_end() {
+            let c = self.current_char();
+            if c == '\n' {
+                break;
+            }
+            if self.is_regex_terminator(c, bracket_depth) {
+                break;
+            }
+            bracket_depth = Self::update_bracket_depth(c, bracket_depth);
+            pattern.push(self.advance());
+        }
+        pattern.trim_end().to_string()
+    }
+
+    /// Check if the current character terminates a regex pattern.
+    /// `]]` terminates when not inside character class brackets; `;` terminates
+    /// outside brackets.
+    fn is_regex_terminator(&self, c: char, bracket_depth: i32) -> bool {
+        if c == ']' && bracket_depth == 0 && self.peek_char(1) == Some(']') {
+            return true;
+        }
+        c == ';' && bracket_depth == 0
+    }
+
+    /// Update bracket depth tracking for regex pattern reading.
+    fn update_bracket_depth(c: char, depth: i32) -> i32 {
+        match c {
+            '[' => depth + 1,
+            ']' if depth > 0 => depth - 1,
+            _ => depth,
         }
     }
 
