@@ -63,6 +63,52 @@ fn unwrap_single_if(ir: &ShellIR) -> &ShellIR {
     ir
 }
 
+/// Classify an if-statement structure for decision tracing.
+fn classify_if_structure(else_branch: Option<&ShellIR>) -> &'static str {
+    match else_branch {
+        None => "simple_if",
+        Some(ir) => {
+            let unwrapped = unwrap_single_if(ir);
+            if matches!(unwrapped, ShellIR::If { .. }) {
+                "elif_chain"
+            } else {
+                "if_else"
+            }
+        }
+    }
+}
+
+/// Classify a test expression for decision tracing.
+fn classify_test_expression(test: &ShellValue) -> &'static str {
+    match test {
+        ShellValue::Bool(_) => "bool_literal",
+        ShellValue::Variable(_) => "variable_test",
+        ShellValue::String(_) => "string_check",
+        ShellValue::Comparison { .. } => "bracket_test",
+        ShellValue::LogicalAnd { .. }
+        | ShellValue::LogicalOr { .. }
+        | ShellValue::LogicalNot { .. } => "logical_op",
+        ShellValue::CommandSubst(_) => "cmd_subst_test",
+        _ => "other_test",
+    }
+}
+
+/// Determine whether a child arithmetic expression needs parenthesization
+/// relative to its parent operator. Returns true if parens are required.
+fn needs_arithmetic_parens(
+    child_op: &crate::ir::shell_ir::ArithmeticOp,
+    parent_op: Option<&crate::ir::shell_ir::ArithmeticOp>,
+    is_right: bool,
+) -> bool {
+    if let Some(parent) = parent_op {
+        let child_prec = arithmetic_precedence(child_op);
+        let parent_prec = arithmetic_precedence(parent);
+        child_prec < parent_prec || (child_prec == parent_prec && is_right)
+    } else {
+        false
+    }
+}
+
 pub struct PosixEmitter {
     #[allow(dead_code)]
     config: Config,
@@ -735,18 +781,7 @@ impl PosixEmitter {
         else_branch: Option<&ShellIR>,
         indent: usize,
     ) -> Result<()> {
-        let choice = match else_branch {
-            None => "simple_if",
-            Some(ir) => {
-                let unwrapped = unwrap_single_if(ir);
-                if matches!(unwrapped, ShellIR::If { .. }) {
-                    "elif_chain"
-                } else {
-                    "if_else"
-                }
-            }
-        };
-        self.record_decision("if_structure", choice, "If");
+        self.record_decision("if_structure", classify_if_structure(else_branch), "If");
 
         let indent_str = "    ".repeat(indent + 1);
         let test_expr = self.emit_test_expression(test)?;
@@ -755,27 +790,38 @@ impl PosixEmitter {
         self.emit_ir(output, then_branch, indent + 1)?;
 
         if let Some(else_ir) = else_branch {
-            // Emit elif for chained if-else-if instead of nested else { if }
-            let unwrapped = unwrap_single_if(else_ir);
-            if let ShellIR::If {
-                test: elif_test,
-                then_branch: elif_then,
-                else_branch: elif_else,
-            } = unwrapped
-            {
-                let elif_expr = self.emit_test_expression(elif_test)?;
-                writeln!(output, "{indent_str}elif {elif_expr}; then")?;
-                self.emit_ir(output, elif_then, indent + 1)?;
-                if let Some(final_else) = elif_else {
-                    self.emit_elif_chain(output, final_else, indent)?;
-                }
-            } else {
-                writeln!(output, "{indent_str}else")?;
-                self.emit_ir(output, else_ir, indent + 1)?;
-            }
+            self.emit_else_branch(output, else_ir, indent)?;
         }
 
         writeln!(output, "{indent_str}fi")?;
+        Ok(())
+    }
+
+    /// Emit the else portion of an if statement, collapsing chained if-else-if into elif.
+    fn emit_else_branch(
+        &self,
+        output: &mut String,
+        else_ir: &ShellIR,
+        indent: usize,
+    ) -> Result<()> {
+        let indent_str = "    ".repeat(indent + 1);
+        let unwrapped = unwrap_single_if(else_ir);
+        if let ShellIR::If {
+            test: elif_test,
+            then_branch: elif_then,
+            else_branch: elif_else,
+        } = unwrapped
+        {
+            let elif_expr = self.emit_test_expression(elif_test)?;
+            writeln!(output, "{indent_str}elif {elif_expr}; then")?;
+            self.emit_ir(output, elif_then, indent + 1)?;
+            if let Some(final_else) = elif_else {
+                self.emit_elif_chain(output, final_else, indent)?;
+            }
+        } else {
+            writeln!(output, "{indent_str}else")?;
+            self.emit_ir(output, else_ir, indent + 1)?;
+        }
         Ok(())
     }
 
@@ -1248,47 +1294,61 @@ impl PosixEmitter {
             ShellValue::String(s) => Ok(s.clone()),
             ShellValue::Variable(name) => Ok(escape_variable_name(name)),
             ShellValue::Arithmetic { op, left, right } => {
-                // Nested arithmetic - recurse with this op as parent context
-                let left_str = self.emit_arithmetic_operand(left, Some(op), false)?;
-                let right_str = self.emit_arithmetic_operand(right, Some(op), true)?;
-                let op_str = arithmetic_op_str(op);
-                let expr = format!("{left_str} {op_str} {right_str}");
-
-                // Precedence-aware parenthesization:
-                // - Left child: parens only if strictly lower precedence
-                // - Right child: parens if lower OR equal precedence (left-associative)
-                if let Some(parent) = parent_op {
-                    let child_prec = arithmetic_precedence(op);
-                    let parent_prec = arithmetic_precedence(parent);
-                    if child_prec < parent_prec || (child_prec == parent_prec && is_right) {
-                        return Ok(format!("({expr})"));
-                    }
-                }
-                Ok(expr)
+                self.emit_nested_arithmetic(op, left, right, parent_op, is_right)
             }
-            ShellValue::CommandSubst(cmd) => {
-                // Function call return value in arithmetic context
-                // Emit as $(func arg1 arg2) for command substitution
-                let mut parts = vec![cmd.program.clone()];
-                for arg in &cmd.args {
-                    parts.push(self.emit_shell_value(arg)?);
-                }
-                Ok(format!("$({})", parts.join(" ")))
-            }
+            ShellValue::CommandSubst(cmd) => self.emit_arithmetic_cmd_subst(cmd),
             ShellValue::DynamicArrayAccess { array, index } => {
-                // Dynamic array access in arithmetic: $(eval "printf '%s' \"\$arr_${i}\"")
-                let idx_expr = self.emit_dynamic_index_expr(index)?;
-                Ok(format!(
-                    "$(eval \"printf '%s' \\\"\\${}_{}\\\"\")",
-                    escape_variable_name(array),
-                    idx_expr
-                ))
+                self.emit_arithmetic_dynamic_access(array, index)
             }
             _ => Err(crate::models::Error::Emission(format!(
                 "Unsupported value in arithmetic expression: {:?}",
                 value
             ))),
         }
+    }
+
+    /// Emit a nested arithmetic expression with precedence-aware parenthesization.
+    fn emit_nested_arithmetic(
+        &self,
+        op: &crate::ir::shell_ir::ArithmeticOp,
+        left: &ShellValue,
+        right: &ShellValue,
+        parent_op: Option<&crate::ir::shell_ir::ArithmeticOp>,
+        is_right: bool,
+    ) -> Result<String> {
+        let left_str = self.emit_arithmetic_operand(left, Some(op), false)?;
+        let right_str = self.emit_arithmetic_operand(right, Some(op), true)?;
+        let op_str = arithmetic_op_str(op);
+        let expr = format!("{left_str} {op_str} {right_str}");
+
+        if needs_arithmetic_parens(op, parent_op, is_right) {
+            Ok(format!("({expr})"))
+        } else {
+            Ok(expr)
+        }
+    }
+
+    /// Emit a command substitution in arithmetic context: $(func arg1 arg2).
+    fn emit_arithmetic_cmd_subst(&self, cmd: &Command) -> Result<String> {
+        let mut parts = vec![cmd.program.clone()];
+        for arg in &cmd.args {
+            parts.push(self.emit_shell_value(arg)?);
+        }
+        Ok(format!("$({})", parts.join(" ")))
+    }
+
+    /// Emit dynamic array access in arithmetic context.
+    fn emit_arithmetic_dynamic_access(
+        &self,
+        array: &str,
+        index: &ShellValue,
+    ) -> Result<String> {
+        let idx_expr = self.emit_dynamic_index_expr(index)?;
+        Ok(format!(
+            "$(eval \"printf '%s' \\\"\\${}_{}\\\"\")",
+            escape_variable_name(array),
+            idx_expr
+        ))
     }
 
     /// Emit a value for use inside a logical/boolean arithmetic context.
@@ -1445,86 +1505,78 @@ impl PosixEmitter {
     }
 
     pub fn emit_test_expression(&self, test: &ShellValue) -> Result<String> {
-        let choice = match test {
-            ShellValue::Bool(_) => "bool_literal",
-            ShellValue::Variable(_) => "variable_test",
-            ShellValue::String(_) => "string_check",
-            ShellValue::Comparison { .. } => "bracket_test",
-            ShellValue::LogicalAnd { .. }
-            | ShellValue::LogicalOr { .. }
-            | ShellValue::LogicalNot { .. } => "logical_op",
-            ShellValue::CommandSubst(_) => "cmd_subst_test",
-            _ => "other_test",
-        };
-        self.record_decision("test_syntax", choice, "Test");
+        self.record_decision("test_syntax", classify_test_expression(test), "Test");
 
         match test {
             ShellValue::Bool(true) => Ok("true".to_string()),
             ShellValue::Bool(false) => Ok("false".to_string()),
             ShellValue::Variable(name) => {
-                // Test if variable is non-empty
                 Ok(format!("test -n \"${}\"", escape_variable_name(name)))
             }
-            ShellValue::String(s) => {
-                if s == "true" || s == "0" {
-                    Ok("true".to_string())
-                } else {
-                    Ok("false".to_string())
-                }
-            }
-            ShellValue::Comparison { .. } => {
-                // Comparisons already generate complete test expressions
-                self.emit_shell_value(test)
-            }
-            ShellValue::LogicalNot { operand } => {
-                // In test context, use command negation (! cmd), not arithmetic
-                if let Some(b) = try_fold_logical(operand) {
-                    return Ok(self.emit_bool_value(!b));
-                }
-                // For variable operands, use ! "$var" (treat as boolean command)
-                // For comparisons, use ! [ test ]
-                match operand.as_ref() {
-                    ShellValue::Variable(name) => {
-                        Ok(format!("! \"${}\"", escape_variable_name(name)))
-                    }
-                    _ => {
-                        let inner = self.emit_test_expression(operand)?;
-                        Ok(format!("! {inner}"))
-                    }
-                }
-            }
+            ShellValue::String(s) => Ok(self.emit_test_string_literal(s)),
+            ShellValue::Comparison { .. } => self.emit_shell_value(test),
+            ShellValue::LogicalNot { operand } => self.emit_test_not(operand),
             ShellValue::LogicalAnd { left, right } => {
-                if let (Some(l), Some(r)) = (try_fold_logical(left), try_fold_logical(right)) {
-                    return Ok(self.emit_bool_value(l && r));
-                }
-                let l = self.emit_test_expression(left)?;
-                let r = self.emit_test_expression(right)?;
-                Ok(format!("{l} && {r}"))
+                self.emit_test_binary_logical(left, right, true)
             }
             ShellValue::LogicalOr { left, right } => {
-                if let (Some(l), Some(r)) = (try_fold_logical(left), try_fold_logical(right)) {
-                    return Ok(self.emit_bool_value(l || r));
-                }
-                let l = self.emit_test_expression(left)?;
-                let r = self.emit_test_expression(right)?;
-                Ok(format!("{l} || {r}"))
+                self.emit_test_binary_logical(left, right, false)
             }
-            ShellValue::CommandSubst(cmd) => {
-                // Check if this is a predicate function (returns bool via exit code)
-                if self.is_predicate_function(&cmd.program) {
-                    // Execute directly - exit code is the test result
-                    self.emit_command(cmd)
-                } else {
-                    // For other functions, test if output is non-empty
-                    let value = self.emit_shell_value(test)?;
-                    Ok(format!("test -n {value}"))
-                }
-            }
+            ShellValue::CommandSubst(cmd) => self.emit_test_command_subst(test, cmd),
             other => {
-                // For complex expressions, evaluate them and test the result
                 let value = self.emit_shell_value(other)?;
                 Ok(format!("test -n {value}"))
             }
+        }
+    }
+
+    /// Emit a string literal in test context: "true"/"0" map to true, all else to false.
+    fn emit_test_string_literal(&self, s: &str) -> String {
+        if s == "true" || s == "0" {
+            "true".to_string()
+        } else {
+            "false".to_string()
+        }
+    }
+
+    /// Emit a LogicalNot in test context using command negation (! cmd).
+    fn emit_test_not(&self, operand: &ShellValue) -> Result<String> {
+        if let Some(b) = try_fold_logical(operand) {
+            return Ok(self.emit_bool_value(!b));
+        }
+        // For variable operands, use ! "$var" (treat as boolean command)
+        if let ShellValue::Variable(name) = operand {
+            return Ok(format!("! \"${}\"", escape_variable_name(name)));
+        }
+        let inner = self.emit_test_expression(operand)?;
+        Ok(format!("! {inner}"))
+    }
+
+    /// Emit a LogicalAnd or LogicalOr in test context.
+    /// When `is_and` is true, emits `&&`; otherwise emits `||`.
+    fn emit_test_binary_logical(
+        &self,
+        left: &ShellValue,
+        right: &ShellValue,
+        is_and: bool,
+    ) -> Result<String> {
+        if let (Some(l), Some(r)) = (try_fold_logical(left), try_fold_logical(right)) {
+            let folded = if is_and { l && r } else { l || r };
+            return Ok(self.emit_bool_value(folded));
+        }
+        let l = self.emit_test_expression(left)?;
+        let r = self.emit_test_expression(right)?;
+        let op = if is_and { "&&" } else { "||" };
+        Ok(format!("{l} {op} {r}"))
+    }
+
+    /// Emit a CommandSubst in test context, distinguishing predicates from value-producing functions.
+    fn emit_test_command_subst(&self, test: &ShellValue, cmd: &Command) -> Result<String> {
+        if self.is_predicate_function(&cmd.program) {
+            self.emit_command(cmd)
+        } else {
+            let value = self.emit_shell_value(test)?;
+            Ok(format!("test -n {value}"))
         }
     }
 
