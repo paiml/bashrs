@@ -125,6 +125,19 @@ impl MakefileConverter {
     /// Second pass: resolve and emit each exec/println line.
     fn emit_raw_lines(&mut self, entry_fn: &Function) -> Result<String> {
         // First pass: collect variable bindings
+        self.collect_variable_bindings(entry_fn);
+
+        // Second pass: collect output lines
+        let mut output = String::new();
+        for stmt in &entry_fn.body {
+            self.emit_raw_output_stmt(stmt, &mut output);
+        }
+
+        Ok(output)
+    }
+
+    /// Collect variable bindings from let statements
+    fn collect_variable_bindings(&mut self, entry_fn: &Function) {
         for stmt in &entry_fn.body {
             if let Stmt::Let { name, value, .. } = stmt {
                 if let Expr::Literal(Literal::Str(s)) = value {
@@ -132,32 +145,27 @@ impl MakefileConverter {
                 }
             }
         }
+    }
 
-        // Second pass: collect output lines
-        let mut output = String::new();
-        for stmt in &entry_fn.body {
-            if let Stmt::Expr(Expr::FunctionCall { name, args }) = stmt {
-                let is_output = name == "exec"
-                    || name == "rash_println"
-                    || name == "println"
-                    || name == "rash_print"
-                    || name == "print";
-                if is_output {
-                    if let Some(first_arg) = args.first() {
-                        let resolved = self.resolve_concat_expr(first_arg);
-                        if !resolved.is_empty() {
-                            output.push_str(&resolved);
-                            // println adds newline, print doesn't
-                            if name != "rash_print" && name != "print" {
-                                output.push('\n');
-                            }
+    /// Emit a single raw output statement (exec/println/print) into the output buffer
+    fn emit_raw_output_stmt(&self, stmt: &Stmt, output: &mut String) {
+        if let Stmt::Expr(Expr::FunctionCall { name, args }) = stmt {
+            let is_output = matches!(
+                name.as_str(),
+                "exec" | "rash_println" | "println" | "rash_print" | "print"
+            );
+            if is_output {
+                if let Some(first_arg) = args.first() {
+                    let resolved = self.resolve_concat_expr(first_arg);
+                    if !resolved.is_empty() {
+                        output.push_str(&resolved);
+                        if name != "rash_print" && name != "print" {
+                            output.push('\n');
                         }
                     }
                 }
             }
         }
-
-        Ok(output)
     }
 
     fn convert(&self, ast: &RestrictedAst) -> Result<MakeAst> {
@@ -171,41 +179,18 @@ impl MakefileConverter {
             .find(|f| f.name == ast.entry_point)
             .ok_or_else(|| Error::IrGeneration("Entry point not found".to_string()))?;
 
-        // Convert each statement
+        // Convert each statement in the entry function
         for stmt in &entry_fn.body {
             if let Some(item) = converter.convert_stmt(stmt)? {
                 items.push(item);
             }
         }
 
-        // Also convert non-main functions as potential helper targets
+        // Convert non-main functions as potential helper targets
         for function in &ast.functions {
             if function.name != ast.entry_point {
-                // Convert function definitions to targets with empty prerequisites
-                let mut recipes = Vec::new();
-                for stmt in &function.body {
-                    if let Stmt::Expr(Expr::FunctionCall { name, args }) = stmt {
-                        if name == "echo" || name == "println" {
-                            if let Some(Expr::Literal(Literal::Str(s))) = args.first() {
-                                recipes.push(format!("@echo '{}'", s));
-                            }
-                        }
-                    }
-                }
-
-                // Only generate target if function has meaningful body
-                if !recipes.is_empty() {
-                    let params: Vec<String> =
-                        function.params.iter().map(|p| p.name.clone()).collect();
-
-                    items.push(MakeItem::Target {
-                        name: function.name.clone(),
-                        prerequisites: params,
-                        recipe: recipes,
-                        phony: true,
-                        recipe_metadata: None,
-                        span: converter.next_span(),
-                    });
+                if let Some(target) = Self::convert_helper_function(function, &mut converter) {
+                    items.push(target);
                 }
             }
         }
@@ -213,6 +198,37 @@ impl MakefileConverter {
         Ok(MakeAst {
             items,
             metadata: MakeMetadata::new(),
+        })
+    }
+
+    /// Convert a non-main function into a Makefile target, if it has echo/println statements
+    fn convert_helper_function(
+        function: &Function,
+        converter: &mut MakefileConverter,
+    ) -> Option<MakeItem> {
+        let mut recipes = Vec::new();
+        for stmt in &function.body {
+            if let Stmt::Expr(Expr::FunctionCall { name, args }) = stmt {
+                if name == "echo" || name == "println" {
+                    if let Some(Expr::Literal(Literal::Str(s))) = args.first() {
+                        recipes.push(format!("@echo '{}'", s));
+                    }
+                }
+            }
+        }
+
+        if recipes.is_empty() {
+            return None;
+        }
+
+        let params: Vec<String> = function.params.iter().map(|p| p.name.clone()).collect();
+        Some(MakeItem::Target {
+            name: function.name.clone(),
+            prerequisites: params,
+            recipe: recipes,
+            phony: true,
+            recipe_metadata: None,
+            span: converter.next_span(),
         })
     }
 

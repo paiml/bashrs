@@ -1,6 +1,6 @@
 use super::{ValidationError, ValidationLevel};
 use crate::ast::RestrictedAst;
-use crate::ir::ShellIR;
+use crate::ir::{shell_ir::CaseArm, ShellIR, ShellValue};
 use crate::models::config::Config;
 use crate::models::error::{RashError, RashResult};
 
@@ -135,22 +135,26 @@ impl ValidationPipeline {
             ));
         }
 
-        // Issue #94: Skip pipe check for table/formatting strings
-        // Strings that look like table borders (multiple |) are not command injection
-        let is_formatting_string = s.chars().filter(|c| *c == '|').count() > 1
-            && !s.contains(";")
-            && !s.contains("$(")
-            && !s.contains("&&");
-
         // Check for command injection patterns
+        Self::check_dangerous_patterns(s)?;
+
+        // Issue #94: Only check for pipe operator if not a formatting string
+        Self::check_pipe_injection(s)?;
+
+        // Check for newlines/carriage returns followed by dangerous commands
+        Self::check_newline_injection(s)?;
+
+        Ok(())
+    }
+
+    /// Check for known dangerous command injection patterns in string literals
+    fn check_dangerous_patterns(s: &str) -> RashResult<()> {
         let dangerous_patterns = [
             ("$(", "Command substitution detected in string literal"),
             (
                 "`",
                 "Backtick command substitution detected in string literal (SC2006)",
             ),
-            // Note: bare "; " is NOT an injection in double-quoted strings (echo "a; b" is safe)
-            // Only quote-escape+semicolon patterns below are actual injection vectors
             ("&& ", "AND operator detected in string literal"),
             ("|| ", "OR operator detected in string literal"),
             (
@@ -175,48 +179,58 @@ impl ValidationPipeline {
                 )));
             }
         }
+        Ok(())
+    }
 
-        // Issue #94: Only check for pipe operator if not a formatting string
-        // Pipes in table formatting (like "| col1 | col2 |") are not command injection
-        if !is_formatting_string && s.contains("| ") {
-            // Check if this looks like a command pipe (e.g., "| cmd" pattern)
-            // Skip if it's at the start or end (likely table border)
-            let trimmed = s.trim();
-            if !trimmed.starts_with('|') && !trimmed.ends_with('|') {
-                // Only flag if there's a command-like word after the pipe
-                if let Some(pos) = s.find("| ") {
-                    let after_pipe = &s[pos + 2..].trim_start();
-                    // Check if what follows looks like a command (alphanumeric word)
-                    if !after_pipe.is_empty()
-                        && after_pipe.chars().next().is_some_and(|c| c.is_alphabetic())
-                    {
-                        return Err(RashError::ValidationError(format!(
-                            "Pipe operator detected in string literal: '{}'",
-                            s.chars().take(50).collect::<String>()
-                        )));
-                    }
+    /// Check for pipe operator injection, excluding table/formatting strings
+    fn check_pipe_injection(s: &str) -> RashResult<()> {
+        // Issue #94: Skip pipe check for table/formatting strings
+        let is_formatting_string = s.chars().filter(|c| *c == '|').count() > 1
+            && !s.contains(";")
+            && !s.contains("$(")
+            && !s.contains("&&");
+
+        if is_formatting_string || !s.contains("| ") {
+            return Ok(());
+        }
+
+        let trimmed = s.trim();
+        if trimmed.starts_with('|') || trimmed.ends_with('|') {
+            return Ok(());
+        }
+
+        if let Some(pos) = s.find("| ") {
+            let after_pipe = &s[pos + 2..].trim_start();
+            if !after_pipe.is_empty()
+                && after_pipe.chars().next().is_some_and(|c| c.is_alphabetic())
+            {
+                return Err(RashError::ValidationError(format!(
+                    "Pipe operator detected in string literal: '{}'",
+                    s.chars().take(50).collect::<String>()
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// Check for newlines followed by dangerous shell commands
+    fn check_newline_injection(s: &str) -> RashResult<()> {
+        if !s.contains('\n') && !s.contains('\r') {
+            return Ok(());
+        }
+
+        let dangerous_starts = ["rm ", "curl ", "wget ", "eval ", "exec ", "bash ", "sh "];
+        for line in s.split(&['\n', '\r'][..]) {
+            let trimmed = line.trim();
+            for start in &dangerous_starts {
+                if trimmed.starts_with(start) {
+                    return Err(RashError::ValidationError(format!(
+                        "Newline followed by dangerous command detected: '{}'",
+                        trimmed.chars().take(50).collect::<String>()
+                    )));
                 }
             }
         }
-
-        // Check for newlines/carriage returns followed by dangerous commands
-        if s.contains('\n') || s.contains('\r') {
-            let lines: Vec<&str> = s.split(&['\n', '\r'][..]).collect();
-            for line in lines {
-                let trimmed = line.trim();
-                // Check if any line starts with a shell command that could be dangerous
-                let dangerous_starts = ["rm ", "curl ", "wget ", "eval ", "exec ", "bash ", "sh "];
-                for start in &dangerous_starts {
-                    if trimmed.starts_with(start) {
-                        return Err(RashError::ValidationError(format!(
-                            "Newline followed by dangerous command detected: '{}'",
-                            trimmed.chars().take(50).collect::<String>()
-                        )));
-                    }
-                }
-            }
-        }
-
         Ok(())
     }
 
@@ -421,102 +435,119 @@ impl ValidationPipeline {
 
     fn validate_ir_recursive(&self, ir: &ShellIR) -> RashResult<()> {
         match ir {
-            ShellIR::Let { value, .. } => {
-                self.validate_shell_value(value)?;
-            }
-            ShellIR::Exec { cmd, .. } => {
-                for arg in &cmd.args {
-                    self.validate_shell_value(arg)?;
-                }
-            }
+            ShellIR::Let { value, .. } => self.validate_shell_value(value),
+            ShellIR::Exec { cmd, .. } => self.validate_exec_args(&cmd.args),
             ShellIR::If {
                 test,
                 then_branch,
                 else_branch,
-            } => {
-                self.validate_shell_value(test)?;
-                self.validate_ir_recursive(then_branch)?;
-                if let Some(else_b) = else_branch {
-                    self.validate_ir_recursive(else_b)?;
-                }
-            }
-            ShellIR::Sequence(irs) => {
-                for ir in irs {
-                    self.validate_ir_recursive(ir)?;
-                }
-            }
-            ShellIR::Function { body, .. } => {
-                self.validate_ir_recursive(body)?;
-            }
-            ShellIR::Exit { .. } | ShellIR::Noop => {}
-            ShellIR::Echo { value } => {
-                self.validate_shell_value(value)?;
-            }
+            } => self.validate_ir_if(test, then_branch, else_branch),
+            ShellIR::Sequence(irs) => self.validate_ir_sequence(irs),
+            ShellIR::Function { body, .. } => self.validate_ir_recursive(body),
+            ShellIR::Exit { .. } | ShellIR::Noop => Ok(()),
+            ShellIR::Echo { value } => self.validate_shell_value(value),
             ShellIR::For {
                 var,
                 start,
                 end,
                 body,
-            } => {
-                // Validate variable name
-                if var.is_empty() {
-                    return Err(RashError::ValidationError(
-                        "For loop variable name cannot be empty".to_string(),
-                    ));
-                }
-                // Validate range values
-                self.validate_shell_value(start)?;
-                self.validate_shell_value(end)?;
-                // Validate body
-                self.validate_ir_recursive(body)?;
-            }
+            } => self.validate_ir_for(var, start, end, body),
             ShellIR::While { condition, body } => {
-                // Validate condition
                 self.validate_shell_value(condition)?;
-                // Validate body
-                self.validate_ir_recursive(body)?;
+                self.validate_ir_recursive(body)
             }
-            ShellIR::Case { scrutinee, arms } => {
-                // Validate scrutinee
-                self.validate_shell_value(scrutinee)?;
-
-                // Validate each arm
-                for arm in arms {
-                    if let Some(guard) = &arm.guard {
-                        self.validate_shell_value(guard)?;
-                    }
-                    self.validate_ir_recursive(&arm.body)?;
-                }
-
-                // Check for at least one arm
-                if arms.is_empty() {
-                    return Err(RashError::ValidationError(
-                        "Match expression must have at least one arm".to_string(),
-                    ));
-                }
-            }
-            ShellIR::ForIn { var, items, body } => {
-                if var.is_empty() {
-                    return Err(RashError::ValidationError(
-                        "For-in loop variable name cannot be empty".to_string(),
-                    ));
-                }
-                for item in items {
-                    self.validate_shell_value(item)?;
-                }
-                self.validate_ir_recursive(body)?;
-            }
-            ShellIR::Break | ShellIR::Continue => {
-                // Break and continue are always valid in IR
-                // Context validation (must be inside loop) happens during AST validation
-            }
+            ShellIR::Case { scrutinee, arms } => self.validate_ir_case(scrutinee, arms),
+            ShellIR::ForIn { var, items, body } => self.validate_ir_for_in(var, items, body),
+            ShellIR::Break | ShellIR::Continue => Ok(()),
             ShellIR::Return { value } => {
                 if let Some(val) = value {
                     self.validate_shell_value(val)?;
                 }
+                Ok(())
             }
         }
+    }
+
+    fn validate_exec_args(&self, args: &[ShellValue]) -> RashResult<()> {
+        for arg in args {
+            self.validate_shell_value(arg)?;
+        }
         Ok(())
+    }
+
+    fn validate_ir_if(
+        &self,
+        test: &ShellValue,
+        then_branch: &ShellIR,
+        else_branch: &Option<Box<ShellIR>>,
+    ) -> RashResult<()> {
+        self.validate_shell_value(test)?;
+        self.validate_ir_recursive(then_branch)?;
+        if let Some(else_b) = else_branch {
+            self.validate_ir_recursive(else_b)?;
+        }
+        Ok(())
+    }
+
+    fn validate_ir_sequence(&self, irs: &[ShellIR]) -> RashResult<()> {
+        for ir in irs {
+            self.validate_ir_recursive(ir)?;
+        }
+        Ok(())
+    }
+
+    fn validate_ir_for(
+        &self,
+        var: &str,
+        start: &ShellValue,
+        end: &ShellValue,
+        body: &ShellIR,
+    ) -> RashResult<()> {
+        if var.is_empty() {
+            return Err(RashError::ValidationError(
+                "For loop variable name cannot be empty".to_string(),
+            ));
+        }
+        self.validate_shell_value(start)?;
+        self.validate_shell_value(end)?;
+        self.validate_ir_recursive(body)
+    }
+
+    fn validate_ir_case(
+        &self,
+        scrutinee: &ShellValue,
+        arms: &[CaseArm],
+    ) -> RashResult<()> {
+        self.validate_shell_value(scrutinee)?;
+        for arm in arms {
+            if let Some(guard) = &arm.guard {
+                self.validate_shell_value(guard)?;
+            }
+            self.validate_ir_recursive(&arm.body)?;
+        }
+        if arms.is_empty() {
+            return Err(RashError::ValidationError(
+                "Match expression must have at least one arm".to_string(),
+            ));
+        }
+        Ok(())
+    }
+
+    fn validate_ir_for_in(
+        &self,
+        var: &str,
+        items: &[ShellValue],
+        body: &ShellIR,
+    ) -> RashResult<()> {
+        if var.is_empty() {
+            return Err(RashError::ValidationError(
+                "For-in loop variable name cannot be empty".to_string(),
+            ));
+        }
+        for item in items {
+            self.validate_shell_value(item)?;
+        }
+        self.validate_ir_recursive(body)
     }
 
     pub(crate) fn validate_shell_value(&self, value: &crate::ir::ShellValue) -> RashResult<()> {

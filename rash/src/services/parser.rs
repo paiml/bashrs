@@ -149,74 +149,45 @@ fn convert_function(item_fn: ItemFn) -> Result<Function> {
 
 fn convert_type(ty: &SynType) -> Result<Type> {
     match ty {
-        SynType::Path(type_path) => {
-            let path_str = type_path
-                .path
-                .segments
-                .iter()
-                .map(|seg| seg.ident.to_string())
-                .collect::<Vec<_>>()
-                .join("::");
-
-            match path_str.as_str() {
-                "bool" => Ok(Type::Bool),
-                "u16" => Ok(Type::U16),
-                "u32" | "i32" => Ok(Type::U32), // Treat i32 as u32 for now
-                "str" | "String" => Ok(Type::Str),
-                path if path.starts_with("Result") => {
-                    // Simple Result type parsing - assumes Result<T, E>
-                    Ok(Type::Result {
-                        ok_type: Box::new(Type::Str), // Simplified
-                        err_type: Box::new(Type::Str),
-                    })
-                }
-                path if path.starts_with("Option") => {
-                    // Simple Option type parsing - assumes Option<T>
-                    Ok(Type::Option {
-                        inner_type: Box::new(Type::Str), // Simplified
-                    })
-                }
-                // Single-letter or unknown types: treat as Str (shell is untyped)
-                // This handles generic type params like T, U, V, etc.
-                _ => Ok(Type::Str),
-            }
-        }
-        SynType::Reference(type_ref) => {
-            // Handle &str, &[T] and other reference types
-            match &*type_ref.elem {
-                SynType::Path(path) => {
-                    let path_str = path
-                        .path
-                        .segments
-                        .iter()
-                        .map(|seg| seg.ident.to_string())
-                        .collect::<Vec<_>>()
-                        .join("::");
-
-                    match path_str.as_str() {
-                        "str" => Ok(Type::Str),
-                        // All other reference types (&i32, &mut T, etc.) → Str (shell is untyped)
-                        _ => Ok(Type::Str),
-                    }
-                }
-                SynType::Slice(_) => {
-                    // &[T] slice references are treated as Str for shell compatibility
-                    // The actual array content is handled at the expression level
-                    Ok(Type::Str)
-                }
-                // All other reference types: &[i32; 5], &dyn Trait, etc. → Str
-                _ => Ok(Type::Str),
-            }
-        }
-        SynType::Tuple(_) => {
-            // Tuple types like (i32, i32) → map to Str (shell is untyped)
-            Ok(Type::Str)
-        }
-        SynType::Array(_) => {
-            // Fixed-size array types like [i32; 5] → Str (shell is untyped)
-            Ok(Type::Str)
-        }
+        SynType::Path(type_path) => convert_path_type(type_path),
+        SynType::Reference(type_ref) => convert_reference_type(type_ref),
+        SynType::Tuple(_) => Ok(Type::Str),
+        SynType::Array(_) => Ok(Type::Str),
         _ => Err(Error::Validation("Complex types not supported".to_string())),
+    }
+}
+
+/// Convert a path type (e.g. bool, String, Result<T, E>) to our Type enum
+fn convert_path_type(type_path: &syn::TypePath) -> Result<Type> {
+    let path_str = type_path
+        .path
+        .segments
+        .iter()
+        .map(|seg| seg.ident.to_string())
+        .collect::<Vec<_>>()
+        .join("::");
+
+    match path_str.as_str() {
+        "bool" => Ok(Type::Bool),
+        "u16" => Ok(Type::U16),
+        "u32" | "i32" => Ok(Type::U32),
+        "str" | "String" => Ok(Type::Str),
+        path if path.starts_with("Result") => Ok(Type::Result {
+            ok_type: Box::new(Type::Str),
+            err_type: Box::new(Type::Str),
+        }),
+        path if path.starts_with("Option") => Ok(Type::Option {
+            inner_type: Box::new(Type::Str),
+        }),
+        _ => Ok(Type::Str),
+    }
+}
+
+/// Convert a reference type (e.g. &str, &[T]) to our Type enum
+fn convert_reference_type(type_ref: &syn::TypeReference) -> Result<Type> {
+    match &*type_ref.elem {
+        SynType::Path(_) | SynType::Slice(_) => Ok(Type::Str),
+        _ => Ok(Type::Str),
     }
 }
 
@@ -1717,37 +1688,33 @@ mod tests {
         let ast = parse(source).unwrap();
 
         // Verify first level if
-        match &ast.functions[0].body[0] {
+        let first_else = extract_if_else_block(&ast.functions[0].body[0]);
+        assert_eq!(first_else.len(), 1);
+
+        // Verify second level else-if
+        let second_else = extract_if_else_block(&first_else[0]);
+        assert_eq!(second_else.len(), 1);
+
+        // Verify third level else-if
+        match &second_else[0] {
+            Stmt::If {
+                condition,
+                else_block: third_else,
+                ..
+            } => {
+                assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
+                assert!(third_else.is_none());
+            }
+            _ => panic!("Expected third-level If statement"),
+        }
+    }
+
+    /// Helper: extract the else block from an If statement, panicking if not found
+    fn extract_if_else_block(stmt: &Stmt) -> &Vec<Stmt> {
+        match stmt {
             Stmt::If { else_block, .. } => {
-                assert!(else_block.is_some());
-                let first_else = else_block.as_ref().unwrap();
-                assert_eq!(first_else.len(), 1);
-
-                // Verify second level else-if
-                match &first_else[0] {
-                    Stmt::If {
-                        else_block: second_else_block,
-                        ..
-                    } => {
-                        assert!(second_else_block.is_some());
-                        let second_else = second_else_block.as_ref().unwrap();
-                        assert_eq!(second_else.len(), 1);
-
-                        // Verify third level else-if
-                        match &second_else[0] {
-                            Stmt::If {
-                                condition,
-                                else_block: third_else,
-                                ..
-                            } => {
-                                assert!(matches!(condition, Expr::Literal(Literal::Bool(true))));
-                                assert!(third_else.is_none());
-                            }
-                            _ => panic!("Expected third-level If statement"),
-                        }
-                    }
-                    _ => panic!("Expected second-level If statement"),
-                }
+                assert!(else_block.is_some(), "Expected else block");
+                else_block.as_ref().unwrap()
             }
             _ => panic!("Expected If statement"),
         }

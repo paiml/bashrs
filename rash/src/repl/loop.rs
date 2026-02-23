@@ -25,6 +25,7 @@ use crate::repl::{
 };
 use anyhow::Result;
 use rustyline::config::Config;
+use rustyline::history::DefaultHistory;
 use rustyline::Editor;
 use std::path::PathBuf;
 
@@ -95,127 +96,25 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     let mut multiline_buffer = String::new();
 
     loop {
-        // Determine prompt based on whether we're in multi-line mode
         let prompt = if multiline_buffer.is_empty() {
             format!("bashrs [{}]> ", state.mode())
         } else {
             "... > ".to_string()
         };
 
-        let readline = editor.readline(&prompt);
-
-        match readline {
+        match editor.readline(&prompt) {
             Ok(line) => {
-                let trimmed_line = line.trim();
-
-                // Handle empty input in multi-line mode
-                if trimmed_line.is_empty() && !multiline_buffer.is_empty() {
-                    // Empty line while in multi-line: continue accumulating
-                    multiline_buffer.push('\n');
-                    continue;
-                }
-
-                // Handle empty input in normal mode
-                if trimmed_line.is_empty() {
-                    continue;
-                }
-
-                // Accumulate multi-line input
-                if !multiline_buffer.is_empty() {
-                    multiline_buffer.push('\n');
-                    multiline_buffer.push_str(&line);
-                } else {
-                    multiline_buffer.push_str(&line);
-                }
-
-                // Check if input is incomplete and needs continuation
-                if is_incomplete(&multiline_buffer) {
-                    // Input is incomplete, continue reading
-                    continue;
-                }
-
-                // Input is complete - process it
-                let complete_input = multiline_buffer.clone();
-                multiline_buffer.clear();
-
-                // Add to history
-                let _ = editor.add_history_entry(&complete_input);
-                state.add_history(complete_input.clone());
-
-                // Process the complete input
-                let line = complete_input.trim();
-
-                // Handle variable assignments (before other commands)
-                if let Some((name, value)) = parse_assignment(line) {
-                    state.set_variable(name.clone(), value.clone());
-                    println!("✓ Variable set: {} = {}", name, value);
-                    continue;
-                }
-
-                // Handle special commands
-                if line.starts_with(":mode") {
-                    // Handle :mode command
-                    handle_mode_command(line, &mut state);
-                } else if line.starts_with(":parse") {
-                    // Handle :parse command
-                    handle_parse_command(line);
-                } else if line.starts_with(":purify") {
-                    // Handle :purify command
-                    handle_purify_command(line);
-                } else if line.starts_with(":lint") {
-                    // Handle :lint command
-                    handle_lint_command(line);
-                } else if line.starts_with(":load") {
-                    // Handle :load command
-                    handle_load_command(line, &mut state);
-                } else if line.starts_with(":source") {
-                    // Handle :source command
-                    handle_source_command(line, &mut state);
-                } else if line == ":functions" {
-                    // Handle :functions command
-                    handle_functions_command(&state);
-                } else if line == ":reload" {
-                    // Handle :reload command
-                    handle_reload_command(&mut state);
-                } else if line == ":history" {
-                    // Handle :history command
-                    handle_history_command(&state);
-                } else if line == ":vars" {
-                    // Handle :vars command
-                    handle_vars_command(&state);
-                } else if line == ":clear" {
-                    // Handle :clear command
-                    handle_clear_command();
-                } else if line == "quit" || line == "exit" {
-                    println!("Goodbye!");
-                    break;
-                } else if line == "help" || line.starts_with("help ") || line.starts_with(":help") {
-                    // Handle help command with optional topic
-                    let topic = if line.contains(' ') {
-                        // Extract topic after "help " or ":help "
-                        let parts: Vec<&str> = line.split_whitespace().collect();
-                        parts.get(1).copied()
-                    } else {
-                        None
-                    };
-                    print!("{}", show_help(topic));
-                } else {
-                    // Process command based on current mode
-                    handle_command_by_mode(line, &state);
+                match process_repl_line(&line, &mut multiline_buffer, &mut state, &mut editor) {
+                    LineAction::Continue => continue,
+                    LineAction::Break => break,
+                    LineAction::Next => {}
                 }
             }
             Err(rustyline::error::ReadlineError::Interrupted) => {
-                // Ctrl-C - reset multi-line buffer
-                if !multiline_buffer.is_empty() {
-                    println!("^C (multi-line input cancelled)");
-                    multiline_buffer.clear();
-                } else {
-                    println!("^C");
-                }
+                handle_interrupt(&mut multiline_buffer);
                 continue;
             }
             Err(rustyline::error::ReadlineError::Eof) => {
-                // Ctrl-D
                 println!("EOF");
                 break;
             }
@@ -229,6 +128,136 @@ pub fn run_repl(config: ReplConfig) -> Result<()> {
     let _ = editor.save_history(&history_path);
 
     Ok(())
+}
+
+/// Result of processing a single REPL input line
+enum LineAction {
+    /// Continue to next iteration (skip remaining loop body)
+    Continue,
+    /// Break out of the REPL loop
+    Break,
+    /// Proceed normally (no special action)
+    Next,
+}
+
+/// Process a single line of REPL input, handling multiline accumulation
+fn process_repl_line(
+    line: &str,
+    multiline_buffer: &mut String,
+    state: &mut ReplState,
+    editor: &mut Editor<ReplCompleter, DefaultHistory>,
+) -> LineAction {
+    let trimmed_line = line.trim();
+
+    // Handle empty input
+    if trimmed_line.is_empty() {
+        if !multiline_buffer.is_empty() {
+            multiline_buffer.push('\n');
+        }
+        return LineAction::Continue;
+    }
+
+    // Accumulate multi-line input
+    if !multiline_buffer.is_empty() {
+        multiline_buffer.push('\n');
+    }
+    multiline_buffer.push_str(line);
+
+    // Check if input is incomplete and needs continuation
+    if is_incomplete(multiline_buffer) {
+        return LineAction::Continue;
+    }
+
+    // Input is complete - process it
+    let complete_input = multiline_buffer.clone();
+    multiline_buffer.clear();
+
+    // Add to history
+    let _ = editor.add_history_entry(&complete_input);
+    state.add_history(complete_input.clone());
+
+    let trimmed = complete_input.trim();
+
+    // Handle variable assignments (before other commands)
+    if let Some((name, value)) = parse_assignment(trimmed) {
+        state.set_variable(name.clone(), value.clone());
+        println!("\u{2713} Variable set: {} = {}", name, value);
+        return LineAction::Continue;
+    }
+
+    // Dispatch to command handler
+    if dispatch_repl_command(trimmed, state) {
+        return LineAction::Break;
+    }
+
+    LineAction::Next
+}
+
+/// Handle Ctrl-C interrupt in the REPL
+fn handle_interrupt(multiline_buffer: &mut String) {
+    if !multiline_buffer.is_empty() {
+        println!("^C (multi-line input cancelled)");
+        multiline_buffer.clear();
+    } else {
+        println!("^C");
+    }
+}
+
+/// Dispatch a REPL command to the appropriate handler.
+/// Returns `true` if the REPL should exit (quit/exit command).
+fn dispatch_repl_command(line: &str, state: &mut ReplState) -> bool {
+    // Handle colon commands
+    if line.starts_with(':') {
+        dispatch_colon_command(line, state);
+        return false;
+    }
+
+    // Handle quit/exit
+    if line == "quit" || line == "exit" {
+        println!("Goodbye!");
+        return true;
+    }
+
+    // Handle help
+    if line == "help" || line.starts_with("help ") || line.starts_with(":help") {
+        print!("{}", show_help(extract_help_topic(line)));
+        return false;
+    }
+
+    // Default: process by current mode
+    handle_command_by_mode(line, state);
+    false
+}
+
+/// Dispatch colon-prefixed REPL commands (:mode, :parse, :purify, etc.)
+fn dispatch_colon_command(line: &str, state: &mut ReplState) {
+    // Extract the command name (first word after ':')
+    let cmd = line.split_whitespace().next().unwrap_or("");
+    match cmd {
+        ":mode" => handle_mode_command(line, state),
+        ":parse" => handle_parse_command(line),
+        ":purify" => handle_purify_command(line),
+        ":lint" => handle_lint_command(line),
+        ":load" => handle_load_command(line, state),
+        ":source" => handle_source_command(line, state),
+        ":functions" => handle_functions_command(state),
+        ":reload" => handle_reload_command(state),
+        ":history" => handle_history_command(state),
+        ":vars" => handle_vars_command(state),
+        ":clear" => handle_clear_command(),
+        ":help" => print!("{}", show_help(extract_help_topic(line))),
+        _ => println!("Unknown command: {}. Type 'help' for available commands.", cmd),
+    }
+}
+
+/// Extract the help topic from a help command line
+fn extract_help_topic(line: &str) -> Option<&str> {
+    if line.contains(' ') {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        parts.get(1).copied()
+    } else {
+        None
+    }
 }
 
 /// Handle mode switching command (thin shim over logic module)
