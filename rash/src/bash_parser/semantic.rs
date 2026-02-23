@@ -140,64 +140,11 @@ impl SemanticAnalyzer {
                 value,
                 exported,
                 ..
-            } => {
-                let inferred_type = self.infer_type(value);
+            } => self.analyze_assignment_stmt(name, value, *exported, scope),
 
-                scope.variables.insert(
-                    name.clone(),
-                    VarInfo {
-                        name: name.clone(),
-                        exported: *exported,
-                        assigned: true,
-                        used: false,
-                        inferred_type,
-                    },
-                );
+            BashStmt::Command { name, args, .. } => self.analyze_command_stmt(name, args, scope),
 
-                if *exported {
-                    self.effects.env_modifications.insert(name.clone());
-                }
-
-                self.analyze_expression(value, scope)?;
-            }
-
-            BashStmt::Command { name, args, .. } => {
-                self.track_command_effects(name);
-                self.effects.process_spawns.insert(name.clone());
-
-                for arg in args {
-                    self.analyze_expression(arg, scope)?;
-                }
-            }
-
-            BashStmt::Function { name, body, .. } => {
-                if scope.functions.contains_key(name) {
-                    return Err(SemanticError::FunctionRedefinition(name.clone()));
-                }
-
-                let mut func_scope = ScopeInfo {
-                    variables: HashMap::new(),
-                    functions: HashMap::new(),
-                    parent: Some(Box::new(scope.clone())),
-                };
-
-                let mut calls = HashSet::new();
-                for stmt in body {
-                    if let BashStmt::Command { name, .. } = stmt {
-                        calls.insert(name.clone());
-                    }
-                    self.analyze_statement(stmt, &mut func_scope)?;
-                }
-
-                scope.functions.insert(
-                    name.clone(),
-                    FunctionInfo {
-                        name: name.clone(),
-                        parameter_count: 0, // TODO: detect from $1, $2, etc.
-                        calls_detected: calls,
-                    },
-                );
-            }
+            BashStmt::Function { name, body, .. } => self.analyze_function_def(name, body, scope),
 
             BashStmt::If {
                 condition,
@@ -205,26 +152,7 @@ impl SemanticAnalyzer {
                 elif_blocks,
                 else_block,
                 ..
-            } => {
-                self.analyze_expression(condition, scope)?;
-
-                for stmt in then_block {
-                    self.analyze_statement(stmt, scope)?;
-                }
-
-                for (elif_cond, elif_body) in elif_blocks {
-                    self.analyze_expression(elif_cond, scope)?;
-                    for stmt in elif_body {
-                        self.analyze_statement(stmt, scope)?;
-                    }
-                }
-
-                if let Some(else_body) = else_block {
-                    for stmt in else_body {
-                        self.analyze_statement(stmt, scope)?;
-                    }
-                }
-            }
+            } => self.analyze_if_stmt(condition, then_block, elif_blocks, else_block, scope),
 
             BashStmt::While {
                 condition, body, ..
@@ -238,95 +166,186 @@ impl SemanticAnalyzer {
                 ..
             } => {
                 self.analyze_expression(condition, scope)?;
-                for stmt in body {
-                    self.analyze_statement(stmt, scope)?;
-                }
+                self.analyze_body(body, scope)
             }
 
             // Issue #68: C-style for loop
-            BashStmt::ForCStyle { body, .. } => {
-                // For C-style loops, we don't analyze the init/condition/increment strings
-                // as they are raw C-style expressions that will be converted to POSIX
-                for stmt in body {
-                    self.analyze_statement(stmt, scope)?;
-                }
-            }
+            BashStmt::ForCStyle { body, .. } => self.analyze_body(body, scope),
 
             BashStmt::Return { code, .. } => {
                 if let Some(expr) = code {
                     self.analyze_expression(expr, scope)?;
                 }
+                Ok(())
             }
 
-            BashStmt::Comment { .. } => {
-                // Comments don't affect semantics
-            }
+            BashStmt::Comment { .. } => Ok(()),
 
-            BashStmt::Case { word, arms, .. } => {
-                self.analyze_expression(word, scope)?;
+            BashStmt::Case { word, arms, .. } => self.analyze_case_stmt(word, arms, scope),
 
-                for arm in arms {
-                    for stmt in &arm.body {
-                        self.analyze_statement(stmt, scope)?;
-                    }
-                }
-            }
+            BashStmt::Pipeline { commands, .. } => self.analyze_body(commands, scope),
 
-            BashStmt::Pipeline { commands, .. } => {
-                // Analyze each command in the pipeline
-                for cmd in commands {
-                    self.analyze_statement(cmd, scope)?;
-                }
-            }
-
-            BashStmt::AndList { left, right, .. } => {
-                // Analyze both sides of the AND list
+            BashStmt::AndList { left, right, .. }
+            | BashStmt::OrList { left, right, .. } => {
                 self.analyze_statement(left, scope)?;
-                self.analyze_statement(right, scope)?;
+                self.analyze_statement(right, scope)
             }
 
-            BashStmt::OrList { left, right, .. } => {
-                // Analyze both sides of the OR list
-                self.analyze_statement(left, scope)?;
-                self.analyze_statement(right, scope)?;
-            }
+            BashStmt::BraceGroup { body, .. }
+            | BashStmt::Coproc { body, .. } => self.analyze_body(body, scope),
 
-            BashStmt::BraceGroup { body, .. } => {
-                // Analyze all statements in the brace group
-                for stmt in body {
-                    self.analyze_statement(stmt, scope)?;
-                }
-            }
-
-            BashStmt::Coproc { body, .. } => {
-                // Analyze coproc body - runs asynchronously
-                for stmt in body {
-                    self.analyze_statement(stmt, scope)?;
-                }
-            }
             BashStmt::Select { variable, body, .. } => {
-                // F017: Analyze select statement - variable is assigned in each iteration
-                scope.variables.insert(
-                    variable.clone(),
-                    VarInfo {
-                        name: variable.clone(),
-                        exported: false,
-                        assigned: true,
-                        used: false,
-                        inferred_type: InferredType::String, // User selection is string
-                    },
-                );
-                for stmt in body {
-                    self.analyze_statement(stmt, scope)?;
-                }
+                self.analyze_select_stmt(variable, body, scope)
             }
 
-            BashStmt::Negated { command, .. } => {
-                // Issue #133: Analyze the negated command
-                self.analyze_statement(command, scope)?;
-            }
+            BashStmt::Negated { command, .. } => self.analyze_statement(command, scope),
+        }
+    }
+
+    /// Analyze a variable assignment statement.
+    fn analyze_assignment_stmt(
+        &mut self,
+        name: &str,
+        value: &BashExpr,
+        exported: bool,
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        let inferred_type = self.infer_type(value);
+
+        scope.variables.insert(
+            name.to_string(),
+            VarInfo {
+                name: name.to_string(),
+                exported,
+                assigned: true,
+                used: false,
+                inferred_type,
+            },
+        );
+
+        if exported {
+            self.effects.env_modifications.insert(name.to_string());
         }
 
+        self.analyze_expression(value, scope)
+    }
+
+    /// Analyze a command statement, tracking effects and spawns.
+    fn analyze_command_stmt(
+        &mut self,
+        name: &str,
+        args: &[BashExpr],
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        self.track_command_effects(name);
+        self.effects.process_spawns.insert(name.to_string());
+
+        for arg in args {
+            self.analyze_expression(arg, scope)?;
+        }
+        Ok(())
+    }
+
+    /// Analyze a function definition, creating a child scope.
+    fn analyze_function_def(
+        &mut self,
+        name: &str,
+        body: &[BashStmt],
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        if scope.functions.contains_key(name) {
+            return Err(SemanticError::FunctionRedefinition(name.to_string()));
+        }
+
+        let mut func_scope = ScopeInfo {
+            variables: HashMap::new(),
+            functions: HashMap::new(),
+            parent: Some(Box::new(scope.clone())),
+        };
+
+        let mut calls = HashSet::new();
+        for stmt in body {
+            if let BashStmt::Command { name, .. } = stmt {
+                calls.insert(name.clone());
+            }
+            self.analyze_statement(stmt, &mut func_scope)?;
+        }
+
+        scope.functions.insert(
+            name.to_string(),
+            FunctionInfo {
+                name: name.to_string(),
+                parameter_count: 0, // TODO: detect from $1, $2, etc.
+                calls_detected: calls,
+            },
+        );
+        Ok(())
+    }
+
+    /// Analyze an if/elif/else statement.
+    fn analyze_if_stmt(
+        &mut self,
+        condition: &BashExpr,
+        then_block: &[BashStmt],
+        elif_blocks: &[(BashExpr, Vec<BashStmt>)],
+        else_block: &Option<Vec<BashStmt>>,
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        self.analyze_expression(condition, scope)?;
+        self.analyze_body(then_block, scope)?;
+
+        for (elif_cond, elif_body) in elif_blocks {
+            self.analyze_expression(elif_cond, scope)?;
+            self.analyze_body(elif_body, scope)?;
+        }
+
+        if let Some(else_body) = else_block {
+            self.analyze_body(else_body, scope)?;
+        }
+        Ok(())
+    }
+
+    /// Analyze a case statement with pattern arms.
+    fn analyze_case_stmt(
+        &mut self,
+        word: &BashExpr,
+        arms: &[CaseArm],
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        self.analyze_expression(word, scope)?;
+
+        for arm in arms {
+            self.analyze_body(&arm.body, scope)?;
+        }
+        Ok(())
+    }
+
+    /// Analyze a select statement, registering the iteration variable.
+    fn analyze_select_stmt(
+        &mut self,
+        variable: &str,
+        body: &[BashStmt],
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        // F017: Analyze select statement - variable is assigned in each iteration
+        scope.variables.insert(
+            variable.to_string(),
+            VarInfo {
+                name: variable.to_string(),
+                exported: false,
+                assigned: true,
+                used: false,
+                inferred_type: InferredType::String, // User selection is string
+            },
+        );
+        self.analyze_body(body, scope)
+    }
+
+    /// Analyze a sequence of statements (loop body, block, etc.).
+    fn analyze_body(&mut self, body: &[BashStmt], scope: &mut ScopeInfo) -> SemanticResult<()> {
+        for stmt in body {
+            self.analyze_statement(stmt, scope)?;
+        }
         Ok(())
     }
 
@@ -334,14 +353,13 @@ impl SemanticAnalyzer {
         match expr {
             BashExpr::Variable(name) => {
                 // Mark variable as used
-                if let Some(var) = scope.variables.get_mut(name) {
-                    var.used = true;
-                }
                 // Note: We don't error on undefined variables in bash
                 // since they can come from environment
+                Self::mark_var_used(scope, name);
             }
 
-            BashExpr::CommandSubst(cmd) => {
+            BashExpr::CommandSubst(cmd)
+            | BashExpr::CommandCondition(cmd) => {
                 self.analyze_statement(cmd, scope)?;
             }
 
@@ -355,124 +373,76 @@ impl SemanticAnalyzer {
                 self.analyze_test_expr(test_expr, scope)?;
             }
 
-            BashExpr::Literal(_) | BashExpr::Glob(_) => {
-                // Literals have no semantic effects
-            }
+            BashExpr::Literal(_) | BashExpr::Glob(_) => {}
 
             BashExpr::Arithmetic(arith) => {
                 self.analyze_arithmetic(arith, scope)?;
             }
 
-            BashExpr::DefaultValue { variable, default } => {
-                // Mark variable as used (even if it might be unset)
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                }
-                // Analyze the default value expression
+            BashExpr::DefaultValue { variable, default }
+            | BashExpr::ErrorIfUnset { variable, message: default } => {
+                Self::mark_var_used(scope, variable);
                 self.analyze_expression(default, scope)?;
-            }
-
-            BashExpr::AssignDefault { variable, default } => {
-                // Mark variable as both used and assigned
-                // ${VAR:=default} assigns to VAR if unset
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                    var.assigned = true;
-                } else {
-                    // Variable doesn't exist yet, will be assigned
-                    scope.variables.insert(
-                        variable.clone(),
-                        VarInfo {
-                            name: variable.clone(),
-                            exported: false,
-                            assigned: true,
-                            used: true,
-                            inferred_type: InferredType::Unknown,
-                        },
-                    );
-                }
-                // Analyze the default value expression
-                self.analyze_expression(default, scope)?;
-            }
-
-            BashExpr::ErrorIfUnset { variable, message } => {
-                // Mark variable as used
-                // ${VAR:?message} exits if VAR is unset
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                }
-                // Analyze the error message expression
-                self.analyze_expression(message, scope)?;
             }
 
             BashExpr::AlternativeValue {
                 variable,
                 alternative,
             } => {
-                // Mark variable as used
-                // ${VAR:+alt_value} uses alt_value if VAR is set
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                }
-                // Analyze the alternative value expression
+                Self::mark_var_used(scope, variable);
                 self.analyze_expression(alternative, scope)?;
             }
 
+            BashExpr::AssignDefault { variable, default } => {
+                self.analyze_assign_default(variable, default, scope)?;
+            }
+
             BashExpr::StringLength { variable } => {
-                // Mark variable as used
-                // ${#VAR} gets the length of variable's value
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                }
+                Self::mark_var_used(scope, variable);
             }
 
-            BashExpr::RemoveSuffix { variable, pattern } => {
-                // Mark variable as used
-                // ${VAR%pattern} removes shortest matching suffix
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                }
-                // Analyze the pattern expression
+            BashExpr::RemoveSuffix { variable, pattern }
+            | BashExpr::RemovePrefix { variable, pattern }
+            | BashExpr::RemoveLongestPrefix { variable, pattern }
+            | BashExpr::RemoveLongestSuffix { variable, pattern } => {
+                Self::mark_var_used(scope, variable);
                 self.analyze_expression(pattern, scope)?;
-            }
-
-            BashExpr::RemovePrefix { variable, pattern } => {
-                // Mark variable as used
-                // ${VAR#pattern} removes shortest matching prefix
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                }
-                // Analyze the pattern expression
-                self.analyze_expression(pattern, scope)?;
-            }
-
-            BashExpr::RemoveLongestPrefix { variable, pattern } => {
-                // Mark variable as used
-                // ${VAR##pattern} removes longest matching prefix (greedy)
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                }
-                // Analyze the pattern expression
-                self.analyze_expression(pattern, scope)?;
-            }
-
-            BashExpr::RemoveLongestSuffix { variable, pattern } => {
-                // Mark variable as used
-                // ${VAR%%pattern} removes longest matching suffix (greedy)
-                if let Some(var) = scope.variables.get_mut(variable) {
-                    var.used = true;
-                }
-                // Analyze the pattern expression
-                self.analyze_expression(pattern, scope)?;
-            }
-
-            BashExpr::CommandCondition(cmd) => {
-                // Issue #93: Command condition - analyze the command
-                self.analyze_statement(cmd, scope)?;
             }
         }
 
         Ok(())
+    }
+
+    /// Mark a variable as used in the given scope.
+    fn mark_var_used(scope: &mut ScopeInfo, name: &str) {
+        if let Some(var) = scope.variables.get_mut(name) {
+            var.used = true;
+        }
+    }
+
+    /// Analyze ${VAR:=default} — assigns to VAR if unset.
+    fn analyze_assign_default(
+        &mut self,
+        variable: &str,
+        default: &BashExpr,
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        if let Some(var) = scope.variables.get_mut(variable) {
+            var.used = true;
+            var.assigned = true;
+        } else {
+            scope.variables.insert(
+                variable.to_string(),
+                VarInfo {
+                    name: variable.to_string(),
+                    exported: false,
+                    assigned: true,
+                    used: true,
+                    inferred_type: InferredType::Unknown,
+                },
+            );
+        }
+        self.analyze_expression(default, scope)
     }
 
     fn analyze_test_expr(&mut self, test: &TestExpr, scope: &mut ScopeInfo) -> SemanticResult<()> {
