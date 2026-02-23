@@ -51,12 +51,49 @@ const SHELL_INSTALL_PATTERNS: &[&str] = &[
     "/bin/bash",
 ];
 
+/// Validate the final stage of a multi-stage build
+fn validate_final_stage(
+    lines: &[&str],
+    final_line: usize,
+    has_shell_install: bool,
+    result: &mut LintResult,
+) {
+    let final_from_line = lines
+        .get(final_line.saturating_sub(1))
+        .unwrap_or(&"")
+        .trim();
+
+    let is_shell_free_base = SHELL_FREE_BASES
+        .iter()
+        .any(|base| final_from_line.to_lowercase().contains(&base.to_lowercase()));
+
+    if has_shell_install && !is_shell_free_base {
+        let span = Span::new(final_line, 1, final_line, 80);
+        result.add(Diagnostic::new(
+            "DOCKER009",
+            Severity::Warning,
+            "Final stage may install shell - consider using distroless base image (F063)"
+                .to_string(),
+            span,
+        ));
+    }
+    if !is_shell_free_base && !final_from_line.is_empty() {
+        let span = Span::new(final_line, 1, final_line, 80);
+        result.add(Diagnostic::new(
+            "DOCKER009",
+            Severity::Info,
+            "Consider using distroless/scratch base for shell-free final image (F063)".to_string(),
+            span,
+        ));
+    }
+}
+
 /// Check for multi-stage build shell-free validation
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     let lines: Vec<&str> = source.lines().collect();
-    let mut stages: Vec<(usize, String, bool)> = Vec::new(); // (line, name, is_final)
+    let mut stages: Vec<(usize, String, bool)> = Vec::new();
     let mut current_stage_line = 0;
     let mut current_stage_name = String::new();
     let mut has_shell_install_in_current = false;
@@ -64,87 +101,37 @@ pub fn check(source: &str) -> LintResult {
     for (line_num, line) in lines.iter().enumerate() {
         let trimmed = line.trim();
 
-        // Track FROM directives (new stages)
         if trimmed.to_uppercase().starts_with("FROM ") {
-            // Save previous stage info
             if !current_stage_name.is_empty() || current_stage_line > 0 {
-                stages.push((
-                    current_stage_line,
-                    current_stage_name.clone(),
-                    false, // not final yet
-                ));
+                stages.push((current_stage_line, current_stage_name.clone(), false));
             }
-
             current_stage_line = line_num + 1;
             has_shell_install_in_current = false;
-
-            // Extract stage name if AS clause present
             let upper = trimmed.to_uppercase();
-            if let Some(as_pos) = upper.find(" AS ") {
-                current_stage_name = trimmed[as_pos + 4..].trim().to_string();
-            } else {
-                current_stage_name = String::new();
-            }
+            current_stage_name = upper
+                .find(" AS ")
+                .map(|pos| trimmed[pos + 4..].trim().to_string())
+                .unwrap_or_default();
         }
 
-        // Check for shell installation in RUN commands
         if trimmed.to_uppercase().starts_with("RUN ") {
             let run_content = trimmed[4..].to_lowercase();
-            for pattern in SHELL_INSTALL_PATTERNS {
-                if run_content.contains(pattern) {
-                    has_shell_install_in_current = true;
-                    break;
-                }
+            if SHELL_INSTALL_PATTERNS
+                .iter()
+                .any(|p| run_content.contains(p))
+            {
+                has_shell_install_in_current = true;
             }
         }
     }
 
-    // Mark the last stage as final
     if !current_stage_name.is_empty() || current_stage_line > 0 {
         stages.push((current_stage_line, current_stage_name, true));
     }
 
-    // Validate final stage
     if stages.len() > 1 {
-        // Multi-stage build detected
         if let Some((final_line, _final_name, true)) = stages.last() {
-            // Check if final stage has distroless/minimal base
-            let final_from_line = lines
-                .get(final_line.saturating_sub(1))
-                .unwrap_or(&"")
-                .trim();
-
-            let is_shell_free_base = SHELL_FREE_BASES.iter().any(|base| {
-                final_from_line
-                    .to_lowercase()
-                    .contains(&base.to_lowercase())
-            });
-
-            // Check if final stage installs shells
-            if has_shell_install_in_current && !is_shell_free_base {
-                let span = Span::new(*final_line, 1, *final_line, 80);
-                let diag = Diagnostic::new(
-                    "DOCKER009",
-                    Severity::Warning,
-                    "Final stage may install shell - consider using distroless base image (F063)"
-                        .to_string(),
-                    span,
-                );
-                result.add(diag);
-            }
-
-            // Info message for non-distroless final stages
-            if !is_shell_free_base && !final_from_line.is_empty() {
-                let span = Span::new(*final_line, 1, *final_line, 80);
-                let diag = Diagnostic::new(
-                    "DOCKER009",
-                    Severity::Info,
-                    "Consider using distroless/scratch base for shell-free final image (F063)"
-                        .to_string(),
-                    span,
-                );
-                result.add(diag);
-            }
+            validate_final_stage(&lines, *final_line, has_shell_install_in_current, &mut result);
         }
     }
 

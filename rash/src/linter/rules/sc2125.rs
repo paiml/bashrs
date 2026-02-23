@@ -43,48 +43,41 @@ fn contains_command_substitution(value: &str) -> bool {
     value.contains("$(") || value.contains("`")
 }
 
+/// Check if the brace group starting at chars[start+1..] contains brace expansion patterns
+/// (comma or '..' at depth 1). Returns true if it's a brace expansion.
+fn is_brace_expansion_group(chars: &[char], start: usize) -> bool {
+    let mut depth = 1;
+    let mut j = start + 1;
+    while j < chars.len() && depth > 0 {
+        match chars[j] {
+            '{' => depth += 1,
+            '}' => depth -= 1,
+            ',' if depth == 1 => return true,
+            '.' if depth == 1 && j + 1 < chars.len() && chars[j + 1] == '.' => return true,
+            _ => {}
+        }
+        j += 1;
+    }
+    false
+}
+
 /// Issue #93: Check if braces in value are only parameter expansion (not brace expansion)
 /// Parameter expansion: ${VAR}, ${VAR:-default}, ${VAR:+alt}, ${#VAR}, ${VAR%pattern}, etc.
 /// Brace expansion: {a,b,c}, {1..10} (NOT preceded by $)
 /// Returns true only if the value contains braces AND all braces are parameter expansion
 fn has_brace_expansion(value: &str) -> bool {
-    // If no braces at all, this is NOT a brace issue (might be glob like *.txt)
     if !value.contains('{') {
         return false;
     }
 
-    // Find all braces and check if any are brace expansion
     let chars: Vec<char> = value.chars().collect();
     for i in 0..chars.len() {
-        if chars[i] == '{' {
-            // Check if preceded by $ (parameter expansion)
-            if i == 0 || chars[i - 1] != '$' {
-                // Found a brace not preceded by $ - check if it's brace expansion
-                // Look for comma or .. inside braces (brace expansion patterns)
-                let mut depth = 1;
-                let mut j = i + 1;
-                while j < chars.len() && depth > 0 {
-                    if chars[j] == '{' {
-                        depth += 1;
-                    } else if chars[j] == '}' {
-                        depth -= 1;
-                    } else if depth == 1 && chars[j] == ',' {
-                        // Found comma at depth 1 - this is brace expansion
-                        return true;
-                    } else if depth == 1
-                        && j + 1 < chars.len()
-                        && chars[j] == '.'
-                        && chars[j + 1] == '.'
-                    {
-                        // Found .. at depth 1 - this is brace expansion range
-                        return true;
-                    }
-                    j += 1;
-                }
+        if chars[i] == '{' && (i == 0 || chars[i - 1] != '$') {
+            if is_brace_expansion_group(&chars, i) {
+                return true;
             }
         }
     }
-    // No brace expansion patterns found (all braces are parameter expansion)
     false
 }
 

@@ -54,6 +54,21 @@ static ASSIGNMENT_BACKTICK: Lazy<Regex> = Lazy::new(|| {
     .expect("valid assignment backtick regex")
 });
 
+/// Collect line numbers inside a heredoc body (from start_idx+1 until delimiter is found)
+fn collect_heredoc_body_lines(
+    lines: &[&str],
+    start_idx: usize,
+    delimiter: &str,
+    quoted_lines: &mut HashSet<usize>,
+) {
+    for (inner_idx, inner_line) in lines.iter().enumerate().skip(start_idx + 1) {
+        if inner_line.trim() == delimiter {
+            break;
+        }
+        quoted_lines.insert(inner_idx + 1);
+    }
+}
+
 /// Issue #96: Parse heredoc regions and return line numbers inside quoted heredocs
 /// Quoted heredocs (single or double quoted delimiter) have literal content - no expansion
 fn get_quoted_heredoc_lines(source: &str) -> HashSet<usize> {
@@ -61,32 +76,10 @@ fn get_quoted_heredoc_lines(source: &str) -> HashSet<usize> {
     let lines: Vec<&str> = source.lines().collect();
 
     for (idx, line) in lines.iter().enumerate() {
-        // Check for single-quoted heredoc delimiter
-        if let Some(caps) = HEREDOC_SINGLE_QUOTED.captures(line) {
-            if let Some(delim) = caps.get(1) {
-                let delimiter = delim.as_str();
-                // Find all lines until the closing delimiter
-                for (inner_idx, inner_line) in lines.iter().enumerate().skip(idx + 1) {
-                    let inner_line_num = inner_idx + 1;
-                    if inner_line.trim() == delimiter {
-                        break;
-                    }
-                    quoted_lines.insert(inner_line_num);
-                }
-            }
-        }
-
-        // Check for double-quoted heredoc delimiter
-        if let Some(caps) = HEREDOC_DOUBLE_QUOTED.captures(line) {
-            if let Some(delim) = caps.get(1) {
-                let delimiter = delim.as_str();
-                // Find all lines until the closing delimiter
-                for (inner_idx, inner_line) in lines.iter().enumerate().skip(idx + 1) {
-                    let inner_line_num = inner_idx + 1;
-                    if inner_line.trim() == delimiter {
-                        break;
-                    }
-                    quoted_lines.insert(inner_line_num);
+        for pattern in &[&*HEREDOC_SINGLE_QUOTED, &*HEREDOC_DOUBLE_QUOTED] {
+            if let Some(caps) = pattern.captures(line) {
+                if let Some(delim) = caps.get(1) {
+                    collect_heredoc_body_lines(&lines, idx, delim.as_str(), &mut quoted_lines);
                 }
             }
         }

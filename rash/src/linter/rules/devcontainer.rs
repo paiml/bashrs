@@ -187,43 +187,39 @@ pub fn check_devcontainer004(json: &Value) -> LintResult {
 pub fn check_devcontainer005(json: &Value) -> LintResult {
     let mut result = LintResult::new();
 
-    if let Some(features) = json.get("features").and_then(|v| v.as_object()) {
-        for (feature_name, feature_config) in features {
-            if let Some(config) = feature_config.as_object() {
-                // Check for common known options
-                let known_options = [
-                    "version",
-                    "installsAfter",
-                    "installPath",
-                    "onCreateCommand",
-                    "updateContentCommand",
-                    "postCreateCommand",
-                    "postStartCommand",
-                    "postAttachCommand",
-                ];
+    let features = match json.get("features").and_then(|v| v.as_object()) {
+        Some(f) => f,
+        None => return result,
+    };
 
-                for key in config.keys() {
-                    // Skip well-known keys - features can have arbitrary options
-                    // Only warn for obviously invalid patterns
-                    if key.starts_with("unknown") {
-                        let span = Span::new(1, 1, 1, 1);
-                        let diag = Diagnostic::new(
-                            "DEVCONTAINER005",
-                            Severity::Warning,
-                            format!(
-                                "Unknown option '{}' in feature '{}'. Check feature documentation for valid options.",
-                                key, feature_name
-                            ),
-                            span,
-                        );
-                        result.add(diag);
-                    }
-                }
-            }
-        }
+    for (feature_name, feature_config) in features {
+        check_feature_options(feature_name, feature_config, &mut result);
     }
 
     result
+}
+
+/// Check a single feature's options for obviously invalid keys
+fn check_feature_options(feature_name: &str, feature_config: &Value, result: &mut LintResult) {
+    let config = match feature_config.as_object() {
+        Some(c) => c,
+        None => return,
+    };
+
+    for key in config.keys() {
+        if key.starts_with("unknown") {
+            let span = Span::new(1, 1, 1, 1);
+            result.add(Diagnostic::new(
+                "DEVCONTAINER005",
+                Severity::Warning,
+                format!(
+                    "Unknown option '{}' in feature '{}'. Check feature documentation for valid options.",
+                    key, feature_name
+                ),
+                span,
+            ));
+        }
+    }
 }
 
 /// DEVCONTAINER006: Duplicate keys in lifecycle command
@@ -418,37 +414,15 @@ fn strip_json_comments(content: &str) -> String {
             continue;
         }
 
-        if ch == '"' && !escape_next {
+        if ch == '"' {
             in_string = !in_string;
             result.push(ch);
             continue;
         }
 
         if !in_string && ch == '/' {
-            if let Some(&next) = chars.peek() {
-                if next == '/' {
-                    // Single-line comment - skip until newline
-                    chars.next(); // consume second /
-                    while let Some(&c) = chars.peek() {
-                        if c == '\n' {
-                            break;
-                        }
-                        chars.next();
-                    }
-                    continue;
-                } else if next == '*' {
-                    // Multi-line comment - skip until */
-                    chars.next(); // consume *
-                    while let Some(c) = chars.next() {
-                        if c == '*' {
-                            if let Some(&'/') = chars.peek() {
-                                chars.next(); // consume /
-                                break;
-                            }
-                        }
-                    }
-                    continue;
-                }
+            if skip_comment(&mut chars) {
+                continue;
             }
         }
 
@@ -456,6 +430,45 @@ fn strip_json_comments(content: &str) -> String {
     }
 
     result
+}
+
+/// Try to skip a comment starting after '/'. Returns true if a comment was skipped.
+fn skip_comment(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> bool {
+    match chars.peek() {
+        Some(&'/') => {
+            chars.next(); // consume second /
+            skip_single_line_comment(chars);
+            true
+        }
+        Some(&'*') => {
+            chars.next(); // consume *
+            skip_multi_line_comment(chars);
+            true
+        }
+        _ => false,
+    }
+}
+
+/// Skip to end of single-line comment (until newline)
+fn skip_single_line_comment(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) {
+    while let Some(&c) = chars.peek() {
+        if c == '\n' {
+            break;
+        }
+        chars.next();
+    }
+}
+
+/// Skip to end of multi-line comment (until */)
+fn skip_multi_line_comment(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) {
+    while let Some(c) = chars.next() {
+        if c == '*' {
+            if let Some(&'/') = chars.peek() {
+                chars.next();
+                break;
+            }
+        }
+    }
 }
 
 /// Run all Dev Container validation rules on parsed JSON

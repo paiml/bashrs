@@ -90,6 +90,34 @@ fn is_continuation_line(line: &str) -> bool {
     line.trim_end().ends_with('\\')
 }
 
+/// Try to enter a target from the current line
+fn try_enter_target(line: &str, current_target: &mut String, in_recipe: &mut bool) {
+    if is_target_line(line) {
+        if let Some(target) = extract_target_name(line) {
+            *current_target = target;
+            *in_recipe = true;
+        }
+    }
+}
+
+/// Process a non-continuation, non-target line within a recipe context
+fn process_recipe_line(
+    line: &str,
+    line_num: usize,
+    current_target: &str,
+    result: &mut LintResult,
+) -> bool {
+    if is_recipe_with_spaces(line) {
+        let leading_spaces = count_leading_spaces(line);
+        let fix_replacement = create_tab_fix(line);
+        let diag = build_diagnostic(line_num, leading_spaces, &fix_replacement, current_target);
+        result.add(diag);
+        false
+    } else {
+        should_exit_recipe(line)
+    }
+}
+
 /// Check for spaces instead of tabs in recipe lines
 /// F039 FIX: Handle continuation lines - don't flag them as recipe errors
 pub fn check(source: &str) -> LintResult {
@@ -100,39 +128,21 @@ pub fn check(source: &str) -> LintResult {
     let mut in_continuation = false;
 
     for (line_num, line) in lines.iter().enumerate() {
-        // F039 FIX: If we're in a continuation, skip this line
         if in_continuation {
-            // Check if this line also continues
             in_continuation = is_continuation_line(line);
             continue;
         }
 
-        // Check if this line starts a continuation
         if is_continuation_line(line) {
             in_continuation = true;
-            // Still need to check if it's a target line
-            if is_target_line(line) {
-                if let Some(target) = extract_target_name(line) {
-                    current_target = target;
-                    in_recipe = true;
-                }
-            }
+            try_enter_target(line, &mut current_target, &mut in_recipe);
             continue;
         }
 
         if is_target_line(line) {
-            if let Some(target) = extract_target_name(line) {
-                current_target = target;
-                in_recipe = true;
-            }
+            try_enter_target(line, &mut current_target, &mut in_recipe);
         } else if in_recipe && !line.is_empty() && !line.trim().is_empty() {
-            if is_recipe_with_spaces(line) {
-                let leading_spaces = count_leading_spaces(line);
-                let fix_replacement = create_tab_fix(line);
-                let diag =
-                    build_diagnostic(line_num, leading_spaces, &fix_replacement, &current_target);
-                result.add(diag);
-            } else if should_exit_recipe(line) {
+            if process_recipe_line(line, line_num, &current_target, &mut result) {
                 in_recipe = false;
                 current_target.clear();
             }

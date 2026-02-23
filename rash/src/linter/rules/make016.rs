@@ -94,18 +94,7 @@ fn find_unquoted_variables(prerequisites: &str) -> Vec<String> {
         match ch {
             '"' => in_quote = !in_quote,
             '$' if !in_quote => {
-                // Check for $( or ${
-                if let Some(&next_ch) = chars.peek() {
-                    if next_ch == '(' || next_ch == '{' {
-                        // Extract the full variable reference
-                        if let Some(var) = extract_variable_ref(&prerequisites[pos..]) {
-                            // Skip automatic variables ($@, $<, $^, etc.)
-                            if !is_automatic_variable(&var) {
-                                vars.push(var);
-                            }
-                        }
-                    }
-                }
+                collect_unquoted_var_at(prerequisites, pos, &mut chars, &mut vars);
             }
             _ => {}
         }
@@ -113,6 +102,24 @@ fn find_unquoted_variables(prerequisites: &str) -> Vec<String> {
     }
 
     vars
+}
+
+/// Check if the current position starts a variable reference and collect it
+fn collect_unquoted_var_at(
+    source: &str,
+    pos: usize,
+    chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
+    vars: &mut Vec<String>,
+) {
+    if let Some(&next_ch) = chars.peek() {
+        if next_ch == '(' || next_ch == '{' {
+            if let Some(var) = extract_variable_ref(&source[pos..]) {
+                if !is_automatic_variable(&var) {
+                    vars.push(var);
+                }
+            }
+        }
+    }
 }
 
 /// Extract a variable reference starting at position (e.g., "$(FILES)")

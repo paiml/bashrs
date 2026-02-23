@@ -52,124 +52,111 @@ const TRAVERSAL_PATTERNS: &[&str] = &[
     "/..", // Absolute parent reference
 ];
 
+/// Track validation patterns on a line, updating validated_vars and in_validation_block.
+/// Returns true if the line was a validation-related line and should be skipped.
+fn track_validation_patterns(
+    trimmed: &str,
+    validated_vars: &mut Vec<String>,
+    in_validation_block: &mut bool,
+) -> bool {
+    if is_path_validation_check(trimmed) {
+        if let Some(var) = extract_validated_variable(trimmed) {
+            validated_vars.push(var);
+        }
+        *in_validation_block = true;
+        return true;
+    }
+
+    if trimmed.contains("realpath") || trimmed.contains("readlink -f") {
+        if let Some(var) = extract_assigned_variable(trimmed) {
+            validated_vars.push(var);
+        }
+        return true;
+    }
+
+    if is_validation_function_call(trimmed) {
+        if let Some(var) = extract_function_argument_variable(trimmed) {
+            validated_vars.push(var);
+        }
+        return true;
+    }
+
+    false
+}
+
+/// Check file operations for path traversal risks with unvalidated variables
+fn check_file_ops(line: &str, line_num: usize, validated_vars: &[String], result: &mut LintResult) {
+    for file_op in FILE_OPS {
+        if let Some(cmd_col) = find_command(line, file_op) {
+            if is_variable_validated(line, validated_vars) {
+                continue;
+            }
+            if contains_unvalidated_variable(line, file_op) {
+                let span = Span::new(line_num + 1, cmd_col + 1, line_num + 1, line.len());
+                let diag = Diagnostic::new(
+                    "SEC010",
+                    Severity::Error,
+                    format!("Path traversal risk in {} - validate paths don't contain '..' or start with '/'", file_op),
+                    span,
+                );
+                result.add(diag);
+                break;
+            }
+        }
+    }
+}
+
+/// Check for explicit traversal patterns (e.g. ".." in literal paths)
+fn check_traversal_patterns(line: &str, line_num: usize, result: &mut LintResult) {
+    for pattern in TRAVERSAL_PATTERNS {
+        if line.contains(pattern) && contains_file_operation(line) {
+            if line.contains("BASH_SOURCE") || line.contains("dirname") {
+                continue;
+            }
+            if !is_validation_context(line) {
+                if let Some(pos) = line.find(pattern) {
+                    let span = Span::new(line_num + 1, pos + 1, line_num + 1, line.len());
+                    let diag = Diagnostic::new(
+                        "SEC010",
+                        Severity::Warning,
+                        "Path contains traversal sequence '..' - ensure this is intentional and validated",
+                        span,
+                    );
+                    result.add(diag);
+                    break;
+                }
+            }
+        }
+    }
+}
+
 /// Check for path traversal vulnerabilities
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
-    // Issue #104: Track validated variables across the script
-    // Variables that have been validated with checks like `if [[ "$var" == *".."* ]]`
     let mut validated_vars: Vec<String> = Vec::new();
-
-    // Also track if we're in a validation block that exits on invalid input
     let mut in_validation_block = false;
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim();
 
-        // Skip comments
-        if trimmed.starts_with('#') {
+        if trimmed.starts_with('#') || is_heredoc_pattern(line) {
             continue;
         }
 
-        // Issue #106: Skip heredoc patterns - cat <<EOF is not a file read
-        if is_heredoc_pattern(line) {
+        if track_validation_patterns(trimmed, &mut validated_vars, &mut in_validation_block) {
             continue;
         }
 
-        // Issue #104: Detect path validation patterns
-        // Pattern: if [[ "$VAR" == *".."* ]] or if [[ "$VAR" == /* ]]
-        if is_path_validation_check(trimmed) {
-            // Extract variable name being validated
-            if let Some(var) = extract_validated_variable(trimmed) {
-                validated_vars.push(var);
-            }
-            in_validation_block = true;
-            continue;
-        }
-
-        // Issue #104: Check for realpath validation
-        // Pattern: SAFE_PATH=$(realpath -m "$VAR") or similar
-        if trimmed.contains("realpath") || trimmed.contains("readlink -f") {
-            if let Some(var) = extract_assigned_variable(trimmed) {
-                validated_vars.push(var);
-            }
-            continue;
-        }
-
-        // Issue #127: Track variables passed to validation functions
-        // Pattern: validate_path "$VAR" or validate_input "$VAR"
-        if is_validation_function_call(trimmed) {
-            if let Some(var) = extract_function_argument_variable(trimmed) {
-                validated_vars.push(var);
-            }
-            continue;
-        }
-
-        // Track end of validation blocks
         if trimmed == "fi" || trimmed.starts_with("fi ") || trimmed.starts_with("fi;") {
             in_validation_block = false;
         }
 
-        // Issue #104: Skip validation guard bodies (exit/return after check)
         if in_validation_block && (trimmed.contains("exit") || trimmed.contains("return")) {
             continue;
         }
 
-        // Look for file operation commands with variables
-        for file_op in FILE_OPS {
-            if let Some(cmd_col) = find_command(line, file_op) {
-                // Issue #104: Check if variable has been validated
-                if is_variable_validated(line, &validated_vars) {
-                    continue;
-                }
-
-                // Check if line contains unvalidated user input (variables)
-                if contains_unvalidated_variable(line, file_op) {
-                    let span = Span::new(line_num + 1, cmd_col + 1, line_num + 1, line.len());
-
-                    let diag = Diagnostic::new(
-                        "SEC010",
-                        Severity::Error,
-                        format!(
-                            "Path traversal risk in {} - validate paths don't contain '..' or start with '/'",
-                            file_op
-                        ),
-                        span,
-                    );
-                    // NO AUTO-FIX: Path validation is context-dependent
-
-                    result.add(diag);
-                    break; // Only report once per line
-                }
-            }
-        }
-
-        // Also check for explicit traversal patterns in paths (even if not in variables)
-        for pattern in TRAVERSAL_PATTERNS {
-            if line.contains(pattern) && contains_file_operation(line) {
-                // Issue #73: Skip BASH_SOURCE parent directory pattern - this is intentional
-                if line.contains("BASH_SOURCE") || line.contains("dirname") {
-                    continue;
-                }
-
-                // Check if it's in a validation context (e.g., if statement checking for ..)
-                if !is_validation_context(line) {
-                    if let Some(pos) = line.find(pattern) {
-                        let span = Span::new(line_num + 1, pos + 1, line_num + 1, line.len());
-
-                        let diag = Diagnostic::new(
-                            "SEC010",
-                            Severity::Warning,
-                            "Path contains traversal sequence '..' - ensure this is intentional and validated",
-                            span,
-                        );
-
-                        result.add(diag);
-                        break;
-                    }
-                }
-            }
-        }
+        check_file_ops(line, line_num, &validated_vars, &mut result);
+        check_traversal_patterns(line, line_num, &mut result);
     }
 
     result

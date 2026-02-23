@@ -36,37 +36,38 @@
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
+/// Check if a line has the dangerous find -exec pattern and return a diagnostic if so
+fn check_find_exec_injection(line: &str, line_num: usize) -> Option<Diagnostic> {
+    if !line.contains("find ") || !line.contains("-exec") {
+        return None;
+    }
+    if !(line.contains("sh -c") || line.contains("bash -c")) || !line.contains("{}") {
+        return None;
+    }
+    if !is_braces_in_shell_string(line) {
+        return None;
+    }
+    let col = find_braces_in_quotes(line)?;
+    let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 3);
+    Some(
+        Diagnostic::new(
+            "SEC003",
+            Severity::Error,
+            "Command injection: {} embedded in shell string. Use positional params: sh -c 'cmd \"$1\"' _ {}",
+            span,
+        )
+        .with_fix(Fix::new("\"$1\"")),
+    )
+}
+
 /// Check for {} embedded in shell command strings (dangerous injection vector)
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
     for (line_num, line) in source.lines().enumerate() {
-        // Only flag the dangerous pattern: sh -c or bash -c with {} embedded in the string
-        // Pattern: find ... -exec (sh|bash) -c '...{}...' or "...{}..."
-        if line.contains("find ") && line.contains("-exec") {
-            // Check for sh -c or bash -c with {} inside the command string
-            if (line.contains("sh -c") || line.contains("bash -c")) && line.contains("{}") {
-                // Check if {} is inside quotes (dangerous)
-                // Look for patterns like 'echo {}' or "rm {}"
-                if is_braces_in_shell_string(line) {
-                    if let Some(col) = find_braces_in_quotes(line) {
-                        let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 3);
-
-                        let diag = Diagnostic::new(
-                            "SEC003",
-                            Severity::Error,
-                            "Command injection: {} embedded in shell string. Use positional params: sh -c 'cmd \"$1\"' _ {}",
-                            span,
-                        )
-                        .with_fix(Fix::new("\"$1\""));
-
-                        result.add(diag);
-                    }
-                }
-            }
+        if let Some(diag) = check_find_exec_injection(line, line_num) {
+            result.add(diag);
         }
     }
-
     result
 }
 

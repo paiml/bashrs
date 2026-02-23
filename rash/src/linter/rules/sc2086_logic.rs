@@ -119,17 +119,13 @@ pub fn is_in_double_bracket_context(line: &str, dollar_pos: usize, var_end: usiz
     false
 }
 
-/// Check if variable is already quoted
-pub fn is_already_quoted(line: &str, dollar_pos: usize, var_end: usize) -> bool {
-    let before_context = &line[..dollar_pos];
-    let after_context = &line[var_end..];
-
-    // Simple case: "$VAR" (immediately surrounded by quotes)
+/// Check if variable is immediately surrounded by double quotes (simple or braced)
+fn is_immediately_quoted(before_context: &str, after_context: &str) -> bool {
+    // Simple case: "$VAR"
     if before_context.ends_with('"') && after_context.starts_with('"') {
         return true;
     }
-
-    // Braced case: "${VAR}" (immediately surrounded by quotes)
+    // Braced case: "${VAR}"
     if after_context.starts_with('}') {
         if let Some(brace_pos) = after_context.find('}') {
             let after_brace = &after_context[brace_pos + 1..];
@@ -138,12 +134,14 @@ pub fn is_already_quoted(line: &str, dollar_pos: usize, var_end: usize) -> bool 
             }
         }
     }
+    false
+}
 
-    // Check if variable is inside a quoted string (e.g., "${VAR1}text${VAR2}")
-    // Count unescaped quotes before the variable
-    let mut quote_count = 0;
+/// Count unescaped double quotes in a string
+fn count_unescaped_quotes(s: &str) -> usize {
+    let mut count = 0;
     let mut escaped = false;
-    for ch in before_context.chars() {
+    for ch in s.chars() {
         if escaped {
             escaped = false;
             continue;
@@ -153,31 +151,34 @@ pub fn is_already_quoted(line: &str, dollar_pos: usize, var_end: usize) -> bool 
             continue;
         }
         if ch == '"' {
-            quote_count += 1;
+            count += 1;
         }
     }
+    count
+}
 
-    // If odd number of quotes, we're inside a quoted string
-    // Check if there's a closing quote after the variable
-    if quote_count % 2 == 1 {
-        // For braced variables, check after the closing brace
-        if after_context.starts_with('}') {
-            if let Some(brace_pos) = after_context.find('}') {
-                let after_brace = &after_context[brace_pos + 1..];
-                // Look for closing quote (could be immediately or after more content)
-                if after_brace.contains('"') {
-                    return true;
-                }
-            }
-        } else {
-            // For simple variables, check after the variable name
-            if after_context.contains('"') {
-                return true;
-            }
+/// Check if variable is inside a quoted string based on quote parity
+fn is_inside_quoted_string(before_context: &str, after_context: &str) -> bool {
+    let quote_count = count_unescaped_quotes(before_context);
+    if quote_count % 2 == 0 {
+        return false;
+    }
+    // For braced variables, check after the closing brace
+    if after_context.starts_with('}') {
+        if let Some(brace_pos) = after_context.find('}') {
+            return after_context[brace_pos + 1..].contains('"');
         }
     }
+    after_context.contains('"')
+}
 
-    false
+/// Check if variable is already quoted
+pub fn is_already_quoted(line: &str, dollar_pos: usize, var_end: usize) -> bool {
+    let before_context = &line[..dollar_pos];
+    let after_context = &line[var_end..];
+
+    is_immediately_quoted(before_context, after_context)
+        || is_inside_quoted_string(before_context, after_context)
 }
 
 /// Format variable text for display

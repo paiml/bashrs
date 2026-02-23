@@ -209,29 +209,43 @@ impl CitlDiagnostic {
     /// Classify diagnostic into OIP category
     fn classify_oip_category(code: &str) -> Option<String> {
         let code_upper = code.to_uppercase();
+        Self::classify_by_prefix(&code_upper)
+    }
+
+    /// Map code prefix to OIP category
+    fn classify_by_prefix(code_upper: &str) -> Option<String> {
         if code_upper.starts_with("SEC") {
-            Some("security".to_string())
-        } else if code_upper.starts_with("DET") {
-            Some("determinism".to_string())
-        } else if code_upper.starts_with("IDEM") {
-            Some("idempotency".to_string())
-        } else if code_upper.starts_with("SC2") {
-            // ShellCheck rules - classify by number range
-            if let Some(num_str) = code_upper.strip_prefix("SC") {
-                if let Ok(num) = num_str.parse::<u32>() {
-                    return Some(classify_shellcheck_category(num));
-                }
-            }
-            Some("shellcheck".to_string())
-        } else if code_upper.starts_with("MAKE") {
-            Some("makefile".to_string())
-        } else if code_upper.starts_with("DOCKER") {
-            Some("dockerfile".to_string())
-        } else if code_upper.starts_with("CONFIG") {
-            Some("config".to_string())
-        } else {
-            None
+            return Some("security".to_string());
         }
+        if code_upper.starts_with("DET") {
+            return Some("determinism".to_string());
+        }
+        if code_upper.starts_with("IDEM") {
+            return Some("idempotency".to_string());
+        }
+        if code_upper.starts_with("SC2") {
+            return Some(Self::classify_shellcheck_code(code_upper));
+        }
+        if code_upper.starts_with("MAKE") {
+            return Some("makefile".to_string());
+        }
+        if code_upper.starts_with("DOCKER") {
+            return Some("dockerfile".to_string());
+        }
+        if code_upper.starts_with("CONFIG") {
+            return Some("config".to_string());
+        }
+        None
+    }
+
+    /// Classify a ShellCheck code into a category
+    fn classify_shellcheck_code(code_upper: &str) -> String {
+        if let Some(num_str) = code_upper.strip_prefix("SC") {
+            if let Ok(num) = num_str.parse::<u32>() {
+                return classify_shellcheck_category(num);
+            }
+        }
+        "shellcheck".to_string()
     }
 
     /// Map bashrs code to equivalent clippy lint (if applicable)

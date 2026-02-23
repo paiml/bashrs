@@ -33,6 +33,27 @@ static ASSIGNMENT: Lazy<Regex> = Lazy::new(|| Regex::new(r"([a-zA-Z_][a-zA-Z0-9_
 static VAR_USAGE: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?").unwrap());
 
+/// Check if opening paren at position `i` should be skipped (not a subshell)
+fn is_non_subshell_paren(chars: &[char], i: usize) -> bool {
+    // Command substitution $()
+    if i > 0 && chars[i - 1] == '$' {
+        return true;
+    }
+    // Array declaration =()
+    if i > 0 && chars[i - 1] == '=' {
+        return true;
+    }
+    // Second paren in arithmetic $((
+    if i > 1 && chars[i - 1] == '(' && chars[i - 2] == '$' {
+        return true;
+    }
+    // Empty subshell () - skip
+    if i + 1 < chars.len() && chars[i + 1] == ')' {
+        return true;
+    }
+    false
+}
+
 /// Check if line contains a subshell (standalone parentheses, not command substitution or arithmetic)
 fn has_subshell(line: &str) -> bool {
     let chars: Vec<char> = line.chars().collect();
@@ -51,8 +72,6 @@ fn has_subshell(line: &str) -> bool {
             in_double_quote = !in_double_quote;
             continue;
         }
-
-        // Skip everything inside quotes
         if in_single_quote || in_double_quote {
             continue;
         }
@@ -66,50 +85,21 @@ fn has_subshell(line: &str) -> bool {
 
         // Track nested parens in arithmetic context
         if in_arithmetic {
-            if chars[i] == '(' {
-                paren_depth += 1;
-            } else if chars[i] == ')' {
-                paren_depth -= 1;
-                if paren_depth == 0 {
-                    in_arithmetic = false;
+            match chars[i] {
+                '(' => paren_depth += 1,
+                ')' => {
+                    paren_depth -= 1;
+                    if paren_depth == 0 { in_arithmetic = false; }
                 }
+                _ => {}
             }
             continue;
         }
 
         if chars[i] == '(' {
-            // Check if previous char is NOT $ (would be command substitution $())
-            if i > 0 && chars[i - 1] == '$' {
+            if is_non_subshell_paren(&chars, i) {
                 continue;
             }
-            // Issue #132: Skip array declarations var=(...) - the = before ( indicates array
-            if i > 0 && chars[i - 1] == '=' {
-                continue;
-            }
-            // Issue #86: Check if this is arithmetic expansion $((...))
-            // The second ( in $(( is not preceded by $ but is still arithmetic, not subshell
-            if i > 1 && chars[i - 1] == '(' && chars[i - 2] == '$' {
-                continue;
-            }
-            // Issue #86: Skip case statement patterns like "1)" or "pattern)"
-            // These are not subshells, they're case patterns
-            if i + 1 < chars.len() && chars[i + 1] == ')' {
-                continue; // Empty subshell () - skip
-            }
-            // Check for case patterns: digits or identifiers followed by )
-            // but skip actual subshells that start with (
-            if i == 0 {
-                return true; // Line starts with ( - likely subshell
-            }
-            // Check what's before the ( - convert char index to byte position safely
-            // Collect chars up to index i and reconstruct the string
-            let before: String = chars[..i].iter().collect();
-            let trimmed_before = before.trim();
-            // If before is empty or ends with whitespace/operator, it's likely a subshell
-            if trimmed_before.is_empty() || trimmed_before.ends_with(';') {
-                return true;
-            }
-            // For other cases, it might be a grouping in an expression - need more context
             return true;
         }
     }

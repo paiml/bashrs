@@ -27,62 +27,58 @@
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
+/// Check a `$(ls ...)` pattern for unordered wildcards and emit diagnostic with auto-fix
+fn check_ls_wildcard(line: &str, line_num: usize, ls_start: usize, result: &mut LintResult) {
+    let after_ls = &line[ls_start..];
+    if let Some(close_paren) = find_matching_paren(after_ls) {
+        let cmd_sub = &after_ls[..=close_paren];
+        if cmd_sub.contains('*') {
+            let span = Span::new(
+                line_num + 1,
+                ls_start + 1,
+                line_num + 1,
+                ls_start + close_paren + 2,
+            );
+            let inner = &cmd_sub[2..cmd_sub.len() - 1];
+            let fixed = format!("$({} | sort)", inner);
+            let diag = Diagnostic::new(
+                "DET003",
+                Severity::Warning,
+                "Unordered wildcard in command substitution - results may vary",
+                span,
+            )
+            .with_fix(Fix::new(fixed));
+            result.add(diag);
+        }
+    }
+}
+
+/// Check a `for ... in *` pattern for unordered wildcards (no auto-fix)
+fn check_for_loop_wildcard(line: &str, line_num: usize, result: &mut LintResult) {
+    if line.contains("for ") && line.contains(" in ") {
+        if let Some(col) = line.find('*') {
+            let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 2);
+            let diag = Diagnostic::new(
+                "DET003",
+                Severity::Info,
+                "Unordered wildcard in for-loop - consider sorting for determinism",
+                span,
+            );
+            result.add(diag);
+        }
+    }
+}
+
 /// Check for unordered wildcard usage
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
-        // Simple heuristic: look for * in command substitutions without | sort
         if line.contains('*') && !line.contains("| sort") {
-            // Only auto-fix $(ls ...) patterns - these are safe to fix
             if let Some(ls_start) = line.find("$(ls ") {
-                // Find the closing ) for this command substitution
-                let after_ls = &line[ls_start..];
-                if let Some(close_paren) = find_matching_paren(after_ls) {
-                    // Check if there's a wildcard in this command substitution
-                    let cmd_sub = &after_ls[..=close_paren];
-                    if cmd_sub.contains('*') {
-                        // Create span for the entire command substitution
-                        let span = Span::new(
-                            line_num + 1,
-                            ls_start + 1,
-                            line_num + 1,
-                            ls_start + close_paren + 2,
-                        );
-
-                        // Build the fixed version: $(ls *.txt) -> $(ls *.txt | sort)
-                        let inner = &cmd_sub[2..cmd_sub.len() - 1]; // Remove $( and )
-                        let fixed = format!("$({} | sort)", inner);
-
-                        let diag = Diagnostic::new(
-                            "DET003",
-                            Severity::Warning,
-                            "Unordered wildcard in command substitution - results may vary",
-                            span,
-                        )
-                        .with_fix(Fix::new(fixed));
-
-                        result.add(diag);
-                    }
-                }
-            }
-            // For `for f in *.c` patterns, warn but don't auto-fix
-            // (complex transformation - user should review)
-            else if line.contains("for ") && line.contains(" in ") {
-                if let Some(col) = line.find('*') {
-                    let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 2);
-
-                    // No auto-fix for for-loops with globs - too complex
-                    let diag = Diagnostic::new(
-                        "DET003",
-                        Severity::Info,
-                        "Unordered wildcard in for-loop - consider sorting for determinism",
-                        span,
-                    );
-                    // Note: No .with_fix() - user should manually review
-
-                    result.add(diag);
-                }
+                check_ls_wildcard(line, line_num, ls_start, &mut result);
+            } else {
+                check_for_loop_wildcard(line, line_num, &mut result);
             }
         }
     }
