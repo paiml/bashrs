@@ -56,33 +56,11 @@ impl BashToRashTranspiler {
                 value,
                 exported,
                 ..
-            } => {
-                let value_rash = self.transpile_expression(value)?;
-                let pattern = VariablePattern {
-                    exported: *exported,
-                };
-                Ok(pattern.to_rash(name, &value_rash))
-            }
+            } => self.transpile_assignment(name, value, *exported),
 
-            BashStmt::Command { name, args, .. } => {
-                let mut rash_args = Vec::new();
-                for arg in args {
-                    rash_args.push(self.transpile_expression(arg)?);
-                }
-                Ok(CommandPattern::to_rash(name, &rash_args))
-            }
+            BashStmt::Command { name, args, .. } => self.transpile_command_stmt(name, args),
 
-            BashStmt::Function { name, body, .. } => {
-                self.current_indent += 1;
-                let mut body_stmts = Vec::new();
-                for stmt in body {
-                    body_stmts.push(self.transpile_statement(stmt)?);
-                }
-                let body_rash = body_stmts.join("\n");
-                self.current_indent -= 1;
-
-                Ok(FunctionPattern::to_rash(name, &self.indent(&body_rash)))
-            }
+            BashStmt::Function { name, body, .. } => self.transpile_function_stmt(name, body),
 
             BashStmt::If {
                 condition,
@@ -90,213 +68,325 @@ impl BashToRashTranspiler {
                 elif_blocks,
                 else_block,
                 ..
-            } => {
-                let cond_rash = self.transpile_test_expression(condition)?;
-
-                self.current_indent += 1;
-                let then_rash = self.transpile_block(then_block)?;
-
-                let mut elif_rash = Vec::new();
-                for (elif_cond, elif_body) in elif_blocks {
-                    let cond = self.transpile_test_expression(elif_cond)?;
-                    let body = self.transpile_block(elif_body)?;
-                    elif_rash.push((cond, body));
-                }
-
-                let else_rash = if let Some(else_body) = else_block {
-                    Some(self.transpile_block(else_body)?)
-                } else {
-                    None
-                };
-
-                self.current_indent -= 1;
-
-                Ok(IfPattern::to_rash(
-                    &cond_rash,
-                    &then_rash,
-                    &elif_rash,
-                    else_rash.as_deref(),
-                ))
-            }
+            } => self.transpile_if_stmt(condition, then_block, elif_blocks, else_block),
 
             BashStmt::While {
                 condition, body, ..
-            } => {
-                let cond_rash = self.transpile_test_expression(condition)?;
-
-                self.current_indent += 1;
-                let body_rash = self.transpile_block(body)?;
-                self.current_indent -= 1;
-
-                Ok(WhilePattern::to_rash(&cond_rash, &body_rash))
-            }
+            } => self.transpile_while_stmt(condition, body),
 
             BashStmt::Until {
                 condition, body, ..
-            } => {
-                // Until loop transpiles to while with negated condition
-                let cond_rash = self.transpile_test_expression(condition)?;
-                let negated_cond = format!("!({})", cond_rash);
-
-                self.current_indent += 1;
-                let body_rash = self.transpile_block(body)?;
-                self.current_indent -= 1;
-
-                Ok(WhilePattern::to_rash(&negated_cond, &body_rash))
-            }
+            } => self.transpile_until_stmt(condition, body),
 
             BashStmt::For {
                 variable,
                 items,
                 body,
                 ..
-            } => {
-                let items_rash = self.transpile_expression(items)?;
+            } => self.transpile_for_stmt(variable, items, body),
 
-                self.current_indent += 1;
-                let body_rash = self.transpile_block(body)?;
-                self.current_indent -= 1;
+            BashStmt::ForCStyle { body, .. } => self.transpile_for_c_style_stmt(body),
 
-                Ok(ForPattern::to_rash(variable, &items_rash, &body_rash))
-            }
+            BashStmt::Return { code, .. } => self.transpile_return_stmt(code.as_ref()),
 
-            // Issue #68: C-style for loop (transpile to Rust while loop)
-            BashStmt::ForCStyle { body, .. } => {
-                // For now, transpile C-style loops as a comment + body
-                // Full conversion would need parsing C arithmetic to Rust
-                self.current_indent += 1;
-                let body_rash = self.transpile_block(body)?;
-                self.current_indent -= 1;
+            BashStmt::Comment { text, .. } => self.transpile_comment(text),
 
-                Ok(format!(
-                    "// C-style for loop (not yet fully transpiled)\n{}",
-                    body_rash
-                ))
-            }
+            BashStmt::Case { word, arms, .. } => self.transpile_case_stmt(word, arms),
 
-            BashStmt::Return { code, .. } => {
-                if let Some(expr) = code {
-                    let val = self.transpile_expression(expr)?;
-                    Ok(format!("return {};", val))
-                } else {
-                    Ok("return;".to_string())
-                }
-            }
+            BashStmt::Pipeline { commands, .. } => self.transpile_pipeline_stmt(commands),
 
-            BashStmt::Comment { text, .. } => {
-                if self.options.preserve_comments {
-                    Ok(format!("//{}", text))
-                } else {
-                    Ok(String::new())
-                }
-            }
+            BashStmt::AndList { left, right, .. } => self.transpile_and_list(left, right),
 
-            BashStmt::Case { word, arms, .. } => {
-                let word_rash = self.transpile_expression(word)?;
-                let mut result = format!("match {} {{\n", word_rash);
+            BashStmt::OrList { left, right, .. } => self.transpile_or_list(left, right),
 
-                self.current_indent += 1;
-
-                for arm in arms {
-                    let pattern_str = arm.patterns.join(" | ");
-                    result.push_str(&self.indent(&format!("{} => {{\n", pattern_str)));
-
-                    self.current_indent += 1;
-                    for stmt in &arm.body {
-                        let stmt_rash = self.transpile_statement(stmt)?;
-                        result.push_str(&self.indent(&stmt_rash));
-                        result.push('\n');
-                    }
-                    self.current_indent -= 1;
-
-                    result.push_str(&self.indent("}\n"));
-                }
-
-                self.current_indent -= 1;
-                result.push_str(&self.indent("}"));
-
-                Ok(result)
-            }
-
-            BashStmt::Pipeline { commands, .. } => {
-                // TODO: Full pipeline transpilation not implemented yet
-                // For now, transpile each command separately
-                let mut result = String::new();
-                for cmd in commands {
-                    result.push_str(&self.transpile_statement(cmd)?);
-                    result.push_str(" | ");
-                }
-                // Remove trailing " | "
-                if result.ends_with(" | ") {
-                    result.truncate(result.len() - 3);
-                }
-                Ok(result)
-            }
-
-            BashStmt::AndList { left, right, .. } => {
-                // Transpile AND list: left && right
-                let left_str = self.transpile_statement(left)?;
-                let right_str = self.transpile_statement(right)?;
-                Ok(format!("{} && {}", left_str, right_str))
-            }
-
-            BashStmt::OrList { left, right, .. } => {
-                // Transpile OR list: left || right
-                let left_str = self.transpile_statement(left)?;
-                let right_str = self.transpile_statement(right)?;
-                Ok(format!("{} || {}", left_str, right_str))
-            }
-
-            BashStmt::BraceGroup { body, .. } => {
-                // Transpile brace group as a block
-                self.current_indent += 1;
-                let body_rash = self.transpile_block(body)?;
-                self.current_indent -= 1;
-                Ok(format!("{{\n{}\n}}", body_rash))
-            }
+            BashStmt::BraceGroup { body, .. } => self.transpile_brace_group(body),
 
             BashStmt::Coproc { name, body, .. } => {
-                // Coproc is bash-specific, transpile as async block
-                // Note: This is a placeholder - coproc has no direct Rust equivalent
-                self.current_indent += 1;
-                let body_rash = self.transpile_block(body)?;
-                self.current_indent -= 1;
-                if let Some(n) = name {
-                    Ok(format!(
-                        "// coproc {} - async subprocess\n{{\n{}\n}}",
-                        n, body_rash
-                    ))
-                } else {
-                    Ok(format!(
-                        "// coproc - async subprocess\n{{\n{}\n}}",
-                        body_rash
-                    ))
-                }
+                self.transpile_coproc_stmt(name.as_deref(), body)
             }
+
             BashStmt::Select {
                 variable,
                 items,
                 body,
                 ..
-            } => {
-                // F017: Select is bash-specific, transpile as loop with menu
-                // Note: No direct Rust equivalent, generate a comment placeholder
-                self.current_indent += 1;
-                let body_rash = self.transpile_block(body)?;
-                self.current_indent -= 1;
-                let items_rash = self.transpile_expression(items)?;
-                Ok(format!(
-                    "// select {} in {} - interactive menu loop\nfor {} in {} {{\n{}\n}}",
-                    variable, items_rash, variable, items_rash, body_rash
-                ))
-            }
+            } => self.transpile_select_stmt(variable, items, body),
 
-            BashStmt::Negated { command, .. } => {
-                // Issue #133: Negated command - transpile inner and negate
-                let inner = self.transpile_statement(command)?;
-                Ok(format!("// negated: ! {}", inner))
-            }
+            BashStmt::Negated { command, .. } => self.transpile_negated_stmt(command),
         }
+    }
+
+    fn transpile_assignment(
+        &mut self,
+        name: &str,
+        value: &BashExpr,
+        exported: bool,
+    ) -> TranspileResult<String> {
+        let value_rash = self.transpile_expression(value)?;
+        let pattern = VariablePattern { exported };
+        Ok(pattern.to_rash(name, &value_rash))
+    }
+
+    fn transpile_command_stmt(
+        &mut self,
+        name: &str,
+        args: &[BashExpr],
+    ) -> TranspileResult<String> {
+        let mut rash_args = Vec::new();
+        for arg in args {
+            rash_args.push(self.transpile_expression(arg)?);
+        }
+        Ok(CommandPattern::to_rash(name, &rash_args))
+    }
+
+    fn transpile_function_stmt(
+        &mut self,
+        name: &str,
+        body: &[BashStmt],
+    ) -> TranspileResult<String> {
+        self.current_indent += 1;
+        let mut body_stmts = Vec::new();
+        for stmt in body {
+            body_stmts.push(self.transpile_statement(stmt)?);
+        }
+        let body_rash = body_stmts.join("\n");
+        self.current_indent -= 1;
+
+        Ok(FunctionPattern::to_rash(name, &self.indent(&body_rash)))
+    }
+
+    fn transpile_if_stmt(
+        &mut self,
+        condition: &BashExpr,
+        then_block: &[BashStmt],
+        elif_blocks: &[(BashExpr, Vec<BashStmt>)],
+        else_block: &Option<Vec<BashStmt>>,
+    ) -> TranspileResult<String> {
+        let cond_rash = self.transpile_test_expression(condition)?;
+
+        self.current_indent += 1;
+        let then_rash = self.transpile_block(then_block)?;
+
+        let mut elif_rash = Vec::new();
+        for (elif_cond, elif_body) in elif_blocks {
+            let cond = self.transpile_test_expression(elif_cond)?;
+            let body = self.transpile_block(elif_body)?;
+            elif_rash.push((cond, body));
+        }
+
+        let else_rash = if let Some(else_body) = else_block {
+            Some(self.transpile_block(else_body)?)
+        } else {
+            None
+        };
+
+        self.current_indent -= 1;
+
+        Ok(IfPattern::to_rash(
+            &cond_rash,
+            &then_rash,
+            &elif_rash,
+            else_rash.as_deref(),
+        ))
+    }
+
+    fn transpile_while_stmt(
+        &mut self,
+        condition: &BashExpr,
+        body: &[BashStmt],
+    ) -> TranspileResult<String> {
+        let cond_rash = self.transpile_test_expression(condition)?;
+
+        self.current_indent += 1;
+        let body_rash = self.transpile_block(body)?;
+        self.current_indent -= 1;
+
+        Ok(WhilePattern::to_rash(&cond_rash, &body_rash))
+    }
+
+    fn transpile_until_stmt(
+        &mut self,
+        condition: &BashExpr,
+        body: &[BashStmt],
+    ) -> TranspileResult<String> {
+        // Until loop transpiles to while with negated condition
+        let cond_rash = self.transpile_test_expression(condition)?;
+        let negated_cond = format!("!({})", cond_rash);
+
+        self.current_indent += 1;
+        let body_rash = self.transpile_block(body)?;
+        self.current_indent -= 1;
+
+        Ok(WhilePattern::to_rash(&negated_cond, &body_rash))
+    }
+
+    fn transpile_for_stmt(
+        &mut self,
+        variable: &str,
+        items: &BashExpr,
+        body: &[BashStmt],
+    ) -> TranspileResult<String> {
+        let items_rash = self.transpile_expression(items)?;
+
+        self.current_indent += 1;
+        let body_rash = self.transpile_block(body)?;
+        self.current_indent -= 1;
+
+        Ok(ForPattern::to_rash(variable, &items_rash, &body_rash))
+    }
+
+    fn transpile_for_c_style_stmt(&mut self, body: &[BashStmt]) -> TranspileResult<String> {
+        // Issue #68: C-style for loop (transpile to Rust while loop)
+        // For now, transpile C-style loops as a comment + body
+        // Full conversion would need parsing C arithmetic to Rust
+        self.current_indent += 1;
+        let body_rash = self.transpile_block(body)?;
+        self.current_indent -= 1;
+
+        Ok(format!(
+            "// C-style for loop (not yet fully transpiled)\n{}",
+            body_rash
+        ))
+    }
+
+    fn transpile_return_stmt(&mut self, code: Option<&BashExpr>) -> TranspileResult<String> {
+        if let Some(expr) = code {
+            let val = self.transpile_expression(expr)?;
+            Ok(format!("return {};", val))
+        } else {
+            Ok("return;".to_string())
+        }
+    }
+
+    fn transpile_comment(&self, text: &str) -> TranspileResult<String> {
+        if self.options.preserve_comments {
+            Ok(format!("//{}", text))
+        } else {
+            Ok(String::new())
+        }
+    }
+
+    fn transpile_case_stmt(
+        &mut self,
+        word: &BashExpr,
+        arms: &[CaseArm],
+    ) -> TranspileResult<String> {
+        let word_rash = self.transpile_expression(word)?;
+        let mut result = format!("match {} {{\n", word_rash);
+
+        self.current_indent += 1;
+
+        for arm in arms {
+            let pattern_str = arm.patterns.join(" | ");
+            result.push_str(&self.indent(&format!("{} => {{\n", pattern_str)));
+
+            self.current_indent += 1;
+            for stmt in &arm.body {
+                let stmt_rash = self.transpile_statement(stmt)?;
+                result.push_str(&self.indent(&stmt_rash));
+                result.push('\n');
+            }
+            self.current_indent -= 1;
+
+            result.push_str(&self.indent("}\n"));
+        }
+
+        self.current_indent -= 1;
+        result.push_str(&self.indent("}"));
+
+        Ok(result)
+    }
+
+    fn transpile_pipeline_stmt(&mut self, commands: &[BashStmt]) -> TranspileResult<String> {
+        // TODO: Full pipeline transpilation not implemented yet
+        // For now, transpile each command separately
+        let mut result = String::new();
+        for cmd in commands {
+            result.push_str(&self.transpile_statement(cmd)?);
+            result.push_str(" | ");
+        }
+        // Remove trailing " | "
+        if result.ends_with(" | ") {
+            result.truncate(result.len() - 3);
+        }
+        Ok(result)
+    }
+
+    fn transpile_and_list(
+        &mut self,
+        left: &BashStmt,
+        right: &BashStmt,
+    ) -> TranspileResult<String> {
+        // Transpile AND list: left && right
+        let left_str = self.transpile_statement(left)?;
+        let right_str = self.transpile_statement(right)?;
+        Ok(format!("{} && {}", left_str, right_str))
+    }
+
+    fn transpile_or_list(
+        &mut self,
+        left: &BashStmt,
+        right: &BashStmt,
+    ) -> TranspileResult<String> {
+        // Transpile OR list: left || right
+        let left_str = self.transpile_statement(left)?;
+        let right_str = self.transpile_statement(right)?;
+        Ok(format!("{} || {}", left_str, right_str))
+    }
+
+    fn transpile_brace_group(&mut self, body: &[BashStmt]) -> TranspileResult<String> {
+        // Transpile brace group as a block
+        self.current_indent += 1;
+        let body_rash = self.transpile_block(body)?;
+        self.current_indent -= 1;
+        Ok(format!("{{\n{}\n}}", body_rash))
+    }
+
+    fn transpile_coproc_stmt(
+        &mut self,
+        name: Option<&str>,
+        body: &[BashStmt],
+    ) -> TranspileResult<String> {
+        // Coproc is bash-specific, transpile as async block
+        // Note: This is a placeholder - coproc has no direct Rust equivalent
+        self.current_indent += 1;
+        let body_rash = self.transpile_block(body)?;
+        self.current_indent -= 1;
+        if let Some(n) = name {
+            Ok(format!(
+                "// coproc {} - async subprocess\n{{\n{}\n}}",
+                n, body_rash
+            ))
+        } else {
+            Ok(format!(
+                "// coproc - async subprocess\n{{\n{}\n}}",
+                body_rash
+            ))
+        }
+    }
+
+    fn transpile_select_stmt(
+        &mut self,
+        variable: &str,
+        items: &BashExpr,
+        body: &[BashStmt],
+    ) -> TranspileResult<String> {
+        // F017: Select is bash-specific, transpile as loop with menu
+        // Note: No direct Rust equivalent, generate a comment placeholder
+        self.current_indent += 1;
+        let body_rash = self.transpile_block(body)?;
+        self.current_indent -= 1;
+        let items_rash = self.transpile_expression(items)?;
+        Ok(format!(
+            "// select {} in {} - interactive menu loop\nfor {} in {} {{\n{}\n}}",
+            variable, items_rash, variable, items_rash, body_rash
+        ))
+    }
+
+    fn transpile_negated_stmt(&mut self, command: &BashStmt) -> TranspileResult<String> {
+        // Issue #133: Negated command - transpile inner and negate
+        let inner = self.transpile_statement(command)?;
+        Ok(format!("// negated: ! {}", inner))
     }
 
     fn transpile_block(&mut self, stmts: &[BashStmt]) -> TranspileResult<String> {

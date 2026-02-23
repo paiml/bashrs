@@ -131,144 +131,33 @@ impl Formatter {
                 elif_blocks,
                 else_block,
                 ..
-            } => {
-                let mut result = format!("{}if ", indent_str);
-                result.push_str(&self.format_expr(condition));
-
-                if self.config.inline_then {
-                    result.push_str("; then");
-                } else {
-                    result.push_str("\nthen");
-                }
-                result.push('\n');
-
-                for stmt in then_block {
-                    result.push_str(&self.format_stmt(stmt, indent + 1));
-                    result.push('\n');
-                }
-
-                for (cond, block) in elif_blocks {
-                    result.push_str(&format!("{}elif ", indent_str));
-                    result.push_str(&self.format_expr(cond));
-                    if self.config.inline_then {
-                        result.push_str("; then\n");
-                    } else {
-                        result.push_str("\nthen\n");
-                    }
-                    for stmt in block {
-                        result.push_str(&self.format_stmt(stmt, indent + 1));
-                        result.push('\n');
-                    }
-                }
-
-                if let Some(else_stmts) = else_block {
-                    result.push_str(&format!("{}else\n", indent_str));
-                    for stmt in else_stmts {
-                        result.push_str(&self.format_stmt(stmt, indent + 1));
-                        result.push('\n');
-                    }
-                }
-
-                result.push_str(&format!("{}fi", indent_str));
-                result
-            }
+            } => self.format_if_stmt(condition, then_block, elif_blocks, else_block, indent, indent_str),
 
             BashStmt::While {
                 condition, body, ..
-            } => {
-                let mut result = format!("{}while ", indent_str);
-                result.push_str(&self.format_expr(condition));
-                result.push_str("; do\n");
-
-                for stmt in body {
-                    result.push_str(&self.format_stmt(stmt, indent + 1));
-                    result.push('\n');
-                }
-
-                result.push_str(&format!("{}done", indent_str));
-                result
-            }
+            } => self.format_loop_stmt("while", condition, body, indent, indent_str),
 
             BashStmt::Until {
                 condition, body, ..
-            } => {
-                let mut result = format!("{}until ", indent_str);
-                result.push_str(&self.format_expr(condition));
-                result.push_str("; do\n");
-
-                for stmt in body {
-                    result.push_str(&self.format_stmt(stmt, indent + 1));
-                    result.push('\n');
-                }
-
-                result.push_str(&format!("{}done", indent_str));
-                result
-            }
+            } => self.format_loop_stmt("until", condition, body, indent, indent_str),
 
             BashStmt::For {
                 variable,
                 items,
                 body,
                 ..
-            } => {
-                let mut result = format!("{}for {} in ", indent_str, variable);
-                result.push_str(&self.format_expr(items));
-                result.push_str("; do\n");
+            } => self.format_for_stmt(variable, items, body, indent, indent_str),
 
-                for stmt in body {
-                    result.push_str(&self.format_stmt(stmt, indent + 1));
-                    result.push('\n');
-                }
-
-                result.push_str(&format!("{}done", indent_str));
-                result
-            }
-
-            // Issue #68: C-style for loop
             BashStmt::ForCStyle {
                 init,
                 condition,
                 increment,
                 body,
                 ..
-            } => {
-                let mut result = format!(
-                    "{}for (({}; {}; {})); do\n",
-                    indent_str, init, condition, increment
-                );
-
-                for stmt in body {
-                    result.push_str(&self.format_stmt(stmt, indent + 1));
-                    result.push('\n');
-                }
-
-                result.push_str(&format!("{}done", indent_str));
-                result
-            }
+            } => self.format_for_c_style_stmt(init, condition, increment, body, indent, indent_str),
 
             BashStmt::Case { word, arms, .. } => {
-                let mut result = format!("{}case {} in", indent_str, self.format_expr(word));
-                result.push('\n');
-
-                for arm in arms {
-                    // Format pattern(s)
-                    let pattern_str = arm.patterns.join("|");
-                    result.push_str(&format!("{}  {})", indent_str, pattern_str));
-                    result.push('\n');
-
-                    // Format body
-                    for stmt in &arm.body {
-                        result.push_str(&self.format_stmt(stmt, indent + 2));
-                        result.push('\n');
-                    }
-
-                    // Add ;;
-                    result.push_str(&format!("{}    ;;", indent_str));
-                    result.push('\n');
-                }
-
-                result.push_str(&format!("{}esac", indent_str));
-                result
+                self.format_case_stmt(word, arms, indent, indent_str)
             }
 
             BashStmt::Select {
@@ -276,26 +165,187 @@ impl Formatter {
                 items,
                 body,
                 ..
-            } => {
-                // F017: Format select statement
-                let items_str = self.format_expr(items);
-                let body_stmts: Vec<String> = body
-                    .iter()
-                    .map(|s| self.format_stmt(s, indent + 1))
-                    .collect();
-                format!(
-                    "{}select {} in {}; do\n{}\n{}done",
-                    indent_str,
-                    variable,
-                    items_str,
-                    body_stmts.join("\n"),
-                    indent_str
-                )
-            }
+            } => self.format_select_stmt(variable, items, body, indent, indent_str),
 
             // Unreachable: caller only passes control flow variants
             _ => unreachable!(),
         }
+    }
+
+    /// Format an if/elif/else statement
+    fn format_if_stmt(
+        &self,
+        condition: &BashExpr,
+        then_block: &[BashStmt],
+        elif_blocks: &[(BashExpr, Vec<BashStmt>)],
+        else_block: &Option<Vec<BashStmt>>,
+        indent: usize,
+        indent_str: &str,
+    ) -> String {
+        let mut result = format!("{}if ", indent_str);
+        result.push_str(&self.format_expr(condition));
+
+        if self.config.inline_then {
+            result.push_str("; then");
+        } else {
+            result.push_str("\nthen");
+        }
+        result.push('\n');
+
+        for stmt in then_block {
+            result.push_str(&self.format_stmt(stmt, indent + 1));
+            result.push('\n');
+        }
+
+        for (cond, block) in elif_blocks {
+            result.push_str(&format!("{}elif ", indent_str));
+            result.push_str(&self.format_expr(cond));
+            if self.config.inline_then {
+                result.push_str("; then\n");
+            } else {
+                result.push_str("\nthen\n");
+            }
+            for stmt in block {
+                result.push_str(&self.format_stmt(stmt, indent + 1));
+                result.push('\n');
+            }
+        }
+
+        if let Some(else_stmts) = else_block {
+            result.push_str(&format!("{}else\n", indent_str));
+            for stmt in else_stmts {
+                result.push_str(&self.format_stmt(stmt, indent + 1));
+                result.push('\n');
+            }
+        }
+
+        result.push_str(&format!("{}fi", indent_str));
+        result
+    }
+
+    /// Format while/until loop (shared logic)
+    fn format_loop_stmt(
+        &self,
+        keyword: &str,
+        condition: &BashExpr,
+        body: &[BashStmt],
+        indent: usize,
+        indent_str: &str,
+    ) -> String {
+        let mut result = format!("{}{} ", indent_str, keyword);
+        result.push_str(&self.format_expr(condition));
+        result.push_str("; do\n");
+
+        for stmt in body {
+            result.push_str(&self.format_stmt(stmt, indent + 1));
+            result.push('\n');
+        }
+
+        result.push_str(&format!("{}done", indent_str));
+        result
+    }
+
+    /// Format a for-in loop
+    fn format_for_stmt(
+        &self,
+        variable: &str,
+        items: &BashExpr,
+        body: &[BashStmt],
+        indent: usize,
+        indent_str: &str,
+    ) -> String {
+        let mut result = format!("{}for {} in ", indent_str, variable);
+        result.push_str(&self.format_expr(items));
+        result.push_str("; do\n");
+
+        for stmt in body {
+            result.push_str(&self.format_stmt(stmt, indent + 1));
+            result.push('\n');
+        }
+
+        result.push_str(&format!("{}done", indent_str));
+        result
+    }
+
+    /// Format a C-style for loop
+    fn format_for_c_style_stmt(
+        &self,
+        init: &str,
+        condition: &str,
+        increment: &str,
+        body: &[BashStmt],
+        indent: usize,
+        indent_str: &str,
+    ) -> String {
+        let mut result = format!(
+            "{}for (({}; {}; {})); do\n",
+            indent_str, init, condition, increment
+        );
+
+        for stmt in body {
+            result.push_str(&self.format_stmt(stmt, indent + 1));
+            result.push('\n');
+        }
+
+        result.push_str(&format!("{}done", indent_str));
+        result
+    }
+
+    /// Format a case statement
+    fn format_case_stmt(
+        &self,
+        word: &BashExpr,
+        arms: &[crate::bash_parser::ast::CaseArm],
+        indent: usize,
+        indent_str: &str,
+    ) -> String {
+        let mut result = format!("{}case {} in", indent_str, self.format_expr(word));
+        result.push('\n');
+
+        for arm in arms {
+            // Format pattern(s)
+            let pattern_str = arm.patterns.join("|");
+            result.push_str(&format!("{}  {})", indent_str, pattern_str));
+            result.push('\n');
+
+            // Format body
+            for stmt in &arm.body {
+                result.push_str(&self.format_stmt(stmt, indent + 2));
+                result.push('\n');
+            }
+
+            // Add ;;
+            result.push_str(&format!("{}    ;;", indent_str));
+            result.push('\n');
+        }
+
+        result.push_str(&format!("{}esac", indent_str));
+        result
+    }
+
+    /// Format a select statement
+    fn format_select_stmt(
+        &self,
+        variable: &str,
+        items: &BashExpr,
+        body: &[BashStmt],
+        indent: usize,
+        indent_str: &str,
+    ) -> String {
+        // F017: Format select statement
+        let items_str = self.format_expr(items);
+        let body_stmts: Vec<String> = body
+            .iter()
+            .map(|s| self.format_stmt(s, indent + 1))
+            .collect();
+        format!(
+            "{}select {} in {}; do\n{}\n{}done",
+            indent_str,
+            variable,
+            items_str,
+            body_stmts.join("\n"),
+            indent_str
+        )
     }
 
     /// Format compound statements: function/pipeline/and/or/brace/coproc/negated
