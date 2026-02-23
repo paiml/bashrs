@@ -32,6 +32,77 @@ impl DoctestGenerator {
         Ok(doctests)
     }
 
+    /// Parse an "Example: ..." comment, returning either a complete Doctest or a pending example.
+    /// Returns `Ok(Some(doctest))` for inline `=>` patterns, `Ok(None)` with side-effect on
+    /// `current_example` for deferred patterns, and `Err` is never produced (kept for symmetry).
+    fn parse_example_comment<'a>(
+        &self,
+        text: &'a str,
+    ) -> Option<Result<(String, String), String>> {
+        let after = text
+            .split_once("example:")
+            .or_else(|| text.split_once("Example:"))?;
+        let content = after.1.trim();
+        if let Some((example, output)) = content.split_once("=>") {
+            Some(Ok((example.trim().to_string(), output.trim().to_string())))
+        } else {
+            Some(Err(content.to_string()))
+        }
+    }
+
+    /// Parse a "Usage: ..." comment, returning the usage string if present.
+    fn parse_usage_comment<'a>(&self, text: &'a str) -> Option<String> {
+        let after = text
+            .split_once("usage:")
+            .or_else(|| text.split_once("Usage:"))?;
+        Some(after.1.trim().to_string())
+    }
+
+    /// Parse an "Output: ..." comment, returning the output string if present.
+    fn parse_output_comment<'a>(&self, text: &'a str) -> Option<String> {
+        let after = text
+            .split_once("output:")
+            .or_else(|| text.split_once("Output:"))?;
+        Some(after.1.trim().to_string())
+    }
+
+    /// Process a single comment statement, updating state and pushing complete doctests.
+    fn process_comment(
+        &self,
+        text: &str,
+        function_name: &str,
+        doctests: &mut Vec<Doctest>,
+        current_example: &mut Option<String>,
+        current_output: &mut Option<String>,
+    ) {
+        let text_lower = text.to_lowercase();
+
+        if text_lower.contains("example:") {
+            match self.parse_example_comment(text) {
+                Some(Ok((example, output))) => doctests.push(Doctest {
+                    function_name: function_name.to_string(),
+                    example,
+                    expected_output: output,
+                    description: None,
+                }),
+                Some(Err(pending)) => *current_example = Some(pending),
+                None => {}
+            }
+        }
+
+        if text_lower.contains("usage:") {
+            if let Some(usage) = self.parse_usage_comment(text) {
+                *current_example = Some(usage);
+            }
+        }
+
+        if text_lower.contains("output:") {
+            if let Some(output) = self.parse_output_comment(text) {
+                *current_output = Some(output);
+            }
+        }
+    }
+
     /// Extract doctests from a function's comments
     fn extract_from_function(
         &self,
@@ -44,49 +115,13 @@ impl DoctestGenerator {
 
         for stmt in body {
             if let BashStmt::Comment { text, .. } = stmt {
-                let text_lower = text.to_lowercase();
-
-                // Check for "Example: expr => output" pattern
-                if text_lower.contains("example:") {
-                    if let Some(after_example) = text
-                        .split_once("example:")
-                        .or_else(|| text.split_once("Example:"))
-                    {
-                        let content = after_example.1.trim();
-
-                        // Check if it has " => " separator
-                        if let Some((example, output)) = content.split_once("=>") {
-                            doctests.push(Doctest {
-                                function_name: function_name.to_string(),
-                                example: example.trim().to_string(),
-                                expected_output: output.trim().to_string(),
-                                description: None,
-                            });
-                        } else {
-                            current_example = Some(content.to_string());
-                        }
-                    }
-                }
-
-                // Check for "Usage: ..." pattern (not else if - can have both)
-                if text_lower.contains("usage:") {
-                    if let Some(after_usage) = text
-                        .split_once("usage:")
-                        .or_else(|| text.split_once("Usage:"))
-                    {
-                        current_example = Some(after_usage.1.trim().to_string());
-                    }
-                }
-
-                // Check for "Output: ..." pattern (not else if - can have both)
-                if text_lower.contains("output:") {
-                    if let Some(after_output) = text
-                        .split_once("output:")
-                        .or_else(|| text.split_once("Output:"))
-                    {
-                        current_output = Some(after_output.1.trim().to_string());
-                    }
-                }
+                self.process_comment(
+                    text,
+                    function_name,
+                    &mut doctests,
+                    &mut current_example,
+                    &mut current_output,
+                );
             }
 
             // Check after each statement if we have both example and output

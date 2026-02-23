@@ -147,44 +147,47 @@ impl PropertyTestGenerator {
         }))
     }
 
+    /// Check if a command name is non-deterministic
+    fn is_nondeterministic_command(name: &str) -> bool {
+        matches!(name, "random" | "date" | "time" | "rand" | "uuid")
+    }
+
+    /// Check if an If statement's blocks contain non-deterministic operations
+    fn if_stmt_has_nondeterminism(
+        &self,
+        then_block: &[BashStmt],
+        elif_blocks: &[(BashExpr, Vec<BashStmt>)],
+        else_block: &Option<Vec<BashStmt>>,
+    ) -> bool {
+        if self.has_nondeterministic_operations(then_block) {
+            return true;
+        }
+        if elif_blocks
+            .iter()
+            .any(|(_, block)| self.has_nondeterministic_operations(block))
+        {
+            return true;
+        }
+        else_block
+            .as_deref()
+            .map_or(false, |block| self.has_nondeterministic_operations(block))
+    }
+
     /// Check if function has non-deterministic operations
     fn has_nondeterministic_operations(&self, body: &[BashStmt]) -> bool {
-        for stmt in body {
-            match stmt {
-                BashStmt::Command { name, .. } => {
-                    if matches!(name.as_str(), "random" | "date" | "time" | "rand" | "uuid") {
-                        return true;
-                    }
-                }
-                BashStmt::If {
-                    then_block,
-                    elif_blocks,
-                    else_block,
-                    ..
-                } => {
-                    if self.has_nondeterministic_operations(then_block) {
-                        return true;
-                    }
-                    for (_, block) in elif_blocks {
-                        if self.has_nondeterministic_operations(block) {
-                            return true;
-                        }
-                    }
-                    if let Some(block) = else_block {
-                        if self.has_nondeterministic_operations(block) {
-                            return true;
-                        }
-                    }
-                }
-                BashStmt::While { body, .. } | BashStmt::For { body, .. } => {
-                    if self.has_nondeterministic_operations(body) {
-                        return true;
-                    }
-                }
-                _ => {}
+        body.iter().any(|stmt| match stmt {
+            BashStmt::Command { name, .. } => Self::is_nondeterministic_command(name.as_str()),
+            BashStmt::If {
+                then_block,
+                elif_blocks,
+                else_block,
+                ..
+            } => self.if_stmt_has_nondeterminism(then_block, elif_blocks, else_block),
+            BashStmt::While { body, .. } | BashStmt::For { body, .. } => {
+                self.has_nondeterministic_operations(body)
             }
-        }
-        false
+            _ => false,
+        })
     }
 
     /// Check if function is potentially idempotent
@@ -209,6 +212,49 @@ impl PropertyTestGenerator {
         false
     }
 
+    /// Default string generator pattern
+    fn default_string_generator() -> Generator {
+        Generator::String {
+            pattern: "[a-zA-Z0-9]{1,20}".to_string(),
+        }
+    }
+
+    /// Default integer generator
+    fn default_integer_generator() -> Generator {
+        Generator::Integer {
+            min: -1000,
+            max: 1000,
+        }
+    }
+
+    /// Add a generator inferred from a literal assignment value, if not already seen
+    fn add_generator_for_literal(
+        lit: &str,
+        generators: &mut Vec<Generator>,
+        seen_types: &mut HashSet<&'static str>,
+    ) {
+        if lit.parse::<i64>().is_ok() {
+            if !seen_types.contains("integer") {
+                generators.push(Self::default_integer_generator());
+                seen_types.insert("integer");
+            }
+        } else if !seen_types.contains("string") {
+            generators.push(Self::default_string_generator());
+            seen_types.insert("string");
+        }
+    }
+
+    /// Add an integer generator for an arithmetic assignment value, if not already seen
+    fn add_generator_for_arithmetic(
+        generators: &mut Vec<Generator>,
+        seen_types: &mut HashSet<&'static str>,
+    ) {
+        if !seen_types.contains("integer") {
+            generators.push(Self::default_integer_generator());
+            seen_types.insert("integer");
+        }
+    }
+
     /// Infer proptest generators from function signature and body
     fn infer_generators_from_function(
         &self,
@@ -222,27 +268,10 @@ impl PropertyTestGenerator {
             if let BashStmt::Assignment { value, .. } = stmt {
                 match value {
                     BashExpr::Literal(lit) => {
-                        if lit.parse::<i64>().is_ok() && !seen_types.contains("integer") {
-                            generators.push(Generator::Integer {
-                                min: -1000,
-                                max: 1000,
-                            });
-                            seen_types.insert("integer");
-                        } else if !seen_types.contains("string") {
-                            generators.push(Generator::String {
-                                pattern: "[a-zA-Z0-9]{1,20}".to_string(),
-                            });
-                            seen_types.insert("string");
-                        }
+                        Self::add_generator_for_literal(lit, &mut generators, &mut seen_types);
                     }
                     BashExpr::Arithmetic(_) => {
-                        if !seen_types.contains("integer") {
-                            generators.push(Generator::Integer {
-                                min: -1000,
-                                max: 1000,
-                            });
-                            seen_types.insert("integer");
-                        }
+                        Self::add_generator_for_arithmetic(&mut generators, &mut seen_types);
                     }
                     _ => {}
                 }
@@ -251,9 +280,7 @@ impl PropertyTestGenerator {
 
         // Default to string generator if nothing else was found
         if generators.is_empty() {
-            generators.push(Generator::String {
-                pattern: "[a-zA-Z0-9]{1,20}".to_string(),
-            });
+            generators.push(Self::default_string_generator());
         }
 
         Ok(generators)

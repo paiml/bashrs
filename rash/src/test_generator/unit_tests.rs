@@ -68,62 +68,75 @@ impl UnitTestGenerator {
 
         for stmt in body {
             match stmt {
-                BashStmt::If {
-                    elif_blocks,
-                    else_block,
-                    ..
-                } => {
-                    // Test the "then" branch
-                    tests.push(UnitTest {
-                        name: format!("test_{}_if_then_branch", name),
-                        test_fn: format!("{}()", name),
-                        assertions: vec![Assertion::Comment("Test if-then branch".to_string())],
-                    });
-
-                    // Test elif branches
-                    for (i, _) in elif_blocks.iter().enumerate() {
-                        tests.push(UnitTest {
-                            name: format!("test_{}_elif_{}_branch", name, i),
-                            test_fn: format!("{}()", name),
-                            assertions: vec![Assertion::Comment(format!("Test elif {} branch", i))],
-                        });
-                    }
-
-                    // Test else branch if present
-                    if else_block.is_some() {
-                        tests.push(UnitTest {
-                            name: format!("test_{}_else_branch", name),
-                            test_fn: format!("{}()", name),
-                            assertions: vec![Assertion::Comment("Test else branch".to_string())],
-                        });
-                    }
+                BashStmt::If { elif_blocks, else_block, .. } => {
+                    tests.extend(self.generate_if_branch_tests(name, elif_blocks, else_block.as_ref()));
                 }
-
                 BashStmt::While { .. } => {
-                    // Test while loop
-                    tests.push(UnitTest {
-                        name: format!("test_{}_while_loop", name),
-                        test_fn: format!("{}()", name),
-                        assertions: vec![Assertion::Comment(
-                            "Test while loop execution".to_string(),
-                        )],
-                    });
+                    tests.push(self.make_while_test(name));
                 }
-
                 BashStmt::For { .. } => {
-                    // Test for loop
-                    tests.push(UnitTest {
-                        name: format!("test_{}_for_loop", name),
-                        test_fn: format!("{}()", name),
-                        assertions: vec![Assertion::Comment("Test for loop iteration".to_string())],
-                    });
+                    tests.push(self.make_for_test(name));
                 }
-
                 _ => {}
             }
         }
 
         Ok(tests)
+    }
+
+    /// Generate tests for an if/elif/else statement
+    fn generate_if_branch_tests(
+        &self,
+        name: &str,
+        elif_blocks: &[(BashExpr, Vec<BashStmt>)],
+        else_block: Option<&Vec<BashStmt>>,
+    ) -> Vec<UnitTest> {
+        let mut tests = Vec::new();
+
+        // Test the "then" branch
+        tests.push(UnitTest {
+            name: format!("test_{}_if_then_branch", name),
+            test_fn: format!("{}()", name),
+            assertions: vec![Assertion::Comment("Test if-then branch".to_string())],
+        });
+
+        // Test elif branches
+        for (i, _) in elif_blocks.iter().enumerate() {
+            tests.push(UnitTest {
+                name: format!("test_{}_elif_{}_branch", name, i),
+                test_fn: format!("{}()", name),
+                assertions: vec![Assertion::Comment(format!("Test elif {} branch", i))],
+            });
+        }
+
+        // Test else branch if present
+        if else_block.is_some() {
+            tests.push(UnitTest {
+                name: format!("test_{}_else_branch", name),
+                test_fn: format!("{}()", name),
+                assertions: vec![Assertion::Comment("Test else branch".to_string())],
+            });
+        }
+
+        tests
+    }
+
+    /// Build a while-loop coverage test
+    fn make_while_test(&self, name: &str) -> UnitTest {
+        UnitTest {
+            name: format!("test_{}_while_loop", name),
+            test_fn: format!("{}()", name),
+            assertions: vec![Assertion::Comment("Test while loop execution".to_string())],
+        }
+    }
+
+    /// Build a for-loop coverage test
+    fn make_for_test(&self, name: &str) -> UnitTest {
+        UnitTest {
+            name: format!("test_{}_for_loop", name),
+            test_fn: format!("{}()", name),
+            assertions: vec![Assertion::Comment("Test for loop iteration".to_string())],
+        }
     }
 
     /// Generate boundary value tests
