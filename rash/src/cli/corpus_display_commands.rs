@@ -165,6 +165,38 @@ pub(crate) fn dashboard_print_history(entries: &[crate::corpus::runner::Converge
     println!();
 }
 
+/// Display search results in human-readable format
+fn display_search_human(
+    matches: &[&crate::corpus::registry::CorpusEntry],
+    pattern: &str,
+) {
+    use crate::cli::color::*;
+    if matches.is_empty() {
+        println!("No entries matching \"{pattern}\".");
+        return;
+    }
+    println!(
+        "{BOLD}Search results for \"{pattern}\" ({} matches):{RESET}",
+        matches.len()
+    );
+    println!();
+    for e in matches {
+        let fmt = format!("{}", e.format);
+        println!(
+            "  {CYAN}{:<8}{RESET} {DIM}[{:<10}]{RESET} {BOLD}{}{RESET}",
+            e.id, fmt, e.name
+        );
+        if !e.description.is_empty() {
+            let desc = if e.description.len() > 72 {
+                format!("{}...", &e.description[..69])
+            } else {
+                e.description.clone()
+            };
+            println!("           {DIM}{desc}{RESET}");
+        }
+    }
+}
+
 /// Search corpus entries by ID, name, or description pattern.
 
 pub(crate) fn corpus_search(
@@ -195,33 +227,7 @@ pub(crate) fn corpus_search(
         .collect();
 
     match format {
-        CorpusOutputFormat::Human => {
-            use crate::cli::color::*;
-            if matches.is_empty() {
-                println!("No entries matching \"{pattern}\".");
-            } else {
-                println!(
-                    "{BOLD}Search results for \"{pattern}\" ({} matches):{RESET}",
-                    matches.len()
-                );
-                println!();
-                for e in &matches {
-                    let fmt = format!("{}", e.format);
-                    println!(
-                        "  {CYAN}{:<8}{RESET} {DIM}[{:<10}]{RESET} {BOLD}{}{RESET}",
-                        e.id, fmt, e.name
-                    );
-                    if !e.description.is_empty() {
-                        let desc = if e.description.len() > 72 {
-                            format!("{}...", &e.description[..69])
-                        } else {
-                            e.description.clone()
-                        };
-                        println!("           {DIM}{desc}{RESET}");
-                    }
-                }
-            }
-        }
+        CorpusOutputFormat::Human => display_search_human(&matches, pattern),
         CorpusOutputFormat::Json => {
             let results: Vec<_> = matches
                 .iter()

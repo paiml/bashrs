@@ -388,48 +388,49 @@ impl Stmt {
             Stmt::Let { value, .. } => value.collect_function_calls(calls),
             Stmt::Expr(expr) => expr.collect_function_calls(calls),
             Stmt::Return(Some(expr)) => expr.collect_function_calls(calls),
-            Stmt::Return(None) => {}
+            Stmt::Return(None) | Stmt::Break | Stmt::Continue => {}
             Stmt::If {
                 condition,
                 then_block,
                 else_block,
             } => {
                 condition.collect_function_calls(calls);
-                for stmt in then_block {
-                    stmt.collect_function_calls(calls);
-                }
+                collect_calls_from_block(then_block, calls);
                 if let Some(else_stmts) = else_block {
-                    for stmt in else_stmts {
-                        stmt.collect_function_calls(calls);
-                    }
+                    collect_calls_from_block(else_stmts, calls);
                 }
             }
             Stmt::Match { scrutinee, arms } => {
                 scrutinee.collect_function_calls(calls);
-                for arm in arms {
-                    if let Some(guard) = &arm.guard {
-                        guard.collect_function_calls(calls);
-                    }
-                    for stmt in &arm.body {
-                        stmt.collect_function_calls(calls);
-                    }
-                }
+                collect_calls_from_match_arms(arms, calls);
             }
             Stmt::For { iter, body, .. } => {
                 iter.collect_function_calls(calls);
-                for stmt in body {
-                    stmt.collect_function_calls(calls);
-                }
+                collect_calls_from_block(body, calls);
             }
-            Stmt::While {
-                condition, body, ..
-            } => {
+            Stmt::While { condition, body, .. } => {
                 condition.collect_function_calls(calls);
-                for stmt in body {
-                    stmt.collect_function_calls(calls);
-                }
+                collect_calls_from_block(body, calls);
             }
-            Stmt::Break | Stmt::Continue => {}
+        }
+    }
+}
+
+/// Collect function calls from a block of statements
+fn collect_calls_from_block(stmts: &[Stmt], calls: &mut Vec<String>) {
+    for stmt in stmts {
+        stmt.collect_function_calls(calls);
+    }
+}
+
+/// Collect function calls from match arms
+fn collect_calls_from_match_arms(arms: &[MatchArm], calls: &mut Vec<String>) {
+    for arm in arms {
+        if let Some(guard) = &arm.guard {
+            guard.collect_function_calls(calls);
+        }
+        for stmt in &arm.body {
+            stmt.collect_function_calls(calls);
         }
     }
 }

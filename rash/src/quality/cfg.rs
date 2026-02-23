@@ -472,6 +472,26 @@ impl Default for CfgBuilder {
     }
 }
 
+/// Write a padded line inside box borders: `║<content padded to inner>║\n`
+fn write_box_line(out: &mut String, content: &str, inner: usize) {
+    out.push('║');
+    out.push_str(content);
+    for _ in 0..inner.saturating_sub(content.len()) {
+        out.push(' ');
+    }
+    out.push_str("║\n");
+}
+
+/// Write a horizontal rule: `<left><fill * inner><right>\n`
+fn write_hrule(out: &mut String, left: char, fill: char, right: &str, inner: usize) {
+    out.push(left);
+    for _ in 0..inner {
+        out.push(fill);
+    }
+    out.push_str(right);
+    out.push('\n');
+}
+
 /// ASCII CFG visualization (ML-017)
 pub fn render_cfg_ascii(
     cfg: &ControlFlowGraph,
@@ -481,156 +501,62 @@ pub fn render_cfg_ascii(
     let mut out = String::new();
     let inner = width - 2;
 
-    // Header
-    out.push('╔');
-    for _ in 0..inner {
-        out.push('═');
-    }
-    out.push_str("╗\n");
+    write_hrule(&mut out, '╔', '═', "╗", inner);
 
-    // Title
+    // Title centered
     let title = "CONTROL FLOW GRAPH";
     let padding = (inner.saturating_sub(title.len())) / 2;
-    out.push('║');
+    let mut title_line = String::new();
     for _ in 0..padding {
-        out.push(' ');
+        title_line.push(' ');
     }
-    out.push_str(title);
+    title_line.push_str(title);
     for _ in 0..(inner - padding - title.len()) {
-        out.push(' ');
+        title_line.push(' ');
     }
-    out.push_str("║\n");
+    write_box_line(&mut out, &title_line, inner);
 
-    // Divider
-    out.push('╠');
-    for _ in 0..inner {
-        out.push('═');
-    }
-    out.push_str("╣\n");
+    write_hrule(&mut out, '╠', '═', "╣", inner);
 
-    // Simple ASCII graph representation
-    out.push('║');
-    let entry_line = "                          ┌─────────┐";
-    out.push_str(entry_line);
-    for _ in 0..(inner.saturating_sub(entry_line.len())) {
-        out.push(' ');
+    // Entry node
+    let entry_lines = [
+        "                          ┌─────────┐",
+        "                          │  ENTRY  │",
+        "                          └────┬────┘",
+        "                               │",
+    ];
+    for line in &entry_lines {
+        write_box_line(&mut out, line, inner);
     }
-    out.push_str("║\n");
-
-    out.push('║');
-    let entry_label = "                          │  ENTRY  │";
-    out.push_str(entry_label);
-    for _ in 0..(inner.saturating_sub(entry_label.len())) {
-        out.push(' ');
-    }
-    out.push_str("║\n");
-
-    out.push('║');
-    let entry_bottom = "                          └────┬────┘";
-    out.push_str(entry_bottom);
-    for _ in 0..(inner.saturating_sub(entry_bottom.len())) {
-        out.push(' ');
-    }
-    out.push_str("║\n");
-
-    out.push('║');
-    let connector = "                               │";
-    out.push_str(connector);
-    for _ in 0..(inner.saturating_sub(connector.len())) {
-        out.push(' ');
-    }
-    out.push_str("║\n");
 
     // Show conditional if present
     if metrics.decision_points > 0 {
-        out.push('║');
-        let cond_top = "                          ┌────▼────┐";
-        out.push_str(cond_top);
-        for _ in 0..(inner.saturating_sub(cond_top.len())) {
-            out.push(' ');
+        let cond_lines = [
+            "                          ┌────▼────┐",
+            "                          │ if cond │",
+            "                          └────┬────┘",
+            "                     ┌────────┼────────┐",
+            "                     │ TRUE   │  FALSE │",
+            "                     └────────┼────────┘",
+            "                               │",
+        ];
+        for line in &cond_lines {
+            write_box_line(&mut out, line, inner);
         }
-        out.push_str("║\n");
-
-        out.push('║');
-        let cond_label = "                          │ if cond │";
-        out.push_str(cond_label);
-        for _ in 0..(inner.saturating_sub(cond_label.len())) {
-            out.push(' ');
-        }
-        out.push_str("║\n");
-
-        out.push('║');
-        let cond_bottom = "                          └────┬────┘";
-        out.push_str(cond_bottom);
-        for _ in 0..(inner.saturating_sub(cond_bottom.len())) {
-            out.push(' ');
-        }
-        out.push_str("║\n");
-
-        // Branches
-        out.push('║');
-        let branches = "                     ┌────────┼────────┐";
-        out.push_str(branches);
-        for _ in 0..(inner.saturating_sub(branches.len())) {
-            out.push(' ');
-        }
-        out.push_str("║\n");
-
-        out.push('║');
-        let branch_labels = "                     │ TRUE   │  FALSE │";
-        out.push_str(branch_labels);
-        for _ in 0..(inner.saturating_sub(branch_labels.len())) {
-            out.push(' ');
-        }
-        out.push_str("║\n");
-
-        out.push('║');
-        let merge = "                     └────────┼────────┘";
-        out.push_str(merge);
-        for _ in 0..(inner.saturating_sub(merge.len())) {
-            out.push(' ');
-        }
-        out.push_str("║\n");
-
-        out.push('║');
-        out.push_str(connector);
-        for _ in 0..(inner.saturating_sub(connector.len())) {
-            out.push(' ');
-        }
-        out.push_str("║\n");
     }
 
     // Exit node
-    out.push('║');
-    let exit_top = "                          ┌───▼────┐";
-    out.push_str(exit_top);
-    for _ in 0..(inner.saturating_sub(exit_top.len())) {
-        out.push(' ');
+    let exit_lines = [
+        "                          ┌───▼────┐",
+        "                          │  EXIT  │",
+        "                          └────────┘",
+    ];
+    for line in &exit_lines {
+        write_box_line(&mut out, line, inner);
     }
-    out.push_str("║\n");
-
-    out.push('║');
-    let exit_label = "                          │  EXIT  │";
-    out.push_str(exit_label);
-    for _ in 0..(inner.saturating_sub(exit_label.len())) {
-        out.push(' ');
-    }
-    out.push_str("║\n");
-
-    out.push('║');
-    let exit_bottom = "                          └────────┘";
-    out.push_str(exit_bottom);
-    for _ in 0..(inner.saturating_sub(exit_bottom.len())) {
-        out.push(' ');
-    }
-    out.push_str("║\n");
 
     // Metrics section
-    out.push('╠');
-    for _ in 0..inner {
-        out.push('═');
-    }
-    out.push_str("╣\n");
+    write_hrule(&mut out, '╠', '═', "╣", inner);
 
     let metrics_line = format!(
         "  Nodes: {} │ Edges: {} │ Cyclomatic: {} │ Essential: {} │ Max Depth: {}",
@@ -640,25 +566,14 @@ pub fn render_cfg_ascii(
         metrics.essential,
         metrics.max_depth
     );
-
-    out.push('║');
     let truncated = if metrics_line.len() > inner {
         &metrics_line[..inner]
     } else {
         &metrics_line
     };
-    out.push_str(truncated);
-    for _ in 0..(inner.saturating_sub(metrics_line.len())) {
-        out.push(' ');
-    }
-    out.push_str("║\n");
+    write_box_line(&mut out, truncated, inner);
 
-    // Footer
-    out.push('╚');
-    for _ in 0..inner {
-        out.push('═');
-    }
-    out.push_str("╝\n");
+    write_hrule(&mut out, '╚', '═', "╝", inner);
 
     out
 }

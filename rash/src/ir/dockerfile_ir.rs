@@ -149,24 +149,44 @@ pub enum DockerInstruction {
     Comment(String),
 }
 
+/// Emit a RUN instruction with chained commands
+fn emit_run(cmds: &[String], output: &mut String) {
+    if cmds.len() == 1 {
+        output.push_str(&format!("RUN {}\n", cmds[0]));
+    } else {
+        output.push_str("RUN ");
+        for (i, cmd) in cmds.iter().enumerate() {
+            if i > 0 {
+                output.push_str(" && \\\n    ");
+            }
+            output.push_str(cmd);
+        }
+        output.push('\n');
+    }
+}
+
+/// Emit a HEALTHCHECK instruction
+fn emit_healthcheck(cmd: &str, interval: &Option<String>, timeout: &Option<String>, output: &mut String) {
+    output.push_str("HEALTHCHECK");
+    if let Some(iv) = interval {
+        output.push_str(&format!(" --interval={}", iv));
+    }
+    if let Some(to) = timeout {
+        output.push_str(&format!(" --timeout={}", to));
+    }
+    output.push_str(&format!(" CMD {}\n", cmd));
+}
+
+/// Format args as JSON array string
+fn format_json_args(args: &[String]) -> String {
+    let json_args: Vec<String> = args.iter().map(|a| format!("\"{}\"", a)).collect();
+    json_args.join(", ")
+}
+
 impl DockerInstruction {
     fn emit(&self, output: &mut String) {
         match self {
-            DockerInstruction::Run(cmds) => {
-                if cmds.len() == 1 {
-                    output.push_str(&format!("RUN {}\n", cmds[0]));
-                } else {
-                    // Chain with &&
-                    output.push_str("RUN ");
-                    for (i, cmd) in cmds.iter().enumerate() {
-                        if i > 0 {
-                            output.push_str(" && \\\n    ");
-                        }
-                        output.push_str(cmd);
-                    }
-                    output.push('\n');
-                }
-            }
+            DockerInstruction::Run(cmds) => emit_run(cmds, output),
             DockerInstruction::Copy { src, dst, from } => {
                 if let Some(stage) = from {
                     output.push_str(&format!("COPY --from={} {} {}\n", stage, src, dst));
@@ -194,12 +214,10 @@ impl DockerInstruction {
                 output.push_str(&format!("USER {}\n", user));
             }
             DockerInstruction::Entrypoint(args) => {
-                let json_args: Vec<String> = args.iter().map(|a| format!("\"{}\"", a)).collect();
-                output.push_str(&format!("ENTRYPOINT [{}]\n", json_args.join(", ")));
+                output.push_str(&format!("ENTRYPOINT [{}]\n", format_json_args(args)));
             }
             DockerInstruction::Cmd(args) => {
-                let json_args: Vec<String> = args.iter().map(|a| format!("\"{}\"", a)).collect();
-                output.push_str(&format!("CMD [{}]\n", json_args.join(", ")));
+                output.push_str(&format!("CMD [{}]\n", format_json_args(args)));
             }
             DockerInstruction::Label { key, value } => {
                 output.push_str(&format!("LABEL {}=\"{}\"\n", key, value));
@@ -208,16 +226,7 @@ impl DockerInstruction {
                 cmd,
                 interval,
                 timeout,
-            } => {
-                output.push_str("HEALTHCHECK");
-                if let Some(iv) = interval {
-                    output.push_str(&format!(" --interval={}", iv));
-                }
-                if let Some(to) = timeout {
-                    output.push_str(&format!(" --timeout={}", to));
-                }
-                output.push_str(&format!(" CMD {}\n", cmd));
-            }
+            } => emit_healthcheck(cmd, interval, timeout, output),
             DockerInstruction::Comment(text) => {
                 output.push_str(&format!("# {}\n", text));
             }

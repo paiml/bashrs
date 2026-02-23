@@ -295,10 +295,75 @@ pub(crate) fn gate_print_check(label: &str, pass: bool) {
     println!("  {mark} {label}");
 }
 
+/// Compute z-score outliers from timing data
+fn find_zscore_outliers<'a>(
+    timings: &[(&'a str, f64)],
+    threshold: f64,
+) -> Option<(f64, f64, Vec<(&'a str, f64, f64)>)> {
+    let n = timings.len() as f64;
+    if n < 2.0 {
+        return None;
+    }
+    let mean = timings.iter().map(|(_, t)| t).sum::<f64>() / n;
+    let variance = timings.iter().map(|(_, t)| (t - mean).powi(2)).sum::<f64>() / (n - 1.0);
+    let stddev = variance.sqrt();
+
+    let mut outliers: Vec<(&str, f64, f64)> = timings
+        .iter()
+        .filter_map(|(id, ms)| {
+            let z = if stddev > 0.0 {
+                (ms - mean) / stddev
+            } else {
+                0.0
+            };
+            if z.abs() >= threshold {
+                Some((*id, *ms, z))
+            } else {
+                None
+            }
+        })
+        .collect();
+    outliers.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+    Some((mean, stddev, outliers))
+}
+
+/// Display outlier results
+fn display_outliers(
+    outliers: &[(&str, f64, f64)],
+    mean: f64,
+    stddev: f64,
+    threshold: f64,
+    total: usize,
+) {
+    use crate::cli::color::*;
+    println!("{BOLD}Timing Outlier Detection{RESET} (z-score >= {threshold:.1})");
+    println!("{DIM}  Mean: {mean:.1}ms | StdDev: {stddev:.1}ms | Entries: {total}{RESET}");
+    println!();
+
+    if outliers.is_empty() {
+        println!("  {GREEN}No outliers detected.{RESET}");
+    } else {
+        println!(
+            "  {BOLD}{:<8} {:>8} {:>8}  Status{RESET}",
+            "ID", "Time", "Z-Score"
+        );
+        for (id, ms, z) in outliers {
+            let color = if *z > 3.0 { BRIGHT_RED } else if *z > 2.0 { YELLOW } else { DIM };
+            let status = if *z > 3.0 { "EXTREME" } else { "OUTLIER" };
+            println!("  {CYAN}{:<8}{RESET} {color}{:>7.1}ms {:>+7.2}{RESET}  {status}", id, ms, z);
+        }
+        println!();
+        println!(
+            "  {DIM}{} outliers found out of {} entries{RESET}",
+            outliers.len(),
+            total
+        );
+    }
+}
+
 /// Find statistical outliers by transpilation timing (z-score detection).
 
 pub(crate) fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
@@ -317,7 +382,6 @@ pub(crate) fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) 
         })
         .collect();
 
-    // Time each entry
     let mut timings: Vec<(&str, f64)> = Vec::new();
     for entry in &entries {
         let start = Instant::now();
@@ -326,68 +390,13 @@ pub(crate) fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) 
         timings.push((&entry.id, ms));
     }
 
-    let n = timings.len() as f64;
-    if n < 2.0 {
-        println!("Need at least 2 entries for outlier detection.");
-        return Ok(());
-    }
-
-    let mean = timings.iter().map(|(_, t)| t).sum::<f64>() / n;
-    let variance = timings.iter().map(|(_, t)| (t - mean).powi(2)).sum::<f64>() / (n - 1.0);
-    let stddev = variance.sqrt();
-
-    // Find outliers by z-score
-    let mut outliers: Vec<(&str, f64, f64)> = timings
-        .iter()
-        .filter_map(|(id, ms)| {
-            let z = if stddev > 0.0 {
-                (ms - mean) / stddev
-            } else {
-                0.0
-            };
-            if z.abs() >= threshold {
-                Some((*id, *ms, z))
-            } else {
-                None
-            }
-        })
-        .collect();
-    outliers.sort_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
-
-    println!("{BOLD}Timing Outlier Detection{RESET} (z-score >= {threshold:.1})");
-    println!(
-        "{DIM}  Mean: {mean:.1}ms | StdDev: {stddev:.1}ms | Entries: {}{RESET}",
-        timings.len()
-    );
-    println!();
-
-    if outliers.is_empty() {
-        println!("  {GREEN}No outliers detected.{RESET}");
-    } else {
-        println!(
-            "  {BOLD}{:<8} {:>8} {:>8}  Status{RESET}",
-            "ID", "Time", "Z-Score"
-        );
-        for (id, ms, z) in &outliers {
-            let color = if *z > 3.0 {
-                BRIGHT_RED
-            } else if *z > 2.0 {
-                YELLOW
-            } else {
-                DIM
-            };
-            let status = if *z > 3.0 { "EXTREME" } else { "OUTLIER" };
-            println!(
-                "  {CYAN}{:<8}{RESET} {color}{:>7.1}ms {:>+7.2}{RESET}  {status}",
-                id, ms, z
-            );
+    match find_zscore_outliers(&timings, threshold) {
+        Some((mean, stddev, outliers)) => {
+            display_outliers(&outliers, mean, stddev, threshold, timings.len());
         }
-        println!();
-        println!(
-            "  {DIM}{} outliers found out of {} entries{RESET}",
-            outliers.len(),
-            timings.len()
-        );
+        None => {
+            println!("Need at least 2 entries for outlier detection.");
+        }
     }
     Ok(())
 }
