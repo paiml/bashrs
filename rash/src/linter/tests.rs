@@ -1,6 +1,7 @@
 //! Integration tests for the linter module
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod tests {
     use crate::linter::rules::lint_shell;
     use crate::linter::Severity;

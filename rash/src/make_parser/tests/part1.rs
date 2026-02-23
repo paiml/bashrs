@@ -950,12 +950,9 @@ mod var_mutation_killing_tests {
                 assert!(result.is_ok(), "Should parse: {}", input);
 
                 let ast = result.unwrap();
-                match &ast.items[0] {
-                    MakeItem::Variable { name, .. } => {
-                        // Just verify it's a variable
-                        assert!(!name.is_empty());
-                    }
-                    _ => {} // Could be target for some edge cases
+                if let MakeItem::Variable { name, .. } = &ast.items[0] {
+                    // Just verify it's a variable
+                    assert!(!name.is_empty());
                 }
             }
         }

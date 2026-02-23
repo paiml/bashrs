@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 #![allow(unused_imports)]
 
 use super::super::*;

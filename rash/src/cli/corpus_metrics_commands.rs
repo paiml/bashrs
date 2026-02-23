@@ -63,7 +63,6 @@ pub(crate) fn corpus_topk(limit: usize) -> Result<()> {
 }
 
 /// Side-by-side format comparison.
-
 pub(crate) fn corpus_format_cmp() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -149,7 +148,6 @@ pub(crate) fn corpus_format_cmp() -> Result<()> {
 }
 
 /// Stability index: ratio of entries never failing across iterations.
-
 pub(crate) fn corpus_stability() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -241,7 +239,6 @@ pub(crate) fn corpus_stability() -> Result<()> {
 }
 
 /// Corpus version and metadata info.
-
 pub(crate) fn corpus_version() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -279,7 +276,6 @@ pub(crate) fn corpus_version() -> Result<()> {
 }
 
 /// Simple pass rate display per format.
-
 pub(crate) fn corpus_rate() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -316,7 +312,6 @@ pub(crate) fn corpus_rate() -> Result<()> {
 }
 
 /// Distribution of entries by timing buckets.
-
 pub(crate) fn corpus_dist() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -386,7 +381,6 @@ pub(crate) fn corpus_dist() -> Result<()> {
 }
 
 /// Decision trace for a single corpus entry.
-
 pub(crate) fn corpus_trace(id: &str) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -445,7 +439,6 @@ pub(crate) fn corpus_trace(id: &str) -> Result<()> {
 }
 
 /// Collect decision trace coverage data from all corpus entries.
-
 pub(crate) fn collect_trace_coverage(
     registry: &crate::corpus::registry::CorpusRegistry,
     runner: &crate::corpus::runner::CorpusRunner,
@@ -479,7 +472,6 @@ pub(crate) fn collect_trace_coverage(
 }
 
 /// Tarantula fault localization ranking across all corpus decisions.
-
 pub(crate) fn corpus_suspicious(limit: usize) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;

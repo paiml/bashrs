@@ -38,16 +38,28 @@ pub(crate) fn purify_emit_type_diagnostics(
     has_errors
 }
 
-pub(crate) fn purify_command(
-    input: &Path,
-    output: Option<&Path>,
-    report: bool,
-    with_tests: bool,
-    property_tests: bool,
-    type_check: bool,
-    emit_guards: bool,
-    type_strict: bool,
-) -> Result<()> {
+pub(crate) struct PurifyCommandOptions<'a> {
+    pub input: &'a Path,
+    pub output: Option<&'a Path>,
+    pub report: bool,
+    pub with_tests: bool,
+    pub property_tests: bool,
+    pub type_check: bool,
+    pub emit_guards: bool,
+    pub type_strict: bool,
+}
+
+pub(crate) fn purify_command(opts: PurifyCommandOptions<'_>) -> Result<()> {
+    let PurifyCommandOptions {
+        input,
+        output,
+        report,
+        with_tests,
+        property_tests,
+        type_check,
+        emit_guards,
+        type_strict,
+    } = opts;
     use crate::bash_parser::codegen::{generate_purified_bash, generate_purified_bash_with_guards};
     use crate::bash_parser::parser::BashParser;
     use crate::bash_transpiler::purification::{PurificationOptions, Purifier};
@@ -130,18 +142,18 @@ pub(crate) fn purify_command(
     let total_time = start.elapsed();
 
     if report {
-        purify_print_report(
+        purify_print_report(PurifyReportData {
             input,
             output,
-            &source,
-            &purified_bash,
+            source: &source,
+            purified_bash: &purified_bash,
             read_time,
             parse_time,
             purify_time,
             codegen_time,
             write_time,
             total_time,
-        );
+        });
     }
 
     if with_tests {
@@ -151,18 +163,32 @@ pub(crate) fn purify_command(
     Ok(())
 }
 
-pub(crate) fn purify_print_report(
-    input: &Path,
-    output: Option<&Path>,
-    source: &str,
-    purified_bash: &str,
-    read_time: std::time::Duration,
-    parse_time: std::time::Duration,
-    purify_time: std::time::Duration,
-    codegen_time: std::time::Duration,
-    write_time: std::time::Duration,
-    total_time: std::time::Duration,
-) {
+pub(crate) struct PurifyReportData<'a> {
+    pub input: &'a Path,
+    pub output: Option<&'a Path>,
+    pub source: &'a str,
+    pub purified_bash: &'a str,
+    pub read_time: std::time::Duration,
+    pub parse_time: std::time::Duration,
+    pub purify_time: std::time::Duration,
+    pub codegen_time: std::time::Duration,
+    pub write_time: std::time::Duration,
+    pub total_time: std::time::Duration,
+}
+
+pub(crate) fn purify_print_report(data: PurifyReportData<'_>) {
+    let PurifyReportData {
+        input,
+        output,
+        source,
+        purified_bash,
+        read_time,
+        parse_time,
+        purify_time,
+        codegen_time,
+        write_time,
+        total_time,
+    } = data;
     use crate::cli::color::*;
 
     println!();

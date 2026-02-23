@@ -1,6 +1,6 @@
     use super::*;
     use super::parallel_safety::{
-        collect_targets, detect_missing_file_dependencies, is_automatic_variable,
+        is_automatic_variable,
         target_has_prerequisite, try_extract_cat_input, try_extract_output_redirect,
     };
 

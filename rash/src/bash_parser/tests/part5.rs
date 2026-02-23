@@ -1,4 +1,5 @@
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 #![allow(unused_imports)]
 
 use super::super::*;
@@ -3872,8 +3873,10 @@ fn test_F044_removes_random() {
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
 
-    let mut options = PurificationOptions::default();
-    options.remove_non_deterministic = true;
+    let options = PurificationOptions {
+        remove_non_deterministic: true,
+        ..Default::default()
+    };
     let mut purifier = Purifier::new(options);
 
     let result = purifier.purify(&ast);
@@ -3902,8 +3905,10 @@ fn test_F045_removes_dollar_dollar_in_paths() {
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
 
-    let mut options = PurificationOptions::default();
-    options.remove_non_deterministic = true;
+    let options = PurificationOptions {
+        remove_non_deterministic: true,
+        ..Default::default()
+    };
     let mut purifier = Purifier::new(options);
 
     let result = purifier.purify(&ast);
@@ -3924,8 +3929,10 @@ fn test_F046_handles_timestamps() {
     let mut parser = BashParser::new(script).expect("Lexer should succeed");
     let ast = parser.parse().expect("Parse should succeed");
 
-    let mut options = PurificationOptions::default();
-    options.remove_non_deterministic = true;
+    let options = PurificationOptions {
+        remove_non_deterministic: true,
+        ..Default::default()
+    };
     let mut purifier = Purifier::new(options);
 
     let result = purifier.purify(&ast);

@@ -367,7 +367,6 @@ pub(crate) fn corpus_stats_sparkline(entries: &[crate::corpus::runner::Convergen
 }
 
 /// Run metamorphic relation checks on a single corpus entry (spec §11.2).
-
 pub(crate) const CORPUS_CACHE_PATH: &str = ".quality/last-corpus-run.json";
 
 /// Save corpus run results to cache file for instant diagnosis.

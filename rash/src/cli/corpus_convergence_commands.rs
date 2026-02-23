@@ -29,7 +29,6 @@ pub(crate) fn corpus_converge_table() -> Result<()> {
 }
 
 /// Per-format delta between two iterations (§11.10.5).
-
 pub(crate) fn corpus_converge_diff(from: Option<u32>, to: Option<u32>) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::convergence;
@@ -56,7 +55,9 @@ pub(crate) fn corpus_converge_diff(from: Option<u32>, to: Option<u32>) -> Result
             .iter()
             .find(|e| e.iteration == n)
             .ok_or_else(|| Error::Internal(format!("Iteration #{n} not found in log")))?,
-        None => entries.last().expect("entries is non-empty"),
+        None => entries
+            .last()
+            .ok_or_else(|| Error::Internal("convergence log is empty".into()))?,
     };
 
     let diff = convergence::compare_iterations(from_entry, to_entry);
@@ -77,7 +78,6 @@ pub(crate) fn corpus_converge_diff(from: Option<u32>, to: Option<u32>) -> Result
 }
 
 /// Per-format convergence status with trend (§11.10.5).
-
 pub(crate) fn corpus_converge_status() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::convergence;
@@ -119,7 +119,6 @@ pub(crate) fn corpus_converge_status() -> Result<()> {
 }
 
 /// Mine fix patterns from git history (§11.9.1).
-
 pub(crate) fn corpus_mine(limit: usize) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::oip;
@@ -178,7 +177,6 @@ pub(crate) fn corpus_mine(limit: usize) -> Result<()> {
 }
 
 /// Find fix commits without regression corpus entries (§11.9.3).
-
 pub(crate) fn corpus_fix_gaps(limit: usize) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::oip;
@@ -234,7 +232,6 @@ pub(crate) fn corpus_fix_gaps(limit: usize) -> Result<()> {
 }
 
 /// Cross-project defect pattern analysis (§11.9.4).
-
 pub(crate) fn corpus_org_patterns() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::oip;

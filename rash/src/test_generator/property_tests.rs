@@ -170,7 +170,7 @@ impl PropertyTestGenerator {
         }
         else_block
             .as_deref()
-            .map_or(false, |block| self.has_nondeterministic_operations(block))
+            .is_some_and(|block| self.has_nondeterministic_operations(block))
     }
 
     /// Check if function has non-deterministic operations

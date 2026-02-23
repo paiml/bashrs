@@ -15,6 +15,7 @@
 //! Parser uses unwrap() and indexing on checked invariants (lookahead tokens, validated positions).
 //! This is safe because positions are validated before access.
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 #![allow(clippy::indexing_slicing)]
 
 pub mod ast;

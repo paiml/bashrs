@@ -14,7 +14,6 @@ pub(crate) fn score_impact_color(score: f64) -> (String, &'static str) {
 }
 
 /// Accumulate per-decision pass/fail stats from a trace result.
-
 pub(crate) fn accumulate_decision_stats(
     result: &crate::corpus::runner::CorpusResult,
     stats: &mut std::collections::HashMap<String, (usize, usize, usize)>,
@@ -45,7 +44,6 @@ pub(crate) fn accumulate_decision_stats(
 }
 
 /// Decision frequency and pass/fail correlation summary.
-
 pub(crate) fn corpus_decisions() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -106,7 +104,6 @@ pub(crate) fn corpus_decisions() -> Result<()> {
 }
 
 /// Mine and display CITL fix patterns (§11.10.2).
-
 pub(crate) fn corpus_patterns() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::pattern_store::mine_patterns;
@@ -162,7 +159,6 @@ pub(crate) fn corpus_patterns() -> Result<()> {
 }
 
 /// Query CITL patterns for a specific error signal (§11.10.2).
-
 pub(crate) fn corpus_pattern_query(signal: &str) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::pattern_store::mine_patterns;
@@ -210,7 +206,6 @@ pub(crate) fn corpus_pattern_query(signal: &str) -> Result<()> {
 }
 
 /// Suggest fixes for a failing corpus entry (§11.10.2).
-
 pub(crate) fn corpus_fix_suggest(id: &str) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::pattern_store::{classify_failure_signals, mine_patterns, suggest_fixes};

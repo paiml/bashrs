@@ -41,7 +41,6 @@ pub(crate) fn corpus_summary() -> Result<()> {
 }
 
 /// Show corpus size growth over time from convergence log (spec §4).
-
 pub(crate) fn corpus_growth(format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
@@ -112,7 +111,6 @@ pub(crate) fn corpus_growth(format: &CorpusOutputFormat) -> Result<()> {
 }
 
 /// Show tier × format coverage matrix (spec §2.3).
-
 pub(crate) fn corpus_coverage(format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry, CorpusTier};
 
@@ -201,7 +199,6 @@ pub(crate) fn count_format(
 }
 
 /// Validate a single corpus entry and return issues found.
-
 pub(crate) fn validate_corpus_entry(
     entry: &crate::corpus::registry::CorpusEntry,
     seen_ids: &mut std::collections::HashSet<String>,
@@ -239,7 +236,6 @@ pub(crate) fn validate_corpus_entry(
 }
 
 /// Validate all corpus entries for metadata correctness (spec §2.3).
-
 pub(crate) fn corpus_validate(format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
 

@@ -30,8 +30,6 @@
 //! cargo test --test golden_trace compare_hello_world_trace
 //! ```
 
-#![allow(clippy::unwrap_used)] // Tests can use unwrap()
-
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

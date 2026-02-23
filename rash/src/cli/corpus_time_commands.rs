@@ -84,7 +84,6 @@ pub(crate) fn corpus_timeline() -> Result<()> {
 }
 
 /// Print format drift line for a single format dimension.
-
 pub(crate) fn drift_print_format(name: &str, fp: usize, ft: usize, fs: f64, lp: usize, lt: usize, ls: f64) {
     use crate::cli::color::*;
     if ft == 0 && lt == 0 {
@@ -122,7 +121,6 @@ pub(crate) fn drift_print_format(name: &str, fp: usize, ft: usize, fs: f64, lp: 
 }
 
 /// Detect per-dimension score drift across convergence iterations.
-
 pub(crate) fn corpus_drift() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
@@ -226,7 +224,6 @@ pub(crate) fn corpus_drift() -> Result<()> {
 }
 
 /// Show entries sorted by transpilation time (slowest first).
-
 pub(crate) fn corpus_slow(limit: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
@@ -298,7 +295,6 @@ pub(crate) fn corpus_slow(limit: usize, filter: Option<&CorpusFormatArg>) -> Res
 }
 
 /// Show entries grouped by shell construct type.
-
 pub(crate) fn corpus_tags() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;

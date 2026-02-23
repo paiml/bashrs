@@ -5,6 +5,9 @@
 
 use super::runner::ConvergenceEntry;
 
+/// A format extractor: (format_name, function to extract (passed, total) from an entry).
+type FormatExtractor = [(&'static str, fn(&ConvergenceEntry) -> (usize, usize)); 3];
+
 /// Convergence trend for a single format.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Trend {
@@ -133,7 +136,7 @@ pub fn format_convergence_table(entries: &[ConvergenceEntry]) -> String {
 /// Examines the last few iterations to determine if each format is
 /// improving, stable, or regressing.
 pub fn convergence_status(entries: &[ConvergenceEntry]) -> Vec<FormatConvergenceStatus> {
-    let formats: [(&str, fn(&ConvergenceEntry) -> (usize, usize)); 3] = [
+    let formats: FormatExtractor = [
         ("Bash", |e| (e.bash_passed, e.bash_total)),
         ("Makefile", |e| (e.makefile_passed, e.makefile_total)),
         ("Dockerfile", |e| (e.dockerfile_passed, e.dockerfile_total)),
@@ -337,14 +340,10 @@ pub fn format_convergence_status(statuses: &[FormatConvergenceStatus]) -> String
             Trend::Stable => "\u{2192}",
             Trend::Regressing => "\u{2193}",
         };
-        let _ = writeln!(
-            out,
-            "{:<13}{:<10}{:<14}{}",
-            s.format,
-            format!("{:.1}%", s.current_rate * 100.0),
-            format!("{trend_arrow} {}", s.trend),
-            format!("{} iterations", s.iterations_stable),
-        );
+        let rate = format!("{:.1}%", s.current_rate * 100.0);
+        let trend = format!("{trend_arrow} {}", s.trend);
+        let iters = format!("{} iterations", s.iterations_stable);
+        let _ = writeln!(out, "{:<13}{rate:<10}{trend:<14}{iters}", s.format,);
     }
 
     let _ = writeln!(out, "{divider}");

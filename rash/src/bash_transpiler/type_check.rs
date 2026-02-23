@@ -616,7 +616,7 @@ impl TypeChecker {
         let var_name = if let Some(eq_pos) = s.find('=') {
             Some(&s[..eq_pos])
         } else if !s.starts_with('-') {
-            Some(s.as_ref())
+            Some(s)
         } else {
             None
         };

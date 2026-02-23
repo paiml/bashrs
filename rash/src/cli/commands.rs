@@ -48,8 +48,8 @@ mod mutate_cmds;
 mod simulate_cmds;
 
 // Re-import so existing dispatch calls and tests still work
-use lint_cmds::lint_command;
-use purify_cmds::purify_command;
+use lint_cmds::{lint_command, LintCommandOptions};
+use purify_cmds::{purify_command, PurifyCommandOptions};
 use format_cmds::format_command;
 use playbook_cmds::playbook_command;
 use mutate_cmds::mutate_command;
@@ -146,7 +146,7 @@ use make_cmds::convert_lint_format;
 #[cfg(test)]
 use make_cmds::{
     make_lint_command, make_parse_command, make_purify_command,
-    run_filtered_lint, show_lint_results,
+    run_filtered_lint,
 };
 #[cfg(test)]
 use config_cmds::{
@@ -158,6 +158,7 @@ use config_cmds::{
 #[cfg(test)]
 use super::dockerfile_commands::{
     dockerfile_lint_command, dockerfile_purify_command, purify_dockerfile,
+    DockerfilePurifyCommandArgs,
 };
 #[cfg(test)]
 use super::dockerfile_profile_commands::{
@@ -278,22 +279,22 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             graded,
         } => {
             info!("Linting {}", input.display());
-            lint_command(
-                &input,
+            let _ = graded; // consumed by CLI args but unused in lint logic
+            lint_command(LintCommandOptions {
+                input: &input,
                 format,
                 fix,
                 fix_assumptions,
-                output.as_deref(),
+                output: output.as_deref(),
                 no_ignore,
-                ignore_file.as_deref(),
+                ignore_file_path: ignore_file.as_deref(),
                 quiet,
                 level,
-                ignore.as_deref(),
-                exclude.as_deref(),
-                citl_export.as_deref(),
+                ignore_rules: ignore.as_deref(),
+                exclude_rules: exclude.as_deref(),
+                citl_export_path: citl_export.as_deref(),
                 profile,
-                graded,
-            )
+            })
         }
 
         Commands::Purify {
@@ -307,16 +308,16 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             type_strict,
         } => {
             info!("Purifying {}", input.display());
-            purify_command(
-                &input,
-                output.as_deref(),
+            purify_command(PurifyCommandOptions {
+                input: &input,
+                output: output.as_deref(),
                 report,
                 with_tests,
                 property_tests,
                 type_check,
                 emit_guards,
                 type_strict,
-            )
+            })
         }
 
         Commands::Make { command } => make_cmds::handle_make_command(command),

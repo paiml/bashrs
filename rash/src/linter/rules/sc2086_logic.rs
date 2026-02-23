@@ -160,7 +160,7 @@ fn count_unescaped_quotes(s: &str) -> usize {
 /// Check if variable is inside a quoted string based on quote parity
 fn is_inside_quoted_string(before_context: &str, after_context: &str) -> bool {
     let quote_count = count_unescaped_quotes(before_context);
-    if quote_count % 2 == 0 {
+    if quote_count.is_multiple_of(2) {
         return false;
     }
     // For braced variables, check after the closing brace

@@ -395,9 +395,11 @@ mod tests {
 
     #[test]
     fn test_generator_with_function_ast() {
-        let mut options = TestGenOptions::default();
         // Disable checks that require actual coverage tracking
-        options.target_coverage = 0.0;
+        let options = TestGenOptions {
+            target_coverage: 0.0,
+            ..Default::default()
+        };
 
         let mut gen = TestGenerator::new(options);
         let ast = make_ast(vec![BashStmt::Function {

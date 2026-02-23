@@ -3,6 +3,7 @@
 //! Extracted from `mod.rs` to reduce per-file complexity.
 
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 
 use super::*;
 use crate::ast::restricted::{BinaryOp, Literal, UnaryOp};

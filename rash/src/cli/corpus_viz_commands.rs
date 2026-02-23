@@ -87,7 +87,6 @@ pub(crate) fn corpus_scatter() -> Result<()> {
 }
 
 /// Grade distribution histogram across all entries.
-
 pub(crate) fn corpus_grade_dist() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -151,7 +150,6 @@ pub(crate) fn corpus_grade_dist() -> Result<()> {
 }
 
 /// Pivot table: tier × format cross-tabulation with pass rates.
-
 pub(crate) fn corpus_pivot() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -258,7 +256,6 @@ pub(crate) fn corpus_pivot() -> Result<()> {
 }
 
 /// Dimension correlation matrix: which failures co-occur.
-
 pub(crate) fn corpus_corr() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -331,7 +328,6 @@ pub(crate) fn corpus_corr() -> Result<()> {
 }
 
 /// Count entries passing each schema enforcement layer (L1-L4).
-
 pub(crate) fn schema_layer_counts(
     results: &[crate::corpus::runner::CorpusResult],
     indices: &[(usize, &crate::corpus::registry::CorpusEntry)],
@@ -360,7 +356,6 @@ pub(crate) fn schema_layer_counts(
 }
 
 /// Schema enforcement layer status per format (spec §11.8).
-
 pub(crate) fn corpus_schema() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -412,7 +407,6 @@ pub(crate) fn corpus_schema() -> Result<()> {
 }
 
 /// ASCII chart of score over iterations from convergence log.
-
 pub(crate) fn corpus_history_chart() -> Result<()> {
     use crate::cli::color::*;
 
@@ -429,7 +423,6 @@ pub(crate) fn corpus_history_chart() -> Result<()> {
 }
 
 /// Render a single chart cell for history chart.
-
 pub(crate) fn history_chart_cell(score: f64, row: usize, min_score: f64, range: f64, height: usize) {
     use crate::cli::color::*;
     if score <= 0.0 {

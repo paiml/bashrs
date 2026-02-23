@@ -16,6 +16,7 @@ mod expressions;
 mod test_exprs;
 
 #[cfg(test)]
+#[allow(clippy::expect_used)]
 mod tests;
 
 #[derive(Error, Debug)]

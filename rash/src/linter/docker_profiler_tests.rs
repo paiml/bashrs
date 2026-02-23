@@ -1,5 +1,6 @@
 //! Tests for Docker image profiling and size verification
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 
 use super::*;
 

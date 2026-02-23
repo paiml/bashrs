@@ -60,7 +60,6 @@ pub(crate) fn corpus_apply_b2_fixes(fixes: &[(String, String, String)]) -> Resul
 
 /// Find the last string literal in a CorpusEntry::new(...) call starting near id_pos.
 /// Returns (start_byte, end_byte) of the string literal including delimiters.
-
 pub(crate) fn find_last_string_in_entry(content: &str, id_pos: usize) -> Option<(usize, usize)> {
     let pre_start = id_pos.saturating_sub(200);
     let pre_region = &content[pre_start..id_pos];
@@ -86,7 +85,6 @@ pub(crate) enum RustScanState {
 }
 
 /// Advance result for the Rust source scanner.
-
 pub(crate) enum ScanAdvance {
     Step1,
     Skip(usize),
@@ -226,7 +224,6 @@ pub(crate) fn next_scan_state(current: &RustScanState, bytes: &[u8], i: usize) -
 /// Format a string as a Rust string literal for registry.rs.
 /// Uses raw string r#"..."# if the value contains quotes or backslashes,
 /// otherwise uses regular "..." with escaping.
-
 pub(crate) fn format_rust_string_for_registry(s: &str) -> String {
     if s.contains('"') || s.contains('\\') {
         // Use raw string — but check it doesn't contain "# which would break r#"..."#

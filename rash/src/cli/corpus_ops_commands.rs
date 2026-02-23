@@ -43,7 +43,6 @@ pub(crate) fn corpus_dupes() -> Result<()> {
 }
 
 /// Check if two entry names are similar enough to flag as potential duplicates.
-
 pub(crate) fn names_similar(a: &str, b: &str) -> bool {
     // Exact match (different IDs, same name)
     if a == b {
@@ -64,7 +63,6 @@ pub(crate) fn names_similar(a: &str, b: &str) -> bool {
 
 /// Check convergence criteria from spec §5.2.
 /// Returns exit code 0 if converged, 1 if not.
-
 pub(crate) fn corpus_converged(min_rate: f64, max_delta: f64, min_stable: usize) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
@@ -149,7 +147,6 @@ pub(crate) fn converged_no_regressions(entries: &[crate::corpus::runner::Converg
 }
 
 /// Benchmark transpilation time per entry (spec §8.2).
-
 pub(crate) fn corpus_benchmark(max_ms: u64, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};

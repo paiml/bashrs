@@ -423,8 +423,10 @@ mod tests {
     fn test_parallel_jobs_calculation() {
         let gen = MutationConfigGenerator::new();
 
-        let mut metrics = ComplexityMetrics::default();
-        metrics.function_count = 5;
+        let mut metrics = ComplexityMetrics {
+            function_count: 5,
+            ..Default::default()
+        };
         assert_eq!(gen.calculate_parallel_jobs(&metrics), 2);
 
         metrics.function_count = 15;

@@ -83,7 +83,6 @@ pub(crate) fn heatmap_print_row(r: &crate::corpus::runner::CorpusResult) {
 }
 
 /// Compact multi-corpus convergence dashboard (spec §11.10.5).
-
 pub(crate) fn corpus_dashboard() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -198,7 +197,6 @@ fn display_search_human(
 }
 
 /// Search corpus entries by ID, name, or description pattern.
-
 pub(crate) fn corpus_search(
     pattern: &str,
     format: &CorpusOutputFormat,

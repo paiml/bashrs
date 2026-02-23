@@ -1,4 +1,4 @@
-use crate::cli::args::{DockerfileCommands, LintFormat, ReportFormat};
+use crate::cli::args::{DockerfileCommands, LintFormat};
 use crate::cli::logic::purify_dockerfile_source;
 use crate::models::{Config, Error, Result};
 use std::fs;
@@ -36,17 +36,15 @@ pub(crate) fn handle_dockerfile_command(command: DockerfileCommands) -> Result<(
             skip_bash_purify,
         } => {
             info!("Purifying {}", input.display());
-            dockerfile_purify_command(
-                &input,
-                output.as_deref(),
+            let _ = (report, format, skip_bash_purify); // consumed by CLI args
+            dockerfile_purify_command(DockerfilePurifyCommandArgs {
+                input: &input,
+                output: output.as_deref(),
                 fix,
                 no_backup,
                 dry_run,
-                report,
-                format,
                 skip_user,
-                skip_bash_purify,
-            )
+            })
         }
         DockerfileCommands::Lint {
             input,
@@ -174,25 +172,24 @@ fn dockerfile_build_command(input: &Path, output: &Path) -> Result<()> {
 // dockerfile_purify_command
 // ---------------------------------------------------------------------------
 
-pub(crate) fn dockerfile_purify_command(
-    input: &Path,
-    output: Option<&Path>,
-    fix: bool,
-    no_backup: bool,
-    dry_run: bool,
-    _report: bool,
-    _format: ReportFormat,
-    skip_user: bool,
-    _skip_bash_purify: bool,
-) -> Result<()> {
+pub(crate) struct DockerfilePurifyCommandArgs<'a> {
+    pub input: &'a Path,
+    pub output: Option<&'a Path>,
+    pub fix: bool,
+    pub no_backup: bool,
+    pub dry_run: bool,
+    pub skip_user: bool,
+}
+
+pub(crate) fn dockerfile_purify_command(args: DockerfilePurifyCommandArgs<'_>) -> Result<()> {
     let options = DockerfilePurifyOptions {
-        output,
-        fix,
-        no_backup,
-        dry_run,
-        skip_user,
+        output: args.output,
+        fix: args.fix,
+        no_backup: args.no_backup,
+        dry_run: args.dry_run,
+        skip_user: args.skip_user,
     };
-    dockerfile_purify_command_impl(input, options)
+    dockerfile_purify_command_impl(args.input, options)
 }
 
 fn dockerfile_purify_command_impl(

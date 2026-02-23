@@ -90,6 +90,7 @@ oracle = ["bashrs-oracle"]  # ML-powered error classification and fix suggestion
 tui = ["ratatui", "crossterm"]  # Terminal UI with multi-panel layout
 # wasm feature removed - use probar/simular/jugar for browser testing
 # playground = ["ratatui", "ropey", "tree-sitter", "tree-sitter-rust", "crossbeam", "dashmap", "petgraph", "rayon", "brotli", "simdutf8", "bit-vec", "lru"]  # Removed from v1.0 - move to separate crate
+property-tests = []  # Property-based testing (proptest) - disabled by default
 # mutation-testing = ["mutagen"] when available
 # fuzzing = ["libfuzzer-sys"] when available
 

@@ -4,6 +4,7 @@
 //! Uses property-based testing, fuzzing patterns, and corner cases.
 
 #![allow(clippy::unwrap_used)]
+#![allow(clippy::expect_used)]
 
 use bashrs::bash_parser::parser::BashParser;
 
@@ -25,7 +26,7 @@ fn assert_parses(input: &str) {
 }
 
 /// Assert parsing fails
-fn assert_fails(input: &str) {
+fn _assert_fails(input: &str) {
     let (ok, _) = parse_result(input);
     assert!(!ok, "Should fail to parse '{}'", input);
 }
@@ -653,5 +654,4 @@ fn test_generate_bug_report() {
     }
 
     // The test passes regardless - this is for finding bugs
-    assert!(true);
 }

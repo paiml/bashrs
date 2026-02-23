@@ -275,8 +275,8 @@ printf '%s\n' "Hello"
         .arg("verify")
         .arg(rust_file.path())
         .arg(shell_file.path())
-        .assert();
-    // .success();  // Uncomment when verify is fully implemented
+        .assert()
+        .success();
 }
 
 #[test]
@@ -305,8 +305,8 @@ fn test_CLI_006_inspect_ast_json() {
         .arg(ast_json)
         .arg("--format")
         .arg("json")
-        .assert();
-    // May succeed or fail depending on AST validation
+        .assert()
+        .success();
 }
 
 #[test]
@@ -318,7 +318,8 @@ fn test_CLI_006_inspect_markdown_output() {
         .arg(ast_json)
         .arg("--format")
         .arg("markdown")
-        .assert();
+        .assert()
+        .success();
 }
 
 #[test]
@@ -329,7 +330,8 @@ fn test_CLI_006_inspect_with_detailed_traces() {
         .arg("inspect")
         .arg(ast_json)
         .arg("--detailed")
-        .assert();
+        .assert()
+        .success();
 }
 
 // ============================================================================
@@ -353,8 +355,8 @@ fn main() {
         .arg(input_file.path())
         .arg("--output")
         .arg(&output_file)
-        .assert();
-    // May succeed or fail depending on compile feature availability
+        .assert()
+        .success();
 }
 
 #[test]
@@ -375,7 +377,8 @@ fn main() {
         .arg("--output")
         .arg(&output_file)
         .arg("--self-extracting")
-        .assert();
+        .assert()
+        .success();
 }
 
 #[test]
@@ -397,7 +400,8 @@ fn main() {
         .arg(&output_file)
         .arg("--runtime")
         .arg("dash")
-        .assert();
+        .assert()
+        .success();
 }
 
 // ============================================================================
@@ -413,8 +417,7 @@ echo $x
 
     let input_file = create_temp_shell_file(shell_script);
 
-    bashrs_cmd().arg("lint").arg(input_file.path()).assert();
-    // May succeed with warnings or fail with errors
+    bashrs_cmd().arg("lint").arg(input_file.path()).assert().success();
 }
 
 #[test]
@@ -427,7 +430,7 @@ fn main() {
 
     let input_file = create_temp_rust_file(rust_code);
 
-    bashrs_cmd().arg("lint").arg(input_file.path()).assert();
+    bashrs_cmd().arg("lint").arg(input_file.path()).assert().success();
 }
 
 #[test]
@@ -440,7 +443,8 @@ fn test_CLI_008_lint_with_json_format() {
         .arg(input_file.path())
         .arg("--format")
         .arg("json")
-        .assert();
+        .assert()
+        .success();
 }
 
 #[test]
@@ -454,7 +458,8 @@ x=$RANDOM
         .arg("lint")
         .arg(input_file.path())
         .arg("--fix")
-        .assert();
+        .assert()
+        .success();
 }
 
 #[test]
@@ -677,7 +682,8 @@ fn main() {
         .arg("--strict")
         .arg("check")
         .arg(input_file.path())
-        .assert();
+        .assert()
+        .success();
 }
 
 #[test]
@@ -718,7 +724,8 @@ fn main() {
         .arg("strict")
         .arg("check")
         .arg(input_file.path())
-        .assert();
+        .assert()
+        .success();
 }
 
 // ============================================================================

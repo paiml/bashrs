@@ -81,7 +81,6 @@ pub(crate) fn corpus_flaky(threshold: f64) -> Result<()> {
 }
 
 /// Corpus composition profile: tier, format, category breakdown.
-
 pub(crate) fn corpus_profile() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -145,7 +144,6 @@ pub(crate) fn corpus_profile() -> Result<()> {
 }
 
 /// Check if a result passes a specific dimension by index.
-
 pub(crate) fn result_dim_pass(r: &crate::corpus::runner::CorpusResult, dim_idx: usize) -> bool {
     match dim_idx {
         0 => r.transpiled,
@@ -160,7 +158,6 @@ pub(crate) fn result_dim_pass(r: &crate::corpus::runner::CorpusResult, dim_idx: 
 }
 
 /// Compute pass rate for a dimension filtered by format.
-
 pub(crate) fn dim_format_rate(
     registry: &crate::corpus::registry::CorpusRegistry,
     results: &[crate::corpus::runner::CorpusResult],
@@ -188,7 +185,6 @@ pub(crate) fn dim_format_rate(
 }
 
 /// Find quality gaps: dimensions where specific formats underperform.
-
 pub(crate) fn corpus_gaps() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
@@ -239,7 +235,6 @@ pub(crate) fn corpus_gaps() -> Result<()> {
 }
 
 /// Compact JSON summary for CI/script consumption.
-
 pub(crate) fn corpus_summary_json() -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
@@ -275,7 +270,6 @@ pub(crate) fn corpus_summary_json() -> Result<()> {
 }
 
 /// Full audit trail: entries, tests, build, lint status.
-
 pub(crate) fn corpus_audit() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;

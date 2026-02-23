@@ -35,7 +35,6 @@ pub(crate) fn classify_b2_only(expected: &str, actual: &str) -> (String, String)
 }
 
 /// Classify a B1+B2 failure (neither containment nor exact match).
-
 pub(crate) fn classify_b1b2(expected: &str, actual: &str) -> String {
     if expected.is_empty() {
         return "empty_expected".to_string();
@@ -80,7 +79,6 @@ pub(crate) fn classify_b1b2(expected: &str, actual: &str) -> String {
 }
 
 /// Print a categorized group of failures.
-
 pub(crate) fn print_b2_category(cat: &str, items: &[(String, String, String)], limit: usize) {
     use crate::cli::color::*;
     let show = limit.min(5);
@@ -103,7 +101,6 @@ pub(crate) fn print_b2_category(cat: &str, items: &[(String, String, String)], l
 }
 
 /// Diagnose B2 exact match failures from cached results (instant, no re-transpilation).
-
 pub(crate) fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize) -> Result<()> {
     use crate::cli::color::*;
 
@@ -202,7 +199,6 @@ pub(crate) fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize
 /// Output corrected expected_contains for all B2-only failures as JSON.
 /// For each entry where B1 passes but B2 fails, finds the actual full line
 /// that contains the expected substring and outputs the correction.
-
 pub(crate) fn corpus_fix_b2(apply: bool) -> Result<()> {
     let score = corpus_load_last_run().ok_or_else(|| {
         Error::Validation("No cached corpus results. Run `bashrs corpus run` first.".to_string())
@@ -229,7 +225,6 @@ pub(crate) fn corpus_fix_b2(apply: bool) -> Result<()> {
 }
 
 /// Collect all B2 fixes: both B2-only (B1 passes) and B1+B2 diverged.
-
 pub(crate) fn collect_b2_fixes(score: &crate::corpus::runner::CorpusScore) -> Vec<(String, String, String)> {
     let mut fixes = Vec::new();
 
@@ -257,7 +252,6 @@ pub(crate) fn collect_b2_fixes(score: &crate::corpus::runner::CorpusScore) -> Ve
 }
 
 /// Find the best replacement expected_contains line from actual output.
-
 pub(crate) fn find_best_b2_replacement(expected: &str, actual: &str, id: &str) -> Option<String> {
     let actual_lines: Vec<&str> = actual.lines().map(str::trim).collect();
 
@@ -276,7 +270,6 @@ pub(crate) fn find_best_b2_replacement(expected: &str, actual: &str, id: &str) -
 }
 
 /// Extract meaningful lines from transpiled output (skip shell preamble).
-
 pub(crate) fn extract_main_body(actual: &str, id: &str) -> Vec<String> {
     if id.starts_with("D-") || id.starts_with("M-") {
         return extract_noncomment_lines(actual);
@@ -285,7 +278,6 @@ pub(crate) fn extract_main_body(actual: &str, id: &str) -> Vec<String> {
 }
 
 /// Extract all non-empty, non-comment lines (for Dockerfile/Makefile).
-
 pub(crate) fn extract_noncomment_lines(actual: &str) -> Vec<String> {
     actual
         .lines()
@@ -296,7 +288,6 @@ pub(crate) fn extract_noncomment_lines(actual: &str) -> Vec<String> {
 }
 
 /// Return true if this trimmed line is shell preamble (not user code).
-
 pub(crate) fn is_bash_preamble(s: &str) -> bool {
     s.is_empty()
         || s.starts_with('#')
@@ -362,7 +353,6 @@ pub(crate) fn advance_bash_body_state(s: &str, state: BashBodyState, out: &mut V
 }
 
 /// Find the actual line with the best token overlap to the expected string.
-
 pub(crate) fn find_best_token_match(expected: &str, lines: &[String]) -> Option<String> {
     let exp_tokens: std::collections::HashSet<&str> = expected
         .split(|c: char| !c.is_alphanumeric() && c != '_')

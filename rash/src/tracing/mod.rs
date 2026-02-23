@@ -14,9 +14,12 @@
 // - Complexity: <10 per function
 // - Performance: <10% overhead
 
+#[allow(clippy::expect_used)] // Buffer uses expect() for internal invariants
 pub mod buffer;
+#[allow(clippy::expect_used)] // Events uses expect() for internal invariants
 pub mod events;
 pub mod manager;
+#[allow(clippy::expect_used)] // Significance uses expect() for internal invariants
 pub mod significance;
 
 pub use buffer::CircularTraceBuffer;

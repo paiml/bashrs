@@ -102,7 +102,6 @@ pub(crate) fn corpus_weight() -> Result<()> {
 }
 
 /// Detailed per-format quality report with dimension breakdown.
-
 pub(crate) fn corpus_format_report(output_format: &CorpusOutputFormat) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
@@ -190,7 +189,6 @@ pub(crate) fn corpus_format_report(output_format: &CorpusOutputFormat) -> Result
 }
 
 /// Time budget analysis: time spent per format and per tier.
-
 pub(crate) fn corpus_budget() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -269,7 +267,6 @@ pub(crate) fn corpus_budget() -> Result<()> {
 }
 
 /// Information entropy of construct distribution.
-
 pub(crate) fn corpus_entropy() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -378,7 +375,6 @@ pub(crate) fn corpus_entropy() -> Result<()> {
 }
 
 /// Auto-generate improvement suggestions from current state.
-
 pub(crate) fn corpus_todo() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;

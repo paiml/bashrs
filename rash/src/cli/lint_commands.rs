@@ -7,22 +7,38 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::{info, warn};
 
-pub(crate) fn lint_command(
-    input: &Path,
-    format: LintFormat,
-    fix: bool,
-    fix_assumptions: bool,
-    output: Option<&Path>,
-    no_ignore: bool,
-    ignore_file_path: Option<&Path>,
-    quiet: bool,
-    level: LintLevel,
-    ignore_rules: Option<&str>,
-    exclude_rules: Option<&[String]>,
-    citl_export_path: Option<&Path>,
-    profile: LintProfileArg,
-    _graded: bool,
-) -> Result<()> {
+pub(crate) struct LintCommandOptions<'a> {
+    pub input: &'a Path,
+    pub format: LintFormat,
+    pub fix: bool,
+    pub fix_assumptions: bool,
+    pub output: Option<&'a Path>,
+    pub no_ignore: bool,
+    pub ignore_file_path: Option<&'a Path>,
+    pub quiet: bool,
+    pub level: LintLevel,
+    pub ignore_rules: Option<&'a str>,
+    pub exclude_rules: Option<&'a [String]>,
+    pub citl_export_path: Option<&'a Path>,
+    pub profile: LintProfileArg,
+}
+
+pub(crate) fn lint_command(opts: LintCommandOptions<'_>) -> Result<()> {
+    let LintCommandOptions {
+        input,
+        format,
+        fix,
+        fix_assumptions,
+        output,
+        no_ignore,
+        ignore_file_path,
+        quiet,
+        level,
+        ignore_rules,
+        exclude_rules,
+        citl_export_path,
+        profile,
+    } = opts;
     use crate::linter::ignore_file::IgnoreResult;
     use crate::linter::rules::lint_shell;
     use crate::linter::{

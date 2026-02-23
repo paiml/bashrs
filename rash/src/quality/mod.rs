@@ -32,6 +32,7 @@
 //! - Kim et al. (2013): Bug localization with learning-to-rank
 
 // Core quality gates
+#[allow(clippy::expect_used)] // Quality gates uses expect() for internal invariants
 pub mod gates;
 
 // Rich ASCII reporting
@@ -44,12 +45,14 @@ pub mod sbfl;
 pub mod oracle;
 
 // Rich lint report with clustering
+#[allow(clippy::expect_used)] // Lint report uses expect() for internal invariants
 pub mod lint_report;
 
 // Control flow graph and complexity
 pub mod cfg;
 
 // Mock command executor for testing gates
+#[allow(clippy::expect_used)] // Mock executor uses expect() for internal invariants
 pub mod mock_executor;
 
 // Re-exports for convenience

@@ -45,7 +45,6 @@ pub(crate) fn corpus_sparkline() -> Result<()> {
 }
 
 /// Generate a sparkline string from a series of values.
-
 pub(crate) fn sparkline_str(data: &[f64]) -> String {
     if data.is_empty() {
         return String::new();
@@ -70,7 +69,6 @@ pub(crate) fn sparkline_str(data: &[f64]) -> String {
 }
 
 /// Show top/bottom entries ranked by failure count.
-
 pub(crate) fn corpus_top(limit: usize, worst: bool, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
@@ -139,7 +137,6 @@ const CATEGORY_RULES: &[(&[&str], &str)] = &[
 ];
 
 /// Classify entry into domain-specific category based on name/description (spec §11.11).
-
 pub(crate) fn classify_category(name: &str) -> &'static str {
     let n = name.to_lowercase();
     for (keywords, category) in CATEGORY_RULES {
@@ -151,7 +148,6 @@ pub(crate) fn classify_category(name: &str) -> &'static str {
 }
 
 /// Show entries grouped by domain-specific category (spec §11.11).
-
 pub(crate) fn corpus_categories(format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
 
@@ -217,7 +213,6 @@ pub(crate) fn corpus_categories(format: &CorpusOutputFormat) -> Result<()> {
 }
 
 /// Show per-dimension pass rates, weights, and point contributions.
-
 pub(crate) fn corpus_dimensions(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
