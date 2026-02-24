@@ -215,7 +215,7 @@ proptest! {
             "mod", "move", "mut", "pub", "ref", "return", "self", "Self", "static",
             "struct", "super", "trait", "true", "type", "unsafe", "use", "where",
             "while", "async", "await", "dyn", "abstract", "become", "box", "do",
-            "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield"
+            "final", "macro", "override", "priv", "try", "typeof", "unsized", "virtual", "yield"
         ];
 
         // Skip reserved keywords and problematic names
