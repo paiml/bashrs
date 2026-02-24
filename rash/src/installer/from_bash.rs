@@ -818,6 +818,49 @@ apt-get install -y docker-ce docker-ce-cli containerd.io
         assert!(result.installer_toml.contains("[installer]"));
         assert!(result.installer_toml.contains("[[step]]"));
     }
+
+    #[test]
+    fn test_convert_file_to_project_creates_structure() {
+        let dir = std::env::temp_dir().join("bashrs_test_file_to_project");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).expect("create test dir");
+
+        let input_file = dir.join("deploy.sh");
+        std::fs::write(
+            &input_file,
+            "#!/bin/bash\napt-get update\napt-get install -y nginx\nmkdir -p /var/www\n",
+        )
+        .expect("write input");
+
+        let output_dir = dir.join("my-installer");
+        let result = convert_file_to_project(&input_file, &output_dir).expect("conversion");
+
+        // Verify directory structure
+        assert!(output_dir.exists(), "output dir should exist");
+        assert!(output_dir.join("installer.toml").exists());
+        assert!(output_dir.join("templates").exists());
+        assert!(output_dir.join("tests").exists());
+
+        // Verify content
+        assert!(result.installer_toml.contains("[installer]"));
+        assert!(result.installer_toml.contains("nginx"));
+        assert!(result.stats.apt_installs >= 1);
+
+        // Verify installer.toml was written to disk
+        let on_disk = std::fs::read_to_string(output_dir.join("installer.toml")).expect("read");
+        assert_eq!(on_disk, result.installer_toml);
+
+        // Clean up
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn test_convert_file_to_project_missing_input() {
+        let dir = std::env::temp_dir().join("bashrs_test_missing_input");
+        let _ = std::fs::remove_dir_all(&dir);
+        let result = convert_file_to_project(Path::new("/nonexistent/file.sh"), &dir);
+        assert!(result.is_err(), "should fail on missing input");
+    }
 }
 
 #[cfg(test)]
@@ -856,6 +899,20 @@ mod property_tests {
             prop_assert!(result.installer_toml.contains("[installer]"));
             // Must always have name
             prop_assert!(result.installer_toml.contains("name = \"test-installer\""));
+        }
+
+        /// Property: convert_file_to_project round-trip with random packages
+        #[test]
+        fn prop_convert_file_project_roundtrip(pkg in "[a-z][a-z0-9]{1,10}") {
+            let dir = std::env::temp_dir().join(format!("bashrs_test_cvt_{}", pkg));
+            let input_file = dir.join("input.sh");
+            let output_dir = dir.join("project");
+            let _ = std::fs::create_dir_all(&dir);
+            let script = format!("#!/bin/bash\napt-get install -y {}\n", pkg);
+            std::fs::write(&input_file, &script).expect("write input");
+            let result = convert_file_to_project(&input_file, &output_dir);
+            let _ = std::fs::remove_dir_all(&dir);
+            prop_assert!(result.is_ok(), "convert_file_to_project failed for pkg={}", pkg);
         }
 
         /// Property: Stats are always valid (conversion produces consistent output)
