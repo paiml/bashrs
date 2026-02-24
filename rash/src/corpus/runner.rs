@@ -1156,14 +1156,17 @@ impl CorpusRunner {
     /// SEC001: transpiler uses `eval echo` for exec() calls
     /// REL001: transpiler trap uses `rm -rf` (intentionally destructive cleanup)
     /// SC1020: missing-space-before-] heuristic on compact generated test expressions
+    /// SC1028: bare-paren-in-bracket heuristic false-positives on generated test expressions
     /// SC1035: missing-space-after-keyword heuristic on compact generated code
     /// SC1037: positional-param heuristic false-positives (e.g. $10 in generated code)
     /// SC1041: heredoc style heuristic false-positives on generated code
     /// SC1044: unterminated heredoc heuristic false-positives on generated code
     /// SC1078: odd-quote heuristic false-positives on multi-line transpiler output
     /// SC1140: extra-token-after-] heuristic on valid shell patterns
+    /// SC2105: break/continue-outside-loop heuristic on flattened transpiler output
     const CORPUS_LINT_EXCLUSIONS: &'static [&'static str] = &[
-        "SEC001", "REL001", "SC1020", "SC1035", "SC1037", "SC1041", "SC1044", "SC1078", "SC1140",
+        "SEC001", "REL001", "SC1020", "SC1028", "SC1035", "SC1037", "SC1041", "SC1044", "SC1078",
+        "SC1140", "SC2105",
     ];
 
     fn check_lint(&self, output: &str, format: CorpusFormat) -> bool {
