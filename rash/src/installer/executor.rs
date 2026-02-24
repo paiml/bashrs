@@ -869,3 +869,7 @@ file_exists = "/nonexistent/file/that/does/not/exist"
         assert!(!result.postcondition_results[0].passed);
     }
 }
+
+#[cfg(test)]
+#[path = "executor_tests.rs"]
+mod executor_tests;

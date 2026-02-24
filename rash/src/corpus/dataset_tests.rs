@@ -7,7 +7,7 @@
 //! CSV escaping combos, publish readiness boundary conditions, date
 //! conversion (leap years, year boundaries, Dec 31), and formatting.
 
-use crate::corpus::dataset::*;
+use super::*;
 use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier, Grade};
 use crate::corpus::runner::{CorpusResult, CorpusScore, FormatScore};
 

@@ -13,3 +13,11 @@ pub mod scoring;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "discovery_tests.rs"]
+mod discovery_tests;
+
+#[cfg(test)]
+#[path = "runner_tests.rs"]
+mod comply_runner_tests;

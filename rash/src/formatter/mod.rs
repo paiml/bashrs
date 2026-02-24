@@ -92,6 +92,10 @@ impl PreflightFormatter for RashFormatter {
 }
 
 #[cfg(test)]
+#[path = "formatter_tests.rs"]
+mod formatter_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

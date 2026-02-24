@@ -1130,3 +1130,7 @@ mod property_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "container_tests.rs"]
+mod container_tests;

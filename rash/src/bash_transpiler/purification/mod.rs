@@ -19,6 +19,10 @@ mod test_exprs;
 #[allow(clippy::expect_used)]
 mod tests;
 
+#[cfg(test)]
+#[path = "golden_tests.rs"]
+mod golden_tests;
+
 #[derive(Error, Debug)]
 pub enum PurificationError {
     #[error("Cannot purify non-deterministic construct: {0}")]

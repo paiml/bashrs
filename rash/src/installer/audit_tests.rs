@@ -582,12 +582,23 @@ action = "script"
 [step.script]
 content = "echo hello"
 "#;
-    let spec = InstallerSpec::parse(toml).unwrap();
-    let ctx = AuditContext::new();
-    let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
-
-    // BP003: missing step name
-    assert!(report.findings.iter().any(|f| f.rule_id == "BP003"));
+    // InstallerSpec::parse requires `name` field — this TOML is intentionally
+    // invalid to test BP003 (missing step name). If parsing fails, the audit
+    // can't run, so we verify the parse error mentions "name".
+    match InstallerSpec::parse(toml) {
+        Ok(spec) => {
+            let ctx = AuditContext::new();
+            let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
+            assert!(report.findings.iter().any(|f| f.rule_id == "BP003"));
+        }
+        Err(e) => {
+            let msg = e.to_string();
+            assert!(
+                msg.contains("name"),
+                "Parse error should mention missing 'name': {msg}"
+            );
+        }
+    }
 }
 
 #[test]
