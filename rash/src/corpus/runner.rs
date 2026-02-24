@@ -1151,11 +1151,19 @@ impl CorpusRunner {
         }
     }
 
+    /// Rules that are expected in transpiler output and should not count as lint failures.
+    /// SEC001: transpiler uses `eval echo` for exec() calls
+    /// REL001: transpiler trap uses `rm -rf` (intentionally destructive cleanup)
+    const CORPUS_LINT_EXCLUSIONS: &'static [&'static str] = &["SEC001", "REL001"];
+
     fn check_lint(&self, output: &str, format: CorpusFormat) -> bool {
         match format {
             CorpusFormat::Bash => {
                 let lint_result = crate::linter::rules::lint_shell(output);
-                !lint_result.has_errors()
+                !lint_result.diagnostics.iter().any(|d| {
+                    d.severity == crate::linter::Severity::Error
+                        && !Self::CORPUS_LINT_EXCLUSIONS.contains(&d.code.as_str())
+                })
             }
             CorpusFormat::Makefile => {
                 let lint_result = crate::linter::rules::lint_makefile(output);
