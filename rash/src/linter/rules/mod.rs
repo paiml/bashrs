@@ -1,5 +1,67 @@
 //! Lint rules for shell script analysis
 
+// ShellCheck SC1xxx rules (source code issues)
+pub mod sc1003;
+pub mod sc1004;
+pub mod sc1007;
+pub mod sc1008;
+pub mod sc1009;
+pub mod sc1012;
+pub mod sc1014;
+pub mod sc1017;
+pub mod sc1018;
+pub mod sc1020;
+pub mod sc1026;
+pub mod sc1028;
+pub mod sc1035;
+pub mod sc1036;
+pub mod sc1037;
+pub mod sc1038;
+pub mod sc1040;
+pub mod sc1041;
+pub mod sc1044;
+pub mod sc1045;
+pub mod sc1065;
+pub mod sc1066;
+pub mod sc1068;
+pub mod sc1069;
+pub mod sc1075;
+pub mod sc1076;
+pub mod sc1078;
+pub mod sc1079;
+pub mod sc1082;
+pub mod sc1083;
+pub mod sc1084;
+pub mod sc1086;
+pub mod sc1087;
+pub mod sc1090;
+pub mod sc1091;
+pub mod sc1094;
+pub mod sc1095;
+pub mod sc1097;
+pub mod sc1098;
+pub mod sc1099;
+pub mod sc1100;
+pub mod sc1101;
+pub mod sc1104;
+pub mod sc1105;
+pub mod sc1106;
+pub mod sc1109;
+pub mod sc1110;
+pub mod sc1111;
+pub mod sc1113;
+pub mod sc1114;
+pub mod sc1115;
+pub mod sc1117;
+pub mod sc1120;
+pub mod sc1127;
+pub mod sc1128;
+pub mod sc1129;
+pub mod sc1131;
+pub mod sc1135;
+pub mod sc1139;
+pub mod sc1140;
+
 // ShellCheck-equivalent rules
 pub mod sc2001;
 pub mod sc2002;
@@ -58,6 +120,7 @@ pub mod sc2054;
 pub mod sc2055;
 pub mod sc2056;
 pub mod sc2057;
+pub mod sc2058;
 pub mod sc2059;
 pub mod sc2060;
 pub mod sc2061;
@@ -426,6 +489,27 @@ pub mod devcontainer_logic;
 // systemd unit file validation rules (F086-F095)
 pub mod systemd001;
 
+// Performance rules (PERF001-PERF005)
+pub mod perf001;
+pub mod perf002;
+pub mod perf003;
+pub mod perf004;
+pub mod perf005;
+
+// Portability rules (PORT001-PORT005)
+pub mod port001;
+pub mod port002;
+pub mod port003;
+pub mod port004;
+pub mod port005;
+
+// Reliability rules (REL001-REL005)
+pub mod rel001;
+pub mod rel002;
+pub mod rel003;
+pub mod rel004;
+pub mod rel005;
+
 use crate::linter::LintResult;
 
 /// Lint a shell script with shell-type detection based on file path.
@@ -517,6 +601,68 @@ fn lint_shell_filtered(
         };
     }
 
+    // Run SC1xxx rules (source code issues - Universal)
+    apply_rule!("SC1003", sc1003::check);
+    apply_rule!("SC1004", sc1004::check);
+    apply_rule!("SC1007", sc1007::check);
+    apply_rule!("SC1008", sc1008::check);
+    apply_rule!("SC1009", sc1009::check);
+    apply_rule!("SC1012", sc1012::check);
+    apply_rule!("SC1014", sc1014::check);
+    apply_rule!("SC1017", sc1017::check);
+    apply_rule!("SC1018", sc1018::check);
+    apply_rule!("SC1020", sc1020::check);
+    apply_rule!("SC1026", sc1026::check);
+    apply_rule!("SC1028", sc1028::check);
+    apply_rule!("SC1035", sc1035::check);
+    apply_rule!("SC1036", sc1036::check);
+    apply_rule!("SC1037", sc1037::check);
+    apply_rule!("SC1038", sc1038::check);
+    apply_rule!("SC1040", sc1040::check);
+    apply_rule!("SC1041", sc1041::check);
+    apply_rule!("SC1044", sc1044::check);
+    apply_rule!("SC1045", sc1045::check);
+    apply_rule!("SC1065", sc1065::check);
+    apply_rule!("SC1066", sc1066::check);
+    apply_rule!("SC1068", sc1068::check);
+    apply_rule!("SC1069", sc1069::check);
+    apply_rule!("SC1075", sc1075::check);
+    apply_rule!("SC1076", sc1076::check);
+    apply_rule!("SC1078", sc1078::check);
+    apply_rule!("SC1079", sc1079::check);
+    apply_rule!("SC1082", sc1082::check);
+    apply_rule!("SC1083", sc1083::check);
+    apply_rule!("SC1084", sc1084::check);
+    apply_rule!("SC1086", sc1086::check);
+    apply_rule!("SC1087", sc1087::check);
+    apply_rule!("SC1090", sc1090::check);
+    apply_rule!("SC1091", sc1091::check);
+    apply_rule!("SC1094", sc1094::check);
+    apply_rule!("SC1095", sc1095::check);
+    apply_rule!("SC1097", sc1097::check);
+    apply_rule!("SC1098", sc1098::check);
+    apply_rule!("SC1099", sc1099::check);
+    apply_rule!("SC1100", sc1100::check);
+    apply_rule!("SC1101", sc1101::check);
+    apply_rule!("SC1104", sc1104::check);
+    apply_rule!("SC1105", sc1105::check);
+    apply_rule!("SC1106", sc1106::check);
+    apply_rule!("SC1109", sc1109::check);
+    apply_rule!("SC1110", sc1110::check);
+    apply_rule!("SC1111", sc1111::check);
+    apply_rule!("SC1113", sc1113::check);
+    apply_rule!("SC1114", sc1114::check);
+    apply_rule!("SC1115", sc1115::check);
+    apply_rule!("SC1117", sc1117::check);
+    apply_rule!("SC1120", sc1120::check);
+    apply_rule!("SC1127", sc1127::check);
+    apply_rule!("SC1128", sc1128::check);
+    apply_rule!("SC1129", sc1129::check);
+    apply_rule!("SC1131", sc1131::check);
+    apply_rule!("SC1135", sc1135::check);
+    apply_rule!("SC1139", sc1139::check);
+    apply_rule!("SC1140", sc1140::check);
+
     // Run ShellCheck-equivalent rules with filtering
     apply_rule!("SC2001", sc2001::check);
     apply_rule!("SC2002", sc2002::check);
@@ -605,7 +751,7 @@ fn lint_shell_filtered(
     apply_rule!("SC2055", sc2055::check); // Universal - deprecated -a
     apply_rule!("SC2056", sc2056::check); // Universal - deprecated -o
     apply_rule!("SC2057", sc2057::check); // Universal - unknown binary operator
-                                          // apply_rule!("SC2058", sc2058::check); // Universal - unknown unary operator (TODO: implement)
+    apply_rule!("SC2058", sc2058::check); // Universal - unknown unary operator
 
     // Batch 3: Command safety and security (Universal - CRITICAL)
     apply_rule!("SC2059", sc2059::check); // Universal - CRITICAL printf format injection
@@ -709,6 +855,27 @@ fn lint_shell_filtered(
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
 
+    // Performance rules
+    apply_rule!("PERF001", perf001::check);
+    apply_rule!("PERF002", perf002::check);
+    apply_rule!("PERF003", perf003::check);
+    apply_rule!("PERF004", perf004::check);
+    apply_rule!("PERF005", perf005::check);
+
+    // Portability rules
+    apply_rule!("PORT001", port001::check);
+    apply_rule!("PORT002", port002::check);
+    apply_rule!("PORT003", port003::check);
+    apply_rule!("PORT004", port004::check);
+    apply_rule!("PORT005", port005::check);
+
+    // Reliability rules
+    apply_rule!("REL001", rel001::check);
+    apply_rule!("REL002", rel002::check);
+    apply_rule!("REL003", rel003::check);
+    apply_rule!("REL004", rel004::check);
+    apply_rule!("REL005", rel005::check);
+
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);
     result
@@ -778,6 +945,70 @@ pub fn lint_shell(source: &str) -> LintResult {
     // For now, we'll use a simple token-based approach
     // In production, this would use the bash_parser AST
 
+    // Run SC1xxx rules (source code issues)
+    result.merge(sc1014::check(source));
+    result.merge(sc1017::check(source));
+    result.merge(sc1018::check(source));
+    result.merge(sc1026::check(source));
+    result.merge(sc1028::check(source));
+    result.merge(sc1036::check(source));
+    result.merge(sc1038::check(source));
+    result.merge(sc1040::check(source));
+    result.merge(sc1041::check(source));
+    result.merge(sc1044::check(source));
+    result.merge(sc1045::check(source));
+    result.merge(sc1065::check(source));
+    result.merge(sc1066::check(source));
+    result.merge(sc1075::check(source));
+    result.merge(sc1082::check(source));
+    result.merge(sc1083::check(source));
+    result.merge(sc1086::check(source));
+    result.merge(sc1090::check(source));
+    result.merge(sc1091::check(source));
+    result.merge(sc1094::check(source));
+    result.merge(sc1097::check(source));
+    result.merge(sc1100::check(source));
+    result.merge(sc1109::check(source));
+    result.merge(sc1008::check(source));
+    result.merge(sc1084::check(source));
+    result.merge(sc1104::check(source));
+    result.merge(sc1113::check(source));
+    result.merge(sc1114::check(source));
+    result.merge(sc1115::check(source));
+    result.merge(sc1120::check(source));
+    result.merge(sc1127::check(source));
+    result.merge(sc1128::check(source));
+    result.merge(sc1129::check(source));
+
+    // New SC1xxx rules
+    result.merge(sc1007::check(source));
+    result.merge(sc1009::check(source));
+    result.merge(sc1020::check(source));
+    result.merge(sc1035::check(source));
+    result.merge(sc1068::check(source));
+    result.merge(sc1069::check(source));
+    result.merge(sc1095::check(source));
+    result.merge(sc1099::check(source));
+    result.merge(sc1101::check(source));
+    result.merge(sc1037::check(source));
+    result.merge(sc1076::check(source));
+    result.merge(sc1087::check(source));
+    result.merge(sc1105::check(source));
+    result.merge(sc1106::check(source));
+    result.merge(sc1131::check(source));
+    result.merge(sc1139::check(source));
+    result.merge(sc1140::check(source));
+    result.merge(sc1003::check(source));
+    result.merge(sc1004::check(source));
+    result.merge(sc1012::check(source));
+    result.merge(sc1078::check(source));
+    result.merge(sc1079::check(source));
+    result.merge(sc1098::check(source));
+    result.merge(sc1110::check(source));
+    result.merge(sc1111::check(source));
+    result.merge(sc1117::check(source));
+    result.merge(sc1135::check(source));
+
     // Run ShellCheck-equivalent rules
     result.merge(sc2001::check(source));
     result.merge(sc2002::check(source));
@@ -829,6 +1060,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2055::check(source));
     result.merge(sc2056::check(source));
     result.merge(sc2057::check(source));
+    result.merge(sc2058::check(source));
     result.merge(sc2059::check(source));
     result.merge(sc2060::check(source));
     result.merge(sc2062::check(source));
@@ -1126,6 +1358,27 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sec016::check(source));
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
+
+    // Performance rules
+    result.merge(perf001::check(source));
+    result.merge(perf002::check(source));
+    result.merge(perf003::check(source));
+    result.merge(perf004::check(source));
+    result.merge(perf005::check(source));
+
+    // Portability rules
+    result.merge(port001::check(source));
+    result.merge(port002::check(source));
+    result.merge(port003::check(source));
+    result.merge(port004::check(source));
+    result.merge(port005::check(source));
+
+    // Reliability rules
+    result.merge(rel001::check(source));
+    result.merge(rel002::check(source));
+    result.merge(rel003::check(source));
+    result.merge(rel004::check(source));
+    result.merge(rel005::check(source));
 
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);

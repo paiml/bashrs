@@ -1,0 +1,15 @@
+- id: bashrs-lint
+  name: bashrs lint
+  description: Lint shell scripts for safety, determinism, and idempotency
+  entry: bashrs lint --ci
+  language: rust
+  types: [shell]
+  require_serial: false
+
+- id: bashrs-purify
+  name: bashrs purify check
+  description: Check that shell scripts are purified (deterministic and idempotent)
+  entry: bashrs purify --diff
+  language: rust
+  types: [shell]
+  require_serial: false

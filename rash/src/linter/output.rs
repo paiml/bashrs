@@ -2,6 +2,7 @@
 
 use crate::linter::{LintResult, Severity};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::io::Write;
 
 /// Output format for lint results
@@ -168,7 +169,7 @@ fn write_json<W: Write>(
     Ok(())
 }
 
-/// SARIF output format (simplified version)
+/// SARIF output format
 #[derive(Serialize, Deserialize)]
 struct SarifOutput {
     version: String,
@@ -192,6 +193,18 @@ struct SarifTool {
 struct SarifDriver {
     name: String,
     version: String,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    rules: Vec<SarifRuleDescriptor>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SarifRuleDescriptor {
+    id: String,
+    name: String,
+    #[serde(rename = "shortDescription")]
+    short_description: SarifMessage,
+    #[serde(rename = "helpUri")]
+    help_uri: String,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -201,6 +214,32 @@ struct SarifResult {
     level: String,
     message: SarifMessage,
     locations: Vec<SarifLocation>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    fixes: Vec<SarifFix>,
+    #[serde(rename = "partialFingerprints", skip_serializing_if = "HashMap::is_empty")]
+    partial_fingerprints: HashMap<String, String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SarifFix {
+    description: SarifMessage,
+    #[serde(rename = "artifactChanges")]
+    artifact_changes: Vec<SarifArtifactChange>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SarifArtifactChange {
+    #[serde(rename = "artifactLocation")]
+    artifact_location: SarifArtifactLocation,
+    replacements: Vec<SarifReplacement>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct SarifReplacement {
+    #[serde(rename = "deletedRegion")]
+    deleted_region: SarifRegion,
+    #[serde(rename = "insertedContent")]
+    inserted_content: SarifMessage,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -243,6 +282,37 @@ fn write_sarif<W: Write>(
     result: &LintResult,
     file_path: &str,
 ) -> std::io::Result<()> {
+    use crate::linter::rule_registry;
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::{Hash, Hasher};
+
+    // Collect unique rule IDs referenced in results
+    let mut seen_rules = std::collections::HashSet::new();
+    for d in &result.diagnostics {
+        seen_rules.insert(d.code.as_str());
+    }
+
+    // Build driver.rules[] from registry metadata (only rules referenced in results)
+    let rules: Vec<SarifRuleDescriptor> = rule_registry::all_rules()
+        .into_iter()
+        .filter(|r| seen_rules.contains(r.id))
+        .map(|r| {
+            let category = r.id.trim_end_matches(char::is_numeric);
+            SarifRuleDescriptor {
+                id: r.id.to_string(),
+                name: r.name.to_string(),
+                short_description: SarifMessage {
+                    text: r.name.to_string(),
+                },
+                help_uri: format!(
+                    "https://github.com/paiml/bashrs/blob/main/docs/rules/{}.md",
+                    category.to_lowercase()
+                ),
+            }
+        })
+        .collect();
+
+    // Build results with fixes and fingerprints
     let results = result
         .diagnostics
         .iter()
@@ -250,10 +320,48 @@ fn write_sarif<W: Write>(
             let level = match d.severity {
                 Severity::Error => "error",
                 Severity::Warning => "warning",
-                Severity::Risk => "warning", // Map Risk to warning in SARIF
-                Severity::Perf => "note",    // Map Perf to note in SARIF
+                Severity::Risk => "warning",
+                Severity::Perf => "note",
                 Severity::Info | Severity::Note => "note",
             };
+
+            // Build fixes from diagnostic autofix data
+            let fixes = if let Some(ref fix) = d.fix {
+                vec![SarifFix {
+                    description: SarifMessage {
+                        text: format!("Replace with: {}", fix.replacement),
+                    },
+                    artifact_changes: vec![SarifArtifactChange {
+                        artifact_location: SarifArtifactLocation {
+                            uri: file_path.to_string(),
+                        },
+                        replacements: vec![SarifReplacement {
+                            deleted_region: SarifRegion {
+                                start_line: d.span.start_line,
+                                start_column: d.span.start_col,
+                                end_line: d.span.end_line,
+                                end_column: d.span.end_col,
+                            },
+                            inserted_content: SarifMessage {
+                                text: fix.replacement.clone(),
+                            },
+                        }],
+                    }],
+                }]
+            } else {
+                Vec::new()
+            };
+
+            // Compute partial fingerprint from rule_id + location + message
+            let mut fingerprints = HashMap::new();
+            let mut hasher = DefaultHasher::new();
+            d.code.hash(&mut hasher);
+            d.span.start_line.hash(&mut hasher);
+            d.message.hash(&mut hasher);
+            fingerprints.insert(
+                "primaryLocationLineHash".to_string(),
+                format!("{:x}", hasher.finish()),
+            );
 
             SarifResult {
                 rule_id: d.code.clone(),
@@ -274,6 +382,8 @@ fn write_sarif<W: Write>(
                         },
                     },
                 }],
+                fixes,
+                partial_fingerprints: fingerprints,
             }
         })
         .collect();
@@ -286,6 +396,7 @@ fn write_sarif<W: Write>(
                 driver: SarifDriver {
                     name: "bashrs".to_string(),
                     version: env!("CARGO_PKG_VERSION").to_string(),
+                    rules,
                 },
             },
             results,
@@ -383,5 +494,63 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
         assert_eq!(parsed["version"], "2.1.0");
         assert!(parsed["runs"].is_array());
+    }
+
+    #[test]
+    fn test_sarif_output_has_partial_fingerprints() {
+        let mut result = LintResult::new();
+        let span = Span::new(1, 5, 1, 10);
+        result.add(Diagnostic::new("SEC001", Severity::Error, "Injection risk", span));
+
+        let mut buffer = Vec::new();
+        write_sarif(&mut buffer, &result, "test.sh").unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let first_result = &parsed["runs"][0]["results"][0];
+        assert!(
+            first_result["partialFingerprints"]["primaryLocationLineHash"].is_string(),
+            "Should have partialFingerprints: {output}"
+        );
+    }
+
+    #[test]
+    fn test_sarif_output_has_rule_descriptors() {
+        let mut result = LintResult::new();
+        let span = Span::new(1, 5, 1, 10);
+        result.add(Diagnostic::new("SEC001", Severity::Error, "Injection risk", span));
+
+        let mut buffer = Vec::new();
+        write_sarif(&mut buffer, &result, "test.sh").unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let rules = &parsed["runs"][0]["tool"]["driver"]["rules"];
+        assert!(rules.is_array(), "Should have rules array: {output}");
+        let rules_arr = rules.as_array().expect("rules is array");
+        assert!(!rules_arr.is_empty(), "Rules should not be empty");
+        let first_rule = &rules_arr[0];
+        assert_eq!(first_rule["id"], "SEC001");
+        assert!(first_rule["shortDescription"]["text"].is_string());
+        assert!(first_rule["helpUri"].as_str().expect("helpUri").contains("docs/rules"));
+    }
+
+    #[test]
+    fn test_sarif_output_has_fixes() {
+        let mut result = LintResult::new();
+        let span = Span::new(1, 5, 1, 10);
+        let mut diag = Diagnostic::new("IDEM001", Severity::Warning, "mkdir without -p", span);
+        diag.fix = Some(crate::linter::Fix::new("mkdir -p /tmp/foo"));
+        result.add(diag);
+
+        let mut buffer = Vec::new();
+        write_sarif(&mut buffer, &result, "test.sh").unwrap();
+
+        let output = String::from_utf8(buffer).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
+        let first_result = &parsed["runs"][0]["results"][0];
+        let fixes = first_result["fixes"].as_array().expect("fixes is array");
+        assert_eq!(fixes.len(), 1);
+        assert!(fixes[0]["description"]["text"].as_str().expect("desc").contains("mkdir -p"));
     }
 }

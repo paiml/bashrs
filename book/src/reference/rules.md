@@ -1,6 +1,6 @@
 # Linter Rules Reference
 
-This chapter provides a complete reference for all linter rules in bashrs v6.32.1, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration.
+This chapter provides a complete reference for all linter rules in bashrs v6.64.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration (SC1xxx + SC2xxx).
 
 ## Table of Contents
 
@@ -22,12 +22,19 @@ bashrs organizes linter rules into several categories:
 
 | Category | Rule Prefix | Count | Purpose |
 |----------|-------------|-------|---------|
-| Security | SEC | 8 | Detect security vulnerabilities |
+| Security | SEC | 19 | Detect security vulnerabilities |
 | Determinism | DET | 3 | Ensure predictable output |
 | Idempotency | IDEM | 3 | Ensure safe re-execution |
+| Best Practice | BASH | 10 | Shell best practices |
 | Config | CONFIG | 3 | Shell configuration analysis |
 | Makefile | MAKE | 20 | Makefile-specific issues |
-| ShellCheck | SC | 324+ | Shell script best practices |
+| Dockerfile | DOCKER | 12 | Dockerfile issues |
+| Performance | PERF | 5 | Performance optimization |
+| Portability | PORT | 5 | Cross-shell portability |
+| Reliability | REL | 5 | Reliability & error handling |
+| ShellCheck SC1xxx | SC1 | 60 | Source code issues (syntax, encoding) |
+| ShellCheck SC2xxx | SC2 | 325 | Shell script best practices |
+| **Total** | | **396+** | |
 
 ## Security Rules (SEC001-SEC008)
 
@@ -563,9 +570,26 @@ bashrs implements 20 Makefile rules (MAKE001-MAKE020) covering:
 
 See [Makefile Best Practices](../makefile/best-practices.md) for details.
 
-## ShellCheck Integration
+## ShellCheck SC1xxx Rules (Source Code Issues)
 
-bashrs integrates 324+ ShellCheck rules for comprehensive shell script analysis.
+bashrs implements 60 SC1xxx rules covering source-level issues that occur before the shell interprets the script:
+
+| Category | Rules | Description |
+|----------|-------|-------------|
+| Shebang | SC1008, SC1084, SC1104, SC1113-SC1115, SC1127-SC1128 | Shebang line problems |
+| Quoting | SC1003-SC1004, SC1012, SC1078-SC1079, SC1098, SC1110-SC1111, SC1117, SC1135 | Quote/escape issues |
+| Spacing | SC1007, SC1009, SC1020, SC1035, SC1068-SC1069, SC1095, SC1099, SC1101, SC1129 | Whitespace issues |
+| Syntax | SC1014, SC1026, SC1028, SC1036, SC1045, SC1065-SC1066, SC1075, SC1086, SC1097 | Syntax mistakes |
+| Here-docs | SC1038, SC1040-SC1041, SC1044, SC1120 | Heredoc issues |
+| Unicode | SC1017-SC1018, SC1082, SC1100, SC1109 | Encoding problems |
+| Portability | SC1037, SC1076, SC1087, SC1105-SC1106, SC1131, SC1139-SC1140 | Bash-in-sh issues |
+| Source | SC1083, SC1090-SC1091, SC1094 | File sourcing |
+
+For detailed documentation, see [ShellCheck SC1xxx Rules](../linting/shellcheck-sc1.md).
+
+## ShellCheck SC2xxx Rules (Best Practices)
+
+bashrs integrates 325 SC2xxx ShellCheck rules for comprehensive shell script analysis.
 
 ### Critical ShellCheck Rules
 
@@ -655,7 +679,8 @@ bashrs implements ShellCheck rules across categories:
 
 | Category | Example Rules | Count |
 |----------|---------------|-------|
-| Quoting | SC2086, SC2046, SC2068 | 30+ |
+| Source Issues (SC1xxx) | SC1003, SC1082, SC1128 | 60 |
+| Quoting (SC2xxx) | SC2086, SC2046, SC2068 | 30+ |
 | Variables | SC2034, SC2154, SC2155 | 25+ |
 | Arrays | SC2198, SC2199, SC2200 | 15+ |
 | Conditionals | SC2166, SC2181, SC2244 | 20+ |
@@ -666,7 +691,7 @@ bashrs implements ShellCheck rules across categories:
 | POSIX | SC2039, SC2169, SC2295 | 20+ |
 | Deprecations | SC2006, SC2016, SC2027 | 10+ |
 
-**Total:** 324+ rules implemented (and growing)
+**Total:** 385 ShellCheck rules (60 SC1xxx + 325 SC2xxx)
 
 #### SC2154: Variable Referenced But Not Assigned
 
@@ -935,37 +960,28 @@ plugins = ["custom_rules"]
 
 ## Summary
 
-bashrs provides comprehensive linting across 350+ rules:
+bashrs provides comprehensive linting across 396+ rules:
 
-**Security (8 rules):**
-- Command injection prevention
-- Credential security
-- File permission safety
-
-**Determinism (3 rules):**
-- Reproducible output
-- Predictable behavior
-
-**Idempotency (3 rules):**
-- Safe re-execution
-- No side effects
-
-**Config (3 rules):**
-- Shell configuration best practices
-
-**Makefile (20 rules):**
-- Build system correctness
-
-**ShellCheck (324+ rules):**
-- Comprehensive shell script analysis
+**Security (19 rules):** Command injection, credential safety, file permissions
+**Determinism (3 rules):** Reproducible, predictable output
+**Idempotency (3 rules):** Safe re-execution
+**Best Practice (10 rules):** Shell scripting conventions
+**Config (3 rules):** Shell configuration analysis
+**Makefile (20 rules):** Build system correctness
+**Dockerfile (12 rules):** Container image best practices
+**Performance (5 rules):** Optimization opportunities
+**Portability (5 rules):** Cross-shell compatibility
+**Reliability (5 rules):** Error handling and robustness
+**ShellCheck SC1xxx (60 rules):** Source code issues (syntax, encoding, shebang)
+**ShellCheck SC2xxx (325 rules):** Comprehensive shell script analysis
 
 **Key Features:**
 1. Auto-fix for 200+ rules
-2. Shell type detection
-3. Severity levels (Error, Warning, Style)
-4. Flexible rule disabling
-5. CI/CD integration
-6. Custom rule support (coming soon)
+2. Shell type detection (bash, sh, zsh, ksh)
+3. Severity levels (Error, Warning, Info)
+4. Inline suppression (`# shellcheck disable=SC2086`)
+5. CI/CD integration with exit codes
+6. JSON output format for tooling
 
 For more information, see:
 - [Security Rules Deep Dive](../linting/security.md)

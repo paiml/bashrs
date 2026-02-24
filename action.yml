@@ -1,0 +1,64 @@
+name: 'bashrs lint'
+description: 'Lint shell scripts with bashrs for safety, determinism, and idempotency'
+branding:
+  icon: 'shield'
+  color: 'green'
+
+inputs:
+  files:
+    description: 'Files or directories to lint (space-separated)'
+    required: false
+    default: '.'
+  format:
+    description: 'Output format (human, json, sarif)'
+    required: false
+    default: 'human'
+  level:
+    description: 'Minimum severity level to display (info, warning, error)'
+    required: false
+    default: 'info'
+  fail-on:
+    description: 'Minimum severity to trigger non-zero exit (info, warning, error)'
+    required: false
+    default: 'warning'
+  upload-sarif:
+    description: 'Upload SARIF results to GitHub Code Scanning'
+    required: false
+    default: 'false'
+  version:
+    description: 'bashrs version to install (latest if not specified)'
+    required: false
+    default: 'latest'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install bashrs
+      shell: bash
+      run: |
+        if [ "${{ inputs.version }}" = "latest" ]; then
+          cargo install bashrs
+        else
+          cargo install bashrs --version "${{ inputs.version }}"
+        fi
+
+    - name: Add problem matcher
+      shell: bash
+      run: echo "::add-matcher::${{ github.action_path }}/.github/bashrs-problem-matcher.json"
+
+    - name: Run bashrs lint
+      shell: bash
+      run: |
+        ARGS="--ci --fail-on ${{ inputs.fail-on }} --level ${{ inputs.level }}"
+        if [ "${{ inputs.upload-sarif }}" = "true" ]; then
+          bashrs lint ${{ inputs.files }} --format sarif $ARGS > bashrs-results.sarif 2>&1 || true
+        else
+          bashrs lint ${{ inputs.files }} $ARGS
+        fi
+
+    - name: Upload SARIF
+      if: inputs.upload-sarif == 'true' && always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: bashrs-results.sarif
+        category: bashrs
