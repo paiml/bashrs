@@ -702,4 +702,22 @@ mod tests {
         assert!(help.contains("AST"));
         assert!(help.contains(":parse"));
     }
+
+    #[test]
+    fn test_repl_015_004_explain_help_covers_constructs() {
+        let help = show_help(Some("explain"));
+        assert!(help.contains("BASH EXPLANATIONS"));
+        assert!(help.contains(":explain"));
+        assert!(help.contains("Parameter Expansion"));
+        assert!(help.contains("${var:-default}"));
+        assert!(help.contains("for i in"));
+        assert!(help.contains("while"));
+        assert!(help.contains("case $x in"));
+    }
+
+    #[test]
+    fn test_repl_015_004_debug_help() {
+        let help = show_help(Some("debug"));
+        assert!(help.contains("DEBUGGING"));
+    }
 }
