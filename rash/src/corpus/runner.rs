@@ -2886,6 +2886,7 @@ end_of_record
     }
 
     #[test]
+    #[ignore] // Takes ~26 minutes to iterate all 16,431 bash corpus entries
     fn test_CORPUS_RUN_069_diagnose_lint_failures() {
         // Diagnostic: find which error-level rules fire on transpiled corpus output
         let registry = CorpusRegistry::load_full();

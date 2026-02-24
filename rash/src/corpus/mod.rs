@@ -39,6 +39,18 @@ pub mod runner;
 pub mod schema_enforcement;
 pub mod tier_analysis;
 
+#[cfg(test)]
+#[path = "registry_coverage_tests.rs"]
+mod registry_coverage_tests;
+
+#[cfg(test)]
+#[path = "runner_coverage_tests.rs"]
+mod runner_coverage_tests;
+
+#[cfg(test)]
+#[path = "runner_coverage_tests2.rs"]
+mod runner_coverage_tests2;
+
 pub use pattern_store::{PatternStore, ShellFixPattern};
 pub use registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
 pub use runner::{ConvergenceEntry, CorpusResult, CorpusRunner, CorpusScore, FormatScore};

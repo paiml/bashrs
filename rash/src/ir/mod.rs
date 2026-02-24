@@ -43,6 +43,10 @@ mod convert_expr_tests2;
 #[cfg(test)]
 mod convert_expr_tests3;
 
+#[cfg(test)]
+#[path = "convert_coverage_tests.rs"]
+mod convert_coverage_tests;
+
 pub use effects::{Effect, EffectSet};
 pub use shell_ir::{Command, ShellExpression, ShellIR, ShellValue};
 

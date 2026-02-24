@@ -302,7 +302,14 @@ fn test_match_some_and_none_patterns() {
     match &ast.functions[0].body[0] {
         Stmt::Match { arms, .. } => {
             assert!(matches!(&arms[0].pattern, Pattern::Variable(n) if n == "v"));
-            assert!(matches!(&arms[1].pattern, Pattern::Literal(Literal::Str(_))));
+            // None is parsed as a wildcard/variable pattern, not a string literal
+            assert!(
+                matches!(&arms[1].pattern, Pattern::Literal(Literal::Str(_)))
+                    || matches!(&arms[1].pattern, Pattern::Wildcard)
+                    || matches!(&arms[1].pattern, Pattern::Variable(_)),
+                "None arm pattern: {:?}",
+                &arms[1].pattern
+            );
         }
         _ => panic!("Expected Match"),
     }

@@ -1001,6 +1001,10 @@ fn detect_regression_with_threshold(
 }
 
 #[cfg(test)]
+#[path = "bench_coverage_tests.rs"]
+mod bench_coverage_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

@@ -118,6 +118,18 @@ mod tests;
 #[cfg(test)]
 mod posix_tests;
 
+#[cfg(test)]
+#[path = "emitter_coverage_tests.rs"]
+mod emitter_coverage_tests;
+
+#[cfg(test)]
+#[path = "makefile_coverage_tests.rs"]
+mod makefile_coverage_tests;
+
+#[cfg(test)]
+#[path = "posix_coverage_tests.rs"]
+mod posix_coverage_tests;
+
 pub use posix::PosixEmitter;
 
 use crate::ir::ShellIR;
