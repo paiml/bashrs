@@ -11,6 +11,10 @@ mod tests;
 mod pipeline_tests;
 
 #[cfg(test)]
+#[path = "mod_tests.rs"]
+mod mod_tests;
+
+#[cfg(test)]
 #[path = "pipeline_coverage_tests.rs"]
 mod pipeline_coverage_tests;
 

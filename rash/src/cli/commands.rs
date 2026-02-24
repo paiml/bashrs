@@ -28,6 +28,30 @@ use tracing::{info, warn};
 #[path = "command_tests.rs"]
 mod command_tests;
 
+#[cfg(test)]
+#[path = "command_tests_display.rs"]
+mod command_tests_display;
+
+#[cfg(test)]
+#[path = "command_tests_gates.rs"]
+mod command_tests_gates;
+
+#[cfg(test)]
+#[path = "command_tests_analysis.rs"]
+mod command_tests_analysis;
+
+#[cfg(test)]
+#[path = "command_tests_corpus1.rs"]
+mod command_tests_corpus1;
+
+#[cfg(test)]
+#[path = "command_tests_corpus2.rs"]
+mod command_tests_corpus2;
+
+#[cfg(test)]
+#[path = "command_tests_corpus3.rs"]
+mod command_tests_corpus3;
+
 
 // ---------------------------------------------------------------------------
 // Extracted command modules (thin dispatch -> dedicated files)
