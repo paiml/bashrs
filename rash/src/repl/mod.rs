@@ -213,3 +213,11 @@ pub use purifier::{
 };
 pub use r#loop::run_repl;
 pub use state::ReplState;
+
+#[cfg(test)]
+#[path = "help_coverage_tests.rs"]
+mod help_coverage_tests;
+
+#[cfg(test)]
+#[path = "purifier_coverage_tests.rs"]
+mod purifier_coverage_tests;

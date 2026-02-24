@@ -68,4 +68,8 @@ pub use oracle::{
     FixPattern, KnnClassifier, Oracle, ShellErrorCategory,
 };
 pub use report::{gate_report, sparkline, Grade, ReportBuilder, RichReport};
+#[cfg(test)]
+#[path = "gates_coverage_tests.rs"]
+mod gates_coverage_tests;
+
 pub use sbfl::{CoverageData, FaultLocalizer, SbflFormula, SuspiciousnessRanking};

@@ -45,6 +45,10 @@ pub mod test_generator;
 #[cfg(test)]
 pub mod tests;
 
+#[cfg(test)]
+#[path = "parser_coverage_tests.rs"]
+mod make_parser_coverage_tests;
+
 pub use ast::{MakeAst, MakeItem, MakeMetadata};
 pub use error::{MakeParseError, SourceLocation};
 pub use generators::generate_purified_makefile;

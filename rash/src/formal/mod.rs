@@ -22,6 +22,10 @@ pub mod proofs;
 #[cfg(kani)]
 pub mod kani_harnesses;
 
+#[cfg(test)]
+#[path = "inspector_coverage_tests.rs"]
+mod inspector_coverage_tests;
+
 pub use abstract_state::*;
 pub use emitter::*;
 pub use enhanced_state::*;

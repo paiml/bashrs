@@ -47,3 +47,15 @@ mod codegen_tests; // Comprehensive codegen coverage tests (26.5% → >90%)
 
 #[cfg(test)]
 pub mod generators; // Property-based test generators
+
+#[cfg(test)]
+#[path = "control_coverage_tests.rs"]
+mod control_coverage_tests;
+
+#[cfg(test)]
+#[path = "expr_coverage_tests.rs"]
+mod expr_coverage_tests;
+
+#[cfg(test)]
+#[path = "parser_coverage_tests.rs"]
+mod parser_coverage_tests;
