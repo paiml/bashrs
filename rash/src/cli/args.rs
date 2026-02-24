@@ -128,9 +128,9 @@ pub enum Commands {
 
     /// Lint shell scripts or Rust source for safety issues
     Lint {
-        /// Input file (shell script or Rust source)
-        #[arg(value_name = "FILE")]
-        input: PathBuf,
+        /// Input file(s) or directories (shell script, Makefile, or Dockerfile)
+        #[arg(value_name = "FILE", required = true, num_args = 1..)]
+        input: Vec<PathBuf>,
 
         /// Output format
         #[arg(long, value_enum, default_value = "human")]
@@ -183,6 +183,14 @@ pub enum Commands {
         /// Enable graded output mode (educational scoring with pass/fail criteria)
         #[arg(long)]
         graded: bool,
+
+        /// CI mode: suppress colors, emit GitHub Actions annotations
+        #[arg(long)]
+        ci: bool,
+
+        /// Minimum severity to trigger non-zero exit code (default: warning)
+        #[arg(long, value_enum, default_value = "warning")]
+        fail_on: LintLevel,
     },
 
     /// Purify bash scripts (determinism + idempotency + safety)
@@ -218,6 +226,18 @@ pub enum Commands {
         /// Treat type warnings as errors
         #[arg(long)]
         type_strict: bool,
+
+        /// Show unified diff of original vs purified output
+        #[arg(long)]
+        diff: bool,
+
+        /// Verify purified output passes shellcheck
+        #[arg(long)]
+        verify: bool,
+
+        /// Recursively purify all .sh files in a directory
+        #[arg(long)]
+        recursive: bool,
     },
 
     /// Makefile parsing, purification, and transformation
@@ -2051,7 +2071,7 @@ pub enum InspectionFormat {
 }
 
 /// Output format for lint results
-#[derive(Clone, Debug, ValueEnum)]
+#[derive(Clone, Copy, Debug, ValueEnum)]
 pub enum LintFormat {
     /// Human-readable format
     Human,

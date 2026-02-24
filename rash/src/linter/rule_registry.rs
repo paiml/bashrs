@@ -109,6 +109,18 @@ pub fn get_rule_compatibility(rule_id: &str) -> Option<ShellCompatibility> {
     RULE_REGISTRY.get(rule_id).map(|meta| meta.compatibility)
 }
 
+/// Returns metadata for a specific rule by ID.
+pub fn get_rule_metadata(rule_id: &str) -> Option<&RuleMetadata> {
+    RULE_REGISTRY.get(rule_id)
+}
+
+/// Returns all rule metadata entries sorted by ID.
+pub fn all_rules() -> Vec<&'static RuleMetadata> {
+    let mut rules: Vec<&RuleMetadata> = RULE_REGISTRY.values().collect();
+    rules.sort_by_key(|r| r.id);
+    rules
+}
+
 /// Checks if a rule should be applied for a given shell type.
 ///
 /// Queries the rule registry and checks if the rule's compatibility
@@ -181,6 +193,83 @@ lazy_static::lazy_static! {
     /// Central registry of all linter rules with their compatibility
     static ref RULE_REGISTRY: HashMap<&'static str, RuleMetadata> = {
         let mut registry = HashMap::new();
+
+        // SC1xxx Source Code Issue Rules - Universal
+        registry.insert("SC1007", RuleMetadata {
+            id: "SC1007",
+            name: "Remove space after = in variable assignment",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1009", RuleMetadata {
+            id: "SC1009",
+            name: "Comment detected where command was expected",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1017", RuleMetadata {
+            id: "SC1017",
+            name: "Literal carriage return in source",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1018", RuleMetadata {
+            id: "SC1018",
+            name: "Unicode non-breaking space used",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1020", RuleMetadata {
+            id: "SC1020",
+            name: "Missing space before closing ]",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1035", RuleMetadata {
+            id: "SC1035",
+            name: "Missing space after keyword",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1068", RuleMetadata {
+            id: "SC1068",
+            name: "Don't put spaces around = in assignments",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1069", RuleMetadata {
+            id: "SC1069",
+            name: "Missing space before [ in test",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1082", RuleMetadata {
+            id: "SC1082",
+            name: "UTF-8 BOM detected",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1095", RuleMetadata {
+            id: "SC1095",
+            name: "Space between function name and () with function keyword",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC1099", RuleMetadata {
+            id: "SC1099",
+            name: "Missing space before # comment",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1100", RuleMetadata {
+            id: "SC1100",
+            name: "Unicode dash used instead of minus",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1101", RuleMetadata {
+            id: "SC1101",
+            name: "Trailing spaces after \\ line continuation",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1109", RuleMetadata {
+            id: "SC1109",
+            name: "Unquoted HTML entity in script",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1129", RuleMetadata {
+            id: "SC1129",
+            name: "Missing space before ! in negation",
+            compatibility: ShellCompatibility::Universal,
+        });
 
         // Security Rules (8 rules) - Universal
         registry.insert("SEC001", RuleMetadata {
@@ -540,12 +629,11 @@ lazy_static::lazy_static! {
             name: "Unknown binary operator (===, =!, <>)",
             compatibility: ShellCompatibility::Universal,
         });
-        // SC2058: Not implemented yet (unknown unary operator)
-        // registry.insert("SC2058", RuleMetadata {
-        //     id: "SC2058",
-        //     name: "Unknown unary operator in test",
-        //     compatibility: ShellCompatibility::Universal,
-        // });
+        registry.insert("SC2058", RuleMetadata {
+            id: "SC2058",
+            name: "Unknown unary operator in test",
+            compatibility: ShellCompatibility::Universal,
+        });
 
         // Command safety and redirection (Universal - CRITICAL security rules)
         registry.insert("SC2059", RuleMetadata {
@@ -2188,6 +2276,129 @@ lazy_static::lazy_static! {
         // Examples: SC2086 (quote variables), etc.
         // These will be added as "Universal" as we classify them
 
+        // Performance rules (PERF001-PERF005) - Universal
+        registry.insert("PERF001", RuleMetadata {
+            id: "PERF001",
+            name: "Useless use of cat",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("PERF002", RuleMetadata {
+            id: "PERF002",
+            name: "Command substitution inside loop",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("PERF003", RuleMetadata {
+            id: "PERF003",
+            name: "Useless use of echo",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("PERF004", RuleMetadata {
+            id: "PERF004",
+            name: "find -exec with \\; instead of +",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("PERF005", RuleMetadata {
+            id: "PERF005",
+            name: "/bin/echo instead of builtin echo",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // Portability rules (PORT001-PORT005) - POSIX-only (fires on #!/bin/sh)
+        registry.insert("PORT001", RuleMetadata {
+            id: "PORT001",
+            name: "Array syntax in POSIX sh",
+            compatibility: ShellCompatibility::ShOnly,
+        });
+        registry.insert("PORT002", RuleMetadata {
+            id: "PORT002",
+            name: "local keyword in POSIX sh",
+            compatibility: ShellCompatibility::ShOnly,
+        });
+        registry.insert("PORT003", RuleMetadata {
+            id: "PORT003",
+            name: "[[ ]] test in POSIX sh",
+            compatibility: ShellCompatibility::ShOnly,
+        });
+        registry.insert("PORT004", RuleMetadata {
+            id: "PORT004",
+            name: "Process substitution in POSIX sh",
+            compatibility: ShellCompatibility::ShOnly,
+        });
+        registry.insert("PORT005", RuleMetadata {
+            id: "PORT005",
+            name: "source instead of . in POSIX sh",
+            compatibility: ShellCompatibility::ShOnly,
+        });
+
+        // Reliability rules (REL001-REL005) - Universal
+        registry.insert("REL001", RuleMetadata {
+            id: "REL001",
+            name: "Destructive command without error check",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("REL002", RuleMetadata {
+            id: "REL002",
+            name: "mktemp without trap cleanup",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("REL003", RuleMetadata {
+            id: "REL003",
+            name: "read without timeout",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("REL004", RuleMetadata {
+            id: "REL004",
+            name: "TOCTOU race condition",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("REL005", RuleMetadata {
+            id: "REL005",
+            name: "Predictable temp file name",
+            compatibility: ShellCompatibility::Universal,
+        });
+
+        // SC1xxx rules (source code / portability issues)
+        registry.insert("SC1037", RuleMetadata {
+            id: "SC1037",
+            name: "Braces required for positional parameters beyond $9",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1076", RuleMetadata {
+            id: "SC1076",
+            name: "Deprecated $[...] arithmetic syntax",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1087", RuleMetadata {
+            id: "SC1087",
+            name: "Braces required for array access",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1105", RuleMetadata {
+            id: "SC1105",
+            name: "Space between $ and ( breaks command substitution",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1106", RuleMetadata {
+            id: "SC1106",
+            name: "Use -lt/-gt not </>  in single brackets",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1131", RuleMetadata {
+            id: "SC1131",
+            name: "Use elif instead of else followed by if",
+            compatibility: ShellCompatibility::Universal,
+        });
+        registry.insert("SC1139", RuleMetadata {
+            id: "SC1139",
+            name: "Use || instead of -o in [[ ]]",
+            compatibility: ShellCompatibility::NotSh,
+        });
+        registry.insert("SC1140", RuleMetadata {
+            id: "SC1140",
+            name: "Unexpected extra token after ]",
+            compatibility: ShellCompatibility::Universal,
+        });
+
         registry
     };
 }
@@ -2250,10 +2461,10 @@ mod tests {
     }
 
     #[test]
-    fn test_registry_has_357_rules() {
+    fn test_registry_has_373_rules() {
         // Batch 1: 8 SEC + 3 DET + 3 IDEM + 6 SC2xxx = 20 rules
         // Batch 2: 6 NotSh + 19 Universal = 25 rules
-        // Batch 3: 2 NotSh + 25 Universal = 27 rules (SC2058 not implemented yet)
+        // Batch 3: 2 NotSh + 26 Universal = 28 rules
         // Batch 4: 1 NotSh + 27 Universal = 28 rules (SC2120 has false positives, not enabled)
         // Batch 5: 0 NotSh + 20 Universal = 20 rules
         // Batch 6: 1 NotSh + 19 Universal = 20 rules
@@ -2270,8 +2481,10 @@ mod tests {
         // Batch 17: 5 NotSh + 16 Universal = 21 rules (ALL REMAINING UNCLASSIFIED)
         // Batch 18: 0 NotSh + 7 Universal = 7 rules (SC2008-SC2014 file/command best practices)
         // Batch 19: 0 NotSh + 20 Universal = 20 rules (MAKE001-MAKE020 Makefile linter rules)
-        // Total: 357 rules (100.0% of 357 total) - 🎉🎉🎉 100% MILESTONE ACHIEVED! 🎉🎉🎉
-        assert_eq!(RULE_REGISTRY.len(), 357);
+        // Batch 20: 5 PERF + 5 PORT (ShOnly) + 5 REL = 15 rules (performance, portability, reliability)
+        // SC1xxx: 60 rules (shebang, quoting, spacing, syntax, here-doc, unicode, portability, source)
+        // Total: 396 rules
+        assert_eq!(RULE_REGISTRY.len(), 396);
     }
 
     #[test]
@@ -2568,10 +2781,10 @@ mod tests {
 
     #[test]
     fn test_batch3_quoting_rules_universal() {
-        // Quoting and glob safety rules (SC2053-SC2057, SC2060-SC2063, SC2065-SC2066) - SC2058 not implemented
+        // Quoting and glob safety rules (SC2053-SC2058, SC2060-SC2063, SC2065-SC2066)
         let quoting_rules = vec![
-            "SC2053", "SC2054", "SC2055", "SC2056", "SC2057", "SC2060", "SC2061", "SC2062",
-            "SC2063", "SC2065", "SC2066",
+            "SC2053", "SC2054", "SC2055", "SC2056", "SC2057", "SC2058", "SC2060", "SC2061",
+            "SC2062", "SC2063", "SC2065", "SC2066",
         ];
 
         for rule in quoting_rules {
@@ -2609,24 +2822,24 @@ mod tests {
 
     #[test]
     fn test_batch3_universal_count() {
-        // Batch 3 should have 25 Universal rules (SC2044 and SC2052 are NotSh, SC2058 not implemented)
+        // Batch 3 should have 26 Universal rules (SC2044 and SC2052 are NotSh)
         let universal_rules = vec![
             // Loop safety (5)
             "SC2038", "SC2040", "SC2041", "SC2042",
             "SC2043", // Test operators (7, excluding SC2044 which is NotSh)
             "SC2045", "SC2046", "SC2047", "SC2048", "SC2049", "SC2050", "SC2051",
-            // Quoting/glob (9, excluding SC2052 NotSh and SC2058 not implemented)
-            "SC2053", "SC2054", "SC2055", "SC2056", "SC2057", "SC2060", "SC2061", "SC2062",
-            "SC2063", // Security and trap (4)
+            // Quoting/glob (10, excluding SC2052 NotSh)
+            "SC2053", "SC2054", "SC2055", "SC2056", "SC2057", "SC2058", "SC2060", "SC2061",
+            "SC2062", "SC2063", // Security and trap (4)
             "SC2059", // format injection
             "SC2064", // trap timing
             "SC2065", // shell redirection
             "SC2066", // missing semicolon
         ];
 
-        // Should be 25 unique rules
+        // Should be 26 unique rules
         let unique_count = universal_rules.len();
-        assert_eq!(unique_count, 25, "Batch 3 should have 25 Universal rules");
+        assert_eq!(unique_count, 26, "Batch 3 should have 26 Universal rules");
 
         for rule in universal_rules {
             assert_eq!(

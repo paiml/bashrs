@@ -4758,8 +4758,8 @@ echo "This is actually bash"
 <span class="boring"> Check detection (programmatically)
 </span><span class="boring"> bashrs will auto-detect from shebang
 </span></code></pre>
-<h2 id="shell-specific-rule-filtering-v6280-dev"><a class="header" href="#shell-specific-rule-filtering-v6280-dev">Shell-Specific Rule Filtering (v6.28.0-dev)</a></h2>
-<p><strong>NEW</strong>: bashrs now filters linter rules based on detected shell type!</p>
+<h2 id="shell-specific-rule-filtering"><a class="header" href="#shell-specific-rule-filtering">Shell-Specific Rule Filtering</a></h2>
+<p>bashrs filters linter rules based on detected shell type.</p>
 <h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
 <p>When you use <code>lint_shell_with_path()</code>, bashrs:</p>
 <ol>
@@ -4777,39 +4777,31 @@ echo "This is actually bash"
 </span></code></pre>
 <p><strong>Bash-specific rules skipped for sh</strong>:</p>
 <ul>
-<li>SC2198-2201 (arrays - bash/zsh only)</li>
+<li>SC2198-2201 (arrays -- bash/zsh only)</li>
 <li>SC2039 (bash features undefined in sh)</li>
-<li>SC2002 (process substitution suggestions)</li>
+<li>SC2044 (process substitution suggestions)</li>
 </ul>
 <h3 id="example-universal-rules-always-apply"><a class="header" href="#example-universal-rules-always-apply">Example: Universal Rules Always Apply</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/zsh
 </span><span class="boring"> Even in zsh, bad practices are still bad
 </span>
-SESSION_ID=$RANDOM  # ❌ DET001: Non-deterministic
-mkdir /tmp/build    # ❌ IDEM001: Non-idempotent
+SESSION_ID=$RANDOM  # DET001: Non-deterministic
+mkdir /tmp/build    # IDEM001: Non-idempotent
 </code></pre>
 <p><strong>Universal rules apply to ALL shells</strong>:</p>
 <ul>
 <li>DET001-003 (Determinism)</li>
 <li>IDEM001-003 (Idempotency)</li>
-<li>SEC001-008 (Security)</li>
-<li>Most SC2xxx quoting/syntax rules</li>
+<li>SEC001-019 (Security)</li>
+<li>Most SC1xxx and SC2xxx quoting/syntax rules</li>
 </ul>
-<h3 id="current-status-v6280-dev"><a class="header" href="#current-status-v6280-dev">Current Status (v6.28.0-dev)</a></h3>
+<h3 id="current-status-v6640"><a class="header" href="#current-status-v6640">Current Status (v6.64.0)</a></h3>
 <ul>
-<li>✅ <strong>20 rules classified</strong> (SEC, DET, IDEM + 6 SC2xxx)</li>
-<li>⏳ <strong>317 rules pending</strong> classification (default: Universal)</li>
-<li>✅ <strong>Filtering active</strong> in <code>lint_shell_with_path()</code></li>
-<li>⏳ <strong>Zsh-specific rules</strong> planned (ZSH001-ZSH020)</li>
-</ul>
-<h3 id="future-enhancements"><a class="header" href="#future-enhancements">Future Enhancements</a></h3>
-<h3 id="planned-v6280-final-and-beyond"><a class="header" href="#planned-v6280-final-and-beyond">Planned (v6.28.0-final and beyond)</a></h3>
-<ul>
-<li>Complete SC2xxx classification (317 remaining rules)</li>
-<li>20 zsh-specific rules (ZSH001-ZSH020)</li>
-<li>Per-shell linting profiles</li>
-<li>Custom shell type plugins</li>
-<li>Enhanced zsh array linting</li>
+<li><strong>396 rules classified</strong> in the rule registry</li>
+<li><strong>Shell compatibility</strong> specified for every rule (Universal, NotSh, ShOnly, BashOnly)</li>
+<li><strong>60 SC1xxx rules</strong> for source code issues (syntax, encoding, shebang)</li>
+<li><strong>325 SC2xxx rules</strong> for shell best practices</li>
+<li><strong>Filtering active</strong> in <code>lint_shell_with_path()</code></li>
 </ul>
 <h2 id="summary-2"><a class="header" href="#summary-2">Summary</a></h2>
 <ul>
@@ -4819,6 +4811,294 @@ mkdir /tmp/build    # ❌ IDEM001: Non-idempotent
 <li><strong>Accurate</strong>: 100% detection accuracy on test suite</li>
 </ul>
 <p><strong>Result</strong>: Write shell scripts naturally, lint correctly automatically.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="shellcheck-sc1xxx-rules-source-code-issues"><a class="header" href="#shellcheck-sc1xxx-rules-source-code-issues">ShellCheck SC1xxx Rules (Source Code Issues)</a></h1>
+<p>bashrs implements 60 SC1xxx rules covering source-level shell script issues: shebang problems, quoting mistakes, spacing errors, syntax style, here-document issues, unicode encoding problems, portability concerns, and source/include warnings.</p>
+<p>These rules detect issues that occur <strong>before</strong> the shell even begins interpreting the script -- encoding problems, syntax mistakes, and common typos that prevent correct parsing.</p>
+<h2 id="rule-categories"><a class="header" href="#rule-categories">Rule Categories</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Rules</th><th>Count</th><th>Description</th></tr></thead><tbody>
+<tr><td>Shebang</td><td>SC1008, SC1084, SC1104, SC1113-SC1115, SC1127-SC1128</td><td>8</td><td>Shebang line issues</td></tr>
+<tr><td>Quoting &amp; Escaping</td><td>SC1003-SC1004, SC1012, SC1078-SC1079, SC1098, SC1110-SC1111, SC1117, SC1135</td><td>10</td><td>Quote and escape problems</td></tr>
+<tr><td>Spacing &amp; Formatting</td><td>SC1007, SC1009, SC1020, SC1035, SC1068-SC1069, SC1095, SC1099, SC1101, SC1129</td><td>10</td><td>Whitespace issues</td></tr>
+<tr><td>Syntax Style</td><td>SC1014, SC1026, SC1028, SC1036, SC1045, SC1065-SC1066, SC1075, SC1086, SC1097</td><td>10</td><td>Common syntax mistakes</td></tr>
+<tr><td>Here-documents</td><td>SC1038, SC1040-SC1041, SC1044, SC1120</td><td>5</td><td>Heredoc issues</td></tr>
+<tr><td>Unicode &amp; Encoding</td><td>SC1017-SC1018, SC1082, SC1100, SC1109</td><td>5</td><td>Character encoding issues</td></tr>
+<tr><td>Bash-in-sh Portability</td><td>SC1037, SC1076, SC1087, SC1105-SC1106, SC1131, SC1139-SC1140</td><td>8</td><td>POSIX portability</td></tr>
+<tr><td>Source/Include</td><td>SC1083, SC1090-SC1091, SC1094</td><td>4</td><td>File sourcing issues</td></tr>
+</tbody></table>
+</div>
+<h2 id="shebang-rules"><a class="header" href="#shebang-rules">Shebang Rules</a></h2>
+<h3 id="sc1084-use--not-"><a class="header" href="#sc1084-use--not-">SC1084: Use <code>#!</code> not <code>!#</code></a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>Detects reversed shebang where <code>!#</code> is used instead of <code>#!</code>.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>!#/bin/bash
+echo "hello"
+
+<span class="boring"> Good:
+</span><span class="boring">!/bin/bash
+</span>echo "hello"
+</code></pre>
+<h3 id="sc1113-use--not-just-"><a class="header" href="#sc1113-use--not-just-">SC1113: Use <code>#!</code> not just <code>#</code></a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects shebang missing the <code>!</code> character.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span><span class="boring"> /bin/sh
+</span>echo "hello"
+
+<span class="boring"> Good:
+</span><span class="boring">!/bin/sh
+</span>echo "hello"
+</code></pre>
+<h3 id="sc1114-leading-spaces-before-shebang"><a class="header" href="#sc1114-leading-spaces-before-shebang">SC1114: Leading spaces before shebang</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Shebang must be the very first characters of the file.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span><span class="boring">  !/bin/sh
+</span>echo "hello"
+
+<span class="boring"> Good:
+</span><span class="boring">!/bin/sh
+</span>echo "hello"
+</code></pre>
+<h3 id="sc1115-space-between--and-"><a class="header" href="#sc1115-space-between--and-">SC1115: Space between <code>#</code> and <code>!</code></a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects <code># !</code> instead of <code>#!</code>.</p>
+<h3 id="sc1127-use--for-comments-not-"><a class="header" href="#sc1127-use--for-comments-not-">SC1127: Use <code>#</code> for comments, not <code>//</code></a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects C/C++ style comments that will be interpreted as commands.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>// This is a comment
+
+<span class="boring"> Good:
+</span><span class="boring"> This is a comment
+</span></code></pre>
+<h3 id="sc1128-shebang-must-be-first-line"><a class="header" href="#sc1128-shebang-must-be-first-line">SC1128: Shebang must be first line</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects shebang on a non-first line.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>echo "starting"
+<span class="boring">!/bin/bash
+</span>
+<span class="boring"> Good:
+</span><span class="boring">!/bin/bash
+</span>echo "starting"
+</code></pre>
+<h2 id="quoting--escape-rules"><a class="header" href="#quoting--escape-rules">Quoting &amp; Escape Rules</a></h2>
+<h3 id="sc1003-want-to-escape-a-single-quote"><a class="header" href="#sc1003-want-to-escape-a-single-quote">SC1003: Want to escape a single quote?</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects <code>'don't'</code> patterns where a single quote breaks the string.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>echo 'don't do this'
+
+<span class="boring"> Good:
+</span>echo 'don'\''t do this'
+echo "don't do this"
+</code></pre>
+<h3 id="sc1004-backslashlinefeed-in-single-quotes"><a class="header" href="#sc1004-backslashlinefeed-in-single-quotes">SC1004: Backslash+linefeed in single quotes</a></h3>
+<p><strong>Severity:</strong> Info</p>
+<p>In single quotes, <code>\n</code> is literal backslash-n, not a newline.</p>
+<h3 id="sc1012-t-is-literal-in-single-quotes"><a class="header" href="#sc1012-t-is-literal-in-single-quotes">SC1012: <code>\t</code> is literal in single quotes</a></h3>
+<p><strong>Severity:</strong> Info</p>
+<p>In single quotes, <code>\t</code> is literal, not a tab. Use <code>$'\t'</code> or double quotes.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>echo 'line1\tline2'   # Prints literal \t
+
+<span class="boring"> Good:
+</span>echo "line1\tline2"   # Prints tab
+printf 'line1\tline2'  # printf interprets \t
+</code></pre>
+<h3 id="sc1078-unclosed-double-quoted-string"><a class="header" href="#sc1078-unclosed-double-quoted-string">SC1078: Unclosed double-quoted string</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>Detects unmatched double quotes on a line.</p>
+<h3 id="sc1110--sc1111-unicode-quotes"><a class="header" href="#sc1110--sc1111-unicode-quotes">SC1110 / SC1111: Unicode quotes</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>Detects Unicode curly quotes (<code>\u201c</code> <code>\u201d</code> <code>\u2018</code> <code>\u2019</code>) that should be ASCII quotes.</p>
+<pre><code class="language-bash"><span class="boring"> Bad (unicode):
+</span>echo \u201chello\u201d
+
+<span class="boring"> Good (ASCII):
+</span>echo "hello"
+</code></pre>
+<h3 id="sc1098-quote-special-characters-in-eval"><a class="header" href="#sc1098-quote-special-characters-in-eval">SC1098: Quote special characters in eval</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects unquoted variables in <code>eval</code> statements.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>eval $cmd
+
+<span class="boring"> Good:
+</span>eval "$cmd"
+</code></pre>
+<h2 id="spacing--formatting-rules"><a class="header" href="#spacing--formatting-rules">Spacing &amp; Formatting Rules</a></h2>
+<h3 id="sc1007-remove-spaces-around-"><a class="header" href="#sc1007-remove-spaces-around-">SC1007: Remove spaces around <code>=</code></a></h3>
+<p><strong>Severity:</strong> Error</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>VAR = value
+
+<span class="boring"> Good:
+</span>VAR=value
+</code></pre>
+<h3 id="sc1068-dont-put-spaces-around--in-assignments"><a class="header" href="#sc1068-dont-put-spaces-around--in-assignments">SC1068: Don't put spaces around <code>=</code> in assignments</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>let x = 1
+
+<span class="boring"> Good:
+</span>let x=1
+</code></pre>
+<h3 id="sc1069-missing-space-before-"><a class="header" href="#sc1069-missing-space-before-">SC1069: Missing space before <code>[</code></a></h3>
+<p><strong>Severity:</strong> Error</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>if[ -f file ]; then echo ok; fi
+
+<span class="boring"> Good:
+</span>if [ -f file ]; then echo ok; fi
+</code></pre>
+<h3 id="sc1101-trailing-spaces-after--continuation"><a class="header" href="#sc1101-trailing-spaces-after--continuation">SC1101: Trailing spaces after <code>\</code> continuation</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects invisible trailing whitespace after line continuation backslash.</p>
+<h2 id="syntax-style-rules"><a class="header" href="#syntax-style-rules">Syntax Style Rules</a></h2>
+<h3 id="sc1065-dont-declare-function-parameters"><a class="header" href="#sc1065-dont-declare-function-parameters">SC1065: Don't declare function parameters</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>Shell functions don't take named parameters -- use <code>$1</code>, <code>$2</code>, etc.</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>function myfunc(x, y) {
+    echo "$x $y"
+}
+
+<span class="boring"> Good:
+</span>myfunc() {
+    echo "$1 $2"
+}
+</code></pre>
+<h3 id="sc1066-dont-use--on-left-side-of-assignments"><a class="header" href="#sc1066-dont-use--on-left-side-of-assignments">SC1066: Don't use <code>$</code> on left side of assignments</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>$VAR=value
+
+<span class="boring"> Good:
+</span>VAR=value
+</code></pre>
+<h3 id="sc1075-use-elif-not-else-if"><a class="header" href="#sc1075-use-elif-not-else-if">SC1075: Use <code>elif</code> not <code>else if</code></a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>if [ "$x" = 1 ]; then
+    echo "one"
+else if [ "$x" = 2 ]; then
+    echo "two"
+fi
+fi
+
+<span class="boring"> Good:
+</span>if [ "$x" = 1 ]; then
+    echo "one"
+elif [ "$x" = 2 ]; then
+    echo "two"
+fi
+</code></pre>
+<h3 id="sc1086-dont-use--on-for-loop-variable"><a class="header" href="#sc1086-dont-use--on-for-loop-variable">SC1086: Don't use <code>$</code> on for loop variable</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>for $i in 1 2 3; do echo "$i"; done
+
+<span class="boring"> Good:
+</span>for i in 1 2 3; do echo "$i"; done
+</code></pre>
+<h3 id="sc1097-use--not--in--"><a class="header" href="#sc1097-use--not--in--">SC1097: Use <code>=</code> not <code>==</code> in <code>[ ]</code></a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>POSIX <code>test</code> uses <code>=</code> for string comparison, not <code>==</code>.</p>
+<h2 id="here-document-rules"><a class="header" href="#here-document-rules">Here-document Rules</a></h2>
+<h3 id="sc1040-with---indent-with-tabs-only"><a class="header" href="#sc1040-with---indent-with-tabs-only">SC1040: With <code>&lt;&lt;-</code>, indent with tabs only</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>The <code>&lt;&lt;-</code> heredoc operator only strips leading tabs, not spaces.</p>
+<h3 id="sc1041-delimiter-on-same-line-as"><a class="header" href="#sc1041-delimiter-on-same-line-as">SC1041: Delimiter on same line as <code>&lt;&lt;</code></a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>The heredoc body starts on the next line after <code>&lt;&lt;</code>.</p>
+<h3 id="sc1044-unterminated-here-document"><a class="header" href="#sc1044-unterminated-here-document">SC1044: Unterminated here-document</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>The closing delimiter was not found.</p>
+<h3 id="sc1120-no-comments-after-heredoc-token"><a class="header" href="#sc1120-no-comments-after-heredoc-token">SC1120: No comments after heredoc token</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>cat &lt;&lt;EOF # this is a comment
+hello
+EOF
+
+<span class="boring"> Good:
+</span><span class="boring"> this is a comment
+</span>cat &lt;&lt;EOF
+hello
+EOF
+</code></pre>
+<h2 id="unicode--encoding-rules"><a class="header" href="#unicode--encoding-rules">Unicode &amp; Encoding Rules</a></h2>
+<h3 id="sc1017-literal-carriage-return"><a class="header" href="#sc1017-literal-carriage-return">SC1017: Literal carriage return</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>Detects Windows-style <code>\r\n</code> line endings in shell scripts.</p>
+<h3 id="sc1018-unicode-non-breaking-space"><a class="header" href="#sc1018-unicode-non-breaking-space">SC1018: Unicode non-breaking space</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>Detects invisible <code>\u00a0</code> characters that look like spaces but aren't.</p>
+<h3 id="sc1082-utf-8-bom-detected"><a class="header" href="#sc1082-utf-8-bom-detected">SC1082: UTF-8 BOM detected</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects the UTF-8 Byte Order Mark (<code>\xef\xbb\xbf</code>) at the start of a file.</p>
+<h3 id="sc1100-unicode-dash-instead-of-minus"><a class="header" href="#sc1100-unicode-dash-instead-of-minus">SC1100: Unicode dash instead of minus</a></h3>
+<p><strong>Severity:</strong> Error</p>
+<p>Detects en-dash (<code>\u2013</code>) or em-dash (<code>\u2014</code>) used where a minus/hyphen is needed.</p>
+<h3 id="sc1109-unquoted-html-entity"><a class="header" href="#sc1109-unquoted-html-entity">SC1109: Unquoted HTML entity</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Detects <code>&amp;amp;</code>, <code>&amp;lt;</code>, etc. that suggest the script was copy-pasted from a web page.</p>
+<h2 id="bash-in-sh-portability-rules"><a class="header" href="#bash-in-sh-portability-rules">Bash-in-sh Portability Rules</a></h2>
+<p>These rules only fire on <code>#!/bin/sh</code> scripts to catch bashisms.</p>
+<h3 id="sc1037-braces-required-for-positional-parameters-beyond-9"><a class="header" href="#sc1037-braces-required-for-positional-parameters-beyond-9">SC1037: Braces required for positional parameters beyond <code>$9</code></a></h3>
+<p><strong>Severity:</strong> Error</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>echo $10   # Interpreted as $1 followed by literal 0
+
+<span class="boring"> Good:
+</span>echo ${10}
+</code></pre>
+<h3 id="sc1076-use--for-math-not-"><a class="header" href="#sc1076-use--for-math-not-">SC1076: Use <code>$((...))</code> for math, not <code>$[...]</code></a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>The <code>$[expr]</code> syntax is deprecated. Use <code>$((expr))</code>.</p>
+<h3 id="sc1087-use-braces-for-array-access"><a class="header" href="#sc1087-use-braces-for-array-access">SC1087: Use braces for array access</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<pre><code class="language-bash"><span class="boring"> Bad:
+</span>echo $arr[0]
+
+<span class="boring"> Good:
+</span>echo ${arr[0]}
+</code></pre>
+<h2 id="sourceinclude-warnings"><a class="header" href="#sourceinclude-warnings">Source/Include Warnings</a></h2>
+<h3 id="sc1090-cant-follow-non-constant-source"><a class="header" href="#sc1090-cant-follow-non-constant-source">SC1090: Can't follow non-constant source</a></h3>
+<p><strong>Severity:</strong> Info</p>
+<p>When <code>source</code> or <code>.</code> is used with a variable argument, static analysis cannot determine which file is sourced.</p>
+<pre><code class="language-bash"><span class="boring"> Flagged (informational):
+</span>source "$config_file"
+. "$HOME/.bashrc"
+
+<span class="boring"> Not flagged:
+</span>source /etc/profile
+</code></pre>
+<h3 id="sc1091-source-file-not-followed"><a class="header" href="#sc1091-source-file-not-followed">SC1091: Source file not followed</a></h3>
+<p><strong>Severity:</strong> Info</p>
+<p>The linter notes it is not verifying sourced files.</p>
+<h3 id="sc1083----is-literal"><a class="header" href="#sc1083----is-literal">SC1083: <code>{</code> / <code>}</code> is literal</a></h3>
+<p><strong>Severity:</strong> Warning</p>
+<p>Unquoted braces may be interpreted literally rather than as a group.</p>
+<h2 id="usage"><a class="header" href="#usage">Usage</a></h2>
+<p>All SC1xxx rules are automatically applied when linting:</p>
+<pre><code class="language-bash"><span class="boring"> Lint a script (SC1xxx rules included automatically)
+</span>bashrs lint script.sh
+
+<span class="boring"> Filter output to SC1xxx only
+</span>bashrs lint script.sh 2&gt;&amp;1 | grep "SC1"
+</code></pre>
+<h2 id="shell-type-filtering"><a class="header" href="#shell-type-filtering">Shell Type Filtering</a></h2>
+<p>Most SC1xxx rules are <strong>Universal</strong> (apply to all shell types). A few are shell-specific:</p>
+<ul>
+<li><strong>SC1095</strong> (function keyword spacing): NotSh -- only applies to bash/zsh</li>
+<li><strong>SC1037, SC1076, SC1087</strong> (positional params, <code>$[]</code>, arrays): ShOnly portability warnings</li>
+<li><strong>SC1105, SC1106, SC1131, SC1139, SC1140</strong>: Bash-in-sh portability</li>
+</ul>
+<p>bashrs automatically applies the correct rules based on <a href="linting/./shell-detection.html">shell type detection</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="security-rules-sec001-sec008"><a class="header" href="#security-rules-sec001-sec008">Security Rules (SEC001-SEC008)</a></h1>
 <p>Rash includes 8 critical security rules designed to detect common shell script vulnerabilities. These rules follow <strong>NASA-level quality standards</strong> with an average 81.2% mutation test kill rate.</p>
 <h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
@@ -6699,8 +6979,8 @@ This allows continuous discovery of potential issues.</p>
 <p>All tests must pass before any release.</p>
 <h2 id="see-also-1"><a class="header" href="#see-also-1">See Also</a></h2>
 <ul>
-<li><a href="linting/../reference/false-positives-spec.html">Specification: False Positives</a></li>
-<li><a href="linting/../reference/shellcheck.html">ShellCheck Compatibility</a></li>
+<li><a href="linting/../reference/rules.html">Linting Rules Reference</a></li>
+<li><a href="linting/../reference/configuration.html">Configuration Reference</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="writing-custom-lint-rules"><a class="header" href="#writing-custom-lint-rules">Writing Custom Lint Rules</a></h1>
 <p>This guide explains how to implement custom lint rules in bashrs using EXTREME TDD methodology. Custom rules extend bashrs's linting capabilities for project-specific requirements.</p>
@@ -12364,7 +12644,7 @@ commands = [
 <ul>
 <li>Learn about <a href="installer/./step-types.html">Step Types</a></li>
 <li>Configure <a href="installer/./checkpointing.html">Checkpointing</a></li>
-<li>Set up <a href="installer/./artifacts.html">Artifact Verification</a></li>
+<li>Set up Artifact Verification (coming soon)</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="step-types"><a class="header" href="#step-types">Step Types</a></h1>
 <p>The installer framework supports various step types for different operations.</p>
@@ -12563,7 +12843,7 @@ apt-get install -y my-package
 <h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
 <ul>
 <li><a href="installer/./checkpointing.html">Checkpointing</a> - Resume from failures</li>
-<li><a href="installer/./artifacts.html">Artifacts</a> - Download and verify files</li>
+<li>Artifacts - Download and verify files (coming soon)</li>
 <li><a href="installer/./testing.html">Testing</a> - Container-based testing</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="checkpointing-and-recovery"><a class="header" href="#checkpointing-and-recovery">Checkpointing and Recovery</a></h1>
@@ -12738,9 +13018,9 @@ commands = [
 </code></pre>
 <h2 id="next-steps-9"><a class="header" href="#next-steps-9">Next Steps</a></h2>
 <ul>
-<li><a href="installer/./artifacts.html">Artifacts</a> - Download and verify files</li>
+<li>Artifacts - Download and verify files (coming soon)</li>
 <li><a href="installer/./testing.html">Testing</a> - Container-based testing</li>
-<li><a href="installer/./hermetic.html">Hermetic Builds</a> - Reproducible installations</li>
+<li>Hermetic Builds - Reproducible installations (coming soon)</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="container-based-testing"><a class="header" href="#container-based-testing">Container-Based Testing</a></h1>
 <p>The installer framework supports testing across multiple platforms using containers.</p>
@@ -12906,9 +13186,9 @@ jobs:
 </ol>
 <h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
 <ul>
-<li><a href="installer/./hermetic.html">Hermetic Builds</a> - Reproducible installations</li>
-<li><a href="installer/./artifacts.html">Artifacts</a> - Download and verify files</li>
-<li><a href="installer/./cli-reference.html">CLI Reference</a> - All command options</li>
+<li>Hermetic Builds - Reproducible installations (coming soon)</li>
+<li>Artifacts - Download and verify files (coming soon)</li>
+<li><a href="installer/../reference/cli.html">CLI Reference</a> - All command options</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="bootstrap-installer-example"><a class="header" href="#bootstrap-installer-example">Bootstrap Installer Example</a></h1>
 <p>This chapter demonstrates creating a universal bootstrap installer that works across different operating systems, architectures, and shell environments using bashrs purification.</p>
@@ -17443,7 +17723,7 @@ Entries: 500+ total, 100% pass rate
 </div>
 <h2 id="bashrs-playbook---state-machine-testing"><a class="header" href="#bashrs-playbook---state-machine-testing"><code>bashrs playbook</code> - State Machine Testing</a></h2>
 <p>Execute playbook-driven state machine tests with YAML-based test definitions.</p>
-<h3 id="usage"><a class="header" href="#usage">Usage</a></h3>
+<h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
 <pre><code class="language-bash">bashrs playbook &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments"><a class="header" href="#arguments">Arguments</a></h3>
@@ -17521,7 +17801,7 @@ tests:
 <hr />
 <h2 id="bashrs-mutate---mutation-testing"><a class="header" href="#bashrs-mutate---mutation-testing"><code>bashrs mutate</code> - Mutation Testing</a></h2>
 <p>Mutation testing verifies test quality by introducing defects (mutants) and checking if tests catch them.</p>
-<h3 id="usage-1"><a class="header" href="#usage-1">Usage</a></h3>
+<h3 id="usage-2"><a class="header" href="#usage-2">Usage</a></h3>
 <pre><code class="language-bash">bashrs mutate &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-1"><a class="header" href="#arguments-1">Arguments</a></h3>
@@ -17593,7 +17873,7 @@ Mutations Applied:
 <hr />
 <h2 id="bashrs-simulate---deterministic-simulation"><a class="header" href="#bashrs-simulate---deterministic-simulation"><code>bashrs simulate</code> - Deterministic Simulation</a></h2>
 <p>Replay script execution with deterministic seeding for reproducible debugging.</p>
-<h3 id="usage-2"><a class="header" href="#usage-2">Usage</a></h3>
+<h3 id="usage-3"><a class="header" href="#usage-3">Usage</a></h3>
 <pre><code class="language-bash">bashrs simulate &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-2"><a class="header" href="#arguments-2">Arguments</a></h3>
@@ -20889,7 +21169,7 @@ Where:
 <li>Breaking linear flow (break, continue, goto-like patterns)</li>
 <li>Recursion</li>
 </ul>
-<h2 id="usage-3"><a class="header" href="#usage-3">Usage</a></h2>
+<h2 id="usage-4"><a class="header" href="#usage-4">Usage</a></h2>
 <pre><code class="language-rust ignore">use bashrs::quality::{CfgBuilder, ComplexityMetrics};
 
 fn main() {
@@ -21269,7 +21549,7 @@ fn main() {
 <p>This is the reference for all bashrs CLI commands.</p>
 <h2 id="bashrs-bench---scientific-benchmarking"><a class="header" href="#bashrs-bench---scientific-benchmarking"><code>bashrs bench</code> - Scientific Benchmarking</a></h2>
 <p>Benchmark shell scripts with scientific rigor, measuring execution time and optionally memory usage.</p>
-<h3 id="usage-4"><a class="header" href="#usage-4">Usage</a></h3>
+<h3 id="usage-5"><a class="header" href="#usage-5">Usage</a></h3>
 <pre><code class="language-bash">bashrs bench [OPTIONS] &lt;SCRIPT&gt;...
 </code></pre>
 <h3 id="arguments-3"><a class="header" href="#arguments-3">Arguments</a></h3>
@@ -21344,7 +21624,7 @@ fn main() {
 </ul>
 <h2 id="bashrs-build---transpile-rust-to-shell-script"><a class="header" href="#bashrs-build---transpile-rust-to-shell-script"><code>bashrs build</code> - Transpile Rust to Shell Script</a></h2>
 <p>Transpiles Rust source code to deterministic POSIX shell scripts.</p>
-<h3 id="usage-5"><a class="header" href="#usage-5">Usage</a></h3>
+<h3 id="usage-6"><a class="header" href="#usage-6">Usage</a></h3>
 <pre><code class="language-bash">bashrs build &lt;INPUT&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-4"><a class="header" href="#arguments-4">Arguments</a></h3>
@@ -21378,7 +21658,7 @@ fn main() {
 <hr />
 <h2 id="bashrs-check---verify-rust-compatibility"><a class="header" href="#bashrs-check---verify-rust-compatibility"><code>bashrs check</code> - Verify Rust Compatibility</a></h2>
 <p>Checks if Rust source is compatible with Rash transpiler (no unsupported features).</p>
-<h3 id="usage-6"><a class="header" href="#usage-6">Usage</a></h3>
+<h3 id="usage-7"><a class="header" href="#usage-7">Usage</a></h3>
 <pre><code class="language-bash">bashrs check &lt;INPUT&gt;
 </code></pre>
 <h3 id="arguments-5"><a class="header" href="#arguments-5">Arguments</a></h3>
@@ -21401,7 +21681,7 @@ fn main() {
 <hr />
 <h2 id="bashrs-init---initialize-new-rash-project"><a class="header" href="#bashrs-init---initialize-new-rash-project"><code>bashrs init</code> - Initialize New Rash Project</a></h2>
 <p>Scaffolds a new Rash project with Cargo.toml and basic structure.</p>
-<h3 id="usage-7"><a class="header" href="#usage-7">Usage</a></h3>
+<h3 id="usage-8"><a class="header" href="#usage-8">Usage</a></h3>
 <pre><code class="language-bash">bashrs init [PATH] [OPTIONS]
 </code></pre>
 <h3 id="arguments-6"><a class="header" href="#arguments-6">Arguments</a></h3>
@@ -21433,7 +21713,7 @@ bashrs init --name deployment-tool
 <hr />
 <h2 id="bashrs-verify---verify-shell-script-against-rust-source"><a class="header" href="#bashrs-verify---verify-shell-script-against-rust-source"><code>bashrs verify</code> - Verify Shell Script Against Rust Source</a></h2>
 <p>Ensures generated shell script matches original Rust source behavior.</p>
-<h3 id="usage-8"><a class="header" href="#usage-8">Usage</a></h3>
+<h3 id="usage-9"><a class="header" href="#usage-9">Usage</a></h3>
 <pre><code class="language-bash">bashrs verify &lt;RUST_SOURCE&gt; &lt;SHELL_SCRIPT&gt;
 </code></pre>
 <h3 id="arguments-7"><a class="header" href="#arguments-7">Arguments</a></h3>
@@ -21460,7 +21740,7 @@ bashrs verify src/install.rs install.sh
 <hr />
 <h2 id="bashrs-inspect---generate-formal-verification-report"><a class="header" href="#bashrs-inspect---generate-formal-verification-report"><code>bashrs inspect</code> - Generate Formal Verification Report</a></h2>
 <p>Generates detailed verification inspection report from AST.</p>
-<h3 id="usage-9"><a class="header" href="#usage-9">Usage</a></h3>
+<h3 id="usage-10"><a class="header" href="#usage-10">Usage</a></h3>
 <pre><code class="language-bash">bashrs inspect &lt;INPUT&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-8"><a class="header" href="#arguments-8">Arguments</a></h3>
@@ -21495,7 +21775,7 @@ bashrs inspect ast.json --format html -o report.html
 <hr />
 <h2 id="bashrs-compile---compile-to-standalone-binary"><a class="header" href="#bashrs-compile---compile-to-standalone-binary"><code>bashrs compile</code> - Compile to Standalone Binary</a></h2>
 <p>Compiles Rust source to standalone executable or container image.</p>
-<h3 id="usage-10"><a class="header" href="#usage-10">Usage</a></h3>
+<h3 id="usage-11"><a class="header" href="#usage-11">Usage</a></h3>
 <pre><code class="language-bash">bashrs compile &lt;RUST_SOURCE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-9"><a class="header" href="#arguments-9">Arguments</a></h3>
@@ -21540,7 +21820,7 @@ bashrs inspect ast.json --format html -o report.html
 <hr />
 <h2 id="bashrs-lint---lint-shell-scripts-for-safety-issues"><a class="header" href="#bashrs-lint---lint-shell-scripts-for-safety-issues"><code>bashrs lint</code> - Lint Shell Scripts for Safety Issues</a></h2>
 <p>Analyzes shell scripts or Rust source for safety, determinism, and idempotency issues.</p>
-<h3 id="usage-11"><a class="header" href="#usage-11">Usage</a></h3>
+<h3 id="usage-12"><a class="header" href="#usage-12">Usage</a></h3>
 <pre><code class="language-bash">bashrs lint &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-10"><a class="header" href="#arguments-10">Arguments</a></h3>
@@ -21638,7 +21918,7 @@ scripts/record-metric.sh
 <hr />
 <h2 id="bashrs-purify---purify-bash-scripts"><a class="header" href="#bashrs-purify---purify-bash-scripts"><code>bashrs purify</code> - Purify Bash Scripts</a></h2>
 <p>Transforms bash scripts into deterministic, idempotent, POSIX-compliant shell scripts.</p>
-<h3 id="usage-12"><a class="header" href="#usage-12">Usage</a></h3>
+<h3 id="usage-13"><a class="header" href="#usage-13">Usage</a></h3>
 <pre><code class="language-bash">bashrs purify &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-11"><a class="header" href="#arguments-11">Arguments</a></h3>
@@ -21705,7 +21985,7 @@ scripts/record-metric.sh
 <hr />
 <h2 id="bashrs-make-parse---parse-makefile-to-ast"><a class="header" href="#bashrs-make-parse---parse-makefile-to-ast"><code>bashrs make parse</code> - Parse Makefile to AST</a></h2>
 <p>Parses Makefile into abstract syntax tree.</p>
-<h3 id="usage-13"><a class="header" href="#usage-13">Usage</a></h3>
+<h3 id="usage-14"><a class="header" href="#usage-14">Usage</a></h3>
 <pre><code class="language-bash">bashrs make parse &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-12"><a class="header" href="#arguments-12">Arguments</a></h3>
@@ -21733,7 +22013,7 @@ scripts/record-metric.sh
 <hr />
 <h2 id="bashrs-make-purify---purify-makefile"><a class="header" href="#bashrs-make-purify---purify-makefile"><code>bashrs make purify</code> - Purify Makefile</a></h2>
 <p>Transforms Makefile into deterministic, idempotent form.</p>
-<h3 id="usage-14"><a class="header" href="#usage-14">Usage</a></h3>
+<h3 id="usage-15"><a class="header" href="#usage-15">Usage</a></h3>
 <pre><code class="language-bash">bashrs make purify &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-13"><a class="header" href="#arguments-13">Arguments</a></h3>
@@ -21769,7 +22049,7 @@ scripts/record-metric.sh
 <hr />
 <h2 id="bashrs-make-lint---lint-makefile"><a class="header" href="#bashrs-make-lint---lint-makefile"><code>bashrs make lint</code> - Lint Makefile</a></h2>
 <p>Analyzes Makefile for safety and quality issues.</p>
-<h3 id="usage-15"><a class="header" href="#usage-15">Usage</a></h3>
+<h3 id="usage-16"><a class="header" href="#usage-16">Usage</a></h3>
 <pre><code class="language-bash">bashrs make lint &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-14"><a class="header" href="#arguments-14">Arguments</a></h3>
@@ -21807,7 +22087,7 @@ scripts/record-metric.sh
 <hr />
 <h2 id="bashrs-config-analyze---analyze-shell-configuration-file"><a class="header" href="#bashrs-config-analyze---analyze-shell-configuration-file"><code>bashrs config analyze</code> - Analyze Shell Configuration File</a></h2>
 <p>Analyzes shell configuration files (.bashrc, .zshrc, .profile, etc.) for issues.</p>
-<h3 id="usage-16"><a class="header" href="#usage-16">Usage</a></h3>
+<h3 id="usage-17"><a class="header" href="#usage-17">Usage</a></h3>
 <pre><code class="language-bash">bashrs config analyze &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-15"><a class="header" href="#arguments-15">Arguments</a></h3>
@@ -21856,7 +22136,7 @@ scripts/record-metric.sh
 <hr />
 <h2 id="bashrs-config-lint---lint-shell-configuration-file"><a class="header" href="#bashrs-config-lint---lint-shell-configuration-file"><code>bashrs config lint</code> - Lint Shell Configuration File</a></h2>
 <p>Lints shell configuration files for safety issues.</p>
-<h3 id="usage-17"><a class="header" href="#usage-17">Usage</a></h3>
+<h3 id="usage-18"><a class="header" href="#usage-18">Usage</a></h3>
 <pre><code class="language-bash">bashrs config lint &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-16"><a class="header" href="#arguments-16">Arguments</a></h3>
@@ -21885,7 +22165,7 @@ scripts/record-metric.sh
 <hr />
 <h2 id="bashrs-config-purify---purify-shell-configuration-file"><a class="header" href="#bashrs-config-purify---purify-shell-configuration-file"><code>bashrs config purify</code> - Purify Shell Configuration File</a></h2>
 <p>Purifies and fixes shell configuration files automatically.</p>
-<h3 id="usage-18"><a class="header" href="#usage-18">Usage</a></h3>
+<h3 id="usage-19"><a class="header" href="#usage-19">Usage</a></h3>
 <pre><code class="language-bash">bashrs config purify &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-17"><a class="header" href="#arguments-17">Arguments</a></h3>
@@ -21922,7 +22202,7 @@ scripts/record-metric.sh
 <hr />
 <h2 id="bashrs-repl---interactive-repl"><a class="header" href="#bashrs-repl---interactive-repl"><code>bashrs repl</code> - Interactive REPL</a></h2>
 <p>Starts interactive REPL for bash script analysis and debugging.</p>
-<h3 id="usage-19"><a class="header" href="#usage-19">Usage</a></h3>
+<h3 id="usage-20"><a class="header" href="#usage-20">Usage</a></h3>
 <pre><code class="language-bash">bashrs repl [OPTIONS]
 </code></pre>
 <h3 id="options-17"><a class="header" href="#options-17">Options</a></h3>
@@ -21976,7 +22256,7 @@ Available commands:
 <hr />
 <h2 id="bashrs-test---run-bash-script-tests"><a class="header" href="#bashrs-test---run-bash-script-tests"><code>bashrs test</code> - Run Bash Script Tests</a></h2>
 <p>Runs test suite for bash scripts.</p>
-<h3 id="usage-20"><a class="header" href="#usage-20">Usage</a></h3>
+<h3 id="usage-21"><a class="header" href="#usage-21">Usage</a></h3>
 <pre><code class="language-bash">bashrs test &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-18"><a class="header" href="#arguments-18">Arguments</a></h3>
@@ -22002,7 +22282,7 @@ Available commands:
 <hr />
 <h2 id="bashrs-score---score-bash-script-quality"><a class="header" href="#bashrs-score---score-bash-script-quality"><code>bashrs score</code> - Score Bash Script Quality</a></h2>
 <p>Scores bash script quality across multiple dimensions.</p>
-<h3 id="usage-21"><a class="header" href="#usage-21">Usage</a></h3>
+<h3 id="usage-22"><a class="header" href="#usage-22">Usage</a></h3>
 <pre><code class="language-bash">bashrs score &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-19"><a class="header" href="#arguments-19">Arguments</a></h3>
@@ -22036,7 +22316,7 @@ Available commands:
 <hr />
 <h2 id="bashrs-audit---comprehensive-quality-audit"><a class="header" href="#bashrs-audit---comprehensive-quality-audit"><code>bashrs audit</code> - Comprehensive Quality Audit</a></h2>
 <p>Runs comprehensive quality audit with all checks.</p>
-<h3 id="usage-22"><a class="header" href="#usage-22">Usage</a></h3>
+<h3 id="usage-23"><a class="header" href="#usage-23">Usage</a></h3>
 <pre><code class="language-bash">bashrs audit &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-20"><a class="header" href="#arguments-20">Arguments</a></h3>
@@ -22074,7 +22354,7 @@ Available commands:
 <hr />
 <h2 id="bashrs-coverage---generate-coverage-report"><a class="header" href="#bashrs-coverage---generate-coverage-report"><code>bashrs coverage</code> - Generate Coverage Report</a></h2>
 <p>Generates code coverage report for bash scripts.</p>
-<h3 id="usage-23"><a class="header" href="#usage-23">Usage</a></h3>
+<h3 id="usage-24"><a class="header" href="#usage-24">Usage</a></h3>
 <pre><code class="language-bash">bashrs coverage &lt;FILE&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-21"><a class="header" href="#arguments-21">Arguments</a></h3>
@@ -22104,7 +22384,7 @@ Available commands:
 <hr />
 <h2 id="bashrs-explain-error---ml-error-classification"><a class="header" href="#bashrs-explain-error---ml-error-classification"><code>bashrs explain-error</code> - ML Error Classification</a></h2>
 <p>Classifies shell errors using machine learning and suggests fixes. Uses a Random Forest classifier trained on 24 error categories.</p>
-<h3 id="usage-24"><a class="header" href="#usage-24">Usage</a></h3>
+<h3 id="usage-25"><a class="header" href="#usage-25">Usage</a></h3>
 <pre><code class="language-bash">bashrs explain-error &lt;ERROR&gt; [OPTIONS]
 </code></pre>
 <h3 id="arguments-22"><a class="header" href="#arguments-22">Arguments</a></h3>
@@ -22209,7 +22489,7 @@ Suggested Fix:
 <hr />
 <h2 id="bashrs-format---format-bash-scripts"><a class="header" href="#bashrs-format---format-bash-scripts"><code>bashrs format</code> - Format Bash Scripts</a></h2>
 <p>Formats bash scripts according to style guidelines.</p>
-<h3 id="usage-25"><a class="header" href="#usage-25">Usage</a></h3>
+<h3 id="usage-26"><a class="header" href="#usage-26">Usage</a></h3>
 <pre><code class="language-bash">bashrs format &lt;FILE&gt;... [OPTIONS]
 </code></pre>
 <h3 id="arguments-23"><a class="header" href="#arguments-23">Arguments</a></h3>
@@ -24793,7 +25073,7 @@ bashrs purify script.sh -o /tmp/bashrs-$$-output.sh
 <li><a href="reference/./cli.html">CLI Commands Reference</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="linter-rules-reference"><a class="header" href="#linter-rules-reference">Linter Rules Reference</a></h1>
-<p>This chapter provides a complete reference for all linter rules in bashrs v6.32.1, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration.</p>
+<p>This chapter provides a complete reference for all linter rules in bashrs v6.64.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration (SC1xxx + SC2xxx).</p>
 <h2 id="table-of-contents-2"><a class="header" href="#table-of-contents-2">Table of Contents</a></h2>
 <ul>
 <li><a href="reference/rules.html#rule-categories">Rule Categories</a></li>
@@ -24808,15 +25088,22 @@ bashrs purify script.sh -o /tmp/bashrs-$$-output.sh
 <li><a href="reference/rules.html#disabling-rules">Disabling Rules</a></li>
 <li><a href="reference/rules.html#custom-rule-development">Custom Rule Development</a></li>
 </ul>
-<h2 id="rule-categories"><a class="header" href="#rule-categories">Rule Categories</a></h2>
+<h2 id="rule-categories-1"><a class="header" href="#rule-categories-1">Rule Categories</a></h2>
 <p>bashrs organizes linter rules into several categories:</p>
 <div class="table-wrapper"><table><thead><tr><th>Category</th><th>Rule Prefix</th><th>Count</th><th>Purpose</th></tr></thead><tbody>
-<tr><td>Security</td><td>SEC</td><td>8</td><td>Detect security vulnerabilities</td></tr>
+<tr><td>Security</td><td>SEC</td><td>19</td><td>Detect security vulnerabilities</td></tr>
 <tr><td>Determinism</td><td>DET</td><td>3</td><td>Ensure predictable output</td></tr>
 <tr><td>Idempotency</td><td>IDEM</td><td>3</td><td>Ensure safe re-execution</td></tr>
+<tr><td>Best Practice</td><td>BASH</td><td>10</td><td>Shell best practices</td></tr>
 <tr><td>Config</td><td>CONFIG</td><td>3</td><td>Shell configuration analysis</td></tr>
 <tr><td>Makefile</td><td>MAKE</td><td>20</td><td>Makefile-specific issues</td></tr>
-<tr><td>ShellCheck</td><td>SC</td><td>324+</td><td>Shell script best practices</td></tr>
+<tr><td>Dockerfile</td><td>DOCKER</td><td>12</td><td>Dockerfile issues</td></tr>
+<tr><td>Performance</td><td>PERF</td><td>5</td><td>Performance optimization</td></tr>
+<tr><td>Portability</td><td>PORT</td><td>5</td><td>Cross-shell portability</td></tr>
+<tr><td>Reliability</td><td>REL</td><td>5</td><td>Reliability &amp; error handling</td></tr>
+<tr><td>ShellCheck SC1xxx</td><td>SC1</td><td>60</td><td>Source code issues (syntax, encoding)</td></tr>
+<tr><td>ShellCheck SC2xxx</td><td>SC2</td><td>325</td><td>Shell script best practices</td></tr>
+<tr><td><strong>Total</strong></td><td></td><td><strong>396+</strong></td><td></td></tr>
 </tbody></table>
 </div>
 <h2 id="security-rules-sec001-sec008-1"><a class="header" href="#security-rules-sec001-sec008-1">Security Rules (SEC001-SEC008)</a></h2>
@@ -25189,8 +25476,22 @@ HEADERS = $(sort $(wildcard include/*.h))
 <li>Best practices (.PHONY targets, etc.)</li>
 </ul>
 <p>See <a href="reference/../makefile/best-practices.html">Makefile Best Practices</a> for details.</p>
-<h2 id="shellcheck-integration"><a class="header" href="#shellcheck-integration">ShellCheck Integration</a></h2>
-<p>bashrs integrates 324+ ShellCheck rules for comprehensive shell script analysis.</p>
+<h2 id="shellcheck-sc1xxx-rules-source-code-issues-1"><a class="header" href="#shellcheck-sc1xxx-rules-source-code-issues-1">ShellCheck SC1xxx Rules (Source Code Issues)</a></h2>
+<p>bashrs implements 60 SC1xxx rules covering source-level issues that occur before the shell interprets the script:</p>
+<div class="table-wrapper"><table><thead><tr><th>Category</th><th>Rules</th><th>Description</th></tr></thead><tbody>
+<tr><td>Shebang</td><td>SC1008, SC1084, SC1104, SC1113-SC1115, SC1127-SC1128</td><td>Shebang line problems</td></tr>
+<tr><td>Quoting</td><td>SC1003-SC1004, SC1012, SC1078-SC1079, SC1098, SC1110-SC1111, SC1117, SC1135</td><td>Quote/escape issues</td></tr>
+<tr><td>Spacing</td><td>SC1007, SC1009, SC1020, SC1035, SC1068-SC1069, SC1095, SC1099, SC1101, SC1129</td><td>Whitespace issues</td></tr>
+<tr><td>Syntax</td><td>SC1014, SC1026, SC1028, SC1036, SC1045, SC1065-SC1066, SC1075, SC1086, SC1097</td><td>Syntax mistakes</td></tr>
+<tr><td>Here-docs</td><td>SC1038, SC1040-SC1041, SC1044, SC1120</td><td>Heredoc issues</td></tr>
+<tr><td>Unicode</td><td>SC1017-SC1018, SC1082, SC1100, SC1109</td><td>Encoding problems</td></tr>
+<tr><td>Portability</td><td>SC1037, SC1076, SC1087, SC1105-SC1106, SC1131, SC1139-SC1140</td><td>Bash-in-sh issues</td></tr>
+<tr><td>Source</td><td>SC1083, SC1090-SC1091, SC1094</td><td>File sourcing</td></tr>
+</tbody></table>
+</div>
+<p>For detailed documentation, see <a href="reference/../linting/shellcheck-sc1.html">ShellCheck SC1xxx Rules</a>.</p>
+<h2 id="shellcheck-sc2xxx-rules-best-practices"><a class="header" href="#shellcheck-sc2xxx-rules-best-practices">ShellCheck SC2xxx Rules (Best Practices)</a></h2>
+<p>bashrs integrates 325 SC2xxx ShellCheck rules for comprehensive shell script analysis.</p>
 <h3 id="critical-shellcheck-rules"><a class="header" href="#critical-shellcheck-rules">Critical ShellCheck Rules</a></h3>
 <h4 id="sc2086-quote-to-prevent-word-splitting"><a class="header" href="#sc2086-quote-to-prevent-word-splitting">SC2086: Quote to Prevent Word Splitting</a></h4>
 <p><strong>Severity:</strong> Error
@@ -25246,7 +25547,8 @@ printf 'Error: %s\n' "$MSG"  # Explicit format
 <h3 id="shellcheck-rule-categories"><a class="header" href="#shellcheck-rule-categories">ShellCheck Rule Categories</a></h3>
 <p>bashrs implements ShellCheck rules across categories:</p>
 <div class="table-wrapper"><table><thead><tr><th>Category</th><th>Example Rules</th><th>Count</th></tr></thead><tbody>
-<tr><td>Quoting</td><td>SC2086, SC2046, SC2068</td><td>30+</td></tr>
+<tr><td>Source Issues (SC1xxx)</td><td>SC1003, SC1082, SC1128</td><td>60</td></tr>
+<tr><td>Quoting (SC2xxx)</td><td>SC2086, SC2046, SC2068</td><td>30+</td></tr>
 <tr><td>Variables</td><td>SC2034, SC2154, SC2155</td><td>25+</td></tr>
 <tr><td>Arrays</td><td>SC2198, SC2199, SC2200</td><td>15+</td></tr>
 <tr><td>Conditionals</td><td>SC2166, SC2181, SC2244</td><td>20+</td></tr>
@@ -25258,7 +25560,7 @@ printf 'Error: %s\n' "$MSG"  # Explicit format
 <tr><td>Deprecations</td><td>SC2006, SC2016, SC2027</td><td>10+</td></tr>
 </tbody></table>
 </div>
-<p><strong>Total:</strong> 324+ rules implemented (and growing)</p>
+<p><strong>Total:</strong> 385 ShellCheck rules (60 SC1xxx + 325 SC2xxx)</p>
 <h4 id="sc2154-variable-referenced-but-not-assigned"><a class="header" href="#sc2154-variable-referenced-but-not-assigned">SC2154: Variable Referenced But Not Assigned</a></h4>
 <p><strong>Status:</strong> ✅ Fixed in v6.32.1 (Issue #20)</p>
 <p><strong>What it checks:</strong> Detects variables that are referenced but never assigned</p>
@@ -25466,43 +25768,27 @@ impl LintRule for CustomRule001 {
 plugins = ["custom_rules"]
 </code></pre>
 <h2 id="summary-14"><a class="header" href="#summary-14">Summary</a></h2>
-<p>bashrs provides comprehensive linting across 350+ rules:</p>
-<p><strong>Security (8 rules):</strong></p>
-<ul>
-<li>Command injection prevention</li>
-<li>Credential security</li>
-<li>File permission safety</li>
-</ul>
-<p><strong>Determinism (3 rules):</strong></p>
-<ul>
-<li>Reproducible output</li>
-<li>Predictable behavior</li>
-</ul>
-<p><strong>Idempotency (3 rules):</strong></p>
-<ul>
-<li>Safe re-execution</li>
-<li>No side effects</li>
-</ul>
-<p><strong>Config (3 rules):</strong></p>
-<ul>
-<li>Shell configuration best practices</li>
-</ul>
-<p><strong>Makefile (20 rules):</strong></p>
-<ul>
-<li>Build system correctness</li>
-</ul>
-<p><strong>ShellCheck (324+ rules):</strong></p>
-<ul>
-<li>Comprehensive shell script analysis</li>
-</ul>
+<p>bashrs provides comprehensive linting across 396+ rules:</p>
+<p><strong>Security (19 rules):</strong> Command injection, credential safety, file permissions
+<strong>Determinism (3 rules):</strong> Reproducible, predictable output
+<strong>Idempotency (3 rules):</strong> Safe re-execution
+<strong>Best Practice (10 rules):</strong> Shell scripting conventions
+<strong>Config (3 rules):</strong> Shell configuration analysis
+<strong>Makefile (20 rules):</strong> Build system correctness
+<strong>Dockerfile (12 rules):</strong> Container image best practices
+<strong>Performance (5 rules):</strong> Optimization opportunities
+<strong>Portability (5 rules):</strong> Cross-shell compatibility
+<strong>Reliability (5 rules):</strong> Error handling and robustness
+<strong>ShellCheck SC1xxx (60 rules):</strong> Source code issues (syntax, encoding, shebang)
+<strong>ShellCheck SC2xxx (325 rules):</strong> Comprehensive shell script analysis</p>
 <p><strong>Key Features:</strong></p>
 <ol>
 <li>Auto-fix for 200+ rules</li>
-<li>Shell type detection</li>
-<li>Severity levels (Error, Warning, Style)</li>
-<li>Flexible rule disabling</li>
-<li>CI/CD integration</li>
-<li>Custom rule support (coming soon)</li>
+<li>Shell type detection (bash, sh, zsh, ksh)</li>
+<li>Severity levels (Error, Warning, Info)</li>
+<li>Inline suppression (<code># shellcheck disable=SC2086</code>)</li>
+<li>CI/CD integration with exit codes</li>
+<li>JSON output format for tooling</li>
 </ol>
 <p>For more information, see:</p>
 <ul>

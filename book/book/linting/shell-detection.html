@@ -340,8 +340,8 @@ echo "This is actually bash"
 <span class="boring"> Check detection (programmatically)
 </span><span class="boring"> bashrs will auto-detect from shebang
 </span></code></pre>
-<h2 id="shell-specific-rule-filtering-v6280-dev"><a class="header" href="#shell-specific-rule-filtering-v6280-dev">Shell-Specific Rule Filtering (v6.28.0-dev)</a></h2>
-<p><strong>NEW</strong>: bashrs now filters linter rules based on detected shell type!</p>
+<h2 id="shell-specific-rule-filtering"><a class="header" href="#shell-specific-rule-filtering">Shell-Specific Rule Filtering</a></h2>
+<p>bashrs filters linter rules based on detected shell type.</p>
 <h3 id="how-it-works"><a class="header" href="#how-it-works">How It Works</a></h3>
 <p>When you use <code>lint_shell_with_path()</code>, bashrs:</p>
 <ol>
@@ -359,39 +359,31 @@ echo "This is actually bash"
 </span></code></pre>
 <p><strong>Bash-specific rules skipped for sh</strong>:</p>
 <ul>
-<li>SC2198-2201 (arrays - bash/zsh only)</li>
+<li>SC2198-2201 (arrays -- bash/zsh only)</li>
 <li>SC2039 (bash features undefined in sh)</li>
-<li>SC2002 (process substitution suggestions)</li>
+<li>SC2044 (process substitution suggestions)</li>
 </ul>
 <h3 id="example-universal-rules-always-apply"><a class="header" href="#example-universal-rules-always-apply">Example: Universal Rules Always Apply</a></h3>
 <pre><code class="language-bash"><span class="boring">!/bin/zsh
 </span><span class="boring"> Even in zsh, bad practices are still bad
 </span>
-SESSION_ID=$RANDOM  # ❌ DET001: Non-deterministic
-mkdir /tmp/build    # ❌ IDEM001: Non-idempotent
+SESSION_ID=$RANDOM  # DET001: Non-deterministic
+mkdir /tmp/build    # IDEM001: Non-idempotent
 </code></pre>
 <p><strong>Universal rules apply to ALL shells</strong>:</p>
 <ul>
 <li>DET001-003 (Determinism)</li>
 <li>IDEM001-003 (Idempotency)</li>
-<li>SEC001-008 (Security)</li>
-<li>Most SC2xxx quoting/syntax rules</li>
+<li>SEC001-019 (Security)</li>
+<li>Most SC1xxx and SC2xxx quoting/syntax rules</li>
 </ul>
-<h3 id="current-status-v6280-dev"><a class="header" href="#current-status-v6280-dev">Current Status (v6.28.0-dev)</a></h3>
+<h3 id="current-status-v6640"><a class="header" href="#current-status-v6640">Current Status (v6.64.0)</a></h3>
 <ul>
-<li>✅ <strong>20 rules classified</strong> (SEC, DET, IDEM + 6 SC2xxx)</li>
-<li>⏳ <strong>317 rules pending</strong> classification (default: Universal)</li>
-<li>✅ <strong>Filtering active</strong> in <code>lint_shell_with_path()</code></li>
-<li>⏳ <strong>Zsh-specific rules</strong> planned (ZSH001-ZSH020)</li>
-</ul>
-<h3 id="future-enhancements"><a class="header" href="#future-enhancements">Future Enhancements</a></h3>
-<h3 id="planned-v6280-final-and-beyond"><a class="header" href="#planned-v6280-final-and-beyond">Planned (v6.28.0-final and beyond)</a></h3>
-<ul>
-<li>Complete SC2xxx classification (317 remaining rules)</li>
-<li>20 zsh-specific rules (ZSH001-ZSH020)</li>
-<li>Per-shell linting profiles</li>
-<li>Custom shell type plugins</li>
-<li>Enhanced zsh array linting</li>
+<li><strong>396 rules classified</strong> in the rule registry</li>
+<li><strong>Shell compatibility</strong> specified for every rule (Universal, NotSh, ShOnly, BashOnly)</li>
+<li><strong>60 SC1xxx rules</strong> for source code issues (syntax, encoding, shebang)</li>
+<li><strong>325 SC2xxx rules</strong> for shell best practices</li>
+<li><strong>Filtering active</strong> in <code>lint_shell_with_path()</code></li>
 </ul>
 <h2 id="summary"><a class="header" href="#summary">Summary</a></h2>
 <ul>
@@ -410,7 +402,7 @@ mkdir /tmp/build    # ❌ IDEM001: Non-idempotent
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../linting/security.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../linting/shellcheck-sc1.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -424,7 +416,7 @@ mkdir /tmp/build    # ❌ IDEM001: Non-idempotent
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../linting/security.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../linting/shellcheck-sc1.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

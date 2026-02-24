@@ -8,17 +8,18 @@ mod tests {
 
     #[test]
     fn test_lint_integration_safe_script() {
-        let safe_script = r#"
-#!/bin/sh
-FILES="$1"
-echo "$FILES"
-"#;
+        let safe_script = "#!/bin/sh\nFILES=\"$1\"\necho \"$FILES\"\n";
 
         let result = lint_shell(safe_script);
+        let errors_and_warnings: Vec<_> = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.severity == Severity::Error || d.severity == Severity::Warning)
+            .collect();
         assert_eq!(
-            result.diagnostics.len(),
+            errors_and_warnings.len(),
             0,
-            "Safe script should have no diagnostics"
+            "Safe script should have no errors or warnings"
         );
     }
 

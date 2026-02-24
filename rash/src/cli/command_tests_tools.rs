@@ -332,6 +332,9 @@ fn test_purify_command_basic() {
         type_check: false,
         emit_guards: false,
         type_strict: false,
+        diff: false,
+        verify: false,
+        recursive: false,
     });
     let _ = result;
 }
@@ -352,6 +355,9 @@ fn test_purify_command_with_lint() {
         type_check: false,
         emit_guards: false,
         type_strict: false,
+        diff: false,
+        verify: false,
+        recursive: false,
     });
     let _ = result;
 }
@@ -372,6 +378,9 @@ fn test_purify_command_with_output_and_report() {
         type_check: false,
         emit_guards: false,
         type_strict: false,
+        diff: false,
+        verify: false,
+        recursive: false,
     });
     assert!(result.is_ok());
     assert!(output.exists());
@@ -392,6 +401,9 @@ fn test_purify_command_to_stdout() {
         type_check: false,
         emit_guards: false,
         type_strict: false,
+        diff: false,
+        verify: false,
+        recursive: false,
     });
     assert!(result.is_ok());
 }
@@ -412,6 +424,9 @@ fn test_purify_command_with_tests() {
         type_check: false,
         emit_guards: false,
         type_strict: false,
+        diff: false,
+        verify: false,
+        recursive: false,
     });
     assert!(result.is_ok());
     // Test file should be generated
@@ -435,6 +450,9 @@ fn test_purify_command_with_property_tests() {
         type_check: false,
         emit_guards: false,
         type_strict: false,
+        diff: false,
+        verify: false,
+        recursive: false,
     });
     assert!(result.is_ok());
 }
@@ -454,6 +472,9 @@ fn test_purify_command_with_tests_requires_output() {
         type_check: false,
         emit_guards: false,
         type_strict: false,
+        diff: false,
+        verify: false,
+        recursive: false,
     });
     assert!(result.is_err()); // --with-tests requires -o flag
 }
@@ -469,6 +490,9 @@ fn test_purify_command_nonexistent_file() {
         type_check: false,
         emit_guards: false,
         type_strict: false,
+        diff: false,
+        verify: false,
+        recursive: false,
     });
     assert!(result.is_err());
 }

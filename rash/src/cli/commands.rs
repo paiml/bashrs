@@ -277,11 +277,12 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             citl_export,
             profile,
             graded,
+            ci,
+            fail_on,
         } => {
-            info!("Linting {}", input.display());
             let _ = graded; // consumed by CLI args but unused in lint logic
             lint_command(LintCommandOptions {
-                input: &input,
+                inputs: &input,
                 format,
                 fix,
                 fix_assumptions,
@@ -294,6 +295,8 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 exclude_rules: exclude.as_deref(),
                 citl_export_path: citl_export.as_deref(),
                 profile,
+                ci,
+                fail_on,
             })
         }
 
@@ -306,6 +309,9 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             type_check,
             emit_guards,
             type_strict,
+            diff,
+            verify,
+            recursive,
         } => {
             info!("Purifying {}", input.display());
             purify_command(PurifyCommandOptions {
@@ -317,6 +323,9 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 type_check,
                 emit_guards,
                 type_strict,
+                diff,
+                verify,
+                recursive,
             })
         }
 

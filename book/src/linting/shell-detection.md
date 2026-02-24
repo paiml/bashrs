@@ -260,9 +260,9 @@ echo '#!/usr/bin/env zsh' > test.sh
 # bashrs will auto-detect from shebang
 ```
 
-## Shell-Specific Rule Filtering (v6.28.0-dev)
+## Shell-Specific Rule Filtering
 
-**NEW**: bashrs now filters linter rules based on detected shell type!
+bashrs filters linter rules based on detected shell type.
 
 ### How It Works
 
@@ -283,9 +283,9 @@ When you use `lint_shell_with_path()`, bashrs:
 ```
 
 **Bash-specific rules skipped for sh**:
-- SC2198-2201 (arrays - bash/zsh only)
+- SC2198-2201 (arrays -- bash/zsh only)
 - SC2039 (bash features undefined in sh)
-- SC2002 (process substitution suggestions)
+- SC2044 (process substitution suggestions)
 
 ### Example: Universal Rules Always Apply
 
@@ -293,32 +293,23 @@ When you use `lint_shell_with_path()`, bashrs:
 #!/bin/zsh
 # Even in zsh, bad practices are still bad
 
-SESSION_ID=$RANDOM  # ❌ DET001: Non-deterministic
-mkdir /tmp/build    # ❌ IDEM001: Non-idempotent
+SESSION_ID=$RANDOM  # DET001: Non-deterministic
+mkdir /tmp/build    # IDEM001: Non-idempotent
 ```
 
 **Universal rules apply to ALL shells**:
 - DET001-003 (Determinism)
 - IDEM001-003 (Idempotency)
-- SEC001-008 (Security)
-- Most SC2xxx quoting/syntax rules
+- SEC001-019 (Security)
+- Most SC1xxx and SC2xxx quoting/syntax rules
 
-### Current Status (v6.28.0-dev)
+### Current Status (v6.64.0)
 
-- ✅ **20 rules classified** (SEC, DET, IDEM + 6 SC2xxx)
-- ⏳ **317 rules pending** classification (default: Universal)
-- ✅ **Filtering active** in `lint_shell_with_path()`
-- ⏳ **Zsh-specific rules** planned (ZSH001-ZSH020)
-
-### Future Enhancements
-
-### Planned (v6.28.0-final and beyond)
-
-- Complete SC2xxx classification (317 remaining rules)
-- 20 zsh-specific rules (ZSH001-ZSH020)
-- Per-shell linting profiles
-- Custom shell type plugins
-- Enhanced zsh array linting
+- **396 rules classified** in the rule registry
+- **Shell compatibility** specified for every rule (Universal, NotSh, ShOnly, BashOnly)
+- **60 SC1xxx rules** for source code issues (syntax, encoding, shebang)
+- **325 SC2xxx rules** for shell best practices
+- **Filtering active** in `lint_shell_with_path()`
 
 ## Summary
 
