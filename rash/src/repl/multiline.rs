@@ -648,9 +648,19 @@ mod proptest_generative {
         .prop_map(|s| s.to_string())
     }
 
-    // Strategy for simple arguments (no special chars)
+    // Strategy for simple arguments (no special chars, no shell keywords)
     fn simple_arg() -> impl Strategy<Value = String> {
-        "[a-z0-9_-]{1,10}".prop_map(|s| s.to_string())
+        "[a-z0-9_-]{1,10}".prop_filter_map("filter shell keywords", |s| {
+            const SHELL_KEYWORDS: &[&str] = &[
+                "do", "done", "then", "else", "elif", "fi", "for", "while", "until",
+                "case", "esac", "if", "in", "select",
+            ];
+            if SHELL_KEYWORDS.contains(&s.as_str()) {
+                None
+            } else {
+                Some(s)
+            }
+        })
     }
 
     // Strategy for file paths
