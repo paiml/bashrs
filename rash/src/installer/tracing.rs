@@ -1265,3 +1265,7 @@ mod property_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "tracing_tests.rs"]
+mod tracing_tests;

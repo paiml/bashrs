@@ -938,3 +938,7 @@ mod property_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "from_bash_tests.rs"]
+mod from_bash_tests;

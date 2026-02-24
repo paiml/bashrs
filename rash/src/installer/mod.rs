@@ -52,6 +52,18 @@ mod tracing;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+#[path = "audit_tests.rs"]
+mod audit_tests;
+
+#[cfg(test)]
+#[path = "checkpoint_tests.rs"]
+mod checkpoint_tests;
+
+#[cfg(test)]
+#[path = "dry_run_tests.rs"]
+mod dry_run_tests;
+
 pub use audit::{
     AuditCategory, AuditContext, AuditFinding, AuditMetadata, AuditReport, AuditSeverity,
 };

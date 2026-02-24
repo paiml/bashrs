@@ -1209,3 +1209,7 @@ mod property_tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "progress_tests.rs"]
+mod progress_tests;

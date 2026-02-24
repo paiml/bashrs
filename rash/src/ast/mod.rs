@@ -121,6 +121,10 @@ mod tests;
 #[cfg(test)]
 mod visitor_tests;
 
+#[cfg(test)]
+#[path = "restricted_tests.rs"]
+mod restricted_tests;
+
 pub use restricted::{Expr, Function, RestrictedAst, Stmt, Type};
 
 use crate::models::{Error, Result};

@@ -766,3 +766,7 @@ mod tests {
         assert!(s.contains("B-001"));
     }
 }
+
+#[cfg(test)]
+#[path = "dataset_tests.rs"]
+mod dataset_tests;
