@@ -4,7 +4,7 @@ use crate::models::{Config, Error, Result};
 use super::corpus_failure_commands::result_fail_dims;
 
 /// Map a failure dimension count to a letter grade
-fn grade_from_fail_count(fail_count: usize) -> &'static str {
+pub(super) fn grade_from_fail_count(fail_count: usize) -> &'static str {
     match fail_count {
         0 => "A+",
         1 => "A",
