@@ -1283,7 +1283,9 @@ No complete training loop with epoch management, validation split, checkpointing
 and LR scheduling.
 
 **What's missing**: `ClassifyTrainer` struct that orchestrates: data loading → shuffle →
-batch → train → validate → log → checkpoint → schedule LR.
+batch → train → validate → log → checkpoint (dual APR + SafeTensors) → schedule LR.
+Checkpoints save both formats per Section 14.8. Final export produces APR (sovereign
+showcase) + SafeTensors (HuggingFace interop).
 
 **Key invariants** (F-LOOP-001..010):
 - EMA(loss) decreasing over training
@@ -1302,7 +1304,8 @@ batch → train → validate → log → checkpoint → schedule LR.
 **Blocks**: —
 
 `apr finetune --task classify` currently only does plan mode. Need to wire real
-`ClassifyTrainer::train()` invocation with progress reporting and model saving.
+`ClassifyTrainer::train()` invocation with progress reporting and dual-format model
+saving (APR + SafeTensors). Default: `--format apr,safetensors` (both).
 
 ### 14.4 Dependency Graph
 
@@ -1345,9 +1348,79 @@ falsification methodology.
 | Batch training converges | `train_batch()` on 15-sample demo | Loss decreasing |
 | Full training loop | `ClassifyTrainer::train(26K samples)` | Val accuracy > 80% |
 | CLI execution | `apr finetune --task classify --data corpus.jsonl` | Adapter saved |
+| Dual-format checkpoint | `ls checkpoint-epoch-5.*` | Both `.apr` and `.safetensors` exist |
+| APR export | `ls shell-safety-classifier.apr` | Valid APR file, loadable by realizador |
+| Dual-format HF upload | `ls paiml/shell-safety-classifier/` | Both `adapter.safetensors` and `.apr` published |
 | Contract validation | All falsification tests | 25 tests pass |
 
-### 14.8 Future: Qwen3.5 Upgrade Path
+### 14.8 Dual-Format Strategy: APR + SafeTensors
+
+The sovereign stack uses **both** APR and SafeTensors throughout the pipeline. APR is
+our native format; SafeTensors provides HuggingFace ecosystem interop.
+
+#### 14.8.1 Format Roles
+
+| Format | Role | Why |
+|--------|------|-----|
+| **APR** | Native sovereign format | Proves the stack is self-sufficient (no Python). Used by realizador for inference. Our showcase. |
+| **SafeTensors** | Ecosystem interop | Community standard. Anyone can load without installing our tooling. HuggingFace Hub native. |
+
+#### 14.8.2 Pipeline Flow
+
+```
+INGEST                    TRAINING                    EXPORT
+─────                     ────────                    ──────
+HuggingFace               Internal                    HuggingFace Hub
+SafeTensors ──┐                                  ┌──> adapter.safetensors
+              ├──> APR tensors in memory ──> ... ─┤
+tokenizer.json┘   (training, checkpoints)        ├──> shell-safety-classifier.apr
+                                                  └──> config.json, tokenizer.json, README.md
+```
+
+**Ingest**: `Transformer::from_safetensors()` loads HuggingFace weights, converts BF16→F32
+into in-memory tensors. This is a one-time import from the ecosystem.
+
+**Training**: All computation happens on in-memory tensors (trueno SIMD/GPU). Checkpoints
+save in **both** formats:
+- `checkpoint-epoch-{N}.apr` — primary, APR-native, used for resumption
+- `checkpoint-epoch-{N}.safetensors` — secondary, for interop/debugging
+
+**Export**: Final trained model published to HuggingFace with both formats:
+
+```
+paiml/shell-safety-classifier/
+  adapter.safetensors              ← LoRA adapter (community standard)
+  classifier_head.safetensors      ← Classification head weights
+  shell-safety-classifier.apr      ← Full model in APR format (sovereign showcase)
+  config.json                      ← Model architecture config
+  tokenizer.json                   ← Qwen2 BPE tokenizer
+  README.md                        ← Model card (Mitchell et al. 2019)
+```
+
+#### 14.8.3 Why Both (Not Either/Or)
+
+1. **APR proves sovereignty**: The entire train→infer pipeline works without Python,
+   without PyTorch, without HuggingFace transformers library. APR is the proof.
+
+2. **SafeTensors ensures adoption**: Researchers and practitioners can `pip install
+   safetensors` and load the model in 3 lines of Python. Zero friction.
+
+3. **Checkpoints need APR**: realizador loads APR natively for CUDA inference. If
+   checkpoints are only SafeTensors, we'd need a conversion step before serving.
+
+4. **APR validates the format**: Real-world fine-tuning is the best stress test for
+   APR's serialization, compression, and metadata capabilities. Dogfooding.
+
+#### 14.8.4 Implementation
+
+| Component | What | Where |
+|-----------|------|-------|
+| `save_checkpoint_dual()` | Saves both `.apr` and `.safetensors` for a checkpoint | `ClassifyTrainer` (SSC-026) |
+| `load_checkpoint()` | Loads from `.apr` (primary) with `.safetensors` fallback | `ClassifyTrainer` (SSC-026) |
+| `export_model()` | Final export of both formats + config + tokenizer | `ClassifyTrainer` (SSC-026) |
+| `--format apr,safetensors` | CLI flag for export format selection (default: both) | `apr-cli` (SSC-027) |
+
+### 14.9 Future: Qwen3.5 Upgrade Path
 
 Once v2.2 ships with Qwen2.5-Coder-0.5B, the upgrade path is:
 - SSC-028: Qwen3.5 hybrid attention in ClassifyPipeline
