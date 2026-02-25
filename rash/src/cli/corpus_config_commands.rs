@@ -283,6 +283,8 @@ pub(crate) fn corpus_export_dataset(
         DatasetExportFormat::Json => ExportFormat::Json,
         DatasetExportFormat::Jsonl => ExportFormat::JsonLines,
         DatasetExportFormat::Csv => ExportFormat::Csv,
+        DatasetExportFormat::Classification => ExportFormat::Classification,
+        DatasetExportFormat::MultiLabelClassification => ExportFormat::MultiLabelClassification,
     };
 
     let (score, data) = dataset::run_and_export(export_fmt);
