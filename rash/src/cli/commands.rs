@@ -78,6 +78,10 @@ use format_cmds::format_command;
 use playbook_cmds::playbook_command;
 use mutate_cmds::mutate_command;
 use simulate_cmds::simulate_command;
+#[path = "classify_commands.rs"]
+pub(crate) mod classify_cmds;
+#[path = "adversarial_commands.rs"]
+mod adversarial_cmds;
 
 // Quality command modules
 #[path = "test_commands.rs"]
@@ -353,6 +357,13 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             })
         }
 
+        Commands::Classify {
+            input,
+            json,
+            multi_label,
+            format,
+        } => classify_cmds::classify_command(&input, json, multi_label, format.as_ref()),
+
         Commands::Make { command } => make_cmds::handle_make_command(command),
 
         Commands::Dockerfile { command } => {
@@ -545,6 +556,25 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         Commands::Corpus { command } => {
             info!("Executing corpus command");
             corpus_core_cmds::handle_corpus_command(command)
+        }
+
+        Commands::GenerateAdversarial {
+            output,
+            seed,
+            count_per_class,
+            extra_needs_quoting,
+            verify,
+            stats,
+        } => {
+            info!("Generating adversarial training data");
+            adversarial_cmds::generate_adversarial_command(
+                &output,
+                seed,
+                count_per_class,
+                extra_needs_quoting,
+                verify,
+                stats,
+            )
         }
     }
 }

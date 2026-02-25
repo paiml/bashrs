@@ -18,6 +18,10 @@ pub enum ExportFormat {
     Csv,
     /// JSON array (pretty-printed)
     Json,
+    /// Classification JSONL for ML fine-tuning ({"input":"...","label":N})
+    Classification,
+    /// Multi-label classification JSONL ({"input":"...","labels":[0.0, 1.0, ...]})
+    MultiLabelClassification,
 }
 
 impl fmt::Display for ExportFormat {
@@ -26,6 +30,8 @@ impl fmt::Display for ExportFormat {
             Self::JsonLines => write!(f, "jsonl"),
             Self::Csv => write!(f, "csv"),
             Self::Json => write!(f, "json"),
+            Self::Classification => write!(f, "classification"),
+            Self::MultiLabelClassification => write!(f, "multi-label-classification"),
         }
     }
 }
@@ -46,10 +52,39 @@ pub struct DatasetRow {
     pub deterministic: bool,
     pub score: f64,
     pub grade: String,
+    pub safety_index: u8,
+    pub safety_label: String,
     pub bashrs_version: String,
     pub commit_sha: String,
     pub date: String,
 }
+
+/// Lightweight classification row for ML training (entrenar-compatible).
+///
+/// Format: `{"input": "<shell script>", "label": N}` where N is 0-4.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ClassificationRow {
+    pub input: String,
+    pub label: u8,
+}
+
+/// Multi-label classification row for ML training (SSC-021).
+///
+/// Format: `{"input": "<shell script>", "labels": [0.0, 1.0, 1.0, 0.0, 0.0]}`
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct MultiLabelClassificationRow {
+    pub input: String,
+    pub labels: [f32; 5],
+}
+
+/// Safety class labels matching aprender `SafetyClass` enum.
+pub const SAFETY_LABELS: [&str; 5] = [
+    "safe",              // 0
+    "needs-quoting",     // 1
+    "non-deterministic", // 2
+    "non-idempotent",    // 3
+    "unsafe",            // 4
+];
 
 /// Dataset metadata for the `dataset-info` command
 #[derive(Debug, Clone)]
@@ -98,6 +133,8 @@ fn build_row(
             None => (false, false, false, false, String::new(), 0.0, "F".into()),
         };
 
+    let safety_index = derive_safety_label(&actual, transpiled, lint_clean, deterministic);
+
     DatasetRow {
         id: entry.id.clone(),
         name: entry.name.clone(),
@@ -112,10 +149,149 @@ fn build_row(
         deterministic,
         score: score_val,
         grade,
+        safety_index,
+        safety_label: SAFETY_LABELS[safety_index as usize].to_string(),
         bashrs_version: version.to_string(),
         commit_sha: commit.to_string(),
         date: date.to_string(),
     }
+}
+
+/// Derive safety class from transpiler output using a decision tree.
+///
+/// Decision tree (cascading priority):
+/// 1. Not transpiled OR not lint-clean → unsafe (4)
+/// 2. Not deterministic → non-deterministic (2)
+/// 3. Non-idempotent patterns (mkdir without -p, rm without -f, ln without -sf) → non-idempotent (3)
+/// 4. Unquoted variable expansion ($VAR without quotes) → needs-quoting (1)
+/// 5. Otherwise → safe (0)
+///
+/// Returns safety class index (0-4).
+pub fn derive_safety_label(
+    shell_output: &str,
+    transpiled: bool,
+    lint_clean: bool,
+    deterministic: bool,
+) -> u8 {
+    // Gate 1: failed transpilation or lint → unsafe
+    if !transpiled || !lint_clean {
+        return 4;
+    }
+
+    // Gate 2: non-deterministic → class 2
+    if !deterministic {
+        return 2;
+    }
+
+    // Gate 3: non-idempotent patterns in the shell output
+    if has_non_idempotent_pattern(shell_output) {
+        return 3;
+    }
+
+    // Gate 4: unquoted variable expansion → needs-quoting
+    if has_unquoted_variable(shell_output) {
+        return 1;
+    }
+
+    // Default: safe
+    0
+}
+
+/// Check for non-idempotent shell patterns.
+///
+/// Detects:
+/// - `mkdir` without `-p` flag
+/// - `rm` without `-f` flag (non-force removes fail on missing files)
+/// - `ln -s` without `-f` (fails if link exists)
+pub fn has_non_idempotent_pattern(script: &str) -> bool {
+    for line in script.lines() {
+        let trimmed = line.trim();
+
+        // Skip comments and empty lines
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        // mkdir without -p
+        if trimmed.starts_with("mkdir ") && !trimmed.contains("-p") {
+            return true;
+        }
+
+        // rm without -f (but not rm -rf, rm -f)
+        if trimmed.starts_with("rm ") && !trimmed.contains("-f") && !trimmed.contains("-rf") {
+            return true;
+        }
+
+        // ln -s without -f (non-idempotent symlink creation)
+        if trimmed.starts_with("ln ") && trimmed.contains("-s") && !trimmed.contains("-sf")
+            && !trimmed.contains("-f")
+        {
+            return true;
+        }
+    }
+    false
+}
+
+/// Check for unquoted variable expansions in shell script.
+///
+/// Detects `$VAR` or `${VAR}` that appear outside of double quotes.
+/// Simple heuristic: scans for `$` followed by alphanumeric/underscore
+/// that is NOT within a double-quoted region on the same line.
+pub fn has_unquoted_variable(script: &str) -> bool {
+    for line in script.lines() {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+        if line_has_unquoted_var(trimmed) {
+            return true;
+        }
+    }
+    false
+}
+
+/// Check a single line for unquoted variable references.
+fn line_has_unquoted_var(line: &str) -> bool {
+    let bytes = line.as_bytes();
+    let mut in_double_quotes = false;
+    let mut in_single_quotes = false;
+    let mut i = 0;
+
+    while i < bytes.len() {
+        let b = bytes[i];
+
+        // Track quote state
+        if b == b'\'' && !in_double_quotes {
+            in_single_quotes = !in_single_quotes;
+            i += 1;
+            continue;
+        }
+        if b == b'"' && !in_single_quotes {
+            in_double_quotes = !in_double_quotes;
+            i += 1;
+            continue;
+        }
+
+        // Skip escaped characters
+        if b == b'\\' && i + 1 < bytes.len() {
+            i += 2;
+            continue;
+        }
+
+        // Check for $ outside quotes
+        if b == b'$' && !in_single_quotes && !in_double_quotes {
+            // Check if followed by alphanumeric/underscore or {
+            if i + 1 < bytes.len() {
+                let next = bytes[i + 1];
+                if next.is_ascii_alphabetic() || next == b'_' || next == b'{' {
+                    return true;
+                }
+            }
+        }
+
+        i += 1;
+    }
+    false
 }
 
 fn score_to_grade(score: f64) -> String {
@@ -143,6 +319,92 @@ pub fn export_jsonl(rows: &[DatasetRow]) -> String {
         .join("\n")
 }
 
+/// Export classification JSONL for entrenar fine-tuning.
+///
+/// Output format: `{"input":"<shell script>","label":N}` per line.
+/// Uses `actual_output` (transpiled shell) as the input text and
+/// `safety_index` as the label. Only includes entries that were
+/// successfully transpiled.
+pub fn export_classification_jsonl(rows: &[DatasetRow]) -> String {
+    rows.iter()
+        .filter(|row| row.transpiled)
+        .map(|row| {
+            let cr = ClassificationRow {
+                input: row.actual_output.clone(),
+                label: row.safety_index,
+            };
+            serde_json::to_string(&cr).unwrap_or_default()
+        })
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Export corpus as multi-label classification JSONL (SSC-021).
+///
+/// Each row has ALL applicable labels as a multi-hot vector, not just the primary one.
+/// Output: `{"input":"...","labels":[0.0, 1.0, 1.0, 0.0, 0.0]}`
+pub fn export_multi_label_classification_jsonl(rows: &[DatasetRow]) -> String {
+    rows.iter()
+        .filter(|row| row.transpiled)
+        .map(|row| {
+            let labels = derive_multi_label(&row.actual_output, row.transpiled, row.lint_clean, row.deterministic);
+            let ml = MultiLabelClassificationRow {
+                input: row.actual_output.clone(),
+                labels,
+            };
+            serde_json::to_string(&ml).unwrap_or_default()
+        })
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+/// Derive multi-hot label vector (SSC-021).
+///
+/// Unlike `derive_safety_label` which picks ONE priority class, this detects
+/// ALL applicable classes independently:
+/// - Class 0 (safe): no issues at all
+/// - Class 1 (needs-quoting): has unquoted variable
+/// - Class 2 (non-deterministic): not deterministic
+/// - Class 3 (non-idempotent): has non-idempotent patterns
+/// - Class 4 (unsafe): not lint_clean or not transpiled
+pub fn derive_multi_label(
+    shell_output: &str,
+    transpiled: bool,
+    lint_clean: bool,
+    deterministic: bool,
+) -> [f32; 5] {
+    let mut labels = [0.0f32; 5];
+
+    // Class 4: unsafe
+    if !transpiled || !lint_clean {
+        labels[4] = 1.0;
+    }
+
+    // Class 2: non-deterministic
+    if !deterministic {
+        labels[2] = 1.0;
+    }
+
+    // Class 3: non-idempotent
+    if has_non_idempotent_pattern(shell_output) {
+        labels[3] = 1.0;
+    }
+
+    // Class 1: needs-quoting
+    if has_unquoted_variable(shell_output) {
+        labels[1] = 1.0;
+    }
+
+    // Class 0: safe (only if nothing else is active)
+    if labels.iter().all(|&v| v < 0.5) {
+        labels[0] = 1.0;
+    }
+
+    labels
+}
+
 /// Export dataset rows as JSON array (pretty-printed)
 pub fn export_json(rows: &[DatasetRow]) -> String {
     serde_json::to_string_pretty(rows).unwrap_or_else(|_| "[]".to_string())
@@ -152,10 +414,10 @@ pub fn export_json(rows: &[DatasetRow]) -> String {
 pub fn export_csv(rows: &[DatasetRow]) -> String {
     let mut out = String::new();
     // Header
-    out.push_str("id,name,tier,format,transpiled,output_correct,lint_clean,deterministic,score,grade,bashrs_version,date\n");
+    out.push_str("id,name,tier,format,transpiled,output_correct,lint_clean,deterministic,score,grade,safety_index,safety_label,bashrs_version,date\n");
     for row in rows {
         out.push_str(&format!(
-            "{},{},{},{},{},{},{},{},{:.1},{},{},{}\n",
+            "{},{},{},{},{},{},{},{},{:.1},{},{},{},{},{}\n",
             csv_escape(&row.id),
             csv_escape(&row.name),
             row.tier,
@@ -166,6 +428,8 @@ pub fn export_csv(rows: &[DatasetRow]) -> String {
             row.deterministic,
             row.score,
             row.grade,
+            row.safety_index,
+            row.safety_label,
             row.bashrs_version,
             row.date,
         ));
@@ -219,6 +483,8 @@ fn dataset_schema_fields() -> Vec<(&'static str, &'static str, &'static str)> {
         ("deterministic", "bool", "Output identical across runs?"),
         ("score", "float64", "Per-entry score (0-100)"),
         ("grade", "string", "A+, A, B, C, D, F"),
+        ("safety_index", "uint8", "Safety class (0=safe..4=unsafe)"),
+        ("safety_label", "string", "Safety class label"),
         ("bashrs_version", "string", "e.g. 6.61.0"),
         ("commit_sha", "string", "Git commit SHA"),
         ("date", "string", "ISO 8601 date"),
@@ -343,6 +609,8 @@ pub fn run_and_export(format: ExportFormat) -> (CorpusScore, String) {
         ExportFormat::JsonLines => export_jsonl(&rows),
         ExportFormat::Csv => export_csv(&rows),
         ExportFormat::Json => export_json(&rows),
+        ExportFormat::Classification => export_classification_jsonl(&rows),
+        ExportFormat::MultiLabelClassification => export_multi_label_classification_jsonl(&rows),
     };
 
     (score, output)
@@ -464,6 +732,11 @@ mod tests {
         assert_eq!(format!("{}", ExportFormat::JsonLines), "jsonl");
         assert_eq!(format!("{}", ExportFormat::Csv), "csv");
         assert_eq!(format!("{}", ExportFormat::Json), "json");
+        assert_eq!(format!("{}", ExportFormat::Classification), "classification");
+        assert_eq!(
+            format!("{}", ExportFormat::MultiLabelClassification),
+            "multi-label-classification"
+        );
     }
 
     #[test]
@@ -605,7 +878,7 @@ mod tests {
         let info = dataset_info(&registry);
         assert_eq!(info.total_entries, 3);
         assert_eq!(info.format_counts.len(), 3);
-        assert_eq!(info.schema_fields.len(), 16);
+        assert_eq!(info.schema_fields.len(), 18);
     }
 
     #[test]
@@ -755,6 +1028,8 @@ mod tests {
             deterministic: true,
             score: 100.0,
             grade: "A+".into(),
+            safety_index: 0,
+            safety_label: "safe".into(),
             bashrs_version: "6.61.0".into(),
             commit_sha: "abc1234".into(),
             date: "2026-02-09".into(),
@@ -764,6 +1039,291 @@ mod tests {
         assert!(json.is_ok());
         let s = json.expect("serialization should succeed");
         assert!(s.contains("B-001"));
+        assert!(s.contains("safety_index"));
+        assert!(s.contains("safe"));
+    }
+
+    // ── Safety label derivation tests ───────────────────────────────
+
+    #[test]
+    fn test_derive_safety_label_safe() {
+        // Clean transpiled output with quoted vars → safe (0)
+        let script = "#!/bin/sh\necho \"hello world\"\nmkdir -p \"$HOME/tmp\"\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 0);
+    }
+
+    #[test]
+    fn test_derive_safety_label_not_transpiled() {
+        // Failed transpilation → unsafe (4)
+        assert_eq!(derive_safety_label("", false, true, true), 4);
+    }
+
+    #[test]
+    fn test_derive_safety_label_not_lint_clean() {
+        // Lint failures → unsafe (4)
+        assert_eq!(derive_safety_label("echo ok", true, false, true), 4);
+    }
+
+    #[test]
+    fn test_derive_safety_label_not_deterministic() {
+        // Non-deterministic → class 2
+        assert_eq!(derive_safety_label("echo ok", true, true, false), 2);
+    }
+
+    #[test]
+    fn test_derive_safety_label_non_idempotent_mkdir() {
+        // mkdir without -p → non-idempotent (3)
+        let script = "#!/bin/sh\nmkdir /tmp/build\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 3);
+    }
+
+    #[test]
+    fn test_derive_safety_label_idempotent_mkdir() {
+        // mkdir -p → safe (0)
+        let script = "#!/bin/sh\nmkdir -p /tmp/build\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 0);
+    }
+
+    #[test]
+    fn test_derive_safety_label_non_idempotent_rm() {
+        // rm without -f → non-idempotent (3)
+        let script = "#!/bin/sh\nrm /tmp/file\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 3);
+    }
+
+    #[test]
+    fn test_derive_safety_label_idempotent_rm() {
+        // rm -f → safe (0)
+        let script = "#!/bin/sh\nrm -f /tmp/file\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 0);
+    }
+
+    #[test]
+    fn test_derive_safety_label_non_idempotent_ln() {
+        // ln -s without -f → non-idempotent (3)
+        let script = "#!/bin/sh\nln -s /a /b\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 3);
+    }
+
+    #[test]
+    fn test_derive_safety_label_unquoted_var() {
+        // Unquoted $VAR → needs-quoting (1)
+        let script = "#!/bin/sh\necho $HOME\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 1);
+    }
+
+    #[test]
+    fn test_derive_safety_label_quoted_var() {
+        // Quoted "$VAR" → safe (0)
+        let script = "#!/bin/sh\necho \"$HOME\"\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 0);
+    }
+
+    #[test]
+    fn test_derive_safety_label_single_quoted_var() {
+        // Single-quoted '$VAR' → safe (0) — no expansion in single quotes
+        let script = "#!/bin/sh\necho '$HOME'\n";
+        assert_eq!(derive_safety_label(script, true, true, true), 0);
+    }
+
+    #[test]
+    fn test_derive_safety_label_priority_unsafe_over_nondeterministic() {
+        // Not lint clean AND not deterministic → unsafe (4) wins
+        assert_eq!(derive_safety_label("echo ok", true, false, false), 4);
+    }
+
+    #[test]
+    fn test_derive_safety_label_priority_nondeterministic_over_non_idempotent() {
+        // Non-deterministic AND has mkdir → non-deterministic (2) wins
+        let script = "#!/bin/sh\nmkdir /tmp/build\n";
+        assert_eq!(derive_safety_label(script, true, true, false), 2);
+    }
+
+    #[test]
+    fn test_has_non_idempotent_pattern_comments_ignored() {
+        assert!(!has_non_idempotent_pattern("# mkdir /tmp/build\n"));
+        assert!(!has_non_idempotent_pattern("  # rm file\n"));
+    }
+
+    #[test]
+    fn test_line_has_unquoted_var_basic() {
+        assert!(line_has_unquoted_var("echo $HOME"));
+        assert!(line_has_unquoted_var("echo ${HOME}"));
+        assert!(!line_has_unquoted_var("echo \"$HOME\""));
+        assert!(!line_has_unquoted_var("echo '$HOME'"));
+        assert!(!line_has_unquoted_var("echo hello"));
+    }
+
+    #[test]
+    fn test_line_has_unquoted_var_dollar_special() {
+        // $? $# $0 etc. are special — not flagged (no alpha/underscore/brace after $)
+        assert!(!line_has_unquoted_var("echo $?"));
+        assert!(!line_has_unquoted_var("echo $#"));
+    }
+
+    // ── Classification export tests ─────────────────────────────────
+
+    #[test]
+    fn test_export_classification_jsonl() {
+        let entry = make_entry("B-001", CorpusFormat::Bash);
+        let result = make_result("B-001", true);
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
+
+        let output = export_classification_jsonl(&[row]);
+        assert!(output.contains("\"input\""));
+        assert!(output.contains("\"label\""));
+        // Should be valid JSON
+        let parsed: serde_json::Value = serde_json::from_str(&output)
+            .expect("classification JSONL should be valid JSON");
+        assert!(parsed.get("input").is_some());
+        assert!(parsed.get("label").is_some());
+    }
+
+    #[test]
+    fn test_export_classification_jsonl_skips_failed() {
+        let entry = make_entry("B-002", CorpusFormat::Bash);
+        let result = make_result("B-002", false);
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
+
+        let output = export_classification_jsonl(&[row]);
+        assert!(output.is_empty(), "Failed entries should not appear in classification export");
+    }
+
+    #[test]
+    fn test_export_classification_jsonl_multiple() {
+        let rows: Vec<DatasetRow> = ["B-001", "B-002", "B-003"]
+            .iter()
+            .enumerate()
+            .map(|(i, id)| {
+                let entry = make_entry(id, CorpusFormat::Bash);
+                let result = make_result(id, i != 1); // B-002 fails
+                build_row(&entry, Some(&result), "6.61.0", "abc", "2026-02-09")
+            })
+            .collect();
+
+        let output = export_classification_jsonl(&rows);
+        let lines: Vec<&str> = output.lines().collect();
+        assert_eq!(lines.len(), 2, "Should have 2 lines (B-002 filtered out)");
+    }
+
+    #[test]
+    fn test_classification_row_serializes() {
+        let cr = ClassificationRow {
+            input: "#!/bin/sh\necho ok\n".into(),
+            label: 0,
+        };
+        let json = serde_json::to_string(&cr).expect("should serialize");
+        assert!(json.contains("\"input\""));
+        assert!(json.contains("\"label\":0"));
+    }
+
+    #[test]
+    fn test_safety_labels_count() {
+        assert_eq!(SAFETY_LABELS.len(), 5);
+        assert_eq!(SAFETY_LABELS[0], "safe");
+        assert_eq!(SAFETY_LABELS[4], "unsafe");
+    }
+
+    #[test]
+    fn test_build_row_includes_safety() {
+        let entry = make_entry("B-001", CorpusFormat::Bash);
+        let result = make_result("B-001", true);
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
+
+        // Transpiled, lint clean, deterministic, no unsafe patterns → safe
+        assert_eq!(row.safety_label, "safe");
+        assert_eq!(row.safety_index, 0);
+    }
+
+    #[test]
+    fn test_build_row_failed_is_unsafe() {
+        let entry = make_entry("B-002", CorpusFormat::Bash);
+        let result = make_result("B-002", false);
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
+
+        assert_eq!(row.safety_label, "unsafe");
+        assert_eq!(row.safety_index, 4);
+    }
+
+    #[test]
+    fn test_csv_includes_safety_fields() {
+        let entry = make_entry("B-001", CorpusFormat::Bash);
+        let result = make_result("B-001", true);
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
+
+        let output = export_csv(&[row]);
+        assert!(output.contains("safety_index"));
+        assert!(output.contains("safety_label"));
+    }
+
+    // ── Multi-label classification tests (SSC-021) ──────────────────
+
+    #[test]
+    fn test_derive_multi_label_safe() {
+        let labels = derive_multi_label("#!/bin/sh\necho \"hello\"\n", true, true, true);
+        assert_eq!(labels, [1.0, 0.0, 0.0, 0.0, 0.0], "Clean script should be safe only");
+    }
+
+    #[test]
+    fn test_derive_multi_label_unsafe() {
+        let labels = derive_multi_label("#!/bin/sh\necho hello\n", false, false, true);
+        assert_eq!(labels[4], 1.0, "Not transpiled → unsafe");
+    }
+
+    #[test]
+    fn test_derive_multi_label_nondet() {
+        let labels = derive_multi_label("#!/bin/sh\necho \"hello\"\n", true, true, false);
+        assert_eq!(labels[2], 1.0, "Non-deterministic should be set");
+        assert_eq!(labels[0], 0.0, "Safe should NOT be set when nondet");
+    }
+
+    #[test]
+    fn test_derive_multi_label_nonidempotent_and_unquoted() {
+        let labels = derive_multi_label("mkdir $HOME/build\n", true, true, true);
+        assert_eq!(labels[3], 1.0, "Non-idempotent pattern should be set");
+        assert_eq!(labels[1], 1.0, "Needs-quoting should also be set");
+        assert_eq!(labels[0], 0.0, "Safe should NOT be set");
+    }
+
+    #[test]
+    fn test_derive_multi_label_multiple_issues() {
+        // Not deterministic + has unquoted var → classes 1 and 2
+        let labels = derive_multi_label("echo $HOME\n", true, true, false);
+        assert_eq!(labels[1], 1.0, "Needs-quoting should be set");
+        assert_eq!(labels[2], 1.0, "Non-deterministic should be set");
+        assert_eq!(labels[0], 0.0, "Safe should NOT be set");
+    }
+
+    #[test]
+    fn test_multi_label_row_serializes() {
+        let ml = MultiLabelClassificationRow {
+            input: "echo $HOME\n".into(),
+            labels: [0.0, 1.0, 1.0, 0.0, 0.0],
+        };
+        let json = serde_json::to_string(&ml).expect("should serialize");
+        assert!(json.contains("\"labels\""));
+        assert!(json.contains("[0.0,1.0,1.0,0.0,0.0]"));
+    }
+
+    #[test]
+    fn test_export_multi_label_classification_jsonl() {
+        let entry = make_entry("B-001", CorpusFormat::Bash);
+        let result = make_result("B-001", true);
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc", "2026-02-09");
+
+        let output = export_multi_label_classification_jsonl(&[row]);
+        assert!(output.contains("\"input\""));
+        assert!(output.contains("\"labels\""));
+    }
+
+    #[test]
+    fn test_export_multi_label_skips_failed() {
+        let entry = make_entry("B-002", CorpusFormat::Bash);
+        let result = make_result("B-002", false);
+        let row = build_row(&entry, Some(&result), "6.61.0", "abc", "2026-02-09");
+
+        let output = export_multi_label_classification_jsonl(&[row]);
+        assert!(output.is_empty(), "Failed entries should not appear");
     }
 }
 

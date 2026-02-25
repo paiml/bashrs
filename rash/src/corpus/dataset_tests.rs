@@ -484,10 +484,10 @@ fn test_dataset_info_all_formats() {
 fn test_dataset_info_schema_fields() {
     let registry = CorpusRegistry { entries: vec![] };
     let info = dataset_info(&registry);
-    assert_eq!(info.schema_fields.len(), 16);
+    assert_eq!(info.schema_fields.len(), 18);
     // Verify first and last fields
     assert_eq!(info.schema_fields[0].0, "id");
-    assert_eq!(info.schema_fields[15].0, "date");
+    assert_eq!(info.schema_fields[17].0, "date");
 }
 
 // === format_dataset_info ===
@@ -647,6 +647,8 @@ fn test_dataset_row_all_fields_serialize() {
         deterministic: true,
         score: 95.0,
         grade: "A".into(),
+        safety_index: 0,
+        safety_label: "safe".into(),
         bashrs_version: "7.0.0".into(),
         commit_sha: "deadbeef".into(),
         date: "2026-02-23".into(),

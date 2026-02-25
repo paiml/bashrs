@@ -41,6 +41,7 @@ lazy_static.workspace = true
 phf.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.9"  # Added for testing module
+rand_chacha = "0.9"  # Deterministic RNG for adversarial data generation
 batuta-common = "0.1"
 static_assertions = "1.1"
 regex = "1.10"  # For linter pattern matching

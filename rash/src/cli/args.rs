@@ -240,6 +240,25 @@ pub enum Commands {
         recursive: bool,
     },
 
+    /// Classify script safety (supports bash, Makefile, Dockerfile)
+    Classify {
+        /// Input script file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+
+        /// Multi-label mode: show all applicable labels, not just the primary one
+        #[arg(long)]
+        multi_label: bool,
+
+        /// Force format (auto-detected from extension if omitted)
+        #[arg(long, value_enum)]
+        format: Option<ClassifyFormat>,
+    },
+
     /// Makefile parsing, purification, and transformation
     Make {
         #[command(subcommand)]
@@ -581,6 +600,33 @@ pub enum Commands {
     Installer {
         #[command(subcommand)]
         command: InstallerCommands,
+    },
+
+    /// Generate adversarial training data for shell safety classifier
+    GenerateAdversarial {
+        /// Output JSONL file path
+        #[arg(short, long, default_value = "adversarial.jsonl")]
+        output: PathBuf,
+
+        /// RNG seed for reproducible generation
+        #[arg(long, default_value = "42")]
+        seed: u64,
+
+        /// Number of samples per minority class (classes 2, 3, 4)
+        #[arg(long, default_value = "2500")]
+        count_per_class: usize,
+
+        /// Extra needs-quoting (class 1) samples
+        #[arg(long, default_value = "500")]
+        extra_needs_quoting: usize,
+
+        /// Verify each script against derive_safety_label for self-consistency
+        #[arg(long)]
+        verify: bool,
+
+        /// Show generation statistics
+        #[arg(long)]
+        stats: bool,
     },
 }
 
@@ -1289,6 +1335,17 @@ pub enum CorpusCommands {
     },
 }
 
+/// Script format for classify command (SSC-022)
+#[derive(Clone, Debug, ValueEnum)]
+pub enum ClassifyFormat {
+    /// Bash / shell script
+    Bash,
+    /// Makefile (GNU Make)
+    Makefile,
+    /// Dockerfile
+    Dockerfile,
+}
+
 /// Dataset export format
 #[derive(Clone, Debug, Default, ValueEnum)]
 pub enum DatasetExportFormat {
@@ -1299,6 +1356,10 @@ pub enum DatasetExportFormat {
     Jsonl,
     /// CSV with headers
     Csv,
+    /// Classification JSONL for ML fine-tuning ({"input":"...","label":N})
+    Classification,
+    /// Multi-label classification JSONL ({"input":"...","labels":[0.0, 1.0, ...]})
+    MultiLabelClassification,
 }
 
 /// Corpus output format
