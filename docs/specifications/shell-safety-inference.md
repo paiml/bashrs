@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-001: Shell Safety Classifier — Published on HuggingFace
 
 **Version**: 2.2.0
-**Status**: COMPLETE (all 15 tickets done, SSC-015/016 superseded)
+**Status**: v2 COMPLETE (15 tickets done), v2.2 IN PROGRESS (SSC-023..027 production training pipeline)
 **Author**: paiml engineering
 **Date**: 2026-02-24
 **Requires**: bashrs >= 6.64.0, aprender >= 0.26.3, entrenar >= 1.0, trueno >= 0.15.0
@@ -852,10 +852,16 @@ attention, head_dim=256, vocab_size=248,320. Per `aprender/docs/specifications/q
 | SSC-021 | Multi-Label Classification (BCEWithLogitsLoss) | P3 | DONE | 6 |
 | SSC-022 | Cross-Format Models (Makefile/Dockerfile) | P3 | DONE | 4 |
 
+| SSC-023 | BPE Tokenizer Loading (aprender) | P0 | PLANNED | 6 |
+| SSC-024 | SafeTensors Weight Loading (entrenar) | P0 | PLANNED | 7 |
+| SSC-025 | Batch Training Pipeline (entrenar) | P1 | PLANNED | 5 |
+| SSC-026 | Production Training Loop (entrenar) | P1 | PLANNED | 7 |
+| SSC-027 | CLI Training Execution (apr-cli) | P2 | PLANNED | 4 |
+
 **Total Complexity (Done)**: 74 points (v1: 30, v2: 44)
-**Total Complexity (Planned)**: 0 points (all tickets complete or superseded)
+**Total Complexity (Planned)**: 29 points (v2.2: SSC-023..027)
 **Velocity**: 15 tickets / 3 sessions
-**Status**: SPEC COMPLETE — all tickets implemented
+**Status**: v2 COMPLETE, v2.2 IN PROGRESS (production training pipeline)
 
 ---
 
@@ -1166,6 +1172,189 @@ bashrs classify --multi-label Dockerfile.prod
 ```
 
 **Tests**: 31 total (11 bash + 7 multi-label + 3 format detection + 3 makefile + 3 dockerfile + 4 cross-format)
+
+---
+
+## 14. v2.2 Production Training Pipeline
+
+### 14.1 Motivation
+
+v2 is "DONE" in terms of infrastructure: the demo converges on 15 samples with a 64-hidden
+toy model. But no real Qwen2.5 weights have been loaded, no real 151K BPE tokenization,
+and no training on the full 26K-sample corpus. The adversarial data quality is excellent
+(1.8% mismatch on 8,000 samples) but has never been used for actual model training.
+
+**Goal**: Close the remaining gaps so `entrenar` can fine-tune Qwen2.5-Coder-0.5B on
+26K shell safety samples end-to-end, using ONLY the sovereign stack (trueno + aprender +
+entrenar + realizador). Then publish `paiml/shell-safety-classifier` to HuggingFace.
+
+### 14.2 Stack Audit
+
+| Layer | Crate | Version | Status |
+|-------|-------|---------|--------|
+| Compute | trueno | 0.15.0 | SIMD (5 backends) + GPU (wgpu). No gaps. |
+| ML Framework | aprender | 0.26.3 | Autograd, optimizers, loss, SafeTensors, APR format, HF Hub. **GAP: BPE tokenizer loading** |
+| Training | entrenar | 0.6.1 | Transformer, LoRA, QLoRA, AdamW, ClassifyPipeline. **GAPS: weight loading, batch training, training loop** |
+| Serving | realizador | 0.7.x | CUDA inference. Not needed for training phase. |
+| Contracts | provable-contracts | — | 96+ YAML contracts. 4 new contracts for gaps. |
+| Data | bashrs | 6.64.0 | 17,942 corpus + 8,000 adversarial = 26K samples. Ready. |
+
+### 14.3 Critical Gaps (5 tickets)
+
+#### SSC-023: BPE Tokenizer Loading (aprender) — P0
+
+**GitHub**: [paiml/aprender#334](https://github.com/paiml/aprender/issues/334)
+**Contract**: `provable-contracts/contracts/aprender/tokenizer-loading-v1.yaml`
+**Blocked by**: —
+**Blocks**: SSC-026
+
+`BpeTokenizer::from_huggingface()` is declared but **not implemented**. Without this,
+we can only do byte-level tokenization which destroys all pretrained knowledge.
+
+**What exists**: `BpeConfig::qwen2()` preset (vocab_size=151,936), `BpeTokenizer` struct
+with all fields, merge-rule priority system.
+
+**What's missing**: Loading from HuggingFace `tokenizer.json` format (JSON with
+`model.vocab`, `model.merges`, `added_tokens`).
+
+**Key invariants** (F-TOK-001..008):
+- Roundtrip encode/decode
+- Special token ID preservation (151,643..151,645)
+- vocab_size == 151,936
+- Deterministic encoding
+- Full byte coverage (256 bytes)
+
+---
+
+#### SSC-024: Qwen2.5 SafeTensors Weight Loading (entrenar) — P0
+
+**GitHub**: [paiml/entrenar#94](https://github.com/paiml/entrenar/issues/94)
+**Contract**: `provable-contracts/contracts/aprender/qwen2-weight-loading-v1.yaml`
+**Blocked by**: —
+**Blocks**: SSC-025
+
+`Transformer::from_params()` creates random weights. No code maps HuggingFace tensor
+names (`model.layers.0.self_attn.q_proj.weight`) to entrenar's internal fields.
+
+**What exists**: `TransformerConfig::qwen2_0_5b()` (896h, 24L, 14 heads, 2 KV heads),
+SafeTensors parsing in aprender, `Transformer` struct.
+
+**What's missing**: `Transformer::from_safetensors(path)` that reads `.safetensors` files,
+maps tensor names, handles BF16→F32 conversion, validates shapes.
+
+**Key invariants** (F-WGT-001..009):
+- All 24 layers populated (no zeros)
+- No NaN/Inf
+- Shape match vs TransformerConfig
+- Embedding 151,936 × 896
+- GQA ratio 14/2=7 verified
+
+---
+
+#### SSC-025: Batch Training Pipeline (entrenar) — P1
+
+**GitHub**: [paiml/entrenar#95](https://github.com/paiml/entrenar/issues/95)
+**Contract**: `provable-contracts/contracts/aprender/batch-training-v1.yaml`
+**Blocked by**: SSC-024
+**Blocks**: SSC-026
+
+`ClassifyPipeline::train_step()` processes ONE sample. For 26K × 50 epochs = 1.3M
+individual forward+backward passes. Need mini-batching with gradient accumulation.
+
+**What's missing**: `train_batch()` with configurable batch_size, gradient accumulation,
+gradient clipping.
+
+**Key invariants** (F-BATCH-001..007):
+- Accumulated gradients equivalent to large-batch
+- Loss finite across all batches
+- Gradient norm bounded after clipping
+- Single optimizer.step() per batch
+
+---
+
+#### SSC-026: Production Training Loop (entrenar) — P1
+
+**GitHub**: [paiml/entrenar#96](https://github.com/paiml/entrenar/issues/96)
+**Contract**: `provable-contracts/contracts/aprender/training-loop-v1.yaml`
+**Blocked by**: SSC-023, SSC-025
+**Blocks**: SSC-027
+
+No complete training loop with epoch management, validation split, checkpointing,
+and LR scheduling.
+
+**What's missing**: `ClassifyTrainer` struct that orchestrates: data loading → shuffle →
+batch → train → validate → log → checkpoint → schedule LR.
+
+**Key invariants** (F-LOOP-001..010):
+- EMA(loss) decreasing over training
+- Validation accuracy computed every epoch
+- Checkpoint restorable to same val_loss ± ε
+- Train/val split disjoint and frozen
+- Data shuffled per epoch (seeded RNG)
+
+---
+
+#### SSC-027: End-to-End CLI Execution (apr-cli) — P2
+
+**GitHub**: [paiml/aprender#335](https://github.com/paiml/aprender/issues/335)
+**Contract**: References training-loop-v1.yaml
+**Blocked by**: SSC-026
+**Blocks**: —
+
+`apr finetune --task classify` currently only does plan mode. Need to wire real
+`ClassifyTrainer::train()` invocation with progress reporting and model saving.
+
+### 14.4 Dependency Graph
+
+```
+SSC-023 (tokenizer) ──┐
+                       ├──> SSC-025 (batch) ──> SSC-026 (training loop) ──> SSC-027 (CLI)
+SSC-024 (weights)  ───┘
+```
+
+SSC-023 and SSC-024 are independent and can be parallelized.
+
+### 14.5 Model Progression (Updated)
+
+```
+v1   (DONE):       ShellVocab(250)  -> MLP(64->128->64->5)           ~10K params, trains in seconds
+v2   (DONE):       ShellVocab(250)  -> Toy Transformer+LoRA -> Lin(64->5)    ~2K trainable, demo only
+v2.2 (IN PROGRESS): Qwen2BPE(151K) -> Qwen2.5-0.5B+LoRA -> Lin(896->5)  ~1.1M trainable, 26K samples
+v3   (FUTURE):     Qwen3.5BPE(248K) -> Qwen3.5+QLoRA(4-bit) -> Lin(dim->5)  ~1M trainable, production
+```
+
+### 14.6 Provable Contracts
+
+| Contract | File | Key Invariants |
+|----------|------|---------------|
+| Tokenizer Loading | `tokenizer-loading-v1.yaml` | F-TOK-001..008: roundtrip, special tokens, vocab_size, determinism, byte coverage |
+| Weight Loading | `qwen2-weight-loading-v1.yaml` | F-WGT-001..009: all layers populated, no NaN, shape match, GQA ratio |
+| Batch Training | `batch-training-v1.yaml` | F-BATCH-001..007: gradient equivalence, loss finite, gradient norm, single step |
+| Training Loop | `training-loop-v1.yaml` | F-LOOP-001..010: loss decreasing, validation, checkpoint, LR schedule, disjoint split |
+
+All contracts in `provable-contracts/contracts/aprender/` following Poka-Yoke + Popperian
+falsification methodology.
+
+### 14.7 v2.2 Verification Matrix
+
+| Verification | Command | Expected Result |
+|-------------|---------|-----------------|
+| Tokenizer loads Qwen2 vocab | `BpeTokenizer::from_huggingface("tokenizer.json")` | 151,936 vocab entries |
+| Roundtrip encode/decode | `decode(encode("echo $HOME"))` | Identity |
+| Weights load from SafeTensors | `Transformer::from_safetensors("model.safetensors")` | 24 layers, all finite |
+| Batch training converges | `train_batch()` on 15-sample demo | Loss decreasing |
+| Full training loop | `ClassifyTrainer::train(26K samples)` | Val accuracy > 80% |
+| CLI execution | `apr finetune --task classify --data corpus.jsonl` | Adapter saved |
+| Contract validation | All falsification tests | 25 tests pass |
+
+### 14.8 Future: Qwen3.5 Upgrade Path
+
+Once v2.2 ships with Qwen2.5-Coder-0.5B, the upgrade path is:
+- SSC-028: Qwen3.5 hybrid attention in ClassifyPipeline
+- SSC-029: 248K vocab BPE tokenizer
+- SSC-030: Linear attention backward ops in trueno
+
+This is v3 scope — file when v2.2 is validated.
 
 ---
 
