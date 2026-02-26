@@ -87,7 +87,7 @@ fn detect_missing_oneshell(targets: &[(&String, &Vec<String>)]) -> Vec<Transform
     for (target_name, recipes) in targets {
         if recipes.len() >= 2 {
             let has_cd = recipes.iter().any(|r| r.trim().starts_with("cd "));
-            let has_command_separator = recipes.iter().any(|r| r.contains("&&") || r.contains(";"));
+            let has_command_separator = recipes.iter().any(|r| r.contains("&&") || r.contains(';'));
 
             if has_cd && !has_command_separator {
                 transformations.push(Transformation::RecommendOneshell {

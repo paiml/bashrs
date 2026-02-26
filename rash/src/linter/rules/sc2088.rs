@@ -16,10 +16,9 @@
 // Impact: Paths not resolved correctly, file not found errors
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TILDE_IN_QUOTES: Lazy<Regex> = Lazy::new(|| {
+static TILDE_IN_QUOTES: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: "~..." or '~...' (tilde followed by / or word chars)
     Regex::new(r#"["']~[/a-zA-Z]"#).unwrap()
 });

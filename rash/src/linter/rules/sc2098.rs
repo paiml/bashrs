@@ -19,20 +19,19 @@
 //   echo "$count"  # count is set
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static PIPE_TO_READ: Lazy<Regex> = Lazy::new(|| {
+static PIPE_TO_READ: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: command | read var
     Regex::new(r"\|\s*read\s+([A-Za-z_][A-Za-z0-9_]*)").unwrap()
 });
 
-static SUBSHELL_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
+static SUBSHELL_ASSIGNMENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: (var=value)  or  $(var=value)
     Regex::new(r"\(([A-Za-z_][A-Za-z0-9_]*)=").unwrap()
 });
 
-static WHILE_PIPE_READ: Lazy<Regex> = Lazy::new(|| {
+static WHILE_PIPE_READ: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: command | while read var
     Regex::new(r"\|\s*while\s+read\s+([A-Za-z_][A-Za-z0-9_]*)").unwrap()
 });

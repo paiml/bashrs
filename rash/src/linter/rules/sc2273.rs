@@ -1,9 +1,8 @@
 // SC2273: Prefer [[ ]] for test operations with variables
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SINGLE_BRACKET_VAR: Lazy<Regex> = Lazy::new(|| {
+static SINGLE_BRACKET_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"(?:^|[^\[])\[\s+\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s+-[a-z]{2}\s+").unwrap()
 });
 

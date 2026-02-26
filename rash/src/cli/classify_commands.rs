@@ -108,8 +108,7 @@ pub(crate) struct LintSignals {
     pub(crate) diagnostic_count: usize,
     pub(crate) sec_count: usize,
     pub(crate) det_count: usize,
-    #[allow(dead_code)] // used for future confidence refinement
-    pub(crate) idem_count: usize,
+    pub(crate) _idem_count: usize,
 }
 
 pub(crate) fn analyze_lint(source: &str, fmt: &ClassifyFormat) -> LintSignals {
@@ -144,8 +143,7 @@ pub(crate) fn analyze_lint(source: &str, fmt: &ClassifyFormat) -> LintSignals {
     let idem_count = diagnostics
         .iter()
         .filter(|d| {
-            d.code.starts_with("IDEM")
-                || d.code == "MAKE002" // missing .PHONY
+            d.code.starts_with("IDEM") || d.code == "MAKE002" // missing .PHONY
         })
         .count();
 
@@ -156,7 +154,7 @@ pub(crate) fn analyze_lint(source: &str, fmt: &ClassifyFormat) -> LintSignals {
         diagnostic_count: diagnostics.len(),
         sec_count,
         det_count,
-        idem_count,
+        _idem_count: idem_count,
     }
 }
 
@@ -167,18 +165,18 @@ pub(crate) fn classify_command(
     multi_label: bool,
     forced_format: Option<&ClassifyFormat>,
 ) -> Result<()> {
-    let source = std::fs::read_to_string(input).map_err(|e| {
-        Error::Validation(format!("Cannot read {}: {e}", input.display()))
-    })?;
+    let source = std::fs::read_to_string(input)
+        .map_err(|e| Error::Validation(format!("Cannot read {}: {e}", input.display())))?;
 
-    let fmt = forced_format.cloned().unwrap_or_else(|| detect_format(input));
+    let fmt = forced_format
+        .cloned()
+        .unwrap_or_else(|| detect_format(input));
 
     if multi_label {
         let result = classify_script_multi_label(&source, &fmt);
         if json {
-            let json_str = serde_json::to_string_pretty(&result).map_err(|e| {
-                Error::Validation(format!("JSON serialization failed: {e}"))
-            })?;
+            let json_str = serde_json::to_string_pretty(&result)
+                .map_err(|e| Error::Validation(format!("JSON serialization failed: {e}")))?;
             println!("{json_str}");
         } else {
             if result.labels.is_empty() {
@@ -200,9 +198,8 @@ pub(crate) fn classify_command(
     } else {
         let result = classify_script(&source, &fmt);
         if json {
-            let json_str = serde_json::to_string_pretty(&result).map_err(|e| {
-                Error::Validation(format!("JSON serialization failed: {e}"))
-            })?;
+            let json_str = serde_json::to_string_pretty(&result)
+                .map_err(|e| Error::Validation(format!("JSON serialization failed: {e}")))?;
             println!("{json_str}");
         } else {
             println!(
@@ -426,7 +423,10 @@ mod tests {
         assert!(json.contains("\"label\""));
         assert!(json.contains("\"confidence\""));
         assert!(json.contains("\"scores\""));
-        assert!(json.contains("\"bash\""), "JSON should contain format 'bash'");
+        assert!(
+            json.contains("\"bash\""),
+            "JSON should contain format 'bash'"
+        );
     }
 
     #[test]
@@ -479,9 +479,11 @@ mod tests {
 
     #[test]
     fn test_classify_priority_sec_over_det() {
-        let result =
-            classify_script("#!/bin/bash\neval \"$RANDOM\"\n", &ClassifyFormat::Bash);
-        assert_eq!(result.index, 4, "Security should take priority over determinism");
+        let result = classify_script("#!/bin/bash\neval \"$RANDOM\"\n", &ClassifyFormat::Bash);
+        assert_eq!(
+            result.index, 4,
+            "Security should take priority over determinism"
+        );
     }
 
     // ── Multi-label bash tests (SSC-021) ────────────────────────────
@@ -517,7 +519,10 @@ mod tests {
             classify_script_multi_label("#!/bin/bash\neval \"$RANDOM\"\n", &ClassifyFormat::Bash);
         let json = serde_json::to_string_pretty(&result).expect("should serialize");
         assert!(json.contains("\"labels\""));
-        assert!(json.contains("\"bash\""), "JSON should contain format 'bash': {json}");
+        assert!(
+            json.contains("\"bash\""),
+            "JSON should contain format 'bash': {json}"
+        );
     }
 
     #[test]
@@ -530,8 +535,7 @@ mod tests {
 
     #[test]
     fn test_multi_label_only_unquoted() {
-        let result =
-            classify_script_multi_label("#!/bin/sh\necho $HOME\n", &ClassifyFormat::Bash);
+        let result = classify_script_multi_label("#!/bin/sh\necho $HOME\n", &ClassifyFormat::Bash);
         assert_eq!(result.labels, vec!["needs-quoting"]);
     }
 
@@ -590,7 +594,10 @@ mod tests {
         let result = classify_script(makefile, &ClassifyFormat::Makefile);
         assert_eq!(result.format, "makefile");
         // With .PHONY declaration, it should be relatively clean
-        assert!(result.index <= 1, "Clean makefile should be safe or needs-quoting");
+        assert!(
+            result.index <= 1,
+            "Clean makefile should be safe or needs-quoting"
+        );
     }
 
     #[test]
@@ -667,8 +674,10 @@ mod tests {
 
     #[test]
     fn test_lint_signals_dockerfile() {
-        let signals =
-            analyze_lint("FROM ubuntu:22.04\nRUN apt-get update\n", &ClassifyFormat::Dockerfile);
+        let signals = analyze_lint(
+            "FROM ubuntu:22.04\nRUN apt-get update\n",
+            &ClassifyFormat::Dockerfile,
+        );
         assert!(signals.diagnostic_count >= 0); // relaxed: linter may or may not fire
     }
 }

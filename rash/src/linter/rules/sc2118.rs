@@ -17,10 +17,9 @@
 // Impact: Script won't work in POSIX sh
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SET_A_ARRAY: Lazy<Regex> = Lazy::new(|| {
+static SET_A_ARRAY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: set -A arrayname
     Regex::new(r"\bset\s+-A\s+[a-zA-Z_][a-zA-Z0-9_]*\b").unwrap()
 });

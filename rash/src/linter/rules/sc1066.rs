@@ -13,14 +13,12 @@
 //   MY_PATH=/usr/bin
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches `$VAR=` at the start of a token (not inside $() or ${})
 /// Anchored to line start or after whitespace/semicolon.
-static DOLLAR_ASSIGN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?:^|[;\s])\$([A-Za-z_]\w*)=").unwrap()
-});
+static DOLLAR_ASSIGN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"(?:^|[;\s])\$([A-Za-z_]\w*)=").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

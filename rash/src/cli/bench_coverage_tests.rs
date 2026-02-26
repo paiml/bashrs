@@ -125,8 +125,13 @@ fn test_display_csv_results_empty() {
 
 #[test]
 fn test_display_csv_results_single_result_with_memory() {
-    let results =
-        vec![make_bench_result_with_memory("single.sh", 42.0, 3.0, 768.0, 1536.0)];
+    let results = vec![make_bench_result_with_memory(
+        "single.sh",
+        42.0,
+        3.0,
+        768.0,
+        1536.0,
+    )];
     let result = display_csv_results(&results);
     assert!(result.is_ok());
 }
@@ -308,11 +313,7 @@ fn test_display_results_multiple_scripts_triggers_comparison() {
 #[test]
 fn test_display_results_single_with_memory_and_raw() {
     let results = vec![make_bench_result_with_memory(
-        "full.sh",
-        30.0,
-        4.0,
-        2048.0,
-        4096.0,
+        "full.sh", 30.0, 4.0, 2048.0, 4096.0,
     )];
     let env = make_environment();
     let options = BenchOptions {
@@ -398,7 +399,12 @@ fn test_display_comparison_results_nearly_equal() {
 
 #[test]
 fn test_display_csv_results_special_characters_in_script_name() {
-    let results = vec![make_bench_result("path/with spaces/script.sh", 10.0, 1.0, 5)];
+    let results = vec![make_bench_result(
+        "path/with spaces/script.sh",
+        10.0,
+        1.0,
+        5,
+    )];
     let result = display_csv_results(&results);
     assert!(result.is_ok());
 }
@@ -444,7 +450,10 @@ fn test_run_quality_gates_no_strict_no_determinism_returns_default_quality() {
     // Pass a path that doesn't exist — should succeed because neither strict
     // nor verify_determinism is enabled, so no file read happens.
     let result = run_quality_gates(Path::new("/nonexistent/dummy.sh"), &options);
-    assert!(result.is_ok(), "run_quality_gates with all disabled should succeed");
+    assert!(
+        result.is_ok(),
+        "run_quality_gates with all disabled should succeed"
+    );
     let quality = result.unwrap();
     assert!(quality.lint_passed);
     assert!((quality.determinism_score - 1.0).abs() < f64::EPSILON);
@@ -473,7 +482,11 @@ fn test_run_quality_gates_strict_mode_clean_script_passes() {
         no_color: false,
     };
     let result = run_quality_gates(&path, &options);
-    assert!(result.is_ok(), "strict mode with clean script should pass: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "strict mode with clean script should pass: {:?}",
+        result
+    );
     assert!(result.unwrap().lint_passed);
 }
 

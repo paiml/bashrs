@@ -240,7 +240,10 @@ mod compare_percentile {
     fn test_result_in_data_range() {
         let data: Vec<f64> = (1..=10).map(|x| x as f64).collect();
         let result = percentile(&data, 90.0);
-        assert!(result >= 1.0 && result <= 10.0, "P90 should be in range [1,10], got {result}");
+        assert!(
+            result >= 1.0 && result <= 10.0,
+            "P90 should be in range [1,10], got {result}"
+        );
     }
 }
 
@@ -255,44 +258,71 @@ mod diag_result_dim_pass {
 
     #[test]
     fn test_dim_0_is_transpiled() {
-        let r_pass = CorpusResult { transpiled: true, ..Default::default() };
+        let r_pass = CorpusResult {
+            transpiled: true,
+            ..Default::default()
+        };
         assert!(result_dim_pass(&r_pass, 0));
-        let r_fail = CorpusResult { transpiled: false, ..Default::default() };
+        let r_fail = CorpusResult {
+            transpiled: false,
+            ..Default::default()
+        };
         assert!(!result_dim_pass(&r_fail, 0));
     }
 
     #[test]
     fn test_dim_1_is_output_contains() {
-        let r = CorpusResult { output_contains: true, ..Default::default() };
+        let r = CorpusResult {
+            output_contains: true,
+            ..Default::default()
+        };
         assert!(result_dim_pass(&r, 1));
-        let r2 = CorpusResult { output_contains: false, ..Default::default() };
+        let r2 = CorpusResult {
+            output_contains: false,
+            ..Default::default()
+        };
         assert!(!result_dim_pass(&r2, 1));
     }
 
     #[test]
     fn test_dim_4_is_lint_clean() {
-        let r = CorpusResult { lint_clean: true, ..Default::default() };
+        let r = CorpusResult {
+            lint_clean: true,
+            ..Default::default()
+        };
         assert!(result_dim_pass(&r, 4));
     }
 
     #[test]
     fn test_dim_5_is_deterministic() {
-        let r = CorpusResult { deterministic: true, ..Default::default() };
+        let r = CorpusResult {
+            deterministic: true,
+            ..Default::default()
+        };
         assert!(result_dim_pass(&r, 5));
     }
 
     #[test]
     fn test_dim_6_is_metamorphic() {
-        let r = CorpusResult { metamorphic_consistent: true, ..Default::default() };
+        let r = CorpusResult {
+            metamorphic_consistent: true,
+            ..Default::default()
+        };
         assert!(result_dim_pass(&r, 6));
     }
 
     #[test]
     fn test_dim_7_and_above_is_cross_shell() {
-        let r_pass = CorpusResult { cross_shell_agree: true, ..Default::default() };
+        let r_pass = CorpusResult {
+            cross_shell_agree: true,
+            ..Default::default()
+        };
         assert!(result_dim_pass(&r_pass, 7));
         assert!(result_dim_pass(&r_pass, 99));
-        let r_fail = CorpusResult { cross_shell_agree: false, ..Default::default() };
+        let r_fail = CorpusResult {
+            cross_shell_agree: false,
+            ..Default::default()
+        };
         assert!(!result_dim_pass(&r_fail, 7));
     }
 }
@@ -365,7 +395,10 @@ mod analysis_validate_corpus_entry {
         );
         let mut seen = HashSet::new();
         let issues = validate_corpus_entry(&entry, &mut seen);
-        assert!(issues.is_empty(), "Valid entry should have no issues: {issues:?}");
+        assert!(
+            issues.is_empty(),
+            "Valid entry should have no issues: {issues:?}"
+        );
     }
 
     #[test]
@@ -456,7 +489,10 @@ mod analysis_validate_corpus_entry {
         let mut seen = HashSet::new();
         let issues = validate_corpus_entry(&entry, &mut seen);
         let has_main_issue = issues.iter().any(|i| i.contains("fn main"));
-        assert!(!has_main_issue, "Makefile should not require fn main(): {issues:?}");
+        assert!(
+            !has_main_issue,
+            "Makefile should not require fn main(): {issues:?}"
+        );
     }
 
     #[test]
@@ -492,6 +528,9 @@ mod analysis_validate_corpus_entry {
         let mut seen = HashSet::new();
         let issues = validate_corpus_entry(&entry, &mut seen);
         let prefix_issue = issues.iter().any(|i| i.contains("prefix"));
-        assert!(!prefix_issue, "D- prefix for Dockerfile should be valid: {issues:?}");
+        assert!(
+            !prefix_issue,
+            "D- prefix for Dockerfile should be valid: {issues:?}"
+        );
     }
 }

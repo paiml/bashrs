@@ -16,14 +16,14 @@
 // and doesn't require escaping.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static BACKTICK_WITH_UNESCAPED_QUOTES: Lazy<Regex> = Lazy::new(|| {
-    // Match: `...unescaped "...'`
-    // Look for backticks containing unescaped double or single quotes
-    Regex::new(r#"`([^`]*[^\\])?(["'])([^`]*)`"#).unwrap()
-});
+static BACKTICK_WITH_UNESCAPED_QUOTES: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| {
+        // Match: `...unescaped "...'`
+        // Look for backticks containing unescaped double or single quotes
+        Regex::new(r#"`([^`]*[^\\])?(["'])([^`]*)`"#).unwrap()
+    });
 
 /// Check if line should be analyzed (has backticks and quotes)
 fn should_check_line(line: &str) -> bool {

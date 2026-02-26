@@ -51,10 +51,7 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "PERF003",
                 Severity::Info,
-                format!(
-                    "Useless echo piped to {}. Consider `{}`",
-                    command, fix_text
-                ),
+                format!("Useless echo piped to {}. Consider `{}`", command, fix_text),
                 Span::new(line_num + 1, start_col, line_num + 1, end_col),
             )
             .with_fix(Fix::new(fix_text));

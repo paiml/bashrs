@@ -567,8 +567,7 @@ pub fn format_grammar_errors(report: &SchemaReport) -> String {
             .violations_by_category
             .iter()
             .find(|(c, _)| c == cat)
-            .map(|(_, n)| *n)
-            .unwrap_or(0);
+            .map_or(0, |(_, n)| *n);
 
         let fmt_name = match cat.applicable_format() {
             CorpusFormat::Bash => "Bash",
@@ -981,9 +980,7 @@ mod tests {
                 "FROM alpine:3.18\nRUN echo ok\n",
             ),
         ];
-        let registry = CorpusRegistry {
-            entries,
-        };
+        let registry = CorpusRegistry { entries };
 
         let report = validate_corpus(&registry);
         assert_eq!(report.total_entries, 4);
@@ -1022,9 +1019,7 @@ mod tests {
             make_entry("B-001", CorpusFormat::Bash, "#!/bin/sh\necho \"ok\"\n"),
             make_entry("M-001", CorpusFormat::Makefile, "all:\n\techo ok\n"),
         ];
-        let registry = CorpusRegistry {
-            entries,
-        };
+        let registry = CorpusRegistry { entries };
         let report = validate_corpus(&registry);
         let table = format_schema_report(&report);
         assert!(table.contains("Bash"));
@@ -1039,9 +1034,7 @@ mod tests {
             CorpusFormat::Bash,
             "#!/bin/sh\nif [[ 1 ]]; then echo ok; fi\n",
         )];
-        let registry = CorpusRegistry {
-            entries,
-        };
+        let registry = CorpusRegistry { entries };
         let report = validate_corpus(&registry);
         let table = format_grammar_errors(&report);
         assert!(table.contains("GRAM-001"));
@@ -1056,9 +1049,7 @@ mod tests {
             CorpusFormat::Bash,
             "#!/bin/sh\necho \"ok\"\n",
         )];
-        let registry = CorpusRegistry {
-            entries,
-        };
+        let registry = CorpusRegistry { entries };
         let report = validate_corpus(&registry);
         let table = format_grammar_errors(&report);
         assert!(table.contains("No grammar violations"));

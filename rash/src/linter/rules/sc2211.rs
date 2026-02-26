@@ -1,9 +1,8 @@
 // SC2211: Constant without $ not dereferenced
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static BARE_CONSTANT: Lazy<Regex> = Lazy::new(|| {
+static BARE_CONSTANT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match literal words in arithmetic/comparison contexts without $
     // Examples: [ MAX -gt 10 ] should be [ $MAX -gt 10 ]
     Regex::new(r"\[\s+([A-Z_][A-Z0-9_]*)\s+(-eq|-ne|-gt|-lt|-ge|-le)\s+").unwrap()
@@ -23,7 +22,7 @@ pub fn check(source: &str) -> LintResult {
         }
 
         if let Some(cap) = BARE_CONSTANT.captures(line) {
-            let var = cap.get(1).map(|m| m.as_str()).unwrap_or("");
+            let var = cap.get(1).map_or("", |m| m.as_str());
             // Only flag if it looks like a constant (all uppercase)
             if var
                 .chars()

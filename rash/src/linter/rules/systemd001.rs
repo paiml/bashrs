@@ -89,7 +89,7 @@ struct SystemdCheckState<'a> {
     required_sections: HashSet<&'a str>,
 }
 
-impl<'a> SystemdCheckState<'a> {
+impl SystemdCheckState<'_> {
     fn new() -> Self {
         Self {
             has_unit_section: false,
@@ -130,7 +130,9 @@ pub fn check(source: &str) -> LintResult {
         if let Some((key, value)) = parse_key_value(trimmed) {
             match state.current_section.as_str() {
                 "Unit" => check_unit_key(key, value, &mut state),
-                "Service" => check_service_key(key, value, line_num, trimmed, &mut state, &mut result),
+                "Service" => {
+                    check_service_key(key, value, line_num, trimmed, &mut state, &mut result);
+                }
                 "Install" => check_install_key(key, value, line_num, trimmed, &mut result),
                 _ => {}
             }
@@ -183,7 +185,11 @@ fn check_service_type(
         result.add(Diagnostic::new(
             "SYSTEMD001",
             Severity::Error,
-            format!("Invalid Type='{}' - must be one of: {} (F087)", value, VALID_TYPES.join(", ")),
+            format!(
+                "Invalid Type='{}' - must be one of: {} (F087)",
+                value,
+                VALID_TYPES.join(", ")
+            ),
             span,
         ));
     }
@@ -235,7 +241,11 @@ fn check_restart(
         result.add(Diagnostic::new(
             "SYSTEMD001",
             Severity::Error,
-            format!("Invalid Restart='{}' - must be one of: {} (F090)", value, VALID_RESTART.join(", ")),
+            format!(
+                "Invalid Restart='{}' - must be one of: {} (F090)",
+                value,
+                VALID_RESTART.join(", ")
+            ),
             span,
         ));
     }
@@ -261,7 +271,10 @@ fn check_environment_file(value: &str, line_num: usize, trimmed: &str, result: &
         result.add(Diagnostic::new(
             "SYSTEMD001",
             Severity::Warning,
-            format!("EnvironmentFile='{}' should use absolute path (F095)", value),
+            format!(
+                "EnvironmentFile='{}' should use absolute path (F095)",
+                value
+            ),
             span,
         ));
     }

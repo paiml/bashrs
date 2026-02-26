@@ -16,15 +16,14 @@
 //   [[ -n "$dir" ]] && rm -rf "$dir"  # Guard check
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DANGEROUS_RM_RF: Lazy<Regex> = Lazy::new(|| {
+static DANGEROUS_RM_RF: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match dangerous rm -rf patterns - support -rf or -fr
     Regex::new(r#"rm\s+-[a-zA-Z]*[rf][a-zA-Z]*[rf][a-zA-Z]*\s+(["']?/["']?$|/\*|/\$)"#).unwrap()
 });
 
-static UNGUARDED_RM_RF_VAR: Lazy<Regex> = Lazy::new(|| {
+static UNGUARDED_RM_RF_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: rm -rf "$var" without :? guard - support -rf or -fr
     Regex::new(r#"rm\s+-[a-zA-Z]*[rf][a-zA-Z]*[rf][a-zA-Z]*\s+"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?""#)
         .unwrap()

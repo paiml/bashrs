@@ -31,8 +31,11 @@ pub fn check(source: &str) -> LintResult {
     // Check if set -e is active (global error checking)
     let has_set_e = source.lines().any(|line| {
         let trimmed = line.trim();
-        trimmed == "set -e" || trimmed == "set -euo pipefail" || trimmed.contains("set -e ")
-            || trimmed.starts_with("set -e;") || trimmed == "set -eu"
+        trimmed == "set -e"
+            || trimmed == "set -euo pipefail"
+            || trimmed.contains("set -e ")
+            || trimmed.starts_with("set -e;")
+            || trimmed == "set -eu"
     });
 
     if has_set_e {

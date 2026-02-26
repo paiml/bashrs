@@ -15,10 +15,9 @@
 // Impact: Confusing precedence, hard to read
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DOUBLE_BRACKET_MIXED: Lazy<Regex> = Lazy::new(|| {
+static DOUBLE_BRACKET_MIXED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [[ ]] with both old style and new style operators
     Regex::new(r"\[\[([^\]]+)\]\]").unwrap()
 });

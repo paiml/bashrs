@@ -16,10 +16,9 @@
 // Impact: Unintended variable assignments, confusion
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static LOCAL_WITH_ARITHMETIC: Lazy<Regex> = Lazy::new(|| {
+static LOCAL_WITH_ARITHMETIC: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: local var=$((expr)) or declare var=$((expr))
     // Also handles flags: local -r var=$((expr))
     // (?:\s+-[a-zA-Z]+)* matches optional flags like -r, -x, -i

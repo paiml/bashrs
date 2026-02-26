@@ -18,10 +18,9 @@
 // Impact: Code after exec never executes
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXEC_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static EXEC_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: exec command
     Regex::new(r"^\s*exec\s+\w+").unwrap()
 });

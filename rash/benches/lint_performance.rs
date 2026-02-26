@@ -11,8 +11,8 @@
                                // Run with: cargo bench --bench lint_performance
 
 use bashrs::linter::lint_shell;
-use std::hint::black_box;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use std::hint::black_box;
 
 /// Generate a bash script with the specified number of lines
 fn generate_bash_script(lines: usize) -> String {

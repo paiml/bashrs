@@ -17,17 +17,16 @@
 // Impact: Path won't work - directory "~" literally doesn't exist
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TILDE_IN_QUOTES: Lazy<Regex> = Lazy::new(|| {
+static TILDE_IN_QUOTES: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: PATH="~/..." or similar environment variables with quoted tilde
     // Common path variables: PATH, LD_LIBRARY_PATH, PYTHONPATH, CLASSPATH, etc.
     // Use * (zero or more) to match just "PATH" and also longer names like "PYTHONPATH"
     Regex::new(r#"\b[A-Z_]*PATH="[^"]*~/[^"]*""#).unwrap()
 });
 
-static TILDE_IN_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
+static TILDE_IN_ASSIGNMENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: any variable="~/..." assignment
     Regex::new(r#"\b\w+="~/[^"]*""#).unwrap()
 });

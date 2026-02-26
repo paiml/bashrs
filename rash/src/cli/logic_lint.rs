@@ -111,7 +111,7 @@ pub fn process_lint(source: &str, filename: &str, options: &LintOptions) -> Lint
                 Severity::Error => error_count += 1,
                 Severity::Warning => warning_count += 1,
                 Severity::Info | Severity::Note | Severity::Perf | Severity::Risk => {
-                    info_count += 1
+                    info_count += 1;
                 }
             }
             LintDiagnostic {
@@ -157,9 +157,7 @@ pub struct Transformation {
 }
 
 /// Process purify on bash source content (pure function - no I/O)
-pub fn process_purify_bash(
-    source: &str,
-) -> crate::models::Result<PurifyProcessResult> {
+pub fn process_purify_bash(source: &str) -> crate::models::Result<PurifyProcessResult> {
     use crate::bash_parser::codegen::generate_purified_bash;
     use crate::bash_parser::BashParser;
     use std::time::Instant;

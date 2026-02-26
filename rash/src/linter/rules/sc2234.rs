@@ -1,9 +1,8 @@
 // SC2234: Remove spaces after redirect operators
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SPACED_REDIRECT: Lazy<Regex> = Lazy::new(|| {
+static SPACED_REDIRECT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: > space filename or 2> space filename
     Regex::new(r"\d?>>\s+\S+").unwrap()
 });

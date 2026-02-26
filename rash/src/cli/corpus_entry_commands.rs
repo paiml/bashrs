@@ -1,9 +1,9 @@
 //! Corpus entry checking, difficulty classification, and risk analysis commands.
 
+use super::corpus_failure_commands::result_fail_dims;
+use super::corpus_score_print_commands::stats_bar;
 use crate::cli::args::CorpusOutputFormat;
 use crate::models::{Config, Error, Result};
-use super::corpus_score_print_commands::stats_bar;
-use super::corpus_failure_commands::result_fail_dims;
 
 pub(crate) fn corpus_check_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
@@ -465,7 +465,12 @@ pub(crate) fn collect_risk_failures<'a>(
 }
 
 /// Print risk group for a given level.
-pub(crate) fn risk_print_group(classified: &[(&str, &str, &str)], label: &str, color: &str, count: usize) {
+pub(crate) fn risk_print_group(
+    classified: &[(&str, &str, &str)],
+    label: &str,
+    color: &str,
+    count: usize,
+) {
     use crate::cli::color::*;
     if count == 0 {
         return;
@@ -480,7 +485,10 @@ pub(crate) fn risk_print_group(classified: &[(&str, &str, &str)], label: &str, c
 }
 
 /// Risk analysis: classify corpus failures by HIGH/MEDIUM/LOW risk (spec §11.10.4).
-pub(crate) fn corpus_risk_analysis(format: &CorpusOutputFormat, level_filter: Option<&str>) -> Result<()> {
+pub(crate) fn corpus_risk_analysis(
+    format: &CorpusOutputFormat,
+    level_filter: Option<&str>,
+) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 

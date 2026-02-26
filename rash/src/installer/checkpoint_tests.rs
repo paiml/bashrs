@@ -247,7 +247,12 @@ fn test_CHECKPOINT_COV_step_skip() {
 
 #[test]
 fn test_CHECKPOINT_COV_state_file_new() {
-    let sf = StateFile::new("run-1", "s1", Path::new("/etc/config.txt"), "sha256:deadbeef");
+    let sf = StateFile::new(
+        "run-1",
+        "s1",
+        Path::new("/etc/config.txt"),
+        "sha256:deadbeef",
+    );
     assert_eq!(sf.run_id, "run-1");
     assert_eq!(sf.step_id, "s1");
     assert_eq!(sf.file_path.to_str().unwrap(), "/etc/config.txt");
@@ -455,9 +460,15 @@ fn test_CHECKPOINT_COV_state_files_for_step_multiple() {
     store.start_run("app", "1.0").unwrap();
     store.add_step("s1").unwrap();
 
-    store.track_file("s1", Path::new("/a.txt"), "hash-a").unwrap();
-    store.track_file("s1", Path::new("/b.txt"), "hash-b").unwrap();
-    store.track_file("s2", Path::new("/c.txt"), "hash-c").unwrap();
+    store
+        .track_file("s1", Path::new("/a.txt"), "hash-a")
+        .unwrap();
+    store
+        .track_file("s1", Path::new("/b.txt"), "hash-b")
+        .unwrap();
+    store
+        .track_file("s2", Path::new("/c.txt"), "hash-c")
+        .unwrap();
 
     let files_s1 = store.state_files_for_step("s1");
     assert_eq!(files_s1.len(), 2);
@@ -566,11 +577,15 @@ fn test_CHECKPOINT_COV_persistence_full_roundtrip() {
     // Create a store with various states
     {
         let mut store = CheckpointStore::new(temp_dir.path()).unwrap();
-        store.start_hermetic_run("my-app", "3.0.0", "lockhash").unwrap();
+        store
+            .start_hermetic_run("my-app", "3.0.0", "lockhash")
+            .unwrap();
 
         store.add_step("s1").unwrap();
         store.start_step("s1").unwrap();
-        store.complete_step("s1", Some("output1".to_string())).unwrap();
+        store
+            .complete_step("s1", Some("output1".to_string()))
+            .unwrap();
 
         store.add_step("s2").unwrap();
         store.start_step("s2").unwrap();

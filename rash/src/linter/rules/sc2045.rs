@@ -50,7 +50,7 @@ pub fn check(source: &str) -> LintResult {
         // Check $(ls) pattern
         for cap in pattern1.captures_iter(line) {
             let full_match = cap.get(0).unwrap();
-            let ls_args = cap.get(1).map(|m| m.as_str().trim()).unwrap_or("");
+            let ls_args = cap.get(1).map_or("", |m| m.as_str().trim());
 
             let start_col = full_match.start() + 1;
             let end_col = full_match.end() + 1;

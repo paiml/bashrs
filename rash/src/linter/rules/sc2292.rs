@@ -1,10 +1,10 @@
 // SC2292: Prefer ${var:0:1} over expr substr for single character
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXPR_SUBSTR_ONE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"expr\s+substr\s+\$[a-zA-Z_][a-zA-Z0-9_]*\s+\d+\s+1\b").unwrap());
+static EXPR_SUBSTR_ONE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"expr\s+substr\s+\$[a-zA-Z_][a-zA-Z0-9_]*\s+\d+\s+1\b").unwrap()
+});
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

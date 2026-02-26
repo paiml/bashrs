@@ -25,15 +25,13 @@
 //! to include the `#` and comment text, which is almost certainly not intended.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Regex to match heredoc token followed by what looks like a comment.
 /// Matches: <<EOF # ...  or  <<-EOF # ...  or  <<'EOF' # ...  or  <<"EOF" # ...
 #[allow(clippy::expect_used)]
-static HEREDOC_WITH_COMMENT: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"<<-?\s*\\?(?:'(\w+)'|"(\w+)"|(\w+))\s+#"#)
-        .expect("valid heredoc comment regex")
+static HEREDOC_WITH_COMMENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"<<-?\s*\\?(?:'(\w+)'|"(\w+)"|(\w+))\s+#"#).expect("valid heredoc comment regex")
 });
 
 /// Check for comments after heredoc tokens

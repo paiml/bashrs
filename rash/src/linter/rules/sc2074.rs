@@ -15,10 +15,9 @@
 // Impact: Syntax errors, incorrect pattern matching
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REGEX_IN_SINGLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
+static REGEX_IN_SINGLE_BRACKET: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ ... =~ ... ] but not [[ ... =~ ... ]]
     // Use negative lookbehind would be ideal but Rust regex doesn't support it
     // So we'll check in the code instead

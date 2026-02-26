@@ -1,9 +1,8 @@
 // SC2208: Use [[ ]] or quote to avoid glob/word splitting
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_IN_TEST: Lazy<Regex> = Lazy::new(|| {
+static UNQUOTED_IN_TEST: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match [ $var = ... ] or [ ${var} = ... ] without quotes
     Regex::new(r"\[\s+\$[{]?\w+[}]?\s+(=|!=)\s+").unwrap()
 });

@@ -22,16 +22,17 @@
 // For MVP, we detect the pattern heuristically: subshell assignment followed by usage.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
 
-static SUBSHELL_START: Lazy<Regex> = Lazy::new(|| Regex::new(r"\(").unwrap());
+static SUBSHELL_START: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\(").unwrap());
 
-static ASSIGNMENT: Lazy<Regex> = Lazy::new(|| Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)=").unwrap());
+static ASSIGNMENT: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)=").unwrap());
 
-static VAR_USAGE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?").unwrap());
+static VAR_USAGE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?").unwrap());
 
 /// Check if opening paren at position `i` should be skipped (not a subshell)
 fn is_non_subshell_paren(chars: &[char], i: usize) -> bool {
@@ -89,7 +90,9 @@ fn has_subshell(line: &str) -> bool {
                 '(' => paren_depth += 1,
                 ')' => {
                     paren_depth -= 1;
-                    if paren_depth == 0 { in_arithmetic = false; }
+                    if paren_depth == 0 {
+                        in_arithmetic = false;
+                    }
                 }
                 _ => {}
             }

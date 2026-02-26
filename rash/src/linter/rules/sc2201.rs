@@ -16,16 +16,15 @@
 // Note: ${VAR} is parameter expansion, NOT brace expansion
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ASSIGNMENT_WITH_BRACES: Lazy<Regex> = Lazy::new(|| {
+static ASSIGNMENT_WITH_BRACES: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: var={...} or var=.../...{...}
     Regex::new(r"^([A-Za-z_][A-Za-z0-9_]*)=([^=\s]*\{[a-zA-Z0-9_,./\-]+\}[^\s]*)").unwrap()
 });
 
 // Brace expansion patterns: {a,b,c} or {1..10}
-static BRACE_EXPANSION: Lazy<Regex> = Lazy::new(|| {
+static BRACE_EXPANSION: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match brace expansion: {item,item} or {start..end}
     // Must contain comma or .. to be brace expansion
     Regex::new(r"\{[a-zA-Z0-9_./\-]+[,.]\.?[a-zA-Z0-9_./\-,]+\}").unwrap()

@@ -37,15 +37,13 @@ fn test_format_string_with_backslash_before_quote() {
 fn test_split_macro_args_brackets_in_args() {
     let ast = parse(r#"fn main() { println!("arr: {}", arr[0]); }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Expr(Expr::FunctionCall { args, .. }) => {
-            match &args[0] {
-                Expr::FunctionCall { name, args } => {
-                    assert_eq!(name, "__format_concat");
-                    assert_eq!(args.len(), 2);
-                }
-                _ => panic!("Expected __format_concat"),
+        Stmt::Expr(Expr::FunctionCall { args, .. }) => match &args[0] {
+            Expr::FunctionCall { name, args } => {
+                assert_eq!(name, "__format_concat");
+                assert_eq!(args.len(), 2);
             }
-        }
+            _ => panic!("Expected __format_concat"),
+        },
         _ => panic!("Expected rash_println"),
     }
 }
@@ -67,7 +65,10 @@ fn test_split_macro_args_braces_in_args() {
 fn test_format_macro_single_variable() {
     let ast = parse(r#"fn main() { let s = format!(x); }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Variable(n), .. } => assert_eq!(n, "x"),
+        Stmt::Let {
+            value: Expr::Variable(n),
+            ..
+        } => assert_eq!(n, "x"),
         _ => panic!("Expected Variable from format!(x)"),
     }
 }
@@ -78,9 +79,18 @@ fn test_format_macro_single_variable() {
 fn test_vec_macro_with_expressions() {
     let ast = parse(r#"fn main() { let v = vec![1 + 2, 3 * 4]; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Array(elems), .. } => {
+        Stmt::Let {
+            value: Expr::Array(elems),
+            ..
+        } => {
             assert_eq!(elems.len(), 2);
-            assert!(matches!(&elems[0], Expr::Binary { op: BinaryOp::Add, .. }));
+            assert!(matches!(
+                &elems[0],
+                Expr::Binary {
+                    op: BinaryOp::Add,
+                    ..
+                }
+            ));
         }
         _ => panic!("Expected Array from vec! with expressions"),
     }
@@ -90,7 +100,10 @@ fn test_vec_macro_with_expressions() {
 fn test_vec_macro_empty() {
     let ast = parse(r#"fn main() { let v = vec![]; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Array(elems), .. } => assert_eq!(elems.len(), 0),
+        Stmt::Let {
+            value: Expr::Array(elems),
+            ..
+        } => assert_eq!(elems.len(), 0),
         _ => panic!("Expected empty Array"),
     }
 }
@@ -115,7 +128,10 @@ fn test_println_with_variable_as_first_arg() {
 fn test_if_expr_else_multi_stmt_produces_block() {
     let ast = parse(r#"fn main() { let x = if c { 1 } else { let a = 2; a }; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Block(stmts), .. } => {
+        Stmt::Let {
+            value: Expr::Block(stmts),
+            ..
+        } => {
             assert!(matches!(&stmts[0], Stmt::If { .. }));
         }
         _ => panic!("Expected Block for multi-stmt else in if-expr"),
@@ -126,9 +142,7 @@ fn test_if_expr_else_multi_stmt_produces_block() {
 
 #[test]
 fn test_if_expr_nested_else_if() {
-    let ast = parse(
-        r#"fn main() { let x = if a { 1 } else if b { 2 } else { 3 }; }"#,
-    ).unwrap();
+    let ast = parse(r#"fn main() { let x = if a { 1 } else if b { 2 } else { 3 }; }"#).unwrap();
     match &ast.functions[0].body[0] {
         Stmt::Let { value, .. } => {
             assert!(
@@ -153,10 +167,22 @@ fn test_nested_else_if_chain_four_levels() {
     }"#;
     let ast = parse(src).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::If { else_block: Some(e1), .. } => match &e1[0] {
-            Stmt::If { else_block: Some(e2), .. } => match &e2[0] {
-                Stmt::If { else_block: Some(e3), .. } => match &e3[0] {
-                    Stmt::If { else_block: Some(e4), .. } => {
+        Stmt::If {
+            else_block: Some(e1),
+            ..
+        } => match &e1[0] {
+            Stmt::If {
+                else_block: Some(e2),
+                ..
+            } => match &e2[0] {
+                Stmt::If {
+                    else_block: Some(e3),
+                    ..
+                } => match &e3[0] {
+                    Stmt::If {
+                        else_block: Some(e4),
+                        ..
+                    } => {
                         assert!(matches!(&e4[0], Stmt::Let { .. }));
                     }
                     _ => panic!("Expected 4th level else"),
@@ -175,7 +201,10 @@ fn test_nested_else_if_chain_four_levels() {
 fn test_if_expr_empty_then_block() {
     let ast = parse(r#"fn main() { let x = if c {} else { 1 }; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::FunctionCall { name, args }, .. } => {
+        Stmt::Let {
+            value: Expr::FunctionCall { name, args },
+            ..
+        } => {
             assert_eq!(name, "__if_expr");
             assert!(matches!(&args[1], Expr::Literal(Literal::Str(s)) if s.is_empty()));
         }
@@ -195,8 +224,7 @@ fn test_type_fn_pointer_is_error() {
 
 #[test]
 fn test_match_custom_tuple_struct_pattern() {
-    let ast =
-        parse(r#"fn main() { match v { Custom(x) => { let a = x; } _ => {} } }"#).unwrap();
+    let ast = parse(r#"fn main() { match v { Custom(x) => { let a = x; } _ => {} } }"#).unwrap();
     match &ast.functions[0].body[0] {
         Stmt::Match { arms, .. } => {
             assert!(matches!(
@@ -215,7 +243,13 @@ fn test_range_pattern_positive_bounds() {
     let ast = parse(r#"fn main() { match x { 1..=10 => { let a = 1; } _ => {} } }"#).unwrap();
     match &ast.functions[0].body[0] {
         Stmt::Match { arms, .. } => {
-            assert!(matches!(&arms[0].pattern, Pattern::Range { inclusive: true, .. }));
+            assert!(matches!(
+                &arms[0].pattern,
+                Pattern::Range {
+                    inclusive: true,
+                    ..
+                }
+            ));
         }
         _ => panic!("Expected Match"),
     }
@@ -265,9 +299,9 @@ fn test_compound_assign_complex_deref_error() {
 
 #[test]
 fn test_match_arm_with_if_body() {
-    let ast = parse(
-        r#"fn main() { match x { 0 => if true { let a = 1; }, _ => { let b = 2; } } }"#,
-    ).unwrap();
+    let ast =
+        parse(r#"fn main() { match x { 0 => if true { let a = 1; }, _ => { let b = 2; } } }"#)
+            .unwrap();
     match &ast.functions[0].body[0] {
         Stmt::Match { arms, .. } => {
             assert!(matches!(&arms[0].body[0], Stmt::If { .. }));
@@ -293,7 +327,10 @@ fn test_match_arm_with_return_body() {
 fn test_nested_index_read_expr() {
     let ast = parse(r#"fn main() { let arr = [[1]]; let v = arr[0][0]; }"#).unwrap();
     match &ast.functions[0].body[1] {
-        Stmt::Let { value: Expr::Index { object, .. }, .. } => {
+        Stmt::Let {
+            value: Expr::Index { object, .. },
+            ..
+        } => {
             assert!(matches!(**object, Expr::Index { .. }));
         }
         _ => panic!("Expected nested Index read"),
@@ -304,18 +341,15 @@ fn test_nested_index_read_expr() {
 
 #[test]
 fn test_eprintln_macro_expr_in_match() {
-    let ast = parse(
-        r#"fn main() { match x { 0 => eprintln!("err: {}", msg), _ => {} } }"#,
-    ).unwrap();
+    let ast =
+        parse(r#"fn main() { match x { 0 => eprintln!("err: {}", msg), _ => {} } }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Match { arms, .. } => {
-            match &arms[0].body[0] {
-                Stmt::Expr(Expr::FunctionCall { name, .. }) => {
-                    assert_eq!(name, "rash_eprintln");
-                }
-                _ => panic!("Expected rash_eprintln"),
+        Stmt::Match { arms, .. } => match &arms[0].body[0] {
+            Stmt::Expr(Expr::FunctionCall { name, .. }) => {
+                assert_eq!(name, "rash_eprintln");
             }
-        }
+            _ => panic!("Expected rash_eprintln"),
+        },
         _ => panic!("Expected Match"),
     }
 }
@@ -324,16 +358,15 @@ fn test_eprintln_macro_expr_in_match() {
 
 #[test]
 fn test_match_expr_multi_arm_in_let() {
-    let ast = parse(
-        r#"fn main() { let x = match v { 0 => 10, 1 => 20, _ => 30 }; }"#,
-    ).unwrap();
+    let ast = parse(r#"fn main() { let x = match v { 0 => 10, 1 => 20, _ => 30 }; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Block(stmts), .. } => {
-            match &stmts[0] {
-                Stmt::Match { arms, .. } => assert_eq!(arms.len(), 3),
-                _ => panic!("Expected Match inside Block"),
-            }
-        }
+        Stmt::Let {
+            value: Expr::Block(stmts),
+            ..
+        } => match &stmts[0] {
+            Stmt::Match { arms, .. } => assert_eq!(arms.len(), 3),
+            _ => panic!("Expected Match inside Block"),
+        },
         _ => panic!("Expected Block with Match"),
     }
 }
@@ -344,7 +377,10 @@ fn test_match_expr_multi_arm_in_let() {
 fn test_field_access_on_function_call_result() {
     let ast = parse(r#"fn main() { let v = foo().bar; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Index { object, index }, .. } => {
+        Stmt::Let {
+            value: Expr::Index { object, index },
+            ..
+        } => {
             assert!(matches!(**object, Expr::FunctionCall { .. }));
             assert!(matches!(**index, Expr::Literal(Literal::I32(0))));
         }
@@ -370,16 +406,106 @@ fn test_compound_assign_all_ops() {
     }"#;
     let ast = parse(src).unwrap();
     let s = &ast.functions[0].body;
-    assert!(matches!(&s[1], Stmt::Let { value: Expr::Binary { op: BinaryOp::Add, .. }, .. }));
-    assert!(matches!(&s[2], Stmt::Let { value: Expr::Binary { op: BinaryOp::Sub, .. }, .. }));
-    assert!(matches!(&s[3], Stmt::Let { value: Expr::Binary { op: BinaryOp::Mul, .. }, .. }));
-    assert!(matches!(&s[4], Stmt::Let { value: Expr::Binary { op: BinaryOp::Div, .. }, .. }));
-    assert!(matches!(&s[5], Stmt::Let { value: Expr::Binary { op: BinaryOp::Rem, .. }, .. }));
-    assert!(matches!(&s[6], Stmt::Let { value: Expr::Binary { op: BinaryOp::BitAnd, .. }, .. }));
-    assert!(matches!(&s[7], Stmt::Let { value: Expr::Binary { op: BinaryOp::BitOr, .. }, .. }));
-    assert!(matches!(&s[8], Stmt::Let { value: Expr::Binary { op: BinaryOp::BitXor, .. }, .. }));
-    assert!(matches!(&s[9], Stmt::Let { value: Expr::Binary { op: BinaryOp::Shl, .. }, .. }));
-    assert!(matches!(&s[10], Stmt::Let { value: Expr::Binary { op: BinaryOp::Shr, .. }, .. }));
+    assert!(matches!(
+        &s[1],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::Add,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[2],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::Sub,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[3],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::Mul,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[4],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::Div,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[5],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::Rem,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[6],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::BitAnd,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[7],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::BitOr,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[8],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::BitXor,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[9],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::Shl,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &s[10],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::Shr,
+                ..
+            },
+            ..
+        }
+    ));
 }
 
 // === Unnamed field assignment ===
@@ -394,7 +520,9 @@ fn test_unnamed_field_plain_assign() {
     let ast = parse(src).unwrap();
     let f = ast.functions.iter().find(|f| f.name == "reset").unwrap();
     match &f.body[0] {
-        Stmt::Let { name, declaration, .. } => {
+        Stmt::Let {
+            name, declaration, ..
+        } => {
             assert_eq!(name, "field_0");
             assert!(!declaration);
         }
@@ -408,7 +536,10 @@ fn test_unnamed_field_plain_assign() {
 fn test_closure_with_if_expr_body() {
     let ast = parse(r#"fn main() { let f = |x| if x > 0 { x } else { 0 }; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::FunctionCall { name, .. }, .. } => {
+        Stmt::Let {
+            value: Expr::FunctionCall { name, .. },
+            ..
+        } => {
             assert_eq!(name, "__if_expr");
         }
         _ => panic!("Expected __if_expr from closure"),
@@ -422,7 +553,10 @@ fn test_return_expr_with_value() {
     let ast = parse(r#"fn main() { let f = |x| return 42; }"#).unwrap();
     assert!(matches!(
         &ast.functions[0].body[0],
-        Stmt::Let { value: Expr::Literal(Literal::U32(42)), .. }
+        Stmt::Let {
+            value: Expr::Literal(Literal::U32(42)),
+            ..
+        }
     ));
 }
 
@@ -446,10 +580,26 @@ fn test_all_skippable_items_combined() {
 #[test]
 fn test_logical_and_or_operators() {
     let ast = parse(r#"fn main() { let a = true && false; let b = true || false; }"#).unwrap();
-    assert!(matches!(&ast.functions[0].body[0],
-        Stmt::Let { value: Expr::Binary { op: BinaryOp::And, .. }, .. }));
-    assert!(matches!(&ast.functions[0].body[1],
-        Stmt::Let { value: Expr::Binary { op: BinaryOp::Or, .. }, .. }));
+    assert!(matches!(
+        &ast.functions[0].body[0],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::And,
+                ..
+            },
+            ..
+        }
+    ));
+    assert!(matches!(
+        &ast.functions[0].body[1],
+        Stmt::Let {
+            value: Expr::Binary {
+                op: BinaryOp::Or,
+                ..
+            },
+            ..
+        }
+    ));
 }
 
 // === Tuple with mixed element types ===
@@ -458,7 +608,10 @@ fn test_logical_and_or_operators() {
 fn test_tuple_mixed_types() {
     let ast = parse(r#"fn main() { let t = (1, "two", true); }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Array(elems), .. } => {
+        Stmt::Let {
+            value: Expr::Array(elems),
+            ..
+        } => {
             assert_eq!(elems.len(), 3);
             assert!(matches!(&elems[0], Expr::Literal(Literal::U32(1))));
             assert!(matches!(&elems[2], Expr::Literal(Literal::Bool(true))));
@@ -471,9 +624,8 @@ fn test_tuple_mixed_types() {
 
 #[test]
 fn test_match_path_pattern_non_none() {
-    if let Ok(ast) = parse(
-        r#"fn main() { match v { std::io::Error => { let a = 0; } _ => {} } }"#,
-    ) {
+    if let Ok(ast) = parse(r#"fn main() { match v { std::io::Error => { let a = 0; } _ => {} } }"#)
+    {
         match &ast.functions[0].body[0] {
             Stmt::Match { arms, .. } => assert!(!arms.is_empty()),
             _ => panic!("Expected Match"),

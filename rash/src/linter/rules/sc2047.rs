@@ -18,15 +18,14 @@
 // Note: Always quote variables in [ ] tests. Or use [[ ]] which is safer.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TEST_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static TEST_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match [ ... ] or test ...
     Regex::new(r"\[\s+[^\]]+\]|test\s+.*").unwrap()
 });
 
-static VARIABLE_REF: Lazy<Regex> = Lazy::new(|| {
+static VARIABLE_REF: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match $var or ${var}
     Regex::new(r"\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?").unwrap()
 });

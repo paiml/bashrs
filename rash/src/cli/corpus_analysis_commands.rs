@@ -1,8 +1,8 @@
 //! Corpus analysis: summary, growth, coverage, and validation.
 
+use super::corpus_failure_commands::result_fail_dims;
 use crate::cli::args::CorpusOutputFormat;
 use crate::models::{Config, Error, Result};
-use super::corpus_failure_commands::result_fail_dims;
 use std::path::PathBuf;
 
 pub(crate) fn corpus_summary() -> Result<()> {
@@ -77,8 +77,8 @@ pub(crate) fn corpus_growth(format: &CorpusOutputFormat) -> Result<()> {
                 prev_total = e.total;
             }
 
-            let first = entries.first().map(|e| e.total).unwrap_or(0);
-            let last = entries.last().map(|e| e.total).unwrap_or(0);
+            let first = entries.first().map_or(0, |e| e.total);
+            let last = entries.last().map_or(0, |e| e.total);
             let growth = last.saturating_sub(first);
             println!();
             println!("  {BOLD}Total growth{RESET}: {first} → {last} ({GREEN}+{growth}{RESET} entries over {} iterations)",
@@ -185,7 +185,6 @@ pub(crate) fn corpus_coverage(format: &CorpusOutputFormat) -> Result<()> {
     }
     Ok(())
 }
-
 
 pub(crate) fn count_format(
     registry: &crate::corpus::registry::CorpusRegistry,

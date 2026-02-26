@@ -19,27 +19,48 @@ fn test_COV_FMT_001_contract_system_builtins() {
     let mut sys = ContractSystem::new();
 
     // echo param -> Array(String)
-    let _t = sys.infer_variable_type("echo_arg", &TypeContext::FunctionCall {
-        function: "echo".to_string(), param_index: 0,
-    });
+    let _t = sys.infer_variable_type(
+        "echo_arg",
+        &TypeContext::FunctionCall {
+            function: "echo".to_string(),
+            param_index: 0,
+        },
+    );
     sys.solve_constraints().unwrap();
-    assert!(matches!(sys.get_variable_type("echo_arg").unwrap(), ShellType::Array(_)));
+    assert!(matches!(
+        sys.get_variable_type("echo_arg").unwrap(),
+        ShellType::Array(_)
+    ));
 
     // test param -> String
     let mut sys2 = ContractSystem::new();
-    let _t = sys2.infer_variable_type("test_expr", &TypeContext::FunctionCall {
-        function: "test".to_string(), param_index: 0,
-    });
+    let _t = sys2.infer_variable_type(
+        "test_expr",
+        &TypeContext::FunctionCall {
+            function: "test".to_string(),
+            param_index: 0,
+        },
+    );
     sys2.solve_constraints().unwrap();
-    assert_eq!(*sys2.get_variable_type("test_expr").unwrap(), ShellType::String);
+    assert_eq!(
+        *sys2.get_variable_type("test_expr").unwrap(),
+        ShellType::String
+    );
 
     // read param -> Array(String)
     let mut sys3 = ContractSystem::new();
-    let _t = sys3.infer_variable_type("read_var", &TypeContext::FunctionCall {
-        function: "read".to_string(), param_index: 0,
-    });
+    let _t = sys3.infer_variable_type(
+        "read_var",
+        &TypeContext::FunctionCall {
+            function: "read".to_string(),
+            param_index: 0,
+        },
+    );
     sys3.solve_constraints().unwrap();
-    assert!(matches!(sys3.get_variable_type("read_var").unwrap(), ShellType::Array(_)));
+    assert!(matches!(
+        sys3.get_variable_type("read_var").unwrap(),
+        ShellType::Array(_)
+    ));
 }
 
 #[test]
@@ -47,26 +68,37 @@ fn test_COV_FMT_002_infer_existing_and_edge_cases() {
     let mut system = ContractSystem::new();
 
     // Infer + solve -> then re-infer returns cached
-    let _t = system.infer_variable_type("counter", &TypeContext::Assignment {
-        value_type: ShellType::Integer,
-    });
+    let _t = system.infer_variable_type(
+        "counter",
+        &TypeContext::Assignment {
+            value_type: ShellType::Integer,
+        },
+    );
     system.solve_constraints().unwrap();
     let t2 = system.infer_variable_type("counter", &TypeContext::Arithmetic);
     assert_eq!(t2, ShellType::Integer);
 
     // Nonexistent function -> type var, no constraint
     let mut sys2 = ContractSystem::new();
-    let t = sys2.infer_variable_type("arg", &TypeContext::FunctionCall {
-        function: "no_such".to_string(), param_index: 0,
-    });
+    let t = sys2.infer_variable_type(
+        "arg",
+        &TypeContext::FunctionCall {
+            function: "no_such".to_string(),
+            param_index: 0,
+        },
+    );
     assert!(matches!(t, ShellType::TypeVar(_)));
     sys2.solve_constraints().unwrap();
 
     // Out-of-bounds param index
     let mut sys3 = ContractSystem::new();
-    let t = sys3.infer_variable_type("extra", &TypeContext::FunctionCall {
-        function: "echo".to_string(), param_index: 5,
-    });
+    let t = sys3.infer_variable_type(
+        "extra",
+        &TypeContext::FunctionCall {
+            function: "echo".to_string(),
+            param_index: 5,
+        },
+    );
     assert!(matches!(t, ShellType::TypeVar(_)));
     sys3.solve_constraints().unwrap();
 }
@@ -75,12 +107,17 @@ fn test_COV_FMT_002_infer_existing_and_edge_cases() {
 fn test_COV_FMT_003_unification_variants() {
     // Array type
     let mut sys = ContractSystem::new();
-    let _t = sys.infer_variable_type("list", &TypeContext::Assignment {
-        value_type: ShellType::Array(Box::new(ShellType::String)),
-    });
+    let _t = sys.infer_variable_type(
+        "list",
+        &TypeContext::Assignment {
+            value_type: ShellType::Array(Box::new(ShellType::String)),
+        },
+    );
     sys.solve_constraints().unwrap();
-    assert_eq!(*sys.get_variable_type("list").unwrap(),
-        ShellType::Array(Box::new(ShellType::String)));
+    assert_eq!(
+        *sys.get_variable_type("list").unwrap(),
+        ShellType::Array(Box::new(ShellType::String))
+    );
 
     // AssocArray type
     let mut sys2 = ContractSystem::new();
@@ -88,18 +125,24 @@ fn test_COV_FMT_003_unification_variants() {
         key: Box::new(ShellType::String),
         value: Box::new(ShellType::Integer),
     };
-    let _t = sys2.infer_variable_type("map", &TypeContext::Assignment {
-        value_type: assoc.clone(),
-    });
+    let _t = sys2.infer_variable_type(
+        "map",
+        &TypeContext::Assignment {
+            value_type: assoc.clone(),
+        },
+    );
     sys2.solve_constraints().unwrap();
     assert_eq!(*sys2.get_variable_type("map").unwrap(), assoc);
 
     // Union type
     let mut sys3 = ContractSystem::new();
     let union = ShellType::Union(vec![ShellType::String, ShellType::Integer]);
-    let _t = sys3.infer_variable_type("mixed", &TypeContext::Assignment {
-        value_type: union.clone(),
-    });
+    let _t = sys3.infer_variable_type(
+        "mixed",
+        &TypeContext::Assignment {
+            value_type: union.clone(),
+        },
+    );
     sys3.solve_constraints().unwrap();
     assert_eq!(*sys3.get_variable_type("mixed").unwrap(), union);
 }
@@ -108,14 +151,18 @@ fn test_COV_FMT_003_unification_variants() {
 fn test_COV_FMT_004_validate_contracts() {
     // Type contract passes
     let mut sys = ContractSystem::new();
-    let _t = sys.infer_variable_type("x", &TypeContext::Assignment {
-        value_type: ShellType::String,
-    });
+    let _t = sys.infer_variable_type(
+        "x",
+        &TypeContext::Assignment {
+            value_type: ShellType::String,
+        },
+    );
     sys.solve_constraints().unwrap();
     sys.add_contract(Contract {
         kind: ContractKind::TypeAnnotation,
         condition: ContractCondition::TypeConstraint {
-            var: "x".to_string(), expected_type: ShellType::String,
+            var: "x".to_string(),
+            expected_type: ShellType::String,
         },
         description: "x is string".to_string(),
         location: Span::new(BytePos(0), BytePos(5)),
@@ -124,13 +171,18 @@ fn test_COV_FMT_004_validate_contracts() {
 
     // NonNull passes when variable defined
     let mut sys2 = ContractSystem::new();
-    let _t = sys2.infer_variable_type("dv", &TypeContext::Assignment {
-        value_type: ShellType::Boolean,
-    });
+    let _t = sys2.infer_variable_type(
+        "dv",
+        &TypeContext::Assignment {
+            value_type: ShellType::Boolean,
+        },
+    );
     sys2.solve_constraints().unwrap();
     sys2.add_contract(Contract {
         kind: ContractKind::Precondition,
-        condition: ContractCondition::NonNull { var: "dv".to_string() },
+        condition: ContractCondition::NonNull {
+            var: "dv".to_string(),
+        },
         description: "must exist".to_string(),
         location: Span::new(BytePos(0), BytePos(10)),
     });
@@ -143,22 +195,35 @@ fn test_COV_FMT_005_validate_passthrough_conditions() {
 
     // Range, FS, Custom, Or, Not all pass through
     for cond in [
-        ContractCondition::RangeConstraint { var: "c".to_string(), min: Some(0), max: Some(100) },
-        ContractCondition::FileSystemConstraint {
-            path: "/etc/hosts".to_string(), constraint: FsConstraint::Exists,
+        ContractCondition::RangeConstraint {
+            var: "c".to_string(),
+            min: Some(0),
+            max: Some(100),
         },
-        ContractCondition::CustomPredicate { expression: "test -d /tmp".to_string() },
+        ContractCondition::FileSystemConstraint {
+            path: "/etc/hosts".to_string(),
+            constraint: FsConstraint::Exists,
+        },
+        ContractCondition::CustomPredicate {
+            expression: "test -d /tmp".to_string(),
+        },
         ContractCondition::Or(
-            Box::new(ContractCondition::NonNull { var: "a".to_string() }),
-            Box::new(ContractCondition::NonNull { var: "b".to_string() }),
+            Box::new(ContractCondition::NonNull {
+                var: "a".to_string(),
+            }),
+            Box::new(ContractCondition::NonNull {
+                var: "b".to_string(),
+            }),
         ),
         ContractCondition::Not(Box::new(ContractCondition::CustomPredicate {
             expression: "false".to_string(),
         })),
     ] {
         sys.add_contract(Contract {
-            kind: ContractKind::Invariant, condition: cond,
-            description: "pass".to_string(), location: Span::new(BytePos(0), BytePos(10)),
+            kind: ContractKind::Invariant,
+            condition: cond,
+            description: "pass".to_string(),
+            location: Span::new(BytePos(0), BytePos(10)),
         });
     }
     assert!(sys.validate_contracts().is_empty());
@@ -170,15 +235,28 @@ fn test_COV_FMT_006_register_function_and_infer() {
     sys.register_function(FunctionSignature {
         name: "my_func".to_string(),
         parameters: vec![
-            Parameter { name: "input".to_string(), param_type: ShellType::String, is_optional: false },
-            Parameter { name: "count".to_string(), param_type: ShellType::Integer, is_optional: true },
+            Parameter {
+                name: "input".to_string(),
+                param_type: ShellType::String,
+                is_optional: false,
+            },
+            Parameter {
+                name: "count".to_string(),
+                param_type: ShellType::Integer,
+                is_optional: true,
+            },
         ],
         return_type: ShellType::ExitCode,
-        preconditions: vec![], postconditions: vec![],
+        preconditions: vec![],
+        postconditions: vec![],
     });
-    let _t = sys.infer_variable_type("c", &TypeContext::FunctionCall {
-        function: "my_func".to_string(), param_index: 1,
-    });
+    let _t = sys.infer_variable_type(
+        "c",
+        &TypeContext::FunctionCall {
+            function: "my_func".to_string(),
+            param_index: 1,
+        },
+    );
     sys.solve_constraints().unwrap();
     assert_eq!(*sys.get_variable_type("c").unwrap(), ShellType::Integer);
 }
@@ -187,7 +265,10 @@ fn test_COV_FMT_006_register_function_and_infer() {
 fn test_COV_FMT_007_type_context_and_fs_constraint() {
     let loc = TypeContext::Arithmetic.location();
     assert!(loc.is_empty());
-    let loc2 = TypeContext::Assignment { value_type: ShellType::String }.location();
+    let loc2 = TypeContext::Assignment {
+        value_type: ShellType::String,
+    }
+    .location();
     assert_eq!(loc2.start, BytePos(0));
 
     assert_eq!(FsConstraint::Exists, FsConstraint::Exists);
@@ -209,7 +290,8 @@ fn test_COV_FMT_050_dialect_display_names() {
     assert_eq!(ShellDialect::Dash0_5_12.display_name(), "Dash 0.5.12");
 
     let inferred = ShellDialect::Inferred(Box::new(InferenceConfidence {
-        dialect: Box::new(ShellDialect::Bash5_2), confidence: 0.9,
+        dialect: Box::new(ShellDialect::Bash5_2),
+        confidence: 0.9,
         evidence: InferenceEvidence::Shebang("bash"),
     }));
     assert_eq!(inferred.display_name(), "Bash 5.2");
@@ -231,8 +313,12 @@ fn test_COV_FMT_051_shebang_inference() {
 #[test]
 fn test_COV_FMT_052_feature_support() {
     // Bash supports all bash features
-    for f in [SyntaxFeature::BashArrays, SyntaxFeature::BashProcessSubst,
-              SyntaxFeature::BashConditionals, SyntaxFeature::BashArithmetic] {
+    for f in [
+        SyntaxFeature::BashArrays,
+        SyntaxFeature::BashProcessSubst,
+        SyntaxFeature::BashConditionals,
+        SyntaxFeature::BashArithmetic,
+    ] {
         assert!(ShellDialect::Bash5_2.supports_feature(f));
     }
 
@@ -255,35 +341,78 @@ fn test_COV_FMT_052_feature_support() {
 #[test]
 fn test_COV_FMT_053_dialect_inference_scripts() {
     let zsh = "#!/bin/zsh\nzparseopts -D -- h=help\nfor f in **/*.txt; do echo $f; done";
-    assert_eq!(*ShellDialect::infer(zsh.as_bytes()).dialect, ShellDialect::Zsh5_9);
+    assert_eq!(
+        *ShellDialect::infer(zsh.as_bytes()).dialect,
+        ShellDialect::Zsh5_9
+    );
 
     let ksh = "#!/bin/ksh\nfunction setup {\n  typeset -i count=0\n}";
-    assert_eq!(*ShellDialect::infer(ksh.as_bytes()).dialect, ShellDialect::Ksh93uPlus);
+    assert_eq!(
+        *ShellDialect::infer(ksh.as_bytes()).dialect,
+        ShellDialect::Ksh93uPlus
+    );
 
     let dash = "#!/bin/dash\nlocal var=hello";
-    assert_eq!(*ShellDialect::infer(dash.as_bytes()).dialect, ShellDialect::Dash0_5_12);
+    assert_eq!(
+        *ShellDialect::infer(dash.as_bytes()).dialect,
+        ShellDialect::Dash0_5_12
+    );
 
     let bash_no_shebang = "array=(a b c)\nif [[ $x == y ]]; then echo ok; fi";
-    assert_eq!(*ShellDialect::infer(bash_no_shebang.as_bytes()).dialect, ShellDialect::Bash5_2);
+    assert_eq!(
+        *ShellDialect::infer(bash_no_shebang.as_bytes()).dialect,
+        ShellDialect::Bash5_2
+    );
 
     assert_eq!(*ShellDialect::infer(b"").dialect, ShellDialect::Posix);
 
     let proc_sub = "diff <(sort f1) <(sort f2)";
-    assert_eq!(*ShellDialect::infer(proc_sub.as_bytes()).dialect, ShellDialect::Bash5_2);
+    assert_eq!(
+        *ShellDialect::infer(proc_sub.as_bytes()).dialect,
+        ShellDialect::Bash5_2
+    );
 }
 
 #[test]
 fn test_COV_FMT_054_dialect_scorer_all_evidence_types() {
     for (evidence, weight, expected) in [
         (InferenceEvidence::Shebang("sh"), 0.7, ShellDialect::Posix),
-        (InferenceEvidence::Shebang("ksh"), 0.7, ShellDialect::Ksh93uPlus),
-        (InferenceEvidence::Shebang("dash"), 0.7, ShellDialect::Dash0_5_12),
+        (
+            InferenceEvidence::Shebang("ksh"),
+            0.7,
+            ShellDialect::Ksh93uPlus,
+        ),
+        (
+            InferenceEvidence::Shebang("dash"),
+            0.7,
+            ShellDialect::Dash0_5_12,
+        ),
         (InferenceEvidence::Shebang("zsh"), 0.7, ShellDialect::Zsh5_9),
-        (InferenceEvidence::Shebang("bash"), 0.7, ShellDialect::Bash5_2),
-        (InferenceEvidence::Syntax(SyntaxFeature::ZshGlobs), 0.5, ShellDialect::Zsh5_9),
-        (InferenceEvidence::Builtins(BuiltinProfile::DashLocal), 0.5, ShellDialect::Dash0_5_12),
-        (InferenceEvidence::Builtins(BuiltinProfile::KshTypeset), 0.5, ShellDialect::Ksh93uPlus),
-        (InferenceEvidence::Builtins(BuiltinProfile::ZshZparseopts), 0.5, ShellDialect::Zsh5_9),
+        (
+            InferenceEvidence::Shebang("bash"),
+            0.7,
+            ShellDialect::Bash5_2,
+        ),
+        (
+            InferenceEvidence::Syntax(SyntaxFeature::ZshGlobs),
+            0.5,
+            ShellDialect::Zsh5_9,
+        ),
+        (
+            InferenceEvidence::Builtins(BuiltinProfile::DashLocal),
+            0.5,
+            ShellDialect::Dash0_5_12,
+        ),
+        (
+            InferenceEvidence::Builtins(BuiltinProfile::KshTypeset),
+            0.5,
+            ShellDialect::Ksh93uPlus,
+        ),
+        (
+            InferenceEvidence::Builtins(BuiltinProfile::ZshZparseopts),
+            0.5,
+            ShellDialect::Zsh5_9,
+        ),
     ] {
         let mut scorer = DialectScorer::new();
         scorer.add_evidence(evidence, weight);
@@ -300,7 +429,10 @@ fn test_COV_FMT_054_dialect_scorer_all_evidence_types() {
     let mut ms = DialectScorer::new();
     ms.add_evidence(InferenceEvidence::Shebang("bash"), 0.7);
     ms.add_evidence(InferenceEvidence::Syntax(SyntaxFeature::BashArrays), 0.2);
-    ms.add_evidence(InferenceEvidence::Builtins(BuiltinProfile::BashReadarray), 0.1);
+    ms.add_evidence(
+        InferenceEvidence::Builtins(BuiltinProfile::BashReadarray),
+        0.1,
+    );
     let mc = ms.compute_confidence();
     assert_eq!(*mc.dialect, ShellDialect::Bash5_2);
     assert!(mc.confidence > 0.8);
@@ -309,33 +441,58 @@ fn test_COV_FMT_054_dialect_scorer_all_evidence_types() {
 #[test]
 fn test_COV_FMT_055_core_dialect_conversion() {
     assert_eq!(CoreDialect::Posix.to_shell_dialect(), ShellDialect::Posix);
-    assert_eq!(CoreDialect::Bash5_2.to_shell_dialect(), ShellDialect::Bash5_2);
-    assert_eq!(CoreDialect::Ksh93uPlus.to_shell_dialect(), ShellDialect::Ksh93uPlus);
+    assert_eq!(
+        CoreDialect::Bash5_2.to_shell_dialect(),
+        ShellDialect::Bash5_2
+    );
+    assert_eq!(
+        CoreDialect::Ksh93uPlus.to_shell_dialect(),
+        ShellDialect::Ksh93uPlus
+    );
     assert_eq!(CoreDialect::Zsh5_9.to_shell_dialect(), ShellDialect::Zsh5_9);
-    assert_eq!(CoreDialect::Dash0_5_12.to_shell_dialect(), ShellDialect::Dash0_5_12);
+    assert_eq!(
+        CoreDialect::Dash0_5_12.to_shell_dialect(),
+        ShellDialect::Dash0_5_12
+    );
 }
 
 #[test]
 fn test_COV_FMT_056_compatibility() {
     // PosixFunctions compatible everywhere
     assert_eq!(
-        check_compatibility(ShellDialect::Bash5_2, ShellDialect::Posix, SyntaxFeature::PosixFunctions),
+        check_compatibility(
+            ShellDialect::Bash5_2,
+            ShellDialect::Posix,
+            SyntaxFeature::PosixFunctions
+        ),
         Compatibility::Direct
     );
     assert_eq!(
-        check_compatibility(ShellDialect::Bash5_2, ShellDialect::Dash0_5_12, SyntaxFeature::PosixFunctions),
+        check_compatibility(
+            ShellDialect::Bash5_2,
+            ShellDialect::Dash0_5_12,
+            SyntaxFeature::PosixFunctions
+        ),
         Compatibility::Direct
     );
 
     // ZshGlobs incompatible with non-zsh
     assert_eq!(
-        check_compatibility(ShellDialect::Zsh5_9, ShellDialect::Bash5_2, SyntaxFeature::ZshGlobs),
+        check_compatibility(
+            ShellDialect::Zsh5_9,
+            ShellDialect::Bash5_2,
+            SyntaxFeature::ZshGlobs
+        ),
         Compatibility::Incompatible
     );
 
     // Ksh to Ksh
     assert_eq!(
-        check_compatibility(ShellDialect::Ksh93uPlus, ShellDialect::Ksh93uPlus, SyntaxFeature::KshFunctions),
+        check_compatibility(
+            ShellDialect::Ksh93uPlus,
+            ShellDialect::Ksh93uPlus,
+            SyntaxFeature::KshFunctions
+        ),
         Compatibility::Direct
     );
 }

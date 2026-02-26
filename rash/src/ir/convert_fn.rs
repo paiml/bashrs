@@ -35,9 +35,14 @@ impl IrConverter {
                 condition, body, ..
             } => self.convert_while_in_fn(condition, body),
             Stmt::For {
-                pattern, iter, body, ..
+                pattern,
+                iter,
+                body,
+                ..
             } => self.convert_for_in_fn(pattern, iter, body),
-            Stmt::Match { scrutinee, arms } => self.convert_match_in_fn(scrutinee, arms, should_echo),
+            Stmt::Match { scrutinee, arms } => {
+                self.convert_match_in_fn(scrutinee, arms, should_echo)
+            }
             _ => self.convert_stmt(stmt),
         }
     }
@@ -52,7 +57,9 @@ impl IrConverter {
         let test_expr = self.convert_expr_to_value(condition)?;
         let then_ir = self.convert_stmts_in_function(then_block, should_echo)?;
         let else_ir = if let Some(else_stmts) = else_block {
-            Some(Box::new(self.convert_stmts_in_function(else_stmts, should_echo)?))
+            Some(Box::new(
+                self.convert_stmts_in_function(else_stmts, should_echo)?,
+            ))
         } else {
             None
         };
@@ -126,7 +133,9 @@ impl IrConverter {
     ) -> Result<ShellIR> {
         match iter {
             crate::ast::Expr::Range {
-                start, end, inclusive,
+                start,
+                end,
+                inclusive,
             } => {
                 let start_val = self.convert_expr_to_value(start)?;
                 let end_val = self.convert_expr_to_value(end)?;
@@ -143,7 +152,11 @@ impl IrConverter {
                     .iter()
                     .map(|e| self.convert_expr_to_value(e))
                     .collect::<Result<_>>()?;
-                Ok(ShellIR::ForIn { var: var.to_string(), items, body: Box::new(body_ir) })
+                Ok(ShellIR::ForIn {
+                    var: var.to_string(),
+                    items,
+                    body: Box::new(body_ir),
+                })
             }
             crate::ast::Expr::Variable(name) => {
                 let array_len = self.arrays.borrow().get(name).copied();
@@ -151,7 +164,11 @@ impl IrConverter {
                     let items: Vec<ShellValue> = (0..len)
                         .map(|i| ShellValue::Variable(format!("{}_{}", name, i)))
                         .collect();
-                    Ok(ShellIR::ForIn { var: var.to_string(), items, body: Box::new(body_ir) })
+                    Ok(ShellIR::ForIn {
+                        var: var.to_string(),
+                        items,
+                        body: Box::new(body_ir),
+                    })
                 } else {
                     Ok(ShellIR::ForIn {
                         var: var.to_string(),
@@ -162,7 +179,11 @@ impl IrConverter {
             }
             other => {
                 let val = self.convert_expr_to_value(other)?;
-                Ok(ShellIR::ForIn { var: var.to_string(), items: vec![val], body: Box::new(body_ir) })
+                Ok(ShellIR::ForIn {
+                    var: var.to_string(),
+                    items: vec![val],
+                    body: Box::new(body_ir),
+                })
             }
         }
     }

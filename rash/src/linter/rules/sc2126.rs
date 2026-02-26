@@ -15,10 +15,9 @@
 // Impact: Performance, code clarity
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static GREP_WC: Lazy<Regex> = Lazy::new(|| {
+static GREP_WC: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: grep ... | wc -l
     Regex::new(r"\bgrep\b[^|]*\|\s*wc\s+-l\b").unwrap()
 });

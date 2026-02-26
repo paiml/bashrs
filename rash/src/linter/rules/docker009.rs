@@ -63,9 +63,11 @@ fn validate_final_stage(
         .unwrap_or(&"")
         .trim();
 
-    let is_shell_free_base = SHELL_FREE_BASES
-        .iter()
-        .any(|base| final_from_line.to_lowercase().contains(&base.to_lowercase()));
+    let is_shell_free_base = SHELL_FREE_BASES.iter().any(|base| {
+        final_from_line
+            .to_lowercase()
+            .contains(&base.to_lowercase())
+    });
 
     if has_shell_install && !is_shell_free_base {
         let span = Span::new(final_line, 1, final_line, 80);
@@ -131,7 +133,12 @@ pub fn check(source: &str) -> LintResult {
 
     if stages.len() > 1 {
         if let Some((final_line, _final_name, true)) = stages.last() {
-            validate_final_stage(&lines, *final_line, has_shell_install_in_current, &mut result);
+            validate_final_stage(
+                &lines,
+                *final_line,
+                has_shell_install_in_current,
+                &mut result,
+            );
         }
     }
 

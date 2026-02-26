@@ -24,8 +24,16 @@ fn mock_result(id: &str, all_pass: bool) -> CorpusResult {
         metamorphic_consistent: all_pass,
         cross_shell_agree: all_pass,
         expected_output: None,
-        actual_output: if all_pass { Some("echo hello".into()) } else { None },
-        error: if all_pass { None } else { Some("transpile failed".into()) },
+        actual_output: if all_pass {
+            Some("echo hello".into())
+        } else {
+            None
+        },
+        error: if all_pass {
+            None
+        } else {
+            Some("transpile failed".into())
+        },
         error_category: None,
         error_confidence: None,
         decision_trace: None,
@@ -34,8 +42,13 @@ fn mock_result(id: &str, all_pass: bool) -> CorpusResult {
 
 fn mock_entry(id: &str, name: &str, format: CorpusFormat, tier: CorpusTier) -> CorpusEntry {
     CorpusEntry::new(
-        id, name, "test description", format, tier,
-        "fn main() { println!(\"hello\"); }", "echo hello",
+        id,
+        name,
+        "test description",
+        format,
+        tier,
+        "fn main() { println!(\"hello\"); }",
+        "echo hello",
     )
 }
 
@@ -109,7 +122,12 @@ fn test_count_format_empty_registry() {
 #[test]
 fn test_validate_corpus_entry_valid_bash() {
     use super::corpus_analysis_commands::validate_corpus_entry;
-    let entry = mock_entry("B-001", "hello-world", CorpusFormat::Bash, CorpusTier::Standard);
+    let entry = mock_entry(
+        "B-001",
+        "hello-world",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+    );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
     assert!(issues.is_empty(), "Expected no issues, got: {:?}", issues);
@@ -119,8 +137,13 @@ fn test_validate_corpus_entry_valid_bash() {
 fn test_validate_corpus_entry_valid_makefile() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "M-001", "makefile-test", "desc", CorpusFormat::Makefile, CorpusTier::Standard,
-        "let x = 5;", "X := 5",
+        "M-001",
+        "makefile-test",
+        "desc",
+        CorpusFormat::Makefile,
+        CorpusTier::Standard,
+        "let x = 5;",
+        "X := 5",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
@@ -142,8 +165,13 @@ fn test_validate_corpus_entry_duplicate_id() {
 fn test_validate_corpus_entry_wrong_prefix() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "M-001", "wrong-prefix", "desc", CorpusFormat::Bash, CorpusTier::Standard,
-        "fn main() { }", "echo hello",
+        "M-001",
+        "wrong-prefix",
+        "desc",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+        "fn main() { }",
+        "echo hello",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
@@ -154,8 +182,13 @@ fn test_validate_corpus_entry_wrong_prefix() {
 fn test_validate_corpus_entry_empty_name() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "B-001", "", "desc", CorpusFormat::Bash, CorpusTier::Standard,
-        "fn main() { }", "echo hello",
+        "B-001",
+        "",
+        "desc",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+        "fn main() { }",
+        "echo hello",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
@@ -166,8 +199,13 @@ fn test_validate_corpus_entry_empty_name() {
 fn test_validate_corpus_entry_empty_description() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "B-001", "test", "", CorpusFormat::Bash, CorpusTier::Standard,
-        "fn main() { }", "echo hello",
+        "B-001",
+        "test",
+        "",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+        "fn main() { }",
+        "echo hello",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
@@ -178,8 +216,13 @@ fn test_validate_corpus_entry_empty_description() {
 fn test_validate_corpus_entry_empty_input() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "B-001", "test", "desc", CorpusFormat::Bash, CorpusTier::Standard,
-        "", "echo hello",
+        "B-001",
+        "test",
+        "desc",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+        "",
+        "echo hello",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
@@ -190,8 +233,13 @@ fn test_validate_corpus_entry_empty_input() {
 fn test_validate_corpus_entry_empty_expected_output() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "B-001", "test", "desc", CorpusFormat::Bash, CorpusTier::Standard,
-        "fn main() { }", "",
+        "B-001",
+        "test",
+        "desc",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+        "fn main() { }",
+        "",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
@@ -202,8 +250,13 @@ fn test_validate_corpus_entry_empty_expected_output() {
 fn test_validate_corpus_entry_bash_missing_fn_main() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "B-001", "test", "desc", CorpusFormat::Bash, CorpusTier::Standard,
-        "let x = 5;", "echo hello",
+        "B-001",
+        "test",
+        "desc",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+        "let x = 5;",
+        "echo hello",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
@@ -214,8 +267,13 @@ fn test_validate_corpus_entry_bash_missing_fn_main() {
 fn test_validate_corpus_entry_dockerfile_valid() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "D-001", "docker-test", "desc", CorpusFormat::Dockerfile, CorpusTier::Standard,
-        "let x = 5;", "FROM alpine",
+        "D-001",
+        "docker-test",
+        "desc",
+        CorpusFormat::Dockerfile,
+        CorpusTier::Standard,
+        "let x = 5;",
+        "FROM alpine",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
@@ -227,13 +285,23 @@ fn test_validate_corpus_entry_dockerfile_valid() {
 fn test_validate_corpus_entry_multiple_issues() {
     use super::corpus_analysis_commands::validate_corpus_entry;
     let entry = CorpusEntry::new(
-        "X-001", "", "", CorpusFormat::Bash, CorpusTier::Standard,
-        "", "",
+        "X-001",
+        "",
+        "",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+        "",
+        "",
     );
     let mut seen = std::collections::HashSet::new();
     let issues = validate_corpus_entry(&entry, &mut seen);
     // Should have: wrong prefix, empty name, empty description, empty input, empty expected_output, missing fn main()
-    assert!(issues.len() >= 5, "Expected >= 5 issues, got {}: {:?}", issues.len(), issues);
+    assert!(
+        issues.len() >= 5,
+        "Expected >= 5 issues, got {}: {:?}",
+        issues.len(),
+        issues
+    );
 }
 
 // ── CorpusTier tests ────────────────────────────────────────────────────────
@@ -270,8 +338,13 @@ fn test_corpus_format_display() {
 #[test]
 fn test_corpus_entry_new_defaults() {
     let entry = CorpusEntry::new(
-        "B-001", "test", "desc", CorpusFormat::Bash, CorpusTier::Standard,
-        "fn main() {}", "echo hello",
+        "B-001",
+        "test",
+        "desc",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+        "fn main() {}",
+        "echo hello",
     );
     assert_eq!(entry.id, "B-001");
     assert!(entry.shellcheck); // bash entries get shellcheck=true
@@ -282,8 +355,13 @@ fn test_corpus_entry_new_defaults() {
 #[test]
 fn test_corpus_entry_new_makefile_no_shellcheck() {
     let entry = CorpusEntry::new(
-        "M-001", "make-test", "desc", CorpusFormat::Makefile, CorpusTier::Standard,
-        "let x = 5;", "X := 5",
+        "M-001",
+        "make-test",
+        "desc",
+        CorpusFormat::Makefile,
+        CorpusTier::Standard,
+        "let x = 5;",
+        "X := 5",
     );
     assert!(!entry.shellcheck); // non-bash entries get shellcheck=false
     assert!(entry.deterministic);
@@ -300,9 +378,24 @@ fn test_corpus_registry_new_empty() {
 #[test]
 fn test_corpus_registry_add_and_by_format() {
     let mut registry = crate::corpus::registry::CorpusRegistry::new();
-    registry.add(mock_entry("B-001", "t1", CorpusFormat::Bash, CorpusTier::Standard));
-    registry.add(mock_entry("M-001", "t2", CorpusFormat::Makefile, CorpusTier::Standard));
-    registry.add(mock_entry("B-002", "t3", CorpusFormat::Bash, CorpusTier::Trivial));
+    registry.add(mock_entry(
+        "B-001",
+        "t1",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+    ));
+    registry.add(mock_entry(
+        "M-001",
+        "t2",
+        CorpusFormat::Makefile,
+        CorpusTier::Standard,
+    ));
+    registry.add(mock_entry(
+        "B-002",
+        "t3",
+        CorpusFormat::Bash,
+        CorpusTier::Trivial,
+    ));
 
     assert_eq!(registry.by_format(CorpusFormat::Bash).len(), 2);
     assert_eq!(registry.by_format(CorpusFormat::Makefile).len(), 1);
@@ -312,9 +405,24 @@ fn test_corpus_registry_add_and_by_format() {
 #[test]
 fn test_corpus_registry_by_tier() {
     let mut registry = crate::corpus::registry::CorpusRegistry::new();
-    registry.add(mock_entry("B-001", "t1", CorpusFormat::Bash, CorpusTier::Standard));
-    registry.add(mock_entry("B-002", "t2", CorpusFormat::Bash, CorpusTier::Trivial));
-    registry.add(mock_entry("B-003", "t3", CorpusFormat::Bash, CorpusTier::Standard));
+    registry.add(mock_entry(
+        "B-001",
+        "t1",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+    ));
+    registry.add(mock_entry(
+        "B-002",
+        "t2",
+        CorpusFormat::Bash,
+        CorpusTier::Trivial,
+    ));
+    registry.add(mock_entry(
+        "B-003",
+        "t3",
+        CorpusFormat::Bash,
+        CorpusTier::Standard,
+    ));
 
     assert_eq!(registry.by_tier(CorpusTier::Standard).len(), 2);
     assert_eq!(registry.by_tier(CorpusTier::Trivial).len(), 1);

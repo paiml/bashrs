@@ -55,8 +55,7 @@ pub struct MerkleTree {
     internal_nodes: Vec<Hash>,
 
     /// Tree height (log2 of leaf count, rounded up)
-    #[allow(dead_code)]
-    height: usize,
+    _height: usize,
 }
 
 /// Metadata about the transformation log
@@ -180,7 +179,7 @@ impl TransformLog {
         // Hash proof if present
         if let Some(proof) = &entry.proof {
             hasher.update(proof.formula.as_bytes());
-            hasher.update(&[if proof.is_valid { 1 } else { 0 }]);
+            hasher.update(&[u8::from(proof.is_valid)]);
         }
 
         hasher.finalize()
@@ -255,7 +254,7 @@ impl MerkleTree {
             root_hash: blake3::hash(b""),
             leaf_hashes: Vec::new(),
             internal_nodes: Vec::new(),
-            height: 0,
+            _height: 0,
         }
     }
 
@@ -306,7 +305,7 @@ impl MerkleTree {
             root_hash,
             leaf_hashes,
             internal_nodes,
-            height,
+            _height: height,
         }
     }
 
@@ -457,7 +456,7 @@ mod tests {
     fn test_merkle_tree_empty() {
         let tree = MerkleTree::empty();
         assert_eq!(tree.leaf_hashes.len(), 0);
-        assert_eq!(tree.height, 0);
+        assert_eq!(tree._height, 0);
     }
 
     #[test]
@@ -466,7 +465,7 @@ mod tests {
         let tree = MerkleTree::from_leaves(vec![leaf_hash]);
 
         assert_eq!(tree.leaf_hashes.len(), 2); // Padded to power of 2
-        assert_eq!(tree.height, 1);
+        assert_eq!(tree._height, 1);
         assert_ne!(tree.root_hash, blake3::hash(b"")); // Non-empty root
     }
 
@@ -480,7 +479,7 @@ mod tests {
 
         let tree = MerkleTree::from_leaves(leaves.clone());
         assert_eq!(tree.leaf_hashes.len(), 4); // Padded to next power of 2
-        assert_eq!(tree.height, 2);
+        assert_eq!(tree._height, 2);
     }
 
     #[test]

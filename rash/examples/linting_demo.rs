@@ -49,33 +49,138 @@ const FALSIFICATION_TESTS: &[(&str, &str, &str)] = &[
 /// SC1xxx rule detection tests (new source code issue rules)
 const SC1XXX_TESTS: &[(&str, &str, &str, bool)] = &[
     // Shebang rules
-    ("SC1084", "!#/bin/bash\necho hi", "Reversed shebang !# → #!", true),
+    (
+        "SC1084",
+        "!#/bin/bash\necho hi",
+        "Reversed shebang !# → #!",
+        true,
+    ),
     ("SC1113", "# /bin/sh\necho hi", "Missing ! in shebang", true),
-    ("SC1114", "  #!/bin/sh\necho hi", "Leading spaces before shebang", true),
-    ("SC1115", "# !/bin/sh\necho hi", "Space between # and !", true),
-    ("SC1127", "#!/bin/bash\n// this is a comment", "C-style comment //", true),
-    ("SC1128", "echo hi\n#!/bin/bash", "Shebang not on first line", true),
+    (
+        "SC1114",
+        "  #!/bin/sh\necho hi",
+        "Leading spaces before shebang",
+        true,
+    ),
+    (
+        "SC1115",
+        "# !/bin/sh\necho hi",
+        "Space between # and !",
+        true,
+    ),
+    (
+        "SC1127",
+        "#!/bin/bash\n// this is a comment",
+        "C-style comment //",
+        true,
+    ),
+    (
+        "SC1128",
+        "echo hi\n#!/bin/bash",
+        "Shebang not on first line",
+        true,
+    ),
     // Quoting rules
-    ("SC1003", "echo 'don't'", "Broken single-quote escaping", true),
-    ("SC1110", "echo \u{201c}hello\u{201d}", "Unicode double quotes", true),
-    ("SC1111", "echo \u{2018}hello\u{2019}", "Unicode single quotes", true),
+    (
+        "SC1003",
+        "echo 'don't'",
+        "Broken single-quote escaping",
+        true,
+    ),
+    (
+        "SC1110",
+        "echo \u{201c}hello\u{201d}",
+        "Unicode double quotes",
+        true,
+    ),
+    (
+        "SC1111",
+        "echo \u{2018}hello\u{2019}",
+        "Unicode single quotes",
+        true,
+    ),
     // Spacing rules
-    ("SC1007", "#!/bin/sh\nVAR = value", "Spaces around = in assignment", true),
-    ("SC1068", "#!/bin/sh\nlet x = 1", "Spaces around = in let", true),
-    ("SC1069", "#!/bin/sh\nif[ -f file ]; then echo ok; fi", "Missing space before [", true),
+    (
+        "SC1007",
+        "#!/bin/sh\nVAR = value",
+        "Spaces around = in assignment",
+        true,
+    ),
+    (
+        "SC1068",
+        "#!/bin/sh\nlet x = 1",
+        "Spaces around = in let",
+        true,
+    ),
+    (
+        "SC1069",
+        "#!/bin/sh\nif[ -f file ]; then echo ok; fi",
+        "Missing space before [",
+        true,
+    ),
     // Syntax rules
-    ("SC1065", "#!/bin/bash\nfunction f(x, y) { echo ok; }", "Parameters in function decl", true),
-    ("SC1066", "#!/bin/sh\n$FOO=bar", "$ on left side of assignment", true),
-    ("SC1075", "#!/bin/sh\nif true; then echo a; else if true; then echo b; fi; fi", "else if → elif", true),
-    ("SC1086", "#!/bin/sh\nfor $i in 1 2 3; do echo ok; done", "$ on for loop variable", true),
-    ("SC1037", "#!/bin/sh\necho $10", "Unbraced positional >$9", true),
+    (
+        "SC1065",
+        "#!/bin/bash\nfunction f(x, y) { echo ok; }",
+        "Parameters in function decl",
+        true,
+    ),
+    (
+        "SC1066",
+        "#!/bin/sh\n$FOO=bar",
+        "$ on left side of assignment",
+        true,
+    ),
+    (
+        "SC1075",
+        "#!/bin/sh\nif true; then echo a; else if true; then echo b; fi; fi",
+        "else if → elif",
+        true,
+    ),
+    (
+        "SC1086",
+        "#!/bin/sh\nfor $i in 1 2 3; do echo ok; done",
+        "$ on for loop variable",
+        true,
+    ),
+    (
+        "SC1037",
+        "#!/bin/sh\necho $10",
+        "Unbraced positional >$9",
+        true,
+    ),
     // Unicode rules
-    ("SC1082", "\u{feff}#!/bin/sh\necho hi", "UTF-8 BOM detected", true),
-    ("SC1100", "#!/bin/sh\nif [ \u{2013}f file ]; then echo ok; fi", "Unicode dash as minus", true),
+    (
+        "SC1082",
+        "\u{feff}#!/bin/sh\necho hi",
+        "UTF-8 BOM detected",
+        true,
+    ),
+    (
+        "SC1100",
+        "#!/bin/sh\nif [ \u{2013}f file ]; then echo ok; fi",
+        "Unicode dash as minus",
+        true,
+    ),
     // False positives - these should NOT trigger
-    ("SC1003-FP", "echo 'hello world'", "Normal single quotes (no FP)", false),
-    ("SC1037-FP", "echo ${10}", "Braced positional (no FP)", false),
-    ("SC1065-FP", "myfunc() { echo ok; }", "Normal function decl (no FP)", false),
+    (
+        "SC1003-FP",
+        "echo 'hello world'",
+        "Normal single quotes (no FP)",
+        false,
+    ),
+    (
+        "SC1037-FP",
+        "echo ${10}",
+        "Braced positional (no FP)",
+        false,
+    ),
+    (
+        "SC1065-FP",
+        "myfunc() { echo ok; }",
+        "Normal function decl (no FP)",
+        false,
+    ),
 ];
 
 /// Edge case tests from the simulation test suite
@@ -102,7 +207,10 @@ fn find_bashrs_binary() -> Option<&'static str> {
         "target/release/bashrs",
         "target/debug/bashrs",
     ];
-    candidates.iter().find(|p| std::path::Path::new(p).exists()).copied()
+    candidates
+        .iter()
+        .find(|p| std::path::Path::new(p).exists())
+        .copied()
 }
 
 fn run_falsification_suite(bashrs_path: &str) -> (u32, u32) {
@@ -123,13 +231,21 @@ fn run_sc1xxx_suite(bashrs_path: &str) -> (u32, u32) {
     let (mut pass, mut fail) = (0, 0);
     for (id, code, desc, should_warn) in SC1XXX_TESTS {
         let has_issues = run_has_issues(bashrs_path, code);
-        let ok = if *should_warn { has_issues } else { !has_issues };
+        let ok = if *should_warn {
+            has_issues
+        } else {
+            !has_issues
+        };
         if ok {
             let label = if *should_warn { "detected" } else { "no FP" };
             println!("  [\u{2713}] {}: {} ({})", id, desc, label);
             pass += 1;
         } else {
-            let label = if *should_warn { "NOT detected" } else { "FALSE POSITIVE" };
+            let label = if *should_warn {
+                "NOT detected"
+            } else {
+                "FALSE POSITIVE"
+            };
             println!("  [\u{2717}] {}: {} - {}", id, desc, label);
             fail += 1;
         }

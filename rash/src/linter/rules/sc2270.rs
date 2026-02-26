@@ -1,10 +1,9 @@
 // SC2270: Prefer getopts over manual argument parsing
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static MANUAL_ARG_PARSE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"\[\s+"\$[0-9]+"\s*==?\s*"-[a-zA-Z]""#).unwrap());
+static MANUAL_ARG_PARSE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r#"\[\s+"\$[0-9]+"\s*==?\s*"-[a-zA-Z]""#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

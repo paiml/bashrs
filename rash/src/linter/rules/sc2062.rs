@@ -1,10 +1,9 @@
 // SC2062: Quote the grep pattern so the shell won't interpret it
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static GREP_UNQUOTED: Lazy<Regex> = Lazy::new(|| {
+static GREP_UNQUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match grep followed by optional flags, then a pattern with glob chars
     // (?:\s+-\S+)* handles flags like -r, -i, --recursive, etc.
     Regex::new(r"\bgrep(?:\s+-\S+)*\s+\S*[\*\?\[]").unwrap()

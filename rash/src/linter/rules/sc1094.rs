@@ -33,10 +33,7 @@ pub fn check(source: &str) -> LintResult {
                     result.add(Diagnostic::new(
                         "SC1094",
                         Severity::Info,
-                        format!(
-                            "SC1094: Parsing of sourced file {} was not performed",
-                            path
-                        ),
+                        format!("SC1094: Parsing of sourced file {} was not performed", path),
                         Span::new(line_num, 1, line_num, line.len() + 1),
                     ));
                 }
@@ -52,10 +49,7 @@ pub fn check(source: &str) -> LintResult {
                 result.add(Diagnostic::new(
                     "SC1094",
                     Severity::Info,
-                    format!(
-                        "SC1094: Parsing of sourced file {} was not performed",
-                        path
-                    ),
+                    format!("SC1094: Parsing of sourced file {} was not performed", path),
                     Span::new(line_num, 1, line_num, line.len() + 1),
                 ));
             }
@@ -80,9 +74,7 @@ fn is_dot_source(trimmed: &str) -> bool {
 /// Extract the path argument (first word), stripping surrounding quotes
 fn extract_path(arg: &str) -> &str {
     let first_word = arg.split_whitespace().next().unwrap_or(arg);
-    first_word
-        .trim_matches('"')
-        .trim_matches('\'')
+    first_word.trim_matches('"').trim_matches('\'')
 }
 
 #[cfg(test)]
@@ -104,7 +96,9 @@ mod tests {
         let code = ". /opt/scripts/setup.sh";
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
-        assert!(result.diagnostics[0].message.contains("/opt/scripts/setup.sh"));
+        assert!(result.diagnostics[0]
+            .message
+            .contains("/opt/scripts/setup.sh"));
     }
 
     #[test]

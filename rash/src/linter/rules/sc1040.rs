@@ -24,12 +24,11 @@
 //! it's indented with spaces.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Regex to match `<<-` heredoc start with unquoted, single-quoted, or double-quoted delimiter
 #[allow(clippy::expect_used)]
-static HEREDOC_STRIP: Lazy<Regex> = Lazy::new(|| {
+static HEREDOC_STRIP: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r#"<<-\s*\\?(?:'(\w+)'|"(\w+)"|(\w+))"#).expect("valid heredoc strip regex")
 });
 

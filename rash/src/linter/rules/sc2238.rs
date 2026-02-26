@@ -1,9 +1,8 @@
 // SC2238: Redirecting to/from command name instead of file
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REDIRECT_TO_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static REDIRECT_TO_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: > command_name or < command_name (no path separator), but not >>
     Regex::new(r"([^>]>|<)\s*[a-z_][a-z0-9_-]*\s*($|;|\||&)").unwrap()
 });

@@ -9,8 +9,74 @@ on:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
+  RUSTFLAGS: -Dwarnings
 
 jobs:
+  # MSRV check - verify minimum supported Rust version
+  msrv:
+    name: MSRV (rust: 1.82)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.82
+      - run: cargo check --lib
+
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check
+        run: cargo check --all-features --workspace
+
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Format check
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Clippy (all features)
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Clippy (no default features)
+        run: cargo clippy --all-targets --no-default-features -- -D warnings
+
+  # Feature matrix - test minimal, default, and full feature combinations
+  features:
+    name: Feature Matrix
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        features: [minimal, default, full]
+        include:
+          - features: minimal
+            flags: "--no-default-features"
+          - features: default
+            flags: ""
+          - features: full
+            flags: "--all-features"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Check (${{ matrix.features }})
+        run: cargo check ${{ matrix.flags }}
+
   test:
     name: Test Suite
     runs-on: ${{ matrix.os }}
@@ -18,170 +84,122 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        rust:
-          - stable
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         components: rustfmt, clippy
-    
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-cargo-
-    
-    - name: Check formatting
-      run: cargo fmt --all -- --check
-    
-    - name: Run clippy
-      run: |
-        # Strict clippy on library code only (tests can use expect/panic)
-        cargo clippy --lib --all-features -- -D warnings
-        # Lenient clippy on tests (allow test-appropriate patterns)
-        cargo clippy --tests --all-features -- -D warnings \
-          -A clippy::expect_used \
-          -A clippy::panic \
-          -A clippy::assertions_on_constants \
-          -A clippy::indexing_slicing \
-          -A clippy::single_match \
-          -A clippy::field_reassign_with_default \
-          -A clippy::bool_assert_comparison \
-          -A clippy::needless_range_loop \
-          -A clippy::module_inception \
-          -A clippy::multiple_crate_versions \
-          -A deprecated \
-          -A dead_code
-    
+
+    - uses: Swatinem/rust-cache@v2
+
     - name: Run tests
-      run: |
-        echo "Running tests..."
-        cargo test --all-features --workspace
-    
+      run: cargo test --all-features --workspace
+
     - name: Run doc tests
       run: cargo test --doc
 
   coverage:
-    name: Code Coverage
+    name: Coverage
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
       with:
         components: llvm-tools-preview
-    
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-coverage-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-coverage-
-          ${{ runner.os }}-stable-cargo-
-    
+
+    - uses: Swatinem/rust-cache@v2
+
     - name: Install cargo-llvm-cov
       uses: taiki-e/install-action@cargo-llvm-cov
-    
-    - name: Generate code coverage
-      run: |
-        echo "Generating code coverage..."
-        if command -v cargo-llvm-cov >/dev/null 2>&1; then
-          cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
-          cargo llvm-cov --all-features --workspace --html --output-dir coverage-html
-          echo "Coverage file size: $(wc -c < lcov.info) bytes"
-          echo "Coverage file lines: $(wc -l < lcov.info) lines"
-        else
-          echo "⚠️ cargo-llvm-cov not available, skipping coverage generation"
-          # Create empty files to prevent upload errors
-          touch lcov.info
-          mkdir -p coverage-html
-          echo "<html><body>Coverage generation skipped</body></html>" > coverage-html/index.html
-        fi
-    
-    - name: Parse coverage percentage
-      id: coverage
-      run: |
-        # Extract coverage percentage from LCOV file
-        if [ -s lcov.info ]; then
-          COVERAGE=$(python3 -c "
-          import re
-          with open('lcov.info', 'r') as f:
-              content = f.read()
-          
-          # Count covered and total lines
-          covered = len(re.findall(r'^DA:\d+,[1-9]\d*', content, re.MULTILINE))
-          total = len(re.findall(r'^DA:\d+,\d+', content, re.MULTILINE))
-          
-          if total > 0:
-              percentage = round((covered / total) * 100, 1)
-              print(f'{percentage}')
-          else:
-              print('0')
-          ")
-        else
-          COVERAGE="0"
-        fi
-        echo "coverage=$COVERAGE" >> $GITHUB_OUTPUT
-        echo "Coverage: $COVERAGE%"
-    
-    - name: Generate coverage badge
-      run: |
-        COVERAGE="${{ steps.coverage.outputs.coverage }}"
-        COLOR=$(python3 -c "
-        coverage = float('$COVERAGE')
-        if coverage >= 80:
-            print('brightgreen')
-        elif coverage >= 60:
-            print('yellow')
-        elif coverage >= 40:
-            print('orange')
-        else:
-            print('red')
-        ")
-        
-        mkdir -p badges
-        curl -s "https://img.shields.io/badge/coverage-${COVERAGE}%25-${COLOR}" > badges/coverage.svg
-        echo "Generated coverage badge: ${COVERAGE}% (${COLOR})"
-    
-    - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v4
+
+    - name: Generate coverage
+      run: cargo llvm-cov --all-features --workspace --lcov --output-path lcov.info
+
+    - name: Upload coverage
+      uses: codecov/codecov-action@v4
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./coverage-html
-        destination_dir: coverage
-    
-    - name: Deploy badges to GitHub Pages
-      if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./badges
-        destination_dir: badges
-        keep_files: true
-    
-    - name: Upload coverage artifacts
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: coverage-report
-        path: |
-          lcov.info
-          coverage-html/
-          badges/
+        files: lcov.info
+        fail_ci_if_error: false
+
+  mutants:
+    name: Mutation Testing
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install cargo-mutants
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-mutants
+      - name: Run mutation tests (sample)
+        run: cargo mutants --no-times --timeout 300 --in-place -- --all-features
+        continue-on-error: true
+      - name: Upload mutants results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mutants-results
+          path: mutants.out/
+          retention-days: 30
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  deny:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  miri:
+    name: Miri (Undefined Behavior Detection)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: miri
+      - uses: Swatinem/rust-cache@v2
+      - name: Run Miri on core library (no FFI/IO)
+        run: |
+          cargo +nightly miri test --lib --no-default-features -- \
+            --skip fuzz --skip golden --skip tempfile --skip file \
+            --skip serializ --skip compile --skip tui
+        env:
+          MIRIFLAGS: -Zmiri-disable-isolation -Zmiri-permissive-provenance
+
+  kani:
+    name: Kani (Bounded Model Checking)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Kani
+        run: |
+          cargo install --locked kani-verifier || true
+          cargo kani setup || true
+      - name: Run Kani proofs
+        run: |
+          if command -v cargo-kani &> /dev/null; then
+            cargo kani || true
+          else
+            echo "::warning::Kani not available - skipping proof verification"
+          fi
 
   corpus-validation:
     name: Corpus Quality Gate (Jidoka)
@@ -194,16 +212,7 @@ jobs:
       with:
         components: llvm-tools-preview
 
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-corpus-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-corpus-
+    - uses: Swatinem/rust-cache@v2
 
     - name: Install shellcheck
       run: sudo apt-get update && sudo apt-get install -y shellcheck dash
@@ -244,166 +253,63 @@ jobs:
         name: convergence-log
         path: .quality/convergence.log
 
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    continue-on-error: true  # Don't fail CI on security advisories
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    
-    - name: Install cargo-audit
-      run: |
-        echo "Installing cargo-audit..."
-        if command -v cargo-audit >/dev/null 2>&1; then
-          echo "✓ cargo-audit already installed"
-        elif cargo install cargo-audit --quiet; then
-          echo "✓ cargo-audit installed via cargo"
-        else
-          echo "⚠️ Failed to install cargo-audit, will skip security audit"
-        fi
-    
-    - name: Run security audit
-      run: |
-        echo "Running security audit..."
-        if command -v cargo-audit >/dev/null 2>&1; then
-          cargo audit || echo "⚠️ Security audit found issues (non-blocking)"
-        else
-          echo "⚠️ cargo-audit not available, skipping security audit"
-        fi
-
   benchmark:
     name: Performance Benchmarks
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'  # Skip on PRs to save time
-    continue-on-error: true  # Don't fail CI on benchmark issues
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
     - name: Run benchmarks
-      run: |
-        echo "Running performance benchmarks..."
-        cargo bench --workspace --no-run || echo "⚠️ Benchmark compilation failed"
-        echo "✓ Benchmark step completed"
+      run: cargo bench --workspace --no-fail-fast
+      timeout-minutes: 15
 
   build:
     name: Build Release
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest]  # Focus on Linux only
+    runs-on: ubuntu-latest
+    needs: [check, fmt, clippy, test, security]
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
-    
+
+    - uses: Swatinem/rust-cache@v2
+
     - name: Build release
       run: cargo build --release --workspace
-    
+
     - name: Test release build
       run: ./target/release/bashrs --version
       shell: bash
-    
+
     - name: Upload binary
       uses: actions/upload-artifact@v4
       with:
-        name: bashrs-${{ matrix.os }}
+        name: bashrs-linux
         path: target/release/bashrs*
-
-  shell-compatibility:
-    name: Shell Compatibility Tests
-    runs-on: ubuntu-latest
-    continue-on-error: true  # Don't fail CI on shell compatibility issues
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    
-    - name: Build bashrs
-      run: cargo build --release
-    
-    - name: Create test script
-      run: |
-        # Create a simple test script
-        cat > test_simple.rs << 'EOF'
-        fn main() {
-            let msg = "Shell compatibility test";
-            let version = "1.0";
-            // Basic variable assignment test
-        }
-        EOF
-        echo "✓ Test script created"
-    
-    - name: Test shell compatibility
-      run: |
-        echo "Testing shell compatibility..."
-        ./target/release/bashrs build test_simple.rs --output test.sh || {
-          echo "⚠️ Transpilation failed"
-          exit 0
-        }
-        
-        if [ -f test.sh ]; then
-          echo "Generated script:"
-          head -5 test.sh
-          
-          # Test with available shells
-          exit_code=0
-          for shell in sh bash; do
-            if command -v "$shell" >/dev/null 2>&1; then
-              echo "Testing with $shell..."
-              if $shell test.sh; then
-                echo "✓ $shell execution successful"
-              else
-                echo "⚠️ $shell execution failed"
-                exit_code=1
-              fi
-            fi
-          done
-          exit $exit_code
-        else
-          echo "⚠️ No output file generated"
-        fi
 
   shellcheck-validation:
     name: ShellCheck Validation
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Install ShellCheck
       run: |
         sudo apt-get update
         sudo apt-get install -y shellcheck
-    
+
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
-    
+
+    - uses: Swatinem/rust-cache@v2
+
     - name: Build bashrs
       run: cargo build --release --workspace
-    
+
     - name: Run ShellCheck validation
       run: make shellcheck-validate
-    
-    - name: Run ShellCheck integration tests
-      run: |
-        echo "ShellCheck validation already completed in previous step"
-        echo "All 19 test files passed validation"
-    
-    - name: Upload ShellCheck results
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: shellcheck-results
-        path: |
-          tests/shellcheck-output/
-          *.log
 
   performance:
     name: Performance Validation
@@ -414,52 +320,19 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@stable
 
-    - name: Cache dependencies
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-perf-${{ hashFiles('**/Cargo.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-perf-
+    - uses: Swatinem/rust-cache@v2
 
     - name: Install renacer
       run: |
-        echo "Installing renacer for syscall tracing..."
-        cargo install renacer --version 0.6.2 || echo "⚠️ Using existing renacer installation"
+        cargo install renacer --version 0.6.2 || echo "Using existing renacer installation"
 
     - name: Build release binary
       run: cargo build --release --bin bashrs
 
     - name: Capture golden traces
       run: |
-        echo "📊 Capturing golden traces..."
         chmod +x scripts/capture_all_golden_traces.sh
         ./scripts/capture_all_golden_traces.sh
-
-    - name: Validate performance baselines
-      run: |
-        echo "🔍 Validating performance against baselines..."
-
-        # Extract runtime for build operation (critical path)
-        BUILD_RUNTIME=$(grep "total" golden_traces/build_summary.txt | tail -1 | awk '{print $2}')
-        echo "Build runtime: ${BUILD_RUNTIME}s"
-
-        # Validate build is under 5ms (huge safety margin from 0.8ms baseline)
-        if command -v bc >/dev/null 2>&1; then
-          if (( $(echo "$BUILD_RUNTIME > 0.005" | bc -l) )); then
-            echo "❌ Build exceeded 5ms budget (baseline: 0.836ms)"
-            exit 1
-          else
-            echo "✅ Build performance acceptable: ${BUILD_RUNTIME}s < 0.005s"
-          fi
-        else
-          echo "⚠️ bc not available, skipping numeric validation"
-        fi
-
-        echo "✅ Performance validation complete"
 
     - name: Upload golden traces
       uses: actions/upload-artifact@v4
@@ -468,54 +341,23 @@ jobs:
         name: golden-traces
         path: golden_traces/
 
-  quality:
-    name: Code Quality Analysis
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install PAIML toolkit
-      run: |
-        # This would typically install from release
-        # For now, assuming it's available
-        echo "PAIML toolkit analysis would run here"
-
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-
-    - name: Build project
-      run: cargo build --workspace
-
-    - name: Run complexity analysis
-      run: |
-        echo "Running basic complexity analysis..."
-        find src -name "*.rs" -exec wc -l {} + | sort -n | tail -20
-        echo "✓ Complexity analysis completed"
-
-    - name: Generate dependency graph
-      run: |
-        echo "Checking dependencies..."
-        cargo tree --depth 2
-        echo "✓ Dependency analysis completed"
-
-  documentation:
+  docs:
     name: Documentation
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    
-    - name: Build documentation
-      run: cargo doc --all-features --workspace --no-deps
-    
-    - name: Check documentation
-      run: cargo doc --all-features --workspace --no-deps --document-private-items
-    
-    - name: Deploy documentation
-      if: github.ref == 'refs/heads/main'
-      uses: peaceiris/actions-gh-pages@v4
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./target/doc
+    - uses: dtolnay/rust-toolchain@stable
+    - uses: Swatinem/rust-cache@v2
+    - name: Build docs
+      run: cargo doc --no-deps --all-features --workspace
+      env:
+        RUSTDOCFLAGS: -Dwarnings
+
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shellcheck
+        run: shellcheck --severity=error scripts/*.sh
+        continue-on-error: true

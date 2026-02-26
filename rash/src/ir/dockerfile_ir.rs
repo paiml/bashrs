@@ -166,7 +166,12 @@ fn emit_run(cmds: &[String], output: &mut String) {
 }
 
 /// Emit a HEALTHCHECK instruction
-fn emit_healthcheck(cmd: &str, interval: &Option<String>, timeout: &Option<String>, output: &mut String) {
+fn emit_healthcheck(
+    cmd: &str,
+    interval: &Option<String>,
+    timeout: &Option<String>,
+    output: &mut String,
+) {
     output.push_str("HEALTHCHECK");
     if let Some(iv) = interval {
         output.push_str(&format!(" --interval={}", iv));

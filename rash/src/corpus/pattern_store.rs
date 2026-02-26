@@ -163,8 +163,7 @@ fn localize_signal_patterns(
                 .filter(|id| {
                     entry_locations
                         .get(*id)
-                        .map(|locs| locs.contains(&ranking.location))
-                        .unwrap_or(false)
+                        .is_some_and(|locs| locs.contains(&ranking.location))
                 })
                 .cloned()
                 .collect();

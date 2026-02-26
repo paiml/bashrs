@@ -169,10 +169,7 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
             true
         } else {
             let char_before = line.chars().nth(pos - 1);
-            matches!(
-                char_before,
-                Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(') | Some('\n')
-            )
+            matches!(char_before, Some(' ' | '\t' | ';' | '&' | '|' | '(' | '\n'))
         };
 
         let after_idx = pos + cmd.len();
@@ -180,10 +177,7 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
             true
         } else {
             let char_after = line.chars().nth(after_idx);
-            matches!(
-                char_after,
-                Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some(')')
-            )
+            matches!(char_after, Some(' ' | '\t' | ';' | '&' | '|' | ')'))
         };
 
         if before_ok && after_ok {
@@ -284,7 +278,7 @@ fn is_validation_context(line: &str) -> bool {
 /// Patterns: if [[ "$VAR" == *".."* ]] or [[ "$VAR" == /* ]]
 fn is_path_validation_check(line: &str) -> bool {
     // Must be an if/test statement
-    if !line.contains("if") && !line.starts_with("[[") && !line.starts_with("[") {
+    if !line.contains("if") && !line.starts_with("[[") && !line.starts_with('[') {
         return false;
     }
 

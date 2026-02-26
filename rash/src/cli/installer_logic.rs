@@ -220,10 +220,7 @@ fn installer_lock_generate(
     Ok(())
 }
 
-pub(crate) fn installer_graph_command(
-    path: &Path,
-    format: InstallerGraphFormat,
-) -> Result<()> {
+pub(crate) fn installer_graph_command(path: &Path, format: InstallerGraphFormat) -> Result<()> {
     use crate::installer::{format_execution_plan, InstallerGraph, InstallerSpec};
 
     // Find installer.toml

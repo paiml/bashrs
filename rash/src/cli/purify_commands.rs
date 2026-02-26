@@ -82,8 +82,7 @@ fn parse_bash_source(
 
     let parse_start = Instant::now();
     let mut parser = BashParser::new(source).map_err(|e| {
-        let diag =
-            crate::bash_parser::parser::format_parse_diagnostic(&e, source, Some(file_str));
+        let diag = crate::bash_parser::parser::format_parse_diagnostic(&e, source, Some(file_str));
         Error::CommandFailed {
             message: format!("{diag}"),
         }
@@ -201,7 +200,12 @@ fn purify_single_file(opts: &PurifyCommandOptions<'_>) -> Result<()> {
     }
 
     if opts.with_tests {
-        purify_generate_tests(opts.output, &purified_bash, opts.property_tests, opts.report)?;
+        purify_generate_tests(
+            opts.output,
+            &purified_bash,
+            opts.property_tests,
+            opts.report,
+        )?;
     }
 
     Ok(())
@@ -285,8 +289,7 @@ fn purify_verify_shellcheck(purified_bash: &str, input: &Path) -> Result<()> {
     use std::process::Command;
 
     // Write purified output to a temp file
-    let temp_dir =
-        std::env::temp_dir().join(format!("bashrs-verify-{}", std::process::id()));
+    let temp_dir = std::env::temp_dir().join(format!("bashrs-verify-{}", std::process::id()));
     fs::create_dir_all(&temp_dir).map_err(Error::Io)?;
     let temp_file = temp_dir.join("purified.sh");
     fs::write(&temp_file, purified_bash).map_err(Error::Io)?;

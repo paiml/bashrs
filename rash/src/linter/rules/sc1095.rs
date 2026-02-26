@@ -55,8 +55,7 @@ pub fn check(source: &str) -> LintResult {
             let after_name_trimmed = after_name.trim_start();
 
             // Check if there's "()" after the name AND there was whitespace between name and ()
-            if after_name_trimmed.starts_with("()")
-                && after_name.len() != after_name_trimmed.len()
+            if after_name_trimmed.starts_with("()") && after_name.len() != after_name_trimmed.len()
             {
                 let line_offset = line.find("function").unwrap_or(0);
                 let col = line_offset + 1;

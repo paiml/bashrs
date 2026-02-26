@@ -30,15 +30,10 @@ pub(crate) fn generate_adversarial_command(
 
     // Write JSONL output
     let jsonl = rows_to_jsonl(&result.rows)?;
-    std::fs::write(output, &jsonl).map_err(|e| {
-        Error::Validation(format!("Failed to write {}: {e}", output.display()))
-    })?;
+    std::fs::write(output, &jsonl)
+        .map_err(|e| Error::Validation(format!("Failed to write {}: {e}", output.display())))?;
 
-    eprintln!(
-        "Wrote {} rows to {}",
-        result.rows.len(),
-        output.display()
-    );
+    eprintln!("Wrote {} rows to {}", result.rows.len(), output.display());
 
     if show_stats || verify {
         eprintln!();

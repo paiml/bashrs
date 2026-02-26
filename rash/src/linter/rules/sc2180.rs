@@ -15,10 +15,10 @@
 // Impact: Syntax error or unexpected behavior
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static MULTIDIM_ARRAY: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\d+\]\[\d+\]").unwrap());
+static MULTIDIM_ARRAY: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\d+\]\[\d+\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

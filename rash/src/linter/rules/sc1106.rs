@@ -17,13 +17,12 @@
 //   [[ $x < $y ]]     # OK in [[ ]] (lexicographic comparison)
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches [ ... < ... ] or [ ... > ... ] (single brackets with < or >)
 /// This pattern looks for single [ followed by content with < or > then ]
 /// but NOT [[ which is a different construct.
-static SINGLE_BRACKET_COMPARE: Lazy<Regex> = Lazy::new(|| {
+static SINGLE_BRACKET_COMPARE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"(?:^|[;\s&|])\[\s+.*\s+([<>])\s+.*\s+\](?:\s|;|$|\||\&)")
         .expect("SC1106 regex must compile")
 });
@@ -49,8 +48,8 @@ pub fn check(source: &str) -> LintResult {
             for (offset, ch) in bracket_content.content.char_indices() {
                 if ch == '<' || ch == '>' {
                     // Check it's surrounded by whitespace (an operator, not part of a word)
-                    let before_ok = offset == 0
-                        || bracket_content.content.as_bytes()[offset - 1] == b' ';
+                    let before_ok =
+                        offset == 0 || bracket_content.content.as_bytes()[offset - 1] == b' ';
                     let after_ok = offset + 1 >= bracket_content.content.len()
                         || bracket_content.content.as_bytes()[offset + 1] == b' ';
 

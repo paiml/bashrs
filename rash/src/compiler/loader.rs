@@ -4,10 +4,9 @@
 
 // use core::slice;
 
-/// ELF structures for parsing
+/// ELF structures for parsing (repr(C) for binary layout compatibility)
 #[repr(C)]
-#[allow(dead_code)]
-struct Elf64Ehdr {
+struct _Elf64Ehdr {
     e_ident: [u8; 16],
     e_type: u16,
     e_machine: u16,
@@ -25,8 +24,7 @@ struct Elf64Ehdr {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
-struct Elf64Phdr {
+struct _Elf64Phdr {
     p_type: u32,
     p_flags: u32,
     p_offset: u64,
@@ -38,8 +36,7 @@ struct Elf64Phdr {
 }
 
 #[repr(C)]
-#[allow(dead_code)]
-struct Elf64Shdr {
+struct _Elf64Shdr {
     sh_name: u32,
     sh_type: u32,
     sh_flags: u64,

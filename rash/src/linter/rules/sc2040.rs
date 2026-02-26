@@ -18,10 +18,9 @@
 // This rule focuses on commands where -o is clearly wrong.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static COMMAND_WITH_O_FLAG: Lazy<Regex> = Lazy::new(|| {
+static COMMAND_WITH_O_FLAG: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: rm/cp/mv/chmod/chown with -o flag
     // Skip: set (valid), grep/sed/awk (valid), find (valid)
     Regex::new(r"\b(rm|cp|mv|chmod|chown|ls|cat|touch|mkdir)\s+[^|;&\n]*-o\b").unwrap()

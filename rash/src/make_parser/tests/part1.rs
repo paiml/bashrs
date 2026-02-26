@@ -4,7 +4,6 @@
 use super::super::*;
 use crate::make_parser::ast::{MakeCondition, Span, VarFlavor};
 
-
 /// RED PHASE: Test for RULE-SYNTAX-001 - Basic rule syntax
 ///
 /// This test validates the fundamental building block of Makefiles:

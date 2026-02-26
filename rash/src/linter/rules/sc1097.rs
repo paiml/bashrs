@@ -13,18 +13,15 @@
 //   [[ "$x" == "hello" ]]   # == is fine in [[ ]]
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches `[ ... == ... ]` inside a single-bracket test
-static SINGLE_BRACKET_DOUBLE_EQ: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\s+.*\s+==\s+.*\s+\]").unwrap()
-});
+static SINGLE_BRACKET_DOUBLE_EQ: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\s+.*\s+==\s+.*\s+\]").unwrap());
 
 /// Matches `[[ ` double-bracket open (to exclude)
-static DOUBLE_BRACKET_OPEN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\[").unwrap()
-});
+static DOUBLE_BRACKET_OPEN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\[").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

@@ -1,10 +1,9 @@
 // SC2295: Expansions inside ${} need to be quoted separately
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_EXPANSION_IN_BRACE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*:-\$[a-zA-Z_]").unwrap());
+static UNQUOTED_EXPANSION_IN_BRACE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*:-\$[a-zA-Z_]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

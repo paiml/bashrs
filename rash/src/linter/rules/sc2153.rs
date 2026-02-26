@@ -13,15 +13,14 @@
 //   echo "$var"
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
 
-static VAR_ASSIGNMENT: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=").unwrap());
+static VAR_ASSIGNMENT: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=").unwrap());
 
-static VAR_REFERENCE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap());
+static VAR_REFERENCE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap());
 
 /// Check if a line is a comment
 fn is_comment_line(line: &str) -> bool {

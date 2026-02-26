@@ -15,10 +15,9 @@
 // Impact: Pattern doesn't match as intended, unexpected behavior
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNESCAPED_BACKSLASH_IN_CLASS: Lazy<Regex> = Lazy::new(|| {
+static UNESCAPED_BACKSLASH_IN_CLASS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match character classes with unescaped backslashes followed by letters
     // [something\d] or [something\w] etc
     Regex::new(r"\[([^\]]*\\[a-zA-Z][^\]]*)\]").unwrap()

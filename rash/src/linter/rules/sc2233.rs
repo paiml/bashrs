@@ -1,9 +1,8 @@
 // SC2233: Remove spaces around operators in arithmetic context
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SPACED_OPERATOR: Lazy<Regex> = Lazy::new(|| {
+static SPACED_OPERATOR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $((expr + expr)) with spaces around operator
     Regex::new(r"\$\(\([^)]+\s[+\-*/]\s[^)]+\)\)").unwrap()
 });

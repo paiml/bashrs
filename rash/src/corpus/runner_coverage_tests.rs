@@ -45,7 +45,10 @@ fn test_RUNNER_COV_001_parse_lcov_coverage_ratio_with_valid_data() {
 
     let score = result.score();
     // C = 0.75 * 15 = 11.25, but A=30, D/E/F/G all 0
-    assert!((score - 41.25).abs() < 0.01, "Score should be 41.25, got {score}");
+    assert!(
+        (score - 41.25).abs() < 0.01,
+        "Score should be 41.25, got {score}"
+    );
 }
 
 #[test]
@@ -57,7 +60,10 @@ fn test_RUNNER_COV_002_parse_lcov_full_coverage() {
 
     let score = result.score();
     // A=30, C=15
-    assert!((score - 45.0).abs() < 0.01, "Score should be 45.0, got {score}");
+    assert!(
+        (score - 45.0).abs() < 0.01,
+        "Score should be 45.0, got {score}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +96,10 @@ fn test_RUNNER_COV_004_classify_error_unsupported_construct() {
     result.error_category = Some("unsupported_construct".to_string());
     result.error_confidence = Some(0.5);
 
-    assert_eq!(result.error_category.as_deref(), Some("unsupported_construct"));
+    assert_eq!(
+        result.error_category.as_deref(),
+        Some("unsupported_construct")
+    );
     assert_eq!(result.score(), 0.0);
 }
 
@@ -145,7 +154,7 @@ fn test_RUNNER_COV_009_score_b_l1_fail_l2_l3_zero() {
         transpiled: true,
         schema_valid: true,
         output_contains: false,
-        output_exact: true,   // Would be 8 points but gated by L1
+        output_exact: true,      // Would be 8 points but gated by L1
         output_behavioral: true, // Would be 7 points but gated by L1
         lint_clean: true,
         deterministic: true,
@@ -153,7 +162,10 @@ fn test_RUNNER_COV_009_score_b_l1_fail_l2_l3_zero() {
     };
     let score = result.score();
     // A=30, B_L1=0, B_L2=0 (gated), B_L3=0 (gated), D=10, E=10
-    assert!((score - 50.0).abs() < 0.01, "Score should be 50.0, got {score}");
+    assert!(
+        (score - 50.0).abs() < 0.01,
+        "Score should be 50.0, got {score}"
+    );
 }
 
 #[test]
@@ -173,7 +185,10 @@ fn test_RUNNER_COV_010_score_b_l1_pass_l2_l3_pass() {
     };
     let score = result.score();
     // A=30, B_L1=10, B_L2=8, B_L3=7, C=15, D=10, E=10, F=5, G=5 = 100
-    assert!((score - 100.0).abs() < 0.01, "Score should be 100.0, got {score}");
+    assert!(
+        (score - 100.0).abs() < 0.01,
+        "Score should be 100.0, got {score}"
+    );
 }
 
 #[test]
@@ -188,7 +203,10 @@ fn test_RUNNER_COV_011_score_partial_output() {
     };
     let score = result.score();
     // A=30, B_L1=10, B_L2=0, B_L3=0
-    assert!((score - 40.0).abs() < 0.01, "Score should be 40.0, got {score}");
+    assert!(
+        (score - 40.0).abs() < 0.01,
+        "Score should be 40.0, got {score}"
+    );
 }
 
 #[test]
@@ -203,7 +221,10 @@ fn test_RUNNER_COV_012_score_metamorphic_and_cross_shell() {
     };
     let score = result.score();
     // A=30, B_L1=10, F=5, G=5 = 50
-    assert!((score - 50.0).abs() < 0.01, "Score should be 50.0, got {score}");
+    assert!(
+        (score - 50.0).abs() < 0.01,
+        "Score should be 50.0, got {score}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -231,7 +252,10 @@ fn test_RUNNER_COV_014_score_v1_full_score() {
     };
     let score = result.score_v1();
     // A=40, B=25, C=15, D=10, E=10 = 100
-    assert!((score - 100.0).abs() < 0.01, "V1 score should be 100.0, got {score}");
+    assert!(
+        (score - 100.0).abs() < 0.01,
+        "V1 score should be 100.0, got {score}"
+    );
 }
 
 #[test]
@@ -391,7 +415,10 @@ fn test_RUNNER_COV_024_detect_regression_bash_passed_dropped() {
     let current = make_convergence(95.0, 90, 70, 8, 7, 96.0, 90.0, 88.0, 85);
     let report = current.detect_regressions(&previous);
     assert!(report.has_regressions());
-    let reg = report.regressions.iter().find(|r| r.dimension == "bash_passed");
+    let reg = report
+        .regressions
+        .iter()
+        .find(|r| r.dimension == "bash_passed");
     assert!(reg.is_some());
 }
 
@@ -427,7 +454,10 @@ fn test_RUNNER_COV_027_detect_regression_bash_score_dropped() {
     let current = make_convergence(95.0, 90, 75, 8, 7, 90.0, 90.0, 88.0, 85);
     let report = current.detect_regressions(&previous);
     assert!(report.has_regressions());
-    let reg = report.regressions.iter().find(|r| r.dimension == "bash_score");
+    let reg = report
+        .regressions
+        .iter()
+        .find(|r| r.dimension == "bash_score");
     assert!(reg.is_some());
 }
 
@@ -571,7 +601,10 @@ fn test_RUNNER_COV_036_output_exact_true_adds_8_points() {
     };
     let score = result.score();
     // A=30, B_L1=10, B_L2=8
-    assert!((score - 48.0).abs() < 0.01, "Score should be 48.0, got {score}");
+    assert!(
+        (score - 48.0).abs() < 0.01,
+        "Score should be 48.0, got {score}"
+    );
 }
 
 #[test]
@@ -585,7 +618,10 @@ fn test_RUNNER_COV_037_output_behavioral_true_adds_7_points() {
     };
     let score = result.score();
     // A=30, B_L1=10, B_L3=7
-    assert!((score - 47.0).abs() < 0.01, "Score should be 47.0, got {score}");
+    assert!(
+        (score - 47.0).abs() < 0.01,
+        "Score should be 47.0, got {score}"
+    );
 }
 
 // ---------------------------------------------------------------------------

@@ -38,9 +38,9 @@ pub fn check(source: &str) -> LintResult {
 
     // Pattern: [[ ... ]] with unquoted variables
     // We look for $VAR or ${VAR} inside [[ ... ]]
-    let bracket_pattern = Regex::new(r#"\[\[([^\]]+)\]\]"#).unwrap();
+    let bracket_pattern = Regex::new(r"\[\[([^\]]+)\]\]").unwrap();
     let var_pattern =
-        Regex::new(r#"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))"#).unwrap();
+        Regex::new(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed
@@ -104,7 +104,7 @@ fn is_quoted_at_position(line: &str, pos: usize) -> bool {
 
     // Check if there's a quote immediately before
     let before_char = line.chars().nth(pos.saturating_sub(1));
-    if matches!(before_char, Some('"') | Some('\'')) {
+    if matches!(before_char, Some('"' | '\'')) {
         return true;
     }
 
@@ -126,8 +126,7 @@ fn is_pattern_position(content: &str, var_pos: usize) -> bool {
     let condition_start = before
         .rfind("&&")
         .or_else(|| before.rfind("||"))
-        .map(|pos| pos + 2)
-        .unwrap_or(0);
+        .map_or(0, |pos| pos + 2);
 
     let current_condition = &content[condition_start..var_pos];
 

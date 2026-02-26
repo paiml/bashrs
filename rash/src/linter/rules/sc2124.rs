@@ -14,10 +14,9 @@
 //   var="${array[*]}"       # Concatenate array elements
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_TO_STRING: Lazy<Regex> = Lazy::new(|| {
+static ARRAY_TO_STRING: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: var="$@" or var="${array[@]}"
     Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*)="(\$@|\$\{[A-Za-z_][A-Za-z0-9_]*\[@\]\})""#).unwrap()
 });

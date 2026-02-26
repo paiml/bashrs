@@ -34,8 +34,7 @@ impl RestrictedAst {
         Ok(())
     }
 
-    #[allow(dead_code)]
-    fn check_no_recursion(&self) -> Result<(), String> {
+    fn _check_no_recursion(&self) -> Result<(), String> {
         let mut call_graph: HashMap<String, Vec<String>> = HashMap::new();
 
         // Build call graph
@@ -322,7 +321,7 @@ impl Stmt {
         condition.validate()?;
         self.validate_stmt_block(then_block)?;
         if let Some(else_stmts) = else_block {
-            self.validate_stmt_block(else_stmts)?
+            self.validate_stmt_block(else_stmts)?;
         }
         Ok(())
     }
@@ -408,7 +407,9 @@ impl Stmt {
                 iter.collect_function_calls(calls);
                 collect_calls_from_block(body, calls);
             }
-            Stmt::While { condition, body, .. } => {
+            Stmt::While {
+                condition, body, ..
+            } => {
                 condition.collect_function_calls(calls);
                 collect_calls_from_block(body, calls);
             }

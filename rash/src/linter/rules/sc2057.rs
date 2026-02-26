@@ -26,10 +26,9 @@
 // Note: = and == are equivalent in [[]] but only = is POSIX in [].
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static INVALID_OPERATORS: Lazy<Regex> = Lazy::new(|| {
+static INVALID_OPERATORS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match common invalid operators
     Regex::new(r"\[\s+[^\]]*\s+(===|=!|<>|=>|=<)\s+[^\]]*\]").unwrap()
 });

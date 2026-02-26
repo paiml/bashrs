@@ -41,36 +41,51 @@ pub const COMMENTS: &[&str] = &[
     "# Log rotation",
 ];
 
-pub const SETUP_LINES: &[&str] = &[
-    "set -e",
-    "set -u",
-    "set -eu",
-    "set -euo pipefail",
-    "",
-];
+pub const SETUP_LINES: &[&str] = &["set -e", "set -u", "set -eu", "set -euo pipefail", ""];
 
-pub const TRAILING_LINES: &[&str] = &[
-    "echo \"Done.\"",
-    "exit 0",
-    "echo \"Complete.\"",
-    "",
-];
+pub const TRAILING_LINES: &[&str] = &["echo \"Done.\"", "exit 0", "echo \"Complete.\"", ""];
 
 // ── Variable name pools ────────────────────────────────────────────────
 
 const VARNAMES: &[&str] = &[
-    "result", "value", "output", "token", "count", "idx", "status", "retval",
-    "data", "item", "name", "code", "flag", "tmp", "buf",
+    "result", "value", "output", "token", "count", "idx", "status", "retval", "data", "item",
+    "name", "code", "flag", "tmp", "buf",
 ];
 
 const DIRNAMES: &[&str] = &[
-    "/tmp/build", "/var/cache/app", "/opt/deploy", "/home/user/data",
-    "/srv/app/logs", "/tmp/staging", "/var/lib/service", "/opt/release",
+    "/tmp/build",
+    "/var/cache/app",
+    "/opt/deploy",
+    "/home/user/data",
+    "/srv/app/logs",
+    "/tmp/staging",
+    "/var/lib/service",
+    "/opt/release",
+];
+
+/// Directories that do NOT trigger SEC013 (/tmp/, /var/tmp/) or SEC014.
+/// Used by class 1 (needs-quoting) and class 3 (non-idempotent) templates
+/// to avoid cross-contamination into class 4 (unsafe).
+const SAFE_DIRNAMES: &[&str] = &[
+    "/opt/deploy",
+    "/srv/data",
+    "/opt/release",
+    "/home/user/data",
+    "/var/lib/service",
+    "/opt/app/data",
+    "/srv/cache",
+    "/home/deploy/work",
 ];
 
 const FILENAMES: &[&str] = &[
-    "config.txt", "output.log", "data.json", "report.csv",
-    "cache.db", "session.tmp", "state.dat", "results.xml",
+    "config.txt",
+    "output.log",
+    "data.json",
+    "report.csv",
+    "cache.db",
+    "session.tmp",
+    "state.dat",
+    "results.xml",
 ];
 
 const EXTENSIONS: &[&str] = &["log", "txt", "tmp", "bak", "dat", "csv", "json", "xml"];
@@ -83,8 +98,11 @@ const URLS: &[&str] = &[
 ];
 
 const HOSTS: &[&str] = &[
-    "server1.example.com", "db.internal.net", "cache.local",
-    "api.example.org", "worker-1.cluster.local",
+    "server1.example.com",
+    "db.internal.net",
+    "cache.local",
+    "api.example.org",
+    "worker-1.cluster.local",
 ];
 
 const SECRETS: &[&str] = &[
@@ -95,13 +113,19 @@ const SECRETS: &[&str] = &[
 ];
 
 const LINK_TARGETS: &[&str] = &[
-    "/usr/local/bin/app", "/opt/app/current", "/etc/app/config",
-    "/home/user/.config/tool", "/usr/bin/tool-v2",
+    "/usr/local/bin/app",
+    "/opt/app/current",
+    "/etc/app/config",
+    "/home/user/.config/tool",
+    "/usr/bin/tool-v2",
 ];
 
 const LINK_NAMES: &[&str] = &[
-    "/usr/local/bin/app-link", "/opt/app/latest", "/etc/app/active",
-    "/home/user/.local/bin/tool", "/usr/bin/tool",
+    "/usr/local/bin/app-link",
+    "/opt/app/latest",
+    "/etc/app/active",
+    "/home/user/.local/bin/tool",
+    "/usr/bin/tool",
 ];
 
 // ── Class 2: Non-deterministic templates (25) ──────────────────────────
@@ -337,58 +361,107 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             family: "NONIDEM-MKDIR-SIMPLE",
             target_class: 3,
             template: "mkdir \"{DIR}\"",
-            params: &[ParamSlot { name: "DIR", pool: DIRNAMES }],
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: SAFE_DIRNAMES,
+            }],
         },
         AdversarialTemplate {
             family: "NONIDEM-MKDIR-NESTED",
             target_class: 3,
             template: "mkdir \"{DIR}/sub\"\necho \"Created directory\"",
-            params: &[ParamSlot { name: "DIR", pool: DIRNAMES }],
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: SAFE_DIRNAMES,
+            }],
         },
         AdversarialTemplate {
             family: "NONIDEM-MKDIR-VAR",
             target_class: 3,
-            template: "TARGET_DIR=\"{DIR}\"\nmkdir \"${TARGET_DIR}\"",
-            params: &[ParamSlot { name: "DIR", pool: DIRNAMES }],
+            template: "echo \"Setting up {DIR}\"\nmkdir \"{DIR}\"",
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: SAFE_DIRNAMES,
+            }],
         },
         AdversarialTemplate {
             family: "NONIDEM-MKDIR-MULTI",
             target_class: 3,
             template: "mkdir \"{DIR1}\"\nmkdir \"{DIR2}\"",
             params: &[
-                ParamSlot { name: "DIR1", pool: DIRNAMES },
-                ParamSlot { name: "DIR2", pool: &["/tmp/output", "/var/run/app", "/opt/data", "/srv/cache", "/tmp/work"] },
+                ParamSlot {
+                    name: "DIR1",
+                    pool: SAFE_DIRNAMES,
+                },
+                ParamSlot {
+                    name: "DIR2",
+                    pool: &[
+                        "/opt/data",
+                        "/srv/cache",
+                        "/opt/work",
+                        "/var/lib/run",
+                        "/srv/output",
+                    ],
+                },
             ],
         },
         AdversarialTemplate {
             family: "NONIDEM-MKDIR-LOOP",
             target_class: 3,
-            template: "for d in {A} {B} {C}; do\n  mkdir \"/tmp/$d\"\ndone",
+            template: "mkdir \"/opt/{A}\"\nmkdir \"/opt/{B}\"\nmkdir \"/opt/{C}\"",
             params: &[
-                ParamSlot { name: "A", pool: &["logs", "data", "cache", "tmp", "build"] },
-                ParamSlot { name: "B", pool: &["output", "state", "run", "work", "stage"] },
-                ParamSlot { name: "C", pool: &["backup", "archive", "export", "dist", "pkg"] },
+                ParamSlot {
+                    name: "A",
+                    pool: &["logs", "data", "cache", "tmp", "build"],
+                },
+                ParamSlot {
+                    name: "B",
+                    pool: &["output", "state", "run", "work", "stage"],
+                },
+                ParamSlot {
+                    name: "C",
+                    pool: &["backup", "archive", "export", "dist", "pkg"],
+                },
             ],
         },
         AdversarialTemplate {
             family: "NONIDEM-MKDIR-INSTALL",
             target_class: 3,
-            template: "echo \"Installing to {DIR}\"\nmkdir \"{DIR}\"\nmkdir \"{DIR}/bin\"\necho \"Done.\"",
-            params: &[ParamSlot { name: "DIR", pool: &["/opt/myapp", "/usr/local/app", "/home/user/tool", "/opt/service", "/srv/deploy"] }],
+            template:
+                "echo \"Installing to {DIR}\"\nmkdir \"{DIR}\"\nmkdir \"{DIR}/bin\"\necho \"Done.\"",
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: &[
+                    "/opt/myapp",
+                    "/usr/local/app",
+                    "/home/user/tool",
+                    "/opt/service",
+                    "/srv/deploy",
+                ],
+            }],
         },
         AdversarialTemplate {
             family: "NONIDEM-MKDIR-DEPLOY",
             target_class: 3,
-            template: "APP_DIR=\"{DIR}\"\nmkdir \"${APP_DIR}\"\nmkdir \"${APP_DIR}/config\"\necho \"Deployed.\"",
-            params: &[ParamSlot { name: "DIR", pool: DIRNAMES }],
+            template: "mkdir \"{DIR}\"\nmkdir \"{DIR}/config\"\necho \"Deployed.\"",
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: SAFE_DIRNAMES,
+            }],
         },
         AdversarialTemplate {
             family: "NONIDEM-MKDIR-CONDITIONAL",
             target_class: 3,
             template: "if [ \"{MODE}\" = \"init\" ]; then\n  mkdir \"{DIR}\"\nfi",
             params: &[
-                ParamSlot { name: "MODE", pool: &["init", "setup", "install", "create", "bootstrap"] },
-                ParamSlot { name: "DIR", pool: DIRNAMES },
+                ParamSlot {
+                    name: "MODE",
+                    pool: &["init", "setup", "install", "create", "bootstrap"],
+                },
+                ParamSlot {
+                    name: "DIR",
+                    pool: SAFE_DIRNAMES,
+                },
             ],
         },
         // rm without -f (9)
@@ -397,33 +470,63 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             target_class: 3,
             template: "rm \"{DIR}/{FILE}\"",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/cache", "/opt/data", "/srv/logs", "/home/user"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &[
+                        "/opt/data",
+                        "/srv/logs",
+                        "/home/user",
+                        "/var/lib/app",
+                        "/opt/cache",
+                    ],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
             family: "NONIDEM-RM-DIR",
             target_class: 3,
             template: "rm -r \"{DIR}\"",
-            params: &[ParamSlot { name: "DIR", pool: DIRNAMES }],
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: SAFE_DIRNAMES,
+            }],
         },
         AdversarialTemplate {
             family: "NONIDEM-RM-MULTI",
             target_class: 3,
             template: "rm \"{DIR}/{FILE1}\"\nrm \"{DIR}/{FILE2}\"",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/cache", "/opt/data", "/srv/logs"] },
-                ParamSlot { name: "FILE1", pool: FILENAMES },
-                ParamSlot { name: "FILE2", pool: &["lock.pid", "socket.sock", "temp.dat", "old.bak"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/srv/logs", "/var/lib/app", "/home/user/work"],
+                },
+                ParamSlot {
+                    name: "FILE1",
+                    pool: FILENAMES,
+                },
+                ParamSlot {
+                    name: "FILE2",
+                    pool: &["lock.pid", "socket.sock", "temp.dat", "old.bak"],
+                },
             ],
         },
         AdversarialTemplate {
             family: "NONIDEM-RM-VAR",
             target_class: 3,
-            template: "CLEANUP_TARGET=\"{DIR}/{FILE}\"\nrm \"${CLEANUP_TARGET}\"",
+            template: "DEST=\"{DIR}/{FILE}\"\nrm \"${DEST}\"",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/cache", "/opt/data", "/srv/logs"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/srv/logs", "/var/lib/app", "/home/user/work"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
@@ -431,8 +534,14 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             target_class: 3,
             template: "rm \"{DIR}\"/*.{EXT}",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/cache", "/opt/data", "/srv/logs"] },
-                ParamSlot { name: "EXT", pool: &["tmp", "bak", "log", "old", "cache"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/srv/logs", "/var/lib/app", "/home/user/work"],
+                },
+                ParamSlot {
+                    name: "EXT",
+                    pool: &["tmp", "bak", "log", "old", "cache"],
+                },
             ],
         },
         AdversarialTemplate {
@@ -440,34 +549,67 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             target_class: 3,
             template: "echo \"Cleaning up\"\nrm \"{DIR}/{FILE}\"\necho \"Clean.\"",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/cache", "/opt/data", "/srv/logs"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/srv/logs", "/var/lib/app", "/home/user/work"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
             family: "NONIDEM-RM-CACHE",
             target_class: 3,
             template: "rm -r \"{DIR}/cache\"\necho \"Cache cleared.\"",
-            params: &[ParamSlot { name: "DIR", pool: &["/var", "/opt/app", "/home/user/.local", "/tmp", "/srv"] }],
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: &["/var/lib", "/opt/app", "/home/user/.local", "/srv", "/opt"],
+            }],
         },
         AdversarialTemplate {
             family: "NONIDEM-RM-CONDITIONAL",
             target_class: 3,
             template: "if [ \"{ACTION}\" = \"clean\" ]; then\n  rm \"{DIR}/{FILE}\"\nfi",
             params: &[
-                ParamSlot { name: "ACTION", pool: &["clean", "reset", "purge", "clear", "wipe"] },
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/cache", "/opt/data", "/srv/logs"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "ACTION",
+                    pool: &["clean", "reset", "purge", "clear", "wipe"],
+                },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/srv/logs", "/var/lib/app", "/home/user/work"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
             family: "NONIDEM-RM-LOOP",
             target_class: 3,
-            template: "for f in {A} {B} {C}; do\n  rm \"/tmp/$f\"\ndone",
+            template: "for f in {A} {B} {C}; do\n  rm \"$f\"\ndone",
             params: &[
-                ParamSlot { name: "A", pool: &["old.log", "cache.db", "temp.txt", "lock.pid", "run.sock"] },
-                ParamSlot { name: "B", pool: &["state.dat", "session.tmp", "token.key", "pid.lock", "flag.set"] },
-                ParamSlot { name: "C", pool: &["dump.sql", "trace.out", "core.err", "heap.prof", "gc.log"] },
+                ParamSlot {
+                    name: "A",
+                    pool: &["old.log", "cache.db", "temp.txt", "lock.pid", "run.sock"],
+                },
+                ParamSlot {
+                    name: "B",
+                    pool: &[
+                        "state.dat",
+                        "session.tmp",
+                        "token.key",
+                        "pid.lock",
+                        "flag.set",
+                    ],
+                },
+                ParamSlot {
+                    name: "C",
+                    pool: &["dump.sql", "trace.out", "core.err", "heap.prof", "gc.log"],
+                },
             ],
         },
         // ln -s without -f (8)
@@ -476,8 +618,14 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             target_class: 3,
             template: "ln -s \"{TARGET}\" \"{LINK}\"",
             params: &[
-                ParamSlot { name: "TARGET", pool: LINK_TARGETS },
-                ParamSlot { name: "LINK", pool: LINK_NAMES },
+                ParamSlot {
+                    name: "TARGET",
+                    pool: LINK_TARGETS,
+                },
+                ParamSlot {
+                    name: "LINK",
+                    pool: LINK_NAMES,
+                },
             ],
         },
         AdversarialTemplate {
@@ -485,35 +633,75 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             target_class: 3,
             template: "ln -s \"/opt/{APP}/v{VER}\" \"/opt/{APP}/current\"",
             params: &[
-                ParamSlot { name: "APP", pool: &["myapp", "service", "tool", "daemon", "agent"] },
-                ParamSlot { name: "VER", pool: &["1.0", "2.0", "3.1", "4.0", "1.5"] },
+                ParamSlot {
+                    name: "APP",
+                    pool: &["myapp", "service", "tool", "daemon", "agent"],
+                },
+                ParamSlot {
+                    name: "VER",
+                    pool: &["1.0", "2.0", "3.1", "4.0", "1.5"],
+                },
             ],
         },
         AdversarialTemplate {
             family: "NONIDEM-LN-DOTFILE",
             target_class: 3,
-            template: "ln -s \"{TARGET}\" \"$HOME/.{NAME}\"",
+            template: "ln -s \"{TARGET}\" \"/home/user/.{NAME}\"",
             params: &[
-                ParamSlot { name: "TARGET", pool: &["/etc/app/config", "/opt/tool/rc", "/usr/share/defaults/conf", "/var/lib/settings", "/srv/config/main"] },
-                ParamSlot { name: "NAME", pool: &["apprc", "toolrc", "config", "profile", "settings"] },
+                ParamSlot {
+                    name: "TARGET",
+                    pool: &[
+                        "/etc/app/config",
+                        "/opt/tool/rc",
+                        "/usr/share/defaults/conf",
+                        "/var/lib/settings",
+                        "/srv/config/main",
+                    ],
+                },
+                ParamSlot {
+                    name: "NAME",
+                    pool: &["apprc", "toolrc", "config", "profile", "settings"],
+                },
             ],
         },
         AdversarialTemplate {
             family: "NONIDEM-LN-BIN",
             target_class: 3,
             template: "ln -s \"/opt/{APP}/bin/{APP}\" \"/usr/local/bin/{APP}\"",
-            params: &[
-                ParamSlot { name: "APP", pool: &["myapp", "tool", "cli", "daemon", "agent"] },
-            ],
+            params: &[ParamSlot {
+                name: "APP",
+                pool: &["myapp", "tool", "cli", "daemon", "agent"],
+            }],
         },
         AdversarialTemplate {
             family: "NONIDEM-LN-RELATIVE",
             target_class: 3,
-            template: "ln -s \"../{SRC}\" \"{DIR}/{LINK}\"",
+            template: "ln -s \"/opt/{SRC}\" \"{DIR}/{LINK}\"",
             params: &[
-                ParamSlot { name: "SRC", pool: &["shared/lib", "common/config", "base/data", "core/assets", "vendor/deps"] },
-                ParamSlot { name: "DIR", pool: &["/opt/app", "/srv/deploy", "/var/lib/svc", "/home/user/proj", "/tmp/build"] },
-                ParamSlot { name: "LINK", pool: &["lib", "config", "data", "assets", "deps"] },
+                ParamSlot {
+                    name: "SRC",
+                    pool: &[
+                        "shared/lib",
+                        "common/config",
+                        "base/data",
+                        "core/assets",
+                        "vendor/deps",
+                    ],
+                },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &[
+                        "/opt/app",
+                        "/srv/deploy",
+                        "/var/lib/svc",
+                        "/home/user/proj",
+                        "/opt/build",
+                    ],
+                },
+                ParamSlot {
+                    name: "LINK",
+                    pool: &["lib", "config", "data", "assets", "deps"],
+                },
             ],
         },
         AdversarialTemplate {
@@ -521,8 +709,20 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             target_class: 3,
             template: "ln -s \"/etc/{APP}/{FILE}\" \"/opt/{APP}/config/{FILE}\"",
             params: &[
-                ParamSlot { name: "APP", pool: &["myapp", "service", "tool", "daemon", "agent"] },
-                ParamSlot { name: "FILE", pool: &["app.conf", "settings.yaml", "config.toml", "env.sh", "params.json"] },
+                ParamSlot {
+                    name: "APP",
+                    pool: &["myapp", "service", "tool", "daemon", "agent"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: &[
+                        "app.conf",
+                        "settings.yaml",
+                        "config.toml",
+                        "env.sh",
+                        "params.json",
+                    ],
+                },
             ],
         },
         AdversarialTemplate {
@@ -530,10 +730,34 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             target_class: 3,
             template: "ln -s \"{TARGET1}\" \"{LINK1}\"\nln -s \"{TARGET2}\" \"{LINK2}\"",
             params: &[
-                ParamSlot { name: "TARGET1", pool: LINK_TARGETS },
-                ParamSlot { name: "LINK1", pool: LINK_NAMES },
-                ParamSlot { name: "TARGET2", pool: &["/opt/lib/libapp.so", "/usr/share/app/data", "/var/lib/app/state", "/etc/app/defaults", "/srv/app/assets"] },
-                ParamSlot { name: "LINK2", pool: &["/usr/lib/libapp.so", "/opt/app/data", "/var/app/state", "/etc/defaults", "/srv/assets"] },
+                ParamSlot {
+                    name: "TARGET1",
+                    pool: LINK_TARGETS,
+                },
+                ParamSlot {
+                    name: "LINK1",
+                    pool: LINK_NAMES,
+                },
+                ParamSlot {
+                    name: "TARGET2",
+                    pool: &[
+                        "/opt/lib/libapp.so",
+                        "/usr/share/app/data",
+                        "/var/lib/app/state",
+                        "/etc/app/defaults",
+                        "/srv/app/assets",
+                    ],
+                },
+                ParamSlot {
+                    name: "LINK2",
+                    pool: &[
+                        "/usr/lib/libapp.so",
+                        "/opt/app/data",
+                        "/var/app/state",
+                        "/etc/defaults",
+                        "/srv/assets",
+                    ],
+                },
             ],
         },
         AdversarialTemplate {
@@ -541,8 +765,14 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
             target_class: 3,
             template: "mkdir \"{DIR}\"\nln -s \"{TARGET}\" \"{DIR}/link\"",
             params: &[
-                ParamSlot { name: "DIR", pool: DIRNAMES },
-                ParamSlot { name: "TARGET", pool: LINK_TARGETS },
+                ParamSlot {
+                    name: "DIR",
+                    pool: SAFE_DIRNAMES,
+                },
+                ParamSlot {
+                    name: "TARGET",
+                    pool: LINK_TARGETS,
+                },
             ],
         },
     ]
@@ -683,18 +913,18 @@ pub fn unsafe_templates() -> Vec<AdversarialTemplate> {
                 ParamSlot { name: "CMD", pool: &["cat", "wc -l", "head -1", "sort", "chmod 644"] },
             ],
         },
-        // SEC008 source untrusted (2)
+        // SEC001/SEC008 source untrusted (2)
         AdversarialTemplate {
             family: "UNSAFE-SOURCE-UNTRUSTED",
             target_class: 4,
-            template: "source \"/tmp/{FILE}\"",
+            template: "eval \"$(cat /tmp/{FILE})\"",
             params: &[ParamSlot { name: "FILE", pool: &["env.sh", "config.sh", "setup.sh", "vars.sh", "init.sh"] }],
         },
         AdversarialTemplate {
             family: "UNSAFE-SOURCE-DOT",
             target_class: 4,
-            template: ". \"/var/tmp/{FILE}\"",
-            params: &[ParamSlot { name: "FILE", pool: &["env.sh", "config.sh", "setup.sh", "vars.sh", "init.sh"] }],
+            template: "curl -sS \"{URL}\" | sh",
+            params: &[ParamSlot { name: "URL", pool: URLS }],
         },
         // Additional unsafe patterns (7)
         AdversarialTemplate {
@@ -712,13 +942,13 @@ pub fn unsafe_templates() -> Vec<AdversarialTemplate> {
         AdversarialTemplate {
             family: "UNSAFE-SUDO-RM-VAR",
             target_class: 4,
-            template: "TARGET=\"{DIR}\"\nsudo rm -r \"${TARGET}\"",
+            template: "TARGET=\"{DIR}\"\nsudo rm -rf $TARGET",
             params: &[ParamSlot { name: "DIR", pool: &["/var/lib/app", "/opt/service", "/srv/data", "/etc/app", "/usr/local/share"] }],
         },
         AdversarialTemplate {
             family: "UNSAFE-SQL-INJECT",
             target_class: 4,
-            template: "QUERY=\"SELECT * FROM {TABLE} WHERE id='${USER_INPUT}'\"\necho \"${QUERY}\"",
+            template: "mysql -e \"SELECT * FROM {TABLE} WHERE id=$USER_INPUT\"",
             params: &[
                 ParamSlot { name: "TABLE", pool: &["users", "orders", "sessions", "accounts", "logs"] },
             ],
@@ -726,16 +956,16 @@ pub fn unsafe_templates() -> Vec<AdversarialTemplate> {
         AdversarialTemplate {
             family: "UNSAFE-XARGS-UNQUOTED",
             target_class: 4,
-            template: "find \"{DIR}\" -name \"*.{EXT}\" | xargs rm",
+            template: "find \"{DIR}\" -name \"*.{EXT}\" -exec sh -c 'rm \"{}\"' \\;",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/cache", "/opt/data"] },
+                ParamSlot { name: "DIR", pool: &["/opt/data", "/var/lib/cache", "/srv/data"] },
                 ParamSlot { name: "EXT", pool: &["tmp", "bak", "old"] },
             ],
         },
         AdversarialTemplate {
             family: "UNSAFE-BACKTICK-EVAL",
             target_class: 4,
-            template: "{VAR}=\"echo injected\"\n`${VAR}`",
+            template: "{VAR}=\"echo injected\"\neval \"${VAR}\"",
             params: &[ParamSlot { name: "VAR", pool: &["cmd", "op", "action", "expr", "run"] }],
         },
         AdversarialTemplate {
@@ -758,30 +988,42 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             family: "QUOTE-ECHO-VAR",
             target_class: 1,
             template: "{VAR}=\"hello world\"\necho ${VAR}",
-            params: &[ParamSlot { name: "VAR", pool: VARNAMES }],
+            params: &[ParamSlot {
+                name: "VAR",
+                pool: VARNAMES,
+            }],
         },
         AdversarialTemplate {
             family: "QUOTE-CD-VAR",
             target_class: 1,
-            template: "TARGET=\"{DIR}\"\ncd $TARGET",
-            params: &[ParamSlot { name: "DIR", pool: DIRNAMES }],
+            template: "DEST=\"{DIR}\"\ncd $DEST",
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: SAFE_DIRNAMES,
+            }],
         },
         AdversarialTemplate {
             family: "QUOTE-CP-SRC",
             target_class: 1,
-            template: "SRC=\"{DIR}/{FILE}\"\nDST=\"/tmp/backup\"\nmkdir -p \"${DST}\"\ncp $SRC \"${DST}/\"",
-            params: &[
-                ParamSlot { name: "DIR", pool: &["/opt/app", "/srv/data", "/var/lib/svc", "/home/user", "/etc/app"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
-            ],
+            template: "SRC=\"{FILE}\"\ncp $SRC backup/",
+            params: &[ParamSlot {
+                name: "FILE",
+                pool: FILENAMES,
+            }],
         },
         AdversarialTemplate {
             family: "QUOTE-TEST-FILE",
             target_class: 1,
             template: "FILE=\"{DIR}/{FILE}\"\nif test -f $FILE; then\n  echo \"exists\"\nfi",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/lib", "/opt", "/srv", "/home/user"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/var/lib", "/opt", "/srv", "/home/user"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
@@ -789,8 +1031,26 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "CONFIG=\"{DIR}/{FILE}\"\ncat $CONFIG",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/etc", "/opt/app/config", "/var/lib/svc", "/srv/settings", "/home/user/.config"] },
-                ParamSlot { name: "FILE", pool: &["app.conf", "settings.ini", "config.yaml", "env.sh", "params.json"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &[
+                        "/etc",
+                        "/opt/app/config",
+                        "/var/lib/svc",
+                        "/srv/settings",
+                        "/home/user/.config",
+                    ],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: &[
+                        "app.conf",
+                        "settings.ini",
+                        "config.yaml",
+                        "env.sh",
+                        "params.json",
+                    ],
+                },
             ],
         },
         AdversarialTemplate {
@@ -798,8 +1058,20 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "SCRIPT=\"{DIR}/{FILE}\"\nchmod +x $SCRIPT",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/usr/local/bin", "/opt/app/bin", "/home/user/bin", "/srv/scripts", "/var/lib/cron"] },
-                ParamSlot { name: "FILE", pool: &["run.sh", "start.sh", "deploy.sh", "backup.sh", "cleanup.sh"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &[
+                        "/usr/local/bin",
+                        "/opt/app/bin",
+                        "/home/user/bin",
+                        "/srv/scripts",
+                        "/var/lib/cron",
+                    ],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: &["run.sh", "start.sh", "deploy.sh", "backup.sh", "cleanup.sh"],
+                },
             ],
         },
         AdversarialTemplate {
@@ -807,8 +1079,14 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "OLD=\"{DIR}/{FILE}\"\nNEW=\"{DIR}/{FILE}.bak\"\nmv $OLD \"${NEW}\"",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/cache", "/opt/data", "/srv/files"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/work", "/var/lib/app", "/opt/data", "/srv/files"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
@@ -816,9 +1094,24 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "LOGFILE=\"{DIR}/{FILE}\"\ngrep \"{PATTERN}\" $LOGFILE",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/var/log", "/tmp", "/opt/logs", "/srv/logs"] },
-                ParamSlot { name: "FILE", pool: &["app.log", "error.log", "access.log", "system.log", "debug.log"] },
-                ParamSlot { name: "PATTERN", pool: &["ERROR", "WARN", "FAIL", "timeout", "refused"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/var/log", "/tmp", "/opt/logs", "/srv/logs"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: &[
+                        "app.log",
+                        "error.log",
+                        "access.log",
+                        "system.log",
+                        "debug.log",
+                    ],
+                },
+                ParamSlot {
+                    name: "PATTERN",
+                    pool: &["ERROR", "WARN", "FAIL", "timeout", "refused"],
+                },
             ],
         },
         AdversarialTemplate {
@@ -826,8 +1119,14 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "INPUT=\"{DIR}/{FILE}\"\nwc -l $INPUT",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/log", "/opt/data", "/srv/files"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/var/log", "/srv/data", "/srv/files"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
@@ -835,9 +1134,18 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "DATA=\"{DIR}/{FILE}\"\nhead -n {N} $DATA",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/log", "/opt/data", "/srv/files"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
-                ParamSlot { name: "N", pool: &["1", "5", "10", "20", "50"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/var/log", "/srv/data", "/srv/files"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
+                ParamSlot {
+                    name: "N",
+                    pool: &["1", "5", "10", "20", "50"],
+                },
             ],
         },
         AdversarialTemplate {
@@ -845,9 +1153,24 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "LOG=\"{DIR}/{FILE}\"\ntail -n {N} $LOG",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/var/log", "/tmp", "/opt/logs", "/srv/logs"] },
-                ParamSlot { name: "FILE", pool: &["app.log", "error.log", "access.log", "system.log", "debug.log"] },
-                ParamSlot { name: "N", pool: &["10", "20", "50", "100", "200"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/var/log", "/tmp", "/opt/logs", "/srv/logs"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: &[
+                        "app.log",
+                        "error.log",
+                        "access.log",
+                        "system.log",
+                        "debug.log",
+                    ],
+                },
+                ParamSlot {
+                    name: "N",
+                    pool: &["10", "20", "50", "100", "200"],
+                },
             ],
         },
         AdversarialTemplate {
@@ -855,8 +1178,20 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "INPUT=\"{DIR}/{FILE}\"\nsort $INPUT",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/data", "/opt/output", "/srv/files"] },
-                ParamSlot { name: "FILE", pool: &["data.csv", "names.txt", "scores.dat", "results.tsv", "entries.log"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/work", "/var/data", "/opt/output", "/srv/files"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: &[
+                        "data.csv",
+                        "names.txt",
+                        "scores.dat",
+                        "results.tsv",
+                        "entries.log",
+                    ],
+                },
             ],
         },
         AdversarialTemplate {
@@ -864,9 +1199,18 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "FILE_A=\"{DIR}/{FILE1}\"\nFILE_B=\"{DIR}/{FILE2}\"\ndiff $FILE_A $FILE_B",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/opt/data", "/var/lib", "/srv/files"] },
-                ParamSlot { name: "FILE1", pool: &["old.txt", "before.log", "expected.dat", "baseline.csv"] },
-                ParamSlot { name: "FILE2", pool: &["new.txt", "after.log", "actual.dat", "current.csv"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/work", "/opt/data", "/var/lib", "/srv/files"],
+                },
+                ParamSlot {
+                    name: "FILE1",
+                    pool: &["old.txt", "before.log", "expected.dat", "baseline.csv"],
+                },
+                ParamSlot {
+                    name: "FILE2",
+                    pool: &["new.txt", "after.log", "actual.dat", "current.csv"],
+                },
             ],
         },
         AdversarialTemplate {
@@ -874,8 +1218,14 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "FILEPATH=\"{DIR}/{FILE}\"\nNAME=$(basename $FILEPATH)",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/opt/data", "/var/lib", "/srv/files"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/work", "/opt/data", "/var/lib", "/srv/files"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
@@ -883,29 +1233,52 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "FILEPATH=\"{DIR}/{FILE}\"\nPARENT=$(dirname $FILEPATH)",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp/sub", "/opt/data/v1", "/var/lib/app", "/srv/files/latest"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &[
+                        "/opt/data/sub",
+                        "/opt/data/v1",
+                        "/var/lib/app",
+                        "/srv/files/latest",
+                    ],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
             family: "QUOTE-LS-DIR",
             target_class: 1,
             template: "WORKDIR=\"{DIR}\"\nls $WORKDIR",
-            params: &[ParamSlot { name: "DIR", pool: DIRNAMES }],
+            params: &[ParamSlot {
+                name: "DIR",
+                pool: SAFE_DIRNAMES,
+            }],
         },
         AdversarialTemplate {
             family: "QUOTE-READLINK",
             target_class: 1,
             template: "LINK=\"{LINK}\"\nreadlink $LINK",
-            params: &[ParamSlot { name: "LINK", pool: LINK_NAMES }],
+            params: &[ParamSlot {
+                name: "LINK",
+                pool: LINK_NAMES,
+            }],
         },
         AdversarialTemplate {
             family: "QUOTE-STAT-FILE",
             target_class: 1,
             template: "TARGET=\"{DIR}/{FILE}\"\nstat $TARGET",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/log", "/opt/data", "/srv/files"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/var/log", "/srv/data", "/srv/files"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
@@ -913,18 +1286,39 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "DEST=\"{DIR}/{FILE}\"\nmkdir -p \"{DIR}\"\ntouch $DEST",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp/out", "/var/cache/app", "/opt/data/new", "/srv/staging"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/out", "/var/lib/app", "/opt/data/new", "/srv/staging"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
             family: "QUOTE-CHOWN-FILE",
             target_class: 1,
-            template: "TARGET=\"{DIR}/{FILE}\"\nchown \"{OWNER}\" $TARGET",
+            template: "DEST=\"{DIR}/{FILE}\"\nchown \"{OWNER}\" $DEST",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/opt/app", "/var/lib/svc", "/srv/data", "/home/user"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
-                ParamSlot { name: "OWNER", pool: &["root:root", "www-data:www-data", "nobody:nogroup", "app:app", "deploy:deploy"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/app", "/var/lib/svc", "/srv/data", "/home/user"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
+                ParamSlot {
+                    name: "OWNER",
+                    pool: &[
+                        "root:root",
+                        "www-data:www-data",
+                        "nobody:nogroup",
+                        "app:app",
+                        "deploy:deploy",
+                    ],
+                },
             ],
         },
         AdversarialTemplate {
@@ -932,8 +1326,14 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "BIN=\"{DIR}/{APP}\"\ninstall -m 755 $BIN /usr/local/bin/",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp/build", "/opt/stage", "/var/dist", "/srv/release"] },
-                ParamSlot { name: "APP", pool: &["myapp", "tool", "cli", "daemon", "agent"] },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/build", "/opt/stage", "/var/dist", "/srv/release"],
+                },
+                ParamSlot {
+                    name: "APP",
+                    pool: &["myapp", "tool", "cli", "daemon", "agent"],
+                },
             ],
         },
         AdversarialTemplate {
@@ -941,8 +1341,20 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "{VAR}=\"{VAL}\"\nprintf \"%s\\n\" ${{VAR}}",
             params: &[
-                ParamSlot { name: "VAR", pool: VARNAMES },
-                ParamSlot { name: "VAL", pool: &["hello world", "test data", "output value", "some text", "status ok"] },
+                ParamSlot {
+                    name: "VAR",
+                    pool: VARNAMES,
+                },
+                ParamSlot {
+                    name: "VAL",
+                    pool: &[
+                        "hello world",
+                        "test data",
+                        "output value",
+                        "some text",
+                        "status ok",
+                    ],
+                },
             ],
         },
         AdversarialTemplate {
@@ -950,17 +1362,30 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "{VAR}=\"{VAL}\"\nif [ ${{VAR}} = \"expected\" ]; then\n  echo \"match\"\nfi",
             params: &[
-                ParamSlot { name: "VAR", pool: VARNAMES },
-                ParamSlot { name: "VAL", pool: &["expected", "test", "check", "verify", "confirm"] },
+                ParamSlot {
+                    name: "VAR",
+                    pool: VARNAMES,
+                },
+                ParamSlot {
+                    name: "VAL",
+                    pool: &["expected", "test", "check", "verify", "confirm"],
+                },
             ],
         },
         AdversarialTemplate {
             family: "QUOTE-WHILE-READ",
             target_class: 1,
-            template: "FILE=\"{DIR}/{FILE}\"\nwhile read -r line; do\n  echo $line\ndone < \"${FILE}\"",
+            template:
+                "FILE=\"{DIR}/{FILE}\"\nwhile read -r line; do\n  echo $line\ndone < \"${FILE}\"",
             params: &[
-                ParamSlot { name: "DIR", pool: &["/tmp", "/var/data", "/opt/input", "/srv/files"] },
-                ParamSlot { name: "FILE", pool: FILENAMES },
+                ParamSlot {
+                    name: "DIR",
+                    pool: &["/opt/data", "/var/data", "/opt/input", "/srv/files"],
+                },
+                ParamSlot {
+                    name: "FILE",
+                    pool: FILENAMES,
+                },
             ],
         },
         AdversarialTemplate {
@@ -968,8 +1393,20 @@ pub fn needs_quoting_templates() -> Vec<AdversarialTemplate> {
             target_class: 1,
             template: "{VAR}=\"{VAL}\"\nexport PATH=${{VAR}}:\"${PATH}\"",
             params: &[
-                ParamSlot { name: "VAR", pool: &["BIN_DIR", "LIB_DIR", "APP_HOME", "TOOL_PATH", "EXTRA_PATH"] },
-                ParamSlot { name: "VAL", pool: &["/opt/bin", "/usr/local/lib", "/home/user/bin", "/srv/tools", "/var/lib/app/bin"] },
+                ParamSlot {
+                    name: "VAR",
+                    pool: &["BIN_DIR", "LIB_DIR", "APP_HOME", "TOOL_PATH", "EXTRA_PATH"],
+                },
+                ParamSlot {
+                    name: "VAL",
+                    pool: &[
+                        "/opt/bin",
+                        "/usr/local/lib",
+                        "/home/user/bin",
+                        "/srv/tools",
+                        "/var/lib/app/bin",
+                    ],
+                },
             ],
         },
     ]

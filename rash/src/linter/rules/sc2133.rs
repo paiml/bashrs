@@ -20,20 +20,19 @@
 // Impact: Incomplete expressions cause syntax errors
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARITH_EXPR: Lazy<Regex> = Lazy::new(|| {
+static ARITH_EXPR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(( ... )) arithmetic expressions
     Regex::new(r"\$\(\(([^)]+)\)\)").unwrap()
 });
 
-static VAR_NAME: Lazy<Regex> = Lazy::new(|| {
+static VAR_NAME: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: word boundaries (variable names)
     Regex::new(r"\b([a-zA-Z_][a-zA-Z0-9_]*)\b").unwrap()
 });
 
-static INCOMPLETE_ARITH: Lazy<Regex> = Lazy::new(|| {
+static INCOMPLETE_ARITH: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(( expr operator )) with no second operand
     Regex::new(r"\$\(\([^)]*[+\-*/]\s*\)\)").unwrap()
 });

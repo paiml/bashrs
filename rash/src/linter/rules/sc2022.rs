@@ -22,10 +22,9 @@
 // the previous character", not glob-style "any characters".
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static STAR_IN_DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
+static STAR_IN_DOUBLE_BRACKET: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [[ $var == pattern* ]] or [[ $var != pattern* ]]
     // Looking for * in pattern matching context
     Regex::new(r"\[\[.*(==|!=)\s*[^\s\]]*\*[^\]]*\]\]").unwrap()
@@ -46,7 +45,7 @@ pub fn check(source: &str) -> LintResult {
             let matched = m.as_str();
 
             // Skip if it looks like a proper regex pattern (has .* or other regex syntax)
-            if matched.contains(".*") || matched.contains("^") || matched.contains("$") {
+            if matched.contains(".*") || matched.contains('^') || matched.contains('$') {
                 continue;
             }
 

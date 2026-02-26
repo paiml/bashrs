@@ -5,7 +5,7 @@ use std::path::Path;
 fn classify_line(trimmed: &str, blank: &mut usize, comment: &mut usize, code: &mut usize) {
     if trimmed.is_empty() {
         *blank += 1;
-    } else if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with("*") {
+    } else if trimmed.starts_with("//") || trimmed.starts_with("/*") || trimmed.starts_with('*') {
         *comment += 1;
     } else {
         *code += 1;
@@ -31,7 +31,12 @@ fn analyze_directory(path: &Path) -> (usize, usize, usize, usize) {
                 if let Ok(content) = fs::read_to_string(&path) {
                     for line in content.lines() {
                         total_lines += 1;
-                        classify_line(line.trim(), &mut blank_lines, &mut comment_lines, &mut code_lines);
+                        classify_line(
+                            line.trim(),
+                            &mut blank_lines,
+                            &mut comment_lines,
+                            &mut code_lines,
+                        );
                     }
                 }
             }

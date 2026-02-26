@@ -317,8 +317,7 @@ pub struct DryRunContext {
     user_ops: Vec<UserGroupOperation>,
 
     /// Captured environment variable changes (reserved for future use)
-    #[allow(dead_code)]
-    env_changes: HashMap<String, Option<String>>,
+    _env_changes: HashMap<String, Option<String>>,
 
     /// Step-by-step simulation log
     simulation_log: Vec<SimulationEntry>,

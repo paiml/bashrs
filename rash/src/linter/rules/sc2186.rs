@@ -1,9 +1,9 @@
 // SC2186: Useless echo in pipeline
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ECHO_PIPE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\becho\s+[^|]+\s*\|\s*cat\b").unwrap());
+static ECHO_PIPE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\becho\s+[^|]+\s*\|\s*cat\b").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

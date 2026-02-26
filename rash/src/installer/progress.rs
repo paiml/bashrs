@@ -512,8 +512,7 @@ impl ProgressRenderer for TerminalRenderer {
         let elapsed = Self::format_duration(progress.elapsed());
         let remaining = progress
             .estimated_remaining()
-            .map(Self::format_duration)
-            .unwrap_or_else(|| "calculating...".to_string());
+            .map_or_else(|| "calculating...".to_string(), Self::format_duration);
 
         let checkpoint = progress.checkpoint.as_deref().unwrap_or("none");
 

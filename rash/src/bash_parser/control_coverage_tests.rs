@@ -48,7 +48,10 @@ fn test_if_trailing_redirect() {
 #[test]
 fn test_if_semicolon_before_then() {
     let ast = parse_ok("if [ 1 = 1 ] ; then echo ok ; fi");
-    assert!(ast.statements.iter().any(|s| matches!(s, BashStmt::If { .. })));
+    assert!(ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::If { .. })));
 }
 
 #[test]
@@ -67,9 +70,11 @@ fn test_if_multiple_elif_blocks() {
 #[test]
 fn test_while_variants() {
     assert!(BashParser::new("while [ $i -lt 10 ]; do echo $i; done")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     assert!(BashParser::new("while [ $i -lt 5 ]\ndo\n  echo $i\ndone")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     parse_no_panic("while read line; do echo $line; done < /tmp/in");
     parse_no_panic("while [ -f /tmp/lock ] 2>/dev/null; do sleep 1; done");
 }
@@ -81,9 +86,13 @@ fn test_while_variants() {
 #[test]
 fn test_until_variants() {
     assert!(BashParser::new("until [ $done = yes ]; do echo w; done")
-        .and_then(|mut p| p.parse()).is_ok());
-    assert!(BashParser::new("until [ -f /tmp/ready ]\ndo\n  sleep 1\ndone")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
+    assert!(
+        BashParser::new("until [ -f /tmp/ready ]\ndo\n  sleep 1\ndone")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
     parse_no_panic("until [ -f /tmp/done ] 2>/dev/null; do sleep 1; done");
 }
 
@@ -175,13 +184,15 @@ fn test_for_multiple_items() {
 #[test]
 fn test_for_items_newline_terminated() {
     assert!(BashParser::new("for x in a b c\ndo\n  echo $x\ndone")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
 }
 
 #[test]
 fn test_for_with_variable_and_cmd_subst() {
     assert!(BashParser::new("for f in $FILES; do echo $f; done")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     parse_no_panic("for f in $(ls); do echo $f; done");
 }
 
@@ -192,10 +203,16 @@ fn test_for_c_style_from_arithmetic_token() {
 
 #[test]
 fn test_for_c_style_parts_parsing() {
-    let result = BashParser::new("for ((x=1; x<=5; x++)); do echo $x; done")
-        .and_then(|mut p| p.parse());
+    let result =
+        BashParser::new("for ((x=1; x<=5; x++)); do echo $x; done").and_then(|mut p| p.parse());
     if let Ok(ast) = &result {
-        if let BashStmt::ForCStyle { init, condition, increment, .. } = &ast.statements[0] {
+        if let BashStmt::ForCStyle {
+            init,
+            condition,
+            increment,
+            ..
+        } = &ast.statements[0]
+        {
             assert!(!init.is_empty());
             assert!(!condition.is_empty());
             assert!(!increment.is_empty());
@@ -230,13 +247,17 @@ fn test_for_error_missing_variable() {
 #[test]
 fn test_select_single_item() {
     assert!(BashParser::new("select opt in options; do echo $opt; done")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
 }
 
 #[test]
 fn test_select_multiple_items() {
     let ast = parse_ok("select opt in a b c d; do echo $opt; break; done");
-    if let BashStmt::Select { variable, items, .. } = &ast.statements[0] {
+    if let BashStmt::Select {
+        variable, items, ..
+    } = &ast.statements[0]
+    {
         assert_eq!(variable, "opt");
         assert!(matches!(items, BashExpr::Array(_)));
     }
@@ -244,10 +265,16 @@ fn test_select_multiple_items() {
 
 #[test]
 fn test_select_newline_and_semicolon() {
-    assert!(BashParser::new("select x in a b c\ndo\n  echo $x\n  break\ndone")
-        .and_then(|mut p| p.parse()).is_ok());
-    assert!(BashParser::new("select color in red green blue; do echo $color; break; done")
-        .and_then(|mut p| p.parse()).is_ok());
+    assert!(
+        BashParser::new("select x in a b c\ndo\n  echo $x\n  break\ndone")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
+    assert!(
+        BashParser::new("select color in red green blue; do echo $color; break; done")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
 }
 
 #[test]
@@ -279,11 +306,18 @@ fn test_case_with_pipe_alternatives() {
 fn test_case_pattern_types() {
     // Variable, number, glob, string patterns
     assert!(BashParser::new("case $x in\n  $E) echo m ;;\nesac")
-        .and_then(|mut p| p.parse()).is_ok());
-    assert!(BashParser::new("case $x in\n  1) echo one ;;\n  2) echo two ;;\nesac")
-        .and_then(|mut p| p.parse()).is_ok());
-    assert!(BashParser::new("case $f in\n  *.txt) echo t ;;\n  *) echo o ;;\nesac")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
+    assert!(
+        BashParser::new("case $x in\n  1) echo one ;;\n  2) echo two ;;\nesac")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
+    assert!(
+        BashParser::new("case $f in\n  *.txt) echo t ;;\n  *) echo o ;;\nesac")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
     parse_no_panic("case $x in\n  \"hello\") echo g ;;\nesac");
 }
 
@@ -295,12 +329,21 @@ fn test_case_bracket_class_pattern() {
 #[test]
 fn test_case_arm_body_variants() {
     // Multiple stmts, empty body, semicolon-separated stmts
-    assert!(BashParser::new("case $x in\n  a) echo a; echo again ;;\nesac")
-        .and_then(|mut p| p.parse()).is_ok());
-    assert!(BashParser::new("case $x in\n  skip) ;;\n  *) echo d ;;\nesac")
-        .and_then(|mut p| p.parse()).is_ok());
-    assert!(BashParser::new("case $x in\n  a) echo one; echo two ;;\nesac")
-        .and_then(|mut p| p.parse()).is_ok());
+    assert!(
+        BashParser::new("case $x in\n  a) echo a; echo again ;;\nesac")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
+    assert!(
+        BashParser::new("case $x in\n  skip) ;;\n  *) echo d ;;\nesac")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
+    assert!(
+        BashParser::new("case $x in\n  a) echo one; echo two ;;\nesac")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
 }
 
 #[test]
@@ -313,14 +356,16 @@ fn test_case_terminators() {
 #[test]
 fn test_case_double_semicolon_tokens() {
     // Two consecutive Semicolon tokens as ;; (vs single identifier)
-    assert!(BashParser::new("case $x in\na) echo a\n;;\nb) echo b\n;;\nesac")
-        .and_then(|mut p| p.parse()).is_ok());
+    assert!(
+        BashParser::new("case $x in\na) echo a\n;;\nb) echo b\n;;\nesac")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
 }
 
 #[test]
 fn test_case_missing_esac_error() {
-    let result = BashParser::new("case $x in\n  a) echo a ;;\n")
-        .and_then(|mut p| p.parse());
+    let result = BashParser::new("case $x in\n  a) echo a ;;\n").and_then(|mut p| p.parse());
     assert!(result.is_err());
 }
 
@@ -344,7 +389,12 @@ fn test_case_word_is_variable() {
 #[test]
 fn test_nested_control_flow() {
     parse_no_panic("while true; do\n  if [ $x = 5 ]; then break; fi\n  continue\ndone");
-    assert!(BashParser::new("for x in 1 2 3; do\n  if [ $x = 2 ]; then\n    echo found\n  fi\ndone")
-        .and_then(|mut p| p.parse()).is_ok());
-    parse_no_panic("while read cmd; do\n  case $cmd in\n    quit) break ;;\n    *) echo u ;;\n  esac\ndone");
+    assert!(BashParser::new(
+        "for x in 1 2 3; do\n  if [ $x = 2 ]; then\n    echo found\n  fi\ndone"
+    )
+    .and_then(|mut p| p.parse())
+    .is_ok());
+    parse_no_panic(
+        "while read cmd; do\n  case $cmd in\n    quit) break ;;\n    *) echo u ;;\n  esac\ndone",
+    );
 }

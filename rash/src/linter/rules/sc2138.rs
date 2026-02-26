@@ -17,20 +17,19 @@
 // Impact: Portability issues, may not work in all shells
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static FUNCTION_IN_IF: Lazy<Regex> = Lazy::new(|| {
+static FUNCTION_IN_IF: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: if/elif/else ... function name() {
     Regex::new(r"\b(if|elif|else)\b[^;]*;\s*then[^\n]*\bfunction\b").unwrap()
 });
 
-static FUNCTION_IN_LOOP: Lazy<Regex> = Lazy::new(|| {
+static FUNCTION_IN_LOOP: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: for/while/until ... function name() {
     Regex::new(r"\b(for|while|until)\b[^;]*;\s*do[^\n]*\bfunction\b").unwrap()
 });
 
-static FUNCTION_AS_NAME: Lazy<Regex> = Lazy::new(|| {
+static FUNCTION_AS_NAME: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: function() { ... } - 'function' used as function name
     Regex::new(r"\bfunction\s*\(\s*\)\s*\{").unwrap()
 });

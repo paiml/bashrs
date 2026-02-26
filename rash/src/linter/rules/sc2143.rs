@@ -17,20 +17,19 @@
 // Impact: Performance - grep -q is much faster for large files
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static GREP_IN_TEST_Z: Lazy<Regex> = Lazy::new(|| {
+static GREP_IN_TEST_Z: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ -z "$(grep ...)" ]
     Regex::new(r#"\[\s+-z\s+"?\$\(grep\s+"#).unwrap()
 });
 
-static GREP_IN_TEST_N: Lazy<Regex> = Lazy::new(|| {
+static GREP_IN_TEST_N: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ -n "$(grep ...)" ]
     Regex::new(r#"\[\s+-n\s+"?\$\(grep\s+"#).unwrap()
 });
 
-static GREP_IN_TEST_DIRECT: Lazy<Regex> = Lazy::new(|| {
+static GREP_IN_TEST_DIRECT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ "$(grep ...)" ] or if [ "$(grep ...)" ]
     Regex::new(r#"\[\s+"?\$\(grep\s+"#).unwrap()
 });

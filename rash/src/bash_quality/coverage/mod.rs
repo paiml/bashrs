@@ -58,7 +58,7 @@ impl CoverageReport {
             .filter(|(_, &covered)| !covered)
             .map(|(line, _)| *line)
             .collect();
-        uncovered.sort();
+        uncovered.sort_unstable();
         uncovered
     }
 

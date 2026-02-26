@@ -328,7 +328,7 @@ fn execute_test(source: &str, test_name: &str) -> Result<TestResult, String> {
 
     // Write script with test execution
     let test_script = format!(
-        r#"#!/bin/bash
+        r"#!/bin/bash
 
 # Source the original script
 {}
@@ -336,7 +336,7 @@ fn execute_test(source: &str, test_name: &str) -> Result<TestResult, String> {
 # Run the test function and capture exit code
 {}
 exit $?
-"#,
+",
         source, test_name
     );
 

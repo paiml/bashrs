@@ -134,8 +134,12 @@ impl RuntimeScore {
         let layer_count = estimate.layer_estimates.len();
         let bloat_count = estimate.bloat_patterns.len();
         let layer_score = Self::calculate_layer_score(layer_count, bloat_count);
-        let suggestions =
-            Self::build_suggestions(&estimate.bloat_patterns, layer_count, estimate.total_estimated, max_size);
+        let suggestions = Self::build_suggestions(
+            &estimate.bloat_patterns,
+            layer_count,
+            estimate.total_estimated,
+            max_size,
+        );
         let score = (size_score * 0.6 + layer_score * 0.4).clamp(0.0, 100.0);
 
         Self {

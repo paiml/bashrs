@@ -87,7 +87,7 @@ pub fn check(source: &str) -> LintResult {
                     if after_test.contains("cat")
                         || after_test.contains("source")
                         || after_test.contains("rm")
-                        || after_test.contains(">")
+                        || after_test.contains('>')
                         || after_test.contains("cp")
                         || after_test.contains("mv")
                     {

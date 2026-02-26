@@ -2899,7 +2899,11 @@ end_of_record
         let mut fail_count = 0;
         let mut sample_count = 0;
 
-        for entry in registry.entries.iter().filter(|e| e.format == CorpusFormat::Bash) {
+        for entry in registry
+            .entries
+            .iter()
+            .filter(|e| e.format == CorpusFormat::Bash)
+        {
             let result = crate::transpile(&entry.input, config.clone());
             if let Ok(output) = result {
                 let lint = crate::linter::rules::lint_shell(&output);
@@ -2936,9 +2940,6 @@ end_of_record
         // This test is diagnostic — it always passes but prints useful info
         // The actual assertion verifies exclusions work for SEC001/REL001
         let runner = CorpusRunner::new(config);
-        assert!(runner.check_lint(
-            "#!/bin/sh\neval echo hello\n",
-            CorpusFormat::Bash
-        ));
+        assert!(runner.check_lint("#!/bin/sh\neval echo hello\n", CorpusFormat::Bash));
     }
 }

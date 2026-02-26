@@ -200,7 +200,7 @@ impl<T: Ord + Copy> Default for IntervalSet<T> {
 impl Transform {
     /// Monoid composition with optimization
     pub fn compose(self, other: Self) -> Self {
-        use Transform::*;
+        use Transform::{Identity, Sequence, WhitespaceNormalize};
         match (self, other) {
             (Identity, x) | (x, Identity) => x,
 

@@ -1,9 +1,8 @@
 // SC2231: Quote variables in case patterns to avoid glob expansion
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_VAR_IN_CASE: Lazy<Regex> = Lazy::new(|| {
+static UNQUOTED_VAR_IN_CASE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: case pattern with unquoted variable ($var or ${var})
     Regex::new(r"case\s+\$[{]?\w+[}]?\s+in").unwrap()
 });

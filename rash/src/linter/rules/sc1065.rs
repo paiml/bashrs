@@ -15,15 +15,13 @@
 //   function myfunc { echo "$1"; }
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches function declarations with non-empty parentheses content.
 /// Handles both `function name(args)` and `name(args)` styles.
 /// Ignores empty parens `()`.
-static FUNC_WITH_PARAMS: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?:function\s+)?\w+\s*\(([^)]+)\)\s*\{").unwrap()
-});
+static FUNC_WITH_PARAMS: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"(?:function\s+)?\w+\s*\(([^)]+)\)\s*\{").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

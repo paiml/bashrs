@@ -2,11 +2,11 @@
 #![allow(clippy::expect_used)]
 #![allow(unused_imports)]
 
-use super::super::*;
 use super::super::ast::Redirect;
 use super::super::lexer::Lexer;
 use super::super::parser::BashParser;
 use super::super::semantic::SemanticAnalyzer;
+use super::super::*;
 
 #[test]
 fn test_VAR_002_path_security_considerations() {

@@ -72,10 +72,18 @@ fn generate_statement(stmt: &BashStmt) -> String {
         BashStmt::Case { word, arms, .. } => generate_stmt_case(word, arms),
         BashStmt::Pipeline { commands, .. } => generate_stmt_pipeline(commands),
         BashStmt::AndList { left, right, .. } => {
-            format!("{} && {}", generate_statement(left), generate_statement(right))
+            format!(
+                "{} && {}",
+                generate_statement(left),
+                generate_statement(right)
+            )
         }
         BashStmt::OrList { left, right, .. } => {
-            format!("{} || {}", generate_statement(left), generate_statement(right))
+            format!(
+                "{} || {}",
+                generate_statement(left),
+                generate_statement(right)
+            )
         }
         BashStmt::BraceGroup { body, .. } => generate_stmt_brace_group(body),
         BashStmt::Coproc { name, body, .. } => generate_stmt_coproc(name.as_deref(), body),

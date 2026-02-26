@@ -31,9 +31,18 @@ fn test_coverage_load_full_all_formats() {
         .filter(|e| matches!(e.format, CorpusFormat::Dockerfile))
         .count();
 
-    assert!(bash_count > 5000, "Should have >5000 bash entries, got {bash_count}");
-    assert!(make_count > 100, "Should have >100 makefile entries, got {make_count}");
-    assert!(docker_count > 100, "Should have >100 dockerfile entries, got {docker_count}");
+    assert!(
+        bash_count > 5000,
+        "Should have >5000 bash entries, got {bash_count}"
+    );
+    assert!(
+        make_count > 100,
+        "Should have >100 makefile entries, got {make_count}"
+    );
+    assert!(
+        docker_count > 100,
+        "Should have >100 dockerfile entries, got {docker_count}"
+    );
 }
 
 #[test]
@@ -41,7 +50,11 @@ fn test_coverage_load_full_ids_valid() {
     let registry = CorpusRegistry::load_full();
     for entry in &registry.entries {
         assert!(!entry.id.is_empty(), "Entry should have non-empty id");
-        assert!(!entry.name.is_empty(), "Entry {} should have non-empty name", entry.id);
+        assert!(
+            !entry.name.is_empty(),
+            "Entry {} should have non-empty name",
+            entry.id
+        );
         assert!(
             !entry.input.is_empty(),
             "Entry {} should have non-empty input",

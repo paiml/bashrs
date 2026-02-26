@@ -1,10 +1,10 @@
 //! Corpus B2 diagnostic commands: classification, diagnosis, and fix application.
 
-use crate::cli::args::CorpusFormatArg;
-use crate::models::{Error, Result};
-use super::corpus_score_print_commands::corpus_load_last_run;
 use super::corpus_b2_fix_commands::corpus_apply_b2_fixes;
+use super::corpus_score_print_commands::corpus_load_last_run;
+use crate::cli::args::CorpusFormatArg;
 use crate::cli::logic::truncate_str;
+use crate::models::{Error, Result};
 
 pub(crate) fn classify_b2_only(expected: &str, actual: &str) -> (String, String) {
     let actual_lines: Vec<&str> = actual.lines().map(str::trim).collect();
@@ -225,7 +225,9 @@ pub(crate) fn corpus_fix_b2(apply: bool) -> Result<()> {
 }
 
 /// Collect all B2 fixes: both B2-only (B1 passes) and B1+B2 diverged.
-pub(crate) fn collect_b2_fixes(score: &crate::corpus::runner::CorpusScore) -> Vec<(String, String, String)> {
+pub(crate) fn collect_b2_fixes(
+    score: &crate::corpus::runner::CorpusScore,
+) -> Vec<(String, String, String)> {
     let mut fixes = Vec::new();
 
     for r in &score.results {
@@ -308,7 +310,6 @@ pub(crate) enum BashBodyState {
     InMain,
 }
 
-
 pub(crate) fn extract_bash_main_body(actual: &str) -> Vec<String> {
     let mut meaningful = Vec::new();
     let mut state = BashBodyState::Before;
@@ -322,8 +323,11 @@ pub(crate) fn extract_bash_main_body(actual: &str) -> Vec<String> {
     meaningful
 }
 
-
-pub(crate) fn advance_bash_body_state(s: &str, state: BashBodyState, out: &mut Vec<String>) -> BashBodyState {
+pub(crate) fn advance_bash_body_state(
+    s: &str,
+    state: BashBodyState,
+    out: &mut Vec<String>,
+) -> BashBodyState {
     match state {
         BashBodyState::InFuncDef => {
             if s == "}" {

@@ -121,8 +121,7 @@ fn contains_closing_single_quote(line: &str) -> bool {
             let next = bytes.get(i + 1).copied();
             match next {
                 None => return true, // EOL
-                Some(b')') | Some(b' ') | Some(b'\t') | Some(b';') | Some(b'|')
-                | Some(b'>') | Some(b'"') => return true,
+                Some(b')' | b' ' | b'\t' | b';' | b'|' | b'>' | b'"') => return true,
                 _ => {}
             }
         }

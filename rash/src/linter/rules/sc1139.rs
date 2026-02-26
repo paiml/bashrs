@@ -16,11 +16,10 @@
 //   [ $x -eq 1 -o $y -eq 2 ]     # -o is valid in [ ]
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches [[ ... -o ... ]] — using -o inside double brackets
-static DOUBLE_BRACKET_O: Lazy<Regex> = Lazy::new(|| {
+static DOUBLE_BRACKET_O: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"\[\[.*\s-o\s.*\]\]").expect("SC1139 regex must compile")
 });
 
@@ -46,7 +45,8 @@ pub fn check(source: &str) -> LintResult {
                 result.add(Diagnostic::new(
                     "SC1139",
                     Severity::Warning,
-                    "Use || instead of -o in [[ ]]. The -o operator is not supported in [[ ]].".to_string(),
+                    "Use || instead of -o in [[ ]]. The -o operator is not supported in [[ ]]."
+                        .to_string(),
                     Span::new(line_num, col + 1, line_num, col + 4),
                 ));
 

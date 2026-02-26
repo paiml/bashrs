@@ -1,10 +1,9 @@
 // SC2306: Prefer ${var//old/new} over sed for simple substitutions
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SED_SUBST: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"sed\s+['"]s/[^/]+/[^/]+/[g]?['"]"#).unwrap());
+static SED_SUBST: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r#"sed\s+['"]s/[^/]+/[^/]+/[g]?['"]"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

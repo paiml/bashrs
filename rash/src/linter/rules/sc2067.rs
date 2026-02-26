@@ -17,10 +17,9 @@
 // Impact: Wrong values accessed, logic errors
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_INDEX_WITHOUT_DOLLAR: Lazy<Regex> = Lazy::new(|| {
+static ARRAY_INDEX_WITHOUT_DOLLAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $array[var] or ${array[var]} where var has no $
     Regex::new(r"\$\{?[a-zA-Z_][a-zA-Z0-9_]*\[([a-zA-Z_][a-zA-Z0-9_]*)\]").unwrap()
 });

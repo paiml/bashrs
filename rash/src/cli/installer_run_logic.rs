@@ -47,9 +47,8 @@ pub(crate) fn installer_run_command(
     }
 
     // Phase 4: Set up checkpoint store
-    let checkpoint_path = checkpoint_dir
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| path.join(".checkpoint"));
+    let checkpoint_path =
+        checkpoint_dir.map_or_else(|| path.join(".checkpoint"), |p| p.to_path_buf());
 
     if !checkpoint_path.exists() {
         std::fs::create_dir_all(&checkpoint_path).map_err(|e| {
@@ -426,4 +425,3 @@ fn installer_finalize_run(
 
     Ok(())
 }
-

@@ -16,10 +16,9 @@
 // Impact: Confusion about escaping in single quotes
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DOUBLE_BACKSLASH_SINGLE_QUOTE: Lazy<Regex> = Lazy::new(|| {
+static DOUBLE_BACKSLASH_SINGLE_QUOTE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: '...\\'...'' patterns with double backslashes
     Regex::new(r"'[^']*\\\\[^']*'").unwrap()
 });

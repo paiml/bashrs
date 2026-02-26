@@ -2,7 +2,6 @@
 //!
 //! Extracted for EXTREME TDD testability.
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// File operation commands that are path traversal vectors
@@ -61,8 +60,8 @@ pub fn is_path_validation_check(line: &str) -> bool {
 /// Extract variable being validated from a validation check
 pub fn extract_validated_variable(line: &str) -> Option<String> {
     #[allow(clippy::unwrap_used)] // Compile-time regex
-    static VAR_PATTERN: Lazy<Regex> =
-        Lazy::new(|| Regex::new(r#"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?"#).unwrap());
+    static VAR_PATTERN: std::sync::LazyLock<Regex> =
+        std::sync::LazyLock::new(|| Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap());
 
     VAR_PATTERN.captures(line).map(|cap| cap[1].to_string())
 }
@@ -70,8 +69,8 @@ pub fn extract_validated_variable(line: &str) -> Option<String> {
 /// Extract assigned variable from realpath/readlink validation
 pub fn extract_assigned_variable(line: &str) -> Option<String> {
     #[allow(clippy::unwrap_used)] // Compile-time regex
-    static ASSIGN_PATTERN: Lazy<Regex> =
-        Lazy::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=").unwrap());
+    static ASSIGN_PATTERN: std::sync::LazyLock<Regex> =
+        std::sync::LazyLock::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=").unwrap());
 
     ASSIGN_PATTERN.captures(line).map(|cap| cap[1].to_string())
 }

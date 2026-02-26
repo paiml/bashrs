@@ -17,10 +17,9 @@
 // Impact: Logic error, dead code
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static CONSTANT_COMPARISON: Lazy<Regex> = Lazy::new(|| {
+static CONSTANT_COMPARISON: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ literal op literal ] where both sides are constants
     // Numbers or quoted strings without $
     Regex::new(

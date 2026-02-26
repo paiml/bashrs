@@ -1,15 +1,18 @@
 //! Corpus gate operations: error analysis, sampling, completeness, gates, outliers, and matrix.
 
+use super::corpus_failure_commands::result_fail_dims;
+use super::corpus_ranking_commands::classify_category;
 use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
 use crate::models::{Config, Error, Result};
-use super::corpus_failure_commands::result_fail_dims;
 use std::path::PathBuf;
-use super::corpus_ranking_commands::classify_category;
 
 /// Z-score outlier result: (mean, stddev, outliers: [(name, value, z_score)]).
 type ZScoreOutliers<'a> = (f64, f64, Vec<(&'a str, f64, f64)>);
 
-pub(crate) fn corpus_errors(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) -> Result<()> {
+pub(crate) fn corpus_errors(
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
 
@@ -284,7 +287,6 @@ pub(crate) fn corpus_gate(min_score: f64, max_ms: u64) -> Result<()> {
     }
 }
 
-
 pub(crate) fn gate_print_check(label: &str, pass: bool) {
     use crate::cli::color::*;
     let mark = if pass {
@@ -348,9 +350,18 @@ fn display_outliers(
             "ID", "Time", "Z-Score"
         );
         for (id, ms, z) in outliers {
-            let color = if *z > 3.0 { BRIGHT_RED } else if *z > 2.0 { YELLOW } else { DIM };
+            let color = if *z > 3.0 {
+                BRIGHT_RED
+            } else if *z > 2.0 {
+                YELLOW
+            } else {
+                DIM
+            };
             let status = if *z > 3.0 { "EXTREME" } else { "OUTLIER" };
-            println!("  {CYAN}{:<8}{RESET} {color}{:>7.1}ms {:>+7.2}{RESET}  {status}", id, ms, z);
+            println!(
+                "  {CYAN}{:<8}{RESET} {color}{:>7.1}ms {:>+7.2}{RESET}  {status}",
+                id, ms, z
+            );
         }
         println!();
         println!(

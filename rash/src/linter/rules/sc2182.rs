@@ -15,10 +15,10 @@
 // Impact: Unnecessary complexity
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static PRINTF_NO_VARS: Lazy<Regex> = Lazy::new(|| Regex::new(r#"\bprintf\s+"[^"%]*\\n"#).unwrap());
+static PRINTF_NO_VARS: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r#"\bprintf\s+"[^"%]*\\n"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

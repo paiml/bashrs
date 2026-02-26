@@ -26,28 +26,29 @@
 //! Replace backticks with `$(...)`: `` `cmd` `` → `$(cmd)`
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
 
 /// Regex to detect single-quoted heredoc: << 'DELIM' or <<- 'DELIM'
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static HEREDOC_SINGLE_QUOTED: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"<<-?\s*'(\w+)'"#).expect("valid single-quoted heredoc regex"));
+static HEREDOC_SINGLE_QUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"<<-?\s*'(\w+)'").expect("valid single-quoted heredoc regex")
+});
 
 /// Regex to detect double-quoted heredoc: << "DELIM" or <<- "DELIM"
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static HEREDOC_DOUBLE_QUOTED: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"<<-?\s*"(\w+)""#).expect("valid double-quoted heredoc regex"));
+static HEREDOC_DOUBLE_QUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"<<-?\s*"(\w+)""#).expect("valid double-quoted heredoc regex")
+});
 
 /// Regex to detect backtick command substitution: `command`
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static BACKTICK_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"`([^`]+)`").expect("valid backtick regex"));
+static BACKTICK_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"`([^`]+)`").expect("valid backtick regex"));
 
 /// F080: Regex to detect assignment context: var=`cmd` or local/export/readonly var=`cmd`
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static ASSIGNMENT_BACKTICK: Lazy<Regex> = Lazy::new(|| {
+static ASSIGNMENT_BACKTICK: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(
         r"(?:^|;|\s)(?:local|export|readonly|declare|typeset)?\s*[A-Za-z_][A-Za-z0-9_]*=`[^`]+`",
     )

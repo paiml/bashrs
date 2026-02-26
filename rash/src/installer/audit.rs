@@ -371,13 +371,11 @@ impl AuditReport {
                 let location = f
                     .location
                     .as_ref()
-                    .map(|l| format!("\"{}\"", l))
-                    .unwrap_or_else(|| "null".to_string());
-                let suggestion = f
-                    .suggestion
-                    .as_ref()
-                    .map(|s| format!("\"{}\"", s.replace('\"', "\\\"")))
-                    .unwrap_or_else(|| "null".to_string());
+                    .map_or_else(|| "null".to_string(), |l| format!("\"{}\"", l));
+                let suggestion = f.suggestion.as_ref().map_or_else(
+                    || "null".to_string(),
+                    |s| format!("\"{}\"", s.replace('\"', "\\\"")),
+                );
 
                 format!(
                     r#"    {{
@@ -644,10 +642,7 @@ impl AuditContext {
 }
 
 /// BP001: Check for description
-fn audit_bp001_description(
-    installer: &super::spec::InstallerMetadata,
-    report: &mut AuditReport,
-) {
+fn audit_bp001_description(installer: &super::spec::InstallerMetadata, report: &mut AuditReport) {
     if installer.description.is_empty() {
         report.add_finding(
             AuditFinding::new(
@@ -663,10 +658,7 @@ fn audit_bp001_description(
 }
 
 /// BP002: Check for author
-fn audit_bp002_author(
-    installer: &super::spec::InstallerMetadata,
-    report: &mut AuditReport,
-) {
+fn audit_bp002_author(installer: &super::spec::InstallerMetadata, report: &mut AuditReport) {
     if installer.author.is_empty() {
         report.add_finding(
             AuditFinding::new(
@@ -881,10 +873,7 @@ fn audit_qual005_dependencies(steps: &[super::spec::Step], report: &mut AuditRep
 }
 
 /// SEC001: Check if signatures are required
-fn audit_sec001_signatures(
-    security: &super::spec::InstallerSecurity,
-    report: &mut AuditReport,
-) {
+fn audit_sec001_signatures(security: &super::spec::InstallerSecurity, report: &mut AuditReport) {
     if !security.require_signatures {
         report.add_finding(
             AuditFinding::new(
@@ -900,10 +889,7 @@ fn audit_sec001_signatures(
 }
 
 /// SEC002: Check trust model
-fn audit_sec002_trust_model(
-    security: &super::spec::InstallerSecurity,
-    report: &mut AuditReport,
-) {
+fn audit_sec002_trust_model(security: &super::spec::InstallerSecurity, report: &mut AuditReport) {
     if security.trust_model == "tofu" {
         report.add_finding(
             AuditFinding::new(
@@ -919,10 +905,7 @@ fn audit_sec002_trust_model(
 }
 
 /// SEC004/SEC005: Check artifacts for signatures and hashes
-fn audit_artifact_security(
-    artifacts: &[super::spec::Artifact],
-    report: &mut AuditReport,
-) {
+fn audit_artifact_security(artifacts: &[super::spec::Artifact], report: &mut AuditReport) {
     for artifact in artifacts {
         if artifact.signature.is_none() && artifact.signed_by.is_none() {
             report.add_finding(
@@ -960,10 +943,7 @@ fn audit_artifact_security(
 }
 
 /// SEC006: Check for privilege escalation
-fn audit_sec006_privileges(
-    spec: &super::spec::InstallerSpec,
-    report: &mut AuditReport,
-) {
+fn audit_sec006_privileges(spec: &super::spec::InstallerSpec, report: &mut AuditReport) {
     if spec.installer.requirements.privileges == "root" {
         report.add_finding(
             AuditFinding::new(
@@ -979,10 +959,7 @@ fn audit_sec006_privileges(
 }
 
 /// SEC007/SEC008: Check for unsafe script patterns in steps
-fn audit_step_script_security(
-    steps: &[super::spec::Step],
-    report: &mut AuditReport,
-) {
+fn audit_step_script_security(steps: &[super::spec::Step], report: &mut AuditReport) {
     for step in steps {
         let Some(ref script) = step.script else {
             continue;
@@ -1044,7 +1021,6 @@ fn chrono_timestamp() -> String {
 }
 
 #[cfg(test)]
-#[allow(dead_code)] // Test helper structs may have unused fields
 mod tests {
     use super::*;
 

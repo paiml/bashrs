@@ -16,10 +16,10 @@
 // Impact: Cleanup code may not execute
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TRAP_THEN_SUBSHELL: Lazy<Regex> = Lazy::new(|| Regex::new(r"\btrap\b.*\n.*\(").unwrap());
+static TRAP_THEN_SUBSHELL: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\btrap\b.*\n.*\(").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -47,7 +47,7 @@ pub fn check(source: &str) -> LintResult {
             {
                 // Not function definition
 
-                let start_col = line.find('(').map(|i| i + 1).unwrap_or(1);
+                let start_col = line.find('(').map_or(1, |i| i + 1);
                 let end_col = start_col + 1;
 
                 let diagnostic = Diagnostic::new(

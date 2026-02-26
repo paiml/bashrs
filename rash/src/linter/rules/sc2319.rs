@@ -1,10 +1,9 @@
 // SC2319: This $? refers to a condition, not the previous command
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static CONDITION_EXITCODE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:if|while|until)\s+.*;\s*then").unwrap());
+static CONDITION_EXITCODE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"(?:if|while|until)\s+.*;\s*then").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

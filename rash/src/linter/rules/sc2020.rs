@@ -21,10 +21,9 @@
 // Note: Use sed or awk for word/string replacement. tr is for character sets.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TR_WORD_PATTERN: Lazy<Regex> = Lazy::new(|| {
+static TR_WORD_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: tr 'word' 'word' where both args are multi-char words
     // Look for tr with quoted strings that look like words (alphanumeric)
     Regex::new(r#"tr\s+['"]([a-z]{2,})['"]"#).unwrap()
@@ -63,8 +62,7 @@ pub fn check(source: &str) -> LintResult {
                 let start_col = line
                     .find(&format!("'{}'", word))
                     .or_else(|| line.find(&format!("\"{}\"", word)))
-                    .map(|p| p + 1)
-                    .unwrap_or(1);
+                    .map_or(1, |p| p + 1);
                 let end_col = start_col + word.len() + 2; // +2 for quotes
 
                 let diagnostic = Diagnostic::new(

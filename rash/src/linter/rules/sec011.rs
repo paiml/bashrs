@@ -96,10 +96,7 @@ fn strip_comments(trimmed: &str) -> &str {
 }
 
 /// Track validation patterns and update the validated vars set
-fn track_validation(
-    trimmed: &str,
-    validated_vars: &mut std::collections::HashSet<String>,
-) {
+fn track_validation(trimmed: &str, validated_vars: &mut std::collections::HashSet<String>) {
     if trimmed.starts_with("if ") && (trimmed.contains("[ -z") || trimmed.contains("[ -n")) {
         if let Some(var_name) = extract_validated_variable(trimmed) {
             validated_vars.insert(var_name);
@@ -122,12 +119,16 @@ fn check_dangerous_op(
         let diag = Diagnostic::new(
             "SEC011",
             Severity::Error,
-            format!("Missing validation for '{}' before '{}' - {}", var_name, op_desc,
+            format!(
+                "Missing validation for '{}' before '{}' - {}",
+                var_name,
+                op_desc,
                 match op_desc {
                     "rm -rf" => "could delete critical files if variable is empty or '/'",
                     "chmod -R 777" => "could expose sensitive files if variable is unset",
                     _ => "could change ownership of critical files if variable is unset",
-                }),
+                }
+            ),
             span,
         );
         result.add(diag);
@@ -150,24 +151,54 @@ pub fn check(source: &str) -> LintResult {
         // Pattern: rm -rf "$VAR"
         if code_only.contains("rm") && code_only.contains("-rf") {
             if let Some(ref var_name) = extract_variable_from_rm(code_only) {
-                if is_safe_env_var(var_name) { continue; }
-                check_dangerous_op(var_name, "rm -rf", &validated_vars, &inline_validated, line_num, line.len(), &mut result);
+                if is_safe_env_var(var_name) {
+                    continue;
+                }
+                check_dangerous_op(
+                    var_name,
+                    "rm -rf",
+                    &validated_vars,
+                    &inline_validated,
+                    line_num,
+                    line.len(),
+                    &mut result,
+                );
             }
         }
 
         // Pattern: chmod -R 777 "$VAR"
         if code_only.contains("chmod") && code_only.contains("-R") && code_only.contains("777") {
             if let Some(ref var_name) = extract_variable_from_chmod(code_only) {
-                if is_safe_env_var(var_name) { continue; }
-                check_dangerous_op(var_name, "chmod -R 777", &validated_vars, &inline_validated, line_num, line.len(), &mut result);
+                if is_safe_env_var(var_name) {
+                    continue;
+                }
+                check_dangerous_op(
+                    var_name,
+                    "chmod -R 777",
+                    &validated_vars,
+                    &inline_validated,
+                    line_num,
+                    line.len(),
+                    &mut result,
+                );
             }
         }
 
         // Pattern: chown -R user:group "$VAR"
         if code_only.contains("chown") && code_only.contains("-R") {
             if let Some(ref var_name) = extract_variable_from_chown(code_only) {
-                if is_safe_env_var(var_name) { continue; }
-                check_dangerous_op(var_name, "chown -R", &validated_vars, &inline_validated, line_num, line.len(), &mut result);
+                if is_safe_env_var(var_name) {
+                    continue;
+                }
+                check_dangerous_op(
+                    var_name,
+                    "chown -R",
+                    &validated_vars,
+                    &inline_validated,
+                    line_num,
+                    line.len(),
+                    &mut result,
+                );
             }
         }
     }

@@ -69,9 +69,7 @@ fn test_COV_POSIX_002_env_var_with_default() {
 #[test]
 fn test_COV_POSIX_003_arg_with_position() {
     let ir = ShellIR::Echo {
-        value: ShellValue::Arg {
-            position: Some(1),
-        },
+        value: ShellValue::Arg { position: Some(1) },
     };
     let result = emitter().emit(&ir).unwrap();
     assert!(result.contains("\"$1\""));
@@ -280,12 +278,10 @@ fn test_COV_POSIX_018_concat_with_env_var_no_default() {
 fn test_COV_POSIX_019_concat_with_env_var_with_default() {
     let ir = ShellIR::Let {
         name: "msg".to_string(),
-        value: ShellValue::Concat(vec![
-            ShellValue::EnvVar {
-                name: "EDITOR".to_string(),
-                default: Some("vi".to_string()),
-            },
-        ]),
+        value: ShellValue::Concat(vec![ShellValue::EnvVar {
+            name: "EDITOR".to_string(),
+            default: Some("vi".to_string()),
+        }]),
         effects: EffectSet::pure(),
     };
     let result = emitter().emit(&ir).unwrap();
@@ -298,9 +294,7 @@ fn test_COV_POSIX_020_concat_with_arg_position() {
         name: "val".to_string(),
         value: ShellValue::Concat(vec![
             ShellValue::String("arg=".to_string()),
-            ShellValue::Arg {
-                position: Some(1),
-            },
+            ShellValue::Arg { position: Some(1) },
         ]),
         effects: EffectSet::pure(),
     };
@@ -793,9 +787,7 @@ fn test_COV_POSIX_050_test_command_subst_value_function() {
 fn test_COV_POSIX_051_test_other_value_uses_test_n() {
     // An Arg value in test context falls to the "other" branch
     let ir = ShellIR::If {
-        test: ShellValue::Arg {
-            position: Some(1),
-        },
+        test: ShellValue::Arg { position: Some(1) },
         then_branch: Box::new(ShellIR::Noop),
         else_branch: None,
     };

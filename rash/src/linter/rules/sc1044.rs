@@ -23,12 +23,11 @@
 //! of the script as heredoc content, causing confusing errors.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Regex to match heredoc start and capture the delimiter (no backreferences)
 #[allow(clippy::expect_used)]
-static HEREDOC_START: Lazy<Regex> = Lazy::new(|| {
+static HEREDOC_START: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r#"<<-?\s*\\?(?:'(\w+)'|"(\w+)"|(\w+))"#).expect("valid heredoc start regex")
 });
 
@@ -83,9 +82,7 @@ pub fn check(source: &str) -> LintResult {
                     let diag = Diagnostic::new(
                         "SC1044",
                         Severity::Error,
-                        format!(
-                            "Couldn't find end token '{delimiter}' for this heredoc"
-                        ),
+                        format!("Couldn't find end token '{delimiter}' for this heredoc"),
                         span,
                     );
                     result.add(diag);

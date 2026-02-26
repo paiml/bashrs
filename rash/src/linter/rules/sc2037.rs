@@ -18,10 +18,9 @@
 // Note: This is a common mistake for beginners.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REDIRECT_TO_VAR: Lazy<Regex> = Lazy::new(|| {
+static REDIRECT_TO_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: command > $VAR or command >> $VAR
     Regex::new(r"(>>?)\s*\$([a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
 });

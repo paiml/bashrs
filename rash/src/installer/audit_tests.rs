@@ -120,7 +120,10 @@ fn test_AUDIT_COV_finding_format_with_all_optional_fields() {
     assert!(formatted.contains("Location: step-42"));
     assert!(formatted.contains("Suggestion: Fix the thing"));
     // doc_url is stored but not printed in format()
-    assert_eq!(finding.doc_url, Some("https://docs.example.com/rule".to_string()));
+    assert_eq!(
+        finding.doc_url,
+        Some("https://docs.example.com/rule".to_string())
+    );
 }
 
 #[test]
@@ -180,7 +183,11 @@ fn test_AUDIT_COV_score_grade_boundary_90() {
     let mut report = AuditReport::new("test", "1.0.0", PathBuf::from("/test"));
     // 1 error = -10, score = 90 => grade A
     report.add_finding(AuditFinding::new(
-        "E1", AuditSeverity::Error, AuditCategory::Quality, "E", "D",
+        "E1",
+        AuditSeverity::Error,
+        AuditCategory::Quality,
+        "E",
+        "D",
     ));
     assert_eq!(report.score(), 90);
     assert_eq!(report.grade(), "A");
@@ -191,10 +198,18 @@ fn test_AUDIT_COV_score_grade_boundary_89() {
     let mut report = AuditReport::new("test", "1.0.0", PathBuf::from("/test"));
     // 1 error (-10) + 1 suggestion (-1) = 89 => grade B
     report.add_finding(AuditFinding::new(
-        "E1", AuditSeverity::Error, AuditCategory::Quality, "E", "D",
+        "E1",
+        AuditSeverity::Error,
+        AuditCategory::Quality,
+        "E",
+        "D",
     ));
     report.add_finding(AuditFinding::new(
-        "S1", AuditSeverity::Suggestion, AuditCategory::Quality, "S", "D",
+        "S1",
+        AuditSeverity::Suggestion,
+        AuditCategory::Quality,
+        "S",
+        "D",
     ));
     assert_eq!(report.score(), 89);
     assert_eq!(report.grade(), "B");
@@ -206,7 +221,11 @@ fn test_AUDIT_COV_score_grade_c() {
     // 3 errors = -30, score = 70 => grade C
     for i in 0..3 {
         report.add_finding(AuditFinding::new(
-            format!("E{}", i), AuditSeverity::Error, AuditCategory::Quality, "E", "D",
+            format!("E{}", i),
+            AuditSeverity::Error,
+            AuditCategory::Quality,
+            "E",
+            "D",
         ));
     }
     assert_eq!(report.score(), 70);
@@ -219,7 +238,11 @@ fn test_AUDIT_COV_score_grade_d() {
     // 4 errors = -40, score = 60 => grade D
     for i in 0..4 {
         report.add_finding(AuditFinding::new(
-            format!("E{}", i), AuditSeverity::Error, AuditCategory::Quality, "E", "D",
+            format!("E{}", i),
+            AuditSeverity::Error,
+            AuditCategory::Quality,
+            "E",
+            "D",
         ));
     }
     assert_eq!(report.score(), 60);
@@ -231,7 +254,11 @@ fn test_AUDIT_COV_score_info_no_deduction() {
     let mut report = AuditReport::new("test", "1.0.0", PathBuf::from("/test"));
     for i in 0..10 {
         report.add_finding(AuditFinding::new(
-            format!("I{}", i), AuditSeverity::Info, AuditCategory::Configuration, "I", "D",
+            format!("I{}", i),
+            AuditSeverity::Info,
+            AuditCategory::Configuration,
+            "I",
+            "D",
         ));
     }
     assert_eq!(report.score(), 100);
@@ -245,13 +272,25 @@ fn test_AUDIT_COV_score_info_no_deduction() {
 fn test_AUDIT_COV_findings_by_severity() {
     let mut report = AuditReport::new("test", "1.0.0", PathBuf::from("/test"));
     report.add_finding(AuditFinding::new(
-        "W1", AuditSeverity::Warning, AuditCategory::Security, "W", "D",
+        "W1",
+        AuditSeverity::Warning,
+        AuditCategory::Security,
+        "W",
+        "D",
     ));
     report.add_finding(AuditFinding::new(
-        "W2", AuditSeverity::Warning, AuditCategory::Quality, "W", "D",
+        "W2",
+        AuditSeverity::Warning,
+        AuditCategory::Quality,
+        "W",
+        "D",
     ));
     report.add_finding(AuditFinding::new(
-        "E1", AuditSeverity::Error, AuditCategory::Security, "E", "D",
+        "E1",
+        AuditSeverity::Error,
+        AuditCategory::Security,
+        "E",
+        "D",
     ));
 
     let warnings = report.findings_by_severity(AuditSeverity::Warning);
@@ -268,13 +307,25 @@ fn test_AUDIT_COV_findings_by_severity() {
 fn test_AUDIT_COV_findings_by_category() {
     let mut report = AuditReport::new("test", "1.0.0", PathBuf::from("/test"));
     report.add_finding(AuditFinding::new(
-        "S1", AuditSeverity::Warning, AuditCategory::Security, "S", "D",
+        "S1",
+        AuditSeverity::Warning,
+        AuditCategory::Security,
+        "S",
+        "D",
     ));
     report.add_finding(AuditFinding::new(
-        "Q1", AuditSeverity::Error, AuditCategory::Quality, "Q", "D",
+        "Q1",
+        AuditSeverity::Error,
+        AuditCategory::Quality,
+        "Q",
+        "D",
     ));
     report.add_finding(AuditFinding::new(
-        "Q2", AuditSeverity::Warning, AuditCategory::Quality, "Q", "D",
+        "Q2",
+        AuditSeverity::Warning,
+        AuditCategory::Quality,
+        "Q",
+        "D",
     ));
 
     let security = report.findings_by_category(AuditCategory::Security);
@@ -299,18 +350,36 @@ fn test_AUDIT_COV_report_format_multiple_categories() {
     report.metadata.artifacts_audited = 2;
 
     report.add_finding(
-        AuditFinding::new("SEC001", AuditSeverity::Warning, AuditCategory::Security, "Sec warn", "D")
-            .with_location("artifact-1"),
+        AuditFinding::new(
+            "SEC001",
+            AuditSeverity::Warning,
+            AuditCategory::Security,
+            "Sec warn",
+            "D",
+        )
+        .with_location("artifact-1"),
     );
-    report.add_finding(
-        AuditFinding::new("QUAL001", AuditSeverity::Warning, AuditCategory::Quality, "Qual warn", "D"),
-    );
-    report.add_finding(
-        AuditFinding::new("HERM001", AuditSeverity::Info, AuditCategory::Hermetic, "Herm info", "D"),
-    );
-    report.add_finding(
-        AuditFinding::new("BP001", AuditSeverity::Suggestion, AuditCategory::BestPractices, "BP sug", "D"),
-    );
+    report.add_finding(AuditFinding::new(
+        "QUAL001",
+        AuditSeverity::Warning,
+        AuditCategory::Quality,
+        "Qual warn",
+        "D",
+    ));
+    report.add_finding(AuditFinding::new(
+        "HERM001",
+        AuditSeverity::Info,
+        AuditCategory::Hermetic,
+        "Herm info",
+        "D",
+    ));
+    report.add_finding(AuditFinding::new(
+        "BP001",
+        AuditSeverity::Suggestion,
+        AuditCategory::BestPractices,
+        "BP sug",
+        "D",
+    ));
 
     let formatted = report.format();
     assert!(formatted.contains("Installer Audit Report"));
@@ -338,7 +407,11 @@ fn test_AUDIT_COV_report_format_empty_findings() {
 fn test_AUDIT_COV_report_format_summary_only_nonzero() {
     let mut report = AuditReport::new("test", "1.0.0", PathBuf::from("/test"));
     report.add_finding(AuditFinding::new(
-        "E1", AuditSeverity::Error, AuditCategory::Quality, "E", "D",
+        "E1",
+        AuditSeverity::Error,
+        AuditCategory::Quality,
+        "E",
+        "D",
     ));
     let formatted = report.format();
     // Summary should show ERROR: 1, but not other severity lines with 0 count
@@ -425,10 +498,18 @@ fn test_AUDIT_COV_json_multiple_findings() {
     let mut report = AuditReport::new("multi", "1.0.0", PathBuf::from("/m"));
     report.metadata.audited_at = "2026-01-01T00:00:00Z".to_string();
     report.add_finding(AuditFinding::new(
-        "A1", AuditSeverity::Warning, AuditCategory::Security, "F1", "D1",
+        "A1",
+        AuditSeverity::Warning,
+        AuditCategory::Security,
+        "F1",
+        "D1",
     ));
     report.add_finding(AuditFinding::new(
-        "A2", AuditSeverity::Error, AuditCategory::Quality, "F2", "D2",
+        "A2",
+        AuditSeverity::Error,
+        AuditCategory::Quality,
+        "F2",
+        "D2",
     ));
 
     let json = report.to_json();
@@ -462,8 +543,7 @@ fn test_AUDIT_COV_context_with_ignored_rule() {
 
 #[test]
 fn test_AUDIT_COV_context_ignored_rule_case_insensitive() {
-    let ctx = AuditContext::new()
-        .with_ignored_rule("sec001");
+    let ctx = AuditContext::new().with_ignored_rule("sec001");
     assert!(ctx.ignored_rules.contains("SEC001"));
 }
 
@@ -649,7 +729,10 @@ content = "echo third"
 fn test_AUDIT_COV_parsed_spec_bp005_long_script() {
     use crate::installer::spec::InstallerSpec;
 
-    let long_script = (0..60).map(|i| format!("echo line{}", i)).collect::<Vec<_>>().join("\n");
+    let long_script = (0..60)
+        .map(|i| format!("echo line{}", i))
+        .collect::<Vec<_>>()
+        .join("\n");
     let toml = format!(
         r#"
 [installer]
@@ -736,7 +819,10 @@ content = "echo hello"
     assert!(!report.findings.iter().any(|f| f.rule_id == "SEC001"));
     assert!(!report.findings.iter().any(|f| f.rule_id == "SEC002"));
     // But other findings should remain
-    assert!(report.findings.iter().any(|f| f.rule_id == "QUAL001" || f.rule_id == "QUAL003"));
+    assert!(report
+        .findings
+        .iter()
+        .any(|f| f.rule_id == "QUAL001" || f.rule_id == "QUAL003"));
 }
 
 #[test]
@@ -765,7 +851,10 @@ content = "echo hello"
     let report = ctx.audit_parsed_spec(&spec, &PathBuf::from("/test.toml"));
 
     // Only Error+ findings should remain
-    assert!(report.findings.iter().all(|f| f.severity >= AuditSeverity::Error));
+    assert!(report
+        .findings
+        .iter()
+        .all(|f| f.severity >= AuditSeverity::Error));
 }
 
 #[test]
@@ -796,7 +885,10 @@ content = "echo hello"
     assert!(report.findings.iter().any(|f| f.rule_id == "SEC001"));
     // Should NOT have quality findings since check_quality is false
     // But min_severity is Warning for security_only, so suggestions are also filtered
-    assert!(report.findings.iter().all(|f| f.severity >= AuditSeverity::Warning));
+    assert!(report
+        .findings
+        .iter()
+        .all(|f| f.severity >= AuditSeverity::Warning));
 }
 
 // =============================================================================

@@ -1,8 +1,8 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
-use super::discovery::*;
 use super::config::Scope;
+use super::discovery::*;
 use std::path::{Path, PathBuf};
 
 // ============================================================================
@@ -207,12 +207,18 @@ fn test_classify_bash_extension() {
 
 #[test]
 fn test_classify_makefile() {
-    assert_eq!(classify(Path::new("Makefile")), Some(ArtifactKind::Makefile));
+    assert_eq!(
+        classify(Path::new("Makefile")),
+        Some(ArtifactKind::Makefile)
+    );
 }
 
 #[test]
 fn test_classify_makefile_lowercase() {
-    assert_eq!(classify(Path::new("makefile")), Some(ArtifactKind::Makefile));
+    assert_eq!(
+        classify(Path::new("makefile")),
+        Some(ArtifactKind::Makefile)
+    );
 }
 
 #[test]
@@ -225,7 +231,10 @@ fn test_classify_gnumakefile() {
 
 #[test]
 fn test_classify_mk_extension() {
-    assert_eq!(classify(Path::new("rules.mk")), Some(ArtifactKind::Makefile));
+    assert_eq!(
+        classify(Path::new("rules.mk")),
+        Some(ArtifactKind::Makefile)
+    );
 }
 
 #[test]
@@ -415,11 +424,7 @@ fn test_discover_all_nonexistent_path() {
     // Should include user + system artifacts even though project has none
     // No panic expected
     for a in &artifacts {
-        assert!(
-            a.scope == Scope::Project
-                || a.scope == Scope::User
-                || a.scope == Scope::System
-        );
+        assert!(a.scope == Scope::Project || a.scope == Scope::User || a.scope == Scope::System);
     }
 }
 

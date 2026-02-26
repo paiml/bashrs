@@ -16,14 +16,13 @@
 // Impact: Security and correctness issues with filenames
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static COMMAND_SUB_IN_FOR: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\bfor\s+\w+\s+in\s+\$\(").unwrap());
+static COMMAND_SUB_IN_FOR: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\bfor\s+\w+\s+in\s+\$\(").unwrap());
 
-static UNQUOTED_COMMAND_SUB: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"\b(rm|mv|cp)\s+\$\((find|ls)\b"#).unwrap());
+static UNQUOTED_COMMAND_SUB: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\b(rm|mv|cp)\s+\$\((find|ls)\b").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

@@ -1,9 +1,8 @@
 // SC2293: Use += to append to arrays
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_APPEND_PATTERN: Lazy<Regex> = Lazy::new(|| {
+static ARRAY_APPEND_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r#"([a-zA-Z_][a-zA-Z0-9_]*)=\(\s*"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\[@\]\}""#).unwrap()
 });
 

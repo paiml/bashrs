@@ -15,10 +15,9 @@
 // Impact: Portability - script won't work in POSIX sh
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static FUNCTION_KEYWORD_ANY: Lazy<Regex> = Lazy::new(|| {
+static FUNCTION_KEYWORD_ANY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: function name (no parens) or function name()
     Regex::new(r"\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
 });

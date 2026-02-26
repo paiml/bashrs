@@ -2,5 +2,8 @@
 # These are defensive assertions that don't harm anything
 # TODO: Clean up these assertions properly in next release
 
-# Disallowed methods configured via workspace lint `unwrap_used = "deny"` in Cargo.toml
-# Not duplicated here to avoid double-reporting with clippy::unwrap_used
+# Disallowed methods - belt-and-suspenders with clippy::unwrap_used lint
+disallowed-methods = [
+    { path = "std::option::Option::unwrap", reason = "Use .expect() or ? operator" },
+    { path = "std::result::Result::unwrap", reason = "Use .expect() or ? operator" },
+]

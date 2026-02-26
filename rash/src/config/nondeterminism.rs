@@ -4,13 +4,12 @@
 //! that can cause unpredictable behavior across shell sessions.
 
 use super::{ConfigIssue, Severity};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 // Static regex for date pattern matching
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static DATE_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\$\(date[^)]*\)").expect("valid regex pattern"));
+static DATE_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\(date[^)]*\)").expect("valid regex pattern"));
 
 /// Represents a non-deterministic construct found in config
 #[derive(Debug, Clone, PartialEq)]

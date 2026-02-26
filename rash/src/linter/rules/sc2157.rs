@@ -13,10 +13,9 @@
 //   if [ -z "$var" ]; then     # Checks if var is empty
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static N_Z_WITH_LITERAL: Lazy<Regex> = Lazy::new(|| {
+static N_Z_WITH_LITERAL: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: -n "literal" or -z "literal" (not a variable)
     // Matches: [ -n "text" ] or [ -z "" ] but not [ -n "$var" ]
     Regex::new(r#"\[\s+(-n|-z)\s+"([^$"]*)""#).unwrap()

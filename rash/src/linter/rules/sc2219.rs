@@ -1,9 +1,8 @@
 // SC2219: Prefer (( expr )) to let expr
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static LET_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static LET_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match 'let' command with expressions
     Regex::new(r"\blet\s+\S+\s*[+\-*/=]").unwrap()
 });

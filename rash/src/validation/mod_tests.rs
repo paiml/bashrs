@@ -215,10 +215,22 @@ fn test_implemented_rules_content() {
     let rules: Vec<&str> = IMPLEMENTED_RULES.to_vec();
 
     // Verify specific critical rules are present
-    assert!(rules.contains(&"SC2086"), "Missing SC2086 (unquoted variables)");
-    assert!(rules.contains(&"SC2046"), "Missing SC2046 (unquoted command substitution)");
-    assert!(rules.contains(&"SC2164"), "Missing SC2164 (cd without error check)");
-    assert!(rules.contains(&"SC2162"), "Missing SC2162 (read without -r)");
+    assert!(
+        rules.contains(&"SC2086"),
+        "Missing SC2086 (unquoted variables)"
+    );
+    assert!(
+        rules.contains(&"SC2046"),
+        "Missing SC2046 (unquoted command substitution)"
+    );
+    assert!(
+        rules.contains(&"SC2164"),
+        "Missing SC2164 (cd without error check)"
+    );
+    assert!(
+        rules.contains(&"SC2162"),
+        "Missing SC2162 (read without -r)"
+    );
 }
 
 // ============================================================================

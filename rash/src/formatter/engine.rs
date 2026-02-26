@@ -73,8 +73,8 @@ impl NormalizationEngine {
 
         // Check for obviously non-canonical patterns
         if input_str.contains("  ") || // Multiple spaces
-           input_str.contains("\t") || // Tabs
-           input_str.contains("\r") || // Carriage returns
+           input_str.contains('\t') || // Tabs
+           input_str.contains('\r') || // Carriage returns
            input_str.starts_with(' ') || // Leading space
            input_str.ends_with(' ')
         {
@@ -83,7 +83,7 @@ impl NormalizationEngine {
         }
 
         // Check for unquoted variables in command context
-        if input_str.contains("$") && !self.has_proper_quoting(input_str) {
+        if input_str.contains('$') && !self.has_proper_quoting(input_str) {
             return false;
         }
 

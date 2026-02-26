@@ -59,7 +59,7 @@ pub fn check(source: &str) -> LintResult {
             let end_col = full_match.end() + 1;
 
             // Auto-fix: add -n flag (var already has quotes)
-            let fix_text = format!(r#"[ -n {} ]"#, var);
+            let fix_text = format!(r"[ -n {} ]", var);
 
             let diagnostic = Diagnostic::new(
                 "SC2070",

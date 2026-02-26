@@ -15,14 +15,12 @@
 //   echo $(( 5 * 3 ))   # Works everywhere
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches $[ which starts the deprecated arithmetic syntax.
 /// We must NOT confuse with ${arr[0]} array access.
-static DEPRECATED_ARITH: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$\[").expect("SC1076 regex must compile")
-});
+static DEPRECATED_ARITH: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\[").expect("SC1076 regex must compile"));
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

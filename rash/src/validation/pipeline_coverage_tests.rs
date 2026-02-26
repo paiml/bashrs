@@ -93,7 +93,10 @@ mod tests {
     fn test_exec_ctx_shellshock_blocked_via_ast() {
         let p = strict_pipeline();
         let ast = ast_with_body(vec![Stmt::Expr(exec_call("() { :; }; echo pwned"))]);
-        assert!(p.validate_ast(&ast).is_err(), "Shellshock blocked in exec()");
+        assert!(
+            p.validate_ast(&ast).is_err(),
+            "Shellshock blocked in exec()"
+        );
     }
 
     #[test]
@@ -143,7 +146,10 @@ mod tests {
                 Expr::Literal(Literal::Str("() { :; }".to_string())),
             ],
         })]);
-        assert!(p.validate_ast(&ast).is_err(), "Shellshock in second arg blocked");
+        assert!(
+            p.validate_ast(&ast).is_err(),
+            "Shellshock in second arg blocked"
+        );
     }
 
     // ── exec() with non-Literal args (Variable, Binary, etc.) ──
@@ -193,7 +199,10 @@ mod tests {
                 right: Box::new(Expr::Literal(Literal::U32(2))),
             }],
         })]);
-        assert!(p.validate_ast(&ast).is_err(), "Shellshock in binary left blocked");
+        assert!(
+            p.validate_ast(&ast).is_err(),
+            "Shellshock in binary left blocked"
+        );
     }
 
     #[test]
@@ -232,7 +241,10 @@ mod tests {
                 Expr::Literal(Literal::Str("() { :; }".to_string())),
             ])],
         })]);
-        assert!(p.validate_ast(&ast).is_err(), "Shellshock in array arg blocked");
+        assert!(
+            p.validate_ast(&ast).is_err(),
+            "Shellshock in array arg blocked"
+        );
     }
 
     #[test]
@@ -309,7 +321,10 @@ mod tests {
                 args: vec![],
             }],
         })]);
-        assert!(p.validate_ast(&ast).is_err(), "Empty method name in exec() rejected");
+        assert!(
+            p.validate_ast(&ast).is_err(),
+            "Empty method name in exec() rejected"
+        );
     }
 
     #[test]
@@ -333,7 +348,10 @@ mod tests {
         let p = none_pipeline();
         // Even shellshock passes at None level
         let ast = ast_with_body(vec![Stmt::Expr(exec_call("() { :; }; dangerous"))]);
-        assert!(p.validate_ast(&ast).is_ok(), "None level bypasses all checks");
+        assert!(
+            p.validate_ast(&ast).is_ok(),
+            "None level bypasses all checks"
+        );
     }
 
     // ── validate_ir exercises various IR nodes ──
@@ -387,7 +405,10 @@ mod tests {
         let p = strict_pipeline();
         let ir = ShellIR::ForIn {
             var: "x".to_string(),
-            items: vec![ShellValue::String("a".to_string()), ShellValue::String("b".to_string())],
+            items: vec![
+                ShellValue::String("a".to_string()),
+                ShellValue::String("b".to_string()),
+            ],
             body: Box::new(ShellIR::Noop),
         };
         assert!(p.validate_ir(&ir).is_ok());
@@ -411,7 +432,10 @@ mod tests {
             scrutinee: ShellValue::String("x".to_string()),
             arms: vec![], // zero arms → error
         };
-        assert!(p.validate_ir(&ir).is_err(), "Case with zero arms should fail");
+        assert!(
+            p.validate_ir(&ir).is_err(),
+            "Case with zero arms should fail"
+        );
     }
 
     #[test]
@@ -486,7 +510,10 @@ mod tests {
             program: "`whoami`".to_string(),
             args: vec![],
         });
-        assert!(p.validate_shell_value(&val).is_err(), "Backtick in CommandSubst rejected");
+        assert!(
+            p.validate_shell_value(&val).is_err(),
+            "Backtick in CommandSubst rejected"
+        );
     }
 
     #[test]
@@ -522,7 +549,10 @@ mod tests {
             column: None,
         };
         let report = p.report_error(&err);
-        assert!(report.contains("ERROR"), "Strict mode errors should say ERROR");
+        assert!(
+            report.contains("ERROR"),
+            "Strict mode errors should say ERROR"
+        );
     }
 
     #[test]
@@ -539,7 +569,10 @@ mod tests {
             column: None,
         };
         let report = p.report_error(&err);
-        assert!(report.contains("warning"), "Non-strict warns with warning label");
+        assert!(
+            report.contains("warning"),
+            "Non-strict warns with warning label"
+        );
     }
 
     #[test]
@@ -571,7 +604,10 @@ mod tests {
             line: None,
             column: None,
         }];
-        assert!(!p.should_fail(&warnings), "Non-strict mode: warnings don't fail");
+        assert!(
+            !p.should_fail(&warnings),
+            "Non-strict mode: warnings don't fail"
+        );
 
         let errors = vec![ValidationError {
             rule: "TEST-002",
@@ -610,7 +646,10 @@ mod tests {
             }],
             entry_point: "exit".to_string(),
         };
-        assert!(p.validate_ast(&ast).is_err(), "Reserved builtin 'exit' rejected");
+        assert!(
+            p.validate_ast(&ast).is_err(),
+            "Reserved builtin 'exit' rejected"
+        );
     }
 
     #[test]

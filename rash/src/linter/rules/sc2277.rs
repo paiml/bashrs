@@ -1,10 +1,9 @@
 // SC2277: Prefer process substitution over temporary files
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TEMP_FILE_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"mktemp.*;\s*\w+\s+[^;]+;\s*rm").unwrap());
+static TEMP_FILE_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"mktemp.*;\s*\w+\s+[^;]+;\s*rm").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

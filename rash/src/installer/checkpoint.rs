@@ -431,10 +431,7 @@ impl CheckpointStore {
 
     /// Check if in hermetic mode
     pub fn is_hermetic(&self) -> bool {
-        self.current_run
-            .as_ref()
-            .map(|r| r.hermetic_mode)
-            .unwrap_or(false)
+        self.current_run.as_ref().is_some_and(|r| r.hermetic_mode)
     }
 
     /// Verify hermetic mode consistency

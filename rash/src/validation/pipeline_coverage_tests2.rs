@@ -71,7 +71,10 @@ mod tests {
         ];
         for lit in literals {
             let ast = ast_with_body(vec![Stmt::Expr(exec_with_arg(lit))]);
-            assert!(p.validate_ast(&ast).is_ok(), "Literal in exec() should be ok");
+            assert!(
+                p.validate_ast(&ast).is_ok(),
+                "Literal in exec() should be ok"
+            );
         }
     }
 
@@ -100,9 +103,7 @@ mod tests {
         let ast = ast_with_body(vec![Stmt::Expr(exec_with_arg(Expr::MethodCall {
             receiver: Box::new(Expr::Variable("cmd".to_string())),
             method: "replace".to_string(),
-            args: vec![Expr::Literal(Literal::Str(
-                "() { :; }; evil".to_string(),
-            ))],
+            args: vec![Expr::Literal(Literal::Str("() { :; }; evil".to_string()))],
         }))]);
         // MethodCall args inside exec context go through validate_expr_in_exec_context
         // which for strings checks shellshock
@@ -116,9 +117,7 @@ mod tests {
     fn test_exec_ctx_method_call_shellshock_in_receiver() {
         let p = strict_pipeline();
         let ast = ast_with_body(vec![Stmt::Expr(exec_with_arg(Expr::MethodCall {
-            receiver: Box::new(Expr::Literal(Literal::Str(
-                "() { :; }; pwned".to_string(),
-            ))),
+            receiver: Box::new(Expr::Literal(Literal::Str("() { :; }; pwned".to_string()))),
             method: "trim".to_string(),
             args: vec![],
         }))]);
@@ -191,10 +190,7 @@ mod tests {
             Expr::Variable("x".to_string()),
             Expr::Literal(Literal::Str("safe".to_string())),
         ])))]);
-        assert!(
-            p.validate_ast(&ast).is_ok(),
-            "Mixed array in exec() ok"
-        );
+        assert!(p.validate_ast(&ast).is_ok(), "Mixed array in exec() ok");
     }
 
     #[test]
@@ -213,13 +209,19 @@ mod tests {
             object: Box::new(Expr::Literal(Literal::Str("() { :; }".to_string()))),
             index: Box::new(Expr::Literal(Literal::U32(0))),
         }))]);
-        assert!(p.validate_ast(&ast1).is_err(), "Shellshock in index object blocked");
+        assert!(
+            p.validate_ast(&ast1).is_err(),
+            "Shellshock in index object blocked"
+        );
 
         let ast2 = ast_with_body(vec![Stmt::Expr(exec_with_arg(Expr::Index {
             object: Box::new(Expr::Variable("arr".to_string())),
             index: Box::new(Expr::Literal(Literal::Str("() { :; }".to_string()))),
         }))]);
-        assert!(p.validate_ast(&ast2).is_err(), "Shellshock in index expr blocked");
+        assert!(
+            p.validate_ast(&ast2).is_err(),
+            "Shellshock in index expr blocked"
+        );
     }
 
     // ── Try with shellshock ──
@@ -247,7 +249,10 @@ mod tests {
             end: Box::new(Expr::Literal(Literal::U32(10))),
             inclusive: false,
         }))]);
-        assert!(p.validate_ast(&ast).is_err(), "Shellshock in range start blocked");
+        assert!(
+            p.validate_ast(&ast).is_err(),
+            "Shellshock in range start blocked"
+        );
 
         // Shellshock in end
         let ast = ast_with_body(vec![Stmt::Expr(exec_with_arg(Expr::Range {
@@ -255,7 +260,10 @@ mod tests {
             end: Box::new(Expr::Literal(Literal::Str("() { :; }".to_string()))),
             inclusive: true,
         }))]);
-        assert!(p.validate_ast(&ast).is_err(), "Shellshock in range end blocked");
+        assert!(
+            p.validate_ast(&ast).is_err(),
+            "Shellshock in range end blocked"
+        );
 
         // Safe inclusive range
         let ast = ast_with_body(vec![Stmt::Expr(exec_with_arg(Expr::Range {
@@ -364,7 +372,11 @@ mod tests {
             let ast = ast_with_body(vec![Stmt::Expr(exec_with_arg(Expr::Literal(
                 Literal::Str(dangerous.to_string()),
             )))]);
-            assert!(p.validate_ast(&ast).is_ok(), "None level bypasses: {}", dangerous);
+            assert!(
+                p.validate_ast(&ast).is_ok(),
+                "None level bypasses: {}",
+                dangerous
+            );
         }
     }
 
@@ -439,10 +451,7 @@ mod tests {
     fn test_exec_ctx_positional_args_alone() {
         let p = strict_pipeline();
         let ast = ast_with_body(vec![Stmt::Expr(exec_with_arg(Expr::PositionalArgs))]);
-        assert!(
-            p.validate_ast(&ast).is_ok(),
-            "PositionalArgs in exec() ok"
-        );
+        assert!(p.validate_ast(&ast).is_ok(), "PositionalArgs in exec() ok");
     }
 
     // ── Pipes and operators allowed in exec string ──
@@ -459,7 +468,11 @@ mod tests {
             let ast = ast_with_body(vec![Stmt::Expr(exec_with_arg(Expr::Literal(
                 Literal::Str(cmd.to_string()),
             )))]);
-            assert!(p.validate_ast(&ast).is_ok(), "Shell operator allowed in exec(): {}", cmd);
+            assert!(
+                p.validate_ast(&ast).is_ok(),
+                "Shell operator allowed in exec(): {}",
+                cmd
+            );
         }
     }
 }

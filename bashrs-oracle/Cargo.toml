@@ -41,5 +41,12 @@ tempfile = { workspace = true }
 # Synthetic data factory for corpus generation
 verificar = "0.3"
 
+[dev-dependencies.criterion]
+workspace = true
+
+[[bench]]
+name = "classification"
+harness = false
+
 [lints]
 workspace = true

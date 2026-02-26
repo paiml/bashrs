@@ -16,10 +16,9 @@
 // Impact: Unexpected command execution, errors
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARITHMETIC_AS_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static ARITHMETIC_AS_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $((expr)) at start of line or after ; or && or ||
     Regex::new(r"(^|[;&|]+)\s*\$\(\([^)]+\)\)").unwrap()
 });

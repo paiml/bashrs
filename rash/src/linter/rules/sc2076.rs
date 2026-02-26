@@ -36,7 +36,7 @@ pub fn check(source: &str) -> LintResult {
     // Pattern: [[ ... =~ "..." ]]
     // We need to match the =~ operator followed by a quoted string
     // Use non-greedy matching to properly handle ]]
-    let bracket_pattern = Regex::new(r#"\[\[(.*?)\]\]"#).unwrap();
+    let bracket_pattern = Regex::new(r"\[\[(.*?)\]\]").unwrap();
     let regex_match_pattern = Regex::new(r#"=~\s+"([^"]+)""#).unwrap();
 
     for (line_num, line) in source.lines().enumerate() {

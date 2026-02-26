@@ -20,13 +20,11 @@
 //   fi
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches `else if` (with optional whitespace) that should be `elif`
-static ELSE_IF: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\belse\s+if\b").unwrap()
-});
+static ELSE_IF: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\belse\s+if\b").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

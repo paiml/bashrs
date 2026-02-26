@@ -13,8 +13,7 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: $(echo SOMETHING) where SOMETHING doesn't need echo
-    let pattern =
-        Regex::new(r#"\$\(\s*echo\s+(?P<flags>-[a-z]+\s+)?(?P<content>[^)]+)\)"#).unwrap();
+    let pattern = Regex::new(r"\$\(\s*echo\s+(?P<flags>-[a-z]+\s+)?(?P<content>[^)]+)\)").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

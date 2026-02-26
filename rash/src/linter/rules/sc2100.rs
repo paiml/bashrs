@@ -15,10 +15,9 @@
 // Impact: Deprecated command, slower execution
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXPR_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static EXPR_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: expr in command substitution (backticks or $())
     Regex::new(r"(`|\$\()expr\s+").unwrap()
 });

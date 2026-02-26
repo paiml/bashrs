@@ -16,10 +16,9 @@
 // Impact: Variables expand in wrong shell context
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SH_C_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
+static SH_C_WITH_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: sh -c "...$var..." or bash -c "...${var}..." (with optional flags before/after -c)
     // (\s+-[a-z]+)* handles flags like -e, -x both before and after -c
     Regex::new(r#"\b(sh|bash)(\s+-[a-z]+)*\s+-c(\s+-[a-z]+)*\s+"[^"]*\$(\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*)[^"]*""#).unwrap()

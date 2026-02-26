@@ -215,11 +215,7 @@ impl DockerfileConverter {
         Ok(())
     }
 
-    fn convert_copy(
-        &self,
-        args: &[Expr],
-        current_stage: &mut Option<DockerStage>,
-    ) -> Result<()> {
+    fn convert_copy(&self, args: &[Expr], current_stage: &mut Option<DockerStage>) -> Result<()> {
         if args.len() < 2 {
             return Err(Error::Validation(
                 "copy() requires at least 2 arguments: src, dst".to_string(),

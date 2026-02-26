@@ -18,10 +18,9 @@
 // correctly with UTF-8 locales.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UPPERCASE_RANGE: Lazy<Regex> = Lazy::new(|| {
+static UPPERCASE_RANGE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [A-Z] but not [[:upper:]]
     Regex::new(r"\[A-Z\]").unwrap()
 });

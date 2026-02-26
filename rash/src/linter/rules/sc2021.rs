@@ -18,10 +18,9 @@
 // Brackets are treated as literal characters to match.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TR_BRACKETED_RANGE: Lazy<Regex> = Lazy::new(|| {
+static TR_BRACKETED_RANGE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: tr [flags] '[something]' where something looks like a range or set
     // Avoid matching [[:posix:]] classes
     // Allow optional flags like -d, -s, etc.
@@ -48,7 +47,7 @@ pub fn check(source: &str) -> LintResult {
             }
 
             // It's a literal bracket usage
-            let start_col = line.find(bracketed).map(|p| p + 1).unwrap_or(1);
+            let start_col = line.find(bracketed).map_or(1, |p| p + 1);
             let end_col = start_col + bracketed.len();
 
             let unbracketed = &bracketed[1..bracketed.len() - 1];

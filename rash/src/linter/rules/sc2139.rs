@@ -16,10 +16,9 @@
 // Impact: Unexpected behavior - variable value frozen at definition time
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ALIAS_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
+static ALIAS_WITH_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: alias name="...$VAR..."
     Regex::new(r#"\balias\s+\w+="[^"]*\$[A-Z_][A-Z0-9_]*[^"]*""#).unwrap()
 });

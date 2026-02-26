@@ -14,16 +14,16 @@
 //   for ext in txt log; do [[ -f file.$ext ]] && ...; done  # Loop
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static BRACE_EXPANSION: Lazy<Regex> = Lazy::new(|| {
+static BRACE_EXPANSION: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: {word,word} or {a..z} patterns (but not ${var} parameter expansion)
     // Must have a comma or consecutive dots (..) to be brace expansion
     Regex::new(r"\{[a-zA-Z0-9_/.]+([,]|\.\.)[a-zA-Z0-9_/.]*\}").unwrap()
 });
 
-static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
+static DOUBLE_BRACKET: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

@@ -1,9 +1,8 @@
 // SC2244: Prefer explicit -n to omitted second operand in test
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static IMPLICIT_STRING_TEST: Lazy<Regex> = Lazy::new(|| {
+static IMPLICIT_STRING_TEST: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ "$var" ] or [ $var ] or [ "${var}" ] (implicit non-empty test)
     Regex::new(r#"\[\s+"?\$\{?\w+\}?"?\s+\]"#).unwrap()
 });

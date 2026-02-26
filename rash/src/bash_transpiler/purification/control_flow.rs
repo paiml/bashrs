@@ -2,8 +2,8 @@
 //
 // Handles: If, While, Until, For, ForCStyle, Case, Select
 
-use crate::bash_parser::ast::*;
 use super::{PurificationResult, Purifier};
+use crate::bash_parser::ast::*;
 
 impl Purifier {
     /// Purify control flow statements: If, While, Until, For, ForCStyle, Case, Select

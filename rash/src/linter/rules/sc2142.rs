@@ -17,15 +17,14 @@
 // Impact: Command won't work as expected - parameters will be empty
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ALIAS_WITH_POSITIONAL_DOUBLE: Lazy<Regex> = Lazy::new(|| {
+static ALIAS_WITH_POSITIONAL_DOUBLE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: alias name="..$1.."
     Regex::new(r#"\balias\s+\w+="[^"]*\$[0-9@*][^"]*""#).unwrap()
 });
 
-static ALIAS_WITH_POSITIONAL_SINGLE: Lazy<Regex> = Lazy::new(|| {
+static ALIAS_WITH_POSITIONAL_SINGLE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: alias name='..$1..'
     Regex::new(r"\balias\s+\w+='[^']*\$[0-9@*][^']*'").unwrap()
 });

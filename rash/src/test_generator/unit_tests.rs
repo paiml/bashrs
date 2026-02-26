@@ -68,8 +68,16 @@ impl UnitTestGenerator {
 
         for stmt in body {
             match stmt {
-                BashStmt::If { elif_blocks, else_block, .. } => {
-                    tests.extend(self.generate_if_branch_tests(name, elif_blocks, else_block.as_ref()));
+                BashStmt::If {
+                    elif_blocks,
+                    else_block,
+                    ..
+                } => {
+                    tests.extend(self.generate_if_branch_tests(
+                        name,
+                        elif_blocks,
+                        else_block.as_ref(),
+                    ));
                 }
                 BashStmt::While { .. } => {
                     tests.push(self.make_while_test(name));

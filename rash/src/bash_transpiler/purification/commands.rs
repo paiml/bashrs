@@ -3,8 +3,8 @@
 // Handles: Command, Pipeline, AndList, OrList, BraceGroup, Coproc
 // Also handles making commands idempotent (mkdir -p, rm -f, etc.)
 
-use crate::bash_parser::ast::*;
 use super::{PurificationResult, Purifier};
+use crate::bash_parser::ast::*;
 
 impl Purifier {
     /// Purify command-related statements: Command, Pipeline, AndList, OrList, BraceGroup, Coproc
@@ -176,9 +176,9 @@ impl Purifier {
         name: &str,
         span: Span,
     ) -> PurificationResult<(Vec<BashStmt>, Option<String>)> {
-        let has_f_flag = args.iter().any(|arg| {
-            matches!(arg, BashExpr::Literal(s) if s.starts_with('-') && s.contains('f'))
-        });
+        let has_f_flag = args.iter().any(
+            |arg| matches!(arg, BashExpr::Literal(s) if s.starts_with('-') && s.contains('f')),
+        );
         if !has_f_flag {
             let purified_args: Result<Vec<_>, _> =
                 args.iter().map(|arg| self.purify_expression(arg)).collect();

@@ -22,16 +22,15 @@
 // Impact: Runtime error - script will fail
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
 
-static READONLY_DECL: Lazy<Regex> = Lazy::new(|| {
+static READONLY_DECL: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: readonly VAR or declare -r VAR
     Regex::new(r"\b(readonly|declare\s+-[a-zA-Z]*r)\s+([a-zA-Z_][a-zA-Z0-9_]*)").unwrap()
 });
 
-static FOR_LOOP: Lazy<Regex> = Lazy::new(|| {
+static FOR_LOOP: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: for VAR in ...
     Regex::new(r"\bfor\s+([a-zA-Z_][a-zA-Z0-9_]*)\s+in\b").unwrap()
 });

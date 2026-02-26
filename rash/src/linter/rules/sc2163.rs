@@ -13,11 +13,11 @@
 //   # Arrays can't be exported in POSIX
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXPORT_READONLY_ARRAY: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\b(export|readonly)\s+([A-Za-z_][A-Za-z0-9_]*)=\(").unwrap());
+static EXPORT_READONLY_ARRAY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\b(export|readonly)\s+([A-Za-z_][A-Za-z0-9_]*)=\(").unwrap()
+});
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

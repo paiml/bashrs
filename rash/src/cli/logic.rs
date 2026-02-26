@@ -22,12 +22,12 @@
 // SUBMODULES
 // =============================================================================
 
-#[path = "logic_lint.rs"]
-mod lint;
 #[path = "logic_dockerfile.rs"]
 mod dockerfile;
 #[path = "logic_format.rs"]
 mod format;
+#[path = "logic_lint.rs"]
+mod lint;
 #[path = "logic_shell.rs"]
 mod shell;
 #[path = "logic_validate.rs"]
@@ -50,9 +50,9 @@ pub use dockerfile::{
     add_no_install_recommends, add_package_manager_cleanup, convert_add_to_copy_if_local,
     dockerfile_find_cmd_line, dockerfile_has_user_directive, dockerfile_is_scratch,
     estimate_build_time_seconds, find_devcontainer_json, format_build_time,
-    format_build_time_estimate, format_size_comparison, layer_has_slow_operation,
-    parse_size_limit, parse_size_string, pin_base_image_version, purify_dockerfile_source,
-    size_exceeds_limit, size_percentage_of_limit,
+    format_build_time_estimate, format_size_comparison, layer_has_slow_operation, parse_size_limit,
+    parse_size_string, pin_base_image_version, purify_dockerfile_source, size_exceeds_limit,
+    size_percentage_of_limit,
 };
 
 // From logic_format.rs
@@ -66,8 +66,9 @@ pub use format::{
 
 // From logic_shell.rs
 pub use shell::{
-    count_duplicate_path_entries, detect_platform, is_dockerfile, is_makefile, is_shell_script_file,
-    is_stdio_path, normalize_shell_script, parse_shell_dialect, should_output_to_stdout,
+    count_duplicate_path_entries, detect_platform, is_dockerfile, is_makefile,
+    is_shell_script_file, is_stdio_path, normalize_shell_script, parse_shell_dialect,
+    should_output_to_stdout,
 };
 
 // From logic_validate.rs

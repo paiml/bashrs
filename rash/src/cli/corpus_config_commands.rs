@@ -31,7 +31,6 @@ pub(crate) fn corpus_domain_categories() -> Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn corpus_domain_coverage() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::domain_categories;
@@ -60,7 +59,6 @@ pub(crate) fn corpus_domain_coverage() -> Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn corpus_domain_matrix() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::domain_categories;
@@ -85,7 +83,6 @@ pub(crate) fn corpus_domain_matrix() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_tier_weights() -> Result<()> {
     use crate::cli::color::*;
@@ -112,7 +109,6 @@ pub(crate) fn corpus_tier_weights() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_tier_analysis() -> Result<()> {
     use crate::cli::color::*;
@@ -143,7 +139,6 @@ pub(crate) fn corpus_tier_analysis() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_tier_targets() -> Result<()> {
     use crate::cli::color::*;
@@ -176,7 +171,6 @@ pub(crate) fn corpus_tier_targets() -> Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn corpus_quality_gates() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::quality_gates;
@@ -204,7 +198,6 @@ pub(crate) fn corpus_quality_gates() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_metrics_check() -> Result<()> {
     use crate::cli::color::*;
@@ -235,7 +228,6 @@ pub(crate) fn corpus_metrics_check() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_gate_status_cmd() -> Result<()> {
     use crate::cli::color::*;
@@ -270,7 +262,6 @@ pub(crate) fn corpus_gate_status_cmd() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_export_dataset(
     format: DatasetExportFormat,
@@ -309,7 +300,6 @@ pub(crate) fn corpus_export_dataset(
     Ok(())
 }
 
-
 pub(crate) fn corpus_dataset_info() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::dataset;
@@ -336,7 +326,6 @@ pub(crate) fn corpus_dataset_info() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_publish_check() -> Result<()> {
     use crate::cli::color::*;

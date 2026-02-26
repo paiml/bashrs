@@ -43,7 +43,6 @@ pub(crate) fn corpus_lint_pipeline() -> Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn corpus_regression_check() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::citl;
@@ -77,7 +76,6 @@ pub(crate) fn corpus_regression_check() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_convergence_check() -> Result<()> {
     use crate::cli::color::*;

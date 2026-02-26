@@ -21,10 +21,9 @@
 // Note: Use proper if-then-else for conditional logic to avoid surprises.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static AND_OR_PATTERN: Lazy<Regex> = Lazy::new(|| {
+static AND_OR_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: command && command || command
     // Looking for pattern with both && and ||
     Regex::new(r"[^|&]+&&[^|&]+\|\|[^|&]+").unwrap()

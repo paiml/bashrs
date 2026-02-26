@@ -46,7 +46,10 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Track loop entry
-        if trimmed.starts_with("for ") || trimmed.starts_with("while ") || trimmed.starts_with("until ") {
+        if trimmed.starts_with("for ")
+            || trimmed.starts_with("while ")
+            || trimmed.starts_with("until ")
+        {
             loop_depth += 1;
             in_loop_body = true;
         }
@@ -68,7 +71,10 @@ pub fn check(source: &str) -> LintResult {
         // Check for command substitution inside loop body
         if in_loop_body && loop_depth > 0 {
             // Skip the loop header line itself (for ... in $(cmd) is fine)
-            if trimmed.starts_with("for ") || trimmed.starts_with("while ") || trimmed.starts_with("until ") {
+            if trimmed.starts_with("for ")
+                || trimmed.starts_with("while ")
+                || trimmed.starts_with("until ")
+            {
                 continue;
             }
             if trimmed == "do" || trimmed.ends_with("; do") || trimmed.ends_with(";do") {

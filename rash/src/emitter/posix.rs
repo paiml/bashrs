@@ -110,15 +110,14 @@ fn needs_arithmetic_parens(
 }
 
 pub struct PosixEmitter {
-    #[allow(dead_code)]
-    config: Config,
+    _config: Config,
     trace: RefCell<Vec<TranspilerDecision>>,
 }
 
 impl PosixEmitter {
     pub fn new(config: Config) -> Self {
         Self {
-            config,
+            _config: config,
             trace: RefCell::new(Vec::new()),
         }
     }
@@ -1338,11 +1337,7 @@ impl PosixEmitter {
     }
 
     /// Emit dynamic array access in arithmetic context.
-    fn emit_arithmetic_dynamic_access(
-        &self,
-        array: &str,
-        index: &ShellValue,
-    ) -> Result<String> {
+    fn emit_arithmetic_dynamic_access(&self, array: &str, index: &ShellValue) -> Result<String> {
         let idx_expr = self.emit_dynamic_index_expr(index)?;
         Ok(format!(
             "$(eval \"printf '%s' \\\"\\${}_{}\\\"\")",

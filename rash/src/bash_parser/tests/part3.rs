@@ -1,11 +1,11 @@
 #![allow(clippy::unwrap_used)]
 #![allow(unused_imports)]
 
-use super::super::*;
 use super::super::ast::Redirect;
 use super::super::lexer::Lexer;
 use super::super::parser::BashParser;
 use super::super::semantic::SemanticAnalyzer;
+use super::super::*;
 
 /// Helper: assert that BashParser handles the input without panicking.
 /// Accepts both successful parses and parse errors (documentation tests
@@ -15,10 +15,7 @@ fn assert_parses_without_panic(input: &str, msg: &str) {
     match result {
         Ok(mut parser) => {
             let parse_result = parser.parse();
-            assert!(
-                parse_result.is_ok() || parse_result.is_err(),
-                "{msg}"
-            );
+            assert!(parse_result.is_ok() || parse_result.is_err(), "{msg}");
         }
         Err(_) => {
             // Parse error acceptable for documentation tests
@@ -2508,7 +2505,10 @@ if cmd; then
 fi
 "#;
 
-    assert_parses_without_panic(clobbering_issue, "$? clobbering behavior is POSIX-compliant");
+    assert_parses_without_panic(
+        clobbering_issue,
+        "$? clobbering behavior is POSIX-compliant",
+    );
 }
 
 #[test]
@@ -2755,7 +2755,10 @@ echo "Process ID: $$"
 echo "Script PID: $$"
 "#;
 
-    assert_parses_without_panic(process_id, "$$ is POSIX-compliant but NON-DETERMINISTIC (must purify)");
+    assert_parses_without_panic(
+        process_id,
+        "$$ is POSIX-compliant but NON-DETERMINISTIC (must purify)",
+    );
 }
 
 #[test]
@@ -3129,7 +3132,10 @@ trap "rm -f /tmp/lock.$$" EXIT
 # echo "Actual PID: $BASHPID"
 "#;
 
-    assert_parses_without_panic(comparison_example, "$$ comparison and purification strategy documented");
+    assert_parses_without_panic(
+        comparison_example,
+        "$$ comparison and purification strategy documented",
+    );
 }
 
 // Summary:
@@ -3696,7 +3702,10 @@ echo {a..z}
 echo {foo,bar,baz}
 "#;
 
-    assert_parses_without_panic(brace_expansion, "Brace expansion is bash extension, NOT SUPPORTED");
+    assert_parses_without_panic(
+        brace_expansion,
+        "Brace expansion is bash extension, NOT SUPPORTED",
+    );
 }
 
 // DOCUMENTATION: Sequence expansion {start..end} (bash, NOT SUPPORTED)
@@ -3721,7 +3730,10 @@ while [ $i -le 10 ]; do
 done
 "#;
 
-    assert_parses_without_panic(sequence_expansion, "POSIX alternatives: seq, for loop, while loop");
+    assert_parses_without_panic(
+        sequence_expansion,
+        "POSIX alternatives: seq, for loop, while loop",
+    );
 }
 
 // DOCUMENTATION: Comma expansion {item1,item2} (bash, NOT SUPPORTED)
@@ -3748,7 +3760,10 @@ for item in $items; do
 done
 "#;
 
-    assert_parses_without_panic(comma_expansion, "POSIX alternatives: explicit lists, for loops");
+    assert_parses_without_panic(
+        comma_expansion,
+        "POSIX alternatives: explicit lists, for loops",
+    );
 }
 
 #[test]
@@ -3838,7 +3853,10 @@ for x in a b; do
 done
 "#;
 
-    assert_parses_without_panic(purification_examples, "Purification strategy: seq, explicit lists, nested loops");
+    assert_parses_without_panic(
+        purification_examples,
+        "Purification strategy: seq, explicit lists, nested loops",
+    );
 }
 
 // DOCUMENTATION: Common brace expansion use cases (bash, NOT SUPPORTED)
@@ -3987,7 +4005,10 @@ for x in a b; do
 done
 "#;
 
-    assert_parses_without_panic(comparison_example, "Brace expansion comparison and purification documented");
+    assert_parses_without_panic(
+        comparison_example,
+        "Brace expansion comparison and purification documented",
+    );
 }
 
 // Summary:
@@ -4423,4 +4444,3 @@ mkdir "$HOME/backup"
         }
     }
 }
-

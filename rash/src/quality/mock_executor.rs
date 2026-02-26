@@ -60,7 +60,7 @@ impl CommandResult {
     pub fn with_output(success: bool, stdout: &str, stderr: &str) -> Self {
         Self {
             success,
-            exit_code: if success { 0 } else { 1 },
+            exit_code: i32::from(!success),
             stdout: stdout.to_string(),
             stderr: stderr.to_string(),
         }

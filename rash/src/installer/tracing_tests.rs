@@ -6,9 +6,9 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
+use super::*;
 use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
-use super::*;
 
 #[test]
 fn test_TRACING_COV_001_trace_level_name_all_variants() {
@@ -167,7 +167,11 @@ fn test_TRACING_COV_014_context_artifact_span() {
     let id = ctx.start_artifact_span("art-abc");
     assert!(!id.is_empty());
     ctx.end_span_ok();
-    let art = ctx.all_spans().into_iter().find(|s| s.name == "artifact:art-abc").unwrap();
+    let art = ctx
+        .all_spans()
+        .into_iter()
+        .find(|s| s.name == "artifact:art-abc")
+        .unwrap();
     assert_eq!(art.kind, SpanKind::Client);
 }
 
@@ -194,13 +198,21 @@ fn test_TRACING_COV_016_context_set_attribute_stack_vs_root_vs_none() {
     ctx.start_span("child");
     ctx.set_attribute("attr_key", AttributeValue::int(42));
     ctx.end_span_ok();
-    let child = ctx.all_spans().into_iter().find(|s| s.name == "child").unwrap();
+    let child = ctx
+        .all_spans()
+        .into_iter()
+        .find(|s| s.name == "child")
+        .unwrap();
     assert!(child.attributes.contains_key("attr_key"));
     // On root (no child on stack)
     let mut ctx2 = TracingContext::new("svc", "1.0");
     ctx2.start_root("root");
     ctx2.set_attribute("root_attr", AttributeValue::string("val"));
-    let root = ctx2.all_spans().into_iter().find(|s| s.name == "root").unwrap();
+    let root = ctx2
+        .all_spans()
+        .into_iter()
+        .find(|s| s.name == "root")
+        .unwrap();
     assert!(root.attributes.contains_key("root_attr"));
     // No spans at all
     let mut ctx3 = TracingContext::new("svc", "1.0");
@@ -215,13 +227,21 @@ fn test_TRACING_COV_017_context_add_event_stack_vs_root_vs_none() {
     ctx.start_span("child");
     ctx.add_event("child_event");
     ctx.end_span_ok();
-    let child = ctx.all_spans().into_iter().find(|s| s.name == "child").unwrap();
+    let child = ctx
+        .all_spans()
+        .into_iter()
+        .find(|s| s.name == "child")
+        .unwrap();
     assert_eq!(child.events.len(), 1);
     // On root
     let mut ctx2 = TracingContext::new("svc", "1.0");
     ctx2.start_root("root");
     ctx2.add_event("root_event");
-    let root = ctx2.all_spans().into_iter().find(|s| s.name == "root").unwrap();
+    let root = ctx2
+        .all_spans()
+        .into_iter()
+        .find(|s| s.name == "root")
+        .unwrap();
     assert_eq!(root.events.len(), 1);
     // No spans
     let mut ctx3 = TracingContext::new("svc", "1.0");
@@ -234,7 +254,11 @@ fn test_TRACING_COV_018_context_end_root_error() {
     let mut ctx = TracingContext::new("svc", "1.0");
     ctx.start_root("root");
     ctx.end_root_error("fatal failure");
-    let root = ctx.all_spans().into_iter().find(|s| s.name == "root").unwrap();
+    let root = ctx
+        .all_spans()
+        .into_iter()
+        .find(|s| s.name == "root")
+        .unwrap();
     assert_eq!(root.status, SpanStatus::Error);
     assert_eq!(root.status_message.as_deref(), Some("fatal failure"));
 }
@@ -245,7 +269,11 @@ fn test_TRACING_COV_019_context_end_span_error_and_no_stack() {
     ctx.start_root("root");
     ctx.start_span("failing");
     ctx.end_span_error("step failed");
-    let failing = ctx.all_spans().into_iter().find(|s| s.name == "failing").unwrap();
+    let failing = ctx
+        .all_spans()
+        .into_iter()
+        .find(|s| s.name == "failing")
+        .unwrap();
     assert_eq!(failing.status, SpanStatus::Error);
     // Empty stack no-ops
     let mut ctx2 = TracingContext::new("svc", "1.0");
@@ -272,14 +300,20 @@ fn test_TRACING_COV_021_context_end_root_no_root() {
 #[test]
 fn test_TRACING_COV_022_trace_summary_format_seconds_and_minutes() {
     let s1 = TraceSummary {
-        trace_id: "abc123def456".into(), total_spans: 5, ok_spans: 4,
-        error_spans: 1, total_duration: Duration::from_secs(30),
+        trace_id: "abc123def456".into(),
+        total_spans: 5,
+        ok_spans: 4,
+        error_spans: 1,
+        total_duration: Duration::from_secs(30),
     };
     let t1 = s1.format();
     assert!(t1.contains("30.00s") && t1.contains("5 total") && t1.contains("4 ok"));
     let s2 = TraceSummary {
-        trace_id: "abc".into(), total_spans: 10, ok_spans: 10,
-        error_spans: 0, total_duration: Duration::from_secs(125),
+        trace_id: "abc".into(),
+        total_spans: 10,
+        ok_spans: 10,
+        error_spans: 0,
+        total_duration: Duration::from_secs(125),
     };
     assert!(s2.format().contains("2m 05s"));
 }
@@ -288,7 +322,9 @@ fn test_TRACING_COV_022_trace_summary_format_seconds_and_minutes() {
 fn test_TRACING_COV_023_trace_summary_truncates_id() {
     let s = TraceSummary {
         trace_id: "0123456789abcdef0123456789abcdef".into(),
-        total_spans: 1, ok_spans: 1, error_spans: 0,
+        total_spans: 1,
+        ok_spans: 1,
+        error_spans: 0,
         total_duration: Duration::from_millis(500),
     };
     let t = s.format();
@@ -315,15 +351,23 @@ fn test_TRACING_COV_025_logger_filtering_and_context() {
     let logger = Logger::default();
     assert!(logger.entries().is_empty() && logger.context().is_none());
     let mut l_off = Logger::new().with_level(TraceLevel::Off);
-    l_off.error("e"); l_off.warn("w"); l_off.info("i"); l_off.debug("d");
+    l_off.error("e");
+    l_off.warn("w");
+    l_off.info("i");
+    l_off.debug("d");
     assert_eq!(l_off.entries().len(), 0);
     let mut l_err = Logger::new().with_level(TraceLevel::Error);
-    l_err.error("e"); l_err.warn("w"); l_err.info("i");
+    l_err.error("e");
+    l_err.warn("w");
+    l_err.info("i");
     assert_eq!(l_err.entries().len(), 1);
     // With context wiring
     let ctx = TracingContext::new("svc", "1.0");
     let mut l_ctx = Logger::new().with_context(ctx);
-    if let Some(c) = l_ctx.context_mut() { c.start_root("root"); c.start_span("active"); }
+    if let Some(c) = l_ctx.context_mut() {
+        c.start_root("root");
+        c.start_span("active");
+    }
     l_ctx.info("traced");
     assert!(l_ctx.entries()[0].span_id.is_some() && l_ctx.entries()[0].trace_id.is_some());
 }
@@ -364,10 +408,14 @@ fn test_TRACING_COV_028_time_helpers() {
 fn test_TRACING_COV_029_context_full_export() {
     let mut ctx = TracingContext::new("my-installer", "2.0.0");
     ctx.start_root("full-install");
-    ctx.start_artifact_span("binary-v1"); ctx.end_span_ok();
-    ctx.start_precondition_span("os == linux"); ctx.end_span_ok();
-    ctx.start_step_span("install-pkg", "Install Package"); ctx.end_span_ok();
-    ctx.start_postcondition_span("binary exists"); ctx.end_span_ok();
+    ctx.start_artifact_span("binary-v1");
+    ctx.end_span_ok();
+    ctx.start_precondition_span("os == linux");
+    ctx.end_span_ok();
+    ctx.start_step_span("install-pkg", "Install Package");
+    ctx.end_span_ok();
+    ctx.start_postcondition_span("binary exists");
+    ctx.end_span_ok();
     ctx.end_root_ok();
     let json = ctx.export();
     assert!(json.contains("my-installer") && json.contains("resourceSpans"));

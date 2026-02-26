@@ -1,8 +1,8 @@
-# Temporary coverage config - DO NOT COMMIT
-# Replaces project config during coverage runs
+# bashrs build configuration
+# See: https://doc.rust-lang.org/cargo/reference/config.html
+
 [build]
 incremental = true
-target-dir = "/mnt/nvme-raid0/coverage/bashrs"
 
 [alias]
 t = "test"

@@ -417,7 +417,11 @@ echo $x
 
     let input_file = create_temp_shell_file(shell_script);
 
-    bashrs_cmd().arg("lint").arg(input_file.path()).assert().success();
+    bashrs_cmd()
+        .arg("lint")
+        .arg(input_file.path())
+        .assert()
+        .success();
 }
 
 #[test]
@@ -430,7 +434,11 @@ fn main() {
 
     let input_file = create_temp_rust_file(rust_code);
 
-    bashrs_cmd().arg("lint").arg(input_file.path()).assert().success();
+    bashrs_cmd()
+        .arg("lint")
+        .arg(input_file.path())
+        .assert()
+        .success();
 }
 
 #[test]

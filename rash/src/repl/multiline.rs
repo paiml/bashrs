@@ -93,10 +93,10 @@ fn analyze_bracket_state(input: &str) -> BracketState {
         match ch {
             '\\' => escape_next = true,
             '\'' if !quote_state.in_double_quote => {
-                quote_state.in_single_quote = !quote_state.in_single_quote
+                quote_state.in_single_quote = !quote_state.in_single_quote;
             }
             '"' if !quote_state.in_single_quote => {
-                quote_state.in_double_quote = !quote_state.in_double_quote
+                quote_state.in_double_quote = !quote_state.in_double_quote;
             }
             '{' if !quote_state.is_quoted() => state.brace_depth += 1,
             '}' if !quote_state.is_quoted() => state.brace_depth -= 1,
@@ -638,9 +638,8 @@ mod proptest_generative {
         .prop_map(|s| s.to_string())
     }
 
-    // Strategy for bash keywords
-    #[allow(dead_code)] // Reserved for future property tests
-    fn bash_keyword() -> impl Strategy<Value = String> {
+    // Strategy for bash keywords (reserved for future property tests)
+    fn _bash_keyword() -> impl Strategy<Value = String> {
         prop::sample::select(vec![
             "if", "then", "else", "elif", "fi", "for", "while", "do", "done", "until", "case",
             "esac", "function",
@@ -652,8 +651,8 @@ mod proptest_generative {
     fn simple_arg() -> impl Strategy<Value = String> {
         "[a-z0-9_-]{1,10}".prop_filter_map("filter shell keywords", |s| {
             const SHELL_KEYWORDS: &[&str] = &[
-                "do", "done", "then", "else", "elif", "fi", "for", "while", "until",
-                "case", "esac", "if", "in", "select",
+                "do", "done", "then", "else", "elif", "fi", "for", "while", "until", "case",
+                "esac", "if", "in", "select",
             ];
             if SHELL_KEYWORDS.contains(&s.as_str()) {
                 None

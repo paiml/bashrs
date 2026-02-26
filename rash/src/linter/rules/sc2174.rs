@@ -14,10 +14,9 @@
 //   install -d -m 700 /tmp/a/b/c  # install command handles this better
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static MKDIR_P_WITH_MODE: Lazy<Regex> = Lazy::new(|| {
+static MKDIR_P_WITH_MODE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: mkdir -p ... -m mode or mkdir -pm mode or mkdir -m ... -p
     Regex::new(r"\bmkdir\s+(-[a-zA-Z]*p[a-zA-Z]*\s+.*-m\s+[0-7]+|-[a-zA-Z]*p[a-zA-Z]*m\s*[0-7]+|-m\s+[0-7]+\s+.*-[a-zA-Z]*p[a-zA-Z]*)").unwrap()
 });

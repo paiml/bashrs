@@ -96,7 +96,7 @@ pub fn explain_bash(input: &str) -> Option<Explanation> {
 
 /// Check if input matches parameter expansion pattern with operator
 fn matches_param_expansion(input: &str, operator: &str) -> bool {
-    input.contains(operator) && input.starts_with("${") && input.ends_with("}")
+    input.contains(operator) && input.starts_with("${") && input.ends_with('}')
 }
 
 /// Explain ${parameter:-word} - Use default value
@@ -172,7 +172,7 @@ fn explain_parameter_expansion(input: &str) -> Option<Explanation> {
     }
 
     // ${#var} - String length
-    if input.starts_with("${#") && input.ends_with("}") {
+    if input.starts_with("${#") && input.ends_with('}') {
         return Some(explain_string_length());
     }
 
@@ -224,7 +224,7 @@ fn explain_control_flow(input: &str) -> Option<Explanation> {
 /// Explain redirection constructs
 fn explain_redirection(input: &str) -> Option<Explanation> {
     // Output redirection >
-    if input.contains(" > ") || input.ends_with(">") {
+    if input.contains(" > ") || input.ends_with('>') {
         return Some(
             Explanation::new(
                 "Output Redirection: command > file",

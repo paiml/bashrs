@@ -1,9 +1,8 @@
 // SC2206: Quote to prevent word splitting/globbing in arrays
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_ARRAY_EXPANSION: Lazy<Regex> = Lazy::new(|| {
+static UNQUOTED_ARRAY_EXPANSION: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match array=($var) or array=($(cmd)) or array=($a $b) without quotes
     Regex::new(r"\w+\s*=\s*\([^)]*\$").unwrap()
 });

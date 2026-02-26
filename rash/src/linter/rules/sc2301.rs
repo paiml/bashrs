@@ -1,9 +1,8 @@
 // SC2301: Use [[ -v array[0] ]] to check if array element exists
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_ELEMENT_CHECK: Lazy<Regex> = Lazy::new(|| {
+static ARRAY_ELEMENT_CHECK: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r#"(?:^|[^\[])\[\s+-[nz]\s+"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[\d+\]\}""#).unwrap()
 });
 

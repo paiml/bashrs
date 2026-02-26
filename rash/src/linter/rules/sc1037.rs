@@ -15,17 +15,15 @@
 //   echo ${123}       # Correct: 123rd positional parameter
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches $10, $11, etc. that are NOT inside ${...}
 /// We look for $ followed by a digit 1-9 then more digits, but NOT preceded by ${
-static UNBRACED_POSITIONAL: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$([1-9][0-9]+)").expect("SC1037 regex must compile")
-});
+static UNBRACED_POSITIONAL: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$([1-9][0-9]+)").expect("SC1037 regex must compile"));
 
 /// Matches ${digits} to exclude braced forms
-static BRACED_POSITIONAL: Lazy<Regex> = Lazy::new(|| {
+static BRACED_POSITIONAL: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"\$\{[1-9][0-9]+\}").expect("SC1037 braced regex must compile")
 });
 

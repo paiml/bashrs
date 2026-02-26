@@ -76,7 +76,6 @@ impl Visitor<()> for ExprTypeVisitor {
 }
 
 /// Test mutable visitor that transforms expressions
-#[allow(dead_code)]
 struct ExprTransformVisitor;
 
 impl VisitorMut<()> for ExprTransformVisitor {

@@ -5,7 +5,6 @@ use std::fs;
 use std::path::Path;
 use tracing::{info, warn};
 
-
 // ---------------------------------------------------------------------------
 // handle_dockerfile_command  (entry point, called from commands.rs)
 // ---------------------------------------------------------------------------
@@ -324,7 +323,11 @@ fn print_dockerfile_lint_sarif(input: &Path, diagnostics: &[crate::linter::Diagn
     );
 }
 
-pub(crate) fn dockerfile_lint_command(input: &Path, format: LintFormat, rules: Option<&str>) -> Result<()> {
+pub(crate) fn dockerfile_lint_command(
+    input: &Path,
+    format: LintFormat,
+    rules: Option<&str>,
+) -> Result<()> {
     use crate::linter::rules::lint_dockerfile;
 
     info!("Linting {} for Dockerfile issues", input.display());

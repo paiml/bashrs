@@ -158,10 +158,7 @@ fn golden_c_style_for_to_while() {
         output.contains("while"),
         "Should convert for(()) to while: {output}"
     );
-    assert!(
-        output.contains("i=0"),
-        "Should have init: {output}"
-    );
+    assert!(output.contains("i=0"), "Should have init: {output}");
     assert!(
         output.contains("-lt"),
         "Should have POSIX comparison: {output}"

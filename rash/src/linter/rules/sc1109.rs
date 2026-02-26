@@ -84,7 +84,8 @@ mod tests {
 
     #[test]
     fn test_sc1109_no_html_entities() {
-        let script = "#!/bin/sh\ntest -f file && echo ok\nif [ \"$a\" -lt \"$b\" ]; then echo less; fi";
+        let script =
+            "#!/bin/sh\ntest -f file && echo ok\nif [ \"$a\" -lt \"$b\" ]; then echo less; fi";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
     }

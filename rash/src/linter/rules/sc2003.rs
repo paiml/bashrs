@@ -18,10 +18,9 @@
 // slower than built-in arithmetic. It also requires careful quoting and escaping.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXPR_USAGE: Lazy<Regex> = Lazy::new(|| {
+static EXPR_USAGE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(expr ...) or `expr ...`
     Regex::new(r"(\$\(expr\s+|`expr\s+)").unwrap()
 });

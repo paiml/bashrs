@@ -363,7 +363,7 @@ impl RichLintReport {
         out.push('\n');
 
         // Cluster rows
-        let max_count = self.clusters.first().map(|c| c.count).unwrap_or(1);
+        let max_count = self.clusters.first().map_or(1, |c| c.count);
         for cluster in self.clusters.iter().take(5) {
             let bar = histogram_bar(cluster.count as f64, max_count as f64, 20);
             let confidence_str = if cluster.auto_fixable {
@@ -480,8 +480,7 @@ impl RichLintReport {
                     "  2. Manual review required for {} ({} issues)",
                     manual_clusters
                         .first()
-                        .map(|c| c.error_code.as_str())
-                        .unwrap_or(""),
+                        .map_or("", |c| c.error_code.as_str()),
                     self.manual_count
                 );
                 self.render_line(out, &line, width);
@@ -555,8 +554,7 @@ impl RichLintReport {
         self.clusters
             .iter()
             .find(|c| c.error_code == location)
-            .map(|c| c.category.name().to_string())
-            .unwrap_or_else(|| "Unknown".to_string())
+            .map_or_else(|| "Unknown".to_string(), |c| c.category.name().to_string())
     }
 }
 

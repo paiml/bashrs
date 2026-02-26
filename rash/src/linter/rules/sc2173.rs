@@ -16,10 +16,9 @@
 // Impact: Trap won't work, false sense of control
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TRAP_SIGKILL_SIGSTOP: Lazy<Regex> = Lazy::new(|| {
+static TRAP_SIGKILL_SIGSTOP: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: trap "handler" SIGKILL/SIGSTOP/9/17/19
     // Also match: trap 'handler' SIGKILL
     Regex::new(r#"\btrap\s+["']?[^"'\s]+["']?\s+(SIGKILL|SIGSTOP|9|17|19)\b"#).unwrap()

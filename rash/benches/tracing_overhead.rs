@@ -14,8 +14,8 @@
 
 use bashrs::bash_parser::BashParser;
 use bashrs::tracing::TraceManager;
-use std::hint::black_box;
 use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use std::hint::black_box;
 
 /// Small script: 5 statements (~10 lines)
 const SMALL_SCRIPT: &str = r#"

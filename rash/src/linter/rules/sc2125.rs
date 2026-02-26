@@ -15,10 +15,9 @@
 //   for file in *.txt; do ...; done   # Use glob in loop, not assignment
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static GLOB_IN_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
+static GLOB_IN_ASSIGNMENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: var=*.ext or var=/path/*.ext or var={a,b,c}
     Regex::new(r"^[A-Za-z_][A-Za-z0-9_]*=([^=]*\*[^=\s]*|.*\{[^}]+\}[^=\s]*)").unwrap()
 });
@@ -40,7 +39,7 @@ fn is_quoted_assignment(line: &str) -> bool {
 
 /// Check if value contains command substitution
 fn contains_command_substitution(value: &str) -> bool {
-    value.contains("$(") || value.contains("`")
+    value.contains("$(") || value.contains('`')
 }
 
 /// Check if the brace group starting at chars[start+1..] contains brace expansion patterns

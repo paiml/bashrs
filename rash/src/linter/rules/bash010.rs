@@ -88,7 +88,7 @@ pub fn check(source: &str) -> LintResult {
 
     // Report missing shebang
     if !has_shebang {
-        let span = Span::new(1, 1, 1, lines.first().map(|l| l.len()).unwrap_or(0));
+        let span = Span::new(1, 1, 1, lines.first().map_or(0, |l| l.len()));
 
         let diag = Diagnostic::new(
             "BASH010",
@@ -101,7 +101,7 @@ pub fn check(source: &str) -> LintResult {
 
     // Report missing description (only if shebang exists)
     if has_shebang && !has_description {
-        let span = Span::new(2, 1, 2, lines.get(1).map(|l| l.len()).unwrap_or(0));
+        let span = Span::new(2, 1, 2, lines.get(1).map_or(0, |l| l.len()));
 
         let diag = Diagnostic::new(
             "BASH010",

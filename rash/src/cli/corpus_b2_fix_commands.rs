@@ -91,8 +91,10 @@ pub(crate) enum ScanAdvance {
     Done,
 }
 
-
-pub(crate) fn scan_last_string_before_close_paren(bytes: &[u8], start: usize) -> Option<(usize, usize)> {
+pub(crate) fn scan_last_string_before_close_paren(
+    bytes: &[u8],
+    start: usize,
+) -> Option<(usize, usize)> {
     let mut depth = 0i32;
     let mut i = start;
     let mut state = RustScanState::Normal;
@@ -117,7 +119,6 @@ pub(crate) fn scan_last_string_before_close_paren(bytes: &[u8], start: usize) ->
     None
 }
 
-
 pub(crate) fn advance_scan(
     bytes: &[u8],
     i: usize,
@@ -133,7 +134,6 @@ pub(crate) fn advance_scan(
     }
 }
 
-
 pub(crate) fn advance_in_raw(
     bytes: &[u8],
     i: usize,
@@ -147,7 +147,6 @@ pub(crate) fn advance_in_raw(
         ScanAdvance::Step1
     }
 }
-
 
 pub(crate) fn advance_in_str(
     bytes: &[u8],
@@ -164,8 +163,12 @@ pub(crate) fn advance_in_str(
     ScanAdvance::Step1
 }
 
-
-pub(crate) fn advance_normal(bytes: &[u8], i: usize, depth: &mut i32, str_start: &mut usize) -> ScanAdvance {
+pub(crate) fn advance_normal(
+    bytes: &[u8],
+    i: usize,
+    depth: &mut i32,
+    str_start: &mut usize,
+) -> ScanAdvance {
     if i + 2 < bytes.len() && bytes[i] == b'r' && bytes[i + 1] == b'#' && bytes[i + 2] == b'"' {
         *str_start = i;
         return ScanAdvance::Skip(3);
@@ -187,7 +190,6 @@ pub(crate) fn advance_normal(bytes: &[u8], i: usize, depth: &mut i32, str_start:
     }
     ScanAdvance::Step1
 }
-
 
 pub(crate) fn next_scan_state(current: &RustScanState, bytes: &[u8], i: usize) -> RustScanState {
     match current {
@@ -241,9 +243,9 @@ pub(crate) fn format_rust_string_for_registry(s: &str) -> String {
 
 #[cfg(test)]
 mod config_purify_tests {
-    use std::path::Path;
     use crate::cli::commands::should_output_to_stdout;
     use crate::cli::logic::generate_diff_lines;
+    use std::path::Path;
 
     // ===== NASA-QUALITY UNIT TESTS for config_purify_command helpers =====
 

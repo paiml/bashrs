@@ -7,10 +7,7 @@ use std::path::Path;
 // Extracted from installer_commands.rs for module size compliance
 // ============================================================================
 
-pub(crate) fn installer_golden_capture_command(
-    path: &Path,
-    trace_name: &str,
-) -> Result<()> {
+pub(crate) fn installer_golden_capture_command(path: &Path, trace_name: &str) -> Result<()> {
     use crate::installer::{
         GoldenTrace, GoldenTraceManager, InstallerSpec, SimulatedTraceCollector, TraceResult,
     };
@@ -126,10 +123,7 @@ pub(crate) fn installer_golden_capture_command(
     Ok(())
 }
 
-pub(crate) fn installer_golden_compare_command(
-    path: &Path,
-    trace_name: &str,
-) -> Result<()> {
+pub(crate) fn installer_golden_compare_command(path: &Path, trace_name: &str) -> Result<()> {
     use crate::installer::{
         GoldenTrace, GoldenTraceManager, InstallerSpec, SimulatedTraceCollector, TraceComparison,
         TraceResult,

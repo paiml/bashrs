@@ -51,7 +51,10 @@ pub fn check(source: &str) -> LintResult {
                 if let Some(close_pos) = line[i + 1..].find(']') {
                     let abs_close = i + 1 + close_pos;
                     // Check if character before ] is not a space
-                    if abs_close > 0 && bytes[abs_close - 1] != b' ' && bytes[abs_close - 1] != b'\t' {
+                    if abs_close > 0
+                        && bytes[abs_close - 1] != b' '
+                        && bytes[abs_close - 1] != b'\t'
+                    {
                         // Make sure there's actual content between [ and ] (not empty)
                         let inner = line[i + 1..abs_close].trim();
                         if !inner.is_empty() {

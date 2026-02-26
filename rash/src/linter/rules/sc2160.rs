@@ -13,10 +13,9 @@
 //   if [ ! -f "$path" ]; then
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static NEGATION_OUTSIDE_BRACKETS: Lazy<Regex> = Lazy::new(|| {
+static NEGATION_OUTSIDE_BRACKETS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: ! [ -e x ] or ! [ -f x ] etc.
     Regex::new(r"!\s+\[").unwrap()
 });

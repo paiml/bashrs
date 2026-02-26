@@ -210,11 +210,20 @@ pub fn build_snippet(
 fn unexpected_token_help(expected: &str) -> Option<String> {
     const HELP_TABLE: &[(&str, &str)] = &[
         ("then", "add 'then' after the condition: `if [ ... ]; then`"),
-        ("do", "add 'do' after the loop header: `while [ ... ]; do` or `for x in ...; do`"),
+        (
+            "do",
+            "add 'do' after the loop header: `while [ ... ]; do` or `for x in ...; do`",
+        ),
         ("fi", "every 'if' must be closed with 'fi'"),
-        ("done", "every 'while'/'for'/'until' loop must be closed with 'done'"),
+        (
+            "done",
+            "every 'while'/'for'/'until' loop must be closed with 'done'",
+        ),
         ("esac", "every 'case' must be closed with 'esac'"),
-        ("in", "'for' and 'case' require 'in': `for var in list` / `case $x in`"),
+        (
+            "in",
+            "'for' and 'case' require 'in': `for var in list` / `case $x in`",
+        ),
         ("}", "unmatched '{' — did you forget the closing '}'?"),
         (")", "unmatched '(' — did you forget the closing ')'?"),
     ];
@@ -730,7 +739,10 @@ impl BashParser {
         }
     }
 
-    pub(crate) fn parse_block_until(&mut self, terminators: &[Token]) -> ParseResult<Vec<BashStmt>> {
+    pub(crate) fn parse_block_until(
+        &mut self,
+        terminators: &[Token],
+    ) -> ParseResult<Vec<BashStmt>> {
         let mut statements = Vec::new();
 
         while !self.is_at_end() {
@@ -934,8 +946,8 @@ impl BashParser {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::parser_arith::ArithToken;
+    use super::*;
 
     #[test]
     fn test_parse_simple_assignment() {

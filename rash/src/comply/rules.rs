@@ -364,20 +364,40 @@ fn check_idempotency(content: &str, artifact: &Artifact) -> RuleResult {
 
 fn check_idempotency_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
     let checks: ComplianceCheck<'_> = &[
-        (&|t| is_cmd(t, "mkdir") && !t.contains("-p") && !t.contains("--parents"),
-         "Non-idempotent: mkdir without -p (fails if dir exists)"),
-        (&|t| is_cmd(t, "rm") && !t.contains("-f") && !t.contains("-rf") && !t.contains("--force"),
-         "Non-idempotent: rm without -f (fails if file missing)"),
-        (&|t| (t.starts_with("ln -s ") || t.contains("&& ln -s ")) && !t.contains("-sf") && !t.contains("-snf"),
-         "Non-idempotent: ln -s without -f (fails if link exists)"),
-        (&|t| is_unguarded_adduser(t),
-         "Non-idempotent: useradd/groupadd without existence check"),
-        (&|t| is_unguarded_git_clone(t),
-         "Non-idempotent: git clone without directory check"),
-        (&|t| is_unguarded_createdb(t),
-         "Non-idempotent: createdb without --if-not-exists guard"),
-        (&|t| is_append_to_config(t),
-         "Non-idempotent: >> append may duplicate content on rerun"),
+        (
+            &|t| is_cmd(t, "mkdir") && !t.contains("-p") && !t.contains("--parents"),
+            "Non-idempotent: mkdir without -p (fails if dir exists)",
+        ),
+        (
+            &|t| {
+                is_cmd(t, "rm") && !t.contains("-f") && !t.contains("-rf") && !t.contains("--force")
+            },
+            "Non-idempotent: rm without -f (fails if file missing)",
+        ),
+        (
+            &|t| {
+                (t.starts_with("ln -s ") || t.contains("&& ln -s "))
+                    && !t.contains("-sf")
+                    && !t.contains("-snf")
+            },
+            "Non-idempotent: ln -s without -f (fails if link exists)",
+        ),
+        (
+            &|t| is_unguarded_adduser(t),
+            "Non-idempotent: useradd/groupadd without existence check",
+        ),
+        (
+            &|t| is_unguarded_git_clone(t),
+            "Non-idempotent: git clone without directory check",
+        ),
+        (
+            &|t| is_unguarded_createdb(t),
+            "Non-idempotent: createdb without --if-not-exists guard",
+        ),
+        (
+            &|t| is_append_to_config(t),
+            "Non-idempotent: >> append may duplicate content on rerun",
+        ),
     ];
 
     for (check_fn, message) in checks {
@@ -738,26 +758,46 @@ fn check_posix_line(trimmed: &str, i: usize, violations: &mut Vec<Violation>) {
 
     // Table-driven POSIX violation checks (all use line i+1)
     let posix_checks: ComplianceCheck<'_> = &[
-        (&|t| t.contains("declare -a") || t.contains("declare -A"),
-         "Bash-specific: declare -a/-A (arrays)"),
-        (&|t| t.contains("[[") && t.contains("]]"),
-         "Bash-specific: [[ ]] (use [ ] for POSIX)"),
-        (&|t| is_function_keyword(t),
-         "Bash-specific: function keyword (use name() for POSIX)"),
-        (&|t| is_standalone_arithmetic(t),
-         "Bash-specific: (( )) arithmetic (use $(( )) or [ ] for POSIX)"),
-        (&|t| t.contains("<<<"),
-         "Bash-specific: <<< here-string (use echo | or heredoc for POSIX)"),
-        (&|t| is_select_statement(t),
-         "Bash-specific: select statement"),
-        (&|t| has_bash_parameter_expansion(t),
-         "Bash-specific: ${var/...} pattern substitution"),
-        (&|t| has_bash_case_modification(t),
-         "Bash-specific: ${var,,} or ${var^^} case modification"),
-        (&|t| t.contains("set -o pipefail") || t.contains("set -euo pipefail"),
-         "Bash-specific: set -o pipefail (not in POSIX)"),
-        (&|t| is_bash_redirect(t),
-         "Bash-specific: &> redirect (use >file 2>&1 for POSIX)"),
+        (
+            &|t| t.contains("declare -a") || t.contains("declare -A"),
+            "Bash-specific: declare -a/-A (arrays)",
+        ),
+        (
+            &|t| t.contains("[[") && t.contains("]]"),
+            "Bash-specific: [[ ]] (use [ ] for POSIX)",
+        ),
+        (
+            &|t| is_function_keyword(t),
+            "Bash-specific: function keyword (use name() for POSIX)",
+        ),
+        (
+            &|t| is_standalone_arithmetic(t),
+            "Bash-specific: (( )) arithmetic (use $(( )) or [ ] for POSIX)",
+        ),
+        (
+            &|t| t.contains("<<<"),
+            "Bash-specific: <<< here-string (use echo | or heredoc for POSIX)",
+        ),
+        (
+            &|t| is_select_statement(t),
+            "Bash-specific: select statement",
+        ),
+        (
+            &|t| has_bash_parameter_expansion(t),
+            "Bash-specific: ${var/...} pattern substitution",
+        ),
+        (
+            &|t| has_bash_case_modification(t),
+            "Bash-specific: ${var,,} or ${var^^} case modification",
+        ),
+        (
+            &|t| t.contains("set -o pipefail") || t.contains("set -euo pipefail"),
+            "Bash-specific: set -o pipefail (not in POSIX)",
+        ),
+        (
+            &|t| is_bash_redirect(t),
+            "Bash-specific: &> redirect (use >file 2>&1 for POSIX)",
+        ),
     ];
 
     for (check_fn, message) in posix_checks {

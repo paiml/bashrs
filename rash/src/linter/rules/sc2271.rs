@@ -1,10 +1,9 @@
 // SC2271: Prefer printf over echo for non-trivial formatting
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ECHO_WITH_ESCAPES: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"echo\s+(-[en]+\s+)?["'].*\\[ntr]"#).unwrap());
+static ECHO_WITH_ESCAPES: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r#"echo\s+(-[en]+\s+)?["'].*\\[ntr]"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

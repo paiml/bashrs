@@ -1,10 +1,9 @@
 // SC2280: Use proper array initialization syntax
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static WRONG_ARRAY_INIT: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"[a-zA-Z_][a-zA-Z0-9_]*=\(\s*\)").unwrap());
+static WRONG_ARRAY_INIT: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"[a-zA-Z_][a-zA-Z0-9_]*=\(\s*\)").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

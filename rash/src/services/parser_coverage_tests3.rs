@@ -122,7 +122,10 @@ fn test_println_string_with_comma_inside() {
 fn test_format_macro_multi_arg() {
     let ast = parse(r#"fn main() { let s = format!("x={}", v); }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::FunctionCall { name, .. }, .. } => {
+        Stmt::Let {
+            value: Expr::FunctionCall { name, .. },
+            ..
+        } => {
             assert_eq!(name, "__format_concat");
         }
         _ => panic!("Expected format! -> __format_concat"),
@@ -147,7 +150,9 @@ fn test_index_with_parenthesized_expr() {
     // arr[(i)] — paren delegates to inner
     let ast = parse(r#"fn main() { let arr = [1]; arr[(0)] = 5; }"#).unwrap();
     match &ast.functions[0].body[1] {
-        Stmt::Let { name, declaration, .. } => {
+        Stmt::Let {
+            name, declaration, ..
+        } => {
             assert!(!declaration);
             assert_eq!(name, "arr_0");
         }
@@ -160,9 +165,15 @@ fn test_index_with_method_call_suffix() {
     // arr[s.len()] => name contains "s_len"
     let ast = parse(r#"fn main() { let arr = [1, 2]; let s = "hi"; arr[s.len()] = 9; }"#).unwrap();
     match &ast.functions[0].body[2] {
-        Stmt::Let { name, declaration, .. } => {
+        Stmt::Let {
+            name, declaration, ..
+        } => {
             assert!(!declaration);
-            assert!(name.contains("s_len"), "Expected s_len in name, got {}", name);
+            assert!(
+                name.contains("s_len"),
+                "Expected s_len in name, got {}",
+                name
+            );
         }
         _ => panic!("Expected index assignment"),
     }
@@ -173,7 +184,10 @@ fn test_index_with_unary_minus() {
     // arr[-1] is parsed with unary stripped for suffix
     let ast = parse(r#"fn main() { let arr = [1]; let v = arr[-1]; }"#).unwrap();
     match &ast.functions[0].body[1] {
-        Stmt::Let { value: Expr::Index { .. }, .. } => {}
+        Stmt::Let {
+            value: Expr::Index { .. },
+            ..
+        } => {}
         _ => panic!("Expected Index expression"),
     }
 }
@@ -216,7 +230,10 @@ fn test_field_access_expr() {
     let ast = parse(src).unwrap();
     // Field access becomes Index with I32(0) index
     match &ast.functions[0].body[1] {
-        Stmt::Let { value: Expr::Index { index, .. }, .. } => {
+        Stmt::Let {
+            value: Expr::Index { index, .. },
+            ..
+        } => {
             assert!(matches!(**index, Expr::Literal(Literal::I32(0))));
         }
         _ => panic!("Expected Index from field access"),
@@ -233,7 +250,10 @@ fn test_return_no_value_in_expr_produces_block() {
     let ast = parse(r#"fn main() { let f = |x| { return; }; }"#).unwrap();
     // Closure body: Block([Return(None)])
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Block(stmts), .. } => {
+        Stmt::Let {
+            value: Expr::Block(stmts),
+            ..
+        } => {
             assert!(matches!(&stmts[0], Stmt::Return(None)));
         }
         _ => panic!("Expected Block with Return(None) from closure"),
@@ -288,7 +308,10 @@ fn test_match_as_expression() {
     // match in expression position => Block([Match{...}])
     let ast = parse(r#"fn main() { let x = match v { 0 => 1, _ => 2 }; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Block(stmts), .. } => {
+        Stmt::Let {
+            value: Expr::Block(stmts),
+            ..
+        } => {
             assert!(matches!(&stmts[0], Stmt::Match { .. }));
         }
         _ => panic!("Expected Block with Match from match expression"),
@@ -309,7 +332,9 @@ fn test_compound_assign_on_field() {
     let ast = parse(src).unwrap();
     let inc_fn = ast.functions.iter().find(|f| f.name == "inc").unwrap();
     match &inc_fn.body[0] {
-        Stmt::Let { name, declaration, .. } => {
+        Stmt::Let {
+            name, declaration, ..
+        } => {
             assert_eq!(name, "v");
             assert!(!declaration);
         }
@@ -321,7 +346,9 @@ fn test_compound_assign_on_field() {
 fn test_compound_assign_on_index() {
     let ast = parse(r#"fn main() { let mut arr = [1, 2]; arr[0] += 5; }"#).unwrap();
     match &ast.functions[0].body[1] {
-        Stmt::Let { name, declaration, .. } => {
+        Stmt::Let {
+            name, declaration, ..
+        } => {
             assert_eq!(name, "arr_0");
             assert!(!declaration);
         }
@@ -333,7 +360,9 @@ fn test_compound_assign_on_index() {
 fn test_compound_assign_on_deref() {
     let ast = parse(r#"fn main() { let mut x = 0; let p = &mut x; *p += 1; }"#).unwrap();
     match &ast.functions[0].body[2] {
-        Stmt::Let { name, declaration, .. } => {
+        Stmt::Let {
+            name, declaration, ..
+        } => {
             assert_eq!(name, "p");
             assert!(!declaration);
         }
@@ -388,7 +417,11 @@ fn test_unnamed_field_assignment_in_compound() {
     let bump_fn = ast.functions.iter().find(|f| f.name == "bump").unwrap();
     match &bump_fn.body[0] {
         Stmt::Let { name, .. } => {
-            assert!(name.starts_with("field_"), "Expected field_ prefix, got {}", name);
+            assert!(
+                name.starts_with("field_"),
+                "Expected field_ prefix, got {}",
+                name
+            );
         }
         _ => panic!("Expected unnamed field compound assignment"),
     }
@@ -413,7 +446,10 @@ fn test_enum_item_skipped() {
 fn test_closure_expr_body() {
     let ast = parse(r#"fn main() { let f = |x| x * 2; }"#).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Let { value: Expr::Binary { .. }, .. } => {}
+        Stmt::Let {
+            value: Expr::Binary { .. },
+            ..
+        } => {}
         _ => panic!("Expected Binary from closure expression body"),
     }
 }
@@ -426,7 +462,10 @@ fn test_closure_expr_body() {
 fn test_index_read_expr() {
     let ast = parse(r#"fn main() { let arr = [10, 20]; let v = arr[1]; }"#).unwrap();
     match &ast.functions[0].body[1] {
-        Stmt::Let { value: Expr::Index { object, index }, .. } => {
+        Stmt::Let {
+            value: Expr::Index { object, index },
+            ..
+        } => {
             assert!(matches!(**object, Expr::Variable(ref n) if n == "arr"));
             assert!(matches!(**index, Expr::Literal(Literal::U32(1))));
         }
@@ -443,16 +482,18 @@ fn test_negative_range_pattern() {
     let src = r#"fn main() { match x { -10..=-1 => { let a = 1; } _ => {} } }"#;
     let ast = parse(src).unwrap();
     match &ast.functions[0].body[0] {
-        Stmt::Match { arms, .. } => {
-            match &arms[0].pattern {
-                crate::ast::restricted::Pattern::Range { start, end, inclusive } => {
-                    assert!(matches!(start, Literal::I32(-10)));
-                    assert!(matches!(end, Literal::I32(-1)));
-                    assert!(*inclusive);
-                }
-                _ => panic!("Expected Range pattern"),
+        Stmt::Match { arms, .. } => match &arms[0].pattern {
+            crate::ast::restricted::Pattern::Range {
+                start,
+                end,
+                inclusive,
+            } => {
+                assert!(matches!(start, Literal::I32(-10)));
+                assert!(matches!(end, Literal::I32(-1)));
+                assert!(*inclusive);
             }
-        }
+            _ => panic!("Expected Range pattern"),
+        },
         _ => panic!("Expected Match"),
     }
 }

@@ -1,9 +1,8 @@
 // SC2305: Use ${var:=value} to assign default value
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REDUNDANT_DEFAULT: Lazy<Regex> = Lazy::new(|| {
+static REDUNDANT_DEFAULT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"\[\s+-z\s+\$\{?([a-zA-Z_][a-zA-Z0-9_]*)\}?\s+\]\s*&&\s*([a-zA-Z_][a-zA-Z0-9_]*)=")
         .unwrap()
 });

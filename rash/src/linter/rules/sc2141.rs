@@ -17,10 +17,9 @@
 // Impact: Performance issue, confusing code
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static IGNORED_STDIN: Lazy<Regex> = Lazy::new(|| {
+static IGNORED_STDIN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: commands that typically ignore stdin when piped to
     Regex::new(r"\|\s*(find|xargs\s+-|sudo|ls|echo|printf)\b").unwrap()
 });

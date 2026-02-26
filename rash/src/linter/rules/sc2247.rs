@@ -1,9 +1,8 @@
 // SC2247: Multiplying strings doesn't work - use repetition
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static STRING_MULTIPLY: Lazy<Regex> = Lazy::new(|| {
+static STRING_MULTIPLY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: "string" * number or $var * number in non-arithmetic context
     Regex::new(r#"(["'][\w\s]+['"]|\$\w+)\s*\*\s*\d+"#).unwrap()
 });
@@ -19,7 +18,11 @@ fn extract_heredoc_delimiter(line: &str) -> Option<String> {
         .chars()
         .take_while(|c| c.is_alphanumeric() || *c == '_')
         .collect();
-    if delim.is_empty() { None } else { Some(delim) }
+    if delim.is_empty() {
+        None
+    } else {
+        Some(delim)
+    }
 }
 
 /// Check if a line should be skipped for SC2247 analysis (arithmetic, awk, bc, etc.)

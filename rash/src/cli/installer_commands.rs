@@ -1,6 +1,4 @@
-use crate::cli::args::{
-    InstallerCommands, KeyringCommands,
-};
+use crate::cli::args::{InstallerCommands, KeyringCommands};
 use crate::cli::logic::{format_timestamp, hex_encode, truncate_str};
 use crate::models::{Error, Result};
 use std::path::{Path, PathBuf};

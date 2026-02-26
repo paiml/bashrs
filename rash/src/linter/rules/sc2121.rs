@@ -15,10 +15,9 @@
 // Impact: Assignment doesn't work, creates command not found error
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DOLLAR_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
+static DOLLAR_ASSIGNMENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $var=value or ${var}=value at start of line
     Regex::new(r"^\s*\$(\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*)\s*=").unwrap()
 });

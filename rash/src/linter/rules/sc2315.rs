@@ -1,10 +1,10 @@
 // SC2315: Use ${var:+replacement} to replace non-empty values
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static CONDITIONAL_REPLACE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[\s+-n\s+\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s+\]\s*&&\s*echo").unwrap());
+static CONDITIONAL_REPLACE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\[\s+-n\s+\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s+\]\s*&&\s*echo").unwrap()
+});
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

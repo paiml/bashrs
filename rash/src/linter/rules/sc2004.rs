@@ -18,15 +18,14 @@
 // and can sometimes cause unexpected behavior with special variables.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARITHMETIC_EXPR: Lazy<Regex> = Lazy::new(|| {
+static ARITHMETIC_EXPR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(( ... ))
     Regex::new(r"\$\(\(([^)]+)\)\)").unwrap()
 });
 
-static VAR_REF: Lazy<Regex> = Lazy::new(|| {
+static VAR_REF: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $var or ${var} inside arithmetic
     Regex::new(r"\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?").unwrap()
 });

@@ -1,7 +1,7 @@
 //! Corpus visualization: scatter plots, grade distribution, pivot tables, correlation, schema, and history charts.
 
-use crate::models::{Config, Error, Result};
 use super::corpus_failure_commands::result_fail_dims;
+use crate::models::{Config, Error, Result};
 
 /// Map a failure dimension count to a letter grade
 pub(super) fn grade_from_fail_count(fail_count: usize) -> &'static str {
@@ -423,7 +423,13 @@ pub(crate) fn corpus_history_chart() -> Result<()> {
 }
 
 /// Render a single chart cell for history chart.
-pub(crate) fn history_chart_cell(score: f64, row: usize, min_score: f64, range: f64, height: usize) {
+pub(crate) fn history_chart_cell(
+    score: f64,
+    row: usize,
+    min_score: f64,
+    range: f64,
+    height: usize,
+) {
     use crate::cli::color::*;
     if score <= 0.0 {
         print!(" ");
@@ -443,7 +449,6 @@ pub(crate) fn history_chart_cell(score: f64, row: usize, min_score: f64, range: 
         }
     }
 }
-
 
 pub(crate) fn corpus_history_chart_from(path: &std::path::Path) -> Result<()> {
     use crate::cli::color::*;

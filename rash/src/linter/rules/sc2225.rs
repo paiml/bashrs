@@ -1,9 +1,8 @@
 // SC2225: Backticks in assignments can interfere with line breaks
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static BACKTICK_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
+static BACKTICK_ASSIGNMENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: var=`command` or var=`...`
     Regex::new(r"\b\w+\s*=\s*`").unwrap()
 });

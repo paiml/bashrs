@@ -69,11 +69,7 @@ pub fn check(source: &str) -> LintResult {
             // Make sure < is not part of a redirect like 2>(
             // Actually <( and >( are the process substitution forms
             let ch = line.as_bytes()[col] as char;
-            let subst_type = if ch == '<' {
-                "input"
-            } else {
-                "output"
-            };
+            let subst_type = if ch == '<' { "input" } else { "output" };
 
             let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 3);
 

@@ -18,20 +18,19 @@
 // variables aren't being set correctly.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXPORT_IN_SUBSHELL: Lazy<Regex> = Lazy::new(|| {
+static EXPORT_IN_SUBSHELL: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: (export ...) - any export statement in subshell
     Regex::new(r"\(\s*export\b").unwrap()
 });
 
-static EXPORT_IN_PIPE: Lazy<Regex> = Lazy::new(|| {
+static EXPORT_IN_PIPE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: | export ... - any export statement in pipeline
     Regex::new(r"\|\s*export\b").unwrap()
 });
 
-static EXPORT_IN_COMMAND_SUBST: Lazy<Regex> = Lazy::new(|| {
+static EXPORT_IN_COMMAND_SUBST: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(export ...) - any export statement in command substitution
     Regex::new(r"\$\(\s*export\b").unwrap()
 });

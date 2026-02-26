@@ -57,7 +57,17 @@ fn check_eval_args(args: &str, full_line: &str, line_num: usize, result: &mut Li
             "SC1098",
             Severity::Warning,
             "Quote/escape special characters when using eval, e.g., eval \"$cmd\"",
-            Span::new(line_num, dollar_pos + 1, line_num, dollar_pos + trimmed_args.split_whitespace().next().map_or(1, |w| w.len()) + 1),
+            Span::new(
+                line_num,
+                dollar_pos + 1,
+                line_num,
+                dollar_pos
+                    + trimmed_args
+                        .split_whitespace()
+                        .next()
+                        .map_or(1, |w| w.len())
+                    + 1,
+            ),
         );
         result.add(diagnostic);
     }

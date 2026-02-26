@@ -91,18 +91,12 @@ fn contains_command(line: &str, cmd: &str) -> bool {
     if let Some(pos) = line.find(cmd) {
         let before_ok = pos == 0 || {
             let c = line.as_bytes().get(pos - 1);
-            matches!(
-                c,
-                Some(b' ') | Some(b'\t') | Some(b';') | Some(b'|') | Some(b'&') | Some(b'(')
-            )
+            matches!(c, Some(b' ' | b'\t' | b';' | b'|' | b'&' | b'('))
         };
         let after_idx = pos + cmd.len();
         let after_ok = after_idx >= line.len() || {
             let c = line.as_bytes().get(after_idx);
-            matches!(
-                c,
-                Some(b' ') | Some(b'\t') | Some(b';') | Some(b'|') | Some(b'&') | Some(b')')
-            )
+            matches!(c, Some(b' ' | b'\t' | b';' | b'|' | b'&' | b')'))
         };
         before_ok && after_ok
     } else {

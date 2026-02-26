@@ -58,7 +58,7 @@ pub fn check(source: &str) -> LintResult {
         for mat in gt_pattern.find_iter(line) {
             let start_col = mat.start() + 1;
             let end_col = mat.end() + 1;
-            let fix_text = mat.as_str().replace(">", "-gt");
+            let fix_text = mat.as_str().replace('>', "-gt");
 
             let diagnostic = Diagnostic::new(
                 "SC2071",
@@ -75,7 +75,7 @@ pub fn check(source: &str) -> LintResult {
         for mat in lt_pattern.find_iter(line) {
             let start_col = mat.start() + 1;
             let end_col = mat.end() + 1;
-            let fix_text = mat.as_str().replace("<", "-lt");
+            let fix_text = mat.as_str().replace('<', "-lt");
 
             let diagnostic = Diagnostic::new(
                 "SC2071",

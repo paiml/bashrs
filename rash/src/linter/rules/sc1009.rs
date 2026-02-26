@@ -37,9 +37,9 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Check if line ends with (or is) a control keyword
-        let ends_with_keyword = CONTROL_KEYWORDS.iter().any(|kw| {
-            trimmed == *kw || trimmed.ends_with(kw)
-        });
+        let ends_with_keyword = CONTROL_KEYWORDS
+            .iter()
+            .any(|kw| trimmed == *kw || trimmed.ends_with(kw));
 
         if !ends_with_keyword {
             continue;

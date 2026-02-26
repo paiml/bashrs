@@ -1,9 +1,9 @@
 // SC2302: Prefer ${var// /} over tr for simple substitution
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TR_DELETE: Lazy<Regex> = Lazy::new(|| Regex::new(r#"tr\s+-d\s+['"].\s*['"]"#).unwrap());
+static TR_DELETE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r#"tr\s+-d\s+['"].\s*['"]"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

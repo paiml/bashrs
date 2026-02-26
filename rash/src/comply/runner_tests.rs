@@ -47,7 +47,10 @@ mod tests {
     fn test_format_human_contains_header() {
         let score = make_project_score(0, 0, 100.0);
         let output = runner::format_human(&score);
-        assert!(output.contains("COMPLIANCE CHECK"), "Header missing: {output}");
+        assert!(
+            output.contains("COMPLIANCE CHECK"),
+            "Header missing: {output}"
+        );
         assert!(output.contains("Jidoka"), "Jidoka layer label missing");
     }
 
@@ -55,7 +58,10 @@ mod tests {
     fn test_format_human_contains_artifact_header() {
         let score = make_project_score(2, 2, 100.0);
         let output = runner::format_human(&score);
-        assert!(output.contains("Artifact"), "Artifact column header missing");
+        assert!(
+            output.contains("Artifact"),
+            "Artifact column header missing"
+        );
         assert!(output.contains("Score"), "Score column header missing");
     }
 
@@ -63,7 +69,10 @@ mod tests {
     fn test_format_human_contains_overall_line() {
         let score = make_project_score(3, 2, 85.0);
         let output = runner::format_human(&score);
-        assert!(output.contains("Overall"), "Overall summary missing: {output}");
+        assert!(
+            output.contains("Overall"),
+            "Overall summary missing: {output}"
+        );
     }
 
     #[test]
@@ -79,7 +88,10 @@ mod tests {
         let score = make_project_score(0, 0, 100.0);
         let output = runner::format_human(&score);
         // Should not panic, should still produce output with 0 artifacts
-        assert!(output.contains("0"), "Zero artifact count not shown: {output}");
+        assert!(
+            output.contains("0"),
+            "Zero artifact count not shown: {output}"
+        );
     }
 
     #[test]
@@ -88,7 +100,10 @@ mod tests {
         score.artifact_scores = vec![make_artifact_score("Makefile", 100.0, 0)];
         let output = runner::format_human(&score);
         // Compliant artifacts get "+" icon
-        assert!(output.contains("+ COMPLIANT") || output.contains("+"), "Compliant icon missing");
+        assert!(
+            output.contains("+ COMPLIANT") || output.contains("+"),
+            "Compliant icon missing"
+        );
     }
 
     #[test]
@@ -141,21 +156,30 @@ mod tests {
         let mut score = make_project_score(1, 1, 100.0);
         score.artifact_scores = vec![make_artifact_score(short_name, 100.0, 0)];
         let output = runner::format_human(&score);
-        assert!(output.contains("Makefile"), "Short name should appear as-is");
+        assert!(
+            output.contains("Makefile"),
+            "Short name should appear as-is"
+        );
     }
 
     #[test]
     fn test_format_human_grade_f_shown() {
         let score = make_project_score(1, 0, 40.0);
         let output = runner::format_human(&score);
-        assert!(output.contains("F"), "Grade F should be shown for low score");
+        assert!(
+            output.contains("F"),
+            "Grade F should be shown for low score"
+        );
     }
 
     #[test]
     fn test_format_human_grade_b_shown() {
         let score = make_project_score(1, 0, 75.0);
         let output = runner::format_human(&score);
-        assert!(output.contains("B"), "Grade B should be shown for 75.0 score");
+        assert!(
+            output.contains("B"),
+            "Grade B should be shown for 75.0 score"
+        );
     }
 
     // ── format_human_failures_only ──
@@ -183,7 +207,10 @@ mod tests {
         ];
         let output = runner::format_human_failures_only(&score);
         // Should show bad.sh but not good.sh
-        assert!(output.contains("bad.sh"), "Should show non-compliant artifact");
+        assert!(
+            output.contains("bad.sh"),
+            "Should show non-compliant artifact"
+        );
         assert!(
             !output.contains("good.sh"),
             "Should NOT show compliant artifact in failures-only"
@@ -194,7 +221,10 @@ mod tests {
     fn test_format_human_failures_only_contains_header() {
         let score = make_project_score(0, 0, 100.0);
         let output = runner::format_human_failures_only(&score);
-        assert!(output.contains("Failures Only"), "Header should mention failures: {output}");
+        assert!(
+            output.contains("Failures Only"),
+            "Header should mention failures: {output}"
+        );
     }
 
     // ── format_json ──
@@ -203,8 +233,14 @@ mod tests {
     fn test_format_json_is_valid_structure() {
         let score = make_project_score(0, 0, 100.0);
         let output = runner::format_json(&score);
-        assert!(output.contains("bashrs-comply-check-v1"), "Schema field missing");
-        assert!(output.contains("total_artifacts"), "total_artifacts missing");
+        assert!(
+            output.contains("bashrs-comply-check-v1"),
+            "Schema field missing"
+        );
+        assert!(
+            output.contains("total_artifacts"),
+            "total_artifacts missing"
+        );
         assert!(output.contains("score"), "score field missing");
         assert!(output.contains("grade"), "grade field missing");
     }
@@ -214,7 +250,10 @@ mod tests {
         let mut score = make_project_score(1, 1, 100.0);
         score.artifact_scores = vec![make_artifact_score("Makefile", 100.0, 0)];
         let output = runner::format_json(&score);
-        assert!(output.contains("Makefile"), "Artifact name should be in JSON");
+        assert!(
+            output.contains("Makefile"),
+            "Artifact name should be in JSON"
+        );
         assert!(output.contains("100"), "Score should be in JSON");
     }
 
@@ -248,7 +287,10 @@ mod tests {
             Some(Scope::User),
             &config,
         );
-        assert_eq!(score.total_artifacts, 0, "User scope disabled should give 0");
+        assert_eq!(
+            score.total_artifacts, 0,
+            "User scope disabled should give 0"
+        );
     }
 
     #[test]
@@ -260,7 +302,10 @@ mod tests {
             Some(Scope::System),
             &config,
         );
-        assert_eq!(score.total_artifacts, 0, "System scope disabled should give 0");
+        assert_eq!(
+            score.total_artifacts, 0,
+            "System scope disabled should give 0"
+        );
     }
 
     #[test]
@@ -336,7 +381,10 @@ mod tests {
     #[test]
     fn test_extract_disable_rules_non_comply_prefix_filtered() {
         let result = runner::extract_disable_rules("# comply:disable=NOTCOMPLY-001");
-        assert!(result.is_none(), "Non COMPLY- prefixed rules should be filtered");
+        assert!(
+            result.is_none(),
+            "Non COMPLY- prefixed rules should be filtered"
+        );
     }
 
     #[test]

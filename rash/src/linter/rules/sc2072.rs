@@ -33,8 +33,8 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: (( ... <decimal> ... ))
-    let arith_pattern = Regex::new(r#"\(\(([^)]+)\)\)"#).unwrap();
-    let decimal_pattern = Regex::new(r#"\b\d+\.\d+\b"#).unwrap();
+    let arith_pattern = Regex::new(r"\(\(([^)]+)\)\)").unwrap();
+    let decimal_pattern = Regex::new(r"\b\d+\.\d+\b").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

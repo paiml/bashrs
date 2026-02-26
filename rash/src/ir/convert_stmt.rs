@@ -86,12 +86,10 @@ impl IrConverter {
         })
     }
 
-    fn convert_let_array(
-        &self,
-        name: &str,
-        elems: &[crate::ast::Expr],
-    ) -> Result<ShellIR> {
-        self.arrays.borrow_mut().insert(name.to_string(), elems.len());
+    fn convert_let_array(&self, name: &str, elems: &[crate::ast::Expr]) -> Result<ShellIR> {
+        self.arrays
+            .borrow_mut()
+            .insert(name.to_string(), elems.len());
         let mut stmts = Vec::new();
         for (i, elem) in elems.iter().enumerate() {
             let elem_val = self.convert_expr_to_value(elem)?;
@@ -104,11 +102,7 @@ impl IrConverter {
         Ok(ShellIR::Sequence(stmts))
     }
 
-    fn convert_let_block(
-        &self,
-        name: &str,
-        block_stmts: &[crate::ast::Stmt],
-    ) -> Result<ShellIR> {
+    fn convert_let_block(&self, name: &str, block_stmts: &[crate::ast::Stmt]) -> Result<ShellIR> {
         if block_stmts.len() == 1 {
             if let crate::ast::Stmt::Match { scrutinee, arms } = &block_stmts[0] {
                 return self.lower_let_match(name, scrutinee, arms);
@@ -126,7 +120,8 @@ impl IrConverter {
             return self.convert_match_arm_for_let(name, block_stmts);
         }
         // Single non-match/non-if block statement — shouldn't normally happen
-        let shell_value = self.convert_expr_to_value(&crate::ast::Expr::Block(block_stmts.to_vec()))?;
+        let shell_value =
+            self.convert_expr_to_value(&crate::ast::Expr::Block(block_stmts.to_vec()))?;
         Ok(ShellIR::Let {
             name: name.to_string(),
             value: shell_value,
@@ -171,7 +166,9 @@ impl IrConverter {
 
         match iter {
             crate::ast::Expr::Range {
-                start, end, inclusive,
+                start,
+                end,
+                inclusive,
             } => self.convert_for_range(&var, start, end, *inclusive, body),
             other => self.convert_for_iterable(&var, other, body),
         }
@@ -225,7 +222,11 @@ impl IrConverter {
                     let items: Vec<ShellValue> = (0..len)
                         .map(|i| ShellValue::Variable(format!("{}_{}", name, i)))
                         .collect();
-                    ShellIR::ForIn { var: var.to_string(), items, body: Box::new(body_ir) }
+                    ShellIR::ForIn {
+                        var: var.to_string(),
+                        items,
+                        body: Box::new(body_ir),
+                    }
                 } else {
                     ShellIR::ForIn {
                         var: var.to_string(),
@@ -236,7 +237,11 @@ impl IrConverter {
             }
             _ => {
                 let val = self.convert_expr_to_value(iter)?;
-                ShellIR::ForIn { var: var.to_string(), items: vec![val], body: Box::new(body_ir) }
+                ShellIR::ForIn {
+                    var: var.to_string(),
+                    items: vec![val],
+                    body: Box::new(body_ir),
+                }
             }
         };
         self.wrap_with_shadow_save_restore(loop_ir, &shadow_vars)

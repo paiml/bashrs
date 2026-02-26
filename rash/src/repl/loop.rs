@@ -246,7 +246,10 @@ fn dispatch_colon_command(line: &str, state: &mut ReplState) {
         ":vars" => handle_vars_command(state),
         ":clear" => handle_clear_command(),
         ":help" => print!("{}", show_help(extract_help_topic(line))),
-        _ => println!("Unknown command: {}. Type 'help' for available commands.", cmd),
+        _ => println!(
+            "Unknown command: {}. Type 'help' for available commands.",
+            cmd
+        ),
     }
 }
 

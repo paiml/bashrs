@@ -18,10 +18,9 @@
 // Impact: Return value truncated, unexpected behavior
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static RETURN_OUT_OF_RANGE: Lazy<Regex> = Lazy::new(|| {
+static RETURN_OUT_OF_RANGE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: return <number> where number > 255 or < 0
     Regex::new(r"\breturn\s+(-[0-9]+|[0-9]{3,})").unwrap()
 });

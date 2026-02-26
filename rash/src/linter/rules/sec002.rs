@@ -80,8 +80,7 @@ fn find_unquoted_variable(line: &str) -> Option<usize> {
                 // Check if followed by variable name
                 if chars
                     .peek()
-                    .map(|c| c.is_alphanumeric() || *c == '_')
-                    .unwrap_or(false)
+                    .is_some_and(|c| c.is_alphanumeric() || *c == '_')
                 {
                     return Some(col);
                 }

@@ -19,11 +19,10 @@
 // but use single quotes. Intentional literals with $ are acceptable.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 #[allow(clippy::unwrap_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static SINGLE_QUOTE_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
+static SINGLE_QUOTE_WITH_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: '...$var...' or '...${var}...' or '...$(cmd)...'
     Regex::new(r"'[^']*(\$[a-zA-Z_][a-zA-Z0-9_]*|\$\{[^}]+\}|\$\([^)]+\))[^']*'").unwrap()
 });
@@ -38,7 +37,7 @@ fn is_documentation_pattern(matched: &str) -> bool {
     }
 
     // Check for JSON-like patterns (e.g., '{"key": "$val"}')
-    if matched.contains("{") && matched.contains(":") && matched.contains("\"$") {
+    if matched.contains('{') && matched.contains(':') && matched.contains("\"$") {
         return true;
     }
 

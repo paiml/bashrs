@@ -227,7 +227,7 @@ impl BashParser {
         let mut index = String::new();
         while !self.is_at_end() && !self.check(&Token::RightBracket) {
             match self.peek() {
-                Some(Token::Identifier(s)) | Some(Token::String(s)) => {
+                Some(Token::Identifier(s) | Token::String(s)) => {
                     index.push_str(s);
                     self.advance();
                 }
@@ -471,9 +471,7 @@ impl BashParser {
     fn parse_negated_test_fallback(&mut self) -> ParseResult<BashExpr> {
         let inner = self.parse_test_expression()?;
         match inner {
-            BashExpr::Test(test_expr) => {
-                Ok(BashExpr::Test(Box::new(TestExpr::Not(test_expr))))
-            }
+            BashExpr::Test(test_expr) => Ok(BashExpr::Test(Box::new(TestExpr::Not(test_expr)))),
             other => Ok(BashExpr::Test(Box::new(TestExpr::Not(Box::new(
                 TestExpr::StringNonEmpty(other),
             ))))),
@@ -625,8 +623,17 @@ impl BashParser {
             return true;
         }
         match self.peek() {
-            Some(Token::Newline | Token::Semicolon | Token::Then | Token::Do | Token::Pipe
-                 | Token::And | Token::Or | Token::RightParen | Token::Comment(_)) => true,
+            Some(
+                Token::Newline
+                | Token::Semicolon
+                | Token::Then
+                | Token::Do
+                | Token::Pipe
+                | Token::And
+                | Token::Or
+                | Token::RightParen
+                | Token::Comment(_),
+            ) => true,
             Some(Token::Ampersand) => !matches!(self.peek_ahead(1), Some(Token::Gt)),
             _ => false,
         }
@@ -784,7 +791,7 @@ impl BashParser {
 
         // Check for binary operators
         match self.peek() {
-            Some(Token::Assign) | Some(Token::Eq) => {
+            Some(Token::Assign | Token::Eq) => {
                 // Both = (Token::Assign) and == (Token::Eq) are string equality in tests
                 self.advance();
                 let right = self.parse_expression()?;

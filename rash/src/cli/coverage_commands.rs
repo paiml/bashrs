@@ -262,11 +262,7 @@ pub(crate) fn print_lcov_coverage(
 
     // Function coverage
     for func in &coverage.all_functions {
-        let covered = if coverage.covered_functions.contains(func) {
-            1
-        } else {
-            0
-        };
+        let covered = i32::from(coverage.covered_functions.contains(func));
         println!("FN:0,{}", func);
         println!("FNDA:{},{}", covered, func);
     }
@@ -275,7 +271,7 @@ pub(crate) fn print_lcov_coverage(
 
     // Line coverage
     for (line_num, &is_covered) in &coverage.line_coverage {
-        let hit = if is_covered { 1 } else { 0 };
+        let hit = i32::from(is_covered);
         println!("DA:{},{}", line_num, hit);
     }
     println!("LF:{}", coverage.total_lines);

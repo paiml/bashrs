@@ -239,7 +239,9 @@ fn docker_profile_markdown(input: &Path, estimate: &crate::linter::docker_profil
 // ---------------------------------------------------------------------------
 
 /// Estimate build time based on layer complexity
-pub(crate) fn estimate_build_time(estimate: &crate::linter::docker_profiler::SizeEstimate) -> String {
+pub(crate) fn estimate_build_time(
+    estimate: &crate::linter::docker_profiler::SizeEstimate,
+) -> String {
     // Rough heuristic: 1 second per 100MB + base times
     let mut total_seconds = 0u64;
 

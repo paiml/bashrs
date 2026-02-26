@@ -1,9 +1,9 @@
 // SC2317: Command appears to be unreachable (dead code)
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXIT_OR_RETURN: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?:exit|return)\s+\d+").unwrap());
+static EXIT_OR_RETURN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"(?:exit|return)\s+\d+").unwrap());
 
 /// Issue #93: Check if exit/return is conditional (part of || or && chain)
 /// `cmd || exit 1` - exit only runs if cmd fails, code after IS reachable

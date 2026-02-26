@@ -14,15 +14,15 @@
 //   shopt -s nullglob; files=(*.txt); [[ ${#files[@]} -gt 0 ]]  # Check if any exist
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static FILE_TEST_WITH_GLOB: Lazy<Regex> = Lazy::new(|| {
+static FILE_TEST_WITH_GLOB: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: -e or -f or -d followed by pattern with * or ?
     Regex::new(r"-[efd]\s+([^\s\]]*[\*\?][^\s\]]*)").unwrap()
 });
 
-static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
+static DOUBLE_BRACKET: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

@@ -1,11 +1,11 @@
 #![allow(clippy::unwrap_used)]
 #![allow(unused_imports)]
 
-use super::super::*;
 use super::super::ast::Redirect;
 use super::super::lexer::Lexer;
 use super::super::parser::BashParser;
 use super::super::semantic::SemanticAnalyzer;
+use super::super::*;
 
 #[test]
 fn test_parse_and_analyze_simple_script() {
@@ -4990,4 +4990,3 @@ fn test_BUILTIN_017_times_refactoring_alternative() {
 //
 // EXTREME TDD: Document umask behavior and implications
 // ============================================================================
-

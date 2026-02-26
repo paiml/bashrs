@@ -15,10 +15,9 @@
 // Impact: Portability - mixed syntax is confusing
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static FUNCTION_WITH_PARENS: Lazy<Regex> = Lazy::new(|| {
+static FUNCTION_WITH_PARENS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: function name() { or function name( ) {
     Regex::new(r"\bfunction\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*\(\s*\)").unwrap()
 });

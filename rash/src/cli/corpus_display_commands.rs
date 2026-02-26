@@ -1,8 +1,8 @@
 //! Corpus display: heatmap, dashboard, and search.
 
+use super::corpus_failure_commands::result_fail_dims;
 use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
 use crate::models::{Config, Error, Result};
-use super::corpus_failure_commands::result_fail_dims;
 use std::path::PathBuf;
 
 pub(crate) fn corpus_heatmap(limit: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
@@ -49,7 +49,6 @@ pub(crate) fn corpus_heatmap(limit: usize, filter: Option<&CorpusFormatArg>) -> 
     Ok(())
 }
 
-
 pub(crate) fn heatmap_print_header() {
     use crate::cli::color::*;
     println!(
@@ -57,7 +56,6 @@ pub(crate) fn heatmap_print_header() {
         "ID", "A", "B1", "B2", "B3", "D", "E", "F", "G"
     );
 }
-
 
 pub(crate) fn heatmap_print_row(r: &crate::corpus::runner::CorpusResult) {
     use crate::cli::color::*;
@@ -133,7 +131,6 @@ pub(crate) fn corpus_dashboard() -> Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn dashboard_print_formats(score: &crate::corpus::runner::CorpusScore) {
     use crate::cli::color::*;
     println!("  {BOLD}Format Breakdown:{RESET}");
@@ -147,7 +144,6 @@ pub(crate) fn dashboard_print_formats(score: &crate::corpus::runner::CorpusScore
     }
     println!();
 }
-
 
 pub(crate) fn dashboard_print_history(entries: &[crate::corpus::runner::ConvergenceEntry]) {
     use crate::cli::color::*;
@@ -165,10 +161,7 @@ pub(crate) fn dashboard_print_history(entries: &[crate::corpus::runner::Converge
 }
 
 /// Display search results in human-readable format
-fn display_search_human(
-    matches: &[&crate::corpus::registry::CorpusEntry],
-    pattern: &str,
-) {
+fn display_search_human(matches: &[&crate::corpus::registry::CorpusEntry], pattern: &str) {
     use crate::cli::color::*;
     if matches.is_empty() {
         println!("No entries matching \"{pattern}\".");

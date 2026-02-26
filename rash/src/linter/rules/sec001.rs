@@ -30,10 +30,7 @@ fn is_standalone_eval(line: &str, col: usize) -> bool {
         true
     } else {
         let char_before = line.chars().nth(col - 1);
-        matches!(
-            char_before,
-            Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(')
-        )
+        matches!(char_before, Some(' ' | '\t' | ';' | '&' | '|' | '('))
     };
 
     let after_idx = col + 4; // "eval" is 4 chars
@@ -41,10 +38,7 @@ fn is_standalone_eval(line: &str, col: usize) -> bool {
         true
     } else {
         let char_after = line.chars().nth(after_idx);
-        matches!(
-            char_after,
-            Some(' ') | Some('\t') | Some('"') | Some('\'') | Some(';')
-        )
+        matches!(char_after, Some(' ' | '\t' | '"' | '\'' | ';'))
     };
 
     before_ok && after_ok

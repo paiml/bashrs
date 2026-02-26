@@ -13,8 +13,8 @@
 
 use bashrs::linter::autofix::{apply_fixes, FixOptions};
 use bashrs::linter::rules::{det001, idem001, lint_shell, sc2086};
-use std::hint::black_box;
 use criterion::{criterion_group, criterion_main, Criterion, Throughput};
+use std::hint::black_box;
 
 // ============================================================================
 // Benchmark 1: Linting Performance
