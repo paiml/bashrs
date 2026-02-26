@@ -18,6 +18,8 @@ use crate::cli::logic::{
     hex_encode, pin_base_image_version, truncate_str,
 };
 use crate::cli::{Cli, Commands};
+use crate::models::{ShellDialect, VerificationLevel};
+use crate::validation::ValidationLevel;
 use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
 use std::fs;
@@ -209,7 +211,17 @@ pub fn execute_command(cli: Cli) -> Result<()> {
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|e| Error::Internal(format!("Failed to initialize logging: {e}")))?;
 
-    match cli.command {
+    dispatch_command(cli.command, cli.target, cli.verify, cli.validation, cli.strict)
+}
+
+fn dispatch_command(
+    command: Commands,
+    target: ShellDialect,
+    verify: VerificationLevel,
+    validation: ValidationLevel,
+    strict: bool,
+) -> Result<()> {
+    match command {
         Commands::Build {
             input,
             output,
@@ -219,12 +231,12 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             info!("Building {} -> {}", input.display(), output.display());
 
             let config = Config {
-                target: cli.target,
-                verify: cli.verify,
+                target: target,
+                verify: verify,
                 emit_proof,
                 optimize: !no_optimize,
-                validation_level: Some(cli.validation),
-                strict_mode: cli.strict,
+                validation_level: Some(validation),
+                strict_mode: strict,
             };
 
             build_command(&input, &output, config)
@@ -249,7 +261,7 @@ pub fn execute_command(cli: Cli) -> Result<()> {
                 shell_script.display(),
                 rust_source.display()
             );
-            verify_command(&rust_source, &shell_script, cli.target, cli.verify)
+            verify_command(&rust_source, &shell_script, target, verify)
         }
 
         Commands::Inspect {
@@ -271,12 +283,12 @@ pub fn execute_command(cli: Cli) -> Result<()> {
             container_format,
         } => {
             let config = Config {
-                target: cli.target,
-                verify: cli.verify,
+                target: target,
+                verify: verify,
                 emit_proof: false,
                 optimize: true,
-                validation_level: Some(cli.validation),
-                strict_mode: cli.strict,
+                validation_level: Some(validation),
+                strict_mode: strict,
             };
 
             handle_compile(
