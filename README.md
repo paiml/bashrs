@@ -279,6 +279,11 @@ make test
 make validate
 ```
 
+
+## MSRV
+
+Minimum Supported Rust Version: **1.82**
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
