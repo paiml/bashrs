@@ -980,7 +980,7 @@ next_actions:
     - action: "Approve WASM Phase 1 start"
       owner: "Decision maker"
       duration: "10 min"
-      blocker: true
+      blocker: "true"
 
   tomorrow:
     - action: "STEP-001: Set up Playwright"

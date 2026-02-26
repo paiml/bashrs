@@ -221,7 +221,7 @@ states:
   # Terminated state (final)
   terminated:
     description: "TUI has been terminated"
-    final: true
+    final: "true"
     on_enter:
       - action: restore_terminal
       - action: exit_application
