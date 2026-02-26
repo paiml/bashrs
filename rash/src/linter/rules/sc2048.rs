@@ -36,7 +36,7 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: unquoted $*
-    let pattern = Regex::new(r#"\$\*"#).unwrap();
+    let pattern = Regex::new(r"\$\*").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed

@@ -155,7 +155,7 @@ pub struct QualityReport {
 impl QualityReport {
     pub fn display(&self) -> String {
         format!(
-            r#"
+            r"
 Quality Report
 ==============
 Formatting: {}
@@ -165,7 +165,7 @@ Mutation Score: {:.1}%
 Quality Gates: {}
 
 {}
-"#,
+",
             if self.fmt_passed {
                 "✅ PASS"
             } else {

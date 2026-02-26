@@ -49,7 +49,10 @@ pub(crate) fn mutate_command(
     Ok(())
 }
 
-pub(crate) fn mutate_find_mutations(content: &str, count: usize) -> (usize, Vec<(usize, String, String)>) {
+pub(crate) fn mutate_find_mutations(
+    content: &str,
+    count: usize,
+) -> (usize, Vec<(usize, String, String)>) {
     let mutations = [
         ("==", "!=", "Negate equality"),
         ("!=", "==", "Flip inequality"),

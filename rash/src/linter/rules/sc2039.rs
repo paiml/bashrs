@@ -22,19 +22,22 @@
 // Note: This is a simplified check. Full POSIX compliance requires deeper analysis.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_SYNTAX: Lazy<Regex> = Lazy::new(|| Regex::new(r"\w+\s*=\s*\(").unwrap());
+static ARRAY_SYNTAX: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\w+\s*=\s*\(").unwrap());
 
-static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[").unwrap());
+static DOUBLE_BRACKET: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\[").unwrap());
 
-static SOURCE_COMMAND: Lazy<Regex> = Lazy::new(|| Regex::new(r"\bsource\s+").unwrap());
+static SOURCE_COMMAND: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\bsource\s+").unwrap());
 
-static FUNCTION_KEYWORD: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\bfunction\s+\w+\s*\(\s*\)").unwrap());
+static FUNCTION_KEYWORD: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\bfunction\s+\w+\s*\(\s*\)").unwrap());
 
-static EXPONENTIATION: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$\(\([^)]*\*\*[^)]*\)\)").unwrap());
+static EXPONENTIATION: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\(\([^)]*\*\*[^)]*\)\)").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

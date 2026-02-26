@@ -130,7 +130,7 @@ fn generate_class_samples(
     let remainder = count % templates.len();
 
     for (idx, template) in templates.iter().enumerate() {
-        let n = per_template + if idx < remainder { 1 } else { 0 };
+        let n = per_template + usize::from(idx < remainder);
         for _ in 0..n {
             let script = expand_template(rng, template);
             let label = if verify {

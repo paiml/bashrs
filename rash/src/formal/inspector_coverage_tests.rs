@@ -14,9 +14,9 @@ mod inspector_coverage {
     use std::path::PathBuf;
 
     use crate::formal::{
-        AbstractState, FileSystemEntry, ProofInspector, TinyAst, VerificationReport,
-        VerificationResult, AnnotatedAst, EmitterJustification, EnvChange, EquivalenceAnalysis,
-        ExecutionStep, ExecutionTrace, FilesystemChange, StateTransformation,
+        AbstractState, AnnotatedAst, EmitterJustification, EnvChange, EquivalenceAnalysis,
+        ExecutionStep, ExecutionTrace, FileSystemEntry, FilesystemChange, ProofInspector,
+        StateTransformation, TinyAst, VerificationReport, VerificationResult,
     };
 
     // ── builder helpers ──────────────────────────────────────────────────────
@@ -203,7 +203,11 @@ mod inspector_coverage {
         let report = ProofInspector::inspect(&ast, initial);
         // exit_code doesn't change for set-env → None
         assert!(
-            report.annotated_ast.transformation.exit_code_change.is_none(),
+            report
+                .annotated_ast
+                .transformation
+                .exit_code_change
+                .is_none(),
             "exit code should not change for set-env"
         );
     }
@@ -488,11 +492,9 @@ mod inspector_coverage {
         let report = ProofInspector::inspect(&ast, initial);
         // rash trace should have 1 step for the cd operation
         assert_eq!(report.rash_trace.steps.len(), 1);
-        assert!(
-            report.rash_trace.steps[0]
-                .operation
-                .contains("Change directory")
-        );
+        assert!(report.rash_trace.steps[0]
+            .operation
+            .contains("Change directory"));
     }
 
     // ── generate_report includes emitter justifications section ───────────────

@@ -15,10 +15,9 @@
 //   trap handler SIGHUP SIGINT SIGQUIT
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TRAP_WITH_NUMBER: Lazy<Regex> = Lazy::new(|| {
+static TRAP_WITH_NUMBER: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: trap <handler> <number> or trap <handler> <number> <number>...
     Regex::new(r#"\btrap\s+(?:'[^']*'|"[^"]*"|[A-Za-z_][A-Za-z0-9_]*)\s+(\d+)"#).unwrap()
 });

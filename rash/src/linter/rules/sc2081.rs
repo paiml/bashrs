@@ -37,7 +37,7 @@ pub fn check(source: &str) -> LintResult {
 
     // Pattern: '...$var...' or '...$(cmd)...'
     let pattern =
-        Regex::new(r#"'([^']*(?:\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\$\([^)]+\))[^']*)'"#).unwrap();
+        Regex::new(r"'([^']*(?:\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\$\([^)]+\))[^']*)'").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

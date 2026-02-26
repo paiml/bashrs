@@ -47,7 +47,8 @@ pub fn check(source: &str) -> LintResult {
 
                 // Ensure `!` is not followed by `=` (e.g., `if!=` is not this pattern)
                 let after_bang = abs_pos + pattern.len();
-                let not_bang_eq = after_bang >= trimmed.len() || trimmed.as_bytes()[after_bang] != b'=';
+                let not_bang_eq =
+                    after_bang >= trimmed.len() || trimmed.as_bytes()[after_bang] != b'=';
 
                 if is_word_start && not_bang_eq {
                     let line_offset = line.find(trimmed).unwrap_or(0);

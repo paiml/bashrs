@@ -29,16 +29,16 @@
 pub fn show_help(topic: Option<&str>) -> String {
     match topic {
         None => show_general_help(),
-        Some("commands") | Some("command") => show_commands_help(),
-        Some("modes") | Some("mode") => show_modes_help(),
+        Some("commands" | "command") => show_commands_help(),
+        Some("modes" | "mode") => show_modes_help(),
         Some("purify") => show_purify_help(),
         Some("lint") => show_lint_help(),
         Some("parse") => show_parse_help(),
         Some("explain") => show_explain_help(),
         Some("debug") => show_debug_help(),
         Some("history") => show_history_help(),
-        Some("variables") | Some("vars") => show_variables_help(),
-        Some("shortcuts") | Some("keys") => show_shortcuts_help(),
+        Some("variables" | "vars") => show_variables_help(),
+        Some("shortcuts" | "keys") => show_shortcuts_help(),
         Some(unknown) => format!(
             "Unknown help topic: '{}'\n\nAvailable topics:\n\
              - commands   - List all REPL commands\n\
@@ -58,7 +58,7 @@ pub fn show_help(topic: Option<&str>) -> String {
 
 fn show_general_help() -> String {
     format!(
-        r#"bashrs REPL v{} - Interactive bash purification and debugging
+        r"bashrs REPL v{} - Interactive bash purification and debugging
 
 OVERVIEW:
   bashrs REPL provides an interactive environment for:
@@ -92,13 +92,13 @@ SUPPORT:
   Report issues: https://github.com/paiml/bashrs/issues
 
 Type ':help <topic>' for detailed help on specific topics.
-"#,
+",
         env!("CARGO_PKG_VERSION")
     )
 }
 
 fn show_commands_help() -> String {
-    r#"REPL COMMANDS
+    r"REPL COMMANDS
 
 MODE SWITCHING:
   :mode                - Show current mode
@@ -136,7 +136,7 @@ EXAMPLES:
   :help modes          - Learn about REPL modes
 
 Tip: In purify/lint/explain modes, you don't need to prefix with :purify/:lint/:explain
-"#
+"
     .to_string()
 }
 
@@ -243,7 +243,7 @@ Try: :purify mkdir /tmp/test
 }
 
 fn show_lint_help() -> String {
-    r#"BASH LINTING
+    r"BASH LINTING
 
 The linter detects common bash issues and anti-patterns:
 
@@ -289,7 +289,7 @@ EXAMPLE OUTPUT:
     Impact: Performance (unnecessary process)
 
 Try: :lint cat file.txt | grep test
-"#
+"
     .to_string()
 }
 
@@ -393,7 +393,7 @@ Try: :explain ${HOME:-/tmp}
 }
 
 fn show_debug_help() -> String {
-    r#"BASH DEBUGGING (Coming Soon)
+    r"BASH DEBUGGING (Coming Soon)
 
 Debug mode will provide step-by-step execution with breakpoints:
 
@@ -423,7 +423,7 @@ WORKAROUNDS (Current):
   • Use :vars to inspect session variables
 
 For now, try: :mode explain
-"#
+"
     .to_string()
 }
 

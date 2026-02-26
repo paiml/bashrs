@@ -36,7 +36,10 @@ mod ranking_sparkline_str {
         let s = sparkline_str(&[0.0, 50.0, 100.0]);
         let chars: Vec<char> = s.chars().collect();
         assert_eq!(chars.len(), 3);
-        assert!(chars[0] <= chars[2], "Ascending series should have ascending chars");
+        assert!(
+            chars[0] <= chars[2],
+            "Ascending series should have ascending chars"
+        );
     }
 
     #[test]
@@ -71,7 +74,10 @@ mod ranking_sparkline_str {
     fn test_sparkline_descending_produces_descending_chars() {
         let s = sparkline_str(&[100.0, 50.0, 0.0]);
         let chars: Vec<char> = s.chars().collect();
-        assert!(chars[0] >= chars[2], "Descending series should have descending chars");
+        assert!(
+            chars[0] >= chars[2],
+            "Descending series should have descending chars"
+        );
     }
 }
 
@@ -377,18 +383,30 @@ mod entry_classify_difficulty {
     fn test_loop_increases_tier() {
         let input = "fn main() {\n    for i in 0..5 {\n        println!(\"{}\", i);\n    }\n}";
         let (tier, factors) = classify_difficulty(input);
-        assert!(tier >= 1, "Loop input should be at least tier 1, got {tier}");
+        assert!(
+            tier >= 1,
+            "Loop input should be at least tier 1, got {tier}"
+        );
         let loop_present = factors.iter().any(|(f, p)| f.contains("loop") && *p);
-        assert!(loop_present || tier >= 1, "Should detect loop or be tier 1+");
+        assert!(
+            loop_present || tier >= 1,
+            "Should detect loop or be tier 1+"
+        );
     }
 
     #[test]
     fn test_unsafe_increases_tier() {
         let input = "fn main() {\n    unsafe { exec(\"ls\"); }\n}";
         let (tier, factors) = classify_difficulty(input);
-        assert!(tier >= 1, "unsafe input should be at least tier 1, got {tier}");
+        assert!(
+            tier >= 1,
+            "unsafe input should be at least tier 1, got {tier}"
+        );
         let unsafe_present = factors.iter().any(|(f, p)| f.contains("unsafe") && *p);
-        assert!(unsafe_present || tier >= 1, "Should detect unsafe or be tier 1+");
+        assert!(
+            unsafe_present || tier >= 1,
+            "Should detect unsafe or be tier 1+"
+        );
     }
 
     #[test]
@@ -403,7 +421,9 @@ mod entry_classify_difficulty {
     fn test_pipe_char_flagged() {
         let input = "fn main() { let x = a | b; }";
         let (_, factors) = classify_difficulty(input);
-        let pipe_present = factors.iter().any(|(f, p)| *f == "Has pipes/redirects" && *p);
+        let pipe_present = factors
+            .iter()
+            .any(|(f, p)| *f == "Has pipes/redirects" && *p);
         assert!(pipe_present, "Should detect pipe character");
     }
 
@@ -419,7 +439,11 @@ mod entry_classify_difficulty {
     fn test_factors_has_min_10_entries() {
         let input = "fn main() { println!(\"x\"); }";
         let (_, factors) = classify_difficulty(input);
-        assert!(factors.len() >= 10, "Should have at least 10 factors, got {}", factors.len());
+        assert!(
+            factors.len() >= 10,
+            "Should have at least 10 factors, got {}",
+            factors.len()
+        );
     }
 
     #[test]

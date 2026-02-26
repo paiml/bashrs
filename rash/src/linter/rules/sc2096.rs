@@ -20,20 +20,19 @@
 //   # Different streams to different files
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static MULTIPLE_STDOUT_REDIRECTS: Lazy<Regex> = Lazy::new(|| {
+static MULTIPLE_STDOUT_REDIRECTS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: > file1 ... > file2  (without 2> in between)
     Regex::new(r">\s*[^\s;&|]+[^2>]*>\s*[^\s;&|]+").unwrap()
 });
 
-static MULTIPLE_STDERR_REDIRECTS: Lazy<Regex> = Lazy::new(|| {
+static MULTIPLE_STDERR_REDIRECTS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: 2> file1 ... 2> file2
     Regex::new(r"2>\s*[^\s;&|]+.*2>\s*[^\s;&|]+").unwrap()
 });
 
-static MULTIPLE_APPEND_REDIRECTS: Lazy<Regex> = Lazy::new(|| {
+static MULTIPLE_APPEND_REDIRECTS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: >> file1 ... >> file2
     Regex::new(r">>\s*[^\s;&|]+.*>>\s*[^\s;&|]+").unwrap()
 });

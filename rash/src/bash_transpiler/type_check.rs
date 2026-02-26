@@ -370,7 +370,7 @@ impl TypeChecker {
         if sig.is_some() {
             self.ctx.set_function_sig(
                 name,
-                sig.as_ref().cloned().unwrap_or(FunctionSig {
+                sig.clone().unwrap_or(FunctionSig {
                     params: Vec::new(),
                     return_type: None,
                 }),

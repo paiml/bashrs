@@ -15,13 +15,12 @@
 // Impact: Arguments parsed incorrectly, literal quotes passed
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static VAR_EXPANSION_UNQUOTED: Lazy<Regex> = Lazy::new(|| {
+static VAR_EXPANSION_UNQUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: command ... $var (unquoted variable expansion)
     // Simplified: just look for command followed by unquoted $var
-    Regex::new(r#"\b(find|grep|ssh|rsync|curl|wget)\s+\S*\s*\$[a-zA-Z_0-9]+"#).unwrap()
+    Regex::new(r"\b(find|grep|ssh|rsync|curl|wget)\s+\S*\s*\$[a-zA-Z_0-9]+").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -40,7 +39,7 @@ pub fn check(source: &str) -> LintResult {
             let matched = mat.as_str();
 
             // Skip if the variable appears to be quoted
-            if matched.contains(r#""$"#) || matched.contains(r#"'$"#) {
+            if matched.contains(r#""$"#) || matched.contains(r"'$") {
                 continue;
             }
 

@@ -98,9 +98,7 @@ fn is_literal_path(arg: &str) -> bool {
 /// Extract the path argument, stripping surrounding quotes
 fn extract_path(arg: &str) -> &str {
     let first_word = arg.split_whitespace().next().unwrap_or(arg);
-    first_word
-        .trim_matches('"')
-        .trim_matches('\'')
+    first_word.trim_matches('"').trim_matches('\'')
 }
 
 #[cfg(test)]
@@ -130,7 +128,9 @@ mod tests {
         let code = "source ../helpers/utils.sh";
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
-        assert!(result.diagnostics[0].message.contains("../helpers/utils.sh"));
+        assert!(result.diagnostics[0]
+            .message
+            .contains("../helpers/utils.sh"));
     }
 
     #[test]

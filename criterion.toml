@@ -1,0 +1,20 @@
+# Criterion.rs Benchmark Configuration
+# See: https://bheisler.github.io/criterion.rs/book/user_guide/configuration.html
+
+[output]
+# Store results in target directory
+baselines = "target/criterion"
+
+[benchmark_defaults]
+# Default sample size for reliable statistical results
+sample_size = 100
+# Default measurement time (seconds)
+measurement_time = 5
+# Noise threshold for detecting regressions
+noise_threshold = 0.02
+# Confidence level for statistical significance
+confidence_level = 0.95
+# Significance level for detecting performance changes
+significance_level = 0.05
+# Default warm-up time (seconds)
+warm_up_time = 3

@@ -2,12 +2,11 @@
 //!
 //! All testable logic for SC2064 trap quote checking.
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 #[allow(clippy::unwrap_used)] // Compile-time regex
-static TRAP_VAR_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"\$([a-zA-Z_][a-zA-Z0-9_]*)"#).unwrap());
+static TRAP_VAR_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$([a-zA-Z_][a-zA-Z0-9_]*)").unwrap());
 
 /// Extract variable names from a trap command
 pub fn extract_trap_variables(trap_line: &str) -> Vec<&str> {

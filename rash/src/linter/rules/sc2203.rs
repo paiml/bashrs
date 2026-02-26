@@ -1,9 +1,8 @@
 // SC2203: DoS via default assignment
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static RECURSIVE_DEFAULT: Lazy<Regex> = Lazy::new(|| {
+static RECURSIVE_DEFAULT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match ${var:=...$var} or ${var:=${var}}
     // Can't use backreferences, so capture both and compare manually
     Regex::new(r"\$\{(\w+):=.*\$\{?(\w+)\}?").unwrap()
@@ -19,8 +18,8 @@ pub fn check(source: &str) -> LintResult {
 
         // Check if the two variables in the pattern match
         for cap in RECURSIVE_DEFAULT.captures_iter(line) {
-            let var1 = cap.get(1).map(|m| m.as_str()).unwrap_or("");
-            let var2 = cap.get(2).map(|m| m.as_str()).unwrap_or("");
+            let var1 = cap.get(1).map_or("", |m| m.as_str());
+            let var2 = cap.get(2).map_or("", |m| m.as_str());
 
             if var1 == var2 {
                 let diagnostic = Diagnostic::new(

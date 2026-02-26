@@ -1,11 +1,11 @@
 #![allow(clippy::unwrap_used)]
 #![allow(unused_imports)]
 
-use super::super::*;
 use super::super::ast::Redirect;
 use super::super::lexer::Lexer;
 use super::super::parser::BashParser;
 use super::super::semantic::SemanticAnalyzer;
+use super::super::*;
 
 /// Helper: tokenize input and assert tokens are non-empty.
 /// Accepts parse errors gracefully (parser may not support all constructs yet).
@@ -3935,10 +3935,7 @@ HOME="$original_home"  # Restore
 
 #[test]
 fn test_VAR_001_home_edge_cases() {
-    assert_tokenizes(
-        VAR_001_HOME_EDGE_CASES_INPUT,
-        "edge cases should tokenize",
-    );
+    assert_tokenizes(VAR_001_HOME_EDGE_CASES_INPUT, "edge cases should tokenize");
 }
 
 #[test]
@@ -4643,4 +4640,3 @@ fn test_VAR_002_path_system_interaction() {
     // PATH modifications in child don't affect parent (use export for children)
     // Command lookup: builtins → functions → aliases → PATH search
 }
-

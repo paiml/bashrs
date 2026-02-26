@@ -14,16 +14,15 @@
 //   [ ${#array[@]} -gt 0 ]     # Check array length
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_IN_TEST: Lazy<Regex> = Lazy::new(|| {
+static ARRAY_IN_TEST: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $var, ${var}, ${var[...]}, etc.
     // Capture the variable name and optionally any subscript
     Regex::new(r"\$\{?([a-z_][a-z0-9_]*)(\[[^\]]*\])?\}?").unwrap()
 });
 
-static SINGLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
+static SINGLE_BRACKET: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match [ ... ] (we'll manually skip [[ ... ]] in check logic)
     Regex::new(r"\[([^\]]+)\]").unwrap()
 });
@@ -43,7 +42,7 @@ fn looks_like_array(var_name: &str) -> bool {
 
 /// Check if variable usage has array subscript or is length check
 fn has_array_access_or_length_check(subscript: Option<&str>, bracket_text: &str) -> bool {
-    subscript.is_some() || bracket_text.contains("#")
+    subscript.is_some() || bracket_text.contains('#')
 }
 
 /// Create diagnostic for array used as scalar in test

@@ -205,7 +205,7 @@ fn calculate_complexity_score(source: &str) -> f64 {
     let nesting_score = calculate_nesting_score(max_nesting);
     let length_score = calculate_length_score(max_function_length);
 
-    (nesting_score + length_score) / 2.0
+    f64::midpoint(nesting_score, length_score)
 }
 
 /// Check if line is empty or a comment
@@ -483,7 +483,7 @@ fn generate_suggestions(source: &str, score: &QualityScore) -> Vec<String> {
     if score.safety < 7.0 {
         let mut has_unquoted = false;
         for line in source.lines() {
-            if line.contains("$") && !line.contains("\"$") {
+            if line.contains('$') && !line.contains("\"$") {
                 has_unquoted = true;
                 break;
             }

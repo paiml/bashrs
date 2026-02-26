@@ -29,17 +29,16 @@
 //! Suggest adding [@] to expand all elements
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
 
 /// Regex to detect array declarations: var=(...)
-static ARRAY_DECL: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\(").unwrap());
+static ARRAY_DECL: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\(").unwrap());
 
 /// Regex to find variable references
-static VAR_REF: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?"#).unwrap());
+static VAR_REF: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap());
 
 /// Check if a line is a comment
 fn is_comment_line(line: &str) -> bool {

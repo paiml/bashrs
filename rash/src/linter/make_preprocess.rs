@@ -9,14 +9,15 @@
 //! This module provides preprocessing to convert Make recipe syntax to
 //! equivalent bash syntax for linting purposes.
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Match recipe lines (lines starting with tab after target declaration)
-static RECIPE_LINE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\t").unwrap());
+static RECIPE_LINE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"^\t").unwrap());
 
 /// Match target declarations (word followed by colon)
-static TARGET_DECL: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z0-9_.-]+\s*:").unwrap());
+static TARGET_DECL: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9_.-]+\s*:").unwrap());
 
 /// Preprocess Makefile source for linting
 ///

@@ -1,9 +1,9 @@
 // SC2286: Prefer mapfile/readarray over read loops
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static READ_LOOP: Lazy<Regex> = Lazy::new(|| Regex::new(r"while\s+read\s+[^;]+;\s*do").unwrap());
+static READ_LOOP: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"while\s+read\s+[^;]+;\s*do").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

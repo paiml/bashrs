@@ -17,16 +17,16 @@
 //   [[ ${array} = "value" ]]    # Bare array reference
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_IN_CONDITIONAL: Lazy<Regex> = Lazy::new(|| {
+static ARRAY_IN_CONDITIONAL: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $var, ${var}, ${var[...]}, etc.
     // Capture the variable name and optionally any subscript
     Regex::new(r"\$\{?([a-z_][a-z0-9_]*)(\[[^\]]*\])?\}?").unwrap()
 });
 
-static DOUBLE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
+static DOUBLE_BRACKET: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\[.*?\]\]").unwrap());
 
 /// Check if a line is a comment
 fn is_comment_line(line: &str) -> bool {

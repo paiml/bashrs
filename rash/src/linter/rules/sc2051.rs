@@ -30,10 +30,9 @@
 // Note: Brace expansion {1..10} is parsed before variables are substituted.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static BRACE_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
+static BRACE_WITH_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: {$var..something} or {something..$var}
     Regex::new(r"\{\$[a-zA-Z_][a-zA-Z0-9_]*\.\.[^}]*\}|\{[^}]*\.\.\$[a-zA-Z_][a-zA-Z0-9_]*\}")
         .unwrap()

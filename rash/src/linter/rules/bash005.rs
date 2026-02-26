@@ -89,7 +89,7 @@ pub fn check(source: &str) -> LintResult {
         // Count which occurrences (used for tool checking)
         if code_only.contains("which ") && !code_only.starts_with("which") {
             // Only count which when used in conditions, not standalone
-            if code_only.contains("if") || code_only.contains("!") {
+            if code_only.contains("if") || code_only.contains('!') {
                 if which_count == 0 {
                     first_which_line = line_num;
                 }

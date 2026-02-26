@@ -15,12 +15,11 @@
 //   x=${data[5]}       # Correct
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches $varname[ where varname is a valid identifier and it's NOT
 /// already inside ${...}. We look for $identifier[ that isn't preceded by ${.
-static UNBRACED_ARRAY: Lazy<Regex> = Lazy::new(|| {
+static UNBRACED_ARRAY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"\$([A-Za-z_]\w*)\[").expect("SC1087 regex must compile")
 });
 

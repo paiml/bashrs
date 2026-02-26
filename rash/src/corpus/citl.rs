@@ -79,7 +79,7 @@ pub fn lint_pipeline(registry: &CorpusRegistry, score: &CorpusScore) -> Vec<Lint
         }
         // This entry transpiled but failed lint — generate suggestion
         let entry = registry.entries.iter().find(|e| e.id == result.id);
-        let format = entry.map(|e| e.format).unwrap_or(CorpusFormat::Bash);
+        let format = entry.map_or(CorpusFormat::Bash, |e| e.format);
         let prefix = format_prefix(format);
 
         let error_msg = result

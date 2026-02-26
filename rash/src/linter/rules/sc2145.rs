@@ -21,10 +21,9 @@
 // Impact: Incorrect argument handling
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_AT_IN_QUOTES: Lazy<Regex> = Lazy::new(|| {
+static UNQUOTED_AT_IN_QUOTES: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: "...$@..." (unquoted $@ inside double quotes with other content)
     // Look for $@ that's NOT immediately preceded by opening quote or space-quote
     Regex::new(r#""[^"]*\$@[^"]*""#).unwrap()

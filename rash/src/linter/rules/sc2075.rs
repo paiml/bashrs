@@ -17,10 +17,9 @@
 // Impact: Syntax errors, incorrect string values
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ESCAPED_QUOTE_IN_SINGLE: Lazy<Regex> = Lazy::new(|| {
+static ESCAPED_QUOTE_IN_SINGLE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: 'string\'more' (escaped quote inside single quotes)
     Regex::new(r"'[^']*\\'[^']*'").unwrap()
 });

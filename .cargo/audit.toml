@@ -1,0 +1,12 @@
+# cargo-audit configuration
+# See: https://github.com/rustsec/rustsec/tree/main/cargo-audit
+
+[advisories]
+# Advisory database configuration
+ignore = []
+# Treat unmaintained crates as warnings, not errors
+informational_warnings = ["unmaintained"]
+
+[output]
+# Output format
+deny = ["yanked"]

@@ -468,22 +468,17 @@ impl BashParser {
 
     /// Parse a hex literal after the leading "0x"/"0X" has been detected.
     /// `num_str` already contains "0" and the 'x'/'X' has been peeked but not consumed.
-    fn parse_hex_literal(
-        chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    ) -> ParseResult<i64> {
+    fn parse_hex_literal(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> ParseResult<i64> {
         // Consume the 'x'/'X' prefix character
         chars.next();
         let hex_digits = Self::collect_digits(chars, |c| c.is_ascii_hexdigit());
-        i64::from_str_radix(&hex_digits, 16).map_err(|_| {
-            ParseError::InvalidSyntax(format!("Invalid hex number: 0x{}", hex_digits))
-        })
+        i64::from_str_radix(&hex_digits, 16)
+            .map_err(|_| ParseError::InvalidSyntax(format!("Invalid hex number: 0x{}", hex_digits)))
     }
 
     /// Parse an octal literal or bare zero. `num_str` already contains "0" and the
     /// leading '0' has been consumed from `chars`.
-    fn parse_octal_or_zero(
-        chars: &mut std::iter::Peekable<std::str::Chars<'_>>,
-    ) -> i64 {
+    fn parse_octal_or_zero(chars: &mut std::iter::Peekable<std::str::Chars<'_>>) -> i64 {
         let extra = Self::collect_digits(chars, |c| c.is_ascii_digit());
         if extra.is_empty() {
             return 0;
@@ -493,8 +488,7 @@ impl BashParser {
         full.push('0');
         full.push_str(&extra);
         // Parse as octal; fall back to decimal, then 0
-        i64::from_str_radix(&full, 8)
-            .unwrap_or_else(|_| full.parse::<i64>().unwrap_or(0))
+        i64::from_str_radix(&full, 8).unwrap_or_else(|_| full.parse::<i64>().unwrap_or(0))
     }
 
     /// Parse a decimal literal or base#value notation.
@@ -510,9 +504,9 @@ impl BashParser {
             let value_str = Self::collect_digits(chars, |c| c.is_ascii_alphanumeric() || c == '_');
             Ok(i64::from_str_radix(&value_str, base).unwrap_or(0))
         } else {
-            digits.parse::<i64>().map_err(|_| {
-                ParseError::InvalidSyntax(format!("Invalid number: {}", digits))
-            })
+            digits
+                .parse::<i64>()
+                .map_err(|_| ParseError::InvalidSyntax(format!("Invalid number: {}", digits)))
         }
     }
 
@@ -524,7 +518,7 @@ impl BashParser {
     ) -> ParseResult<()> {
         let num = if ch == '0' {
             chars.next(); // consume the leading '0'
-            if matches!(chars.peek(), Some(&'x') | Some(&'X')) {
+            if matches!(chars.peek(), Some(&'x' | &'X')) {
                 Self::parse_hex_literal(chars)?
             } else {
                 Self::parse_octal_or_zero(chars)

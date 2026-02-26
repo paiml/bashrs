@@ -25,20 +25,19 @@
 //   # Entire loop redirected
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static IF_WITH_REDIRECT: Lazy<Regex> = Lazy::new(|| {
+static IF_WITH_REDIRECT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: if command > file; then
     Regex::new(r"\bif\s+[^;]+>\s*[^\s;]+\s*;").unwrap()
 });
 
-static WHILE_WITH_REDIRECT: Lazy<Regex> = Lazy::new(|| {
+static WHILE_WITH_REDIRECT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: while command > file; do
     Regex::new(r"\bwhile\s+[^;]+>\s*[^\s;]+\s*;").unwrap()
 });
 
-static FOR_WITH_REDIRECT: Lazy<Regex> = Lazy::new(|| {
+static FOR_WITH_REDIRECT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: for var in ... > file; do
     Regex::new(r"\bfor\s+[^;]+>\s*[^\s;]+\s*;").unwrap()
 });

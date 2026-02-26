@@ -80,7 +80,10 @@ impl BashParser {
 
     /// Try to parse a redirect operator from the current position.
     /// Returns Ok(true) if a redirect was consumed, Ok(false) if not a redirect.
-    pub(crate) fn try_parse_redirect(&mut self, redirects: &mut Vec<Redirect>) -> ParseResult<bool> {
+    pub(crate) fn try_parse_redirect(
+        &mut self,
+        redirects: &mut Vec<Redirect>,
+    ) -> ParseResult<bool> {
         // BUG-015 FIX: Check fd-based patterns first (close, dup, error, append-error)
         if let Some(result) = self.try_parse_fd_close_redirect(redirects) {
             return result;
@@ -310,11 +313,7 @@ impl BashParser {
 
     /// After consuming a `prefix` (like `"name="` or `"="`), parse the optional value
     /// and push the combined argument(s) onto `args`.
-    fn push_assign_value_arg(
-        &mut self,
-        args: &mut Vec<BashExpr>,
-        prefix: &str,
-    ) -> ParseResult<()> {
+    fn push_assign_value_arg(&mut self, args: &mut Vec<BashExpr>, prefix: &str) -> ParseResult<()> {
         if self.is_at_end()
             || self.check(&Token::Newline)
             || self.check(&Token::Semicolon)

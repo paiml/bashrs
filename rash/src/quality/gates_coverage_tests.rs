@@ -228,9 +228,30 @@ mod tests {
 
         // Mixed results
         let mixed = vec![
-            GateResult { gate_name: "a".to_string(), passed: true, duration: Duration::from_millis(10), message: String::new(), metrics: HashMap::new(), violations: vec![] },
-            GateResult { gate_name: "b".to_string(), passed: false, duration: Duration::from_millis(20), message: String::new(), metrics: HashMap::new(), violations: vec![] },
-            GateResult { gate_name: "c".to_string(), passed: true, duration: Duration::from_millis(30), message: String::new(), metrics: HashMap::new(), violations: vec![] },
+            GateResult {
+                gate_name: "a".to_string(),
+                passed: true,
+                duration: Duration::from_millis(10),
+                message: String::new(),
+                metrics: HashMap::new(),
+                violations: vec![],
+            },
+            GateResult {
+                gate_name: "b".to_string(),
+                passed: false,
+                duration: Duration::from_millis(20),
+                message: String::new(),
+                metrics: HashMap::new(),
+                violations: vec![],
+            },
+            GateResult {
+                gate_name: "c".to_string(),
+                passed: true,
+                duration: Duration::from_millis(30),
+                message: String::new(),
+                metrics: HashMap::new(),
+                violations: vec![],
+            },
         ];
         let summary = QualityGate::summary(&mixed);
         assert_eq!(summary.total, 3);
@@ -241,9 +262,17 @@ mod tests {
 
         // Single failure with violations
         let single_fail = vec![GateResult {
-            gate_name: "only".to_string(), passed: false, duration: Duration::from_secs(10),
-            message: "Failed hard".to_string(), metrics: HashMap::new(),
-            violations: vec![GateViolation { file: None, line: None, description: "critical".to_string(), severity: ViolationSeverity::Error }],
+            gate_name: "only".to_string(),
+            passed: false,
+            duration: Duration::from_secs(10),
+            message: "Failed hard".to_string(),
+            metrics: HashMap::new(),
+            violations: vec![GateViolation {
+                file: None,
+                line: None,
+                description: "critical".to_string(),
+                severity: ViolationSeverity::Error,
+            }],
         }];
         let summary = QualityGate::summary(&single_fail);
         assert_eq!(summary.total, 1);
@@ -274,7 +303,10 @@ mod tests {
     fn test_check_budget_custom_thresholds() {
         let config = MetricsConfig {
             thresholds: MetricsThresholds {
-                lint_ms: 1000.0, test_ms: 2000.0, coverage_ms: 3000.0, binary_size_kb: 512.0,
+                lint_ms: 1000.0,
+                test_ms: 2000.0,
+                coverage_ms: 3000.0,
+                binary_size_kb: 512.0,
             },
             ..MetricsConfig::default()
         };
@@ -456,7 +488,8 @@ mod tests {
         assert!(config.gates.run_clippy);
 
         // Only metadata section
-        let config: GateConfig = toml::from_str("[metadata]\nversion = \"5.0.0\"\ntool = \"my-tool\"").expect("parse");
+        let config: GateConfig =
+            toml::from_str("[metadata]\nversion = \"5.0.0\"\ntool = \"my-tool\"").expect("parse");
         assert_eq!(config.metadata.version, "5.0.0");
         assert!(config.gates.run_clippy);
     }
@@ -512,7 +545,11 @@ mod tests {
         let gate = QualityGate::new(config);
         let result = gate.run_gate("clippy");
         assert!(result.passed, "disabled clippy gate should pass");
-        assert!(result.message.contains("disabled"), "disabled gate message should say disabled: {}", result.message);
+        assert!(
+            result.message.contains("disabled"),
+            "disabled gate message should say disabled: {}",
+            result.message
+        );
         assert_eq!(result.gate_name, "clippy");
     }
 
@@ -529,7 +566,11 @@ mod tests {
         let gate = QualityGate::new(config);
         let result = gate.run_gate("tests");
         assert!(result.passed, "disabled tests gate should pass");
-        assert!(result.message.contains("disabled"), "message: {}", result.message);
+        assert!(
+            result.message.contains("disabled"),
+            "message: {}",
+            result.message
+        );
         assert_eq!(result.gate_name, "tests");
     }
 
@@ -549,7 +590,11 @@ mod tests {
         let gate = QualityGate::new(config);
         let result = gate.run_gate("satd");
         assert!(result.passed, "disabled SATD gate should pass");
-        assert!(result.message.contains("disabled"), "message: {}", result.message);
+        assert!(
+            result.message.contains("disabled"),
+            "message: {}",
+            result.message
+        );
         assert_eq!(result.gate_name, "satd");
     }
 
@@ -566,7 +611,11 @@ mod tests {
         let gate = QualityGate::new(config);
         let result = gate.run_gate("coverage");
         assert!(result.passed, "disabled coverage gate should pass");
-        assert!(result.message.contains("disabled"), "message: {}", result.message);
+        assert!(
+            result.message.contains("disabled"),
+            "message: {}",
+            result.message
+        );
         assert_eq!(result.gate_name, "coverage");
     }
 
@@ -583,7 +632,11 @@ mod tests {
         let gate = QualityGate::new(config);
         let result = gate.run_gate("complexity");
         assert!(result.passed, "disabled complexity gate should pass");
-        assert!(result.message.contains("disabled"), "message: {}", result.message);
+        assert!(
+            result.message.contains("disabled"),
+            "message: {}",
+            result.message
+        );
     }
 
     /// Call run_mutation_gate via run_gate() with mutation disabled.
@@ -651,7 +704,7 @@ mod tests {
                 satd: SatdConfig {
                     enabled: true,
                     max_count: 100,
-                    patterns: vec![],  // No patterns = no violations found
+                    patterns: vec![], // No patterns = no violations found
                     fail_on_violation: true,
                     require_issue_links: false,
                 },
@@ -671,7 +724,15 @@ mod tests {
     #[test]
     fn test_coverage_run_gate_all_known_names_return_named_results() {
         let gate = QualityGate::with_defaults();
-        for name in &["clippy", "complexity", "tests", "coverage", "satd", "mutation", "security"] {
+        for name in &[
+            "clippy",
+            "complexity",
+            "tests",
+            "coverage",
+            "satd",
+            "mutation",
+            "security",
+        ] {
             let result = gate.run_gate(name);
             assert_eq!(result.gate_name, *name, "gate_name mismatch for {name}");
         }

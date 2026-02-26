@@ -227,11 +227,11 @@ pub(crate) fn print_human_score_results(
         "A" => println!("{GREEN}✓ Great! Very good code quality.{RESET}"),
         "B+" | "B" => println!("{GREEN}✓ Good code quality with room for improvement.{RESET}"),
         "C+" | "C" => {
-            println!("{YELLOW}⚠ Average code quality. Consider addressing suggestions.{RESET}")
+            println!("{YELLOW}⚠ Average code quality. Consider addressing suggestions.{RESET}");
         }
         "D" => println!("{RED}⚠ Below average. Multiple improvements needed.{RESET}"),
         "F" => {
-            println!("{BRIGHT_RED}✗ Poor code quality. Significant improvements required.{RESET}")
+            println!("{BRIGHT_RED}✗ Poor code quality. Significant improvements required.{RESET}");
         }
         _ => {}
     }

@@ -1,9 +1,8 @@
 // SC2216: Piping to 'rm' is dangerous - use xargs
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static PIPE_TO_RM: Lazy<Regex> = Lazy::new(|| {
+static PIPE_TO_RM: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match any command piped to rm
     Regex::new(r"\|\s*rm\b").unwrap()
 });

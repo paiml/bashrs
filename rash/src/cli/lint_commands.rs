@@ -78,10 +78,7 @@ fn walk_for_lintable_files(dir: &Path, out: &mut Vec<PathBuf>) -> Result<()> {
             }
             walk_for_lintable_files(&path, out)?;
         } else {
-            let filename = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .unwrap_or("");
+            let filename = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
             // Check by filename first (Makefile, Dockerfile)
             if is_makefile(filename) || is_dockerfile(filename) {
@@ -134,8 +131,11 @@ fn lint_single_file(input: &Path, opts: &LintCommandOptions<'_>) -> Result<()> {
     }
 
     // Build set of ignored rule codes from --ignore, -e flags, AND .bashrsignore (Issue #82, #85)
-    let ignored_rules =
-        build_ignored_rules(opts.ignore_rules, opts.exclude_rules, ignore_file_data.as_ref());
+    let ignored_rules = build_ignored_rules(
+        opts.ignore_rules,
+        opts.exclude_rules,
+        ignore_file_data.as_ref(),
+    );
 
     // Determine minimum severity based on --quiet and --level flags (Issue #75)
     let min_severity = determine_min_severity(opts.quiet, opts.level);
@@ -211,8 +211,7 @@ fn lint_multiple_files(files: &[PathBuf], opts: &LintCommandOptions<'_>) -> Resu
         LintResult,
     };
 
-    let ignored_rules =
-        build_ignored_rules(opts.ignore_rules, opts.exclude_rules, None);
+    let ignored_rules = build_ignored_rules(opts.ignore_rules, opts.exclude_rules, None);
     let min_severity = determine_min_severity(opts.quiet, opts.level);
     let lint_profile = convert_lint_profile(opts.profile);
 
@@ -319,10 +318,7 @@ fn emit_ci_annotations(input: &Path, result: &crate::linter::LintResult) {
 }
 
 /// Check result against --fail-on threshold and exit appropriately.
-fn exit_for_fail_on(
-    result: &crate::linter::LintResult,
-    fail_on: LintLevel,
-) -> Result<()> {
+fn exit_for_fail_on(result: &crate::linter::LintResult, fail_on: LintLevel) -> Result<()> {
     let should_fail = match fail_on {
         LintLevel::Error => result.has_errors(),
         LintLevel::Warning => result.has_errors() || result.has_warnings(),

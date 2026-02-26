@@ -13,13 +13,11 @@
 //   for file in *.txt; do cat $file; done
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches `for $var in`
-static FOR_DOLLAR_VAR: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\bfor\s+\$(\w+)\s+in\b").unwrap()
-});
+static FOR_DOLLAR_VAR: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\bfor\s+\$(\w+)\s+in\b").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

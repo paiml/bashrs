@@ -759,7 +759,10 @@ fn assert_first_arm_is_variable(source: &str, expected_name: &str) {
             assert!(!arms.is_empty(), "Should have at least one match arm");
             match &arms[0].pattern {
                 Pattern::Variable(name) => {
-                    assert_eq!(name, expected_name, "Expected variable pattern '{expected_name}'");
+                    assert_eq!(
+                        name, expected_name,
+                        "Expected variable pattern '{expected_name}'"
+                    );
                 }
                 Pattern::Wildcard => {
                     panic!("Named identifier '{expected_name}' should NOT be treated as Wildcard");

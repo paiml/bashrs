@@ -18,10 +18,9 @@
 // likely to be misinterpreted.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_EQUALS: Lazy<Regex> = Lazy::new(|| {
+static UNQUOTED_EQUALS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match word containing multiple = signs (including paths)
     // Look for pattern: NAME=value=value (where values can include /, -, .)
     Regex::new(r"\b([a-zA-Z_][a-zA-Z0-9_]*=[a-zA-Z0-9_/.:-]+=[a-zA-Z0-9_/.:-]+)\b").unwrap()

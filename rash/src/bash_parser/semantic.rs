@@ -185,14 +185,14 @@ impl SemanticAnalyzer {
 
             BashStmt::Pipeline { commands, .. } => self.analyze_body(commands, scope),
 
-            BashStmt::AndList { left, right, .. }
-            | BashStmt::OrList { left, right, .. } => {
+            BashStmt::AndList { left, right, .. } | BashStmt::OrList { left, right, .. } => {
                 self.analyze_statement(left, scope)?;
                 self.analyze_statement(right, scope)
             }
 
-            BashStmt::BraceGroup { body, .. }
-            | BashStmt::Coproc { body, .. } => self.analyze_body(body, scope),
+            BashStmt::BraceGroup { body, .. } | BashStmt::Coproc { body, .. } => {
+                self.analyze_body(body, scope)
+            }
 
             BashStmt::Select { variable, body, .. } => {
                 self.analyze_select_stmt(variable, body, scope)
@@ -358,8 +358,7 @@ impl SemanticAnalyzer {
                 Self::mark_var_used(scope, name);
             }
 
-            BashExpr::CommandSubst(cmd)
-            | BashExpr::CommandCondition(cmd) => {
+            BashExpr::CommandSubst(cmd) | BashExpr::CommandCondition(cmd) => {
                 self.analyze_statement(cmd, scope)?;
             }
 
@@ -380,7 +379,10 @@ impl SemanticAnalyzer {
             }
 
             BashExpr::DefaultValue { variable, default }
-            | BashExpr::ErrorIfUnset { variable, message: default } => {
+            | BashExpr::ErrorIfUnset {
+                variable,
+                message: default,
+            } => {
                 Self::mark_var_used(scope, variable);
                 self.analyze_expression(default, scope)?;
             }

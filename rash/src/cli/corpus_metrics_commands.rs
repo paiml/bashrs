@@ -1,10 +1,10 @@
 //! Corpus metrics: top-k ranking, format comparison, stability, version, rate, distribution, trace, and suspicious detection.
 
-use crate::models::{Config, Error, Result};
-use super::corpus_failure_commands::result_fail_dims;
+use super::corpus_compare_commands::percentile;
 use super::corpus_decision_commands::score_impact_color;
 use super::corpus_diag_commands::dim_format_rate;
-use super::corpus_compare_commands::percentile;
+use super::corpus_failure_commands::result_fail_dims;
+use crate::models::{Config, Error, Result};
 
 pub(crate) fn corpus_topk(limit: usize) -> Result<()> {
     use crate::cli::color::*;
@@ -124,7 +124,7 @@ pub(crate) fn corpus_format_cmp() -> Result<()> {
                 4 => format!("{:.1}", fs.map_or(0.0, |f| f.score)),
                 5 => fs
                     .map_or_else(|| "?".to_string(), |f| format!("{}", f.grade))
-                    .to_string(),
+                    .clone(),
                 d @ 6..=13 => {
                     let dim_idx = d - 6;
                     let rate = dim_format_rate(&registry, &score.results, *fmt, dim_idx);

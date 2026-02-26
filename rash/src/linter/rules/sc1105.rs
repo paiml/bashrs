@@ -15,14 +15,12 @@
 //   echo $(date)       # Correct command substitution
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches $ followed by one or more spaces then ( — likely a broken
 /// command substitution attempt.
-static DOLLAR_SPACE_PAREN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\$\s+\(").expect("SC1105 regex must compile")
-});
+static DOLLAR_SPACE_PAREN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\s+\(").expect("SC1105 regex must compile"));
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

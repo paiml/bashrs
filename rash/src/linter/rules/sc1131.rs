@@ -48,7 +48,8 @@ pub fn check(source: &str) -> LintResult {
                 result.add(Diagnostic::new(
                     "SC1131",
                     Severity::Info,
-                    "Use 'elif' instead of 'else' followed by 'if' (avoids extra 'fi').".to_string(),
+                    "Use 'elif' instead of 'else' followed by 'if' (avoids extra 'fi')."
+                        .to_string(),
                     Span::new(else_line_num, 1, line_num, trimmed.len() + 1),
                 ));
             }

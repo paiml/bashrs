@@ -2,7 +2,6 @@
 //!
 //! Extracted for EXTREME TDD testability.
 
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashSet;
 
@@ -80,8 +79,9 @@ pub fn is_in_arithmetic_context(line: &str, dollar_pos: usize, var_end: usize) -
 /// These variables are always numeric, so SC2086 should not flag them
 pub fn get_cstyle_for_loop_vars(source: &str) -> HashSet<String> {
     #[allow(clippy::unwrap_used)] // Compile-time regex
-    static CSTYLE_FOR: Lazy<Regex> =
-        Lazy::new(|| Regex::new(r"\bfor\s*\(\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*=").unwrap());
+    static CSTYLE_FOR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(r"\bfor\s*\(\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*=").unwrap()
+    });
 
     let mut vars = HashSet::new();
     for cap in CSTYLE_FOR.captures_iter(source) {

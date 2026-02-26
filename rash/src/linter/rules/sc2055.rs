@@ -24,10 +24,9 @@
 // Note: -a for file existence ([ -a file ]) is different and correct.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TEST_WITH_AND: Lazy<Regex> = Lazy::new(|| {
+static TEST_WITH_AND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ ... -a ... ] or test ... -a ...
     // Look for -a operator between test conditions
     Regex::new(r"\[\s+[^\]]*\s+-a\s+[^\]]*\]|test\s+[^\n]*\s+-a\s+").unwrap()

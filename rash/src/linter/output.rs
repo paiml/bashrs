@@ -216,7 +216,10 @@ struct SarifResult {
     locations: Vec<SarifLocation>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     fixes: Vec<SarifFix>,
-    #[serde(rename = "partialFingerprints", skip_serializing_if = "HashMap::is_empty")]
+    #[serde(
+        rename = "partialFingerprints",
+        skip_serializing_if = "HashMap::is_empty"
+    )]
     partial_fingerprints: HashMap<String, String>,
 }
 
@@ -500,7 +503,12 @@ mod tests {
     fn test_sarif_output_has_partial_fingerprints() {
         let mut result = LintResult::new();
         let span = Span::new(1, 5, 1, 10);
-        result.add(Diagnostic::new("SEC001", Severity::Error, "Injection risk", span));
+        result.add(Diagnostic::new(
+            "SEC001",
+            Severity::Error,
+            "Injection risk",
+            span,
+        ));
 
         let mut buffer = Vec::new();
         write_sarif(&mut buffer, &result, "test.sh").unwrap();
@@ -518,7 +526,12 @@ mod tests {
     fn test_sarif_output_has_rule_descriptors() {
         let mut result = LintResult::new();
         let span = Span::new(1, 5, 1, 10);
-        result.add(Diagnostic::new("SEC001", Severity::Error, "Injection risk", span));
+        result.add(Diagnostic::new(
+            "SEC001",
+            Severity::Error,
+            "Injection risk",
+            span,
+        ));
 
         let mut buffer = Vec::new();
         write_sarif(&mut buffer, &result, "test.sh").unwrap();
@@ -532,7 +545,10 @@ mod tests {
         let first_rule = &rules_arr[0];
         assert_eq!(first_rule["id"], "SEC001");
         assert!(first_rule["shortDescription"]["text"].is_string());
-        assert!(first_rule["helpUri"].as_str().expect("helpUri").contains("docs/rules"));
+        assert!(first_rule["helpUri"]
+            .as_str()
+            .expect("helpUri")
+            .contains("docs/rules"));
     }
 
     #[test]
@@ -551,6 +567,9 @@ mod tests {
         let first_result = &parsed["runs"][0]["results"][0];
         let fixes = first_result["fixes"].as_array().expect("fixes is array");
         assert_eq!(fixes.len(), 1);
-        assert!(fixes[0]["description"]["text"].as_str().expect("desc").contains("mkdir -p"));
+        assert!(fixes[0]["description"]["text"]
+            .as_str()
+            .expect("desc")
+            .contains("mkdir -p"));
     }
 }

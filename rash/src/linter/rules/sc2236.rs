@@ -1,9 +1,8 @@
 // SC2236: Use -n instead of ! -z for positive tests
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static NEGATED_Z_TEST: Lazy<Regex> = Lazy::new(|| {
+static NEGATED_Z_TEST: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ ! -z $var ] or [[ ! -z $var ]]
     Regex::new(r"\[\[?\s*!\s+-z\s+").unwrap()
 });

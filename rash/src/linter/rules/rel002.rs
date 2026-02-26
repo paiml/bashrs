@@ -40,7 +40,7 @@ pub fn check(source: &str) -> LintResult {
         let trimmed = line.trim();
         !trimmed.starts_with('#')
             && trimmed.contains("trap")
-            && (trimmed.contains("EXIT") || trimmed.contains("ERR") || trimmed.contains("0"))
+            && (trimmed.contains("EXIT") || trimmed.contains("ERR") || trimmed.contains('0'))
     });
 
     if has_trap_exit {
@@ -60,8 +60,8 @@ pub fn check(source: &str) -> LintResult {
             // Verify it's a standalone word
             let before_ok = col == 0 || !line.as_bytes()[col - 1].is_ascii_alphanumeric();
             let after_idx = col + 6;
-            let after_ok = after_idx >= line.len()
-                || !line.as_bytes()[after_idx].is_ascii_alphanumeric();
+            let after_ok =
+                after_idx >= line.len() || !line.as_bytes()[after_idx].is_ascii_alphanumeric();
 
             if before_ok && after_ok {
                 let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 7);

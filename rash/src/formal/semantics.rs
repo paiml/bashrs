@@ -83,7 +83,7 @@ pub mod rash_semantics {
         let mut parent_flag = false;
         let mut paths = Vec::new();
 
-        for arg in args.iter() {
+        for arg in args {
             if arg == "-p" {
                 parent_flag = true;
             } else if arg.starts_with('-') {

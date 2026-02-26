@@ -74,10 +74,7 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
             true
         } else {
             let char_before = line.chars().nth(pos - 1);
-            matches!(
-                char_before,
-                Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(')
-            )
+            matches!(char_before, Some(' ' | '\t' | ';' | '&' | '|' | '('))
         };
 
         let after_idx = pos + cmd.len();
@@ -85,10 +82,7 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
             true
         } else {
             let char_after = line.chars().nth(after_idx);
-            matches!(
-                char_after,
-                Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some(')')
-            )
+            matches!(char_after, Some(' ' | '\t' | ';' | '&' | '|' | ')'))
         };
 
         if before_ok && after_ok {
@@ -115,7 +109,7 @@ fn contains_sql_with_variable(line: &str) -> bool {
     // Pattern: "$VAR" or "${VAR}" inside quotes
     // Handles both: mysql -e "..." and sqlite3 db "..."
     let has_variable_in_query = line.contains('"') || line.contains('\'');
-    let has_unquoted_var = line.contains("$") && !line.contains("\\$");
+    let has_unquoted_var = line.contains('$') && !line.contains("\\$");
 
     has_variable_in_query && has_unquoted_var
 }

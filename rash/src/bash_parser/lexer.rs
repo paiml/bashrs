@@ -777,9 +777,7 @@ impl Lexer {
             let ch = self.current_char();
             if ch.is_alphanumeric() || ch == '_' {
                 ident.push(self.advance());
-            } else if self.is_ident_continuation_char(ch)
-                || self.is_ident_separator_with_next(ch)
-            {
+            } else if self.is_ident_continuation_char(ch) || self.is_ident_separator_with_next(ch) {
                 has_special_chars = true;
                 ident.push(self.advance());
             } else {
@@ -1231,10 +1229,7 @@ impl Lexer {
 
     /// Handle operators starting with `=`: equality (`==`), regex match (`=~`),
     /// and plain assignment (`=`).
-    fn read_equality_or_assign(
-        &mut self,
-        next_ch: Option<char>,
-    ) -> Result<Token, LexerError> {
+    fn read_equality_or_assign(&mut self, next_ch: Option<char>) -> Result<Token, LexerError> {
         match next_ch {
             Some('=') => {
                 self.advance();
@@ -1319,10 +1314,7 @@ impl Lexer {
 
     /// Handle operators starting with `;`: double-semicolon (`;;`),
     /// case resume (`;;&`), case fall-through (`;&`), and plain semicolon.
-    fn read_semicolon_operator(
-        &mut self,
-        next_ch: Option<char>,
-    ) -> Result<Token, LexerError> {
+    fn read_semicolon_operator(&mut self, next_ch: Option<char>) -> Result<Token, LexerError> {
         match next_ch {
             Some(';') => {
                 // BUG-008, BUG-009 FIX: Check for ;;& (case resume) before ;;

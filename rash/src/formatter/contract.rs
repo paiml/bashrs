@@ -253,7 +253,7 @@ impl ContractSystem {
 
         for constraint in &self.inference_engine.constraints {
             match self.unify(&constraint.left, &constraint.right, &mut substitution) {
-                Ok(_) => {}
+                Ok(()) => {}
                 Err(e) => {
                     return Err(TypeError {
                         kind: e,

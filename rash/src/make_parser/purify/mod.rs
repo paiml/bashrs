@@ -438,8 +438,8 @@ fn find_matching_paren(s: &str, start: usize) -> Option<usize> {
 ///
 /// Message format: "Variable 'NAME' uses non-deterministic ..."
 fn extract_variable_name(message: &str) -> String {
-    if let Some(start) = message.find("'") {
-        if let Some(end) = message[start + 1..].find("'") {
+    if let Some(start) = message.find('\'') {
+        if let Some(end) = message[start + 1..].find('\'') {
             return message[start + 1..start + 1 + end].to_string();
         }
     }

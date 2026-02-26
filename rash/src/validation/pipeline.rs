@@ -186,7 +186,7 @@ impl ValidationPipeline {
     fn check_pipe_injection(s: &str) -> RashResult<()> {
         // Issue #94: Skip pipe check for table/formatting strings
         let is_formatting_string = s.chars().filter(|c| *c == '|').count() > 1
-            && !s.contains(";")
+            && !s.contains(';')
             && !s.contains("$(")
             && !s.contains("&&");
 
@@ -513,11 +513,7 @@ impl ValidationPipeline {
         self.validate_ir_recursive(body)
     }
 
-    fn validate_ir_case(
-        &self,
-        scrutinee: &ShellValue,
-        arms: &[CaseArm],
-    ) -> RashResult<()> {
+    fn validate_ir_case(&self, scrutinee: &ShellValue, arms: &[CaseArm]) -> RashResult<()> {
         self.validate_shell_value(scrutinee)?;
         for arm in arms {
             if let Some(guard) = &arm.guard {
@@ -577,7 +573,7 @@ impl ValidationPipeline {
         Ok(())
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn validate_expression(&self, expr: &crate::ir::ShellExpression) -> RashResult<()> {
         use crate::ir::ShellExpression;
 

@@ -116,7 +116,7 @@ fn is_command(line: &str, cmd: &str) -> bool {
             return true;
         }
         let next_char = line.chars().nth(cmd.len());
-        matches!(next_char, Some(' ') | Some('\t'))
+        matches!(next_char, Some(' ' | '\t'))
     } else {
         false
     }

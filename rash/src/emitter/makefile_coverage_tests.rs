@@ -52,7 +52,9 @@ fn test_MCOV_002_analyze_tab_prefixed_line() {
     // Tab-prefixed lines are recipe lines (emitted as comment)
     let ast = make_ast(vec![Stmt::Expr(Expr::FunctionCall {
         name: "rash_println".to_string(),
-        args: vec![Expr::Literal(Literal::Str("\tgcc -o build main.c".to_string()))],
+        args: vec![Expr::Literal(Literal::Str(
+            "\tgcc -o build main.c".to_string(),
+        ))],
     })]);
     let result = emit_makefile(&ast).unwrap();
     assert!(result.contains("gcc -o build main.c"));
@@ -96,7 +98,9 @@ fn test_MCOV_006_analyze_comment_line() {
     // A line that doesn't match any rule becomes a comment
     let ast = make_ast(vec![Stmt::Expr(Expr::FunctionCall {
         name: "exec".to_string(),
-        args: vec![Expr::Literal(Literal::Str("just a comment line".to_string()))],
+        args: vec![Expr::Literal(Literal::Str(
+            "just a comment line".to_string(),
+        ))],
     })]);
     let result = emit_makefile(&ast).unwrap();
     assert!(result.contains("just a comment line"));
@@ -382,7 +386,12 @@ fn test_MCOV_026_rash_eprintln_raw_output() {
     // rash_eprintln is treated as an output function in convert_expr DSL mode
     // but in raw mode it's not in the raw output list — should fall to DSL or bash fallback
     // The key is that it doesn't crash
-    assert!(result.is_ascii() || result.contains("error") || result.contains("message") || !result.is_empty());
+    assert!(
+        result.is_ascii()
+            || result.contains("error")
+            || result.contains("message")
+            || !result.is_empty()
+    );
 }
 
 // ---------------------------------------------------------------------------

@@ -45,7 +45,7 @@ pub fn check(source: &str) -> LintResult {
 
         // Check for ln -s pattern
         if let Some(caps) = ln_pattern.captures(line) {
-            let flags = caps.get(1).map(|m| m.as_str()).unwrap_or("");
+            let flags = caps.get(1).map_or("", |m| m.as_str());
 
             // Skip if -f flag is present (makes it idempotent)
             // -f can be in combined flags like -sf, -sfn, -fs, -fns

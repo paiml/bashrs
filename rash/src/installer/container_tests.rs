@@ -100,10 +100,8 @@ fn test_COV_CONT_007_platform_result_format_row_variants() {
     );
     assert!(failed.format_row().contains("pkg not found"));
 
-    let skipped = PlatformResult::skipped(
-        Platform::new("test:1", Architecture::Amd64),
-        "unsupported",
-    );
+    let skipped =
+        PlatformResult::skipped(Platform::new("test:1", Architecture::Amd64), "unsupported");
     assert!(skipped.format_row().contains("-"));
 
     let no_steps = PlatformResult::failed(
@@ -141,7 +139,11 @@ fn test_COV_CONT_009_resource_limits() {
     };
     assert_eq!(custom.memory, Some("4G".to_string()));
 
-    let none = ResourceLimits { memory: None, cpus: None, timeout: Duration::from_secs(60) };
+    let none = ResourceLimits {
+        memory: None,
+        cpus: None,
+        timeout: Duration::from_secs(60),
+    };
     assert!(none.memory.is_none());
 }
 
@@ -149,7 +151,11 @@ fn test_COV_CONT_009_resource_limits() {
 fn test_COV_CONT_010_matrix_config_variants() {
     let ext = MatrixConfig::extended_platforms();
     assert_eq!(ext.platforms.len(), 9);
-    let alpine = ext.platforms.iter().find(|p| p.image == "alpine:3.19").unwrap();
+    let alpine = ext
+        .platforms
+        .iter()
+        .find(|p| p.image == "alpine:3.19")
+        .unwrap();
     assert_eq!(alpine.notes, Some("musl libc".to_string()));
 
     let mut config = MatrixConfig::default();
@@ -159,7 +165,9 @@ fn test_COV_CONT_010_matrix_config_variants() {
     assert_eq!(MatrixConfig::default().with_parallelism(0).parallelism, 1);
     assert_eq!(MatrixConfig::default().with_parallelism(8).parallelism, 8);
     assert_eq!(
-        MatrixConfig::default().with_runtime(ContainerRuntime::Podman).runtime,
+        MatrixConfig::default()
+            .with_runtime(ContainerRuntime::Podman)
+            .runtime,
         ContainerRuntime::Podman
     );
 
@@ -184,7 +192,10 @@ fn test_COV_CONT_011_matrix_accessors_and_validate() {
     assert!(empty.validate().is_err());
 
     // Validate: missing path
-    let missing = ContainerTestMatrix::new("/tmp/bashrs_truly_nonexistent_path_xyz_12345", MatrixConfig::from_platform_string("u:1"));
+    let missing = ContainerTestMatrix::new(
+        "/tmp/bashrs_truly_nonexistent_path_xyz_12345",
+        MatrixConfig::from_platform_string("u:1"),
+    );
     assert!(missing.validate().is_err());
 }
 
@@ -240,10 +251,7 @@ fn test_COV_CONT_014_matrix_to_json() {
     assert!(json1.contains("\"error\":") && json1.contains("musl"));
 
     // JSON with multiple platforms
-    let mut m2 = ContainerTestMatrix::new(
-        &path,
-        MatrixConfig::from_platform_string("u:1,u:2,u:3"),
-    );
+    let mut m2 = ContainerTestMatrix::new(&path, MatrixConfig::from_platform_string("u:1,u:2,u:3"));
     m2.simulate();
     assert_eq!(m2.to_json().matches("\"image\"").count(), 3);
 }
@@ -251,30 +259,57 @@ fn test_COV_CONT_014_matrix_to_json() {
 #[test]
 fn test_COV_CONT_015_summary_format_and_rates() {
     let short = MatrixSummary {
-        total: 2, passed: 2, failed: 0, skipped: 0,
-        total_duration: Duration::from_secs(45), parallelism: 2,
+        total: 2,
+        passed: 2,
+        failed: 0,
+        skipped: 0,
+        total_duration: Duration::from_secs(45),
+        parallelism: 2,
     };
     let out = short.format();
     assert!(out.contains("45s") && !out.contains("failed"));
 
     assert!(MatrixSummary {
-        total: 5, passed: 5, failed: 0, skipped: 0,
-        total_duration: Duration::ZERO, parallelism: 1,
-    }.all_passed());
+        total: 5,
+        passed: 5,
+        failed: 0,
+        skipped: 0,
+        total_duration: Duration::ZERO,
+        parallelism: 1,
+    }
+    .all_passed());
 
     let empty = MatrixSummary {
-        total: 0, passed: 0, failed: 0, skipped: 0,
-        total_duration: Duration::ZERO, parallelism: 1,
+        total: 0,
+        passed: 0,
+        failed: 0,
+        skipped: 0,
+        total_duration: Duration::ZERO,
+        parallelism: 1,
     };
     assert!((empty.success_rate()).abs() < f64::EPSILON);
-    assert!((MatrixSummary {
-        total: 3, passed: 3, failed: 0, skipped: 0,
-        total_duration: Duration::ZERO, parallelism: 1,
-    }.success_rate() - 100.0).abs() < f64::EPSILON);
+    assert!(
+        (MatrixSummary {
+            total: 3,
+            passed: 3,
+            failed: 0,
+            skipped: 0,
+            total_duration: Duration::ZERO,
+            parallelism: 1,
+        }
+        .success_rate()
+            - 100.0)
+            .abs()
+            < f64::EPSILON
+    );
 
     let with_failed = MatrixSummary {
-        total: 3, passed: 1, failed: 2, skipped: 0,
-        total_duration: Duration::from_secs(120), parallelism: 4,
+        total: 3,
+        passed: 1,
+        failed: 2,
+        skipped: 0,
+        total_duration: Duration::from_secs(120),
+        parallelism: 4,
     };
     let fo = with_failed.format();
     assert!(fo.contains("2 failed") && fo.contains("2m 00s") && fo.contains("4 workers"));
@@ -304,14 +339,19 @@ fn test_COV_CONT_017_truncate_and_escape_json() {
 #[test]
 fn test_COV_CONT_018_step_test_result() {
     let passed = StepTestResult {
-        step_id: "s1".to_string(), step_name: "Install".to_string(),
-        passed: true, duration: Duration::from_millis(500), error: None,
+        step_id: "s1".to_string(),
+        step_name: "Install".to_string(),
+        passed: true,
+        duration: Duration::from_millis(500),
+        error: None,
     };
     assert!(passed.passed && passed.error.is_none());
 
     let failed = StepTestResult {
-        step_id: "s2".to_string(), step_name: "Configure".to_string(),
-        passed: false, duration: Duration::from_millis(200),
+        step_id: "s2".to_string(),
+        step_name: "Configure".to_string(),
+        passed: false,
+        duration: Duration::from_millis(200),
         error: Some("not found".to_string()),
     };
     assert!(!failed.passed);

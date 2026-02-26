@@ -58,7 +58,10 @@ pub fn check(source: &str) -> LintResult {
             }
 
             // Check if it's a while read loop (reading from pipe is OK)
-            if trimmed.starts_with("while") || trimmed.contains("| read") || trimmed.contains("|read") {
+            if trimmed.starts_with("while")
+                || trimmed.contains("| read")
+                || trimmed.contains("|read")
+            {
                 continue;
             }
 

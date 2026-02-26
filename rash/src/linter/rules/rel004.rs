@@ -50,11 +50,14 @@ pub fn check(source: &str) -> LintResult {
             let check_end = line_num + 5; // Look ahead up to 5 lines
             let max_line = check_end.min(lines.len());
 
-            for (next_line_num, next_line) in lines.iter().enumerate().take(max_line).skip(line_num + 1) {
+            for (next_line_num, next_line) in
+                lines.iter().enumerate().take(max_line).skip(line_num + 1)
+            {
                 let next_trimmed = next_line.trim();
 
                 if next_trimmed.contains("touch ") || next_trimmed.contains("> ") {
-                    let span = Span::new(line_num + 1, 1, next_line_num + 1, next_trimmed.len() + 1);
+                    let span =
+                        Span::new(line_num + 1, 1, next_line_num + 1, next_trimmed.len() + 1);
 
                     let diagnostic = Diagnostic::new(
                         "REL004",

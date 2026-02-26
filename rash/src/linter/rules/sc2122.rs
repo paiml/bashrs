@@ -15,10 +15,9 @@
 // Impact: Comparison doesn't work correctly, treated as string
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SINGLE_BRACKET_GE: Lazy<Regex> = Lazy::new(|| {
+static SINGLE_BRACKET_GE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ ... >= ... ] (not [[]])
     Regex::new(r"\[\s[^\]]*>=\s*[^\]]*\]").unwrap()
 });

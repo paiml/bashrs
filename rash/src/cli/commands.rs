@@ -1,16 +1,12 @@
 #[cfg(feature = "oracle")]
 use crate::cli::args::ExplainErrorFormat;
-use crate::cli::args::{
-    CompileRuntime, ContainerFormatArg, InspectionFormat,
-};
+use crate::cli::args::{CompileRuntime, ContainerFormatArg, InspectionFormat};
 #[cfg(feature = "oracle")]
 use crate::cli::logic::extract_exit_code;
 use crate::cli::logic::{is_shell_script_file, normalize_shell_script};
 // Test-only imports from crate::cli::logic (needed by command_tests.rs via `super::*`)
 #[cfg(test)]
-use crate::cli::args::{
-    ConfigOutputFormat, LintFormat, MakeOutputFormat,
-};
+use crate::cli::args::{ConfigOutputFormat, LintFormat, MakeOutputFormat};
 #[cfg(test)]
 use crate::cli::logic::{
     add_no_install_recommends, add_package_manager_cleanup, convert_add_to_copy_if_local,
@@ -18,9 +14,9 @@ use crate::cli::logic::{
     hex_encode, pin_base_image_version, truncate_str,
 };
 use crate::cli::{Cli, Commands};
+use crate::models::{Config, Error, Result};
 use crate::models::{ShellDialect, VerificationLevel};
 use crate::validation::ValidationLevel;
-use crate::models::{Config, Error, Result};
 use crate::{check, transpile};
 use std::fs;
 use std::path::Path;
@@ -54,135 +50,131 @@ mod command_tests_corpus2;
 #[path = "command_tests_corpus3.rs"]
 mod command_tests_corpus3;
 
-
 // ---------------------------------------------------------------------------
 // Extracted command modules (thin dispatch -> dedicated files)
 // ---------------------------------------------------------------------------
 
 // Lint, purify, format, playbook, mutate, simulate command modules
-#[path = "lint_commands.rs"]
-mod lint_cmds;
-#[path = "purify_commands.rs"]
-mod purify_cmds;
 #[path = "format_commands.rs"]
 mod format_cmds;
-#[path = "playbook_commands.rs"]
-mod playbook_cmds;
+#[path = "lint_commands.rs"]
+mod lint_cmds;
 #[path = "mutate_commands.rs"]
 mod mutate_cmds;
+#[path = "playbook_commands.rs"]
+mod playbook_cmds;
+#[path = "purify_commands.rs"]
+mod purify_cmds;
 #[path = "simulate_commands.rs"]
 mod simulate_cmds;
 
 // Re-import so existing dispatch calls and tests still work
-use lint_cmds::{lint_command, LintCommandOptions};
-use purify_cmds::{purify_command, PurifyCommandOptions};
 use format_cmds::format_command;
-use playbook_cmds::playbook_command;
+use lint_cmds::{lint_command, LintCommandOptions};
 use mutate_cmds::mutate_command;
+use playbook_cmds::playbook_command;
+use purify_cmds::{purify_command, PurifyCommandOptions};
 use simulate_cmds::simulate_command;
-#[path = "classify_commands.rs"]
-pub(crate) mod classify_cmds;
 #[path = "adversarial_commands.rs"]
 mod adversarial_cmds;
+#[path = "classify_commands.rs"]
+pub(crate) mod classify_cmds;
 
 // Quality command modules
-#[path = "test_commands.rs"]
-mod test_commands;
-#[path = "score_commands.rs"]
-mod score_commands;
 #[path = "audit_commands.rs"]
 mod audit_commands;
 #[path = "coverage_commands.rs"]
 mod coverage_commands;
+#[path = "score_commands.rs"]
+mod score_commands;
+#[path = "test_commands.rs"]
+mod test_commands;
 
-#[cfg(test)]
-use test_commands::test_command;
-#[cfg(test)]
-use score_commands::score_command;
 #[cfg(test)]
 use audit_commands::audit_command;
 #[cfg(test)]
 use coverage_commands::coverage_command;
+#[cfg(test)]
+use score_commands::score_command;
+#[cfg(test)]
+use test_commands::test_command;
 
 // Gate, make, devcontainer, config, comply command modules
+#[path = "comply_commands.rs"]
+mod comply_cmds;
+#[path = "config_commands.rs"]
+mod config_cmds;
+#[path = "devcontainer_commands.rs"]
+mod devcontainer_cmds;
 #[path = "gate_commands.rs"]
 mod gate_cmds;
 #[path = "make_commands.rs"]
 mod make_cmds;
-#[path = "devcontainer_commands.rs"]
-mod devcontainer_cmds;
-#[path = "config_commands.rs"]
-mod config_cmds;
-#[path = "comply_commands.rs"]
-mod comply_cmds;
 
 // Corpus command modules (25 files).
 // Module names must match the `super::xxx` references used inside these files.
-#[path = "corpus_core_commands.rs"]
-mod corpus_core_cmds;
-#[path = "corpus_score_print_commands.rs"]
-pub(super) mod corpus_score_print_commands;
-#[path = "corpus_report_commands.rs"]
-pub(super) mod corpus_report_commands;
-#[path = "corpus_entry_commands.rs"]
-pub(super) mod corpus_entry_commands;
+#[path = "corpus_advanced_commands.rs"]
+pub(super) mod corpus_advanced_commands;
 #[path = "corpus_analysis_commands.rs"]
 pub(super) mod corpus_analysis_commands;
-#[path = "corpus_diff_commands.rs"]
-pub(super) mod corpus_diff_commands;
-#[path = "corpus_display_commands.rs"]
-pub(super) mod corpus_display_commands;
-#[path = "corpus_ranking_commands.rs"]
-pub(super) mod corpus_ranking_commands;
-#[path = "corpus_failure_commands.rs"]
-pub(super) mod corpus_failure_commands;
-#[path = "corpus_gate_commands.rs"]
-pub(super) mod corpus_gate_commands;
-#[path = "corpus_diag_commands.rs"]
-pub(super) mod corpus_diag_commands;
-#[path = "corpus_tier_commands.rs"]
-pub(super) mod corpus_tier_commands;
-#[path = "corpus_time_commands.rs"]
-pub(super) mod corpus_time_commands;
-#[path = "corpus_ops_commands.rs"]
-pub(super) mod corpus_ops_commands;
-#[path = "corpus_compare_commands.rs"]
-pub(super) mod corpus_compare_commands;
-#[path = "corpus_metrics_commands.rs"]
-pub(super) mod corpus_metrics_commands;
-#[path = "corpus_viz_commands.rs"]
-pub(super) mod corpus_viz_commands;
-#[path = "corpus_weight_commands.rs"]
-pub(super) mod corpus_weight_commands;
-#[path = "corpus_convergence_commands.rs"]
-pub(super) mod corpus_convergence_commands;
 #[path = "corpus_b2_commands.rs"]
 pub(super) mod corpus_b2_commands;
 #[path = "corpus_b2_fix_commands.rs"]
 pub(super) mod corpus_b2_fix_commands;
-#[path = "corpus_decision_commands.rs"]
-pub(super) mod corpus_decision_commands;
-#[path = "corpus_advanced_commands.rs"]
-pub(super) mod corpus_advanced_commands;
-#[path = "corpus_pipeline_commands.rs"]
-pub(super) mod corpus_pipeline_commands;
+#[path = "corpus_compare_commands.rs"]
+pub(super) mod corpus_compare_commands;
 #[path = "corpus_config_commands.rs"]
 pub(super) mod corpus_config_commands;
+#[path = "corpus_convergence_commands.rs"]
+pub(super) mod corpus_convergence_commands;
+#[path = "corpus_core_commands.rs"]
+mod corpus_core_cmds;
+#[path = "corpus_decision_commands.rs"]
+pub(super) mod corpus_decision_commands;
+#[path = "corpus_diag_commands.rs"]
+pub(super) mod corpus_diag_commands;
+#[path = "corpus_diff_commands.rs"]
+pub(super) mod corpus_diff_commands;
+#[path = "corpus_display_commands.rs"]
+pub(super) mod corpus_display_commands;
+#[path = "corpus_entry_commands.rs"]
+pub(super) mod corpus_entry_commands;
+#[path = "corpus_failure_commands.rs"]
+pub(super) mod corpus_failure_commands;
+#[path = "corpus_gate_commands.rs"]
+pub(super) mod corpus_gate_commands;
+#[path = "corpus_metrics_commands.rs"]
+pub(super) mod corpus_metrics_commands;
+#[path = "corpus_ops_commands.rs"]
+pub(super) mod corpus_ops_commands;
+#[path = "corpus_pipeline_commands.rs"]
+pub(super) mod corpus_pipeline_commands;
+#[path = "corpus_ranking_commands.rs"]
+pub(super) mod corpus_ranking_commands;
+#[path = "corpus_report_commands.rs"]
+pub(super) mod corpus_report_commands;
+#[path = "corpus_score_print_commands.rs"]
+pub(super) mod corpus_score_print_commands;
+#[path = "corpus_tier_commands.rs"]
+pub(super) mod corpus_tier_commands;
+#[path = "corpus_time_commands.rs"]
+pub(super) mod corpus_time_commands;
+#[path = "corpus_viz_commands.rs"]
+pub(super) mod corpus_viz_commands;
+#[path = "corpus_weight_commands.rs"]
+pub(super) mod corpus_weight_commands;
 
 // Re-export convert_lint_format at module scope (needed by lint_cmds via super::)
 use make_cmds::convert_lint_format;
 
 // Re-exports needed only by tests (command_tests.rs and inline test modules use `super::*`)
 #[cfg(test)]
-use make_cmds::{
-    make_lint_command, make_parse_command, make_purify_command,
-    run_filtered_lint,
-};
-#[cfg(test)]
 use config_cmds::{
     config_analyze_command, config_lint_command, count_duplicate_path_entries,
     handle_output_to_file, should_output_to_stdout,
 };
+#[cfg(test)]
+use make_cmds::{make_lint_command, make_parse_command, make_purify_command, run_filtered_lint};
 // Dockerfile and installer are sibling modules declared in cli/mod.rs.
 // Re-export their public functions so command_tests.rs (`super::*`) can reach them.
 #[cfg(test)]
@@ -211,7 +203,13 @@ pub fn execute_command(cli: Cli) -> Result<()> {
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|e| Error::Internal(format!("Failed to initialize logging: {e}")))?;
 
-    dispatch_command(cli.command, cli.target, cli.verify, cli.validation, cli.strict)
+    dispatch_command(
+        cli.command,
+        cli.target,
+        cli.verify,
+        cli.validation,
+        cli.strict,
+    )
 }
 
 fn dispatch_command(
@@ -231,8 +229,8 @@ fn dispatch_command(
             info!("Building {} -> {}", input.display(), output.display());
 
             let config = Config {
-                target: target,
-                verify: verify,
+                target,
+                verify,
                 emit_proof,
                 optimize: !no_optimize,
                 validation_level: Some(validation),
@@ -283,8 +281,8 @@ fn dispatch_command(
             container_format,
         } => {
             let config = Config {
-                target: target,
-                verify: verify,
+                target,
+                verify,
                 emit_proof: false,
                 optimize: true,
                 validation_level: Some(validation),
@@ -1002,7 +1000,7 @@ fn inspect_command(
             // Convert markdown to HTML (simplified)
             let markdown = ProofInspector::generate_report(&report);
             format!(
-                r#"<!DOCTYPE html>
+                r"<!DOCTYPE html>
 <html>
 <head>
     <title>Formal Verification Report</title>
@@ -1017,7 +1015,7 @@ fn inspect_command(
 <body>
 <pre>{}</pre>
 </body>
-</html>"#,
+</html>",
                 markdown
                     .replace('&', "&amp;")
                     .replace('<', "&lt;")

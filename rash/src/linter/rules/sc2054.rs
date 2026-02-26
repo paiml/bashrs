@@ -16,10 +16,9 @@
 // Impact: Logic errors, tests don't work as expected
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static COMMA_IN_TEST: Lazy<Regex> = Lazy::new(|| {
+static COMMA_IN_TEST: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match [[ with comma-separated vars ]]
     Regex::new(r"\[\[\s*[^\]]*\$[a-zA-Z_][a-zA-Z0-9_]*,").unwrap()
 });

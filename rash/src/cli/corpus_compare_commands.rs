@@ -1,8 +1,8 @@
 //! Corpus comparison commands: health, compare, density, performance, CITL, and streak.
 
+use super::corpus_failure_commands::result_fail_dims;
 use crate::cli::args::CorpusFormatArg;
 use crate::models::{Config, Error, Result};
-use super::corpus_failure_commands::result_fail_dims;
 
 pub(crate) fn corpus_health() -> Result<()> {
     use crate::cli::color::*;

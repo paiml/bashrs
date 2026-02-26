@@ -1,9 +1,8 @@
 // SC2284: Use ${var:+val} for conditional assignment
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static CONDITIONAL_ASSIGN: Lazy<Regex> = Lazy::new(|| {
+static CONDITIONAL_ASSIGN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"\[\s+-n\s+\$\{?[a-zA-Z_][a-zA-Z0-9_]*\}?\s+\]\s*&&\s*[a-zA-Z_][a-zA-Z0-9_]*=")
         .unwrap()
 });

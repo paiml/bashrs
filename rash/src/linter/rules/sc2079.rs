@@ -15,10 +15,9 @@
 // Impact: Syntax errors, wrong calculations
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DECIMAL_IN_ARITHMETIC: Lazy<Regex> = Lazy::new(|| {
+static DECIMAL_IN_ARITHMETIC: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(( ... 3.14 ... )) or (( ... 2.5 ... ))
     Regex::new(r"\$?\(\(\s*[^)]*[0-9]+\.[0-9]+[^)]*\)\)").unwrap()
 });

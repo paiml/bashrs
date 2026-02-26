@@ -73,8 +73,7 @@ impl Environment {
         let cpu = sys
             .cpus()
             .first()
-            .map(|cpu| cpu.brand().to_string())
-            .unwrap_or_else(|| "unknown".to_string());
+            .map_or_else(|| "unknown".to_string(), |cpu| cpu.brand().to_string());
 
         let ram = format!("{}GB", sys.total_memory() / 1024 / 1024 / 1024);
 
@@ -345,13 +344,17 @@ fn run_warmup(script: &Path, options: &BenchOptions) -> Result<()> {
 }
 
 /// Run measured iterations, returning time and optional memory results
-fn run_measured_iterations(
-    script: &Path,
-    options: &BenchOptions,
-) -> Result<(Vec<f64>, Vec<f64>)> {
+fn run_measured_iterations(script: &Path, options: &BenchOptions) -> Result<(Vec<f64>, Vec<f64>)> {
     if !options.quiet {
-        let mem_str = if options.measure_memory { " + memory" } else { "" };
-        println!("\n⏱️  Measuring ({} iterations{})...", options.iterations, mem_str);
+        let mem_str = if options.measure_memory {
+            " + memory"
+        } else {
+            ""
+        };
+        println!(
+            "\n⏱️  Measuring ({} iterations{})...",
+            options.iterations, mem_str
+        );
     }
     let mut results = Vec::new();
     let mut memory_results = Vec::new();
@@ -628,8 +631,8 @@ fn display_csv_results(results: &[BenchmarkResult]) -> Result<()> {
                 result.statistics.median_ms,
                 result.statistics.min_ms,
                 result.statistics.max_ms,
-                mem.map(|m| m.mean_kb).unwrap_or(0.0),
-                mem.map(|m| m.peak_kb).unwrap_or(0.0),
+                mem.map_or(0.0, |m| m.mean_kb),
+                mem.map_or(0.0, |m| m.peak_kb),
                 result.iterations,
             );
         } else {
@@ -700,8 +703,7 @@ fn display_comparison_results(results: &[BenchmarkResult]) -> Result<()> {
                 .statistics
                 .memory
                 .as_ref()
-                .map(|m| format!("{:.2}", m.mean_kb))
-                .unwrap_or_else(|| "N/A".to_string());
+                .map_or_else(|| "N/A".to_string(), |m| format!("{:.2}", m.mean_kb));
 
             println!(
                 "{:<30} {:>12.2} {:>15} {:>12} {:>10.2}x{}",
@@ -773,7 +775,7 @@ fn calculate_median(values: &[f64]) -> f64 {
         // Safe: mid > 0 when len is even and > 1
         let lower = sorted.get(mid - 1).copied().unwrap_or(0.0);
         let upper = sorted.get(mid).copied().unwrap_or(0.0);
-        (lower + upper) / 2.0
+        f64::midpoint(lower, upper)
     } else {
         sorted.get(mid).copied().unwrap_or(0.0)
     }
@@ -927,7 +929,7 @@ fn approximate_p_value(t_statistic: f64, df: f64) -> f64 {
 }
 
 /// Check if two samples are statistically significantly different
-#[allow(dead_code)] // Issue #12 Phase 2 - will be used in --compare implementation
+#[cfg(test)]
 fn is_statistically_significant(sample1: &[f64], sample2: &[f64], alpha: f64) -> bool {
     let t_stat = welch_t_test(sample1, sample2);
     let df = welch_degrees_of_freedom(sample1, sample2);
@@ -954,14 +956,14 @@ fn compare_benchmarks(baseline: &[f64], current: &[f64]) -> ComparisonResult {
 }
 
 /// Detect performance regression with default 5% threshold
-#[allow(dead_code)] // Issue #12 Phase 2 - will be used in --compare implementation
+#[cfg(test)]
 fn detect_regression(baseline: &[f64], current: &[f64], alpha: f64) -> RegressionResult {
     detect_regression_with_threshold(baseline, current, alpha, 0.05)
 }
 
 /// Detect performance regression with custom threshold
 /// threshold: Minimum performance degradation to consider (e.g., 0.05 = 5%)
-#[allow(dead_code)] // Issue #12 Phase 2 - will be used in --compare implementation
+#[cfg(test)]
 fn detect_regression_with_threshold(
     baseline: &[f64],
     current: &[f64],

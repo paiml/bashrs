@@ -280,7 +280,7 @@ fn calculate_complexity_score(source: &str) -> f64 {
         _ => 2.0,       // Extremely complex
     };
 
-    (run_score + length_score) / 2.0
+    f64::midpoint(run_score, length_score)
 }
 
 /// Calculate layer optimization score (20% weight)
@@ -403,8 +403,7 @@ fn scan_determinism_indicators(source: &str) -> (bool, bool, u32, u32) {
                 || trimmed.contains("yum install");
             if is_pkg_install {
                 package_installs += 1;
-                if trimmed.contains('=')
-                    && (trimmed.contains("apk add") || trimmed.contains("apt"))
+                if trimmed.contains('=') && (trimmed.contains("apk add") || trimmed.contains("apt"))
                 {
                     pinned_packages += 1;
                 }
@@ -412,7 +411,12 @@ fn scan_determinism_indicators(source: &str) -> (bool, bool, u32, u32) {
         }
     }
 
-    (has_pinned_base_image, uses_latest_tag, package_installs, pinned_packages)
+    (
+        has_pinned_base_image,
+        uses_latest_tag,
+        package_installs,
+        pinned_packages,
+    )
 }
 
 /// Score base image pinning (0-5 points)

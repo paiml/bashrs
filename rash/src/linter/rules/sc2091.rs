@@ -17,10 +17,9 @@
 // Impact: Unintended command execution, errors
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static EXECUTE_COMMAND_SUB: Lazy<Regex> = Lazy::new(|| {
+static EXECUTE_COMMAND_SUB: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(cmd) at command position (start of line or after ; && ||)
     Regex::new(r"(^|[;&|]+)\s*\$\([^)]+\)").unwrap()
 });

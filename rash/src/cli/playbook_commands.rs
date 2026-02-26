@@ -37,7 +37,7 @@ pub(crate) fn playbook_command(
             dry_run,
         ),
         PlaybookFormat::Json => {
-            playbook_json(input, &version, &machine_id, &initial_state, run, dry_run)
+            playbook_json(input, &version, &machine_id, &initial_state, run, dry_run);
         }
         PlaybookFormat::Junit => playbook_junit(&machine_id),
     }

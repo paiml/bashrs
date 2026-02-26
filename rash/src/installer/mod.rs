@@ -361,7 +361,7 @@ enabled = true
 /// Generate tests/mod.rs content
 fn generate_test_mod(name: &str) -> String {
     format!(
-        r#"//! Test module for {name} installer
+        r"//! Test module for {name} installer
 //!
 //! These tests follow EXTREME TDD principles:
 //! - RED: Write failing test first
@@ -372,7 +372,7 @@ mod falsification;
 
 // Re-export all tests
 pub use falsification::*;
-"#
+"
     )
 }
 

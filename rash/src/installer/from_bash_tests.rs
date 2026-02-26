@@ -14,9 +14,7 @@ use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
 
-use super::{
-    convert_bash_to_installer, convert_file_to_project, BashPattern, ConversionStats,
-};
+use super::{convert_bash_to_installer, convert_file_to_project, BashPattern, ConversionStats};
 
 // ---------------------------------------------------------------------------
 // generate_installer_toml — all BashPattern variants via convert_bash_to_installer
@@ -83,7 +81,9 @@ fn test_FROM_BASH_007_download_without_output_file() {
     let script = "curl -fsSL https://example.com/script.sh\n";
     let result = convert_bash_to_installer(script, "my-installer").unwrap();
     assert!(result.installer_toml.contains("download"));
-    assert!(result.installer_toml.contains("https://example.com/script.sh"));
+    assert!(result
+        .installer_toml
+        .contains("https://example.com/script.sh"));
     assert!(result.installer_toml.contains("downloaded-file"));
 }
 
@@ -152,18 +152,23 @@ fn test_FROM_BASH_014_warning_generated_for_sudo_command() {
         .warnings
         .iter()
         .any(|w| w.contains("Sudo") || w.contains("sudo"));
-    assert!(has_sudo_warning, "Expected sudo warning, got: {:?}", result.warnings);
+    assert!(
+        has_sudo_warning,
+        "Expected sudo warning, got: {:?}",
+        result.warnings
+    );
 }
 
 #[test]
 fn test_FROM_BASH_015_warning_generated_for_eval_usage() {
     let script = "eval \"$command\"\n";
     let result = convert_bash_to_installer(script, "my-app").unwrap();
-    let has_eval_warning = result
-        .warnings
-        .iter()
-        .any(|w| w.contains("eval"));
-    assert!(has_eval_warning, "Expected eval warning, got: {:?}", result.warnings);
+    let has_eval_warning = result.warnings.iter().any(|w| w.contains("eval"));
+    assert!(
+        has_eval_warning,
+        "Expected eval warning, got: {:?}",
+        result.warnings
+    );
 }
 
 #[test]
@@ -189,7 +194,11 @@ fn test_FROM_BASH_017_warning_generated_for_process_id() {
         .warnings
         .iter()
         .any(|w| w.contains("Non-deterministic") || w.contains("$$"));
-    assert!(has_warning, "Expected non-deterministic warning, got: {:?}", result.warnings);
+    assert!(
+        has_warning,
+        "Expected non-deterministic warning, got: {:?}",
+        result.warnings
+    );
 }
 
 #[test]
@@ -237,7 +246,9 @@ fn test_FROM_BASH_022_wget_download() {
     let script = "wget https://example.com/file.tar.gz -O /tmp/file.tar.gz\n";
     let result = convert_bash_to_installer(script, "my-app").unwrap();
     assert!(result.installer_toml.contains("download"));
-    assert!(result.installer_toml.contains("https://example.com/file.tar.gz"));
+    assert!(result
+        .installer_toml
+        .contains("https://example.com/file.tar.gz"));
 }
 
 #[test]
@@ -289,11 +300,7 @@ fn test_FROM_BASH_027_convert_file_creates_output_structure() {
     let input_path = tmp.path().join("install.sh");
     let output_dir = tmp.path().join("my-project");
 
-    fs::write(
-        &input_path,
-        "apt-get update\napt-get install -y curl\n",
-    )
-    .unwrap();
+    fs::write(&input_path, "apt-get update\napt-get install -y curl\n").unwrap();
 
     let result = convert_file_to_project(&input_path, &output_dir).unwrap();
 

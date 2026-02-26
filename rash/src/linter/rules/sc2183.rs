@@ -1,9 +1,9 @@
 // SC2183: Variable used as command name - potential code injection.
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static VAR_AS_COMMAND: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*\$\{?\w+\}?\s+").unwrap());
+static VAR_AS_COMMAND: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"^\s*\$\{?\w+\}?\s+").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

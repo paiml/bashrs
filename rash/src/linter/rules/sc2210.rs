@@ -1,9 +1,8 @@
 // SC2210: Don't use arithmetic shortcuts like x=++y
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARITHMETIC_SHORTCUT: Lazy<Regex> = Lazy::new(|| {
+static ARITHMETIC_SHORTCUT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match x=++y or x=--y (C-style prefix operators in assignment)
     Regex::new(r"\w+\s*=\s*(\+\+|--)\w+").unwrap()
 });

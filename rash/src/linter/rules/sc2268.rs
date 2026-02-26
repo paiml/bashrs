@@ -1,10 +1,9 @@
 // SC2268: Avoid unnecessary subshells
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNNECESSARY_SUBSHELL: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\(\s*[a-zA-Z_][a-zA-Z0-9_]*=[^;)]+\s*\)").unwrap());
+static UNNECESSARY_SUBSHELL: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\(\s*[a-zA-Z_][a-zA-Z0-9_]*=[^;)]+\s*\)").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

@@ -19,10 +19,9 @@
 // remote side. Double quotes without escaping expand locally.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SSH_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
+static SSH_WITH_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: ssh host command $VAR (without single quotes)
     Regex::new(r"ssh\s+[^\s]+\s+[^']*\$[a-zA-Z_][a-zA-Z0-9_]*").unwrap()
 });

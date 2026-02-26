@@ -108,9 +108,9 @@ pub(crate) fn corpus_converged(min_rate: f64, max_delta: f64, min_stable: usize)
     if all_above_rate && all_stable && no_regressions {
         println!(
             "  {BRIGHT_GREEN}CONVERGED{RESET} at iteration {} ({} entries, {:.1}/100)",
-            entries.last().map(|e| e.iteration).unwrap_or(0),
-            entries.last().map(|e| e.total).unwrap_or(0),
-            entries.last().map(|e| e.score).unwrap_or(0.0)
+            entries.last().map_or(0, |e| e.iteration),
+            entries.last().map_or(0, |e| e.total),
+            entries.last().map_or(0.0, |e| e.score)
         );
         println!("  {DIM}Per spec §5.2: expand corpus with harder entries.{RESET}");
         Ok(())
@@ -119,7 +119,6 @@ pub(crate) fn corpus_converged(min_rate: f64, max_delta: f64, min_stable: usize)
         Err(Error::Internal("Not converged".to_string()))
     }
 }
-
 
 pub(crate) fn converged_print_check(label: &str, pass: bool) {
     use crate::cli::color::*;
@@ -131,8 +130,10 @@ pub(crate) fn converged_print_check(label: &str, pass: bool) {
     println!("  {mark} {label}");
 }
 
-
-pub(crate) fn converged_no_regressions(entries: &[crate::corpus::runner::ConvergenceEntry], n: usize) -> bool {
+pub(crate) fn converged_no_regressions(
+    entries: &[crate::corpus::runner::ConvergenceEntry],
+    n: usize,
+) -> bool {
     if entries.len() < 2 {
         return true;
     }

@@ -15,10 +15,9 @@
 // Impact: Deprecated syntax, confusing with shell options
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DOUBLE_BRACKET_WITH_O: Lazy<Regex> = Lazy::new(|| {
+static DOUBLE_BRACKET_WITH_O: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [[ ... -o ... ]]
     Regex::new(r"\[\[[^\]]*\s-o\s[^\]]*\]\]").unwrap()
 });

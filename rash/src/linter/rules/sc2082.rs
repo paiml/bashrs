@@ -16,10 +16,9 @@
 // Impact: Wrong values, PID instead of variable content
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DOUBLE_DOLLAR_VAR: Lazy<Regex> = Lazy::new(|| {
+static DOUBLE_DOLLAR_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $$var or $${var} (not $$ alone, which is PID)
     // (\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*) handles both forms
     Regex::new(r"\$\$(\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*)").unwrap()

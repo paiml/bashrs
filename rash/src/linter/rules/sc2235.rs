@@ -1,9 +1,8 @@
 // SC2235: Quote arguments to unalias to prevent word splitting
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_UNALIAS: Lazy<Regex> = Lazy::new(|| {
+static UNQUOTED_UNALIAS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: unalias $var or unalias $(cmd)
     Regex::new(r"\bunalias\s+\$").unwrap()
 });

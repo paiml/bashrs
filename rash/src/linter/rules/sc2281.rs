@@ -1,16 +1,16 @@
 // SC2281: Don't use $@ in double quotes for string concatenation
 // Issue #122: But "$@" is perfectly valid when passing arguments to commands
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 // Match assignment patterns: var="..." or var+="..."
-static ASSIGNMENT_WITH_QUOTED_AT: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"[a-zA-Z_][a-zA-Z0-9_]*\+?="[^"]*\$@[^"]*""#).unwrap());
+static ASSIGNMENT_WITH_QUOTED_AT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"[a-zA-Z_][a-zA-Z0-9_]*\+?="[^"]*\$@[^"]*""#).unwrap()
+});
 
 // Match concatenation patterns: "$prefix$@" or "$@suffix" or "text $@ text"
 // But NOT: command "$@" (valid) or func "$@" (valid)
-static CONCAT_QUOTED_AT: Lazy<Regex> = Lazy::new(|| {
+static CONCAT_QUOTED_AT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Pattern matches "$@" with adjacent content (not just "$@" alone)
     Regex::new(r#""([^"]+\$@|\$@[^"]+)""#).unwrap()
 });
@@ -30,7 +30,7 @@ fn is_valid_args_pass(line: &str) -> bool {
     }
 
     // Check if it's in a case statement pattern line
-    if trimmed.contains("case") || trimmed.contains("esac") || trimmed.ends_with(")") {
+    if trimmed.contains("case") || trimmed.contains("esac") || trimmed.ends_with(')') {
         return true;
     }
 

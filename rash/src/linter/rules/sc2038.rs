@@ -21,10 +21,9 @@
 // Note: -print0 requires GNU find or BSD find with -print0 support.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static FOR_FIND_LOOP: Lazy<Regex> = Lazy::new(|| {
+static FOR_FIND_LOOP: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: for var in $(find ...) or for var in `find ...`
     Regex::new(r"for\s+\w+\s+in\s+(?:\$\(|`)find\s+").unwrap()
 });

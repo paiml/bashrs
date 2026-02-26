@@ -35,10 +35,7 @@ impl DoctestGenerator {
     /// Parse an "Example: ..." comment, returning either a complete Doctest or a pending example.
     /// Returns `Ok(Some(doctest))` for inline `=>` patterns, `Ok(None)` with side-effect on
     /// `current_example` for deferred patterns, and `Err` is never produced (kept for symmetry).
-    fn parse_example_comment(
-        &self,
-        text: &str,
-    ) -> Option<Result<(String, String), String>> {
+    fn parse_example_comment(&self, text: &str) -> Option<Result<(String, String), String>> {
         let after = text
             .split_once("example:")
             .or_else(|| text.split_once("Example:"))?;
@@ -180,7 +177,7 @@ impl DoctestGenerator {
         // Look for standalone comment blocks before functions
         let mut pending_examples: Vec<(String, String)> = Vec::new();
 
-        for stmt in ast.statements.iter() {
+        for stmt in &ast.statements {
             match stmt {
                 BashStmt::Comment { text, .. } => {
                     let text_lower = text.to_lowercase();

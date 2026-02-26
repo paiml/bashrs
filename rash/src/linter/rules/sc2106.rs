@@ -15,10 +15,9 @@
 // Impact: Fragile process detection, false matches
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static PS_GREP_PATTERN: Lazy<Regex> = Lazy::new(|| {
+static PS_GREP_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: ps ... | grep
     Regex::new(r"\bps\s+[^|]*\|\s*grep\b").unwrap()
 });

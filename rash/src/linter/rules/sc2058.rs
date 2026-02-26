@@ -22,21 +22,20 @@
 //   String: -z, -n
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Valid unary test operators in POSIX and bash test expressions.
 const VALID_UNARY_OPS: &[&str] = &[
-    "e", "f", "d", "r", "w", "x", "s", "z", "n", "h", "L", "p", "b", "c", "t", "S", "g", "u",
-    "k", "O", "G", "N", "a",
+    "e", "f", "d", "r", "w", "x", "s", "z", "n", "h", "L", "p", "b", "c", "t", "S", "g", "u", "k",
+    "O", "G", "N", "a",
 ];
 
-static BRACKET_UNARY: Lazy<Regex> = Lazy::new(|| {
+static BRACKET_UNARY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match [ -X ... ] where X is one or more letters
     Regex::new(r"\[\s+-([a-zA-Z]+)\s+").expect("SC2058 bracket regex must compile")
 });
 
-static TEST_UNARY: Lazy<Regex> = Lazy::new(|| {
+static TEST_UNARY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match test -X ... (the test builtin form)
     Regex::new(r"\btest\s+-([a-zA-Z]+)\s+").expect("SC2058 test regex must compile")
 });
@@ -57,9 +56,15 @@ pub fn check(source: &str) -> LintResult {
 
         // Check [ -X ... ] form
         for cap in BRACKET_UNARY.captures_iter(line) {
-            let operator = cap.get(1).expect("SC2058 capture group 1 must exist").as_str();
+            let operator = cap
+                .get(1)
+                .expect("SC2058 capture group 1 must exist")
+                .as_str();
             if !is_valid_unary_op(operator) {
-                let full_match = cap.get(0).expect("SC2058 capture group 0 must exist").as_str();
+                let full_match = cap
+                    .get(0)
+                    .expect("SC2058 capture group 0 must exist")
+                    .as_str();
                 let pos = line.find(full_match).unwrap_or(0);
                 let start_col = pos + 1;
                 let end_col = start_col + full_match.len();
@@ -78,9 +83,15 @@ pub fn check(source: &str) -> LintResult {
 
         // Check test -X ... form
         for cap in TEST_UNARY.captures_iter(line) {
-            let operator = cap.get(1).expect("SC2058 capture group 1 must exist").as_str();
+            let operator = cap
+                .get(1)
+                .expect("SC2058 capture group 1 must exist")
+                .as_str();
             if !is_valid_unary_op(operator) {
-                let full_match = cap.get(0).expect("SC2058 capture group 0 must exist").as_str();
+                let full_match = cap
+                    .get(0)
+                    .expect("SC2058 capture group 0 must exist")
+                    .as_str();
                 let pos = line.find(full_match).unwrap_or(0);
                 let start_col = pos + 1;
                 let end_col = start_col + full_match.len();

@@ -20,10 +20,9 @@
 // Note: This also applies to = with patterns, but != is more common.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SINGLE_BRACKET_WITH_GLOB: Lazy<Regex> = Lazy::new(|| {
+static SINGLE_BRACKET_WITH_GLOB: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ ... != pattern* ] or [ ... = pattern* ]
     // Look for glob characters in comparisons
     Regex::new(r"\[\s+[^]]*(!?=)\s*([^\s\]]*[\*\?][^\s\]]*)").unwrap()

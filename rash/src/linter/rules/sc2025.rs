@@ -18,10 +18,9 @@
 // need to be quoted to prevent shell interpretation.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_ESCAPE: Lazy<Regex> = Lazy::new(|| {
+static UNQUOTED_ESCAPE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: \n, \t, \r, etc. outside of quotes
     // Look for backslash followed by common escape char
     Regex::new(r"\\[ntr]").unwrap()

@@ -37,7 +37,7 @@ pub fn check(source: &str) -> LintResult {
     let pattern = Regex::new(r#"echo\s+["']([^"']*\\[nt][^"']*)["']"#).unwrap();
 
     // Pattern to detect echo -e (this is OK)
-    let echo_e_pattern = Regex::new(r#"echo\s+-e\s+"#).unwrap();
+    let echo_e_pattern = Regex::new(r"echo\s+-e\s+").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

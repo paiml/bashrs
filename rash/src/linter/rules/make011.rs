@@ -91,7 +91,7 @@ fn create_fix(line: &str) -> String {
         let prefix = &line[..colon_pos];
         let suffix = &line[colon_pos..];
 
-        let new_prefix = prefix.trim().replace("%", "%.out");
+        let new_prefix = prefix.trim().replace('%', "%.out");
         format!("{}{}", new_prefix, suffix)
     } else {
         line.to_string()

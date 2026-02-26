@@ -23,10 +23,9 @@
 //   LC_ALL=C sort file.txt  # Only affects sort
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ASSIGNMENT_BEFORE_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static ASSIGNMENT_BEFORE_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: VAR=value ... command (but not just VAR=value)
     // Allows multiple assignments before a command
     Regex::new(

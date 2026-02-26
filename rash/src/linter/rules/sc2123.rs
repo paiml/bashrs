@@ -14,10 +14,9 @@
 //   MY_PATH="/my/dir"           # Use different variable name
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static PATH_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
+static PATH_ASSIGNMENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: PATH=value where value doesn't reference $PATH
     Regex::new(r"^\s*PATH=([^$\s]+)").unwrap()
 });

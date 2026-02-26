@@ -14,10 +14,9 @@
 // Impact: Performance and readability
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_RECONSTRUCTION: Lazy<Regex> = Lazy::new(|| {
+static ARRAY_RECONSTRUCTION: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: var=("${var[@]}" ...)
     // Can't use backreferences in Rust regex, so match the pattern and check manually
     Regex::new(r#"(\w+)=\(\s*"\$\{(\w+)\[@\]\}""#).unwrap()
@@ -35,8 +34,8 @@ pub fn check(source: &str) -> LintResult {
 
         for cap in ARRAY_RECONSTRUCTION.captures_iter(line) {
             // Extract the two variable names
-            let var1 = cap.get(1).map(|m| m.as_str()).unwrap_or("");
-            let var2 = cap.get(2).map(|m| m.as_str()).unwrap_or("");
+            let var1 = cap.get(1).map_or("", |m| m.as_str());
+            let var2 = cap.get(2).map_or("", |m| m.as_str());
 
             // Only flag if the variable names match (reconstructing same array)
             if var1 == var2 {

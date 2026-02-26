@@ -1,10 +1,10 @@
 // SC2287: Prefer [[ -v var ]] to check if variable is set
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ISSET_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r#"\[\s+-n\s+"\$\{[a-zA-Z_][a-zA-Z0-9_]*\+x\}""#).unwrap());
+static ISSET_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"\[\s+-n\s+"\$\{[a-zA-Z_][a-zA-Z0-9_]*\+x\}""#).unwrap()
+});
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

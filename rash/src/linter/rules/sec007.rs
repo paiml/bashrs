@@ -43,7 +43,10 @@ fn check_sudo_line(line: &str, line_num: usize, result: &mut LintResult) {
                 let diag = Diagnostic::new(
                     "SEC007",
                     Severity::Warning,
-                    format!("Unsafe root operation: sudo {} with unquoted variable - add validation", cmd),
+                    format!(
+                        "Unsafe root operation: sudo {} with unquoted variable - add validation",
+                        cmd
+                    ),
                     span,
                 );
                 result.add(diag);

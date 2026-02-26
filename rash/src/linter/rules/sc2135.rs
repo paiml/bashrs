@@ -17,20 +17,19 @@
 // Impact: Syntax error, script will fail
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static MISSING_SEMICOLON_THEN: Lazy<Regex> = Lazy::new(|| {
+static MISSING_SEMICOLON_THEN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: ] then (missing semicolon)
     Regex::new(r"\]\s+then\b").unwrap()
 });
 
-static WHILE_THEN: Lazy<Regex> = Lazy::new(|| {
+static WHILE_THEN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: while ... then (should be do)
     Regex::new(r"\bwhile\b[^\n]*\bthen\b").unwrap()
 });
 
-static FOR_THEN: Lazy<Regex> = Lazy::new(|| {
+static FOR_THEN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: for ... then (should be do)
     Regex::new(r"\bfor\b[^\n]*\bthen\b").unwrap()
 });

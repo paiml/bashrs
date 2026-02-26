@@ -16,15 +16,14 @@
 // Impact: Syntax error, script will fail
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static IF_DO: Lazy<Regex> = Lazy::new(|| {
+static IF_DO: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: if ... do (should be then)
     Regex::new(r"\bif\b[^\n]*;\s*do\b").unwrap()
 });
 
-static ELIF_DO: Lazy<Regex> = Lazy::new(|| {
+static ELIF_DO: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: elif ... do (should be then)
     Regex::new(r"\belif\b[^\n]*;\s*do\b").unwrap()
 });

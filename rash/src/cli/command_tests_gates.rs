@@ -24,33 +24,68 @@ fn mock_result(id: &str, all_pass: bool) -> CorpusResult {
         metamorphic_consistent: all_pass,
         cross_shell_agree: all_pass,
         expected_output: None,
-        actual_output: if all_pass { Some("echo hello".into()) } else { None },
-        error: if all_pass { None } else { Some("transpile error".into()) },
-        error_category: if all_pass { None } else { Some("parse_error".into()) },
+        actual_output: if all_pass {
+            Some("echo hello".into())
+        } else {
+            None
+        },
+        error: if all_pass {
+            None
+        } else {
+            Some("transpile error".into())
+        },
+        error_category: if all_pass {
+            None
+        } else {
+            Some("parse_error".into())
+        },
         error_confidence: None,
         decision_trace: None,
     }
 }
 
 fn mock_result_custom(
-    id: &str, transpiled: bool, contains: bool, exact: bool, behavioral: bool,
-    lint: bool, deterministic: bool, metamorphic: bool, cross_shell: bool,
+    id: &str,
+    transpiled: bool,
+    contains: bool,
+    exact: bool,
+    behavioral: bool,
+    lint: bool,
+    deterministic: bool,
+    metamorphic: bool,
+    cross_shell: bool,
 ) -> CorpusResult {
     CorpusResult {
-        id: id.to_string(), transpiled, output_contains: contains,
-        output_exact: exact, output_behavioral: behavioral,
-        has_test: true, coverage_ratio: 0.5, schema_valid: true,
-        lint_clean: lint, deterministic, metamorphic_consistent: metamorphic,
-        cross_shell_agree: cross_shell, expected_output: None,
-        actual_output: Some("echo test".into()), error: None,
-        error_category: None, error_confidence: None, decision_trace: None,
+        id: id.to_string(),
+        transpiled,
+        output_contains: contains,
+        output_exact: exact,
+        output_behavioral: behavioral,
+        has_test: true,
+        coverage_ratio: 0.5,
+        schema_valid: true,
+        lint_clean: lint,
+        deterministic,
+        metamorphic_consistent: metamorphic,
+        cross_shell_agree: cross_shell,
+        expected_output: None,
+        actual_output: Some("echo test".into()),
+        error: None,
+        error_category: None,
+        error_confidence: None,
+        decision_trace: None,
     }
 }
 
 fn mock_entry(id: &str, name: &str, format: CorpusFormat) -> CorpusEntry {
     CorpusEntry::new(
-        id, name, "test desc", format, CorpusTier::Standard,
-        "fn main() { println!(\"test\"); }", "echo test",
+        id,
+        name,
+        "test desc",
+        format,
+        CorpusTier::Standard,
+        "fn main() { println!(\"test\"); }",
+        "echo test",
     )
 }
 
@@ -138,7 +173,9 @@ fn test_count_dimension_failures() {
     ];
     let dims = count_dimension_failures(&results);
     // "A Transpilation": 1 fail (B-002)
-    assert!(dims.iter().any(|(name, count)| name.contains("Transpilation") && *count == 1));
+    assert!(dims
+        .iter()
+        .any(|(name, count)| name.contains("Transpilation") && *count == 1));
 }
 
 #[test]
@@ -206,13 +243,11 @@ fn test_accumulate_decision_stats_failed_entry() {
     let mut r = mock_result("B-001", false);
     r.transpiled = true;
     r.output_contains = false; // causes "passed" to be false
-    r.decision_trace = Some(vec![
-        TranspilerDecision {
-            decision_type: "branch".to_string(),
-            choice: "if_else".to_string(),
-            ir_node: "If".to_string(),
-        },
-    ]);
+    r.decision_trace = Some(vec![TranspilerDecision {
+        decision_type: "branch".to_string(),
+        choice: "if_else".to_string(),
+        ir_node: "If".to_string(),
+    }]);
     let mut stats = std::collections::HashMap::new();
     accumulate_decision_stats(&r, &mut stats);
     let (total, pass, fail) = stats["branch:if_else"];
@@ -245,13 +280,13 @@ fn test_result_dim_pass_all_fail() {
 fn test_result_dim_pass_specific() {
     use super::corpus_diag_commands::result_dim_pass;
     let r = mock_result_custom("B-001", true, false, true, false, true, false, true, false);
-    assert!(result_dim_pass(&r, 0));  // transpiled
+    assert!(result_dim_pass(&r, 0)); // transpiled
     assert!(!result_dim_pass(&r, 1)); // output_contains
-    assert!(result_dim_pass(&r, 2));  // output_exact
+    assert!(result_dim_pass(&r, 2)); // output_exact
     assert!(!result_dim_pass(&r, 3)); // output_behavioral
-    assert!(result_dim_pass(&r, 4));  // lint_clean
+    assert!(result_dim_pass(&r, 4)); // lint_clean
     assert!(!result_dim_pass(&r, 5)); // deterministic
-    assert!(result_dim_pass(&r, 6));  // metamorphic
+    assert!(result_dim_pass(&r, 6)); // metamorphic
     assert!(!result_dim_pass(&r, 7)); // cross_shell
 }
 
@@ -359,9 +394,14 @@ fn test_classify_category_general() {
 #[test]
 fn test_corpus_score_gateway_met() {
     let score = CorpusScore {
-        total: 100, passed: 80, failed: 20, rate: 0.8,
-        score: 80.0, grade: Grade::B,
-        format_scores: vec![], results: vec![],
+        total: 100,
+        passed: 80,
+        failed: 20,
+        rate: 0.8,
+        score: 80.0,
+        grade: Grade::B,
+        format_scores: vec![],
+        results: vec![],
     };
     assert!(score.gateway_met());
 }
@@ -369,9 +409,14 @@ fn test_corpus_score_gateway_met() {
 #[test]
 fn test_corpus_score_gateway_not_met() {
     let score = CorpusScore {
-        total: 100, passed: 50, failed: 50, rate: 0.5,
-        score: 50.0, grade: Grade::F,
-        format_scores: vec![], results: vec![],
+        total: 100,
+        passed: 50,
+        failed: 50,
+        rate: 0.5,
+        score: 50.0,
+        grade: Grade::F,
+        format_scores: vec![],
+        results: vec![],
     };
     assert!(!score.gateway_met());
 }
@@ -379,11 +424,20 @@ fn test_corpus_score_gateway_not_met() {
 #[test]
 fn test_corpus_score_format_score_lookup() {
     let score = CorpusScore {
-        total: 10, passed: 10, failed: 0, rate: 1.0,
-        score: 99.0, grade: Grade::APlus,
-        format_scores: vec![
-            FormatScore { format: CorpusFormat::Bash, total: 10, passed: 10, rate: 1.0, score: 99.0, grade: Grade::APlus },
-        ],
+        total: 10,
+        passed: 10,
+        failed: 0,
+        rate: 1.0,
+        score: 99.0,
+        grade: Grade::APlus,
+        format_scores: vec![FormatScore {
+            format: CorpusFormat::Bash,
+            total: 10,
+            passed: 10,
+            rate: 1.0,
+            score: 99.0,
+            grade: Grade::APlus,
+        }],
         results: vec![],
     };
     assert!(score.format_score(CorpusFormat::Bash).is_some());

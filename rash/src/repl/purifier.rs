@@ -763,7 +763,7 @@ fn collect_change_explanations(original: &str, purified: &str) -> Vec<String> {
         );
     }
 
-    if original.contains("$") && !original.contains("\"$") && purified.contains("\"$") {
+    if original.contains('$') && !original.contains("\"$") && purified.contains("\"$") {
         explanations.push(
             "✓ Added quotes around variables for safety\n  \
              Prevents word splitting and glob expansion issues"
@@ -1528,7 +1528,7 @@ pub fn explain_purification_changes_detailed(
     }
 
     // Check for variable quoting (Safety)
-    let original_has_unquoted = original.contains("$") && !original.contains("\"$");
+    let original_has_unquoted = original.contains('$') && !original.contains("\"$");
     let purified_has_quoted = purified.contains("\"$");
     if original_has_unquoted && purified_has_quoted {
         explanations.push(TransformationExplanation::new(
@@ -2879,9 +2879,7 @@ mod purifier_cov_tests {
             !random_explanations.is_empty(),
             "Should detect $RANDOM removal as Determinism transformation"
         );
-        assert!(random_explanations[0]
-            .what_changed
-            .contains("$RANDOM"));
+        assert!(random_explanations[0].what_changed.contains("$RANDOM"));
         assert!(random_explanations[0]
             .why_it_matters
             .contains("unpredictable"));
@@ -2937,9 +2935,7 @@ mod purifier_cov_tests {
         );
         assert_eq!(rm_explanations[0].title, "rm → rm -f");
         assert!(rm_explanations[0].what_changed.contains("-f flag"));
-        assert!(rm_explanations[0]
-            .why_it_matters
-            .contains("safe to re-run"));
+        assert!(rm_explanations[0].why_it_matters.contains("safe to re-run"));
     }
 
     #[test]
@@ -2963,9 +2959,7 @@ mod purifier_cov_tests {
             "Should detect mkdir → mkdir -p as Idempotency transformation"
         );
         assert_eq!(mkdir_explanations[0].title, "mkdir → mkdir -p");
-        assert!(mkdir_explanations[0]
-            .what_changed
-            .contains("-p flag"));
+        assert!(mkdir_explanations[0].what_changed.contains("-p flag"));
         assert!(mkdir_explanations[0]
             .why_it_matters
             .contains("safe to re-run"));
@@ -2990,15 +2984,9 @@ mod purifier_cov_tests {
             !safety_explanations.is_empty(),
             "Should detect unquoted variable as Safety transformation"
         );
-        assert!(safety_explanations[0]
-            .title
-            .contains("Quote"));
-        assert!(safety_explanations[0]
-            .what_changed
-            .contains("quotes"));
-        assert!(safety_explanations[0]
-            .why_it_matters
-            .contains("injection"));
+        assert!(safety_explanations[0].title.contains("Quote"));
+        assert!(safety_explanations[0].what_changed.contains("quotes"));
+        assert!(safety_explanations[0].why_it_matters.contains("injection"));
     }
 
     #[test]
@@ -3029,8 +3017,14 @@ mod purifier_cov_tests {
             .iter()
             .any(|e| e.category == TransformationCategory::Safety);
 
-        assert!(has_idempotency, "Should have at least one Idempotency transformation");
-        assert!(has_determinism, "Should have at least one Determinism transformation");
+        assert!(
+            has_idempotency,
+            "Should have at least one Idempotency transformation"
+        );
+        assert!(
+            has_determinism,
+            "Should have at least one Determinism transformation"
+        );
         assert!(has_safety, "Should have at least one Safety transformation");
     }
 

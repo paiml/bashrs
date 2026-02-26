@@ -1,10 +1,10 @@
 // SC2324: Use ${var:+value} for conditional value based on isset
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ISSET_CONDITIONAL: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[\[\s+-v\s+[a-zA-Z_][a-zA-Z0-9_]*\s+\]\]\s*&&\s*echo").unwrap());
+static ISSET_CONDITIONAL: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\[\[\s+-v\s+[a-zA-Z_][a-zA-Z0-9_]*\s+\]\]\s*&&\s*echo").unwrap()
+});
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

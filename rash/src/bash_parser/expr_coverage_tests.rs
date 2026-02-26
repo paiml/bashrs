@@ -96,9 +96,8 @@ fn test_expr_brace_literal() {
 fn test_expr_keywords_as_arguments() {
     // Each keyword token used as a literal argument exercises keyword_as_str
     let keywords = [
-        "done", "fi", "then", "while", "for", "case", "in", "if", "elif",
-        "else", "until", "do", "esac", "function", "return", "export",
-        "local", "coproc", "select",
+        "done", "fi", "then", "while", "for", "case", "in", "if", "elif", "else", "until", "do",
+        "esac", "function", "return", "export", "local", "coproc", "select",
     ];
     for kw in keywords {
         let input = format!("echo {kw}");
@@ -147,10 +146,10 @@ fn test_sparse_array_edge_cases() {
 
 #[test]
 fn test_glob_bracket_patterns() {
-    parse_no_panic("ls [0-9]");       // digits
-    parse_no_panic("ls [a-z]");       // alpha
-    parse_no_panic("ls [!abc]");      // negation (Not token)
-    parse_no_panic("ls [0-9]*.sql");  // trailing glob absorption
+    parse_no_panic("ls [0-9]"); // digits
+    parse_no_panic("ls [a-z]"); // alpha
+    parse_no_panic("ls [!abc]"); // negation (Not token)
+    parse_no_panic("ls [0-9]*.sql"); // trailing glob absorption
 }
 
 // ---------------------------------------------------------------------------
@@ -160,9 +159,11 @@ fn test_glob_bracket_patterns() {
 #[test]
 fn test_single_bracket_string_operators() {
     assert!(BashParser::new("if [ \"$x\" = \"y\" ]; then echo m; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     assert!(BashParser::new("if [ \"$x\" != \"y\" ]; then echo m; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
 }
 
 #[test]
@@ -178,9 +179,11 @@ fn test_single_bracket_int_operators() {
 #[test]
 fn test_single_bracket_and_or() {
     assert!(BashParser::new("if [ -f /a -a -f /b ]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     assert!(BashParser::new("if [ -f /a -o -f /b ]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
 }
 
 #[test]
@@ -196,13 +199,17 @@ fn test_single_bracket_lt_gt_operators() {
 #[test]
 fn test_double_bracket_combinators() {
     assert!(BashParser::new("if [[ -f /a && -d /b ]]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     assert!(BashParser::new("if [[ -f /a || -d /b ]]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     assert!(BashParser::new("if [[ ! -f /tmp/no ]]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     assert!(BashParser::new("if [[ $x == yes ]]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
 }
 
 // ---------------------------------------------------------------------------
@@ -231,10 +238,16 @@ fn test_negated_conditions() {
 
 #[test]
 fn test_compound_test_and_or() {
-    assert!(BashParser::new("if [ -f /a ] && [ -f /b ]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
-    assert!(BashParser::new("if [ -f /a ] || [ -f /b ]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+    assert!(
+        BashParser::new("if [ -f /a ] && [ -f /b ]; then echo x; fi")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
+    assert!(
+        BashParser::new("if [ -f /a ] || [ -f /b ]; then echo x; fi")
+            .and_then(|mut p| p.parse())
+            .is_ok()
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -244,11 +257,12 @@ fn test_compound_test_and_or() {
 #[test]
 fn test_condition_command_variants() {
     assert!(BashParser::new("if grep -q pat f; then echo y; fi")
-        .and_then(|mut p| p.parse()).is_ok());
-    parse_no_panic("if echo t | grep -q t; then echo p; fi");     // pipeline
-    parse_no_panic("if pid=$(pgrep sshd); then echo r; fi");      // assignment
-    parse_no_panic("if ( cd /tmp && ls ); then echo ok; fi");     // subshell
-    parse_no_panic("if $CMD; then echo ran; fi");                  // variable
+        .and_then(|mut p| p.parse())
+        .is_ok());
+    parse_no_panic("if echo t | grep -q t; then echo p; fi"); // pipeline
+    parse_no_panic("if pid=$(pgrep sshd); then echo r; fi"); // assignment
+    parse_no_panic("if ( cd /tmp && ls ); then echo ok; fi"); // subshell
+    parse_no_panic("if $CMD; then echo ran; fi"); // variable
 }
 
 // ---------------------------------------------------------------------------
@@ -264,13 +278,13 @@ fn test_condition_env_prefixes() {
 #[test]
 fn test_condition_redirects() {
     let redirects = [
-        "if cmd > /dev/null; then echo ok; fi",     // Output
-        "if cmd >> /tmp/log; then echo ok; fi",      // Append
-        "if cmd < /tmp/in; then echo ok; fi",        // Input
-        "if cmd 2>/dev/null; then echo ok; fi",      // fd>file
-        "if cmd 2>&1; then echo ok; fi",             // fd>&fd
-        "if cmd &>/dev/null; then echo ok; fi",      // Combined
-        "if cmd >&2; then echo ok; fi",              // >&fd shorthand
+        "if cmd > /dev/null; then echo ok; fi", // Output
+        "if cmd >> /tmp/log; then echo ok; fi", // Append
+        "if cmd < /tmp/in; then echo ok; fi",   // Input
+        "if cmd 2>/dev/null; then echo ok; fi", // fd>file
+        "if cmd 2>&1; then echo ok; fi",        // fd>&fd
+        "if cmd &>/dev/null; then echo ok; fi", // Combined
+        "if cmd >&2; then echo ok; fi",         // >&fd shorthand
     ];
     for input in redirects {
         parse_no_panic(input);
@@ -284,9 +298,11 @@ fn test_condition_redirects() {
 #[test]
 fn test_test_condition_bare_values() {
     assert!(BashParser::new("if [ hello ]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
     assert!(BashParser::new("if [ $VAR ]; then echo x; fi")
-        .and_then(|mut p| p.parse()).is_ok());
+        .and_then(|mut p| p.parse())
+        .is_ok());
 }
 
 // ---------------------------------------------------------------------------
@@ -295,7 +311,7 @@ fn test_test_condition_bare_values() {
 
 #[test]
 fn test_condition_boundary_tokens() {
-    parse_no_panic("if cmd arg1 & then echo ok; fi");         // ampersand bg
+    parse_no_panic("if cmd arg1 & then echo ok; fi"); // ampersand bg
     parse_no_panic("if cmd arg1 # comment\nthen echo ok; fi"); // comment
-    parse_no_panic("if (cmd arg); then echo ok; fi");          // right paren
+    parse_no_panic("if (cmd arg); then echo ok; fi"); // right paren
 }

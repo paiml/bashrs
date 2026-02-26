@@ -19,7 +19,7 @@ use std::collections::HashMap;
 fn create_unquoted_var_pattern() -> Regex {
     // Match variable patterns: $VAR, ${VAR}, $1, etc.
     // But NOT when already inside double quotes
-    Regex::new(r#"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?"#).unwrap()
+    Regex::new(r"\$\{?[A-Za-z_][A-Za-z0-9_]*\}?").unwrap()
 }
 
 /// Analyze source for unquoted variable expansions

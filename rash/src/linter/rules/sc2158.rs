@@ -14,13 +14,12 @@
 //   if true; then       # Correctly tests exit status
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static LITERAL_BOOL_IN_BRACKETS: Lazy<Regex> = Lazy::new(|| {
+static LITERAL_BOOL_IN_BRACKETS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ false ] or [ true ] (literal commands treated as strings)
     // Only match single brackets, not [[
-    Regex::new(r#"(?:^|[^\[])\[\s+(true|false)\s+\]"#).unwrap()
+    Regex::new(r"(?:^|[^\[])\[\s+(true|false)\s+\]").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {

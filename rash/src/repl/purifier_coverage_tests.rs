@@ -607,9 +607,9 @@ mod purifier_coverage {
         let result = explain_purification_changes_detailed("mkdir /tmp/test");
         assert!(result.is_ok());
         let explanations = result.unwrap();
-        let has_mkdir = explanations
-            .iter()
-            .any(|e| matches!(e.category, TransformationCategory::Idempotency) && e.title.contains("mkdir"));
+        let has_mkdir = explanations.iter().any(|e| {
+            matches!(e.category, TransformationCategory::Idempotency) && e.title.contains("mkdir")
+        });
         assert!(has_mkdir, "Should detect mkdir → mkdir -p transformation");
     }
 
@@ -618,9 +618,9 @@ mod purifier_coverage {
         let result = explain_purification_changes_detailed("rm /tmp/testfile");
         assert!(result.is_ok());
         let explanations = result.unwrap();
-        let has_rm = explanations
-            .iter()
-            .any(|e| matches!(e.category, TransformationCategory::Idempotency) && e.title.contains("rm"));
+        let has_rm = explanations.iter().any(|e| {
+            matches!(e.category, TransformationCategory::Idempotency) && e.title.contains("rm")
+        });
         assert!(has_rm, "Should detect rm → rm -f transformation");
     }
 

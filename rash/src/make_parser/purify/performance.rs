@@ -46,7 +46,7 @@ fn detect_sequential_recipes(targets: &[(&String, &Vec<String>)]) -> Vec<Transfo
     for (target_name, recipes) in targets {
         if recipes.len() >= 3 {
             // Check for sequential commands (not using && or ;)
-            let has_command_separator = recipes.iter().any(|r| r.contains("&&") || r.contains(";"));
+            let has_command_separator = recipes.iter().any(|r| r.contains("&&") || r.contains(';'));
             if !has_command_separator {
                 transformations.push(Transformation::DetectSequentialRecipes {
                     target_name: (*target_name).clone(),

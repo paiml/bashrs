@@ -81,10 +81,7 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
             true
         } else {
             let char_before = line.chars().nth(pos - 1);
-            matches!(
-                char_before,
-                Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some('(') | Some('\n')
-            )
+            matches!(char_before, Some(' ' | '\t' | ';' | '&' | '|' | '(' | '\n'))
         };
 
         let after_idx = pos + cmd.len();
@@ -92,10 +89,7 @@ fn find_command(line: &str, cmd: &str) -> Option<usize> {
             true
         } else {
             let char_after = line.chars().nth(after_idx);
-            matches!(
-                char_after,
-                Some(' ') | Some('\t') | Some(';') | Some('&') | Some('|') | Some(')')
-            )
+            matches!(char_after, Some(' ' | '\t' | ';' | '&' | '|' | ')'))
         };
 
         if before_ok && after_ok {

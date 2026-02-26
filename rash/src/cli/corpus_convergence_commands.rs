@@ -279,7 +279,6 @@ pub(crate) fn corpus_org_patterns() -> Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn corpus_schema_validate() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -342,7 +341,6 @@ pub(crate) fn corpus_schema_validate() -> Result<()> {
     Ok(())
 }
 
-
 pub(crate) fn corpus_grammar_errors() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
@@ -386,7 +384,6 @@ pub(crate) fn corpus_grammar_errors() -> Result<()> {
 
     Ok(())
 }
-
 
 pub(crate) fn corpus_format_grammar(format: CorpusFormatArg) -> Result<()> {
     use crate::cli::color::*;

@@ -1,10 +1,9 @@
 // SC2288: Prefer always true/false over [ 1 = 1 ]
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TAUTOLOGY: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\[\s+(1\s*=\s*1|true\s*=\s*true)\s*\]").unwrap());
+static TAUTOLOGY: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\s+(1\s*=\s*1|true\s*=\s*true)\s*\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

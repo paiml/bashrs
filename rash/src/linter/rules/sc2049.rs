@@ -22,15 +22,14 @@
 // you want literal matching (but then use = instead).
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REGEX_MATCH_DOUBLE_QUOTED: Lazy<Regex> = Lazy::new(|| {
+static REGEX_MATCH_DOUBLE_QUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [[ ... =~ "..." ]]
     Regex::new(r#"=~\s*"([^"]+)""#).unwrap()
 });
 
-static REGEX_MATCH_SINGLE_QUOTED: Lazy<Regex> = Lazy::new(|| {
+static REGEX_MATCH_SINGLE_QUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [[ ... =~ '...' ]]
     Regex::new(r"=~\s*'([^']+)'").unwrap()
 });

@@ -1,22 +1,74 @@
 name: Benchmarks
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for running benchmarks'
+        required: false
+        default: 'Manual benchmark run'
+
   pull_request:
-    branches: [main]
+    paths:
+      - 'rash/src/**/*.rs'
+      - 'rash/benches/**/*.rs'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+
+  schedule:
+    - cron: '0 2 * * 0'  # Every Sunday at 2 AM UTC
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   benchmark:
-    name: Performance Benchmarks
+    name: Run Benchmarks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Run benchmarks
-        run: cargo bench --no-fail-fast
+
+      - name: Run all benchmarks
+        run: |
+          echo "Running criterion benchmarks..."
+          cargo bench --workspace --no-fail-fast 2>&1 | tee benchmark-output.txt
+        continue-on-error: true
         timeout-minutes: 15
+
+      - name: Upload criterion results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: criterion-results-${{ github.sha }}
+          path: target/criterion/
+          retention-days: 90
+
+      - name: Upload benchmark output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-output-${{ github.sha }}
+          path: benchmark-output.txt
+          retention-days: 30
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let output = '';
+            try {
+              output = fs.readFileSync('benchmark-output.txt', 'utf8');
+            } catch (e) {
+              output = 'No benchmark output generated';
+            }
+            const truncated = output.length > 5000 ? output.substring(0, 5000) + '\n...(truncated)' : output;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              body: `## Benchmark Results\n\n\`\`\`\n${truncated}\n\`\`\`\n\n---\n*Benchmarks on commit ${context.sha.substring(0, 7)}*`
+            });

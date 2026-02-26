@@ -145,7 +145,7 @@ impl MakefileConverter {
                 ..
             } = stmt
             {
-                self.vars.insert(name.to_string(), s.clone());
+                self.vars.insert(name.clone(), s.clone());
             }
         }
     }

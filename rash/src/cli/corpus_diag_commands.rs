@@ -1,8 +1,8 @@
 //! Corpus diagnostics: flaky detection, profiling, gap analysis, summary JSON, and audit.
 
-use crate::models::{Config, Result};
 use super::corpus_failure_commands::result_fail_dims;
 use super::corpus_ranking_commands::classify_category;
+use crate::models::{Config, Result};
 
 pub(crate) fn corpus_flaky(threshold: f64) -> Result<()> {
     use crate::cli::color::*;

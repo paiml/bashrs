@@ -14,25 +14,37 @@ mod decision_score_impact_color {
     #[test]
     fn test_score_08_is_high() {
         let (impact, _color) = score_impact_color(0.8);
-        assert!(impact.contains("HIGH"), "Score 0.8 should be HIGH: {impact}");
+        assert!(
+            impact.contains("HIGH"),
+            "Score 0.8 should be HIGH: {impact}"
+        );
     }
 
     #[test]
     fn test_score_1_0_is_high() {
         let (impact, _color) = score_impact_color(1.0);
-        assert!(impact.contains("HIGH"), "Score 1.0 should be HIGH: {impact}");
+        assert!(
+            impact.contains("HIGH"),
+            "Score 1.0 should be HIGH: {impact}"
+        );
     }
 
     #[test]
     fn test_score_0_5_is_medium() {
         let (impact, _color) = score_impact_color(0.5);
-        assert!(impact.contains("MEDIUM"), "Score 0.5 should be MEDIUM: {impact}");
+        assert!(
+            impact.contains("MEDIUM"),
+            "Score 0.5 should be MEDIUM: {impact}"
+        );
     }
 
     #[test]
     fn test_score_0_7_is_medium() {
         let (impact, _color) = score_impact_color(0.7);
-        assert!(impact.contains("MEDIUM"), "Score 0.7 should be MEDIUM: {impact}");
+        assert!(
+            impact.contains("MEDIUM"),
+            "Score 0.7 should be MEDIUM: {impact}"
+        );
     }
 
     #[test]
@@ -202,7 +214,11 @@ mod ranking_compute_dimension_stats {
     #[test]
     fn test_returns_9_dimensions() {
         let dims = compute_dimension_stats(&[], 0);
-        assert_eq!(dims.len(), 9, "Should have 9 V2 dimensions (A, B1, B2, B3, C, D, E, F, G)");
+        assert_eq!(
+            dims.len(),
+            9,
+            "Should have 9 V2 dimensions (A, B1, B2, B3, C, D, E, F, G)"
+        );
     }
 
     #[test]
@@ -237,7 +253,7 @@ mod ranking_compute_dimension_stats {
 #[cfg(test)]
 mod analysis_count_format {
     use super::super::corpus_analysis_commands::count_format;
-    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusTier, CorpusRegistry};
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
 
     fn make_registry_with_entries(entries: Vec<CorpusEntry>) -> CorpusRegistry {
         CorpusRegistry { entries }
@@ -246,12 +262,33 @@ mod analysis_count_format {
     #[test]
     fn test_count_bash_entries() {
         let entries = vec![
-            CorpusEntry::new("B-001", "t", "d", CorpusFormat::Bash, CorpusTier::Trivial,
-                "fn main() { println!(\"x\"); }", "x"),
-            CorpusEntry::new("B-002", "t", "d", CorpusFormat::Bash, CorpusTier::Trivial,
-                "fn main() { println!(\"y\"); }", "y"),
-            CorpusEntry::new("M-001", "t", "d", CorpusFormat::Makefile, CorpusTier::Standard,
-                "all:", "all"),
+            CorpusEntry::new(
+                "B-001",
+                "t",
+                "d",
+                CorpusFormat::Bash,
+                CorpusTier::Trivial,
+                "fn main() { println!(\"x\"); }",
+                "x",
+            ),
+            CorpusEntry::new(
+                "B-002",
+                "t",
+                "d",
+                CorpusFormat::Bash,
+                CorpusTier::Trivial,
+                "fn main() { println!(\"y\"); }",
+                "y",
+            ),
+            CorpusEntry::new(
+                "M-001",
+                "t",
+                "d",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                "all:",
+                "all",
+            ),
         ];
         let registry = make_registry_with_entries(entries);
         assert_eq!(count_format(&registry, &CorpusFormat::Bash), 2);
@@ -260,10 +297,24 @@ mod analysis_count_format {
     #[test]
     fn test_count_makefile_entries() {
         let entries = vec![
-            CorpusEntry::new("B-001", "t", "d", CorpusFormat::Bash, CorpusTier::Trivial,
-                "fn main() { println!(\"x\"); }", "x"),
-            CorpusEntry::new("M-001", "t", "d", CorpusFormat::Makefile, CorpusTier::Standard,
-                "all:", "all"),
+            CorpusEntry::new(
+                "B-001",
+                "t",
+                "d",
+                CorpusFormat::Bash,
+                CorpusTier::Trivial,
+                "fn main() { println!(\"x\"); }",
+                "x",
+            ),
+            CorpusEntry::new(
+                "M-001",
+                "t",
+                "d",
+                CorpusFormat::Makefile,
+                CorpusTier::Standard,
+                "all:",
+                "all",
+            ),
         ];
         let registry = make_registry_with_entries(entries);
         assert_eq!(count_format(&registry, &CorpusFormat::Makefile), 1);
@@ -271,10 +322,15 @@ mod analysis_count_format {
 
     #[test]
     fn test_count_dockerfile_entries_zero() {
-        let entries = vec![
-            CorpusEntry::new("B-001", "t", "d", CorpusFormat::Bash, CorpusTier::Trivial,
-                "fn main() { println!(\"x\"); }", "x"),
-        ];
+        let entries = vec![CorpusEntry::new(
+            "B-001",
+            "t",
+            "d",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            "fn main() { println!(\"x\"); }",
+            "x",
+        )];
         let registry = make_registry_with_entries(entries);
         assert_eq!(count_format(&registry, &CorpusFormat::Dockerfile), 0);
     }
@@ -368,7 +424,10 @@ mod entry_collect_risk_failures {
             make_result_with_id("B-001", false, false), // A=HIGH, D=MEDIUM
         ];
         let all_failures = collect_risk_failures(&results, None);
-        assert!(all_failures.len() >= 2, "Should return both HIGH and MEDIUM failures");
+        assert!(
+            all_failures.len() >= 2,
+            "Should return both HIGH and MEDIUM failures"
+        );
     }
 
     #[test]
@@ -405,7 +464,10 @@ mod failure_count_dimension_failures {
             ..Default::default()
         }];
         let failures = count_dimension_failures(&results);
-        assert!(failures.is_empty(), "All-pass results should have no dimension failures");
+        assert!(
+            failures.is_empty(),
+            "All-pass results should have no dimension failures"
+        );
     }
 
     #[test]
@@ -425,7 +487,10 @@ mod failure_count_dimension_failures {
         let failures = count_dimension_failures(&results);
         assert!(!failures.is_empty(), "Should report A dimension failure");
         let a_entry = failures.iter().find(|(d, _)| d.contains("Transpilation"));
-        assert!(a_entry.is_some(), "Should have Transpilation dimension in failures");
+        assert!(
+            a_entry.is_some(),
+            "Should have Transpilation dimension in failures"
+        );
         let (_, count) = a_entry.unwrap();
         assert_eq!(*count, 1);
     }
@@ -435,22 +500,37 @@ mod failure_count_dimension_failures {
         let results = vec![
             // 2 transpile failures, 1 lint failure
             CorpusResult {
-                transpiled: false, lint_clean: false,
-                output_contains: true, output_exact: true, output_behavioral: true,
-                deterministic: true, metamorphic_consistent: true, cross_shell_agree: true,
-                schema_valid: true, ..Default::default()
+                transpiled: false,
+                lint_clean: false,
+                output_contains: true,
+                output_exact: true,
+                output_behavioral: true,
+                deterministic: true,
+                metamorphic_consistent: true,
+                cross_shell_agree: true,
+                schema_valid: true,
+                ..Default::default()
             },
             CorpusResult {
-                transpiled: false, lint_clean: true,
-                output_contains: true, output_exact: true, output_behavioral: true,
-                deterministic: true, metamorphic_consistent: true, cross_shell_agree: true,
-                schema_valid: true, ..Default::default()
+                transpiled: false,
+                lint_clean: true,
+                output_contains: true,
+                output_exact: true,
+                output_behavioral: true,
+                deterministic: true,
+                metamorphic_consistent: true,
+                cross_shell_agree: true,
+                schema_valid: true,
+                ..Default::default()
             },
         ];
         let failures = count_dimension_failures(&results);
         // Should be sorted descending: transpilation (2) before lint (1)
         if failures.len() >= 2 {
-            assert!(failures[0].1 >= failures[1].1, "Should be sorted descending");
+            assert!(
+                failures[0].1 >= failures[1].1,
+                "Should be sorted descending"
+            );
         }
     }
 

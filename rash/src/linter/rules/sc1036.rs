@@ -15,19 +15,16 @@
 //   do echo hello
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches keywords immediately followed by `(` (no space before paren)
 /// e.g. `then(`, `do(`, `else(`
-static KEYWORD_PAREN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\b(then|do|else)\(").unwrap()
-});
+static KEYWORD_PAREN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\b(then|do|else)\(").unwrap());
 
 /// Matches `;\(` - semicolon followed directly by open paren
-static SEMI_PAREN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r";\(").unwrap()
-});
+static SEMI_PAREN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r";\(").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

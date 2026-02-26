@@ -1,9 +1,8 @@
 // SC2230: which is non-standard, use command -v instead
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static WHICH_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static WHICH_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: which command_name
     Regex::new(r"\bwhich\s+").unwrap()
 });

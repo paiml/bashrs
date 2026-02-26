@@ -1,10 +1,9 @@
 // SC2290: Remove $ from index in ${array[$i]}
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_INDEX_DOLLAR: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[\$[a-zA-Z_]").unwrap());
+static ARRAY_INDEX_DOLLAR: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[\$[a-zA-Z_]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

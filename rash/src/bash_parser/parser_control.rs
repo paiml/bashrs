@@ -308,7 +308,10 @@ impl BashParser {
         let items = if item_list.len() > 1 {
             BashExpr::Array(item_list)
         } else {
-            item_list.into_iter().next().unwrap() // Safe: we have at least one item
+            item_list
+                .into_iter()
+                .next()
+                .expect("item_list guaranteed non-empty: else branch requires len == 1")
         };
 
         // Skip optional semicolon before do
@@ -365,7 +368,10 @@ impl BashParser {
         let items = if item_list.len() > 1 {
             BashExpr::Array(item_list)
         } else {
-            item_list.into_iter().next().unwrap()
+            item_list
+                .into_iter()
+                .next()
+                .expect("item_list guaranteed non-empty: else branch requires len == 1")
         };
 
         // Skip optional semicolon before do
@@ -515,7 +521,10 @@ impl BashParser {
 
     /// Parse C-style for loop from pre-parsed content string
     /// Called when the lexer has already combined ((init; cond; incr)) into ArithmeticExpansion token
-    pub(crate) fn parse_for_c_style_from_content(&mut self, content: &str) -> ParseResult<BashStmt> {
+    pub(crate) fn parse_for_c_style_from_content(
+        &mut self,
+        content: &str,
+    ) -> ParseResult<BashStmt> {
         // Parse the three parts: init; condition; increment
         let parts: Vec<&str> = content.split(';').collect();
         let (init, condition, increment) = if parts.len() >= 3 {

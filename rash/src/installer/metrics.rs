@@ -214,8 +214,7 @@ impl MetricsCollector {
         let duration = self
             .step_starts
             .get(step_id)
-            .map(|start| start.elapsed())
-            .unwrap_or(Duration::ZERO);
+            .map_or(Duration::ZERO, |start| start.elapsed());
 
         let step_name = self
             .step_names
@@ -355,7 +354,7 @@ impl MetricsAggregator {
             let mid = sorted_durations.len() / 2;
             let a = sorted_durations.get(mid - 1).copied().unwrap_or(0.0);
             let b = sorted_durations.get(mid).copied().unwrap_or(0.0);
-            (a + b) / 2.0
+            f64::midpoint(a, b)
         } else {
             sorted_durations
                 .get(sorted_durations.len() / 2)
@@ -389,8 +388,8 @@ impl MetricsAggregator {
 
                 let durations: Vec<f64> = metrics.iter().map(|m| m.duration_ms as f64).collect();
                 let avg_dur = durations.iter().sum::<f64>() / durations.len() as f64;
-                let min_dur = durations.iter().cloned().fold(f64::INFINITY, f64::min);
-                let max_dur = durations.iter().cloned().fold(0.0_f64, f64::max);
+                let min_dur = durations.iter().copied().fold(f64::INFINITY, f64::min);
+                let max_dur = durations.iter().copied().fold(0.0_f64, f64::max);
 
                 let avg_retries =
                     metrics.iter().map(|m| m.retry_count as f64).sum::<f64>() / total as f64;

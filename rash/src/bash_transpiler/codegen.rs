@@ -127,11 +127,7 @@ impl BashToRashTranspiler {
         Ok(pattern.to_rash(name, &value_rash))
     }
 
-    fn transpile_command_stmt(
-        &mut self,
-        name: &str,
-        args: &[BashExpr],
-    ) -> TranspileResult<String> {
+    fn transpile_command_stmt(&mut self, name: &str, args: &[BashExpr]) -> TranspileResult<String> {
         let mut rash_args = Vec::new();
         for arg in args {
             rash_args.push(self.transpile_expression(arg)?);
@@ -312,22 +308,14 @@ impl BashToRashTranspiler {
         Ok(result)
     }
 
-    fn transpile_and_list(
-        &mut self,
-        left: &BashStmt,
-        right: &BashStmt,
-    ) -> TranspileResult<String> {
+    fn transpile_and_list(&mut self, left: &BashStmt, right: &BashStmt) -> TranspileResult<String> {
         // Transpile AND list: left && right
         let left_str = self.transpile_statement(left)?;
         let right_str = self.transpile_statement(right)?;
         Ok(format!("{} && {}", left_str, right_str))
     }
 
-    fn transpile_or_list(
-        &mut self,
-        left: &BashStmt,
-        right: &BashStmt,
-    ) -> TranspileResult<String> {
+    fn transpile_or_list(&mut self, left: &BashStmt, right: &BashStmt) -> TranspileResult<String> {
         // Transpile OR list: left || right
         let left_str = self.transpile_statement(left)?;
         let right_str = self.transpile_statement(right)?;

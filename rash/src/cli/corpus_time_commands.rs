@@ -84,7 +84,15 @@ pub(crate) fn corpus_timeline() -> Result<()> {
 }
 
 /// Print format drift line for a single format dimension.
-pub(crate) fn drift_print_format(name: &str, fp: usize, ft: usize, fs: f64, lp: usize, lt: usize, ls: f64) {
+pub(crate) fn drift_print_format(
+    name: &str,
+    fp: usize,
+    ft: usize,
+    fs: f64,
+    lp: usize,
+    lt: usize,
+    ls: f64,
+) {
     use crate::cli::color::*;
     if ft == 0 && lt == 0 {
         return;

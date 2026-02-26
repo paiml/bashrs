@@ -1,10 +1,9 @@
 // SC2224: This function was already defined
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use std::collections::HashMap;
 
-static FUNCTION_DEF: Lazy<Regex> = Lazy::new(|| {
+static FUNCTION_DEF: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: function name { or name() {
     Regex::new(r"^\s*(?:function\s+(\w+)|(\w+)\s*\(\s*\))").unwrap()
 });

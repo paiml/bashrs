@@ -16,10 +16,9 @@
 // Impact: Arguments not parsed correctly, quoting doesn't work
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ASSIGNMENT_WITH_QUOTES: Lazy<Regex> = Lazy::new(|| {
+static ASSIGNMENT_WITH_QUOTES: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: var="something 'quoted' or \"quoted\""
     // Also match: export var="..." or local var="..." or readonly var="..."
     Regex::new(r#"^(?:(?:export|local|readonly)\s+)?[a-zA-Z_][a-zA-Z0-9_]*=["'].*["'].*["']"#)

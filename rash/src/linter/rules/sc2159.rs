@@ -14,10 +14,10 @@
 // Impact: Syntax confusion, potential errors
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static NESTED_SINGLE_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\s*\[").unwrap());
+static NESTED_SINGLE_BRACKET: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\s*\[").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

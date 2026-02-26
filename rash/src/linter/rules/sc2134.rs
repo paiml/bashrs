@@ -17,10 +17,9 @@
 // Impact: Style/readability improvement
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static NUMERIC_TEST_BRACKETS: Lazy<Regex> = Lazy::new(|| {
+static NUMERIC_TEST_BRACKETS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ $var -gt/-lt/-ge/-le/-eq/-ne number ]
     Regex::new(r"\[\s+\$?\w+\s+(-gt|-lt|-ge|-le|-eq|-ne)\s+\d+\s+\]").unwrap()
 });

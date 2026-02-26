@@ -1,8 +1,8 @@
 //! Corpus failure analysis: pareto, why-failed, and regression detection.
 
+use super::corpus_entry_commands::truncate_line;
 use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
 use crate::models::{Config, Error, Result};
-use super::corpus_entry_commands::truncate_line;
 use std::path::PathBuf;
 
 pub(crate) fn result_fail_dims(r: &crate::corpus::runner::CorpusResult) -> Vec<&'static str> {
@@ -298,7 +298,7 @@ pub(crate) fn corpus_why_failed(id: &str, format: &CorpusOutputFormat) -> Result
             println!("{BOLD}Root Cause Analysis (Five Whys){RESET}");
             println!("{DIM}Fill in each level to trace the root cause:{RESET}");
             println!();
-            let primary = failures.first().map(|(d, _)| *d).unwrap_or("Unknown");
+            let primary = failures.first().map_or("Unknown", |(d, _)| *d);
             println!("  {BOLD}Why 1:{RESET} {id} fails dimension {primary}");
             println!("    → Because: ___");
             println!();
@@ -328,7 +328,7 @@ pub(crate) fn corpus_why_failed(id: &str, format: &CorpusOutputFormat) -> Result
                 "error": result.error,
                 "actual_output": result.actual_output,
                 "five_whys": {
-                    "why_1": format!("{id} fails dimension {}", failures.first().map(|(d, _)| *d).unwrap_or("none")),
+                    "why_1": format!("{id} fails dimension {}", failures.first().map_or("none", |(d, _)| *d)),
                     "why_2": "",
                     "why_3": "",
                     "why_4": "",

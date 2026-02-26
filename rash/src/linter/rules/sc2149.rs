@@ -17,10 +17,9 @@
 // Impact: Variable won't be unset - unset receives wrong argument
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNSET_QUOTED: Lazy<Regex> = Lazy::new(|| {
+static UNSET_QUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: unset "var" or unset "$var" or unset "${var}"
     Regex::new(r#"\bunset\s+["'](\$\{?)?[A-Za-z_][A-Za-z0-9_]*\}?["']"#).unwrap()
 });

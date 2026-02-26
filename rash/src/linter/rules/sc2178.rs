@@ -40,7 +40,7 @@ fn is_comment_line(line: &str) -> bool {
 
 /// Check if line has array syntax (parentheses or brackets)
 fn has_array_syntax(line: &str) -> bool {
-    line.contains("=(") || line.contains("[")
+    line.contains("=(") || line.contains('[')
 }
 
 /// Create diagnostic for array-to-string assignment

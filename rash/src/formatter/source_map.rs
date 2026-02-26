@@ -72,20 +72,15 @@ pub struct SourceMap {
 struct TokenBoundary {
     start: CharPos,
     end: CharPos,
-    #[allow(dead_code)]
-    token_type: TokenType,
+    _token_type: TokenType,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TokenType {
     Word,
-    #[allow(dead_code)]
     Operator,
-    #[allow(dead_code)]
     String,
-    #[allow(dead_code)]
     Comment,
-    #[allow(dead_code)]
     Whitespace,
 }
 
@@ -114,7 +109,7 @@ impl SourceMap {
         map.token_boundaries.push(TokenBoundary {
             start: CharPos(0),
             end: CharPos(source_len),
-            token_type: TokenType::Word,
+            _token_type: TokenType::Word,
         });
 
         map
@@ -136,7 +131,7 @@ impl SourceMap {
         self.token_boundaries.push(TokenBoundary {
             start,
             end,
-            token_type,
+            _token_type: token_type,
         });
     }
 
@@ -183,8 +178,7 @@ impl SourceMap {
             .map
             .range(..=pos)
             .next_back()
-            .map(|(k, _)| *k)
-            .unwrap_or(pos);
+            .map_or(pos, |(k, _)| *k);
         let token_boundary = self.find_token_boundary_reverse(char_pos);
 
         MappedPosition {
@@ -203,7 +197,7 @@ impl SourceMap {
             .unwrap_or(TokenBoundary {
                 start: pos,
                 end: CharPos(pos.0 + 1),
-                token_type: TokenType::Word,
+                _token_type: TokenType::Word,
             })
     }
 
@@ -439,12 +433,12 @@ mod tests {
         let boundary = map.find_token_boundary(CharPos(3));
         assert_eq!(boundary.start, CharPos(0));
         assert_eq!(boundary.end, CharPos(5));
-        assert_eq!(boundary.token_type, TokenType::Word);
+        assert_eq!(boundary._token_type, TokenType::Word);
 
         let boundary2 = map.find_token_boundary(CharPos(8));
         assert_eq!(boundary2.start, CharPos(6));
         assert_eq!(boundary2.end, CharPos(11));
-        assert_eq!(boundary2.token_type, TokenType::String);
+        assert_eq!(boundary2._token_type, TokenType::String);
     }
 
     #[test]

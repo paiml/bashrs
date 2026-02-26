@@ -1,8 +1,8 @@
 //! Corpus ranking: sparkline, top entries, categories, dimensions, and statistics.
 
+use super::corpus_failure_commands::result_fail_dims;
 use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
 use crate::models::{Config, Error, Result};
-use super::corpus_failure_commands::result_fail_dims;
 use std::path::PathBuf;
 
 pub(crate) fn corpus_sparkline() -> Result<()> {
@@ -69,7 +69,11 @@ pub(crate) fn sparkline_str(data: &[f64]) -> String {
 }
 
 /// Show top/bottom entries ranked by failure count.
-pub(crate) fn corpus_top(limit: usize, worst: bool, filter: Option<&CorpusFormatArg>) -> Result<()> {
+pub(crate) fn corpus_top(
+    limit: usize,
+    worst: bool,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
@@ -127,8 +131,14 @@ pub(crate) fn corpus_top(limit: usize, worst: bool, filter: Option<&CorpusFormat
 
 /// Category classification rules: each entry is (&[keywords], category_label)
 const CATEGORY_RULES: &[(&[&str], &str)] = &[
-    (&["config", "bashrc", "profile", "alias", "xdg", "history"], "Config (A)"),
-    (&["oneliner", "one-liner", "pipe-", "pipeline"], "One-liner (B)"),
+    (
+        &["config", "bashrc", "profile", "alias", "xdg", "history"],
+        "Config (A)",
+    ),
+    (
+        &["oneliner", "one-liner", "pipe-", "pipeline"],
+        "One-liner (B)",
+    ),
     (&["coreutil", "reimpl"], "Coreutils (G)"),
     (&["regex", "pattern-match", "glob-match"], "Regex (H)"),
     (&["daemon", "cron", "startup", "service"], "System (F)"),
@@ -213,7 +223,10 @@ pub(crate) fn corpus_categories(format: &CorpusOutputFormat) -> Result<()> {
 }
 
 /// Show per-dimension pass rates, weights, and point contributions.
-pub(crate) fn corpus_dimensions(format: &CorpusOutputFormat, filter: Option<&CorpusFormatArg>) -> Result<()> {
+pub(crate) fn corpus_dimensions(
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
     use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
     use crate::corpus::runner::CorpusRunner;
 
@@ -281,7 +294,6 @@ pub(crate) fn corpus_dimensions(format: &CorpusOutputFormat, filter: Option<&Cor
     Ok(())
 }
 
-
 pub(crate) struct DimStat {
     code: &'static str,
     name: &'static str,
@@ -291,7 +303,6 @@ pub(crate) struct DimStat {
     weight: f64,
     points: f64,
 }
-
 
 pub(crate) fn compute_dimension_stats(
     results: &[crate::corpus::runner::CorpusResult],

@@ -5,7 +5,6 @@
 use super::super::*;
 use crate::make_parser::ast::{MakeCondition, Span, VarFlavor};
 
-
 // ============================================================================
 // FUNC-SUBST-001: $(subst from,to,text) Function
 // ============================================================================

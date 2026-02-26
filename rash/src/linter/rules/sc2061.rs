@@ -18,10 +18,9 @@
 // and ensures tr receives the literal bracket expressions.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TR_UNQUOTED_BRACKETS: Lazy<Regex> = Lazy::new(|| {
+static TR_UNQUOTED_BRACKETS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: tr followed by unquoted bracket expressions
     // Look for tr with [anything] patterns like [a-z] or [:lower:], but not in quotes
     // [^\s'"]* excludes spaces and quotes

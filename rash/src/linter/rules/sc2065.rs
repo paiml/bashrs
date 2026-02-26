@@ -16,10 +16,9 @@
 // Impact: Confusing behavior, unintended redirections
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REDIRECT_IN_STRING: Lazy<Regex> = Lazy::new(|| {
+static REDIRECT_IN_STRING: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match strings with > or < that might be confusing
     Regex::new(r#"echo\s+"[^"]*[<>][^"]*\$"#).unwrap()
 });

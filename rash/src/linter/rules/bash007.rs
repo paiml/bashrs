@@ -145,10 +145,7 @@ fn is_shebang_path(line: &str) -> bool {
                     return true; // Path is at end of line
                 }
                 let next_char = line.chars().nth(after_pos);
-                if matches!(
-                    next_char,
-                    Some(' ') | Some('\t') | Some('"') | Some('\'') | Some(';')
-                ) {
+                if matches!(next_char, Some(' ' | '\t' | '"' | '\'' | ';')) {
                     return true; // Path is followed by whitespace or quote
                 }
             }

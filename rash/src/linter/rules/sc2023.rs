@@ -23,10 +23,9 @@
 // Note: 'type' is also good but less portable than 'command -v'.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static WHICH_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static WHICH_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: which command_name
     Regex::new(r"\bwhich\s+[a-zA-Z_][a-zA-Z0-9_-]*").unwrap()
 });

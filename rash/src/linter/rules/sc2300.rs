@@ -1,10 +1,9 @@
 // SC2300: Use ${var:?} for required environment variables
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNCHECKED_ENV: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"=\s*\$\{?[A-Z_][A-Z0-9_]*\}?\s*$").unwrap());
+static UNCHECKED_ENV: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"=\s*\$\{?[A-Z_][A-Z0-9_]*\}?\s*$").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

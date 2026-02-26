@@ -13,10 +13,9 @@
 //   if [ "$num" -gt 10 ]; then        # Numeric comparison with integer
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static NUMERIC_OP_LIKELY_STRING: Lazy<Regex> = Lazy::new(|| {
+static NUMERIC_OP_LIKELY_STRING: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: numeric operators with quoted strings containing non-digits
     // Looking for patterns like: "string" -gt "other" or "$var" -eq "text"
     Regex::new(r#"(-eq|-ne|-lt|-le|-gt|-ge)\s+"([^"]*[A-Za-z_\.\-][^"]*)""#).unwrap()

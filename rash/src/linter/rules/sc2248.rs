@@ -1,9 +1,8 @@
 // SC2248: Prefer [[ ]] over [ ] for regex matching
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REGEX_IN_SINGLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
+static REGEX_IN_SINGLE_BRACKET: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ "$var" =~ pattern ] (regex in single bracket)
     Regex::new(r"\[\s+.*=~").unwrap()
 });

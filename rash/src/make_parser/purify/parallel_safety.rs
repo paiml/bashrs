@@ -110,7 +110,11 @@ pub(super) fn is_automatic_variable(filename: &str) -> bool {
 }
 
 /// Check if target has a specific prerequisite
-pub(super) fn target_has_prerequisite(ast: &MakeAst, target_name: &str, prerequisite: &str) -> bool {
+pub(super) fn target_has_prerequisite(
+    ast: &MakeAst,
+    target_name: &str,
+    prerequisite: &str,
+) -> bool {
     ast.items.iter().any(|item| {
         if let MakeItem::Target {
             name,

@@ -17,10 +17,9 @@
 // Impact: Performance - -exec \; spawns process per file
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static FIND_EXEC_SEMICOLON: Lazy<Regex> = Lazy::new(|| {
+static FIND_EXEC_SEMICOLON: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: find ... -exec command {} \;
     // The \; indicates one process per file (inefficient)
     // Match literal backslash-semicolon: \\;

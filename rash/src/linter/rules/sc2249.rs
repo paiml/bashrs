@@ -12,10 +12,7 @@ pub fn check(source: &str) -> LintResult {
         let line_num = full_source[..abs_pos].matches('\n').count() + 1;
 
         // Skip if in a comment (check if line starts with #)
-        let line_start = full_source[..abs_pos]
-            .rfind('\n')
-            .map(|p| p + 1)
-            .unwrap_or(0);
+        let line_start = full_source[..abs_pos].rfind('\n').map_or(0, |p| p + 1);
         let line_prefix = &full_source[line_start..abs_pos];
         if line_prefix.trim().starts_with('#') {
             pos = abs_pos + 5;

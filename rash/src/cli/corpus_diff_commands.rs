@@ -1,11 +1,15 @@
 //! Corpus diff, report generation, and date utilities.
 
+use super::corpus_report_commands::corpus_failing_dims;
 use crate::cli::args::CorpusOutputFormat;
 use crate::models::{Config, Error, Result};
 use std::path::PathBuf;
-use super::corpus_report_commands::corpus_failing_dims;
 
-pub(crate) fn corpus_show_diff(format: &CorpusOutputFormat, from: Option<u32>, to: Option<u32>) -> Result<()> {
+pub(crate) fn corpus_show_diff(
+    format: &CorpusOutputFormat,
+    from: Option<u32>,
+    to: Option<u32>,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
     let log_path = PathBuf::from(".quality/convergence.log");
@@ -99,7 +103,6 @@ pub(crate) fn corpus_show_diff(format: &CorpusOutputFormat, from: Option<u32>, t
     }
     Ok(())
 }
-
 
 pub(crate) fn corpus_generate_report(output: Option<&str>) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
@@ -224,6 +227,5 @@ pub(crate) fn chrono_free_date() -> String {
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+        .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string())
 }

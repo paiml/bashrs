@@ -50,8 +50,10 @@ fn test_normalize_strips_entry_ids_all_prefixes() {
 
 #[test]
 fn test_normalize_collapses_whitespace() {
-    assert_eq!(normalize_message("  extra   whitespace   everywhere  "),
-               "extra whitespace everywhere");
+    assert_eq!(
+        normalize_message("  extra   whitespace   everywhere  "),
+        "extra whitespace everywhere"
+    );
 }
 
 #[test]
@@ -129,7 +131,10 @@ fn test_classify_risk_g_cross_shell_fail() {
 #[test]
 fn test_classify_risk_sc2086_quoting() {
     let signals = vec!["D_lint_fail".to_string()];
-    assert_eq!(classify_risk(&signals, "SC2086: Double quote"), RiskLevel::Medium);
+    assert_eq!(
+        classify_risk(&signals, "SC2086: Double quote"),
+        RiskLevel::Medium
+    );
 }
 
 #[test]
@@ -148,11 +153,23 @@ fn test_classify_risk_lint_with_b3_not_low() {
 
 #[test]
 fn test_default_signal_risk_prefixes() {
-    assert_eq!(classify_risk(&["A_transpile_fail".into()], ""), RiskLevel::High);
-    assert_eq!(classify_risk(&["B1_containment_fail".into()], ""), RiskLevel::Low);
+    assert_eq!(
+        classify_risk(&["A_transpile_fail".into()], ""),
+        RiskLevel::High
+    );
+    assert_eq!(
+        classify_risk(&["B1_containment_fail".into()], ""),
+        RiskLevel::Low
+    );
     assert_eq!(classify_risk(&["B2_exact_fail".into()], ""), RiskLevel::Low);
-    assert_eq!(classify_risk(&["X_unknown_signal".into()], ""), RiskLevel::Medium);
-    assert_eq!(classify_risk(&["F_metamorphic_fail".into()], ""), RiskLevel::Medium);
+    assert_eq!(
+        classify_risk(&["X_unknown_signal".into()], ""),
+        RiskLevel::Medium
+    );
+    assert_eq!(
+        classify_risk(&["F_metamorphic_fail".into()], ""),
+        RiskLevel::Medium
+    );
     // Empty signals
     assert_eq!(classify_risk(&[], ""), RiskLevel::Medium);
 }
@@ -162,10 +179,14 @@ fn test_default_signal_risk_prefixes() {
 fn eval_rules(signals: &[String], error_msg: &str) -> [bool; 5] {
     let has_b3 = signals.iter().any(|s| s == "B3_behavioral_fail");
     let has_lint = signals.iter().any(|s| s == "D_lint_fail");
-    let has_sec = ["SEC001","SEC002","SEC003","SEC004","SEC005","SEC006","SEC007","SEC008"]
-        .iter().any(|code| error_msg.contains(code));
+    let has_sec = [
+        "SEC001", "SEC002", "SEC003", "SEC004", "SEC005", "SEC006", "SEC007", "SEC008",
+    ]
+    .iter()
+    .any(|code| error_msg.contains(code));
     [
-        has_sec, has_b3,
+        has_sec,
+        has_b3,
         signals.iter().any(|s| s == "G_cross_shell_fail"),
         error_msg.contains("SC2086"),
         has_lint && !has_b3,
@@ -206,7 +227,9 @@ fn test_labeling_rules_structure() {
     assert_eq!(rules[4].name, "LINT_ONLY");
     assert_eq!(rules[0].risk, RiskLevel::High);
     assert_eq!(rules[4].risk, RiskLevel::Low);
-    for rule in &rules { assert!(!rule.condition.is_empty()); }
+    for rule in &rules {
+        assert!(!rule.condition.is_empty());
+    }
 }
 
 // === RiskLevel: Display, Ord, Clone, Hash, Serialize/Deserialize ===
@@ -240,7 +263,10 @@ fn test_risk_level_hash_in_map() {
 #[test]
 fn test_risk_level_serde() {
     assert_eq!(serde_json::to_string(&RiskLevel::High).unwrap(), "\"High\"");
-    assert_eq!(serde_json::to_string(&RiskLevel::Medium).unwrap(), "\"Medium\"");
+    assert_eq!(
+        serde_json::to_string(&RiskLevel::Medium).unwrap(),
+        "\"Medium\""
+    );
     assert_eq!(serde_json::to_string(&RiskLevel::Low).unwrap(), "\"Low\"");
     let high: RiskLevel = serde_json::from_str("\"High\"").unwrap();
     assert_eq!(high, RiskLevel::High);
@@ -253,7 +279,9 @@ fn test_shell_training_error_round_trip() {
     let err = ShellTrainingError {
         error_code: "B3_behavioral_fail".to_string(),
         message: "execution timeout".to_string(),
-        hash: 42, count: 5, risk: RiskLevel::High,
+        hash: 42,
+        count: 5,
+        risk: RiskLevel::High,
         entry_ids: vec!["B-001".to_string(), "B-002".to_string()],
     };
     let json = serde_json::to_string(&err).unwrap();
@@ -268,8 +296,12 @@ fn test_shell_training_error_round_trip() {
 #[test]
 fn test_shell_training_error_debug() {
     let err = ShellTrainingError {
-        error_code: "test".to_string(), message: "msg".to_string(),
-        hash: 0, count: 1, risk: RiskLevel::Low, entry_ids: vec![],
+        error_code: "test".to_string(),
+        message: "msg".to_string(),
+        hash: 0,
+        count: 1,
+        risk: RiskLevel::Low,
+        entry_ids: vec![],
     };
     assert!(format!("{:?}", err).contains("ShellTrainingError"));
 }
@@ -279,8 +311,12 @@ fn test_shell_training_error_debug() {
 #[test]
 fn test_error_triage_empty() {
     let t = ErrorTriage {
-        errors: vec![], total_raw: 0, total_unique: 0,
-        high_count: 0, medium_count: 0, low_count: 0,
+        errors: vec![],
+        total_raw: 0,
+        total_unique: 0,
+        high_count: 0,
+        medium_count: 0,
+        low_count: 0,
     };
     assert_eq!(t.total_raw, 0);
     assert!(t.errors.is_empty());
@@ -291,19 +327,35 @@ fn test_error_triage_with_mixed_risks() {
     let t = ErrorTriage {
         errors: vec![
             ShellTrainingError {
-                error_code: "B3_behavioral_fail".into(), message: "timeout".into(),
-                hash: 1, count: 3, risk: RiskLevel::High, entry_ids: vec!["B-001".into()],
+                error_code: "B3_behavioral_fail".into(),
+                message: "timeout".into(),
+                hash: 1,
+                count: 3,
+                risk: RiskLevel::High,
+                entry_ids: vec!["B-001".into()],
             },
             ShellTrainingError {
-                error_code: "G_cross_shell_fail".into(), message: "dash differs".into(),
-                hash: 2, count: 2, risk: RiskLevel::Medium, entry_ids: vec!["B-050".into()],
+                error_code: "G_cross_shell_fail".into(),
+                message: "dash differs".into(),
+                hash: 2,
+                count: 2,
+                risk: RiskLevel::Medium,
+                entry_ids: vec!["B-050".into()],
             },
             ShellTrainingError {
-                error_code: "D_lint_fail".into(), message: "SC2034".into(),
-                hash: 3, count: 10, risk: RiskLevel::Low, entry_ids: vec!["B-100".into()],
+                error_code: "D_lint_fail".into(),
+                message: "SC2034".into(),
+                hash: 3,
+                count: 10,
+                risk: RiskLevel::Low,
+                entry_ids: vec!["B-100".into()],
             },
         ],
-        total_raw: 15, total_unique: 3, high_count: 1, medium_count: 1, low_count: 1,
+        total_raw: 15,
+        total_unique: 3,
+        high_count: 1,
+        medium_count: 1,
+        low_count: 1,
     };
     assert_eq!(t.total_raw, 15);
     assert_eq!(t.total_unique, 3);
@@ -313,10 +365,18 @@ fn test_error_triage_with_mixed_risks() {
 fn test_error_triage_serde() {
     let t = ErrorTriage {
         errors: vec![ShellTrainingError {
-            error_code: "A_transpile_fail".into(), message: "parse error".into(),
-            hash: 999, count: 1, risk: RiskLevel::High, entry_ids: vec!["B-500".into()],
+            error_code: "A_transpile_fail".into(),
+            message: "parse error".into(),
+            hash: 999,
+            count: 1,
+            risk: RiskLevel::High,
+            entry_ids: vec!["B-500".into()],
         }],
-        total_raw: 1, total_unique: 1, high_count: 1, medium_count: 0, low_count: 0,
+        total_raw: 1,
+        total_unique: 1,
+        high_count: 1,
+        medium_count: 0,
+        low_count: 0,
     };
     let json = serde_json::to_string(&t).unwrap();
     let de: ErrorTriage = serde_json::from_str(&json).unwrap();
@@ -340,8 +400,10 @@ fn test_labeling_rule_debug_and_clone() {
 #[test]
 fn test_classify_risk_all_signals_present() {
     let signals = vec![
-        "A_transpile_fail".into(), "B1_containment_fail".into(),
-        "B3_behavioral_fail".into(), "D_lint_fail".into(),
+        "A_transpile_fail".into(),
+        "B1_containment_fail".into(),
+        "B3_behavioral_fail".into(),
+        "D_lint_fail".into(),
         "G_cross_shell_fail".into(),
     ];
     assert_eq!(classify_risk(&signals, "SEC001"), RiskLevel::High);

@@ -451,7 +451,7 @@ fn generate_expr(expr: &BashExpr) -> String {
         BashExpr::Arithmetic(arith) => format!("$(({}))", generate_arith_expr(arith)),
         BashExpr::Test(test) => generate_test_expr(test),
         BashExpr::CommandSubst(cmd) => format!("$({})", generate_statement(cmd)),
-        BashExpr::Concat(exprs) => exprs.iter().map(generate_expr).collect::<Vec<_>>().join(""),
+        BashExpr::Concat(exprs) => exprs.iter().map(generate_expr).collect::<String>(),
         BashExpr::Glob(pattern) => pattern.clone(),
         BashExpr::DefaultValue { variable, default } => {
             format_param_expansion(variable, ":-", default)

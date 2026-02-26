@@ -35,10 +35,10 @@ pub fn check(source: &str) -> LintResult {
 
     // Regex patterns for unquoted array expansions
     // Pattern 1: Unquoted $@ or $*
-    let simple_pattern = Regex::new(r#"\$[@*]"#).unwrap();
+    let simple_pattern = Regex::new(r"\$[@*]").unwrap();
 
     // Pattern 2: Unquoted ${array[@]} or ${array[*]}
-    let array_pattern = Regex::new(r#"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[[@*]\]\}"#).unwrap();
+    let array_pattern = Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[[@*]\]\}").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed

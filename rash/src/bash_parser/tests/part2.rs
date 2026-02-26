@@ -1,11 +1,11 @@
 #![allow(clippy::unwrap_used)]
 #![allow(unused_imports)]
 
-use super::super::*;
 use super::super::ast::Redirect;
 use super::super::lexer::Lexer;
 use super::super::parser::BashParser;
 use super::super::semantic::SemanticAnalyzer;
+use super::super::*;
 
 /// Helper: parse a script and return whether parsing succeeded.
 /// Used by documentation tests that only need to verify parsability.
@@ -4939,4 +4939,3 @@ ls -la | less
         "All common patterns are POSIX-compliant"
     );
 }
-

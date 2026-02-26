@@ -15,10 +15,9 @@
 // Impact: Pattern doesn't match as expected
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static RANGE_WITH_PLUS: Lazy<Regex> = Lazy::new(|| {
+static RANGE_WITH_PLUS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [range]+ or [[:posix:]]+ in glob context (not =~)
     // Handles both simple ranges [0-9]+ and POSIX classes [[:digit:]]+
     Regex::new(r"\[(?:[^\]]|\[:.*?:\])+\]\+").unwrap()

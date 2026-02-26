@@ -28,15 +28,14 @@
 // immediately used, making the code unnecessarily indirect.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static COMMAND_VAR_ASSIGNMENT: Lazy<Regex> = Lazy::new(|| {
+static COMMAND_VAR_ASSIGNMENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: cmd="command" or command='command' or cmd=command
-    Regex::new(r##"^([a-zA-Z_][a-zA-Z0-9_]*)=["']?([a-z_][a-z0-9_-]*)["']?\s*$"##).unwrap()
+    Regex::new(r#"^([a-zA-Z_][a-zA-Z0-9_]*)=["']?([a-z_][a-z0-9_-]*)["']?\s*$"#).unwrap()
 });
 
-static COMMAND_VAR_USAGE: Lazy<Regex> = Lazy::new(|| {
+static COMMAND_VAR_USAGE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $cmd or ${cmd} at start of command
     Regex::new(r"^\s*\$(\{)?([a-zA-Z_][a-zA-Z0-9_]*)(\})?").unwrap()
 });
@@ -90,8 +89,7 @@ fn create_constant_command_diagnostic(
     let usage_str = COMMAND_VAR_USAGE
         .captures(usage_line.trim())
         .and_then(|cap| cap.get(0))
-        .map(|m| m.as_str())
-        .unwrap_or("$var");
+        .map_or("$var", |m| m.as_str());
     let end_col = start_col + usage_str.len();
 
     Diagnostic::new(

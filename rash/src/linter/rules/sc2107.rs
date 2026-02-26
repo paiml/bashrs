@@ -11,10 +11,9 @@
 //   if [ "$a" = "1" ] && [ "$b" = "2" ]; then
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static LOGICAL_IN_SINGLE_BRACKET: Lazy<Regex> = Lazy::new(|| {
+static LOGICAL_IN_SINGLE_BRACKET: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match [ ... && ... ] or [ ... || ... ]
     Regex::new(r"\[\s+[^\]]*(?:&&|\|\|)[^\]]*\]").unwrap()
 });

@@ -1,9 +1,9 @@
 // SC2279: Avoid ambiguous redirects
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static AMBIGUOUS_REDIRECT: Lazy<Regex> = Lazy::new(|| Regex::new(r">\s+&\s*[0-9]").unwrap());
+static AMBIGUOUS_REDIRECT: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r">\s+&\s*[0-9]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

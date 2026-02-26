@@ -1,8 +1,8 @@
 //! Advanced corpus commands: dependency graphs, impact analysis, blast radius, dedup, triage, and label rules.
 
-use crate::models::{Config, Result};
 use super::corpus_decision_commands::score_impact_color;
 use super::corpus_metrics_commands::collect_trace_coverage;
+use crate::models::{Config, Result};
 
 pub(crate) fn corpus_graph() -> Result<()> {
     use crate::cli::color::*;

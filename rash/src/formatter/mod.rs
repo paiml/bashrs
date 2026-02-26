@@ -42,15 +42,14 @@ pub trait PreflightFormatter: Send + Sync {
 /// Main formatter implementation
 pub struct RashFormatter {
     engine: NormalizationEngine,
-    #[allow(dead_code)]
-    contract_system: contract::ContractSystem,
+    _contract_system: contract::ContractSystem,
 }
 
 impl RashFormatter {
     pub fn new() -> Self {
         Self {
             engine: NormalizationEngine::new(),
-            contract_system: contract::ContractSystem::new(),
+            _contract_system: contract::ContractSystem::new(),
         }
     }
 }

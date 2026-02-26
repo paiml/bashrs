@@ -19,13 +19,12 @@
 // but for simple variable assignment it's redundant.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static USELESS_ECHO: Lazy<Regex> = Lazy::new(|| {
+static USELESS_ECHO: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(echo $var) or $(echo "$var") or $(echo something)
     // Capture the content after echo
-    Regex::new(r#"\$\(\s*echo\s+([^)]+)\)"#).unwrap()
+    Regex::new(r"\$\(\s*echo\s+([^)]+)\)").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {

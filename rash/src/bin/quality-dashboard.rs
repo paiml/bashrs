@@ -18,7 +18,7 @@ fn walk_rust_files(dir: &str) -> Vec<std::path::PathBuf> {
                 let path = entry.path();
                 if path.is_dir() {
                     visit_dirs(&path, files)?;
-                } else if path.extension().map(|ext| ext == "rs").unwrap_or(false) {
+                } else if path.extension().is_some_and(|ext| ext == "rs") {
                     files.push(path);
                 }
             }
@@ -51,7 +51,7 @@ fn count_files() -> usize {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let dashboard = format!(
-        r#"# RASH Quality Dashboard
+        r"# RASH Quality Dashboard
 
 Generated: {}
 
@@ -84,7 +84,7 @@ Generated: {}
 1. Continue monitoring test coverage (Priority: Medium)
 2. Add more integration tests (Priority: Low)
 3. Document complex algorithms (Priority: Low)
-"#,
+",
         Utc::now().to_rfc3339(),
         count_lines_of_code(),
         count_files(),

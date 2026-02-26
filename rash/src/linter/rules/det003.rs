@@ -71,8 +71,20 @@ fn check_for_loop_wildcard(line: &str, line_num: usize, result: &mut LintResult)
 
 /// Commands where bare wildcard arguments produce non-deterministic ordering.
 const WILDCARD_COMMANDS: &[&str] = &[
-    "cat", "head", "tail", "wc", "grep", "sort", "diff", "echo", "ls",
-    "md5sum", "sha256sum", "file", "du", "stat",
+    "cat",
+    "head",
+    "tail",
+    "wc",
+    "grep",
+    "sort",
+    "diff",
+    "echo",
+    "ls",
+    "md5sum",
+    "sha256sum",
+    "file",
+    "du",
+    "stat",
 ];
 
 /// Check for bare wildcards in command arguments (e.g., `cat *.log`, `wc -l *.txt`).
@@ -95,7 +107,7 @@ fn check_command_wildcard(line: &str, line_num: usize, result: &mut LintResult) 
     for segment in &segments {
         let seg = segment.trim();
         for cmd in WILDCARD_COMMANDS {
-            if seg.starts_with(cmd) && seg[cmd.len()..].starts_with(|c: char| c == ' ' || c == '\t') {
+            if seg.starts_with(cmd) && seg[cmd.len()..].starts_with([' ', '\t']) {
                 if let Some(col) = line.find('*') {
                     let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 2);
                     let diag = Diagnostic::new(
@@ -136,10 +148,8 @@ fn is_wildcard_in_cmd_sub(line: &str) -> bool {
             depth += 1;
         } else if bytes[i] == b')' && depth > 0 {
             depth -= 1;
-        } else if bytes[i] == b'*' {
-            if depth == 0 {
-                return false;
-            }
+        } else if bytes[i] == b'*' && depth == 0 {
+            return false;
         }
     }
     // If we never saw a * outside cmd sub, and there IS a * somewhere, it's all inside
@@ -382,7 +392,11 @@ mod tests {
         // Unknown command with wildcard should NOT warn
         let script = "mycommand /tmp/*.txt";
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 0, "unknown commands should not trigger DET003");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "unknown commands should not trigger DET003"
+        );
     }
 
     // ── is_wildcard_quoted coverage ───────────────────────────────────────
@@ -391,14 +405,22 @@ mod tests {
     fn test_DET003_wildcard_in_single_quotes_no_warn() {
         let script = "echo '*.log'";
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 0, "wildcard in single quotes should not warn");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "wildcard in single quotes should not warn"
+        );
     }
 
     #[test]
     fn test_DET003_wildcard_in_double_quotes_no_warn() {
         let script = "echo \"*.log\"";
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 0, "wildcard in double quotes should not warn");
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "wildcard in double quotes should not warn"
+        );
     }
 
     #[test]
@@ -406,7 +428,11 @@ mod tests {
         // After the closing quote, the wildcard is unquoted
         let script = "cat 'prefix' *.log";
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 1, "unquoted wildcard after quoted string should warn");
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "unquoted wildcard after quoted string should warn"
+        );
     }
 
     // ── is_wildcard_in_cmd_sub coverage ──────────────────────────────────
@@ -417,7 +443,11 @@ mod tests {
         let script = "FILES=$(ls *.txt)";
         let result = check(script);
         // Should have exactly 1 warning from check_ls_wildcard
-        assert_eq!(result.diagnostics.len(), 1, "only ls-wildcard warning expected");
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "only ls-wildcard warning expected"
+        );
         assert_eq!(result.diagnostics[0].severity, Severity::Warning);
     }
 
@@ -454,11 +484,16 @@ mod tests {
     #[test]
     fn test_DET003_wildcard_commands_list_covers_all() {
         // Verify every command in WILDCARD_COMMANDS triggers detection
-        let commands = ["cat", "head", "tail", "wc", "grep", "diff", "echo", "du", "stat"];
+        let commands = [
+            "cat", "head", "tail", "wc", "grep", "diff", "echo", "du", "stat",
+        ];
         for cmd in &commands {
             let script = format!("{cmd} /tmp/*.txt");
             let result = check(&script);
-            assert!(!result.diagnostics.is_empty(), "command '{cmd}' should trigger DET003");
+            assert!(
+                !result.diagnostics.is_empty(),
+                "command '{cmd}' should trigger DET003"
+            );
         }
     }
 }

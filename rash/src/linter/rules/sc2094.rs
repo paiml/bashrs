@@ -28,7 +28,7 @@ fn is_append_redirect(line: &str) -> bool {
 
 /// Check if line has a redirect
 fn has_redirect(line: &str) -> bool {
-    line.contains(" > ") || line.contains(">")
+    line.contains(" > ") || line.contains('>')
 }
 
 /// Check if line is a simple redirect (exactly one > separator)

@@ -71,7 +71,7 @@ pub fn check(source: &str) -> LintResult {
             // Check if this is an associative array
             if assoc_arrays.contains(var_name) {
                 // Check if content has [key]=value syntax
-                if !content.contains("[") || !content.contains("]=") {
+                if !content.contains('[') || !content.contains("]=") {
                     let start_col = full_match.start() + 1;
                     let end_col = full_match.end() + 1;
 

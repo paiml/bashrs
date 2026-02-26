@@ -18,11 +18,10 @@
 // operations happen with your UID, not root's.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static SUDO_WITH_REDIRECT: Lazy<Regex> = Lazy::new(|| {
+static SUDO_WITH_REDIRECT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: sudo command > file or sudo command >> file
     Regex::new(r"\bsudo\s+[^>|]+\s*(>>?)\s*[^\s]+").expect("valid regex for sudo redirect")
 });
@@ -30,7 +29,7 @@ static SUDO_WITH_REDIRECT: Lazy<Regex> = Lazy::new(|| {
 /// Issue #101: Detect sudo sh -c or sudo bash -c patterns
 /// These patterns wrap the redirect inside the shell, so sudo DOES affect it
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static SUDO_SHELL_WRAPPER: Lazy<Regex> = Lazy::new(|| {
+static SUDO_SHELL_WRAPPER: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: sudo [flags] sh/bash/dash/ash/zsh -c 'content' or "content"
     // Uses ['"] to match either single or double quote
     Regex::new(r#"\bsudo\s+(?:-\S+\s+)*(?:sh|bash|dash|ash|zsh)\s+-c\s+['"]"#)

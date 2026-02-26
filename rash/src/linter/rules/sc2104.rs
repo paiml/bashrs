@@ -11,15 +11,15 @@
 //   if [ "$var" = "value" ]; then
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static MISSING_SPACE_BEFORE_BRACKET: Lazy<Regex> = Lazy::new(|| {
+static MISSING_SPACE_BEFORE_BRACKET: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: anything followed by ] without space before it
     Regex::new(r"[^\s\[]\]").unwrap()
 });
 
-static TEST_COMMAND: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\s+").unwrap());
+static TEST_COMMAND: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\s+").unwrap());
 
 /// Check if a position is inside a parameter expansion ${...}
 fn is_inside_param_expansion(line: &str, pos: usize) -> bool {

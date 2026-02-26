@@ -20,10 +20,9 @@
 // Example: (100/3)*2 = 33*2 = 66, but 100*2/3 = 200/3 = 66 (closer to 66.67)
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DIV_MULT_PATTERN: Lazy<Regex> = Lazy::new(|| {
+static DIV_MULT_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: a/b*c pattern inside $((...))
     // Look for division followed by multiplication
     // Allow variables or numbers

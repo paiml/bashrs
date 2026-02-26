@@ -1,9 +1,8 @@
 // SC2227: Redirection before pipe applies to first command in pipeline
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REDIRECT_BEFORE_PIPE: Lazy<Regex> = Lazy::new(|| {
+static REDIRECT_BEFORE_PIPE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: command > file | other_command (but not >>)
     Regex::new(r"[^|>]+>\s*\S+\s*\|").unwrap()
 });

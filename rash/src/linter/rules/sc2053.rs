@@ -22,10 +22,9 @@
 // In [ ], always quote literal strings.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static UNQUOTED_RHS_WITH_SPECIAL: Lazy<Regex> = Lazy::new(|| {
+static UNQUOTED_RHS_WITH_SPECIAL: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ "..." = unquoted_rhs ] where RHS contains glob chars
     // Match any token after = that contains *, ?, or [
     Regex::new(r#"=\s+([^\s\]"']*[\*\?\[][^\s\]"']*)"#).unwrap()
@@ -43,7 +42,7 @@ fn has_double_bracket(line: &str) -> bool {
 
 /// Check if line should be checked (has [ and =)
 fn should_check_line(line: &str) -> bool {
-    line.contains("[") && line.contains("=")
+    line.contains('[') && line.contains('=')
 }
 
 /// Check if RHS is already quoted

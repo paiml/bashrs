@@ -3,8 +3,8 @@
 // Handles all BashExpr variants: Variable, CommandSubst, Array, Concat,
 // Test, Arithmetic, Literal, Glob, and parameter expansion forms.
 
-use crate::bash_parser::ast::*;
 use super::{PurificationError, PurificationResult, Purifier};
+use crate::bash_parser::ast::*;
 
 impl Purifier {
     pub(super) fn purify_expression(&mut self, expr: &BashExpr) -> PurificationResult<BashExpr> {
@@ -31,9 +31,11 @@ impl Purifier {
             BashExpr::DefaultValue { variable, default } => {
                 self.purify_param_expansion_with_expr(variable, default, ParamExpKind::DefaultValue)
             }
-            BashExpr::AssignDefault { variable, default } => {
-                self.purify_param_expansion_with_expr(variable, default, ParamExpKind::AssignDefault)
-            }
+            BashExpr::AssignDefault { variable, default } => self.purify_param_expansion_with_expr(
+                variable,
+                default,
+                ParamExpKind::AssignDefault,
+            ),
             BashExpr::ErrorIfUnset { variable, message } => {
                 self.purify_param_expansion_with_expr(variable, message, ParamExpKind::ErrorIfUnset)
             }

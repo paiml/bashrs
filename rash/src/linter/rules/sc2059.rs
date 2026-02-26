@@ -24,16 +24,15 @@
 // Note: Always use literal format strings with printf. Use %s to safely output variables.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static PRINTF_WITH_VAR: Lazy<Regex> = Lazy::new(|| {
+static PRINTF_WITH_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: printf "$var" or printf "...$var..."
     Regex::new(r#"printf\s+(['"]?)(\$[a-zA-Z_][a-zA-Z0-9_]*|\$\{[a-zA-Z_][a-zA-Z0-9_]*\})"#)
         .unwrap()
 });
 
-static PRINTF_WITH_EXPANSION: Lazy<Regex> = Lazy::new(|| {
+static PRINTF_WITH_EXPANSION: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: printf "...$var..." (variable in format string)
     Regex::new(r#"printf\s+"[^"]*\$[a-zA-Z_][a-zA-Z0-9_]*"#).unwrap()
 });

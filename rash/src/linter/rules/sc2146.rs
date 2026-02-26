@@ -15,10 +15,9 @@
 // Impact: Command only applies to second condition, not first
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static FIND_OR_WITHOUT_PARENS: Lazy<Regex> = Lazy::new(|| {
+static FIND_OR_WITHOUT_PARENS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: find with -o followed by action (-exec, -delete, -print) without parentheses
     // Pattern: find ... -o ... -exec/-delete/-print
     Regex::new(r"\bfind\b.*\s+-o\s+.*\s+-(?:exec|delete|print)").unwrap()

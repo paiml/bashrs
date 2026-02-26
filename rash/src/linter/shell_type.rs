@@ -262,7 +262,7 @@ fn detect_from_shellcheck_directive(content: &str) -> Option<ShellType> {
     // Look for # shellcheck shell=<type> in first few lines
     for line in content.lines().take(10) {
         let line = line.trim();
-        if line.starts_with("#") && line.contains("shellcheck") && line.contains("shell=") {
+        if line.starts_with('#') && line.contains("shellcheck") && line.contains("shell=") {
             // Extract shell name after shell=
             if let Some(after_shell) = line.split("shell=").nth(1) {
                 let shell_name = after_shell.split_whitespace().next()?;

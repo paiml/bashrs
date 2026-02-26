@@ -15,17 +15,16 @@
 //   grep pattern ./*.sh
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 #[allow(clippy::unwrap_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static UNSAFE_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static UNSAFE_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match commands that take file arguments
     Regex::new(r"^(?:.*\s+)?(rm|cat|grep|ls|mv|cp|chmod|chown|find|xargs|echo)\b").unwrap()
 });
 
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static BARE_GLOB: Lazy<Regex> = Lazy::new(|| {
+static BARE_GLOB: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match bare globs (*.ext) that aren't prefixed with ./ or / or $
     Regex::new(r"\*\.[a-zA-Z0-9]+\b").expect("valid bare glob regex")
 });
@@ -33,14 +32,14 @@ static BARE_GLOB: Lazy<Regex> = Lazy::new(|| {
 /// Issue #96: Regex to detect find pattern arguments that are quoted
 /// Matches: -name 'pattern', -iname "pattern", -path 'pattern'
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static FIND_PATTERN_ARG: Lazy<Regex> = Lazy::new(|| {
+static FIND_PATTERN_ARG: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r#"-(name|iname|path)\s+['"]([^'"]+)['"]"#).expect("valid find pattern regex")
 });
 
 /// Issue #104: Regex to detect grep/egrep/fgrep pattern arguments that are quoted
 /// Matches: grep 'pattern', grep -e 'pattern', grep -E 'pattern', egrep 'pattern'
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static GREP_PATTERN_ARG: Lazy<Regex> = Lazy::new(|| {
+static GREP_PATTERN_ARG: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match grep/egrep/fgrep followed by optional flags then a quoted pattern
     // Pattern: (e|f)?grep ... ['"]pattern['"]
     Regex::new(r#"\b[ef]?grep\s+(?:-[a-zA-Z0-9]+\s+)*['"]([^'"]+)['"]"#)
@@ -50,8 +49,9 @@ static GREP_PATTERN_ARG: Lazy<Regex> = Lazy::new(|| {
 /// FP018: Regex to detect stderr redirect to /dev/null
 /// Matches: 2>/dev/null, 2> /dev/null, &>/dev/null, &> /dev/null
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static STDERR_REDIRECT_DEVNULL: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:2|&)>\s*/dev/null").expect("valid stderr redirect regex"));
+static STDERR_REDIRECT_DEVNULL: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?:2|&)>\s*/dev/null").expect("valid stderr redirect regex")
+});
 
 /// Check if glob is safe (prefixed with ./ or / or $)
 fn is_glob_safe(line: &str, glob_start: usize) -> bool {

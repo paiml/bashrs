@@ -264,10 +264,34 @@ fn check_variable_determinism(
     issues: &mut Vec<SemanticIssue>,
 ) {
     let checks: SemanticCheckTable<'_> = &[
-        (detect_shell_date, "uses non-deterministic $(shell date) - replace with explicit version", IssueSeverity::Critical, "NO_TIMESTAMPS", "1.0.0"),
-        (detect_wildcard, "uses non-deterministic $(wildcard) - replace with explicit sorted file list", IssueSeverity::High, "NO_WILDCARD", "file1.c file2.c file3.c"),
-        (detect_shell_find, "uses non-deterministic $(shell find) - replace with explicit sorted file list", IssueSeverity::High, "NO_UNORDERED_FIND", "src/a.c src/b.c src/main.c"),
-        (detect_random, "uses non-deterministic $RANDOM - replace with fixed value or seed", IssueSeverity::Critical, "NO_RANDOM", "42"),
+        (
+            detect_shell_date,
+            "uses non-deterministic $(shell date) - replace with explicit version",
+            IssueSeverity::Critical,
+            "NO_TIMESTAMPS",
+            "1.0.0",
+        ),
+        (
+            detect_wildcard,
+            "uses non-deterministic $(wildcard) - replace with explicit sorted file list",
+            IssueSeverity::High,
+            "NO_WILDCARD",
+            "file1.c file2.c file3.c",
+        ),
+        (
+            detect_shell_find,
+            "uses non-deterministic $(shell find) - replace with explicit sorted file list",
+            IssueSeverity::High,
+            "NO_UNORDERED_FIND",
+            "src/a.c src/b.c src/main.c",
+        ),
+        (
+            detect_random,
+            "uses non-deterministic $RANDOM - replace with fixed value or seed",
+            IssueSeverity::Critical,
+            "NO_RANDOM",
+            "42",
+        ),
     ];
     for (detect_fn, msg, severity, rule, suggestion) in checks {
         if detect_fn(value) {

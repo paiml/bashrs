@@ -15,10 +15,9 @@
 // Impact: Deprecated syntax, harder to maintain
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static BACKTICK_SUBSTITUTION: Lazy<Regex> = Lazy::new(|| {
+static BACKTICK_SUBSTITUTION: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: `command` in any context (including empty `` for edge cases)
     Regex::new(r"`[^`]*`").unwrap()
 });

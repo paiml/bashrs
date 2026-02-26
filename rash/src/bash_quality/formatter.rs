@@ -118,12 +118,7 @@ impl Formatter {
     }
 
     /// Format control flow statements: if/for/while/until/case/select
-    fn format_control_flow_stmt(
-        &self,
-        stmt: &BashStmt,
-        indent: usize,
-        indent_str: &str,
-    ) -> String {
+    fn format_control_flow_stmt(&self, stmt: &BashStmt, indent: usize, indent_str: &str) -> String {
         match stmt {
             BashStmt::If {
                 condition,
@@ -131,7 +126,14 @@ impl Formatter {
                 elif_blocks,
                 else_block,
                 ..
-            } => self.format_if_stmt(condition, then_block, elif_blocks, else_block, indent, indent_str),
+            } => self.format_if_stmt(
+                condition,
+                then_block,
+                elif_blocks,
+                else_block,
+                indent,
+                indent_str,
+            ),
 
             BashStmt::While {
                 condition, body, ..
@@ -465,8 +467,7 @@ impl Formatter {
             BashExpr::Concat(exprs) => exprs
                 .iter()
                 .map(|e| self.format_expr(e))
-                .collect::<Vec<_>>()
-                .join(""),
+                .collect::<String>(),
 
             BashExpr::Test(test) => {
                 if self.config.use_double_brackets {

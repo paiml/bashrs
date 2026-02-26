@@ -13,10 +13,9 @@
 // Impact: Unclear what is being measured
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TIME_WITH_PIPE: Lazy<Regex> = Lazy::new(|| {
+static TIME_WITH_PIPE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: time cmd1 | cmd2
     // Exclude: time { cmd1 | cmd2 } (has braces)
     // Exclude: time ( cmd1 | cmd2 ) (has subshell)

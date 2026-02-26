@@ -1,9 +1,9 @@
 // SC2318: Deprecated $[ ] syntax - use $(( )) instead
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DEPRECATED_ARITH: Lazy<Regex> = Lazy::new(|| Regex::new(r"\$\[[^\]]+\]").unwrap());
+static DEPRECATED_ARITH: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\[[^\]]+\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

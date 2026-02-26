@@ -14,10 +14,9 @@
 //   [[ -n "$prefix" ]] && rm -r "$prefix"/data  # Guard check
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static RM_SLASH_VAR: Lazy<Regex> = Lazy::new(|| {
+static RM_SLASH_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: rm -r ... /$var or rm -r ... "$var"/...
     // Where the pattern could expand to root if var is empty
     Regex::new(r#"rm\s+-[a-zA-Z]*r[a-zA-Z]*\s+.*["']?\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?["']?/|rm\s+-[a-zA-Z]*r[a-zA-Z]*\s+/["']?\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?["']?"#).unwrap()

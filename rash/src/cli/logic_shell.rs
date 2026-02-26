@@ -20,15 +20,12 @@ pub fn is_shell_script_file(path: &Path, content: &str) -> bool {
 
 /// Check if a file has a shell script extension
 fn has_shell_extension(path: &Path) -> bool {
-    path.extension()
-        .and_then(|e| e.to_str())
-        .map(|e| {
-            matches!(
-                e.to_lowercase().as_str(),
-                "sh" | "bash" | "ksh" | "zsh" | "ash"
-            )
-        })
-        .unwrap_or(false)
+    path.extension().and_then(|e| e.to_str()).is_some_and(|e| {
+        matches!(
+            e.to_lowercase().as_str(),
+            "sh" | "bash" | "ksh" | "zsh" | "ash"
+        )
+    })
 }
 
 /// Check if content starts with a shell shebang line
@@ -41,11 +38,10 @@ fn has_shell_shebang(content: &str) -> bool {
         .lines()
         .next()
         .filter(|line| line.starts_with("#!"))
-        .map(|line| {
+        .is_some_and(|line| {
             let lower = line.to_lowercase();
             SHELL_PATTERNS.iter().any(|p| lower.contains(p))
         })
-        .unwrap_or(false)
 }
 
 /// Normalize a shell script for comparison

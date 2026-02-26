@@ -15,10 +15,9 @@
 // Impact: Logic always takes same branch, dead code
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static CONSTANT_IN_TEST: Lazy<Regex> = Lazy::new(|| {
+static CONSTANT_IN_TEST: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ word -op number ] or [ ! word -op number ] where word has no $ (likely forgot $)
     // !?\s* handles optional negation (! with optional space)
     Regex::new(r"\[\s+!?\s*([a-zA-Z_][a-zA-Z0-9_]*)\s+(-eq|-ne|-lt|-le|-gt|-ge)\s+[0-9]+\s+\]")

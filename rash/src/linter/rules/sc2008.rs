@@ -45,7 +45,7 @@ pub fn check(source: &str) -> LintResult {
 
     // Pattern: detect | echo (optionally with arguments)
     // This matches pipes ending with echo, which doesn't read stdin
-    let pattern = Regex::new(r#"\|\s*echo(\s|$)"#).unwrap();
+    let pattern = Regex::new(r"\|\s*echo(\s|$)").unwrap();
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim();

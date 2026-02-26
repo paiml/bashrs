@@ -223,7 +223,9 @@ pub fn has_non_idempotent_pattern(script: &str) -> bool {
         }
 
         // ln -s without -f (non-idempotent symlink creation)
-        if trimmed.starts_with("ln ") && trimmed.contains("-s") && !trimmed.contains("-sf")
+        if trimmed.starts_with("ln ")
+            && trimmed.contains("-s")
+            && !trimmed.contains("-sf")
             && !trimmed.contains("-f")
         {
             return true;
@@ -348,7 +350,12 @@ pub fn export_multi_label_classification_jsonl(rows: &[DatasetRow]) -> String {
     rows.iter()
         .filter(|row| row.transpiled)
         .map(|row| {
-            let labels = derive_multi_label(&row.actual_output, row.transpiled, row.lint_clean, row.deterministic);
+            let labels = derive_multi_label(
+                &row.actual_output,
+                row.transpiled,
+                row.lint_clean,
+                row.deterministic,
+            );
             let ml = MultiLabelClassificationRow {
                 input: row.actual_output.clone(),
                 labels,
@@ -672,8 +679,7 @@ fn current_commit() -> String {
         .output()
         .ok()
         .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| "unknown".to_string())
+        .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string())
 }
 
 #[cfg(test)]
@@ -732,7 +738,10 @@ mod tests {
         assert_eq!(format!("{}", ExportFormat::JsonLines), "jsonl");
         assert_eq!(format!("{}", ExportFormat::Csv), "csv");
         assert_eq!(format!("{}", ExportFormat::Json), "json");
-        assert_eq!(format!("{}", ExportFormat::Classification), "classification");
+        assert_eq!(
+            format!("{}", ExportFormat::Classification),
+            "classification"
+        );
         assert_eq!(
             format!("{}", ExportFormat::MultiLabelClassification),
             "multi-label-classification"
@@ -872,9 +881,7 @@ mod tests {
             make_entry("M-001", CorpusFormat::Makefile),
             make_entry("D-001", CorpusFormat::Dockerfile),
         ];
-        let registry = CorpusRegistry {
-            entries,
-        };
+        let registry = CorpusRegistry { entries };
         let info = dataset_info(&registry);
         assert_eq!(info.total_entries, 3);
         assert_eq!(info.format_counts.len(), 3);
@@ -884,9 +891,7 @@ mod tests {
     #[test]
     fn test_format_dataset_info() {
         let entries = vec![make_entry("B-001", CorpusFormat::Bash)];
-        let registry = CorpusRegistry {
-            entries,
-        };
+        let registry = CorpusRegistry { entries };
         let info = dataset_info(&registry);
         let table = format_dataset_info(&info);
         assert!(table.contains("Dataset Schema"));
@@ -1173,8 +1178,8 @@ mod tests {
         assert!(output.contains("\"input\""));
         assert!(output.contains("\"label\""));
         // Should be valid JSON
-        let parsed: serde_json::Value = serde_json::from_str(&output)
-            .expect("classification JSONL should be valid JSON");
+        let parsed: serde_json::Value =
+            serde_json::from_str(&output).expect("classification JSONL should be valid JSON");
         assert!(parsed.get("input").is_some());
         assert!(parsed.get("label").is_some());
     }
@@ -1186,7 +1191,10 @@ mod tests {
         let row = build_row(&entry, Some(&result), "6.61.0", "abc1234", "2026-02-09");
 
         let output = export_classification_jsonl(&[row]);
-        assert!(output.is_empty(), "Failed entries should not appear in classification export");
+        assert!(
+            output.is_empty(),
+            "Failed entries should not appear in classification export"
+        );
     }
 
     #[test]
@@ -1261,7 +1269,11 @@ mod tests {
     #[test]
     fn test_derive_multi_label_safe() {
         let labels = derive_multi_label("#!/bin/sh\necho \"hello\"\n", true, true, true);
-        assert_eq!(labels, [1.0, 0.0, 0.0, 0.0, 0.0], "Clean script should be safe only");
+        assert_eq!(
+            labels,
+            [1.0, 0.0, 0.0, 0.0, 0.0],
+            "Clean script should be safe only"
+        );
     }
 
     #[test]

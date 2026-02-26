@@ -130,11 +130,7 @@ pub(crate) fn audit_run_tests(source: &str, results: &mut AuditResults) {
     }
 }
 
-pub(crate) fn audit_check_score(
-    source: &str,
-    min_grade: Option<&str>,
-    results: &mut AuditResults,
-) {
+pub(crate) fn audit_check_score(source: &str, min_grade: Option<&str>, results: &mut AuditResults) {
     use crate::bash_quality::scoring::score_script;
 
     let score = match score_script(source) {
@@ -164,11 +160,7 @@ pub(crate) fn audit_check_score(
 }
 
 /// Print human-readable audit results with ANSI colors
-pub(crate) fn print_human_audit_results(
-    results: &AuditResults,
-    detailed: bool,
-    input: &Path,
-) {
+pub(crate) fn print_human_audit_results(results: &AuditResults, detailed: bool, input: &Path) {
     use crate::cli::color::*;
 
     println!();

@@ -16,21 +16,18 @@
 //   [ -f file ] | cat         # pipe is valid
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches ] followed by whitespace and then an unexpected token.
 /// Valid tokens after ] include: ;, &&, ||, |, ), then, do, else, elif, fi,
 /// done, esac, end-of-line, and comments.
-static BRACKET_EXTRA: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\]\s+(\S+)").expect("SC1140 regex must compile")
-});
+static BRACKET_EXTRA: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\]\s+(\S+)").expect("SC1140 regex must compile"));
 
 /// Tokens that are valid after ]
 const VALID_AFTER_BRACKET: &[&str] = &[
-    "&&", "||", "|", ";", ")", "then", "do", "else", "elif", "fi",
-    "done", "esac", "{", "}", ">>", ">", "<", "2>", "&>", "2>&1",
-    "#", "\\",
+    "&&", "||", "|", ";", ")", "then", "do", "else", "elif", "fi", "done", "esac", "{", "}", ">>",
+    ">", "<", "2>", "&>", "2>&1", "#", "\\",
 ];
 
 pub fn check(source: &str) -> LintResult {
@@ -65,14 +62,15 @@ pub fn check(source: &str) -> LintResult {
             }
 
             // Check if the token starts with a valid sequence
-            let is_valid = VALID_AFTER_BRACKET.iter().any(|&valid| {
-                first_token == valid || first_token.starts_with(valid)
-            }) || first_token.starts_with(';')
-              || first_token.starts_with('#')
-              || first_token.starts_with('|')
-              || first_token.starts_with('&')
-              || first_token.starts_with('>')
-              || first_token.starts_with('<');
+            let is_valid = VALID_AFTER_BRACKET
+                .iter()
+                .any(|&valid| first_token == valid || first_token.starts_with(valid))
+                || first_token.starts_with(';')
+                || first_token.starts_with('#')
+                || first_token.starts_with('|')
+                || first_token.starts_with('&')
+                || first_token.starts_with('>')
+                || first_token.starts_with('<');
 
             if !is_valid {
                 let col = bracket_end + 1 + (after.len() - after_trimmed.len());

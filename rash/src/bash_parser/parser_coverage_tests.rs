@@ -73,7 +73,10 @@ fn test_expect_success_then_present() {
     let input = "if [ 1 = 1 ]; then\n  echo ok\nfi";
     let mut parser = BashParser::new(input).unwrap();
     let ast = parser.parse().unwrap();
-    assert!(ast.statements.iter().any(|s| matches!(s, BashStmt::If { .. })));
+    assert!(ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::If { .. })));
 }
 
 // ---------------------------------------------------------------------------
@@ -471,7 +474,10 @@ else
 fi"#;
     let mut parser = BashParser::new(input).unwrap();
     let ast = parser.parse().unwrap();
-    assert!(ast.statements.iter().any(|s| matches!(s, BashStmt::If { .. })));
+    assert!(ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::If { .. })));
 }
 
 /// Arithmetic expansion in assignment

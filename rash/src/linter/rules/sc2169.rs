@@ -12,10 +12,9 @@
 //   if [ "$num" -eq 42 ]; then     # Numeric comparison
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static NUMERIC_OP_WITH_STRING: Lazy<Regex> = Lazy::new(|| {
+static NUMERIC_OP_WITH_STRING: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ ... -eq "string" ] or similar
     Regex::new(r#"\[\s+[^\]]*(-eq|-ne|-lt|-le|-gt|-ge)\s+"[A-Za-z_][^\]"]*""#).unwrap()
 });

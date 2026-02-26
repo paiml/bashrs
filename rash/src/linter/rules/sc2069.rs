@@ -14,10 +14,9 @@
 // Impact: Messages go to wrong stream, breaking error handling
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ECHO_TO_STDERR_WRONG: Lazy<Regex> = Lazy::new(|| {
+static ECHO_TO_STDERR_WRONG: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: echo ... 2>&1 (trying to send to stderr but using wrong syntax)
     Regex::new(r"\becho\b.*\b2>&1\b").unwrap()
 });

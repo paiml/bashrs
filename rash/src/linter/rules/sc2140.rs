@@ -18,10 +18,9 @@
 // Impact: Syntax error or unexpected word splitting
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static MALFORMED_QUOTES: Lazy<Regex> = Lazy::new(|| {
+static MALFORMED_QUOTES: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: "string1"word"string2" where word is unquoted between quoted parts
     // Matches: "foo"bar"baz" (malformed - unquoted word between quotes)
     // Matches: "Hello "World"" (malformed - unquoted word with empty string after)

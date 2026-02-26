@@ -112,8 +112,7 @@ impl DialectScorer {
             .scores
             .iter()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-            .map(|(d, s)| (*d, *s))
-            .unwrap_or((CoreDialect::Posix, 0.1));
+            .map_or((CoreDialect::Posix, 0.1), |(d, s)| (*d, *s));
 
         let best_dialect = best_core_dialect.to_shell_dialect();
 
@@ -129,8 +128,10 @@ impl DialectScorer {
             .evidence
             .iter()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
-            .map(|(e, _)| *e)
-            .unwrap_or(InferenceEvidence::Syntax(SyntaxFeature::PosixFunctions));
+            .map_or(
+                InferenceEvidence::Syntax(SyntaxFeature::PosixFunctions),
+                |(e, _)| *e,
+            );
 
         InferenceConfidence {
             dialect: Box::new(best_dialect),
@@ -256,7 +257,7 @@ impl ShellDialect {
         let mut features = Vec::new();
 
         // Check for bash arrays
-        if source.contains("=(") && source.contains(")") {
+        if source.contains("=(") && source.contains(')') {
             features.push(SyntaxFeature::BashArrays);
         }
 
@@ -279,7 +280,7 @@ impl ShellDialect {
         if source.contains("function ") {
             features.push(SyntaxFeature::KshFunctions);
         }
-        if source.contains("()") && source.contains("{") {
+        if source.contains("()") && source.contains('{') {
             features.push(SyntaxFeature::PosixFunctions);
         }
 

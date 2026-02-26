@@ -24,10 +24,9 @@
 // Note: Don't confuse with shell -o option (set -o, shopt -o).
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TEST_WITH_OR: Lazy<Regex> = Lazy::new(|| {
+static TEST_WITH_OR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [ ... -o ... ] or test ... -o ...
     // Look for -o operator between test conditions
     Regex::new(r"\[\s+[^\]]*\s+-o\s+[^\]]*\]|test\s+[^\n]*\s+-o\s+").unwrap()

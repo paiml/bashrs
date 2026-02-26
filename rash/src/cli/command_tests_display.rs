@@ -24,8 +24,16 @@ fn mock_result(id: &str, all_pass: bool) -> CorpusResult {
         metamorphic_consistent: all_pass,
         cross_shell_agree: all_pass,
         expected_output: None,
-        actual_output: if all_pass { Some("echo hello".into()) } else { None },
-        error: if all_pass { None } else { Some("transpile failed".into()) },
+        actual_output: if all_pass {
+            Some("echo hello".into())
+        } else {
+            None
+        },
+        error: if all_pass {
+            None
+        } else {
+            Some("transpile failed".into())
+        },
         error_category: None,
         error_confidence: None,
         decision_trace: None,
@@ -57,8 +65,13 @@ fn mock_result_partial(id: &str) -> CorpusResult {
 
 fn mock_entry(id: &str, name: &str, format: CorpusFormat) -> CorpusEntry {
     CorpusEntry::new(
-        id, name, "test description", format, CorpusTier::Standard,
-        "fn main() { println!(\"hello\"); }", "echo hello",
+        id,
+        name,
+        "test description",
+        format,
+        CorpusTier::Standard,
+        "fn main() { println!(\"hello\"); }",
+        "echo hello",
     )
 }
 
@@ -213,12 +226,37 @@ fn test_heatmap_print_row_partial() {
 fn test_dashboard_print_formats_with_data() {
     use super::corpus_display_commands::dashboard_print_formats;
     let score = CorpusScore {
-        total: 100, passed: 98, failed: 2, rate: 0.98,
-        score: 99.0, grade: Grade::APlus,
+        total: 100,
+        passed: 98,
+        failed: 2,
+        rate: 0.98,
+        score: 99.0,
+        grade: Grade::APlus,
         format_scores: vec![
-            FormatScore { format: CorpusFormat::Bash, total: 60, passed: 59, rate: 0.983, score: 99.0, grade: Grade::APlus },
-            FormatScore { format: CorpusFormat::Makefile, total: 30, passed: 30, rate: 1.0, score: 100.0, grade: Grade::APlus },
-            FormatScore { format: CorpusFormat::Dockerfile, total: 10, passed: 9, rate: 0.9, score: 90.0, grade: Grade::A },
+            FormatScore {
+                format: CorpusFormat::Bash,
+                total: 60,
+                passed: 59,
+                rate: 0.983,
+                score: 99.0,
+                grade: Grade::APlus,
+            },
+            FormatScore {
+                format: CorpusFormat::Makefile,
+                total: 30,
+                passed: 30,
+                rate: 1.0,
+                score: 100.0,
+                grade: Grade::APlus,
+            },
+            FormatScore {
+                format: CorpusFormat::Dockerfile,
+                total: 10,
+                passed: 9,
+                rate: 0.9,
+                score: 90.0,
+                grade: Grade::A,
+            },
         ],
         results: vec![],
     };
@@ -261,9 +299,9 @@ fn test_fmt_pass_total_zero() {
 #[test]
 fn test_trend_arrow_variants() {
     use super::corpus_report_commands::trend_arrow;
-    assert_eq!(trend_arrow(10, 5), "\u{2191}");   // up
-    assert_eq!(trend_arrow(5, 10), "\u{2193}");   // down
-    assert_eq!(trend_arrow(5, 5), "\u{2192}");    // same
+    assert_eq!(trend_arrow(10, 5), "\u{2191}"); // up
+    assert_eq!(trend_arrow(5, 10), "\u{2193}"); // down
+    assert_eq!(trend_arrow(5, 5), "\u{2192}"); // same
 }
 
 #[test]
@@ -291,8 +329,8 @@ fn test_corpus_failing_dims_partial() {
     assert!(!dims.contains("A")); // transpiled=true
     assert!(dims.contains("B2")); // output_exact=false
     assert!(dims.contains("B3")); // output_behavioral=false
-    assert!(dims.contains("E"));  // deterministic=false
-    assert!(dims.contains("G"));  // cross_shell_agree=false
+    assert!(dims.contains("E")); // deterministic=false
+    assert!(dims.contains("G")); // cross_shell_agree=false
 }
 
 #[test]
@@ -414,12 +452,23 @@ fn test_corpus_print_score_human_no_failures() {
     use super::corpus_score_print_commands::corpus_print_score;
     use crate::cli::args::CorpusOutputFormat;
     let score = CorpusScore {
-        total: 10, passed: 10, failed: 0, rate: 1.0,
-        score: 99.5, grade: Grade::APlus,
-        format_scores: vec![
-            FormatScore { format: CorpusFormat::Bash, total: 10, passed: 10, rate: 1.0, score: 99.5, grade: Grade::APlus },
-        ],
-        results: (0..10).map(|i| mock_result(&format!("B-{:03}", i + 1), true)).collect(),
+        total: 10,
+        passed: 10,
+        failed: 0,
+        rate: 1.0,
+        score: 99.5,
+        grade: Grade::APlus,
+        format_scores: vec![FormatScore {
+            format: CorpusFormat::Bash,
+            total: 10,
+            passed: 10,
+            rate: 1.0,
+            score: 99.5,
+            grade: Grade::APlus,
+        }],
+        results: (0..10)
+            .map(|i| mock_result(&format!("B-{:03}", i + 1), true))
+            .collect(),
     };
     let result = corpus_print_score(&score, &CorpusOutputFormat::Human);
     assert!(result.is_ok());
@@ -429,15 +478,26 @@ fn test_corpus_print_score_human_no_failures() {
 fn test_corpus_print_score_human_with_failures() {
     use super::corpus_score_print_commands::corpus_print_score;
     use crate::cli::args::CorpusOutputFormat;
-    let mut results: Vec<CorpusResult> = (0..8).map(|i| mock_result(&format!("B-{:03}", i + 1), true)).collect();
+    let mut results: Vec<CorpusResult> = (0..8)
+        .map(|i| mock_result(&format!("B-{:03}", i + 1), true))
+        .collect();
     results.push(mock_result("B-009", false));
     results.push(mock_result("B-010", false));
     let score = CorpusScore {
-        total: 10, passed: 8, failed: 2, rate: 0.8,
-        score: 85.0, grade: Grade::B,
-        format_scores: vec![
-            FormatScore { format: CorpusFormat::Bash, total: 10, passed: 8, rate: 0.8, score: 85.0, grade: Grade::B },
-        ],
+        total: 10,
+        passed: 8,
+        failed: 2,
+        rate: 0.8,
+        score: 85.0,
+        grade: Grade::B,
+        format_scores: vec![FormatScore {
+            format: CorpusFormat::Bash,
+            total: 10,
+            passed: 8,
+            rate: 0.8,
+            score: 85.0,
+            grade: Grade::B,
+        }],
         results,
     };
     let result = corpus_print_score(&score, &CorpusOutputFormat::Human);
@@ -449,8 +509,12 @@ fn test_corpus_print_score_json() {
     use super::corpus_score_print_commands::corpus_print_score;
     use crate::cli::args::CorpusOutputFormat;
     let score = CorpusScore {
-        total: 2, passed: 2, failed: 0, rate: 1.0,
-        score: 100.0, grade: Grade::APlus,
+        total: 2,
+        passed: 2,
+        failed: 0,
+        rate: 1.0,
+        score: 100.0,
+        grade: Grade::APlus,
         format_scores: vec![],
         results: vec![mock_result("B-001", true), mock_result("B-002", true)],
     };

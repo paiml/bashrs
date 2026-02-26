@@ -1,9 +1,9 @@
 //! Corpus weight, format reporting, budget analysis, entropy, and TODO tracking.
 
-use crate::cli::args::CorpusOutputFormat;
-use crate::models::{Config, Result};
 use super::corpus_failure_commands::result_fail_dims;
 use super::corpus_ranking_commands::classify_category;
+use crate::cli::args::CorpusOutputFormat;
+use crate::models::{Config, Result};
 
 pub(crate) fn corpus_weight() -> Result<()> {
     use crate::cli::color::*;
@@ -74,7 +74,7 @@ pub(crate) fn corpus_weight() -> Result<()> {
 
     let mut total_pts = 0.0f64;
     for (label, weight, pass) in dims {
-        let (rate, pts) = if label.starts_with("C") {
+        let (rate, pts) = if label.starts_with('C') {
             (c_avg * 100.0, c_avg * weight)
         } else {
             let r = *pass as f64 / n * 100.0;

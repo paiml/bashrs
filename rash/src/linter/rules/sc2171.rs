@@ -14,11 +14,12 @@
 // Impact: Syntax error
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static TRAILING_BRACKET: Lazy<Regex> = Lazy::new(|| Regex::new(r"^\s*\]").unwrap());
-static HEREDOC_START: Lazy<Regex> = Lazy::new(|| Regex::new(r"<<-?\s*'?(\w+)'?").unwrap());
+static TRAILING_BRACKET: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"^\s*\]").unwrap());
+static HEREDOC_START: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"<<-?\s*'?(\w+)'?").unwrap());
 
 /// Try to enter a heredoc, returning the marker if successful
 fn try_enter_heredoc(line: &str) -> Option<String> {
@@ -35,7 +36,7 @@ fn should_exit_heredoc(line: &str, marker: &str) -> bool {
 
 /// Create diagnostic for trailing bracket
 fn create_trailing_bracket_diagnostic(line: &str, line_num: usize) -> Diagnostic {
-    let start_col = line.find(']').map(|i| i + 1).unwrap_or(1);
+    let start_col = line.find(']').map_or(1, |i| i + 1);
     let end_col = start_col + 1;
 
     Diagnostic::new(

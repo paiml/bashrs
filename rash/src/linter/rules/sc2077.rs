@@ -16,10 +16,9 @@
 // Impact: Unexpected pattern matching behavior
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static REGEX_WITH_UNQUOTED_VAR: Lazy<Regex> = Lazy::new(|| {
+static REGEX_WITH_UNQUOTED_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: [[ ... =~ $var ]] or [[ ... =~ ${var} ]] (unquoted variable in regex position)
     Regex::new(r"\[\[[^\]]*=~\s+\$(\{[a-zA-Z_][a-zA-Z0-9_]*\}|[a-zA-Z_][a-zA-Z0-9_]*)[^\]]*\]\]")
         .unwrap()

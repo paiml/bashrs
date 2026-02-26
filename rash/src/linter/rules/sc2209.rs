@@ -1,9 +1,8 @@
 // SC2209: Use var=$(command) instead of var=command for command output
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static VAR_EQUALS_COMMAND: Lazy<Regex> = Lazy::new(|| {
+static VAR_EQUALS_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match var=command without $ or quotes
     // Must be a command name (letter start), not path or variable
     Regex::new(r"\b\w+\s*=\s*([a-z_][a-z0-9_-]*)\s*$").unwrap()
@@ -16,7 +15,7 @@ fn is_comment_line(line: &str) -> bool {
 
 /// Check if line has command substitution
 fn has_command_substitution(line: &str) -> bool {
-    line.contains("$(") || line.contains("`")
+    line.contains("$(") || line.contains('`')
 }
 
 /// Check if line has variable expansion
@@ -77,7 +76,7 @@ pub fn check(source: &str) -> LintResult {
         }
 
         if let Some(cap) = VAR_EQUALS_COMMAND.captures(line) {
-            let cmd = cap.get(1).map(|m| m.as_str()).unwrap_or("");
+            let cmd = cap.get(1).map_or("", |m| m.as_str());
 
             // Only warn for common commands that produce output
             if is_output_command(cmd) {

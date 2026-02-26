@@ -160,9 +160,7 @@ fn test_define_block_unterminated() {
 fn test_define_block_empty_name() {
     // Parser panics on empty define name (unwrap on None) — this is an edge case
     // that could be improved, but for now we verify it doesn't silently succeed
-    let result = std::panic::catch_unwind(|| {
-        parse_makefile("define \nfoo\nendef")
-    });
+    let result = std::panic::catch_unwind(|| parse_makefile("define \nfoo\nendef"));
     assert!(result.is_err() || result.unwrap().is_err());
 }
 
@@ -357,11 +355,7 @@ fn test_phony_target_marked() {
     for item in &ast.items {
         if let MakeItem::Target { name, phony, .. } = item {
             if name == "build" || name == "test" {
-                assert!(
-                    *phony,
-                    "Target {} should be marked phony",
-                    name
-                );
+                assert!(*phony, "Target {} should be marked phony", name);
             }
         }
     }
@@ -387,9 +381,7 @@ fn test_target_with_prerequisites() {
     let input = "build: src/main.c src/util.c\n\tgcc -o build $^";
     let ast = parse_makefile(input).unwrap();
     match &ast.items[0] {
-        MakeItem::Target {
-            prerequisites, ..
-        } => {
+        MakeItem::Target { prerequisites, .. } => {
             assert_eq!(prerequisites.len(), 2);
             assert_eq!(prerequisites[0], "src/main.c");
             assert_eq!(prerequisites[1], "src/util.c");
@@ -516,9 +508,7 @@ fn test_include_mandatory() {
     let input = "include common.mk";
     let ast = parse_makefile(input).unwrap();
     match &ast.items[0] {
-        MakeItem::Include {
-            path, optional, ..
-        } => {
+        MakeItem::Include { path, optional, .. } => {
             assert_eq!(path, "common.mk");
             assert!(!optional);
         }
@@ -543,9 +533,7 @@ fn test_include_sinclude() {
     let input = "sinclude optional.mk";
     let ast = parse_makefile(input).unwrap();
     match &ast.items[0] {
-        MakeItem::Include {
-            path, optional, ..
-        } => {
+        MakeItem::Include { path, optional, .. } => {
             assert_eq!(path, "optional.mk");
             assert!(*optional);
         }

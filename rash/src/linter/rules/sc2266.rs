@@ -1,10 +1,10 @@
 // SC2266: Prefer [[ ]] over [ ] for regex/glob matching
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static SINGLE_BRACKET_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?:^|[^\[])\[\s+[^\]]+\s+(=~|==.*[\*\?]|!=.*[\*\?])").unwrap());
+static SINGLE_BRACKET_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?:^|[^\[])\[\s+[^\]]+\s+(=~|==.*[\*\?]|!=.*[\*\?])").unwrap()
+});
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

@@ -1,9 +1,9 @@
 // SC2283: Remove spaces after ! in [ ! -f ... ]
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static NEGATION_SPACE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\[\s+!\s+\s+-").unwrap());
+static NEGATION_SPACE: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\s+!\s+\s+-").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

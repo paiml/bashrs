@@ -13,10 +13,9 @@
 //   if [ "$x" -eq 1 ] || [ "$y" -eq 2 ]; then
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DEPRECATED_AND_OR: Lazy<Regex> = Lazy::new(|| {
+static DEPRECATED_AND_OR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match -a or -o within test commands
     Regex::new(r"\[\s+[^\]]*\s+(-a|-o)\s+[^\]]*\]").unwrap()
 });

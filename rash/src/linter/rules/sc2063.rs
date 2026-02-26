@@ -16,10 +16,9 @@
 // Impact: Unexpected matches, false positives in search results
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static GREP_LITERAL_PATTERN: Lazy<Regex> = Lazy::new(|| {
+static GREP_LITERAL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match grep with quoted string containing regex metacharacters
     Regex::new(r#"\bgrep\s+(?:-\w+\s+)*["']([^"']*[.\[\]\^$+*?{}|()\\][^"']*)["']"#).unwrap()
 });

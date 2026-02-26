@@ -1,10 +1,10 @@
 //! Corpus reporting: show entry, export, history display.
 
-use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
-use crate::models::{Config, Error, Result};
-use crate::cli::logic::truncate_str;
-use std::path::PathBuf;
 use super::corpus_diff_commands::chrono_free_date;
+use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
+use crate::cli::logic::truncate_str;
+use crate::models::{Config, Error, Result};
+use std::path::PathBuf;
 
 pub(crate) fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
@@ -263,7 +263,6 @@ pub(crate) fn corpus_print_history_row(
     }
 }
 
-
 pub(crate) fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
@@ -322,7 +321,6 @@ pub(crate) fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usiz
     Ok(())
 }
 
-
 pub(crate) fn corpus_show_failures(
     format: &CorpusOutputFormat,
     filter: Option<&CorpusFormatArg>,
@@ -374,7 +372,6 @@ pub(crate) fn corpus_show_failures(
     corpus_print_failures(&failures, format)
 }
 
-
 pub(crate) fn corpus_print_failures(
     failures: &[&crate::corpus::runner::CorpusResult],
     format: &CorpusOutputFormat,
@@ -413,7 +410,6 @@ pub(crate) fn corpus_print_failures(
     }
     Ok(())
 }
-
 
 pub(crate) fn corpus_failing_dims(r: &crate::corpus::runner::CorpusResult) -> String {
     let mut dims = Vec::new();

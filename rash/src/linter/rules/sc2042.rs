@@ -20,12 +20,11 @@
 // Always use printf for formatted output with escape sequences.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ECHO_WITH_ESCAPES: Lazy<Regex> = Lazy::new(|| {
+static ECHO_WITH_ESCAPES: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: echo with backslash escapes like \n, \t, \r, \\, etc.
-    Regex::new(r#"\becho\s+[^|;&\n]*\\[ntr\\]"#).unwrap()
+    Regex::new(r"\becho\s+[^|;&\n]*\\[ntr\\]").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -50,7 +49,7 @@ pub fn check(source: &str) -> LintResult {
             // Check if the escape sequence is inside single quotes
             // Count single quotes from start to the position of the escape
             // Find where the escape actually is (after echo command)
-            let escape_pos = mat.as_str().rfind('\\').map(|p| pos + p).unwrap_or(pos);
+            let escape_pos = mat.as_str().rfind('\\').map_or(pos, |p| pos + p);
             let before_escape = &line[..escape_pos];
             let single_quote_count = before_escape.matches('\'').count();
 

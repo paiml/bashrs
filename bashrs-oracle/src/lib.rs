@@ -211,7 +211,7 @@ impl Oracle {
 
         // Convert to Matrix for aprender
         let n_samples = x.len();
-        let n_features = x.first().map(|row| row.len()).unwrap_or(0);
+        let n_features = x.first().map_or(0, |row| row.len());
         let flat: Vec<f32> = x.into_iter().flatten().collect();
         let features = Matrix::from_vec(n_samples, n_features, flat)
             .map_err(|e| OracleError::Training(format!("Failed to create feature matrix: {e}")))?;

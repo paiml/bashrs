@@ -45,9 +45,7 @@ impl IrConverter {
         use crate::ast::{restricted::Literal, Expr};
 
         let first_arg = args.first().ok_or_else(|| {
-            crate::models::Error::Validation(
-                "arg() requires at least one argument".to_string(),
-            )
+            crate::models::Error::Validation("arg() requires at least one argument".to_string())
         })?;
         let position = match first_arg {
             Expr::Literal(Literal::U32(n)) => *n as usize,
@@ -78,11 +76,7 @@ impl IrConverter {
     }
 
     /// Convert a regular (non-stdlib-special) function call → CommandSubst
-    fn convert_regular_fn_call(
-        &self,
-        name: &str,
-        args: &[crate::ast::Expr],
-    ) -> Result<ShellValue> {
+    fn convert_regular_fn_call(&self, name: &str, args: &[crate::ast::Expr]) -> Result<ShellValue> {
         let mut cmd_args = Vec::new();
         for arg in args {
             cmd_args.push(self.convert_expr_to_value(arg)?);
@@ -108,10 +102,7 @@ impl IrConverter {
         use crate::ast::{restricted::Literal, Expr};
 
         let first_arg = args.first().ok_or_else(|| {
-            crate::models::Error::Validation(format!(
-                "{}() requires at least one argument",
-                name
-            ))
+            crate::models::Error::Validation(format!("{}() requires at least one argument", name))
         })?;
         let var_name = match first_arg {
             Expr::Literal(Literal::Str(s)) => s.clone(),

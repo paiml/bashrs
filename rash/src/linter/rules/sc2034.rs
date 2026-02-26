@@ -63,7 +63,7 @@ pub fn check(source: &str) -> LintResult {
     }
 
     // Second pass: find unused variables
-    for (var_name, line_num) in assigned.iter() {
+    for (var_name, line_num) in &assigned {
         if !used.contains(var_name) {
             // Skip common patterns that are intentionally unused
             if var_name.starts_with('_') || var_name.to_uppercase() == *var_name {

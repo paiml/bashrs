@@ -1,8 +1,8 @@
 //! Corpus tier management: tier detail, ID ranges, tier listing, fail maps, and score ranges.
 
-use crate::models::{Config, Result};
-use super::corpus_failure_commands::result_fail_dims;
 use super::corpus_diag_commands::result_dim_pass;
+use super::corpus_failure_commands::result_fail_dims;
+use crate::models::{Config, Result};
 
 pub(crate) fn corpus_tier_detail() -> Result<()> {
     use crate::cli::color::*;
@@ -365,8 +365,7 @@ pub(crate) fn corpus_score_range() -> Result<()> {
             .format_scores
             .iter()
             .find(|fs| fs.format == *fmt)
-            .map(|fs| fs.score)
-            .unwrap_or(0.0);
+            .map_or(0.0, |fs| fs.score);
 
         let color = pct_color(rate);
         println!("  {CYAN}{:<12}{RESET} {color}{:>7.1}{RESET} {color}{:>7.1}%{RESET} {:>7.1} {:>8} {:>8}",

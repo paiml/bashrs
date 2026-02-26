@@ -260,8 +260,7 @@ impl Completer for ReplCompleter {
         // Find the last word boundary
         let word_start = line_before_cursor
             .rfind(char::is_whitespace)
-            .map(|i| i + 1)
-            .unwrap_or(0);
+            .map_or(0, |i| i + 1);
 
         let word = &line_before_cursor[word_start..];
         let completions = self.complete_bash_construct(word);

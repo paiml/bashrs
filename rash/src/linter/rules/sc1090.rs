@@ -53,7 +53,8 @@ pub fn check(source: &str) -> LintResult {
                 result.add(Diagnostic::new(
                     "SC1090",
                     Severity::Info,
-                    "SC1090: Can't follow non-constant source. Use a directive to specify location".to_string(),
+                    "SC1090: Can't follow non-constant source. Use a directive to specify location"
+                        .to_string(),
                     Span::new(line_num, 1, line_num, line.len() + 1),
                 ));
             }

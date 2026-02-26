@@ -17,15 +17,14 @@
 // Impact: Style/clarity issue, may cause confusion
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARITH_EXPR: Lazy<Regex> = Lazy::new(|| {
+static ARITH_EXPR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: $(( ... )) arithmetic expressions
     Regex::new(r"\$\(\(([^)]+)\)\)").unwrap()
 });
 
-static BRACED_VAR: Lazy<Regex> = Lazy::new(|| {
+static BRACED_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: ${var} braced variables
     Regex::new(r"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}").unwrap()
 });

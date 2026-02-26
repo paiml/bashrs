@@ -100,9 +100,7 @@ impl RollbackAction {
             ),
             Self::RemoveFile(path) => format!("Remove file: {}", path.display()),
             Self::RemoveDirectory(path) => format!("Remove directory: {}", path.display()),
-            Self::RestorePackages { install, remove } => {
-                describe_restore_packages(install, remove)
-            }
+            Self::RestorePackages { install, remove } => describe_restore_packages(install, remove),
             Self::RestoreService {
                 name,
                 was_enabled,

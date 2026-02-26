@@ -1,9 +1,8 @@
 // SC2207: Prefer mapfile or read -a to split command output
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static ARRAY_FROM_CMDSUB: Lazy<Regex> = Lazy::new(|| {
+static ARRAY_FROM_CMDSUB: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match array=( $(cmd) ) without quotes
     Regex::new(r"\w+\s*=\s*\(\s*\$\([^)]+\)\s*\)").unwrap()
 });

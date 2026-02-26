@@ -21,12 +21,11 @@
 //! Heredocs always start on the *next* line after the `<<DELIM` token.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Regex to match heredoc start and capture the delimiter (no backreferences)
 #[allow(clippy::expect_used)]
-static HEREDOC_START: Lazy<Regex> = Lazy::new(|| {
+static HEREDOC_START: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r#"<<-?\s*\\?(?:'(\w+)'|"(\w+)"|(\w+))"#).expect("valid heredoc start regex")
 });
 

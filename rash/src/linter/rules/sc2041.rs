@@ -26,10 +26,9 @@
 // not from the for loop's iteration variable.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static READ_IN_FOR: Lazy<Regex> = Lazy::new(|| {
+static READ_IN_FOR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: for ... do ... read ...
     // We'll use a simpler heuristic: look for `read` command inside for loops
     Regex::new(r"\bread\s+").unwrap()

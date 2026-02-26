@@ -1,9 +1,8 @@
 // SC2212: Use [ p ] && [ q ] instead of [ p -a q ]
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
-static DEPRECATED_A_OPERATOR: Lazy<Regex> = Lazy::new(|| {
+static DEPRECATED_A_OPERATOR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match [ ... -a ... ] in single bracket tests
     Regex::new(r"\[\s+[^\]]*\s+-a\s+[^\]]*\]").unwrap()
 });

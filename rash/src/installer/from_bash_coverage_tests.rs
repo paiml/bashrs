@@ -94,7 +94,11 @@ fn test_convert_file_to_project_creates_directories() {
 
     let output_dir = tmp.path().join("output-project");
     let result = convert_file_to_project(&script_path, &output_dir);
-    assert!(result.is_ok(), "convert_file_to_project failed: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "convert_file_to_project failed: {:?}",
+        result
+    );
 
     // Verify directory structure was created
     assert!(output_dir.exists(), "Output dir should exist");
@@ -123,11 +127,7 @@ fn test_convert_file_to_project_with_heredoc() {
 
     let script_path = tmp.path().join("setup.sh");
     let mut file = std::fs::File::create(&script_path).unwrap();
-    writeln!(
-        file,
-        "#!/bin/bash\ncat <<EOF > /etc/config\nkey=value\nEOF"
-    )
-    .unwrap();
+    writeln!(file, "#!/bin/bash\ncat <<EOF > /etc/config\nkey=value\nEOF").unwrap();
 
     let output_dir = tmp.path().join("heredoc-project");
     let result = convert_file_to_project(&script_path, &output_dir);
@@ -138,7 +138,8 @@ fn test_convert_file_to_project_with_heredoc() {
 fn test_convert_file_to_project_nonexistent_input() {
     let tmp = TempDir::new().expect("create tempdir");
     let output_dir = tmp.path().join("output");
-    let result = convert_file_to_project(std::path::Path::new("/nonexistent/script.sh"), &output_dir);
+    let result =
+        convert_file_to_project(std::path::Path::new("/nonexistent/script.sh"), &output_dir);
     assert!(result.is_err());
 }
 

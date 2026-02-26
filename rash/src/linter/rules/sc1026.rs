@@ -14,13 +14,11 @@
 //   [ $x -eq 1 -o $y -eq 2 ]   # -o is valid in [ ] (SC2055 handles deprecation)
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use once_cell::sync::Lazy;
 use regex::Regex;
 
 /// Matches [[ ... -a ... ]] or [[ ... -o ... ]]
-static DOUBLE_BRACKET_AO: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\[\[[^\]]*\s-([ao])\s[^\]]*\]\]").unwrap()
-});
+static DOUBLE_BRACKET_AO: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\[[^\]]*\s-([ao])\s[^\]]*\]\]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -43,10 +41,7 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC1026",
                 Severity::Warning,
-                format!(
-                    "Use `{}` in [[ ]], not `-{}`",
-                    replacement, op
-                ),
+                format!("Use `{}` in [[ ]], not `-{}`", replacement, op),
                 Span::new(line_num, start_col, line_num, end_col),
             );
 
