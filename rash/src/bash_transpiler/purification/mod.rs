@@ -23,6 +23,10 @@ mod tests;
 #[path = "golden_tests.rs"]
 mod golden_tests;
 
+#[cfg(test)]
+#[path = "control_flow_coverage_tests.rs"]
+mod control_flow_coverage_tests;
+
 #[derive(Error, Debug)]
 pub enum PurificationError {
     #[error("Cannot purify non-deterministic construct: {0}")]
