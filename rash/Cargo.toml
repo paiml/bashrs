@@ -63,7 +63,7 @@ base64 = { version = "0.22", optional = true }
 
 # TUI dependencies (re-enabled for bashrs tui command)
 ratatui = { version = "0.29", default-features = false, features = ["crossterm"], optional = true }
-crossterm = { version = "0.28", optional = true }
+crossterm = { version = "0.29", optional = true }
 
 # Optional dependencies for feature gates (commented out for now)
 # z3 = { version = "0.12", optional = true }
