@@ -99,6 +99,7 @@ panic = "abort"           # Remove panic unwinding
 strip = true              # Strip all symbols
 
 [profile.dev]
+panic = "abort"
 debug = true
 opt-level = 0
 
