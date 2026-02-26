@@ -57,7 +57,7 @@ once_cell = "1.21.3"
 lazy_static = "1.5"
 phf = { version = "0.13", features = ["macros"] }
 tempfile = "3.20.0"
-criterion = "0.6"
+criterion = "0.8"
 proptest = "1.6"
 rstest = "0.25"
 rustyline = "17.0"
