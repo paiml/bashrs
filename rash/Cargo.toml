@@ -43,7 +43,7 @@ blake3.workspace = true
 once_cell.workspace = true
 lazy_static.workspace = true
 phf.workspace = true
-chrono = { version = "0.4", features = ["serde"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 rand = "0.9"  # Added for testing module
 rand_chacha = "0.9"  # Deterministic RNG for adversarial data generation
 batuta-common = "0.1"
