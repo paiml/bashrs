@@ -46,3 +46,7 @@ pub use suppression::{Suppression, SuppressionManager, SuppressionType};
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+#[path = "lint_shell_coverage_tests.rs"]
+mod lint_shell_coverage_tests;
