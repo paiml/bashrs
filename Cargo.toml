@@ -32,7 +32,7 @@ rustyline = "17.0"
 # Dependency unification (Issue #57 - Zero Defect Policy)
 # Force unified versions across all workspace crates and transitive dependencies
 bitflags = "2.10"
-hashbrown = "0.15"
+hashbrown = "0.16"
 indexmap = "2.7"
 itertools = "0.14"
 regex-automata = "0.5"
