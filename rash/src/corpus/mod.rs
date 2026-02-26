@@ -58,6 +58,10 @@ mod runner_coverage_tests2;
 mod error_dedup_tests;
 
 #[cfg(test)]
+#[path = "registry_load_coverage_tests.rs"]
+mod registry_load_coverage_tests;
+
+#[cfg(test)]
 #[path = "pattern_store_tests.rs"]
 mod pattern_store_tests;
 
