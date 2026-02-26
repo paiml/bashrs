@@ -22,6 +22,7 @@ pub mod autofix;
 pub mod citl;
 pub mod diagnostic;
 pub mod docker_profiler;
+pub mod embedded;
 pub mod ignore_file;
 pub mod make_preprocess;
 pub mod output;
