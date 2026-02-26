@@ -69,6 +69,18 @@ mod pattern_store_tests;
 #[path = "adversarial_templates_tests.rs"]
 mod adversarial_templates_tests;
 
+#[cfg(test)]
+#[path = "domain_categories_coverage_tests.rs"]
+mod domain_categories_coverage_tests;
+
+#[cfg(test)]
+#[path = "citl_coverage_tests.rs"]
+mod citl_coverage_tests;
+
+#[cfg(test)]
+#[path = "tier_analysis_coverage_tests.rs"]
+mod tier_analysis_coverage_tests;
+
 pub use pattern_store::{PatternStore, ShellFixPattern};
 pub use registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
 pub use runner::{ConvergenceEntry, CorpusResult, CorpusRunner, CorpusScore, FormatScore};
