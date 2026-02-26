@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    ".",
     "rash",
     "rash-runtime",
     "bashrs-oracle",
@@ -7,17 +8,49 @@ members = [
 exclude = ["fuzz", "rash-mcp", "target/", ".profraw", ".profdata", ".vscode/", ".idea/", ".pmat", "proptest-regressions"]
 resolver = "2"
 
+[package]
+name = "bashrs-specs"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Formal verification specifications and benchmarks for bashrs workspace"
+publish = false
+autoexamples = false
+autotests = false
+autobins = false
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+bashrs = { path = "rash" }
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "workspace_bench"
+harness = false
+
+[lints]
+workspace = true
+
+[features]
+default = []
+
 [workspace.dependencies]
 syn = { version = "2.0", features = ["full", "extra-traits"] }
 quote = "1.0.40"
 proc-macro2 = { version = "1.0.95", features = ["span-locations"] }
-serde = { version = "1.0", features = ["derive"] }
+serde = { version = "1.0", default-features = false, features = ["derive", "std"] }
 serde_json = "1.0.140"
 anyhow = "1.0.98"
 thiserror = "2.0.12"
 clap = { version = "4.5.39", features = ["derive"] }
 tokio = { version = "1.45.1", default-features = false, features = ["rt", "rt-multi-thread", "macros", "io-util", "fs", "time", "process"] }
-tracing = "0.1.41"
+tracing = { version = "0.1.41", default-features = false, features = ["std"] }
 tracing-subscriber = "0.3.19"
 blake3 = "1.8.2"
 once_cell = "1.21.3"
@@ -58,6 +91,7 @@ unsafe_op_in_unsafe_fn = "deny"
 unreachable_pub = "warn"
 # missing_docs = "warn"  # Tracked in Issue #52 (1907 items) - incremental fix planned
 rust_2018_idioms = { level = "warn", priority = -1 }
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(kani)', 'cfg(coverage)', 'cfg(trybuild_no_target)'] }
 
 [workspace.lints.clippy]
 # Cloudflare-class defect prevention (2025-11-18 outage)
