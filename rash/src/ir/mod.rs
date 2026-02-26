@@ -47,6 +47,10 @@ mod convert_expr_tests3;
 #[path = "convert_coverage_tests.rs"]
 mod convert_coverage_tests;
 
+#[cfg(test)]
+#[path = "binary_ops_coverage_tests.rs"]
+mod binary_ops_coverage_tests;
+
 pub use effects::{Effect, EffectSet};
 pub use shell_ir::{Command, ShellExpression, ShellIR, ShellValue};
 
