@@ -64,6 +64,10 @@ mod checkpoint_tests;
 #[path = "dry_run_tests.rs"]
 mod dry_run_tests;
 
+#[cfg(test)]
+#[path = "from_bash_coverage_tests.rs"]
+mod from_bash_coverage_tests;
+
 pub use audit::{
     AuditCategory, AuditContext, AuditFinding, AuditMetadata, AuditReport, AuditSeverity,
 };
