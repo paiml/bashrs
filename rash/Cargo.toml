@@ -12,6 +12,10 @@ documentation.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--generate-link-to-definition"]
+
 [lints]
 workspace = true
 
@@ -145,6 +149,10 @@ harness = false
 
 [[bench]]
 name = "bash_purification_benchmarks"
+harness = false
+
+[[bench]]
+name = "validation"
 harness = false
 
 # Note: The actual Rash examples are in the examples/ directory

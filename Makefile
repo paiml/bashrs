@@ -21,7 +21,7 @@ export RUST_TEST_THREADS=$(TEST_THREADS)
 .PHONY: fuzz fuzz-all fuzz-coverage fuzz-trophies fuzz-differential
 .PHONY: verify verify-smt verify-model verify-specs verify-properties
 .PHONY: shellcheck-install shellcheck-validate shellcheck-test-all
-.PHONY: audit docs build install profile-memory profile-heap profile-flamegraph
+.PHONY: audit docs build bench install profile-memory profile-heap profile-flamegraph
 .PHONY: update-deps update-deps-aggressive update-deps-check update-deps-workspace
 .PHONY: coverage coverage-ci coverage-clean
 .PHONY: kaizen demo-mode
@@ -799,6 +799,11 @@ docs:
 build:
 	@echo "🔨 Building release binaries..."
 	@cargo build --release --workspace --all-features
+
+# Benchmarks
+bench:
+	@echo "📊 Running benchmarks..."
+	@cargo bench --workspace --no-fail-fast
 
 # Install
 install: build

@@ -16,7 +16,7 @@ serde_json = "1.0.140"
 anyhow = "1.0.98"
 thiserror = "2.0.12"
 clap = { version = "4.5.39", features = ["derive"] }
-tokio = { version = "1.45.1", features = ["full"] }
+tokio = { version = "1.45.1", default-features = false, features = ["rt", "rt-multi-thread", "macros", "io-util", "fs", "time", "process"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 blake3 = "1.8.2"
@@ -64,14 +64,63 @@ rust_2018_idioms = { level = "warn", priority = -1 }
 # CRITICAL: unwrap() causes panics - see Cloudflare 2025-11-18 outage
 unwrap_used = { level = "deny", priority = 1 }  # Ban unwrap() to prevent panics in production
 expect_used = { level = "warn", priority = 1 }  # Allow expect() but warn for review
+# Pedantic quality lints (pmat rust-project-score requirement)
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
 # High-value quality lints
 checked_conversions = "warn"
 dbg_macro = "warn"
 todo = "warn"
 unimplemented = "warn"
-# Avoid too many pedantic warnings for now - enable gradually
+# Pedantic exceptions (too noisy without value)
 module_name_repetitions = "allow"
 must_use_candidate = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+doc_markdown = "allow"
+similar_names = "allow"
+too_many_lines = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+cast_precision_loss = "allow"
+cast_lossless = "allow"
+cast_possible_wrap = "allow"
+struct_excessive_bools = "allow"
+fn_params_excessive_bools = "allow"
+wildcard_imports = "allow"
+items_after_statements = "allow"
+return_self_not_must_use = "allow"
+manual_string_new = "allow"
+uninlined_format_args = "allow"
+needless_pass_by_value = "allow"
+unnecessary_wraps = "allow"
+single_match_else = "allow"
+match_same_arms = "allow"
+if_not_else = "allow"
+redundant_else = "allow"
+match_wildcard_for_single_variants = "allow"
+struct_field_names = "allow"
+implicit_hasher = "allow"
+option_if_let_else = "allow"
+manual_assert = "allow"
+used_underscore_binding = "allow"
+trivially_copy_pass_by_ref = "allow"
+redundant_closure_for_method_calls = "allow"
+unreadable_literal = "allow"
+inconsistent_struct_constructor = "allow"
+
+# cargo-release workspace configuration
+# Workspace equivalent of [package.metadata.release] for individual crates
+[workspace.metadata.release]
+shared-version = true
+pre-release-replacements = [
+    { file = "CHANGELOG.md", search = "Unreleased", replace = "{{version}}" },
+]
+
+# Documentation configuration
+# Workspace equivalent of [package.metadata.docs.rs] (see rash/Cargo.toml)
+# all-features = true
+# rustdoc-args = ["--generate-link-to-definition"]
 
 # Performance and size optimizations (following ripgrep/fd practices)
 [profile.release]
