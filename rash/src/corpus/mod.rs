@@ -61,6 +61,10 @@ mod error_dedup_tests;
 #[path = "pattern_store_tests.rs"]
 mod pattern_store_tests;
 
+#[cfg(test)]
+#[path = "adversarial_templates_tests.rs"]
+mod adversarial_templates_tests;
+
 pub use pattern_store::{PatternStore, ShellFixPattern};
 pub use registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
 pub use runner::{ConvergenceEntry, CorpusResult, CorpusRunner, CorpusScore, FormatScore};
