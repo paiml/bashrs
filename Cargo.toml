@@ -117,3 +117,6 @@ incremental = false  # CRITICAL: Prevents stale coverage data
 opt-level = 0
 codegen-units = 1
 
+
+[package.metadata.release]
+shared-version = true
