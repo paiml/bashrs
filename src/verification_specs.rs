@@ -92,3 +92,45 @@ mod tests {
     #[test] fn test_is_valid_float() { assert!(numeric_contracts::is_valid_float(1.0)); assert!(!numeric_contracts::is_valid_float(f64::NAN)); }
     #[test] fn test_normalize() { assert!((numeric_contracts::normalize(5.0, 0.0, 10.0) - 0.5).abs() < f64::EPSILON); }
 }
+
+/// Kani bounded model checking proofs
+///
+/// These proofs verify arithmetic safety and contract invariants
+/// using CBMC-based symbolic execution.
+#[cfg(kani)]
+mod kani_proofs {
+    use super::*;
+
+    #[kani::proof]
+    fn verify_checked_add_no_overflow() {
+        let a: u64 = kani::any();
+        let b: u64 = kani::any();
+        let result = numeric_contracts::checked_add(a, b);
+        if let Some(sum) = result {
+            assert!(sum >= a);
+            assert!(sum >= b);
+        }
+    }
+
+    #[kani::proof]
+    fn verify_normalize_bounds() {
+        let val: f64 = kani::any();
+        let min: f64 = kani::any();
+        let max: f64 = kani::any();
+        kani::assume(max > min);
+        kani::assume(val.is_finite() && min.is_finite() && max.is_finite());
+        let result = numeric_contracts::normalize(val, min, max);
+        assert!(result >= 0.0 && result <= 1.0);
+    }
+
+    #[kani::proof]
+    fn verify_validate_index_bounds() {
+        let index: usize = kani::any();
+        let len: usize = kani::any();
+        kani::assume(len > 0);
+        let valid = config_contracts::validate_index(index, len);
+        if valid {
+            assert!(index < len);
+        }
+    }
+}
