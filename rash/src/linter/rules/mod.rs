@@ -1386,6 +1386,15 @@ pub fn lint_shell(source: &str) -> LintResult {
         .diagnostics
         .retain(|diag| !suppression_manager.is_suppressed(&diag.code, diag.span.start_line));
 
+    // Filter out diagnostics inside embedded programs (awk, sed, perl, etc.)
+    // See: https://github.com/paiml/bashrs/issues/137
+    let embedded_lines = crate::linter::embedded::embedded_program_lines(source);
+    if !embedded_lines.is_empty() {
+        result
+            .diagnostics
+            .retain(|diag| !embedded_lines.contains(&diag.span.start_line));
+    }
+
     result
 }
 
