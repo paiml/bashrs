@@ -26,7 +26,7 @@ phf = { version = "0.13", features = ["macros"] }
 tempfile = "3.20.0"
 criterion = "0.6"
 proptest = "1.6"
-rstest = "0.25"
+rstest = "0.26"
 rustyline = "17.0"
 
 # Dependency unification (Issue #57 - Zero Defect Policy)
