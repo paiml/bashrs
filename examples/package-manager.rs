@@ -88,6 +88,8 @@ fn env_var_or(key: &str, default: &str) -> String {
     }
 }
 
-fn env(key: &str) -> String { String::new() }
+fn env(key: &str) -> String {
+    String::new()
+}
 fn echo(msg: &str) {}
 fn mkdir_p(path: &str) {}

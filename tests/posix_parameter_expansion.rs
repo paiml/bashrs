@@ -247,7 +247,7 @@ fn main() {
     // Should use direct echo, not echo $(echo ...)
     let echo_count = shell.matches("echo").count();
     assert!(
-        echo_count <= 2,  // May have echo in boilerplate + user echo
+        echo_count <= 2, // May have echo in boilerplate + user echo
         "Should not have nested echo calls (SC2116): {}",
         shell
     );
@@ -294,7 +294,9 @@ fn main() {
 
     // Path should be quoted to prevent word splitting
     assert!(
-        shell.contains(r#""$path""#) || shell.contains("'$path'") || shell.contains("'/path/with spaces/file.txt'"),
+        shell.contains(r#""$path""#)
+            || shell.contains("'$path'")
+            || shell.contains("'/path/with spaces/file.txt'"),
         "Paths with spaces should be quoted: {}",
         shell
     );
@@ -394,7 +396,10 @@ fn main() {
 
     // Should use POSIX integer comparison operators
     assert!(
-        shell.contains("-eq") || shell.contains("-ne") || shell.contains("-lt") || shell.contains("-gt"),
+        shell.contains("-eq")
+            || shell.contains("-ne")
+            || shell.contains("-lt")
+            || shell.contains("-gt"),
         "Should use POSIX comparison operators: {}",
         shell
     );

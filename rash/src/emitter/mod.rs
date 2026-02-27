@@ -127,6 +127,10 @@ mod emitter_coverage_tests;
 mod makefile_coverage_tests;
 
 #[cfg(test)]
+#[path = "makefile_coverage_tests2.rs"]
+mod makefile_coverage_tests2;
+
+#[cfg(test)]
 #[path = "posix_coverage_tests.rs"]
 mod posix_coverage_tests;
 

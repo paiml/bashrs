@@ -1514,6 +1514,14 @@ pub fn lint_makefile(source: &str) -> LintResult {
 }
 
 #[cfg(test)]
+#[path = "docker003_tests.rs"]
+mod docker003_tests;
+
+#[cfg(test)]
+#[path = "docker004_tests.rs"]
+mod docker004_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
 

@@ -21,3 +21,11 @@ mod discovery_tests;
 #[cfg(test)]
 #[path = "runner_tests.rs"]
 mod comply_runner_tests;
+
+#[cfg(test)]
+#[path = "rules_tests.rs"]
+mod rules_tests;
+
+#[cfg(test)]
+#[path = "scoring_tests.rs"]
+mod scoring_tests;

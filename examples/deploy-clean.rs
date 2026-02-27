@@ -72,8 +72,7 @@ fn deploy_app(version: &str) -> Result<(), String> {
 
     // Idempotent directory creation (works on re-run)
     let release_dir = format!("/app/releases/{}", release_tag);
-    fs::create_dir_all(&release_dir)
-        .map_err(|e| format!("Failed to create release dir: {}", e))?;
+    fs::create_dir_all(&release_dir).map_err(|e| format!("Failed to create release dir: {}", e))?;
 
     // Extract archive
     extract_archive("app.tar.gz", &release_dir)?;

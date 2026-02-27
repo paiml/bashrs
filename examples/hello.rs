@@ -4,7 +4,7 @@
 fn main() {
     let greeting = "Hello from Rash!";
     echo(greeting);
-    
+
     let user = "world";
     echo(user);
 }

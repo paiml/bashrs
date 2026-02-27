@@ -1,12 +1,11 @@
-
 fn main() {
     let prefix = "/usr/local";
     let version = "1.0.0";
-    
+
     // Simple echo command
     echo_message("Installing version");
     echo_value(version);
-    
+
     // Create directory
     mkdir(prefix);
 }

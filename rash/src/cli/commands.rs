@@ -50,6 +50,18 @@ mod command_tests_corpus2;
 #[path = "command_tests_corpus3.rs"]
 mod command_tests_corpus3;
 
+#[cfg(test)]
+#[path = "command_tests_corpus_cov.rs"]
+mod command_tests_corpus_cov;
+
+#[cfg(test)]
+#[path = "command_tests_lint_cov.rs"]
+mod command_tests_lint_cov;
+
+#[cfg(test)]
+#[path = "command_tests_installer_cov.rs"]
+mod command_tests_installer_cov;
+
 // ---------------------------------------------------------------------------
 // Extracted command modules (thin dispatch -> dedicated files)
 // ---------------------------------------------------------------------------
