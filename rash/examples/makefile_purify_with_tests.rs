@@ -79,6 +79,8 @@ clean:
         .args([
             "run",
             "--quiet",
+            "-p",
+            "bashrs",
             "--bin",
             "bashrs",
             "--",
