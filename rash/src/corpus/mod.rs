@@ -81,6 +81,14 @@ mod citl_coverage_tests;
 #[path = "tier_analysis_coverage_tests.rs"]
 mod tier_analysis_coverage_tests;
 
+#[cfg(test)]
+#[path = "domain_categories_tests.rs"]
+mod domain_categories_tests;
+
+#[cfg(test)]
+#[path = "corpus_format_tests.rs"]
+mod corpus_format_tests;
+
 pub use pattern_store::{PatternStore, ShellFixPattern};
 pub use registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
 pub use runner::{ConvergenceEntry, CorpusResult, CorpusRunner, CorpusScore, FormatScore};

@@ -22,6 +22,10 @@ mod reproducible_builds;
 #[cfg(test)]
 mod tests;
 
+#[cfg(test)]
+#[path = "purify_tests.rs"]
+mod purify_tests;
+
 /// Result of purification process
 #[derive(Debug, Clone, PartialEq)]
 pub struct PurificationResult {

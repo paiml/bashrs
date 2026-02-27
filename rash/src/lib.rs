@@ -134,6 +134,10 @@ pub mod tui;
 #[cfg(test)]
 pub mod testing;
 
+#[cfg(test)]
+#[path = "coverage_integration_tests.rs"]
+mod coverage_integration_tests;
+
 // WebAssembly support removed - use probar/simular/jugar instead
 
 pub use emitter::{DecisionTrace, TranspilerDecision};

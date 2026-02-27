@@ -68,6 +68,14 @@ mod dry_run_tests;
 #[path = "from_bash_coverage_tests.rs"]
 mod from_bash_coverage_tests;
 
+#[cfg(test)]
+#[path = "installer_tests.rs"]
+mod installer_tests;
+
+#[cfg(test)]
+#[path = "executor_cov_tests.rs"]
+mod executor_cov_tests;
+
 pub use audit::{
     AuditCategory, AuditContext, AuditFinding, AuditMetadata, AuditReport, AuditSeverity,
 };

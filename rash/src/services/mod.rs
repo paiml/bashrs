@@ -20,4 +20,8 @@ mod parser_coverage_tests3;
 #[path = "parser_coverage_tests4.rs"]
 mod parser_coverage_tests4;
 
+#[cfg(test)]
+#[path = "parser_coverage_tests5.rs"]
+mod parser_coverage_tests5;
+
 pub use parser::parse;

@@ -59,3 +59,23 @@ mod expr_coverage_tests;
 #[cfg(test)]
 #[path = "parser_coverage_tests.rs"]
 mod parser_coverage_tests;
+
+#[cfg(test)]
+#[path = "parser_arith_tests.rs"]
+mod parser_arith_tests;
+
+#[cfg(test)]
+#[path = "parser_decl_tests.rs"]
+mod parser_decl_tests;
+
+#[cfg(test)]
+#[path = "parser_expr_tests.rs"]
+mod parser_expr_tests;
+
+#[cfg(test)]
+#[path = "lexer_operator_tests.rs"]
+mod lexer_operator_tests;
+
+#[cfg(test)]
+#[path = "parser_control_cov_tests.rs"]
+mod parser_control_cov_tests;

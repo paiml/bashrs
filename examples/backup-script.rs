@@ -5,7 +5,7 @@
 fn main() {
     let source_dir = env_var_or("BACKUP_SOURCE", "/etc");
     let backup_dir = env_var_or("BACKUP_DIR", "/var/backups");
-    let timestamp = "20251004";  // In real script, would use $(date +%Y%m%d)
+    let timestamp = "20251004"; // In real script, would use $(date +%Y%m%d)
 
     echo("=== Backup Script ===");
     echo("Source:  {source_dir}");
@@ -47,7 +47,11 @@ fn env_var_or(key: &str, default: &str) -> String {
     }
 }
 
-fn env(key: &str) -> String { String::new() }
+fn env(key: &str) -> String {
+    String::new()
+}
 fn echo(msg: &str) {}
 fn mkdir_p(path: &str) {}
-fn path_exists(path: &str) -> bool { true }
+fn path_exists(path: &str) -> bool {
+    true
+}

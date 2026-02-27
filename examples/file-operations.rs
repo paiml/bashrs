@@ -42,6 +42,10 @@ fn main() {
 
 fn echo(msg: &str) {}
 fn mkdir_p(path: &str) {}
-fn path_exists(path: &str) -> bool { true }
+fn path_exists(path: &str) -> bool {
+    true
+}
 fn write_file(path: &str, content: &str) {}
-fn read_file(path: &str) -> String { String::new() }
+fn read_file(path: &str) -> String {
+    String::new()
+}

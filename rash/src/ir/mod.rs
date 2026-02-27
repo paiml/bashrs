@@ -29,6 +29,10 @@ mod pattern;
 mod tests;
 
 #[cfg(test)]
+#[path = "ir_expr_tests.rs"]
+mod ir_expr_tests;
+
+#[cfg(test)]
 mod shell_ir_tests;
 
 #[cfg(test)]
@@ -50,6 +54,10 @@ mod convert_coverage_tests;
 #[cfg(test)]
 #[path = "binary_ops_coverage_tests.rs"]
 mod binary_ops_coverage_tests;
+
+#[cfg(test)]
+#[path = "ir_pattern_tests.rs"]
+mod ir_pattern_tests;
 
 pub use effects::{Effect, EffectSet};
 pub use shell_ir::{Command, ShellExpression, ShellIR, ShellValue};

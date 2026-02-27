@@ -1,4 +1,3 @@
-
 fn main() {
     let message = "Hello from Rash!";
     echo(message);
