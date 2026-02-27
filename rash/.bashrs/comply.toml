@@ -1,0 +1,36 @@
+[comply]
+version = "1.0.0"
+bashrs_version = "6.64.0"
+created = "1772145128"
+
+[scopes]
+project = true
+user = false
+system = true
+
+[project]
+artifacts = []
+
+[user]
+artifacts = []
+
+[rules]
+posix = true
+determinism = true
+idempotency = true
+security = true
+quoting = true
+shellcheck = true
+makefile_safety = true
+dockerfile_best = true
+config_hygiene = true
+pzsh_budget = "10ms"
+
+[thresholds]
+min_score = 80
+max_violations = 0
+shellcheck_severity = "warning"
+
+[integration]
+pzsh = "auto"
+pmat = "auto"
