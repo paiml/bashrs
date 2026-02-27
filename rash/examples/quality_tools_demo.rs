@@ -93,6 +93,8 @@ fn run_command(args: &[&str]) -> Result<String> {
     let output = Command::new("cargo")
         .arg("run")
         .arg("--quiet")
+        .arg("-p")
+        .arg("bashrs")
         .arg("--bin")
         .arg("bashrs")
         .arg("--")

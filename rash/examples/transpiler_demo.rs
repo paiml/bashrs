@@ -65,6 +65,8 @@ fn transpile_and_run(rust_code: &str, temp_dir: &std::path::Path) -> Result<(Str
     let result = Command::new("cargo")
         .arg("run")
         .arg("--quiet")
+        .arg("-p")
+        .arg("bashrs")
         .arg("--bin")
         .arg("bashrs")
         .arg("--")

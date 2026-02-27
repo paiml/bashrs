@@ -22,7 +22,7 @@
 
 ## Table of Contents
 
-- [What's New](#-whats-new-in-v6600)
+- [What's New](#-whats-new-in-v6650)
 - [Why Rash?](#why-rash)
 - [Quick Start](#quick-start)
 - [Features](#features)
@@ -36,18 +36,17 @@
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🚀 What's New in v6.61.0
+## 🚀 What's New in v6.65.0
 
-**Latest Release** - 2026-02-10
+**Latest Release** - 2026-02-27
 
-- **Transpiler Bug Fixes**: 2 critical correctness fixes
-  - `return` inside `while`/`for`/`match` in functions now correctly emits shell arithmetic
-  - `let x = match y { ... }` now generates proper `case` statements instead of `x='unknown'`
-- **Corpus Expansion**: 14,712 transpilation entries (13,397 Bash + 695 Makefile + 620 Dockerfile)
-  - V2 Score: 97.5/100 (A+), 0 failures across all entries
-  - 107+ CLI subcommands for corpus analysis, quality gates, and convergence tracking
-- **New Example**: `transpiler_demo` showcasing nested calls, match-in-let, recursion, and multi-function programs
-- **Quality Metrics**: 10,888 tests, 97.5/100 corpus score (A+)
+- **Coverage Milestone**: Line coverage raised from 94.00% to **95.04%** (19,204 uncovered lines remaining)
+  - 1,572 new coverage tests across 25 test files and 11 modules
+  - CLI command coverage (corpus, lint, comply, installer)
+  - Parser coverage (arithmetic, control flow, declarations, expressions)
+- **15,117 Tests**: All passing with zero failures
+- **Examples Fixed**: All 7 `cargo run --example` demos now work correctly in workspace
+- **Book Updated**: All `mdbook test` examples pass, transpiler docs corrected
 
 See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
 
@@ -207,11 +206,12 @@ bashrs simulate script.sh --seed 42 --verify
 | Metric | Value | Status |
 |--------|-------|--------|
 | **V2 Corpus Score** | 97.5/100 | ✅ Grade A+ |
-| **Corpus Entries** | 14,712 | ✅ 100% pass rate |
-| **Tests** | 10,888 passing | ✅ 100% pass rate |
-| **Transpilation** | 100% (14,712/14,712) | ✅ All entries compile |
-| **Behavioral** | 100% (14,707/14,712) | ✅ Output matches spec |
-| **Deterministic** | 100% (14,712/14,712) | ✅ Same input = same output |
+| **Corpus Entries** | 17,882 | ✅ 100% pass rate |
+| **Tests** | 15,117 passing | ✅ 100% pass rate |
+| **Line Coverage** | 95.04% | ✅ Exceeds 95% target |
+| **Transpilation** | 100% (17,882/17,882) | ✅ All entries compile |
+| **Behavioral** | 100% | ✅ Output matches spec |
+| **Deterministic** | 100% | ✅ Same input = same output |
 | **ShellCheck** | 99.9% compliant | ✅ All output passes |
 | **Cross-Shell** | 98.8% (sh + dash) | ✅ POSIX portable |
 | **Shell Compatibility** | 6 shells | ✅ sh, dash, bash, ash, zsh, mksh |

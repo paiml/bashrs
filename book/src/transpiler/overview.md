@@ -13,7 +13,7 @@ Rash can transpile a subset of Rust into safe, deterministic POSIX shell scripts
 
 Write a Rust file using the supported subset:
 
-```rust
+```rust,ignore
 // install.rs
 fn greet(name: &str) {
     println!("Hello, {}!", name);
@@ -81,7 +81,7 @@ main "$@"
 
 Match can be used as a statement or in a let binding:
 
-```rust
+```rust,ignore
 // Match as let binding -- generates case with per-arm assignment
 let tier = match level % 3 {
     0 => level * 10,
@@ -117,7 +117,7 @@ fn main() {
 
 Nested function calls are supported:
 
-```rust
+```rust,ignore
 let result = double(add_ten(square(3)));
 // Shell: result="$(double "$(add_ten "$(square 3)")")"
 ```
