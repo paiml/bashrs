@@ -113,7 +113,7 @@ jugar-probar = "1.0"  # TUI/GUI testing framework with coverage tracking
 
 # Linux-only dev-dependencies (ptrace/syscall tracing)
 [target.'cfg(target_os = "linux")'.dev-dependencies]
-renacer = "0.7"  # Golden trace integration - syscall tracing for regression detection
+renacer = "0.9"  # Golden trace integration - syscall tracing for regression detection
 
 [[bench]]
 name = "transpilation"
