@@ -13,7 +13,7 @@ use thiserror::Error;
 mod commands;
 mod control_flow;
 mod expressions;
-mod test_exprs;
+mod conditional_exprs;
 
 #[cfg(test)]
 #[allow(clippy::expect_used)]
