@@ -290,14 +290,10 @@ pub(crate) fn extract_noncomment_lines(actual: &str) -> Vec<String> {
 }
 
 /// Return true if this trimmed line is shell preamble (not user code).
+///
+/// Delegates to the canonical implementation in `corpus::dataset::is_shell_preamble`.
 pub(crate) fn is_bash_preamble(s: &str) -> bool {
-    s.is_empty()
-        || s.starts_with('#')
-        || s.starts_with("set ")
-        || s.starts_with("IFS=")
-        || s.starts_with("export ")
-        || s.starts_with("trap ")
-        || s == "main \"$@\""
+    crate::corpus::dataset::is_shell_preamble(s)
 }
 
 /// Extract lines from inside main() in a transpiled bash script.
