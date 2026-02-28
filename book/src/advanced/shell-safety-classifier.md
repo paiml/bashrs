@@ -371,15 +371,108 @@ cat ./ssc-checkpoints/training_state.json | python3 -m json.tool
 bashrs classify --model ./ssc-checkpoints/ script.sh
 ```
 
-### Step 6: Publish to HuggingFace
+### Step 6: Evaluate the Checkpoint
 
-After training completes, publish the adapter to HuggingFace Hub:
+Before publishing, evaluate the trained model against a held-out test set:
+
+```bash
+# Export a test set (separate from training data)
+bashrs corpus export-dataset --format classification -o /tmp/ssc-test.jsonl
+
+# Evaluate: text report (sklearn-style)
+apr eval /tmp/ssc-checkpoints/best/ --task classify \
+    --data /tmp/ssc-test.jsonl --model-size 0.5B --num-classes 5
+
+# Evaluate: JSON output (machine-readable)
+apr eval /tmp/ssc-checkpoints/best/ --task classify \
+    --data /tmp/ssc-test.jsonl --model-size 0.5B --num-classes 5 --json
+
+# Evaluate + generate HuggingFace model card
+apr eval /tmp/ssc-checkpoints/best/ --task classify \
+    --data /tmp/ssc-test.jsonl --model-size 0.5B --num-classes 5 --generate-card
+```
+
+The `--generate-card` flag writes a publication-quality `README.md` to the checkpoint directory with YAML front matter, metrics tables, confusion matrix, calibration curve, and error analysis — ready for HuggingFace upload.
+
+#### Evaluation Metrics
+
+The evaluation harness computes 13 metrics across 4 categories:
+
+**Accuracy & Agreement**
+
+| Metric | Description |
+|--------|-------------|
+| Accuracy | Overall correct classification rate |
+| Top-2 Accuracy | Correct class in top 2 predictions |
+| Cohen's Kappa | Chance-corrected agreement (>0.6 = substantial) |
+| MCC | Matthews Correlation Coefficient (balanced even with skewed classes) |
+
+**Per-Class Performance**
+
+| Metric | Description |
+|--------|-------------|
+| Precision | Of predictions for this class, how many were correct |
+| Recall | Of actual instances, how many were found |
+| F1 | Harmonic mean of precision and recall |
+| Support | Number of true instances per class |
+
+**Proper Scoring Rules**
+
+| Metric | Description |
+|--------|-------------|
+| Brier Score | Mean squared error of probability estimates (lower = better) |
+| Log Loss | Negative log-likelihood of correct class (lower = better) |
+
+**Calibration & Confidence**
+
+| Metric | Description |
+|--------|-------------|
+| ECE | Expected Calibration Error (|confidence - accuracy| per bin) |
+| Mean Confidence | Average predicted probability for chosen class |
+| Confidence Gap | Difference between correct and incorrect prediction confidence |
+
+All accuracy-type metrics include bootstrap 95% confidence intervals (1,000 resamples with deterministic LCG PRNG). Baselines are reported for context: random (1/K) and majority-class accuracy.
+
+#### Example Output (Text Report)
+
+```
+=== Classification Report ===
+
+                precision    recall  f1-score   support
+              safe    0.8022    0.5840    0.6759       125
+     needs-quoting    0.5000    0.0526    0.0952        38
+ non-deterministic    0.5423    0.7624    0.6337       101
+    non-idempotent    0.5389    0.8333    0.6545       108
+            unsafe    0.7188    0.5391    0.6161       128
+ ----------------------------------------------------------
+         macro avg    0.6204    0.5543    0.5351       500
+      weighted avg    0.6329    0.6220    0.6033       500
+
+Accuracy: 62.20% [57.80%, 66.80%]
+Cohen's kappa: 0.5124 (moderate)
+MCC: 0.5241 [0.4701, 0.5793]
+Macro F1: 0.5351 [0.4901, 0.5791]
+
+Brier Score: 0.6077 (lower is better)
+Log Loss: 1.8209 (lower is better)
+
+Baselines: random=20.0%, majority=25.6%, model=62.2% (2.4x lift over majority)
+
+Top confused pairs:
+  safe → non-deterministic: 28
+  unsafe → non-idempotent: 24
+  safe → non-idempotent: 22
+```
+
+### Step 7: Publish to HuggingFace
+
+After evaluation, publish the adapter to HuggingFace Hub:
 
 ```bash
 # Set HuggingFace token
 export HF_TOKEN=hf_xxxxxxxxxxxxx
 
-# Publish adapter + classifier head + config
+# Publish adapter + classifier head + config + model card
 apr publish ./ssc-checkpoints/ paiml/shell-safety-classifier
 
 # Or manual upload
@@ -388,12 +481,17 @@ huggingface-cli upload paiml/shell-safety-classifier ./ssc-checkpoints/
 
 This uploads only the LoRA adapter and classifier head — not a full copy of the base model. Users load `Qwen/Qwen2.5-Coder-0.5B` (already public) and apply the adapter on top.
 
-The published model card includes:
-- Training data description (29,307 bashrs corpus entries)
-- Per-class accuracy and F1 scores
-- Usage examples with bashrs CLI
-- Architecture details (LoRA rank, alpha, target modules)
-- License (MIT)
+The auto-generated model card (from `--generate-card`) includes:
+- YAML front matter with `model-index` metrics (accuracy, F1, MCC, kappa)
+- Summary table with 95% confidence intervals
+- Per-class precision/recall/F1 table
+- Confusion matrix (raw counts + normalized percentages)
+- Error analysis (top-5 most confused class pairs)
+- Calibration curve (reliability diagram with 8 bins)
+- Baseline comparisons (random, majority, model lift)
+- Training details (framework, method, base model)
+- Intended use, limitations, and ethical considerations
+- License (Apache-2.0)
 
 ## Sovereign Stack
 
