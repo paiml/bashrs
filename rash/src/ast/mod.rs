@@ -62,6 +62,7 @@
 //!                 name: "env".to_string(),
 //!                 args: vec![Expr::Literal(Literal::Str("USER".to_string()))],
 //!             },
+//!             declaration: true,
 //!         },
 //!         // Use the variable
 //!         Stmt::Expr(Expr::FunctionCall {
