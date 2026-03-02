@@ -1,10 +1,10 @@
 # SPEC-SSC-2026-001: Shell Safety Classifier — Published on HuggingFace
 
-**Version**: 2.2.0
-**Status**: v2 COMPLETE (15 tickets done), v2.2 TRAINING (first production run on RTX 4090)
+**Version**: 3.3.0
+**Status**: v3 TRAINING READY (data exported, splits verified, 18/18 APR checkpoint contracts done, HP contracts defined, monitoring framework unified)
 **Author**: paiml engineering
-**Date**: 2026-02-27
-**Requires**: bashrs >= 6.64.0, aprender >= 0.26.3, entrenar >= 1.0, trueno >= 0.15.0
+**Date**: 2026-03-02
+**Requires**: bashrs >= 6.65.0, aprender >= 0.27.2, entrenar >= 0.7.5, trueno >= 0.15.0, alimentar >= 0.2.7
 **HuggingFace Repo**: `paiml/shell-safety-classifier`
 
 ---
@@ -61,7 +61,10 @@ The bashrs corpus is uniquely suited for ML training:
 
 ---
 
-## 2. Safety Classes
+## 2. Safety Classes (v1/v2 — SUPERSEDED by §18.2)
+
+> **Note**: The 5-class taxonomy below was retired in v3 (§18). All new training uses
+> binary classification (safe=0, unsafe=1). Retained here for historical reference only.
 
 The model classifies shell scripts into 5 safety categories derived from bashrs
 linter rules and corpus quality dimensions:
@@ -145,19 +148,19 @@ Shell-aware tokenization that preserves:
 - Comment stripping (`# ...` removed)
 - Quoted string contents split into sub-tokens
 
-### 3.3 Model Configuration
+### 3.3 Model Configuration (v1 MLP — SUPERSEDED by §18.6)
 
 | Parameter | Value |
 |-----------|-------|
 | `vocab_size` | 251 (250 tokens + 1 safety margin) |
 | `embed_dim` | 64 |
 | `hidden_dim` | 128 |
-| `num_classes` | 5 |
+| `num_classes` | 5 (v1/v2) → **2** (v3, see §18.6) |
 | `max_seq_len` | 64 |
 | `optimizer` | Adam (lr=0.01) |
 | `loss` | CrossEntropyLoss |
 | `epochs` | 50 |
-| `train/val split` | 80/20 |
+| `train/val split` | 80/20 (v1/v2) → **80/10/10** (v3, alimentar-owned) |
 
 ---
 
@@ -683,9 +686,10 @@ this pretrained knowledge while training only ~0.1% of parameters.
 ### 10.7 Model Progression
 
 ```
-v1 (DONE):  ShellVocab(250) -> MLP(64->128->64->5)        ~10K params, trains in seconds
-v2 (DONE):  Qwen2BPE(151K)  -> Qwen2.5-0.5B+LoRA -> Linear(896->5)  ~1.1M trainable, minutes
-v3 (FUTURE): Qwen3.5 + QLoRA(4-bit) -> Linear(dim->5)     ~1M trainable, production quality
+v1   (DONE):       ShellVocab(250)  -> MLP(64->128->64->5)           ~10K params, trains in seconds
+v2   (DONE):       Qwen2BPE(151K)   -> Qwen2.5-0.5B+LoRA -> Lin(896->5)  ~1.1M trainable, 5-class
+v3   (DATA READY): Qwen2BPE(151K)   -> Qwen2.5-0.5B+LoRA -> Lin(896->2)  ~1.1M trainable, BINARY
+v4   (FUTURE):     Qwen3.5BPE(248K) -> Qwen3.5+QLoRA(4-bit) -> Lin(dim->2) ~1M, production
 ```
 
 ### 10.8 Design-by-Contract Compliance
@@ -802,30 +806,33 @@ Labels map to `aprender::text::shell_vocab::SafetyClass`:
 
 **Total new tests**: 58 (27 falsification + 11 classification + 5 pipeline + 15 CLI)
 
-## 11. Future Work (v3+)
+## 11. Future Work (v4+)
 
-### 11.1 Bashrs CLI Integration
+### 11.1 Bashrs CLI Integration — DONE (SSC-019)
 
-Add `bashrs classify` command that uses the trained model:
-```bash
-bashrs classify script.sh
-# Output: safe (confidence: 92.3%)
-```
+`bashrs classify script.sh` is implemented. See §13.2 (SSC-019).
 
-### 11.2 Multi-Label Classification
+### 11.2 Multi-Label Classification — DONE (SSC-021)
 
-Extend from single-label to multi-label (a script can be both non-deterministic
-AND needs-quoting). Use `BCEWithLogitsLoss` instead of `CrossEntropyLoss`.
+Multi-label with `BCEWithLogitsLoss`. See §13.5 (SSC-021).
 
-### 11.3 Cross-Format Models
+### 11.3 Cross-Format Models — DONE (SSC-022)
 
-Train separate classifiers for Makefile and Dockerfile formats using the
-804 + 707 corpus entries respectively.
+Makefile and Dockerfile classifiers. See §13.6 (SSC-022).
 
-### 11.4 Qwen3.5 Upgrade
+### 11.4 Qwen3.5 Upgrade (v4)
 
 Upgrade from Qwen2.5-Coder-0.5B to Qwen3.5 with hybrid linear/quadratic
 attention, head_dim=256, vocab_size=248,320. Per `aprender/docs/specifications/qwen3.5-fine-tune.md`.
+**Blocked on**: v3 binary model shipping first.
+
+### 11.5 Class Imbalance Mitigation (v3.1)
+
+v3 data has 93.5% safe / 6.5% unsafe — 14.5:1 imbalance. Options:
+- Adversarial unsafe generation (expand class 1)
+- Focal loss (down-weight easy safe examples)
+- SMOTE-like text augmentation for minority class
+- Threshold tuning (optimize F1 instead of accuracy)
 
 ---
 
@@ -892,16 +899,19 @@ attention, head_dim=256, vocab_size=248,320. Per `aprender/docs/specifications/q
 | SSC-021 | Multi-Label Classification (BCEWithLogitsLoss) | P3 | DONE | 6 |
 | SSC-022 | Cross-Format Models (Makefile/Dockerfile) | P3 | DONE | 4 |
 
-| SSC-023 | BPE Tokenizer Loading (aprender) | P0 | PLANNED | 6 |
-| SSC-024 | SafeTensors Weight Loading (entrenar) | P0 | PLANNED | 7 |
-| SSC-025 | Batch Training Pipeline (entrenar) | P1 | PLANNED | 5 |
-| SSC-026 | Production Training Loop (entrenar) | P1 | PLANNED | 7 |
-| SSC-027 | CLI Training Execution (apr-cli) | P2 | PLANNED | 4 |
+| SSC-023 | BPE Tokenizer Loading (aprender) | P0 | DONE | 6 |
+| SSC-024 | SafeTensors Weight Loading (entrenar) | P0 | DONE | 7 |
+| SSC-025 | Batch Training Pipeline (entrenar) | P1 | DONE | 5 |
+| SSC-026 | Production Training Loop (entrenar) | P1 | DONE | 7 |
+| SSC-027 | CLI Training Execution (apr-cli) | P2 | DONE | 4 |
+| SSC-028 | v3 Binary Classification Data Pipeline | P0 | DONE | 5 |
+| SSC-029 | alimentar 3-Way Split Support | P0 | DONE | 4 |
+| SSC-030 | v3 Binary Training Run | P0 | PLANNED | 3 |
 
 **Total Complexity (Done)**: 74 points (v1: 30, v2: 44)
 **Total Complexity (Planned)**: 29 points (v2.2: SSC-023..027)
 **Velocity**: 15 tickets / 3 sessions
-**Status**: v2 COMPLETE, v2.2 IN PROGRESS (production training pipeline)
+**Status**: v2 COMPLETE, v2.2 DONE (failed — §18.1), v3 DATA READY (binary pipeline verified, training pending)
 
 ---
 
@@ -1362,8 +1372,9 @@ SSC-023 and SSC-024 are independent and can be parallelized.
 ```
 v1   (DONE):       ShellVocab(250)  -> MLP(64->128->64->5)           ~10K params, trains in seconds
 v2   (DONE):       ShellVocab(250)  -> Toy Transformer+LoRA -> Lin(64->5)    ~2K trainable, demo only
-v2.2 (IN PROGRESS): Qwen2BPE(151K) -> Qwen2.5-0.5B+LoRA -> Lin(896->5)  ~1.1M trainable, 26K samples
-v3   (FUTURE):     Qwen3.5BPE(248K) -> Qwen3.5+QLoRA(4-bit) -> Lin(dim->5)  ~1M trainable, production
+v2.2 (DONE):       Qwen2BPE(151K)  -> Qwen2.5-0.5B+LoRA -> Lin(896->5)  ~1.1M trainable, 5-class (FAILED: §18.1)
+v3   (DATA READY): Qwen2BPE(151K)  -> Qwen2.5-0.5B+LoRA -> Lin(896->2)  ~1.1M trainable, BINARY, 17,942 samples
+v4   (FUTURE):     Qwen3.5BPE(248K) -> Qwen3.5+QLoRA(4-bit) -> Lin(dim->2)  ~1M trainable, production
 ```
 
 ### 14.6 Provable Contracts
@@ -1374,9 +1385,11 @@ v3   (FUTURE):     Qwen3.5BPE(248K) -> Qwen3.5+QLoRA(4-bit) -> Lin(dim->5)  ~1M 
 | Weight Loading | `qwen2-weight-loading-v1.yaml` | F-WGT-001..009: all layers populated, no NaN, shape match, GQA ratio |
 | Batch Training | `batch-training-v1.yaml` | F-BATCH-001..007: gradient equivalence, loss finite, gradient norm, single step |
 | Training Loop | `training-loop-v1.yaml` | F-LOOP-001..010: loss decreasing, validation, checkpoint, LR schedule, disjoint split |
+| APR Checkpoints | `apr-checkpoint-v1.yaml` | F-CKPT-001..018: adapter completeness, schema version, atomic writes, NaN guards, shape validation, filtered reader, round-trip |
 
-All contracts in `provable-contracts/contracts/aprender/` following Poka-Yoke + Popperian
-falsification methodology.
+All contracts in `provable-contracts/contracts/` following Poka-Yoke + Popperian
+falsification methodology. See [APR Checkpoint Specification v1.4.0](../../aprender/docs/specifications/apr-checkpoints.md)
+for the full 18-contract checkpoint lifecycle (write-side + read-side).
 
 ### 14.7 v2.2 Verification Matrix
 
@@ -1388,10 +1401,11 @@ falsification methodology.
 | Batch training converges | `train_batch()` on 15-sample demo | Loss decreasing |
 | Full training loop | `ClassifyTrainer::train(26K samples)` | Val accuracy > 80% |
 | CLI execution | `apr finetune --task classify --data corpus.jsonl` | Adapter saved |
-| Dual-format checkpoint | `ls checkpoint-epoch-5.*` | Both `.apr` and `.safetensors` exist |
-| APR export | `ls shell-safety-classifier.apr` | Valid APR file, loadable by realizador |
-| Dual-format HF upload | `ls paiml/shell-safety-classifier/` | Both `adapter.safetensors` and `.apr` published |
-| Contract validation | All falsification tests | 25 tests pass |
+| Checkpoint triple | `ls checkpoint-epoch-5.*` | `.apr`, `.adapter.apr`, and `.safetensors` exist |
+| Adapter APR export | `ls best.adapter.apr` | Valid APR, zero `__training__.*` tensors (F-CKPT-003) |
+| Resume checkpoint | `resume_from_apr_checkpoint(epoch-1.apr)` | Restores weights + optimizer + data hash verified |
+| HF upload | `ls paiml/shell-safety-classifier/` | `.safetensors` + `.adapter.apr` + configs published |
+| APR checkpoint contracts | All falsification tests | 30 APR tests pass (20 functional + 10 falsification) |
 
 ### 14.8 Dual-Format Strategy: APR + SafeTensors
 
@@ -1425,19 +1439,36 @@ tokenizer.json┘   (training, checkpoints)        ├──> model.apr (soverei
 | File | Source | Description |
 |------|--------|-------------|
 | `model.safetensors` | Classifier head + LoRA adapter weights | Community standard, loadable by `safetensors` |
-| `model.apr` | Same weights in APR format | Sovereign format, loadable by `realizador` |
+| `model.apr` | Full training checkpoint (model + optimizer state) | APR format with `__training__.*` tensors for resume (F-CKPT-004/005) |
+| `model.adapter.apr` | Adapter-only (model tensors, no optimizer) | Deploy-ready APR, zero `__training__.*` tensors (F-CKPT-003) |
 | `metadata.json` | Epoch metrics (loss, accuracy, LR, throughput) | Training state for experiment tracking |
 | `config.json` | `TransformerConfig` + HF fields (`architectures`, `model_type`, `num_labels`) | Required by `transformers.AutoConfig.from_pretrained()` |
 | `adapter_config.json` | `PeftAdapterConfig` (rank, alpha, target_modules, task_type) | Required by `peft.PeftModel.from_pretrained()` |
 | `tokenizer.json` | Copied from base model directory (if `from_pretrained`) | Required by `transformers.AutoTokenizer.from_pretrained()` |
 
+**APR checkpoint types** (see [APR Checkpoint Specification v1.4.0](https://github.com/paiml/aprender/blob/main/docs/specifications/apr-checkpoints.md)):
+
+| Extension | Type | Contents | Use |
+|-----------|------|----------|-----|
+| `.apr` | Training | All LoRA + classifier + `__training__.optimizer.*` + provenance | Resume training (`resume_from_apr_checkpoint`) |
+| `.adapter.apr` | Adapter | LoRA + classifier only, zero training state | Deploy to `realizar` inference |
+
+**Resume from checkpoint** (`resume_from_apr_checkpoint()`):
+1. Verify `__checkpoint__.schema_version` <= supported
+2. Verify `data_hash` matches current training data (hard error; `--allow-data-mismatch` overrides)
+3. Load classifier weights + LoRA adapters with NaN scan (F-CKPT-013)
+4. Validate tensor shapes against model config (F-CKPT-014)
+5. Restore AdamW optimizer first/second moments + step counter
+6. Restore learning rate from metadata
+
 **Ingest**: `Transformer::from_safetensors()` loads HuggingFace weights, converts BF16→F32
 into in-memory tensors. This is a one-time import from the ecosystem.
 
 **Training**: All computation happens on in-memory tensors (trueno SIMD/GPU). Checkpoints
-save in **both** formats:
-- `checkpoint-epoch-{N}.apr` — primary, APR-native, used for resumption
-- `checkpoint-epoch-{N}.safetensors` — secondary, for interop/debugging
+save in **three** files per epoch:
+- `checkpoint-epoch-{N}.apr` — training checkpoint (model + optimizer state), used for resumption
+- `checkpoint-epoch-{N}.adapter.apr` — deploy-ready adapter (model only, no optimizer)
+- `checkpoint-epoch-{N}.safetensors` — interop/debugging (HF-compatible)
 
 **Export**: Final trained model published to HuggingFace with both formats.
 Checkpoints now include all HF metadata files, so the workflow is:
@@ -1449,8 +1480,8 @@ apr publish ./checkpoints/best/ paiml/shell-safety-classifier
 
 ```
 paiml/shell-safety-classifier/
-  model.safetensors                ← Classifier head + LoRA adapter weights
-  model.apr                        ← Full model in APR format (sovereign showcase)
+  model.safetensors                ← Classifier head + LoRA adapter weights (HF standard)
+  model.adapter.apr                ← Deploy-ready APR adapter (no optimizer state)
   config.json                      ← HF model architecture config (auto-generated)
   adapter_config.json              ← PEFT LoRA config (auto-generated)
   tokenizer.json                   ← Qwen2 BPE tokenizer (copied from base model)
@@ -1476,7 +1507,7 @@ paiml/shell-safety-classifier/
 
 | Component | What | Where |
 |-----------|------|-------|
-| `save_checkpoint()` | Saves `.apr`, `.safetensors`, `config.json`, `adapter_config.json`, `tokenizer.json`, `metadata.json` | `ClassifyTrainer` (SSC-026) |
+| `save_checkpoint()` | Saves `.apr` (full), `.adapter.apr` (deploy), `.safetensors`, `config.json`, `adapter_config.json`, `tokenizer.json`, `metadata.json` | `ClassifyTrainer` (SSC-026) |
 | `model_dir()` | Accessor for base model path (enables tokenizer.json copy) | `ClassifyPipeline` |
 | `PeftAdapterConfig` | Generates PEFT-compatible `adapter_config.json` | `entrenar::lora::adapter::peft_config` |
 | `load_checkpoint()` | Loads from `.apr` (primary) with `.safetensors` fallback | `ClassifyTrainer` (SSC-026) |
@@ -1587,7 +1618,7 @@ apr finetune --task classify --model-size 0.5B \
 
 ### 15.7 Training Progress
 
-**Status**: EPOCH 3/3 (96% complete, ~25 min remaining as of 2026-02-28 11:00 CET)
+**Status**: COMPLETED BUT SUPERSEDED — 5-class training failed (see §18.1). Replaced by v3 binary pipeline.
 
 Training metrics at key checkpoints:
 
@@ -1672,6 +1703,49 @@ After training completes:
 - [ ] cargo-killer timer re-enabled: `systemctl --user start cargo-killer.timer`
 - [ ] Model published to `paiml/shell-safety-classifier` on HuggingFace
 - [ ] Book chapter verified: `mdbook test book`
+
+### 15.11 v2 Data Preprocessing
+
+Two data quality improvements were applied for the v2 training run:
+
+#### Preamble Stripping
+
+The transpiler's boilerplate preamble is stripped from all classification exports before training.
+Lines removed by `strip_shell_preamble()`:
+
+| Pattern | Example | Reason for removal |
+|---------|---------|-------------------|
+| Shebang | `#!/bin/sh` | Format marker, not safety-relevant |
+| `set` flags | `set -euf` | Shell strictness flags, not safety signal |
+| `trap` cleanup | `trap 'rm -rf "$TMPDIR" "$$"' EXIT` | Contains `$$` (PID), causes safe→non-det confusion |
+| IFS assignment | `IFS=''` | Input field separator, boilerplate |
+
+**Rationale**: The `trap '... $$'` pattern was the primary motivator. In v1, the classifier learned to
+associate `$$` with non-determinism, but this pattern appeared in safe transpiler output (cleanup traps).
+This caused 28 safe→non-deterministic misclassifications — the largest confusion pair in v1 evaluation.
+Stripping the preamble removes this confound.
+
+The `is_shell_preamble()` predicate is shared with corpus B2 scoring to ensure consistent treatment
+of preamble lines across the codebase.
+
+#### Auto-Class-Balancing
+
+The v2 corpus has a 5.8:1 class imbalance (safe: 15,826 vs needs-quoting: 2,256):
+
+| Class | Count | Percentage | Imbalance ratio |
+|-------|-------|------------|-----------------|
+| safe | 15,826 | 58.0% | 1.0x (majority) |
+| needs-quoting | 2,256 | 8.3% | 7.0x underrepresented |
+| non-deterministic | 2,721 | 10.0% | 5.8x underrepresented |
+| non-idempotent | 2,683 | 9.8% | 5.9x underrepresented |
+| unsafe | 3,813 | 14.0% | 4.2x underrepresented |
+
+entrenar's `ClassifyTrainer::auto_balance_classes()` detects this imbalance (ratio >2:1) and
+automatically applies sqrt-inverse weighting to the CrossEntropyLoss function when no explicit
+class weights are configured. This boosts minority-class gradients without eliminating the
+majority-class signal entirely.
+
+**Total v2 training samples**: 27,299 (after deduplication and preamble stripping)
 
 ---
 
@@ -1819,6 +1893,483 @@ training details. See Section 9.
 
 ---
 
+## 17. v2.3 Training Doctor — Automated Diagnosis & Data Pipeline (2026-02-28)
+
+### 17.1 Root Cause Analysis (Five Whys)
+
+SSC v2 fine-tuning (§15) completed but evaluation showed 35.6% accuracy — worse than v1's 62.2%
+and below the majority-class baseline (58.6%). Five Whys root cause analysis:
+
+| # | Why? | Finding | Fix |
+|---|------|---------|-----|
+| 1 | Why 35.6% accuracy? | Model collapses to `non-deterministic` (829/1717 safe samples misclassified) | Retrain with fixes below |
+| 2 | Why prediction collapse? | Best checkpoint (epoch 1, val_accuracy=73.2%) overfits small val split | Stratified split via alimentar |
+| 3 | Why overfit? | Loss diverged: 4.42 → 16.26 → 14.30 across 3 epochs | Training doctor (`apr diagnose`) |
+| 4 | Why diverge? | Loss scale 10x expected (16.26 vs random baseline ~1.6); no data quality validation | Data audit (`apr data audit`) |
+| 5 | Why no validation? | No automated diagnostic tooling existed | **Build it** (this section) |
+
+### 17.2 Bug Fix: class_weights Checkpoint Persistence
+
+**File**: `entrenar/src/finetune/classify_trainer.rs`
+
+**Bug**: `save_checkpoint()` did NOT save `class_weights` to `metadata.json`. When
+`evaluate_checkpoint()` loaded the checkpoint, it used `ClassifyConfig::default()` which
+has `class_weights: None`. This meant evaluation ran with uniform weights while training
+used sqrt-inverse weights from `auto_balance_classes()`.
+
+**Impact**: Loss comparison across checkpoints was unreliable — training loss and eval loss
+used different class weight scales, making the "best checkpoint" selection potentially wrong.
+
+**Fix**:
+1. `save_checkpoint()`: Added `"class_weights"` field to `metadata.json`
+2. `evaluate_checkpoint()`: Loads `class_weights` from `metadata.json` when the caller's
+   `classify_config.class_weights` is `None`, restoring training-time weights for eval
+
+### 17.3 `apr diagnose` — Automated Five Whys
+
+Single-command automated root cause analysis on a training checkpoint.
+
+```bash
+apr diagnose /tmp/ssc-checkpoints/best/ \
+    --data /tmp/ssc-splits/test.jsonl \
+    --model-size 0.5B
+```
+
+**Checks performed**:
+1. **Prediction collapse detection** — identifies if >50% predictions go to one class
+2. **Loss curve analysis** — detects divergence, plateau, oscillation, scale anomalies
+3. **Calibration check** — overconfident/underconfident bins via ECE
+4. **Checkpoint integrity** — verifies class_weights saved, all expected files present
+5. **Data/model mismatch** — compares test class distribution vs training distribution
+6. **Recommendation engine** — prioritized actionable next steps
+
+### 17.4 `apr data` — Data Quality Pipeline (alimentar Integration)
+
+The `apr data` subcommands are thin CLI wrappers around the `alimentar` crate (v0.2.6+),
+following the same architecture as `apr finetune` wrapping `entrenar`. No data pipeline
+logic is duplicated in apr-cli.
+
+#### `apr data audit`
+
+Analyzes JSONL training data quality using alimentar's `QualityChecker`, `ImbalanceDetector`,
+and the new `TextColumnStats`:
+
+```bash
+apr data audit /tmp/ssc-combined-deduped.jsonl --num-classes 5
+```
+
+**Checks**: Valid JSON, required fields, label range, class distribution + imbalance ratio,
+duplicate detection, input length statistics (min/max/mean/P50/P95/P99), empty inputs,
+preamble detection (`#!/` prefix).
+
+#### `apr data split`
+
+Stratified train/val/test split using alimentar's `DatasetSplit::stratified()`:
+
+```bash
+apr data split /tmp/ssc-combined-deduped.jsonl \
+    --train 0.8 --val 0.1 --test 0.1 \
+    --seed 42 -o /tmp/ssc-splits/
+```
+
+Each split maintains class proportions from the original dataset. Deterministic (seeded shuffle).
+
+#### `apr data balance`
+
+Class rebalancing using alimentar's `resample()` and `sqrt_inverse_weights()`:
+
+```bash
+apr data balance /tmp/ssc-splits/train.jsonl \
+    --strategy oversample -o /tmp/ssc-balanced-train.jsonl
+```
+
+| Strategy | Behavior |
+|----------|----------|
+| `oversample` | Duplicate minority class samples to match majority count |
+| `undersample` | Reduce majority class samples to match minority count |
+| `sqrt-inverse` | Print computed weights (no data modification) |
+
+### 17.5 alimentar Extensions
+
+The following were added to `alimentar` (v0.2.7+) to support the data pipeline:
+
+| Module | Addition | Purpose |
+|--------|----------|---------|
+| `imbalance` | `ResampleStrategy` enum | Oversample/Undersample strategy selection |
+| `imbalance` | `resample()` function | Row-level class rebalancing via Arrow `take()` |
+| `imbalance` | `sqrt_inverse_weights()` | Compute class weights normalized to sum to K |
+| `quality` | `TextColumnStats` struct | String column length percentiles, empty/preamble counts |
+
+### 17.6 Dependency Wiring
+
+```
+apr-cli ──depends──→ alimentar (data audit, split, balance)
+       ──depends──→ entrenar  (diagnose via evaluate_checkpoint)
+```
+
+No data pipeline logic lives in apr-cli. The CLI layer handles argument parsing, output
+formatting, and exit codes only.
+
+### 17.7 v3 Retrain Workflow (SUPERSEDED by §18.4.2)
+
+> **Note**: This workflow used 5-class labels. Superseded by the v3 binary pipeline in §18.4.2.
+
+With the new tooling, the v3 training run follows this sequence:
+
+```bash
+# 1. Audit data quality
+apr data audit /tmp/ssc-combined-deduped.jsonl --num-classes 5
+
+# 2. Stratified split (prevents val set from misrepresenting test distribution)
+apr data split /tmp/ssc-combined-deduped.jsonl \
+    --train 0.8 --val 0.1 --test 0.1 --seed 42 -o /tmp/ssc-splits/
+
+# 3. Train (1 epoch — epoch 1 was best in v2)
+apr finetune --task classify --model-size 0.5B \
+    /home/noah/src/models/qwen2.5-coder-0.5b \
+    --data /tmp/ssc-splits/train.jsonl --epochs 1 \
+    --learning-rate 0.0001 --num-classes 5 -o /tmp/ssc-v3/
+
+# 4. Diagnose (automated Five Whys)
+apr diagnose /tmp/ssc-v3/best/ \
+    --data /tmp/ssc-splits/test.jsonl --model-size 0.5B
+
+# 5. Eval + publish
+apr eval /tmp/ssc-v3/best/ --task classify \
+    --data /tmp/ssc-splits/test.jsonl --model-size 0.5B \
+    --num-classes 5 --generate-card
+```
+
+---
+
+## 18. v3: Binary Classification + alimentar DataOps (2026-03-01)
+
+### 18.1 Root Cause Analysis (Five Whys)
+
+SSC v2/v2.2 training runs failed to converge to a useful model. Five Whys traced the
+root cause to a fundamental taxonomy mismatch between the data and the 5-class model:
+
+| # | Why? | Finding |
+|---|------|---------|
+| 1 | Why does loss not converge? | Only 3 of 5 classes populated (0, 1, 4 — missing 2, 3) |
+| 2 | Why are classes missing? | Corpus is a transpiler test suite, not a hand-labeled safety dataset |
+| 3 | Why does the transpiler not produce all classes? | Transpiler output is either clean (safe) or fails (unsafe) — no intermediate states |
+| 4 | Why was the 5-class taxonomy used? | Designed speculatively before examining actual label distribution |
+| 5 | Why wasn't distribution checked before training? | No automated DataOps validation gate existed |
+
+**Decision**: Collapse from 5-class to **binary classification** (safe=0, unsafe=1) — the
+natural taxonomy of the corpus. Build automated validation to prevent this class of
+failure permanently.
+
+### 18.2 Binary Classification Taxonomy
+
+| Class | Label | Index | Derivation |
+|-------|-------|-------|------------|
+| Safe | `safe` | 0 | transpiled AND lint-clean AND deterministic |
+| Unsafe | `unsafe` | 1 | otherwise (failed transpilation, lint errors, or non-deterministic) |
+
+**Supersedes**: Section 2 (5-class taxonomy). The 5-class model (safe, needs-quoting,
+non-deterministic, non-idempotent, unsafe) is retired. All new training uses binary labels.
+
+Label derivation via `classify_single()` in `rash/src/corpus/dataset.rs`:
+
+```rust
+pub fn classify_single(
+    original_input: &str,
+    transpiled: bool,
+    lint_clean: bool,
+    deterministic: bool,
+) -> ClassificationRow {
+    let label = if transpiled && lint_clean && deterministic { 0 } else { 1 };
+    ClassificationRow {
+        input: strip_shell_preamble(original_input),
+        label,
+    }
+}
+```
+
+**Model input**: Original script text (what users feed at inference time), with shell
+preamble stripped. NOT transpiler output.
+
+### 18.3 DataOps Validation Gate
+
+The `validate_export()` function blocks training data export when quality checks fail.
+This is a **hard gate** — the exporter exits with code 1 if any check fails.
+
+```rust
+pub fn validate_export(rows: &[ClassificationRow], expected_classes: u8) -> ExportValidation
+```
+
+**Checks performed**:
+
+| Check | Threshold | Rationale |
+|-------|-----------|-----------|
+| Missing classes | All expected classes must be present | Model head has dead neurons if a class is absent |
+| Extreme imbalance | No class > 95% of total | Model degenerates to majority-class predictor |
+| Preamble contamination | < 5% of inputs start with `#!/` | Preamble is non-discriminative boilerplate |
+| Length confound | Max/min class avg length ratio < 10x | Model learns length proxy instead of safety features |
+| Trivial inputs | < 5% of inputs are empty or whitespace-only | Empty inputs carry no safety signal |
+
+**Implementation**: `rash/src/corpus/dataset.rs:validate_export()`
+
+### 18.4 alimentar-Owned Splitting
+
+**Critical design decision**: Train/val/test splitting is owned by alimentar, NOT bashrs.
+The bashrs exporter produces a single `corpus.jsonl` file. alimentar handles all splitting
+concerns: stratification, deterministic seeding, ratio validation, manifest generation,
+and quality verification.
+
+**Rationale**: Splitting is a data engineering concern that belongs in the data loading
+tool (alimentar), not in the domain-specific exporter (bashrs). Duplicating split logic
+across tools causes shotgun surgery — the exact bug that triggered this v3 redesign.
+
+#### 18.4.1 alimentar 3-Way Split Support
+
+alimentar v0.2.7+ supports train/val/test splitting via the `fed` (federated) commands.
+The key change: `FederatedSplitStrategy` variants now carry explicit `test_ratio` and
+`validation_ratio` fields instead of computing `test_ratio = 1.0 - train_ratio`.
+
+**Strategy variants** (all support 3-way splits):
+
+| Strategy | Use Case | Seed Behavior |
+|----------|----------|---------------|
+| `LocalWithSeed` | Single-node, deterministic | Same seed for all nodes |
+| `ProportionalIID` | Multi-node, IID sampling | Unique seed per node (position-based) |
+| `GlobalStratified` | Multi-node, label-preserving | Unique seed per node + stratify column |
+
+**CLI flags added**:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--test-ratio` | 0.2 | Test set fraction (0.0 to 1.0) |
+| `--validation-ratio` | (none) | Validation set fraction; if set, train+test+val must sum to 1.0 |
+
+#### 18.4.2 Data Pipeline (Production Workflow)
+
+```
+bashrs corpus                    alimentar                         entrenar
+─────────────                    ─────────                         ────────
+fast_classify_export             fed manifest                      apr finetune
+  │                              fed plan (stratified 80/10/10)      │
+  │ corpus.jsonl                 fed split                           │
+  │ (17,942 rows)                  │                                 │
+  └──→ convert → corpus.parquet ──→│                                 │
+                                   ├──→ train.parquet (14,353) ─────→│
+                                   ├──→ test.parquet  (1,794)  ─────→│ eval
+                                   └──→ val.parquet   (1,795)  ─────→│ early stopping
+```
+
+**Step-by-step commands**:
+
+```bash
+# 1. Export classified corpus (bashrs)
+cargo run -p bashrs --release --example fast_classify_export /tmp/ssc-export
+
+# 2. Convert JSONL → Parquet (alimentar)
+alimentar convert /tmp/ssc-export/corpus.jsonl /tmp/ssc-export/corpus.parquet
+
+# 3. Generate manifest (alimentar)
+alimentar fed manifest /tmp/ssc-export/corpus.parquet \
+    -o /tmp/ssc-export/manifest.json -n bashrs
+
+# 4. Create stratified split plan (alimentar)
+alimentar fed plan /tmp/ssc-export/manifest.json \
+    -o /tmp/ssc-export/plan.json \
+    -s stratified -r 0.8 --test-ratio 0.1 --validation-ratio 0.1 \
+    --stratify-column label --seed 42
+
+# 5. Execute split (alimentar)
+alimentar fed split /tmp/ssc-export/corpus.parquet \
+    -p /tmp/ssc-export/plan.json -n bashrs \
+    --train-output /tmp/ssc-export/train.parquet \
+    --test-output /tmp/ssc-export/test.parquet \
+    --validation-output /tmp/ssc-export/val.parquet
+
+# 6. Convert splits to JSONL for entrenar
+alimentar convert /tmp/ssc-export/train.parquet /tmp/ssc-export/train.jsonl
+alimentar convert /tmp/ssc-export/test.parquet /tmp/ssc-export/test.jsonl
+alimentar convert /tmp/ssc-export/val.parquet /tmp/ssc-export/val.jsonl
+
+# 7. Train binary classifier (entrenar)
+apr finetune --task classify --model-size 0.5B \
+    /home/noah/src/models/qwen2.5-coder-0.5b \
+    --data /tmp/ssc-export/train.jsonl \
+    --num-classes 2 --epochs 3 \
+    --learning-rate 0.0001 -o /tmp/ssc-v3/
+
+# 8. Evaluate on test set
+apr eval /tmp/ssc-v3/best/ --task classify \
+    --data /tmp/ssc-export/test.jsonl \
+    --model-size 0.5B --num-classes 2
+
+# 9. Diagnose (automated Five Whys)
+apr diagnose /tmp/ssc-v3/best/ \
+    --data /tmp/ssc-export/test.jsonl --model-size 0.5B
+```
+
+### 18.5 Corpus Statistics (v3 — Verified 2026-03-01)
+
+| Property | Value |
+|----------|-------|
+| **Total entries** | 17,942 |
+| **Safe (class 0)** | 16,784 (93.5%) |
+| **Unsafe (class 1)** | 1,158 (6.5%) |
+| **Failed transpilations** | 0 (all entries transpile successfully) |
+| **Preamble contamination** | 0% (stripped by `classify_single`) |
+| **Split ratios** | 80/10/10 (train/test/val, stratified) |
+| **Train rows** | 14,353 (class 0: 13,427 = 93.5%, class 1: 926 = 6.5%) |
+| **Test rows** | 1,794 (class 0: 1,678 = 93.5%, class 1: 116 = 6.5%) |
+| **Val rows** | 1,795 (class 0: 1,679 = 93.5%, class 1: 116 = 6.5%) |
+| **Splitting tool** | alimentar v0.2.7+ (`fed split --stratify-column label`) |
+| **DataOps validation** | PASS — all 5 checks passed |
+| **Length stats** | Class 0: avg=144 chars (median=73); Class 1: avg=381 chars (median=344) |
+| **Export location** | `/tmp/ssc-export-v4/{corpus,train,test,val}.jsonl` |
+
+**Verified**: Stratification is exact — 93.5%/6.5% distribution preserved in all three splits.
+Length confound eliminated: unsafe scripts are longer (avg 381 vs 144), preventing "long = safe" shortcut.
+Random baseline for binary: `ln(2) = 0.693`. Target: loss well below 0.693, accuracy > 90%.
+
+### 18.6 Model Configuration (v3)
+
+| Parameter | v2/v2.2 Value | v3 Value | Change |
+|-----------|---------------|----------|--------|
+| `num_classes` | 5 | **2** | Binary classification |
+| `train/val/test` | ad-hoc | **80/10/10 stratified** | alimentar-owned |
+| `loss` | CrossEntropyLoss | CrossEntropyLoss | Unchanged (works for binary) |
+| `class_weights` | auto sqrt-inverse | auto sqrt-inverse | Auto-detected from distribution |
+| `validation gate` | none | **validate_export()** | Hard gate, exit(1) on failure |
+| `model input` | transpiler output | **original script text** | What users feed at inference time |
+| `preamble` | included (v2), stripped (v2.2) | **stripped** | Via `strip_shell_preamble()` in `classify_single()` |
+
+### 18.7 Files Modified (v3)
+
+| File | Crate | Change |
+|------|-------|--------|
+| `rash/src/corpus/dataset.rs` | bashrs | `classify_single()` → binary labels; `validate_export()` DataOps gate |
+| `rash/examples/fast_classify_export.rs` | bashrs | Delegates to `classify_single()`; runs `validate_export()`; single corpus.jsonl output; alimentar instructions printed |
+| `src/federated.rs` | alimentar | `FederatedSplitStrategy` variants carry `test_ratio` + `validation_ratio`; all plan functions accept 3-way ratios |
+| `src/cli/fed.rs` | alimentar | `--test-ratio` and `--validation-ratio` CLI flags; `parse_fed_strategy()` signature updated |
+| `src/cli/mod.rs` | alimentar | CLI dispatch passes new ratio fields |
+| `examples/federated_split.rs` | alimentar | Updated for new strategy field signatures |
+
+### 18.8 Design Principles
+
+| Principle | Application |
+|-----------|-------------|
+| **Single source of truth** | `classify_single()` is the ONE canonical labeling function — all export paths use it |
+| **Separation of concerns** | bashrs exports data, alimentar splits it, entrenar trains on it |
+| **No shotgun surgery** | Splitting logic lives in ONE place (alimentar), not duplicated across tools |
+| **Fail-fast gates** | `validate_export()` blocks bad data before it reaches the training pipeline |
+| **Deterministic reproducibility** | FNV-1a hash + seed-based splitting ensures identical splits across runs |
+| **Poka-Yoke** | Validation gate makes it impossible to train on data with missing classes or confounds |
+
+### 18.9 v3 Verification Matrix
+
+| Verification | Command | Expected Result | Status |
+|-------------|---------|-----------------|--------|
+| Binary labels correct | `validate_export()` | PASS: 2 classes present | **VERIFIED** |
+| No preamble contamination | `validate_export()` | PASS: 0% start with `#!/` | **VERIFIED** |
+| WARN: class imbalance | `validate_export()` | WARN: 93.5% dominant (below 95% hard gate) | **VERIFIED** |
+| Exporter produces corpus.jsonl | `fast_classify_export` | 17,942 rows, exit 0 | **VERIFIED** |
+| alimentar 3-way split | `alimentar fed split --validation-output` | 14,353 + 1,794 + 1,795 = 17,942 | **VERIFIED** |
+| Stratification preserved | Per-split class distribution | 93.5%/6.5% in all 3 splits | **VERIFIED** |
+| No length confound | Per-class avg length | Class 0: 144, Class 1: 381 (ratio < 3x) | **VERIFIED** |
+| All alimentar tests pass | `cargo test --lib` (alimentar) | 1,801/1,801 PASS | **VERIFIED** |
+| All bashrs tests pass | `cargo test -p bashrs --lib` | 15,119/15,119 PASS | **VERIFIED** |
+| APR checkpoint contracts | `cargo test -- apr::tests` (aprender) | 30/30 pass (18 contracts, 10 falsification) | **VERIFIED** |
+| Atomic write (F-CKPT-009) | `AprWriter::write()` | tmp+fsync+rename, no orphan .tmp | **VERIFIED** |
+| NaN guard (F-CKPT-007/013) | Write + read paths | Rejects non-finite tensors | **VERIFIED** |
+| Shape validation (F-CKPT-008/014) | Write + read paths | Rejects mismatched shapes | **VERIFIED** |
+| Filtered reader (F-CKPT-016) | `AprReader::open_filtered()` | Skips `__training__.*` tensors | **VERIFIED** |
+| Round-trip (F-CKPT-018) | `write(read(write(x))) == write(x)` | Bit-identical | **VERIFIED** |
+| Training converges (binary) | `apr finetune --num-classes 2` | Loss < 0.693 (random baseline) | PENDING |
+| Eval accuracy | `apr eval --num-classes 2` | Accuracy > 90% | PENDING |
+| HuggingFace publication | `apr publish` | Model card + weights on HF Hub | PENDING |
+
+### 18.10 Training Output Monitoring Framework (2026-03-02)
+
+**Problem**: `ClassifyTrainer` had 13 `eprintln!` calls that bypassed the existing
+`TrainingStateWriter` monitoring framework. Training progress went to stderr (invisible
+when stdout is captured or piped), duplicated data between JSON state and text output,
+and lacked accuracy in the monitoring snapshot.
+
+**Fix**: `TrainingStateWriter` is now the **single output channel** for training progress.
+
+#### Architecture
+
+```text
+ClassifyTrainer
+    │
+    ├── update_step(epoch, step, loss, lr, grad_norm, sam/s, accuracy)
+    │       │
+    │       ├── Writes atomic JSON to training_state.json (IPC for TUI/headless)
+    │       └── If console_progress: prints formatted line to stdout
+    │
+    ├── emit_epoch_summary(epoch, total, train_loss, train_acc, val_loss, val_acc, ...)
+    │       └── If console_progress: prints epoch summary to stdout
+    │
+    └── emit_info(msg)
+            └── If console_progress: prints one-shot message to stdout
+```
+
+**Single channel**: All training output routes through `TrainingStateWriter`. No direct
+`eprintln!` in the training loop. Pre-training diagnostics (class balance, oversampling)
+use `println!` since the monitor writer is not yet started.
+
+#### New Fields in TrainingSnapshot
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `accuracy` | `f32` | Training accuracy (0.0 to 1.0), `#[serde(default)]` |
+| `samples_per_second` | `f32` | Throughput in samples/sec, `#[serde(default)]` |
+
+Both fields use `#[serde(default)]` for backward compatibility with existing state files.
+
+#### Console Progress Mode
+
+`TrainingStateWriter::with_console_progress(enabled)` enables inline progress on stdout.
+When enabled, `update_step()` emits a text line every ~10% of steps (reusing the
+`HeadlessWriter` text format). This means users see progress without needing a separate
+`apr monitor` process.
+
+**Wiring**:
+- `apr finetune --task classify`: `.with_console_progress(!json_output)` — suppressed in `--json` mode
+- `training_plan_execute.rs`: `.with_console_progress(true)` — always enabled for plan execution
+
+#### Headless Output Changes
+
+The `HeadlessWriter` text format now includes accuracy and samples/sec:
+
+```
+[HH:MM:SS] Epoch 3/10 | Step 45/100 | Loss: 0.432 ↓ | Acc: 87.3% | LR: 2.00e-04 | Grad: 1.2 | 150.3 sam/s | ETA: 00:02:15
+```
+
+JSON output (`HeadlessOutput`) also includes `accuracy` and `samples_per_second` fields.
+
+#### Files Modified
+
+| File | Repo | Change |
+|------|------|--------|
+| `src/monitor/tui/state.rs` | entrenar | +`accuracy`, +`samples_per_second` fields |
+| `src/monitor/tui/app.rs` | entrenar | +`console_progress`, +`with_console_progress()`, accuracy param, emit methods |
+| `src/monitor/tui/headless.rs` | entrenar | +accuracy in HeadlessOutput + text format |
+| `src/finetune/classify_trainer.rs` | entrenar | -13 `eprintln!`, +accuracy in `update_step()` |
+| `src/finetune/training_plan_execute.rs` | entrenar | +`.with_console_progress(true)` |
+| `crates/apr-cli/src/commands/finetune.rs` | aprender | +`.with_console_progress(!json_output)` |
+
+#### Verification
+
+| Check | Result |
+|-------|--------|
+| `eprintln!` count in classify_trainer.rs | **0** (was 13) |
+| entrenar `cargo build` | Clean (0 errors) |
+| Monitor tests (687) | All pass |
+| Classify trainer tests (10) | All pass |
+| TUI integration tests (34) | All pass |
+| Property tests (JSON roundtrip) | Pass |
+
+---
+
 ## Appendix A: Demo Training Data
 
 The training example includes 40 built-in demo samples (8 per class) for testing
@@ -1875,3 +2426,230 @@ Full token-to-ID mapping exported via `ShellVocabulary::to_json()`:
 | 200-210 | Numeric literals | 11 |
 | 211-249 | Common words | 39 |
 | **Total** | | **250** |
+
+## Appendix D: QLoRA Training Hyperparameter Contracts
+
+**Authoritative source**: `provable-contracts/contracts/entrenar/qlora-hyperparameters-v1.yaml`
+
+**Enforcement**: `ClassifyConfig::validate_hyperparameters()` and `ClassifyConfig::qlora_default()`
+in `entrenar/src/finetune/classify_pipeline.rs`.
+
+SSC v3 QLoRA training (ENT-153) requires provable hyperparameter contracts grounded in
+peer-reviewed research — not ad-hoc guessing. Each contract below cites its source,
+defines preconditions and postconditions, and specifies a verification method.
+
+**Key references**:
+
+| ID | Citation | Key Contribution |
+|----|----------|-----------------|
+| R1 | Dettmers et al. (2023) "QLoRA: Efficient Finetuning of Quantized LLMs" [arXiv:2305.14314](https://arxiv.org/abs/2305.14314) | NF4 quantization, hyperparameter transfer rules |
+| R2 | Hu et al. (2021) "LoRA: Low-Rank Adaptation of Large Language Models" [arXiv:2106.09685](https://arxiv.org/abs/2106.09685) | LoRA rank/alpha scaling |
+| R3 | Lightning AI (2024) "Finetuning LLMs with LoRA and QLoRA: Insights from Hundreds of Experiments" [lightning.ai](https://lightning.ai/pages/community/lora-insights/) | α=2r optimal, all-layer LoRA |
+| R4 | Profiling LoRA/QLoRA on Consumer GPUs (2025) [arXiv:2509.12229](https://arxiv.org/abs/2509.12229) | RTX throughput/VRAM measurements |
+| R5 | Unsloth (2025) "LoRA Hyperparameters Guide" [unsloth.ai](https://unsloth.ai/docs/get-started/fine-tuning-llms-guide/lora-hyperparameters-guide) | Practical defaults for production |
+
+### D.2 Data Distribution (Measured)
+
+**Source**: `/tmp/ssc-v3-export/train.jsonl` (14,353 samples, binary classification)
+
+| Statistic | Char Length | Est. BPE Tokens (÷3.5) |
+|-----------|------------|------------------------|
+| min | 12 | 3 |
+| p25 | 55 | 16 |
+| p50 (median) | 73 | 21 |
+| p75 | 191 | 55 |
+| p90 | 404 | 115 |
+| p95 | 574 | 164 |
+| p99 | 884 | 253 |
+| max | 1,862 | 532 |
+| mean | 157 | 45 |
+
+**Class distribution**: safe=13,427 (93.6%), unsafe=926 (6.4%), imbalance ratio 14.5:1
+
+### D.3 Contracts
+
+#### C-HP-001: Learning Rate
+
+| Field | Value |
+|-------|-------|
+| **Source** | R1 Table 9: lr=2e-4 for 7B/13B, lr=1e-4 for 33B/65B |
+| **Rule** | For models ≤ 13B params: `lr = 2e-4` |
+| **Precondition** | Model size ∈ {0.5B, 4B} (both ≤ 13B) |
+| **Postcondition** | `config.learning_rate == 2e-4` |
+| **Rationale** | R1 shows hyperparameters transfer across model sizes except lr and batch_size. 4B is closer to 7B than 33B. Using 1e-4 (the 33B/65B rate) for a 4B model undertunes. |
+| **Violation in current config** | `learning_rate: 0.0001` (1e-4) — using the 33B+ rate for a 4B model |
+| **Fix** | Set `learning_rate: 0.0002` |
+
+#### C-HP-002: Effective Batch Size
+
+| Field | Value |
+|-------|-------|
+| **Source** | R1 Table 9: batch=16 for 7B, R5: effective_batch=16 via batch×grad_accum |
+| **Rule** | `effective_batch = batch_size × gradient_accumulation_steps = 16` |
+| **Precondition** | Model ≤ 13B, VRAM ≥ 8GB |
+| **Postcondition** | `batch_size × grad_accum_steps == 16` |
+| **Rationale** | R1 uses batch=16 for 7B. R5 recommends batch=2, grad_accum=8 for memory efficiency. For RTX 4090 (24GB), batch=4, grad_accum=4 balances throughput and memory. |
+| **Violation in current config** | `batch_size: 4`, no gradient accumulation → effective=4 |
+| **Fix** | Set `gradient_accumulation_steps: 4` (effective batch = 4×4 = 16) |
+
+#### C-HP-003: LoRA Alpha/Rank Ratio
+
+| Field | Value |
+|-------|-------|
+| **Source** | R3: r=256,α=512 best; α=2r consistently optimal across experiments |
+| **Rule** | `lora_alpha = 2 × lora_rank` |
+| **Precondition** | LoRA enabled with rank r > 0 |
+| **Postcondition** | `config.lora_alpha == 2.0 * config.lora_rank` |
+| **Rationale** | R3 tested multiple α/r ratios across hundreds of experiments. α=2r beat α=r, α=0.5r, and α=4r consistently. The scaling factor α/r controls the effective learning rate of the LoRA update. |
+| **Violation in current config** | `lora_alpha: null` (defaults to lora_rank=16, ratio=1.0) |
+| **Fix** | Set `lora_alpha: 32` (= 2 × 16) |
+
+#### C-HP-004: Sequence Length from Data Distribution
+
+| Field | Value |
+|-------|-------|
+| **Source** | Measured data distribution (§D.2), R4 throughput measurements |
+| **Rule** | `max_seq_len = next_power_of_2(p99_tokens)` where p99 comes from actual data |
+| **Precondition** | Data distribution measured, p99 of BPE token lengths known |
+| **Postcondition** | `config.max_seq_len == 256` (since p99 ≈ 253 tokens → next_pow2 = 256) |
+| **Rationale** | Attention is O(n²). With max_seq_len=512 vs 256: attention compute is 4× higher, yet 99% of samples are ≤253 tokens. R4 shows 512→2048 throughput changes are ~25%, but our case is the reverse: we're wasting compute padding short sequences to a length none of them reach. Median input is 21 tokens — padding to 512 wastes 96% of attention compute on padding. |
+| **Violation in current config** | `max_seq_len: 512` (default, never overridden from data) |
+| **Fix** | Set `max_seq_len: 256` (covers p99, discards <1% outliers or truncates them) |
+| **Compute impact** | Attention: 256²/512² = 0.25× (4× reduction). Linear: 256/512 = 0.5× (2× reduction). Combined: ~3× step speedup estimate. |
+
+#### C-HP-005: Warmup Schedule
+
+| Field | Value |
+|-------|-------|
+| **Source** | R5: warmup 5-10% of total steps. Standard practice for AdamW. |
+| **Rule** | `warmup_fraction ∈ [0.03, 0.10]`, default 0.06 |
+| **Precondition** | AdamW optimizer, total_steps > 100 |
+| **Postcondition** | `config.warmup_fraction == 0.06` (6% of steps) |
+| **Rationale** | Without warmup, initial gradients from random classifier head create large updates that can destabilize LoRA adapters before they've learned useful features. Warmup linearly ramps lr from 0 to target over first N steps. |
+| **Violation in current config** | `warmup_fraction: null` (no warmup) |
+| **Fix** | Set `warmup_fraction: 0.06` |
+
+#### C-HP-006: Gradient Clipping
+
+| Field | Value |
+|-------|-------|
+| **Source** | R1 experimental setup, standard transformer training practice |
+| **Rule** | `gradient_clip_norm = 1.0` |
+| **Precondition** | Gradient computation enabled |
+| **Postcondition** | Global gradient norm clipped to 1.0 before optimizer step |
+| **Rationale** | v2.2 training (§15.7) showed gradient norms up to 115.1 — unclipped gradients cause catastrophic updates. The prior v2.2 run used clip=1.0 successfully. |
+| **Violation in current config** | `gradient_clip_norm: null` |
+| **Fix** | Set `gradient_clip_norm: 1.0` |
+
+#### C-HP-007: Weight Decay
+
+| Field | Value |
+|-------|-------|
+| **Source** | R5: weight_decay=0.01, standard AdamW default |
+| **Rule** | `weight_decay = 0.01` |
+| **Precondition** | AdamW optimizer |
+| **Postcondition** | Weight decay applied to LoRA params (NOT to bias or norm weights) |
+| **Rationale** | Standard regularization for AdamW. Prevents LoRA weights from growing unbounded. |
+| **Current config** | Uses AdamW default (likely already 0.01, verify in implementation) |
+
+#### C-HP-008: Epochs for Classification
+
+| Field | Value |
+|-------|-------|
+| **Source** | R1: Guanaco used ~1 epoch over 9,209 samples for generation. Classification tasks with 14K samples typically need 2-5 epochs. |
+| **Rule** | `epochs ∈ [2, 5]` for classification with N > 10K samples and class imbalance |
+| **Precondition** | Binary classification, N=14,353, imbalance=14.5:1, auto class weights |
+| **Postcondition** | `config.epochs >= 2` |
+| **Rationale** | With 14.5:1 imbalance, the minority class (926 samples) gets only 926/batch_size ≈ 58 gradient updates per epoch. The model needs multiple passes over the minority class to learn the decision boundary. 1 epoch is insufficient for a heavily imbalanced classification task. |
+| **Violation in current config** | `max_epochs: 1` |
+| **Fix** | Set `epochs: 3` (same as successful v2.2 §15.5) |
+
+### D.4 Corrected Configuration
+
+Applying all contracts to the SSC v3 QLoRA training:
+
+```yaml
+# C-HP-001: lr=2e-4 for ≤13B (R1 Table 9)
+learning_rate: 0.0002
+
+# C-HP-002: effective_batch=16 (R1 Table 9, R5)
+batch_size: 4
+gradient_accumulation_steps: 4
+
+# C-HP-003: α=2r (R3 hundreds of experiments)
+lora_rank: 16
+lora_alpha: 32
+
+# C-HP-004: max_seq_len from data p99 (measured §D.2)
+max_seq_len: 256
+
+# C-HP-005: warmup 6% (R5)
+warmup_fraction: 0.06
+
+# C-HP-006: gradient clip (R1, §15.5 precedent)
+gradient_clip_norm: 1.0
+
+# C-HP-007: weight decay (R5, AdamW standard)
+weight_decay: 0.01
+
+# C-HP-008: 3 epochs for imbalanced classification (§15.5 precedent)
+epochs: 3
+
+# Unchanged
+quantize_nf4: true
+target_modules: qv  # Q and V projections
+auto_class_weights: true  # sqrt-inverse for 14.5:1 imbalance
+```
+
+### D.5 Expected Impact
+
+| Metric | Old Config | Contract Config | Change | Source |
+|--------|-----------|----------------|--------|--------|
+| Steps per epoch | 3,589 | 898 | ÷4 (grad_accum=4) | C-HP-002 |
+| Attention compute/step | O(512²) | O(256²) | ÷4 | C-HP-004 |
+| Linear compute/step | O(512) | O(256) | ÷2 | C-HP-004 |
+| Est. step time | ~30 min | ~8-10 min | ~3× faster | C-HP-004 |
+| Total optimizer steps | 3,589 | 2,694 (898 × 3 epochs) | Similar total | C-HP-002/008 |
+| Minority class updates | 58 / epoch × 1 = 58 | 58 / epoch × 3 = 174 | 3× more | C-HP-008 |
+| LR peak | 1e-4 | 2e-4 | 2× higher | C-HP-001 |
+| LoRA effective scale | α/r = 1.0 | α/r = 2.0 | 2× stronger | C-HP-003 |
+
+### D.6 Verification Protocol
+
+Each contract has a **testable postcondition**. Verification is NOT by guessing
+from logs — it is by asserting the postcondition holds:
+
+```rust
+// C-HP-001: verify lr
+assert_eq!(config.learning_rate, 2e-4);
+
+// C-HP-002: verify effective batch
+assert_eq!(config.batch_size * config.gradient_accumulation_steps, 16);
+
+// C-HP-003: verify alpha/rank ratio
+assert!((config.lora_alpha - 2.0 * config.lora_rank as f32).abs() < 1e-6);
+
+// C-HP-004: verify seq_len from data
+let p99_tokens = measure_token_p99(&training_data, &tokenizer);
+assert!(config.max_seq_len >= p99_tokens);
+assert!(config.max_seq_len <= 2 * p99_tokens);  // not wastefully large
+
+// C-HP-005: verify warmup
+assert!(config.warmup_fraction >= 0.03 && config.warmup_fraction <= 0.10);
+
+// C-HP-006: verify gradient clipping
+assert_eq!(config.gradient_clip_norm, Some(1.0));
+
+// C-HP-008: verify epochs
+assert!(config.epochs >= 2);
+```
+
+### D.7 Training Convergence Criteria
+
+A training run is considered **converged** when ALL of:
+
+1. **Loss monotonic decrease**: Train loss at epoch E < train loss at epoch E-1 (after warmup)
+2. **Minority class recall > 50%**: Model predicts `unsafe` for at least half of actual unsafe samples
+3. **Overall accuracy > 90%**: Both classes contribute (not just majority-class guessing)
+4. **LoRA weights changed**: L2 norm of weight delta > 0 for all LoRA adapters
+5. **Gradient norms bounded**: No gradient explosion (norm < gradient_clip_norm × 10)
