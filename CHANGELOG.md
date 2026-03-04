@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Performance
 - KAIZEN-069: `build_dataset` uses HashMap lookup instead of O(n²) linear search (was ~161M string comparisons with 17,942 entries)
 - KAIZEN-070: `check_determinism` reuses first transpilation output from `run_entry` — eliminates ~17,942 redundant transpilations per corpus run
+- KAIZEN-071: `compute_score` takes `Vec<CorpusResult>` by value instead of cloning ~17,942 structs (~7MB)
+- KAIZEN-072: MR-2/3/4 reuse pre-computed `output_contains` — eliminates ~53,826 redundant transpilations per corpus run
+- KAIZEN-073: `check_cross_shell` reuses `run_entry` output for matching dialect — eliminates ~16,431 redundant Posix transpilations per corpus run
 - Refactored `validate_export` to reduce cognitive complexity (extracted check helpers)
 
 ### Documentation
