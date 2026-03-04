@@ -34,11 +34,15 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for indirect $? comparisons
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"(?:if|while)\s+\[\s*\$\?\s*(?:-eq|-ne)\s*0\s*\]").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: if [ $? -eq 0 ] or [ $? -ne 0 ]
-    let pattern = Regex::new(r"(?:if|while)\s+\[\s*\$\?\s*(?:-eq|-ne)\s*0\s*\]").unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

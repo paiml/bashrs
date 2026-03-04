@@ -40,12 +40,16 @@ use crate::linter::diagnostic::FixSafetyLevel;
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\|\s*echo(\s|$)").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: detect | echo (optionally with arguments)
     // This matches pipes ending with echo, which doesn't read stdin
-    let pattern = Regex::new(r"\|\s*echo(\s|$)").unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim();

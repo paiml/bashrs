@@ -30,14 +30,21 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for echo with escape sequences without -e flag
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"echo\s+["']([^"']*\\[nt][^"']*)["']"#).unwrap()
+});
+static ECHO_E_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"echo\s+-e\s+").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: echo "...\n..." or echo "...\t..." (without -e)
-    let pattern = Regex::new(r#"echo\s+["']([^"']*\\[nt][^"']*)["']"#).unwrap();
+    let pattern = &*PATTERN;
 
     // Pattern to detect echo -e (this is OK)
-    let echo_e_pattern = Regex::new(r"echo\s+-e\s+").unwrap();
+    let echo_e_pattern = &*ECHO_E_PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

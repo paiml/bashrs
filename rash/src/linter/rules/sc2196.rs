@@ -31,12 +31,19 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for deprecated egrep/fgrep commands
+static EGREP_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\begrep\b").unwrap()
+});
+static FGREP_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\bfgrep\b").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: egrep or fgrep
-    let egrep_pattern = Regex::new(r"\begrep\b").unwrap();
-    let fgrep_pattern = Regex::new(r"\bfgrep\b").unwrap();
+    let egrep_pattern = &*EGREP_PATTERN;
+    let fgrep_pattern = &*FGREP_PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

@@ -27,6 +27,10 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for ln -s without rm -f first
+static LN_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\bln\s+(-[a-z]*s[a-z]*)\s").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -35,7 +39,7 @@ pub fn check(source: &str) -> LintResult {
     // - ln -sf, ln -sfn (combined flags with f)
     // - ln -fs, ln -fns (combined flags with f first)
     // - ln -s ... -f (separate -f flag)
-    let ln_pattern = Regex::new(r"\bln\s+(-[a-z]*s[a-z]*)\s").unwrap();
+    let ln_pattern = &*LN_PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         // Skip if line has rm -f (already safe)

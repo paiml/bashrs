@@ -31,6 +31,13 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for associative array without keys
+static ASSOC_DECL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"declare\s+-A\s+([A-Za-z_][A-Za-z0-9_]*)").unwrap()
+});
+static ARRAY_ASSIGN_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\(([^)]+)\)").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -38,10 +45,10 @@ pub fn check(source: &str) -> LintResult {
     let mut assoc_arrays = std::collections::HashSet::new();
 
     // Pattern for associative array declaration: declare -A var
-    let assoc_decl_pattern = Regex::new(r"declare\s+-A\s+([A-Za-z_][A-Za-z0-9_]*)").unwrap();
+    let assoc_decl_pattern = &*ASSOC_DECL_PATTERN;
 
     // Pattern for array assignment: var=(value1 value2) without [key]=
-    let array_assign_pattern = Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\(([^)]+)\)").unwrap();
+    let array_assign_pattern = &*ARRAY_ASSIGN_PATTERN;
 
     // First pass: identify associative arrays
     for line in source.lines() {

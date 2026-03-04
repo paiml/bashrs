@@ -29,13 +29,20 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for string comparison operators used on numbers
+static GT_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"\[\s+"?\$[A-Za-z_][A-Za-z0-9_]*"?\s+>\s+[0-9]+"#).unwrap()
+});
+static LT_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"\[\s+"?\$[A-Za-z_][A-Za-z0-9_]*"?\s+<\s+[0-9]+"#).unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: [ ... > ... ] or [ ... < ... ] (NOT [[ ... ]])
     // Check for [[ first to skip those lines
-    let gt_pattern = Regex::new(r#"\[\s+"?\$[A-Za-z_][A-Za-z0-9_]*"?\s+>\s+[0-9]+"#).unwrap();
-    let lt_pattern = Regex::new(r#"\[\s+"?\$[A-Za-z_][A-Za-z0-9_]*"?\s+<\s+[0-9]+"#).unwrap();
+    let gt_pattern = &*GT_PATTERN;
+    let lt_pattern = &*LT_PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

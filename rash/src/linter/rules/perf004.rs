@@ -25,11 +25,15 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for find -exec with \; instead of +
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\bfind\b.*\-exec\b.*\{\}\s*(\\;|';')").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Match find ... -exec ... {} \;  or  find ... -exec ... {} ';'
-    let pattern = Regex::new(r"\bfind\b.*\-exec\b.*\{\}\s*(\\;|';')").unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim_start();
