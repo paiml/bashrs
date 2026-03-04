@@ -5,6 +5,29 @@ use crate::models::Result;
 use std::cell::RefCell;
 use std::fmt::Write;
 
+/// KAIZEN-083: Pre-computed indent strings to avoid `"    ".repeat(n)` allocation per emit call.
+/// Covers depths 0-8 (all practical shell scripts). Falls back to heap allocation for deeper nesting.
+const INDENT_CACHE: [&str; 9] = [
+    "",
+    "    ",
+    "        ",
+    "            ",
+    "                ",
+    "                    ",
+    "                        ",
+    "                            ",
+    "                                ",
+];
+
+/// Return a cached indent string for the given depth, or allocate for rare deep nesting.
+fn get_indent(depth: usize) -> std::borrow::Cow<'static, str> {
+    if depth < INDENT_CACHE.len() {
+        std::borrow::Cow::Borrowed(INDENT_CACHE[depth])
+    } else {
+        std::borrow::Cow::Owned("    ".repeat(depth))
+    }
+}
+
 /// Returns the shell operator string for an ArithmeticOp
 fn arithmetic_op_str(op: &crate::ir::shell_ir::ArithmeticOp) -> &'static str {
     use crate::ir::shell_ir::ArithmeticOp;
@@ -707,17 +730,17 @@ impl PosixEmitter {
                 self.emit_for_in_statement(output, var, items, body, indent)
             }
             ShellIR::Break => {
-                let indent_str = "    ".repeat(indent + 1);
+                let indent_str = get_indent(indent + 1);
                 writeln!(output, "{indent_str}break")?;
                 Ok(())
             }
             ShellIR::Continue => {
-                let indent_str = "    ".repeat(indent + 1);
+                let indent_str = get_indent(indent + 1);
                 writeln!(output, "{indent_str}continue")?;
                 Ok(())
             }
             ShellIR::Return { value } => {
-                let indent_str = "    ".repeat(indent + 1);
+                let indent_str = get_indent(indent + 1);
                 if let Some(val) = value {
                     let value_str = self.emit_shell_value(val)?;
                     writeln!(output, "{indent_str}echo {value_str}")?;
@@ -746,7 +769,7 @@ impl PosixEmitter {
         };
         self.record_decision("assignment_value", choice, "Let");
 
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let var_name = escape_variable_name(name);
         let var_value = self.emit_assignment_value(value)?;
         writeln!(output, "{indent_str}{var_name}={var_value}")?;
@@ -780,7 +803,7 @@ impl PosixEmitter {
         };
         self.record_decision("exec_command", choice, "Exec");
 
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let command_str = self.emit_command(cmd)?;
         writeln!(output, "{indent_str}{command_str}")?;
         Ok(())
@@ -796,7 +819,7 @@ impl PosixEmitter {
     ) -> Result<()> {
         self.record_decision("if_structure", classify_if_structure(else_branch), "If");
 
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let test_expr = self.emit_test_expression(test)?;
         writeln!(output, "{indent_str}if {test_expr}; then")?;
 
@@ -817,7 +840,7 @@ impl PosixEmitter {
         else_ir: &ShellIR,
         indent: usize,
     ) -> Result<()> {
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let unwrapped = unwrap_single_if(else_ir);
         if let ShellIR::If {
             test: elif_test,
@@ -839,7 +862,7 @@ impl PosixEmitter {
     }
 
     fn emit_elif_chain(&self, output: &mut String, else_ir: &ShellIR, indent: usize) -> Result<()> {
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let unwrapped = unwrap_single_if(else_ir);
         if let ShellIR::If {
             test: elif_test,
@@ -867,7 +890,7 @@ impl PosixEmitter {
         message: Option<&String>,
         indent: usize,
     ) -> Result<()> {
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         if let Some(msg) = message {
             let escaped_msg = escape_shell_string(msg);
             writeln!(output, "{indent_str}echo {escaped_msg} >&2")?;
@@ -889,7 +912,7 @@ impl PosixEmitter {
     }
 
     fn emit_noop(&self, output: &mut String, indent: usize) -> Result<()> {
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         // Use ':' (true command) instead of comment for valid POSIX syntax
         writeln!(output, "{indent_str}:")?;
         Ok(())
@@ -901,7 +924,7 @@ impl PosixEmitter {
         value: &ShellValue,
         indent: usize,
     ) -> Result<()> {
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let value_str = self.emit_shell_value(value)?;
         // Use echo to return value from function
         writeln!(output, "{indent_str}echo {value_str}")?;
@@ -919,7 +942,7 @@ impl PosixEmitter {
     ) -> Result<()> {
         self.record_decision("for_construct", "seq_range", "For");
 
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let var_name = escape_variable_name(var);
 
         // Emit shell values for start and end
@@ -951,7 +974,7 @@ impl PosixEmitter {
     ) -> Result<()> {
         self.record_decision("for_construct", "for_in_list", "ForIn");
 
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let var_name = escape_variable_name(var);
 
         // Emit: for var in item1 item2 item3; do
@@ -980,7 +1003,7 @@ impl PosixEmitter {
     ) -> Result<()> {
         self.record_decision("while_construct", "while_test", "While");
 
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
 
         // Handle special cases for condition
         let condition_test = match condition {
@@ -1067,7 +1090,7 @@ impl PosixEmitter {
 
         self.record_decision("case_dispatch", "case_arms", "Case");
 
-        let indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent + 1);
         let scrutinee_str = self.emit_shell_value(scrutinee)?;
 
         // case "$x" in
@@ -1121,8 +1144,8 @@ impl PosixEmitter {
             return Ok(());
         }
 
-        let indent_str = "    ".repeat(indent);
-        let body_indent_str = "    ".repeat(indent + 1);
+        let indent_str = get_indent(indent);
+        let body_indent_str = get_indent(indent + 1);
 
         // Shell function definition
         writeln!(output, "{indent_str}{name}() {{")?;
