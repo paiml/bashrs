@@ -1193,8 +1193,7 @@ fn test_COV_POSIX_087_emit_with_trace_returns_trace() {
     let ir = ShellIR::Echo {
         value: ShellValue::String("traced".to_string()),
     };
-    let config = Config::default();
-    let (output, trace) = emit_with_trace(&ir, &config).unwrap();
+    let (output, trace) = emit_with_trace(&ir).unwrap();
     assert!(output.contains("echo"));
     assert!(!trace.is_empty());
 }

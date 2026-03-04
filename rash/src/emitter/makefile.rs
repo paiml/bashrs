@@ -70,8 +70,7 @@ pub fn emit_makefile(ast: &RestrictedAst) -> Result<String> {
 /// Fallback: transpile Rust to bash shell code and wrap in a Makefile `all:` target.
 fn emit_bash_as_makefile(ast: &RestrictedAst) -> Result<String> {
     let ir = crate::ir::from_ast(ast)?;
-    let config = crate::models::Config::default();
-    let shell = crate::emitter::emit(&ir, &config)?;
+    let shell = crate::emitter::emit(&ir)?;
     wrap_shell_in_makefile(&shell)
 }
 
