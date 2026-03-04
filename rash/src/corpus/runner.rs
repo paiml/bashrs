@@ -1466,20 +1466,22 @@ impl CorpusRunner {
     ) -> Vec<FormatScore> {
         let mut scores = Vec::new();
 
+        // KAIZEN-075: O(1) format lookup instead of O(n) linear search per result.
+        // Was ~322M string comparisons per format (17,942² × 3 = ~966M total).
+        let format_by_id: HashMap<&str, CorpusFormat> = registry
+            .entries
+            .iter()
+            .map(|e| (e.id.as_str(), e.format))
+            .collect();
+
         for format in &[
             CorpusFormat::Bash,
             CorpusFormat::Makefile,
             CorpusFormat::Dockerfile,
         ] {
-            // Map results to format by matching entry IDs
             let format_results: Vec<&CorpusResult> = results
                 .iter()
-                .filter(|r| {
-                    registry
-                        .entries
-                        .iter()
-                        .any(|e| e.id == r.id && e.format == *format)
-                })
+                .filter(|r| format_by_id.get(r.id.as_str()) == Some(format))
                 .collect();
 
             if format_results.is_empty() {
