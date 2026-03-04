@@ -625,28 +625,71 @@ impl CorpusRunner {
     }
 
     /// Run the full corpus and return aggregate score.
+    ///
+    /// KAIZEN-080: Parallelized with std::thread::scope — each thread processes
+    /// a chunk of entries independently. CorpusRunner is Send+Sync (Config is scalar,
+    /// OnceLock caches are thread-safe, run_entry takes &self).
     pub fn run(&self, registry: &CorpusRegistry) -> CorpusScore {
-        let mut results = Vec::new();
-
-        for entry in &registry.entries {
-            let result = self.run_entry(entry);
-            results.push(result);
-        }
-
+        let entry_refs: Vec<&CorpusEntry> = registry.entries.iter().collect();
+        let results = self.run_entries_parallel(&entry_refs);
         // KAIZEN-071: pass owned Vec to avoid cloning 17,942 CorpusResult structs
         self.compute_score(results, registry)
     }
 
     /// Run corpus for a single format.
+    ///
+    /// KAIZEN-080: Parallelized — collects format entries then dispatches to thread pool.
     pub fn run_format(&self, registry: &CorpusRegistry, format: CorpusFormat) -> CorpusScore {
-        let mut results = Vec::new();
+        let entries: Vec<&CorpusEntry> = registry.by_format(format);
+        let results = self.run_entries_parallel(&entries);
+        self.compute_score(results, registry)
+    }
 
-        for entry in registry.by_format(format) {
-            let result = self.run_entry(entry);
-            results.push(result);
+    /// Run entries in parallel using std::thread::scope.
+    ///
+    /// Contract:
+    /// - Pre: entries is a slice of corpus entry references
+    /// - Post: returns Vec<CorpusResult> with len == entries.len(), in same order
+    /// - Invariant: no shared mutable state — each run_entry call is independent
+    fn run_entries_parallel(&self, entries: &[&CorpusEntry]) -> Vec<CorpusResult> {
+        if entries.is_empty() {
+            return Vec::new();
         }
 
-        self.compute_score(results, registry)
+        let n_threads = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1);
+
+        // For small entry counts or single-thread systems, skip thread overhead
+        if entries.len() < n_threads * 2 || n_threads <= 1 {
+            return entries
+                .iter()
+                .map(|e| self.run_entry(e))
+                .collect();
+        }
+
+        let chunk_size = (entries.len() + n_threads - 1) / n_threads;
+        let chunks: Vec<&[&CorpusEntry]> = entries.chunks(chunk_size).collect();
+
+        std::thread::scope(|s| {
+            let handles: Vec<_> = chunks
+                .into_iter()
+                .map(|chunk| {
+                    s.spawn(move || {
+                        chunk
+                            .iter()
+                            .map(|e| self.run_entry(e))
+                            .collect::<Vec<_>>()
+                    })
+                })
+                .collect();
+
+            let mut results = Vec::with_capacity(entries.len());
+            for handle in handles {
+                results.extend(handle.join().expect("corpus runner thread panicked"));
+            }
+            results
+        })
     }
 
     /// Run a single corpus entry and return its detailed result.
@@ -996,22 +1039,6 @@ impl CorpusRunner {
         }
     }
 
-    /// Common MR equivalence check: transpile modified input and compare containment.
-    fn check_mr_equivalence(&self, entry: &CorpusEntry, modified_input: &str) -> bool {
-        let original = self.transpile_entry(&entry.input, entry.format);
-        let modified = self.transpile_entry(modified_input, entry.format);
-
-        match (original, modified) {
-            (Ok(orig), Ok(modif)) => {
-                let orig_has = orig.contains(&entry.expected_output);
-                let modif_has = modif.contains(&entry.expected_output);
-                orig_has == modif_has
-            }
-            (Err(_), Err(_)) => true,
-            _ => false,
-        }
-    }
-
     /// Transpile input based on format (DRY helper for MR checks).
     fn transpile_entry(
         &self,
@@ -1096,41 +1123,6 @@ impl CorpusRunner {
     /// Additionally, execute the transpiled output in both `sh` and `dash` to verify
     /// cross-shell runtime agreement.
     /// Non-bash formats pass by default (no dialect variation).
-    fn check_cross_shell(&self, entry: &CorpusEntry) -> bool {
-        if entry.format != CorpusFormat::Bash {
-            return true; // Only bash has dialect variants
-        }
-
-        let posix_config = Config {
-            target: crate::models::ShellDialect::Posix,
-            ..self.config.clone()
-        };
-        let bash_config = Config {
-            target: crate::models::ShellDialect::Bash,
-            ..self.config.clone()
-        };
-
-        let posix_result = crate::transpile(&entry.input, posix_config);
-        let bash_result = crate::transpile(&entry.input, bash_config);
-
-        match (posix_result, bash_result) {
-            (Ok(posix_out), Ok(bash_out)) => {
-                // Both should contain the expected output
-                let posix_has = posix_out.contains(&entry.expected_output);
-                let bash_has = bash_out.contains(&entry.expected_output);
-                if !(posix_has && bash_has) {
-                    return false;
-                }
-                // Execute in both sh and dash to verify runtime agreement
-                self.check_shell_execution(&posix_out)
-            }
-            // Both fail: degenerate agreement
-            (Err(_), Err(_)) => true,
-            // Disagreement: one succeeds, one fails
-            _ => false,
-        }
-    }
-
     /// Execute shell output in both `sh` and `dash`, verifying both terminate.
     /// Returns true if both shells execute without timeout.
     /// Gracefully skips dash if not installed.
@@ -1394,25 +1386,6 @@ impl CorpusRunner {
 
         match second {
             Ok(b) => first_output == b,
-            Err(_) => false,
-        }
-    }
-
-    fn check_determinism(&self, entry: &CorpusEntry) -> bool {
-        if !entry.deterministic {
-            return true;
-        }
-
-        let first = match entry.format {
-            CorpusFormat::Bash => crate::transpile(&entry.input, self.config.clone()),
-            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, self.config.clone()),
-            CorpusFormat::Dockerfile => {
-                crate::transpile_dockerfile(&entry.input, self.config.clone())
-            }
-        };
-
-        match first {
-            Ok(output) => self.check_determinism_with_output(entry, &output),
             Err(_) => false,
         }
     }
@@ -2803,8 +2776,11 @@ end_of_record
             "greet() {",
         );
         // Both Posix and Bash dialects should contain "greet() {"
+        // Transpile first to get output for the _with_output variant
+        let output = crate::transpile(&entry.input, Config::default())
+            .expect("valid entry should transpile");
         assert!(
-            runner.check_cross_shell(&entry),
+            runner.check_cross_shell_with_output(&entry, &output, false),
             "Cross-shell should pass when both dialects contain expected output"
         );
     }
@@ -2823,7 +2799,7 @@ end_of_record
             "CC := gcc",
         );
         assert!(
-            runner.check_cross_shell(&makefile_entry),
+            runner.check_cross_shell_with_output(&makefile_entry, "", false),
             "Cross-shell should return true for non-Bash entries"
         );
 
@@ -2837,7 +2813,7 @@ end_of_record
             "FROM alpine:3.18",
         );
         assert!(
-            runner.check_cross_shell(&docker_entry),
+            runner.check_cross_shell_with_output(&docker_entry, "", false),
             "Cross-shell should return true for Dockerfile entries"
         );
     }
@@ -2911,8 +2887,8 @@ end_of_record
 
     #[test]
     fn test_CORPUS_RUN_059_mr_equivalence_both_fail_agree() {
-        // MR equivalence: if both original and modified fail transpilation,
-        // that counts as agreement (degenerate case)
+        // MR equivalence: if original transpilation fails, run_entry sets
+        // metamorphic_consistent=false (MR checks only run inside Ok branch).
         let runner = CorpusRunner::new(Config::default());
         let entry = CorpusEntry::new(
             "T-MR-EQ-1",
@@ -2923,20 +2899,13 @@ end_of_record
             "this is not valid Rust at all!!!",
             "should_not_matter",
         );
-        // MR-2/3/4 should all pass because both original and modified fail → true
-        // Use old check_mr_equivalence which handles the both-fail case (line 995+)
-        assert!(runner.check_mr_equivalence(
-            &entry,
-            &format!("// MR-2 no-op\n{}", entry.input)
-        ));
-        assert!(runner.check_mr_equivalence(
-            &entry,
-            &format!("{}\n\n  \n", entry.input)
-        ));
-        assert!(runner.check_mr_equivalence(
-            &entry,
-            &format!("\n\n{}", entry.input)
-        ));
+        // When transpilation fails, metamorphic_consistent is false (Err branch)
+        let result = runner.run_entry(&entry);
+        assert!(!result.transpiled, "Invalid input should fail transpilation");
+        assert!(
+            !result.metamorphic_consistent,
+            "Failed transpilation sets metamorphic_consistent=false"
+        );
     }
 
     // BH-MUT-0018: check_determinism mutation targets
@@ -2955,8 +2924,10 @@ end_of_record
             r#"fn greet() -> u32 { return 42; } fn main() { println!("{}", greet()); }"#,
             "greet() {",
         );
+        let output = crate::transpile(&entry.input, Config::default())
+            .expect("valid entry should transpile");
         assert!(
-            runner.check_determinism(&entry),
+            runner.check_determinism_with_output(&entry, &output),
             "Valid entry should be deterministic"
         );
     }
@@ -2975,15 +2946,16 @@ end_of_record
             "should_not_matter",
         );
         entry.deterministic = false;
+        // check_determinism_with_output returns true when deterministic=false (skip)
         assert!(
-            runner.check_determinism(&entry),
+            runner.check_determinism_with_output(&entry, ""),
             "Entry with deterministic=false should return true (skip)"
         );
     }
 
     #[test]
     fn test_CORPUS_RUN_065_determinism_invalid_input_fails() {
-        // Invalid input that fails transpilation → determinism check returns false
+        // Invalid input that fails transpilation → run_entry sets deterministic=false
         let runner = CorpusRunner::new(Config::default());
         let entry = CorpusEntry::new(
             "T-DET-3",
@@ -2994,11 +2966,11 @@ end_of_record
             "not valid rust code at all!!!",
             "x",
         );
-        // Both transpilations fail → match arm `_ => false`
-        // Wait — actually (Err, Err) is covered by `_ => false`
-        // This tests the error path
+        // When transpilation fails, run_entry sets deterministic=false in Err branch
+        let result = runner.run_entry(&entry);
+        assert!(!result.transpiled, "Invalid input should fail transpilation");
         assert!(
-            !runner.check_determinism(&entry),
+            !result.deterministic,
             "Invalid input should fail determinism check"
         );
     }
