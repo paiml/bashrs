@@ -675,10 +675,11 @@ impl CorpusRunner {
                 let lint_clean = self.check_lint(&output, entry.format);
                 // KAIZEN-070: reuse output from run_entry_with_trace
                 let deterministic = self.check_determinism_with_output(entry, &output);
+                // KAIZEN-072: pass output_contains to MR checks to avoid re-transpiling original
                 let metamorphic_consistent = deterministic
-                    && self.check_mr2_stability(entry)
-                    && self.check_mr3_whitespace(entry)
-                    && self.check_mr4_leading_blanks(entry)
+                    && self.check_mr2_stability(entry, output_contains)
+                    && self.check_mr3_whitespace(entry, output_contains)
+                    && self.check_mr4_leading_blanks(entry, output_contains)
                     && self.check_mr5_subsumption(entry)
                     && self.check_mr6_composition(entry)
                     && self.check_mr7_negation(entry);
@@ -777,10 +778,11 @@ impl CorpusRunner {
                 //    MR-5: subsumption (simplification preserves transpilability)
                 //    MR-6: composition (independent stmts transpile separately)
                 //    MR-7: negation (negated condition still transpiles)
+                // KAIZEN-072: pass output_contains to MR checks to avoid re-transpiling original
                 let metamorphic_consistent = deterministic
-                    && self.check_mr2_stability(entry)
-                    && self.check_mr3_whitespace(entry)
-                    && self.check_mr4_leading_blanks(entry)
+                    && self.check_mr2_stability(entry, output_contains)
+                    && self.check_mr3_whitespace(entry, output_contains)
+                    && self.check_mr4_leading_blanks(entry, output_contains)
                     && self.check_mr5_subsumption(entry)
                     && self.check_mr6_composition(entry)
                     && self.check_mr7_negation(entry);
@@ -841,24 +843,24 @@ impl CorpusRunner {
 
     /// MR-2: Stability under no-op addition.
     /// Adding a comment to the input should not change the transpiled output semantics.
-    fn check_mr2_stability(&self, entry: &CorpusEntry) -> bool {
+    fn check_mr2_stability(&self, entry: &CorpusEntry, output_contains: bool) -> bool {
         // Input is Rust DSL — use Rust comment syntax, not shell comment
         let modified_input = format!("// MR-2 no-op\n{}", entry.input);
-        self.check_mr_equivalence(entry, &modified_input)
+        self.check_mr_equivalence_precomputed(entry, &modified_input, output_contains)
     }
 
     /// MR-3: Trailing whitespace invariance.
     /// Adding trailing whitespace/newlines to the input should not change output semantics.
-    fn check_mr3_whitespace(&self, entry: &CorpusEntry) -> bool {
+    fn check_mr3_whitespace(&self, entry: &CorpusEntry, output_contains: bool) -> bool {
         let modified_input = format!("{}\n\n  \n", entry.input);
-        self.check_mr_equivalence(entry, &modified_input)
+        self.check_mr_equivalence_precomputed(entry, &modified_input, output_contains)
     }
 
     /// MR-4: Leading blank line invariance.
     /// Adding leading blank lines to the input should not change output semantics.
-    fn check_mr4_leading_blanks(&self, entry: &CorpusEntry) -> bool {
+    fn check_mr4_leading_blanks(&self, entry: &CorpusEntry, output_contains: bool) -> bool {
         let modified_input = format!("\n\n{}", entry.input);
-        self.check_mr_equivalence(entry, &modified_input)
+        self.check_mr_equivalence_precomputed(entry, &modified_input, output_contains)
     }
 
     /// MR-5: Subsumption — if A transpiles, a simplification of A should also transpile.
@@ -970,6 +972,23 @@ impl CorpusRunner {
             }
         }
         true // inapplicable
+    }
+
+    /// KAIZEN-072: MR equivalence check reusing pre-computed original containment.
+    /// Eliminates 3 redundant transpilations per entry (MR-2, MR-3, MR-4 each
+    /// re-transpiled the original — ~53,826 wasted transpilations per corpus run).
+    fn check_mr_equivalence_precomputed(
+        &self,
+        entry: &CorpusEntry,
+        modified_input: &str,
+        original_contains: bool,
+    ) -> bool {
+        let modified = self.transpile_entry(modified_input, entry.format);
+        match modified {
+            Ok(modif) => original_contains == modif.contains(&entry.expected_output),
+            // Original succeeded (we're in the Ok branch of run_entry), modified failed → not equivalent
+            Err(_) => false,
+        }
     }
 
     /// Common MR equivalence check: transpile modified input and compare containment.
@@ -2747,8 +2766,11 @@ end_of_record
             r#"fn add(a: u32, b: u32) -> u32 { return a + b; } fn main() { println!("{}", add(1, 2)); }"#,
             "add() {",
         );
+        // Compute output_contains like run_entry does
+        let output = crate::transpile(&entry.input, Config::default()).unwrap();
+        let output_contains = output.contains(&entry.expected_output);
         assert!(
-            runner.check_mr2_stability(&entry),
+            runner.check_mr2_stability(&entry, output_contains),
             "MR-2: adding a comment should not change output"
         );
     }
@@ -2766,8 +2788,10 @@ end_of_record
             r#"fn greet() -> u32 { return 42; } fn main() { println!("{}", greet()); }"#,
             "greet() {",
         );
+        let output = crate::transpile(&entry.input, Config::default()).unwrap();
+        let output_contains = output.contains(&entry.expected_output);
         assert!(
-            runner.check_mr3_whitespace(&entry),
+            runner.check_mr3_whitespace(&entry, output_contains),
             "MR-3: trailing whitespace should not change output"
         );
     }
@@ -2785,8 +2809,10 @@ end_of_record
             r#"fn square(x: u32) -> u32 { return x * x; } fn main() { println!("{}", square(5)); }"#,
             "square() {",
         );
+        let output = crate::transpile(&entry.input, Config::default()).unwrap();
+        let output_contains = output.contains(&entry.expected_output);
         assert!(
-            runner.check_mr4_leading_blanks(&entry),
+            runner.check_mr4_leading_blanks(&entry, output_contains),
             "MR-4: leading blanks should not change output"
         );
     }
@@ -2806,9 +2832,19 @@ end_of_record
             "should_not_matter",
         );
         // MR-2/3/4 should all pass because both original and modified fail → true
-        assert!(runner.check_mr2_stability(&entry));
-        assert!(runner.check_mr3_whitespace(&entry));
-        assert!(runner.check_mr4_leading_blanks(&entry));
+        // Use old check_mr_equivalence which handles the both-fail case (line 995+)
+        assert!(runner.check_mr_equivalence(
+            &entry,
+            &format!("// MR-2 no-op\n{}", entry.input)
+        ));
+        assert!(runner.check_mr_equivalence(
+            &entry,
+            &format!("{}\n\n  \n", entry.input)
+        ));
+        assert!(runner.check_mr_equivalence(
+            &entry,
+            &format!("\n\n{}", entry.input)
+        ));
     }
 
     // BH-MUT-0018: check_determinism mutation targets
