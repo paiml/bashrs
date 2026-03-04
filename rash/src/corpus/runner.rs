@@ -1541,6 +1541,13 @@ impl CorpusRunner {
             .format_score(CorpusFormat::Dockerfile)
             .map_or(0.0, |fs| fs.score);
 
+        let lint_passed = score.results.iter().filter(|r| r.lint_clean).count();
+        let lint_rate = if score.total > 0 {
+            lint_passed as f64 / score.total as f64
+        } else {
+            0.0
+        };
+
         ConvergenceEntry {
             iteration,
             date: date.to_string(),
@@ -1561,12 +1568,8 @@ impl CorpusRunner {
             bash_score,
             makefile_score,
             dockerfile_score,
-            lint_passed: score.results.iter().filter(|r| r.lint_clean).count(),
-            lint_rate: if score.total > 0 {
-                score.results.iter().filter(|r| r.lint_clean).count() as f64 / score.total as f64
-            } else {
-                0.0
-            },
+            lint_passed,
+            lint_rate,
         }
     }
 
