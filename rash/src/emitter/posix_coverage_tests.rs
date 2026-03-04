@@ -27,7 +27,7 @@ use crate::ir::{Command, EffectSet, ShellIR, ShellValue};
 use crate::models::Config;
 
 fn emitter() -> PosixEmitter {
-    PosixEmitter::new(Config::default())
+    PosixEmitter::new()
 }
 
 // ---------------------------------------------------------------------------

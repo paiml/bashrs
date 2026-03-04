@@ -176,28 +176,14 @@ pub use trace::{DecisionTrace, TranspilerDecision};
 /// # Ok(())
 /// # }
 /// ```
-pub fn emit(ir: &ShellIR, config: &Config) -> Result<String> {
-    match config.target {
-        crate::models::config::ShellDialect::Posix => {
-            let emitter = PosixEmitter::new(config.clone());
-            emitter.emit(ir)
-        }
-        crate::models::config::ShellDialect::Bash => {
-            // For now, use POSIX emitter for Bash too
-            let emitter = PosixEmitter::new(config.clone());
-            emitter.emit(ir)
-        }
-        _ => {
-            // Default to POSIX for other dialects
-            let emitter = PosixEmitter::new(config.clone());
-            emitter.emit(ir)
-        }
-    }
+pub fn emit(ir: &ShellIR, _config: &Config) -> Result<String> {
+    let emitter = PosixEmitter::new();
+    emitter.emit(ir)
 }
 
 /// Emit shell code from IR and return the decision trace for fault localization.
-pub fn emit_with_trace(ir: &ShellIR, config: &Config) -> Result<(String, DecisionTrace)> {
-    let emitter = PosixEmitter::new_with_tracing(config.clone());
+pub fn emit_with_trace(ir: &ShellIR, _config: &Config) -> Result<(String, DecisionTrace)> {
+    let emitter = PosixEmitter::new_with_tracing();
     let output = emitter.emit(ir)?;
     let trace = emitter.take_trace();
     Ok((output, trace))

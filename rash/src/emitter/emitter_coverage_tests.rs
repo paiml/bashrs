@@ -16,7 +16,7 @@ use crate::ir::{Command, EffectSet, ShellIR, ShellValue};
 use crate::models::Config;
 
 fn e() -> PosixEmitter {
-    PosixEmitter::new(Config::default())
+    PosixEmitter::new()
 }
 fn s(v: &str) -> ShellValue {
     ShellValue::String(v.to_string())

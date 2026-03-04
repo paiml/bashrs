@@ -7,7 +7,7 @@ use rstest::*;
 #[test]
 fn test_simple_let_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "test_var".to_string(),
@@ -26,7 +26,7 @@ fn test_simple_let_emission() {
 #[test]
 fn test_command_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let cmd = Command {
         program: "echo".to_string(),
@@ -45,7 +45,7 @@ fn test_command_emission() {
 #[test]
 fn test_if_statement_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
         test: ShellValue::Bool(true),
@@ -76,7 +76,7 @@ fn test_if_statement_emission() {
 #[test]
 fn test_sequence_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Sequence(vec![
         ShellIR::Let {
@@ -103,7 +103,7 @@ fn test_sequence_emission() {
 #[test]
 fn test_exit_statement_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Exit {
         code: 1,
@@ -118,7 +118,7 @@ fn test_exit_statement_emission() {
 #[test]
 fn test_shell_value_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     // String value
     let string_val = ShellValue::String("hello world".to_string());
@@ -143,7 +143,7 @@ fn test_shell_value_emission() {
 #[test]
 fn test_concatenation_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let concat_val = ShellValue::Concat(vec![
         ShellValue::String("Hello ".to_string()),
@@ -158,7 +158,7 @@ fn test_concatenation_emission() {
 #[test]
 fn test_command_substitution_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let cmd_subst = ShellValue::CommandSubst(Command {
         program: "date".to_string(),
@@ -172,7 +172,7 @@ fn test_command_substitution_emission() {
 #[test]
 fn test_noop_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Noop;
     let result = emitter.emit(&ir).unwrap();
@@ -183,7 +183,7 @@ fn test_noop_emission() {
 #[test]
 fn test_header_and_footer_structure() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Noop;
     let result = emitter.emit(&ir).unwrap();
@@ -208,7 +208,7 @@ fn test_header_and_footer_structure() {
 #[test]
 fn test_runtime_functions_included() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     // Use an IR that references rash_require and rash_download_verified
     // so that selective runtime emission includes them
@@ -239,7 +239,7 @@ fn test_runtime_functions_included() {
 #[test]
 fn test_test_expression_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     // Boolean true
     let result = emitter
@@ -359,7 +359,7 @@ proptest! {
         var_name in "[a-zA-Z_][a-zA-Z0-9_]{0,20}"
     ) {
         let config = Config::default();
-        let emitter = PosixEmitter::new(config);
+        let emitter = PosixEmitter::new();
 
         let test_values = vec![
             ShellValue::String(s),
@@ -389,7 +389,7 @@ proptest! {
         arg_count in 0usize..5usize
     ) {
         let config = Config::default();
-        let emitter = PosixEmitter::new(config);
+        let emitter = PosixEmitter::new();
 
         let args: Vec<ShellValue> = (0..arg_count)
             .map(|i| ShellValue::String(format!("arg{i}")))
@@ -429,7 +429,7 @@ proptest! {
         value in "[a-zA-Z0-9 _.-]{0,100}"
     ) {
         let config = Config::default();
-        let emitter = PosixEmitter::new(config);
+        let emitter = PosixEmitter::new();
 
         let ir = ShellIR::Let {
             name: var_name.clone(),
@@ -457,7 +457,7 @@ proptest! {
     #[test]
     fn prop_if_statements_balanced(condition in prop::bool::ANY) {
         let config = Config::default();
-        let emitter = PosixEmitter::new(config);
+        let emitter = PosixEmitter::new();
 
         let ir = ShellIR::If {
             test: ShellValue::Bool(condition),
@@ -491,7 +491,7 @@ proptest! {
         parts in prop::collection::vec("[a-zA-Z0-9]{1,10}", 1..5)
     ) {
         let config = Config::default();
-        let emitter = PosixEmitter::new(config);
+        let emitter = PosixEmitter::new();
 
         let shell_values: Vec<ShellValue> = parts.iter()
             .map(|s| ShellValue::String(s.clone()))
@@ -519,8 +519,8 @@ proptest! {
     #[test]
     fn prop_emission_deterministic(var_name in "[a-zA-Z_][a-zA-Z0-9_]{0,20}") {
         let config = Config::default();
-        let emitter1 = PosixEmitter::new(config.clone());
-        let emitter2 = PosixEmitter::new(config);
+        let emitter1 = PosixEmitter::new();
+        let emitter2 = PosixEmitter::new();
 
         let ir = ShellIR::Let {
             name: var_name,
@@ -558,7 +558,7 @@ proptest! {
     #[test]
     fn prop_exit_codes_valid(code in 0i32..256i32) {
         let config = Config::default();
-        let emitter = PosixEmitter::new(config);
+        let emitter = PosixEmitter::new();
 
         let ir = ShellIR::Exit {
             code: code as u8,
@@ -582,7 +582,7 @@ proptest! {
 #[case(ShellValue::Variable("var".to_string()), "\"$var\"")]
 fn test_shell_value_emission_cases(#[case] value: ShellValue, #[case] expected: &str) {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let result = emitter.emit_shell_value(&value).unwrap();
     assert_eq!(result, expected);
@@ -591,7 +591,7 @@ fn test_shell_value_emission_cases(#[case] value: ShellValue, #[case] expected: 
 #[test]
 fn test_complex_nested_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Sequence(vec![
         ShellIR::Let {
@@ -679,7 +679,7 @@ fn test_different_shell_dialects() {
 #[test]
 fn test_indentation_consistency() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
         test: ShellValue::Bool(true),

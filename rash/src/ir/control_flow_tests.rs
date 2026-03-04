@@ -45,7 +45,7 @@ fn test_string_comparison_equality() {
 
     // Emit the shell code
     let config = Config::default();
-    let emitter = PosixEmitter::new(config.clone());
+    let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
     // BUG: Currently emits [ "$env" -eq production ] which fails
@@ -96,7 +96,7 @@ fn test_integer_comparison_equality() {
 
     // Emit and verify it uses -eq for integer comparison
     let config = Config::default();
-    let emitter = PosixEmitter::new(config.clone());
+    let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
     // Integer comparison should use -eq
@@ -155,7 +155,7 @@ fn test_logical_and_operator() {
 
     // Emit and verify it generates correct logical AND
     let config = Config::default();
-    let emitter = PosixEmitter::new(config.clone());
+    let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
     // Should generate: [ "$x" -gt 5 ] && [ "$y" -gt 15 ]
@@ -211,7 +211,7 @@ fn test_logical_or_operator() {
 
     // Emit and verify it generates correct logical OR
     let config = Config::default();
-    let emitter = PosixEmitter::new(config.clone());
+    let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
     // Should generate: [ "$x" -lt 0 ] || [ "$x" -gt 100 ]
@@ -259,7 +259,7 @@ fn test_not_operator() {
 
     // Emit and verify it generates correct NOT
     let config = Config::default();
-    let emitter = PosixEmitter::new(config.clone());
+    let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
     // Should generate: if ! "$enabled"; then or if ! $enabled; then or if ! false; then
@@ -308,7 +308,7 @@ fn test_string_inequality() {
 
     // Emit and verify it uses != for string inequality
     let config = Config::default();
-    let emitter = PosixEmitter::new(config.clone());
+    let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
     // Should generate: [ "$env" != "production" ]
@@ -539,7 +539,7 @@ fn test_exclusive_range_adjustment() {
 
     // Emit to shell code
     let config = Config::default();
-    let emitter = PosixEmitter::new(config.clone());
+    let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
     // Verify the range end is 2 (3 - 1), not 3 or 4
