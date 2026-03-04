@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `strip_shell_preamble()` — removes transpiler boilerplate (`set -euf`, `trap '... $$'`, shebangs) from classification exports
+- `is_shell_preamble()` — canonical preamble detection (shared with corpus B2 commands)
+
+### Changed
+- `export_classification_jsonl` and `export_multi_label_classification_jsonl` now strip shell preamble by default
+- `fast_classify_export`: eliminate double transpilation for determinism check — halves export runtime
+- `classify_single()` is now the canonical labeling path for all export formats
+
+### Performance
+- KAIZEN-069: `build_dataset` uses HashMap lookup instead of O(n²) linear search (was ~161M string comparisons with 17,942 entries)
+- KAIZEN-070: `check_determinism` reuses first transpilation output from `run_entry` — eliminates ~17,942 redundant transpilations per corpus run
+- Refactored `validate_export` to reduce cognitive complexity (extracted check helpers)
+
+### Documentation
+- SSC spec v3.4.0: added §19 documenting multi-GPU training infrastructure (wgpu batched matmul, `DataParallelCoordinator`, `--gpus`/`--gpu-backend` CLI flags)
+- Updated book SSC chapter for v3 binary classification, multi-GPU training, and corrected hyperparameter contracts
+
 ## [6.64.0] - 2026-02-15
 
 ### Added
