@@ -683,8 +683,9 @@ impl CorpusRunner {
                     && self.check_mr5_subsumption(entry)
                     && self.check_mr6_composition(entry)
                     && self.check_mr7_negation(entry);
-                // KAIZEN-073: pass output to avoid re-transpiling with matching dialect
-                let cross_shell_agree = self.check_cross_shell_with_output(entry, &output);
+                // KAIZEN-073/074: pass output + behavioral result
+                let cross_shell_agree =
+                    self.check_cross_shell_with_output(entry, &output, output_behavioral);
 
                 CorpusResult {
                     id: entry.id.clone(),
@@ -791,7 +792,9 @@ impl CorpusRunner {
                 // G: Cross-shell agreement — for bash entries, verify output
                 // equivalence across Posix and Bash dialect configs
                 // KAIZEN-073: pass output to avoid re-transpiling with matching dialect
-                let cross_shell_agree = self.check_cross_shell_with_output(entry, &output);
+                // KAIZEN-074: pass behavioral result to skip redundant sh execution
+                let cross_shell_agree =
+                    self.check_cross_shell_with_output(entry, &output, output_behavioral);
 
                 CorpusResult {
                     id: entry.id.clone(),
@@ -1023,9 +1026,17 @@ impl CorpusRunner {
     }
 
     /// KAIZEN-073: Cross-shell agreement reusing run_entry output when config matches.
+    /// KAIZEN-074: Skip redundant sh execution when behavioral already passed for same output.
     /// If `self.config.target` is Posix, the output from `run_entry` IS the Posix result —
     /// only transpile with Bash config (eliminates ~16,431 redundant transpilations).
-    fn check_cross_shell_with_output(&self, entry: &CorpusEntry, output: &str) -> bool {
+    /// When behavioral_passed is true and output is reused as posix_out, skip sh execution
+    /// (already verified by check_behavioral) and only run dash.
+    fn check_cross_shell_with_output(
+        &self,
+        entry: &CorpusEntry,
+        output: &str,
+        behavioral_passed: bool,
+    ) -> bool {
         if entry.format != CorpusFormat::Bash {
             return true;
         }
@@ -1038,6 +1049,9 @@ impl CorpusRunner {
             target: crate::models::ShellDialect::Bash,
             ..self.config.clone()
         };
+
+        // Track whether posix_out is the same as the behavioral-tested output
+        let posix_is_reused = self.config.target == crate::models::ShellDialect::Posix;
 
         // Reuse run_entry output for whichever dialect matches self.config.target
         let (posix_result, bash_result) = match self.config.target {
@@ -1064,7 +1078,13 @@ impl CorpusRunner {
                 if !(posix_has && bash_has) {
                     return false;
                 }
-                self.check_shell_execution(&posix_out)
+                // KAIZEN-074: if behavioral already passed for this same output,
+                // sh execution is known-good — only run dash
+                if behavioral_passed && posix_is_reused {
+                    self.check_dash_execution(&posix_out)
+                } else {
+                    self.check_shell_execution(&posix_out)
+                }
             }
             (Err(_), Err(_)) => true,
             _ => false,
@@ -1142,6 +1162,22 @@ impl CorpusRunner {
             Ok(result) => result.status.code().unwrap_or(128) != 124,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => true, // dash not installed
             Err(_) => true, // other error, graceful skip
+        }
+    }
+
+    /// KAIZEN-074: Execute only in dash (sh already verified by check_behavioral).
+    /// Gracefully skips if dash is not installed.
+    fn check_dash_execution(&self, output: &str) -> bool {
+        match std::process::Command::new("timeout")
+            .args(["2", "dash", "-c", output])
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .output()
+        {
+            Ok(result) => result.status.code().unwrap_or(128) != 124,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => true,
+            Err(_) => true,
         }
     }
 
