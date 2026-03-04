@@ -202,8 +202,6 @@ const SIMULATION_TESTS: &[(&str, &str, &str)] = &[
 
 fn find_bashrs_binary() -> Option<&'static str> {
     let candidates = [
-        "/mnt/nvme-raid0/targets/bashrs/release/bashrs",
-        "/mnt/nvme-raid0/targets/bashrs/debug/bashrs",
         "target/release/bashrs",
         "target/debug/bashrs",
     ];

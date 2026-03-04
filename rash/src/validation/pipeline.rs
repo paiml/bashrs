@@ -781,7 +781,7 @@ mod tests {
         let pipeline = create_test_pipeline();
         // Complex shell commands should work in exec()
         let result = pipeline.validate_string_literal_in_exec(
-            "ldd /home/noah/.local/bin/main 2>/dev/null | grep -i blas | head -1",
+            "ldd /usr/local/bin/main 2>/dev/null | grep -i blas | head -1",
         );
         assert!(
             result.is_ok(),
