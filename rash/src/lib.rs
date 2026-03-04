@@ -250,7 +250,7 @@ pub fn transpile(input: &str, config: Config) -> Result<String> {
     validation_pipeline.validate_ir(&ir)?;
 
     let optimized = ir::optimize(ir, &config)?;
-    let shell_code = emitter::emit(&optimized, &config)?;
+    let shell_code = emitter::emit(&optimized)?;
 
     validation_pipeline.validate_output(&shell_code)?;
 
@@ -277,7 +277,7 @@ pub fn transpile_with_trace(input: &str, config: Config) -> Result<(String, Deci
     validation_pipeline.validate_ir(&ir)?;
 
     let optimized = ir::optimize(ir, &config)?;
-    let (shell_code, trace) = emitter::emit_with_trace(&optimized, &config)?;
+    let (shell_code, trace) = emitter::emit_with_trace(&optimized)?;
 
     validation_pipeline.validate_output(&shell_code)?;
 

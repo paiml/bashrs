@@ -653,7 +653,7 @@ fn test_emit_public_api() {
     };
 
     // Test the public emit function
-    let result = emit(&ir, &config).unwrap();
+    let result = emit(&ir).unwrap();
     // Updated: Variables are now mutable to support let-shadowing semantics
     assert!(result.contains("test='value'"));
     assert!(!result.contains("readonly"));
@@ -667,12 +667,12 @@ fn test_different_shell_dialects() {
 
     // Test POSIX (default)
     config.target = crate::models::ShellDialect::Posix;
-    let result = emit(&ir, &config).unwrap();
+    let result = emit(&ir).unwrap();
     assert!(result.contains("#!/bin/sh"));
 
     // Test Bash (should still emit POSIX for now)
     config.target = crate::models::ShellDialect::Bash;
-    let result = emit(&ir, &config).unwrap();
+    let result = emit(&ir).unwrap();
     assert!(result.contains("#!/bin/sh"));
 }
 
@@ -738,7 +738,7 @@ fn test_env_emits_dollar_brace_syntax() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement EnvVar emission
     assert!(
@@ -769,7 +769,7 @@ fn test_env_var_or_emits_with_default() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement EnvVar with default emission
     assert!(
@@ -810,7 +810,7 @@ fn test_env_var_quoted_for_safety() {
     ]);
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: Must have quotes around ${{VAR}} for safety
     assert!(
@@ -853,7 +853,7 @@ fn test_env_complex_default_value() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: Default values with spaces must work correctly
     assert!(
@@ -879,7 +879,7 @@ fn test_arg_emits_positional_syntax() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement Arg emission
     assert!(
@@ -907,7 +907,7 @@ fn test_args_emits_all_args_syntax() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement args() emission
     assert!(
@@ -935,7 +935,7 @@ fn test_arg_count_emits_count_syntax() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement ArgCount emission
     assert!(
@@ -970,7 +970,7 @@ fn test_args_quoted_for_safety() {
     ]);
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: Must have quotes around $1 and $@ for safety
     // Should NOT have unquoted versions like =$ 1 or =$1 (without quotes)
@@ -1014,7 +1014,7 @@ fn test_multiple_args_in_sequence() {
     ]);
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: All three should be emitted correctly
     assert!(
@@ -1049,7 +1049,7 @@ fn test_exit_code_emits_question_mark_syntax() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement ExitCode emission
     assert!(
@@ -1084,7 +1084,7 @@ fn test_exit_code_in_comparison() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until ExitCode is implemented in comparison
     assert!(
@@ -1119,7 +1119,7 @@ fn test_exit_code_quoted_for_safety() {
     ]);
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: Must have quotes around $? for safety and consistency
     assert!(
@@ -1154,7 +1154,7 @@ fn test_exit_code_in_concatenation() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until ExitCode works in concatenation
     assert!(
@@ -1184,7 +1184,7 @@ fn test_string_split_in_runtime() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     assert!(
         output.contains("rash_string_split()"),
@@ -1207,7 +1207,7 @@ fn test_string_split_basic() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     assert!(
         output.contains("rash_string_split()"),
@@ -1236,7 +1236,7 @@ fn test_array_len_in_runtime() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     assert!(
         output.contains("rash_array_len()"),
@@ -1259,7 +1259,7 @@ fn test_array_len_basic() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     assert!(
         output.contains("rash_array_len()"),
@@ -1290,7 +1290,7 @@ fn test_array_join_in_runtime() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     assert!(
         output.contains("rash_array_join()"),
@@ -1315,7 +1315,7 @@ fn test_array_join_basic() {
     };
 
     let config = Config::default();
-    let output = super::emit(&ir, &config).unwrap();
+    let output = super::emit(&ir).unwrap();
 
     assert!(
         output.contains("rash_array_join()"),

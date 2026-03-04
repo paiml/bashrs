@@ -30,7 +30,6 @@
 //! use bashrs::emitter::emit;
 //! use bashrs::ir::{ShellIR, ShellValue, Command};
 //! use bashrs::ir::effects::EffectSet;
-//! use bashrs::models::Config;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Create a simple echo command
@@ -42,10 +41,7 @@
 //!     effects: EffectSet::pure(),
 //! };
 //!
-//! // Generate shell code
-//! let config = Config::default();
-//! let shell_code = emit(&ir, &config)?;
-//!
+//! let shell_code = emit(&ir)?;
 //! assert!(shell_code.contains("echo 'Hello, World!'"));
 //! # Ok(())
 //! # }
@@ -57,7 +53,6 @@
 //! use bashrs::emitter::emit;
 //! use bashrs::ir::{ShellIR, ShellValue};
 //! use bashrs::ir::effects::EffectSet;
-//! use bashrs::models::Config;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let ir = ShellIR::Let {
@@ -66,9 +61,7 @@
 //!     effects: EffectSet::pure(),
 //! };
 //!
-//! let config = Config::default();
-//! let shell_code = emit(&ir, &config)?;
-//!
+//! let shell_code = emit(&ir)?;
 //! assert!(shell_code.contains("USERNAME=") && shell_code.contains("alice"));
 //! # Ok(())
 //! # }
@@ -80,7 +73,6 @@
 //! use bashrs::emitter::emit;
 //! use bashrs::ir::{ShellIR, ShellValue, Command};
 //! use bashrs::ir::effects::EffectSet;
-//! use bashrs::models::Config;
 //!
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Even with special characters, output is safe
@@ -92,9 +84,7 @@
 //!     effects: EffectSet::pure(),
 //! };
 //!
-//! let config = Config::default();
-//! let shell_code = emit(&ir, &config)?;
-//!
+//! let shell_code = emit(&ir)?;
 //! // Special characters are safely escaped
 //! assert!(shell_code.contains("'Hello $USER; rm -rf /'"));
 //! # Ok(())
@@ -137,19 +127,17 @@ mod posix_coverage_tests;
 pub use posix::PosixEmitter;
 
 use crate::ir::ShellIR;
-use crate::models::{Config, Result};
+use crate::models::Result;
 
 pub use trace::{DecisionTrace, TranspilerDecision};
 
-/// Emit shell code from IR based on target dialect
+/// Emit shell code from IR.
 ///
-/// This function selects the appropriate emitter based on the configured
-/// shell dialect and generates the corresponding shell code.
+/// Generates POSIX-compliant shell code from the intermediate representation.
 ///
 /// # Arguments
 ///
 /// * `ir` - The intermediate representation to emit
-/// * `config` - Configuration specifying target dialect and options
 ///
 /// # Returns
 ///
@@ -161,28 +149,21 @@ pub use trace::{DecisionTrace, TranspilerDecision};
 /// ```rust
 /// use bashrs::emitter::emit;
 /// use bashrs::ir::ShellIR;
-/// use bashrs::models::{Config, config::ShellDialect};
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let ir = ShellIR::Noop;
-///
-/// // Target POSIX shell
-/// let mut config = Config::default();
-/// config.target = ShellDialect::Posix;
-///
-/// let shell_code = emit(&ir, &config)?;
-/// // The generated code includes boilerplate for safety
+/// let shell_code = emit(&ir)?;
 /// assert!(shell_code.contains("main()"));
 /// # Ok(())
 /// # }
 /// ```
-pub fn emit(ir: &ShellIR, _config: &Config) -> Result<String> {
+pub fn emit(ir: &ShellIR) -> Result<String> {
     let emitter = PosixEmitter::new();
     emitter.emit(ir)
 }
 
 /// Emit shell code from IR and return the decision trace for fault localization.
-pub fn emit_with_trace(ir: &ShellIR, _config: &Config) -> Result<(String, DecisionTrace)> {
+pub fn emit_with_trace(ir: &ShellIR) -> Result<(String, DecisionTrace)> {
     let emitter = PosixEmitter::new_with_tracing();
     let output = emitter.emit(ir)?;
     let trace = emitter.take_trace();

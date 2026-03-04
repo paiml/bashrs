@@ -563,10 +563,7 @@ fn test_ECOV_037_flattened_content_no_quotes() {
 #[test]
 fn test_ECOV_039_emit_bash_dialect() {
     use crate::emitter::emit;
-    use crate::models::config::ShellDialect;
-    let mut config = Config::default();
-    config.target = ShellDialect::Bash;
-    let r = emit(&echo(s("hello")), &config).unwrap();
+    let r = emit(&echo(s("hello"))).unwrap();
     assert!(r.contains("echo"), "Bash dialect emits: {r}");
 }
 
