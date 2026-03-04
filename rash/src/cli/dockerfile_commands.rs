@@ -150,7 +150,7 @@ fn dockerfile_build_command(input: &Path, output: &Path) -> Result<()> {
     let source = fs::read_to_string(input).map_err(Error::Io)?;
     let config = Config::default();
 
-    let dockerfile_content = crate::transpile_dockerfile(&source, config)?;
+    let dockerfile_content = crate::transpile_dockerfile(&source, &config)?;
 
     fs::write(output, &dockerfile_content).map_err(Error::Io)?;
     info!("Successfully generated Dockerfile at {}", output.display());

@@ -1,10 +1,23 @@
 # Shell Safety Classifier
 
-bashrs includes a neural shell safety classifier that categorizes shell commands into 5 risk levels. It combines a rule-based linter (instant, zero dependencies) with an optional transformer-based classifier (Qwen2.5-Coder-0.5B + LoRA) for higher accuracy on novel patterns.
+bashrs includes a neural shell safety classifier that categorizes shell commands by safety risk. It combines a rule-based linter (instant, zero dependencies) with an optional transformer-based classifier (Qwen2.5-Coder + LoRA) for higher accuracy on novel patterns.
 
 ## Safety Classes
 
-Every shell command falls into one of 5 safety categories:
+### v3 Binary Classification (Current)
+
+The v3 classifier uses binary classification derived from the transpilation corpus:
+
+| Class | Label | Index | Derivation |
+|-------|-------|-------|------------|
+| **Safe** | `safe` | 0 | Transpiled AND lint-clean AND deterministic |
+| **Unsafe** | `unsafe` | 1 | Otherwise (failed transpilation, lint errors, or non-deterministic) |
+
+This replaced the earlier 5-class taxonomy (safe, needs-quoting, non-deterministic, non-idempotent, unsafe) which failed to converge because only 3 of 5 classes were populated in the corpus data.
+
+### Rule-Based Classes (5-class, for linter output)
+
+The rule-based classifier still reports 5 severity levels for detailed diagnostics:
 
 | Class | Index | Risk Level | Description | Example |
 |-------|-------|------------|-------------|---------|
@@ -14,15 +27,11 @@ Every shell command falls into one of 5 safety categories:
 | **Non-Idempotent** | 3 | Medium | Unsafe to re-run (missing safety flags) | `mkdir /tmp/build` |
 | **Unsafe** | 4 | High | Security violations (injection, privilege escalation) | `eval "$user_input"` |
 
-### Priority Order
-
 When a command exhibits multiple issues, the highest-severity class wins:
 
-```
+```text
 unsafe > non-deterministic > non-idempotent > needs-quoting > safe
 ```
-
-For example, `eval $RANDOM` is classified as **unsafe** (class 4), not non-deterministic, because the `eval` injection risk is more severe.
 
 ## Quick Start
 
@@ -66,7 +75,7 @@ bashrs classify --model /path/to/ssc-checkpoints/ script.sh
 
 The built-in classifier uses bashrs's linter rules as features:
 
-```
+```text
 script.sh
     |
     v
@@ -92,52 +101,74 @@ The decision tree applies cascading priority:
 
 ### Neural Pipeline
 
-The neural classifier leverages pretrained code understanding from Qwen2.5-Coder-0.5B:
+The neural classifier leverages pretrained code understanding from Qwen2.5-Coder:
 
-```
-script.sh
+```text
+script.sh (preamble stripped)
     |
     v
 BPE Tokenizer (151,665 tokens)
     |
     v
-Qwen2.5-Coder-0.5B (frozen, 494M params)
+Qwen2.5-Coder (frozen, 494M+ params)
   + LoRA adapters (Q/V projections, ~1.1M trainable params)
-    |
+    |                              ┌──────────────────────┐
+    ├─ FFN on GPU (wgpu/CUDA) ────│ GpuCommandBatch      │
+    ├─ Attention on CPU ──────────│ (batched matmul)      │
+    |                              └──────────────────────┘
     v
 Mean pooling over sequence
     |
     v
-Classification head: Linear(896 -> 5)
+Classification head: Linear(896 -> 2)
     |
     v
-Softmax -> 5-class probability distribution
+Softmax -> binary probability (safe vs unsafe)
 ```
 
-The model was fine-tuned on bashrs's 29,307-entry corpus using LoRA (Low-Rank Adaptation) on the query and value attention projections. Only ~0.2% of parameters are trained, keeping the base model's code understanding intact while learning shell safety patterns.
+The model is fine-tuned on bashrs's 17,942-entry corpus (v3, binary classification after preamble stripping) using LoRA (Low-Rank Adaptation) on the query and value attention projections. Only ~0.2% of parameters are trained, keeping the base model's code understanding intact while learning shell safety patterns.
 
 ## Training Data
 
-The classifier is trained on bashrs's transpilation corpus, which contains 29,307 shell script entries across three formats:
+The classifier is trained on bashrs's transpilation corpus with binary labels (v3):
 
 | Format | Entries | Source |
 |--------|---------|--------|
 | Bash | ~16,431 | Core transpilation corpus |
 | Makefile | ~804 | Makefile purification corpus |
 | Dockerfile | ~707 | Dockerfile purification corpus |
-| Adversarial | ~10,000+ | Generated adversarial samples (balanced across classes) |
+| **Total** | **17,942** | All formats combined |
 
-### Class Distribution (Training Set)
+### Class Distribution (v3 Binary)
 
-| Class | Label | Count | Source |
-|-------|-------|-------|--------|
-| 0 | safe | ~17,252 | Transpiler-verified clean output |
-| 1 | needs-quoting | ~2,402 | Unquoted variable patterns |
-| 2 | non-deterministic | ~2,858 | $RANDOM, timestamps, PIDs |
-| 3 | non-idempotent | ~2,875 | Missing -p/-f flags |
-| 4 | unsafe | ~3,920 | SEC rule violations, eval, injection |
+| Class | Label | Count | Percentage |
+|-------|-------|-------|------------|
+| 0 | safe | 16,784 | 93.5% |
+| 1 | unsafe | 1,158 | 6.5% |
 
-Labels are derived automatically from bashrs's linter analysis of each corpus entry. The adversarial generator (`bashrs generate-adversarial`) produces balanced samples for underrepresented classes.
+Labels are derived automatically by `classify_single()` — scripts that transpile successfully, pass linting, and are deterministic are `safe`; everything else is `unsafe`. The imbalance ratio is 14.5:1; entrenar auto-applies sqrt-inverse class weights (safe=0.534, unsafe=7.747).
+
+### Data Pipeline (v3)
+
+Training data flows through three tools with strict separation of concerns:
+
+```text
+bashrs (export) → alimentar (split) → entrenar (train)
+```
+
+1. **bashrs** exports `corpus.jsonl` via `fast_classify_export` with `validate_export()` DataOps gate
+2. **alimentar** handles stratified 80/10/10 splitting (train/test/val), preserving class distribution
+3. **entrenar** trains on the split data
+
+### Data Preprocessing
+
+Training data undergoes automatic preamble stripping before export. The transpiler's boilerplate preamble (`set -euf`, `trap '... $$'`, etc.) is removed because:
+
+- The `trap '... $$'` pattern contains a non-deterministic PID reference, causing the classifier to confuse safe commands with non-deterministic ones
+- `set -euf` and shebang lines add no safety-relevant signal
+- Stripping focuses the model on the actual command semantics
+
+The `strip_shell_preamble()` function (shared with corpus B2 scoring) canonically identifies and removes these lines.
 
 ## Model Architecture
 
@@ -167,8 +198,8 @@ Labels are derived automatically from bashrs's linter analysis of each corpus en
 | Parameter | Value |
 |-----------|-------|
 | Input dimension | 896 (hidden size) |
-| Output dimension | 5 (safety classes) |
-| Parameters | 4,485 |
+| Output dimension | 2 (binary: safe vs unsafe) |
+| Parameters | 1,794 |
 | Activation | None (logits -> softmax at inference) |
 
 ### Training Configuration
@@ -176,13 +207,60 @@ Labels are derived automatically from bashrs's linter analysis of each corpus en
 | Parameter | Value |
 |-----------|-------|
 | Optimizer | AdamW |
-| Learning rate | 1e-4 (with warmup) |
+| Learning rate | 2e-4 (C-HP-001) |
 | Epochs | 3 |
-| Batch size | 40 |
-| Max sequence length | 512 |
-| Gradient clipping | max_norm=1.0 |
+| Batch size | 4, grad_accum=4 (effective 16, C-HP-002) |
+| LoRA alpha | 32 (2x rank, C-HP-003) |
+| Max sequence length | 256 (from data p99, C-HP-004) |
+| Warmup | 6% of steps (C-HP-005) |
+| Gradient clipping | max_norm=1.0 (C-HP-006) |
 | Loss function | CrossEntropyLoss |
-| Device | NVIDIA RTX 4090 (25.2 GB VRAM) |
+| Class weights | sqrt-inverse (safe=0.534, unsafe=7.747) |
+| Device | CUDA (NVIDIA), wgpu (AMD/Intel), or CPU |
+
+## Multi-GPU Training
+
+Training supports multiple compute backends and data parallelism across GPUs.
+
+### Compute Backend Priority
+
+The training pipeline automatically selects the best available backend:
+
+```text
+CUDA (NVIDIA) → wgpu (AMD/Intel/NVIDIA) → CPU
+```
+
+| Backend | Forward Pass | Backward Pass | Multi-GPU |
+|---------|-------------|---------------|-----------|
+| **CUDA** | Full GPU (all ops) | Full GPU (LoRA + frozen) | Yes (via DataParallelCoordinator) |
+| **wgpu** | FFN on GPU, attention on CPU | CPU-only (LoRA adapters) | Yes (via DataParallelCoordinator) |
+| **CPU** | All CPU (trueno SIMD) | CPU-only (LoRA adapters) | N/A |
+
+### Data Parallelism
+
+For multi-GPU systems, `DataParallelCoordinator` replicates the model across GPUs:
+
+1. Split mini-batch into N shards (one per GPU)
+2. Each GPU processes its shard independently
+3. Average LoRA gradients on CPU (~22MB for rank-16, <2ms over PCIe)
+4. Broadcast primary's weights to all replicas
+
+```bash
+# Train on two GPUs
+apr finetune --task classify --model-size 4B --gpus 0,1 \
+    ./models/qwen3-4b --data train.jsonl \
+    --num-classes 2 --epochs 3 -o ./checkpoints/
+```
+
+### Memory Budget (Qwen3-4B, 8GB VRAM per GPU)
+
+| Component | fp32 | NF4 (QLoRA) |
+|-----------|------|-------------|
+| Model weights | 1,007 MB | 126 MB |
+| LoRA adapters | 5.5 MB | 5.5 MB |
+| Activations (seq128) | ~28 MB | ~28 MB |
+| Optimizer state | ~11 MB | ~11 MB |
+| **Total** | **~1,052 MB** | **~171 MB** |
 
 ## Inference
 
@@ -192,7 +270,7 @@ Labels are derived automatically from bashrs's linter analysis of each corpus en
 |------|---------|-------------|
 | Rule-based | <1ms | None (built into bashrs) |
 | Neural (CPU) | ~50ms | Base model + LoRA adapter |
-| Neural (GPU) | ~5ms | CUDA-capable GPU |
+| Neural (GPU) | ~5ms | CUDA or wgpu-capable GPU |
 
 The rule-based classifier is always available and fast enough for real-time use (linting, CI/CD pipelines). The neural classifier provides higher accuracy on novel patterns at the cost of model loading overhead.
 
@@ -200,10 +278,10 @@ The rule-based classifier is always available and fast enough for real-time use 
 
 The fine-tuned model is published to HuggingFace as [`paiml/shell-safety-classifier`](https://huggingface.co/paiml/shell-safety-classifier). It ships as a LoRA adapter (~4MB) on top of the public Qwen2.5-Coder-0.5B base model:
 
-```
+```text
 paiml/shell-safety-classifier/
   adapter.safetensors              # LoRA adapter weights (~4MB)
-  classifier_head.safetensors      # Linear(896->5) classification head
+  classifier_head.safetensors      # Linear(896->2) classification head
   shell-safety-classifier.apr      # APR format (sovereign stack native)
   config.json                      # Model architecture config
   tokenizer.json                   # Qwen2 BPE tokenizer (151,665 tokens)
@@ -315,27 +393,41 @@ cargo run -p bashrs --release --example fast_classify_export /tmp/ssc-corpus.jso
 bashrs generate-adversarial --count 10000 -o adversarial.jsonl
 ```
 
-The corpus JSONL format is simple:
+The corpus JSONL format is simple. Note that the shell preamble (shebang, `set -euf`, `trap` cleanup) is **automatically stripped** during export, so the model sees only the safety-relevant command:
 
 ```json
-{"input": "#!/bin/sh\necho \"hello\"\n", "label": 0}
-{"input": "#!/bin/sh\necho $HOME\n", "label": 1}
-{"input": "#!/bin/sh\necho $RANDOM\n", "label": 2}
-{"input": "#!/bin/sh\nmkdir /tmp/build\n", "label": 3}
-{"input": "#!/bin/sh\neval \"$user_input\"\n", "label": 4}
+{"input": "echo \"hello\"\n", "label": 0}
+{"input": "mkdir -p \"$HOME/tmp\"\n", "label": 0}
+{"input": "eval \"$user_input\"\n", "label": 1}
+{"input": "echo $RANDOM\n", "label": 1}
 ```
 
 ### Step 3: Fine-Tune with LoRA
 
 ```bash
+# Single GPU (auto-detected backend: CUDA > wgpu > CPU)
 apr finetune --task classify --model-size 0.5B \
     ./models/qwen2.5-coder-0.5b \
-    --data corpus.jsonl \
+    --data train.jsonl \
     --epochs 3 \
-    --learning-rate 0.0001 \
-    --num-classes 5 \
+    --learning-rate 0.0002 \
+    --num-classes 2 \
     -o ./ssc-checkpoints/
+
+# Specify GPU backend (for AMD/Intel GPUs)
+apr finetune --task classify --model-size 4B --gpu-backend wgpu \
+    ./models/qwen3-4b \
+    --data train.jsonl \
+    --num-classes 2 --epochs 3 -o ./ssc-checkpoints/
+
+# Multi-GPU data parallelism
+apr finetune --task classify --model-size 4B --gpus 0,1 \
+    ./models/qwen3-4b \
+    --data train.jsonl \
+    --num-classes 2 --epochs 3 -o ./ssc-checkpoints/
 ```
+
+> **Auto-class-balancing**: entrenar automatically detects class imbalance (ratio >2:1) and applies sqrt-inverse weights when no explicit weights are configured. For the SSC v3 corpus (14.5:1 safe vs unsafe), this applies weight=7.747 to the minority class.
 
 ### Step 3.5: Hyperparameter Tuning (Optional)
 
@@ -373,23 +465,20 @@ bashrs classify --model ./ssc-checkpoints/ script.sh
 
 ### Step 6: Evaluate the Checkpoint
 
-Before publishing, evaluate the trained model against a held-out test set:
+Before publishing, evaluate the trained model against the held-out test set (produced by alimentar):
 
 ```bash
-# Export a test set (separate from training data)
-bashrs corpus export-dataset --format classification -o /tmp/ssc-test.jsonl
-
 # Evaluate: text report (sklearn-style)
 apr eval /tmp/ssc-checkpoints/best/ --task classify \
-    --data /tmp/ssc-test.jsonl --model-size 0.5B --num-classes 5
+    --data /tmp/ssc-export/test.jsonl --model-size 0.5B --num-classes 2
 
 # Evaluate: JSON output (machine-readable)
 apr eval /tmp/ssc-checkpoints/best/ --task classify \
-    --data /tmp/ssc-test.jsonl --model-size 0.5B --num-classes 5 --json
+    --data /tmp/ssc-export/test.jsonl --model-size 0.5B --num-classes 2 --json
 
 # Evaluate + generate HuggingFace model card
 apr eval /tmp/ssc-checkpoints/best/ --task classify \
-    --data /tmp/ssc-test.jsonl --model-size 0.5B --num-classes 5 --generate-card
+    --data /tmp/ssc-export/test.jsonl --model-size 0.5B --num-classes 2 --generate-card
 ```
 
 The `--generate-card` flag writes a publication-quality `README.md` to the checkpoint directory with YAML front matter, metrics tables, confusion matrix, calibration curve, and error analysis — ready for HuggingFace upload.
@@ -435,7 +524,7 @@ All accuracy-type metrics include bootstrap 95% confidence intervals (1,000 resa
 
 #### Example Output (Text Report)
 
-```
+```text
 === Classification Report ===
 
                 precision    recall  f1-score   support
@@ -499,15 +588,19 @@ The entire training and inference pipeline runs without Python or PyTorch:
 
 | Layer | Crate | Role |
 |-------|-------|------|
-| **trueno** | SIMD + GPU compute | Tensor operations (5 SIMD backends + wgpu) |
+| **trueno** | SIMD + GPU compute | Tensor operations (5 SIMD backends + wgpu + CUDA), `GpuCommandBatch` batched matmul, `GpuDevicePool` multi-GPU |
 | **aprender** | ML framework | Autograd, optimizers, loss functions, SafeTensors I/O |
-| **entrenar** | Training engine | Transformer, LoRA/QLoRA, AdamW, ClassifyPipeline |
+| **entrenar** | Training engine | Transformer, LoRA/QLoRA, AdamW, `ClassifyPipeline`, `WgpuForwardPass`, `DataParallelCoordinator` |
+| **alimentar** | Data pipeline | Stratified train/test/val splitting, data loading |
 | **realizar** | Inference engine | CUDA-accelerated model serving |
-| **bashrs** | Training data | 29,307-entry corpus + linter-based label derivation |
+| **bashrs** | Training data | 17,942-entry corpus (v3) + binary label derivation via `classify_single()` |
 
-Model checkpoints are saved in dual format:
-- **APR** (native): Used by `realizar` for inference. Proves the stack is self-sufficient.
-- **SafeTensors** (interop): HuggingFace-compatible. Anyone can load without our tooling.
+Model checkpoints are saved in APR format with full lifecycle support:
+- **`.adapter.apr`** (deploy): LoRA + classifier head, no optimizer state. Used by `realizar` for inference.
+- **`.ckpt.apr`** (resume): Full training state including optimizer moments. Enables `--resume`.
+- **SafeTensors** (interop): HuggingFace-compatible export. Anyone can load without our tooling.
+
+The checkpoint system implements 18 provable contracts (F-CKPT-001..018) covering atomic writes, NaN guards, shape validation, canonical ordering, filtered reader for inference, and round-trip bit-identity. See the [APR Checkpoint Specification](https://github.com/paiml/aprender/blob/main/docs/specifications/apr-checkpoints.md) for details.
 
 ## Comparison: Rule-Based vs Neural
 

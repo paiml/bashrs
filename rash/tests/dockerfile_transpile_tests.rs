@@ -39,7 +39,7 @@ fn test_DOCKER_BUILD_001_basic_generation() {
         fn user(u: &str) {}
     "#;
 
-    let result = bashrs::transpile_dockerfile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile_dockerfile(rust_code, &bashrs::Config::default()).unwrap();
     assert!(
         result.contains("FROM rust:1.75-alpine"),
         "Expected FROM in: {}",
@@ -65,7 +65,7 @@ fn test_DOCKER_BUILD_002_multi_stage() {
         fn copy_from(stage: &str, src: &str, dst: &str) {}
     "#;
 
-    let result = bashrs::transpile_dockerfile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile_dockerfile(rust_code, &bashrs::Config::default()).unwrap();
     assert!(
         result.contains("FROM rust:1.75-alpine AS builder"),
         "Expected multi-stage build in: {}",
@@ -117,7 +117,7 @@ fn test_DOCKER_BUILD_004_user_directive() {
         fn user(u: &str) {}
     "#;
 
-    let result = bashrs::transpile_dockerfile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile_dockerfile(rust_code, &bashrs::Config::default()).unwrap();
     assert!(
         result.contains("USER 65534"),
         "USER directive must be present for DOCKER003 compliance"
@@ -133,7 +133,7 @@ fn test_DOCKER_BUILD_005_no_latest_tag() {
         fn from_image(image: &str, tag: &str) {}
     "#;
 
-    let result = bashrs::transpile_dockerfile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile_dockerfile(rust_code, &bashrs::Config::default()).unwrap();
     assert!(
         !result.contains(":latest"),
         "Should use pinned versions, not latest (DOCKER002)"
@@ -154,8 +154,8 @@ fn test_DOCKER_BUILD_006_determinism() {
     "#;
 
     let config = bashrs::Config::default();
-    let result1 = bashrs::transpile_dockerfile(rust_code, config.clone()).unwrap();
-    let result2 = bashrs::transpile_dockerfile(rust_code, config).unwrap();
+    let result1 = bashrs::transpile_dockerfile(rust_code, &config).unwrap();
+    let result2 = bashrs::transpile_dockerfile(rust_code, &config).unwrap();
     assert_eq!(
         result1, result2,
         "Dockerfile transpilation must be deterministic"

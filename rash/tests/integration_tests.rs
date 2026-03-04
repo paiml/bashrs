@@ -19,7 +19,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Verify basic structure
     assert!(result.contains("#!/bin/sh"));
@@ -45,7 +45,7 @@ fn echo(msg: &str) {}
         ..Default::default()
     };
 
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
 }
 
@@ -61,7 +61,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell_script = transpile(source, config).unwrap();
+    let shell_script = transpile(source, &config).unwrap();
 
     // Write to temporary file and execute
     let temp_dir = TempDir::new().unwrap();
@@ -88,7 +88,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let shell_script = transpile(source, config).unwrap();
+    let shell_script = transpile(source, &config).unwrap();
 
     // Execute and verify variables are set correctly
     let temp_dir = TempDir::new().unwrap();
@@ -142,7 +142,7 @@ fn echo(msg: &str) {}
             ..Default::default()
         };
 
-        let result = transpile(source, config);
+        let result = transpile(source, &config);
         assert!(result.is_ok(), "Failed for dialect: {dialect:?}");
 
         let script = result.unwrap();
@@ -175,7 +175,7 @@ fn echo(msg: &str) {}
             ..Default::default()
         };
 
-        let result = transpile(safe_source, config);
+        let result = transpile(safe_source, &config);
         assert!(result.is_ok(), "Failed for verification level: {level:?}");
     }
 }
@@ -205,8 +205,8 @@ fn echo(msg: &str) {}
         ..Default::default()
     };
 
-    let optimized = transpile(source, config_optimized).unwrap();
-    let unoptimized = transpile(source, config_unoptimized).unwrap();
+    let optimized = transpile(source, &config_optimized).unwrap();
+    let unoptimized = transpile(source, &config_unoptimized).unwrap();
 
     // Both should work - transpiler single-quotes string values
     assert!(optimized.contains("part1='Hello'"));
@@ -254,7 +254,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should handle nested if/else structures
     if let Ok(script) = result {
@@ -279,7 +279,7 @@ fn process_data(num: u32, text: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Function calls should be translated to shell commands
     assert!(result.contains("helper"));
@@ -299,7 +299,7 @@ fn another_empty() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     eprintln!("Generated shell for empty functions:\n{}", result);
 
@@ -344,7 +344,7 @@ fn test_error_handling_invalid_source() {
 
     for source in invalid_sources {
         let config = Config::default();
-        let result = transpile(source, config);
+        let result = transpile(source, &config);
         assert!(result.is_err(), "Should fail for: {source}");
     }
 }
@@ -365,7 +365,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Verify proper escaping
     assert!(result.contains("'hello world'"));
@@ -386,7 +386,7 @@ fn download_verified(url: &str, hash: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // With selective runtime, only referenced rash_* functions are emitted.
     // A simple `let x = 42;` would NOT emit runtime functions.
@@ -405,7 +405,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Check proper header
     assert!(result.starts_with("#!/bin/sh"));
@@ -432,9 +432,9 @@ fn echo(msg: &str) {}
     let config = Config::default();
 
     // Generate the same output multiple times
-    let result1 = transpile(source, config.clone()).unwrap();
-    let result2 = transpile(source, config.clone()).unwrap();
-    let result3 = transpile(source, config).unwrap();
+    let result1 = transpile(source, &config).unwrap();
+    let result2 = transpile(source, &config).unwrap();
+    let result3 = transpile(source, &config).unwrap();
 
     // Should be identical
     assert_eq!(result1, result2);
@@ -457,7 +457,7 @@ fn test_large_input_handling() {
     source.push_str("}\n");
 
     let config = Config::default();
-    let result = transpile(&source, config);
+    let result = transpile(&source, &config);
 
     // Should handle large inputs without panicking
     assert!(result.is_ok());
@@ -484,7 +484,7 @@ fn echo(msg: &str) {}
         ..Default::default()
     };
 
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
 
     // The transpile function itself doesn't generate proof files,
@@ -511,7 +511,7 @@ fn echo(msg: &str) {}
         .map(|_| {
             let source = source.to_string();
             let config = config.clone();
-            thread::spawn(move || transpile(&source, config))
+            thread::spawn(move || transpile(&source, &config))
         })
         .collect();
 
@@ -535,7 +535,7 @@ fn test_memory_safety() {
     source.push_str("}\n");
 
     let config = Config::default();
-    let result = transpile(&source, config);
+    let result = transpile(&source, &config);
 
     // Should not crash or cause stack overflow
     assert!(result.is_ok());
@@ -559,7 +559,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -596,7 +596,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Verify ${VAR:-default} expansion
     assert!(
@@ -632,7 +632,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Verify all three expansions
     assert!(shell.contains("${HOST:-localhost}"));
@@ -658,7 +658,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should capture exit status with $?
     assert!(shell.contains("$?"), "Should use $? to capture exit status");
@@ -691,7 +691,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should check $? in conditional
     assert!(
@@ -718,7 +718,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Write to temporary file and execute
     let temp_dir = TempDir::new().unwrap();
@@ -752,7 +752,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "Should transpile positional parameters");
 
@@ -793,7 +793,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Verify all positional parameters
     assert!(shell.contains("${1:-a}") || shell.contains("first=\"${1:-a}\""));
@@ -816,7 +816,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Write to temporary file and execute with arguments
     use tempfile::TempDir;
@@ -860,7 +860,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "Should transpile positional parameters");
 
@@ -890,7 +890,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -923,7 +923,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -958,7 +958,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "Should handle arg_count in conditionals");
 
@@ -986,7 +986,7 @@ fn wc(arg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell_script = transpile(source, config).unwrap();
+    let shell_script = transpile(source, &config).unwrap();
 
     // Write to temporary file and execute
     let temp_dir = TempDir::new().unwrap();
@@ -1019,7 +1019,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1050,7 +1050,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1081,7 +1081,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1113,7 +1113,7 @@ fn cat(file: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     if let Err(e) = &result {
         eprintln!("Transpilation error: {:?}", e);
@@ -1154,7 +1154,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     if let Err(e) = &result {
         eprintln!("Transpilation error: {:?}", e);
@@ -1193,7 +1193,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should properly quote filenames with spaces
     assert!(
@@ -1218,7 +1218,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Create test environment
     let temp_dir = TempDir::new().unwrap();
@@ -1261,7 +1261,7 @@ fn write_file(path: &str, content: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1294,7 +1294,7 @@ fn write_to_file(f: &mut std::fs::File, content: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should use output redirection syntax
     assert!(
@@ -1320,7 +1320,7 @@ fn write_to_file(f: &mut std::fs::File, content: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should use append redirection syntax
     assert!(
@@ -1344,7 +1344,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_output.sh");
@@ -1379,7 +1379,7 @@ fn change_dir(path: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1409,7 +1409,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate cd command
     assert!(
@@ -1433,7 +1433,7 @@ fn pwd() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_cd.sh");
@@ -1464,7 +1464,7 @@ fn pwd() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1494,7 +1494,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate command substitution with pwd
     assert!(
@@ -1516,7 +1516,7 @@ fn pwd() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_pwd.sh");
@@ -1547,7 +1547,7 @@ fn exit_with_code(code: i32) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1577,7 +1577,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate exit command
     assert!(
@@ -1599,7 +1599,7 @@ fn set_env(name: &str, value: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1629,7 +1629,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate export command
     assert!(
@@ -1652,7 +1652,7 @@ fn unset_var(name: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "Should transpile unset: {:?}", result.err());
 
@@ -1678,7 +1678,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate unset command
     assert!(
@@ -1702,7 +1702,7 @@ fn get_var(name: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_builtins.sh");
@@ -1733,7 +1733,7 @@ fn test_file_exists(path: &str) -> bool { true }
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1767,7 +1767,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate test command
     assert!(
@@ -1788,7 +1788,7 @@ fn check_file(path: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_test.sh");
@@ -1819,7 +1819,7 @@ fn printf_formatted(fmt: &str, args: &str, num: i32) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1850,7 +1850,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should use printf, not echo
     assert!(
@@ -1871,7 +1871,7 @@ fn print_message(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_printf.sh");
@@ -1902,7 +1902,7 @@ fn use_home() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -1935,7 +1935,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should use $HOME variable
     assert!(
@@ -1956,7 +1956,7 @@ fn use_home_dir() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_home.sh");
@@ -1987,7 +1987,7 @@ fn use_path() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2019,7 +2019,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should use $PATH variable
     assert!(
@@ -2043,7 +2043,7 @@ fn use_path() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_path.sh");
@@ -2079,7 +2079,7 @@ fn use_path() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_session4.sh");
@@ -2110,7 +2110,7 @@ fn length_of(s: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2144,7 +2144,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate ${#var} syntax
     assert!(
@@ -2165,7 +2165,7 @@ fn get_length(s: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_strlen.sh");
@@ -2196,7 +2196,7 @@ fn remove_ext(filename: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2230,7 +2230,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate ${var%suffix} syntax
     assert!(
@@ -2251,7 +2251,7 @@ fn strip_ext(filename: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_suffix.sh");
@@ -2282,7 +2282,7 @@ fn strip_dir(path: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2316,7 +2316,7 @@ fn echo(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate ${var#prefix} syntax
     assert!(
@@ -2337,7 +2337,7 @@ fn strip_dir(path: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_prefix.sh");
@@ -2368,7 +2368,7 @@ fn redirect_all(file: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2401,7 +2401,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate > file 2>&1 (POSIX) or &> file (bash)
     assert!(
@@ -2422,7 +2422,7 @@ fn capture_output() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_redir.sh");
@@ -2458,7 +2458,7 @@ fn redirect_both(file: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let script_path = temp_dir.path().join("test_session5.sh");
@@ -2494,7 +2494,7 @@ fn print_heredoc() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2529,7 +2529,7 @@ fn cat_heredoc(content: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate heredoc syntax
     assert!(
@@ -2551,7 +2551,7 @@ fn print_multiline() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Write to temp file and verify it's valid shell
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
@@ -2589,7 +2589,7 @@ fn use_fixed_id() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2628,7 +2628,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should fail validation - non-deterministic
     assert!(
@@ -2650,7 +2650,7 @@ fn use_session_id(id: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -2684,7 +2684,7 @@ fn run_sync() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2724,7 +2724,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should fail validation - async is non-deterministic
     assert!(
@@ -2748,7 +2748,7 @@ fn task2() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -2782,7 +2782,7 @@ fn use_seed(seed: i32) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2819,7 +2819,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should fail validation - random is non-deterministic
     assert!(
@@ -2841,7 +2841,7 @@ fn use_value(val: i32) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -2876,7 +2876,7 @@ fn use_seed(seed: i32) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     eprintln!("Generated combined shell script:\n{}", shell);
 
@@ -2933,7 +2933,7 @@ fn get_status() -> i32 { 0 }
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -2969,7 +2969,7 @@ fn check_status(code: i32) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should capture $? after command
     assert!(shell.contains("$?"), "Should use $? to capture exit status");
@@ -2988,7 +2988,7 @@ fn check_result(code: i32) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -3022,7 +3022,7 @@ fn pass_string(data: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -3055,7 +3055,7 @@ fn pipe_input(data: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should convert to printf | cmd (POSIX alternative to <<<)
     assert!(
@@ -3077,7 +3077,7 @@ fn send_data(msg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -3111,7 +3111,7 @@ fn use_fixed_time(duration: i32) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -3154,7 +3154,7 @@ fn do_work() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should fail validation - timing is non-deterministic
     assert!(
@@ -3176,7 +3176,7 @@ fn wait_fixed(seconds: i32) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -3210,7 +3210,7 @@ fn run_foreground() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -3252,7 +3252,7 @@ fn background_work() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should fail validation - threading is non-deterministic
     assert!(
@@ -3278,7 +3278,7 @@ fn task_three() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -3313,7 +3313,7 @@ fn run_foreground() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     eprintln!("Generated combined shell script:\n{}", shell);
 
@@ -3383,8 +3383,8 @@ fn echo(msg: &str) {{}}
 "#, default_val);
 
             let config = Config::default();
-            let result1 = transpile(&source, config.clone());
-            let result2 = transpile(&source, config);
+            let result1 = transpile(&source, &config);
+            let result2 = transpile(&source, &config);
 
             prop_assert!(result1.is_ok());
             prop_assert!(result2.is_ok());
@@ -3407,7 +3407,7 @@ fn echo(msg: &str) {{}}
 "#, default_val);
 
             let config = Config::default();
-            let result = transpile(&source, config);
+            let result = transpile(&source, &config);
 
             // Transpilation should always succeed for valid default values
             prop_assert!(result.is_ok(), "Transpilation failed for default: {}", default_val);
@@ -3438,7 +3438,7 @@ fn echo(msg: &str) {{}}
 "#, position, default_val);
 
             let config = Config::default();
-            let result = transpile(&source, config);
+            let result = transpile(&source, &config);
 
             prop_assert!(result.is_ok());
             let shell = result.unwrap();
@@ -3466,7 +3466,7 @@ fn echo(msg: &str) {}
 "#;
 
             let config = Config::default();
-            let result = transpile(source, config);
+            let result = transpile(source, &config);
 
             prop_assert!(result.is_ok());
             let shell = result.unwrap();
@@ -3503,8 +3503,8 @@ fn echo(msg: &str) {}
 "#;
 
             let config = Config::default();
-            let result1 = transpile(source, config.clone());
-            let result2 = transpile(source, config);
+            let result1 = transpile(source, &config);
+            let result2 = transpile(source, &config);
 
             prop_assert!(result1.is_ok());
             prop_assert!(result2.is_ok());
@@ -3527,7 +3527,7 @@ fn wc(arg: &str) {}
 "#;
 
             let config = Config::default();
-            let result = transpile(source, config);
+            let result = transpile(source, &config);
 
             prop_assert!(result.is_ok(), "Transpilation should succeed");
 
@@ -3558,7 +3558,7 @@ fn echo(msg: &str) {{}}
 "#, threshold);
 
             let config = Config::default();
-            let result = transpile(&source, config);
+            let result = transpile(&source, &config);
 
             prop_assert!(
                 result.is_ok(),
@@ -3590,7 +3590,7 @@ fn echo(msg: &str) {}
 "#;
 
             let config = Config::default();
-            let result = transpile(source, config);
+            let result = transpile(source, &config);
 
             prop_assert!(result.is_ok(), "Transpilation must succeed");
 

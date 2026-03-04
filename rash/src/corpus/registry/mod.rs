@@ -795,9 +795,9 @@ mod tests {
 
         let transpile_entry = |entry: &CorpusEntry, cfg: &crate::models::Config| match entry.format
         {
-            CorpusFormat::Bash => crate::transpile(&entry.input, cfg.clone()),
-            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, cfg.clone()),
-            CorpusFormat::Dockerfile => crate::transpile_dockerfile(&entry.input, cfg.clone()),
+            CorpusFormat::Bash => crate::transpile(&entry.input, cfg),
+            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, cfg),
+            CorpusFormat::Dockerfile => crate::transpile_dockerfile(&entry.input, cfg),
         };
 
         for entry in &exp204_entries {

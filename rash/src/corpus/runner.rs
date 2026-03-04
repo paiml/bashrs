@@ -705,7 +705,7 @@ impl CorpusRunner {
             return self.run_entry(entry);
         }
 
-        let transpile_result = crate::transpile_with_trace(&entry.input, self.config.clone());
+        let transpile_result = crate::transpile_with_trace(&entry.input, &self.config);
 
         match transpile_result {
             Ok((output, trace)) => {
@@ -783,10 +783,10 @@ impl CorpusRunner {
     /// Run a single corpus entry with v2 multi-level correctness checking.
     fn run_entry(&self, entry: &CorpusEntry) -> CorpusResult {
         let transpile_result = match entry.format {
-            CorpusFormat::Bash => crate::transpile(&entry.input, self.config.clone()),
-            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, self.config.clone()),
+            CorpusFormat::Bash => crate::transpile(&entry.input, &self.config),
+            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, &self.config),
             CorpusFormat::Dockerfile => {
-                crate::transpile_dockerfile(&entry.input, self.config.clone())
+                crate::transpile_dockerfile(&entry.input, &self.config)
             }
         };
 
@@ -1046,9 +1046,9 @@ impl CorpusRunner {
         format: CorpusFormat,
     ) -> std::result::Result<String, crate::Error> {
         match format {
-            CorpusFormat::Bash => crate::transpile(input, self.config.clone()),
-            CorpusFormat::Makefile => crate::transpile_makefile(input, self.config.clone()),
-            CorpusFormat::Dockerfile => crate::transpile_dockerfile(input, self.config.clone()),
+            CorpusFormat::Bash => crate::transpile(input, &self.config),
+            CorpusFormat::Makefile => crate::transpile_makefile(input, &self.config),
+            CorpusFormat::Dockerfile => crate::transpile_dockerfile(input, &self.config),
         }
     }
 
@@ -1083,17 +1083,17 @@ impl CorpusRunner {
         // Reuse run_entry output for whichever dialect matches self.config.target
         let (posix_result, bash_result) = match self.config.target {
             crate::models::ShellDialect::Posix => {
-                let bash_r = crate::transpile(&entry.input, bash_config);
+                let bash_r = crate::transpile(&entry.input, &bash_config);
                 (Ok(output.to_string()), bash_r)
             }
             crate::models::ShellDialect::Bash => {
-                let posix_r = crate::transpile(&entry.input, posix_config);
+                let posix_r = crate::transpile(&entry.input, &posix_config);
                 (posix_r, Ok(output.to_string()))
             }
             // Dash/Ash: neither matches Posix or Bash, transpile both
             _ => {
-                let posix_r = crate::transpile(&entry.input, posix_config);
-                let bash_r = crate::transpile(&entry.input, bash_config);
+                let posix_r = crate::transpile(&entry.input, &posix_config);
+                let bash_r = crate::transpile(&entry.input, &bash_config);
                 (posix_r, bash_r)
             }
         };
@@ -1377,10 +1377,10 @@ impl CorpusRunner {
         }
 
         let second = match entry.format {
-            CorpusFormat::Bash => crate::transpile(&entry.input, self.config.clone()),
-            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, self.config.clone()),
+            CorpusFormat::Bash => crate::transpile(&entry.input, &self.config),
+            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, &self.config),
             CorpusFormat::Dockerfile => {
-                crate::transpile_dockerfile(&entry.input, self.config.clone())
+                crate::transpile_dockerfile(&entry.input, &self.config)
             }
         };
 
@@ -2777,7 +2777,7 @@ end_of_record
         );
         // Both Posix and Bash dialects should contain "greet() {"
         // Transpile first to get output for the _with_output variant
-        let output = crate::transpile(&entry.input, Config::default())
+        let output = crate::transpile(&entry.input, &Config::default())
             .expect("valid entry should transpile");
         assert!(
             runner.check_cross_shell_with_output(&entry, &output, false),
@@ -2835,7 +2835,7 @@ end_of_record
             "add() {",
         );
         // Compute output_contains like run_entry does
-        let output = crate::transpile(&entry.input, Config::default()).unwrap();
+        let output = crate::transpile(&entry.input, &Config::default()).unwrap();
         let output_contains = output.contains(&entry.expected_output);
         assert!(
             runner.check_mr2_stability(&entry, output_contains),
@@ -2856,7 +2856,7 @@ end_of_record
             r#"fn greet() -> u32 { return 42; } fn main() { println!("{}", greet()); }"#,
             "greet() {",
         );
-        let output = crate::transpile(&entry.input, Config::default()).unwrap();
+        let output = crate::transpile(&entry.input, &Config::default()).unwrap();
         let output_contains = output.contains(&entry.expected_output);
         assert!(
             runner.check_mr3_whitespace(&entry, output_contains),
@@ -2877,7 +2877,7 @@ end_of_record
             r#"fn square(x: u32) -> u32 { return x * x; } fn main() { println!("{}", square(5)); }"#,
             "square() {",
         );
-        let output = crate::transpile(&entry.input, Config::default()).unwrap();
+        let output = crate::transpile(&entry.input, &Config::default()).unwrap();
         let output_contains = output.contains(&entry.expected_output);
         assert!(
             runner.check_mr4_leading_blanks(&entry, output_contains),
@@ -2924,7 +2924,7 @@ end_of_record
             r#"fn greet() -> u32 { return 42; } fn main() { println!("{}", greet()); }"#,
             "greet() {",
         );
-        let output = crate::transpile(&entry.input, Config::default())
+        let output = crate::transpile(&entry.input, &Config::default())
             .expect("valid entry should transpile");
         assert!(
             runner.check_determinism_with_output(&entry, &output),
@@ -3021,7 +3021,7 @@ end_of_record
             .iter()
             .filter(|e| e.format == CorpusFormat::Bash)
         {
-            let result = crate::transpile(&entry.input, config.clone());
+            let result = crate::transpile(&entry.input, &config);
             if let Ok(output) = result {
                 let lint = crate::linter::rules::lint_shell(&output);
                 let errors: Vec<_> = lint

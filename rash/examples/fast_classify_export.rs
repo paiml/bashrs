@@ -80,9 +80,9 @@ fn main() {
         }
 
         let transpile_result = match entry.format {
-            CorpusFormat::Bash => bashrs::transpile(&entry.input, config.clone()),
-            CorpusFormat::Makefile => bashrs::transpile_makefile(&entry.input, config.clone()),
-            CorpusFormat::Dockerfile => bashrs::transpile_dockerfile(&entry.input, config.clone()),
+            CorpusFormat::Bash => bashrs::transpile(&entry.input, &config),
+            CorpusFormat::Makefile => bashrs::transpile_makefile(&entry.input, &config),
+            CorpusFormat::Dockerfile => bashrs::transpile_dockerfile(&entry.input, &config),
         };
 
         let row = match transpile_result {

@@ -40,7 +40,7 @@ fn test_RUNTIME_001_trivial_script_no_stdlib() {
         }
     "#;
 
-    let result = bashrs::transpile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
 
     // Should NOT contain any runtime function definitions
     assert!(
@@ -75,7 +75,7 @@ fn test_RUNTIME_002_echo_emits_no_stdlib() {
         fn echo(msg: &str) {}
     "#;
 
-    let result = bashrs::transpile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
 
     // Should NOT contain stdlib functions since echo is a builtin
     assert!(
@@ -98,7 +98,7 @@ fn test_RUNTIME_003_selective_stdlib_emission() {
         fn fs_exists(path: &str) -> bool { true }
     "#;
 
-    let result = bashrs::transpile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
 
     // Should contain the used function
     assert!(
@@ -129,7 +129,7 @@ fn test_TRANSPILE_001_basic_build_produces_posix_shell() {
         }
     "#;
 
-    let result = bashrs::transpile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
 
     // Must have POSIX header
     assert!(
@@ -169,8 +169,8 @@ fn test_TRANSPILE_002_determinism_identical_output() {
     let config = bashrs::Config::default();
 
     // Transpile the same input twice
-    let result1 = bashrs::transpile(rust_code, config.clone()).unwrap();
-    let result2 = bashrs::transpile(rust_code, config).unwrap();
+    let result1 = bashrs::transpile(rust_code, &config).unwrap();
+    let result2 = bashrs::transpile(rust_code, &config).unwrap();
 
     // Must produce byte-identical output
     assert_eq!(
@@ -212,7 +212,7 @@ fn test_TRANSPILE_004_transpile_with_lint_api() {
     "#;
 
     let (shell_code, lint_result) =
-        bashrs::transpile_with_lint(rust_code, bashrs::Config::default()).unwrap();
+        bashrs::transpile_with_lint(rust_code, &bashrs::Config::default()).unwrap();
 
     // Shell code should be valid
     assert!(shell_code.contains("#!/bin/sh"));
@@ -232,7 +232,7 @@ fn test_TRANSPILE_005_no_nondeterminism_in_output() {
         }
     "#;
 
-    let result = bashrs::transpile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
 
     // Must NOT contain non-deterministic patterns in user code sections.
     // Note: $$ in the cleanup trap (trap 'rm -rf ... rash.$$' EXIT) is
@@ -244,6 +244,6 @@ fn test_TRANSPILE_005_no_nondeterminism_in_output() {
         "Transpiled output must not contain $RANDOM"
     );
     // Verify determinism: transpiling the same input twice produces identical output
-    let result2 = bashrs::transpile(rust_code, bashrs::Config::default()).unwrap();
+    let result2 = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
     assert_eq!(result, result2, "Transpilation must be deterministic");
 }

@@ -1189,7 +1189,7 @@ fn test_CORPUS_037_falsify_lint_failures() {
     ];
 
     for (id, input) in &failing_inputs {
-        match bashrs::transpile(input, config.clone()) {
+        match bashrs::transpile(input, &config) {
             Ok(output) => {
                 let lint = bashrs::linter::rules::lint_shell(&output);
                 eprintln!("\n=== {} (lint_clean={}) ===", id, !lint.has_errors());
@@ -1232,8 +1232,8 @@ fn test_CORPUS_038_falsify_cross_shell_failures() {
             ..bashrs::Config::default()
         };
 
-        let posix_out = bashrs::transpile(input, posix_config);
-        let bash_out = bashrs::transpile(input, bash_config);
+        let posix_out = bashrs::transpile(input, &posix_config);
+        let bash_out = bashrs::transpile(input, &bash_config);
 
         eprintln!("\n=== {} (expected contains: '{}') ===", id, expected);
         match &posix_out {

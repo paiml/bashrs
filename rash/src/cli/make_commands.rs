@@ -67,7 +67,7 @@ pub(crate) fn make_build_command(input: &Path, output: &Path) -> Result<()> {
     let source = fs::read_to_string(input).map_err(Error::Io)?;
     let config = crate::models::Config::default();
 
-    let makefile_content = crate::transpile_makefile(&source, config)?;
+    let makefile_content = crate::transpile_makefile(&source, &config)?;
 
     fs::write(output, &makefile_content).map_err(Error::Io)?;
     info!("Successfully generated Makefile at {}", output.display());
