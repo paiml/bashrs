@@ -129,16 +129,16 @@ impl ShellIR {
 
     /// Collect all function names referenced by Exec nodes and CommandSubst values.
     /// Used by the emitter to determine which runtime functions to include.
-    pub fn collect_used_functions(&self) -> std::collections::HashSet<String> {
+    pub fn collect_used_functions(&self) -> std::collections::HashSet<&str> {
         let mut used = std::collections::HashSet::new();
         self.collect_functions_recursive(&mut used);
         used
     }
 
-    fn collect_functions_recursive(&self, used: &mut std::collections::HashSet<String>) {
+    fn collect_functions_recursive<'a>(&'a self, used: &mut std::collections::HashSet<&'a str>) {
         match self {
             ShellIR::Exec { cmd, .. } => {
-                used.insert(cmd.program.clone());
+                used.insert(&cmd.program);
                 collect_functions_from_values(&cmd.args, used);
             }
             ShellIR::Let { value, .. } | ShellIR::Echo { value } => {
@@ -197,9 +197,9 @@ pub struct Command {
 }
 
 /// Collect functions from a slice of ShellValues
-fn collect_functions_from_values(
-    values: &[ShellValue],
-    used: &mut std::collections::HashSet<String>,
+fn collect_functions_from_values<'a>(
+    values: &'a [ShellValue],
+    used: &mut std::collections::HashSet<&'a str>,
 ) {
     for v in values {
         v.collect_functions(used);
@@ -207,7 +207,10 @@ fn collect_functions_from_values(
 }
 
 /// Collect functions from case arms
-fn collect_functions_from_arms(arms: &[CaseArm], used: &mut std::collections::HashSet<String>) {
+fn collect_functions_from_arms<'a>(
+    arms: &'a [CaseArm],
+    used: &mut std::collections::HashSet<&'a str>,
+) {
     for arm in arms {
         arm.body.collect_functions_recursive(used);
         if let Some(guard) = &arm.guard {
@@ -381,10 +384,10 @@ impl ShellValue {
     }
 
     /// Collect function names referenced by command substitutions in this value.
-    pub fn collect_functions(&self, used: &mut std::collections::HashSet<String>) {
+    pub fn collect_functions<'a>(&'a self, used: &mut std::collections::HashSet<&'a str>) {
         match self {
             ShellValue::CommandSubst(cmd) => {
-                used.insert(cmd.program.clone());
+                used.insert(&cmd.program);
                 for arg in &cmd.args {
                     arg.collect_functions(used);
                 }
