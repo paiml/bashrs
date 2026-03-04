@@ -30,15 +30,22 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for unquoted array expansions ($@, $*, ${array[@]}, ${array[*]})
+static SIMPLE_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\$[@*]").unwrap()
+});
+static ARRAY_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[[@*]\]\}").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Regex patterns for unquoted array expansions
     // Pattern 1: Unquoted $@ or $*
-    let simple_pattern = Regex::new(r"\$[@*]").unwrap();
+    let simple_pattern = &*SIMPLE_PATTERN;
 
     // Pattern 2: Unquoted ${array[@]} or ${array[*]}
-    let array_pattern = Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[[@*]\]\}").unwrap();
+    let array_pattern = &*ARRAY_PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed

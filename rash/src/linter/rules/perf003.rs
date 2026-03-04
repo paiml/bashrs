@@ -24,11 +24,15 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for useless echo piped to a command
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"\becho\s+(["']?[\$\w][^\|]*?["']?)\s*\|\s*(\w+)"#).unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Match: echo $VAR | cmd  or  echo "$VAR" | cmd  or  echo "text" | cmd
-    let pattern = Regex::new(r#"\becho\s+(["']?[\$\w][^\|]*?["']?)\s*\|\s*(\w+)"#).unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim_start();

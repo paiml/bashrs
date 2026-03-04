@@ -25,11 +25,15 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for read without -t timeout
+static READ_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\bread\b").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Match: read at start of command, possibly with flags, but not -t
-    let read_pattern = Regex::new(r"\bread\b").unwrap();
+    let read_pattern = &*READ_PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim_start();

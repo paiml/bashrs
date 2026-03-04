@@ -29,12 +29,19 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for decimal numbers in arithmetic contexts
+static ARITH_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\(\(([^)]+)\)\)").unwrap()
+});
+static DECIMAL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\b\d+\.\d+\b").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: (( ... <decimal> ... ))
-    let arith_pattern = Regex::new(r"\(\(([^)]+)\)\)").unwrap();
-    let decimal_pattern = Regex::new(r"\b\d+\.\d+\b").unwrap();
+    let arith_pattern = &*ARITH_PATTERN;
+    let decimal_pattern = &*DECIMAL_PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

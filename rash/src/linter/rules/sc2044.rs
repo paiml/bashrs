@@ -33,11 +33,15 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for find in for loops without -print0
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"for\s+(\w+)\s+in\s+\$\(find\s+([^)]+)\)").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: for ... in $(find ...)
-    let pattern = Regex::new(r"for\s+(\w+)\s+in\s+\$\(find\s+([^)]+)\)").unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

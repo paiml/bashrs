@@ -35,6 +35,10 @@ fn is_posix_sh(source: &str) -> bool {
 }
 
 /// Check for array syntax in POSIX sh scripts
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\b\w+=\(").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -43,7 +47,7 @@ pub fn check(source: &str) -> LintResult {
     }
 
     // Match: var=() or var=(items)
-    let pattern = Regex::new(r"\b\w+=\(").unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim_start();

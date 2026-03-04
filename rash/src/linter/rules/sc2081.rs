@@ -32,12 +32,15 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for variable/command expansion in single quotes
+static SC2081_RE_1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"'([^']*(?:\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\$\([^)]+\))[^']*)'").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: '...$var...' or '...$(cmd)...'
-    let pattern =
-        Regex::new(r"'([^']*(?:\$\{?[A-Za-z_][A-Za-z0-9_]*\}?|\$\([^)]+\))[^']*)'").unwrap();
+    let pattern = &*SC2081_RE_1;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
