@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - KAIZEN-077: `collect_used_functions` uses `HashSet<&str>` instead of `HashSet<String>` — zero-copy function name collection
 - KAIZEN-078: `record_decision` is no-op on non-tracing emit path — eliminates ~500K-1M wasted String allocations per corpus run
 - KAIZEN-079: Remove dead `_config` field from `PosixEmitter` and simplify `emitter::emit` match
+- KAIZEN-080: Parallelize corpus runner with `std::thread::scope` — N threads (available_parallelism) process entry chunks independently. Also removes 3 dead functions superseded by KAIZEN-070/072/073.
 - Refactored `validate_export` to reduce cognitive complexity (extracted check helpers)
 
 ### Documentation
