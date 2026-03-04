@@ -103,7 +103,7 @@ fn test_if_else_idempotent_true_branch() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Run twice in same directory
     let temp_dir = TempDir::new().unwrap();
@@ -136,7 +136,7 @@ fn test_if_else_idempotent_false_branch() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir = TempDir::new().unwrap();
     let state1 = execute_and_capture_state(&shell, &temp_dir);
@@ -176,7 +176,7 @@ fn test_nested_if_else_idempotent() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Run 3 times to ensure consistent idempotence
     let states: Vec<ScriptState> = (0..3)
@@ -238,7 +238,7 @@ fn test_multiple_if_statements_idempotent() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir1 = TempDir::new().unwrap();
     let state1 = execute_and_capture_state(&shell, &temp_dir1);
@@ -272,7 +272,7 @@ fn test_early_exit_idempotent() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir1 = TempDir::new().unwrap();
     let state1 = execute_and_capture_state(&shell, &temp_dir1);
@@ -317,7 +317,7 @@ fn test_variable_assignment_in_branches_idempotent() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir1 = TempDir::new().unwrap();
     let state1 = execute_and_capture_state(&shell, &temp_dir1);
@@ -358,7 +358,7 @@ fn test_if_else_if_chain_idempotent() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Run 5 times to ensure no state accumulation
     let states: Vec<ScriptState> = (0..5)
@@ -401,7 +401,7 @@ fn test_complex_boolean_conditions_idempotent() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir1 = TempDir::new().unwrap();
     let state1 = execute_and_capture_state(&shell, &temp_dir1);
@@ -429,7 +429,7 @@ fn test_simple_script_deterministic() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Run 10 times
     let states: Vec<ScriptState> = (0..10)
@@ -472,7 +472,7 @@ fn test_condition_evaluation_no_side_effects() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir1 = TempDir::new().unwrap();
     let state1 = execute_and_capture_state(&shell, &temp_dir1);
@@ -510,7 +510,7 @@ fn test_empty_branches_idempotent() {
     "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let temp_dir1 = TempDir::new().unwrap();
     let state1 = execute_and_capture_state(&shell, &temp_dir1);

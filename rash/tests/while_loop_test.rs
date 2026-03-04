@@ -16,7 +16,7 @@ fn main() {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "Basic while loop should transpile");
 
@@ -54,7 +54,7 @@ fn main() {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "While loop with break should transpile");
 
@@ -75,7 +75,7 @@ fn main() {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "Infinite while loop should transpile");
 

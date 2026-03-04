@@ -177,7 +177,7 @@ impl ErrorInjectionTester {
         ];
 
         for input in malformed_inputs {
-            let result = transpile(input, self.config.clone());
+            let result = transpile(input, &self.config);
 
             results.total_injections += 1;
 
@@ -210,7 +210,7 @@ impl ErrorInjectionTester {
         ];
 
         for input in now_supported_inputs {
-            let result = transpile(input, self.config.clone());
+            let result = transpile(input, &self.config);
 
             results.total_injections += 1;
 
@@ -230,7 +230,7 @@ impl ErrorInjectionTester {
         // Test deeply nested structures that might cause stack overflow
         for depth in [10, 20, 30, 40, 50] {
             let nested_input = self.create_deeply_nested_input(depth);
-            let result = transpile(&nested_input, self.config.clone());
+            let result = transpile(&nested_input, &self.config);
 
             results.total_injections += 1;
 
@@ -257,7 +257,7 @@ impl ErrorInjectionTester {
         ];
 
         for input in validation_failures {
-            let result = transpile(input, self.config.clone());
+            let result = transpile(input, &self.config);
 
             results.total_injections += 1;
 
@@ -320,7 +320,7 @@ impl ErrorInjectionTester {
                 format!("fn main() {{ {input} }}")
             };
 
-            let result = transpile(&full_input, self.config.clone());
+            let result = transpile(&full_input, &self.config);
 
             results.total_injections += 1;
 
@@ -337,17 +337,17 @@ impl ErrorInjectionTester {
     fn test_with_allocation_failure(&self, input: &str, _fail_after: usize) -> Result<String> {
         // In a real implementation, this would use a custom allocator
         // For now, just test normal operation
-        transpile(input, self.config.clone())
+        transpile(input, &self.config)
     }
 
     fn test_with_memory_pressure(&self, input: &str) -> Result<String> {
         // Test under memory pressure
-        transpile(input, self.config.clone())
+        transpile(input, &self.config)
     }
 
     fn test_with_io_failure(&self, input: &str) -> Result<String> {
         // Test with simulated I/O failures
-        transpile(input, self.config.clone())
+        transpile(input, &self.config)
     }
 
     fn create_deeply_nested_input(&self, depth: usize) -> String {

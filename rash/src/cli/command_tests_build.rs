@@ -199,7 +199,7 @@ fn test_verify_command() {
     };
 
     let source = fs::read_to_string(&rust_path).unwrap();
-    let shell_code = crate::transpile(&source, config).unwrap();
+    let shell_code = crate::transpile(&source, &config).unwrap();
     fs::write(&shell_path, &shell_code).unwrap();
 
     // Now verify they match
@@ -631,7 +631,7 @@ fn test_verify_command_different_dialects() {
     };
 
     let source = fs::read_to_string(&rust_path).unwrap();
-    let shell_code = crate::transpile(&source, config).unwrap();
+    let shell_code = crate::transpile(&source, &config).unwrap();
     fs::write(&shell_path, &shell_code).unwrap();
 
     for dialect in [ShellDialect::Posix, ShellDialect::Bash, ShellDialect::Ash] {

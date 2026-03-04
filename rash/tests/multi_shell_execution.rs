@@ -117,7 +117,7 @@ fn execute_rust_source(source: &str) -> Result<Output, String> {
 /// Helper to transpile and execute in multiple shells
 fn transpile_and_execute_multi_shell(source: &str) -> Vec<(Shell, Result<Output, String>)> {
     let config = Config::default();
-    let shell_script = match transpile(source, config) {
+    let shell_script = match transpile(source, &config) {
         Ok(script) => script,
         Err(e) => {
             return vec![(Shell::Sh, Err(format!("Transpilation failed: {}", e)))];

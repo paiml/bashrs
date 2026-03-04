@@ -45,7 +45,7 @@ fn shellcheck_validate(shell_script: &str) -> Result<(), String> {
 fn transpile_and_validate(source: &str) -> Result<String, String> {
     let config = Config::default();
     let shell_script =
-        transpile(source, config).map_err(|e| format!("Transpilation failed: {}", e))?;
+        transpile(source, &config).map_err(|e| format!("Transpilation failed: {}", e))?;
 
     shellcheck_validate(&shell_script)?;
 
@@ -489,7 +489,7 @@ fn test_deterministic_output() {
 
     // Transpile 10 times
     let results: Vec<String> = (0..10)
-        .map(|_| transpile(source, config.clone()).unwrap())
+        .map(|_| transpile(source, &config).unwrap())
         .collect();
 
     // All results should be byte-identical

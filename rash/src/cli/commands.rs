@@ -697,7 +697,7 @@ fn build_command(input: &Path, output: &Path, config: Config) -> Result<()> {
 
     // Transpile (wrap errors with source context)
     let shell_code =
-        transpile(&source, config.clone()).map_err(|e| with_context(e, input, &source))?;
+        transpile(&source, &config).map_err(|e| with_context(e, input, &source))?;
 
     // Write output
     fs::write(output, shell_code).map_err(Error::Io)?;
@@ -909,7 +909,7 @@ fn verify_command(
         validation_level: Some(crate::validation::ValidationLevel::Strict),
     };
 
-    let generated_shell = transpile(&rust_code, config)?;
+    let generated_shell = transpile(&rust_code, &config)?;
 
     // Compare generated vs actual
     if normalize_shell_script(&generated_shell) == normalize_shell_script(&shell_code) {
@@ -1070,7 +1070,7 @@ fn handle_compile(
 
     // Read and transpile the source
     let source = fs::read_to_string(rust_source).map_err(Error::Io)?;
-    let shell_code = transpile(&source, config.clone())?;
+    let shell_code = transpile(&source, &config)?;
 
     if self_extracting {
         // Create self-extracting script

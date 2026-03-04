@@ -1,10 +1,10 @@
 # SPEC-SSC-2026-001: Shell Safety Classifier — Published on HuggingFace
 
-**Version**: 3.3.0
-**Status**: v3 TRAINING READY (data exported, splits verified, 18/18 APR checkpoint contracts done, HP contracts defined, monitoring framework unified)
+**Version**: 3.4.0
+**Status**: v3 TRAINING READY (data exported, splits verified, 18/18 APR checkpoint contracts done, HP contracts defined, monitoring framework unified, multi-GPU infrastructure implemented)
 **Author**: paiml engineering
-**Date**: 2026-03-02
-**Requires**: bashrs >= 6.65.0, aprender >= 0.27.2, entrenar >= 0.7.5, trueno >= 0.15.0, alimentar >= 0.2.7
+**Date**: 2026-03-03
+**Requires**: bashrs >= 6.65.0, aprender >= 0.27.2, entrenar >= 0.7.5, trueno >= 0.16.1, alimentar >= 0.2.7
 **HuggingFace Repo**: `paiml/shell-safety-classifier`
 
 ---
@@ -2367,6 +2367,260 @@ JSON output (`HeadlessOutput`) also includes `accuracy` and `samples_per_second`
 | Classify trainer tests (10) | All pass |
 | TUI integration tests (34) | All pass |
 | Property tests (JSON roundtrip) | Pass |
+
+---
+
+## 19. v3.3: Multi-GPU Training Infrastructure (2026-03-03)
+
+### 19.1 Motivation
+
+SSC v3 training on the intel machine (2x Radeon Pro W5700X, 32-core Xeon, 283GB RAM) exposed
+critical infrastructure gaps. The wgpu matmul path created a new `GpuDevice` per call and did
+CPU-GPU round-trips per operation — 14,000 matmuls without completing training step 1. The
+entire wgpu training path was non-functional.
+
+**Root causes identified**:
+
+| # | Root Cause | Impact |
+|---|-----------|--------|
+| 1 | `GpuDevice::new()` picks one GPU via `request_adapter()` | No multi-GPU selection |
+| 2 | `GpuDevice::matmul()` uploads/computes/downloads per call | 14,000 round-trips per step |
+| 3 | `GpuCommandBatch` had persistent buffers but no matmul op | Batching infrastructure idle |
+| 4 | entrenar had no wgpu training path (CUDA only) | AMD/Intel GPUs unusable |
+| 5 | No data parallelism or gradient sync between devices | Dual GPUs wasted |
+
+### 19.2 Architecture
+
+The multi-GPU infrastructure spans three layers:
+
+```text
+                          aprender (CLI)
+                          ─────────────
+                        --gpus 0,1 --gpu-backend wgpu
+                                │
+                          entrenar (training)
+                          ──────────────────
+                ┌─────────────────────────────────────┐
+                │      DataParallelCoordinator        │
+                │  ┌──────────┐   ┌──────────┐       │
+                │  │Pipeline 0│   │Pipeline 1│  ...   │
+                │  │ (GPU 0)  │   │ (GPU 1)  │       │
+                │  └────┬─────┘   └────┬─────┘       │
+                │       │              │              │
+                │  ┌────▼──────────────▼────┐        │
+                │  │  CPU AllReduce (LoRA)   │        │
+                │  │  ~22MB, <2ms PCIe      │        │
+                │  └────────────────────────┘        │
+                └─────────────────────────────────────┘
+                                │
+                          trueno (compute)
+                          ────────────────
+                ┌─────────────────────────────────────┐
+                │         GpuDevicePool               │
+                │  ┌──────────┐   ┌──────────┐       │
+                │  │GpuDevice │   │GpuDevice │  ...   │
+                │  │(adapter 0)│  │(adapter 1)│       │
+                │  └────┬─────┘   └────┬─────┘       │
+                │       │              │              │
+                │  GpuCommandBatch (matmul + SwiGLU)  │
+                │  Single execute() per layer         │
+                └─────────────────────────────────────┘
+```
+
+#### Forward Pass Strategy: FFN on GPU, Attention on CPU
+
+The transformer forward pass is split pragmatically:
+
+- **FFN (60-70% of compute)**: gate/up/down matmuls + SwiGLU batched into a single
+  `GpuCommandBatch::execute()` per layer. One upload, one download per layer.
+- **Attention (30-40% of compute)**: RoPE, softmax, causal masking remain on CPU.
+  Phase 2 will add GPU attention.
+
+This eliminates the per-op round-trip bottleneck while keeping complexity manageable.
+
+```text
+Per transformer layer:
+  ┌─ CPU ──────────────────────────────────────────┐
+  │  RMSNorm → Attention (RoPE + softmax) → Add   │
+  └────────────────────────────────────────────────┘
+       │ residual
+  ┌─ GPU (single GpuCommandBatch::execute()) ──────┐
+  │  RMSNorm → gate=input@W_gate                   │
+  │            up=input@W_up                        │
+  │            swish(gate) * up → output@W_down     │
+  └────────────────────────────────────────────────┘
+       │ ffn_output
+  ┌─ CPU ──────────────────────────────────────────┐
+  │  Add (residual + ffn_output)                    │
+  └────────────────────────────────────────────────┘
+```
+
+#### Data Parallel Training
+
+Each GPU holds a complete model replica. Per training step:
+
+1. **Shard**: Split mini-batch into N shards (one per GPU)
+2. **Forward/backward**: Each GPU processes its shard independently
+3. **AllReduce**: Average LoRA gradients on CPU (~22MB for rank-16 on Qwen3-4B, <2ms over PCIe)
+4. **Sync**: Broadcast primary's weights to all replicas
+
+**Why CPU AllReduce is fine**: LoRA rank-16 on Qwen3-4B produces ~5.9M trainable parameters
+= ~22MB. PCIe Gen3 x16 transfer: <2ms. This is negligible vs the ~200ms forward pass per GPU.
+
+### 19.3 Compute Backend Priority
+
+`ComputeDevice::auto_detect()` follows a strict priority order:
+
+```text
+CUDA (NVIDIA) → wgpu (AMD/Intel/NVIDIA) → CPU
+```
+
+| Backend | GPU Selection | Forward Pass | Backward Pass |
+|---------|-------------|--------------|---------------|
+| **CUDA** | `CudaTrainer` (realizador) | Full GPU (all ops) | Full GPU (LoRA + frozen) |
+| **wgpu** | `WgpuForwardPass` (trueno) | FFN on GPU, attention on CPU | CPU-only (LoRA adapters) |
+| **CPU** | `Transformer::forward_hidden()` | All CPU (trueno SIMD) | CPU-only (LoRA adapters) |
+
+The fallback chain is automatic: if CUDA forward fails, wgpu is tried; if wgpu
+fails, CPU is used. No user intervention required.
+
+### 19.4 Contracts
+
+#### C-DP-001: Data Parallel Weight Consistency
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | All pipelines have identical weights at step start |
+| **Postcondition** | All pipelines have identical weights after optimizer step |
+| **Invariant** | Loss within 1% of equivalent single-GPU run at step 100+ |
+| **Verification** | `sync_lora_weights_from_primary()` copies LoRA A/B + classifier head |
+
+#### C-DP-002: Balanced Sharding
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | `samples.len() >= num_gpus` for balanced sharding |
+| **Postcondition** | All pipelines have updated, identical LoRA weights |
+| **Fallback** | When `samples.len() < num_gpus`, falls back to single-GPU |
+
+#### C-WGPU-FWD-001: Numerical Correctness
+
+| Field | Value |
+|-------|-------|
+| **Precondition** | Transformer model loaded with valid weights |
+| **Postcondition** | Output hidden states numerically match CPU forward pass (within fp32 tolerance) |
+| **Invariant** | GPU buffers remain valid across forward calls |
+| **Verification** | `test_wgpu_ffn_numerical_correctness()` — no NaN/Inf in output |
+
+### 19.5 Implementation Details
+
+#### trueno Changes
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `GpuDevice::new_with_adapter_index()` | `src/backends/gpu/device/mod.rs` | Select specific GPU adapter by enumeration index |
+| `GpuDevice::list_adapters()` | `src/backends/gpu/device/mod.rs` | Enumerate all available GPU adapters |
+| `GpuOp::Matmul` | `src/backends/gpu/batch/mod.rs` | Batched matmul variant (a, b, output, m, k, n) |
+| `GpuCommandBatch::matmul()` | `src/backends/gpu/batch/mod.rs` | Queue matmul with persistent buffers |
+| `execute_matmul_op()` | `src/backends/gpu/batch/execute/dispatch.rs` | 4-binding layout (A, B, C, dims uniform), 16x16 workgroups |
+| `GpuDevicePool` | `src/backends/gpu/pool.rs` | Multi-GPU pool: `all()` or `with_indices(&[0,1])` |
+
+The matmul dispatch uses the existing `MATMUL_SHADER` with `@workgroup_size(16, 16)` and
+`ceil(M/16) x ceil(N/16)` workgroup counts. The 4-binding layout is:
+
+```text
+@group(0) @binding(0) A: array<f32>         (read)
+@group(0) @binding(1) B: array<f32>         (read)
+@group(0) @binding(2) C: array<f32>         (read_write)
+@group(0) @binding(3) dims: MatmulDims      (uniform: m, k, n, _pad)
+```
+
+#### entrenar Changes
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `ComputeDevice::Wgpu` | `src/finetune/device.rs` | New enum variant: `Wgpu { adapter_index: u32 }` |
+| `WgpuForwardPass` | `src/transformer/wgpu_block.rs` | Batched FFN matmuls on GPU via `GpuCommandBatch` |
+| `forward_hidden_dispatch()` | `src/finetune/classify_pipeline.rs` | CUDA > wgpu > CPU fallback chain |
+| `DataParallelCoordinator` | `src/finetune/data_parallel.rs` | Multi-GPU sharding, AllReduce, weight sync |
+
+#### aprender Changes
+
+| Component | File | Description |
+|-----------|------|-------------|
+| `--gpus` flag | `model_ops_commands.rs` | Comma-separated adapter indices (e.g., `0,1`) |
+| `--gpu-backend` flag | `model_ops_commands.rs` | Backend selection: `auto` (default), `cuda`, `wgpu` |
+
+### 19.6 CLI Usage
+
+```bash
+# Single wgpu GPU (auto-detected)
+apr finetune --task classify --model-size 4B --gpu-backend wgpu \
+    ~/src/models/qwen3-4b --data train.jsonl \
+    --num-classes 2 --epochs 3 -o /tmp/ssc-v3/
+
+# Specific GPU adapter
+apr finetune --task classify --model-size 4B --gpus 0 \
+    ~/src/models/qwen3-4b --data train.jsonl \
+    --num-classes 2 --epochs 3 -o /tmp/ssc-v3/
+
+# Dual GPU data parallelism
+apr finetune --task classify --model-size 4B --gpus 0,1 \
+    ~/src/models/qwen3-4b --data train.jsonl \
+    --num-classes 2 --epochs 3 -o /tmp/ssc-v3/
+
+# Force CUDA backend (NVIDIA GPUs only)
+apr finetune --task classify --model-size 0.5B --gpu-backend cuda \
+    ~/src/models/qwen2.5-coder-0.5b --data train.jsonl \
+    --num-classes 2 --epochs 3 -o /tmp/ssc-v3/
+```
+
+### 19.7 Memory Budget (Qwen3-4B on Radeon Pro W5700X, 8GB VRAM each)
+
+| Component | Per-GPU (fp32) | Per-GPU (NF4) |
+|-----------|---------------|---------------|
+| Model weights | 1,007 MB | 126 MB |
+| LoRA adapters | 5.5 MB | 5.5 MB |
+| Activations (seq128) | ~28 MB | ~28 MB |
+| Optimizer state | ~11 MB | ~11 MB |
+| **Total** | **~1,052 MB** | **~171 MB** |
+
+Both configurations fit comfortably in 8GB per GPU.
+
+### 19.8 Known Limitations
+
+| Limitation | Impact | Planned Fix |
+|-----------|--------|-------------|
+| Sequential GPU processing | No parallel speedup from multi-GPU (wgpu handles not `Send`) | Phase 2: per-process GPU isolation |
+| FFN-only GPU acceleration | ~60-70% of forward pass on GPU, attention still on CPU | Phase 2: GPU attention kernels |
+| CPU-only backward pass | Backward always on CPU for wgpu path | Acceptable: LoRA backward is small |
+| No GPU-GPU direct transfer | AllReduce goes through CPU | Acceptable: 22MB < 2ms over PCIe |
+
+### 19.9 Version Requirements
+
+| Crate | Minimum Version | New Capability |
+|-------|----------------|----------------|
+| trueno | 0.16.1 | `GpuCommandBatch::matmul()`, `GpuDevicePool`, adapter selection |
+| entrenar | 0.7.5 | `WgpuForwardPass`, `DataParallelCoordinator`, `ComputeDevice::Wgpu` |
+| aprender | 0.27.2 | `--gpus`, `--gpu-backend` CLI flags |
+
+### 19.10 Verification Matrix
+
+| Verification | Command / Test | Expected Result | Status |
+|-------------|---------------|-----------------|--------|
+| Adapter selection | `GpuDevice::new_with_adapter_index(0)` | Creates device on specified adapter | **VERIFIED** |
+| Batched matmul | `GpuCommandBatch::matmul()` | No per-op round-trips, single execute() | **VERIFIED** |
+| Device pool | `GpuDevicePool::all()` | Opens all non-CPU adapters | **VERIFIED** |
+| wgpu forward pass | `WgpuForwardPass::forward_hidden()` | FFN on GPU, no NaN/Inf | **VERIFIED** |
+| Fallback chain | `forward_hidden_dispatch()` | CUDA > wgpu > CPU | **VERIFIED** |
+| Coordinator creation | `DataParallelCoordinator::new()` | N pipelines for N GPUs | **VERIFIED** |
+| Empty GPU list rejected | `DataParallelCoordinator::new(&[], ..)` | Returns Err | **VERIFIED** |
+| Weight sync (single GPU) | `sync_lora_weights_from_primary()` | No-op (no panic) | **VERIFIED** |
+| CLI --gpus flag | `apr finetune --gpus 0,1` | Parsed and passed to coordinator | **VERIFIED** |
+| CLI --gpu-backend flag | `apr finetune --gpu-backend wgpu` | Backend selection applied | **VERIFIED** |
+| trueno full test suite | `cargo test --lib` (trueno) | 3,338 passed, 0 failed | **VERIFIED** |
+| entrenar GPU tests | `cargo test --lib --features gpu` (entrenar) | All new tests pass | **VERIFIED** |
+| aprender compilation | `cargo check` (aprender) | Clean (0 errors) | **VERIFIED** |
 
 ---
 

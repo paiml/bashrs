@@ -28,7 +28,7 @@ fn require_var(name: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -61,7 +61,7 @@ fn use_config(cfg: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate ${var:?message} syntax
     assert!(
@@ -83,7 +83,7 @@ fn check_required(val: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -117,7 +117,7 @@ fn check_if_set(name: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -151,7 +151,7 @@ fn use_flag(f: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate ${var:+word} syntax
     assert!(
@@ -173,7 +173,7 @@ fn use_if_available(name: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -207,7 +207,7 @@ fn generate_sequence(start: i32, end: i32) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -241,7 +241,7 @@ fn print_number(n: i32) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate seq command (POSIX) or $(seq 1 5)
     assert!(
@@ -263,7 +263,7 @@ fn iterate_range(start: i32, end: i32) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -297,7 +297,7 @@ fn use_home_path() {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -331,7 +331,7 @@ fn use_path(path: &str) {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     // Should generate $HOME/Documents or ~/ expansion
     assert!(
@@ -353,7 +353,7 @@ fn access_home_dir() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     let mut file = NamedTempFile::new().expect("Failed to create temp file");
     file.write_all(shell.as_bytes())
@@ -388,7 +388,7 @@ fn use_home_path() {}
 "#;
 
     let config = Config::default();
-    let shell = transpile(source, config).unwrap();
+    let shell = transpile(source, &config).unwrap();
 
     eprintln!("Generated combined shell script:\n{}", shell);
 

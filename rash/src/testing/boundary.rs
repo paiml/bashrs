@@ -323,7 +323,7 @@ impl BoundaryTester {
 
     fn test_transpile(&mut self, input: &str) -> Result<String> {
         self.test_count += 1;
-        transpile(input, self.config.clone())
+        transpile(input, &self.config)
     }
 }
 

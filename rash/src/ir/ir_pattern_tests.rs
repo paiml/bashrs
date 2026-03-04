@@ -19,11 +19,11 @@ use crate::transpile;
 use crate::models::Config;
 
 fn transpile_ok(code: &str) -> String {
-    transpile(code, Config::default()).unwrap()
+    transpile(code, &Config::default()).unwrap()
 }
 
 fn transpile_result(code: &str) -> crate::models::Result<String> {
-    transpile(code, Config::default())
+    transpile(code, &Config::default())
 }
 
 // ---------------------------------------------------------------------------

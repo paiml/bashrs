@@ -16,7 +16,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
     let script = result.unwrap();
     assert!(script.contains("rash_string_replace"));
@@ -33,7 +33,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
     let script = result.unwrap();
     assert!(script.contains("rash_string_to_upper"));
@@ -50,7 +50,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
     let script = result.unwrap();
     assert!(script.contains("rash_string_to_lower"));
@@ -70,7 +70,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
     let script = result.unwrap();
     assert!(script.contains("rash_fs_is_file"));
@@ -88,7 +88,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
     let script = result.unwrap();
     assert!(script.contains("rash_fs_is_dir"));
@@ -106,7 +106,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
     let script = result.unwrap();
     assert!(script.contains("rash_fs_copy"));
@@ -124,7 +124,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
     let script = result.unwrap();
     assert!(script.contains("rash_fs_remove"));
@@ -150,7 +150,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
     assert!(result.is_ok());
     let script = result.unwrap();
 

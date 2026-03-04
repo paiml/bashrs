@@ -35,7 +35,7 @@
 //!     fn echo(msg: &str) {}
 //! "#;
 //!
-//! let shell_script = transpile(rust_code, Config::default()).unwrap();
+//! let shell_script = transpile(rust_code, &Config::default()).unwrap();
 //! assert!(shell_script.contains("#!/bin/sh"));
 //! ```
 //!
@@ -58,7 +58,7 @@
 //! };
 //!
 //! let rust_code = "fn main() { let x = 42; }";
-//! let result = transpile(rust_code, config);
+//! let result = transpile(rust_code, &config);
 //! assert!(result.is_ok());
 //! ```
 
@@ -174,7 +174,7 @@ pub use transpiler::Transpiler;
 ///     fn echo(msg: &str) {}
 /// "#;
 ///
-/// let shell_script = transpile(rust_code, Config::default()).unwrap();
+/// let shell_script = transpile(rust_code, &Config::default()).unwrap();
 /// assert!(shell_script.contains("#!/bin/sh"));
 /// assert!(shell_script.contains("message="));
 /// ```
@@ -193,7 +193,7 @@ pub use transpiler::Transpiler;
 /// };
 ///
 /// let rust_code = "fn main() { let x = 1 + 2; }";
-/// let result = transpile(rust_code, config);
+/// let result = transpile(rust_code, &config);
 /// assert!(result.is_ok());
 /// ```
 ///
@@ -210,7 +210,7 @@ pub use transpiler::Transpiler;
 ///     }
 /// "#;
 ///
-/// let shell_script = transpile(rust_code, Config::default()).unwrap();
+/// let shell_script = transpile(rust_code, &Config::default()).unwrap();
 /// assert!(shell_script.contains("name="));
 /// assert!(shell_script.contains("age="));
 /// ```
@@ -227,7 +227,7 @@ pub use transpiler::Transpiler;
 ///     fn greet(name: &str) {}
 /// "#;
 ///
-/// let shell_script = transpile(rust_code, Config::default()).unwrap();
+/// let shell_script = transpile(rust_code, &Config::default()).unwrap();
 /// assert!(shell_script.contains("greet"));
 /// ```
 ///
@@ -239,8 +239,8 @@ pub use transpiler::Transpiler;
 /// - IR generation fails
 /// - Shell code emission fails
 /// - Output validation fails (shellcheck, safety checks)
-pub fn transpile(input: &str, config: Config) -> Result<String> {
-    let validation_pipeline = validation::pipeline::ValidationPipeline::new(&config);
+pub fn transpile(input: &str, config: &Config) -> Result<String> {
+    let validation_pipeline = validation::pipeline::ValidationPipeline::new(config);
 
     let ast = services::parser::parse(input)?;
     ast::validate(&ast)?;
@@ -249,7 +249,7 @@ pub fn transpile(input: &str, config: Config) -> Result<String> {
     let ir = ir::from_ast(&ast)?;
     validation_pipeline.validate_ir(&ir)?;
 
-    let optimized = ir::optimize(ir, &config)?;
+    let optimized = ir::optimize(ir, config)?;
     let shell_code = emitter::emit(&optimized)?;
 
     validation_pipeline.validate_output(&shell_code)?;
@@ -266,8 +266,8 @@ pub fn transpile(input: &str, config: Config) -> Result<String> {
 ///
 /// * `Ok((String, DecisionTrace))` - Generated shell script and decision trace
 /// * `Err(Error)` - Transpilation error
-pub fn transpile_with_trace(input: &str, config: Config) -> Result<(String, DecisionTrace)> {
-    let validation_pipeline = validation::pipeline::ValidationPipeline::new(&config);
+pub fn transpile_with_trace(input: &str, config: &Config) -> Result<(String, DecisionTrace)> {
+    let validation_pipeline = validation::pipeline::ValidationPipeline::new(config);
 
     let ast = services::parser::parse(input)?;
     ast::validate(&ast)?;
@@ -276,7 +276,7 @@ pub fn transpile_with_trace(input: &str, config: Config) -> Result<(String, Deci
     let ir = ir::from_ast(&ast)?;
     validation_pipeline.validate_ir(&ir)?;
 
-    let optimized = ir::optimize(ir, &config)?;
+    let optimized = ir::optimize(ir, config)?;
     let (shell_code, trace) = emitter::emit_with_trace(&optimized)?;
 
     validation_pipeline.validate_output(&shell_code)?;
@@ -298,7 +298,7 @@ pub fn transpile_with_trace(input: &str, config: Config) -> Result<(String, Deci
 ///
 /// * `Ok((String, LintResult))` - Generated shell script and lint results
 /// * `Err(Error)` - Transpilation error
-pub fn transpile_with_lint(input: &str, config: Config) -> Result<(String, linter::LintResult)> {
+pub fn transpile_with_lint(input: &str, config: &Config) -> Result<(String, linter::LintResult)> {
     let shell_code = transpile(input, config)?;
     let lint_result = linter::rules::lint_shell(&shell_code);
     Ok((shell_code, lint_result))
@@ -320,8 +320,8 @@ pub fn transpile_with_lint(input: &str, config: Config) -> Result<(String, linte
 ///
 /// * `Ok(String)` - Generated Makefile content
 /// * `Err(Error)` - Transpilation error
-pub fn transpile_makefile(input: &str, config: Config) -> Result<String> {
-    let _validation_pipeline = validation::pipeline::ValidationPipeline::new(&config);
+pub fn transpile_makefile(input: &str, config: &Config) -> Result<String> {
+    let _validation_pipeline = validation::pipeline::ValidationPipeline::new(config);
 
     let ast = services::parser::parse(input)?;
     ast::validate(&ast)?;
@@ -348,8 +348,8 @@ pub fn transpile_makefile(input: &str, config: Config) -> Result<String> {
 ///
 /// * `Ok(String)` - Generated Dockerfile content
 /// * `Err(Error)` - Transpilation error
-pub fn transpile_dockerfile(input: &str, config: Config) -> Result<String> {
-    let _validation_pipeline = validation::pipeline::ValidationPipeline::new(&config);
+pub fn transpile_dockerfile(input: &str, config: &Config) -> Result<String> {
+    let _validation_pipeline = validation::pipeline::ValidationPipeline::new(config);
 
     let ast = services::parser::parse(input)?;
     ast::validate(&ast)?;

@@ -22,7 +22,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok());
     let script = result.unwrap();
@@ -54,7 +54,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok());
     let script = result.unwrap();
@@ -92,7 +92,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok());
     let script = result.unwrap();
@@ -118,7 +118,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok());
     let script = result.unwrap();
@@ -144,7 +144,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok());
     let script = result.unwrap();
@@ -169,7 +169,7 @@ fn echo(s: &str) {}
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok());
     let script = result.unwrap();
@@ -211,9 +211,9 @@ fn main() {
 }
 "#;
 
-    let add_script = transpile(add_source, Config::default()).unwrap();
-    let sub_script = transpile(sub_source, Config::default()).unwrap();
-    let div_script = transpile(div_source, Config::default()).unwrap();
+    let add_script = transpile(add_source, &Config::default()).unwrap();
+    let sub_script = transpile(sub_source, &Config::default()).unwrap();
+    let div_script = transpile(div_source, &Config::default()).unwrap();
 
     // Each operator should produce different shell code
     assert_ne!(
@@ -266,8 +266,8 @@ fn main() {
 }
 "#;
 
-    let exclusive_script = transpile(exclusive_source, Config::default()).unwrap();
-    let inclusive_script = transpile(inclusive_source, Config::default()).unwrap();
+    let exclusive_script = transpile(exclusive_source, &Config::default()).unwrap();
+    let inclusive_script = transpile(inclusive_source, &Config::default()).unwrap();
 
     // Inclusive and exclusive ranges should generate different seq commands
     assert_ne!(

@@ -17,7 +17,7 @@ use crate::{transpile, Config};
 /// Helper to assert transpilation succeeds (for patterns that are safe in quoted strings)
 fn assert_transpiles_ok(source: &str, description: &str) {
     let config = Config::default();
-    match transpile(source, config) {
+    match transpile(source, &config) {
         Ok(_) => {} // Success — bare semicolons in quoted strings are safe
         Err(e) => {
             panic!(
@@ -32,7 +32,7 @@ fn assert_transpiles_ok(source: &str, description: &str) {
 fn assert_rejects_malicious(source: &str, attack_description: &str) {
     let config = Config::default();
 
-    match transpile(source, config) {
+    match transpile(source, &config) {
         Ok(script) => {
             // If it transpiles, verify the attack is neutered
             // Check for common injection patterns in output
@@ -171,7 +171,7 @@ fn test_path_traversal_dotdot() {
     // Path traversal in strings should be allowed (properly quoted)
     // but verify it doesn't execute
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     match result {
         Ok(script) => {
@@ -207,7 +207,7 @@ fn test_path_traversal_absolute() {
 
     // Absolute paths should be allowed if properly quoted
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(
         result.is_ok(),
@@ -242,7 +242,7 @@ fn test_injection_dollar_in_string() {
 
     // Dollar signs in string literals should be safe (quoted)
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     match result {
         Ok(script) => {
@@ -273,7 +273,7 @@ fn test_glob_asterisk() {
 
     // Glob patterns should be quoted to prevent expansion
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     match result {
         Ok(script) => {
@@ -297,7 +297,7 @@ fn test_glob_question_mark() {
     "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "Question mark in string should be allowed");
 }
@@ -341,7 +341,7 @@ fn test_injection_null_byte() {
 
     // Null bytes should be handled safely
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Either rejected or properly escaped
     match result {
@@ -409,7 +409,7 @@ fn test_injection_path_manipulation() {
 
     // PATH in string literal is safe if quoted
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "PATH in string literal should be allowed");
 }
@@ -458,7 +458,7 @@ fn test_obfuscated_injection() {
 
     // Arithmetic expansion should be safe in strings
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     match result {
         Ok(script) => {
@@ -487,7 +487,7 @@ fn test_real_world_log4j_style() {
 
     // JNDI-style attacks should be safe in quoted strings
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     assert!(result.is_ok(), "JNDI syntax in string should be quoted");
 }
@@ -566,7 +566,7 @@ fn test_safe_strings_allowed() {
         );
 
         let config = Config::default();
-        let result = transpile(&source, config);
+        let result = transpile(&source, &config);
 
         assert!(result.is_ok(), "Safe string '{}' should be allowed", safe);
     }

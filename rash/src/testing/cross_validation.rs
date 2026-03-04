@@ -97,7 +97,7 @@ impl CrossValidationTester {
         ];
 
         for config in configs {
-            let result = crate::transpile(source, config.clone());
+            let result = crate::transpile(source, &config);
             let key = format!("{:?}_{:?}", config.target, config.verify);
             self.validation_results.insert(key, result.is_ok());
         }

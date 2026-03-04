@@ -248,7 +248,7 @@ proptest! {
             Literal::Str(s) => format!(r#"fn main() {{ let x = "{s}"; }}"#),
         };
 
-        let result = transpile(&source, Config::default());
+        let result = transpile(&source, &Config::default());
         prop_assert!(result.is_ok(), "Failed to transpile literal: {:?}", lit);
     }
 
@@ -266,8 +266,8 @@ proptest! {
         let left_assoc = format!("fn main() {{ let x = ({a} + {b}) + {c}; }}");
         let right_assoc = format!("fn main() {{ let x = {a} + ({b} + {c}); }}");
 
-        let result1 = transpile(&left_assoc, Config::default());
-        let result2 = transpile(&right_assoc, Config::default());
+        let result1 = transpile(&left_assoc, &Config::default());
+        let result2 = transpile(&right_assoc, &Config::default());
 
         prop_assert!(result1.is_ok() && result2.is_ok());
     }
@@ -277,7 +277,7 @@ proptest! {
     fn prop_function_names_preserved(name in generators::any_valid_identifier()) {
         let source = format!("fn {name}() {{}} fn main() {{ {name}(); }}");
 
-        if let Ok(shell_code) = transpile(&source, Config::default()) {
+        if let Ok(shell_code) = transpile(&source, &Config::default()) {
             // Function name should appear in the generated shell code
             prop_assert!(shell_code.contains(&name));
         }
@@ -288,7 +288,7 @@ proptest! {
     fn prop_generated_scripts_non_empty(_ast in generators::valid_ast()) {
         let source = "fn main() { let x = 42; }"; // Simplified
 
-        if let Ok(shell_code) = transpile(source, Config::default()) {
+        if let Ok(shell_code) = transpile(source, &Config::default()) {
             prop_assert!(!shell_code.trim().is_empty());
             prop_assert!(shell_code.contains("#!/bin/sh") || shell_code.contains("#!/bin/bash"));
         }
@@ -299,8 +299,8 @@ proptest! {
     fn prop_transpilation_deterministic(config in generators::any_config()) {
         let source = "fn main() { let x = 42; let y = \"hello\"; }";
 
-        let result1 = transpile(source, config.clone());
-        let result2 = transpile(source, config.clone());
+        let result1 = transpile(source, &config);
+        let result2 = transpile(source, &config);
 
         match (result1, result2) {
             (Ok(code1), Ok(code2)) => prop_assert_eq!(code1, code2),
@@ -314,7 +314,7 @@ proptest! {
     fn prop_string_literals_quoted(s in generators::any_safe_string()) {
         let source = format!(r#"fn main() {{ let x = "{s}"; }}"#);
 
-        if let Ok(shell_code) = transpile(&source, Config::default()) {
+        if let Ok(shell_code) = transpile(&source, &Config::default()) {
             // Generated shell should quote the string
             prop_assert!(shell_code.contains(&s));
         }
@@ -325,7 +325,7 @@ proptest! {
     fn prop_variable_names_shell_safe(name in generators::any_valid_identifier()) {
         let source = format!("fn main() {{ let {name} = 42; }}");
 
-        if let Ok(shell_code) = transpile(&source, Config::default()) {
+        if let Ok(shell_code) = transpile(&source, &Config::default()) {
             // Variable should appear in shell code and be shell-safe
             if shell_code.contains(&name) {
                 // Shell variables shouldn't start with numbers
@@ -345,7 +345,7 @@ proptest! {
         ];
 
         for source in test_sources {
-            let result = transpile(source, config.clone());
+            let result = transpile(source, &config);
             // Should either succeed or fail gracefully (no panics)
             match result {
                 Ok(_) | Err(_) => {}, // Both are acceptable
@@ -379,14 +379,14 @@ mod regression_tests {
     #[test]
     fn test_empty_string_literal() {
         let source = r#"fn main() { let x = ""; }"#;
-        let result = transpile(source, Config::default());
+        let result = transpile(source, &Config::default());
         assert!(result.is_ok());
     }
 
     #[test]
     fn test_very_large_numbers() {
         let source = "fn main() { let x = 4294967295; }"; // u32::MAX
-        let result = transpile(source, Config::default());
+        let result = transpile(source, &Config::default());
         // Should handle or reject gracefully
         assert!(result.is_ok() || result.is_err());
     }
@@ -395,7 +395,7 @@ mod regression_tests {
     fn test_long_identifier_names() {
         let long_name = "a".repeat(100);
         let source = format!("fn main() {{ let {long_name} = 42; }}");
-        let result = transpile(&source, Config::default());
+        let result = transpile(&source, &Config::default());
         // Should handle long names gracefully
         assert!(result.is_ok() || result.is_err());
     }
@@ -407,7 +407,7 @@ mod regression_tests {
             expr = format!("({expr} + 1)");
         }
         let source = format!("fn main() {{ let result = {expr}; }}");
-        let result = transpile(&source, Config::default());
+        let result = transpile(&source, &Config::default());
         // Deep nesting should be handled gracefully
         assert!(result.is_ok() || result.is_err());
     }
@@ -428,7 +428,7 @@ mod performance_tests {
             let source = "fn main() { let x = 42; }"; // Simplified for performance testing
 
             let start = Instant::now();
-            let result = transpile(source, Config::default());
+            let result = transpile(source, &Config::default());
             let duration = start.elapsed();
 
             // Should complete within 1 second for simple cases
@@ -448,7 +448,7 @@ mod performance_tests {
 
             // Multiple transpilations shouldn't cause memory leaks
             for _ in 0..10 {
-                let _ = transpile(source, config.clone());
+                let _ = transpile(source, &config);
             }
 
             // This test mainly checks that we don't panic or run out of memory
@@ -474,7 +474,7 @@ mod fuzz_integration {
             let parse_result = std::panic::catch_unwind(|| parse(source));
             prop_assert!(parse_result.is_ok());
 
-            let transpile_result = std::panic::catch_unwind(|| transpile(source, Config::default()));
+            let transpile_result = std::panic::catch_unwind(|| transpile(source, &Config::default()));
             prop_assert!(transpile_result.is_ok());
         }
 
@@ -508,7 +508,7 @@ mod security_tests {
         fn prop_no_shell_injection(s in generators::any_safe_string()) {
             let source = format!(r#"fn main() {{ let x = "{s}"; }}"#);
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should not contain dangerous injection patterns from user input
                 let dangerous_patterns = [
                     "; rm -rf", "$(rm", "`rm"
@@ -532,7 +532,7 @@ mod security_tests {
         fn prop_safe_variable_expansion(name in generators::any_valid_identifier()) {
             let source = format!("fn main() {{ let {name} = 42; }}");
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Variables should be properly quoted when expanded
                 if shell_code.contains(&format!("${{{name}}}")) {
                     // Variable expansion should be quoted in contexts where it matters
@@ -546,7 +546,7 @@ mod security_tests {
         fn prop_for_loops_valid_seq(start in 0i32..100, end in 0i32..100) {
             let source = format!("fn main() {{ for i in {}..{} {{ let x = i; }} }}", start, end);
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should contain seq command
                 prop_assert!(shell_code.contains("seq"), "For loop should use seq");
                 // Should contain for...do...done
@@ -566,7 +566,7 @@ mod security_tests {
                 ..Default::default()
             };
 
-            if let Ok(shell_code) = transpile(&source, config) {
+            if let Ok(shell_code) = transpile(&source, &config) {
                 // Should use arithmetic expansion
                 prop_assert!(shell_code.contains("$(("), "Should use arithmetic expansion");
                 prop_assert!(shell_code.contains("+"), "Should contain operator");
@@ -581,7 +581,7 @@ mod security_tests {
                 a, b
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Functions with return values should echo
                 prop_assert!(shell_code.contains("echo"), "Function should echo return value");
                 // Call sites should use command substitution
@@ -594,7 +594,7 @@ mod security_tests {
         fn prop_comparisons_posix_test(a in 1i32..100) {
             let source = format!("fn main() {{ if {} > 0 {{ let x = 1; }} }}", a);
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should use POSIX test with -gt, -lt, etc.
                 prop_assert!(
                     shell_code.contains("-gt") || shell_code.contains("test"),
@@ -615,7 +615,7 @@ mod security_tests {
                 "fn main() {{ let {name1} = 1; let {name2} = 2; }}"
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Both variables should appear in output
                 prop_assert!(shell_code.contains(&format!("{name1}=")), "First variable should be assigned");
                 prop_assert!(shell_code.contains(&format!("{name2}=")), "Second variable should be assigned");
@@ -627,7 +627,7 @@ mod security_tests {
         fn prop_negative_integers(n in -1000i32..0) {
             let source = format!("fn main() {{ let x = {}; }}", n);
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should NOT contain "unknown"
                 prop_assert!(!shell_code.contains("unknown"), "Negative integers should not be unknown");
                 // Should contain the negative number
@@ -644,7 +644,7 @@ mod security_tests {
 
             let source = format!("fn {name}() {{}} fn main() {{ {name}(); }}");
 
-            if let Ok(_shell_code) = transpile(&source, Config::default()) {
+            if let Ok(_shell_code) = transpile(&source, &Config::default()) {
                 // Empty functions might not generate a function definition
                 // or might generate a no-op (:)
                 prop_assert!(true); // Placeholder - just ensure it compiles
@@ -673,7 +673,7 @@ mod sprint23_properties {
                 s
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should contain string_trim function
                 prop_assert!(shell_code.contains("rash_string_trim"),
                            "Should include stdlib string_trim function");
@@ -693,7 +693,7 @@ mod sprint23_properties {
                 haystack
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should generate proper case statement
                 prop_assert!(shell_code.contains("rash_string_contains"),
                            "Should include stdlib string_contains function");
@@ -715,7 +715,7 @@ mod sprint23_properties {
                 path
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should include fs_exists function
                 prop_assert!(shell_code.contains("rash_fs_exists"),
                            "Should include stdlib fs_exists function");
@@ -737,7 +737,7 @@ mod sprint23_properties {
                 s
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should use command substitution for return value
                 prop_assert!(shell_code.contains("$(rash_string_len") ||
                            shell_code.contains("len="),
@@ -758,7 +758,7 @@ mod sprint23_properties {
                 limit
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should generate while loop
                 prop_assert!(shell_code.contains("while") && shell_code.contains("do"),
                            "Should generate POSIX while...do loop");
@@ -781,7 +781,7 @@ fn main() {
 }
 "#;
 
-            if let Ok(shell_code) = transpile(source, Config::default()) {
+            if let Ok(shell_code) = transpile(source, &Config::default()) {
                 // Should generate while true
                 prop_assert!(shell_code.contains("while true"),
                            "while true should generate 'while true' statement");
@@ -809,7 +809,7 @@ fn main() {
                 val1, val2
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should contain nested if structure
                 prop_assert!(shell_code.contains("if") && shell_code.contains("fi"),
                            "Should generate if/fi structure");
@@ -834,7 +834,7 @@ fn main() {
                 val
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should generate case statement
                 prop_assert!(shell_code.contains("case"),
                            "Match should generate case statement");
@@ -860,7 +860,7 @@ fn main() {
                 start, end
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should generate seq command or shell range
                 prop_assert!(shell_code.contains("seq") || shell_code.contains("for i in"),
                            "For loop should generate seq or shell range");
@@ -889,7 +889,7 @@ fn main() {
                 stmt
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 // Should contain break or continue statement
                 prop_assert!(shell_code.contains(stmt),
                            "Loop control statement should be preserved");
@@ -909,7 +909,7 @@ fn main() {
                 text
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 prop_assert!(shell_code.contains("rash_string_to_upper"),
                            "Generated shell should include string_to_upper runtime function");
             }
@@ -926,7 +926,7 @@ fn main() {
                 text
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 prop_assert!(shell_code.contains("rash_string_to_lower"),
                            "Generated shell should include string_to_lower runtime function");
             }
@@ -947,7 +947,7 @@ fn main() {
                 text, old, new
             );
 
-            let result = transpile(&source, Config::default());
+            let result = transpile(&source, &Config::default());
             prop_assert!(result.is_ok(), "string_replace should transpile successfully");
             if let Ok(shell_code) = result {
                 prop_assert!(shell_code.contains("rash_string_replace"),
@@ -968,7 +968,7 @@ fn main() {
                 path
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 prop_assert!(shell_code.contains("rash_fs_is_file"),
                            "Generated shell should include fs_is_file runtime function");
             }
@@ -987,7 +987,7 @@ fn main() {
                 path
             );
 
-            if let Ok(shell_code) = transpile(&source, Config::default()) {
+            if let Ok(shell_code) = transpile(&source, &Config::default()) {
                 prop_assert!(shell_code.contains("rash_fs_is_dir"),
                            "Generated shell should include fs_is_dir runtime function");
             }
@@ -1009,7 +1009,7 @@ fn main() {
                 src, dst
             );
 
-            let result = transpile(&source, Config::default());
+            let result = transpile(&source, &Config::default());
             prop_assert!(result.is_ok(), "fs_copy should transpile successfully");
             if let Ok(shell_code) = result {
                 prop_assert!(shell_code.contains("rash_fs_copy"),
@@ -1030,7 +1030,7 @@ fn main() {
                 path
             );
 
-            let result = transpile(&source, Config::default());
+            let result = transpile(&source, &Config::default());
             prop_assert!(result.is_ok(), "fs_remove should transpile successfully");
             if let Ok(shell_code) = result {
                 prop_assert!(shell_code.contains("rash_fs_remove"),
@@ -1056,7 +1056,7 @@ fn main() {
                 text
             );
 
-            let result = transpile(&source, Config::default());
+            let result = transpile(&source, &Config::default());
             prop_assert!(result.is_ok(), "Multiple stdlib functions should transpile successfully");
             if let Ok(shell_code) = result {
                 prop_assert!(shell_code.contains("rash_string_to_lower"),

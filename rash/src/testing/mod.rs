@@ -169,7 +169,7 @@ impl ExhaustiveTestHarness {
             let random_input = self.generate_random_input()?;
 
             // Test should not panic, but may return errors
-            let result = panic::catch_unwind(|| crate::transpile(&random_input, Config::default()));
+            let result = panic::catch_unwind(|| crate::transpile(&random_input, &Config::default()));
 
             match result {
                 Ok(_) => self.stats.passed_tests += 1,
@@ -364,7 +364,7 @@ impl ExhaustiveTestHarness {
     }
 
     fn run_single_test(&self, input: &str, config: &Config) -> Result<String> {
-        crate::transpile(input, config.clone())
+        crate::transpile(input, config)
     }
 
     fn semantically_equivalent(&self, output1: &str, output2: &str) -> bool {
