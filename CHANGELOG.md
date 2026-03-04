@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - KAIZEN-073: `check_cross_shell` reuses `run_entry` output for matching dialect — eliminates ~16,431 redundant Posix transpilations per corpus run
 - KAIZEN-074: `check_cross_shell` skips redundant sh execution when behavioral already passed — eliminates ~16,431 process spawns per corpus run
 - KAIZEN-075: `compute_format_scores` uses HashMap lookup instead of O(n²) linear search (was ~966M string comparisons)
+- KAIZEN-076: `separate_functions` returns `Vec<&ShellIR>` instead of cloning — eliminates ~107K IR tree clones per corpus run
+- KAIZEN-077: `collect_used_functions` uses `HashSet<&str>` instead of `HashSet<String>` — zero-copy function name collection
+- KAIZEN-078: `record_decision` is no-op on non-tracing emit path — eliminates ~500K-1M wasted String allocations per corpus run
+- KAIZEN-079: Remove dead `_config` field from `PosixEmitter` and simplify `emitter::emit` match
 - Refactored `validate_export` to reduce cognitive complexity (extracted check helpers)
 
 ### Documentation
