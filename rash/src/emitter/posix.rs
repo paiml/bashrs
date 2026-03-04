@@ -149,8 +149,8 @@ impl PosixEmitter {
         let (helper_functions, main_body) = self.separate_functions(ir);
 
         // Emit helper functions at global scope
-        for func_ir in helper_functions {
-            self.emit_ir(&mut output, &func_ir, 0)?;
+        for func_ir in &helper_functions {
+            self.emit_ir(&mut output, func_ir, 0)?;
             writeln!(&mut output)?;
         }
 
@@ -162,8 +162,8 @@ impl PosixEmitter {
             // Empty main needs a no-op for valid shell syntax
             writeln!(&mut output, "    :")?;
         } else {
-            for stmt_ir in main_body {
-                self.emit_ir(&mut output, &stmt_ir, 1)?;
+            for stmt_ir in &main_body {
+                self.emit_ir(&mut output, stmt_ir, 1)?;
             }
         }
 
@@ -173,20 +173,21 @@ impl PosixEmitter {
         Ok(output)
     }
 
-    fn separate_functions(&self, ir: &ShellIR) -> (Vec<ShellIR>, Vec<ShellIR>) {
+    /// KAIZEN-076: return references instead of cloning IR items.
+    /// emit_ir takes &ShellIR, so cloning was unnecessary (~107K clones per corpus run).
+    fn separate_functions<'a>(&self, ir: &'a ShellIR) -> (Vec<&'a ShellIR>, Vec<&'a ShellIR>) {
         let mut functions = Vec::new();
         let mut main_body = Vec::new();
 
         if let ShellIR::Sequence(items) = ir {
             for item in items {
                 match item {
-                    ShellIR::Function { .. } => functions.push(item.clone()),
-                    _ => main_body.push(item.clone()),
+                    ShellIR::Function { .. } => functions.push(item),
+                    _ => main_body.push(item),
                 }
             }
         } else {
-            // If not a sequence, treat as main body
-            main_body.push(ir.clone());
+            main_body.push(ir);
         }
 
         (functions, main_body)
