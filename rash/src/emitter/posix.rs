@@ -112,6 +112,7 @@ fn needs_arithmetic_parens(
 pub struct PosixEmitter {
     _config: Config,
     trace: RefCell<Vec<TranspilerDecision>>,
+    tracing: bool,
 }
 
 impl PosixEmitter {
@@ -119,11 +120,26 @@ impl PosixEmitter {
         Self {
             _config: config,
             trace: RefCell::new(Vec::new()),
+            tracing: false,
+        }
+    }
+
+    /// Create an emitter with decision tracing enabled.
+    pub fn new_with_tracing(config: Config) -> Self {
+        Self {
+            _config: config,
+            trace: RefCell::new(Vec::new()),
+            tracing: true,
         }
     }
 
     /// Record a decision made during emission.
+    /// No-op when tracing is disabled (the default for normal emit).
+    #[inline]
     fn record_decision(&self, decision_type: &str, choice: &str, ir_node: &str) {
+        if !self.tracing {
+            return;
+        }
         self.trace.borrow_mut().push(TranspilerDecision {
             decision_type: decision_type.to_string(),
             choice: choice.to_string(),
