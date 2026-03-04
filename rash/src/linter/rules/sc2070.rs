@@ -30,13 +30,17 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for implicit string length tests that should use -n/-z
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"\[\s+("\$[A-Za-z_][A-Za-z0-9_]*")\s+\]"#).unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: [ "$var" ] (implicit non-empty test)
     // Match single bracket tests with just a quoted variable
     // Simpler pattern to avoid complexity
-    let pattern = Regex::new(r#"\[\s+("\$[A-Za-z_][A-Za-z0-9_]*")\s+\]"#).unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed

@@ -58,6 +58,13 @@ fn create_array_to_string_diagnostic(
 }
 
 /// Check for string assignment to array variable
+static ARRAY_DECL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\(").unwrap()
+});
+static SC2178_RE_1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*)=(?:"[^"]*"|'[^']*'|[^\s;]+)"#).unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -65,11 +72,10 @@ pub fn check(source: &str) -> LintResult {
     let mut array_vars = std::collections::HashSet::new();
 
     // Pattern for array declaration: var=(...)
-    let array_decl_pattern = Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\(").unwrap();
+    let array_decl_pattern = &*ARRAY_DECL_PATTERN;
 
     // Pattern for string assignment: var="..." or var=...
-    let string_assign_pattern =
-        Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*)=(?:"[^"]*"|'[^']*'|[^\s;]+)"#).unwrap();
+    let string_assign_pattern = &*SC2178_RE_1;
 
     // First pass: identify array variables
     for line in source.lines() {

@@ -30,14 +30,21 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for quoted regex patterns in =~ comparisons
+static BRACKET_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\[\[(.*?)\]\]").unwrap()
+});
+static REGEX_MATCH_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"=~\s+"([^"]+)""#).unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: [[ ... =~ "..." ]]
     // We need to match the =~ operator followed by a quoted string
     // Use non-greedy matching to properly handle ]]
-    let bracket_pattern = Regex::new(r"\[\[(.*?)\]\]").unwrap();
-    let regex_match_pattern = Regex::new(r#"=~\s+"([^"]+)""#).unwrap();
+    let bracket_pattern = &*BRACKET_PATTERN;
+    let regex_match_pattern = &*REGEX_MATCH_PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed

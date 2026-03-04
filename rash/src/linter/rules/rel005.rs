@@ -28,12 +28,16 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for hardcoded temp file paths
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"/tmp/[a-zA-Z_][a-zA-Z0-9_.\-]*").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Match hardcoded /tmp/ paths in assignments or redirections
     // But not /tmp itself or /tmp/ alone
-    let pattern = Regex::new(r"/tmp/[a-zA-Z_][a-zA-Z0-9_.\-]*").unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim_start();

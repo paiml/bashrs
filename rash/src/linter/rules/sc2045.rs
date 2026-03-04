@@ -33,12 +33,19 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for ls in for loops
+static PATTERN1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"for\s+\w+\s+in\s+\$\(ls([^)]*)\)").unwrap()
+});
+static PATTERN2: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"for\s+\w+\s+in\s+`ls([^`]*)`").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: for ... in $(ls ...) or `ls ...`
-    let pattern1 = Regex::new(r"for\s+\w+\s+in\s+\$\(ls([^)]*)\)").unwrap();
-    let pattern2 = Regex::new(r"for\s+\w+\s+in\s+`ls([^`]*)`").unwrap();
+    let pattern1 = &*PATTERN1;
+    let pattern2 = &*PATTERN2;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

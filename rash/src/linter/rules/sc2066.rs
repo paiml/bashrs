@@ -33,14 +33,20 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for unquoted variables in [[ ... ]] conditionals
+static BRACKET_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\[\[([^\]]+)\]\]").unwrap()
+});
+static SC2066_RE_1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: [[ ... ]] with unquoted variables
     // We look for $VAR or ${VAR} inside [[ ... ]]
-    let bracket_pattern = Regex::new(r"\[\[([^\]]+)\]\]").unwrap();
-    let var_pattern =
-        Regex::new(r"\$(?:\{([A-Za-z_][A-Za-z0-9_]*)\}|([A-Za-z_][A-Za-z0-9_]*))").unwrap();
+    let bracket_pattern = &*BRACKET_PATTERN;
+    let var_pattern = &*SC2066_RE_1;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed

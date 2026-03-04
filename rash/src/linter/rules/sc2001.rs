@@ -26,20 +26,20 @@
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
+static PATTERN1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"echo\s+"\$(\w+)"\s*\|\s*sed\s+'s/([a-zA-Z0-9_]+)/([a-zA-Z0-9_]+)/'"#).unwrap()
+});
+
+static PATTERN2: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"\$\(echo\s+"\$(\w+)"\s*\|\s*sed\s+'s/([a-zA-Z0-9_]+)/([a-zA-Z0-9_]+)/'\)"#).unwrap()
+});
+
 /// Check for sed usage that could be replaced with parameter expansion
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
-    // Pattern: echo "$var" | sed 's/pattern/replacement/'
-    // Use simple word patterns (alphanumeric + underscore only)
-    let pattern1 =
-        Regex::new(r#"echo\s+"\$(\w+)"\s*\|\s*sed\s+'s/([a-zA-Z0-9_]+)/([a-zA-Z0-9_]+)/'"#)
-            .unwrap();
-
-    // Pattern: $(echo "$var" | sed 's/pattern/replacement/')
-    let pattern2 =
-        Regex::new(r#"\$\(echo\s+"\$(\w+)"\s*\|\s*sed\s+'s/([a-zA-Z0-9_]+)/([a-zA-Z0-9_]+)/'\)"#)
-            .unwrap();
+    let pattern1 = &*PATTERN1;
+    let pattern2 = &*PATTERN2;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;

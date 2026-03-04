@@ -24,9 +24,13 @@ use crate::linter::diagnostic::FixSafetyLevel;
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\bls\b[^|]*\|\s*while\s+read").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-    let pattern = Regex::new(r"\bls\b[^|]*\|\s*while\s+read").unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         if line.trim().starts_with('#') {

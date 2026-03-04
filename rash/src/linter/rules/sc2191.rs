@@ -30,11 +30,15 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for space between = and ( in array assignment
+static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\s+\(").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: var= (value) with space between = and (
-    let pattern = Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\s+\(").unwrap();
+    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
