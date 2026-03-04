@@ -12,7 +12,7 @@ use crate::models::Config;
 #[test]
 fn test_exit_statement_with_message() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Exit {
         code: 1,
@@ -27,7 +27,7 @@ fn test_exit_statement_with_message() {
 #[test]
 fn test_exit_statement_without_message() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Exit {
         code: 0,
@@ -41,7 +41,7 @@ fn test_exit_statement_without_message() {
 #[test]
 fn test_noop_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Noop;
 
@@ -53,7 +53,7 @@ fn test_noop_emission() {
 #[test]
 fn test_function_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let func = ShellIR::Function {
         name: "my_func".to_string(),
@@ -71,7 +71,7 @@ fn test_function_emission() {
 #[test]
 fn test_echo_statement_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Echo {
         value: ShellValue::String("test output".to_string()),
@@ -84,7 +84,7 @@ fn test_echo_statement_emission() {
 #[test]
 fn test_echo_with_variable() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Echo {
         value: ShellValue::Variable("my_var".to_string()),
@@ -97,7 +97,7 @@ fn test_echo_with_variable() {
 #[test]
 fn test_for_loop_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::For {
         var: "i".to_string(),
@@ -118,7 +118,7 @@ fn test_for_loop_emission() {
 #[test]
 fn test_while_loop_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::While {
         condition: ShellValue::Bool(true),
@@ -135,7 +135,7 @@ fn test_while_loop_emission() {
 #[test]
 fn test_while_with_comparison() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::While {
         condition: ShellValue::Comparison {
@@ -154,7 +154,7 @@ fn test_while_with_comparison() {
 #[test]
 fn test_case_statement_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Case {
         scrutinee: ShellValue::Variable("choice".to_string()),
@@ -190,7 +190,7 @@ fn test_case_statement_emission() {
 #[test]
 fn test_break_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Break;
 
@@ -201,7 +201,7 @@ fn test_break_emission() {
 #[test]
 fn test_continue_emission() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Continue;
 
@@ -216,7 +216,7 @@ fn test_continue_emission() {
 #[test]
 fn test_shell_value_bool_true() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "flag".to_string(),
@@ -231,7 +231,7 @@ fn test_shell_value_bool_true() {
 #[test]
 fn test_shell_value_bool_false() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "flag".to_string(),
@@ -246,7 +246,7 @@ fn test_shell_value_bool_false() {
 #[test]
 fn test_shell_value_concat() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "result".to_string(),
@@ -268,7 +268,7 @@ fn test_shell_value_concat() {
 #[test]
 fn test_shell_value_command_subst() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "date".to_string(),
@@ -288,7 +288,7 @@ fn test_shell_value_command_subst() {
 #[test]
 fn test_shell_value_comparison_eq() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
         test: ShellValue::Comparison {
@@ -308,7 +308,7 @@ fn test_shell_value_comparison_eq() {
 #[test]
 fn test_shell_value_comparison_ne() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
         test: ShellValue::Comparison {
@@ -327,7 +327,7 @@ fn test_shell_value_comparison_ne() {
 #[test]
 fn test_shell_value_comparison_gt() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
         test: ShellValue::Comparison {
@@ -346,7 +346,7 @@ fn test_shell_value_comparison_gt() {
 #[test]
 fn test_shell_value_comparison_ge() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
         test: ShellValue::Comparison {
@@ -365,7 +365,7 @@ fn test_shell_value_comparison_ge() {
 #[test]
 fn test_shell_value_comparison_le() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
         test: ShellValue::Comparison {
@@ -384,7 +384,7 @@ fn test_shell_value_comparison_le() {
 #[test]
 fn test_shell_value_arithmetic_add() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "sum".to_string(),
@@ -404,7 +404,7 @@ fn test_shell_value_arithmetic_add() {
 #[test]
 fn test_shell_value_arithmetic_sub() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "diff".to_string(),
@@ -423,7 +423,7 @@ fn test_shell_value_arithmetic_sub() {
 #[test]
 fn test_shell_value_arithmetic_mul() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "product".to_string(),
@@ -442,7 +442,7 @@ fn test_shell_value_arithmetic_mul() {
 #[test]
 fn test_shell_value_arithmetic_div() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "quotient".to_string(),
@@ -461,7 +461,7 @@ fn test_shell_value_arithmetic_div() {
 #[test]
 fn test_shell_value_arithmetic_mod() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
         name: "remainder".to_string(),
@@ -484,7 +484,7 @@ fn test_shell_value_arithmetic_mod() {
 #[test]
 fn test_nested_for_loops() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::For {
         var: "i".to_string(),
@@ -513,7 +513,7 @@ fn test_nested_for_loops() {
 #[test]
 fn test_case_with_guard() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Case {
         scrutinee: ShellValue::Variable("num".to_string()),
@@ -545,7 +545,7 @@ fn test_case_with_guard() {
 #[test]
 fn test_empty_main_body() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Sequence(vec![]);
 
@@ -557,7 +557,7 @@ fn test_empty_main_body() {
 #[test]
 fn test_sequence_with_function_and_main() {
     let config = Config::default();
-    let emitter = PosixEmitter::new(config);
+    let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Sequence(vec![
         ShellIR::Function {
