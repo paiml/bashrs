@@ -197,7 +197,7 @@ pub fn emit(ir: &ShellIR, config: &Config) -> Result<String> {
 
 /// Emit shell code from IR and return the decision trace for fault localization.
 pub fn emit_with_trace(ir: &ShellIR, config: &Config) -> Result<(String, DecisionTrace)> {
-    let emitter = PosixEmitter::new(config.clone());
+    let emitter = PosixEmitter::new_with_tracing(config.clone());
     let output = emitter.emit(ir)?;
     let trace = emitter.take_trace();
     Ok((output, trace))
