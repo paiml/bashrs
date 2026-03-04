@@ -683,7 +683,8 @@ impl CorpusRunner {
                     && self.check_mr5_subsumption(entry)
                     && self.check_mr6_composition(entry)
                     && self.check_mr7_negation(entry);
-                let cross_shell_agree = self.check_cross_shell(entry);
+                // KAIZEN-073: pass output to avoid re-transpiling with matching dialect
+                let cross_shell_agree = self.check_cross_shell_with_output(entry, &output);
 
                 CorpusResult {
                     id: entry.id.clone(),
@@ -789,7 +790,8 @@ impl CorpusRunner {
 
                 // G: Cross-shell agreement — for bash entries, verify output
                 // equivalence across Posix and Bash dialect configs
-                let cross_shell_agree = self.check_cross_shell(entry);
+                // KAIZEN-073: pass output to avoid re-transpiling with matching dialect
+                let cross_shell_agree = self.check_cross_shell_with_output(entry, &output);
 
                 CorpusResult {
                     id: entry.id.clone(),
@@ -1017,6 +1019,55 @@ impl CorpusRunner {
             CorpusFormat::Bash => crate::transpile(input, self.config.clone()),
             CorpusFormat::Makefile => crate::transpile_makefile(input, self.config.clone()),
             CorpusFormat::Dockerfile => crate::transpile_dockerfile(input, self.config.clone()),
+        }
+    }
+
+    /// KAIZEN-073: Cross-shell agreement reusing run_entry output when config matches.
+    /// If `self.config.target` is Posix, the output from `run_entry` IS the Posix result —
+    /// only transpile with Bash config (eliminates ~16,431 redundant transpilations).
+    fn check_cross_shell_with_output(&self, entry: &CorpusEntry, output: &str) -> bool {
+        if entry.format != CorpusFormat::Bash {
+            return true;
+        }
+
+        let posix_config = Config {
+            target: crate::models::ShellDialect::Posix,
+            ..self.config.clone()
+        };
+        let bash_config = Config {
+            target: crate::models::ShellDialect::Bash,
+            ..self.config.clone()
+        };
+
+        // Reuse run_entry output for whichever dialect matches self.config.target
+        let (posix_result, bash_result) = match self.config.target {
+            crate::models::ShellDialect::Posix => {
+                let bash_r = crate::transpile(&entry.input, bash_config);
+                (Ok(output.to_string()), bash_r)
+            }
+            crate::models::ShellDialect::Bash => {
+                let posix_r = crate::transpile(&entry.input, posix_config);
+                (posix_r, Ok(output.to_string()))
+            }
+            // Dash/Ash: neither matches Posix or Bash, transpile both
+            _ => {
+                let posix_r = crate::transpile(&entry.input, posix_config);
+                let bash_r = crate::transpile(&entry.input, bash_config);
+                (posix_r, bash_r)
+            }
+        };
+
+        match (posix_result, bash_result) {
+            (Ok(posix_out), Ok(bash_out)) => {
+                let posix_has = posix_out.contains(&entry.expected_output);
+                let bash_has = bash_out.contains(&entry.expected_output);
+                if !(posix_has && bash_has) {
+                    return false;
+                }
+                self.check_shell_execution(&posix_out)
+            }
+            (Err(_), Err(_)) => true,
+            _ => false,
         }
     }
 
