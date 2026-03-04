@@ -31,6 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - KAIZEN-080: Parallelize corpus runner with `std::thread::scope` — N threads (available_parallelism) process entry chunks independently. Also removes 3 dead functions superseded by KAIZEN-070/072/073.
 - KAIZEN-081: Cache 56 inline `Regex::new()` calls with `LazyLock` in 43 linter rule files — eliminates ~56 regex compilations per `lint_shell()` invocation
 - KAIZEN-082: Remove dead `_config: &Config` parameter from `emitter::emit()` and `emit_with_trace()` — simplifies public API
+- KAIZEN-083: Pre-compute indent strings in `PosixEmitter` via const `INDENT_CACHE` — eliminates 17 String allocations per IR node emit
+- KAIZEN-084: Change `transpile()` family to take `&Config` instead of `Config` — eliminates 17,942 Config clones in SSC export pipeline
 - Refactored `validate_export` to reduce cognitive complexity (extracted check helpers)
 
 ### Documentation
