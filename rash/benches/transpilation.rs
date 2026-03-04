@@ -141,8 +141,8 @@ fn benchmark_emission(c: &mut Criterion) {
 
     group.bench_with_input(
         BenchmarkId::new("emit", "simple"),
-        &(&simple_ir, &config),
-        |b, (ir, config)| b.iter(|| bashrs::emitter::emit(ir, config).unwrap()),
+        &simple_ir,
+        |b, ir| b.iter(|| bashrs::emitter::emit(ir).unwrap()),
     );
 
     group.finish();
