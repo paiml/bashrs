@@ -76,6 +76,7 @@
 - [Property Testing](./advanced/property-testing.md)
 - [Mutation Testing](./advanced/mutation-testing.md)
 - [Performance Optimization](./advanced/performance.md)
+- [Shell Safety Classifier](./advanced/shell-safety-classifier.md)
 - [PMAT Integration](./advanced/pmat-integration.md)
 - [Dogfooding (Self-Validation)](./advanced/dogfooding.md)
 

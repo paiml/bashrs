@@ -14,12 +14,12 @@ use crate::Config;
 /// shell output. Panics on transpilation failure.
 fn transpile_main(body: &str) -> String {
     let code = format!("fn main() {{\n{}\n}}", body);
-    crate::transpile(&code, Config::default()).expect("transpile should succeed")
+    crate::transpile(&code, &Config::default()).expect("transpile should succeed")
 }
 
 /// Helper: transpile a full program (caller supplies fn main + any extra fns).
 fn transpile_full(code: &str) -> String {
-    crate::transpile(code, Config::default()).expect("transpile should succeed")
+    crate::transpile(code, &Config::default()).expect("transpile should succeed")
 }
 
 // ====================================================================
@@ -599,7 +599,7 @@ fn main() {
     let t = s.len();
 }
 "#,
-        Config::default(),
+        &Config::default(),
     );
     // The transpiler should handle this without error
     assert!(result.is_ok(), "Method call should not cause transpile failure");
@@ -613,7 +613,7 @@ fn main() {
 fn test_IR_EXPR_037_div_by_zero_literal() {
     // The transpiler generates shell code; runtime division by zero is a shell concern.
     // Constant folding may catch this or pass it through
-    let result = crate::transpile("fn main() { let a = 10; let b = 0; let x = a / b; }", Config::default());
+    let result = crate::transpile("fn main() { let a = 10; let b = 0; let x = a / b; }", &Config::default());
     assert!(result.is_ok(), "Division by zero should still transpile");
 }
 

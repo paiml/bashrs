@@ -37,7 +37,7 @@ fn bench_validation_overhead(c: &mut Criterion) {
             };
 
             b.iter(|| {
-                let _ = transpile(black_box(&script), config.clone());
+                let _ = transpile(black_box(&script), &config);
             });
         });
 
@@ -48,7 +48,7 @@ fn bench_validation_overhead(c: &mut Criterion) {
             };
 
             b.iter(|| {
-                let _ = transpile(black_box(&script), config.clone());
+                let _ = transpile(black_box(&script), &config);
             });
         });
 
@@ -59,7 +59,7 @@ fn bench_validation_overhead(c: &mut Criterion) {
             };
 
             b.iter(|| {
-                let _ = transpile(black_box(&script), config.clone());
+                let _ = transpile(black_box(&script), &config);
             });
         });
     }
@@ -143,14 +143,14 @@ fn measure_validation_percentage(_c: &mut Criterion) {
     // Measure without validation
     let start = Instant::now();
     for _ in 0..10 {
-        let _ = transpile(&script, config_no_validation.clone());
+        let _ = transpile(&script, &config_no_validation);
     }
     let time_without = start.elapsed();
 
     // Measure with validation
     let start = Instant::now();
     for _ in 0..10 {
-        let _ = transpile(&script, config_with_validation.clone());
+        let _ = transpile(&script, &config_with_validation);
     }
     let time_with = start.elapsed();
 

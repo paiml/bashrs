@@ -34,7 +34,7 @@ fn test_MAKE_BUILD_001_basic_generation() {
         }
     "#;
 
-    let result = bashrs::transpile_makefile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile_makefile(rust_code, &bashrs::Config::default()).unwrap();
     assert!(
         result.contains("CC := gcc"),
         "Expected 'CC := gcc' in generated Makefile: {}",
@@ -55,7 +55,7 @@ fn test_MAKE_BUILD_002_variables_uppercase() {
         }
     "#;
 
-    let result = bashrs::transpile_makefile(rust_code, bashrs::Config::default()).unwrap();
+    let result = bashrs::transpile_makefile(rust_code, &bashrs::Config::default()).unwrap();
     assert!(
         result.contains("MY_VAR :="),
         "Variable names should be uppercased: {}",
@@ -103,8 +103,8 @@ fn test_MAKE_BUILD_004_determinism() {
     "#;
 
     let config = bashrs::Config::default();
-    let result1 = bashrs::transpile_makefile(rust_code, config.clone()).unwrap();
-    let result2 = bashrs::transpile_makefile(rust_code, config).unwrap();
+    let result1 = bashrs::transpile_makefile(rust_code, &config).unwrap();
+    let result2 = bashrs::transpile_makefile(rust_code, &config).unwrap();
     assert_eq!(
         result1, result2,
         "Makefile transpilation must be deterministic"

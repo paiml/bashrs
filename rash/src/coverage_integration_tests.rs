@@ -17,7 +17,7 @@ mod transpiler_integration {
     #[test]
     fn test_transpile_basic_assignment() {
         let code = "fn main() { let x = 42; }";
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("#!/bin/sh"));
         assert!(result.contains("x="));
     }
@@ -31,7 +31,7 @@ mod transpiler_integration {
                 let c = 3;
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("a="));
         assert!(result.contains("b="));
         assert!(result.contains("c="));
@@ -45,7 +45,7 @@ mod transpiler_integration {
             }
             fn greet(name: &str) {}
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("greet"));
     }
 
@@ -59,7 +59,7 @@ mod transpiler_integration {
                 let x = 10;
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("helper"));
     }
 
@@ -75,7 +75,7 @@ mod transpiler_integration {
                 }
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("if"));
         assert!(result.contains("then"));
         assert!(result.contains("else"));
@@ -92,7 +92,7 @@ mod transpiler_integration {
             }
             fn echo(val: i64) {}
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("for"));
         assert!(result.contains("do"));
         assert!(result.contains("done"));
@@ -110,7 +110,7 @@ mod transpiler_integration {
                 }
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("case"));
         assert!(result.contains("esac"));
     }
@@ -125,7 +125,7 @@ mod transpiler_integration {
                 }
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("while"));
         assert!(result.contains("do"));
         assert!(result.contains("done"));
@@ -134,35 +134,35 @@ mod transpiler_integration {
     #[test]
     fn test_transpile_binary_operations_add() {
         let code = "fn main() { let x = 1 + 2; }";
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("x="));
     }
 
     #[test]
     fn test_transpile_binary_operations_sub() {
         let code = "fn main() { let x = 10 - 3; }";
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("x="));
     }
 
     #[test]
     fn test_transpile_binary_operations_mul() {
         let code = "fn main() { let x = 3 * 4; }";
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("x="));
     }
 
     #[test]
     fn test_transpile_binary_operations_div() {
         let code = "fn main() { let x = 10 / 2; }";
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("x="));
     }
 
     #[test]
     fn test_transpile_binary_operations_mod() {
         let code = "fn main() { let x = 10 % 3; }";
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("x="));
     }
 
@@ -186,7 +186,7 @@ mod transpiler_integration {
                 }
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("if"));
     }
 
@@ -197,7 +197,7 @@ mod transpiler_integration {
                 let items = [1, 2, 3];
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("#!/bin/sh"));
     }
 
@@ -213,7 +213,7 @@ mod transpiler_integration {
                 }
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         // Should have nested if/fi
         let if_count = result.matches("if").count();
         assert!(if_count >= 2, "Expected nested ifs, got: {}", result);
@@ -227,7 +227,7 @@ mod transpiler_integration {
                 let greeting = "Hello";
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("name="));
         assert!(result.contains("greeting="));
     }
@@ -239,7 +239,7 @@ mod transpiler_integration {
             target: ShellDialect::Bash,
             ..Config::default()
         };
-        let result = transpile(code, config).unwrap();
+        let result = transpile(code, &config).unwrap();
         assert!(result.contains("#!/"));
     }
 
@@ -250,14 +250,14 @@ mod transpiler_integration {
             verify: VerificationLevel::Paranoid,
             ..Config::default()
         };
-        let result = transpile(code, config).unwrap();
+        let result = transpile(code, &config).unwrap();
         assert!(result.contains("#!/bin/sh"));
     }
 
     #[test]
     fn test_transpile_empty_main() {
         let code = "fn main() {}";
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("#!/bin/sh"));
     }
 
@@ -270,7 +270,7 @@ mod transpiler_integration {
             }
             fn echo(val: i64) {}
         "#;
-        let (shell_code, trace) = transpile_with_trace(code, Config::default()).unwrap();
+        let (shell_code, trace) = transpile_with_trace(code, &Config::default()).unwrap();
         assert!(shell_code.contains("#!/bin/sh"));
         // Trace should have recorded decisions
         assert!(!trace.is_empty() || shell_code.len() > 10);
@@ -285,7 +285,7 @@ mod transpiler_integration {
             }
             fn echo(msg: &str) {}
         "#;
-        let (shell_code, lint_result) = transpile_with_lint(code, Config::default()).unwrap();
+        let (shell_code, lint_result) = transpile_with_lint(code, &Config::default()).unwrap();
         assert!(shell_code.contains("#!/bin/sh"));
         // lint_result contains diagnostics (may or may not be empty)
         let _ = lint_result.diagnostics.len();
@@ -294,7 +294,7 @@ mod transpiler_integration {
     #[test]
     fn test_transpile_error_invalid_input() {
         let code = "fn main( { }";
-        let result = transpile(code, Config::default());
+        let result = transpile(code, &Config::default());
         assert!(result.is_err());
     }
 
@@ -305,7 +305,7 @@ mod transpiler_integration {
             target: ShellDialect::Dash,
             ..Config::default()
         };
-        let result = transpile(code, config).unwrap();
+        let result = transpile(code, &config).unwrap();
         assert!(result.contains("#!/"));
     }
 
@@ -316,7 +316,7 @@ mod transpiler_integration {
             target: ShellDialect::Ash,
             ..Config::default()
         };
-        let result = transpile(code, config).unwrap();
+        let result = transpile(code, &config).unwrap();
         assert!(result.contains("#!/"));
     }
 
@@ -327,7 +327,7 @@ mod transpiler_integration {
             verify: VerificationLevel::Basic,
             ..Config::default()
         };
-        let result = transpile(code, config).unwrap();
+        let result = transpile(code, &config).unwrap();
         assert!(result.contains("#!/bin/sh"));
     }
 
@@ -338,7 +338,7 @@ mod transpiler_integration {
             verify: VerificationLevel::None,
             ..Config::default()
         };
-        let result = transpile(code, config).unwrap();
+        let result = transpile(code, &config).unwrap();
         assert!(result.contains("#!/bin/sh"));
     }
 
@@ -350,7 +350,7 @@ mod transpiler_integration {
                 let other = false;
             }
         "#;
-        let result = transpile(code, Config::default()).unwrap();
+        let result = transpile(code, &Config::default()).unwrap();
         assert!(result.contains("flag="));
         assert!(result.contains("other="));
     }
@@ -1295,7 +1295,7 @@ mod transpile_formats {
                 let CC = "gcc";
             }
         "#;
-        let result = transpile_makefile(code, Config::default());
+        let result = transpile_makefile(code, &Config::default());
         // May succeed or fail depending on DSL expectations
         let _ = result;
     }
@@ -1308,7 +1308,7 @@ mod transpile_formats {
             }
             fn from_image(name: &str, tag: &str) {}
         "#;
-        let result = transpile_dockerfile(code, Config::default());
+        let result = transpile_dockerfile(code, &Config::default());
         // May succeed or fail depending on DSL expectations
         let _ = result;
     }

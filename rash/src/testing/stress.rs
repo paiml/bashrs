@@ -85,7 +85,7 @@ impl StressTester {
         for _ in 0..iterations {
             for test_case in &test_cases {
                 let start = Instant::now();
-                let result = crate::transpile(test_case, self.config.clone());
+                let result = crate::transpile(test_case, &self.config);
                 let latency = start.elapsed().as_millis() as f64;
 
                 latencies.push(latency);
@@ -132,7 +132,7 @@ impl StressTester {
                 thread::spawn(move || {
                     for i in 0..operations_per_thread {
                         let test_code = format!("fn main() {{ let x = {i}; }}");
-                        match crate::transpile(&test_code, config.clone()) {
+                        match crate::transpile(&test_code, &config) {
                             Ok(_) => {
                                 let mut count = success.lock().unwrap();
                                 *count += 1;
@@ -180,7 +180,7 @@ impl StressTester {
         for large_value in large_values {
             let test_code = format!("{base_code}{large_value};");
 
-            match crate::transpile(&test_code, self.config.clone()) {
+            match crate::transpile(&test_code, &self.config) {
                 Ok(_) => results.successful_operations += 1,
                 Err(e) => {
                     results.failed_operations += 1;
@@ -210,7 +210,7 @@ impl StressTester {
         while start_time.elapsed() < test_duration {
             let test_code = format!("fn main() {{ let x = {}; }}", operations % 1000);
 
-            match crate::transpile(&test_code, self.config.clone()) {
+            match crate::transpile(&test_code, &self.config) {
                 Ok(_) => successes += 1,
                 Err(e) => {
                     failures += 1;
@@ -244,7 +244,7 @@ impl StressTester {
             for i in 0..burst_size {
                 let test_code = format!("fn main() {{ let burst_{burst}_op_{i} = {i}; }}");
 
-                match crate::transpile(&test_code, self.config.clone()) {
+                match crate::transpile(&test_code, &self.config) {
                     Ok(_) => results.successful_operations += 1,
                     Err(e) => {
                         results.failed_operations += 1;

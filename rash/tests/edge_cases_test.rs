@@ -18,7 +18,7 @@ fn add(a: i32, b: i32) -> i32 {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Function should emit echo for return value
     assert!(
@@ -48,7 +48,7 @@ fn main() {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Accept arithmetic expansion syntax OR constant-folded results (possibly single-quoted)
     // Current behavior: Constant folding with single-quoting (x='3')
@@ -91,7 +91,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Should NOT contain "unknown"
     assert!(
@@ -126,7 +126,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should succeed (not return error)
     assert!(result.is_ok(), "println! should be supported");
@@ -157,7 +157,7 @@ fn echo(msg: &str) {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // UPDATED (v6.17.1): Empty functions for known builtins/commands are NOT emitted
     // This allows the shell builtin to be used directly, which is the intended behavior
@@ -186,7 +186,7 @@ fn main() {
 "#;
 
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Should NOT contain wrong string concatenation test
     assert!(
@@ -213,7 +213,7 @@ fn main() {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Should generate POSIX for loop with seq
     assert!(result.contains("for i in"), "Should have for loop");
@@ -253,7 +253,7 @@ fn main() {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config).unwrap();
+    let result = transpile(source, &config).unwrap();
 
     // Should generate POSIX case statement
     assert!(result.contains("case "), "Should have case statement");
@@ -285,7 +285,7 @@ fn main() {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should successfully transpile
     assert!(result.is_ok(), "Empty main() should transpile successfully");
@@ -317,7 +317,7 @@ fn main() {
 }
 "#;
     let config = Config::default();
-    let result = transpile(source, config);
+    let result = transpile(source, &config);
 
     // Should successfully transpile
     assert!(result.is_ok(), "Boundary integers should transpile");

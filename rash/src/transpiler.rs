@@ -277,7 +277,7 @@ impl Transpiler {
         })?;
 
         // Transpile to shell script
-        let shell_code = crate::transpile(&source, self.config)?;
+        let shell_code = crate::transpile(&source, &self.config)?;
 
         // Ensure output directory exists
         if let Some(parent) = output.parent() {

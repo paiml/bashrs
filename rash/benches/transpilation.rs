@@ -159,7 +159,7 @@ fn benchmark_end_to_end(c: &mut Criterion) {
     group.bench_with_input(
         BenchmarkId::new("transpile", "simple"),
         &(SIMPLE_RUST, &config),
-        |b, (source, config)| b.iter(|| transpile(source, (*config).clone()).unwrap()),
+        |b, (source, config)| b.iter(|| transpile(source, config).unwrap()),
     );
 
     group.finish();
@@ -202,7 +202,7 @@ fn benchmark_scalability(c: &mut Criterion) {
             |b, source| {
                 b.iter(|| {
                     let config = Config::default();
-                    transpile(source, config).unwrap()
+                    transpile(source, &config).unwrap()
                 })
             },
         );
