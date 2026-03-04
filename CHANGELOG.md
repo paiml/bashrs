@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - KAIZEN-072: MR-2/3/4 reuse pre-computed `output_contains` — eliminates ~53,826 redundant transpilations per corpus run
 - KAIZEN-073: `check_cross_shell` reuses `run_entry` output for matching dialect — eliminates ~16,431 redundant Posix transpilations per corpus run
 - KAIZEN-074: `check_cross_shell` skips redundant sh execution when behavioral already passed — eliminates ~16,431 process spawns per corpus run
+- KAIZEN-075: `compute_format_scores` uses HashMap lookup instead of O(n²) linear search (was ~966M string comparisons)
 - Refactored `validate_export` to reduce cognitive complexity (extracted check helpers)
 
 ### Documentation
