@@ -672,7 +672,8 @@ impl CorpusRunner {
                 let coverage_ratio = detect_coverage_ratio(entry.format, &entry.id);
                 let has_test = coverage_ratio > 0.0 || detect_test_exists(&entry.id);
                 let lint_clean = self.check_lint(&output, entry.format);
-                let deterministic = self.check_determinism(entry);
+                // KAIZEN-070: reuse output from run_entry_with_trace
+                let deterministic = self.check_determinism_with_output(entry, &output);
                 let metamorphic_consistent = deterministic
                     && self.check_mr2_stability(entry)
                     && self.check_mr3_whitespace(entry)
@@ -764,7 +765,8 @@ impl CorpusRunner {
                 let lint_clean = self.check_lint(&output, entry.format);
 
                 // E: Check determinism (transpile again and compare)
-                let deterministic = self.check_determinism(entry);
+                // KAIZEN-070: pass first output to avoid redundant re-transpilation
+                let deterministic = self.check_determinism_with_output(entry, &output);
 
                 // F: Metamorphic consistency — all MR properties must hold
                 //    MR-1: determinism (already checked as E)
@@ -1268,9 +1270,30 @@ impl CorpusRunner {
         }
     }
 
-    fn check_determinism(&self, entry: &CorpusEntry) -> bool {
+    /// KAIZEN-070: Determinism check reusing the first transpilation output from run_entry.
+    /// Eliminates one redundant transpilation per entry (~17,942 per full corpus run).
+    fn check_determinism_with_output(&self, entry: &CorpusEntry, first_output: &str) -> bool {
         if !entry.deterministic {
             return true; // Skip determinism check if not required
+        }
+
+        let second = match entry.format {
+            CorpusFormat::Bash => crate::transpile(&entry.input, self.config.clone()),
+            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, self.config.clone()),
+            CorpusFormat::Dockerfile => {
+                crate::transpile_dockerfile(&entry.input, self.config.clone())
+            }
+        };
+
+        match second {
+            Ok(b) => first_output == b,
+            Err(_) => false,
+        }
+    }
+
+    fn check_determinism(&self, entry: &CorpusEntry) -> bool {
+        if !entry.deterministic {
+            return true;
         }
 
         let first = match entry.format {
@@ -1281,17 +1304,9 @@ impl CorpusRunner {
             }
         };
 
-        let second = match entry.format {
-            CorpusFormat::Bash => crate::transpile(&entry.input, self.config.clone()),
-            CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, self.config.clone()),
-            CorpusFormat::Dockerfile => {
-                crate::transpile_dockerfile(&entry.input, self.config.clone())
-            }
-        };
-
-        match (first, second) {
-            (Ok(a), Ok(b)) => a == b,
-            _ => false,
+        match first {
+            Ok(output) => self.check_determinism_with_output(entry, &output),
+            Err(_) => false,
         }
     }
 
