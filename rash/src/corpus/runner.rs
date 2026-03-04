@@ -633,7 +633,8 @@ impl CorpusRunner {
             results.push(result);
         }
 
-        self.compute_score(&results, registry)
+        // KAIZEN-071: pass owned Vec to avoid cloning 17,942 CorpusResult structs
+        self.compute_score(results, registry)
     }
 
     /// Run corpus for a single format.
@@ -645,7 +646,7 @@ impl CorpusRunner {
             results.push(result);
         }
 
-        self.compute_score(&results, registry)
+        self.compute_score(results, registry)
     }
 
     /// Run a single corpus entry and return its detailed result.
@@ -1310,7 +1311,7 @@ impl CorpusRunner {
         }
     }
 
-    fn compute_score(&self, results: &[CorpusResult], registry: &CorpusRegistry) -> CorpusScore {
+    fn compute_score(&self, results: Vec<CorpusResult>, registry: &CorpusRegistry) -> CorpusScore {
         let total = results.len();
         let passed = results.iter().filter(|r| r.transpiled).count();
         let failed = total - passed;
@@ -1337,8 +1338,9 @@ impl CorpusRunner {
         let grade = Grade::from_score(score);
 
         // Per-format breakdowns (spec §11.3)
-        let format_scores = self.compute_format_scores(results, registry);
+        let format_scores = self.compute_format_scores(&results, registry);
 
+        // KAIZEN-071: move owned Vec directly instead of cloning
         CorpusScore {
             total,
             passed,
@@ -1347,7 +1349,7 @@ impl CorpusRunner {
             score,
             grade,
             format_scores,
-            results: results.to_vec(),
+            results,
         }
     }
 
