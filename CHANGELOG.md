@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Supports bash, Makefile, Dockerfile auto-detection
   - 12 unit tests
 - `rash/examples/explain_demo.rs` — example demonstrating explain pipeline
+- `rash/examples/ssc_workflow.rs` — full Stage 0 pipeline: classify -> explain -> fix -> re-classify
+- `bashrs explain` now covers SEC016, SEC019-SEC024 with specific what/why/fix explanations
 - `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
   - Binary label (safe/unsafe), confidence, all lint findings in one pass
   - JSON output (`--json`) for CI/CD integration
