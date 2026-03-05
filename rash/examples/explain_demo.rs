@@ -12,10 +12,7 @@ fn main() {
 
     let scripts = [
         ("safe", "#!/bin/sh\necho \"hello world\"\n"),
-        (
-            "injection-risk",
-            "#!/bin/bash\neval \"$user_input\"\n",
-        ),
+        ("injection-risk", "#!/bin/bash\neval \"$user_input\"\n"),
         (
             "non-deterministic",
             "#!/bin/bash\necho $RANDOM\navail=$(df -m / | awk 'NR==2{print $4}')\n",
@@ -80,9 +77,7 @@ fn main() {
 
         // Print explanations for SEC/DET/IDEM findings
         for d in &result.diagnostics {
-            if d.code.starts_with("SEC")
-                || d.code.starts_with("DET")
-                || d.code.starts_with("IDEM")
+            if d.code.starts_with("SEC") || d.code.starts_with("DET") || d.code.starts_with("IDEM")
             {
                 println!("  [{}] L{}: {}", d.code, d.span.start_line, d.message);
             }

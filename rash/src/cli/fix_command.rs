@@ -68,8 +68,8 @@ fn fix_single_file(
         output_path: output.map(|p| p.to_path_buf()),
     };
 
-    let fix_result = apply_fixes_to_file(input, &lint_result, &options)
-        .map_err(|e| Error::Io(e))?;
+    let fix_result =
+        apply_fixes_to_file(input, &lint_result, &options).map_err(|e| Error::Io(e))?;
 
     print_file_result(input, &fix_result, dry_run);
 
@@ -92,11 +92,7 @@ fn count_fixable(diagnostics: &[Diagnostic], assumptions: bool) -> usize {
 }
 
 /// Print results for a single file.
-fn print_file_result(
-    input: &Path,
-    result: &crate::linter::autofix::FixResult,
-    dry_run: bool,
-) {
+fn print_file_result(input: &Path, result: &crate::linter::autofix::FixResult, dry_run: bool) {
     let action = if dry_run { "would fix" } else { "fixed" };
     println!(
         "  {}: {action} {} issue{}",
@@ -136,8 +132,7 @@ mod tests {
 
     fn write_temp_script(content: &str) -> tempfile::NamedTempFile {
         let mut f = tempfile::NamedTempFile::new().expect("create temp file");
-        f.write_all(content.as_bytes())
-            .expect("write temp file");
+        f.write_all(content.as_bytes()).expect("write temp file");
         f.flush().expect("flush temp file");
         f
     }
