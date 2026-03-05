@@ -396,6 +396,7 @@ pub mod sc2325;
 pub mod det001;
 pub mod det002;
 pub mod det003;
+pub mod det004;
 
 // Idempotency rules (bashrs-specific)
 pub mod idem001;
@@ -822,6 +823,7 @@ fn lint_shell_filtered(
     result.merge(det001::check(source));
     result.merge(det002::check(source));
     result.merge(det003::check(source));
+    result.merge(det004::check(source));
 
     // Idempotency rules (Universal - always apply)
     result.merge(idem001::check(source));
@@ -1345,6 +1347,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(det001::check(source));
     result.merge(det002::check(source));
     result.merge(det003::check(source));
+    result.merge(det004::check(source));
 
     // Run idempotency rules
     result.merge(idem001::check(source));
@@ -1406,11 +1409,15 @@ pub fn lint_shell(source: &str) -> LintResult {
 
     // Filter out diagnostics inside embedded programs (awk, sed, perl, etc.)
     // See: https://github.com/paiml/bashrs/issues/137
+    // Security (SEC*) and determinism (DET*) rules are exempt — they detect
+    // genuine threats/issues at the shell command level, not inside awk/sed code
     let embedded_lines = crate::linter::embedded::embedded_program_lines(source);
     if !embedded_lines.is_empty() {
-        result
-            .diagnostics
-            .retain(|diag| !embedded_lines.contains(&diag.span.start_line));
+        result.diagnostics.retain(|diag| {
+            diag.code.starts_with("SEC")
+                || diag.code.starts_with("DET")
+                || !embedded_lines.contains(&diag.span.start_line)
+        });
     }
 
     result
