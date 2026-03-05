@@ -270,7 +270,7 @@ bashrs corpus generalization-tests
 cargo run -p bashrs --example generalization_tests
 ```
 
-6 categories: injection (10), non-determinism (10), race-condition (10), privilege (10), exfiltration (5), destructive (5). Target: linter catches >= 50%.
+6 categories: injection (10), non-determinism (10), race-condition (10), privilege (10), exfiltration (5), destructive (5). Target: linter catches >= 50%. Current: **76% (38/50)** with SEC020-SEC024 extended rules.
 
 ### Contract Validation (Pre-Training Gate)
 
@@ -409,7 +409,7 @@ Format is auto-detected. Use `--format` to override.
 
 ## See Also
 
-- [Security Rules (SEC001-SEC008)](../linting/security.md)
+- [Security Rules (SEC001-SEC024)](../linting/security.md)
 - [Determinism Rules (DET001-DET003)](../linting/determinism.md)
 - [Idempotency Rules (IDEM001-IDEM003)](../linting/idempotency.md)
 - [Probar Testing](./probar-testing.md)

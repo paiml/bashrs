@@ -435,6 +435,11 @@ pub mod sec016;
 pub mod sec017;
 pub mod sec018;
 pub mod sec019;
+pub mod sec020;
+pub mod sec021;
+pub mod sec022;
+pub mod sec023;
+pub mod sec024;
 
 // Makefile-specific rules (bashrs-specific)
 pub mod make001;
@@ -854,6 +859,12 @@ fn lint_shell_filtered(
     result.merge(sec016::check(source));
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
+    result.merge(sec019::check(source));
+    result.merge(sec020::check(source));
+    result.merge(sec021::check(source));
+    result.merge(sec022::check(source));
+    result.merge(sec023::check(source));
+    result.merge(sec024::check(source));
 
     // Performance rules
     apply_rule!("PERF001", perf001::check);
@@ -1358,6 +1369,12 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sec016::check(source));
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
+    result.merge(sec019::check(source));
+    result.merge(sec020::check(source));
+    result.merge(sec021::check(source));
+    result.merge(sec022::check(source));
+    result.merge(sec023::check(source));
+    result.merge(sec024::check(source));
 
     // Performance rules
     result.merge(perf001::check(source));
