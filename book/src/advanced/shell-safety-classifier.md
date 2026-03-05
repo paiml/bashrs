@@ -136,7 +136,7 @@ CodeBERT is an encoder-only model (RoBERTa architecture) pretrained on 6 program
 script.sh
     |
     v
-lint_shell()  -->  SEC001-008 (security)
+lint_shell()  -->  SEC001-024 (security)
                    DET001-006 (determinism)
                    IDEM001+   (idempotency)
                    SC1xxx     (shellcheck)
@@ -237,7 +237,7 @@ cargo run -p bashrs --example baselines
 |----------|----------|-------------|
 | Majority class | Always predict "safe" | 0.0 |
 | Keyword regex | Pattern match on 17 unsafe keywords | ~0.3-0.5 |
-| bashrs linter | Use 14 SEC/DET rules as classifier | ~0.4-0.6 |
+| bashrs linter | Use 24 SEC + DET/IDEM rules as classifier | ~0.4-0.6 |
 
 Contract C-CLF-001 requires any ML classifier to beat all three baselines on MCC, achieve accuracy > 93.5%, and generalization >= 50%.
 
@@ -256,7 +256,7 @@ bashrs corpus label-audit -n 200
 cargo run -p bashrs --example label_audit
 ```
 
-Multi-signal validation checks: linter findings, 14 known unsafe patterns, structural checks (non-idempotent, unquoted variables). Target: >= 90% accuracy (C-LABEL-001).
+Multi-signal validation checks: linter findings, 24 known unsafe patterns (SEC001-SEC024), structural checks (non-idempotent, unquoted variables). Target: >= 90% accuracy (C-LABEL-001).
 
 ### Generalization Tests (Section 5.6)
 

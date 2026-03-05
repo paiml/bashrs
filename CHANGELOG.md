@@ -47,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `format_report()` and `format_comparison()` for human-readable output
   - 9 unit tests
 - `corpus::baselines` — three baseline classifiers (SSC v11 S5.5)
-  - Majority class (always safe, MCC=0), keyword regex (17 patterns), linter (14 SEC/DET rules)
+  - Majority class (always safe, MCC=0), keyword regex (17 patterns), linter (24 SEC + DET/IDEM rules)
   - `run_all_baselines()` for side-by-side comparison
   - `corpus_baseline_entries()` builds labeled dataset from full corpus
   - 7 unit tests

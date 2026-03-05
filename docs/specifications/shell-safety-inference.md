@@ -16,7 +16,7 @@
 ## 1. Problem
 
 Shell scripts fail in ways that are hard to diagnose: injection, non-determinism,
-race conditions, missing quotes. The bashrs linter catches 14 known patterns. We want:
+race conditions, missing quotes. The bashrs linter catches 24 known patterns (SEC001-SEC024 + DET/IDEM rules). We want:
 
 1. A **fast classifier** (CodeBERT, 125M) that detects unsafe scripts in ~20ms
 2. A **chat model** (Qwen-1.5B) that explains WHY and suggests fixes
