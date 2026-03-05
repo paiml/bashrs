@@ -68,8 +68,7 @@ fn fix_single_file(
         output_path: output.map(|p| p.to_path_buf()),
     };
 
-    let fix_result =
-        apply_fixes_to_file(input, &lint_result, &options).map_err(Error::Io)?;
+    let fix_result = apply_fixes_to_file(input, &lint_result, &options).map_err(Error::Io)?;
 
     print_file_result(input, &fix_result, dry_run);
 
