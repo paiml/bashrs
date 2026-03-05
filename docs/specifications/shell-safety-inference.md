@@ -585,11 +585,18 @@ Qwen2.5-Coder-1.5B-Instruct. Already works in entrenar. Code-aware, chat-native.
 ### 8.1 CLI
 
 ```bash
-bashrs classify script.sh          # CodeBERT, ~20ms: "unsafe (0.94)"
-bashrs explain script.sh           # Qwen-1.5B chat: detailed analysis
-bashrs fix script.sh               # Qwen-1.5B chat: corrected script
-bashrs check script.sh             # Linter + classifier combined (no chat)
+bashrs classify script.sh          # Rule-based (Stage 0), CodeBERT ~20ms (Stage 1)
+bashrs explain script.sh           # Rule-based analysis (Stage 0), Qwen chat (Stage 2)
+bashrs fix script.sh               # Auto-fix linter findings (Stage 0)
+bashrs safety-check script.sh      # Lint + classify combined (no chat)
 ```
+
+**Implementation status (v6.65.0)**:
+- `bashrs classify` — implemented (rule-based Stage 0)
+- `bashrs explain` — implemented (rule-based Stage 0, per-finding what/why/fix)
+- `bashrs fix` — implemented (autofix SAFE/SAFE-WITH-ASSUMPTIONS)
+- `bashrs safety-check` — implemented (lint + classify combined)
+- CodeBERT (Stage 1) and Qwen chat (Stage 2) pending external deps
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
