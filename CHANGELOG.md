@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 13 unit tests
 - `bashrs corpus generate-conversations` CLI command — generate training data from corpus
 - `rash/examples/conversation_generator.rs` — example demonstrating conversation generation
+- `corpus::generalization_tests` — 50 OOD test scripts for classifier evaluation (SSC v11 S5.6)
+  - 6 categories: injection, non-determinism, race-condition, privilege, exfiltration, destructive
+  - Linter baseline: 48/50 caught (96%), exceeds 50% target
+- `corpus::tokenizer_validation` — RoBERTa BPE tokenizer validation protocol (SSC v11 S5.2)
+  - 20 critical shell constructs, acceptable/unacceptable patterns
+  - Contract C-TOK-001: >= 70% acceptable
+- `corpus::label_audit` — safety label accuracy audit (SSC v11 S5.3)
+  - Multi-signal validation: linter findings, known patterns, structural checks
+  - Contract C-LABEL-001: >= 90% accurate (baseline: 100%)
 - Probar-first WASM testing design (3-layer: logic/browser/performance, 21 tests, 7 contracts)
 - Brick profile-first UI design (5 presentar widgets, JIDOKA enforcement)
 - 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)
