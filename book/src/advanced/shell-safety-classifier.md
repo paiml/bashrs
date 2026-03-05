@@ -187,6 +187,29 @@ Class distribution: 93.5% safe, 6.5% unsafe (14.5:1 imbalance). Class weights au
 bashrs (export) --> alimentar (split 80/10/10) --> entrenar (train)
 ```
 
+### Synthetic Conversations (Stage 2 Training Data)
+
+The `corpus::conversations` module generates chat training data from corpus entries:
+
+```bash
+# Generate conversations from full corpus
+bashrs corpus generate-conversations --output conversations.jsonl
+
+# Generate from first 100 entries with custom seed
+bashrs corpus generate-conversations --limit 100 --seed 123 --output sample.jsonl
+```
+
+Four conversation types, 10+ phrasing variants each:
+
+| Type | Purpose | Template |
+|------|---------|----------|
+| A: Classify+Explain | Unsafe scripts with findings | "Is this script safe?" -> findings list |
+| B: Fix | Unsafe scripts with correction | "Fix this script" -> corrected version |
+| C: Debug | Non-deterministic scripts | "Why different results?" -> DET findings |
+| D: Confirm Safe | Safe scripts (>=30% required) | "Check this script" -> confirmation |
+
+Quality gates (SSC v11 Section 6.4): rule citation accuracy 100%, Type D >= 30%, no variant > 20%.
+
 ## WASM Deployment
 
 CodeBERT at 125M int8 (~125MB) fits in a browser. The WASM app at `interactive.paiml.com/shell-safety/` provides:
