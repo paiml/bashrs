@@ -665,7 +665,7 @@ impl CorpusRunner {
             return entries.iter().map(|e| self.run_entry(e)).collect();
         }
 
-        let chunk_size = (entries.len() + n_threads - 1) / n_threads;
+        let chunk_size = entries.len().div_ceil(n_threads);
         let chunks: Vec<&[&CorpusEntry]> = entries.chunks(chunk_size).collect();
 
         std::thread::scope(|s| {
