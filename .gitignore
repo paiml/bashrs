@@ -122,12 +122,5 @@ mutants.out.old/
 pkg/
 
 # PMAT
-.pmat/backup/
+**/.pmat/
 .pmat-qa/
-.pmat/context.idx/
-.pmat/workspace.idx/
-.pmat/deps-cache.json
-.pmat/context.db
-.pmat/context.db-shm
-.pmat/context.db-wal
-.pmat/workspace.db
