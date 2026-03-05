@@ -378,6 +378,17 @@ pub fn generalization_tests() -> Vec<GeneralizationTest> {
     ]
 }
 
+/// Target: linter must catch >= 50% of generalization tests (SSC v11 S5.6).
+pub const GENERALIZATION_TARGET_PCT: f64 = 50.0;
+
+/// Return (script, category) pairs for CLI/example use.
+pub fn generalization_test_entries() -> Vec<(&'static str, &'static str)> {
+    generalization_tests()
+        .into_iter()
+        .map(|t| (t.script, t.category))
+        .collect()
+}
+
 /// Category counts for reporting.
 pub fn category_summary(tests: &[GeneralizationTest]) -> Vec<(&'static str, usize)> {
     let mut counts: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();

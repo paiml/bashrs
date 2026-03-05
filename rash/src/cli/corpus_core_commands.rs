@@ -310,6 +310,14 @@ pub(crate) fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
             seed,
             limit,
         } => super::corpus_config_commands::corpus_generate_conversations(output, seed, limit),
+        // SSC v11 baselines and validation
+        CorpusCommands::Baselines => super::corpus_config_commands::corpus_baselines(),
+        CorpusCommands::LabelAudit { limit } => {
+            super::corpus_config_commands::corpus_label_audit(limit)
+        }
+        CorpusCommands::GeneralizationTests => {
+            super::corpus_config_commands::corpus_generalization_tests()
+        }
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()

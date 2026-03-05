@@ -468,3 +468,183 @@ pub(crate) fn corpus_generate_conversations(
 
     Ok(())
 }
+
+/// Run all three baseline classifiers (SSC v11 S5.5).
+pub(crate) fn corpus_baselines() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::baselines::{corpus_baseline_entries, run_all_baselines};
+    use crate::corpus::evaluation::{format_comparison, format_report};
+
+    eprintln!("{BOLD}Building baseline entries from corpus...{RESET}");
+
+    let owned = corpus_baseline_entries();
+    let entries: Vec<(&str, u8)> = owned.iter().map(|(s, l)| (s.as_str(), *l)).collect();
+
+    let safe_count = entries.iter().filter(|(_, l)| *l == 0).count();
+    let unsafe_count = entries.iter().filter(|(_, l)| *l == 1).count();
+    eprintln!(
+        "  Dataset: {} entries ({} safe, {} unsafe)",
+        entries.len(),
+        safe_count,
+        unsafe_count
+    );
+    eprintln!();
+
+    let reports = run_all_baselines(&entries);
+
+    // Side-by-side comparison
+    println!("{BOLD}=== SSC v11 Baseline Comparison (Section 5.5) ==={RESET}\n");
+    print!("{}", format_comparison(&reports));
+    println!();
+
+    // Detailed per-baseline reports
+    for report in &reports {
+        println!("{BOLD}--- {} ---{RESET}", report.name);
+        print!("{}", format_report(report));
+        println!();
+    }
+
+    // Contract C-CLF-001 thresholds
+    println!("{BOLD}Contract C-CLF-001 Thresholds:{RESET}");
+    println!("  MCC CI lower > 0.2");
+    println!("  Accuracy > 93.5%");
+    println!("  Generalization >= 50%");
+    println!();
+    println!("Any ML classifier must beat ALL three baselines on MCC.");
+
+    Ok(())
+}
+
+/// Audit label accuracy (SSC v11 S5.3, C-LABEL-001).
+pub(crate) fn corpus_label_audit(limit: usize) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::label_audit::run_corpus_label_audit;
+
+    eprintln!("{BOLD}Running label audit (C-LABEL-001, limit={limit})...{RESET}");
+
+    let report = run_corpus_label_audit(limit);
+
+    println!("{BOLD}=== SSC v11 Label Audit (Section 5.3, C-LABEL-001) ==={RESET}\n");
+    println!("Audited {} unsafe labels:", report.total_audited);
+    println!(
+        "  Genuinely unsafe: {} ({:.1}%)",
+        report.genuinely_unsafe, report.accuracy_pct
+    );
+    println!("  False positives:  {}", report.false_positives);
+    println!("  Target:           >= 90% (C-LABEL-001)");
+    println!(
+        "  Status:           {}",
+        if report.passed {
+            format!("{GREEN}PASSED{RESET}")
+        } else {
+            format!("{RED}FAILED{RESET}")
+        }
+    );
+
+    // Show false positives
+    let false_pos: Vec<_> = report
+        .results
+        .iter()
+        .filter(|r| !r.genuinely_unsafe)
+        .collect();
+
+    if !false_pos.is_empty() {
+        println!("\n{BOLD}--- False Positives ---{RESET}\n");
+        for r in false_pos.iter().take(10) {
+            println!("  {} — {}", r.entry_id, r.reason);
+            let preview = if r.script.len() > 60 {
+                format!("{}...", &r.script[..60])
+            } else {
+                r.script.clone()
+            };
+            println!("    Script: {preview}");
+        }
+    }
+
+    Ok(())
+}
+
+/// Run out-of-distribution generalization tests (SSC v11 S5.6).
+pub(crate) fn corpus_generalization_tests() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::generalization_tests::{
+        generalization_test_entries, GENERALIZATION_TARGET_PCT,
+    };
+    use crate::linter::lint_shell;
+
+    println!("{BOLD}=== SSC v11 Generalization Tests (Section 5.6) ==={RESET}\n");
+
+    let entries = generalization_test_entries();
+    let mut caught = 0;
+    let mut missed = Vec::new();
+
+    for (script, category) in &entries {
+        let result = lint_shell(script);
+        let has_finding = result
+            .diagnostics
+            .iter()
+            .any(|d| d.code.starts_with("SEC") || d.code.starts_with("DET"));
+        if has_finding {
+            caught += 1;
+        } else {
+            missed.push((*script, *category));
+        }
+    }
+
+    let total = entries.len();
+    let pct = caught as f64 / total as f64 * 100.0;
+    let passed = pct >= GENERALIZATION_TARGET_PCT;
+
+    println!("Total OOD scripts: {total}");
+    println!("Caught by linter:  {caught} ({pct:.1}%)");
+    println!("Missed:            {}", total - caught);
+    println!("Target:            >= {GENERALIZATION_TARGET_PCT}%");
+    println!(
+        "Status:            {}",
+        if passed {
+            format!("{GREEN}PASSED{RESET}")
+        } else {
+            format!("{RED}FAILED{RESET}")
+        }
+    );
+
+    if !missed.is_empty() {
+        println!("\n{BOLD}--- Missed Scripts ---{RESET}\n");
+        for (script, category) in &missed {
+            let preview = if script.len() > 60 {
+                format!("{}...", &script[..60])
+            } else {
+                (*script).to_string()
+            };
+            println!("  [{category}] {preview}");
+        }
+    }
+
+    // Category breakdown
+    println!("\n{BOLD}--- Category Breakdown ---{RESET}\n");
+    let categories = [
+        "injection",
+        "non-determinism",
+        "race-condition",
+        "privilege",
+        "exfiltration",
+        "destructive",
+    ];
+    for cat in &categories {
+        let cat_total = entries.iter().filter(|(_, c)| c == cat).count();
+        let cat_caught = entries
+            .iter()
+            .filter(|(s, c)| {
+                c == cat && {
+                    let r = lint_shell(s);
+                    r.diagnostics
+                        .iter()
+                        .any(|d| d.code.starts_with("SEC") || d.code.starts_with("DET"))
+                }
+            })
+            .count();
+        println!("  {cat:<20} {cat_caught}/{cat_total}");
+    }
+
+    Ok(())
+}

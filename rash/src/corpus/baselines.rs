@@ -45,11 +45,7 @@ pub fn keyword_baseline(entries: &[(&str, u8)]) -> EvaluationReport {
     let predictions: Vec<(u8, u8)> = entries
         .iter()
         .map(|&(script, truth)| {
-            let pred = if UNSAFE_KEYWORDS.iter().any(|kw| script.contains(kw)) {
-                1
-            } else {
-                0
-            };
+            let pred = u8::from(UNSAFE_KEYWORDS.iter().any(|kw| script.contains(kw)));
             (pred, truth)
         })
         .collect();
@@ -71,7 +67,7 @@ pub fn linter_baseline(entries: &[(&str, u8)]) -> EvaluationReport {
                 .diagnostics
                 .iter()
                 .any(|d| d.code.starts_with("DET"));
-            let pred = if has_security || has_det { 1 } else { 0 };
+            let pred = u8::from(has_security || has_det);
             (pred, truth)
         })
         .collect();
