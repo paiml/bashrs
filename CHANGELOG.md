@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Wire SEC019-SEC024 into both `lint_shell_filtered()` and `lint_shell()` dispatch
 - DET004: Non-deterministic system state commands (df, free, uptime, ps, who, netstat, nproc, etc.)
 - Generalization test catch rate: 100% (50/50) via lint_shell(), exceeds 50% target
+- `bashrs explain` CLI command — natural-language safety explanation (SSC v11 S8.1)
+  - Categorizes findings: Security, Determinism, Idempotency, Style
+  - Risk levels: SAFE, LOW, MEDIUM, HIGH, CRITICAL
+  - Per-finding what/why/fix explanations for SEC, DET, IDEM rules
+  - JSON output (`--json`) for programmatic consumption
+  - Supports bash, Makefile, Dockerfile auto-detection
+  - 12 unit tests
+- `rash/examples/explain_demo.rs` — example demonstrating explain pipeline
 - `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
   - Binary label (safe/unsafe), confidence, all lint findings in one pass
   - JSON output (`--json`) for CI/CD integration
