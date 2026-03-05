@@ -93,6 +93,8 @@ mod adversarial_cmds;
 pub(crate) mod classify_cmds;
 #[path = "explain_command.rs"]
 mod explain_cmds;
+#[path = "fix_command.rs"]
+mod fix_cmds;
 #[path = "safety_check_command.rs"]
 mod safety_check_cmds;
 
@@ -249,6 +251,7 @@ fn dispatch_command(
         | Commands::Purify { .. }
         | Commands::SafetyCheck { .. }
         | Commands::Explain { .. }
+        | Commands::Fix { .. }
         | Commands::Classify { .. }
         | Commands::Format { .. } => dispatch_analysis(command, target, verify, validation, strict),
 
@@ -439,6 +442,12 @@ fn dispatch_analysis(
             json,
             format,
         } => explain_cmds::explain_command(&input, json, format.as_ref()),
+        Commands::Fix {
+            input,
+            dry_run,
+            assumptions,
+            output,
+        } => fix_cmds::fix_command(&input, dry_run, assumptions, output.as_deref()),
         Commands::Classify {
             input,
             json,

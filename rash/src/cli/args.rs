@@ -255,6 +255,25 @@ pub enum Commands {
         format: Option<ClassifyFormat>,
     },
 
+    /// Apply auto-fixes to shell scripts (SSC v11 S8.1, Linter Spec S9)
+    Fix {
+        /// Input file(s) to fix
+        #[arg(value_name = "FILE", required = true, num_args = 1..)]
+        input: Vec<PathBuf>,
+
+        /// Preview fixes without applying them
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Include SAFE-WITH-ASSUMPTIONS fixes (default: SAFE only)
+        #[arg(long)]
+        assumptions: bool,
+
+        /// Write fixed output to a different file (single input only)
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
     /// Explain script safety with detailed natural-language analysis (SSC v11 S8.1)
     Explain {
         /// Input script file
