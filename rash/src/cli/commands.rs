@@ -240,18 +240,14 @@ fn dispatch_command(
         | Commands::Init { .. }
         | Commands::Verify { .. }
         | Commands::Inspect { .. }
-        | Commands::Compile { .. } => {
-            dispatch_core(command, target, verify, validation, strict)
-        }
+        | Commands::Compile { .. } => dispatch_core(command, target, verify, validation, strict),
 
         // Analysis and transformation commands
         Commands::Lint { .. }
         | Commands::Purify { .. }
         | Commands::SafetyCheck { .. }
         | Commands::Classify { .. }
-        | Commands::Format { .. } => {
-            dispatch_analysis(command, target, verify, validation, strict)
-        }
+        | Commands::Format { .. } => dispatch_analysis(command, target, verify, validation, strict),
 
         // Quality and testing commands
         Commands::Test { .. }
@@ -477,9 +473,7 @@ fn dispatch_quality(command: Commands) -> Result<()> {
             strict,
             detailed,
             min_grade,
-        } => {
-            audit_commands::audit_command(&input, &format, strict, detailed, min_grade.as_deref())
-        }
+        } => audit_commands::audit_command(&input, &format, strict, detailed, min_grade.as_deref()),
         Commands::Coverage {
             input,
             format,

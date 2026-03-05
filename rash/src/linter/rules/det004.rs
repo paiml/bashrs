@@ -27,16 +27,13 @@ use std::sync::LazyLock;
 
 /// System-state commands that produce non-deterministic output.
 const STATE_COMMANDS: &[&str] = &[
-    "df", "free", "uptime", "vmstat", "iostat", "mpstat", "sar",
-    "ps", "top", "pgrep", "lsof", "fuser",
-    "who", "w", "last", "lastlog",
-    "netstat", "ss", "ifconfig", "ip addr",
-    "sensors", "lscpu", "nproc",
+    "df", "free", "uptime", "vmstat", "iostat", "mpstat", "sar", "ps", "top", "pgrep", "lsof",
+    "fuser", "who", "w", "last", "lastlog", "netstat", "ss", "ifconfig", "ip addr", "sensors",
+    "lscpu", "nproc",
 ];
 
-static RE_CMD_SUB: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"\$\(([^)]+)\)").expect("valid regex")
-});
+static RE_CMD_SUB: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"\$\(([^)]+)\)").expect("valid regex"));
 
 /// Check for system-state-dependent command substitution.
 pub fn check(source: &str) -> LintResult {
