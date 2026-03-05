@@ -2,7 +2,7 @@
 //!
 //! 50 hand-written unsafe scripts with NO lexical overlap with the training
 //! corpus. These use novel injection patterns, non-determinism sources, race
-//! conditions, and privilege escalation that aren't in the linter's 14 rules.
+//! conditions, and privilege escalation that test the linter's 24 SEC + DET/IDEM rules.
 //!
 //! Purpose: If the classifier only catches `eval` and `$RANDOM` but misses
 //! these, it's a keyword matcher. Document honestly.

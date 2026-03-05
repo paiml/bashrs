@@ -8,6 +8,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- SEC020: Dangerous command execution patterns (`bash -c "$var"`, `exec "$var"`, `xargs sh`, `ssh "$cmd"`, `su -c`, `perl -e`, `awk system()`)
+- SEC021: Destructive system operations (dd disk wipe, fork bomb, sysrq, iptables flush, `chmod -R 000`, `rm -rf /`)
+- SEC022: Privilege escalation (setuid install, `chmod +s`, sudoers, setcap, docker.sock, crontab, authorized_keys, LD_PRELOAD, PATH manipulation)
+- SEC023: Data exfiltration (reverse shells, netcat backdoors, DNS exfil, curl POST secrets, scp credentials)
+- SEC024: Race conditions & TOCTOU (check-then-act, PID file race, predictable temp files, symlink attacks)
+- Wire SEC019-SEC024 into both `lint_shell_filtered()` and `lint_shell()` dispatch
+- Generalization test catch rate: 96% (48/50) via lint_shell(), exceeds 50% target
+- `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
+  - Binary label (safe/unsafe), confidence, all lint findings in one pass
+  - JSON output (`--json`) for CI/CD integration
+  - Supports bash, Makefile, Dockerfile auto-detection
+  - 9 unit tests
+- `bashrs corpus ssc-report --json` — JSON output mode for SSC readiness report
+- `rash/examples/safety_check.rs` — example demonstrating combined check pipeline
 - `strip_shell_preamble()` — removes transpiler boilerplate (`set -euf`, `trap '... $$'`, shebangs) from classification exports
 - `is_shell_preamble()` — canonical preamble detection (shared with corpus B2 commands)
 - SSC v11 spec: three-stage pipeline (rule-based linter + CodeBERT 125M encoder + Qwen-1.5B chat)
@@ -33,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `format_report()` and `format_comparison()` for human-readable output
   - 9 unit tests
 - `corpus::baselines` — three baseline classifiers (SSC v11 S5.5)
-  - Majority class (always safe, MCC=0), keyword regex (17 patterns), linter (14 SEC/DET rules)
+  - Majority class (always safe, MCC=0), keyword regex (17 patterns), linter (24 SEC + DET/IDEM rules)
   - `run_all_baselines()` for side-by-side comparison
   - `corpus_baseline_entries()` builds labeled dataset from full corpus
   - 7 unit tests
@@ -61,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)
 
 ### Changed
+- Split `handle_corpus_quality_ops` into two dispatchers for CB-200 compliance (complexity 51→30)
 - `export_classification_jsonl` and `export_multi_label_classification_jsonl` now strip shell preamble by default
 - `fast_classify_export`: eliminate double transpilation for determinism check — halves export runtime
 - `classify_single()` is now the canonical labeling path for all export formats
