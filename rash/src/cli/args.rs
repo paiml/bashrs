@@ -1361,6 +1361,9 @@ pub enum CorpusCommands {
 
     /// Run out-of-distribution generalization tests (SSC v11 S5.6)
     GeneralizationTests,
+
+    /// Validate tokenizer quality on shell constructs (SSC v11 S5.2, C-TOK-001)
+    TokenizerValidation,
 }
 
 /// Script format for classify command (SSC-022)
