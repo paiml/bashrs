@@ -354,7 +354,7 @@ The Shell Safety Classifier WASM app uses Probar for all browser and LLM correct
 
 Test LLM correctness directly via wasmtime -- no browser overhead:
 
-```rust
+```rust,ignore
 use jugar_probar::Assertion;
 
 #[test]
@@ -382,7 +382,7 @@ fn test_classifier_wasm_logits_sum_to_one() {
 
 Validate Chrome, Firefox, and WebKit via Probar's Docker runner:
 
-```rust
+```rust,ignore
 use probar::docker::{ParallelRunner, Browser};
 
 #[test]
