@@ -261,6 +261,40 @@ cargo run -p bashrs --example generalization_tests
 
 6 categories: injection (10), non-determinism (10), race-condition (10), privilege (10), exfiltration (5), destructive (5). Target: linter catches >= 50%.
 
+### Contract Validation (Pre-Training Gate)
+
+Run all SSC contracts in a single pass before proceeding to classifier training:
+
+```bash
+# Run all contracts
+bashrs corpus validate-contracts
+
+# Run the example
+cargo run -p bashrs --example contract_validation
+```
+
+| Contract | What It Checks | Threshold |
+|----------|---------------|-----------|
+| C-TOK-001 | Tokenizer quality on shell constructs | >= 70% acceptable |
+| C-LABEL-001 | Unsafe label accuracy | >= 90% genuine |
+| C-CLF-001 | Baseline MCC scores (majority, keyword, linter) | Reference |
+| C-CLF-001-GEN | Generalization on 50 OOD scripts | >= 50% caught |
+| C-DATA-001 | Dataset split proportions (80/10/10) | Valid |
+
+### Dataset Export with Splits
+
+Export the corpus as train/val/test JSONL files for ML training:
+
+```bash
+# Show split statistics
+bashrs corpus export-splits
+
+# Write split files to directory
+bashrs corpus export-splits --output ./data/splits/
+```
+
+Uses FNV-1a hash-based deterministic splitting (80/10/10, seed-stable across corpus growth).
+
 ## WASM Deployment
 
 CodeBERT at 125M int8 (~125MB) fits in a browser. The WASM app at `interactive.paiml.com/shell-safety/` provides:
