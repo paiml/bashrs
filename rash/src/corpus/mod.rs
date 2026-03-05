@@ -26,6 +26,7 @@ pub mod citl;
 pub mod conversations;
 pub mod convergence;
 pub mod generalization_tests;
+pub mod tokenizer_validation;
 #[allow(clippy::expect_used)] // Dataset uses expect() for internal invariants
 pub mod dataset;
 #[allow(clippy::expect_used)] // Domain categories uses expect() for internal invariants
