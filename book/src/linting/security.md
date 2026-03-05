@@ -547,7 +547,7 @@ Beyond the core 8 rules, Rash provides extended detection for advanced threat pa
 | SEC023 | Data exfiltration | Reverse shells (`/dev/tcp`), netcat backdoors, DNS exfiltration, `curl POST` of secrets, `scp` of credentials |
 | SEC024 | Race conditions | TOCTOU file/directory checks, PID file races, predictable temp files (`/tmp/*_$$`), symlink attacks |
 
-These rules power the [Shell Safety Classifier](../advanced/shell-safety-classifier.md) generalization tests, achieving 76% detection on 50 out-of-distribution attack scripts.
+These rules power the [Shell Safety Classifier](../advanced/shell-safety-classifier.md) generalization tests, achieving 96% detection (48/50) on out-of-distribution attack scripts.
 
 ## Further Reading
 
