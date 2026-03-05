@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Wire SEC019-SEC024 into both `lint_shell_filtered()` and `lint_shell()` dispatch
 - DET004: Non-deterministic system state commands (df, free, uptime, ps, who, netstat, nproc, etc.)
 - Generalization test catch rate: 100% (50/50) via lint_shell(), exceeds 50% target
+- `bashrs fix` CLI command — standalone auto-fix for shell scripts (SSC v11 S8.1, Linter Spec S9)
+  - Applies SAFE fixes by default, `--assumptions` for SAFE-WITH-ASSUMPTIONS
+  - `--dry-run` to preview, `--output` to write to different file
+  - Creates `.bak` backup before modifying
+  - 6 unit tests
 - `bashrs explain` CLI command — natural-language safety explanation (SSC v11 S8.1)
   - Categorizes findings: Security, Determinism, Idempotency, Style
   - Risk levels: SAFE, LOW, MEDIUM, HIGH, CRITICAL

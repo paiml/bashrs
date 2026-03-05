@@ -81,6 +81,22 @@ The `explain` command categorizes findings into Security, Determinism, Idempoten
 cargo run -p bashrs --example explain_demo
 ```
 
+### Auto-Fix (SSC v11 S8.1, Linter Spec S9)
+
+```bash
+# Apply all SAFE auto-fixes in-place (creates .bak backup)
+bashrs fix script.sh
+
+# Preview what would change without modifying
+bashrs fix --dry-run script.sh
+
+# Include SAFE-WITH-ASSUMPTIONS fixes (e.g., mkdir -p)
+bashrs fix --assumptions script.sh
+
+# Write fixed output to a different file
+bashrs fix --output fixed.sh script.sh
+```
+
 ### Rule-Based Classification (Built-in, Stage 0)
 
 ```bash
