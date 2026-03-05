@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `strip_shell_preamble()` — removes transpiler boilerplate (`set -euf`, `trap '... $$'`, shebangs) from classification exports
 - `is_shell_preamble()` — canonical preamble detection (shared with corpus B2 commands)
+- SSC v11 spec: three-stage pipeline (rule-based linter + CodeBERT 125M encoder + Qwen-1.5B chat)
+- `rash/examples/shell_safety_classifier.rs` — example demonstrating rule-based classification pipeline
+- Probar-first WASM testing design (3-layer: logic/browser/performance, 21 tests, 7 contracts)
+- Brick profile-first UI design (5 presentar widgets, JIDOKA enforcement)
+- 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)
 
 ### Changed
 - `export_classification_jsonl` and `export_multi_label_classification_jsonl` now strip shell preamble by default
@@ -36,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored `validate_export` to reduce cognitive complexity (extracted check helpers)
 
 ### Documentation
+- SSC spec v11.0: complete rewrite — CodeBERT + Qwen-1.5B pipeline, provable-contracts, Probar testing, Brick UI
+- Book: rewritten `shell-safety-classifier.md` for SSC v11 three-stage architecture
+- Book: added WASM + LLM testing section to `probar-testing.md` (three-layer strategy, LLM assertions)
+- Archived SSC v1-v3 history to `shell-safety-inference-v1-v3-archive.md`
 - SSC spec v3.4.0: added §19 documenting multi-GPU training infrastructure (wgpu batched matmul, `DataParallelCoordinator`, `--gpus`/`--gpu-backend` CLI flags)
 - Updated book SSC chapter for v3 binary classification, multi-GPU training, and corrected hyperparameter contracts
 
