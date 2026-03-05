@@ -25,7 +25,7 @@ autobins = false
 path = "src/lib.rs"
 
 [dependencies]
-bashrs = { path = "rash" }
+bashrs = { path = "rash", version = "6.65.0" }
 
 [dev-dependencies]
 criterion.workspace = true
