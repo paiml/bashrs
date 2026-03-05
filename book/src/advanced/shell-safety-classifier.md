@@ -62,6 +62,25 @@ bashrs safety-check script.sh
 bashrs safety-check --json script.sh
 ```
 
+### Natural-Language Explanation (SSC v11 S8.1)
+
+```bash
+# Get a full safety explanation with risk level, findings, and fix suggestions
+bashrs explain script.sh
+
+# JSON output for programmatic consumption
+bashrs explain --json script.sh
+
+# Force format detection
+bashrs explain --format makefile Makefile
+```
+
+The `explain` command categorizes findings into Security, Determinism, Idempotency, and Style, then generates human-readable explanations for each issue including what the issue is, why it matters, and how to fix it. Risk levels: SAFE, LOW, MEDIUM, HIGH, CRITICAL.
+
+```bash
+cargo run -p bashrs --example explain_demo
+```
+
 ### Rule-Based Classification (Built-in, Stage 0)
 
 ```bash

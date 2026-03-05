@@ -91,6 +91,8 @@ use simulate_cmds::simulate_command;
 mod adversarial_cmds;
 #[path = "classify_commands.rs"]
 pub(crate) mod classify_cmds;
+#[path = "explain_command.rs"]
+mod explain_cmds;
 #[path = "safety_check_command.rs"]
 mod safety_check_cmds;
 
@@ -246,6 +248,7 @@ fn dispatch_command(
         Commands::Lint { .. }
         | Commands::Purify { .. }
         | Commands::SafetyCheck { .. }
+        | Commands::Explain { .. }
         | Commands::Classify { .. }
         | Commands::Format { .. } => dispatch_analysis(command, target, verify, validation, strict),
 
@@ -431,6 +434,11 @@ fn dispatch_analysis(
             json,
             format,
         } => safety_check_cmds::safety_check_command(&input, json, format.as_ref()),
+        Commands::Explain {
+            input,
+            json,
+            format,
+        } => explain_cmds::explain_command(&input, json, format.as_ref()),
         Commands::Classify {
             input,
             json,

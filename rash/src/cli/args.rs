@@ -255,6 +255,21 @@ pub enum Commands {
         format: Option<ClassifyFormat>,
     },
 
+    /// Explain script safety with detailed natural-language analysis (SSC v11 S8.1)
+    Explain {
+        /// Input script file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+
+        /// Force format (auto-detected from extension if omitted)
+        #[arg(long, value_enum)]
+        format: Option<ClassifyFormat>,
+    },
+
     /// Classify script safety (supports bash, Makefile, Dockerfile)
     Classify {
         /// Input script file
