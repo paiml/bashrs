@@ -305,6 +305,11 @@ pub(crate) fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
             super::corpus_config_commands::corpus_export_dataset(format, output)
         }
         CorpusCommands::DatasetInfo => super::corpus_config_commands::corpus_dataset_info(),
+        CorpusCommands::GenerateConversations {
+            output,
+            seed,
+            limit,
+        } => super::corpus_config_commands::corpus_generate_conversations(output, seed, limit),
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()

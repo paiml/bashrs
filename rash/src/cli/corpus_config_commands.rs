@@ -391,3 +391,80 @@ pub(crate) fn corpus_publish_check() -> Result<()> {
 
     Ok(())
 }
+
+/// Generate synthetic conversations from corpus entries (SSC v11 Section 6).
+pub(crate) fn corpus_generate_conversations(
+    output: Option<PathBuf>,
+    seed: u64,
+    limit: Option<usize>,
+) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::conversations::{generate_batch, to_jsonl};
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    let max = limit.unwrap_or(registry.entries.len());
+
+    let batch: Vec<(&str, &str)> = registry
+        .entries
+        .iter()
+        .take(max)
+        .map(|e| (e.id.as_str(), e.input.as_str()))
+        .collect();
+
+    eprintln!(
+        "{BOLD}Generating conversations from {} corpus entries (seed={seed})...{RESET}",
+        batch.len()
+    );
+
+    let (conversations, report) = generate_batch(&batch, seed);
+    let jsonl = to_jsonl(&conversations);
+
+    match output {
+        Some(ref path) => {
+            std::fs::write(path, &jsonl).map_err(Error::Io)?;
+            eprintln!(
+                "{GREEN}Wrote {} conversations to {}{RESET}",
+                conversations.len(),
+                path.display()
+            );
+        }
+        None => {
+            print!("{jsonl}");
+        }
+    }
+
+    eprintln!();
+    eprintln!("{BOLD}Quality Report:{RESET}");
+    eprintln!("  Total:       {}", report.total);
+    eprintln!(
+        "  Type A (classify): {} | Type B (fix): {} | Type C (debug): {} | Type D (safe): {}",
+        report.type_a_count, report.type_b_count, report.type_c_count, report.type_d_count
+    );
+    eprintln!(
+        "  Type D %:    {:.1}% (target: >=30%)",
+        report.type_d_pct
+    );
+    eprintln!(
+        "  Citations:   {:.0}%",
+        report.rule_citation_accuracy * 100.0
+    );
+    eprintln!(
+        "  Variants OK: {}",
+        if report.variant_distribution_ok {
+            format!("{GREEN}yes{RESET}")
+        } else {
+            format!("{RED}no{RESET}")
+        }
+    );
+    eprintln!(
+        "  Overall:     {}",
+        if report.passed {
+            format!("{GREEN}PASSED{RESET}")
+        } else {
+            format!("{YELLOW}FAILED{RESET}")
+        }
+    );
+
+    Ok(())
+}

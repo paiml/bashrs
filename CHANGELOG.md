@@ -12,6 +12,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `is_shell_preamble()` — canonical preamble detection (shared with corpus B2 commands)
 - SSC v11 spec: three-stage pipeline (rule-based linter + CodeBERT 125M encoder + Qwen-1.5B chat)
 - `rash/examples/shell_safety_classifier.rs` — example demonstrating rule-based classification pipeline
+- `corpus::conversations` module — synthetic conversation generation engine (SSC v11 S6)
+  - 4 conversation types: classify-explain, fix, debug, confirm-safe
+  - 10+ phrasing variants per type, seeded random selection
+  - JSONL output, quality gate validation (Type D %, variant distribution)
+  - 13 unit tests
+- `bashrs corpus generate-conversations` CLI command — generate training data from corpus
+- `rash/examples/conversation_generator.rs` — example demonstrating conversation generation
 - Probar-first WASM testing design (3-layer: logic/browser/performance, 21 tests, 7 contracts)
 - Brick profile-first UI design (5 presentar widgets, JIDOKA enforcement)
 - 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)

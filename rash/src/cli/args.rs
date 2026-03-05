@@ -1333,6 +1333,21 @@ pub enum CorpusCommands {
         #[arg(long)]
         apply: bool,
     },
+
+    /// Generate synthetic conversations for chat model training (SSC v11 S6)
+    GenerateConversations {
+        /// Output file path (stdout if not specified)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+
+        /// Random seed for variant selection (default: 42)
+        #[arg(long, default_value = "42")]
+        seed: u64,
+
+        /// Maximum entries to process (default: all)
+        #[arg(long)]
+        limit: Option<usize>,
+    },
 }
 
 /// Script format for classify command (SSC-022)
