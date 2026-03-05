@@ -321,6 +321,12 @@ pub(crate) fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::TokenizerValidation => {
             super::corpus_config_commands::corpus_tokenizer_validation()
         }
+        CorpusCommands::ValidateContracts => {
+            super::corpus_config_commands::corpus_validate_contracts()
+        }
+        CorpusCommands::ExportSplits { output } => {
+            super::corpus_config_commands::corpus_export_splits(output)
+        }
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()

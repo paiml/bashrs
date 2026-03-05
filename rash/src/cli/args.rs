@@ -1364,6 +1364,16 @@ pub enum CorpusCommands {
 
     /// Validate tokenizer quality on shell constructs (SSC v11 S5.2, C-TOK-001)
     TokenizerValidation,
+
+    /// Run all SSC contract validations (pre-training gate)
+    ValidateContracts,
+
+    /// Export dataset with train/val/test splits for ML training
+    ExportSplits {
+        /// Output directory for split JSONL files
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+    },
 }
 
 /// Script format for classify command (SSC-022)
