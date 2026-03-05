@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SEC023: Data exfiltration (reverse shells, netcat backdoors, DNS exfil, curl POST secrets, scp credentials)
 - SEC024: Race conditions & TOCTOU (check-then-act, PID file race, predictable temp files, symlink attacks)
 - Wire SEC019-SEC024 into both `lint_shell_filtered()` and `lint_shell()` dispatch
-- Generalization test catch rate: 96% (48/50) via lint_shell(), exceeds 50% target
+- DET004: Non-deterministic system state commands (df, free, uptime, ps, who, netstat, nproc, etc.)
+- Generalization test catch rate: 100% (50/50) via lint_shell(), exceeds 50% target
 - `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
   - Binary label (safe/unsafe), confidence, all lint findings in one pass
   - JSON output (`--json`) for CI/CD integration
@@ -35,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `rash/examples/conversation_generator.rs` — example demonstrating conversation generation
 - `corpus::generalization_tests` — 50 OOD test scripts for classifier evaluation (SSC v11 S5.6)
   - 6 categories: injection, non-determinism, race-condition, privilege, exfiltration, destructive
-  - Linter baseline: 48/50 caught (96%), exceeds 50% target
+  - Linter baseline: 50/50 caught (100%), exceeds 50% target
 - `corpus::tokenizer_validation` — RoBERTa BPE tokenizer validation protocol (SSC v11 S5.2)
   - 20 critical shell constructs, acceptable/unacceptable patterns
   - Contract C-TOK-001: >= 70% acceptable
@@ -75,6 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)
 
 ### Changed
+- Split `dispatch_command` (complexity 33) into 4 category dispatchers for CB-200 compliance (complexity 2)
+- Embedded program filter now exempts SEC* and DET* rules — security/determinism findings no longer suppressed on awk/sed/perl lines
 - Split `handle_corpus_quality_ops` into two dispatchers for CB-200 compliance (complexity 51→30)
 - `export_classification_jsonl` and `export_multi_label_classification_jsonl` now strip shell preamble by default
 - `fast_classify_export`: eliminate double transpilation for determinism check — halves export runtime
