@@ -117,8 +117,11 @@ pub fn generate_batch(
 
         let has_security = diagnostics.iter().any(|d| d.code.starts_with("SEC"));
         let has_determinism = diagnostics.iter().any(|d| d.code.starts_with("DET"));
+        let has_idempotency = diagnostics.iter().any(|d| d.code.starts_with("IDEM"));
 
-        let is_safe = !has_security && !has_determinism && diagnostics.is_empty();
+        // Safe = no security, determinism, or idempotency findings
+        // Style/portability warnings (SC*) don't affect safety classification
+        let is_safe = !has_security && !has_determinism && !has_idempotency;
 
         let input = ConversationInput {
             entry_id,
