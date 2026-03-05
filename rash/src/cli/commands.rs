@@ -91,6 +91,8 @@ use simulate_cmds::simulate_command;
 mod adversarial_cmds;
 #[path = "classify_commands.rs"]
 pub(crate) mod classify_cmds;
+#[path = "safety_check_command.rs"]
+mod safety_check_cmds;
 
 // Quality command modules
 #[path = "audit_commands.rs"]
@@ -378,6 +380,12 @@ fn dispatch_command(
                 recursive,
             })
         }
+
+        Commands::SafetyCheck {
+            input,
+            json,
+            format,
+        } => safety_check_cmds::safety_check_command(&input, json, format.as_ref()),
 
         Commands::Classify {
             input,

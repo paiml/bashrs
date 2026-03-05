@@ -240,6 +240,21 @@ pub enum Commands {
         recursive: bool,
     },
 
+    /// Combined safety check: lint findings + classification (SSC v11 S8.2)
+    SafetyCheck {
+        /// Input script file
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+
+        /// Force format (auto-detected from extension if omitted)
+        #[arg(long, value_enum)]
+        format: Option<ClassifyFormat>,
+    },
+
     /// Classify script safety (supports bash, Makefile, Dockerfile)
     Classify {
         /// Input script file
@@ -1376,7 +1391,11 @@ pub enum CorpusCommands {
     },
 
     /// Show comprehensive SSC v11 readiness report
-    SscReport,
+    SscReport {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 /// Script format for classify command (SSC-022)

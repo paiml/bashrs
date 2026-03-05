@@ -51,6 +51,17 @@ Priority: unsafe > non-deterministic > non-idempotent > needs-quoting > safe.
 
 ## Quick Start
 
+### Combined Safety Check (Lint + Classify)
+
+```bash
+# Combined check: lint findings + classification in one pass
+bashrs safety-check script.sh
+# Output: label, confidence, and all findings
+
+# JSON output for CI/CD integration
+bashrs safety-check --json script.sh
+```
+
 ### Rule-Based Classification (Built-in, Stage 0)
 
 ```bash

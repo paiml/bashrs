@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
+  - Binary label (safe/unsafe), confidence, all lint findings in one pass
+  - JSON output (`--json`) for CI/CD integration
+  - Supports bash, Makefile, Dockerfile auto-detection
+  - 9 unit tests
+- `bashrs corpus ssc-report --json` — JSON output mode for SSC readiness report
+- `rash/examples/safety_check.rs` — example demonstrating combined check pipeline
 - `strip_shell_preamble()` — removes transpiler boilerplate (`set -euf`, `trap '... $$'`, shebangs) from classification exports
 - `is_shell_preamble()` — canonical preamble detection (shared with corpus B2 commands)
 - SSC v11 spec: three-stage pipeline (rule-based linter + CodeBERT 125M encoder + Qwen-1.5B chat)
@@ -61,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)
 
 ### Changed
+- Split `handle_corpus_quality_ops` into two dispatchers for CB-200 compliance (complexity 51→30)
 - `export_classification_jsonl` and `export_multi_label_classification_jsonl` now strip shell preamble by default
 - `fast_classify_export`: eliminate double transpilation for determinism check — halves export runtime
 - `classify_single()` is now the canonical labeling path for all export formats
