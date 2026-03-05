@@ -31,12 +31,10 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for deprecated egrep/fgrep commands
-static EGREP_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\begrep\b").unwrap()
-});
-static FGREP_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\bfgrep\b").unwrap()
-});
+static EGREP_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\begrep\b").unwrap());
+static FGREP_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\bfgrep\b").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

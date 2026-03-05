@@ -650,7 +650,9 @@ mod purification_integration {
         // Should have at least one determinism fix
         let total_fixes = report.determinism_fixes.len() + report.warnings.len();
         assert!(
-            total_fixes > 0 || !report.idempotency_fixes.is_empty() || purified.statements.len() == 1,
+            total_fixes > 0
+                || !report.idempotency_fixes.is_empty()
+                || purified.statements.len() == 1,
             "Expected purification activity for $RANDOM"
         );
     }

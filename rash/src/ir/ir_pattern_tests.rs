@@ -15,8 +15,8 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
-use crate::transpile;
 use crate::models::Config;
+use crate::transpile;
 
 fn transpile_ok(code: &str) -> String {
     transpile(code, &Config::default()).unwrap()
@@ -459,7 +459,10 @@ fn test_IRPAT_022_no_range_patterns_uses_case() {
     "#;
     let out = transpile_ok(code);
     // Without range patterns, should use case statement
-    assert!(out.contains("case") || out.contains("result="), "Case statement: {out}");
+    assert!(
+        out.contains("case") || out.contains("result="),
+        "Case statement: {out}"
+    );
 }
 
 #[test]
@@ -514,7 +517,10 @@ fn test_IRPAT_025_standalone_range_match() {
         }
     "#;
     let out = transpile_ok(code);
-    assert!(out.contains("low") || out.contains("mid") || out.contains("high"), "Range match: {out}");
+    assert!(
+        out.contains("low") || out.contains("mid") || out.contains("high"),
+        "Range match: {out}"
+    );
 }
 
 // ---------------------------------------------------------------------------

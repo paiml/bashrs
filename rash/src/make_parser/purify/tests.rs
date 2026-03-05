@@ -1767,8 +1767,12 @@ fn test_reproducible_builds_date_in_variable() {
         result.len() >= 2,
         "Should detect timestamp and suggest SOURCE_DATE_EPOCH"
     );
-    assert!(result.iter().any(|t| matches!(t, Transformation::DetectTimestamp { .. })));
-    assert!(result.iter().any(|t| matches!(t, Transformation::SuggestSourceDateEpoch { .. })));
+    assert!(result
+        .iter()
+        .any(|t| matches!(t, Transformation::DetectTimestamp { .. })));
+    assert!(result
+        .iter()
+        .any(|t| matches!(t, Transformation::SuggestSourceDateEpoch { .. })));
 }
 
 #[test]
@@ -1784,7 +1788,9 @@ fn test_reproducible_builds_random_in_variable() {
     };
     let result = reproducible_builds::analyze_reproducible_builds(&ast);
     assert!(
-        result.iter().any(|t| matches!(t, Transformation::DetectRandom { .. })),
+        result
+            .iter()
+            .any(|t| matches!(t, Transformation::DetectRandom { .. })),
         "Should detect $$RANDOM"
     );
 }
@@ -1802,7 +1808,9 @@ fn test_reproducible_builds_process_id() {
     };
     let result = reproducible_builds::analyze_reproducible_builds(&ast);
     assert!(
-        result.iter().any(|t| matches!(t, Transformation::DetectProcessId { .. })),
+        result
+            .iter()
+            .any(|t| matches!(t, Transformation::DetectProcessId { .. })),
         "Should detect $$$$ (process ID)"
     );
 }
@@ -1820,7 +1828,9 @@ fn test_reproducible_builds_hostname() {
     };
     let result = reproducible_builds::analyze_reproducible_builds(&ast);
     assert!(
-        result.iter().any(|t| matches!(t, Transformation::DetectNonDeterministicCommand { .. })),
+        result
+            .iter()
+            .any(|t| matches!(t, Transformation::DetectNonDeterministicCommand { .. })),
         "Should detect hostname"
     );
 }
@@ -1838,7 +1848,9 @@ fn test_reproducible_builds_git_log_timestamp() {
     };
     let result = reproducible_builds::analyze_reproducible_builds(&ast);
     assert!(
-        result.iter().any(|t| matches!(t, Transformation::DetectNonDeterministicCommand { .. })),
+        result
+            .iter()
+            .any(|t| matches!(t, Transformation::DetectNonDeterministicCommand { .. })),
         "Should detect git log timestamp"
     );
 }
@@ -1858,7 +1870,9 @@ fn test_reproducible_builds_mktemp_in_recipe() {
     };
     let result = reproducible_builds::analyze_reproducible_builds(&ast);
     assert!(
-        result.iter().any(|t| matches!(t, Transformation::DetectNonDeterministicCommand { .. })),
+        result
+            .iter()
+            .any(|t| matches!(t, Transformation::DetectNonDeterministicCommand { .. })),
         "Should detect mktemp in recipe"
     );
 }

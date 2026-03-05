@@ -63,9 +63,7 @@ mod installer_init_cmd {
             name,
             description: None,
         };
-        assert!(
-            super::super::super::installer_commands::handle_installer_command(cmd).is_ok()
-        );
+        assert!(super::super::super::installer_commands::handle_installer_command(cmd).is_ok());
     }
 }
 
@@ -79,9 +77,7 @@ mod installer_validate_cmd {
     #[test]
     fn test_cov_installer_validate_ok() {
         let (_dir, project_path) = super::make_installer_project();
-        let cmd = InstallerCommands::Validate {
-            path: project_path,
-        };
+        let cmd = InstallerCommands::Validate { path: project_path };
         let res = super::super::super::installer_commands::handle_installer_command(cmd);
         assert!(res.is_ok(), "validate failed: {:?}", res);
     }
@@ -243,7 +239,11 @@ mod installer_test_cmd {
             coverage: true,
         };
         let res = super::super::super::installer_commands::handle_installer_command(cmd);
-        assert!(res.is_ok(), "installer test with coverage failed: {:?}", res);
+        assert!(
+            res.is_ok(),
+            "installer test with coverage failed: {:?}",
+            res
+        );
     }
 
     #[test]
@@ -1109,17 +1109,20 @@ mod corpus_core_smoke {
     fn test_cov_corpus_generate_report_to_file() {
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("report.md");
-        let _ = super::super::corpus_diff_commands::corpus_generate_report(
-            Some(path.to_str().unwrap()),
-        );
+        let _ = super::super::corpus_diff_commands::corpus_generate_report(Some(
+            path.to_str().unwrap(),
+        ));
     }
 
     #[test]
     fn test_cov_corpus_show_diff_no_log() {
         use crate::cli::args::CorpusOutputFormat;
         // No convergence log → should return error (fast: no corpus load)
-        let res =
-            super::super::corpus_diff_commands::corpus_show_diff(&CorpusOutputFormat::Human, None, None);
+        let res = super::super::corpus_diff_commands::corpus_show_diff(
+            &CorpusOutputFormat::Human,
+            None,
+            None,
+        );
         let _ = res;
     }
 

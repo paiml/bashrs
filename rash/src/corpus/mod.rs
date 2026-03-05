@@ -25,21 +25,18 @@ pub mod adversarial_templates;
 pub mod baselines;
 pub mod citl;
 pub mod contract_validation;
-pub mod conversations;
-#[allow(clippy::expect_used)] // Report generation uses expect() for internal formatting
-pub mod ssc_report;
 pub mod convergence;
-pub mod evaluation;
-pub mod generalization_tests;
-pub mod label_audit;
-pub mod tokenizer_validation;
+pub mod conversations;
 #[allow(clippy::expect_used)] // Dataset uses expect() for internal invariants
 pub mod dataset;
 #[allow(clippy::expect_used)] // Domain categories uses expect() for internal invariants
 pub mod domain_categories;
 #[allow(clippy::expect_used)] // Error dedup uses expect() for internal invariants
 pub mod error_dedup;
+pub mod evaluation;
+pub mod generalization_tests;
 pub mod graph_priority;
+pub mod label_audit;
 pub mod oip;
 pub mod pattern_store;
 #[allow(clippy::expect_used)] // Quality gates uses expect() for internal invariants
@@ -48,7 +45,10 @@ pub mod registry;
 #[allow(clippy::expect_used)] // Runner uses expect() for internal invariants
 pub mod runner;
 pub mod schema_enforcement;
+#[allow(clippy::expect_used)] // Report generation uses expect() for internal formatting
+pub mod ssc_report;
 pub mod tier_analysis;
+pub mod tokenizer_validation;
 
 #[cfg(test)]
 #[path = "registry_coverage_tests.rs"]

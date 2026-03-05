@@ -696,8 +696,7 @@ fn build_command(input: &Path, output: &Path, config: Config) -> Result<()> {
     let source = fs::read_to_string(input).map_err(Error::Io)?;
 
     // Transpile (wrap errors with source context)
-    let shell_code =
-        transpile(&source, &config).map_err(|e| with_context(e, input, &source))?;
+    let shell_code = transpile(&source, &config).map_err(|e| with_context(e, input, &source))?;
 
     // Write output
     fs::write(output, shell_code).map_err(Error::Io)?;

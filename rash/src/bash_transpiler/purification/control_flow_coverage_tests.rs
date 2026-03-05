@@ -153,7 +153,10 @@ fn test_purify_with_type_check_enabled() {
 
     let mut purifier = Purifier::new(opts);
     let _purified = purifier.purify(&ast).expect("should succeed");
-    assert!(purifier.type_checker().is_some(), "type checker should be set");
+    assert!(
+        purifier.type_checker().is_some(),
+        "type checker should be set"
+    );
 }
 
 #[test]
@@ -392,11 +395,7 @@ fn test_purify_ln_gets_sf_flag() {
                 .iter()
                 .any(|a| matches!(a, BashExpr::Literal(s) if s == "-s"));
             // Should have either -sf or -s and -f
-            assert!(
-                has_sf || has_s,
-                "ln should have -sf or -s: {:?}",
-                args
-            );
+            assert!(has_sf || has_s, "ln should have -sf or -s: {:?}", args);
         }
         _ => panic!("Expected command"),
     }

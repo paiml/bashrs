@@ -7,8 +7,8 @@
 #![allow(clippy::unwrap_used)]
 
 use bashrs::corpus::conversations::{
-    generate_batch, to_jsonl, ConversationInput, ConversationType, QualityReport,
-    generate_conversation,
+    generate_batch, generate_conversation, to_jsonl, ConversationInput, ConversationType,
+    QualityReport,
 };
 use bashrs::linter::lint_shell;
 
@@ -88,10 +88,7 @@ fn show_conversation(script: &str, seed: u64) {
     print_conversation(&conv.conversation_type, &conv.turns);
 }
 
-fn print_conversation(
-    conv_type: &ConversationType,
-    turns: &[bashrs::corpus::conversations::Turn],
-) {
+fn print_conversation(conv_type: &ConversationType, turns: &[bashrs::corpus::conversations::Turn]) {
     println!("  Type: {:?}", conv_type);
     for turn in turns {
         let preview = if turn.content.len() > 200 {

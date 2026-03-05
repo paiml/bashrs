@@ -77,9 +77,9 @@ fn test_artifact_score_all_passed() {
 #[test]
 fn test_artifact_score_some_failed() {
     let results = vec![
-        make_result(RuleId::Posix, true),     // weight 20
+        make_result(RuleId::Posix, true),        // weight 20
         make_result(RuleId::Determinism, false), // weight 15
-        make_result(RuleId::Security, true),   // weight 20
+        make_result(RuleId::Security, true),     // weight 20
     ];
     let score = compute_artifact_score("partial.sh", &results);
     // passed_weight = 20 + 20 = 40, total_weight = 20 + 15 + 20 = 55
@@ -119,7 +119,11 @@ fn test_artifact_score_below_60_gateway() {
         make_result(RuleId::Idempotency, false),
     ];
     let score = compute_artifact_score("bad.sh", &results);
-    assert!(score.score < 20.0, "Score {} should be capped below 20", score.score);
+    assert!(
+        score.score < 20.0,
+        "Score {} should be capped below 20",
+        score.score
+    );
     assert_eq!(score.grade, Grade::F);
 }
 
@@ -161,10 +165,13 @@ fn test_project_score_single_artifact() {
 #[test]
 fn test_project_score_multiple_mixed() {
     let good = compute_artifact_score("good.sh", &[make_result(RuleId::Posix, true)]);
-    let bad = compute_artifact_score("bad.sh", &[
-        make_result(RuleId::Posix, false),
-        make_result(RuleId::Security, false),
-    ]);
+    let bad = compute_artifact_score(
+        "bad.sh",
+        &[
+            make_result(RuleId::Posix, false),
+            make_result(RuleId::Security, false),
+        ],
+    );
     let project = compute_project_score(vec![good, bad]);
     assert_eq!(project.total_artifacts, 2);
     assert_eq!(project.compliant_artifacts, 1);

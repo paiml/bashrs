@@ -283,9 +283,15 @@ fn test_determinism_urandom() {
 #[test]
 fn test_determinism_random_device() {
     let art = shell_artifact();
-    let result = check_rule(RuleId::Determinism, "dd if=/dev/random of=key bs=32 count=1", &art);
+    let result = check_rule(
+        RuleId::Determinism,
+        "dd if=/dev/random of=key bs=32 count=1",
+        &art,
+    );
     assert!(!result.passed);
-    assert!(result.violations[0].message.contains("/dev/urandom or /dev/random"));
+    assert!(result.violations[0]
+        .message
+        .contains("/dev/urandom or /dev/random"));
 }
 
 #[test]
@@ -845,7 +851,11 @@ fn test_shellcheck_read_r_ok() {
 #[test]
 fn test_shellcheck_dollar_question() {
     let art = shell_artifact();
-    let result = check_rule(RuleId::ShellCheck, "if [ $? -eq 0 ]; then echo ok; fi", &art);
+    let result = check_rule(
+        RuleId::ShellCheck,
+        "if [ $? -eq 0 ]; then echo ok; fi",
+        &art,
+    );
     assert!(!result.passed);
     assert!(result.violations[0].message.contains("SC2181"));
 }
@@ -853,7 +863,11 @@ fn test_shellcheck_dollar_question() {
 #[test]
 fn test_shellcheck_ls_iteration() {
     let art = shell_artifact();
-    let result = check_rule(RuleId::ShellCheck, "for f in $(ls *.txt); do echo $f; done", &art);
+    let result = check_rule(
+        RuleId::ShellCheck,
+        "for f in $(ls *.txt); do echo $f; done",
+        &art,
+    );
     assert!(!result.passed);
     assert!(result.violations[0].message.contains("SC2012"));
 }
@@ -877,7 +891,10 @@ fn test_make_eval_in_recipe() {
     let content = "target:\n\teval $(shell_cmd)";
     let result = check_rule(RuleId::MakefileSafety, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("MAKE001")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("MAKE001")));
 }
 
 #[test]
@@ -886,7 +903,10 @@ fn test_make_bare_make() {
     let content = "all:\n\tmake clean";
     let result = check_rule(RuleId::MakefileSafety, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("MAKE002")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("MAKE002")));
 }
 
 #[test]
@@ -896,7 +916,10 @@ fn test_make_dollar_make_ok() {
     let result = check_rule(RuleId::MakefileSafety, content, &art);
     // No MAKE002 violation ($(MAKE) is correct)
     assert!(
-        !result.violations.iter().any(|v| v.message.contains("MAKE002")),
+        !result
+            .violations
+            .iter()
+            .any(|v| v.message.contains("MAKE002")),
         "$(MAKE) should not trigger MAKE002"
     );
 }
@@ -907,7 +930,10 @@ fn test_make_rm_rf_variable() {
     let content = "clean:\n\trm -rf $$dir";
     let result = check_rule(RuleId::MakefileSafety, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("MAKE003")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("MAKE003")));
 }
 
 #[test]
@@ -917,7 +943,10 @@ fn test_make_missing_phony() {
     let content = "clean:\n\trm -f *.o";
     let result = check_rule(RuleId::MakefileSafety, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("MAKE004")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("MAKE004")));
 }
 
 #[test]
@@ -927,7 +956,10 @@ fn test_make_phony_declared_ok() {
     let result = check_rule(RuleId::MakefileSafety, content, &art);
     // No MAKE004 violation for clean
     assert!(
-        !result.violations.iter().any(|v| v.message.contains("MAKE004")),
+        !result
+            .violations
+            .iter()
+            .any(|v| v.message.contains("MAKE004")),
         ".PHONY declared targets should not trigger MAKE004"
     );
 }
@@ -942,7 +974,10 @@ fn test_docker_add_local() {
     let content = "FROM ubuntu:22.04\nADD file.tar /opt\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER008")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("DOCKER008")));
 }
 
 #[test]
@@ -952,7 +987,10 @@ fn test_docker_add_url_ok() {
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     // ADD with URL is acceptable
     assert!(
-        !result.violations.iter().any(|v| v.message.contains("DOCKER008")),
+        !result
+            .violations
+            .iter()
+            .any(|v| v.message.contains("DOCKER008")),
         "ADD with https URL should not trigger DOCKER008"
     );
 }
@@ -963,7 +1001,10 @@ fn test_docker_unpinned_from() {
     let content = "FROM ubuntu\nRUN echo hello\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER001")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("DOCKER001")));
 }
 
 #[test]
@@ -972,7 +1013,10 @@ fn test_docker_latest_from() {
     let content = "FROM ubuntu:latest\nRUN echo hello\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER001")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("DOCKER001")));
 }
 
 #[test]
@@ -981,7 +1025,10 @@ fn test_docker_pinned_from_ok() {
     let content = "FROM ubuntu:22.04\nRUN echo hello\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(
-        !result.violations.iter().any(|v| v.message.contains("DOCKER001")),
+        !result
+            .violations
+            .iter()
+            .any(|v| v.message.contains("DOCKER001")),
         "Pinned FROM should not trigger DOCKER001"
     );
 }
@@ -989,11 +1036,13 @@ fn test_docker_pinned_from_ok() {
 #[test]
 fn test_docker_digest_ok() {
     let art = dockerfile_artifact();
-    let content =
-        "FROM ubuntu@sha256:abcdef1234567890\nRUN echo hello\nUSER appuser";
+    let content = "FROM ubuntu@sha256:abcdef1234567890\nRUN echo hello\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(
-        !result.violations.iter().any(|v| v.message.contains("DOCKER001")),
+        !result
+            .violations
+            .iter()
+            .any(|v| v.message.contains("DOCKER001")),
         "FROM with digest should not trigger DOCKER001"
     );
 }
@@ -1004,7 +1053,10 @@ fn test_docker_scratch_ok() {
     let content = "FROM scratch\nCOPY app /app\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(
-        !result.violations.iter().any(|v| v.message.contains("DOCKER001")),
+        !result
+            .violations
+            .iter()
+            .any(|v| v.message.contains("DOCKER001")),
         "FROM scratch should not trigger DOCKER001"
     );
 }
@@ -1015,7 +1067,10 @@ fn test_docker_apt_no_clean() {
     let content = "FROM ubuntu:22.04\nRUN apt-get install -y curl\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER003")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("DOCKER003")));
 }
 
 #[test]
@@ -1024,7 +1079,10 @@ fn test_docker_apt_with_clean_ok() {
     let content = "FROM ubuntu:22.04\nRUN apt-get install -y curl && rm -rf /var/lib/apt/lists/*\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(
-        !result.violations.iter().any(|v| v.message.contains("DOCKER003")),
+        !result
+            .violations
+            .iter()
+            .any(|v| v.message.contains("DOCKER003")),
         "apt-get with cleanup should not trigger DOCKER003"
     );
 }
@@ -1035,7 +1093,10 @@ fn test_docker_bare_expose() {
     let content = "FROM ubuntu:22.04\nEXPOSE\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER004")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("DOCKER004")));
 }
 
 #[test]
@@ -1044,7 +1105,10 @@ fn test_docker_missing_user() {
     let content = "FROM ubuntu:22.04\nRUN echo hello";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(!result.passed);
-    assert!(result.violations.iter().any(|v| v.message.contains("DOCKER010")));
+    assert!(result
+        .violations
+        .iter()
+        .any(|v| v.message.contains("DOCKER010")));
 }
 
 #[test]
@@ -1053,7 +1117,10 @@ fn test_docker_has_user_ok() {
     let content = "FROM ubuntu:22.04\nRUN echo hello\nUSER appuser";
     let result = check_rule(RuleId::DockerfileBest, content, &art);
     assert!(
-        !result.violations.iter().any(|v| v.message.contains("DOCKER010")),
+        !result
+            .violations
+            .iter()
+            .any(|v| v.message.contains("DOCKER010")),
         "USER directive present should not trigger DOCKER010"
     );
 }

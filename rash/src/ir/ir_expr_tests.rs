@@ -426,10 +426,7 @@ fn echo(msg: &str) {}
 #[test]
 fn test_IR_EXPR_027_literal_string() {
     let out = transpile_main(r#"let name = "Alice";"#);
-    assert!(
-        out.contains("Alice"),
-        "Expected Alice in output:\n{out}"
-    );
+    assert!(out.contains("Alice"), "Expected Alice in output:\n{out}");
 }
 
 // ====================================================================
@@ -439,10 +436,7 @@ fn test_IR_EXPR_027_literal_string() {
 #[test]
 fn test_IR_EXPR_028_literal_integer() {
     let out = transpile_main("let count = 99;");
-    assert!(
-        out.contains("99"),
-        "Expected 99 in output:\n{out}"
-    );
+    assert!(out.contains("99"), "Expected 99 in output:\n{out}");
 }
 
 // ====================================================================
@@ -578,10 +572,7 @@ fn main() {
 fn test_IR_EXPR_035_exec_effects_curl() {
     // Ensure transpile succeeds for exec("curl ...")
     let out = transpile_main(r#"exec("curl http://example.com");"#);
-    assert!(
-        out.contains("eval"),
-        "Expected eval for exec() in:\n{out}"
-    );
+    assert!(out.contains("eval"), "Expected eval for exec() in:\n{out}");
 }
 
 // ====================================================================
@@ -602,7 +593,10 @@ fn main() {
         &Config::default(),
     );
     // The transpiler should handle this without error
-    assert!(result.is_ok(), "Method call should not cause transpile failure");
+    assert!(
+        result.is_ok(),
+        "Method call should not cause transpile failure"
+    );
 }
 
 // ====================================================================
@@ -613,7 +607,10 @@ fn main() {
 fn test_IR_EXPR_037_div_by_zero_literal() {
     // The transpiler generates shell code; runtime division by zero is a shell concern.
     // Constant folding may catch this or pass it through
-    let result = crate::transpile("fn main() { let a = 10; let b = 0; let x = a / b; }", &Config::default());
+    let result = crate::transpile(
+        "fn main() { let a = 10; let b = 0; let x = a / b; }",
+        &Config::default(),
+    );
     assert!(result.is_ok(), "Division by zero should still transpile");
 }
 
@@ -623,11 +620,10 @@ fn test_IR_EXPR_037_div_by_zero_literal() {
 
 #[test]
 fn test_IR_EXPR_038_chained_shift() {
-    let out = transpile_full("fn main() { let a = 1; let b = 2; let c = 3; let x = a << b; let y = x << c; }");
-    assert!(
-        out.contains("<<"),
-        "Expected << operator in:\n{out}"
+    let out = transpile_full(
+        "fn main() { let a = 1; let b = 2; let c = 3; let x = a << b; let y = x << c; }",
     );
+    assert!(out.contains("<<"), "Expected << operator in:\n{out}");
 }
 
 // ====================================================================
@@ -647,7 +643,10 @@ fn main() {
 "#,
     );
     assert!(out.contains("while"), "Expected while in:\n{out}");
-    assert!(out.contains("-lt"), "Expected -lt in while condition:\n{out}");
+    assert!(
+        out.contains("-lt"),
+        "Expected -lt in while condition:\n{out}"
+    );
 }
 
 // ====================================================================

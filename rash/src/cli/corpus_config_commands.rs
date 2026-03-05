@@ -441,10 +441,7 @@ pub(crate) fn corpus_generate_conversations(
         "  Type A (classify): {} | Type B (fix): {} | Type C (debug): {} | Type D (safe): {}",
         report.type_a_count, report.type_b_count, report.type_c_count, report.type_d_count
     );
-    eprintln!(
-        "  Type D %:    {:.1}% (target: >=30%)",
-        report.type_d_pct
-    );
+    eprintln!("  Type D %:    {:.1}% (target: >=30%)", report.type_d_pct);
     eprintln!(
         "  Citations:   {:.0}%",
         report.rule_citation_accuracy * 100.0
@@ -668,7 +665,10 @@ pub(crate) fn corpus_tokenizer_validation() -> Result<()> {
     });
 
     println!("Tokenizer:        whitespace (baseline)");
-    println!("Acceptable:       {} ({:.1}%)", report.acceptable_count, report.acceptable_pct);
+    println!(
+        "Acceptable:       {} ({:.1}%)",
+        report.acceptable_count, report.acceptable_pct
+    );
     println!("Unacceptable:     {}", report.unacceptable_count);
     println!("Target:           >= 70% (C-TOK-001)");
     println!(
@@ -762,7 +762,10 @@ pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
     let test_unsafe = result.test.iter().filter(|r| r.label == 1).count();
 
     println!("{BOLD}=== SSC v11 Dataset Split (alimentar-compatible) ==={RESET}\n");
-    println!("  {:<8} {:>6} {:>6} {:>6}  {:>6}", "Split", "Total", "Safe", "Unsafe", "%Unsafe");
+    println!(
+        "  {:<8} {:>6} {:>6} {:>6}  {:>6}",
+        "Split", "Total", "Safe", "Unsafe", "%Unsafe"
+    );
     println!("  {}", "-".repeat(45));
     println!(
         "  {:<8} {:>6} {:>6} {:>6}  {:>5.1}%",
@@ -822,8 +825,16 @@ pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
             let mut out = String::new();
             for row in rows {
                 use std::fmt::Write as _;
-                let escaped_input = row.input.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n");
-                let _ = writeln!(out, r#"{{"input":"{}","label":{}}}"#, escaped_input, row.label);
+                let escaped_input = row
+                    .input
+                    .replace('\\', "\\\\")
+                    .replace('"', "\\\"")
+                    .replace('\n', "\\n");
+                let _ = writeln!(
+                    out,
+                    r#"{{"input":"{}","label":{}}}"#,
+                    escaped_input, row.label
+                );
             }
             std::fs::write(&path, out)?;
             Ok(())
@@ -833,13 +844,22 @@ pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
         write_split("val", &result.val).map_err(Error::Io)?;
         write_split("test", &result.test).map_err(Error::Io)?;
 
+        eprintln!("\n{GREEN}Wrote split files to {}{RESET}", dir.display());
         eprintln!(
-            "\n{GREEN}Wrote split files to {}{RESET}",
-            dir.display()
+            "  {}/train.jsonl ({} entries)",
+            dir.display(),
+            result.train.len()
         );
-        eprintln!("  {}/train.jsonl ({} entries)", dir.display(), result.train.len());
-        eprintln!("  {}/val.jsonl ({} entries)", dir.display(), result.val.len());
-        eprintln!("  {}/test.jsonl ({} entries)", dir.display(), result.test.len());
+        eprintln!(
+            "  {}/val.jsonl ({} entries)",
+            dir.display(),
+            result.val.len()
+        );
+        eprintln!(
+            "  {}/test.jsonl ({} entries)",
+            dir.display(),
+            result.test.len()
+        );
     }
 
     Ok(())

@@ -123,8 +123,14 @@ fn main() {
     eprintln!("Wrote {} rows to {}", all_rows.len(), corpus_path.display());
     eprintln!();
     eprintln!("Next: use alimentar for splitting:");
-    eprintln!("  alimentar convert {0}/corpus.jsonl {0}/corpus.parquet", output_dir);
-    eprintln!("  alimentar fed manifest {0}/corpus.parquet -o {0}/manifest.json -n bashrs", output_dir);
+    eprintln!(
+        "  alimentar convert {0}/corpus.jsonl {0}/corpus.parquet",
+        output_dir
+    );
+    eprintln!(
+        "  alimentar fed manifest {0}/corpus.parquet -o {0}/manifest.json -n bashrs",
+        output_dir
+    );
     eprintln!("  alimentar fed plan {0}/manifest.json -o {0}/plan.json -s stratified -r 0.8 --test-ratio 0.1 --validation-ratio 0.1 --stratify-column label", output_dir);
     eprintln!("  alimentar fed split {0}/corpus.parquet -p {0}/plan.json -n bashrs --train-output {0}/train.parquet --test-output {0}/test.parquet --validation-output {0}/val.parquet", output_dir);
 }

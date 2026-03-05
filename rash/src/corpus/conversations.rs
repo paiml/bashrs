@@ -90,14 +90,10 @@ pub fn generate_conversation(input: &ConversationInput<'_>, seed: u64) -> Conver
     let variant = (seed % 10) as usize;
 
     let turns = match conv_type {
-        ConversationType::ClassifyExplain => {
-            generate_classify_explain(input, variant)
-        }
+        ConversationType::ClassifyExplain => generate_classify_explain(input, variant),
         ConversationType::Fix => generate_fix(input, variant),
         ConversationType::Debug => generate_debug(input, variant),
-        ConversationType::ConfirmSafe => {
-            generate_confirm_safe(input, variant)
-        }
+        ConversationType::ConfirmSafe => generate_confirm_safe(input, variant),
     };
 
     Conversation {
@@ -120,9 +116,7 @@ pub fn generate_batch(
         let diagnostics = &result.diagnostics;
 
         let has_security = diagnostics.iter().any(|d| d.code.starts_with("SEC"));
-        let has_determinism = diagnostics
-            .iter()
-            .any(|d| d.code.starts_with("DET"));
+        let has_determinism = diagnostics.iter().any(|d| d.code.starts_with("DET"));
 
         let is_safe = !has_security && !has_determinism && diagnostics.is_empty();
 
@@ -181,10 +175,7 @@ fn select_type(input: &ConversationInput<'_>, seed: u64) -> ConversationType {
         return ConversationType::Debug;
     }
 
-    let has_security = input
-        .diagnostics
-        .iter()
-        .any(|d| d.code.starts_with("SEC"));
+    let has_security = input.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
 
     // Alternate between ClassifyExplain and Fix for unsafe scripts
     if has_security && seed.is_multiple_of(2) {
@@ -279,9 +270,8 @@ fn generate_classify_explain(input: &ConversationInput<'_>, variant: usize) -> V
         response.push_str("- General safety concerns detected in this script.\n");
     }
 
-    response.push_str(
-        "\nI recommend fixing these issues before running this script in production.",
-    );
+    response
+        .push_str("\nI recommend fixing these issues before running this script in production.");
 
     vec![
         Turn {
@@ -338,8 +328,7 @@ fn generate_debug(input: &ConversationInput<'_>, variant: usize) -> Vec<Turn> {
         .filter(|d| d.code.starts_with("DET"))
         .collect();
 
-    let mut response =
-        String::from("This script contains non-deterministic patterns:\n\n");
+    let mut response = String::from("This script contains non-deterministic patterns:\n\n");
 
     for d in &det_findings {
         let _ = writeln!(
@@ -350,8 +339,7 @@ fn generate_debug(input: &ConversationInput<'_>, variant: usize) -> Vec<Turn> {
     }
 
     if det_findings.is_empty() {
-        response
-            .push_str("- Non-deterministic behavior detected in the script.\n");
+        response.push_str("- Non-deterministic behavior detected in the script.\n");
     }
 
     response.push_str(
@@ -394,9 +382,8 @@ fn generate_confirm_safe(input: &ConversationInput<'_>, variant: usize) -> Vec<T
     let opening_idx = variant % openings.len();
     let mut response = String::from(openings[opening_idx]);
     response.push_str(" It doesn't contain known unsafe patterns like ");
-    response.push_str(
-        "command injection, non-deterministic operations, or non-idempotent commands.",
-    );
+    response
+        .push_str("command injection, non-deterministic operations, or non-idempotent commands.");
 
     vec![
         Turn {
@@ -456,12 +443,7 @@ fn check_variant_distribution(conversations: &[Conversation]) -> bool {
     for conv in conversations {
         if let Some(user_turn) = conv.turns.first() {
             // Extract first line as variant key
-            let key = user_turn
-                .content
-                .lines()
-                .next()
-                .unwrap_or("")
-                .to_string();
+            let key = user_turn.content.lines().next().unwrap_or("").to_string();
             *variant_counts.entry(key).or_insert(0usize) += 1;
         }
     }
@@ -585,7 +567,10 @@ mod tests {
 
     #[test]
     fn test_conversation_type_labels() {
-        assert_eq!(ConversationType::ClassifyExplain.label(), "classify-explain");
+        assert_eq!(
+            ConversationType::ClassifyExplain.label(),
+            "classify-explain"
+        );
         assert_eq!(ConversationType::Fix.label(), "fix");
         assert_eq!(ConversationType::Debug.label(), "debug");
         assert_eq!(ConversationType::ConfirmSafe.label(), "confirm-safe");
@@ -606,8 +591,7 @@ mod tests {
         assert!(!jsonl.is_empty());
         assert!(jsonl.ends_with('\n'));
         // Should be valid JSON
-        let parsed: serde_json::Value =
-            serde_json::from_str(jsonl.trim()).expect("valid JSON");
+        let parsed: serde_json::Value = serde_json::from_str(jsonl.trim()).expect("valid JSON");
         assert_eq!(parsed["conversation_type"], "ConfirmSafe");
     }
 
@@ -644,7 +628,10 @@ mod tests {
 
         let (convs, _) = generate_batch(&entries, 0);
         let ok = check_variant_distribution(&convs);
-        assert!(ok, "Variant distribution should be diverse with 12+ prompts");
+        assert!(
+            ok,
+            "Variant distribution should be diverse with 12+ prompts"
+        );
     }
 
     #[test]

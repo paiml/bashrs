@@ -58,9 +58,8 @@ fn create_array_to_string_diagnostic(
 }
 
 /// Check for string assignment to array variable
-static ARRAY_DECL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\(").unwrap()
-});
+static ARRAY_DECL_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\(").unwrap());
 static SC2178_RE_1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*)=(?:"[^"]*"|'[^']*'|[^\s;]+)"#).unwrap()
 });

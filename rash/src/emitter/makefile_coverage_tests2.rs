@@ -44,7 +44,10 @@ fn test_MCOV2_001_line_with_hash_name_not_target() {
     })]);
     let result = emit_makefile(&ast).unwrap();
     // Should not create a target named "#comment"
-    assert!(!result.contains("#comment:") || result.contains("#comment"), "Result: {result}");
+    assert!(
+        !result.contains("#comment:") || result.contains("#comment"),
+        "Result: {result}"
+    );
 }
 
 #[test]
@@ -94,7 +97,10 @@ fn test_MCOV2_005_simple_assignment_empty_name_not_var() {
     })]);
     let result = emit_makefile(&ast).unwrap();
     // Empty name before := should not produce a variable
-    assert!(result.contains(":=") || result.contains("value"), "Result: {result}");
+    assert!(
+        result.contains(":=") || result.contains("value"),
+        "Result: {result}"
+    );
 }
 
 #[test]
@@ -107,10 +113,7 @@ fn test_MCOV2_006_simple_assignment_space_in_name_not_var() {
         ))],
     })]);
     let result = emit_makefile(&ast).unwrap();
-    assert!(
-        result.contains("multi word"),
-        "Result: {result}"
-    );
+    assert!(result.contains("multi word"), "Result: {result}");
 }
 
 #[test]
@@ -118,9 +121,7 @@ fn test_MCOV2_007_target_name_with_space_not_target() {
     // "multi word: deps" has space in target name → not a target
     let ast = make_ast(vec![Stmt::Expr(Expr::FunctionCall {
         name: "exec".to_string(),
-        args: vec![Expr::Literal(Literal::Str(
-            "multi word: deps".to_string(),
-        ))],
+        args: vec![Expr::Literal(Literal::Str("multi word: deps".to_string()))],
     })]);
     let result = emit_makefile(&ast).unwrap();
     // Should not create a proper target (treated as comment or skipped)
@@ -179,7 +180,10 @@ fn test_MCOV2_009_mixed_output_types_raw_mode() {
     ]);
     let result = emit_makefile(&ast).unwrap();
     // Should resolve the variable and produce output
-    assert!(result.contains("gcc") || result.contains("no newline") || result.contains("LDFLAGS"), "Result: {result}");
+    assert!(
+        result.contains("gcc") || result.contains("no newline") || result.contains("LDFLAGS"),
+        "Result: {result}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -236,7 +240,10 @@ fn test_MCOV2_012_target_empty_name_not_created() {
     })]);
     let result = emit_makefile(&ast).unwrap();
     // Empty name target should not be created
-    assert!(result.contains(": deps") || !result.is_empty(), "Result: {result}");
+    assert!(
+        result.contains(": deps") || !result.is_empty(),
+        "Result: {result}"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -290,9 +297,7 @@ fn test_MCOV2_015_phony_target_3_args() {
         args: vec![
             Expr::Literal(Literal::Str("test".to_string())),
             Expr::Array(vec![Expr::Literal(Literal::Str("build".to_string()))]),
-            Expr::Array(vec![Expr::Literal(Literal::Str(
-                "cargo test".to_string(),
-            ))]),
+            Expr::Array(vec![Expr::Literal(Literal::Str("cargo test".to_string()))]),
         ],
     })]);
     let result = emit_makefile(&ast).unwrap();
@@ -392,7 +397,10 @@ fn test_MCOV2_019_non_main_fn_echo_non_string_arg() {
     };
     let result = emit_makefile(&ast).unwrap();
     // echo with non-string arg: first arg is not Literal::Str → no recipe added
-    assert!(!result.contains("report:") || result.contains("report"), "Result: {result}");
+    assert!(
+        !result.contains("report:") || result.contains("report"),
+        "Result: {result}"
+    );
 }
 
 // ---------------------------------------------------------------------------
