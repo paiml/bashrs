@@ -341,7 +341,13 @@ fn explain_why(code: &str) -> String {
         "SEC007" => "Running as root without checks risks destructive operations affecting the entire system.",
         "SEC008" => "Unsanitized input in SQL or command strings enables injection attacks.",
         "SEC010" => "Source/dot-sourcing external files executes untrusted code in the current shell.",
+        "SEC016" => "Passing unvalidated positional parameters to dangerous commands enables injection.",
+        "SEC019" => "Unquoted variable in command position can execute arbitrary commands.",
         "SEC020" => "Passing variables to awk/sed system() calls enables command injection.",
+        "SEC021" => "Destructive system operations (disk wipe, fork bomb, rm -rf /) can destroy data.",
+        "SEC022" => "Privilege escalation (setuid, chmod +s, sudoers) grants elevated access.",
+        "SEC023" => "Data exfiltration (reverse shells, DNS exfil, curl POST) leaks sensitive data.",
+        "SEC024" => "Race conditions (TOCTOU, symlink attacks) enable privilege escalation.",
         "DET001" => "$RANDOM produces different values on each run, making output unpredictable.",
         "DET002" => "date/time commands produce different output on each run.",
         "DET003" => "$$ (process ID) changes on each invocation, breaking reproducibility.",
@@ -366,7 +372,13 @@ fn explain_fix(code: &str) -> String {
         "SEC007" => "Add a root check: [ \"$(id -u)\" -eq 0 ] || exit 1",
         "SEC008" => "Use parameterized queries or properly escape/validate all inputs.",
         "SEC010" => "Verify the sourced file's integrity (checksum) before sourcing.",
+        "SEC016" => "Validate positional parameters before passing to commands like eval, exec, or su.",
+        "SEC019" => "Quote the variable or use a case statement to restrict allowed commands.",
         "SEC020" => "Pass data to awk/sed via variables, not through shell interpolation.",
+        "SEC021" => "Remove destructive commands or add confirmation prompts and dry-run modes.",
+        "SEC022" => "Use minimal required privileges. Avoid setuid/chmod +s on untrusted binaries.",
+        "SEC023" => "Remove exfiltration vectors. Use firewall rules to restrict outbound connections.",
+        "SEC024" => "Use atomic operations (mv, flock) instead of check-then-act sequences.",
         "DET001" => "Accept randomness as a parameter: ${SEED:-42} instead of $RANDOM.",
         "DET002" => "Use a fixed timestamp parameter: ${BUILD_TIME:-$(date +%s)}",
         "DET003" => "Use a fixed identifier instead of $$: ${RUN_ID:-default}",
@@ -515,6 +527,7 @@ mod tests {
         // Verify common rule codes return meaningful explanations
         for code in &[
             "SEC001", "SEC002", "SEC003", "SEC004", "SEC005", "SEC006", "SEC007", "SEC008",
+            "SEC010", "SEC016", "SEC019", "SEC020", "SEC021", "SEC022", "SEC023", "SEC024",
             "DET001", "DET002", "DET003", "DET004", "IDEM001", "IDEM002", "IDEM003",
         ] {
             let why = explain_why(code);
@@ -529,6 +542,7 @@ mod tests {
     fn test_explain_fix_coverage() {
         for code in &[
             "SEC001", "SEC002", "SEC003", "SEC004", "SEC005", "SEC006", "SEC007", "SEC008",
+            "SEC010", "SEC016", "SEC019", "SEC020", "SEC021", "SEC022", "SEC023", "SEC024",
             "DET001", "DET002", "DET003", "DET004", "IDEM001", "IDEM002", "IDEM003",
         ] {
             let fix = explain_fix(code);
