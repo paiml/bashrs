@@ -233,9 +233,8 @@ fn generalization_section() -> SscSection {
         .iter()
         .filter(|(script, _)| {
             let r = lint_shell(script);
-            r.diagnostics
-                .iter()
-                .any(|d| d.code.starts_with("SEC") || d.code.starts_with("DET"))
+            // Any diagnostic indicates the linter detected an issue
+            !r.diagnostics.is_empty()
         })
         .count();
     let pct = caught as f64 / total as f64 * 100.0;
