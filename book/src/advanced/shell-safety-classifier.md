@@ -210,6 +210,57 @@ Four conversation types, 10+ phrasing variants each:
 
 Quality gates (SSC v11 Section 6.4): rule citation accuracy 100%, Type D >= 30%, no variant > 20%.
 
+### Baseline Classifiers (Section 5.5)
+
+Three baseline classifiers that any ML classifier must beat:
+
+```bash
+# Run all three baselines
+bashrs corpus baselines
+
+# Run the baselines example
+cargo run -p bashrs --example baselines
+```
+
+| Baseline | Strategy | Expected MCC |
+|----------|----------|-------------|
+| Majority class | Always predict "safe" | 0.0 |
+| Keyword regex | Pattern match on 17 unsafe keywords | ~0.3-0.5 |
+| bashrs linter | Use 14 SEC/DET rules as classifier | ~0.4-0.6 |
+
+Contract C-CLF-001 requires any ML classifier to beat all three baselines on MCC, achieve accuracy > 93.5%, and generalization >= 50%.
+
+### Label Audit (Section 5.3, C-LABEL-001)
+
+Validates that "unsafe" labels are genuinely unsafe (not transpiler-limitation false positives):
+
+```bash
+# Audit first 100 unsafe labels
+bashrs corpus label-audit
+
+# Audit with custom limit
+bashrs corpus label-audit -n 200
+
+# Run the label audit example
+cargo run -p bashrs --example label_audit
+```
+
+Multi-signal validation checks: linter findings, 14 known unsafe patterns, structural checks (non-idempotent, unquoted variables). Target: >= 90% accuracy (C-LABEL-001).
+
+### Generalization Tests (Section 5.6)
+
+50 hand-written OOD (out-of-distribution) scripts with no lexical overlap with training data:
+
+```bash
+# Run generalization tests
+bashrs corpus generalization-tests
+
+# Run the example
+cargo run -p bashrs --example generalization_tests
+```
+
+6 categories: injection (10), non-determinism (10), race-condition (10), privilege (10), exfiltration (5), destructive (5). Target: linter catches >= 50%.
+
 ## WASM Deployment
 
 CodeBERT at 125M int8 (~125MB) fits in a browser. The WASM app at `interactive.paiml.com/shell-safety/` provides:
