@@ -295,6 +295,32 @@ bashrs corpus export-splits --output ./data/splits/
 
 Uses FNV-1a hash-based deterministic splitting (80/10/10, seed-stable across corpus growth).
 
+### SSC Status Report
+
+Generate a comprehensive readiness report covering all SSC validation sections:
+
+```bash
+# Full SSC readiness report
+bashrs corpus ssc-report
+
+# Run the example
+cargo run -p bashrs --example ssc_report
+```
+
+The report covers 7 sections:
+
+| Section | Spec Ref | What It Checks |
+|---------|----------|---------------|
+| Corpus | S5.3 | Entry count >= 17,000, format distribution |
+| Tokenizer (C-TOK-001) | S5.2 | >= 70% constructs acceptable |
+| Label Audit (C-LABEL-001) | S5.3 | >= 90% accuracy, false positives <= 10% |
+| Baselines (C-CLF-001) | S5.5 | Majority, keyword, linter MCC scores |
+| Generalization (OOD) | S5.6 | >= 50% of 50 OOD scripts caught |
+| Dataset Splits | S5.3 | 80/10/10 train/val/test proportions |
+| Conversations (S6) | S6 | Generation capacity, quality gates |
+
+Overall readiness: YES when no section has FAIL status.
+
 ## WASM Deployment
 
 CodeBERT at 125M int8 (~125MB) fits in a browser. The WASM app at `interactive.paiml.com/shell-safety/` provides:
