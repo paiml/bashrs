@@ -140,9 +140,7 @@ fn run_safety_check(source: &str, fmt: &ClassifyFormat) -> SafetyCheckResult {
         .count();
     let det_count = diagnostics
         .iter()
-        .filter(|d| {
-            d.code.starts_with("DET") || d.code == "DOCKER002" || d.code == "MAKE001"
-        })
+        .filter(|d| d.code.starts_with("DET") || d.code == "DOCKER002" || d.code == "MAKE001")
         .count();
     let idem_count = diagnostics
         .iter()
@@ -184,7 +182,8 @@ fn run_safety_check(source: &str, fmt: &ClassifyFormat) -> SafetyCheckResult {
     };
 
     // Confidence from signal strength
-    let confidence = compute_check_confidence(sec_count, det_count, diagnostics.len(), safety_index);
+    let confidence =
+        compute_check_confidence(sec_count, det_count, diagnostics.len(), safety_index);
 
     SafetyCheckResult {
         label,
@@ -234,11 +233,7 @@ fn compute_check_confidence(
 fn print_safety_check(result: &SafetyCheckResult) {
     use crate::cli::color::*;
 
-    let label_color = if result.binary_label == 0 {
-        GREEN
-    } else {
-        RED
-    };
+    let label_color = if result.binary_label == 0 { GREEN } else { RED };
 
     println!(
         "{BOLD}{label_color}{}{RESET} (confidence: {:.0}%, classifier: {})",
@@ -325,13 +320,19 @@ mod tests {
 
     #[test]
     fn test_safety_check_makefile() {
-        let result = run_safety_check(".PHONY: build\nbuild:\n\techo ok\n", &ClassifyFormat::Makefile);
+        let result = run_safety_check(
+            ".PHONY: build\nbuild:\n\techo ok\n",
+            &ClassifyFormat::Makefile,
+        );
         assert_eq!(result.format, "makefile");
     }
 
     #[test]
     fn test_safety_check_dockerfile() {
-        let result = run_safety_check("FROM alpine:3.18\nUSER nobody\nCOPY app /app\n", &ClassifyFormat::Dockerfile);
+        let result = run_safety_check(
+            "FROM alpine:3.18\nUSER nobody\nCOPY app /app\n",
+            &ClassifyFormat::Dockerfile,
+        );
         assert_eq!(result.format, "dockerfile");
     }
 

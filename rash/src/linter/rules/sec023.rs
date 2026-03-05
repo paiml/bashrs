@@ -11,21 +11,18 @@ static RE_REVERSE_SHELL: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"(?:bash|sh)\s+-i\s+>&?\s*/dev/tcp/").expect("valid regex")
 });
 
-static RE_NC_SHELL: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"nc\s+-[elp]+\s+/bin/(?:sh|bash)").expect("valid regex")
-});
+static RE_NC_SHELL: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"nc\s+-[elp]+\s+/bin/(?:sh|bash)").expect("valid regex"));
 
-static RE_DNS_EXFIL: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"nslookup\s+\$").expect("valid regex")
-});
+static RE_DNS_EXFIL: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"nslookup\s+\$").expect("valid regex"));
 
 static RE_CURL_POST_SECRETS: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"curl\s+.*-[dX].*(?:/etc/(?:shadow|passwd)|\.ssh/)").expect("valid regex")
 });
 
-static RE_SCP_EXFIL: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"scp\s+/etc/(?:passwd|shadow)\s").expect("valid regex")
-});
+static RE_SCP_EXFIL: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"scp\s+/etc/(?:passwd|shadow)\s").expect("valid regex"));
 
 /// Check for data exfiltration patterns.
 pub fn check(source: &str) -> LintResult {

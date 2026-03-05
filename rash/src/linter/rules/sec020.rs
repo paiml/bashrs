@@ -14,33 +14,26 @@ static RE_BASH_C: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r#"(?:bash|sh|zsh|ksh|dash)\s+-c\s+"\$"#).expect("valid regex")
 });
 
-static RE_EXEC_VAR: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r#"exec\s+"\$[^"]*""#).expect("valid regex")
-});
+static RE_EXEC_VAR: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r#"exec\s+"\$[^"]*""#).expect("valid regex"));
 
-static RE_XARGS_SH: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"xargs\s+(?:sh|bash|zsh)").expect("valid regex")
-});
+static RE_XARGS_SH: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"xargs\s+(?:sh|bash|zsh)").expect("valid regex"));
 
-static RE_SSH_CMD: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r#"ssh\s+\S+\s+"\$"#).expect("valid regex")
-});
+static RE_SSH_CMD: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r#"ssh\s+\S+\s+"\$"#).expect("valid regex"));
 
-static RE_SU_C: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r#"su\s+-c\s+"\$"#).expect("valid regex")
-});
+static RE_SU_C: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r#"su\s+-c\s+"\$"#).expect("valid regex"));
 
-static RE_PERL_E: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r#"perl\s+-e\s+"\$"#).expect("valid regex")
-});
+static RE_PERL_E: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r#"perl\s+-e\s+"\$"#).expect("valid regex"));
 
-static RE_AWK_SYSTEM: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"awk\s+'[^']*system\s*\(").expect("valid regex")
-});
+static RE_AWK_SYSTEM: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"awk\s+'[^']*system\s*\(").expect("valid regex"));
 
-static RE_ENV_INTERP: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r#"(?:#!/usr/bin/env|env)\s+"\$"#).expect("valid regex")
-});
+static RE_ENV_INTERP: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r#"(?:#!/usr/bin/env|env)\s+"\$"#).expect("valid regex"));
 
 /// Check for dangerous command execution patterns.
 pub fn check(source: &str) -> LintResult {

@@ -11,25 +11,21 @@ static RE_DD_WIPE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"dd\s+if=/dev/(?:zero|urandom)\s+of=/dev/\w+").expect("valid regex")
 });
 
-static RE_FORK_BOMB: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r":\(\)\{.*:\|:.*&.*\};:").expect("valid regex")
-});
+static RE_FORK_BOMB: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r":\(\)\{.*:\|:.*&.*\};:").expect("valid regex"));
 
 static RE_SYSRQ: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"(?:echo|printf)\s+\w+\s*>\s*/proc/sysrq").expect("valid regex")
 });
 
-static RE_IPTABLES_FLUSH: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"iptables\s+-[FX]").expect("valid regex")
-});
+static RE_IPTABLES_FLUSH: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"iptables\s+-[FX]").expect("valid regex"));
 
-static RE_CHMOD_REMOVE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"chmod\s+-R\s+0{3}\s+/").expect("valid regex")
-});
+static RE_CHMOD_REMOVE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"chmod\s+-R\s+0{3}\s+/").expect("valid regex"));
 
-static RE_RM_RF_ROOT: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"rm\s+-rf\s+/(?:\s|$)").expect("valid regex")
-});
+static RE_RM_RF_ROOT: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"rm\s+-rf\s+/(?:\s|$)").expect("valid regex"));
 
 /// Check for destructive system operations.
 pub fn check(source: &str) -> LintResult {

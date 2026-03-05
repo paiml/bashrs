@@ -11,17 +11,15 @@ static RE_TOCTOU_FILE: LazyLock<regex::Regex> = LazyLock::new(|| {
         .expect("valid regex")
 });
 
-static RE_TOCTOU_TEST: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"test\s+-[fd]\s+.*&&\s*(?:cd|rm)\s").expect("valid regex")
-});
+static RE_TOCTOU_TEST: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"test\s+-[fd]\s+.*&&\s*(?:cd|rm)\s").expect("valid regex"));
 
 static RE_PID_FILE_RACE: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"\[\s+!\s+-f\s+.*\.pid\s*\].*echo\s+\$\$\s*>").expect("valid regex")
 });
 
-static RE_PREDICTABLE_TEMP: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"/tmp/\w+_\$\$").expect("valid regex")
-});
+static RE_PREDICTABLE_TEMP: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"/tmp/\w+_\$\$").expect("valid regex"));
 
 static RE_SYMLINK_ATTACK: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"ln\s+-s\s+/etc/(?:shadow|passwd|sudoers)\s+/tmp/").expect("valid regex")
@@ -110,7 +108,8 @@ mod tests {
     #[test]
     fn test_predictable_temp() {
         let diags =
-            check("tmpfile=/tmp/work_$$; echo data > $tmpfile; process $tmpfile; rm $tmpfile").diagnostics;
+            check("tmpfile=/tmp/work_$$; echo data > $tmpfile; process $tmpfile; rm $tmpfile")
+                .diagnostics;
         assert!(!diags.is_empty());
     }
 

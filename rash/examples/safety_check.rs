@@ -30,14 +30,8 @@ fn main() {
         let findings_count = result.diagnostics.len();
 
         // Classify
-        let lint_clean = !result
-            .diagnostics
-            .iter()
-            .any(|d| d.code.starts_with("SEC"));
-        let deterministic = !result
-            .diagnostics
-            .iter()
-            .any(|d| d.code.starts_with("DET"));
+        let lint_clean = !result.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
+        let deterministic = !result.diagnostics.iter().any(|d| d.code.starts_with("DET"));
         let label_idx =
             bashrs::corpus::dataset::derive_safety_label(script, true, lint_clean, deterministic);
         let label = bashrs::corpus::dataset::SAFETY_LABELS[label_idx as usize];
@@ -48,10 +42,7 @@ fn main() {
         println!("    Findings: {findings_count}");
 
         for d in &result.diagnostics {
-            println!(
-                "      {} L{}: {}",
-                d.code, d.span.start_line, d.message
-            );
+            println!("      {} L{}: {}", d.code, d.span.start_line, d.message);
         }
         println!();
     }

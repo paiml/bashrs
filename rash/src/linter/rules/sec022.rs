@@ -8,45 +8,36 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use std::sync::LazyLock;
 
-static RE_SETUID_INSTALL: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"install\s+-m\s*[24]7[0-7]{2}\s").expect("valid regex")
-});
+static RE_SETUID_INSTALL: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"install\s+-m\s*[24]7[0-7]{2}\s").expect("valid regex"));
 
-static RE_CHMOD_SUID: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"chmod\s+\+s\s").expect("valid regex")
-});
+static RE_CHMOD_SUID: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"chmod\s+\+s\s").expect("valid regex"));
 
-static RE_SUDOERS: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"(?:>>|>)\s*/etc/sudoers").expect("valid regex")
-});
+static RE_SUDOERS: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"(?:>>|>)\s*/etc/sudoers").expect("valid regex"));
 
-static RE_SETCAP: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"setcap\s+cap_").expect("valid regex")
-});
+static RE_SETCAP: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"setcap\s+cap_").expect("valid regex"));
 
 static RE_DOCKER_SOCK: LazyLock<regex::Regex> = LazyLock::new(|| {
     regex::Regex::new(r"docker\s+run\s+.*-v\s+/var/run/docker\.sock").expect("valid regex")
 });
 
-static RE_CRONTAB_INJECT: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"crontab\s+-").expect("valid regex")
-});
+static RE_CRONTAB_INJECT: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"crontab\s+-").expect("valid regex"));
 
-static RE_AUTHKEYS: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r">>\s*~?/?\.?ssh/authorized_keys").expect("valid regex")
-});
+static RE_AUTHKEYS: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r">>\s*~?/?\.?ssh/authorized_keys").expect("valid regex"));
 
-static RE_LD_PRELOAD: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"LD_PRELOAD=\S+\s+\S+").expect("valid regex")
-});
+static RE_LD_PRELOAD: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"LD_PRELOAD=\S+\s+\S+").expect("valid regex"));
 
-static RE_PATH_PREPEND: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"(?:export\s+)?PATH=/tmp[:/]").expect("valid regex")
-});
+static RE_PATH_PREPEND: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"(?:export\s+)?PATH=/tmp[:/]").expect("valid regex"));
 
-static RE_WORLD_WRITABLE: LazyLock<regex::Regex> = LazyLock::new(|| {
-    regex::Regex::new(r"chmod\s+(?:777|o\+w)\s+/etc/").expect("valid regex")
-});
+static RE_WORLD_WRITABLE: LazyLock<regex::Regex> =
+    LazyLock::new(|| regex::Regex::new(r"chmod\s+(?:777|o\+w)\s+/etc/").expect("valid regex"));
 
 /// Check for privilege escalation patterns.
 pub fn check(source: &str) -> LintResult {
@@ -180,9 +171,8 @@ mod tests {
 
     #[test]
     fn test_docker_socket() {
-        let diags = check(
-            "docker run -v /var/run/docker.sock:/var/run/docker.sock alpine",
-        ).diagnostics;
+        let diags =
+            check("docker run -v /var/run/docker.sock:/var/run/docker.sock alpine").diagnostics;
         assert!(!diags.is_empty());
     }
 
