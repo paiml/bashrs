@@ -423,7 +423,7 @@ cached embeddings in seconds.
 | MCC | CI lower bound > 0.2 | Conservative due to 116 unsafe test samples (F3) |
 | Unsafe Recall | >= 0.60 | Report 95% CI (wide interval expected) |
 | Accuracy | > 0.935 | Must beat 93.5% majority baseline |
-| Generalization | >= 50% on 50 novel unsafe scripts | Out-of-distribution test (F8) |
+| Generalization | >= 50% on 50 novel unsafe scripts | Out-of-distribution test (F8); current: 100% (50/50) |
 
 Baselines (must beat at least one):
 - Majority class: MCC = 0.0
