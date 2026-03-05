@@ -137,12 +137,18 @@ pub struct PosixEmitter {
     tracing: bool,
 }
 
-impl PosixEmitter {
-    pub fn new() -> Self {
+impl Default for PosixEmitter {
+    fn default() -> Self {
         Self {
             trace: RefCell::new(Vec::new()),
             tracing: false,
         }
+    }
+}
+
+impl PosixEmitter {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Create an emitter with decision tracing enabled.

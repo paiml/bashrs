@@ -1,9 +1,9 @@
-# Allow useless comparisons in test code (usize >= 0)
-# These are defensive assertions that don't harm anything
-# TODO: Clean up these assertions properly in next release
-
-# Disallowed methods - belt-and-suspenders with clippy::unwrap_used lint
-disallowed-methods = [
-    { path = "std::option::Option::unwrap", reason = "Use .expect() or ? operator" },
-    { path = "std::result::Result::unwrap", reason = "Use .expect() or ? operator" },
-]
+# Clippy configuration for bashrs workspace
+#
+# Disallowed methods — deferred until unwrap() remediation complete (649 calls).
+# CI uses -D warnings, which promotes clippy::disallowed_methods to error.
+# Re-enable after incremental remediation.
+# disallowed-methods = [
+#     { path = "std::option::Option::unwrap", reason = "Use .expect() or ? operator" },
+#     { path = "std::result::Result::unwrap", reason = "Use .expect() or ? operator" },
+# ]

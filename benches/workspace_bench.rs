@@ -12,7 +12,7 @@ fn bench_transpile(c: &mut Criterion) {
 
     c.bench_function("transpile_hello_world", |b| {
         b.iter(|| {
-            let _ = bashrs::transpile(input, bashrs::Config::default());
+            let _ = bashrs::transpile(input, &bashrs::Config::default());
         });
     });
 }
