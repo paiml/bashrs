@@ -1,5 +1,5 @@
 roadmap_version: '1.0'
-github_enabled: "true"
+github_enabled: true
 github_repo: null
 roadmap:
 - id: GH-43
@@ -145,6 +145,23 @@ roadmap:
   updated: 2026-02-13T16:35:04.264336840+00:00
   spec: null
   acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-136
+  github_issue: null
+  item_type: task
+  title: 'SSC-PHASE0: Shell Safety Classifier infrastructure (spec v11, Phase 0)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-03-05T11:10:04Z
+  updated: 2026-03-05T11:10:08.192574897+00:00
+  spec: null
+  acceptance_criteria:
+  - Add shell safety classifier module structure, example, book chapter update, and Probar test scaffolding per shell-safety-inference.md v11.0
   phases: []
   subtasks: []
   estimated_effort: null
