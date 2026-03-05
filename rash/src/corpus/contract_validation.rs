@@ -115,9 +115,7 @@ pub fn check_generalization() -> ContractResult {
         .iter()
         .filter(|(script, _)| {
             let r = lint_shell(script);
-            r.diagnostics
-                .iter()
-                .any(|d| d.code.starts_with("SEC") || d.code.starts_with("DET"))
+            !r.diagnostics.is_empty()
         })
         .count();
 
