@@ -859,7 +859,8 @@ fn lint_shell_filtered(
     result.merge(sec016::check(source));
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
-    result.merge(sec019::check(source));
+    // SEC019 not dispatched: unquoted variable detection has false positives on
+    // well-known shell variables ($HOME, $RANDOM), causing misclassification
     result.merge(sec020::check(source));
     result.merge(sec021::check(source));
     result.merge(sec022::check(source));
@@ -1369,7 +1370,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sec016::check(source));
     result.merge(sec017::check(source));
     result.merge(sec018::check(source));
-    result.merge(sec019::check(source));
+    // SEC019 not dispatched: see note in lint_shell_filtered
     result.merge(sec020::check(source));
     result.merge(sec021::check(source));
     result.merge(sec022::check(source));
