@@ -41,6 +41,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `bashrs corpus label-audit` CLI command — audit label accuracy (C-LABEL-001)
 - `bashrs corpus generalization-tests` CLI command — run 50 OOD test scripts
 - `rash/examples/baselines.rs` — example demonstrating baseline classifier comparison
+- `corpus::contract_validation` — unified contract validation harness (SSC v11 S10)
+  - Runs C-TOK-001, C-LABEL-001, C-CLF-001 baselines, generalization, dataset splits
+  - Pre-training gate: ALL must pass before classifier training
+  - 6 unit tests
+- `bashrs corpus validate-contracts` CLI command — run all SSC contracts
+- `bashrs corpus export-splits` CLI command — export train/val/test JSONL for ML training
+- `rash/examples/contract_validation.rs` — example demonstrating contract validation
+- `rash/examples/tokenizer_validation.rs` — example demonstrating C-TOK-001 protocol
+- `rash/examples/evaluation_metrics.rs` — example demonstrating MCC/accuracy/F1 metrics
 - Probar-first WASM testing design (3-layer: logic/browser/performance, 21 tests, 7 contracts)
 - Brick profile-first UI design (5 presentar widgets, JIDOKA enforcement)
 - 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)

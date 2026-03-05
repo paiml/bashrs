@@ -694,3 +694,153 @@ pub(crate) fn corpus_tokenizer_validation() -> Result<()> {
 
     Ok(())
 }
+
+/// Run all SSC contract validations (pre-training gate).
+pub(crate) fn corpus_validate_contracts() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::contract_validation::run_all_contracts;
+
+    eprintln!("{BOLD}Running SSC v11 contract validation (pre-training gate)...{RESET}\n");
+
+    let report = run_all_contracts();
+
+    println!("{BOLD}=== SSC v11 Contract Validation ==={RESET}\n");
+
+    for c in &report.contracts {
+        let status = if c.passed {
+            format!("{GREEN}PASS{RESET}")
+        } else {
+            format!("{RED}FAIL{RESET}")
+        };
+        println!(
+            "  [{status}] {:<15} {:<25} value={:.1} threshold={:.1}",
+            c.id, c.name, c.value, c.threshold
+        );
+        println!("         {}", c.detail);
+    }
+
+    println!();
+    println!(
+        "{BOLD}Result: {}/{} contracts passed{RESET}",
+        report.passed_count,
+        report.contracts.len()
+    );
+
+    if report.all_passed {
+        println!("{GREEN}All contracts passed. Ready for classifier training.{RESET}");
+    } else {
+        println!("{RED}Some contracts failed. Fix before proceeding to training.{RESET}");
+    }
+
+    Ok(())
+}
+
+/// Export dataset with train/val/test splits.
+pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::baselines::corpus_baseline_entries;
+    use crate::corpus::dataset::{split_and_validate, ClassificationRow};
+
+    eprintln!("{BOLD}Building classification dataset from corpus...{RESET}");
+
+    let owned = corpus_baseline_entries();
+    let rows: Vec<ClassificationRow> = owned
+        .into_iter()
+        .map(|(input, label)| ClassificationRow { input, label })
+        .collect();
+
+    let total = rows.len();
+    eprintln!("  Total entries: {total}");
+
+    let result = split_and_validate(rows, 2);
+
+    let train_safe = result.train.iter().filter(|r| r.label == 0).count();
+    let train_unsafe = result.train.iter().filter(|r| r.label == 1).count();
+    let val_safe = result.val.iter().filter(|r| r.label == 0).count();
+    let val_unsafe = result.val.iter().filter(|r| r.label == 1).count();
+    let test_safe = result.test.iter().filter(|r| r.label == 0).count();
+    let test_unsafe = result.test.iter().filter(|r| r.label == 1).count();
+
+    println!("{BOLD}=== SSC v11 Dataset Split (alimentar-compatible) ==={RESET}\n");
+    println!("  {:<8} {:>6} {:>6} {:>6}  {:>6}", "Split", "Total", "Safe", "Unsafe", "%Unsafe");
+    println!("  {}", "-".repeat(45));
+    println!(
+        "  {:<8} {:>6} {:>6} {:>6}  {:>5.1}%",
+        "Train",
+        result.train.len(),
+        train_safe,
+        train_unsafe,
+        train_unsafe as f64 / result.train.len() as f64 * 100.0
+    );
+    println!(
+        "  {:<8} {:>6} {:>6} {:>6}  {:>5.1}%",
+        "Val",
+        result.val.len(),
+        val_safe,
+        val_unsafe,
+        val_unsafe as f64 / result.val.len() as f64 * 100.0
+    );
+    println!(
+        "  {:<8} {:>6} {:>6} {:>6}  {:>5.1}%",
+        "Test",
+        result.test.len(),
+        test_safe,
+        test_unsafe,
+        test_unsafe as f64 / result.test.len() as f64 * 100.0
+    );
+    println!(
+        "  {:<8} {:>6} {:>6} {:>6}  {:>5.1}%",
+        "Total",
+        total,
+        train_safe + val_safe + test_safe,
+        train_unsafe + val_unsafe + test_unsafe,
+        (train_unsafe + val_unsafe + test_unsafe) as f64 / total as f64 * 100.0
+    );
+
+    // Validation status
+    println!(
+        "\n  Validation: {}",
+        if result.validation.passed {
+            format!("{GREEN}PASSED{RESET}")
+        } else {
+            format!("{RED}FAILED{RESET}")
+        }
+    );
+    for err in &result.validation.errors {
+        println!("    - {RED}ERROR{RESET}: {err}");
+    }
+    for warn in &result.validation.warnings {
+        println!("    - {YELLOW}WARN{RESET}: {warn}");
+    }
+
+    // Write split files if output dir specified
+    if let Some(ref dir) = output {
+        std::fs::create_dir_all(dir).map_err(Error::Io)?;
+
+        let write_split = |name: &str, rows: &[ClassificationRow]| -> std::io::Result<()> {
+            let path = dir.join(format!("{name}.jsonl"));
+            let mut out = String::new();
+            for row in rows {
+                use std::fmt::Write as _;
+                let escaped_input = row.input.replace('\\', "\\\\").replace('"', "\\\"").replace('\n', "\\n");
+                let _ = writeln!(out, r#"{{"input":"{}","label":{}}}"#, escaped_input, row.label);
+            }
+            std::fs::write(&path, out)?;
+            Ok(())
+        };
+
+        write_split("train", &result.train).map_err(Error::Io)?;
+        write_split("val", &result.val).map_err(Error::Io)?;
+        write_split("test", &result.test).map_err(Error::Io)?;
+
+        eprintln!(
+            "\n{GREEN}Wrote split files to {}{RESET}",
+            dir.display()
+        );
+        eprintln!("  {}/train.jsonl ({} entries)", dir.display(), result.train.len());
+        eprintln!("  {}/val.jsonl ({} entries)", dir.display(), result.val.len());
+        eprintln!("  {}/test.jsonl ({} entries)", dir.display(), result.test.len());
+    }
+
+    Ok(())
+}
