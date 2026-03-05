@@ -1348,6 +1348,19 @@ pub enum CorpusCommands {
         #[arg(long)]
         limit: Option<usize>,
     },
+
+    /// Run baseline classifiers: majority, keyword regex, linter (SSC v11 S5.5)
+    Baselines,
+
+    /// Audit safety label accuracy (SSC v11 S5.3, C-LABEL-001)
+    LabelAudit {
+        /// Maximum unsafe entries to audit (default: 100)
+        #[arg(short = 'n', long, default_value = "100")]
+        limit: usize,
+    },
+
+    /// Run out-of-distribution generalization tests (SSC v11 S5.6)
+    GeneralizationTests,
 }
 
 /// Script format for classify command (SSC-022)

@@ -28,6 +28,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `corpus::label_audit` — safety label accuracy audit (SSC v11 S5.3)
   - Multi-signal validation: linter findings, known patterns, structural checks
   - Contract C-LABEL-001: >= 90% accurate (baseline: 100%)
+- `corpus::evaluation` — binary classification metrics: MCC, accuracy, precision, recall, F1, confusion matrix (SSC v11 S5.5)
+  - `evaluate()` computes all metrics from (predicted, truth) pairs
+  - `format_report()` and `format_comparison()` for human-readable output
+  - 9 unit tests
+- `corpus::baselines` — three baseline classifiers (SSC v11 S5.5)
+  - Majority class (always safe, MCC=0), keyword regex (17 patterns), linter (14 SEC/DET rules)
+  - `run_all_baselines()` for side-by-side comparison
+  - `corpus_baseline_entries()` builds labeled dataset from full corpus
+  - 7 unit tests
+- `bashrs corpus baselines` CLI command — run all three baselines on corpus
+- `bashrs corpus label-audit` CLI command — audit label accuracy (C-LABEL-001)
+- `bashrs corpus generalization-tests` CLI command — run 50 OOD test scripts
+- `rash/examples/baselines.rs` — example demonstrating baseline classifier comparison
 - Probar-first WASM testing design (3-layer: logic/browser/performance, 21 tests, 7 contracts)
 - Brick profile-first UI design (5 presentar widgets, JIDOKA enforcement)
 - 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)
