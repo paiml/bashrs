@@ -65,7 +65,7 @@ pub fn linter_baseline(entries: &[(&str, u8)]) -> EvaluationReport {
             (pred, truth)
         })
         .collect();
-    evaluate(&predictions, "bashrs linter (14 rules)")
+    evaluate(&predictions, "bashrs linter (24 SEC + DET/IDEM rules)")
 }
 
 /// Run all three baselines on the same dataset and return reports.
@@ -136,7 +136,7 @@ mod tests {
         assert_eq!(reports.len(), 3);
         assert_eq!(reports[0].name, "majority (all-safe)");
         assert_eq!(reports[1].name, "keyword regex");
-        assert_eq!(reports[2].name, "bashrs linter (14 rules)");
+        assert_eq!(reports[2].name, "bashrs linter (24 SEC + DET/IDEM rules)");
     }
 
     #[test]

@@ -865,12 +865,19 @@ pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn corpus_ssc_report() -> Result<()> {
+pub(crate) fn corpus_ssc_report(json: bool) -> Result<()> {
     use crate::corpus::ssc_report::{format_ssc_report, generate_ssc_report};
 
     eprintln!("Generating SSC v11 readiness report...");
     let report = generate_ssc_report();
-    print!("{}", format_ssc_report(&report));
+
+    if json {
+        let json_str = serde_json::to_string_pretty(&report)
+            .map_err(|e| Error::Validation(format!("JSON serialization failed: {e}")))?;
+        println!("{json_str}");
+    } else {
+        print!("{}", format_ssc_report(&report));
+    }
 
     if report.overall_ready {
         eprintln!("All sections ready for classifier training.");

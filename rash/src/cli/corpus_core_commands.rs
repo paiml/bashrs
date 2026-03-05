@@ -291,6 +291,14 @@ pub(crate) fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
             super::corpus_b2_commands::corpus_diagnose_b2(filter.as_ref(), limit)
         }
         CorpusCommands::FixB2 { apply } => super::corpus_b2_commands::corpus_fix_b2(apply),
+        // SSC, dataset, domain, tier
+        _ => handle_corpus_ssc_ops(command),
+    }
+}
+
+/// SSC v11 validation, dataset, domain, and tier commands.
+pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
+    match command {
         // Grammar and dataset
         CorpusCommands::SchemaValidate => {
             super::corpus_convergence_commands::corpus_schema_validate()
@@ -327,7 +335,9 @@ pub(crate) fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ExportSplits { output } => {
             super::corpus_config_commands::corpus_export_splits(output)
         }
-        CorpusCommands::SscReport => super::corpus_config_commands::corpus_ssc_report(),
+        CorpusCommands::SscReport { json } => {
+            super::corpus_config_commands::corpus_ssc_report(json)
+        }
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()

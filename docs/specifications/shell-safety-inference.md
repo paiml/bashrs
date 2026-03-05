@@ -16,7 +16,7 @@
 ## 1. Problem
 
 Shell scripts fail in ways that are hard to diagnose: injection, non-determinism,
-race conditions, missing quotes. The bashrs linter catches 14 known patterns. We want:
+race conditions, missing quotes. The bashrs linter catches 24 known patterns (SEC001-SEC024 + DET/IDEM rules). We want:
 
 1. A **fast classifier** (CodeBERT, 125M) that detects unsafe scripts in ~20ms
 2. A **chat model** (Qwen-1.5B) that explains WHY and suggests fixes
@@ -428,7 +428,7 @@ cached embeddings in seconds.
 Baselines (must beat at least one):
 - Majority class: MCC = 0.0
 - Keyword regex (`eval`, `$RANDOM`, `curl|bash`): MCC ~0.3-0.5
-- bashrs linter (14 rules): MCC ~0.4-0.6
+- bashrs linter (24 SEC rules + DET/IDEM): MCC ~0.4-0.6
 
 ### 5.6 Generalization Test (F8 Mitigation)
 
@@ -805,7 +805,7 @@ const _ENFORCE: &str = include_str!("../tests/shell_safety_bricks.rs");
 ```
 Browser
     ├── presentar-core (WASM) ──> Canvas rendering, Brick widgets
-    ├── bashrs (WASM) ──────────> Linter (14 rules, <1ms)
+    ├── bashrs (WASM) ──────────> Linter (24 SEC + DET/IDEM rules, <1ms)
     └── CodeBERT (WASM) ───────> Classifier (~125MB int8, ~100ms WebGPU)
 ```
 

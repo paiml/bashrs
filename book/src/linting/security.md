@@ -1,6 +1,6 @@
-# Security Rules (SEC001-SEC008)
+# Security Rules (SEC001-SEC024)
 
-Rash includes 8 critical security rules designed to detect common shell script vulnerabilities. These rules follow **NASA-level quality standards** with an average 81.2% mutation test kill rate.
+Rash includes 24 security rules designed to detect shell script vulnerabilities. The core 8 rules (SEC001-SEC008) follow **NASA-level quality standards** with an average 81.2% mutation test kill rate. Extended rules (SEC009-SEC024) cover command execution, destructive operations, privilege escalation, data exfiltration, and race conditions.
 
 ## Overview
 
@@ -533,6 +533,21 @@ cargo mutants --file rash/src/linter/rules/sec001.rs --timeout 300 -- --lib
 ```
 
 Expected results: 80-100% mutation kill rate.
+
+## Extended Security Rules (SEC009-SEC024)
+
+Beyond the core 8 rules, Rash provides extended detection for advanced threat patterns:
+
+| Rule | Category | Detects |
+|------|----------|---------|
+| SEC009-SEC019 | Advanced injection | Unquoted variables, heredoc injection, process substitution abuse |
+| SEC020 | Command execution | `bash -c "$var"`, `exec "$var"`, `xargs sh`, `ssh "$cmd"`, `su -c`, `perl -e`, `awk system()` |
+| SEC021 | Destructive operations | `dd` disk wipe, fork bombs, sysrq triggers, iptables flush, recursive `chmod 000`, `rm -rf /` |
+| SEC022 | Privilege escalation | setuid install, `chmod +s`, sudoers modification, `setcap`, docker.sock mount, crontab injection, authorized_keys append, LD_PRELOAD, PATH manipulation |
+| SEC023 | Data exfiltration | Reverse shells (`/dev/tcp`), netcat backdoors, DNS exfiltration, `curl POST` of secrets, `scp` of credentials |
+| SEC024 | Race conditions | TOCTOU file/directory checks, PID file races, predictable temp files (`/tmp/*_$$`), symlink attacks |
+
+These rules power the [Shell Safety Classifier](../advanced/shell-safety-classifier.md) generalization tests, achieving 96% detection (48/50) on out-of-distribution attack scripts.
 
 ## Further Reading
 
