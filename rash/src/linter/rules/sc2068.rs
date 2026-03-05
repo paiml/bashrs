@@ -30,12 +30,10 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for unquoted array expansions ($@, $*, ${array[@]}, ${array[*]})
-static SIMPLE_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\$[@*]").unwrap()
-});
-static ARRAY_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[[@*]\]\}").unwrap()
-});
+static SIMPLE_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$[@*]").unwrap());
+static ARRAY_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\{[a-zA-Z_][a-zA-Z0-9_]*\[[@*]\]\}").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

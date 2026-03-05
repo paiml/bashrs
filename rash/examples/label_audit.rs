@@ -19,9 +19,7 @@ fn main() {
         report.genuinely_unsafe, report.accuracy_pct
     );
     println!("  False positives:  {}", report.false_positives);
-    println!(
-        "  Target:           >= 90% (C-LABEL-001)"
-    );
+    println!("  Target:           >= 90% (C-LABEL-001)");
     println!(
         "  Status:           {}",
         if report.passed { "PASSED" } else { "FAILED" }

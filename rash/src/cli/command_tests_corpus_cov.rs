@@ -142,10 +142,8 @@ fn test_cov_drift_print_format_empty() {
 
 #[test]
 fn test_cov_classify_b2_only_false_positive() {
-    let (cat, _best) = super::corpus_b2_commands::classify_b2_only(
-        "echo hello",
-        "echo hello\nsome other line\n",
-    );
+    let (cat, _best) =
+        super::corpus_b2_commands::classify_b2_only("echo hello", "echo hello\nsome other line\n");
     assert_eq!(cat, "false_positive");
 }
 
@@ -169,10 +167,8 @@ fn test_cov_classify_b2_only_multiline_mismatch() {
 
 #[test]
 fn test_cov_classify_b2_only_line_wider() {
-    let (cat, _best) = super::corpus_b2_commands::classify_b2_only(
-        "echo",
-        "echo hello world from the shell\n",
-    );
+    let (cat, _best) =
+        super::corpus_b2_commands::classify_b2_only("echo", "echo hello world from the shell\n");
     assert_eq!(cat, "line_wider");
 }
 
@@ -202,18 +198,23 @@ fn test_cov_classify_b1b2_no_output_non_echo() {
 
 #[test]
 fn test_cov_classify_b1b2_partial_match() {
-    let cat = super::corpus_b2_commands::classify_b1b2(
-        "echo hello world",
-        "echo hello planet\n",
-    );
+    let cat = super::corpus_b2_commands::classify_b1b2("echo hello world", "echo hello planet\n");
     assert!(!cat.is_empty());
 }
 
 #[test]
 fn test_cov_print_b2_category() {
     let items = vec![
-        ("B-001".to_string(), "echo hello".to_string(), "echo hello world".to_string()),
-        ("B-002".to_string(), "echo foo".to_string(), "echo foo bar".to_string()),
+        (
+            "B-001".to_string(),
+            "echo hello".to_string(),
+            "echo hello world".to_string(),
+        ),
+        (
+            "B-002".to_string(),
+            "echo foo".to_string(),
+            "echo foo bar".to_string(),
+        ),
     ];
     super::corpus_b2_commands::print_b2_category("test_cat", &items, 5);
 }
@@ -262,7 +263,9 @@ fn test_cov_extract_main_body_makefile() {
 
 #[test]
 fn test_cov_extract_noncomment_lines() {
-    let lines = super::corpus_b2_commands::extract_noncomment_lines("# comment\nFROM ubuntu\n\nRUN echo hi\n");
+    let lines = super::corpus_b2_commands::extract_noncomment_lines(
+        "# comment\nFROM ubuntu\n\nRUN echo hi\n",
+    );
     assert_eq!(lines.len(), 2);
 }
 
@@ -272,8 +275,12 @@ fn test_cov_is_bash_preamble() {
     assert!(super::corpus_b2_commands::is_bash_preamble("#!/bin/sh"));
     assert!(super::corpus_b2_commands::is_bash_preamble("set -euf"));
     assert!(super::corpus_b2_commands::is_bash_preamble("IFS=$'\\n'"));
-    assert!(super::corpus_b2_commands::is_bash_preamble("export PATH=/usr/bin"));
-    assert!(super::corpus_b2_commands::is_bash_preamble("trap cleanup EXIT"));
+    assert!(super::corpus_b2_commands::is_bash_preamble(
+        "export PATH=/usr/bin"
+    ));
+    assert!(super::corpus_b2_commands::is_bash_preamble(
+        "trap cleanup EXIT"
+    ));
     assert!(super::corpus_b2_commands::is_bash_preamble("main \"$@\""));
     assert!(!super::corpus_b2_commands::is_bash_preamble("echo hello"));
 }
@@ -291,20 +298,34 @@ fn test_cov_advance_bash_body_state() {
 
     let mut out = Vec::new();
 
-    let state = super::corpus_b2_commands::advance_bash_body_state("rash_println() {", BashBodyState::Before, &mut out);
+    let state = super::corpus_b2_commands::advance_bash_body_state(
+        "rash_println() {",
+        BashBodyState::Before,
+        &mut out,
+    );
     assert!(state == BashBodyState::InFuncDef);
 
-    let state = super::corpus_b2_commands::advance_bash_body_state("}", BashBodyState::InFuncDef, &mut out);
+    let state =
+        super::corpus_b2_commands::advance_bash_body_state("}", BashBodyState::InFuncDef, &mut out);
     assert!(state == BashBodyState::Before);
 
-    let state = super::corpus_b2_commands::advance_bash_body_state("main() {", BashBodyState::Before, &mut out);
+    let state = super::corpus_b2_commands::advance_bash_body_state(
+        "main() {",
+        BashBodyState::Before,
+        &mut out,
+    );
     assert!(state == BashBodyState::InMain);
 
-    let state = super::corpus_b2_commands::advance_bash_body_state("echo hello", BashBodyState::InMain, &mut out);
+    let state = super::corpus_b2_commands::advance_bash_body_state(
+        "echo hello",
+        BashBodyState::InMain,
+        &mut out,
+    );
     assert!(state == BashBodyState::InMain);
     assert_eq!(out.len(), 1);
 
-    let state = super::corpus_b2_commands::advance_bash_body_state("}", BashBodyState::InMain, &mut out);
+    let state =
+        super::corpus_b2_commands::advance_bash_body_state("}", BashBodyState::InMain, &mut out);
     assert!(state == BashBodyState::Before);
 }
 
@@ -322,10 +343,7 @@ fn test_cov_find_best_token_match() {
 
 #[test]
 fn test_cov_find_best_token_match_no_overlap() {
-    let lines = vec![
-        "aaaa=1".to_string(),
-        "bbbb=2".to_string(),
-    ];
+    let lines = vec!["aaaa=1".to_string(), "bbbb=2".to_string()];
     let result = super::corpus_b2_commands::find_best_token_match("zzzz unique", &lines);
     assert!(result.is_some());
 }

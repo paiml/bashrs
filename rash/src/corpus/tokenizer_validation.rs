@@ -195,10 +195,7 @@ pub fn shell_constructs() -> Vec<TokenizerTestCase> {
 /// Token comparison is flexible: we check if the token sequence preserves
 /// meaningful boundaries (e.g., `$RANDOM` stays as one or two tokens,
 /// not fragmented into `$` + `RAN` + `DOM`).
-pub fn validate_tokenization(
-    test: &TokenizerTestCase,
-    tokens: &[String],
-) -> TokenizerTestResult {
+pub fn validate_tokenization(test: &TokenizerTestCase, tokens: &[String]) -> TokenizerTestResult {
     let token_str = tokens.join(" + ");
 
     // Check if any unacceptable pattern matches
@@ -246,9 +243,7 @@ pub fn validate_tokenization(
         reason: if acceptable {
             format!("{token_count} tokens for {logical_units} logical units: acceptable")
         } else {
-            format!(
-                "{token_count} tokens for {logical_units} logical units: too fragmented"
-            )
+            format!("{token_count} tokens for {logical_units} logical units: too fragmented")
         },
     }
 }
@@ -327,9 +322,7 @@ mod tests {
     #[test]
     fn test_validation_with_bad_tokenizer() {
         // Simulate a terrible tokenizer that splits every character
-        let report = run_validation(|construct| {
-            construct.chars().map(|c| c.to_string()).collect()
-        });
+        let report = run_validation(|construct| construct.chars().map(|c| c.to_string()).collect());
 
         // Character-level tokenization is too fragmented
         assert!(
@@ -342,7 +335,7 @@ mod tests {
     #[test]
     fn test_validate_single_construct() {
         let test = &shell_constructs()[0]; // $(command)
-        // Good tokenization
+                                           // Good tokenization
         let good_tokens = vec!["$(".to_string(), "command".to_string(), ")".to_string()];
         let result = validate_tokenization(test, &good_tokens);
         assert!(result.acceptable, "Should accept 3-token split");

@@ -42,7 +42,10 @@ fn classify_and_print(name: &str, script: &str) {
 
     if !diagnostics.is_empty() {
         for d in diagnostics.iter().take(3) {
-            println!("      - {}: {} (line {})", d.code, d.message, d.span.start_line);
+            println!(
+                "      - {}: {} (line {})",
+                d.code, d.message, d.span.start_line
+            );
         }
         if diagnostics.len() > 3 {
             println!("      ... and {} more", diagnostics.len() - 3);
@@ -59,10 +62,7 @@ fn main() {
         "#!/bin/sh\nset -euf\necho \"Hello, World!\"\nmkdir -p /tmp/build\n",
     );
 
-    classify_and_print(
-        "needs-quoting",
-        "#!/bin/sh\necho $HOME\ncd $WORKSPACE\n",
-    );
+    classify_and_print("needs-quoting", "#!/bin/sh\necho $HOME\ncd $WORKSPACE\n");
 
     classify_and_print(
         "non-deterministic",
@@ -74,10 +74,7 @@ fn main() {
         "#!/bin/sh\nmkdir /tmp/build\nln -s /usr/bin/app /usr/local/bin/app\n",
     );
 
-    classify_and_print(
-        "unsafe-eval",
-        "#!/bin/bash\neval \"$user_input\"\n",
-    );
+    classify_and_print("unsafe-eval", "#!/bin/bash\neval \"$user_input\"\n");
 
     classify_and_print(
         "unsafe-curl-pipe",

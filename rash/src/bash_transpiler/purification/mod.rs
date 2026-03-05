@@ -11,9 +11,9 @@ use std::collections::HashSet;
 use thiserror::Error;
 
 mod commands;
+mod conditional_exprs;
 mod control_flow;
 mod expressions;
-mod conditional_exprs;
 
 #[cfg(test)]
 #[allow(clippy::expect_used)]

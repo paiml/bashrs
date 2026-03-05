@@ -10,12 +10,10 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for unquoted command substitutions (SC2046)
-static CMD_SUB_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r#"(?m)(?P<pre>[^"']|^)\$\((?P<cmd>[^)]+)\)"#).unwrap()
-});
-static BACKTICK_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r#"(?m)(?P<pre>[^"']|^)`(?P<cmd>[^`]+)`"#).unwrap()
-});
+static CMD_SUB_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r#"(?m)(?P<pre>[^"']|^)\$\((?P<cmd>[^)]+)\)"#).unwrap());
+static BACKTICK_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r#"(?m)(?P<pre>[^"']|^)`(?P<cmd>[^`]+)`"#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

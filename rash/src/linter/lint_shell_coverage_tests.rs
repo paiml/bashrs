@@ -367,7 +367,10 @@ fn test_lint_shell_idem_mkdir() {
     let script = "mkdir /tmp/newdir\n";
     let result = lint_shell(script);
     assert!(
-        result.diagnostics.iter().any(|d| d.code.starts_with("IDEM")),
+        result
+            .diagnostics
+            .iter()
+            .any(|d| d.code.starts_with("IDEM")),
         "Should detect non-idempotent mkdir"
     );
 }
@@ -699,10 +702,7 @@ fn test_lint_shell_result_has_diagnostic_fields() {
             !diag.message.is_empty(),
             "Diagnostic message should not be empty"
         );
-        assert!(
-            diag.span.start_line >= 1,
-            "Diagnostic line should be >= 1"
-        );
+        assert!(diag.span.start_line >= 1, "Diagnostic line should be >= 1");
     }
 }
 
@@ -928,9 +928,18 @@ for f in *.txt; do echo $f; done
 
 #[test]
 fn test_lint_profile_from_str() {
-    assert_eq!("standard".parse::<LintProfile>().unwrap(), LintProfile::Standard);
-    assert_eq!("default".parse::<LintProfile>().unwrap(), LintProfile::Standard);
-    assert_eq!("coursera".parse::<LintProfile>().unwrap(), LintProfile::Coursera);
+    assert_eq!(
+        "standard".parse::<LintProfile>().unwrap(),
+        LintProfile::Standard
+    );
+    assert_eq!(
+        "default".parse::<LintProfile>().unwrap(),
+        LintProfile::Standard
+    );
+    assert_eq!(
+        "coursera".parse::<LintProfile>().unwrap(),
+        LintProfile::Coursera
+    );
     assert_eq!(
         "coursera-labs".parse::<LintProfile>().unwrap(),
         LintProfile::Coursera
@@ -1215,10 +1224,7 @@ fn test_lint_shell_many_lines() {
 #[test]
 fn test_lint_shell_with_path_unknown_extension() {
     // Unknown extension should fall back to auto-detection
-    let result = lint_shell_with_path(
-        Path::new("script.xyz"),
-        "#!/bin/bash\necho hello\n",
-    );
+    let result = lint_shell_with_path(Path::new("script.xyz"), "#!/bin/bash\necho hello\n");
     let _count = result.diagnostics.len();
 }
 

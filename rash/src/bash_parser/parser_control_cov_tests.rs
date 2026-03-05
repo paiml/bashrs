@@ -20,7 +20,10 @@ use super::parser::BashParser;
 
 fn parse_ok(input: &str) {
     let result = BashParser::new(input).and_then(|mut p| p.parse());
-    assert!(result.is_ok(), "Expected parse OK for: {input}\nGot: {result:?}");
+    assert!(
+        result.is_ok(),
+        "Expected parse OK for: {input}\nGot: {result:?}"
+    );
 }
 
 fn parse_ok_result(input: &str) -> super::ast::BashAst {
@@ -84,7 +87,9 @@ fn test_PCCOV_010_for_c_style_with_number_token() {
 
 #[test]
 fn test_PCCOV_011_for_c_style_with_nested_body() {
-    parse_ok("for ((i=0; i<5; i++)); do\n  for ((j=0; j<3; j++)); do\n    echo $i $j\n  done\ndone");
+    parse_ok(
+        "for ((i=0; i<5; i++)); do\n  for ((j=0; j<3; j++)); do\n    echo $i $j\n  done\ndone",
+    );
 }
 
 #[test]
@@ -193,7 +198,9 @@ fn test_PCCOV_026_select_single_item() {
 
 #[test]
 fn test_PCCOV_027_case_basic() {
-    parse_ok("case $x in\n  start) echo starting;;\n  stop) echo stopping;;\n  *) echo unknown;;\nesac");
+    parse_ok(
+        "case $x in\n  start) echo starting;;\n  stop) echo stopping;;\n  *) echo unknown;;\nesac",
+    );
 }
 
 #[test]

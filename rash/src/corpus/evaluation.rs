@@ -8,9 +8,9 @@ use serde::Serialize;
 /// Confusion matrix for binary classification.
 #[derive(Debug, Clone, Default, Serialize)]
 pub struct ConfusionMatrix {
-    pub tp: usize, // true positive (predicted unsafe, actually unsafe)
-    pub fp: usize, // false positive (predicted unsafe, actually safe)
-    pub tn: usize, // true negative (predicted safe, actually safe)
+    pub tp: usize,  // true positive (predicted unsafe, actually unsafe)
+    pub fp: usize,  // false positive (predicted unsafe, actually safe)
+    pub tn: usize,  // true negative (predicted safe, actually safe)
     pub fn_: usize, // false negative (predicted safe, actually unsafe)
 }
 
@@ -136,11 +136,7 @@ pub fn format_report(report: &EvaluationReport) -> String {
     );
     let _ = writeln!(out, "  Accuracy:   {:.3} (target: >0.935)", report.accuracy);
     let _ = writeln!(out, "  Precision:  {:.3}", report.precision);
-    let _ = writeln!(
-        out,
-        "  Recall:     {:.3} (target: >=0.60)",
-        report.recall
-    );
+    let _ = writeln!(out, "  Recall:     {:.3} (target: >=0.60)", report.recall);
     let _ = writeln!(out, "  F1:         {:.3}", report.f1);
     let _ = writeln!(
         out,

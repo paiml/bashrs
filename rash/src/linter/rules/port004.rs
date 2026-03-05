@@ -37,9 +37,8 @@ fn is_posix_sh(source: &str) -> bool {
 }
 
 /// Check for process substitution in POSIX sh scripts
-static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"[<>]\(").unwrap()
-});
+static PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"[<>]\(").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

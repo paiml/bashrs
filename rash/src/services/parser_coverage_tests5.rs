@@ -25,7 +25,11 @@ use crate::services::parser::parse;
 
 fn parse_ok(code: &str) {
     let result = parse(code);
-    assert!(result.is_ok(), "Expected parse OK for code, got: {:?}", result.err());
+    assert!(
+        result.is_ok(),
+        "Expected parse OK for code, got: {:?}",
+        result.err()
+    );
 }
 
 fn parse_err(code: &str) {

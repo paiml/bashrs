@@ -124,13 +124,7 @@ fn test_tier_targets_empty_tiers() {
 #[test]
 fn test_tier_targets_single_tier() {
     let analysis = TierWeightedScore {
-        tiers: vec![make_tier_stats(
-            CorpusTier::Trivial,
-            50,
-            50,
-            1.0,
-            0.99,
-        )],
+        tiers: vec![make_tier_stats(CorpusTier::Trivial, 50, 50, 1.0, 0.99)],
         weighted_score: 100.0,
         unweighted_score: 100.0,
         weight_delta: 0.0,
@@ -197,7 +191,10 @@ fn test_tier_targets_format_contains_table() {
     let result = format_tier_targets(&analysis);
     // Should contain table-like formatting
     assert!(
-        result.contains("│") || result.contains("|") || result.contains("─") || result.lines().count() > 3,
+        result.contains("│")
+            || result.contains("|")
+            || result.contains("─")
+            || result.lines().count() > 3,
         "Should contain table structure"
     );
 }

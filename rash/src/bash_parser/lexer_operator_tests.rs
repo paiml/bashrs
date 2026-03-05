@@ -112,11 +112,7 @@ fn test_LEX_OP_REGEX_002_regex_pattern_content() {
     let regex_tok = tokens
         .iter()
         .find(|t| matches!(t, Token::Identifier(s) if s.starts_with("=~ ")));
-    assert!(
-        regex_tok.is_some(),
-        "Expected =~ token, got: {:?}",
-        tokens
-    );
+    assert!(regex_tok.is_some(), "Expected =~ token, got: {:?}", tokens);
     if let Some(Token::Identifier(s)) = regex_tok {
         assert!(
             s.contains("foo.*bar"),
@@ -427,10 +423,7 @@ fn test_LEX_OP_NOT_002_ne_operator() {
     let tokens = lex("[ $a != $b ]");
     assert!(tokens.iter().any(|t| matches!(t, Token::Ne)));
     // Should not have separate Not token for !=
-    let not_count = tokens
-        .iter()
-        .filter(|t| matches!(t, Token::Not))
-        .count();
+    let not_count = tokens.iter().filter(|t| matches!(t, Token::Not)).count();
     assert_eq!(
         not_count, 0,
         "!= should be a single Ne token, not separate Not, got: {:?}",
@@ -447,10 +440,7 @@ fn test_LEX_OP_PIPE_001_or_not_confused_with_pipe() {
     // || should produce Or, not two Pipes
     let tokens = lex("cmd1 || cmd2");
     assert!(tokens.iter().any(|t| matches!(t, Token::Or)));
-    let pipe_count = tokens
-        .iter()
-        .filter(|t| matches!(t, Token::Pipe))
-        .count();
+    let pipe_count = tokens.iter().filter(|t| matches!(t, Token::Pipe)).count();
     assert_eq!(
         pipe_count, 0,
         "|| should not produce standalone Pipe tokens, got {}: {:?}",
@@ -461,10 +451,7 @@ fn test_LEX_OP_PIPE_001_or_not_confused_with_pipe() {
 #[test]
 fn test_LEX_OP_PIPE_002_multiple_pipes() {
     let tokens = lex("a | b | c | d");
-    let pipe_count = tokens
-        .iter()
-        .filter(|t| matches!(t, Token::Pipe))
-        .count();
+    let pipe_count = tokens.iter().filter(|t| matches!(t, Token::Pipe)).count();
     assert_eq!(
         pipe_count, 3,
         "Expected 3 pipes, got {}: {:?}",
@@ -481,13 +468,25 @@ fn test_LEX_OP_BRACKET_001_single_vs_double_brackets() {
     let tokens_single = lex("[ -f file ]");
     let tokens_double = lex("[[ -f file ]]");
 
-    assert!(tokens_single.iter().any(|t| matches!(t, Token::LeftBracket)));
-    assert!(tokens_single.iter().any(|t| matches!(t, Token::RightBracket)));
-    assert!(!tokens_single.iter().any(|t| matches!(t, Token::DoubleLeftBracket)));
+    assert!(tokens_single
+        .iter()
+        .any(|t| matches!(t, Token::LeftBracket)));
+    assert!(tokens_single
+        .iter()
+        .any(|t| matches!(t, Token::RightBracket)));
+    assert!(!tokens_single
+        .iter()
+        .any(|t| matches!(t, Token::DoubleLeftBracket)));
 
-    assert!(tokens_double.iter().any(|t| matches!(t, Token::DoubleLeftBracket)));
-    assert!(tokens_double.iter().any(|t| matches!(t, Token::DoubleRightBracket)));
-    assert!(!tokens_double.iter().any(|t| matches!(t, Token::LeftBracket)));
+    assert!(tokens_double
+        .iter()
+        .any(|t| matches!(t, Token::DoubleLeftBracket)));
+    assert!(tokens_double
+        .iter()
+        .any(|t| matches!(t, Token::DoubleRightBracket)));
+    assert!(!tokens_double
+        .iter()
+        .any(|t| matches!(t, Token::LeftBracket)));
 }
 
 // ============================================================================
@@ -552,14 +551,12 @@ fn test_LEX_OP_COMPOUND_002_conditional_with_assignment() {
     assert!(tokens.iter().any(|t| matches!(t, Token::Eq)));
     assert!(tokens.iter().any(|t| matches!(t, Token::And)));
     assert!(tokens.iter().any(|t| matches!(t, Token::Or)));
-    let assign_count = tokens
-        .iter()
-        .filter(|t| matches!(t, Token::Assign))
-        .count();
+    let assign_count = tokens.iter().filter(|t| matches!(t, Token::Assign)).count();
     assert!(
         assign_count >= 2,
         "Expected at least 2 assignments, got {}: {:?}",
-        assign_count, tokens
+        assign_count,
+        tokens
     );
 }
 
@@ -570,11 +567,9 @@ fn test_LEX_OP_COMPOUND_003_all_redirect_types_in_one() {
     assert!(tokens.iter().any(|t| matches!(t, Token::Lt)));
     assert!(tokens.iter().any(|t| matches!(t, Token::Gt)));
     assert!(tokens.iter().any(|t| matches!(t, Token::GtGt)));
-    assert!(
-        tokens
-            .iter()
-            .any(|t| matches!(t, Token::Identifier(s) if s == ">|"))
-    );
+    assert!(tokens
+        .iter()
+        .any(|t| matches!(t, Token::Identifier(s) if s == ">|")));
 }
 
 #[test]
@@ -665,9 +660,7 @@ fn test_LEX_OP_REDIR_006_readwrite_no_spaces() {
 fn test_LEX_OP_HSTR_001_herestring_double_quoted() {
     let tokens = lex("cat <<< \"hello world\"");
     assert!(
-        tokens
-            .iter()
-            .any(|t| matches!(t, Token::HereString(_))),
+        tokens.iter().any(|t| matches!(t, Token::HereString(_))),
         "Expected HereString token with double-quoted input, got: {:?}",
         tokens
     );
@@ -677,9 +670,7 @@ fn test_LEX_OP_HSTR_001_herestring_double_quoted() {
 fn test_LEX_OP_HSTR_002_herestring_unquoted() {
     let tokens = lex("cat <<< word");
     assert!(
-        tokens
-            .iter()
-            .any(|t| matches!(t, Token::HereString(_))),
+        tokens.iter().any(|t| matches!(t, Token::HereString(_))),
         "Expected HereString token with unquoted word, got: {:?}",
         tokens
     );

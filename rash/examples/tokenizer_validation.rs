@@ -14,7 +14,10 @@ fn main() {
 
     // Show the 20 critical constructs
     let constructs = shell_constructs();
-    println!("Shell constructs to validate ({} total):\n", constructs.len());
+    println!(
+        "Shell constructs to validate ({} total):\n",
+        constructs.len()
+    );
     for c in &constructs {
         println!("  {}: {:30} — {}", c.id, c.construct, c.description);
     }
@@ -29,7 +32,10 @@ fn main() {
     });
 
     println!("Total constructs: {}", report.total_constructs);
-    println!("Acceptable:       {} ({:.1}%)", report.acceptable_count, report.acceptable_pct);
+    println!(
+        "Acceptable:       {} ({:.1}%)",
+        report.acceptable_count, report.acceptable_pct
+    );
     println!("Unacceptable:     {}", report.unacceptable_count);
     println!("Target:           >= 70% (C-TOK-001)");
     println!(
@@ -55,14 +61,16 @@ fn main() {
 
     // Now run with a character-level tokenizer (should fail)
     println!("\n--- Character Tokenizer (should fail) ---\n");
-    let bad_report = run_validation(|construct| {
-        construct.chars().map(|c| c.to_string()).collect()
-    });
+    let bad_report = run_validation(|construct| construct.chars().map(|c| c.to_string()).collect());
 
     println!(
         "Acceptable: {} ({:.1}%) — {}",
         bad_report.acceptable_count,
         bad_report.acceptable_pct,
-        if bad_report.passed { "PASSED" } else { "FAILED (expected)" }
+        if bad_report.passed {
+            "PASSED"
+        } else {
+            "FAILED (expected)"
+        }
     );
 }

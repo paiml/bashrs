@@ -32,9 +32,8 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for unquoted $* that should be "$@"
-static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\$\*").unwrap()
-});
+static PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\*").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

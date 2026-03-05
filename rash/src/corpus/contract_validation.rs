@@ -70,7 +70,9 @@ pub fn check_c_label_001(limit: usize) -> ContractResult {
         threshold: 90.0,
         detail: format!(
             "{}/{} genuinely unsafe ({:.1}%), {} false positives",
-            report.genuinely_unsafe, report.total_audited, report.accuracy_pct,
+            report.genuinely_unsafe,
+            report.total_audited,
+            report.accuracy_pct,
             report.false_positives
         ),
     }
@@ -217,7 +219,10 @@ mod tests {
     #[test]
     fn test_c_tok_001_passes() {
         let result = check_c_tok_001();
-        assert!(result.passed, "C-TOK-001 should pass with whitespace tokenizer");
+        assert!(
+            result.passed,
+            "C-TOK-001 should pass with whitespace tokenizer"
+        );
         assert!(result.value >= 70.0);
     }
 
@@ -232,7 +237,11 @@ mod tests {
     fn test_generalization_check_runs() {
         let result = check_generalization();
         // The linter catches a high percentage of OOD scripts (>50% target)
-        assert!(result.value > 0.0, "Should catch some OOD scripts: {}", result.detail);
+        assert!(
+            result.value > 0.0,
+            "Should catch some OOD scripts: {}",
+            result.detail
+        );
     }
 
     #[test]
@@ -245,7 +254,10 @@ mod tests {
     #[test]
     fn test_all_contracts_report() {
         let report = run_all_contracts();
-        assert!(report.contracts.len() >= 6, "Should have at least 6 contract checks");
+        assert!(
+            report.contracts.len() >= 6,
+            "Should have at least 6 contract checks"
+        );
         assert!(report.passed_count > 0);
     }
 
@@ -253,7 +265,14 @@ mod tests {
     fn test_dataset_split_proportions() {
         let result = check_dataset_split();
         // Split proportions should be roughly 80/10/10
-        assert!(result.passed, "Split proportions should be valid: {}", result.detail);
-        assert!(result.value >= 70.0 && result.value <= 90.0, "Train pct should be ~80%");
+        assert!(
+            result.passed,
+            "Split proportions should be valid: {}",
+            result.detail
+        );
+        assert!(
+            result.value >= 70.0 && result.value <= 90.0,
+            "Train pct should be ~80%"
+        );
     }
 }

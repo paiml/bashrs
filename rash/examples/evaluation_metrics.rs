@@ -13,10 +13,7 @@ fn main() {
     println!("=== SSC v11 Evaluation Metrics (Section 5.5) ===\n");
 
     // Perfect classifier
-    let perfect = evaluate(
-        &[(1, 1), (0, 0), (1, 1), (0, 0), (1, 1), (0, 0)],
-        "perfect",
-    );
+    let perfect = evaluate(&[(1, 1), (0, 0), (1, 1), (0, 0), (1, 1), (0, 0)], "perfect");
 
     // Good classifier (1 false positive, 1 false negative)
     let good = evaluate(
@@ -31,15 +28,15 @@ fn main() {
     );
 
     // Random-ish classifier
-    let random = evaluate(
-        &[(1, 0), (0, 1), (1, 1), (0, 0), (1, 0), (0, 1)],
-        "random",
-    );
+    let random = evaluate(&[(1, 0), (0, 1), (1, 1), (0, 0), (1, 0), (0, 1)], "random");
 
     let reports = [&perfect, &good, &majority, &random];
 
     // Side-by-side comparison
-    println!("{}", format_comparison(&reports.iter().map(|r| (*r).clone()).collect::<Vec<_>>()));
+    println!(
+        "{}",
+        format_comparison(&reports.iter().map(|r| (*r).clone()).collect::<Vec<_>>())
+    );
     println!();
 
     // Detailed reports

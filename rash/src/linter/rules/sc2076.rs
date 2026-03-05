@@ -30,12 +30,10 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
 /// Check for quoted regex patterns in =~ comparisons
-static BRACKET_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\[\[(.*?)\]\]").unwrap()
-});
-static REGEX_MATCH_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r#"=~\s+"([^"]+)""#).unwrap()
-});
+static BRACKET_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\[\[(.*?)\]\]").unwrap());
+static REGEX_MATCH_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r#"=~\s+"([^"]+)""#).unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

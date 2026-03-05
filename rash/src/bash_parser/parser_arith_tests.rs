@@ -43,10 +43,7 @@ fn test_arith_number() {
 
 #[test]
 fn test_arith_variable() {
-    assert_eq!(
-        parse_arith("x"),
-        ArithExpr::Variable("x".to_string()),
-    );
+    assert_eq!(parse_arith("x"), ArithExpr::Variable("x".to_string()),);
 }
 
 #[test]
@@ -394,19 +391,13 @@ fn test_arith_power_right_associative() {
 fn test_arith_comma() {
     // x , y => returns y (comma evaluates both but returns the rightmost)
     // With variables this is simplified: comma discards left, returns right
-    assert_eq!(
-        parse_arith("1,2"),
-        ArithExpr::Number(2),
-    );
+    assert_eq!(parse_arith("1,2"), ArithExpr::Number(2),);
 }
 
 #[test]
 fn test_arith_comma_chain() {
     // 1 , 2 , 3 => Number(3)
-    assert_eq!(
-        parse_arith("1,2,3"),
-        ArithExpr::Number(3),
-    );
+    assert_eq!(parse_arith("1,2,3"), ArithExpr::Number(3),);
 }
 
 // ===========================================================================
@@ -666,10 +657,7 @@ fn test_tokenize_bitwise_not() {
 #[test]
 fn test_tokenize_underscore_variable() {
     let tokens = tokenize("_my_var");
-    assert_eq!(
-        tokens,
-        vec![ArithToken::Variable("_my_var".to_string())],
-    );
+    assert_eq!(tokens, vec![ArithToken::Variable("_my_var".to_string())],);
 }
 
 // ===========================================================================
