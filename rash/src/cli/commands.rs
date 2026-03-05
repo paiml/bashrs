@@ -1077,7 +1077,7 @@ fn handle_compile(
 
     // Read and transpile the source
     let source = fs::read_to_string(rust_source).map_err(Error::Io)?;
-    let shell_code = transpile(&source, &config)?;
+    let shell_code = transpile(&source, config)?;
 
     if self_extracting {
         // Create self-extracting script
