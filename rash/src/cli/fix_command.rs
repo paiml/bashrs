@@ -69,7 +69,7 @@ fn fix_single_file(
     };
 
     let fix_result =
-        apply_fixes_to_file(input, &lint_result, &options).map_err(|e| Error::Io(e))?;
+        apply_fixes_to_file(input, &lint_result, &options).map_err(Error::Io)?;
 
     print_file_result(input, &fix_result, dry_run);
 
