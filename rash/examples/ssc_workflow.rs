@@ -71,10 +71,7 @@ echo $HOME
     println!("  Risk: {risk}");
     println!("  Security: {sec_count}, Determinism: {det_count}, Idempotency: {idem_count}");
     for d in &result.diagnostics {
-        if d.code.starts_with("SEC")
-            || d.code.starts_with("DET")
-            || d.code.starts_with("IDEM")
-        {
+        if d.code.starts_with("SEC") || d.code.starts_with("DET") || d.code.starts_with("IDEM") {
             println!("  [{}] L{}: {}", d.code, d.span.start_line, d.message);
         }
     }

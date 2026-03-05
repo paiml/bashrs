@@ -202,8 +202,12 @@ fn partition_into_categories(
         "These patterns produce different results on each run, making the script unreliable for automation and CI/CD.");
     push_category(&mut categories, "Idempotency", idem,
         "These operations are not safe to re-run — running the script twice may produce errors or unintended side effects.");
-    push_category(&mut categories, "Style & Best Practices", other,
-        "While not security-critical, fixing these improves readability and maintainability.");
+    push_category(
+        &mut categories,
+        "Style & Best Practices",
+        other,
+        "While not security-critical, fixing these improves readability and maintainability.",
+    );
     categories
 }
 
@@ -464,8 +468,7 @@ mod tests {
 
     #[test]
     fn test_explain_nondeterministic() {
-        let report =
-            generate_explanation("#!/bin/bash\necho $RANDOM\n", &ClassifyFormat::Bash);
+        let report = generate_explanation("#!/bin/bash\necho $RANDOM\n", &ClassifyFormat::Bash);
         assert!(report.risk_level == "medium" || report.risk_level == "high");
         assert!(report
             .categories
@@ -475,8 +478,7 @@ mod tests {
 
     #[test]
     fn test_explain_idempotency() {
-        let report =
-            generate_explanation("#!/bin/sh\nmkdir /tmp/test\n", &ClassifyFormat::Bash);
+        let report = generate_explanation("#!/bin/sh\nmkdir /tmp/test\n", &ClassifyFormat::Bash);
         assert!(report
             .categories
             .iter()
@@ -555,12 +557,8 @@ mod tests {
 
     #[test]
     fn test_recommendations_include_purify() {
-        let report =
-            generate_explanation("#!/bin/bash\necho $RANDOM\n", &ClassifyFormat::Bash);
-        assert!(report
-            .recommendations
-            .iter()
-            .any(|r| r.contains("purify")));
+        let report = generate_explanation("#!/bin/bash\necho $RANDOM\n", &ClassifyFormat::Bash);
+        assert!(report.recommendations.iter().any(|r| r.contains("purify")));
     }
 
     #[test]
