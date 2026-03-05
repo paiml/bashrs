@@ -304,11 +304,14 @@ fn conversation_section() -> SscSection {
     use crate::corpus::conversations::generate_batch;
     use crate::corpus::registry::CorpusRegistry;
 
-    // Sample 100 entries to check conversation generation
+    // Sample 100 entries evenly across corpus for representative mix
     let registry = CorpusRegistry::load_full();
+    let stride = registry.entries.len().max(1) / 100;
+    let stride = stride.max(1);
     let sample: Vec<(&str, &str)> = registry
         .entries
         .iter()
+        .step_by(stride)
         .take(100)
         .map(|e| (e.id.as_str(), e.input.as_str()))
         .collect();
