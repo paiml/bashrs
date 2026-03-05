@@ -412,7 +412,8 @@ fn test_EXCOV_016_apt_install_dry_run_with_sudo() {
 #[test]
 fn test_EXCOV_017_user_group_real() {
     let executor = StepExecutor::new();
-    let result = executor.execute_user_group("ug-test", "nonexistent_user_xyz", "nonexistent_group_xyz");
+    let result =
+        executor.execute_user_group("ug-test", "nonexistent_user_xyz", "nonexistent_group_xyz");
     // Will fail due to invalid user/group but tests the non-dry-run path
     assert!(result.is_ok(), "Should return Ok, not panic");
     let r = result.unwrap();

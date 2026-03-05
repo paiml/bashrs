@@ -201,10 +201,7 @@ const SIMULATION_TESTS: &[(&str, &str, &str)] = &[
 ];
 
 fn find_bashrs_binary() -> Option<&'static str> {
-    let candidates = [
-        "target/release/bashrs",
-        "target/debug/bashrs",
-    ];
+    let candidates = ["target/release/bashrs", "target/debug/bashrs"];
     candidates
         .iter()
         .find(|p| std::path::Path::new(p).exists())

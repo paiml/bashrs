@@ -234,20 +234,14 @@ fn test_parse_var_expansion_substitution_single() {
     // expansion operator, so it becomes a plain Variable.
     let result = expand("var/old/new");
     // No substitution handler — treated as variable name
-    assert_eq!(
-        result,
-        BashExpr::Variable("var/old/new".to_string()),
-    );
+    assert_eq!(result, BashExpr::Variable("var/old/new".to_string()),);
 }
 
 #[test]
 fn test_parse_var_expansion_global_substitution() {
     // ${var//pattern/replacement} — same as above, no handler
     let result = expand("var//old/new");
-    assert_eq!(
-        result,
-        BashExpr::Variable("var//old/new".to_string()),
-    );
+    assert_eq!(result, BashExpr::Variable("var//old/new".to_string()),);
 }
 
 // ===========================================================================

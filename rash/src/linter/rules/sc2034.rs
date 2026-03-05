@@ -30,12 +30,10 @@ use regex::Regex;
 use std::collections::{HashMap, HashSet};
 
 /// Check for variables assigned but never used
-static ASSIGN_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"^([A-Za-z_][A-Za-z0-9_]*)=").unwrap()
-});
-static USE_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap()
-});
+static ASSIGN_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"^([A-Za-z_][A-Za-z0-9_]*)=").unwrap());
+static USE_PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

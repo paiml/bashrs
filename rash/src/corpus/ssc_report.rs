@@ -58,7 +58,9 @@ pub fn generate_ssc_report() -> SscStatusReport {
 
     SscStatusReport {
         spec_version: "v11.0.0".to_string(),
-        corpus_size: crate::corpus::registry::CorpusRegistry::load_full().entries.len(),
+        corpus_size: crate::corpus::registry::CorpusRegistry::load_full()
+            .entries
+            .len(),
         sections,
         overall_ready,
     }
@@ -247,14 +249,12 @@ fn generalization_section() -> SscSection {
         } else {
             SscStatus::Fail
         },
-        metrics: vec![
-            SscMetric {
-                name: "Caught".to_string(),
-                value: format!("{caught}/{total} ({pct:.1}%)"),
-                target: format!(">={GENERALIZATION_TARGET_PCT}%"),
-                passed,
-            },
-        ],
+        metrics: vec![SscMetric {
+            name: "Caught".to_string(),
+            value: format!("{caught}/{total} ({pct:.1}%)"),
+            target: format!(">={GENERALIZATION_TARGET_PCT}%"),
+            passed,
+        }],
     }
 }
 
@@ -371,11 +371,7 @@ pub fn format_ssc_report(report: &SscStatusReport) -> String {
             SscStatus::Fail => "FAIL",
             SscStatus::NotApplicable => "N/A",
         };
-        let _ = writeln!(
-            out,
-            "[{status}] {} ({})",
-            section.name, section.spec_ref
-        );
+        let _ = writeln!(out, "[{status}] {} ({})", section.name, section.spec_ref);
         for m in &section.metrics {
             let check = if m.passed { "+" } else { "-" };
             let _ = writeln!(

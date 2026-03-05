@@ -20,31 +20,31 @@ fn main() {
     for t in &tests {
         let result = lint_shell(t.script);
         let has_findings = !result.diagnostics.is_empty();
-        let has_security = result
-            .diagnostics
-            .iter()
-            .any(|d| d.code.starts_with("SEC"));
+        let has_security = result.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
         let detected = has_security || has_findings;
 
         if detected {
             caught += 1;
         } else {
             missed += 1;
-            println!(
-                "  MISSED: {} [{}] — {}",
-                t.id, t.category, t.description
-            );
+            println!("  MISSED: {} [{}] — {}", t.id, t.category, t.description);
             println!("    Script: {}", t.script.lines().next().unwrap_or(""));
         }
     }
 
     println!("\n=== Results ===\n");
     println!("  Total:   {}", tests.len());
-    println!("  Caught:  {} ({:.1}%)", caught, caught as f64 / tests.len() as f64 * 100.0);
-    println!("  Missed:  {} ({:.1}%)", missed, missed as f64 / tests.len() as f64 * 100.0);
     println!(
-        "  Target:  >= 50% (SSC v11 Section 5.5: generalization >= 50%)"
+        "  Caught:  {} ({:.1}%)",
+        caught,
+        caught as f64 / tests.len() as f64 * 100.0
     );
+    println!(
+        "  Missed:  {} ({:.1}%)",
+        missed,
+        missed as f64 / tests.len() as f64 * 100.0
+    );
+    println!("  Target:  >= 50% (SSC v11 Section 5.5: generalization >= 50%)");
     println!(
         "  Status:  {}",
         if caught as f64 / tests.len() as f64 >= 0.5 {

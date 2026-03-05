@@ -8,28 +8,41 @@ use super::docker004;
 fn test_docker004_valid_copy_from_stage() {
     let source = "FROM golang:1.21 AS builder\nRUN go build\nFROM alpine:3.18\nCOPY --from=builder /app /app\n";
     let result = docker004::check(source);
-    assert!(result.diagnostics.is_empty(), "Valid stage reference should pass");
+    assert!(
+        result.diagnostics.is_empty(),
+        "Valid stage reference should pass"
+    );
 }
 
 #[test]
 fn test_docker004_invalid_copy_from_stage() {
-    let source = "FROM golang:1.21 AS builder\nFROM alpine:3.18\nCOPY --from=nonexistent /app /app\n";
+    let source =
+        "FROM golang:1.21 AS builder\nFROM alpine:3.18\nCOPY --from=nonexistent /app /app\n";
     let result = docker004::check(source);
-    assert!(!result.diagnostics.is_empty(), "Invalid stage reference should fail");
+    assert!(
+        !result.diagnostics.is_empty(),
+        "Invalid stage reference should fail"
+    );
 }
 
 #[test]
 fn test_docker004_numeric_stage_reference() {
     let source = "FROM golang:1.21\nFROM alpine:3.18\nCOPY --from=0 /app /app\n";
     let result = docker004::check(source);
-    assert!(result.diagnostics.is_empty(), "Numeric stage reference is always valid");
+    assert!(
+        result.diagnostics.is_empty(),
+        "Numeric stage reference is always valid"
+    );
 }
 
 #[test]
 fn test_docker004_no_copy_from() {
     let source = "FROM ubuntu:22.04\nCOPY app.py /app/\n";
     let result = docker004::check(source);
-    assert!(result.diagnostics.is_empty(), "Regular COPY without --from is fine");
+    assert!(
+        result.diagnostics.is_empty(),
+        "Regular COPY without --from is fine"
+    );
 }
 
 #[test]
@@ -50,7 +63,11 @@ fn test_docker004_multiple_stages() {
 fn test_docker004_mixed_valid_invalid() {
     let source = "FROM golang:1.21 AS builder\nFROM alpine:3.18\nCOPY --from=builder /app /app\nCOPY --from=missing /other /other\n";
     let result = docker004::check(source);
-    assert_eq!(result.diagnostics.len(), 1, "Only the invalid reference should fail");
+    assert_eq!(
+        result.diagnostics.len(),
+        1,
+        "Only the invalid reference should fail"
+    );
 }
 
 #[test]
@@ -58,7 +75,10 @@ fn test_docker004_case_sensitive_stage_name() {
     let source = "FROM golang:1.21 AS Builder\nFROM alpine:3.18\nCOPY --from=builder /app /app\n";
     let result = docker004::check(source);
     // Stage names are case-sensitive: Builder != builder
-    assert!(!result.diagnostics.is_empty(), "Case mismatch should be flagged");
+    assert!(
+        !result.diagnostics.is_empty(),
+        "Case mismatch should be flagged"
+    );
 }
 
 #[test]
@@ -80,12 +100,19 @@ fn test_docker004_no_from_directive() {
 fn test_docker004_numeric_stage_1() {
     let source = "FROM golang:1.21\nFROM node:18\nFROM alpine:3.18\nCOPY --from=1 /dist /dist\n";
     let result = docker004::check(source);
-    assert!(result.diagnostics.is_empty(), "Numeric index 1 is always valid");
+    assert!(
+        result.diagnostics.is_empty(),
+        "Numeric index 1 is always valid"
+    );
 }
 
 #[test]
 fn test_docker004_stage_name_with_hyphens() {
-    let source = "FROM golang:1.21 AS my-builder\nFROM alpine:3.18\nCOPY --from=my-builder /app /app\n";
+    let source =
+        "FROM golang:1.21 AS my-builder\nFROM alpine:3.18\nCOPY --from=my-builder /app /app\n";
     let result = docker004::check(source);
-    assert!(result.diagnostics.is_empty(), "Hyphenated stage name should work");
+    assert!(
+        result.diagnostics.is_empty(),
+        "Hyphenated stage name should work"
+    );
 }

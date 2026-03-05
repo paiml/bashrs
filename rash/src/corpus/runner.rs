@@ -662,10 +662,7 @@ impl CorpusRunner {
 
         // For small entry counts or single-thread systems, skip thread overhead
         if entries.len() < n_threads * 2 || n_threads <= 1 {
-            return entries
-                .iter()
-                .map(|e| self.run_entry(e))
-                .collect();
+            return entries.iter().map(|e| self.run_entry(e)).collect();
         }
 
         let chunk_size = (entries.len() + n_threads - 1) / n_threads;
@@ -675,12 +672,7 @@ impl CorpusRunner {
             let handles: Vec<_> = chunks
                 .into_iter()
                 .map(|chunk| {
-                    s.spawn(move || {
-                        chunk
-                            .iter()
-                            .map(|e| self.run_entry(e))
-                            .collect::<Vec<_>>()
-                    })
+                    s.spawn(move || chunk.iter().map(|e| self.run_entry(e)).collect::<Vec<_>>())
                 })
                 .collect();
 
@@ -785,9 +777,7 @@ impl CorpusRunner {
         let transpile_result = match entry.format {
             CorpusFormat::Bash => crate::transpile(&entry.input, &self.config),
             CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, &self.config),
-            CorpusFormat::Dockerfile => {
-                crate::transpile_dockerfile(&entry.input, &self.config)
-            }
+            CorpusFormat::Dockerfile => crate::transpile_dockerfile(&entry.input, &self.config),
         };
 
         match transpile_result {
@@ -1379,9 +1369,7 @@ impl CorpusRunner {
         let second = match entry.format {
             CorpusFormat::Bash => crate::transpile(&entry.input, &self.config),
             CorpusFormat::Makefile => crate::transpile_makefile(&entry.input, &self.config),
-            CorpusFormat::Dockerfile => {
-                crate::transpile_dockerfile(&entry.input, &self.config)
-            }
+            CorpusFormat::Dockerfile => crate::transpile_dockerfile(&entry.input, &self.config),
         };
 
         match second {
@@ -2901,7 +2889,10 @@ end_of_record
         );
         // When transpilation fails, metamorphic_consistent is false (Err branch)
         let result = runner.run_entry(&entry);
-        assert!(!result.transpiled, "Invalid input should fail transpilation");
+        assert!(
+            !result.transpiled,
+            "Invalid input should fail transpilation"
+        );
         assert!(
             !result.metamorphic_consistent,
             "Failed transpilation sets metamorphic_consistent=false"
@@ -2968,7 +2959,10 @@ end_of_record
         );
         // When transpilation fails, run_entry sets deterministic=false in Err branch
         let result = runner.run_entry(&entry);
-        assert!(!result.transpiled, "Invalid input should fail transpilation");
+        assert!(
+            !result.transpiled,
+            "Invalid input should fail transpilation"
+        );
         assert!(
             !result.deterministic,
             "Invalid input should fail determinism check"

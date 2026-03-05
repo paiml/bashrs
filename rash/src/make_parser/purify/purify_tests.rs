@@ -466,10 +466,7 @@ fn test_purify_reproducible_comment_items_ignored() {
 #[test]
 fn test_purify_reproducible_git_log_without_date_not_flagged() {
     // git log without %cd or --date should NOT trigger
-    let ast = make_ast(vec![var(
-        "GIT_HASH",
-        "$(shell git log -1 --format=%H)",
-    )]);
+    let ast = make_ast(vec![var("GIT_HASH", "$(shell git log -1 --format=%H)")]);
     let result = reproducible_builds::analyze_reproducible_builds(&ast);
     assert!(
         !result.iter().any(

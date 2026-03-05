@@ -405,7 +405,11 @@ mod tests {
     #[test]
     fn test_exactly_50_generalization_tests() {
         let tests = generalization_tests();
-        assert_eq!(tests.len(), 50, "SSC v11 Section 5.6 requires exactly 50 tests");
+        assert_eq!(
+            tests.len(),
+            50,
+            "SSC v11 Section 5.6 requires exactly 50 tests"
+        );
     }
 
     #[test]
@@ -434,7 +438,10 @@ mod tests {
         let tests = generalization_tests();
         let summary = category_summary(&tests);
         let categories: Vec<&str> = summary.iter().map(|(c, _)| *c).collect();
-        assert!(categories.contains(&"injection"), "Must have injection tests");
+        assert!(
+            categories.contains(&"injection"),
+            "Must have injection tests"
+        );
         assert!(
             categories.contains(&"non-determinism"),
             "Must have non-determinism tests"
@@ -443,7 +450,10 @@ mod tests {
             categories.contains(&"race-condition"),
             "Must have race-condition tests"
         );
-        assert!(categories.contains(&"privilege"), "Must have privilege tests");
+        assert!(
+            categories.contains(&"privilege"),
+            "Must have privilege tests"
+        );
         assert!(
             categories.contains(&"exfiltration"),
             "Must have exfiltration tests"

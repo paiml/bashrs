@@ -31,7 +31,8 @@ static PATTERN1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
 });
 
 static PATTERN2: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r#"\$\(echo\s+"\$(\w+)"\s*\|\s*sed\s+'s/([a-zA-Z0-9_]+)/([a-zA-Z0-9_]+)/'\)"#).unwrap()
+    Regex::new(r#"\$\(echo\s+"\$(\w+)"\s*\|\s*sed\s+'s/([a-zA-Z0-9_]+)/([a-zA-Z0-9_]+)/'\)"#)
+        .unwrap()
 });
 
 /// Check for sed usage that could be replaced with parameter expansion

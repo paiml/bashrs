@@ -35,9 +35,8 @@ fn is_posix_sh(source: &str) -> bool {
 }
 
 /// Check for array syntax in POSIX sh scripts
-static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\b\w+=\(").unwrap()
-});
+static PATTERN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\b\w+=\(").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();

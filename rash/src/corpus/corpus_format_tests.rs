@@ -578,9 +578,7 @@ fn test_format_schema_report_mixed_validity() {
 
 #[test]
 fn test_format_schema_report_empty_corpus() {
-    let registry = crate::corpus::registry::CorpusRegistry {
-        entries: vec![],
-    };
+    let registry = crate::corpus::registry::CorpusRegistry { entries: vec![] };
     let report = validate_corpus(&registry);
     let table = format_schema_report(&report);
 
@@ -691,7 +689,11 @@ fn test_schema_report_pass_rate_none_valid() {
 fn test_grammar_category_fix_pattern_all() {
     for cat in GrammarCategory::all() {
         let fix = cat.fix_pattern();
-        assert!(!fix.is_empty(), "fix_pattern for {:?} should not be empty", cat);
+        assert!(
+            !fix.is_empty(),
+            "fix_pattern for {:?} should not be empty",
+            cat
+        );
     }
 }
 
@@ -699,7 +701,11 @@ fn test_grammar_category_fix_pattern_all() {
 fn test_grammar_category_description_all() {
     for cat in GrammarCategory::all() {
         let desc = cat.description();
-        assert!(!desc.is_empty(), "description for {:?} should not be empty", cat);
+        assert!(
+            !desc.is_empty(),
+            "description for {:?} should not be empty",
+            cat
+        );
     }
 }
 
@@ -718,7 +724,10 @@ fn test_grammar_category_applicable_format_coverage() {
     }
 
     assert!(saw_bash, "At least one category should apply to Bash");
-    assert!(saw_makefile, "At least one category should apply to Makefile");
+    assert!(
+        saw_makefile,
+        "At least one category should apply to Makefile"
+    );
     assert!(
         saw_dockerfile,
         "At least one category should apply to Dockerfile"

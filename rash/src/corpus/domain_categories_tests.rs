@@ -61,7 +61,10 @@ fn test_label_unix_tools() {
 
 #[test]
 fn test_label_lang_integration() {
-    assert_eq!(DomainCategory::LangIntegration.label(), "E: Lang Integration");
+    assert_eq!(
+        DomainCategory::LangIntegration.label(),
+        "E: Lang Integration"
+    );
 }
 
 #[test]
@@ -183,7 +186,7 @@ fn test_format_categories_report_single_domain_category() {
     assert!(report.contains("D: Unix Tools"));
     assert!(report.contains("80%")); // fill_pct = 80%
     assert!(report.contains("87.5%")); // pass_rate = 7/8 = 87.5%
-    // No General row should appear
+                                       // No General row should appear
     assert!(!report.contains("General"));
     // Summary
     assert!(report.contains("Total: 8 entries (8 domain-specific"));
