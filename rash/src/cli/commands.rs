@@ -234,14 +234,79 @@ fn dispatch_command(
     strict: bool,
 ) -> Result<()> {
     match command {
+        // Core transpilation commands
+        Commands::Build { .. }
+        | Commands::Check { .. }
+        | Commands::Init { .. }
+        | Commands::Verify { .. }
+        | Commands::Inspect { .. }
+        | Commands::Compile { .. } => {
+            dispatch_core(command, target, verify, validation, strict)
+        }
+
+        // Analysis and transformation commands
+        Commands::Lint { .. }
+        | Commands::Purify { .. }
+        | Commands::SafetyCheck { .. }
+        | Commands::Classify { .. }
+        | Commands::Format { .. } => {
+            dispatch_analysis(command, target, verify, validation, strict)
+        }
+
+        // Quality and testing commands
+        Commands::Test { .. }
+        | Commands::Score { .. }
+        | Commands::Audit { .. }
+        | Commands::Coverage { .. }
+        | Commands::Bench { .. }
+        | Commands::Mutate { .. }
+        | Commands::Simulate { .. }
+        | Commands::Gate { .. } => dispatch_quality(command),
+
+        // Delegated subcommand groups
+        Commands::Make { command: cmd } => make_cmds::handle_make_command(cmd),
+        Commands::Dockerfile { command: cmd } => {
+            super::dockerfile_commands::handle_dockerfile_command(cmd)
+        }
+        Commands::Devcontainer { command: cmd } => {
+            devcontainer_cmds::handle_devcontainer_command(cmd)
+        }
+        Commands::Config { command: cmd } => config_cmds::handle_config_command(cmd),
+        Commands::Installer { command: cmd } => {
+            super::installer_commands::handle_installer_command(cmd)
+        }
+        Commands::Comply { command: cmd } => comply_cmds::handle_comply_command(cmd),
+        Commands::Corpus { command: cmd } => corpus_core_cmds::handle_corpus_command(cmd),
+
+        // Interactive, misc, and generation commands
+        Commands::Repl { .. }
+        | Commands::Playbook { .. }
+        | Commands::GenerateAdversarial { .. } => dispatch_interactive(command),
+
+        #[cfg(feature = "tui")]
+        Commands::Tui => crate::tui::run()
+            .map_err(|e| crate::models::Error::Io(std::io::Error::other(e.to_string()))),
+
+        #[cfg(feature = "oracle")]
+        Commands::ExplainError { .. } => dispatch_interactive(command),
+    }
+}
+
+/// Dispatch core transpilation commands (Build, Check, Init, Verify, Inspect, Compile).
+fn dispatch_core(
+    command: Commands,
+    target: ShellDialect,
+    verify: VerificationLevel,
+    validation: ValidationLevel,
+    strict: bool,
+) -> Result<()> {
+    match command {
         Commands::Build {
             input,
             output,
             emit_proof,
             no_optimize,
         } => {
-            info!("Building {} -> {}", input.display(), output.display());
-
             let config = Config {
                 target,
                 verify,
@@ -250,42 +315,20 @@ fn dispatch_command(
                 validation_level: Some(validation),
                 strict_mode: strict,
             };
-
             build_command(&input, &output, config)
         }
-
-        Commands::Check { input } => {
-            info!("Checking {}", input.display());
-            check_command(&input)
-        }
-
-        Commands::Init { path, name } => {
-            info!("Initializing project in {}", path.display());
-            init_command(&path, name.as_deref())
-        }
-
+        Commands::Check { input } => check_command(&input),
+        Commands::Init { path, name } => init_command(&path, name.as_deref()),
         Commands::Verify {
             rust_source,
             shell_script,
-        } => {
-            info!(
-                "Verifying {} against {}",
-                shell_script.display(),
-                rust_source.display()
-            );
-            verify_command(&rust_source, &shell_script, target, verify)
-        }
-
+        } => verify_command(&rust_source, &shell_script, target, verify),
         Commands::Inspect {
             input,
             format,
             output,
             detailed,
-        } => {
-            info!("Generating inspection report for: {}", input);
-            inspect_command(&input, format, output.as_deref(), detailed)
-        }
-
+        } => inspect_command(&input, format, output.as_deref(), detailed),
         Commands::Compile {
             rust_source,
             output,
@@ -302,7 +345,6 @@ fn dispatch_command(
                 validation_level: Some(validation),
                 strict_mode: strict,
             };
-
             handle_compile(
                 &rust_source,
                 &output,
@@ -313,7 +355,19 @@ fn dispatch_command(
                 &config,
             )
         }
+        _ => unreachable!("dispatch_core called with non-core command"),
+    }
+}
 
+/// Dispatch analysis and transformation commands (Lint, Purify, SafetyCheck, Classify, Format).
+fn dispatch_analysis(
+    command: Commands,
+    _target: ShellDialect,
+    _verify: VerificationLevel,
+    _validation: ValidationLevel,
+    _strict: bool,
+) -> Result<()> {
+    match command {
         Commands::Lint {
             input,
             format,
@@ -332,7 +386,7 @@ fn dispatch_command(
             ci,
             fail_on,
         } => {
-            let _ = graded; // consumed by CLI args but unused in lint logic
+            let _ = graded;
             lint_command(LintCommandOptions {
                 inputs: &input,
                 format,
@@ -351,7 +405,6 @@ fn dispatch_command(
                 fail_on,
             })
         }
-
         Commands::Purify {
             input,
             output,
@@ -364,76 +417,49 @@ fn dispatch_command(
             diff,
             verify,
             recursive,
-        } => {
-            info!("Purifying {}", input.display());
-            purify_command(PurifyCommandOptions {
-                input: &input,
-                output: output.as_deref(),
-                report,
-                with_tests,
-                property_tests,
-                type_check,
-                emit_guards,
-                type_strict,
-                diff,
-                verify,
-                recursive,
-            })
-        }
-
+        } => purify_command(PurifyCommandOptions {
+            input: &input,
+            output: output.as_deref(),
+            report,
+            with_tests,
+            property_tests,
+            type_check,
+            emit_guards,
+            type_strict,
+            diff,
+            verify,
+            recursive,
+        }),
         Commands::SafetyCheck {
             input,
             json,
             format,
         } => safety_check_cmds::safety_check_command(&input, json, format.as_ref()),
-
         Commands::Classify {
             input,
             json,
             multi_label,
             format,
         } => classify_cmds::classify_command(&input, json, multi_label, format.as_ref()),
+        Commands::Format {
+            inputs,
+            check,
+            dry_run,
+            output,
+        } => format_command(&inputs, check, dry_run, output.as_deref()),
+        _ => unreachable!("dispatch_analysis called with non-analysis command"),
+    }
+}
 
-        Commands::Make { command } => make_cmds::handle_make_command(command),
-
-        Commands::Dockerfile { command } => {
-            super::dockerfile_commands::handle_dockerfile_command(command)
-        }
-
-        Commands::Devcontainer { command } => {
-            devcontainer_cmds::handle_devcontainer_command(command)
-        }
-
-        Commands::Config { command } => config_cmds::handle_config_command(command),
-
-        Commands::Repl {
-            debug,
-            sandboxed,
-            max_memory,
-            timeout,
-            max_depth,
-        } => {
-            info!("Starting interactive REPL");
-            handle_repl_command(debug, sandboxed, max_memory, timeout, max_depth)
-        }
-
-        #[cfg(feature = "tui")]
-        Commands::Tui => {
-            info!("Starting TUI");
-            crate::tui::run()
-                .map_err(|e| crate::models::Error::Io(std::io::Error::other(e.to_string())))
-        }
-
+/// Dispatch quality and testing commands (Test, Score, Audit, Coverage, Bench, Mutate, Simulate, Gate).
+fn dispatch_quality(command: Commands) -> Result<()> {
+    match command {
         Commands::Test {
             input,
             format,
             detailed,
             pattern,
-        } => {
-            info!("Running tests in {}", input.display());
-            test_commands::test_command(&input, format, detailed, pattern.as_deref())
-        }
-
+        } => test_commands::test_command(&input, format, detailed, pattern.as_deref()),
         Commands::Score {
             input,
             format,
@@ -442,13 +468,9 @@ fn dispatch_command(
             runtime,
             grade,
             profile,
-        } => {
-            info!("Scoring {}", input.display());
-            score_commands::score_command(
-                &input, format, detailed, dockerfile, runtime, grade, profile,
-            )
-        }
-
+        } => score_commands::score_command(
+            &input, format, detailed, dockerfile, runtime, grade, profile,
+        ),
         Commands::Audit {
             input,
             format,
@@ -456,31 +478,15 @@ fn dispatch_command(
             detailed,
             min_grade,
         } => {
-            info!("Running comprehensive quality audit on {}", input.display());
             audit_commands::audit_command(&input, &format, strict, detailed, min_grade.as_deref())
         }
-
         Commands::Coverage {
             input,
             format,
             min,
             detailed,
             output,
-        } => {
-            info!("Generating coverage report for {}", input.display());
-            coverage_commands::coverage_command(&input, &format, min, detailed, output.as_deref())
-        }
-
-        Commands::Format {
-            inputs,
-            check,
-            dry_run,
-            output,
-        } => {
-            info!("Formatting bash script(s)");
-            format_command(&inputs, check, dry_run, output.as_deref())
-        }
-
+        } => coverage_commands::coverage_command(&input, &format, min, detailed, output.as_deref()),
         Commands::Bench {
             scripts,
             warmup,
@@ -494,10 +500,8 @@ fn dispatch_command(
             csv,
             no_color,
         } => {
-            info!("Benchmarking script(s)");
             use crate::cli::bench::{bench_command, BenchOptions};
-
-            let options = BenchOptions {
+            bench_command(BenchOptions {
                 scripts,
                 warmup,
                 iterations,
@@ -509,39 +513,8 @@ fn dispatch_command(
                 measure_memory,
                 csv,
                 no_color,
-            };
-
-            bench_command(options)
+            })
         }
-
-        Commands::Gate { tier, report } => {
-            info!("Executing Tier {} quality gates", tier);
-            gate_cmds::handle_gate_command(tier, report)
-        }
-
-        #[cfg(feature = "oracle")]
-        Commands::ExplainError {
-            error,
-            command,
-            shell,
-            format,
-            detailed,
-        } => {
-            info!("Explaining error using ML oracle");
-            explain_error_command(&error, command.as_deref(), &shell, format, detailed)
-        }
-
-        Commands::Playbook {
-            input,
-            run,
-            format,
-            verbose,
-            dry_run,
-        } => {
-            info!("Executing playbook: {}", input.display());
-            playbook_command(&input, run, format, verbose, dry_run)
-        }
-
         Commands::Mutate {
             input,
             config,
@@ -549,18 +522,14 @@ fn dispatch_command(
             count,
             show_survivors,
             output,
-        } => {
-            info!("Mutation testing: {}", input.display());
-            mutate_command(
-                &input,
-                config.as_deref(),
-                format,
-                count,
-                show_survivors,
-                output.as_deref(),
-            )
-        }
-
+        } => mutate_command(
+            &input,
+            config.as_deref(),
+            format,
+            count,
+            show_survivors,
+            output.as_deref(),
+        ),
         Commands::Simulate {
             input,
             seed,
@@ -568,26 +537,29 @@ fn dispatch_command(
             mock_externals,
             format,
             trace,
-        } => {
-            info!("Simulating: {} with seed {}", input.display(), seed);
-            simulate_command(&input, seed, verify, mock_externals, format, trace)
-        }
+        } => simulate_command(&input, seed, verify, mock_externals, format, trace),
+        Commands::Gate { tier, report } => gate_cmds::handle_gate_command(tier, report),
+        _ => unreachable!("dispatch_quality called with non-quality command"),
+    }
+}
 
-        Commands::Installer { command } => {
-            info!("Executing installer command");
-            super::installer_commands::handle_installer_command(command)
-        }
-
-        Commands::Comply { command } => {
-            info!("Executing comply command");
-            comply_cmds::handle_comply_command(command)
-        }
-
-        Commands::Corpus { command } => {
-            info!("Executing corpus command");
-            corpus_core_cmds::handle_corpus_command(command)
-        }
-
+/// Dispatch interactive and misc commands (Repl, Playbook, GenerateAdversarial, ExplainError).
+fn dispatch_interactive(command: Commands) -> Result<()> {
+    match command {
+        Commands::Repl {
+            debug,
+            sandboxed,
+            max_memory,
+            timeout,
+            max_depth,
+        } => handle_repl_command(debug, sandboxed, max_memory, timeout, max_depth),
+        Commands::Playbook {
+            input,
+            run,
+            format,
+            verbose,
+            dry_run,
+        } => playbook_command(&input, run, format, verbose, dry_run),
         Commands::GenerateAdversarial {
             output,
             seed,
@@ -595,17 +567,23 @@ fn dispatch_command(
             extra_needs_quoting,
             verify,
             stats,
-        } => {
-            info!("Generating adversarial training data");
-            adversarial_cmds::generate_adversarial_command(
-                &output,
-                seed,
-                count_per_class,
-                extra_needs_quoting,
-                verify,
-                stats,
-            )
-        }
+        } => adversarial_cmds::generate_adversarial_command(
+            &output,
+            seed,
+            count_per_class,
+            extra_needs_quoting,
+            verify,
+            stats,
+        ),
+        #[cfg(feature = "oracle")]
+        Commands::ExplainError {
+            error,
+            command,
+            shell,
+            format,
+            detailed,
+        } => explain_error_command(&error, command.as_deref(), &shell, format, detailed),
+        _ => unreachable!("dispatch_interactive called with non-interactive command"),
     }
 }
 
