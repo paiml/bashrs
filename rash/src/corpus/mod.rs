@@ -26,6 +26,8 @@ pub mod baselines;
 pub mod citl;
 pub mod contract_validation;
 pub mod conversations;
+#[allow(clippy::expect_used)] // Report generation uses expect() for internal formatting
+pub mod ssc_report;
 pub mod convergence;
 pub mod evaluation;
 pub mod generalization_tests;

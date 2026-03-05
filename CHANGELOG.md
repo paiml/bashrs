@@ -50,6 +50,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `rash/examples/contract_validation.rs` — example demonstrating contract validation
 - `rash/examples/tokenizer_validation.rs` — example demonstrating C-TOK-001 protocol
 - `rash/examples/evaluation_metrics.rs` — example demonstrating MCC/accuracy/F1 metrics
+- `corpus::ssc_report` — comprehensive SSC v11 readiness report (7 sections)
+  - Corpus overview, tokenizer, label audit, baselines, generalization, dataset splits, conversations
+  - Human-readable + JSON output, overall readiness determination
+  - 3 unit tests
+- `bashrs corpus ssc-report` CLI command — single-command SSC readiness dashboard
+- `rash/examples/ssc_report.rs` — example demonstrating comprehensive report generation
 - Probar-first WASM testing design (3-layer: logic/browser/performance, 21 tests, 7 contracts)
 - Brick profile-first UI design (5 presentar widgets, JIDOKA enforcement)
 - 4 provable-contracts YAML specs (bidirectional attention, learned positions, encoder forward, linear probe)

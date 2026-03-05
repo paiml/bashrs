@@ -1374,6 +1374,9 @@ pub enum CorpusCommands {
         #[arg(short, long)]
         output: Option<std::path::PathBuf>,
     },
+
+    /// Show comprehensive SSC v11 readiness report
+    SscReport,
 }
 
 /// Script format for classify command (SSC-022)
