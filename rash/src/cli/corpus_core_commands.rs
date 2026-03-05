@@ -318,6 +318,9 @@ pub(crate) fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::GeneralizationTests => {
             super::corpus_config_commands::corpus_generalization_tests()
         }
+        CorpusCommands::TokenizerValidation => {
+            super::corpus_config_commands::corpus_tokenizer_validation()
+        }
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()

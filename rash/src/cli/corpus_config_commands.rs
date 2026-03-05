@@ -648,3 +648,49 @@ pub(crate) fn corpus_generalization_tests() -> Result<()> {
 
     Ok(())
 }
+
+/// Validate tokenizer quality on shell constructs (SSC v11 S5.2, C-TOK-001).
+pub(crate) fn corpus_tokenizer_validation() -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::tokenizer_validation::{run_validation, shell_constructs};
+
+    println!("{BOLD}=== SSC v11 Tokenizer Validation (Section 5.2, C-TOK-001) ==={RESET}\n");
+
+    let constructs = shell_constructs();
+    println!("Shell constructs: {}\n", constructs.len());
+
+    // Use whitespace tokenizer as baseline (real BPE plugs in via entrenar)
+    let report = run_validation(|construct| {
+        construct
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect()
+    });
+
+    println!("Tokenizer:        whitespace (baseline)");
+    println!("Acceptable:       {} ({:.1}%)", report.acceptable_count, report.acceptable_pct);
+    println!("Unacceptable:     {}", report.unacceptable_count);
+    println!("Target:           >= 70% (C-TOK-001)");
+    println!(
+        "Status:           {}",
+        if report.passed {
+            format!("{GREEN}PASSED{RESET}")
+        } else {
+            format!("{RED}FAILED{RESET}")
+        }
+    );
+
+    // Show failures
+    let failures: Vec<_> = report.results.iter().filter(|r| !r.acceptable).collect();
+    if !failures.is_empty() {
+        println!("\n{BOLD}--- Failed Constructs ---{RESET}\n");
+        for r in &failures {
+            println!("  {} {:30} — {}", r.id, r.construct, r.reason);
+        }
+    }
+
+    println!("\nNote: This uses a whitespace tokenizer as baseline.");
+    println!("Plug in a real BPE tokenizer via entrenar for production validation.");
+
+    Ok(())
+}
