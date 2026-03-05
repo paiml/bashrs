@@ -23,6 +23,7 @@
 pub mod adversarial_generator;
 pub mod adversarial_templates;
 pub mod citl;
+pub mod conversations;
 pub mod convergence;
 #[allow(clippy::expect_used)] // Dataset uses expect() for internal invariants
 pub mod dataset;
