@@ -22,9 +22,11 @@
 
 pub mod adversarial_generator;
 pub mod adversarial_templates;
+pub mod baselines;
 pub mod citl;
 pub mod conversations;
 pub mod convergence;
+pub mod evaluation;
 pub mod generalization_tests;
 pub mod label_audit;
 pub mod tokenizer_validation;
