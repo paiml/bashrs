@@ -327,6 +327,7 @@ pub(crate) fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ExportSplits { output } => {
             super::corpus_config_commands::corpus_export_splits(output)
         }
+        CorpusCommands::SscReport => super::corpus_config_commands::corpus_ssc_report(),
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()

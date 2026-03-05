@@ -844,3 +844,19 @@ pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
 
     Ok(())
 }
+
+pub(crate) fn corpus_ssc_report() -> Result<()> {
+    use crate::corpus::ssc_report::{format_ssc_report, generate_ssc_report};
+
+    eprintln!("Generating SSC v11 readiness report...");
+    let report = generate_ssc_report();
+    print!("{}", format_ssc_report(&report));
+
+    if report.overall_ready {
+        eprintln!("All sections ready for classifier training.");
+    } else {
+        eprintln!("Some sections need attention before classifier training.");
+    }
+
+    Ok(())
+}
