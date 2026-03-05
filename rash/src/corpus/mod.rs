@@ -25,6 +25,7 @@ pub mod adversarial_templates;
 pub mod citl;
 pub mod conversations;
 pub mod convergence;
+pub mod generalization_tests;
 #[allow(clippy::expect_used)] // Dataset uses expect() for internal invariants
 pub mod dataset;
 #[allow(clippy::expect_used)] // Domain categories uses expect() for internal invariants
