@@ -1707,11 +1707,167 @@ error: Verification failed: outputs differ
 
 ---
 
+## `bashrs classify` - Shell Safety Classification
+
+Classify a shell script by safety risk using the rule-based classifier (SSC v11 Stage 0).
+
+### Usage
+
+```bash
+bashrs classify [OPTIONS] <FILE>
+```
+
+### Options
+
+- `--json` - Output JSON with per-class scores
+- `--multi-label` - Detect ALL applicable issues (not just highest priority)
+- `--format <FORMAT>` - Force format detection (`bash`, `makefile`, `dockerfile`)
+
+### Examples
+
+```bash
+bashrs classify script.sh
+# Output: safe (confidence: 95.0%)
+
+bashrs classify --json script.sh
+# Output: {"label": "safe", "confidence": 0.95, ...}
+
+bashrs classify --format makefile Makefile
+```
+
+---
+
+## `bashrs explain` - Safety Explanation
+
+Generate natural-language safety explanations for shell scripts.
+
+### Usage
+
+```bash
+bashrs explain [OPTIONS] <FILE>
+```
+
+### Options
+
+- `--json` - JSON output for programmatic consumption
+- `--format <FORMAT>` - Force format detection
+
+### Examples
+
+```bash
+bashrs explain script.sh
+# Output: risk level, categorized findings, what/why/fix per issue
+
+bashrs explain --json script.sh
+# Output: {"risk_level": "HIGH", "findings": [...]}
+```
+
+---
+
+## `bashrs fix` - Auto-Fix Safety Issues
+
+Apply automatic fixes to shell scripts.
+
+### Usage
+
+```bash
+bashrs fix [OPTIONS] <FILE>
+```
+
+### Options
+
+- `--dry-run` - Preview changes without modifying
+- `--assumptions` - Include SAFE-WITH-ASSUMPTIONS fixes (e.g., `mkdir -p`)
+- `--output <FILE>` - Write fixed output to a different file
+
+### Examples
+
+```bash
+bashrs fix --dry-run script.sh
+bashrs fix --assumptions script.sh
+bashrs fix --output fixed.sh script.sh
+```
+
+---
+
+## `bashrs safety-check` - Combined Lint + Classify
+
+Run lint findings and classification in a single pass.
+
+### Usage
+
+```bash
+bashrs safety-check [OPTIONS] <FILE>
+```
+
+### Options
+
+- `--json` - JSON output for CI/CD integration
+- `--format <FORMAT>` - Force format detection
+
+### Examples
+
+```bash
+bashrs safety-check script.sh
+# Output: label, confidence, and all findings
+
+bashrs safety-check --json script.sh
+```
+
+---
+
+## `bashrs corpus` - Corpus Management
+
+Subcommands for managing the SSC training corpus.
+
+### Subcommands
+
+| Command | Description |
+|---------|-------------|
+| `model-card` | Generate HuggingFace model card |
+| `training-config` | Export entrenar training configuration |
+| `export-splits` | Show/write train/val/test splits |
+| `validate-contracts` | Run all SSC pre-training contracts |
+| `baselines` | Run baseline classifiers (majority, keyword, linter) |
+| `publish-dataset` | Generate HuggingFace-ready dataset directory |
+| `ssc-report` | Comprehensive SSC readiness report |
+| `generate-conversations` | Generate synthetic training conversations |
+
+### Examples
+
+```bash
+# Model card
+bashrs corpus model-card
+bashrs corpus model-card --output README.md
+
+# Training config
+bashrs corpus training-config
+bashrs corpus training-config --json
+
+# Dataset splits
+bashrs corpus export-splits
+bashrs corpus export-splits --output ./data/splits/
+
+# Publish complete dataset
+bashrs corpus publish-dataset --output ./ssc-dataset/
+
+# SSC readiness report
+bashrs corpus ssc-report
+bashrs corpus ssc-report --gate    # CI mode: exit 1 on failure
+bashrs corpus ssc-report --json
+
+# Conversations
+bashrs corpus generate-conversations --output conversations.jsonl
+```
+
+---
+
 ## See Also
 
 - [Getting Started Guide](../getting-started/installation.md)
 - [Purification Concepts](../concepts/purification.md)
 - [Security Linting](../linting/security.md)
+- [Shell Safety Classifier](../advanced/shell-safety-classifier.md)
 - [Configuration Management](../config/overview.md)
 - [REPL Usage](../getting-started/repl.md)
 - [PMAT Integration](../advanced/pmat-integration.md)
