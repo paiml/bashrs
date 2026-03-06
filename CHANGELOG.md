@@ -80,6 +80,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Validated: 500-entry probe MCC=0.592, acc=95.2%, C-CLF-001 PASS
 - classifier-pipeline-v1.yaml provable contract (5 proof obligations, 5 falsification tests)
 - 43 `assert_cmd` CLI integration tests (+3 for Stage 1 classify)
+- Class-weighted online SGD for linear probe training (KAIZEN-101)
+  - sqrt-inverse class weights: w_k = sqrt(n/(2*n_k)) matching aprender ClassWeight::Balanced
+  - L2 regularization (weight_decay=1e-4) prevents overfitting
+  - Per-sample gradient updates (online SGD) instead of full-batch GD
+  - Fixes MCC degradation on imbalanced data (92% safe / 8% unsafe)
+  - Validated: 500-entry MCC=0.592, 672-entry MCC=0.608, 2047-entry MCC=0.321 (all PASS C-CLF-001)
+- Upstream: aprender ClassWeight enum + L2 regularization (aprender#427)
+  - `ClassWeight::Uniform`, `ClassWeight::Balanced`, `ClassWeight::Manual(Vec<f32>)`
+  - `.with_class_weight()`, `.with_l2_penalty()` builder methods
+  - 9 FALSIFY contract tests (FALSIFY-LOGREG-001..009) + 3 proptests
 
 ### Performance
 - SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)
