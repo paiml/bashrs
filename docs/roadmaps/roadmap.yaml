@@ -154,14 +154,126 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-PHASE0: Shell Safety Classifier infrastructure (spec v11, Phase 0)'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-03-05T11:10:04Z
-  updated: 2026-03-05T11:10:08.192574897+00:00
+  updated: 2026-03-06T03:51:57Z
   spec: null
   acceptance_criteria:
   - Add shell safety classifier module structure, example, book chapter update, and Probar test scaffolding per shell-safety-inference.md v11.0
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-137
+  github_issue: null
+  item_type: task
+  title: 'SSC-EXPLAIN: bashrs explain command — rule-based script safety explanation (S8.1)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-05T21:14:02Z
+  updated: 2026-03-06T02:13:43Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-138
+  github_issue: null
+  item_type: task
+  title: 'SSC-FIX: bashrs fix command — apply linter autofixes to shell scripts (S8.1)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-05T21:14:07Z
+  updated: 2026-03-06T02:13:43Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-139
+  github_issue: null
+  item_type: task
+  title: 'SSC-EXPORT: full corpus conversation JSONL export for HuggingFace (S6.6)'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-03-05T21:14:07Z
+  updated: 2026-03-06T02:13:43Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-140
+  github_issue: null
+  item_type: task
+  title: 'SSC-MODELCARD: generate HuggingFace model card'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-06T02:18:34Z
+  updated: 2026-03-06T03:51:54Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-141
+  github_issue: null
+  item_type: task
+  title: 'SSC-TRAINCONFIG: export entrenar training configuration'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-03-06T02:18:38Z
+  updated: 2026-03-06T03:51:54Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-142
+  github_issue: null
+  item_type: task
+  title: 'SSC-CLI-TESTS: assert_cmd integration tests for explain, fix, classify, safety-check'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-06T02:50:45Z
+  updated: 2026-03-06T03:51:54Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-143
+  github_issue: null
+  item_type: task
+  title: 'SSC-PUBLISH: bashrs corpus publish-dataset — export HuggingFace-ready directory with model card + splits'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-03-06T02:58:45Z
+  updated: 2026-03-06T03:51:54Z
+  spec: null
+  acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
