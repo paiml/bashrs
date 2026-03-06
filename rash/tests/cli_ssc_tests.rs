@@ -600,6 +600,28 @@ fn test_PMAT154_corpus_train_classifier_from_synthetic() {
 }
 
 #[test]
+fn test_PMAT154_classify_with_probe_flag() {
+    // The --probe flag should be accepted even without ml feature
+    let f = write_temp_script("#!/bin/sh\necho hello\n");
+    let dir = tempfile::tempdir().unwrap();
+    let probe_path = dir.path().join("probe.json");
+    // Write a minimal probe (too small to be a real CodeBERT probe)
+    std::fs::write(
+        &probe_path,
+        r#"{"weights":[0.5,-0.5],"bias":0.0,"epochs":1,"learning_rate":0.01,"train_accuracy":0.5,"train_mcc":0.0}"#,
+    )
+    .unwrap();
+    bashrs_cmd()
+        .arg("classify")
+        .arg("--probe")
+        .arg(&probe_path)
+        .arg(f.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("safe"));
+}
+
+#[test]
 fn test_PMAT154_corpus_extract_embeddings_requires_ml() {
     // Without ml feature, extract-embeddings should fail with helpful message
     // (the test binary is built without --features ml)

@@ -306,6 +306,10 @@ pub enum Commands {
         /// Force format (auto-detected from extension if omitted)
         #[arg(long, value_enum)]
         format: Option<ClassifyFormat>,
+
+        /// Path to trained linear probe weights (probe.json from train-classifier)
+        #[arg(long)]
+        probe: Option<std::path::PathBuf>,
     },
 
     /// Makefile parsing, purification, and transformation
