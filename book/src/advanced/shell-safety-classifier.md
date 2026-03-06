@@ -154,11 +154,11 @@ Output:
 The CodeBERT classifier (125M encoder) provides ML-based classification:
 
 ```bash
-# Classify using CodeBERT model (~20ms)
-bashrs classify --model codebert script.sh
+# Classify with MLP probe (recommended, MCC=0.754)
+bashrs classify --mlp-probe mlp_probe.json --model /path/to/codebert script.sh
 
-# Combined: linter + CodeBERT
-bashrs check script.sh
+# Classify with linear probe (simpler, lower accuracy)
+bashrs classify --probe probe.json --model /path/to/codebert script.sh
 ```
 
 CodeBERT is an encoder-only model (RoBERTa architecture) pretrained on 6 programming languages. It sees the entire input bidirectionally, making it naturally suited for classification tasks. At 125M parameters, it runs in ~20ms on CPU and fits in a browser via WASM (~125MB int8).
