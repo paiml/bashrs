@@ -16,6 +16,21 @@ use crate::linter::{lint_shell, Diagnostic};
 use serde::Serialize;
 use std::fmt::Write as _;
 
+/// System prompt for ChatML conversations (S6.5 honesty requirements).
+///
+/// This prompt defines the assistant's role and limitations per SSC v11 Section 6.5:
+/// - Trained on synthetic data from rule-based linter output
+/// - Explains known patterns, not novel safety reasoning
+/// - Not a replacement for security audit
+pub const SYSTEM_PROMPT: &str = "\
+You are a shell script safety analyzer. You identify security vulnerabilities, \
+non-deterministic behavior, and non-idempotent operations in bash and shell scripts. \
+Your analysis is based on pattern matching against known unsafe constructs \
+(command injection, unquoted variables, non-deterministic sources, non-idempotent operations). \
+You do NOT perform novel security reasoning — you explain known patterns. \
+For scripts outside your rule coverage, say so honestly. \
+You are not a replacement for a professional security audit.";
+
 /// A single conversation turn (ChatML format for Qwen).
 #[derive(Debug, Clone, Serialize)]
 pub struct Turn {
@@ -285,6 +300,7 @@ fn generate_classify_explain(input: &ConversationInput<'_>, variant: usize) -> V
         .push_str("\nI recommend fixing these issues before running this script in production.");
 
     vec![
+        system_turn(),
         Turn {
             role: "user",
             content: user_content,
@@ -315,6 +331,7 @@ fn generate_fix(input: &ConversationInput<'_>, variant: usize) -> Vec<Turn> {
     }
 
     vec![
+        system_turn(),
         Turn {
             role: "user",
             content: user_content,
@@ -359,6 +376,7 @@ fn generate_debug(input: &ConversationInput<'_>, variant: usize) -> Vec<Turn> {
     );
 
     vec![
+        system_turn(),
         Turn {
             role: "user",
             content: user_content,
@@ -397,6 +415,7 @@ fn generate_confirm_safe(input: &ConversationInput<'_>, variant: usize) -> Vec<T
         .push_str("command injection, non-deterministic operations, or non-idempotent commands.");
 
     vec![
+        system_turn(),
         Turn {
             role: "user",
             content: user_content,
@@ -406,6 +425,14 @@ fn generate_confirm_safe(input: &ConversationInput<'_>, variant: usize) -> Vec<T
             content: response,
         },
     ]
+}
+
+/// Create the system turn for ChatML conversations.
+fn system_turn() -> Turn {
+    Turn {
+        role: "system",
+        content: SYSTEM_PROMPT.to_string(),
+    }
 }
 
 /// Apply basic safety fixes to a script based on linter diagnostics.
@@ -452,7 +479,8 @@ fn check_variant_distribution(conversations: &[Conversation]) -> bool {
     // Count conversations by variant (user prompt text determines variant)
     let mut variant_counts = std::collections::HashMap::new();
     for conv in conversations {
-        if let Some(user_turn) = conv.turns.first() {
+        // User turn is at index 1 (after system turn)
+        if let Some(user_turn) = conv.turns.get(1) {
             // Extract first line as variant key
             let key = user_turn.content.lines().next().unwrap_or("").to_string();
             *variant_counts.entry(key).or_insert(0usize) += 1;
@@ -483,6 +511,98 @@ pub fn to_jsonl(conversations: &[Conversation]) -> String {
     output
 }
 
+/// Generate a HuggingFace dataset README with YAML front matter (S6.6).
+///
+/// Returns a complete README.md for `paiml/shell-safety-conversations`.
+pub fn generate_dataset_readme(report: &QualityReport) -> String {
+    let mut readme = String::new();
+
+    // YAML front matter
+    let _ = write!(
+        readme,
+        "---\n\
+        language:\n\
+        - en\n\
+        license: apache-2.0\n\
+        task_categories:\n\
+        - text-classification\n\
+        - text-generation\n\
+        tags:\n\
+        - shell\n\
+        - bash\n\
+        - security\n\
+        - safety\n\
+        - code-analysis\n\
+        - synthetic\n\
+        size_categories:\n\
+        - 10K<n<100K\n\
+        ---\n\n"
+    );
+
+    // Title and description
+    readme.push_str("# Shell Safety Conversations\n\n");
+    readme.push_str(
+        "Synthetic instruction-following conversations for shell script safety analysis. \
+        Generated from the bashrs corpus using rule-based linter findings.\n\n",
+    );
+
+    // Dataset summary
+    readme.push_str("## Dataset Summary\n\n");
+    let _ = writeln!(readme, "- **Total conversations**: {}", report.total);
+    let _ = writeln!(
+        readme,
+        "- **Type A (Classify+Explain)**: {}",
+        report.type_a_count
+    );
+    let _ = writeln!(readme, "- **Type B (Fix)**: {}", report.type_b_count);
+    let _ = writeln!(readme, "- **Type C (Debug)**: {}", report.type_c_count);
+    let _ = writeln!(
+        readme,
+        "- **Type D (Confirm Safe)**: {} ({:.1}%)",
+        report.type_d_count, report.type_d_pct
+    );
+    let _ = writeln!(readme, "- **Format**: ChatML (system + user + assistant)");
+    let _ = writeln!(readme, "- **Quality gate**: {}", if report.passed { "PASSED" } else { "FAILED" });
+    readme.push('\n');
+
+    // Honesty requirements (S6.5)
+    readme.push_str("## Limitations and Bias\n\n");
+    readme.push_str(
+        "This dataset is generated from **rule-based linter output**, not from human security experts \
+        or independent safety reasoning. The conversations:\n\n\
+        - Explain known unsafe patterns (SEC001-SEC024, DET001-DET006, IDEM001-IDEM006)\n\
+        - Do NOT perform novel security reasoning\n\
+        - May produce generic responses for scripts outside rule coverage\n\
+        - Are NOT a replacement for professional security audit\n\
+        - Use synthetic phrasing variants (12 per type) for diversity\n\n",
+    );
+
+    // Format
+    readme.push_str("## Data Format\n\n");
+    readme.push_str("Each entry is a JSON object with:\n\n");
+    readme.push_str("```json\n");
+    readme.push_str("{\n");
+    readme.push_str("  \"id\": \"conv-B-1234-classify-explain\",\n");
+    readme.push_str("  \"conversation_type\": \"ClassifyExplain\",\n");
+    readme.push_str("  \"turns\": [\n");
+    readme.push_str("    {\"role\": \"system\", \"content\": \"You are a shell script safety analyzer...\"},\n");
+    readme.push_str("    {\"role\": \"user\", \"content\": \"Is this script safe?\\n\\n```bash\\neval $x\\n```\"},\n");
+    readme.push_str("    {\"role\": \"assistant\", \"content\": \"This script is **unsafe**...\"}\n");
+    readme.push_str("  ]\n");
+    readme.push_str("}\n");
+    readme.push_str("```\n\n");
+
+    // Source
+    readme.push_str("## Source\n\n");
+    readme.push_str(
+        "Generated by `bashrs corpus generate-conversations` from the bashrs corpus \
+        (17,942 shell script entries). See [bashrs](https://github.com/paiml/bashrs) \
+        and the [SSC v11 specification](https://github.com/paiml/bashrs/blob/main/docs/specifications/shell-safety-inference.md).\n",
+    );
+
+    readme
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -500,10 +620,11 @@ mod tests {
 
         let conv = generate_conversation(&input, 1);
         assert_eq!(conv.conversation_type, ConversationType::ClassifyExplain);
-        assert_eq!(conv.turns.len(), 2);
-        assert_eq!(conv.turns[0].role, "user");
-        assert_eq!(conv.turns[1].role, "assistant");
-        assert!(conv.turns[1].content.contains("unsafe"));
+        assert_eq!(conv.turns.len(), 3);
+        assert_eq!(conv.turns[0].role, "system");
+        assert_eq!(conv.turns[1].role, "user");
+        assert_eq!(conv.turns[2].role, "assistant");
+        assert!(conv.turns[2].content.contains("unsafe"));
     }
 
     #[test]
@@ -520,7 +641,7 @@ mod tests {
         // seed=0 with security finding → Fix type
         let conv = generate_conversation(&input, 0);
         assert_eq!(conv.conversation_type, ConversationType::Fix);
-        assert!(conv.turns[1].content.contains("safer version"));
+        assert!(conv.turns[2].content.contains("safer version"));
     }
 
     #[test]
@@ -536,7 +657,7 @@ mod tests {
 
         let conv = generate_conversation(&input, 0);
         assert_eq!(conv.conversation_type, ConversationType::Debug);
-        assert!(conv.turns[1].content.contains("non-deterministic"));
+        assert!(conv.turns[2].content.contains("non-deterministic"));
     }
 
     #[test]
@@ -551,7 +672,7 @@ mod tests {
 
         let conv = generate_conversation(&input, 0);
         assert_eq!(conv.conversation_type, ConversationType::ConfirmSafe);
-        assert!(conv.turns[1].content.contains("safe"));
+        assert!(conv.turns[2].content.contains("safe"));
     }
 
     #[test]
@@ -568,11 +689,12 @@ mod tests {
         assert_eq!(conversations.len(), 5);
         assert_eq!(report.total, 5);
         assert!(report.rule_citation_accuracy >= 1.0);
-        // Verify all conversations have valid structure
+        // Verify all conversations have valid ChatML structure (system + user + assistant)
         for conv in &conversations {
-            assert_eq!(conv.turns.len(), 2);
-            assert_eq!(conv.turns[0].role, "user");
-            assert_eq!(conv.turns[1].role, "assistant");
+            assert_eq!(conv.turns.len(), 3);
+            assert_eq!(conv.turns[0].role, "system");
+            assert_eq!(conv.turns[1].role, "user");
+            assert_eq!(conv.turns[2].role, "assistant");
         }
     }
 
@@ -604,6 +726,36 @@ mod tests {
         // Should be valid JSON
         let parsed: serde_json::Value = serde_json::from_str(jsonl.trim()).expect("valid JSON");
         assert_eq!(parsed["conversation_type"], "ConfirmSafe");
+        // Verify system turn is present
+        assert_eq!(parsed["turns"][0]["role"], "system");
+    }
+
+    #[test]
+    fn test_system_prompt_content() {
+        assert!(SYSTEM_PROMPT.contains("shell script safety"));
+        assert!(SYSTEM_PROMPT.contains("not a replacement"));
+    }
+
+    #[test]
+    fn test_generate_dataset_readme() {
+        let report = QualityReport {
+            total: 100,
+            type_a_count: 20,
+            type_b_count: 15,
+            type_c_count: 10,
+            type_d_count: 55,
+            type_d_pct: 55.0,
+            rule_citation_accuracy: 1.0,
+            variant_distribution_ok: true,
+            empty_responses: 0,
+            passed: true,
+        };
+        let readme = generate_dataset_readme(&report);
+        assert!(readme.starts_with("---\n"));
+        assert!(readme.contains("license: apache-2.0"));
+        assert!(readme.contains("Shell Safety Conversations"));
+        assert!(readme.contains("Limitations and Bias"));
+        assert!(readme.contains("100"));
     }
 
     #[test]

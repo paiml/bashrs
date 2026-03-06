@@ -1042,3 +1042,75 @@ fn write_split_file(
         .map_err(|e| Error::Validation(format!("Failed to write {}: {e}", path.display())))?;
     Ok(())
 }
+
+/// Publish HuggingFace-ready conversation dataset (S6.6).
+///
+/// Generates conversations from full corpus, writes JSONL + dataset README.
+pub(crate) fn corpus_publish_conversations(output: PathBuf, seed: u64) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::conversations::{generate_batch, generate_dataset_readme, to_jsonl};
+    use crate::corpus::registry::CorpusRegistry;
+
+    eprintln!("{BOLD}Building conversation dataset (seed={seed})...{RESET}");
+
+    let registry = CorpusRegistry::load_full();
+    let batch: Vec<(&str, &str)> = registry
+        .entries
+        .iter()
+        .map(|e| (e.id.as_str(), e.input.as_str()))
+        .collect();
+
+    let (conversations, report) = generate_batch(&batch, seed);
+
+    // Create output directory
+    std::fs::create_dir_all(&output)
+        .map_err(|e| Error::Validation(format!("Cannot create {}: {e}", output.display())))?;
+
+    // Write conversations JSONL
+    let jsonl = to_jsonl(&conversations);
+    let jsonl_path = output.join("conversations.jsonl");
+    std::fs::write(&jsonl_path, &jsonl).map_err(|e| {
+        Error::Validation(format!("Failed to write {}: {e}", jsonl_path.display()))
+    })?;
+
+    // Write dataset README
+    let readme = generate_dataset_readme(&report);
+    let readme_path = output.join("README.md");
+    std::fs::write(&readme_path, &readme).map_err(|e| {
+        Error::Validation(format!("Failed to write {}: {e}", readme_path.display()))
+    })?;
+
+    // Summary
+    eprintln!(
+        "\n{GREEN}\u{2713}{RESET} {BOLD}Conversation dataset published to {}{RESET}",
+        output.display()
+    );
+    eprintln!("  README.md            \u{2014} HuggingFace dataset card");
+    eprintln!(
+        "  conversations.jsonl  \u{2014} {} conversations",
+        conversations.len()
+    );
+    eprintln!();
+    eprintln!("{BOLD}Quality Report:{RESET}");
+    eprintln!(
+        "  Type A (classify): {} | Type B (fix): {} | Type C (debug): {} | Type D (safe): {}",
+        report.type_a_count, report.type_b_count, report.type_c_count, report.type_d_count
+    );
+    eprintln!("  Type D %:    {:.1}% (target: >=30%)", report.type_d_pct);
+    eprintln!("  Empty:       {}", report.empty_responses);
+    eprintln!(
+        "  Status:      {}",
+        if report.passed {
+            format!("{GREEN}PASSED{RESET}")
+        } else {
+            format!("{RED}FAILED{RESET}")
+        }
+    );
+    eprintln!();
+    eprintln!(
+        "To publish: `huggingface-cli upload paiml/shell-safety-conversations {}`",
+        output.display()
+    );
+
+    Ok(())
+}

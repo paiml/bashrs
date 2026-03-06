@@ -1458,6 +1458,17 @@ pub enum CorpusCommands {
         #[arg(short, long)]
         output: std::path::PathBuf,
     },
+
+    /// Export HuggingFace-ready conversation dataset (S6.6 paiml/shell-safety-conversations)
+    PublishConversations {
+        /// Output directory (required)
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+
+        /// Random seed for variant selection
+        #[arg(short, long, default_value = "42")]
+        seed: u64,
+    },
 }
 
 /// Script format for classify command (SSC-022)
