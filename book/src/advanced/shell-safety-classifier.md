@@ -244,10 +244,13 @@ The classifier uses an escalation ladder (cheapest first):
 
 | Level | Approach | Params Trained | Time |
 |-------|----------|---------------|------|
-| 0 | Linear probe (frozen CodeBERT) | 1,538 | Seconds |
+| 0 | Linear probe (frozen CodeBERT) | 769 | Seconds |
+| 0.5 | **MLP probe (frozen CodeBERT)** | **25,345** | **Seconds** |
 | 1 | Fine-tune top-2 layers + head | ~15M | ~30 min |
 | 2 | Full fine-tune all layers | 125M | ~1 hr |
 | 3 | Continue-pretrain on shell + fine-tune | 125M | ~4 hrs |
+
+Level 0.5 (MLP probe) is the recommended starting point for shell-based labels. The 2-layer MLP with ReLU captures non-linear patterns in CodeBERT embeddings that a linear probe misses. With adversarial augmentation, it achieves MCC=0.754.
 
 ### Stage 2: Chat Model
 

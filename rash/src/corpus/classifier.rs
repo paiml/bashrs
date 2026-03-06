@@ -54,6 +54,26 @@ pub struct LinearProbe {
     pub train_mcc: f64,
 }
 
+/// Trained MLP probe weights (Level 0.5).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MlpProbeWeights {
+    /// First layer weights [hidden_size × mlp_hidden] flattened row-major
+    pub w1: Vec<f32>,
+    /// First layer bias [mlp_hidden]
+    pub b1: Vec<f32>,
+    /// Second layer weights [mlp_hidden × num_classes] flattened row-major
+    pub w2: Vec<f32>,
+    /// Second layer bias [num_classes]
+    pub b2: Vec<f32>,
+    pub hidden_size: usize,
+    pub mlp_hidden: usize,
+    pub num_classes: usize,
+    /// Training metadata
+    pub epochs: usize,
+    pub learning_rate: f32,
+    pub train_accuracy: f64,
+}
+
 /// Result of classifier training and evaluation.
 #[derive(Debug, Serialize)]
 pub struct ClassifierReport {
@@ -708,6 +728,33 @@ mod tests {
         let loaded = load_probe(&path).unwrap();
         assert_eq!(loaded.weights, vec![1.0, -1.0, 0.5]);
         assert!((loaded.bias - 0.1).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_mlp_probe_weights_roundtrip() {
+        let weights = MlpProbeWeights {
+            w1: vec![0.1, -0.2, 0.3, -0.4, 0.5, -0.6],
+            b1: vec![0.01, -0.02],
+            w2: vec![0.7, -0.8, 0.9, -1.0],
+            b2: vec![0.03, -0.04],
+            hidden_size: 3,
+            mlp_hidden: 2,
+            num_classes: 2,
+            epochs: 50,
+            learning_rate: 0.0001,
+            train_accuracy: 0.95,
+        };
+        let json = serde_json::to_string_pretty(&weights).unwrap();
+        let loaded: MlpProbeWeights = serde_json::from_str(&json).unwrap();
+        assert_eq!(loaded.w1, weights.w1);
+        assert_eq!(loaded.b1, weights.b1);
+        assert_eq!(loaded.w2, weights.w2);
+        assert_eq!(loaded.b2, weights.b2);
+        assert_eq!(loaded.hidden_size, 3);
+        assert_eq!(loaded.mlp_hidden, 2);
+        assert_eq!(loaded.num_classes, 2);
+        assert_eq!(loaded.epochs, 50);
+        assert!((loaded.train_accuracy - 0.95).abs() < 1e-6);
     }
 
     #[test]
