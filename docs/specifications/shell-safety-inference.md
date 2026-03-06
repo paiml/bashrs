@@ -1431,7 +1431,7 @@ jobs:
 | CLF-007: Confidence scores computation | 30 min | ✅ Done (entrenar) |
 | CLF-RUN: Download CodeBERT, extract embeddings, train, evaluate | 2-4 hrs | ✅ Done (bashrs corpus run-classifier, CPU) |
 | CLF-VALIDATE: End-to-end pipeline validation with real CodeBERT weights | 2 hrs | ✅ Done (2047-entry: MCC=0.321, C-CLF-001 PASS) |
-| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Running (1.65 entries/s, 40% complete) |
+| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Running (1.68 entries/s, 48% — MCC=0 at n>3000 due to #171 data gap) |
 | CLF-WEIGHT: Class-weighted online SGD with L2 regularization | 2 hrs | ✅ Done (aprender#427 merged, KAIZEN-101) |
 
 **Kill gate**: C-CLF-001. If Level 3 fails, classifier adds no value.
@@ -1446,11 +1446,16 @@ jobs:
 | 500 (BPE) | 0.427 | 94.2% | 0.300 | 0.429 | 0.749 | PASS |
 | 1000 (BPE) | 0.399 | 92.2% | 0.353 | 0.545 | 0.666 | PASS keyword |
 | 2047 (BPE) | **0.321** | 83.7% | 0.328 | 0.512 | 0.546 | **PASS** |
+| 3000 (BPE) | 0.291 | — | — | — | — | FAIL (below 0.3) |
+| 4000+ (BPE) | 0.000 | — | — | — | — | FAIL (no unsafe in test set) |
 
 - C-CLF-001: PASS at n=2047 (MCC=0.321 > 0.3, beats keyword baseline)
 - Class weighting critical: without it, MCC degrades to 0.198 at n=1675 (probe converges to "always safe")
-- Known limitation: entries 3000+ have zero unsafe labels → MCC degrades at n>2500
-- Full 17,942-entry extraction in progress (~4 hours, CPU release build)
+- **Data labeling gap** (#171): corpus entries 3000+ have exactly 0 unsafe labels
+  - Total unsafe entries: 283 (all in first 3000 entries)
+  - Beyond n=3000, test set is 100% safe → MCC=0.000
+  - Max effective training size: ~2500 entries (beyond this, no unsafe test samples)
+  - Fix: inject adversarial entries throughout expansion ranges (#171)
 
 ### Phase 2: Conversations (1 day)
 
