@@ -1431,7 +1431,7 @@ jobs:
 | CLF-007: Confidence scores computation | 30 min | ✅ Done (entrenar) |
 | CLF-RUN: Download CodeBERT, extract embeddings, train, evaluate | 2-4 hrs | ✅ Done (bashrs corpus run-classifier, CPU) |
 | CLF-VALIDATE: End-to-end pipeline validation with real CodeBERT weights | 2 hrs | ✅ Done (2047-entry: MCC=0.321, C-CLF-001 PASS) |
-| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Running (1.68 entries/s, 48% — MCC=0 at n>3000 due to #171 data gap) |
+| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Running (1.82 entries/s, shell-based labels after #172 fix) |
 | CLF-WEIGHT: Class-weighted online SGD with L2 regularization | 2 hrs | ✅ Done (aprender#427 merged, KAIZEN-101) |
 
 **Kill gate**: C-CLF-001. If Level 3 fails, classifier adds no value.
@@ -1452,10 +1452,21 @@ jobs:
 - C-CLF-001: PASS at n=2047 (MCC=0.321 > 0.3, beats keyword baseline)
 - Class weighting critical: without it, MCC degrades to 0.198 at n=1675 (probe converges to "always safe")
 - **Data labeling gap** (#171): corpus entries 3000+ have exactly 0 unsafe labels
-  - Total unsafe entries: 283 (all in first 3000 entries)
+  - Total unsafe entries: 283 (pre-#172, Rust code linting) → **148** (post-#172, shell output linting)
   - Beyond n=3000, test set is 100% safe → MCC=0.000
   - Max effective training size: ~2500 entries (beyond this, no unsafe test samples)
   - Fix: inject adversarial entries throughout expansion ranges (#171)
+- **Distribution mismatch fix** (#172): training data now uses transpiled shell output
+  - Pre-fix: training on Rust source code, inference on shell scripts (domain mismatch)
+  - Post-fix: both training and inference use shell scripts
+  - Labels: 17,794 safe / 148 unsafe (0.82% positive rate)
+  - Linter baseline MCC=1.000 (tautological — labels derived from linter)
+  - Keyword baseline MCC=0.103 (target to beat)
+- **Classifier value proposition** (with linter-derived labels):
+  1. **Distillation**: ML classifier learns linter's decision boundary → deployable in WASM without linter
+  2. **Generalization**: CodeBERT embeddings may generalize to novel unsafe patterns (tested by 50 OOD scripts, S5.6)
+  3. **Speed**: Single forward pass vs running 24 lint rules individually
+  4. The linter baseline MCC=1.000 is expected — it IS the label source. C-CLF-001 measures whether CodeBERT can learn the same boundary from embeddings alone (MCC > 0.3 sufficient).
 
 ### Phase 2: Conversations (1 day)
 
