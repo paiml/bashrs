@@ -492,6 +492,50 @@ The report covers 8 sections:
 
 Overall readiness: YES when no section has FAIL status.
 
+### Classifier Pipeline (CLF-RUN)
+
+The CLF-RUN pipeline trains a linear probe on frozen CodeBERT embeddings. Three steps:
+
+**Step 1: Extract [CLS] embeddings** (requires `--features ml`):
+
+```bash
+# Extract embeddings from CodeBERT for all corpus entries
+bashrs corpus extract-embeddings \
+  --model /path/to/codebert-base/ \
+  --output embeddings.jsonl
+```
+
+This loads CodeBERT (125M params), tokenizes each corpus entry, runs a forward pass, and saves the 768-dimensional [CLS] embedding per entry.
+
+**Step 2: Train linear probe + evaluate**:
+
+```bash
+# Train on cached embeddings (no GPU needed)
+bashrs corpus train-classifier \
+  --embeddings embeddings.jsonl \
+  --output ./classifier/ \
+  --epochs 30 \
+  --seed 42
+```
+
+Outputs:
+- `probe.json` — Trained weights (769 parameters: 768 weights + 1 bias)
+- `evaluation.json` — Test set MCC, accuracy, precision, recall, F1
+
+**Full pipeline** (extract + train + evaluate in one command):
+
+```bash
+bashrs corpus run-classifier \
+  --model /path/to/codebert-base/ \
+  --output ./classifier/ \
+  --epochs 30 \
+  --seed 42
+```
+
+**Ship Gate C-CLF-001**: The classifier must beat both baselines:
+- MCC > 0.3 (beats keyword regex baseline)
+- MCC > 0.4 (beats linter baseline)
+
 ## WASM Deployment
 
 CodeBERT at 125M int8 (~125MB) fits in a browser. The WASM app at `interactive.paiml.com/shell-safety/` provides:

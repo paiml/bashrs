@@ -1114,3 +1114,198 @@ pub(crate) fn corpus_publish_conversations(output: PathBuf, seed: u64) -> Result
 
     Ok(())
 }
+
+/// Extract [CLS] embeddings from CodeBERT for all corpus entries (CLF-RUN step 1).
+#[allow(unused_variables)]
+pub(crate) fn corpus_extract_embeddings(model: PathBuf, output: PathBuf) -> Result<()> {
+    #[cfg(not(feature = "ml"))]
+    {
+        Err(Error::Validation(
+            "The `ml` feature is required for extract-embeddings. Rebuild with: cargo build --features ml".into(),
+        ))
+    }
+
+    #[cfg(feature = "ml")]
+    {
+        use crate::cli::color::*;
+        use crate::corpus::baselines::corpus_baseline_entries;
+        use crate::corpus::classifier::{save_embeddings, extract_embeddings};
+        use crate::corpus::dataset::ClassificationRow;
+
+        eprintln!("{BOLD}Extracting [CLS] embeddings from CodeBERT...{RESET}");
+
+        // Build classification rows from corpus
+        let owned = corpus_baseline_entries();
+        let rows: Vec<ClassificationRow> = owned
+            .into_iter()
+            .map(|(input, label)| ClassificationRow { input, label })
+            .collect();
+        eprintln!("  Corpus: {} entries", rows.len());
+
+        // Extract embeddings
+        let (embeddings, report) = extract_embeddings(&model, &rows, Some(&|i, total| {
+            if i % 500 == 0 {
+                eprintln!("  Progress: {i}/{total} ({:.1}%)", 100.0 * i as f64 / total as f64);
+            }
+        }))
+        .map_err(Error::Validation)?;
+
+        // Save to JSONL
+        save_embeddings(&embeddings, &output)
+            .map_err(Error::Validation)?;
+
+        eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}Embeddings saved to {}{RESET}", output.display());
+        eprintln!("  Total: {} | Extracted: {} | Skipped: {} | Dim: {}",
+            report.total_entries, report.extracted, report.skipped, report.hidden_size);
+
+        Ok(())
+    }
+}
+
+/// Train linear probe classifier on cached embeddings (CLF-RUN step 2-3).
+pub(crate) fn corpus_train_classifier(
+    embeddings_path: PathBuf,
+    output: PathBuf,
+    epochs: usize,
+    learning_rate: f32,
+    seed: u64,
+) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::classifier::{
+        evaluate_probe, load_embeddings, save_probe, split_embeddings, train_linear_probe,
+    };
+
+    eprintln!("{BOLD}Training linear probe classifier...{RESET}");
+
+    // Load cached embeddings
+    let all_embeddings = load_embeddings(&embeddings_path)
+        .map_err(Error::Validation)?;
+    eprintln!("  Loaded {} embeddings from {}", all_embeddings.len(), embeddings_path.display());
+
+    // Split into train/test
+    let (train, test) = split_embeddings(&all_embeddings, seed);
+    eprintln!("  Train: {} | Test: {}", train.len(), test.len());
+
+    // Train
+    eprintln!("\n{BOLD}Training (epochs={epochs}, lr={learning_rate}):{RESET}");
+    let probe = train_linear_probe(&train, epochs, learning_rate);
+    eprintln!("  Train accuracy: {:.1}% | Train MCC: {:.3}", probe.train_accuracy * 100.0, probe.train_mcc);
+
+    // Evaluate on test
+    let test_report = evaluate_probe(&probe, &test);
+    eprintln!("\n{BOLD}Test Evaluation:{RESET}");
+    eprintln!("  Accuracy:  {:.1}%", test_report.accuracy * 100.0);
+    eprintln!("  Precision: {:.3}", test_report.precision);
+    eprintln!("  Recall:    {:.3}", test_report.recall);
+    eprintln!("  F1:        {:.3}", test_report.f1);
+    eprintln!("  MCC:       {:.3}", test_report.mcc);
+    eprintln!("  Confusion: TP={} FP={} TN={} FN={}",
+        test_report.confusion.tp, test_report.confusion.fp,
+        test_report.confusion.tn, test_report.confusion.fn_);
+
+    // Save artifacts
+    std::fs::create_dir_all(&output)
+        .map_err(|e| Error::Validation(format!("Cannot create {}: {e}", output.display())))?;
+    save_probe(&probe, &output.join("probe.json"))
+        .map_err(Error::Validation)?;
+    let eval_json = serde_json::to_string_pretty(&test_report)
+        .map_err(|e| Error::Validation(format!("Serialize: {e}")))?;
+    std::fs::write(output.join("evaluation.json"), eval_json)
+        .map_err(|e| Error::Validation(format!("Write: {e}")))?;
+
+    // Quality gate: C-CLF-001 — classifier must beat baselines
+    let beats_keyword = test_report.mcc > 0.3;
+    let beats_linter = test_report.mcc > 0.4;
+    eprintln!("\n{BOLD}Ship Gate C-CLF-001:{RESET}");
+    eprintln!("  Beats keyword baseline (MCC>0.3): {}", if beats_keyword {
+        format!("{GREEN}PASS{RESET}")
+    } else {
+        format!("{RED}FAIL{RESET}")
+    });
+    eprintln!("  Beats linter baseline (MCC>0.4): {}", if beats_linter {
+        format!("{GREEN}PASS{RESET}")
+    } else {
+        format!("{RED}FAIL{RESET}")
+    });
+
+    eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}Classifier artifacts saved to {}{RESET}", output.display());
+
+    Ok(())
+}
+
+/// Run full CLF-RUN pipeline: extract → train → evaluate.
+#[allow(unused_variables)]
+pub(crate) fn corpus_run_classifier(
+    model: PathBuf,
+    output: PathBuf,
+    epochs: usize,
+    learning_rate: f32,
+    seed: u64,
+) -> Result<()> {
+    #[cfg(not(feature = "ml"))]
+    {
+        Err(Error::Validation(
+            "The `ml` feature is required for run-classifier. Rebuild with: cargo build --features ml".into(),
+        ))
+    }
+
+    #[cfg(feature = "ml")]
+    {
+        use crate::cli::color::*;
+        use crate::corpus::baselines::corpus_baseline_entries;
+        use crate::corpus::classifier::{run_classifier_pipeline, save_probe};
+        use crate::corpus::dataset::ClassificationRow;
+
+        eprintln!("{BOLD}=== CLF-RUN: Full Classifier Pipeline ==={RESET}\n");
+
+        // Build classification rows
+        let owned = corpus_baseline_entries();
+        let rows: Vec<ClassificationRow> = owned
+            .into_iter()
+            .map(|(input, label)| ClassificationRow { input, label })
+            .collect();
+        eprintln!("Corpus: {} entries", rows.len());
+
+        // Create output directory
+        std::fs::create_dir_all(&output)
+            .map_err(|e| Error::Validation(format!("Cannot create {}: {e}", output.display())))?;
+
+        // Run pipeline
+        let report = run_classifier_pipeline(&model, &rows, epochs, learning_rate, seed)
+            .map_err(Error::Validation)?;
+
+        // Save probe weights
+        save_probe(&report.probe, &output.join("probe.json"))
+            .map_err(Error::Validation)?;
+
+        // Save evaluation report
+        let eval_json = serde_json::to_string_pretty(&report.test_eval)
+            .map_err(|e| Error::Validation(format!("Serialize: {e}")))?;
+        std::fs::write(output.join("evaluation.json"), eval_json)
+            .map_err(|e| Error::Validation(format!("Write: {e}")))?;
+
+        // Print final results
+        eprintln!("\n{BOLD}=== CLF-RUN Results ==={RESET}");
+        eprintln!("Test Accuracy:  {:.1}%", report.test_eval.accuracy * 100.0);
+        eprintln!("Test MCC:       {:.3}", report.test_eval.mcc);
+        eprintln!("Test Precision: {:.3}", report.test_eval.precision);
+        eprintln!("Test Recall:    {:.3}", report.test_eval.recall);
+        eprintln!("Test F1:        {:.3}", report.test_eval.f1);
+        eprintln!();
+        eprintln!("{BOLD}Ship Gate C-CLF-001:{RESET}");
+        eprintln!("  Beats keyword (MCC>0.3): {}", if report.beats_keyword {
+            format!("{GREEN}PASS{RESET}")
+        } else {
+            format!("{RED}FAIL{RESET}")
+        });
+        eprintln!("  Beats linter (MCC>0.4): {}", if report.beats_linter {
+            format!("{GREEN}PASS{RESET}")
+        } else {
+            format!("{RED}FAIL{RESET}")
+        });
+
+        eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}All artifacts saved to {}{RESET}", output.display());
+
+        Ok(())
+    }
+}

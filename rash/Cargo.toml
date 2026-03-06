@@ -55,6 +55,7 @@ sysinfo = "0.31"  # For bench command - CPU/RAM/OS detection
 schemars = "0.8"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "6.60", optional = true }  # ML-powered error classification
 aprender = { path = "../../aprender", optional = true }  # BPE tokenizer for SSC C-TOK-001
+entrenar = { path = "../../entrenar", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
 
 # Compile mode dependencies (optional - not needed for WASM)
 zstd = { version = "0.13", optional = true }
@@ -93,7 +94,7 @@ lsp = []
 completions = []
 watch = []
 oracle = ["bashrs-oracle"]  # ML-powered error classification and fix suggestions
-ml = ["aprender"]  # SSC tokenizer validation and ML classifier integration
+ml = ["aprender", "entrenar"]  # SSC tokenizer validation, CodeBERT encoder, and ML classifier integration
 tui = ["ratatui", "crossterm"]  # Terminal UI with multi-panel layout
 # wasm feature removed - use probar/simular/jugar for browser testing
 # playground = ["ratatui", "ropey", "tree-sitter", "tree-sitter-rust", "crossbeam", "dashmap", "petgraph", "rayon", "brotli", "simdutf8", "bit-vec", "lru"]  # Removed from v1.0 - move to separate crate

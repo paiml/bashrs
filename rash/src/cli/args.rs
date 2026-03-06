@@ -1469,6 +1469,63 @@ pub enum CorpusCommands {
         #[arg(short, long, default_value = "42")]
         seed: u64,
     },
+
+    /// Extract [CLS] embeddings from CodeBERT for all corpus entries (CLF-RUN step 1)
+    ExtractEmbeddings {
+        /// Path to CodeBERT model directory (must contain model.safetensors)
+        #[arg(short, long)]
+        model: std::path::PathBuf,
+
+        /// Output file for cached embeddings (JSONL)
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+    },
+
+    /// Train linear probe classifier on cached embeddings (CLF-RUN step 2-3)
+    TrainClassifier {
+        /// Path to cached embeddings JSONL (from extract-embeddings)
+        #[arg(short, long)]
+        embeddings: std::path::PathBuf,
+
+        /// Output directory for probe weights and evaluation report
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+
+        /// Training epochs
+        #[arg(long, default_value = "30")]
+        epochs: usize,
+
+        /// Learning rate
+        #[arg(long, default_value = "0.01")]
+        learning_rate: f32,
+
+        /// Random seed for train/test split
+        #[arg(short, long, default_value = "42")]
+        seed: u64,
+    },
+
+    /// Run full CLF-RUN pipeline: extract embeddings → train → evaluate (requires --features ml)
+    RunClassifier {
+        /// Path to CodeBERT model directory
+        #[arg(short, long)]
+        model: std::path::PathBuf,
+
+        /// Output directory for all artifacts
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+
+        /// Training epochs
+        #[arg(long, default_value = "30")]
+        epochs: usize,
+
+        /// Learning rate
+        #[arg(long, default_value = "0.01")]
+        learning_rate: f32,
+
+        /// Random seed
+        #[arg(short, long, default_value = "42")]
+        seed: u64,
+    },
 }
 
 /// Script format for classify command (SSC-022)

@@ -350,6 +350,31 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::PublishConversations { output, seed } => {
             super::corpus_config_commands::corpus_publish_conversations(output, seed)
         }
+        CorpusCommands::ExtractEmbeddings { model, output } => {
+            super::corpus_config_commands::corpus_extract_embeddings(model, output)
+        }
+        CorpusCommands::TrainClassifier {
+            embeddings,
+            output,
+            epochs,
+            learning_rate,
+            seed,
+        } => super::corpus_config_commands::corpus_train_classifier(
+            embeddings,
+            output,
+            epochs,
+            learning_rate,
+            seed,
+        ),
+        CorpusCommands::RunClassifier {
+            model,
+            output,
+            epochs,
+            learning_rate,
+            seed,
+        } => super::corpus_config_commands::corpus_run_classifier(
+            model, output, epochs, learning_rate, seed,
+        ),
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()
