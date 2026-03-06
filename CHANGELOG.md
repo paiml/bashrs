@@ -58,6 +58,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initialize O(1) hooks cache (CB-030)
 - Wrap bare URLs in rash-testing-spec references per CB-903 markdown best practices
 - 28 `assert_cmd` CLI integration tests for SSC commands (classify, explain, fix, safety-check, corpus)
+- 4 provable-contracts YAML files (SSC v11 S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
+- SSC CLI commands added to book CLI reference chapter (classify, explain, fix, safety-check, corpus subcommands)
 
 ### Fixed
 - Remove `cdylib` from crate-type to fix intermittent clap collision during test builds (cargo#6313)
