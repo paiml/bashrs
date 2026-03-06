@@ -1491,6 +1491,10 @@ pub enum CorpusCommands {
         /// Maximum number of entries to process (for testing)
         #[arg(short, long)]
         limit: Option<usize>,
+
+        /// Extract from JSONL file instead of corpus (format: {"input":"...","label":N})
+        #[arg(long)]
+        input_jsonl: Option<std::path::PathBuf>,
     },
 
     /// Train linear probe classifier on cached embeddings (CLF-RUN step 2-3)
