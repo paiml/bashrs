@@ -541,11 +541,11 @@ bashrs corpus run-classifier \
 - MCC > 0.3 (beats keyword regex baseline)
 - MCC > 0.4 (beats linter baseline)
 
-**Validated results** (500-entry subset, Level 0 linear probe):
-- Test MCC: 0.541 (beats both baselines)
-- Test accuracy: 94.2% (beats 93.5% majority baseline)
-- Precision/Recall/F1: 0.571 each
-- Train MCC: 0.681, accuracy: 96.5%
+**Validated results** (500-entry subset, Level 0 linear probe, RoBERTa BPE tokenizer):
+- Test MCC: **0.592** (beats both baselines)
+- Test accuracy: **95.2%** (beats 93.5% majority baseline)
+- Precision: 0.667 | Recall: 0.571 | F1: 0.615
+- Train MCC: 0.860, accuracy: 98.7%
 
 ## WASM Deployment
 

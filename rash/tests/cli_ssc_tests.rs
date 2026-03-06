@@ -622,6 +622,50 @@ fn test_PMAT154_classify_with_probe_flag() {
 }
 
 #[test]
+fn test_PMAT154_classify_with_probe_and_model_flags() {
+    // --probe + --model should be accepted; without ml feature, shows note
+    let f = write_temp_script("#!/bin/sh\necho hello\n");
+    let dir = tempfile::tempdir().unwrap();
+    let probe_path = dir.path().join("probe.json");
+    std::fs::write(
+        &probe_path,
+        r#"{"weights":[0.5,-0.5],"bias":0.0,"epochs":1,"learning_rate":0.01,"train_accuracy":0.5,"train_mcc":0.0}"#,
+    )
+    .unwrap();
+    bashrs_cmd()
+        .arg("classify")
+        .arg("--probe")
+        .arg(&probe_path)
+        .arg("--model")
+        .arg("/tmp/nonexistent")
+        .arg(f.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("safe"));
+}
+
+#[test]
+fn test_PMAT154_classify_probe_without_model_shows_note() {
+    // --probe without --model should show a helpful note
+    let f = write_temp_script("#!/bin/sh\necho hello\n");
+    let dir = tempfile::tempdir().unwrap();
+    let probe_path = dir.path().join("probe.json");
+    std::fs::write(
+        &probe_path,
+        r#"{"weights":[0.5,-0.5],"bias":0.0,"epochs":1,"learning_rate":0.01,"train_accuracy":0.5,"train_mcc":0.0}"#,
+    )
+    .unwrap();
+    bashrs_cmd()
+        .arg("classify")
+        .arg("--probe")
+        .arg(&probe_path)
+        .arg(f.path())
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("--probe requires --model"));
+}
+
+#[test]
 fn test_PMAT154_corpus_extract_embeddings_requires_ml() {
     // Without ml feature, extract-embeddings should fail with helpful message
     // (the test binary is built without --features ml)

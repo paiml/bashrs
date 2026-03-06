@@ -472,6 +472,51 @@ fn sigmoid(x: f32) -> f32 {
     1.0 / (1.0 + (-x).exp())
 }
 
+/// Classify a single script using CodeBERT + linear probe.
+///
+/// Loads the model, tokenizes, extracts [CLS], applies probe weights.
+/// Returns (predicted_label, confidence) or None on failure.
+#[cfg(feature = "ml")]
+pub fn classify_with_probe(
+    source: &str,
+    probe: &LinearProbe,
+    model_dir: &Path,
+) -> Option<(u8, f64)> {
+    let config = TransformerConfig::codebert();
+    let model = EncoderModel::from_safetensors(&config, model_dir).ok()?;
+
+    // Try BPE tokenizer, fall back to byte-level
+    let bpe = CodeBertTokenizer::from_model_dir(model_dir);
+    let token_ids = tokenize_for_codebert(source, bpe.as_ref());
+
+    if token_ids.len() < 3 {
+        return None;
+    }
+
+    let cls = model.cls_embedding(&token_ids);
+    let data = cls.data();
+    let slice = data.as_slice()?;
+
+    // Apply probe: logit = w . embedding + b
+    let logit: f32 = probe
+        .weights
+        .iter()
+        .zip(slice.iter())
+        .map(|(w, x)| w * x)
+        .sum::<f32>()
+        + probe.bias;
+
+    let prob = sigmoid(logit);
+    let label = u8::from(prob > 0.5);
+    let confidence = if label == 1 {
+        f64::from(prob)
+    } else {
+        f64::from(1.0 - prob)
+    };
+
+    Some((label, confidence))
+}
+
 /// Save embeddings to a JSONL file for caching.
 pub fn save_embeddings(
     embeddings: &[EmbeddingEntry],

@@ -1426,13 +1426,19 @@ jobs:
 
 **Kill gate**: C-CLF-001. If Level 3 fails, classifier adds no value.
 
-**Validated results (500-entry subset)**:
+**Validated results (500-entry subset, Level 0 linear probe)**:
 - CodeBERT (124M params, 199 safetensors, 12 layers, 768 hidden) loads in ~23s
 - [CLS] embeddings: 768-dim, L2 norm ~20.5, cosine similarity 0.70-0.91 between entries
-- Linear probe (768 weights + bias): train MCC=0.681, test MCC=0.541
-- Test: accuracy=94.2%, precision=0.571, recall=0.571, F1=0.571
-- C-CLF-001: PASS (MCC>0.3 keyword AND MCC>0.4 linter baselines)
-- Extraction rate: ~1.2 entries/s (CPU release build, byte-level tokenizer)
+- Extraction rate: ~1.5 entries/s (CPU release build)
+
+| Tokenizer | Test MCC | Accuracy | Precision | Recall | F1 | Train MCC |
+|-----------|----------|----------|-----------|--------|-----|-----------|
+| Byte-level | 0.541 | 94.2% | 0.571 | 0.571 | 0.571 | 0.681 |
+| **RoBERTa BPE** | **0.592** | **95.2%** | **0.667** | 0.571 | **0.615** | **0.860** |
+
+- C-CLF-001: PASS with both tokenizers (MCC>0.3 AND MCC>0.4)
+- BPE tokenizer improves MCC by +9.4%, precision by +16.8%
+- Full 17,942-entry extraction running (~4 hours, CPU release build)
 
 ### Phase 2: Conversations (1 day)
 
