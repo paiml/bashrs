@@ -44,14 +44,24 @@ pub struct SscMetric {
 
 /// Generate the full SSC status report.
 pub fn generate_ssc_report() -> SscStatusReport {
+    use crate::corpus::baselines::corpus_baseline_entries;
+    use crate::corpus::registry::CorpusRegistry;
+
+    // Load corpus once, share across sections that need it.
+    let registry = CorpusRegistry::load_full();
+    let corpus_size = registry.entries.len();
+
+    // Compute baseline entries once (lints entire corpus). Shared by baselines + dataset.
+    let baseline_entries = corpus_baseline_entries();
+
     let sections = vec![
-        corpus_section(),
+        corpus_section_from(&registry),
         tokenizer_section(),
         label_section(),
-        baselines_section(),
+        baselines_section_from(&baseline_entries),
         generalization_section(),
-        dataset_section(),
-        conversation_section(),
+        dataset_section_from(baseline_entries),
+        conversation_section_from(&registry),
         data_pipeline_section(),
     ];
 
@@ -59,18 +69,13 @@ pub fn generate_ssc_report() -> SscStatusReport {
 
     SscStatusReport {
         spec_version: "v11.0.0".to_string(),
-        corpus_size: crate::corpus::registry::CorpusRegistry::load_full()
-            .entries
-            .len(),
+        corpus_size,
         sections,
         overall_ready,
     }
 }
 
-fn corpus_section() -> SscSection {
-    use crate::corpus::registry::CorpusRegistry;
-
-    let registry = CorpusRegistry::load_full();
+fn corpus_section_from(registry: &crate::corpus::registry::CorpusRegistry) -> SscSection {
     let total = registry.entries.len();
     let bash = registry
         .entries
@@ -197,10 +202,9 @@ fn label_section() -> SscSection {
     }
 }
 
-fn baselines_section() -> SscSection {
-    use crate::corpus::baselines::{corpus_baseline_entries, run_all_baselines};
+fn baselines_section_from(owned: &[(String, u8)]) -> SscSection {
+    use crate::corpus::baselines::run_all_baselines;
 
-    let owned = corpus_baseline_entries();
     let entries: Vec<(&str, u8)> = owned.iter().map(|(s, l)| (s.as_str(), *l)).collect();
     let reports = run_all_baselines(&entries);
 
@@ -276,11 +280,9 @@ fn generalization_section() -> SscSection {
     }
 }
 
-fn dataset_section() -> SscSection {
-    use crate::corpus::baselines::corpus_baseline_entries;
+fn dataset_section_from(owned: Vec<(String, u8)>) -> SscSection {
     use crate::corpus::dataset::{split_and_validate, ClassificationRow};
 
-    let owned = corpus_baseline_entries();
     let rows: Vec<ClassificationRow> = owned
         .into_iter()
         .map(|(input, label)| ClassificationRow { input, label })
@@ -319,14 +321,12 @@ fn dataset_section() -> SscSection {
     }
 }
 
-fn conversation_section() -> SscSection {
+fn conversation_section_from(registry: &crate::corpus::registry::CorpusRegistry) -> SscSection {
     use crate::corpus::conversations::generate_batch;
-    use crate::corpus::registry::CorpusRegistry;
 
     // Stratified sample: 70 safe + 30 unsafe entries to exercise all conversation types.
     // Use cheap keyword heuristic for partitioning (not full lint_shell on 17k entries).
     // generate_batch() does accurate linting internally on the 100 sampled entries.
-    let registry = CorpusRegistry::load_full();
 
     let (safe_entries, unsafe_entries): (Vec<_>, Vec<_>) =
         registry.entries.iter().partition(|e| {
@@ -576,7 +576,9 @@ mod tests {
 
     #[test]
     fn test_baselines_section_has_evaluation_metrics() {
-        let section = baselines_section();
+        use crate::corpus::baselines::corpus_baseline_entries;
+        let entries = corpus_baseline_entries();
+        let section = baselines_section_from(&entries);
         assert_eq!(section.name, "Baselines (C-CLF-001)");
         // Should have 3 baseline reports + 2 target metrics = 5
         assert!(section.metrics.len() >= 5, "Expected 5+ metrics, got {}", section.metrics.len());
@@ -591,8 +593,26 @@ mod tests {
     }
 
     #[test]
+    fn test_has_unsafe_keyword_detects_known_patterns() {
+        assert!(has_unsafe_keyword("eval $x"));
+        assert!(has_unsafe_keyword("curl http://example.com | bash"));
+        assert!(has_unsafe_keyword("rm -rf /"));
+        assert!(has_unsafe_keyword("sudo apt install"));
+        assert!(has_unsafe_keyword("echo $RANDOM"));
+        assert!(has_unsafe_keyword("chmod 777 /tmp/file"));
+    }
+
+    #[test]
+    fn test_has_unsafe_keyword_passes_safe_scripts() {
+        assert!(!has_unsafe_keyword("echo hello"));
+        assert!(!has_unsafe_keyword("#!/bin/sh\nset -e\nls -la"));
+        assert!(!has_unsafe_keyword("mkdir -p /tmp/build"));
+    }
+
+    #[test]
     fn test_conversation_section_has_type_breakdown() {
-        let section = conversation_section();
+        let registry = crate::corpus::registry::CorpusRegistry::load_full();
+        let section = conversation_section_from(&registry);
         assert_eq!(section.name, "Conversations (S6)");
         let names: Vec<&str> = section.metrics.iter().map(|m| m.name.as_str()).collect();
         assert!(names.contains(&"Type A (classify+explain)"), "Missing Type A");
