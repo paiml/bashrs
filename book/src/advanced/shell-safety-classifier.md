@@ -431,10 +431,10 @@ The report covers 8 sections:
 | Corpus | S5.3 | Entry count >= 17,000, format distribution |
 | Tokenizer (C-TOK-001) | S5.2 | >= 70% constructs acceptable |
 | Label Audit (C-LABEL-001) | S5.3 | >= 90% accuracy, false positives <= 10% |
-| Baselines (C-CLF-001) | S5.5 | Majority, keyword, linter MCC scores |
+| Baselines (C-CLF-001) | S5.5 | MCC + accuracy + recall per baseline, ML targets |
 | Generalization (OOD) | S5.6 | >= 50% of 50 OOD scripts caught |
 | Dataset Splits | S5.3 | 80/10/10 train/val/test proportions |
-| Conversations (S6) | S6 | Generation capacity, quality gates |
+| Conversations (S6) | S6 | Type A/B/C/D breakdown, >=30% Type D, variant balance |
 | Data Pipeline (S9) | S9 | Model card, honesty, class weights, config |
 
 Overall readiness: YES when no section has FAIL status.

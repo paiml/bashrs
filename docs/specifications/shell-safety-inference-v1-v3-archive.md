@@ -1387,7 +1387,7 @@ v4   (FUTURE):     Qwen3.5BPE(248K) -> Qwen3.5+QLoRA(4-bit) -> Lin(dim->2)  ~1M 
 | APR Checkpoints | `apr-checkpoint-v1.yaml` | F-CKPT-001..018: adapter completeness, schema version, atomic writes, NaN guards, shape validation, filtered reader, round-trip |
 
 All contracts in `provable-contracts/contracts/` following Poka-Yoke + Popperian
-falsification methodology. See [APR Checkpoint Specification v1.4.0](../../aprender/docs/specifications/apr-checkpoints.md)
+falsification methodology. See [APR Checkpoint Specification v1.4.0](https://github.com/paiml/aprender/blob/main/docs/specifications/apr-checkpoints.md)
 for the full 18-contract checkpoint lifecycle (write-side + read-side).
 
 ### 14.7 v2.2 Verification Matrix
