@@ -423,3 +423,20 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-153
+  github_issue: null
+  item_type: task
+  title: 'SSC-CONVO-EXPORT: Full-scale conversation generation with HuggingFace dataset card (S6)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-06T16:16:42Z
+  updated: 2026-03-06T16:43:03Z
+  spec: null
+  acceptance_criteria:
+  - Generate conversations from full 17,942 corpus, validate S6.4 quality gates, add system prompt to ChatML, add dataset README generation
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null

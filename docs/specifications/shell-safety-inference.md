@@ -1465,6 +1465,7 @@ jobs:
 | Entries | Test MCC | Accuracy | Precision | Recall | Config | Ship Gate |
 |---------|----------|----------|-----------|--------|--------|-----------|
 | 3000 + 350 adv (MLP h=32) | **0.754** | 94.2% | 0.670 | 0.918 | lr=1e-4, 50 ep | **PASS** |
+| 5220 + 350 adv (MLP h=32) | **0.736** | 95.5% | 0.644 | 0.894 | lr=1e-4, 50 ep | **PASS** |
 | 3000 (MLP h=32, no aug) | -0.005 | 98.4% | 0.000 | 0.000 | lr=3e-4, 50 ep | FAIL |
 
 - **MLP probe + adversarial augmentation solves shell-based classification** (KAIZEN-105)
