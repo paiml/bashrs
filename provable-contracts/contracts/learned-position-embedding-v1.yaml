@@ -1,0 +1,33 @@
+metadata:
+  version: "1.0.0"
+  description: "Learned absolute position embeddings (RoBERTa-style)"
+  references:
+    - "Liu et al. (2019) RoBERTa: A Robustly Optimized BERT Pretraining Approach"
+  depends_on: ["embedding-lookup-v1"]
+
+equations:
+  position_embedding:
+    formula: "PE(pos) = E[pos] where E in R^{max_positions x d_model}"
+    domain: "pos in {0, 1, ..., max_positions - 1}"
+    codomain: "R^{d_model}"
+    invariants:
+      - "Lookup is O(1) (table index, not computation)"
+      - "pos < max_positions (bounds check)"
+
+proof_obligations:
+  - type: bound
+    property: "Position in range"
+    formal: "0 <= pos < max_positions"
+    applies_to: all
+  - type: equivalence
+    property: "Deterministic lookup"
+    formal: "PE(pos) = PE(pos) for same weights (idempotent)"
+    tolerance: 0.0
+    applies_to: all
+
+falsification_tests:
+  - id: FALSIFY-POS-001
+    rule: "Out-of-bounds position"
+    prediction: "pos >= max_positions causes error, not silent truncation"
+    test: "kani proof with pos = max_positions"
+    if_fails: "Missing bounds check on position index"

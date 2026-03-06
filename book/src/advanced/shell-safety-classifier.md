@@ -503,7 +503,7 @@ The encoder, classifier, and inference code are backed by YAML contracts:
 | `encoder-forward-v1` | Shape preservation, no NaN/Inf |
 | `linear-probe-classifier-v1` | Frozen encoder, probability simplex |
 
-Pipeline: YAML contract -> scaffold -> proptest/Kani harnesses -> binding to real code -> audit.
+Contract files live in `provable-contracts/contracts/`. Pipeline: YAML contract -> scaffold -> proptest/Kani harnesses -> binding to real code -> audit.
 
 ## Cross-Format Support
 
