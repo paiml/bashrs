@@ -607,7 +607,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs corpus generate-conversations` — S6.4 quality gates (type breakdown, variant balance, empty response check, ChatML system prompt)
 - `bashrs corpus publish-conversations` — HF-ready conversation dataset dir (JSONL + dataset card README)
 - 8 `cargo run --example` programs verified: shell_safety_classifier, explain_demo, baselines, label_audit, generalization_tests, contract_validation, ssc_data_pipeline, ssc_report
-- 40 assert_cmd CLI integration tests (cli_ssc_tests.rs): classify (safe/unsafe/json/makefile/dockerfile/multi-label/nonexistent), explain (safe/unsafe/json/det/idem/makefile/nonexistent), fix (dry-run/output/assumptions/safe/nonexistent), safety-check (safe/unsafe/json/makefile/nonexistent), corpus subcommands, CLF-RUN pipeline
+- 43 assert_cmd CLI integration tests (cli_ssc_tests.rs): classify (safe/unsafe/json/makefile/dockerfile/multi-label/nonexistent/probe/model), explain (safe/unsafe/json/det/idem/makefile/nonexistent), fix (dry-run/output/assumptions/safe/nonexistent), safety-check (safe/unsafe/json/makefile/nonexistent), corpus subcommands, CLF-RUN pipeline
 - 4 provable-contracts YAML files created (S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
 - SSC report optimized: keyword heuristic for conversation sampling (4+ min → 1.8s), shared corpus/baseline data (5 loads → 1)
 - **Stage 0 COMPLETE**: All encoder components (ENC-001..008) implemented in entrenar with 30 tests. GitHub: paiml/entrenar#242
@@ -617,7 +617,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - **PV-004 COMPLETE**: `pv audit` clean on all 4 contracts (0 findings)
   - Classification metrics (MCC, accuracy, recall, precision, confusion matrix, bootstrap CI)
   - Escalation ladder (4 levels with decision logic), baselines comparison, generalization test, ship gate C-CLF-001
-  - Remaining: actual training on CodeBERT weights + bashrs corpus data (requires model download)
+  - CodeBERT 124M params loaded and validated end-to-end (RoBERTa BPE tokenizer, 768-dim embeddings)
 - **VAL-001 COMPLETE**: C-TOK-001 PASSED — 90.0% acceptable (18/20 shell constructs). CodeBERT tokenizer loaded via `aprender::text::bpe::BpeTokenizer::from_vocab_merges()`. Contract: `codebert-tokenizer-validation-v1.yaml`.
 - **Phase 2 COMPLETE**: Synthetic conversation generation (S6)
   - ChatML format with system prompt (honesty requirements S6.5)
@@ -626,11 +626,18 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - 17,942 conversations from full corpus, quality gate PASSED (Type D 97.7%, 0 empty responses)
   - Dataset README includes S6.5 honesty disclaimers (synthetic data, not novel reasoning, not security audit replacement)
 - **Phase 1 COMPLETE**: CLF-RUN classifier pipeline (CPU-based)
-  - `bashrs corpus extract-embeddings` — load CodeBERT, extract 768-dim [CLS] embeddings
+  - `bashrs corpus extract-embeddings` — load CodeBERT, extract 768-dim [CLS] embeddings (streaming, --limit)
   - `bashrs corpus train-classifier` — train logistic regression probe on cached embeddings
   - `bashrs corpus run-classifier` — full pipeline (extract + train + evaluate + C-CLF-001 gate)
-  - 11 unit tests + 2 CLI integration tests + provable contract (classifier-pipeline-v1.yaml)
-- **Blocked on remaining external deps**: Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
+  - RoBERTa BPE tokenizer auto-loaded from model directory (improves MCC by +9.4%)
+  - 13 unit tests + 5 CLI integration tests + provable contract (classifier-pipeline-v1.yaml)
+  - Validated: 500-entry BPE MCC=0.592, acc=95.2% — C-CLF-001 PASS
+- **Phase 4 CLI-001 COMPLETE**: `bashrs classify --probe --model` (Stage 1 ML classification)
+  - Full CodeBERT inference: tokenize → [CLS] embedding → linear probe → binary label + confidence
+  - `--probe probe.json --model /path/to/codebert/` flags on `bashrs classify`
+  - Without `ml` feature: helpful error guiding to `--features ml`
+- **Phase 4 CLI-003 COMPLETE**: 43 assert_cmd integration tests (3 new for Stage 1 classify)
+- **Blocked on remaining external deps**: Qwen chat model (Phase 3, requires GPU), Phase 4 CLI-002 (requires chat model), WASM app (presentar), Probar tests (jugar-probar)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1450,20 +1457,20 @@ jobs:
 
 ### Phase 3: Chat Model (2-3 days)
 
-| Task | Time |
-|------|------|
-| CHAT-001: Configure Qwen-1.5B LoRA in entrenar | 3 hrs |
-| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 6-10 hrs |
-| CHAT-003: Evaluate + human review | 4 hrs |
-| CHAT-004: Publish | 1 hr |
+| Task | Time | Status |
+|------|------|--------|
+| CHAT-001: Configure Qwen-1.5B LoRA in entrenar | 3 hrs | Blocked (requires GPU not occupied by other training) |
+| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 6-10 hrs | Blocked |
+| CHAT-003: Evaluate + human review | 4 hrs | Blocked |
+| CHAT-004: Publish | 1 hr | Blocked |
 
 ### Phase 4: CLI (1 day)
 
-| Task | Time |
-|------|------|
-| CLI-001: Wire bashrs classify → CodeBERT | 3 hrs |
-| CLI-002: Wire bashrs explain/fix → chat model | 3 hrs |
-| CLI-003: Integration tests | 2 hrs |
+| Task | Time | Status |
+|------|------|--------|
+| CLI-001: Wire bashrs classify → CodeBERT | 3 hrs | ✅ Done (`--probe --model` flags, full inference path) |
+| CLI-002: Wire bashrs explain/fix → chat model | 3 hrs | Blocked (requires trained chat model from Phase 3) |
+| CLI-003: Integration tests | 2 hrs | ✅ Done (43 assert_cmd tests, 3 new for Stage 1 classify) |
 
 ### Phase 5: WASM App via presentar (2 days)
 
