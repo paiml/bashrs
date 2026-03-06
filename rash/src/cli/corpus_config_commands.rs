@@ -1194,6 +1194,7 @@ pub(crate) fn corpus_train_classifier(
     learning_rate: f32,
     seed: u64,
     max_entries: Option<usize>,
+    augment: Vec<PathBuf>,
 ) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::classifier::{
@@ -1213,6 +1214,13 @@ pub(crate) fn corpus_train_classifier(
             eprintln!("  Capping to {max} entries (--max-entries)");
             all_embeddings.truncate(max);
         }
+    }
+
+    // Augment with additional embedding files (e.g. adversarial entries)
+    for aug_path in &augment {
+        let aug = load_embeddings(aug_path).map_err(Error::Validation)?;
+        eprintln!("  Augmenting with {} entries from {}", aug.len(), aug_path.display());
+        all_embeddings.extend(aug);
     }
 
     // Split into train/test

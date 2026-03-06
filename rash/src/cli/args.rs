@@ -1518,6 +1518,10 @@ pub enum CorpusCommands {
         /// Maximum entries to use (caps training data to avoid data labeling gaps)
         #[arg(long)]
         max_entries: Option<usize>,
+
+        /// Additional embedding JSONL files to augment training data (e.g. adversarial entries)
+        #[arg(long)]
+        augment: Vec<std::path::PathBuf>,
     },
 
     /// Run full CLF-RUN pipeline: extract embeddings → train → evaluate (requires --features ml)
