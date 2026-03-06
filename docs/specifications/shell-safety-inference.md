@@ -630,8 +630,10 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - `bashrs corpus train-classifier` — train logistic regression probe on cached embeddings
   - `bashrs corpus run-classifier` — full pipeline (extract + train + evaluate + C-CLF-001 gate)
   - RoBERTa BPE tokenizer auto-loaded from model directory (improves MCC by +9.4%)
+  - Class-weighted online SGD with sqrt-inverse balanced weights (aprender#427, aprender#428)
+  - L2 regularization (weight_decay=1e-4) prevents overfitting on imbalanced data
   - 13 unit tests + 5 CLI integration tests + provable contract (classifier-pipeline-v1.yaml)
-  - Validated: 500-entry BPE MCC=0.592, acc=95.2% — C-CLF-001 PASS
+  - Validated: 500-entry BPE MCC=0.427, 2047-entry BPE MCC=0.321 — C-CLF-001 PASS
 - **Phase 4 CLI-001 COMPLETE**: `bashrs classify --probe --model` (Stage 1 ML classification)
   - Full CodeBERT inference: tokenize → [CLS] embedding → linear probe → binary label + confidence
   - `--probe probe.json --model /path/to/codebert/` flags on `bashrs classify`
@@ -1428,24 +1430,27 @@ jobs:
 | CLF-006: Generalization test function | 1 hr | ✅ Done (entrenar + bashrs) |
 | CLF-007: Confidence scores computation | 30 min | ✅ Done (entrenar) |
 | CLF-RUN: Download CodeBERT, extract embeddings, train, evaluate | 2-4 hrs | ✅ Done (bashrs corpus run-classifier, CPU) |
-| CLF-VALIDATE: End-to-end pipeline validation with real CodeBERT weights | 2 hrs | ✅ Done (500-entry: MCC=0.541, acc=94.2%, C-CLF-001 PASS) |
-| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Running (1.2 entries/s CPU release build) |
+| CLF-VALIDATE: End-to-end pipeline validation with real CodeBERT weights | 2 hrs | ✅ Done (2047-entry: MCC=0.321, C-CLF-001 PASS) |
+| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Running (1.65 entries/s, 40% complete) |
+| CLF-WEIGHT: Class-weighted online SGD with L2 regularization | 2 hrs | ✅ Done (aprender#427 merged, KAIZEN-101) |
 
 **Kill gate**: C-CLF-001. If Level 3 fails, classifier adds no value.
 
-**Validated results (500-entry subset, Level 0 linear probe)**:
+**Validated results (Level 0 linear probe, class-weighted online SGD)**:
 - CodeBERT (124M params, 199 safetensors, 12 layers, 768 hidden) loads in ~23s
-- [CLS] embeddings: 768-dim, L2 norm ~20.5, cosine similarity 0.70-0.91 between entries
-- Extraction rate: ~1.5 entries/s (CPU release build)
+- [CLS] embeddings: 768-dim, L2 norm ~20.5, extraction ~1.65 entries/s (CPU)
+- Training: sqrt-inverse balanced class weights, L2 weight_decay=1e-4, 100 epochs
 
-| Tokenizer | Test MCC | Accuracy | Precision | Recall | F1 | Train MCC |
-|-----------|----------|----------|-----------|--------|-----|-----------|
-| Byte-level | 0.541 | 94.2% | 0.571 | 0.571 | 0.571 | 0.681 |
-| **RoBERTa BPE** | **0.592** | **95.2%** | **0.667** | 0.571 | **0.615** | **0.860** |
+| Entries | Test MCC | Accuracy | Precision | Recall | Train MCC | Ship Gate |
+|---------|----------|----------|-----------|--------|-----------|-----------|
+| 500 (BPE) | 0.427 | 94.2% | 0.300 | 0.429 | 0.749 | PASS |
+| 1000 (BPE) | 0.399 | 92.2% | 0.353 | 0.545 | 0.666 | PASS keyword |
+| 2047 (BPE) | **0.321** | 83.7% | 0.328 | 0.512 | 0.546 | **PASS** |
 
-- C-CLF-001: PASS with both tokenizers (MCC>0.3 AND MCC>0.4)
-- BPE tokenizer improves MCC by +9.4%, precision by +16.8%
-- Full 17,942-entry extraction running (~4 hours, CPU release build)
+- C-CLF-001: PASS at n=2047 (MCC=0.321 > 0.3, beats keyword baseline)
+- Class weighting critical: without it, MCC degrades to 0.198 at n=1675 (probe converges to "always safe")
+- Known limitation: entries 3000+ have zero unsafe labels → MCC degrades at n>2500
+- Full 17,942-entry extraction in progress (~4 hours, CPU release build)
 
 ### Phase 2: Conversations (1 day)
 
