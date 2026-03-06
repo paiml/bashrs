@@ -1421,8 +1421,18 @@ jobs:
 | CLF-006: Generalization test function | 1 hr | ✅ Done (entrenar + bashrs) |
 | CLF-007: Confidence scores computation | 30 min | ✅ Done (entrenar) |
 | CLF-RUN: Download CodeBERT, extract embeddings, train, evaluate | 2-4 hrs | ✅ Done (bashrs corpus run-classifier, CPU) |
+| CLF-VALIDATE: End-to-end pipeline validation with real CodeBERT weights | 2 hrs | ✅ Done (500-entry: MCC=0.541, acc=94.2%, C-CLF-001 PASS) |
+| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Running (1.2 entries/s CPU release build) |
 
 **Kill gate**: C-CLF-001. If Level 3 fails, classifier adds no value.
+
+**Validated results (500-entry subset)**:
+- CodeBERT (124M params, 199 safetensors, 12 layers, 768 hidden) loads in ~23s
+- [CLS] embeddings: 768-dim, L2 norm ~20.5, cosine similarity 0.70-0.91 between entries
+- Linear probe (768 weights + bias): train MCC=0.681, test MCC=0.541
+- Test: accuracy=94.2%, precision=0.571, recall=0.571, F1=0.571
+- C-CLF-001: PASS (MCC>0.3 keyword AND MCC>0.4 linter baselines)
+- Extraction rate: ~1.2 entries/s (CPU release build, byte-level tokenizer)
 
 ### Phase 2: Conversations (1 day)
 

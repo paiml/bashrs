@@ -101,6 +101,14 @@ pub fn extract_embeddings(
         config.hidden_size
     );
 
+    // Try to load BPE tokenizer from model directory
+    let bpe = CodeBertTokenizer::from_model_dir(model_dir);
+    if bpe.is_some() {
+        eprintln!("  Using RoBERTa BPE tokenizer (vocab.json + merges.txt)");
+    } else {
+        eprintln!("  Using byte-level fallback tokenizer (vocab files not found)");
+    }
+
     let total = entries.len();
     let mut embeddings = Vec::with_capacity(total);
     let mut skipped = 0;
@@ -110,7 +118,7 @@ pub fn extract_embeddings(
             pf(i, total);
         }
 
-        let token_ids = tokenize_for_codebert(&entry.input);
+        let token_ids = tokenize_for_codebert(&entry.input, bpe.as_ref());
         if token_ids.len() < 3 {
             skipped += 1;
             continue;
@@ -162,6 +170,14 @@ pub fn extract_embeddings_streaming(
         config.hidden_size
     );
 
+    // Try to load BPE tokenizer from model directory
+    let bpe = CodeBertTokenizer::from_model_dir(model_dir);
+    if bpe.is_some() {
+        eprintln!("  Using RoBERTa BPE tokenizer (vocab.json + merges.txt)");
+    } else {
+        eprintln!("  Using byte-level fallback tokenizer (vocab files not found)");
+    }
+
     let total = entries.len();
     let mut extracted = 0usize;
     let mut skipped = 0usize;
@@ -177,7 +193,7 @@ pub fn extract_embeddings_streaming(
             progress_fn(i, total, elapsed_ms);
         }
 
-        let token_ids = tokenize_for_codebert(&entry.input);
+        let token_ids = tokenize_for_codebert(&entry.input, bpe.as_ref());
         if token_ids.len() < 3 {
             skipped += 1;
             continue;
@@ -211,15 +227,47 @@ pub fn extract_embeddings_streaming(
     })
 }
 
+/// BPE tokenizer wrapper for CodeBERT (RoBERTa tokenizer).
+///
+/// Loaded once from vocab.json + merges.txt, reused for all entries.
+#[cfg(feature = "ml")]
+struct CodeBertTokenizer {
+    bpe: aprender::text::bpe::BpeTokenizer,
+}
+
+#[cfg(feature = "ml")]
+impl CodeBertTokenizer {
+    /// Try to load from model directory. Returns None if files missing.
+    fn from_model_dir(model_dir: &Path) -> Option<Self> {
+        let vocab = model_dir.join("vocab.json");
+        let merges = model_dir.join("merges.txt");
+        if !vocab.exists() || !merges.exists() {
+            return None;
+        }
+        let bpe = aprender::text::bpe::BpeTokenizer::from_vocab_merges(&vocab, &merges).ok()?;
+        Some(Self { bpe })
+    }
+
+    /// Tokenize with CLS/SEP wrapping and truncation.
+    fn tokenize(&self, script: &str) -> Vec<u32> {
+        let mut ids = vec![0u32]; // CLS (RoBERTa: <s>=0)
+        let encoded = self.bpe.encode(script);
+        let max_body = MAX_SEQ_LEN - 2;
+        ids.extend(encoded.iter().take(max_body));
+        ids.push(2); // SEP (RoBERTa: </s>=2)
+        ids
+    }
+}
+
 /// Tokenize a shell script for CodeBERT input.
 ///
-/// Uses aprender's BPE tokenizer when available, falls back to simple
-/// byte-level encoding.
+/// Uses the provided BPE tokenizer if available, falls back to simple byte-level.
 #[cfg(feature = "ml")]
-fn tokenize_for_codebert(script: &str) -> Vec<u32> {
-    // Try to use aprender's BPE tokenizer if vocab files are available
-    // For now, use the simple byte-level fallback
-    simple_tokenize(script)
+fn tokenize_for_codebert(script: &str, bpe: Option<&CodeBertTokenizer>) -> Vec<u32> {
+    match bpe {
+        Some(tok) => tok.tokenize(script),
+        None => simple_tokenize(script),
+    }
 }
 
 /// Train a linear probe on pre-extracted embeddings.

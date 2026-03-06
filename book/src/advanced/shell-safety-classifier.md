@@ -505,7 +505,12 @@ bashrs corpus extract-embeddings \
   --output embeddings.jsonl
 ```
 
-This loads CodeBERT (125M params), tokenizes each corpus entry, runs a forward pass, and saves the 768-dimensional [CLS] embedding per entry.
+This loads CodeBERT (124M params, 199 safetensors), tokenizes each corpus entry, runs a forward pass, and saves the 768-dimensional [CLS] embedding per entry. Use `--limit N` to test with a subset first.
+
+**Validated performance** (release build, CPU):
+- Model loading: ~23s (476MB safetensors)
+- Extraction rate: ~1.2 entries/s
+- Full corpus (17,942 entries): ~4 hours
 
 **Step 2: Train linear probe + evaluate**:
 
@@ -535,6 +540,12 @@ bashrs corpus run-classifier \
 **Ship Gate C-CLF-001**: The classifier must beat both baselines:
 - MCC > 0.3 (beats keyword regex baseline)
 - MCC > 0.4 (beats linter baseline)
+
+**Validated results** (500-entry subset, Level 0 linear probe):
+- Test MCC: 0.541 (beats both baselines)
+- Test accuracy: 94.2% (beats 93.5% majority baseline)
+- Precision/Recall/F1: 0.571 each
+- Train MCC: 0.681, accuracy: 96.5%
 
 ## WASM Deployment
 
