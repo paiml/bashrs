@@ -887,3 +887,60 @@ pub(crate) fn corpus_ssc_report(json: bool) -> Result<()> {
 
     Ok(())
 }
+
+pub(crate) fn corpus_model_card(output: Option<PathBuf>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::model_card;
+
+    eprintln!("{BOLD}Generating HuggingFace model card...{RESET}");
+    let card = model_card::generate_model_card();
+
+    match output {
+        Some(path) => {
+            std::fs::write(&path, &card).map_err(|e| {
+                Error::Validation(format!("Failed to write {}: {e}", path.display()))
+            })?;
+            eprintln!(
+                "{GREEN}\u{2713}{RESET} Model card written to {}",
+                path.display()
+            );
+        }
+        None => {
+            print!("{card}");
+        }
+    }
+
+    Ok(())
+}
+
+pub(crate) fn corpus_training_config(output: Option<PathBuf>, json: bool) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::training_config;
+
+    eprintln!("{BOLD}Generating entrenar training configuration...{RESET}");
+    let config = training_config::generate_training_config();
+
+    let data = if json {
+        training_config::format_json(&config)
+    } else {
+        training_config::format_yaml(&config)
+    };
+
+    match output {
+        Some(path) => {
+            std::fs::write(&path, &data).map_err(|e| {
+                Error::Validation(format!("Failed to write {}: {e}", path.display()))
+            })?;
+            eprintln!(
+                "{GREEN}\u{2713}{RESET} Training config written to {} ({} format)",
+                path.display(),
+                if json { "JSON" } else { "YAML" }
+            );
+        }
+        None => {
+            print!("{data}");
+        }
+    }
+
+    Ok(())
+}

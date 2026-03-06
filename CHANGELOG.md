@@ -31,6 +31,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `rash/examples/explain_demo.rs` — example demonstrating explain pipeline
 - `rash/examples/ssc_workflow.rs` — full Stage 0 pipeline: classify -> explain -> fix -> re-classify
 - `bashrs explain` now covers SEC016, SEC019-SEC024 with specific what/why/fix explanations
+- `bashrs corpus model-card` CLI command — generate HuggingFace model card (SSC v11 S6.5, S9)
+  - YAML front matter (HuggingFace dataset card schema)
+  - Live corpus statistics: entries, class distribution, splits
+  - Computed sqrt-inverse class weights for imbalanced training
+  - Baseline performance summary (majority, keyword, linter)
+  - Honesty requirements per S6.5: synthetic data, known patterns only
+  - 9 unit tests
+- `bashrs corpus training-config` CLI command — export entrenar training configuration (SSC v11 S9, CLF-001)
+  - CodeBERT encoder architecture (768-dim, 12 layers)
+  - Training hyperparameters (epochs, batch size, LR, class weights)
+  - Data config (entries, splits, preamble stripping)
+  - Evaluation targets (MCC CI lower, accuracy, generalization)
+  - YAML and JSON output formats
+  - 7 unit tests
+- `rash/examples/ssc_data_pipeline.rs` — data pipeline example: dataset -> splits -> config -> model card
 - `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
   - Binary label (safe/unsafe), confidence, all lint findings in one pass
   - JSON output (`--json`) for CI/CD integration

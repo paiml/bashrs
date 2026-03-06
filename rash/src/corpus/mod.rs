@@ -37,6 +37,7 @@ pub mod evaluation;
 pub mod generalization_tests;
 pub mod graph_priority;
 pub mod label_audit;
+pub mod model_card;
 pub mod oip;
 pub mod pattern_store;
 #[allow(clippy::expect_used)] // Quality gates uses expect() for internal invariants
@@ -49,6 +50,7 @@ pub mod schema_enforcement;
 pub mod ssc_report;
 pub mod tier_analysis;
 pub mod tokenizer_validation;
+pub mod training_config;
 
 #[cfg(test)]
 #[path = "registry_coverage_tests.rs"]
