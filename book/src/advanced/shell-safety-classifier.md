@@ -541,11 +541,15 @@ bashrs corpus run-classifier \
 - MCC > 0.3 (beats keyword regex baseline)
 - MCC > 0.4 (beats linter baseline)
 
-**Validated results** (500-entry subset, Level 0 linear probe, RoBERTa BPE tokenizer):
-- Test MCC: **0.592** (beats both baselines)
-- Test accuracy: **95.2%** (beats 93.5% majority baseline)
-- Precision: 0.667 | Recall: 0.571 | F1: 0.615
-- Train MCC: 0.860, accuracy: 98.7%
+**Validated results** (Level 0 linear probe, RoBERTa BPE tokenizer, class-weighted online SGD):
+
+| Entries | Test MCC | Accuracy | Precision | Recall | Ship Gate |
+|---------|----------|----------|-----------|--------|-----------|
+| 500 | 0.427 | 94.2% | 0.300 | 0.429 | PASS |
+| 2047 | **0.321** | 83.7% | 0.328 | 0.512 | **PASS** |
+
+Training uses sqrt-inverse balanced class weights (aprender `ClassWeight::Balanced`)
+and L2 regularization (weight_decay=1e-4) to handle 92/8% safe/unsafe imbalance.
 
 ## WASM Deployment
 
