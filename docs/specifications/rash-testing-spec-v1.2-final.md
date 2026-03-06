@@ -2322,60 +2322,60 @@ jobs:
 
 [^1]: **Compiler Testing Strategies**  
     Le, V., Afshari, M., & Su, Z. (2014). "Compiler validation via equivalence modulo inputs." *ACM SIGPLAN Notices*, 49(6), 216-226.  
-    https://doi.org/10.1145/2666356.2594334
+    <https://doi.org/10.1145/2666356.2594334>
 
-[^2]: **Snapshot Testing Methodology**  
-    Greif, S., Benitte, R., & Terrill, M. (2020). "The State of JavaScript Testing." *Testing Library Documentation*.  
-    https://testing-library.com/docs/
+[^2]: **Snapshot Testing Methodology**
+    Greif, S., Benitte, R., & Terrill, M. (2020). "The State of JavaScript Testing." *Testing Library Documentation*.
+    <https://testing-library.com/docs/>
 
-[^3]: **Differential Testing in Compilers**  
-    McKeeman, W. M. (1998). "Differential testing for software." *Digital Technical Journal*, 10(1), 100-107.  
-    https://doi.org/10.1109/52.687949
+[^3]: **Differential Testing in Compilers**
+    McKeeman, W. M. (1998). "Differential testing for software." *Digital Technical Journal*, 10(1), 100-107.
+    <https://doi.org/10.1109/52.687949>
 
-[^4]: **Property-Based Testing**  
-    Claessen, K., & Hughes, J. (2000). "QuickCheck: a lightweight tool for random testing of Haskell programs." *ACM SIGPLAN Notices*, 35(9), 268-279.  
-    https://doi.org/10.1145/357766.351266
+[^4]: **Property-Based Testing**
+    Claessen, K., & Hughes, J. (2000). "QuickCheck: a lightweight tool for random testing of Haskell programs." *ACM SIGPLAN Notices*, 35(9), 268-279.
+    <https://doi.org/10.1145/357766.351266>
 
-[^5]: **Coverage-Guided Fuzzing**  
-    Böhme, M., Pham, V. T., & Roychoudhury, A. (2016). "Coverage-based greybox fuzzing as Markov chain." *ACM SIGSAC Conference on Computer and Communications Security*, 1032-1043.  
-    https://doi.org/10.1145/2976749.2978428
+[^5]: **Coverage-Guided Fuzzing**
+    Böhme, M., Pham, V. T., & Roychoudhury, A. (2016). "Coverage-based greybox fuzzing as Markov chain." *ACM SIGSAC Conference on Computer and Communications Security*, 1032-1043.
+    <https://doi.org/10.1145/2976749.2978428>
 
-[^6]: **Symbolic Execution for Security**  
-    Cadar, C., Dunbar, D., & Engler, D. R. (2008). "KLEE: Unassisted and automatic generation of high-coverage tests for complex systems programs." *OSDI*, 8, 209-224.  
-    https://www.usenix.org/legacy/event/osdi08/tech/full_papers/cadar/cadar.pdf
+[^6]: **Symbolic Execution for Security**
+    Cadar, C., Dunbar, D., & Engler, D. R. (2008). "KLEE: Unassisted and automatic generation of high-coverage tests for complex systems programs." *OSDI*, 8, 209-224.
+    <https://www.usenix.org/legacy/event/osdi08/tech/full_papers/cadar/cadar.pdf>
 
-[^7]: **Bisimulation in Compiler Verification**  
-    Leroy, X. (2009). "Formal verification of a realistic compiler." *Communications of the ACM*, 52(7), 107-115.  
-    https://doi.org/10.1145/1538788.1538814
+[^7]: **Bisimulation in Compiler Verification**
+    Leroy, X. (2009). "Formal verification of a realistic compiler." *Communications of the ACM*, 52(7), 107-115.
+    <https://doi.org/10.1145/1538788.1538814>
 
-[^8]: **Mutation Testing Effectiveness**  
-    Jia, Y., & Harman, M. (2011). "An analysis and survey of the development of mutation testing." *IEEE Transactions on Software Engineering*, 37(5), 649-678.  
-    https://doi.org/10.1109/TSE.2010.62
+[^8]: **Mutation Testing Effectiveness**
+    Jia, Y., & Harman, M. (2011). "An analysis and survey of the development of mutation testing." *IEEE Transactions on Software Engineering*, 37(5), 649-678.
+    <https://doi.org/10.1109/TSE.2010.62>
 
-[^9]: **Error Message Quality in Developer Tools**  
-    Becker, B. A., et al. (2019). "Compiler error messages considered unhelpful: The landscape of text-based programming error message research." *ITiCSE Working Group Reports*, 177-210.  
-    https://doi.org/10.1145/3344429.3372508
+[^9]: **Error Message Quality in Developer Tools**
+    Becker, B. A., et al. (2019). "Compiler error messages considered unhelpful: The landscape of text-based programming error message research." *ITiCSE Working Group Reports*, 177-210.
+    <https://doi.org/10.1145/3344429.3372508>
 
-[^10]: **Clippy: Rust Linter**  
-    Rust Team. (2023). "Clippy: A collection of lints to catch common mistakes and improve your Rust code."  
-    https://github.com/rust-lang/rust-clippy
+[^10]: **Clippy: Rust Linter**
+    Rust Team. (2023). "Clippy: A collection of lints to catch common mistakes and improve your Rust code."
+    <https://github.com/rust-lang/rust-clippy>
 
 **Additional Resources:**
 
-- **POSIX.1-2017 Standard:** IEEE Std 1003.1-2017 Shell Command Language  
-  https://pubs.opengroup.org/onlinepubs/9699919799/
+- **POSIX.1-2017 Standard:** IEEE Std 1003.1-2017 Shell Command Language
+  <https://pubs.opengroup.org/onlinepubs/9699919799/>
 
-- **ShellCheck Wiki:** Common shell scripting pitfalls  
-  https://www.shellcheck.net/wiki/
+- **ShellCheck Wiki:** Common shell scripting pitfalls
+  <https://www.shellcheck.net/wiki/>
 
-- **Rust Fuzzing Book:** Guide to fuzzing Rust programs  
-  https://rust-fuzz.github.io/book/
+- **Rust Fuzzing Book:** Guide to fuzzing Rust programs
+  <https://rust-fuzz.github.io/book/>
 
-- **cargo-mutants Documentation:** Mutation testing for Rust  
-  https://mutants.rs/
+- **cargo-mutants Documentation:** Mutation testing for Rust
+  <https://mutants.rs/>
 
-- **proptest Book:** Property-based testing in Rust  
-  https://proptest-rs.github.io/proptest/
+- **proptest Book:** Property-based testing in Rust
+  <https://proptest-rs.github.io/proptest/>
 
 - **CompCert:** Verified C compiler (formal verification reference)  
   https://compcert.org/

@@ -24,7 +24,7 @@ name = "bashrs"
 path = "src/bin/bashrs.rs"
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["rlib"]
 
 [dependencies]
 syn.workspace = true
