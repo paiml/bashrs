@@ -322,17 +322,15 @@ fn dataset_section() -> SscSection {
 fn conversation_section() -> SscSection {
     use crate::corpus::conversations::generate_batch;
     use crate::corpus::registry::CorpusRegistry;
-    use crate::linter::lint_shell;
 
-    // Stratified sample: 70 safe + 30 unsafe entries to exercise all conversation types
+    // Stratified sample: 70 safe + 30 unsafe entries to exercise all conversation types.
+    // Use cheap keyword heuristic for partitioning (not full lint_shell on 17k entries).
+    // generate_batch() does accurate linting internally on the 100 sampled entries.
     let registry = CorpusRegistry::load_full();
 
     let (safe_entries, unsafe_entries): (Vec<_>, Vec<_>) =
         registry.entries.iter().partition(|e| {
-            let r = lint_shell(&e.input);
-            let has_sec = r.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
-            let has_det = r.diagnostics.iter().any(|d| d.code.starts_with("DET"));
-            !has_sec && !has_det
+            !has_unsafe_keyword(&e.input)
         });
 
     // Stratified sample: up to 30 unsafe + up to 70 safe
@@ -479,6 +477,20 @@ fn data_pipeline_section() -> SscSection {
             },
         ],
     }
+}
+
+/// Cheap keyword heuristic for safe/unsafe partitioning.
+///
+/// Used only for stratified sampling — accurate classification happens
+/// inside `generate_batch()` via `lint_shell()` on the sampled entries.
+/// Avoids running the full linter on all 17k+ corpus entries.
+fn has_unsafe_keyword(script: &str) -> bool {
+    const KEYWORDS: &[&str] = &[
+        "eval ", "eval\t", "$RANDOM", "curl ", "wget ", "| bash", "| sh",
+        "rm -rf", "chmod 777", "chmod +s", "sudo ", "/dev/urandom",
+        "/dev/random", "$(date", "exec ", "source <(", "bash -c", ". /dev/stdin",
+    ];
+    KEYWORDS.iter().any(|kw| script.contains(kw))
 }
 
 /// Format the report as a human-readable string.
