@@ -505,6 +505,8 @@ The encoder, classifier, and inference code are backed by YAML contracts:
 
 Contract files live in `provable-contracts/contracts/`. Pipeline: YAML contract -> scaffold -> proptest/Kani harnesses -> binding to real code -> audit.
 
+All 4 contracts are bound with 12 falsification tests + 3 proptests in `entrenar/src/finetune/tests_ssc_contract_falsify.rs`. `pv audit` reports 0 findings on all contracts.
+
 ## Cross-Format Support
 
 ```bash
