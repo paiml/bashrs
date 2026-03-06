@@ -78,20 +78,44 @@ pub fn run_all_baselines(entries: &[(&str, u8)]) -> Vec<EvaluationReport> {
 }
 
 /// Build baseline entries from the corpus: returns (script, binary_label) pairs.
+///
+/// Transpiles each entry to shell and uses the **shell output** as the
+/// classification text (not the Rust input). This ensures the training
+/// distribution matches inference, where users provide shell scripts.
+///
+/// Label derivation: lint the transpiled shell output for SEC/DET findings.
+/// Entries that fail transpilation are labeled unsafe (label=1).
 pub fn corpus_baseline_entries() -> Vec<(String, u8)> {
-    use crate::corpus::dataset::classify_single;
-    use crate::corpus::registry::CorpusRegistry;
+    use crate::corpus::dataset::{classify_single, strip_shell_preamble};
+    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
 
+    let config = crate::Config::default();
     let registry = CorpusRegistry::load_full();
     registry
         .entries
         .iter()
         .map(|e| {
-            let result = lint_shell(&e.input);
-            let has_security = result.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
-            let has_det = result.diagnostics.iter().any(|d| d.code.starts_with("DET"));
-            let row = classify_single(&e.input, true, !has_security, !has_det);
-            (e.input.clone(), row.label)
+            // Transpile to shell (the actual output users will see)
+            let transpile_fn = match e.format {
+                CorpusFormat::Bash => crate::transpile,
+                CorpusFormat::Makefile => crate::transpile_makefile,
+                CorpusFormat::Dockerfile => crate::transpile_dockerfile,
+            };
+            match transpile_fn(&e.input, &config) {
+                Ok(shell) => {
+                    let stripped = strip_shell_preamble(&shell);
+                    let result = lint_shell(&stripped);
+                    let has_security = result.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
+                    let has_det = result.diagnostics.iter().any(|d| d.code.starts_with("DET"));
+                    let row = classify_single(&stripped, true, !has_security, !has_det);
+                    (stripped, row.label)
+                }
+                Err(_) => {
+                    // Transpilation failed → unsafe
+                    let row = classify_single(&e.input, false, true, true);
+                    (e.input.clone(), row.label)
+                }
+            }
         })
         .collect()
 }
