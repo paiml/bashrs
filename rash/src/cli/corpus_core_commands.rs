@@ -338,6 +338,12 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::SscReport { json } => {
             super::corpus_config_commands::corpus_ssc_report(json)
         }
+        CorpusCommands::ModelCard { output } => {
+            super::corpus_config_commands::corpus_model_card(output)
+        }
+        CorpusCommands::TrainingConfig { output, json } => {
+            super::corpus_config_commands::corpus_training_config(output, json)
+        }
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()

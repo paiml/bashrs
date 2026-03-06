@@ -341,6 +341,55 @@ bashrs corpus export-splits --output ./data/splits/
 
 Uses FNV-1a hash-based deterministic splitting (80/10/10, seed-stable across corpus growth).
 
+### Model Card Generation (S6.5)
+
+Generate a HuggingFace-compatible model card with YAML front matter, dataset statistics, class weights, baseline performance, and honesty requirements:
+
+```bash
+# Print model card to stdout
+bashrs corpus model-card
+
+# Write to file
+bashrs corpus model-card --output README.md
+```
+
+The model card includes:
+- YAML front matter (HuggingFace dataset card schema)
+- Live dataset statistics (entries, class distribution, splits)
+- Computed class weights (sqrt-inverse for imbalanced training)
+- Baseline classifier performance (majority, keyword, linter)
+- Honesty requirements per SSC v11 S6.5:
+  - Trained on synthetic data derived from rule-based linter output
+  - Explains known patterns, not novel safety reasoning
+  - Not a replacement for security audit
+
+### Training Configuration (S9, CLF-001)
+
+Export an entrenar-compatible training configuration:
+
+```bash
+# YAML format (default)
+bashrs corpus training-config
+
+# JSON format
+bashrs corpus training-config --json
+
+# Write to file
+bashrs corpus training-config --output config.yaml
+```
+
+The config includes model architecture (CodeBERT encoder, 768-dim, 12 layers), training hyperparameters (epochs, batch size, learning rate, class weights), data statistics, and evaluation targets (MCC CI lower > 0.2, accuracy > 93.5%).
+
+### Data Pipeline Example
+
+Run the complete data pipeline example:
+
+```bash
+cargo run -p bashrs --example ssc_data_pipeline
+```
+
+This demonstrates: dataset overview -> train/val/test split -> training config -> model card generation.
+
 ### SSC Status Report
 
 Generate a comprehensive readiness report covering all SSC validation sections:

@@ -1430,6 +1430,24 @@ pub enum CorpusCommands {
         #[arg(long)]
         json: bool,
     },
+
+    /// Generate HuggingFace model card for SSC dataset/classifier (S6.5, S9)
+    ModelCard {
+        /// Output file (default: stdout)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+    },
+
+    /// Export entrenar-compatible training configuration (S9 CLF-001)
+    TrainingConfig {
+        /// Output file (default: stdout)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+
+        /// Output as JSON instead of YAML
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 /// Script format for classify command (SSC-022)

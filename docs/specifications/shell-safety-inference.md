@@ -596,6 +596,11 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs explain` — implemented (rule-based Stage 0, per-finding what/why/fix)
 - `bashrs fix` — implemented (autofix SAFE/SAFE-WITH-ASSUMPTIONS)
 - `bashrs safety-check` — implemented (lint + classify combined)
+- `bashrs corpus model-card` — implemented (HuggingFace model card with YAML front matter)
+- `bashrs corpus training-config` — implemented (entrenar config with class weights)
+- `bashrs corpus export-splits` — implemented (80/10/10 deterministic splits)
+- `bashrs corpus validate-contracts` — implemented (7/7 contracts pass)
+- `bashrs corpus baselines` — implemented (majority, keyword, linter baselines)
 - CodeBERT (Stage 1) and Qwen chat (Stage 2) pending external deps
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
