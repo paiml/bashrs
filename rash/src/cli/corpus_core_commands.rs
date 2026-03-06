@@ -359,12 +359,14 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             epochs,
             learning_rate,
             seed,
+            max_entries,
         } => super::corpus_config_commands::corpus_train_classifier(
             embeddings,
             output,
             epochs,
             learning_rate,
             seed,
+            max_entries,
         ),
         CorpusCommands::RunClassifier {
             model,
