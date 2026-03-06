@@ -509,7 +509,7 @@ This loads CodeBERT (124M params, 199 safetensors), tokenizes each corpus entry,
 
 **Validated performance** (release build, CPU):
 - Model loading: ~23s (476MB safetensors)
-- Extraction rate: ~1.2 entries/s
+- Extraction rate: ~1.65 entries/s
 - Full corpus (17,942 entries): ~4 hours
 
 **Step 2: Train linear probe + evaluate**:
