@@ -99,6 +99,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Extract CodeBERT embeddings from custom JSONL files (format: `{"input":"...","label":N}`)
   - Enables adversarial data pipeline: extract → augment → train
 
+### Fixed
+- Fix train/inference distribution mismatch in classifier training data (#172, KAIZEN-103)
+  - `corpus_baseline_entries()` now transpiles to shell before linting and classifying
+  - Training data uses shell output (matches inference input), not Rust source code
+  - Labels now based on actual shell lint findings (148 unsafe vs 283 from Rust linting)
+  - Adversarial augmentation (`--augment`) now works correctly (same domain)
+
 ### Performance
 - SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)
 - SSC report: eliminate redundant corpus loads (5→1) and lint passes (2→1) via shared state in generate_ssc_report()
