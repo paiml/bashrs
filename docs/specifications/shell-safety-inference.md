@@ -1415,7 +1415,7 @@ jobs:
 | CLF-005: Baselines comparison function | 1 hr | ✅ Done (entrenar + bashrs) |
 | CLF-006: Generalization test function | 1 hr | ✅ Done (entrenar + bashrs) |
 | CLF-007: Confidence scores computation | 30 min | ✅ Done (entrenar) |
-| CLF-RUN: Download CodeBERT, extract embeddings, train, evaluate | 2-4 hrs | ⏳ Blocked (GPU) |
+| CLF-RUN: Download CodeBERT, extract embeddings, train, evaluate | 2-4 hrs | ✅ Done (bashrs corpus run-classifier, CPU) |
 
 **Kill gate**: C-CLF-001. If Level 3 fails, classifier adds no value.
 

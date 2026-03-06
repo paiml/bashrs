@@ -537,3 +537,81 @@ fn test_PMAT147_corpus_ssc_report_gate_json() {
         .success()
         .stdout(predicate::str::contains("\"overall_ready\": true"));
 }
+
+// ============================================================================
+// bashrs corpus train-classifier (CLF-RUN step 2-3)
+// ============================================================================
+
+#[test]
+fn test_PMAT154_corpus_train_classifier_from_synthetic() {
+    // Create synthetic embeddings JSONL
+    let dir = tempfile::tempdir().unwrap();
+    let emb_path = dir.path().join("embeddings.jsonl");
+    let mut f = std::fs::File::create(&emb_path).unwrap();
+    use std::io::Write as _;
+    // Write 20 synthetic embedding entries (10 safe, 10 unsafe)
+    for i in 0..20 {
+        let label = if i < 10 { 0 } else { 1 };
+        let emb: Vec<f32> = (0..32)
+            .map(|j| {
+                if label == 0 {
+                    if j < 16 { 1.0 } else { -1.0 }
+                } else {
+                    if j < 16 { -1.0 } else { 1.0 }
+                }
+            })
+            .collect();
+        let entry = serde_json::json!({
+            "id": format!("test_{i}"),
+            "embedding": emb,
+            "label": label
+        });
+        writeln!(f, "{}", serde_json::to_string(&entry).unwrap()).unwrap();
+    }
+    drop(f);
+
+    let out_dir = dir.path().join("output");
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("train-classifier")
+        .arg("--embeddings")
+        .arg(&emb_path)
+        .arg("--output")
+        .arg(&out_dir)
+        .arg("--epochs")
+        .arg("10")
+        .arg("--seed")
+        .arg("42")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("Training linear probe"));
+
+    // Verify output artifacts
+    assert!(out_dir.join("probe.json").exists());
+    assert!(out_dir.join("evaluation.json").exists());
+
+    // Verify probe.json is valid
+    let probe: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(out_dir.join("probe.json")).unwrap())
+            .unwrap();
+    assert!(probe.get("weights").is_some());
+    assert!(probe.get("bias").is_some());
+    assert!(probe.get("epochs").is_some());
+}
+
+#[test]
+fn test_PMAT154_corpus_extract_embeddings_requires_ml() {
+    // Without ml feature, extract-embeddings should fail with helpful message
+    // (the test binary is built without --features ml)
+    let dir = tempfile::tempdir().unwrap();
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("extract-embeddings")
+        .arg("--model")
+        .arg("/tmp/nonexistent-model")
+        .arg("--output")
+        .arg(dir.path().join("embeddings.jsonl"))
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("ml"));
+}

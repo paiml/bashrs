@@ -23,6 +23,7 @@
 pub mod adversarial_generator;
 pub mod adversarial_templates;
 pub mod baselines;
+pub mod classifier;
 pub mod citl;
 pub mod contract_validation;
 pub mod convergence;
