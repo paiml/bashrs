@@ -420,6 +420,12 @@ Generate a comprehensive readiness report covering all SSC validation sections:
 # Full SSC readiness report
 bashrs corpus ssc-report
 
+# CI gate mode: exit 1 if any section fails
+bashrs corpus ssc-report --gate
+
+# JSON output for programmatic consumption
+bashrs corpus ssc-report --json
+
 # Run the example
 cargo run -p bashrs --example ssc_report
 ```

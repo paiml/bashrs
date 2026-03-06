@@ -378,3 +378,30 @@ fn test_PMAT143_corpus_publish_dataset_config_yaml() {
     assert!(config.contains("architecture:"));
     assert!(config.contains("class_weights:"));
 }
+
+// ============================================================================
+// bashrs corpus ssc-report --gate
+// ============================================================================
+
+#[test]
+fn test_PMAT147_corpus_ssc_report_gate_passes() {
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("ssc-report")
+        .arg("--gate")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("All sections ready"));
+}
+
+#[test]
+fn test_PMAT147_corpus_ssc_report_gate_json() {
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("ssc-report")
+        .arg("--gate")
+        .arg("--json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"overall_ready\": true"));
+}

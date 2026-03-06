@@ -865,8 +865,8 @@ pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn corpus_ssc_report(json: bool) -> Result<()> {
-    use crate::corpus::ssc_report::{format_ssc_report, generate_ssc_report};
+pub(crate) fn corpus_ssc_report(json: bool, gate: bool) -> Result<()> {
+    use crate::corpus::ssc_report::{format_ssc_report, generate_ssc_report, SscStatus};
 
     eprintln!("Generating SSC v11 readiness report...");
     let report = generate_ssc_report();
@@ -883,6 +883,22 @@ pub(crate) fn corpus_ssc_report(json: bool) -> Result<()> {
         eprintln!("All sections ready for classifier training.");
     } else {
         eprintln!("Some sections need attention before classifier training.");
+    }
+
+    if gate {
+        let failures: Vec<&str> = report
+            .sections
+            .iter()
+            .filter(|s| s.status == SscStatus::Fail)
+            .map(|s| s.name.as_str())
+            .collect();
+        if !failures.is_empty() {
+            return Err(Error::Validation(format!(
+                "SSC gate failed: {} section(s) not ready: {}",
+                failures.len(),
+                failures.join(", ")
+            )));
+        }
     }
 
     Ok(())

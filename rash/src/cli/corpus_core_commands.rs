@@ -335,8 +335,8 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ExportSplits { output } => {
             super::corpus_config_commands::corpus_export_splits(output)
         }
-        CorpusCommands::SscReport { json } => {
-            super::corpus_config_commands::corpus_ssc_report(json)
+        CorpusCommands::SscReport { json, gate } => {
+            super::corpus_config_commands::corpus_ssc_report(json, gate)
         }
         CorpusCommands::ModelCard { output } => {
             super::corpus_config_commands::corpus_model_card(output)
