@@ -411,6 +411,12 @@ fn conversation_section() -> SscSection {
                 target: "no variant >20%".to_string(),
                 passed: report.variant_distribution_ok,
             },
+            SscMetric {
+                name: "Empty/trivial responses".to_string(),
+                value: report.empty_responses.to_string(),
+                target: "0".to_string(),
+                passed: report.empty_responses == 0,
+            },
         ],
     }
 }

@@ -75,6 +75,7 @@ pub struct QualityReport {
     pub type_d_pct: f64,
     pub rule_citation_accuracy: f64,
     pub variant_distribution_ok: bool,
+    pub empty_responses: usize,
     pub passed: bool,
 }
 
@@ -153,6 +154,12 @@ pub fn generate_batch(
     // Check variant distribution: no single variant > 20% of total
     let variant_distribution_ok = check_variant_distribution(&conversations);
 
+    // S6.4: No empty/trivial responses
+    let empty_responses = conversations
+        .iter()
+        .filter(|c| c.turns.iter().any(|t| t.content.trim().is_empty()))
+        .count();
+
     let report = QualityReport {
         total,
         type_a_count: type_counts[0],
@@ -162,8 +169,9 @@ pub fn generate_batch(
         type_d_pct,
         rule_citation_accuracy: 1.0, // Citations come directly from linter output
         variant_distribution_ok,
-        // Section 6.4: Type D >= 30%
-        passed: type_d_pct >= 30.0 && variant_distribution_ok,
+        empty_responses,
+        // Section 6.4: Type D >= 30%, no empty responses
+        passed: type_d_pct >= 30.0 && variant_distribution_ok && empty_responses == 0,
     };
 
     (conversations, report)
@@ -649,6 +657,26 @@ mod tests {
 
         let conv = generate_conversation(&input, 0);
         assert_eq!(conv.id, "conv-B-42-confirm-safe");
+    }
+
+    #[test]
+    fn test_no_empty_responses_in_batch() {
+        let entries: Vec<(&str, &str)> = vec![
+            ("B-1", "eval $x"),
+            ("B-2", "echo hello"),
+            ("B-3", "echo $RANDOM"),
+        ];
+        let (convs, report) = generate_batch(&entries, 42);
+        assert_eq!(report.empty_responses, 0, "No empty responses expected");
+        for conv in &convs {
+            for turn in &conv.turns {
+                assert!(
+                    !turn.content.trim().is_empty(),
+                    "Empty turn in conversation {}",
+                    conv.id
+                );
+            }
+        }
     }
 
     #[test]

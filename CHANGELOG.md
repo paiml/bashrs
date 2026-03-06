@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 4 `assert_cmd` integration tests
 - `bashrs corpus ssc-report --gate` — CI quality gate mode, exits 1 on any FAIL section
 - SSC report enrichment: baselines section now shows MCC + accuracy + recall per classifier, ML targets (S5.5)
-- SSC report enrichment: conversations section shows Type A/B/C/D breakdown, Type D >=30%, variant distribution (S6.4)
+- SSC report enrichment: conversations section shows Type A/B/C/D breakdown, Type D >=30%, variant distribution, empty response check (S6.4)
 - Fix broken internal link in shell-safety-inference-v1-v3-archive.md (CB-900)
 - Initialize O(1) hooks cache (CB-030)
 - 26 `assert_cmd` CLI integration tests for SSC commands (classify, explain, fix, safety-check, corpus)
