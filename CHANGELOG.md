@@ -105,6 +105,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Training data uses shell output (matches inference input), not Rust source code
   - Labels now based on actual shell lint findings (148 unsafe vs 283 from Rust linting)
   - Adversarial augmentation (`--augment`) now works correctly (same domain)
+- Linear probe (Level 0) insufficient for shell-based labeling (#173, KAIZEN-104)
+  - Shell-based MCC=0.043 (vs pre-#172 Rust-based MCC=0.321 which was domain-mismatched)
+  - Transpiler normalizes unsafe patterns → 0.82% positive rate (148/17,942)
+  - CodeBERT [CLS] embeddings not linearly separable for shell safety
+  - Decision: escalate to Level 1 fine-tuning (entrenar#245)
 
 ### Performance
 - SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)

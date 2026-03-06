@@ -551,10 +551,14 @@ bashrs corpus run-classifier \
 
 **Validated results** (Level 0 linear probe, RoBERTa BPE tokenizer, class-weighted online SGD):
 
+Shell-based labels (#172 fix — correct domain):
+
 | Entries | Test MCC | Accuracy | Precision | Recall | Ship Gate |
 |---------|----------|----------|-----------|--------|-----------|
-| 500 | 0.427 | 94.2% | 0.300 | 0.429 | PASS |
-| 2047 | **0.321** | 83.7% | 0.328 | 0.512 | **PASS** |
+| 3000 (shell) | 0.043 | 94.7% | 0.040 | 0.111 | FAIL |
+| 3000 + 350 adv | 0.205 | 36.5% | 0.146 | 1.000 | FAIL |
+
+**Note**: Linear probe insufficient for shell-based labeling. Escalating to Level 1 fine-tuning ([#173](https://github.com/paiml/bashrs/issues/173)). Pre-#172 results (MCC=0.321) used Rust code as training text — domain mismatch makes them invalid.
 
 Training uses sqrt-inverse balanced class weights (aprender `ClassWeight::Balanced`)
 and L2 regularization (weight_decay=1e-4) to handle 99.2/0.8% safe/unsafe imbalance.
