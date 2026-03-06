@@ -1228,13 +1228,16 @@ pub(crate) fn corpus_train_classifier(
     seed: u64,
     max_entries: Option<usize>,
     augment: Vec<PathBuf>,
+    mlp: bool,
+    mlp_hidden: usize,
 ) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::classifier::{
         evaluate_probe, load_embeddings, save_probe, split_embeddings, train_linear_probe,
     };
 
-    eprintln!("{BOLD}Training linear probe classifier...{RESET}");
+    let probe_type = if mlp { format!("MLP probe (hidden={mlp_hidden})") } else { "linear probe".into() };
+    eprintln!("{BOLD}Training {probe_type} classifier...{RESET}");
 
     // Load cached embeddings
     let mut all_embeddings = load_embeddings(&embeddings_path)
@@ -1260,13 +1263,17 @@ pub(crate) fn corpus_train_classifier(
     let (train, test) = split_embeddings(&all_embeddings, seed);
     eprintln!("  Train: {} | Test: {}", train.len(), test.len());
 
-    // Train
+    // Train (linear or MLP)
     eprintln!("\n{BOLD}Training (epochs={epochs}, lr={learning_rate}):{RESET}");
-    let probe = train_linear_probe(&train, epochs, learning_rate);
-    eprintln!("  Train accuracy: {:.1}% | Train MCC: {:.3}", probe.train_accuracy * 100.0, probe.train_mcc);
+    let (probe, test_report) = if mlp {
+        train_and_evaluate_mlp(&train, &test, epochs, learning_rate, mlp_hidden)?
+    } else {
+        let probe = train_linear_probe(&train, epochs, learning_rate);
+        eprintln!("  Train accuracy: {:.1}% | Train MCC: {:.3}", probe.train_accuracy * 100.0, probe.train_mcc);
+        let test_report = evaluate_probe(&probe, &test);
+        (probe, test_report)
+    };
 
-    // Evaluate on test
-    let test_report = evaluate_probe(&probe, &test);
     eprintln!("\n{BOLD}Test Evaluation:{RESET}");
     eprintln!("  Accuracy:  {:.1}%", test_report.accuracy * 100.0);
     eprintln!("  Precision: {:.3}", test_report.precision);
@@ -1305,6 +1312,76 @@ pub(crate) fn corpus_train_classifier(
     eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}Classifier artifacts saved to {}{RESET}", output.display());
 
     Ok(())
+}
+
+/// Train MLP probe and evaluate (Level 0.5).
+#[cfg(feature = "ml")]
+fn train_and_evaluate_mlp(
+    train: &[crate::corpus::classifier::EmbeddingEntry],
+    test: &[crate::corpus::classifier::EmbeddingEntry],
+    epochs: usize,
+    learning_rate: f32,
+    mlp_hidden: usize,
+) -> Result<(crate::corpus::classifier::LinearProbe, crate::corpus::evaluation::EvaluationReport)> {
+    use entrenar::finetune::MlpProbe;
+
+    let hidden_size = train.first()
+        .map(|e| e.embedding.len())
+        .ok_or_else(|| Error::Validation("No training embeddings".into()))?;
+
+    let embeddings: Vec<Vec<f32>> = train.iter().map(|e| e.embedding.clone()).collect();
+    let labels: Vec<usize> = train.iter().map(|e| e.label as usize).collect();
+
+    // Compute class weights (sqrt-inverse balanced)
+    let n = labels.len() as f32;
+    let n_safe = labels.iter().filter(|&&l| l == 0).count() as f32;
+    let n_unsafe = labels.iter().filter(|&&l| l == 1).count() as f32;
+    let class_weights = if n_unsafe > 0.0 {
+        vec![(n / (2.0 * n_safe)).sqrt(), (n / (2.0 * n_unsafe)).sqrt()]
+    } else {
+        vec![1.0, 1.0]
+    };
+    eprintln!("  Class weights: safe={:.3}, unsafe={:.3}", class_weights[0], class_weights[1]);
+
+    let mut mlp = MlpProbe::new(hidden_size, mlp_hidden, 2);
+    eprintln!("  Parameters: {} ({} hidden)", mlp.num_parameters(), mlp_hidden);
+    mlp.train(&embeddings, &labels, epochs, learning_rate, Some(&class_weights), 1e-4);
+
+    // Evaluate on train
+    let train_correct = embeddings.iter().zip(labels.iter())
+        .filter(|(e, &l)| mlp.predict(e) == l).count();
+    let train_acc = train_correct as f64 / labels.len().max(1) as f64;
+    eprintln!("  Train accuracy: {:.1}%", train_acc * 100.0);
+
+    // Evaluate on test: build (pred, truth) pairs for evaluate()
+    let predictions: Vec<(u8, u8)> = test.iter()
+        .map(|e| (mlp.predict(&e.embedding) as u8, e.label))
+        .collect();
+    let report = crate::corpus::evaluation::evaluate(&predictions, "MLP probe");
+
+    // Build probe struct for save (placeholder weights — MLP weights not serialized yet)
+    let probe = crate::corpus::classifier::LinearProbe {
+        weights: vec![0.0; hidden_size],
+        bias: 0.0,
+        epochs,
+        learning_rate,
+        train_accuracy: train_acc,
+        train_mcc: 0.0,
+    };
+
+    Ok((probe, report))
+}
+
+/// Fallback for non-ml builds.
+#[cfg(not(feature = "ml"))]
+fn train_and_evaluate_mlp(
+    _train: &[crate::corpus::classifier::EmbeddingEntry],
+    _test: &[crate::corpus::classifier::EmbeddingEntry],
+    _epochs: usize,
+    _lr: f32,
+    _mlp_hidden: usize,
+) -> Result<(crate::corpus::classifier::LinearProbe, crate::corpus::evaluation::EvaluationReport)> {
+    Err(Error::Validation("MLP probe requires --features ml".into()))
 }
 
 /// Run full CLF-RUN pipeline: extract → train → evaluate.

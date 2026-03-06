@@ -1526,6 +1526,14 @@ pub enum CorpusCommands {
         /// Additional embedding JSONL files to augment training data (e.g. adversarial entries)
         #[arg(long)]
         augment: Vec<std::path::PathBuf>,
+
+        /// Use MLP probe (2-layer with ReLU) instead of linear probe
+        #[arg(long)]
+        mlp: bool,
+
+        /// MLP hidden layer size (only with --mlp)
+        #[arg(long, default_value = "128")]
+        mlp_hidden: usize,
     },
 
     /// Run full CLF-RUN pipeline: extract embeddings → train → evaluate (requires --features ml)

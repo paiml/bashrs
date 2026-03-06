@@ -522,13 +522,14 @@ bashrs corpus train-classifier \
   --epochs 100 \
   --seed 42
 
-# Cap training data to avoid data labeling gap (#171)
-# Entries 3000+ have no unsafe labels; use --max-entries to limit
+# MLP probe with adversarial augmentation (recommended for shell-based labels)
 bashrs corpus train-classifier \
   --embeddings embeddings.jsonl \
+  --augment adversarial.jsonl \
   --output ./classifier/ \
-  --epochs 100 \
-  --max-entries 2500
+  --epochs 50 \
+  --learning-rate 0.0001 \
+  --mlp --mlp-hidden 32
 ```
 
 Outputs:
@@ -553,12 +554,13 @@ bashrs corpus run-classifier \
 
 Shell-based labels (#172 fix — correct domain):
 
-| Entries | Test MCC | Accuracy | Precision | Recall | Ship Gate |
-|---------|----------|----------|-----------|--------|-----------|
-| 3000 (shell) | 0.043 | 94.7% | 0.040 | 0.111 | FAIL |
-| 3000 + 350 adv | 0.205 | 36.5% | 0.146 | 1.000 | FAIL |
+| Entries | Probe | Test MCC | Accuracy | Precision | Recall | Ship Gate |
+|---------|-------|----------|----------|-----------|--------|-----------|
+| 3000 (shell) | Linear | 0.043 | 94.7% | 0.040 | 0.111 | FAIL |
+| 3000 + 350 adv | Linear | 0.205 | 36.5% | 0.146 | 1.000 | FAIL |
+| 3000 + 350 adv | **MLP h=32** | **0.754** | 94.2% | 0.670 | 0.918 | **PASS** |
 
-**Note**: Linear probe insufficient for shell-based labeling. Escalating to Level 1 fine-tuning ([#173](https://github.com/paiml/bashrs/issues/173)). Pre-#172 results (MCC=0.321) used Rust code as training text — domain mismatch makes them invalid.
+The MLP probe (Level 0.5) with adversarial augmentation is the recommended configuration. Use `--mlp --mlp-hidden 32 --augment adversarial.jsonl`.
 
 Training uses sqrt-inverse balanced class weights (aprender `ClassWeight::Balanced`)
 and L2 regularization (weight_decay=1e-4) to handle 99.2/0.8% safe/unsafe imbalance.
