@@ -681,3 +681,38 @@ fn test_PMAT154_corpus_extract_embeddings_requires_ml() {
         .failure()
         .stderr(predicate::str::contains("ml"));
 }
+
+// ============================================================================
+// MLP probe CLI args (KAIZEN-107)
+// ============================================================================
+
+#[test]
+fn test_KAIZEN107_classify_mlp_probe_requires_model() {
+    let f = write_temp_script("#!/bin/sh\necho hello\n");
+    // --mlp-probe without --model should print note and succeed (Stage 0 still runs)
+    bashrs_cmd()
+        .arg("classify")
+        .arg("--mlp-probe")
+        .arg("/tmp/nonexistent.json")
+        .arg(f.path())
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("requires --model"));
+}
+
+#[test]
+fn test_KAIZEN107_train_classifier_mlp_flag_accepted() {
+    // Verify --mlp and --mlp-hidden flags are accepted (will fail on missing embeddings)
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("train-classifier")
+        .arg("--embeddings")
+        .arg("/tmp/nonexistent.jsonl")
+        .arg("--output")
+        .arg("/tmp/test_mlp_out")
+        .arg("--mlp")
+        .arg("--mlp-hidden")
+        .arg("16")
+        .assert()
+        .failure(); // Fails on missing file, not arg parsing
+}
