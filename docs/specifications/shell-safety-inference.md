@@ -96,17 +96,17 @@ Every change is a simplification or a one-line swap.
 
 ### 4.2 Implementation
 
-| Task | File(s) | Description | Time |
-|------|---------|-------------|------|
-| ENC-001 | `entrenar/src/transformer/config.rs` | Add `ModelArchitecture::Encoder` variant, `AttentionMode::Bidirectional` | 1 hr |
-| ENC-002 | `entrenar/src/transformer/attention.rs` | Make causal mask conditional: if bidirectional, skip mask | 2 hrs |
-| ENC-003 | `entrenar/src/transformer/position.rs` | Add `PositionEmbedding::Learned { max_positions, dim }` — index lookup table | 2 hrs |
-| ENC-004 | `entrenar/src/transformer/ffn.rs` | Add `Activation::Gelu` alongside existing `SwiGLU` | 30 min |
-| ENC-005 | `entrenar/src/transformer/norm.rs` | Add `NormType::LayerNorm` with bias, alongside existing `RMSNorm` | 1 hr |
-| ENC-006 | `entrenar/src/transformer/loader.rs` | RoBERTa safetensors key mapping (weight name translation table) | 4 hrs |
-| ENC-007 | `entrenar/src/finetune/classify_pipeline.rs` | Add `PoolingStrategy::Cls` and `MeanPool` alongside existing `LastToken` | 1 hr |
-| ENC-008 | Tests: round-trip, numerical equivalence, pooling correctness | 4 hrs |
-| **Total** | | | **~16 hrs (2 days)** |
+| Task | File(s) | Description | Status |
+|------|---------|-------------|--------|
+| ENC-001 | `entrenar/src/transformer/config.rs` | `ModelArchitecture` enum (Encoder/Decoder), `codebert()` preset, `from_size_str("codebert")` | ✅ Done |
+| ENC-002 | `entrenar/src/autograd/ops/attention.rs` | Verified bidirectional (no causal mask applied). Test: modify K[2] → output[0] changes | ✅ Done |
+| ENC-003 | `entrenar/src/transformer/embedding.rs` | `LearnedPositionEmbedding` — lookup table (0..max_pos), `from_params()`, clamp beyond max | ✅ Done |
+| ENC-004 | `entrenar/src/transformer/feedforward.rs` | `EncoderFeedForward` with GELU (2-projection + bias), `from_params()` with BERT weight names | ✅ Done |
+| ENC-005 | `entrenar/src/transformer/norm.rs` | `LayerNorm` with bias (mean-center + var-normalize), `from_params()`, `forward_batched()` | ✅ Done |
+| ENC-006 | `entrenar/src/transformer/weights/` | `Architecture::RoBERTa`, auto-detect from weight names, full name mapping | ✅ Done |
+| ENC-007 | `entrenar/src/finetune/classification.rs` | `PoolingStrategy::{Cls, LastToken, Mean}`, `forward_with_pooling()`, `from_architecture()` | ✅ Done |
+| ENC-008 | Tests across all modules | 30 new tests: config, attention, embedding, FFN, norm, weights, pooling | ✅ Done |
+| **Total** | | All encoder components implemented in entrenar | **✅ Complete** |
 
 ### 4.3 Provable Contracts (YAML + Kani + proptest)
 
@@ -609,7 +609,8 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - 37 assert_cmd CLI integration tests (cli_ssc_tests.rs): classify (safe/unsafe/json/makefile/dockerfile/multi-label/nonexistent), explain (safe/unsafe/json/det/idem/makefile/nonexistent), fix (dry-run/output/assumptions/safe/nonexistent), safety-check (safe/unsafe/json/makefile/nonexistent), corpus subcommands
 - 4 provable-contracts YAML files created (S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
 - SSC report optimized: keyword heuristic for conversation sampling (4+ min → 1.8s), shared corpus/baseline data (5 loads → 1)
-- **Blocked on external deps**: CodeBERT classifier (entrenar encoder ENC-001..008), Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
+- **Stage 0 COMPLETE**: All encoder components (ENC-001..008) implemented in entrenar with 30 tests. GitHub: paiml/entrenar#242
+- **Blocked on remaining external deps**: CodeBERT linear probe classifier pipeline (entrenar CLF-001..007, issue #243), Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
