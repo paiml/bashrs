@@ -955,9 +955,8 @@ pub(crate) fn corpus_publish_dataset(output: PathBuf) -> Result<()> {
     eprintln!("{BOLD}Building HuggingFace-ready dataset...{RESET}");
 
     // Create output directory
-    std::fs::create_dir_all(&output).map_err(|e| {
-        Error::Validation(format!("Cannot create {}: {e}", output.display()))
-    })?;
+    std::fs::create_dir_all(&output)
+        .map_err(|e| Error::Validation(format!("Cannot create {}: {e}", output.display())))?;
 
     // Step 1: Split dataset
     let owned = corpus_baseline_entries();
@@ -988,19 +987,29 @@ pub(crate) fn corpus_publish_dataset(output: PathBuf) -> Result<()> {
     })?;
 
     // Summary
-    eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}Dataset published to {}{RESET}", output.display());
+    eprintln!(
+        "\n{GREEN}\u{2713}{RESET} {BOLD}Dataset published to {}{RESET}",
+        output.display()
+    );
     eprintln!("  README.md        \u{2014} HuggingFace model card");
     eprintln!("  train.jsonl      \u{2014} {} entries", result.train.len());
     eprintln!("  val.jsonl        \u{2014} {} entries", result.val.len());
     eprintln!("  test.jsonl       \u{2014} {} entries", result.test.len());
     eprintln!("  training_config.yaml \u{2014} entrenar config");
     eprintln!("  Total: {total} entries\n");
-    eprintln!("To publish: `huggingface-cli upload paiml/shell-safety-classifier {}`", output.display());
+    eprintln!(
+        "To publish: `huggingface-cli upload paiml/shell-safety-classifier {}`",
+        output.display()
+    );
 
     Ok(())
 }
 
-fn write_split_file(dir: &Path, name: &str, rows: &[crate::corpus::dataset::ClassificationRow]) -> Result<()> {
+fn write_split_file(
+    dir: &Path,
+    name: &str,
+    rows: &[crate::corpus::dataset::ClassificationRow],
+) -> Result<()> {
     use std::fmt::Write as _;
 
     let path = dir.join(format!("{name}.jsonl"));
@@ -1013,8 +1022,7 @@ fn write_split_file(dir: &Path, name: &str, rows: &[crate::corpus::dataset::Clas
             .replace('\n', "\\n");
         let _ = writeln!(out, r#"{{"input":"{}","label":{}}}"#, escaped, row.label);
     }
-    std::fs::write(&path, out).map_err(|e| {
-        Error::Validation(format!("Failed to write {}: {e}", path.display()))
-    })?;
+    std::fs::write(&path, out)
+        .map_err(|e| Error::Validation(format!("Failed to write {}: {e}", path.display())))?;
     Ok(())
 }

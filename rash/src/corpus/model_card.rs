@@ -97,7 +97,11 @@ fn write_yaml_front_matter(card: &mut String, total: usize, unsafe_pct: f64) {
     let _ = writeln!(
         card,
         "- {}",
-        if total > 10000 { "10K<n<100K" } else { "1K<n<10K" }
+        if total > 10000 {
+            "10K<n<100K"
+        } else {
+            "1K<n<10K"
+        }
     );
     let _ = writeln!(card, "dataset_info:");
     let _ = writeln!(card, "  features:");
@@ -155,7 +159,10 @@ fn write_header(card: &mut String) {
 fn write_model_description(card: &mut String) {
     let _ = writeln!(card, "## Model Description");
     let _ = writeln!(card);
-    let _ = writeln!(card, "This dataset supports the SSC v11 (Shell Safety Classifier) pipeline:");
+    let _ = writeln!(
+        card,
+        "This dataset supports the SSC v11 (Shell Safety Classifier) pipeline:"
+    );
     let _ = writeln!(card);
     let _ = writeln!(card, "| Stage | Model | Purpose | Latency |");
     let _ = writeln!(card, "|-------|-------|---------|---------|");
@@ -190,8 +197,14 @@ fn write_dataset_section(
     let _ = writeln!(card, "| Unsafe (label=1) | {unsafe_count} |");
     let _ = writeln!(card, "| Class imbalance | {unsafe_pct:.1}% unsafe |");
     let _ = writeln!(card, "| Input format | Shell scripts (bash/sh) |");
-    let _ = writeln!(card, "| Label source | Rule-based linter (24 SEC + DET/IDEM rules) |");
-    let _ = writeln!(card, "| Preamble | Stripped (shebang, set -euf, trap, etc.) |");
+    let _ = writeln!(
+        card,
+        "| Label source | Rule-based linter (24 SEC + DET/IDEM rules) |"
+    );
+    let _ = writeln!(
+        card,
+        "| Preamble | Stripped (shebang, set -euf, trap, etc.) |"
+    );
     let _ = writeln!(card);
 }
 
@@ -275,23 +288,14 @@ fn write_baselines_section(card: &mut String) {
     let _ = writeln!(card);
     let _ = writeln!(card, "Any ML classifier must beat at least one baseline:");
     let _ = writeln!(card);
-    let _ = writeln!(
-        card,
-        "| Baseline | MCC | Accuracy | Precision | Recall |"
-    );
-    let _ = writeln!(
-        card,
-        "|----------|----:|--------:|---------:|------:|"
-    );
+    let _ = writeln!(card, "| Baseline | MCC | Accuracy | Precision | Recall |");
+    let _ = writeln!(card, "|----------|----:|--------:|---------:|------:|");
     let _ = writeln!(
         card,
         "| Majority (all-safe) | 0.000 | ~{:.1}% | 0.0% | 0.0% |",
         93.5
     );
-    let _ = writeln!(
-        card,
-        "| Keyword regex | ~0.030 | ~97% | ~7% | ~2.5% |"
-    );
+    let _ = writeln!(card, "| Keyword regex | ~0.030 | ~97% | ~7% | ~2.5% |");
     let _ = writeln!(
         card,
         "| bashrs linter (24 rules) | **1.000** | **100%** | **100%** | **100%** |"
@@ -305,33 +309,60 @@ fn write_baselines_section(card: &mut String) {
         card,
         "> linter output. The ML classifier's value is generalization to novel patterns"
     );
-    let _ = writeln!(
-        card,
-        "> that the linter rules don't cover."
-    );
+    let _ = writeln!(card, "> that the linter rules don't cover.");
     let _ = writeln!(card);
 }
 
 fn write_intended_use(card: &mut String) {
     let _ = writeln!(card, "## Intended Use");
     let _ = writeln!(card);
-    let _ = writeln!(card, "- **Primary**: Train a binary classifier (CodeBERT 125M) for shell safety triage");
-    let _ = writeln!(card, "- **Secondary**: Fine-tune a chat model (Qwen-1.5B) for safety explanations");
-    let _ = writeln!(card, "- **CI/CD**: Automated shell script safety checks in build pipelines");
-    let _ = writeln!(card, "- **Education**: Learn about shell script safety patterns");
+    let _ = writeln!(
+        card,
+        "- **Primary**: Train a binary classifier (CodeBERT 125M) for shell safety triage"
+    );
+    let _ = writeln!(
+        card,
+        "- **Secondary**: Fine-tune a chat model (Qwen-1.5B) for safety explanations"
+    );
+    let _ = writeln!(
+        card,
+        "- **CI/CD**: Automated shell script safety checks in build pipelines"
+    );
+    let _ = writeln!(
+        card,
+        "- **Education**: Learn about shell script safety patterns"
+    );
     let _ = writeln!(card);
 }
 
 fn write_limitations(card: &mut String) {
     let _ = writeln!(card, "## Limitations");
     let _ = writeln!(card);
-    let _ = writeln!(card, "1. **Labels are linter-derived, not expert-audited**: An unsafe label means the");
-    let _ = writeln!(card, "   bashrs linter flagged the script (SEC/DET rules), not that a human security");
+    let _ = writeln!(
+        card,
+        "1. **Labels are linter-derived, not expert-audited**: An unsafe label means the"
+    );
+    let _ = writeln!(
+        card,
+        "   bashrs linter flagged the script (SEC/DET rules), not that a human security"
+    );
     let _ = writeln!(card, "   expert reviewed it.");
-    let _ = writeln!(card, "2. **Class imbalance**: ~2% unsafe examples. Use class weights for training.");
-    let _ = writeln!(card, "3. **Corpus-bound**: Scripts are from the bashrs transpilation corpus.");
-    let _ = writeln!(card, "   Real-world bash scripts may differ in style, length, and complexity.");
-    let _ = writeln!(card, "4. **Not a security audit**: This dataset and any model trained on it");
+    let _ = writeln!(
+        card,
+        "2. **Class imbalance**: ~2% unsafe examples. Use class weights for training."
+    );
+    let _ = writeln!(
+        card,
+        "3. **Corpus-bound**: Scripts are from the bashrs transpilation corpus."
+    );
+    let _ = writeln!(
+        card,
+        "   Real-world bash scripts may differ in style, length, and complexity."
+    );
+    let _ = writeln!(
+        card,
+        "4. **Not a security audit**: This dataset and any model trained on it"
+    );
     let _ = writeln!(card, "   detect known patterns, not novel vulnerabilities.");
     let _ = writeln!(card);
 }
@@ -344,9 +375,18 @@ fn write_honesty_section(card: &mut String) {
         "Per the SSC specification, the following must be stated clearly:"
     );
     let _ = writeln!(card);
-    let _ = writeln!(card, "- Trained on **synthetic data derived from rule-based linter output**");
-    let _ = writeln!(card, "- Explains **known patterns**, not novel safety reasoning");
-    let _ = writeln!(card, "- For scripts outside rule coverage, responses may be **generic**");
+    let _ = writeln!(
+        card,
+        "- Trained on **synthetic data derived from rule-based linter output**"
+    );
+    let _ = writeln!(
+        card,
+        "- Explains **known patterns**, not novel safety reasoning"
+    );
+    let _ = writeln!(
+        card,
+        "- For scripts outside rule coverage, responses may be **generic**"
+    );
     let _ = writeln!(card, "- **Not a replacement for security audit**");
     let _ = writeln!(card);
 }
@@ -356,7 +396,10 @@ fn write_citation(card: &mut String) {
     let _ = writeln!(card);
     let _ = writeln!(card, "```bibtex");
     let _ = writeln!(card, "@software{{bashrs,");
-    let _ = writeln!(card, "  title = {{bashrs: Shell Safety and Purification Tool}},");
+    let _ = writeln!(
+        card,
+        "  title = {{bashrs: Shell Safety and Purification Tool}},"
+    );
     let _ = writeln!(card, "  author = {{paiml engineering}},");
     let _ = writeln!(card, "  year = {{2026}},");
     let _ = writeln!(card, "  url = {{https://crates.io/crates/bashrs}}");
@@ -371,7 +414,10 @@ mod tests {
     #[test]
     fn test_generate_model_card_has_yaml_front_matter() {
         let card = generate_model_card();
-        assert!(card.starts_with("---\n"), "Must start with YAML front matter");
+        assert!(
+            card.starts_with("---\n"),
+            "Must start with YAML front matter"
+        );
         assert!(
             card.contains("---\n\n#"),
             "Must have closing --- before markdown"
