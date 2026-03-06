@@ -478,6 +478,40 @@ fn test_PMAT143_corpus_publish_dataset_config_yaml() {
 }
 
 // ============================================================================
+// bashrs corpus publish-conversations
+// ============================================================================
+
+#[test]
+fn test_PMAT153_corpus_publish_conversations() {
+    let dir = tempfile::tempdir().unwrap();
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("publish-conversations")
+        .arg("--output")
+        .arg(dir.path())
+        .arg("--seed")
+        .arg("42")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("PASSED"));
+    // Verify output files exist
+    assert!(dir.path().join("conversations.jsonl").exists());
+    assert!(dir.path().join("README.md").exists());
+    // Verify README has HuggingFace front matter
+    let readme = std::fs::read_to_string(dir.path().join("README.md")).unwrap();
+    assert!(readme.starts_with("---\n"));
+    assert!(readme.contains("Shell Safety Conversations"));
+    // Verify JSONL has system turns
+    let first_line = std::fs::read_to_string(dir.path().join("conversations.jsonl"))
+        .unwrap()
+        .lines()
+        .next()
+        .unwrap()
+        .to_string();
+    assert!(first_line.contains("\"system\""));
+}
+
+// ============================================================================
 // bashrs corpus ssc-report --gate
 // ============================================================================
 
