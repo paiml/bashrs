@@ -1115,12 +1115,40 @@ pub(crate) fn corpus_publish_conversations(output: PathBuf, seed: u64) -> Result
     Ok(())
 }
 
+/// Load classification rows from a JSONL file (format: `{"input":"...","label":N}`).
+///
+/// Non-zero labels are mapped to 1 (unsafe) for binary classification.
+#[cfg(feature = "ml")]
+fn load_classification_jsonl(path: &Path) -> Result<Vec<crate::corpus::dataset::ClassificationRow>> {
+    use crate::corpus::dataset::ClassificationRow;
+
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| Error::Validation(format!("Cannot read {}: {e}", path.display())))?;
+
+    #[derive(serde::Deserialize)]
+    struct RawEntry { input: String, label: u8 }
+
+    let mut entries = Vec::new();
+    for line in content.lines() {
+        if line.trim().is_empty() { continue; }
+        match serde_json::from_str::<RawEntry>(line) {
+            Ok(e) => entries.push(ClassificationRow {
+                input: e.input,
+                label: if e.label > 0 { 1 } else { 0 },
+            }),
+            Err(err) => eprintln!("  Skipping invalid line: {err}"),
+        }
+    }
+    Ok(entries)
+}
+
 /// Extract [CLS] embeddings from CodeBERT for all corpus entries (CLF-RUN step 1).
 #[allow(unused_variables)]
 pub(crate) fn corpus_extract_embeddings(
     model: PathBuf,
     output: PathBuf,
     limit: Option<usize>,
+    input_jsonl: Option<PathBuf>,
 ) -> Result<()> {
     #[cfg(not(feature = "ml"))]
     {
@@ -1132,24 +1160,29 @@ pub(crate) fn corpus_extract_embeddings(
     #[cfg(feature = "ml")]
     {
         use crate::cli::color::*;
-        use crate::corpus::baselines::corpus_baseline_entries;
-        use crate::corpus::classifier::{extract_embeddings_streaming, EmbeddingEntry};
+        use crate::corpus::classifier::extract_embeddings_streaming;
         use crate::corpus::dataset::ClassificationRow;
 
         eprintln!("{BOLD}Extracting [CLS] embeddings from CodeBERT...{RESET}");
 
-        // Build classification rows from corpus
-        let owned = corpus_baseline_entries();
-        let mut rows: Vec<ClassificationRow> = owned
-            .into_iter()
-            .map(|(input, label)| ClassificationRow { input, label })
-            .collect();
+        let mut rows: Vec<ClassificationRow> = if let Some(ref jsonl_path) = input_jsonl {
+            let entries = load_classification_jsonl(jsonl_path)?;
+            eprintln!("  Input JSONL: {} entries from {}", entries.len(), jsonl_path.display());
+            entries
+        } else {
+            use crate::corpus::baselines::corpus_baseline_entries;
+            let owned = corpus_baseline_entries();
+            owned
+                .into_iter()
+                .map(|(input, label)| ClassificationRow { input, label })
+                .collect()
+        };
 
         if let Some(n) = limit {
             rows.truncate(n);
-            eprintln!("  Corpus: {} entries (limited from full corpus)", rows.len());
+            eprintln!("  Entries: {} (limited)", rows.len());
         } else {
-            eprintln!("  Corpus: {} entries", rows.len());
+            eprintln!("  Entries: {}", rows.len());
         }
 
         // Extract with streaming writes (one entry at a time to disk)
