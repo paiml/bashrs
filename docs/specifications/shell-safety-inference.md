@@ -604,7 +604,8 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs corpus publish-dataset` — implemented (HF-ready dir: README.md + splits + config)
 - `bashrs corpus ssc-report` — enriched: S5.5 evaluation metrics, S6.4 conversation type breakdown
 - `bashrs corpus ssc-report --gate` — CI quality gate (exit 1 on FAIL)
-- `bashrs corpus generate-conversations` — S6.4 quality gates (type breakdown, variant balance, empty response check)
+- `bashrs corpus generate-conversations` — S6.4 quality gates (type breakdown, variant balance, empty response check, ChatML system prompt)
+- `bashrs corpus publish-conversations` — HF-ready conversation dataset dir (JSONL + dataset card README)
 - 8 `cargo run --example` programs verified: shell_safety_classifier, explain_demo, baselines, label_audit, generalization_tests, contract_validation, ssc_data_pipeline, ssc_report
 - 37 assert_cmd CLI integration tests (cli_ssc_tests.rs): classify (safe/unsafe/json/makefile/dockerfile/multi-label/nonexistent), explain (safe/unsafe/json/det/idem/makefile/nonexistent), fix (dry-run/output/assumptions/safe/nonexistent), safety-check (safe/unsafe/json/makefile/nonexistent), corpus subcommands
 - 4 provable-contracts YAML files created (S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
@@ -618,7 +619,13 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - Escalation ladder (4 levels with decision logic), baselines comparison, generalization test, ship gate C-CLF-001
   - Remaining: actual training on CodeBERT weights + bashrs corpus data (requires model download)
 - **VAL-001 COMPLETE**: C-TOK-001 PASSED — 90.0% acceptable (18/20 shell constructs). CodeBERT tokenizer loaded via `aprender::text::bpe::BpeTokenizer::from_vocab_merges()`. Contract: `codebert-tokenizer-validation-v1.yaml`.
-- **Blocked on remaining external deps**: Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
+- **Phase 2 COMPLETE**: Synthetic conversation generation (S6)
+  - ChatML format with system prompt (honesty requirements S6.5)
+  - 4 conversation types (A: classify, B: fix, C: debug, D: confirm-safe) with 12+ phrasing variants each
+  - `bashrs corpus publish-conversations` — HuggingFace-ready dataset directory (JSONL + README with YAML front matter)
+  - 17,942 conversations from full corpus, quality gate PASSED (Type D 97.7%, 0 empty responses)
+  - Dataset README includes S6.5 honesty disclaimers (synthetic data, not novel reasoning, not security audit replacement)
+- **Blocked on remaining external deps**: CLF-RUN (GPU), Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1414,11 +1421,11 @@ jobs:
 
 ### Phase 2: Conversations (1 day)
 
-| Task | Time |
-|------|------|
-| GEN-001: Template engine in bashrs (Rust) | 6 hrs |
-| GEN-002: Generate + quality gate | 2 hrs |
-| GEN-003: Publish dataset | 1 hr |
+| Task | Time | Status |
+|------|------|--------|
+| GEN-001: Template engine in bashrs (Rust) | 6 hrs | ✅ Done (4 types, 12+ variants each, ChatML system prompt) |
+| GEN-002: Generate + quality gate (S6.4) | 2 hrs | ✅ Done (17,942 conversations, Type D 97.7%, 0 empty) |
+| GEN-003: Publish dataset (`publish-conversations` CLI) | 1 hr | ✅ Done (JSONL + HF dataset README) |
 
 ### Phase 3: Chat Model (2-3 days)
 

@@ -184,6 +184,32 @@ Two constructs fail: `2>&1` (fragmented into 4 single-char tokens) and `#!/bin/b
 
 Contract: `provable-contracts/contracts/codebert-tokenizer-validation-v1.yaml`.
 
+### Synthetic Conversation Dataset (S6)
+
+bashrs generates ChatML instruction conversations for fine-tuning the Qwen-1.5B chat model. Four conversation types are produced:
+
+| Type | Description | Source |
+|------|-------------|--------|
+| A: Classify+Explain | Unsafe scripts with findings | SEC/DET/IDEM diagnostics |
+| B: Fix | Unsafe scripts with corrected version | Auto-applied safety fixes |
+| C: Debug | Non-deterministic scripts | DET diagnostics |
+| D: Confirm Safe | Safe scripts (>=30% of total) | No findings |
+
+Each type uses 12+ phrasing variants for diversity. All conversations include a system prompt defining the assistant's role and limitations.
+
+```bash
+# Generate conversations from full corpus
+bashrs corpus generate-conversations --output conversations.jsonl
+
+# Publish HuggingFace-ready dataset directory
+bashrs corpus publish-conversations --output /tmp/shell-safety-conversations
+
+# View conversation example
+cargo run -p bashrs --example conversation_generator
+```
+
+Quality gates (S6.4): Type D >= 30%, no empty responses, variant distribution balanced (no single variant > 20%).
+
 ## How It Works
 
 ### Stage 0: Rule-Based Pipeline
