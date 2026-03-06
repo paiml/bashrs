@@ -1433,7 +1433,7 @@ jobs:
 | CLF-007: Confidence scores computation | 30 min | ✅ Done (entrenar) |
 | CLF-RUN: Download CodeBERT, extract embeddings, train, evaluate | 2-4 hrs | ✅ Done (bashrs corpus run-classifier, CPU) |
 | CLF-VALIDATE: End-to-end pipeline validation with real CodeBERT weights | 2 hrs | ✅ Done (2047-entry: MCC=0.321, C-CLF-001 PASS) |
-| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Running (1.82 entries/s, shell-based labels after #172 fix) |
+| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Extracting (1.82 entries/s) — MLP+aug PASS at 3k (MCC=0.754) |
 | CLF-WEIGHT: Class-weighted online SGD with L2 regularization | 2 hrs | ✅ Done (aprender#427 merged, KAIZEN-101) |
 
 **Kill gate**: C-CLF-001. If Level 3 fails, classifier adds no value.
@@ -1460,15 +1460,23 @@ jobs:
 | 3000 + 350 adv | 0.205 | 36.5% | 0.146 | 1.000 | 0.209 | FAIL |
 | 3000 + 50 adv | 0.112 | 48.8% | 0.043 | 0.875 | 0.179 | FAIL |
 
-- **Linear probe insufficient for shell-based labeling** (KAIZEN-104)
+**Post-#172 results (MLP probe, Level 0.5 — shell output + adversarial augmentation)**:
+
+| Entries | Test MCC | Accuracy | Precision | Recall | Config | Ship Gate |
+|---------|----------|----------|-----------|--------|--------|-----------|
+| 3000 + 350 adv (MLP h=32) | **0.754** | 94.2% | 0.670 | 0.918 | lr=1e-4, 50 ep | **PASS** |
+| 3000 (MLP h=32, no aug) | -0.005 | 98.4% | 0.000 | 0.000 | lr=3e-4, 50 ep | FAIL |
+
+- **MLP probe + adversarial augmentation solves shell-based classification** (KAIZEN-105)
+  - MLP hidden layer (ReLU) captures non-linear patterns in CodeBERT embeddings
+  - Adversarial augmentation (350 shell scripts, label=1) provides sufficient unsafe signal
+  - Without augmentation: MLP converges to "all safe" (same as linear probe)
+  - With augmentation: MCC=0.754, recall=91.8%, precision=67.0%
+  - C-CLF-001: **PASS** (MCC=0.754 > 0.3 keyword, > 0.4 linter target)
+- Linear probe insufficient for shell-based labeling (KAIZEN-104)
   - Root cause: transpiler normalizes unsafe patterns → shell output is homogeneous
   - Only 148/17,942 entries (0.82%) trigger lint in shell output
   - CodeBERT [CLS] embeddings not linearly separable on safe/unsafe for shell
-  - Train MCC=0.651 but test MCC=0.043 → severe overfitting
-  - Adversarial augmentation helps recall (1.000) but destroys precision (0.146)
-- **Decision**: escalate to Level 1 (fine-tune top-2 layers) or Level 2 (full fine-tune)
-  - Fine-tuning allows the model to learn shell-specific safety features
-  - Linear probe only uses frozen CodeBERT representations (not adapted to shell safety)
   - Tracked: #173 (bashrs), entrenar#245 (fine-tuning infrastructure)
 - Pre-#172 PASS results are **invalid** — domain mismatch between training (Rust) and inference (shell)
 - Class weighting critical: without it, MCC degrades further (probe converges to "always safe")

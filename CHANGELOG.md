@@ -109,7 +109,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Shell-based MCC=0.043 (vs pre-#172 Rust-based MCC=0.321 which was domain-mismatched)
   - Transpiler normalizes unsafe patterns → 0.82% positive rate (148/17,942)
   - CodeBERT [CLS] embeddings not linearly separable for shell safety
-  - Decision: escalate to Level 1 fine-tuning (entrenar#245)
+- MLP probe (Level 0.5) + adversarial augmentation achieves MCC=0.754 (KAIZEN-105)
+  - `--mlp` flag on `train-classifier` uses 2-layer MLP with ReLU (entrenar `MlpProbe`)
+  - `--mlp-hidden 32` specifies hidden layer size (default: 128)
+  - With `--augment adversarial.jsonl`: MCC=0.754, precision=0.670, recall=0.918
+  - C-CLF-001: PASS (beats both keyword and linter baselines)
 
 ### Performance
 - SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)
