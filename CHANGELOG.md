@@ -56,7 +56,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SSC report enrichment: conversations section shows Type A/B/C/D breakdown, Type D >=30%, variant distribution, empty response check (S6.4)
 - Fix broken internal link in shell-safety-inference-v1-v3-archive.md (CB-900)
 - Initialize O(1) hooks cache (CB-030)
-- 26 `assert_cmd` CLI integration tests for SSC commands (classify, explain, fix, safety-check, corpus)
+- Wrap bare URLs in rash-testing-spec references per CB-903 markdown best practices
+- 28 `assert_cmd` CLI integration tests for SSC commands (classify, explain, fix, safety-check, corpus)
+
+### Fixed
+- Remove `cdylib` from crate-type to fix intermittent clap collision during test builds (cargo#6313)
 - `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
   - Binary label (safe/unsafe), confidence, all lint findings in one pass
   - JSON output (`--json`) for CI/CD integration

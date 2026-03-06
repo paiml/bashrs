@@ -603,7 +603,11 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs corpus baselines` — implemented (majority, keyword, linter baselines with MCC/acc/rec)
 - `bashrs corpus publish-dataset` — implemented (HF-ready dir: README.md + splits + config)
 - `bashrs corpus ssc-report` — enriched: S5.5 evaluation metrics, S6.4 conversation type breakdown
-- CodeBERT (Stage 1) and Qwen chat (Stage 2) pending external deps
+- `bashrs corpus ssc-report --gate` — CI quality gate (exit 1 on FAIL)
+- `bashrs corpus generate-conversations` — S6.4 quality gates (type breakdown, variant balance, empty response check)
+- 8 `cargo run --example` programs verified: shell_safety_classifier, explain_demo, baselines, label_audit, generalization_tests, contract_validation, ssc_data_pipeline, ssc_report
+- 28 assert_cmd CLI integration tests (cli_ssc_tests.rs)
+- CodeBERT (Stage 1) and Qwen chat (Stage 2) pending external deps (entrenar encoder support)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
