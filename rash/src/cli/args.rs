@@ -310,6 +310,10 @@ pub enum Commands {
         /// Path to trained linear probe weights (probe.json from train-classifier)
         #[arg(long)]
         probe: Option<std::path::PathBuf>,
+
+        /// Path to CodeBERT model directory (for Stage 1 ML classification with --probe)
+        #[arg(long)]
+        model: Option<std::path::PathBuf>,
     },
 
     /// Makefile parsing, purification, and transformation

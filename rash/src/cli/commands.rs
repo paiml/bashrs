@@ -454,7 +454,15 @@ fn dispatch_analysis(
             multi_label,
             format,
             probe,
-        } => classify_cmds::classify_command(&input, json, multi_label, format.as_ref(), probe.as_deref()),
+            model,
+        } => classify_cmds::classify_command(
+            &input,
+            json,
+            multi_label,
+            format.as_ref(),
+            probe.as_deref(),
+            model.as_deref(),
+        ),
         Commands::Format {
             inputs,
             check,

@@ -159,12 +159,14 @@ pub(crate) fn analyze_lint(source: &str, fmt: &ClassifyFormat) -> LintSignals {
 }
 
 /// Run the classify command on a script file.
+#[allow(unused_variables)]
 pub(crate) fn classify_command(
     input: &Path,
     json: bool,
     multi_label: bool,
     forced_format: Option<&ClassifyFormat>,
     probe_path: Option<&Path>,
+    model_path: Option<&Path>,
 ) -> Result<()> {
     let source = std::fs::read_to_string(input)
         .map_err(|e| Error::Validation(format!("Cannot read {}: {e}", input.display())))?;
@@ -173,8 +175,15 @@ pub(crate) fn classify_command(
         .cloned()
         .unwrap_or_else(|| detect_format(input));
 
-    // Stage 1: ML probe classification (if probe.json provided)
-    let ml_label = probe_path.and_then(|p| ml_classify_with_probe(&source, p));
+    // Stage 1: ML probe classification (if probe.json + model provided)
+    let ml_label = match (probe_path, model_path) {
+        (Some(probe), Some(model)) => ml_classify_with_probe(&source, probe, model),
+        (Some(probe), None) => {
+            eprintln!("  Note: --probe requires --model for Stage 1 ML classification");
+            None
+        }
+        _ => None,
+    };
 
     if multi_label {
         print_multi_label_result(&source, &fmt, json)?;
@@ -252,25 +261,25 @@ fn print_single_label_result(source: &str, fmt: &ClassifyFormat, json: bool) -> 
 }
 
 /// Run Stage 1 classification: probe on pre-computed embedding-like features.
+/// Classify a script using CodeBERT + trained linear probe.
 ///
-/// When the full CodeBERT model is not available (no `ml` feature),
-/// this uses a simplified feature extraction (token statistics) + probe.
+/// With `ml` feature: loads CodeBERT, extracts [CLS] embedding, applies probe.
+/// Without `ml` feature: reports that CodeBERT is required.
 /// Returns (predicted_label, confidence) or None on error.
-fn ml_classify_with_probe(source: &str, probe_path: &Path) -> Option<(u8, f64)> {
+#[allow(unused_variables)]
+fn ml_classify_with_probe(source: &str, probe_path: &Path, model_path: &Path) -> Option<(u8, f64)> {
     let probe = crate::corpus::classifier::load_probe(probe_path).ok()?;
 
-    // Without CodeBERT, we can't produce real 768-dim [CLS] embeddings.
-    // The probe weights are trained on CodeBERT embeddings and won't work
-    // with synthetic features. Report this to the user.
-    if probe.weights.len() > 64 {
-        // Probe was trained on CodeBERT embeddings (768-dim) — need ml feature
-        eprintln!("  Note: --probe with CodeBERT probe requires --features ml for full inference");
+    #[cfg(not(feature = "ml"))]
+    {
+        eprintln!("  Note: Stage 1 ML classification requires --features ml");
         return None;
     }
 
-    // Small probes (e.g., from unit tests) can still be evaluated
-    let _ = source;
-    None
+    #[cfg(feature = "ml")]
+    {
+        crate::corpus::classifier::classify_with_probe(source, &probe, model_path)
+    }
 }
 
 /// Classify a script string into a single safety category.
