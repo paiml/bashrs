@@ -519,8 +519,16 @@ This loads CodeBERT (124M params, 199 safetensors), tokenizes each corpus entry,
 bashrs corpus train-classifier \
   --embeddings embeddings.jsonl \
   --output ./classifier/ \
-  --epochs 30 \
+  --epochs 100 \
   --seed 42
+
+# Cap training data to avoid data labeling gap (#171)
+# Entries 3000+ have no unsafe labels; use --max-entries to limit
+bashrs corpus train-classifier \
+  --embeddings embeddings.jsonl \
+  --output ./classifier/ \
+  --epochs 100 \
+  --max-entries 2500
 ```
 
 Outputs:
@@ -550,6 +558,8 @@ bashrs corpus run-classifier \
 
 Training uses sqrt-inverse balanced class weights (aprender `ClassWeight::Balanced`)
 and L2 regularization (weight_decay=1e-4) to handle 92/8% safe/unsafe imbalance.
+
+**Known limitation**: entries 3000+ have zero unsafe labels (data labeling gap, [#171](https://github.com/paiml/bashrs/issues/171)). Use `--max-entries 2500` when training on full extraction to maintain MCC > 0.3.
 
 ## WASM Deployment
 
