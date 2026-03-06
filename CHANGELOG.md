@@ -61,6 +61,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 4 provable-contracts YAML files (SSC v11 S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
 - SSC CLI commands added to book CLI reference chapter (classify, explain, fix, safety-check, corpus subcommands)
 
+### Performance
+- SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)
+- SSC report: eliminate redundant corpus loads (5→1) and lint passes (2→1) via shared state in generate_ssc_report()
+
 ### Fixed
 - Remove `cdylib` from crate-type to fix intermittent clap collision during test builds (cargo#6313)
 - `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
