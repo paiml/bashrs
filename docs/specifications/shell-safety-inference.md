@@ -607,7 +607,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs corpus generate-conversations` — S6.4 quality gates (type breakdown, variant balance, empty response check, ChatML system prompt)
 - `bashrs corpus publish-conversations` — HF-ready conversation dataset dir (JSONL + dataset card README)
 - 8 `cargo run --example` programs verified: shell_safety_classifier, explain_demo, baselines, label_audit, generalization_tests, contract_validation, ssc_data_pipeline, ssc_report
-- 37 assert_cmd CLI integration tests (cli_ssc_tests.rs): classify (safe/unsafe/json/makefile/dockerfile/multi-label/nonexistent), explain (safe/unsafe/json/det/idem/makefile/nonexistent), fix (dry-run/output/assumptions/safe/nonexistent), safety-check (safe/unsafe/json/makefile/nonexistent), corpus subcommands
+- 40 assert_cmd CLI integration tests (cli_ssc_tests.rs): classify (safe/unsafe/json/makefile/dockerfile/multi-label/nonexistent), explain (safe/unsafe/json/det/idem/makefile/nonexistent), fix (dry-run/output/assumptions/safe/nonexistent), safety-check (safe/unsafe/json/makefile/nonexistent), corpus subcommands, CLF-RUN pipeline
 - 4 provable-contracts YAML files created (S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
 - SSC report optimized: keyword heuristic for conversation sampling (4+ min → 1.8s), shared corpus/baseline data (5 loads → 1)
 - **Stage 0 COMPLETE**: All encoder components (ENC-001..008) implemented in entrenar with 30 tests. GitHub: paiml/entrenar#242
@@ -625,7 +625,12 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - `bashrs corpus publish-conversations` — HuggingFace-ready dataset directory (JSONL + README with YAML front matter)
   - 17,942 conversations from full corpus, quality gate PASSED (Type D 97.7%, 0 empty responses)
   - Dataset README includes S6.5 honesty disclaimers (synthetic data, not novel reasoning, not security audit replacement)
-- **Blocked on remaining external deps**: CLF-RUN (GPU), Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
+- **Phase 1 COMPLETE**: CLF-RUN classifier pipeline (CPU-based)
+  - `bashrs corpus extract-embeddings` — load CodeBERT, extract 768-dim [CLS] embeddings
+  - `bashrs corpus train-classifier` — train logistic regression probe on cached embeddings
+  - `bashrs corpus run-classifier` — full pipeline (extract + train + evaluate + C-CLF-001 gate)
+  - 11 unit tests + 2 CLI integration tests + provable contract (classifier-pipeline-v1.yaml)
+- **Blocked on remaining external deps**: Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
