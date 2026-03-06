@@ -166,6 +166,7 @@ pub(crate) fn classify_command(
     multi_label: bool,
     forced_format: Option<&ClassifyFormat>,
     probe_path: Option<&Path>,
+    mlp_probe_path: Option<&Path>,
     model_path: Option<&Path>,
 ) -> Result<()> {
     let source = std::fs::read_to_string(input)
@@ -175,11 +176,12 @@ pub(crate) fn classify_command(
         .cloned()
         .unwrap_or_else(|| detect_format(input));
 
-    // Stage 1: ML probe classification (if probe.json + model provided)
-    let ml_label = match (probe_path, model_path) {
-        (Some(probe), Some(model)) => ml_classify_with_probe(&source, probe, model),
-        (Some(probe), None) => {
-            eprintln!("  Note: --probe requires --model for Stage 1 ML classification");
+    // Stage 1: ML probe classification (MLP preferred over linear)
+    let ml_label = match (mlp_probe_path, probe_path, model_path) {
+        (Some(mlp), _, Some(model)) => ml_classify_with_mlp_probe(&source, mlp, model),
+        (_, Some(probe), Some(model)) => ml_classify_with_probe(&source, probe, model),
+        (Some(_), _, None) | (_, Some(_), None) => {
+            eprintln!("  Note: --probe/--mlp-probe requires --model for Stage 1 ML classification");
             None
         }
         _ => None,
@@ -279,6 +281,23 @@ fn ml_classify_with_probe(source: &str, probe_path: &Path, model_path: &Path) ->
     #[cfg(feature = "ml")]
     {
         crate::corpus::classifier::classify_with_probe(source, &probe, model_path)
+    }
+}
+
+/// Run Stage 1 classification using MLP probe on CodeBERT embeddings.
+#[allow(unused_variables)]
+fn ml_classify_with_mlp_probe(source: &str, probe_path: &Path, model_path: &Path) -> Option<(u8, f64)> {
+    let weights = crate::corpus::classifier::load_mlp_probe(probe_path).ok()?;
+
+    #[cfg(not(feature = "ml"))]
+    {
+        eprintln!("  Note: Stage 1 ML classification requires --features ml");
+        return None;
+    }
+
+    #[cfg(feature = "ml")]
+    {
+        crate::corpus::classifier::classify_with_mlp_probe(source, &weights, model_path)
     }
 }
 

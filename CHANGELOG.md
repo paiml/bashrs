@@ -114,6 +114,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `--mlp-hidden 32` specifies hidden layer size (default: 128)
   - With `--augment adversarial.jsonl`: MCC=0.754, precision=0.670, recall=0.918
   - C-CLF-001: PASS (beats both keyword and linter baselines)
+- MLP probe weights now properly serialized to `mlp_probe.json` (KAIZEN-106)
+  - `MlpProbeWeights` struct with w1/b1/w2/b2 + metadata (hidden_size, mlp_hidden, epochs, etc.)
+  - Previously `--mlp` training discarded weights (saved placeholder zeros)
+  - Serialization roundtrip test: `test_mlp_probe_weights_roundtrip`
 
 ### Performance
 - SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)
