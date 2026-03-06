@@ -163,6 +163,27 @@ bashrs check script.sh
 
 CodeBERT is an encoder-only model (RoBERTa architecture) pretrained on 6 programming languages. It sees the entire input bidirectionally, making it naturally suited for classification tasks. At 125M parameters, it runs in ~20ms on CPU and fits in a browser via WASM (~125MB int8).
 
+### Tokenizer Validation (C-TOK-001)
+
+Before training, the CodeBERT tokenizer is validated on 20 shell constructs to ensure it handles shell syntax adequately:
+
+```bash
+# Download CodeBERT tokenizer files
+huggingface-cli download microsoft/codebert-base vocab.json merges.txt config.json \
+    --local-dir /tmp/codebert-base
+
+# Run tokenizer validation (requires --features ml)
+cargo run -p bashrs --features ml --example tokenizer_validation
+```
+
+**Result: 90.0% acceptable (18/20 constructs) — C-TOK-001 PASSED** (threshold: >= 70%).
+
+The tokenizer correctly preserves: command substitution (`$(command)`), variables (`$RANDOM`), pipes (`|`), operators (`&&`, `||`), parameter expansion (`${var:-default}`), and shell keywords (`eval`, `trap`, `for`, `case`).
+
+Two constructs fail: `2>&1` (fragmented into 4 single-char tokens) and `#!/bin/bash` (5 tokens for 1 logical unit). These are acceptable losses — the classifier sees sufficient semantic signal.
+
+Contract: `provable-contracts/contracts/codebert-tokenizer-validation-v1.yaml`.
+
 ## How It Works
 
 ### Stage 0: Rule-Based Pipeline

@@ -282,6 +282,45 @@ where
     }
 }
 
+/// Load CodeBERT tokenizer from vocab.json + merges.txt and run validation.
+///
+/// Returns the validation report with C-TOK-001 pass/fail status.
+/// Requires the `ml` feature (aprender dependency).
+///
+/// # Errors
+/// Returns error if tokenizer files cannot be loaded.
+#[cfg(feature = "ml")]
+pub fn validate_codebert_tokenizer(
+    vocab_path: &std::path::Path,
+    merges_path: &std::path::Path,
+) -> Result<TokenizerValidationReport, String> {
+    use aprender::text::bpe::BpeTokenizer;
+
+    let tokenizer = BpeTokenizer::from_vocab_merges(vocab_path, merges_path)
+        .map_err(|e| format!("Failed to load CodeBERT tokenizer: {e}"))?;
+
+    let vocab_size = tokenizer.vocab_size();
+    if vocab_size != 50265 {
+        return Err(format!(
+            "Expected CodeBERT vocab size 50265, got {vocab_size}"
+        ));
+    }
+
+    let report = run_validation(|construct| {
+        let ids = tokenizer.encode(construct);
+        ids.iter()
+            .map(|&id| {
+                tokenizer
+                    .id_to_token(id)
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| format!("[{id}]"))
+            })
+            .collect()
+    });
+
+    Ok(report)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
