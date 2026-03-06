@@ -402,7 +402,7 @@ bashrs corpus ssc-report
 cargo run -p bashrs --example ssc_report
 ```
 
-The report covers 7 sections:
+The report covers 8 sections:
 
 | Section | Spec Ref | What It Checks |
 |---------|----------|---------------|
@@ -413,6 +413,7 @@ The report covers 7 sections:
 | Generalization (OOD) | S5.6 | >= 50% of 50 OOD scripts caught |
 | Dataset Splits | S5.3 | 80/10/10 train/val/test proportions |
 | Conversations (S6) | S6 | Generation capacity, quality gates |
+| Data Pipeline (S9) | S9 | Model card, honesty, class weights, config |
 
 Overall readiness: YES when no section has FAIL status.
 
