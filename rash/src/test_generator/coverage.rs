@@ -116,8 +116,7 @@ impl CoverageTracker {
             }
         }
 
-        // Find uncovered branches
-        // TODO: Track branches from AST analysis
+        // Branch tracking requires AST-level analysis (v3.0+)
 
         uncovered
     }

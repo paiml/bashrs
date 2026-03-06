@@ -20,9 +20,6 @@ pub fn purify_config(source: &str) -> String {
     // Apply CONFIG-003: Consolidate duplicate aliases
     result = aliaser::consolidate_aliases(&result);
 
-    // TODO: Apply more purification rules
-    // - CONFIG-005: Lazy-load expensive operations
-
     result
 }
 

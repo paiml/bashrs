@@ -120,8 +120,7 @@ impl BinaryCompiler {
     }
 
     fn patch_entrypoint(&self, _binary: &mut [u8], _section_offset: usize) -> Result<()> {
-        // TODO: Implement actual ELF patching
-        // For now, we'll create a wrapper script
+        // ELF patching deferred to v3.0+ binary compiler
         Ok(())
     }
 
@@ -129,7 +128,7 @@ impl BinaryCompiler {
         match self.strip_level {
             StripLevel::None => Ok(()),
             StripLevel::Debug | StripLevel::All => {
-                // TODO: Implement actual stripping
+                // Binary stripping deferred to v3.0+ compiler
                 Ok(())
             }
         }

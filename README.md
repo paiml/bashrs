@@ -26,7 +26,7 @@
 - [Why Rash?](#why-rash)
 - [Quick Start](#quick-start)
 - [Features](#features)
-- [Core Commands](#core-commands)
+- [Usage](#usage)
 - [Advanced Testing](#advanced-testing)
 - [Documentation](#-documentation)
 - [Quality Metrics](#quality-metrics)
@@ -140,7 +140,7 @@ mkdir -p "/app/releases/${release}"     # ✅ Idempotent
 rm -f "/app/current"                    # ✅ Safe removal
 ```
 
-## Core Commands
+## Usage
 
 ```bash
 # Transpile Rust to shell
