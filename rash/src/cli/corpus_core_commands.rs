@@ -360,6 +360,7 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             learning_rate,
             seed,
             max_entries,
+            augment,
         } => super::corpus_config_commands::corpus_train_classifier(
             embeddings,
             output,
@@ -367,6 +368,7 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             learning_rate,
             seed,
             max_entries,
+            augment,
         ),
         CorpusCommands::RunClassifier {
             model,
