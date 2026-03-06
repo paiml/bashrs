@@ -1483,6 +1483,10 @@ pub enum CorpusCommands {
         /// Output file for cached embeddings (JSONL)
         #[arg(short, long)]
         output: std::path::PathBuf,
+
+        /// Maximum number of entries to process (for testing)
+        #[arg(short, long)]
+        limit: Option<usize>,
     },
 
     /// Train linear probe classifier on cached embeddings (CLF-RUN step 2-3)
