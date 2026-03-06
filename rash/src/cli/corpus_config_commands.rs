@@ -1117,7 +1117,11 @@ pub(crate) fn corpus_publish_conversations(output: PathBuf, seed: u64) -> Result
 
 /// Extract [CLS] embeddings from CodeBERT for all corpus entries (CLF-RUN step 1).
 #[allow(unused_variables)]
-pub(crate) fn corpus_extract_embeddings(model: PathBuf, output: PathBuf) -> Result<()> {
+pub(crate) fn corpus_extract_embeddings(
+    model: PathBuf,
+    output: PathBuf,
+    limit: Option<usize>,
+) -> Result<()> {
     #[cfg(not(feature = "ml"))]
     {
         Err(Error::Validation(
@@ -1129,34 +1133,54 @@ pub(crate) fn corpus_extract_embeddings(model: PathBuf, output: PathBuf) -> Resu
     {
         use crate::cli::color::*;
         use crate::corpus::baselines::corpus_baseline_entries;
-        use crate::corpus::classifier::{save_embeddings, extract_embeddings};
+        use crate::corpus::classifier::{extract_embeddings_streaming, EmbeddingEntry};
         use crate::corpus::dataset::ClassificationRow;
 
         eprintln!("{BOLD}Extracting [CLS] embeddings from CodeBERT...{RESET}");
 
         // Build classification rows from corpus
         let owned = corpus_baseline_entries();
-        let rows: Vec<ClassificationRow> = owned
+        let mut rows: Vec<ClassificationRow> = owned
             .into_iter()
             .map(|(input, label)| ClassificationRow { input, label })
             .collect();
-        eprintln!("  Corpus: {} entries", rows.len());
 
-        // Extract embeddings
-        let (embeddings, report) = extract_embeddings(&model, &rows, Some(&|i, total| {
-            if i % 500 == 0 {
-                eprintln!("  Progress: {i}/{total} ({:.1}%)", 100.0 * i as f64 / total as f64);
-            }
-        }))
+        if let Some(n) = limit {
+            rows.truncate(n);
+            eprintln!("  Corpus: {} entries (limited from full corpus)", rows.len());
+        } else {
+            eprintln!("  Corpus: {} entries", rows.len());
+        }
+
+        // Extract with streaming writes (one entry at a time to disk)
+        let start = std::time::Instant::now();
+        let report = extract_embeddings_streaming(&model, &rows, &output, &|i, total, elapsed_ms| {
+            let rate = if elapsed_ms > 0 { (i as f64 / elapsed_ms as f64) * 1000.0 } else { 0.0 };
+            let eta_s = if rate > 0.0 { ((total - i) as f64 / rate) as u64 } else { 0 };
+            eprintln!(
+                "  [{i}/{total}] {:.1}% | {:.2} entries/s | ETA: {}m {}s",
+                100.0 * i as f64 / total as f64,
+                rate,
+                eta_s / 60,
+                eta_s % 60,
+            );
+        })
         .map_err(Error::Validation)?;
 
-        // Save to JSONL
-        save_embeddings(&embeddings, &output)
-            .map_err(Error::Validation)?;
-
-        eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}Embeddings saved to {}{RESET}", output.display());
-        eprintln!("  Total: {} | Extracted: {} | Skipped: {} | Dim: {}",
-            report.total_entries, report.extracted, report.skipped, report.hidden_size);
+        let elapsed = start.elapsed();
+        eprintln!(
+            "\n{GREEN}\u{2713}{RESET} {BOLD}Embeddings saved to {}{RESET} in {:.1}s",
+            output.display(),
+            elapsed.as_secs_f64()
+        );
+        eprintln!(
+            "  Total: {} | Extracted: {} | Skipped: {} | Dim: {} | Rate: {:.2}/s",
+            report.total_entries,
+            report.extracted,
+            report.skipped,
+            report.hidden_size,
+            report.extracted as f64 / elapsed.as_secs_f64().max(0.001),
+        );
 
         Ok(())
     }

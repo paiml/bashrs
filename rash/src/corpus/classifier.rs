@@ -137,6 +137,80 @@ pub fn extract_embeddings(
     Ok((embeddings, report))
 }
 
+/// Extract [CLS] embeddings with streaming writes to disk.
+///
+/// Writes each embedding to the output JSONL file as it's computed,
+/// avoiding memory buildup and enabling progress monitoring.
+/// The progress callback receives (index, total, elapsed_ms).
+#[cfg(feature = "ml")]
+pub fn extract_embeddings_streaming(
+    model_dir: &Path,
+    entries: &[ClassificationRow],
+    output: &Path,
+    progress_fn: &dyn Fn(usize, usize, u64),
+) -> Result<ExtractionReport, String> {
+    use std::io::Write;
+
+    let config = TransformerConfig::codebert();
+    eprintln!("  Loading CodeBERT from {}...", model_dir.display());
+    let model = EncoderModel::from_safetensors(&config, model_dir)
+        .map_err(|e| format!("Failed to load CodeBERT: {e}"))?;
+    eprintln!(
+        "  Loaded {} parameters ({} layers, {} hidden)",
+        model.num_parameters(),
+        config.num_hidden_layers,
+        config.hidden_size
+    );
+
+    let total = entries.len();
+    let mut extracted = 0usize;
+    let mut skipped = 0usize;
+    let start = std::time::Instant::now();
+
+    let file = std::fs::File::create(output)
+        .map_err(|e| format!("Cannot create {}: {e}", output.display()))?;
+    let mut writer = std::io::BufWriter::new(file);
+
+    for (i, entry) in entries.iter().enumerate() {
+        if i % 10 == 0 {
+            let elapsed_ms = start.elapsed().as_millis() as u64;
+            progress_fn(i, total, elapsed_ms);
+        }
+
+        let token_ids = tokenize_for_codebert(&entry.input);
+        if token_ids.len() < 3 {
+            skipped += 1;
+            continue;
+        }
+
+        let cls = model.cls_embedding(&token_ids);
+        let data = cls.data();
+        let slice = data.as_slice().ok_or("CLS embedding not contiguous")?;
+
+        let emb = EmbeddingEntry {
+            id: format!("entry_{i}"),
+            embedding: slice.to_vec(),
+            label: entry.label,
+        };
+
+        let json = serde_json::to_string(&emb)
+            .map_err(|e| format!("Serialize error: {e}"))?;
+        writeln!(writer, "{json}")
+            .map_err(|e| format!("Write error: {e}"))?;
+
+        extracted += 1;
+    }
+
+    writer.flush().map_err(|e| format!("Flush error: {e}"))?;
+
+    Ok(ExtractionReport {
+        total_entries: total,
+        extracted,
+        skipped,
+        hidden_size: config.hidden_size,
+    })
+}
+
 /// Tokenize a shell script for CodeBERT input.
 ///
 /// Uses aprender's BPE tokenizer when available, falls back to simple
