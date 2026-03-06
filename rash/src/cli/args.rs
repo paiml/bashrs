@@ -1514,6 +1514,10 @@ pub enum CorpusCommands {
         /// Random seed for train/test split
         #[arg(short, long, default_value = "42")]
         seed: u64,
+
+        /// Maximum entries to use (caps training data to avoid data labeling gaps)
+        #[arg(long)]
+        max_entries: Option<usize>,
     },
 
     /// Run full CLF-RUN pipeline: extract embeddings → train → evaluate (requires --features ml)

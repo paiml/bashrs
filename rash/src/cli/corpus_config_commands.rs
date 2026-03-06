@@ -1193,6 +1193,7 @@ pub(crate) fn corpus_train_classifier(
     epochs: usize,
     learning_rate: f32,
     seed: u64,
+    max_entries: Option<usize>,
 ) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::classifier::{
@@ -1202,9 +1203,17 @@ pub(crate) fn corpus_train_classifier(
     eprintln!("{BOLD}Training linear probe classifier...{RESET}");
 
     // Load cached embeddings
-    let all_embeddings = load_embeddings(&embeddings_path)
+    let mut all_embeddings = load_embeddings(&embeddings_path)
         .map_err(Error::Validation)?;
     eprintln!("  Loaded {} embeddings from {}", all_embeddings.len(), embeddings_path.display());
+
+    // Cap entries if --max-entries specified (avoids data labeling gaps, see #171)
+    if let Some(max) = max_entries {
+        if all_embeddings.len() > max {
+            eprintln!("  Capping to {max} entries (--max-entries)");
+            all_embeddings.truncate(max);
+        }
+    }
 
     // Split into train/test
     let (train, test) = split_embeddings(&all_embeddings, seed);
