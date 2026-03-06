@@ -610,7 +610,12 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - 4 provable-contracts YAML files created (S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
 - SSC report optimized: keyword heuristic for conversation sampling (4+ min → 1.8s), shared corpus/baseline data (5 loads → 1)
 - **Stage 0 COMPLETE**: All encoder components (ENC-001..008) implemented in entrenar with 30 tests. GitHub: paiml/entrenar#242
-- **Blocked on remaining external deps**: CodeBERT linear probe classifier pipeline (entrenar CLF-001..007, issue #243), Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
+- **Stage 1 INFRASTRUCTURE COMPLETE**: CLF-001..007 implemented in entrenar with 31 tests. GitHub: paiml/entrenar#243
+  - EncoderBlock (post-norm), EncoderModel (full pipeline with from_safetensors), LinearProbe (SGD on cached embeddings)
+  - Classification metrics (MCC, accuracy, recall, precision, confusion matrix, bootstrap CI)
+  - Escalation ladder (4 levels with decision logic), baselines comparison, generalization test, ship gate C-CLF-001
+  - Remaining: actual training on CodeBERT weights + bashrs corpus data (requires model download)
+- **Blocked on remaining external deps**: Qwen chat model (entrenar LoRA), WASM app (presentar), Probar tests (jugar-probar)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
