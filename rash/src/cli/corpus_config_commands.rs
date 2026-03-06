@@ -1265,13 +1265,24 @@ pub(crate) fn corpus_train_classifier(
 
     // Train (linear or MLP)
     eprintln!("\n{BOLD}Training (epochs={epochs}, lr={learning_rate}):{RESET}");
-    let (probe, test_report) = if mlp {
-        train_and_evaluate_mlp(&train, &test, epochs, learning_rate, mlp_hidden)?
+    std::fs::create_dir_all(&output)
+        .map_err(|e| Error::Validation(format!("Cannot create {}: {e}", output.display())))?;
+
+    let test_report = if mlp {
+        let (mlp_weights, report) = train_and_evaluate_mlp(&train, &test, epochs, learning_rate, mlp_hidden)?;
+        // Save MLP weights
+        let mlp_json = serde_json::to_string_pretty(&mlp_weights)
+            .map_err(|e| Error::Validation(format!("Serialize MLP: {e}")))?;
+        std::fs::write(output.join("mlp_probe.json"), mlp_json)
+            .map_err(|e| Error::Validation(format!("Write MLP: {e}")))?;
+        report
     } else {
         let probe = train_linear_probe(&train, epochs, learning_rate);
         eprintln!("  Train accuracy: {:.1}% | Train MCC: {:.3}", probe.train_accuracy * 100.0, probe.train_mcc);
-        let test_report = evaluate_probe(&probe, &test);
-        (probe, test_report)
+        let report = evaluate_probe(&probe, &test);
+        save_probe(&probe, &output.join("probe.json"))
+            .map_err(Error::Validation)?;
+        report
     };
 
     eprintln!("\n{BOLD}Test Evaluation:{RESET}");
@@ -1284,11 +1295,7 @@ pub(crate) fn corpus_train_classifier(
         test_report.confusion.tp, test_report.confusion.fp,
         test_report.confusion.tn, test_report.confusion.fn_);
 
-    // Save artifacts
-    std::fs::create_dir_all(&output)
-        .map_err(|e| Error::Validation(format!("Cannot create {}: {e}", output.display())))?;
-    save_probe(&probe, &output.join("probe.json"))
-        .map_err(Error::Validation)?;
+    // Save evaluation
     let eval_json = serde_json::to_string_pretty(&test_report)
         .map_err(|e| Error::Validation(format!("Serialize: {e}")))?;
     std::fs::write(output.join("evaluation.json"), eval_json)
@@ -1322,7 +1329,7 @@ fn train_and_evaluate_mlp(
     epochs: usize,
     learning_rate: f32,
     mlp_hidden: usize,
-) -> Result<(crate::corpus::classifier::LinearProbe, crate::corpus::evaluation::EvaluationReport)> {
+) -> Result<(crate::corpus::classifier::MlpProbeWeights, crate::corpus::evaluation::EvaluationReport)> {
     use entrenar::finetune::MlpProbe;
 
     let hidden_size = train.first()
@@ -1359,17 +1366,20 @@ fn train_and_evaluate_mlp(
         .collect();
     let report = crate::corpus::evaluation::evaluate(&predictions, "MLP probe");
 
-    // Build probe struct for save (placeholder weights — MLP weights not serialized yet)
-    let probe = crate::corpus::classifier::LinearProbe {
-        weights: vec![0.0; hidden_size],
-        bias: 0.0,
+    let weights = crate::corpus::classifier::MlpProbeWeights {
+        w1: mlp.w1,
+        b1: mlp.b1,
+        w2: mlp.w2,
+        b2: mlp.b2,
+        hidden_size,
+        mlp_hidden,
+        num_classes: 2,
         epochs,
         learning_rate,
         train_accuracy: train_acc,
-        train_mcc: 0.0,
     };
 
-    Ok((probe, report))
+    Ok((weights, report))
 }
 
 /// Fallback for non-ml builds.
@@ -1380,7 +1390,7 @@ fn train_and_evaluate_mlp(
     _epochs: usize,
     _lr: f32,
     _mlp_hidden: usize,
-) -> Result<(crate::corpus::classifier::LinearProbe, crate::corpus::evaluation::EvaluationReport)> {
+) -> Result<(crate::corpus::classifier::MlpProbeWeights, crate::corpus::evaluation::EvaluationReport)> {
     Err(Error::Validation("MLP probe requires --features ml".into()))
 }
 
