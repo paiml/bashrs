@@ -1429,6 +1429,9 @@ pub enum CorpusCommands {
         /// Output as JSON
         #[arg(long)]
         json: bool,
+        /// CI gate mode: exit 1 if any section fails
+        #[arg(long)]
+        gate: bool,
     },
 
     /// Generate HuggingFace model card for SSC dataset/classifier (S6.5, S9)
