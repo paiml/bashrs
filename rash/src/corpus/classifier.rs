@@ -613,6 +613,71 @@ pub fn load_probe(path: &Path) -> Result<LinearProbe, String> {
     serde_json::from_str(&json).map_err(|e| format!("Parse error: {e}"))
 }
 
+/// Load MLP probe weights from JSON.
+pub fn load_mlp_probe(path: &Path) -> Result<MlpProbeWeights, String> {
+    let json = std::fs::read_to_string(path)
+        .map_err(|e| format!("Read error: {e}"))?;
+    serde_json::from_str(&json).map_err(|e| format!("Parse error: {e}"))
+}
+
+/// Classify using MLP probe: embedding → Linear → ReLU → Linear → softmax.
+#[cfg(any(feature = "ml", test))]
+fn mlp_forward(weights: &MlpProbeWeights, embedding: &[f32]) -> (u8, f64) {
+    // Layer 1: hidden = ReLU(W1 @ embedding + b1)
+    let mut hidden = vec![0.0f32; weights.mlp_hidden];
+    for i in 0..weights.mlp_hidden {
+        let mut sum = weights.b1[i];
+        for j in 0..weights.hidden_size {
+            sum += weights.w1[i * weights.hidden_size + j] * embedding[j];
+        }
+        hidden[i] = sum.max(0.0); // ReLU
+    }
+
+    // Layer 2: logits = W2 @ hidden + b2
+    let mut logits = vec![0.0f32; weights.num_classes];
+    for i in 0..weights.num_classes {
+        let mut sum = weights.b2[i];
+        for j in 0..weights.mlp_hidden {
+            sum += weights.w2[i * weights.mlp_hidden + j] * hidden[j];
+        }
+        logits[i] = sum;
+    }
+
+    // Binary classification: use sigmoid on logit difference
+    let prob_unsafe = sigmoid(logits.get(1).copied().unwrap_or(0.0) - logits.first().copied().unwrap_or(0.0));
+    let label = u8::from(prob_unsafe > 0.5);
+    let confidence = if label == 1 {
+        f64::from(prob_unsafe)
+    } else {
+        f64::from(1.0 - prob_unsafe)
+    };
+    (label, confidence)
+}
+
+/// Classify a single script using CodeBERT + MLP probe.
+#[cfg(feature = "ml")]
+pub fn classify_with_mlp_probe(
+    source: &str,
+    weights: &MlpProbeWeights,
+    model_dir: &Path,
+) -> Option<(u8, f64)> {
+    let config = TransformerConfig::codebert();
+    let model = EncoderModel::from_safetensors(&config, model_dir).ok()?;
+
+    let bpe = CodeBertTokenizer::from_model_dir(model_dir);
+    let token_ids = tokenize_for_codebert(source, bpe.as_ref());
+
+    if token_ids.len() < 3 {
+        return None;
+    }
+
+    let cls = model.cls_embedding(&token_ids);
+    let data = cls.data();
+    let slice = data.as_slice()?;
+
+    Some(mlp_forward(weights, slice))
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -728,6 +793,52 @@ mod tests {
         let loaded = load_probe(&path).unwrap();
         assert_eq!(loaded.weights, vec![1.0, -1.0, 0.5]);
         assert!((loaded.bias - 0.1).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_mlp_forward_basic() {
+        // Simple 2-dim input, 2-hidden, 2-class MLP
+        let weights = MlpProbeWeights {
+            w1: vec![1.0, 0.0, 0.0, 1.0], // identity-like
+            b1: vec![0.0, 0.0],
+            w2: vec![1.0, -1.0, -1.0, 1.0], // class 0 prefers dim0, class 1 prefers dim1
+            b2: vec![0.0, 0.0],
+            hidden_size: 2,
+            mlp_hidden: 2,
+            num_classes: 2,
+            epochs: 1,
+            learning_rate: 0.01,
+            train_accuracy: 1.0,
+        };
+        // Input [1.0, 0.0] → hidden [1.0, 0.0] → logits [1.0, -1.0] → class 0 (safe)
+        let (label, conf) = mlp_forward(&weights, &[1.0, 0.0]);
+        assert_eq!(label, 0);
+        assert!(conf > 0.8);
+
+        // Input [0.0, 1.0] → hidden [0.0, 1.0] → logits [-1.0, 1.0] → class 1 (unsafe)
+        let (label, conf) = mlp_forward(&weights, &[0.0, 1.0]);
+        assert_eq!(label, 1);
+        assert!(conf > 0.8);
+    }
+
+    #[test]
+    fn test_mlp_forward_relu() {
+        // Negative inputs should be zeroed by ReLU
+        let weights = MlpProbeWeights {
+            w1: vec![1.0, 0.0, 0.0, 1.0],
+            b1: vec![0.0, 0.0],
+            w2: vec![1.0, 0.0, 0.0, 1.0],
+            b2: vec![0.0, 0.0],
+            hidden_size: 2,
+            mlp_hidden: 2,
+            num_classes: 2,
+            epochs: 1,
+            learning_rate: 0.01,
+            train_accuracy: 1.0,
+        };
+        // Input [-5.0, -5.0] → hidden [0.0, 0.0] (ReLU) → logits [0.0, 0.0] → sigmoid(0)=0.5
+        let (_, conf) = mlp_forward(&weights, &[-5.0, -5.0]);
+        assert!((conf - 0.5).abs() < 0.01); // 50% confidence = no signal
     }
 
     #[test]

@@ -454,6 +454,7 @@ fn dispatch_analysis(
             multi_label,
             format,
             probe,
+            mlp_probe,
             model,
         } => classify_cmds::classify_command(
             &input,
@@ -461,6 +462,7 @@ fn dispatch_analysis(
             multi_label,
             format.as_ref(),
             probe.as_deref(),
+            mlp_probe.as_deref(),
             model.as_deref(),
         ),
         Commands::Format {

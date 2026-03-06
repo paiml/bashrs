@@ -311,7 +311,11 @@ pub enum Commands {
         #[arg(long)]
         probe: Option<std::path::PathBuf>,
 
-        /// Path to CodeBERT model directory (for Stage 1 ML classification with --probe)
+        /// Path to trained MLP probe weights (mlp_probe.json from train-classifier --mlp)
+        #[arg(long)]
+        mlp_probe: Option<std::path::PathBuf>,
+
+        /// Path to CodeBERT model directory (for Stage 1 ML classification with --probe or --mlp-probe)
         #[arg(long)]
         model: Option<std::path::PathBuf>,
     },
