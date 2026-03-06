@@ -304,3 +304,77 @@ fn test_PMAT142_corpus_training_config_to_file() {
     let content = std::fs::read_to_string(out.path()).unwrap();
     assert!(content.contains("architecture: encoder"));
 }
+
+// ============================================================================
+// bashrs corpus publish-dataset
+// ============================================================================
+
+#[test]
+fn test_PMAT143_corpus_publish_dataset() {
+    let dir = tempfile::tempdir().unwrap();
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("publish-dataset")
+        .arg("--output")
+        .arg(dir.path())
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("Dataset published"))
+        .stderr(predicate::str::contains("train.jsonl"))
+        .stderr(predicate::str::contains("README.md"));
+    // Verify files exist
+    assert!(dir.path().join("README.md").exists());
+    assert!(dir.path().join("train.jsonl").exists());
+    assert!(dir.path().join("val.jsonl").exists());
+    assert!(dir.path().join("test.jsonl").exists());
+    assert!(dir.path().join("training_config.yaml").exists());
+}
+
+#[test]
+fn test_PMAT143_corpus_publish_dataset_readme_has_yaml() {
+    let dir = tempfile::tempdir().unwrap();
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("publish-dataset")
+        .arg("--output")
+        .arg(dir.path())
+        .assert()
+        .success();
+    let readme = std::fs::read_to_string(dir.path().join("README.md")).unwrap();
+    assert!(readme.contains("language:"));
+    assert!(readme.contains("shell-safety"));
+    assert!(readme.contains("binary-classification"));
+}
+
+#[test]
+fn test_PMAT143_corpus_publish_dataset_splits_valid_jsonl() {
+    let dir = tempfile::tempdir().unwrap();
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("publish-dataset")
+        .arg("--output")
+        .arg(dir.path())
+        .assert()
+        .success();
+    // Verify train.jsonl has valid JSON lines
+    let train = std::fs::read_to_string(dir.path().join("train.jsonl")).unwrap();
+    let first_line = train.lines().next().unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(first_line).unwrap();
+    assert!(parsed.get("input").is_some());
+    assert!(parsed.get("label").is_some());
+}
+
+#[test]
+fn test_PMAT143_corpus_publish_dataset_config_yaml() {
+    let dir = tempfile::tempdir().unwrap();
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("publish-dataset")
+        .arg("--output")
+        .arg(dir.path())
+        .assert()
+        .success();
+    let config = std::fs::read_to_string(dir.path().join("training_config.yaml")).unwrap();
+    assert!(config.contains("architecture:"));
+    assert!(config.contains("class_weights:"));
+}

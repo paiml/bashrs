@@ -2,7 +2,7 @@
 
 use crate::cli::args::DatasetExportFormat;
 use crate::models::{Config, Error, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 pub(crate) fn corpus_domain_categories() -> Result<()> {
     use crate::cli::color::*;
@@ -942,5 +942,79 @@ pub(crate) fn corpus_training_config(output: Option<PathBuf>, json: bool) -> Res
         }
     }
 
+    Ok(())
+}
+
+pub(crate) fn corpus_publish_dataset(output: PathBuf) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::baselines::corpus_baseline_entries;
+    use crate::corpus::dataset::{split_and_validate, ClassificationRow};
+    use crate::corpus::model_card;
+    use crate::corpus::training_config;
+
+    eprintln!("{BOLD}Building HuggingFace-ready dataset...{RESET}");
+
+    // Create output directory
+    std::fs::create_dir_all(&output).map_err(|e| {
+        Error::Validation(format!("Cannot create {}: {e}", output.display()))
+    })?;
+
+    // Step 1: Split dataset
+    let owned = corpus_baseline_entries();
+    let total = owned.len();
+    let rows: Vec<ClassificationRow> = owned
+        .into_iter()
+        .map(|(input, label)| ClassificationRow { input, label })
+        .collect();
+    let result = split_and_validate(rows, 2);
+
+    // Step 2: Write split files
+    write_split_file(&output, "train", &result.train)?;
+    write_split_file(&output, "val", &result.val)?;
+    write_split_file(&output, "test", &result.test)?;
+
+    // Step 3: Write model card (README.md)
+    let card = model_card::generate_model_card();
+    let readme_path = output.join("README.md");
+    std::fs::write(&readme_path, &card).map_err(|e| {
+        Error::Validation(format!("Failed to write {}: {e}", readme_path.display()))
+    })?;
+
+    // Step 4: Write training config
+    let config = training_config::generate_training_config();
+    let config_path = output.join("training_config.yaml");
+    std::fs::write(&config_path, training_config::format_yaml(&config)).map_err(|e| {
+        Error::Validation(format!("Failed to write {}: {e}", config_path.display()))
+    })?;
+
+    // Summary
+    eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}Dataset published to {}{RESET}", output.display());
+    eprintln!("  README.md        \u{2014} HuggingFace model card");
+    eprintln!("  train.jsonl      \u{2014} {} entries", result.train.len());
+    eprintln!("  val.jsonl        \u{2014} {} entries", result.val.len());
+    eprintln!("  test.jsonl       \u{2014} {} entries", result.test.len());
+    eprintln!("  training_config.yaml \u{2014} entrenar config");
+    eprintln!("  Total: {total} entries\n");
+    eprintln!("To publish: `huggingface-cli upload paiml/shell-safety-classifier {}`", output.display());
+
+    Ok(())
+}
+
+fn write_split_file(dir: &Path, name: &str, rows: &[crate::corpus::dataset::ClassificationRow]) -> Result<()> {
+    use std::fmt::Write as _;
+
+    let path = dir.join(format!("{name}.jsonl"));
+    let mut out = String::new();
+    for row in rows {
+        let escaped = row
+            .input
+            .replace('\\', "\\\\")
+            .replace('"', "\\\"")
+            .replace('\n', "\\n");
+        let _ = writeln!(out, r#"{{"input":"{}","label":{}}}"#, escaped, row.label);
+    }
+    std::fs::write(&path, out).map_err(|e| {
+        Error::Validation(format!("Failed to write {}: {e}", path.display()))
+    })?;
     Ok(())
 }

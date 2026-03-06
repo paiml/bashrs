@@ -344,6 +344,9 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::TrainingConfig { output, json } => {
             super::corpus_config_commands::corpus_training_config(output, json)
         }
+        CorpusCommands::PublishDataset { output } => {
+            super::corpus_config_commands::corpus_publish_dataset(output)
+        }
         // Domain analysis
         CorpusCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()

@@ -1448,6 +1448,13 @@ pub enum CorpusCommands {
         #[arg(long)]
         json: bool,
     },
+
+    /// Export complete HuggingFace-ready dataset directory (S9 GEN-003)
+    PublishDataset {
+        /// Output directory (required)
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+    },
 }
 
 /// Script format for classify command (SSC-022)
