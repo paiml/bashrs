@@ -46,6 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - YAML and JSON output formats
   - 7 unit tests
 - `rash/examples/ssc_data_pipeline.rs` — data pipeline example: dataset -> splits -> config -> model card
+- SSC report now includes "Data Pipeline (S9)" section with model card, honesty, class weights validation
+- 22 `assert_cmd` CLI integration tests for SSC commands (classify, explain, fix, safety-check, corpus)
 - `bashrs safety-check` CLI command — combined lint + classify output (SSC v11 S8.2)
   - Binary label (safe/unsafe), confidence, all lint findings in one pass
   - JSON output (`--json`) for CI/CD integration

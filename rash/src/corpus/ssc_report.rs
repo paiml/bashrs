@@ -52,6 +52,7 @@ pub fn generate_ssc_report() -> SscStatusReport {
         generalization_section(),
         dataset_section(),
         conversation_section(),
+        data_pipeline_section(),
     ];
 
     let overall_ready = sections.iter().all(|s| s.status != SscStatus::Fail);
@@ -348,6 +349,66 @@ fn conversation_section() -> SscSection {
                 },
                 target: "passed".to_string(),
                 passed: report.passed,
+            },
+        ],
+    }
+}
+
+fn data_pipeline_section() -> SscSection {
+    use crate::corpus::model_card::generate_model_card;
+    use crate::corpus::training_config::generate_training_config;
+
+    let card = generate_model_card();
+    let config = generate_training_config();
+
+    let card_has_honesty = card.contains("synthetic data derived from rule-based linter");
+    let card_has_yaml = card.starts_with("---");
+    let config_has_weights = config.training.class_weights.len() == 2;
+    let config_has_data = config.data.total_entries > 0;
+
+    SscSection {
+        name: "Data Pipeline (S9)".to_string(),
+        spec_ref: "S9".to_string(),
+        status: if card_has_honesty && card_has_yaml && config_has_weights && config_has_data {
+            SscStatus::Pass
+        } else {
+            SscStatus::Warn
+        },
+        metrics: vec![
+            SscMetric {
+                name: "Model card YAML".to_string(),
+                value: if card_has_yaml {
+                    "present".to_string()
+                } else {
+                    "missing".to_string()
+                },
+                target: "present".to_string(),
+                passed: card_has_yaml,
+            },
+            SscMetric {
+                name: "Honesty (S6.5)".to_string(),
+                value: if card_has_honesty {
+                    "present".to_string()
+                } else {
+                    "missing".to_string()
+                },
+                target: "present".to_string(),
+                passed: card_has_honesty,
+            },
+            SscMetric {
+                name: "Class weights".to_string(),
+                value: format!(
+                    "[{:.3}, {:.3}]",
+                    config.training.class_weights[0], config.training.class_weights[1]
+                ),
+                target: "2 weights".to_string(),
+                passed: config_has_weights,
+            },
+            SscMetric {
+                name: "Training entries".to_string(),
+                value: config.data.total_entries.to_string(),
+                target: ">0".to_string(),
+                passed: config_has_data,
             },
         ],
     }
