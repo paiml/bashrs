@@ -65,6 +65,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SSC Phase 0 complete: encoder support + contracts + validation (except VAL-001 tokenizer, blocked on CodeBERT)
 - SSC Phase 1 infrastructure complete: CLF-001..007 in entrenar with 43 tests total (31 + 12 falsification)
 - GitHub issues for blocked SSC work: #168 (CLI-001 CodeBERT wiring), #169 (WASM app), #170 (Probar testing)
+- CLF-RUN pipeline: `bashrs corpus extract-embeddings`, `train-classifier`, `run-classifier`
+  - Streaming JSONL output with progress reporting (rate, ETA)
+  - `--limit N` for testing with subset of corpus
+  - Validated: CodeBERT 124M params loads 199 safetensors in ~23s
+  - 768-dim [CLS] embeddings, ~1.5 entries/s CPU release build
+- RoBERTa BPE tokenizer integration for CodeBERT extraction
+  - Auto-loads vocab.json + merges.txt from model directory
+  - Falls back to byte-level tokenizer if files missing
+  - BPE improves test MCC from 0.541 to 0.592 (+9.4%)
+- `bashrs classify --probe --model` — Stage 1 ML classification
+  - Full CodeBERT inference: tokenize → [CLS] embedding → linear probe
+  - Binary safe/unsafe with confidence score
+  - Validated: 500-entry probe MCC=0.592, acc=95.2%, C-CLF-001 PASS
+- classifier-pipeline-v1.yaml provable contract (5 proof obligations, 5 falsification tests)
+- 43 `assert_cmd` CLI integration tests (+3 for Stage 1 classify)
 
 ### Performance
 - SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)
