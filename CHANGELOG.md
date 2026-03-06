@@ -60,6 +60,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 37 `assert_cmd` CLI integration tests for SSC commands (classify, explain, fix, safety-check, corpus) including multi-label, makefile format, and error handling
 - 4 provable-contracts YAML files (SSC v11 S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
 - SSC CLI commands added to book CLI reference chapter (classify, explain, fix, safety-check, corpus subcommands)
+- PV-003: 12 SSC falsification tests + 3 proptests in entrenar (FALSIFY-BIATT-001..003, FALSIFY-PROBE-001..003, FALSIFY-ENC-001..002, FALSIFY-POS-001)
+- PV-004: `pv audit` clean on all 4 SSC contracts (0 findings)
+- SSC Phase 0 complete: encoder support + contracts + validation (except VAL-001 tokenizer, blocked on CodeBERT)
+- SSC Phase 1 infrastructure complete: CLF-001..007 in entrenar with 43 tests total (31 + 12 falsification)
+- GitHub issues for blocked SSC work: #168 (CLI-001 CodeBERT wiring), #169 (WASM app), #170 (Probar testing)
 
 ### Performance
 - SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)
