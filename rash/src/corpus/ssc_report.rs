@@ -204,15 +204,33 @@ fn baselines_section() -> SscSection {
     let entries: Vec<(&str, u8)> = owned.iter().map(|(s, l)| (s.as_str(), *l)).collect();
     let reports = run_all_baselines(&entries);
 
-    let metrics: Vec<SscMetric> = reports
-        .iter()
-        .map(|r| SscMetric {
+    let mut metrics: Vec<SscMetric> = Vec::new();
+    for r in &reports {
+        metrics.push(SscMetric {
             name: r.name.clone(),
-            value: format!("MCC={:.3}", r.mcc),
+            value: format!(
+                "MCC={:.3} acc={:.1}% rec={:.1}%",
+                r.mcc,
+                r.accuracy * 100.0,
+                r.recall * 100.0
+            ),
             target: "reference".to_string(),
             passed: true,
-        })
-        .collect();
+        });
+    }
+    // S5.5: Any ML classifier must beat these targets
+    metrics.push(SscMetric {
+        name: "Target: MCC CI lower".to_string(),
+        value: ">0.2".to_string(),
+        target: "for ML classifier".to_string(),
+        passed: true,
+    });
+    metrics.push(SscMetric {
+        name: "Target: accuracy".to_string(),
+        value: ">93.5% (beat majority)".to_string(),
+        target: "for ML classifier".to_string(),
+        passed: true,
+    });
 
     SscSection {
         name: "Baselines (C-CLF-001)".to_string(),
@@ -304,18 +322,37 @@ fn dataset_section() -> SscSection {
 fn conversation_section() -> SscSection {
     use crate::corpus::conversations::generate_batch;
     use crate::corpus::registry::CorpusRegistry;
+    use crate::linter::lint_shell;
 
-    // Sample 100 entries evenly across corpus for representative mix
+    // Stratified sample: 70 safe + 30 unsafe entries to exercise all conversation types
     let registry = CorpusRegistry::load_full();
-    let stride = registry.entries.len().max(1) / 100;
-    let stride = stride.max(1);
-    let sample: Vec<(&str, &str)> = registry
-        .entries
+
+    let (safe_entries, unsafe_entries): (Vec<_>, Vec<_>) =
+        registry.entries.iter().partition(|e| {
+            let r = lint_shell(&e.input);
+            let has_sec = r.diagnostics.iter().any(|d| d.code.starts_with("SEC"));
+            let has_det = r.diagnostics.iter().any(|d| d.code.starts_with("DET"));
+            !has_sec && !has_det
+        });
+
+    // Stratified sample: up to 30 unsafe + up to 70 safe
+    let unsafe_stride = unsafe_entries.len().max(1) / 30;
+    let safe_stride = safe_entries.len().max(1) / 70;
+    let unsafe_sample: Vec<_> = unsafe_entries
         .iter()
-        .step_by(stride)
-        .take(100)
+        .step_by(unsafe_stride.max(1))
+        .take(30)
         .map(|e| (e.id.as_str(), e.input.as_str()))
         .collect();
+    let safe_sample: Vec<_> = safe_entries
+        .iter()
+        .step_by(safe_stride.max(1))
+        .take(70)
+        .map(|e| (e.id.as_str(), e.input.as_str()))
+        .collect();
+
+    let mut sample = unsafe_sample;
+    sample.extend(safe_sample);
 
     let (conversations, report) = generate_batch(&sample, 42);
 
@@ -335,20 +372,44 @@ fn conversation_section() -> SscSection {
                 passed: !conversations.is_empty(),
             },
             SscMetric {
+                name: "Type A (classify+explain)".to_string(),
+                value: report.type_a_count.to_string(),
+                target: "informational".to_string(),
+                passed: true, // Informational — depends on corpus composition
+            },
+            SscMetric {
+                name: "Type B (fix)".to_string(),
+                value: report.type_b_count.to_string(),
+                target: "informational".to_string(),
+                passed: true, // Informational — depends on corpus composition
+            },
+            SscMetric {
+                name: "Type C (debug)".to_string(),
+                value: report.type_c_count.to_string(),
+                target: "informational".to_string(),
+                passed: true, // Informational — depends on corpus composition
+            },
+            SscMetric {
+                name: "Type D (confirm safe)".to_string(),
+                value: format!("{} ({:.1}%)", report.type_d_count, report.type_d_pct),
+                target: ">=30%".to_string(),
+                passed: report.type_d_pct >= 30.0,
+            },
+            SscMetric {
                 name: "Rule citation accuracy".to_string(),
                 value: format!("{:.0}%", report.rule_citation_accuracy * 100.0),
                 target: "100%".to_string(),
                 passed: (report.rule_citation_accuracy - 1.0).abs() < 0.001,
             },
             SscMetric {
-                name: "Quality gate".to_string(),
-                value: if report.passed {
-                    "passed".to_string()
+                name: "Variant distribution".to_string(),
+                value: if report.variant_distribution_ok {
+                    "balanced".to_string()
                 } else {
-                    "failed".to_string()
+                    "skewed".to_string()
                 },
-                target: "passed".to_string(),
-                passed: report.passed,
+                target: "no variant >20%".to_string(),
+                passed: report.variant_distribution_ok,
             },
         ],
     }
@@ -493,5 +554,32 @@ mod tests {
         };
         let json = serde_json::to_string(&report);
         assert!(json.is_ok());
+    }
+
+    #[test]
+    fn test_baselines_section_has_evaluation_metrics() {
+        let section = baselines_section();
+        assert_eq!(section.name, "Baselines (C-CLF-001)");
+        // Should have 3 baseline reports + 2 target metrics = 5
+        assert!(section.metrics.len() >= 5, "Expected 5+ metrics, got {}", section.metrics.len());
+        // Each baseline should show MCC, accuracy, recall
+        let majority = &section.metrics[0];
+        assert!(majority.value.contains("MCC="), "Missing MCC: {}", majority.value);
+        assert!(majority.value.contains("acc="), "Missing accuracy: {}", majority.value);
+        assert!(majority.value.contains("rec="), "Missing recall: {}", majority.value);
+        // Should include S5.5 targets
+        let targets: Vec<&SscMetric> = section.metrics.iter().filter(|m| m.name.starts_with("Target:")).collect();
+        assert_eq!(targets.len(), 2, "Expected 2 target metrics");
+    }
+
+    #[test]
+    fn test_conversation_section_has_type_breakdown() {
+        let section = conversation_section();
+        assert_eq!(section.name, "Conversations (S6)");
+        let names: Vec<&str> = section.metrics.iter().map(|m| m.name.as_str()).collect();
+        assert!(names.contains(&"Type A (classify+explain)"), "Missing Type A");
+        assert!(names.contains(&"Type D (confirm safe)"), "Missing Type D");
+        assert!(names.contains(&"Variant distribution"), "Missing variant dist");
+        assert!(names.contains(&"Rule citation accuracy"), "Missing citations");
     }
 }
