@@ -84,6 +84,52 @@ fn test_PMAT142_classify_dockerfile() {
         .success();
 }
 
+#[test]
+fn test_PMAT152_classify_multi_label_safe() {
+    let f = write_temp_script("#!/bin/sh\necho \"hello world\"\n");
+    bashrs_cmd()
+        .arg("classify")
+        .arg("--multi-label")
+        .arg(f.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("safe"));
+}
+
+#[test]
+fn test_PMAT152_classify_multi_label_unsafe() {
+    let f = write_temp_script("#!/bin/bash\neval \"$x\"\nmkdir /tmp/build\necho $RANDOM\n");
+    bashrs_cmd()
+        .arg("classify")
+        .arg("--multi-label")
+        .arg(f.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("unsafe"));
+}
+
+#[test]
+fn test_PMAT152_classify_multi_label_json() {
+    let f = write_temp_script("#!/bin/bash\neval \"$x\"\n");
+    bashrs_cmd()
+        .arg("classify")
+        .arg("--multi-label")
+        .arg("--json")
+        .arg(f.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"labels\""));
+}
+
+#[test]
+fn test_PMAT152_classify_nonexistent_file() {
+    bashrs_cmd()
+        .arg("classify")
+        .arg("/nonexistent/script.sh")
+        .assert()
+        .failure();
+}
+
 // ============================================================================
 // bashrs explain
 // ============================================================================
@@ -144,6 +190,27 @@ fn test_PMAT142_explain_idempotency_findings() {
         .stdout(predicate::str::contains("IDEM001"));
 }
 
+#[test]
+fn test_PMAT152_explain_makefile() {
+    let f = write_temp_script("all:\n\techo hello\n");
+    bashrs_cmd()
+        .arg("explain")
+        .arg("--format")
+        .arg("makefile")
+        .arg(f.path())
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_PMAT152_explain_nonexistent_file() {
+    bashrs_cmd()
+        .arg("explain")
+        .arg("/nonexistent/script.sh")
+        .assert()
+        .failure();
+}
+
 // ============================================================================
 // bashrs fix
 // ============================================================================
@@ -196,6 +263,16 @@ fn test_PMAT142_fix_safe_script_no_changes() {
         .stdout(predicate::str::contains("0 fixes"));
 }
 
+#[test]
+fn test_PMAT152_fix_nonexistent_file() {
+    bashrs_cmd()
+        .arg("fix")
+        .arg("--dry-run")
+        .arg("/nonexistent/script.sh")
+        .assert()
+        .failure();
+}
+
 // ============================================================================
 // bashrs safety-check
 // ============================================================================
@@ -232,6 +309,27 @@ fn test_PMAT142_safety_check_json() {
         .assert()
         .success()
         .stdout(predicate::str::contains("\"label\""));
+}
+
+#[test]
+fn test_PMAT152_safety_check_makefile() {
+    let f = write_temp_script("all:\n\techo hello\n");
+    bashrs_cmd()
+        .arg("safety-check")
+        .arg("--format")
+        .arg("makefile")
+        .arg(f.path())
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_PMAT152_safety_check_nonexistent_file() {
+    bashrs_cmd()
+        .arg("safety-check")
+        .arg("/nonexistent/script.sh")
+        .assert()
+        .failure();
 }
 
 // ============================================================================
