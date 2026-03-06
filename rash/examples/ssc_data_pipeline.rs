@@ -57,7 +57,10 @@ fn main() {
     // Step 3: Training config
     println!("--- Step 3: Training Configuration ---");
     let config = training_config::generate_training_config();
-    println!("  Model: {} ({})", config.model.base_model, config.model.architecture);
+    println!(
+        "  Model: {} ({})",
+        config.model.base_model, config.model.architecture
+    );
     println!("  Classes: {}", config.model.num_classes);
     println!("  Epochs: {}", config.training.epochs);
     println!("  Batch size: {}", config.training.batch_size);
@@ -66,7 +69,10 @@ fn main() {
         "  Class weights: safe={:.3}, unsafe={:.3}",
         config.training.class_weights[0], config.training.class_weights[1]
     );
-    println!("  Target MCC CI lower: {}", config.evaluation.mcc_ci_lower_target);
+    println!(
+        "  Target MCC CI lower: {}",
+        config.evaluation.mcc_ci_lower_target
+    );
     println!("  Target accuracy: {}\n", config.evaluation.accuracy_target);
 
     // Step 4: Model card preview
