@@ -391,14 +391,16 @@ CodeBERT uses RoBERTa's tokenizer, not trained on shell. Must validate before tr
 
 ### 5.3 Data
 
-bashrs corpus: 17,942 entries, binary labels from `classify_single()`.
+bashrs corpus: 17,942 entries, binary labels from `classify_single()` on **transpiled shell output** (#172).
 alimentar split: 80/10/10 stratified, seed=42.
 
-| Split | Rows | Unsafe |
-|-------|------|--------|
-| Train | 14,353 | 926 (6.5%) |
-| Val | 1,795 | 116 (6.5%) |
-| Test | 1,794 | 116 (6.5%) |
+| Split | Rows | Unsafe (shell-based #172) |
+|-------|------|--------------------------|
+| Train | ~14,353 | ~118 (0.82%) |
+| Val | ~1,795 | ~15 (0.82%) |
+| Test | ~1,794 | ~15 (0.82%) |
+
+**Note**: Pre-#172 numbers (926 unsafe / 6.5%) used Rust code linting — invalid due to domain mismatch.
 
 **Label audit (F7 mitigation)**: Before training, manually review 100 random unsafe
 labels. If >10% are mislabeled (transpiler limitation, not actual unsafety), clean first.
@@ -426,9 +428,9 @@ cached embeddings in seconds.
 | Generalization | >= 50% on 50 novel unsafe scripts | Out-of-distribution test (F8); current: 100% (50/50) |
 
 Baselines (must beat at least one):
-- Majority class: MCC = 0.0
-- Keyword regex (`eval`, `$RANDOM`, `curl|bash`): MCC ~0.3-0.5
-- bashrs linter (24 SEC rules + DET/IDEM): MCC ~0.4-0.6
+- Majority class: MCC = 0.000
+- Keyword regex (`eval`, `$RANDOM`, `curl|bash`): MCC = 0.103
+- bashrs linter (24 SEC rules + DET/IDEM): MCC = 1.000 (tautological — labels derived from linter)
 
 ### 5.6 Generalization Test (F8 Mitigation)
 
@@ -1438,8 +1440,10 @@ jobs:
 
 **Validated results (Level 0 linear probe, class-weighted online SGD)**:
 - CodeBERT (124M params, 199 safetensors, 12 layers, 768 hidden) loads in ~23s
-- [CLS] embeddings: 768-dim, L2 norm ~20.5, extraction ~1.65 entries/s (CPU)
+- [CLS] embeddings: 768-dim, L2 norm ~20.5, extraction ~1.82 entries/s (CPU)
 - Training: sqrt-inverse balanced class weights, L2 weight_decay=1e-4, 100 epochs
+
+**Pre-#172 results (Rust code as training text — STALE, domain mismatch)**:
 
 | Entries | Test MCC | Accuracy | Precision | Recall | Train MCC | Ship Gate |
 |---------|----------|----------|-----------|--------|-----------|-----------|
@@ -1447,10 +1451,27 @@ jobs:
 | 1000 (BPE) | 0.399 | 92.2% | 0.353 | 0.545 | 0.666 | PASS keyword |
 | 2047 (BPE) | **0.321** | 83.7% | 0.328 | 0.512 | 0.546 | **PASS** |
 | 3000 (BPE) | 0.291 | — | — | — | — | FAIL (below 0.3) |
-| 4000+ (BPE) | 0.000 | — | — | — | — | FAIL (no unsafe in test set) |
 
-- C-CLF-001: PASS at n=2047 (MCC=0.321 > 0.3, beats keyword baseline)
-- Class weighting critical: without it, MCC degrades to 0.198 at n=1675 (probe converges to "always safe")
+**Post-#172 results (shell output as training text — correct domain)**:
+
+| Entries | Test MCC | Accuracy | Precision | Recall | Train MCC | Ship Gate |
+|---------|----------|----------|-----------|--------|-----------|-----------|
+| 3000 (shell) | 0.043 | 94.7% | 0.040 | 0.111 | 0.651 | FAIL |
+| 3000 + 350 adv | 0.205 | 36.5% | 0.146 | 1.000 | 0.209 | FAIL |
+| 3000 + 50 adv | 0.112 | 48.8% | 0.043 | 0.875 | 0.179 | FAIL |
+
+- **Linear probe insufficient for shell-based labeling** (KAIZEN-104)
+  - Root cause: transpiler normalizes unsafe patterns → shell output is homogeneous
+  - Only 148/17,942 entries (0.82%) trigger lint in shell output
+  - CodeBERT [CLS] embeddings not linearly separable on safe/unsafe for shell
+  - Train MCC=0.651 but test MCC=0.043 → severe overfitting
+  - Adversarial augmentation helps recall (1.000) but destroys precision (0.146)
+- **Decision**: escalate to Level 1 (fine-tune top-2 layers) or Level 2 (full fine-tune)
+  - Fine-tuning allows the model to learn shell-specific safety features
+  - Linear probe only uses frozen CodeBERT representations (not adapted to shell safety)
+  - Tracked: #173 (bashrs), entrenar#245 (fine-tuning infrastructure)
+- Pre-#172 PASS results are **invalid** — domain mismatch between training (Rust) and inference (shell)
+- Class weighting critical: without it, MCC degrades further (probe converges to "always safe")
 - **Data labeling gap** (#171): corpus entries 3000+ have exactly 0 unsafe labels
   - Total unsafe entries: 283 (pre-#172, Rust code linting) → **148** (post-#172, shell output linting)
   - Beyond n=3000, test set is 100% safe → MCC=0.000
