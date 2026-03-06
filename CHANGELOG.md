@@ -90,6 +90,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ClassWeight::Uniform`, `ClassWeight::Balanced`, `ClassWeight::Manual(Vec<f32>)`
   - `.with_class_weight()`, `.with_l2_penalty()` builder methods
   - 9 FALSIFY contract tests (FALSIFY-LOGREG-001..009) + 3 proptests
+- `--max-entries` flag on `train-classifier` (KAIZEN-102)
+  - Caps training data to avoid data labeling gap (#171: entries 3000+ have 0 unsafe labels)
+  - Recommended: `--max-entries 2500` until adversarial corpus entries are added
+- `--augment` flag on `train-classifier` for adversarial data augmentation (#171)
+  - Accepts additional embedding JSONL files merged before train/test splitting
+- `--input-jsonl` flag on `extract-embeddings` (#171)
+  - Extract CodeBERT embeddings from custom JSONL files (format: `{"input":"...","label":N}`)
+  - Enables adversarial data pipeline: extract → augment → train
 
 ### Performance
 - SSC report: conversation_section uses keyword heuristic instead of linting all 17k entries (4+ min → 1.8s)
