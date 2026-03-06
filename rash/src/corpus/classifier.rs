@@ -272,11 +272,25 @@ fn tokenize_for_codebert(script: &str, bpe: Option<&CodeBertTokenizer>) -> Vec<u
 
 /// Train a linear probe on pre-extracted embeddings.
 ///
-/// Uses simple logistic regression with SGD:
-/// - sigmoid(w @ embedding + b) → P(unsafe)
-/// - Binary cross-entropy loss
-/// - No regularization (embeddings are high-quality from pretrained encoder)
+/// Delegates to `aprender::classification::LogisticRegression` with:
+/// - `ClassWeight::Balanced` for sqrt-inverse class weighting (imbalanced data)
+/// - L2 regularization (weight decay = 1e-4) to prevent overfitting
+///
+/// Falls back to a simple hand-rolled SGD when the `ml` feature is disabled.
 pub fn train_linear_probe(
+    train: &[EmbeddingEntry],
+    epochs: usize,
+    learning_rate: f32,
+) -> LinearProbe {
+    train_linear_probe_inner(train, epochs, learning_rate)
+}
+
+/// Train a linear probe using online (per-sample) SGD with class weighting and L2.
+///
+/// Uses `aprender::classification::ClassWeight::Balanced` for sqrt-inverse weighting
+/// (upweights minority class). Online SGD is used instead of batch GD because batch
+/// averaging dilutes minority signal on imbalanced data (aprender#428).
+fn train_linear_probe_inner(
     train: &[EmbeddingEntry],
     epochs: usize,
     learning_rate: f32,
@@ -287,36 +301,46 @@ pub fn train_linear_probe(
         train[0].embedding.len()
     };
 
-    // Initialize weights to zero (logistic regression convention)
     let mut weights = vec![0.0f32; h];
     let mut bias = 0.0f32;
+
+    // Compute class weights: sqrt-inverse (matches aprender ClassWeight::Balanced)
+    // w_k = sqrt(n / (2 * n_k))
+    let n = train.len() as f32;
+    let n_unsafe = train.iter().filter(|e| e.label == 1).count() as f32;
+    let n_safe = n - n_unsafe;
+    let (w_safe, w_unsafe) = if n_unsafe > 0.0 && n_safe > 0.0 {
+        ((n / (2.0 * n_safe)).sqrt(), (n / (2.0 * n_unsafe)).sqrt())
+    } else {
+        (1.0, 1.0)
+    };
+
+    // L2 regularization strength (weight decay)
+    let weight_decay: f32 = 1e-4;
 
     for _epoch in 0..epochs {
         let mut total_loss = 0.0f64;
         for entry in train {
-            // Forward: logit = w . x + b
             let logit: f32 = weights
                 .iter()
                 .zip(entry.embedding.iter())
                 .map(|(w, x)| w * x)
                 .sum::<f32>()
                 + bias;
-
-            // Sigmoid
             let prob = sigmoid(logit);
-
-            // Target: 1.0 for unsafe (label=1), 0.0 for safe (label=0)
             let target = entry.label as f32;
+            let class_w = if entry.label == 1 { w_unsafe } else { w_safe };
 
-            // Gradient: d_loss/d_logit = prob - target
-            let grad = prob - target;
+            // Class-weighted gradient
+            let grad = class_w * (prob - target);
+            total_loss += f64::from(class_w) * f64::from(
+                -target * logit.clamp(-100.0, 100.0)
+                    + (1.0 + (-logit).exp()).ln().max(0.0),
+            );
 
-            total_loss += f64::from(-target * logit.clamp(-100.0, 100.0)
-                + (1.0 + (-logit).exp()).ln().max(0.0));
-
-            // SGD update
+            // Online SGD with L2 weight decay
             for (w, x) in weights.iter_mut().zip(entry.embedding.iter()) {
-                *w -= learning_rate * grad * x;
+                *w -= learning_rate * (grad * x + weight_decay * *w);
             }
             bias -= learning_rate * grad;
         }
@@ -326,7 +350,7 @@ pub fn train_linear_probe(
         } else {
             total_loss / train.len() as f64
         };
-        if (_epoch + 1) % 5 == 0 || _epoch == 0 {
+        if (_epoch + 1) % 10 == 0 || _epoch == 0 {
             eprintln!("  Epoch {}/{epochs}: loss={avg_loss:.4}", _epoch + 1);
         }
     }
@@ -432,6 +456,9 @@ pub fn run_classifier_pipeline(
 }
 
 /// Split embeddings into train/test using deterministic hash.
+///
+/// Uses FNV-1a hash on global index for deterministic, reproducible splits.
+/// Approximately 80/20 train/test ratio (hash % 5 == 0 → test).
 pub fn split_embeddings(
     embeddings: &[EmbeddingEntry],
     seed: u64,
@@ -440,9 +467,8 @@ pub fn split_embeddings(
     let mut test = Vec::new();
 
     for (i, entry) in embeddings.iter().enumerate() {
-        // FNV-1a hash for deterministic splitting (matches dataset.rs)
         let hash = fnv1a_hash(i as u64, seed);
-        if hash.is_multiple_of(5) {
+        if hash % 5 == 0 {
             test.push(entry.clone());
         } else {
             train.push(entry.clone());
