@@ -607,6 +607,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs corpus generate-conversations` — S6.4 quality gates (type breakdown, variant balance, empty response check)
 - 8 `cargo run --example` programs verified: shell_safety_classifier, explain_demo, baselines, label_audit, generalization_tests, contract_validation, ssc_data_pipeline, ssc_report
 - 28 assert_cmd CLI integration tests (cli_ssc_tests.rs)
+- 4 provable-contracts YAML files created (S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
 - CodeBERT (Stage 1) and Qwen chat (Stage 2) pending external deps (entrenar encoder support)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
