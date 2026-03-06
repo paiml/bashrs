@@ -33,9 +33,6 @@ pub fn analyze_config(source: &str, file_path: PathBuf) -> ConfigAnalysis {
     let nondeterminism_issues = nondeterminism::detect_nondeterminism(&nondeterministic_constructs);
     issues.extend(nondeterminism_issues);
 
-    // TODO: Add more analysis rules
-    // - CONFIG-005: Expensive operations
-
     let complexity_score = calculate_complexity(source);
     let performance_issues = detect_performance_issues(source);
 
