@@ -601,6 +601,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs corpus export-splits` — implemented (80/10/10 deterministic splits)
 - `bashrs corpus validate-contracts` — implemented (7/7 contracts pass)
 - `bashrs corpus baselines` — implemented (majority, keyword, linter baselines)
+- `bashrs corpus publish-dataset` — implemented (HF-ready dir: README.md + splits + config)
 - CodeBERT (Stage 1) and Qwen chat (Stage 2) pending external deps
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)

@@ -380,6 +380,28 @@ bashrs corpus training-config --output config.yaml
 
 The config includes model architecture (CodeBERT encoder, 768-dim, 12 layers), training hyperparameters (epochs, batch size, learning rate, class weights), data statistics, and evaluation targets (MCC CI lower > 0.2, accuracy > 93.5%).
 
+### Publish Dataset (S9)
+
+Generate a complete HuggingFace-ready dataset directory with all artifacts:
+
+```bash
+# Create dataset directory
+bashrs corpus publish-dataset --output ./ssc-dataset/
+```
+
+This creates:
+- `README.md` — HuggingFace model card with YAML front matter
+- `train.jsonl` — Training split (~80%)
+- `val.jsonl` — Validation split (~10%)
+- `test.jsonl` — Test split (~10%)
+- `training_config.yaml` — entrenar-compatible training configuration
+
+Upload to HuggingFace Hub:
+
+```bash
+huggingface-cli upload paiml/shell-safety-classifier ./ssc-dataset/
+```
+
 ### Data Pipeline Example
 
 Run the complete data pipeline example:
