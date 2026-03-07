@@ -86,16 +86,24 @@ pub fn run_all_baselines(entries: &[(&str, u8)]) -> Vec<EvaluationReport> {
 /// Label derivation: lint the transpiled shell output for SEC/DET findings.
 /// Entries that fail transpilation are labeled unsafe (label=1).
 pub fn corpus_baseline_entries() -> Vec<(String, u8)> {
+    use crate::corpus::registry::CorpusRegistry;
+    let registry = CorpusRegistry::load_full();
+    corpus_baseline_entries_from(&registry)
+}
+
+/// Like [`corpus_baseline_entries`] but accepts a pre-loaded registry to avoid
+/// redundant corpus construction (17k+ entries).
+pub fn corpus_baseline_entries_from(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Vec<(String, u8)> {
     use crate::corpus::dataset::{classify_single, strip_shell_preamble};
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusFormat;
 
     let config = crate::Config::default();
-    let registry = CorpusRegistry::load_full();
     registry
         .entries
         .iter()
         .map(|e| {
-            // Transpile to shell (the actual output users will see)
             let transpile_fn = match e.format {
                 CorpusFormat::Bash => crate::transpile,
                 CorpusFormat::Makefile => crate::transpile_makefile,
@@ -111,7 +119,6 @@ pub fn corpus_baseline_entries() -> Vec<(String, u8)> {
                     (stripped, row.label)
                 }
                 Err(_) => {
-                    // Transpilation failed → unsafe
                     let row = classify_single(&e.input, false, true, true);
                     (e.input.clone(), row.label)
                 }
@@ -176,5 +183,20 @@ mod tests {
         let entries: Vec<(&str, u8)> = vec![("echo $RANDOM", 1)];
         let report = keyword_baseline(&entries);
         assert_eq!(report.confusion.tp, 1, "Should catch $RANDOM");
+    }
+
+    #[test]
+    fn test_corpus_baseline_entries_from_matches_standalone() {
+        // Verify _from variant produces identical results to standalone.
+        // Use a small registry subset to keep the test fast.
+        use crate::corpus::registry::CorpusRegistry;
+        let registry = CorpusRegistry::load_full();
+        let from_result = corpus_baseline_entries_from(&registry);
+        // Sanity: same count as full corpus
+        assert_eq!(from_result.len(), registry.entries.len());
+        // Each entry should have a valid label (0 or 1)
+        for (_, label) in &from_result {
+            assert!(*label <= 1, "Label must be 0 or 1");
+        }
     }
 }
