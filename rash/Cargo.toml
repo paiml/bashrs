@@ -22,6 +22,7 @@ workspace = true
 [[bin]]
 name = "bashrs"
 path = "src/bin/bashrs.rs"
+required-features = ["clap"]
 
 [lib]
 crate-type = ["rlib"]
@@ -44,14 +45,14 @@ once_cell.workspace = true
 lazy_static.workspace = true
 phf.workspace = true
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
-rand = "0.9"  # Added for testing module
-rand_chacha = "0.9"  # Deterministic RNG for adversarial data generation
+rand = { version = "0.9", optional = true }
+rand_chacha = { version = "0.9", optional = true }
 batuta-common = "0.1"
 static_assertions = "1.1"
 regex = "1.10"  # For linter pattern matching
 glob = "0.3"    # For .bashrsignore pattern matching (Issue #58)
-rustyline.workspace = true  # REPL terminal line editing
-sysinfo = "0.31"  # For bench command - CPU/RAM/OS detection
+rustyline = { workspace = true, optional = true }  # REPL terminal line editing
+sysinfo = { version = "0.31", optional = true }  # For bench command - CPU/RAM/OS detection
 schemars = "0.8"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "6.60", optional = true }  # ML-powered error classification
 aprender = { version = "0.27", optional = true }  # BPE tokenizer for SSC C-TOK-001
@@ -76,11 +77,11 @@ crossterm = { version = "0.28", optional = true }
 
 [features]
 # Default includes core features for full functionality
-default = ["validation", "pretty-errors", "basic", "compile", "clap", "tokio", "tracing-subscriber"]
+default = ["validation", "pretty-errors", "basic", "compile", "clap", "tokio", "tracing-subscriber", "rand", "rand_chacha", "rustyline", "sysinfo"]
 # Minimal build for smallest binary size (<3MB)
 minimal = []
 # Full build with all features (~6MB)
-full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch", "compile", "clap", "tokio", "tracing-subscriber"]
+full = ["pattern-matching", "loops", "verification", "optimization", "lsp", "completions", "watch", "compile", "clap", "tokio", "tracing-subscriber", "rand", "rand_chacha", "rustyline", "sysinfo"]
 # Individual features
 basic = []
 compile = ["tokio", "zstd", "tar", "flate2", "base64"]  # Binary compilation and self-extracting scripts
