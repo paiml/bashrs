@@ -111,9 +111,7 @@ pub(crate) fn chat_generate(
 
 /// Load TransformerConfig from a HuggingFace config.json.
 #[cfg(feature = "ml")]
-fn load_model_config(
-    path: &Path,
-) -> Result<entrenar::transformer::TransformerConfig> {
+fn load_model_config(path: &Path) -> Result<entrenar::transformer::TransformerConfig> {
     let content = std::fs::read_to_string(path)
         .map_err(|e| Error::Validation(format!("Cannot read config.json: {e}")))?;
 
@@ -127,9 +125,7 @@ fn load_model_config(
         num_kv_heads: json["num_key_value_heads"].as_u64().unwrap_or(2) as usize,
         intermediate_size: json["intermediate_size"].as_u64().unwrap_or(8960) as usize,
         vocab_size: json["vocab_size"].as_u64().unwrap_or(151936) as usize,
-        max_position_embeddings: json["max_position_embeddings"]
-            .as_u64()
-            .unwrap_or(32768) as usize,
+        max_position_embeddings: json["max_position_embeddings"].as_u64().unwrap_or(32768) as usize,
         rms_norm_eps: json["rms_norm_eps"].as_f64().unwrap_or(1e-6) as f32,
         rope_theta: json["rope_theta"].as_f64().unwrap_or(1000000.0) as f32,
         use_bias: json["use_bias"].as_bool().unwrap_or(false),

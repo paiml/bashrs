@@ -562,7 +562,11 @@ pub fn generate_dataset_readme(report: &QualityReport) -> String {
         report.type_d_count, report.type_d_pct
     );
     let _ = writeln!(readme, "- **Format**: ChatML (system + user + assistant)");
-    let _ = writeln!(readme, "- **Quality gate**: {}", if report.passed { "PASSED" } else { "FAILED" });
+    let _ = writeln!(
+        readme,
+        "- **Quality gate**: {}",
+        if report.passed { "PASSED" } else { "FAILED" }
+    );
     readme.push('\n');
 
     // Honesty requirements (S6.5)
@@ -585,9 +589,12 @@ pub fn generate_dataset_readme(report: &QualityReport) -> String {
     readme.push_str("  \"id\": \"conv-B-1234-classify-explain\",\n");
     readme.push_str("  \"conversation_type\": \"ClassifyExplain\",\n");
     readme.push_str("  \"turns\": [\n");
-    readme.push_str("    {\"role\": \"system\", \"content\": \"You are a shell script safety analyzer...\"},\n");
+    readme.push_str(
+        "    {\"role\": \"system\", \"content\": \"You are a shell script safety analyzer...\"},\n",
+    );
     readme.push_str("    {\"role\": \"user\", \"content\": \"Is this script safe?\\n\\n```bash\\neval $x\\n```\"},\n");
-    readme.push_str("    {\"role\": \"assistant\", \"content\": \"This script is **unsafe**...\"}\n");
+    readme
+        .push_str("    {\"role\": \"assistant\", \"content\": \"This script is **unsafe**...\"}\n");
     readme.push_str("  ]\n");
     readme.push_str("}\n");
     readme.push_str("```\n\n");

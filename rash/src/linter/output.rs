@@ -43,14 +43,21 @@ pub fn write_results<W: Write>(
     }
 }
 
+// ANSI color constants for lint output (standalone, no cli dependency)
+const RESET: &str = "\x1b[0m";
+const DIM: &str = "\x1b[2m";
+const GREEN: &str = "\x1b[32m";
+const YELLOW: &str = "\x1b[33m";
+const CYAN: &str = "\x1b[36m";
+const BRIGHT_RED: &str = "\x1b[1;31m";
+const BRIGHT_YELLOW: &str = "\x1b[1;33m";
+
 /// Human-readable output format with ANSI colors
 fn write_human<W: Write>(
     writer: &mut W,
     result: &LintResult,
     file_path: &str,
 ) -> std::io::Result<()> {
-    use crate::cli::color::*;
-
     if result.diagnostics.is_empty() {
         writeln!(
             writer,

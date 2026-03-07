@@ -229,10 +229,8 @@ pub fn extract_embeddings_streaming(
             label: entry.label,
         };
 
-        let json = serde_json::to_string(&emb)
-            .map_err(|e| format!("Serialize error: {e}"))?;
-        writeln!(writer, "{json}")
-            .map_err(|e| format!("Write error: {e}"))?;
+        let json = serde_json::to_string(&emb).map_err(|e| format!("Serialize error: {e}"))?;
+        writeln!(writer, "{json}").map_err(|e| format!("Write error: {e}"))?;
 
         extracted += 1;
     }
@@ -353,10 +351,10 @@ fn train_linear_probe_inner(
 
             // Class-weighted gradient
             let grad = class_w * (prob - target);
-            total_loss += f64::from(class_w) * f64::from(
-                -target * logit.clamp(-100.0, 100.0)
-                    + (1.0 + (-logit).exp()).ln().max(0.0),
-            );
+            total_loss += f64::from(class_w)
+                * f64::from(
+                    -target * logit.clamp(-100.0, 100.0) + (1.0 + (-logit).exp()).ln().max(0.0),
+                );
 
             // Online SGD with L2 weight decay
             for (w, x) in weights.iter_mut().zip(entry.embedding.iter()) {
@@ -431,11 +429,15 @@ pub fn run_classifier_pipeline(
 ) -> Result<ClassifierReport, String> {
     // Step 1: Extract embeddings
     eprintln!("Step 1/3: Extracting [CLS] embeddings...");
-    let (all_embeddings, report) = extract_embeddings(model_dir, entries, Some(&|i, total| {
-        if i % 100 == 0 {
-            eprintln!("  {i}/{total} ({:.1}%)", 100.0 * i as f64 / total as f64);
-        }
-    }))?;
+    let (all_embeddings, report) = extract_embeddings(
+        model_dir,
+        entries,
+        Some(&|i, total| {
+            if i % 100 == 0 {
+                eprintln!("  {i}/{total} ({:.1}%)", 100.0 * i as f64 / total as f64);
+            }
+        }),
+    )?;
     eprintln!(
         "  Extracted {} embeddings ({} skipped)\n",
         report.extracted, report.skipped
@@ -564,19 +566,14 @@ pub fn classify_with_probe(
 }
 
 /// Save embeddings to a JSONL file for caching.
-pub fn save_embeddings(
-    embeddings: &[EmbeddingEntry],
-    path: &Path,
-) -> Result<(), String> {
+pub fn save_embeddings(embeddings: &[EmbeddingEntry], path: &Path) -> Result<(), String> {
     use std::io::Write;
     let file = std::fs::File::create(path)
         .map_err(|e| format!("Cannot create {}: {e}", path.display()))?;
     let mut writer = std::io::BufWriter::new(file);
     for entry in embeddings {
-        let json = serde_json::to_string(entry)
-            .map_err(|e| format!("Serialize error: {e}"))?;
-        writeln!(writer, "{json}")
-            .map_err(|e| format!("Write error: {e}"))?;
+        let json = serde_json::to_string(entry).map_err(|e| format!("Serialize error: {e}"))?;
+        writeln!(writer, "{json}").map_err(|e| format!("Write error: {e}"))?;
     }
     Ok(())
 }
@@ -584,8 +581,8 @@ pub fn save_embeddings(
 /// Load cached embeddings from a JSONL file.
 pub fn load_embeddings(path: &Path) -> Result<Vec<EmbeddingEntry>, String> {
     use std::io::BufRead;
-    let file = std::fs::File::open(path)
-        .map_err(|e| format!("Cannot open {}: {e}", path.display()))?;
+    let file =
+        std::fs::File::open(path).map_err(|e| format!("Cannot open {}: {e}", path.display()))?;
     let reader = std::io::BufReader::new(file);
     let mut embeddings = Vec::new();
     for line in reader.lines() {
@@ -599,24 +596,20 @@ pub fn load_embeddings(path: &Path) -> Result<Vec<EmbeddingEntry>, String> {
 
 /// Save linear probe weights to JSON.
 pub fn save_probe(probe: &LinearProbe, path: &Path) -> Result<(), String> {
-    let json = serde_json::to_string_pretty(probe)
-        .map_err(|e| format!("Serialize error: {e}"))?;
-    std::fs::write(path, json)
-        .map_err(|e| format!("Write error: {e}"))?;
+    let json = serde_json::to_string_pretty(probe).map_err(|e| format!("Serialize error: {e}"))?;
+    std::fs::write(path, json).map_err(|e| format!("Write error: {e}"))?;
     Ok(())
 }
 
 /// Load linear probe weights from JSON.
 pub fn load_probe(path: &Path) -> Result<LinearProbe, String> {
-    let json = std::fs::read_to_string(path)
-        .map_err(|e| format!("Read error: {e}"))?;
+    let json = std::fs::read_to_string(path).map_err(|e| format!("Read error: {e}"))?;
     serde_json::from_str(&json).map_err(|e| format!("Parse error: {e}"))
 }
 
 /// Load MLP probe weights from JSON.
 pub fn load_mlp_probe(path: &Path) -> Result<MlpProbeWeights, String> {
-    let json = std::fs::read_to_string(path)
-        .map_err(|e| format!("Read error: {e}"))?;
+    let json = std::fs::read_to_string(path).map_err(|e| format!("Read error: {e}"))?;
     serde_json::from_str(&json).map_err(|e| format!("Parse error: {e}"))
 }
 
@@ -644,7 +637,8 @@ fn mlp_forward(weights: &MlpProbeWeights, embedding: &[f32]) -> (u8, f64) {
     }
 
     // Binary classification: use sigmoid on logit difference
-    let prob_unsafe = sigmoid(logits.get(1).copied().unwrap_or(0.0) - logits.first().copied().unwrap_or(0.0));
+    let prob_unsafe =
+        sigmoid(logits.get(1).copied().unwrap_or(0.0) - logits.first().copied().unwrap_or(0.0));
     let label = u8::from(prob_unsafe > 0.5);
     let confidence = if label == 1 {
         f64::from(prob_unsafe)
@@ -692,9 +686,17 @@ mod tests {
                 // Unsafe entries: negative first half, positive second half
                 for (j, val) in emb.iter_mut().enumerate() {
                     *val = if label == 0 {
-                        if j < dim / 2 { 1.0 } else { -1.0 }
+                        if j < dim / 2 {
+                            1.0
+                        } else {
+                            -1.0
+                        }
                     } else {
-                        if j < dim / 2 { -1.0 } else { 1.0 }
+                        if j < dim / 2 {
+                            -1.0
+                        } else {
+                            1.0
+                        }
                     };
                     // Add some noise based on index
                     *val += (i as f32 * 0.01) * if j % 2 == 0 { 1.0 } else { -1.0 };

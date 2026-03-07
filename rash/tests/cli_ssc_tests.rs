@@ -555,9 +555,17 @@ fn test_PMAT154_corpus_train_classifier_from_synthetic() {
         let emb: Vec<f32> = (0..32)
             .map(|j| {
                 if label == 0 {
-                    if j < 16 { 1.0 } else { -1.0 }
+                    if j < 16 {
+                        1.0
+                    } else {
+                        -1.0
+                    }
                 } else {
-                    if j < 16 { -1.0 } else { 1.0 }
+                    if j < 16 {
+                        -1.0
+                    } else {
+                        1.0
+                    }
                 }
             })
             .collect();
@@ -783,9 +791,5 @@ fn test_CLI002_explain_without_chat_model_still_works() {
 fn test_CLI002_fix_without_chat_model_still_works() {
     // Rule-based fix should still work without --chat-model
     let f = write_temp_script("#!/bin/sh\necho \"hello\"\n");
-    bashrs_cmd()
-        .arg("fix")
-        .arg(f.path())
-        .assert()
-        .success();
+    bashrs_cmd().arg("fix").arg(f.path()).assert().success();
 }

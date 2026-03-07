@@ -67,33 +67,39 @@ pub mod ast;
 /// Bash script parsing and AST generation
 pub mod bash_parser;
 /// Bash quality tools (test generation, coverage, formatting, scoring)
+#[cfg(not(target_arch = "wasm32"))]
 pub mod bash_quality;
 /// Bash script transpilation and purification
 pub mod bash_transpiler;
 /// build.rs integration with auto-discovery
+#[cfg(not(target_arch = "wasm32"))]
 pub mod build_rs;
 /// Command-line interface for bashrs
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "clap"))]
 pub mod cli;
 /// Rust compiler integration for transpilation
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "compile"))]
 pub mod compiler;
 /// Shell artifact compliance system (SPEC-COMPLY-2026-001)
+#[cfg(not(target_arch = "wasm32"))]
 pub mod comply;
 /// Shell configuration file management and analysis
 pub mod config;
 /// Container and sandbox support
-#[cfg(not(target_arch = "wasm32"))]
+#[cfg(all(not(target_arch = "wasm32"), feature = "compile"))]
 pub mod container;
 /// Corpus-driven transpilation quality measurement (Popperian falsification)
+#[cfg(not(target_arch = "wasm32"))]
 pub mod corpus;
 /// Shell script code emission
 pub mod emitter;
 /// Formal verification and proof generation
+#[cfg(not(target_arch = "wasm32"))]
 pub mod formal;
 /// Shell script formatting
 pub mod formatter;
 /// Quality gate configuration and enforcement
+#[cfg(not(target_arch = "wasm32"))]
 pub mod gates;
 /// TDD-first installer framework
 #[cfg(not(target_arch = "wasm32"))]
@@ -107,14 +113,17 @@ pub mod make_parser;
 /// Configuration types and error handling
 pub mod models;
 /// Quality gates with rich reporting and fault localization (ML-001 to ML-012)
+#[cfg(not(target_arch = "wasm32"))]
 pub mod quality;
 /// Interactive REPL with integrated debugger
+#[cfg(all(not(target_arch = "wasm32"), feature = "rustyline"))]
 pub mod repl;
 /// Parser and compiler services
 pub mod services;
 /// Standard library function mappings
 pub mod stdlib;
 /// Test case generation from shell scripts
+#[cfg(not(target_arch = "wasm32"))]
 pub mod test_generator;
 /// Tracing infrastructure for diagnostics and debugging
 pub mod tracing;
@@ -125,6 +134,7 @@ pub mod types;
 /// AST and output validation
 pub mod validation;
 /// Output verification and shellcheck integration
+#[cfg(not(target_arch = "wasm32"))]
 pub mod verifier;
 
 /// Terminal User Interface (TUI) with ratatui

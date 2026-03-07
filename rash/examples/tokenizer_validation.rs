@@ -63,10 +63,8 @@ fn try_codebert_validation() -> Option<TokenizerValidationReport> {
     }
 
     println!("\n--- CodeBERT Tokenizer (real, 50265 vocab) ---\n");
-    match bashrs::corpus::tokenizer_validation::validate_codebert_tokenizer(
-        vocab_path,
-        merges_path,
-    ) {
+    match bashrs::corpus::tokenizer_validation::validate_codebert_tokenizer(vocab_path, merges_path)
+    {
         Ok(report) => Some(report),
         Err(e) => {
             println!("CodeBERT load failed: {e}");

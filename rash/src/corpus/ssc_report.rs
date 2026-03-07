@@ -329,10 +329,10 @@ fn conversation_section_from(registry: &crate::corpus::registry::CorpusRegistry)
     // Use cheap keyword heuristic for partitioning (not full lint_shell on 17k entries).
     // generate_batch() does accurate linting internally on the 100 sampled entries.
 
-    let (safe_entries, unsafe_entries): (Vec<_>, Vec<_>) =
-        registry.entries.iter().partition(|e| {
-            !has_unsafe_keyword(&e.input)
-        });
+    let (safe_entries, unsafe_entries): (Vec<_>, Vec<_>) = registry
+        .entries
+        .iter()
+        .partition(|e| !has_unsafe_keyword(&e.input));
 
     // Stratified sample: up to 30 unsafe + up to 70 safe
     let unsafe_stride = unsafe_entries.len().max(1) / 30;
@@ -487,9 +487,24 @@ fn data_pipeline_section() -> SscSection {
 /// Avoids running the full linter on all 17k+ corpus entries.
 fn has_unsafe_keyword(script: &str) -> bool {
     const KEYWORDS: &[&str] = &[
-        "eval ", "eval\t", "$RANDOM", "curl ", "wget ", "| bash", "| sh",
-        "rm -rf", "chmod 777", "chmod +s", "sudo ", "/dev/urandom",
-        "/dev/random", "$(date", "exec ", "source <(", "bash -c", ". /dev/stdin",
+        "eval ",
+        "eval\t",
+        "$RANDOM",
+        "curl ",
+        "wget ",
+        "| bash",
+        "| sh",
+        "rm -rf",
+        "chmod 777",
+        "chmod +s",
+        "sudo ",
+        "/dev/urandom",
+        "/dev/random",
+        "$(date",
+        "exec ",
+        "source <(",
+        "bash -c",
+        ". /dev/stdin",
     ];
     KEYWORDS.iter().any(|kw| script.contains(kw))
 }
@@ -582,14 +597,34 @@ mod tests {
         let section = baselines_section_from(&entries);
         assert_eq!(section.name, "Baselines (C-CLF-001)");
         // Should have 3 baseline reports + 2 target metrics = 5
-        assert!(section.metrics.len() >= 5, "Expected 5+ metrics, got {}", section.metrics.len());
+        assert!(
+            section.metrics.len() >= 5,
+            "Expected 5+ metrics, got {}",
+            section.metrics.len()
+        );
         // Each baseline should show MCC, accuracy, recall
         let majority = &section.metrics[0];
-        assert!(majority.value.contains("MCC="), "Missing MCC: {}", majority.value);
-        assert!(majority.value.contains("acc="), "Missing accuracy: {}", majority.value);
-        assert!(majority.value.contains("rec="), "Missing recall: {}", majority.value);
+        assert!(
+            majority.value.contains("MCC="),
+            "Missing MCC: {}",
+            majority.value
+        );
+        assert!(
+            majority.value.contains("acc="),
+            "Missing accuracy: {}",
+            majority.value
+        );
+        assert!(
+            majority.value.contains("rec="),
+            "Missing recall: {}",
+            majority.value
+        );
         // Should include S5.5 targets
-        let targets: Vec<&SscMetric> = section.metrics.iter().filter(|m| m.name.starts_with("Target:")).collect();
+        let targets: Vec<&SscMetric> = section
+            .metrics
+            .iter()
+            .filter(|m| m.name.starts_with("Target:"))
+            .collect();
         assert_eq!(targets.len(), 2, "Expected 2 target metrics");
     }
 
@@ -616,9 +651,18 @@ mod tests {
         let section = conversation_section_from(&registry);
         assert_eq!(section.name, "Conversations (S6)");
         let names: Vec<&str> = section.metrics.iter().map(|m| m.name.as_str()).collect();
-        assert!(names.contains(&"Type A (classify+explain)"), "Missing Type A");
+        assert!(
+            names.contains(&"Type A (classify+explain)"),
+            "Missing Type A"
+        );
         assert!(names.contains(&"Type D (confirm safe)"), "Missing Type D");
-        assert!(names.contains(&"Variant distribution"), "Missing variant dist");
-        assert!(names.contains(&"Rule citation accuracy"), "Missing citations");
+        assert!(
+            names.contains(&"Variant distribution"),
+            "Missing variant dist"
+        );
+        assert!(
+            names.contains(&"Rule citation accuracy"),
+            "Missing citations"
+        );
     }
 }
