@@ -275,7 +275,7 @@ fn ml_classify_with_probe(source: &str, probe_path: &Path, model_path: &Path) ->
     #[cfg(not(feature = "ml"))]
     {
         eprintln!("  Note: Stage 1 ML classification requires --features ml");
-        return None;
+        None
     }
 
     #[cfg(feature = "ml")]
@@ -292,7 +292,7 @@ fn ml_classify_with_mlp_probe(source: &str, probe_path: &Path, model_path: &Path
     #[cfg(not(feature = "ml"))]
     {
         eprintln!("  Note: Stage 1 ML classification requires --features ml");
-        return None;
+        None
     }
 
     #[cfg(feature = "ml")]
