@@ -628,6 +628,7 @@ The encoder, classifier, and inference code are backed by YAML contracts:
 | `learned-position-embedding-v1` | Absolute position lookup (bounds-checked) |
 | `encoder-forward-v1` | Shape preservation, no NaN/Inf |
 | `linear-probe-classifier-v1` | Frozen encoder, probability simplex |
+| `classifier-pipeline-v1` | Embedding extraction, split determinism, MLP probe convergence, ship gate |
 
 Contract files live in `provable-contracts/contracts/`. Pipeline: YAML contract -> scaffold -> proptest/Kani harnesses -> binding to real code -> audit.
 
