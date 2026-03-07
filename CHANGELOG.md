@@ -114,6 +114,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `--mlp-hidden 32` specifies hidden layer size (default: 128)
   - With `--augment adversarial.jsonl`: MCC=0.754, precision=0.670, recall=0.918
   - C-CLF-001: PASS (beats both keyword and linter baselines)
+- CLF-FULL: Full 17,942-entry CodeBERT extraction + MLP training complete (KAIZEN-105)
+  - Scale validation: MCC=0.754 (3k) → 0.443 (17,942) — C-CLF-001 PASS at all scales
+  - Full extraction: 17,942 entries at 1.5 entries/s (~3.3 hours CPU)
+  - Train: 14,671 | Test: 3,621 (80/20 FNV-1a split)
+  - TP=80, FP=242, TN=3,287, FN=12 (recall=87%, precision=25%)
 - MLP probe weights now properly serialized to `mlp_probe.json` (KAIZEN-106)
   - `MlpProbeWeights` struct with w1/b1/w2/b2 + metadata (hidden_size, mlp_hidden, epochs, etc.)
   - Previously `--mlp` training discarded weights (saved placeholder zeros)

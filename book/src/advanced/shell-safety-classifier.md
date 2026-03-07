@@ -562,8 +562,9 @@ Shell-based labels (#172 fix — correct domain):
 | 3000 (shell) | Linear | 0.043 | 94.7% | 0.040 | 0.111 | FAIL |
 | 3000 + 350 adv | Linear | 0.205 | 36.5% | 0.146 | 1.000 | FAIL |
 | 3000 + 350 adv | **MLP h=32** | **0.754** | 94.2% | 0.670 | 0.918 | **PASS** |
+| **17942 + 350 adv** | **MLP h=32** | **0.443** | 93.0% | 0.248 | 0.870 | **PASS** |
 
-The MLP probe (Level 0.5) with adversarial augmentation is the recommended configuration. Use `--mlp --mlp-hidden 32 --augment adversarial.jsonl`.
+The MLP probe (Level 0.5) with adversarial augmentation is the recommended configuration. Use `--mlp --mlp-hidden 32 --augment adversarial.jsonl`. At full corpus scale (17,942 entries), MCC=0.443 with 87% recall — the classifier catches most unsafe scripts while maintaining acceptable precision.
 
 Training uses sqrt-inverse balanced class weights (aprender `ClassWeight::Balanced`)
 and L2 regularization (weight_decay=1e-4) to handle 99.2/0.8% safe/unsafe imbalance.
