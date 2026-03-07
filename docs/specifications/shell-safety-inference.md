@@ -684,11 +684,12 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - Training manifest: `training/ssc-chat-qwen-0.5b.yaml` — Qwen2.5-Coder-0.5B-Instruct, LoRA rank=16, alpha=32, Q+V
   - Provable contract: `chat-model-training-v1.yaml` — 5 postconditions, 4 falsification tests, 1 kill criterion
   - entrenar dry-run validated, batch_size=4, gradient_accumulation=4, NF4 quantization
-- **CHAT-002 IN PROGRESS**: Fine-tuning running on RTX 4090 (CUDA 12.8, 88% GPU util, 12GB/24GB VRAM)
+- **CHAT-002 COMPLETE**: Fine-tuning completed on RTX 4090 (CUDA 12.8, 87 minutes total)
   - Qwen2.5-Coder-0.5B-Instruct (downgraded from 1.5B — f32 optimizer states OOM'd on 1.5B)
-  - 4,486 batches × 3 epochs, seq_len=512, batch_size=4, grad_accum=4, ~1107 tok/s
-  - Checkpoints saving to `training/checkpoints/ssc-chat-v1/` (pruned to latest 5)
-- **Remaining**: CHAT-002 completion, CHAT-003 evaluation, CHAT-004 publish
+  - 13,458 steps (3 epochs × 4,486 batches), seq_len=512, batch_size=4, peak 5172 tok/s, MFU 18.6%
+  - Final loss: 4.800, best loss: 0.764, epoch losses: 4.576/4.980/4.800
+  - Model: `training/checkpoints/ssc-chat-v1/model.safetensors` (1.98GB)
+- **Remaining**: CHAT-003 evaluation, CHAT-004 publish
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1563,7 +1564,7 @@ jobs:
 | Task | Time | Status |
 |------|------|--------|
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
-| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 6-10 hrs | In Progress (Qwen-0.5B on CUDA, 88% util, ~1107 tok/s) |
+| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 87 min | ✅ Done (final_loss=4.800, best=0.764, 13,458 steps) |
 | CHAT-003: Evaluate + human review | 4 hrs | Blocked (requires CHAT-002) |
 | CHAT-004: Publish | 1 hr | Blocked (requires CHAT-003) |
 
