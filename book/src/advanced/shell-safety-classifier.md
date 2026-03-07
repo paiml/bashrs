@@ -630,23 +630,38 @@ will be cached in IndexedDB after first download.
 
 All WASM testing uses Probar (`jugar-probar`), not Playwright. Three test layers:
 
-| Layer | Tests | Runs On |
-|-------|-------|---------|
-| Logic (no browser) | 12 | Every commit |
-| Docker cross-browser | 3 | Pre-release |
-| Performance benchmarks | 6 | Every commit |
+| Layer | Tests | Status | Runs On |
+|-------|-------|--------|---------|
+| Logic (no browser) | 14 | ✅ Done | Every commit |
+| Docker cross-browser | 3 | Planned | Pre-release |
+| Performance benchmarks | 5 | ✅ Done | Every commit |
+
+Run the Probar test suite:
+
+```bash
+# Layer 1 + Layer 3 (no browser needed)
+cargo test -p bashrs-wasm --test probar_shell_safety
+
+# With CodeBERT tests (requires WASM-002/004)
+cargo test -p bashrs-wasm --test probar_shell_safety --features codebert
+
+# Docker cross-browser (requires Docker daemon)
+cargo test -p bashrs-wasm --test probar_shell_safety --features docker
+```
 
 Performance budgets enforced by tests:
 
-| Budget | Target |
-|--------|--------|
-| Linter latency | < 10ms |
-| Classifier inference | < 500ms |
-| WASM memory | < 200MB |
-| Model load | < 5s |
-| Full pipeline | < 600ms |
+| Budget | Target | Test |
+|--------|--------|------|
+| Linter latency | < 10ms | `test_prb005_linter_wasm_latency_under_10ms` |
+| Classify latency | < 10ms | `test_prb005_classify_wasm_latency_under_10ms` |
+| Explain latency | < 10ms | `test_prb005_explain_wasm_latency_under_10ms` |
+| Full pipeline | < 30ms | `test_prb005_full_linter_pipeline_under_30ms` |
+| Multi-format | < 30ms | `test_prb005_multiformat_lint_latency` |
 
-See `docs/specifications/shell-safety-inference.md` for the complete v11 spec.
+Provable contract: `probar-shell-safety-v1.yaml` with 9 falsification tests.
+
+See `docs/specifications/shell-safety-inference.md` Section 8.4 for the complete Probar design.
 
 ## Sovereign Stack
 
@@ -673,6 +688,8 @@ The encoder, classifier, and inference code are backed by YAML contracts:
 | `linear-probe-classifier-v1` | Frozen encoder, probability simplex |
 | `classifier-pipeline-v1` | Embedding extraction, split determinism, MLP probe convergence, ship gate |
 | `chat-inference-pipeline-v1` | Autoregressive generation termination, valid token range, greedy determinism, feature gate |
+| `wasm-linter-v1` | WASM binary size <5MB, valid JSON output, safe/unsafe classification |
+| `probar-shell-safety-v1` | Layer 1 logic tests, Layer 3 perf budgets, determinism (C-PRB-001/003/007) |
 
 Contract files live in `provable-contracts/contracts/`. Pipeline: YAML contract -> scaffold -> proptest/Kani harnesses -> binding to real code -> audit.
 

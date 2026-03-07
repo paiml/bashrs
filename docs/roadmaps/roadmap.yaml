@@ -487,3 +487,28 @@ roadmap:
   - wasm
   - phase5
   notes: null
+- id: PMAT-156
+  github_issue: null
+  item_type: task
+  title: 'SSC-PRB: Probar test suite for WASM shell safety (Phase 6 PRB-001, PRB-005)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-07T13:00:00Z
+  updated: 2026-03-07T14:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 14 Layer 1 logic tests pass (linter, classifier, explain, combined, JSON structure, determinism)
+  - 5 Layer 3 performance tests pass (linter <10ms, classify <10ms, explain <10ms, pipeline <30ms)
+  - jugar-probar integrated as dev-dependency with Assertion helpers
+  - CodeBERT tests gated behind codebert feature (blocked on WASM-002/004)
+  - Docker cross-browser tests gated behind docker feature
+  - Provable contract probar-shell-safety-v1.yaml with 9 falsification tests
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - probar
+  - phase6
+  notes: null
