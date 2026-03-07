@@ -1575,8 +1575,8 @@ no network calls after initial model download.
 | PRB-003: Generate reference fixtures from native CodeBERT for WASM parity tests | 1 hr | Blocked (WASM-002/004) |
 | PRB-004: Write LLM correctness tests (NaN check, calibration, monotonicity, consistency) | 2 hrs | Blocked (WASM-002/004) |
 | PRB-005: Write performance benchmark tests with hard budgets | 1 hr | ✅ Done (5 budget tests, all pass) |
-| PRB-006: Configure Docker cross-browser matrix (Chrome/Firefox/WebKit) | 2 hrs | |
-| PRB-007: CI integration (logic=every commit, browser=pre-release, perf=every commit) | 1 hr | |
+| PRB-006: Configure Docker cross-browser matrix (Chrome/Firefox/WebKit) | 2 hrs | Deferred (Docker infra) |
+| PRB-007: CI integration (logic=every commit, browser=pre-release, perf=every commit) | 1 hr | ✅ Done (Layer 1+3 via cargo test --workspace) |
 
 **Kill gate**: C-PRB-001 through C-PRB-007. All Probar tests must pass before deployment.
 Browser tests (Layer 2) may be deferred if Docker infra blocks, but logic + performance
