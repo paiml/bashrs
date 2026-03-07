@@ -586,9 +586,11 @@ and L2 regularization (weight_decay=1e-4) to handle 99.2/0.8% safe/unsafe imbala
 The `bashrs-wasm` crate provides browser-native shell safety analysis. The WASM binary
 is 1.5MB in release mode and runs the full linter in <10ms per analysis.
 
+**Live**: [interactive.paiml.com/shell-safety/](https://interactive.paiml.com/shell-safety/)
+
 ### shell-safety.html
 
-The interactive app at `bashrs-wasm/shell-safety.html` provides:
+The interactive app provides:
 
 - **ScriptEditor**: Split-pane editor with 150ms debounce analysis
 - **Format selector**: Bash, Makefile, or Dockerfile linting
@@ -597,10 +599,17 @@ The interactive app at `bashrs-wasm/shell-safety.html` provides:
 - **Zero latency**: No network calls — all analysis runs locally in WASM
 
 ```bash
-# Build and serve
+# Build and serve locally
 wasm-pack build bashrs-wasm --target web --release
-cd bashrs-wasm && python3 -m http.server 8000
+cd bashrs-wasm && ruchy serve --port 8000
 # Open http://localhost:8000/shell-safety.html
+
+# Deploy to production
+aws s3 sync bashrs-wasm/pkg/ s3://interactive.paiml.com-production-mces4cme/shell-safety/pkg/ \
+  --content-type "application/wasm" --exclude "*.js"
+aws s3 cp bashrs-wasm/shell-safety.html \
+  s3://interactive.paiml.com-production-mces4cme/shell-safety/index.html
+aws cloudfront create-invalidation --distribution-id ELY820FVFXAFF --paths "/shell-safety/*"
 ```
 
 ### WASM API

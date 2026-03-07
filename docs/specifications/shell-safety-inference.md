@@ -661,7 +661,11 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - Provable contract: `probar-shell-safety-v1.yaml` with 9 falsification tests
   - CodeBERT tests gated behind `codebert` feature (blocked on WASM-002/004)
 - **Phase 6 PRB-005 COMPLETE**: Performance benchmark tests with hard budgets (5 tests, all pass)
-- **Remaining**: Qwen chat model training (Phase 3, GPU), WASM-002/004/005/006 (CodeBERT in browser), PRB-002/003/004/006/007
+- **Phase 5 WASM-006 COMPLETE**: Deployed to https://interactive.paiml.com/shell-safety/
+  - S3 bucket: interactive.paiml.com-production-mces4cme/shell-safety/
+  - CloudFront invalidation: ELY820FVFXAFF
+  - HTML + JS (11KB) + WASM (1.5MB), correct MIME types
+- **Remaining**: Qwen chat model training (Phase 3, GPU), WASM-002/004/005 (CodeBERT in browser), PRB-002/003/004/006/007
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1550,14 +1554,14 @@ jobs:
 
 ### Phase 5: WASM App via presentar (2 days)
 
-| Task | Time |
-|------|------|
+| Task | Time | Status |
+|------|------|--------|
 | WASM-001: Build bashrs linter as `wasm32-unknown-unknown` target (bashrs-wasm crate) | 4 hrs | ✅ Done (1.5MB release, 7 tests) |
-| WASM-002: Quantize CodeBERT to int8, export weights for browser loading | 2 hrs |
+| WASM-002: Quantize CodeBERT to int8, export weights for browser loading | 2 hrs | Blocked (entrenar) |
 | WASM-003: Build `shell-safety.html` interactive app with lint + classify | 4 hrs | ✅ Done (rule-based, 150ms debounce) |
-| WASM-004: Wire CodeBERT WASM classifier (requires WASM-002) | 3 hrs |
-| WASM-005: IndexedDB model caching (load once, persist) | 2 hrs |
-| WASM-006: Deploy to interactive.paiml.com/shell-safety/ | 1 hr |
+| WASM-004: Wire CodeBERT WASM classifier (requires WASM-002) | 3 hrs | Blocked (WASM-002) |
+| WASM-005: IndexedDB model caching (load once, persist) | 2 hrs | Blocked (WASM-004) |
+| WASM-006: Deploy to interactive.paiml.com/shell-safety/ | 1 hr | ✅ Done (S3 + CloudFront) |
 
 **Exit criterion**: Page loads, linter runs on keystroke, classifier runs on click,
 no network calls after initial model download.
