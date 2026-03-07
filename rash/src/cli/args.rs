@@ -272,6 +272,10 @@ pub enum Commands {
         /// Write fixed output to a different file (single input only)
         #[arg(short, long)]
         output: Option<PathBuf>,
+
+        /// Path to chat model directory for ML-powered fix suggestions (requires `ml` feature)
+        #[arg(long, value_name = "DIR")]
+        chat_model: Option<PathBuf>,
     },
 
     /// Explain script safety with detailed natural-language analysis (SSC v11 S8.1)
@@ -287,6 +291,10 @@ pub enum Commands {
         /// Force format (auto-detected from extension if omitted)
         #[arg(long, value_enum)]
         format: Option<ClassifyFormat>,
+
+        /// Path to chat model directory for ML-powered explanation (requires `ml` feature)
+        #[arg(long, value_name = "DIR")]
+        chat_model: Option<PathBuf>,
     },
 
     /// Classify script safety (supports bash, Makefile, Dockerfile)

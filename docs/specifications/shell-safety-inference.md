@@ -640,8 +640,14 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - Full CodeBERT inference: tokenize → [CLS] embedding → linear probe → binary label + confidence
   - `--probe probe.json --model /path/to/codebert/` flags on `bashrs classify`
   - Without `ml` feature: helpful error guiding to `--features ml`
-- **Phase 4 CLI-003 COMPLETE**: 43 assert_cmd integration tests (3 new for Stage 1 classify)
-- **Blocked on remaining external deps**: Qwen chat model (Phase 3, requires GPU), Phase 4 CLI-002 (requires chat model), WASM app (presentar), Probar tests (jugar-probar)
+- **Phase 4 CLI-002 COMPLETE**: `bashrs explain --chat-model` and `bashrs fix --chat-model` (entrenar#246)
+  - Wired to entrenar `InstructPipeline::generate_chat()` with ChatML formatting
+  - Loads Qwen-1.5B + LoRA from model directory (config.json auto-detection)
+  - `chat_inference.rs` module with SYSTEM_PROMPT, format prompts, feature-gated ML path
+  - Without `ml` feature: helpful error guiding to `--features ml`
+  - Provable contract: `chat-inference-pipeline-v1.yaml` with 5 falsification tests
+- **Phase 4 CLI-003 COMPLETE**: 49 assert_cmd integration tests (6 new CLI-002 tests)
+- **Remaining**: Qwen chat model training (Phase 3, requires GPU), WASM app (presentar), Probar tests (jugar-probar)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1525,8 +1531,8 @@ jobs:
 | Task | Time | Status |
 |------|------|--------|
 | CLI-001: Wire bashrs classify → CodeBERT | 3 hrs | ✅ Done (`--probe --model` flags, full inference path) |
-| CLI-002: Wire bashrs explain/fix → chat model | 3 hrs | Blocked (requires trained chat model from Phase 3) |
-| CLI-003: Integration tests | 2 hrs | ✅ Done (43 assert_cmd tests, 3 new for Stage 1 classify) |
+| CLI-002: Wire bashrs explain/fix → chat model | 3 hrs | ✅ Done (`--chat-model` flag, entrenar InstructPipeline::generate_chat(), 6 new tests) |
+| CLI-003: Integration tests | 2 hrs | ✅ Done (49 assert_cmd tests — 43 original + 6 CLI-002) |
 
 ### Phase 5: WASM App via presentar (2 days)
 

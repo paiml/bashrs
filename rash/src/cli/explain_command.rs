@@ -99,6 +99,7 @@ pub(crate) fn explain_command(
     input: &Path,
     json: bool,
     forced_format: Option<&ClassifyFormat>,
+    chat_model: Option<&Path>,
 ) -> Result<()> {
     let source = std::fs::read_to_string(input)
         .map_err(|e| Error::Validation(format!("Cannot read {}: {e}", input.display())))?;
@@ -106,6 +107,11 @@ pub(crate) fn explain_command(
     let fmt = forced_format
         .cloned()
         .unwrap_or_else(|| detect_format(input));
+
+    // If --chat-model is provided, use ML-powered explanation
+    if let Some(model_dir) = chat_model {
+        return explain_with_chat_model(input, &source, &fmt, model_dir);
+    }
 
     let report = generate_explanation(&source, &fmt);
 
@@ -117,6 +123,38 @@ pub(crate) fn explain_command(
         print_explanation(&report);
     }
 
+    Ok(())
+}
+
+/// Run explain with chat model inference (SSC v11 Phase 4 CLI-002).
+fn explain_with_chat_model(
+    _input: &Path,
+    source: &str,
+    fmt: &ClassifyFormat,
+    model_dir: &Path,
+) -> Result<()> {
+    use super::chat_inference::{chat_generate, format_explain_prompt, SYSTEM_PROMPT};
+
+    // First run rule-based analysis to get findings
+    let diagnostics = match fmt {
+        ClassifyFormat::Bash => lint_shell(source).diagnostics,
+        ClassifyFormat::Makefile => lint_makefile(source).diagnostics,
+        ClassifyFormat::Dockerfile => {
+            lint_dockerfile_with_profile(source, LintProfile::Standard).diagnostics
+        }
+    };
+
+    // Build findings summary for the prompt
+    let findings_summary: String = diagnostics
+        .iter()
+        .map(|d| format!("{} (line {}): {}", d.code, d.span.start_line, d.message))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    let user_message = format_explain_prompt(source, &findings_summary);
+    let response = chat_generate(model_dir, SYSTEM_PROMPT, &user_message, 512)?;
+
+    println!("{response}");
     Ok(())
 }
 
