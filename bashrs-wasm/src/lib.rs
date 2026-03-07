@@ -10,15 +10,16 @@
 //!   |
 //!   v
 //! bashrs-wasm (this crate)
-//!   ├── lint_shell_wasm(source) -> JSON findings
-//!   ├── classify_shell_wasm(source) -> JSON classification
-//!   └── explain_shell_wasm(source) -> JSON explanation
+//!   ├── lint_shell_wasm(source)       -> JSON findings
+//!   ├── lint_makefile_wasm(source)    -> JSON findings
+//!   ├── lint_dockerfile_wasm(source)  -> JSON findings
+//!   ├── classify_shell_wasm(source)   -> JSON classification
+//!   ├── explain_shell_wasm(source)    -> JSON explanation
+//!   └── bashrs_version()              -> version string
 //!   |
 //!   v
-//! bashrs (rash crate, no-default-features)
-//!   ├── linter::lint_shell()
-//!   ├── linter::lint_makefile()
-//!   └── linter::lint_dockerfile()
+//! bashrs (rash crate, minimal features)
+//!   └── linter::{lint_shell, lint_makefile, lint_dockerfile_with_profile}
 //! ```
 
 use wasm_bindgen::prelude::*;
@@ -166,6 +167,69 @@ pub fn classify_shell_wasm(source: &str) -> String {
     serde_json::to_string(&output).unwrap_or_else(|_| "{}".to_string())
 }
 
+/// Explain a shell script's safety issues in human-readable format.
+///
+/// Returns JSON:
+/// ```json
+/// {
+///   "summary": "Found 2 issues: 1 security, 1 determinism",
+///   "issues": [
+///     { "code": "SEC001", "severity": "Error", "explanation": "...", "fix": "...", "line": 1 }
+///   ],
+///   "recommendation": "unsafe — review security issues before deployment"
+/// }
+/// ```
+#[wasm_bindgen]
+pub fn explain_shell_wasm(source: &str) -> String {
+    let result = bashrs::linter::lint_shell(source);
+
+    let issues: Vec<ExplainIssue> = result
+        .diagnostics
+        .iter()
+        .map(|d| ExplainIssue {
+            code: d.code.clone(),
+            severity: format!("{:?}", d.severity),
+            explanation: d.message.clone(),
+            fix: d.fix.as_ref().map(|f| f.replacement.clone()),
+            line: d.span.start_line,
+        })
+        .collect();
+
+    let sec_count = result.diagnostics.iter().filter(|d| d.code.starts_with("SEC")).count();
+    let det_count = result.diagnostics.iter().filter(|d| d.code.starts_with("DET")).count();
+    let idem_count = result.diagnostics.iter().filter(|d| d.code.starts_with("IDEM")).count();
+
+    let summary = if issues.is_empty() {
+        "No issues found — script appears safe".to_string()
+    } else {
+        let mut parts = Vec::new();
+        if sec_count > 0 { parts.push(format!("{sec_count} security")); }
+        if det_count > 0 { parts.push(format!("{det_count} determinism")); }
+        if idem_count > 0 { parts.push(format!("{idem_count} idempotency")); }
+        let other = issues.len() - sec_count - det_count - idem_count;
+        if other > 0 { parts.push(format!("{other} other")); }
+        format!("Found {} issues: {}", issues.len(), parts.join(", "))
+    };
+
+    let recommendation = if sec_count > 0 {
+        "unsafe — review security issues before deployment"
+    } else if det_count > 0 || idem_count > 0 {
+        "unsafe — non-deterministic or non-idempotent operations detected"
+    } else if issues.is_empty() {
+        "safe — no issues detected"
+    } else {
+        "review — minor issues detected"
+    };
+
+    let output = ExplainOutput {
+        summary,
+        issues,
+        recommendation: recommendation.to_string(),
+    };
+
+    serde_json::to_string(&output).unwrap_or_else(|_| "{}".to_string())
+}
+
 /// Get the bashrs version.
 #[wasm_bindgen]
 pub fn bashrs_version() -> String {
@@ -194,6 +258,22 @@ struct ClassifyOutput {
     has_determinism: bool,
     has_idempotency: bool,
     finding_count: usize,
+}
+
+#[derive(serde::Serialize)]
+struct ExplainIssue {
+    code: String,
+    severity: String,
+    explanation: String,
+    fix: Option<String>,
+    line: usize,
+}
+
+#[derive(serde::Serialize)]
+struct ExplainOutput {
+    summary: String,
+    issues: Vec<ExplainIssue>,
+    recommendation: String,
 }
 
 #[cfg(test)]
@@ -252,5 +332,25 @@ mod tests {
     fn test_bashrs_version() {
         let v = bashrs_version();
         assert!(!v.is_empty());
+    }
+
+    #[test]
+    fn test_explain_shell_wasm_safe() {
+        let result = explain_shell_wasm("#!/bin/sh\necho hello\n");
+        let parsed: serde_json::Value = serde_json::from_str(&result).expect("valid JSON");
+        assert!(parsed["summary"].as_str().unwrap().contains("No issues"));
+        assert_eq!(parsed["recommendation"], "safe — no issues detected");
+        assert_eq!(parsed["issues"].as_array().unwrap().len(), 0);
+    }
+
+    #[test]
+    fn test_explain_shell_wasm_unsafe() {
+        let result = explain_shell_wasm("#!/bin/bash\neval \"$1\"\n");
+        let parsed: serde_json::Value = serde_json::from_str(&result).expect("valid JSON");
+        assert!(parsed["summary"].as_str().unwrap().contains("security"));
+        assert!(parsed["recommendation"].as_str().unwrap().contains("unsafe"));
+        let issues = parsed["issues"].as_array().unwrap();
+        assert!(!issues.is_empty());
+        assert!(issues.iter().any(|i| i["code"].as_str().unwrap().starts_with("SEC")));
     }
 }
