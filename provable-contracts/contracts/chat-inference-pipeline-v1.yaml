@@ -1,0 +1,76 @@
+metadata:
+  version: "1.0.0"
+  description: "Chat model inference pipeline — Qwen-1.5B + LoRA for shell safety explanation and fix generation"
+  references:
+    - "SSC v11 spec Section 8.1, Phase 4 CLI-002"
+    - "Hu et al. (2021) LoRA: Low-Rank Adaptation of Large Language Models"
+
+equations:
+  autoregressive_generation:
+    formula: "P(y_t | y_{<t}, x) = softmax(W_h @ h_t + b)"
+    domain: "x = input prompt tokens, h_t = hidden state at step t"
+    codomain: "y_t in [0, vocab_size), sequence terminates at EOS"
+    invariants:
+      - "Generated sequence length <= max_new_tokens"
+      - "Each token sampled from valid vocabulary range"
+      - "EOS token terminates generation"
+  chat_template:
+    formula: "prompt = <|im_start|>system\\n{system}<|im_end|>\\n<|im_start|>user\\n{user}<|im_end|>\\n<|im_start|>assistant\\n"
+    domain: "system, user messages as strings"
+    codomain: "ChatML-formatted prompt string"
+    invariants:
+      - "System prompt always includes safety analysis context"
+      - "User message contains the script and linter findings"
+  sampling:
+    formula: "token = argmax(logits) if T=0, else sample(softmax(logits/T), top_k)"
+    domain: "logits in R^{vocab_size}, temperature T >= 0, top_k >= 0"
+    codomain: "token in [0, vocab_size)"
+    invariants:
+      - "T=0 always produces argmax (deterministic)"
+      - "top_k=1 always produces argmax"
+      - "Sampled token always in valid vocabulary range"
+
+proof_obligations:
+  - type: invariant
+    property: "Generation terminates"
+    formal: "len(output) <= max_new_tokens for all inputs"
+    applies_to: all
+  - type: invariant
+    property: "Valid token range"
+    formal: "0 <= token_id < vocab_size for all generated tokens"
+    applies_to: all
+  - type: invariant
+    property: "Greedy determinism"
+    formal: "generate(x, T=0) == generate(x, T=0) for same model weights"
+    applies_to: all
+  - type: invariant
+    property: "Graceful fallback"
+    formal: "Without ml feature, chat_generate returns informative error"
+    applies_to: all
+
+falsification_tests:
+  - id: FALSIFY-CHAT-001
+    rule: "Greedy is deterministic"
+    prediction: "Two greedy generations from same prompt produce identical output"
+    test: "sample_token(logits, temperature=0.0, top_k=0) == argmax(logits)"
+    if_fails: "Non-determinism in greedy decoding"
+  - id: FALSIFY-CHAT-002
+    rule: "Top-k filtering respects k"
+    prediction: "With top_k=1, output is always argmax regardless of temperature"
+    test: "sample_token(logits, temperature=1.0, top_k=1) == argmax(logits)"
+    if_fails: "Top-k filtering not applied correctly"
+  - id: FALSIFY-CHAT-003
+    rule: "Temperature diversity"
+    prediction: "With high temperature, multiple different tokens sampled over many runs"
+    test: "len(set(sample_token(logits, T=10.0) for 100 runs)) > 1"
+    if_fails: "Temperature not affecting sampling distribution"
+  - id: FALSIFY-CHAT-004
+    rule: "Feature gate works"
+    prediction: "Without ml feature, chat_generate returns error mentioning 'ml'"
+    test: "Build without ml, call chat_generate, verify error"
+    if_fails: "Feature gate not properly guarding ML code path"
+  - id: FALSIFY-CHAT-005
+    rule: "ChatML format correct"
+    prediction: "Prompt contains <|im_start|>system, <|im_start|>user, <|im_start|>assistant markers"
+    test: "format_explain_prompt output inspection"
+    if_fails: "Chat template malformed"

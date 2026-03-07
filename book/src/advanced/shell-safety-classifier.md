@@ -257,12 +257,22 @@ Level 0.5 (MLP probe) is the recommended starting point for shell-based labels. 
 Qwen2.5-Coder-1.5B-Instruct + LoRA, trained on synthetic conversations derived from Stage 1 confidence scores + bashrs linter findings:
 
 ```bash
-# Interactive analysis
+# Rule-based analysis (always available, <1ms)
 bashrs explain script.sh
 
-# Suggest fixes
+# ML-powered analysis with chat model (requires trained model + ml feature)
+bashrs explain script.sh --chat-model /path/to/shell-safety-chat/
+
+# Rule-based autofix (always available)
 bashrs fix script.sh
+
+# ML-powered fix suggestions with chat model
+bashrs fix script.sh --chat-model /path/to/shell-safety-chat/
 ```
+
+The `--chat-model` flag loads a Qwen-1.5B + LoRA model via entrenar's `InstructPipeline`. It formats the script + linter findings as a ChatML prompt and generates a natural-language response. Without `--chat-model`, the commands fall back to rule-based analysis (Stage 0).
+
+Requires the `ml` feature: `cargo install bashrs --features ml`
 
 ## Training Data
 
@@ -629,10 +639,11 @@ The encoder, classifier, and inference code are backed by YAML contracts:
 | `encoder-forward-v1` | Shape preservation, no NaN/Inf |
 | `linear-probe-classifier-v1` | Frozen encoder, probability simplex |
 | `classifier-pipeline-v1` | Embedding extraction, split determinism, MLP probe convergence, ship gate |
+| `chat-inference-pipeline-v1` | Autoregressive generation termination, valid token range, greedy determinism, feature gate |
 
 Contract files live in `provable-contracts/contracts/`. Pipeline: YAML contract -> scaffold -> proptest/Kani harnesses -> binding to real code -> audit.
 
-All 4 contracts are bound with 12 falsification tests + 3 proptests in `entrenar/src/finetune/tests_ssc_contract_falsify.rs`. `pv audit` reports 0 findings on all contracts.
+All contracts are bound with falsification tests + proptests. `pv audit` reports 0 findings on all contracts.
 
 ## Cross-Format Support
 

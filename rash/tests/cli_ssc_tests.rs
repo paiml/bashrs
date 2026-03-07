@@ -716,3 +716,76 @@ fn test_KAIZEN107_train_classifier_mlp_flag_accepted() {
         .assert()
         .failure(); // Fails on missing file, not arg parsing
 }
+
+// ============================================================================
+// bashrs explain --chat-model / bashrs fix --chat-model (Phase 4 CLI-002)
+// ============================================================================
+
+#[test]
+fn test_CLI002_explain_chat_model_nonexistent_dir() {
+    let f = write_temp_script("#!/bin/sh\necho $VAR\n");
+    bashrs_cmd()
+        .arg("explain")
+        .arg(f.path())
+        .arg("--chat-model")
+        .arg("/tmp/nonexistent_model_dir_12345")
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_CLI002_explain_chat_model_flag_accepted() {
+    // Verify the --chat-model flag is accepted by the argument parser
+    bashrs_cmd()
+        .arg("explain")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("chat-model"));
+}
+
+#[test]
+fn test_CLI002_fix_chat_model_flag_accepted() {
+    // Verify the --chat-model flag is accepted by the argument parser
+    bashrs_cmd()
+        .arg("fix")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("chat-model"));
+}
+
+#[test]
+fn test_CLI002_fix_chat_model_nonexistent_dir() {
+    let f = write_temp_script("#!/bin/sh\necho $VAR\n");
+    bashrs_cmd()
+        .arg("fix")
+        .arg(f.path())
+        .arg("--chat-model")
+        .arg("/tmp/nonexistent_model_dir_12345")
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_CLI002_explain_without_chat_model_still_works() {
+    // Rule-based explain should still work without --chat-model
+    let f = write_temp_script("#!/bin/sh\necho \"hello\"\n");
+    bashrs_cmd()
+        .arg("explain")
+        .arg(f.path())
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("safe").or(predicate::str::contains("SAFE")));
+}
+
+#[test]
+fn test_CLI002_fix_without_chat_model_still_works() {
+    // Rule-based fix should still work without --chat-model
+    let f = write_temp_script("#!/bin/sh\necho \"hello\"\n");
+    bashrs_cmd()
+        .arg("fix")
+        .arg(f.path())
+        .assert()
+        .success();
+}

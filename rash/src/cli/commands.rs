@@ -91,6 +91,8 @@ use simulate_cmds::simulate_command;
 mod adversarial_cmds;
 #[path = "classify_commands.rs"]
 pub(crate) mod classify_cmds;
+#[path = "chat_inference.rs"]
+pub(crate) mod chat_inference;
 #[path = "explain_command.rs"]
 mod explain_cmds;
 #[path = "fix_command.rs"]
@@ -441,13 +443,15 @@ fn dispatch_analysis(
             input,
             json,
             format,
-        } => explain_cmds::explain_command(&input, json, format.as_ref()),
+            chat_model,
+        } => explain_cmds::explain_command(&input, json, format.as_ref(), chat_model.as_deref()),
         Commands::Fix {
             input,
             dry_run,
             assumptions,
             output,
-        } => fix_cmds::fix_command(&input, dry_run, assumptions, output.as_deref()),
+            chat_model,
+        } => fix_cmds::fix_command(&input, dry_run, assumptions, output.as_deref(), chat_model.as_deref()),
         Commands::Classify {
             input,
             json,

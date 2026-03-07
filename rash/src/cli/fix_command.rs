@@ -20,9 +20,15 @@ pub(crate) fn fix_command(
     dry_run: bool,
     assumptions: bool,
     output: Option<&Path>,
+    chat_model: Option<&Path>,
 ) -> Result<()> {
     if inputs.is_empty() {
         return Err(Error::Validation("No input files specified".to_string()));
+    }
+
+    // If --chat-model is provided, use ML-powered fix suggestions
+    if let Some(model_dir) = chat_model {
+        return fix_with_chat_model(inputs, model_dir);
     }
 
     let mut total_fixed = 0usize;
@@ -37,6 +43,37 @@ pub(crate) fn fix_command(
     }
 
     print_summary(total_fixed, total_files, inputs.len(), dry_run);
+    Ok(())
+}
+
+/// Run fix with chat model inference (SSC v11 Phase 4 CLI-002).
+fn fix_with_chat_model(inputs: &[std::path::PathBuf], model_dir: &Path) -> Result<()> {
+    use super::chat_inference::{chat_generate, format_fix_prompt, SYSTEM_PROMPT};
+
+    for input in inputs {
+        let source = std::fs::read_to_string(input)
+            .map_err(|e| Error::Validation(format!("Cannot read {}: {e}", input.display())))?;
+
+        let lint_result = lint_shell(&source);
+        let findings_summary: String = lint_result
+            .diagnostics
+            .iter()
+            .map(|d| format!("{} (line {}): {}", d.code, d.span.start_line, d.message))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        if findings_summary.is_empty() {
+            println!("  {}: no issues found", input.display());
+            continue;
+        }
+
+        let user_message = format_fix_prompt(&source, &findings_summary);
+        let response = chat_generate(model_dir, SYSTEM_PROMPT, &user_message, 1024)?;
+
+        println!("--- {} ---", input.display());
+        println!("{response}");
+    }
+
     Ok(())
 }
 
@@ -167,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_fix_command_empty_inputs() {
-        let result = fix_command(&[], false, false, None);
+        let result = fix_command(&[], false, false, None, None);
         assert!(result.is_err());
     }
 
