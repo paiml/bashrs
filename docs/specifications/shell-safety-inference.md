@@ -601,7 +601,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs corpus model-card` — implemented (HuggingFace model card with YAML front matter)
 - `bashrs corpus training-config` — implemented (entrenar config with class weights)
 - `bashrs corpus export-splits` — implemented (80/10/10 deterministic splits)
-- `bashrs corpus validate-contracts` — implemented (7/7 contracts pass)
+- `bashrs corpus validate-contracts` — implemented (8 contracts, 7 PASS + 1 KILL-5)
 - `bashrs corpus baselines` — implemented (majority, keyword, linter baselines with MCC/acc/rec)
 - `bashrs corpus publish-dataset` — implemented (HF-ready dir: README.md + splits + config)
 - `bashrs corpus ssc-report` — enriched: S5.5 evaluation metrics, S6.4 conversation type breakdown
