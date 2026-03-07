@@ -1433,7 +1433,7 @@ jobs:
 | CLF-007: Confidence scores computation | 30 min | ✅ Done (entrenar) |
 | CLF-RUN: Download CodeBERT, extract embeddings, train, evaluate | 2-4 hrs | ✅ Done (bashrs corpus run-classifier, CPU) |
 | CLF-VALIDATE: End-to-end pipeline validation with real CodeBERT weights | 2 hrs | ✅ Done (2047-entry: MCC=0.321, C-CLF-001 PASS) |
-| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ⏳ Extracting (1.82 entries/s) — MLP+aug PASS at 3k (MCC=0.754) |
+| CLF-FULL: Full 17,942-entry extraction + training | ~4 hrs | ✅ Done (MLP+aug MCC=0.443, C-CLF-001 PASS at full scale) |
 | CLF-WEIGHT: Class-weighted online SGD with L2 regularization | 2 hrs | ✅ Done (aprender#427 merged, KAIZEN-101) |
 
 **Kill gate**: C-CLF-001. If Level 3 fails, classifier adds no value.
@@ -1470,6 +1470,7 @@ jobs:
 | 10016 + 350 adv (MLP h=32) | **0.693** | 96.6% | 0.554 | 0.906 | lr=1e-4, 50 ep | **PASS** |
 | 12029 + 350 adv (MLP h=32) | **0.654** | 96.7% | 0.490 | 0.909 | lr=1e-4, 50 ep | **PASS** |
 | 15027 + 350 adv (MLP h=32) | **0.613** | 96.8% | 0.425 | 0.919 | lr=1e-4, 50 ep | **PASS** |
+| **17942 + 350 adv (MLP h=32)** | **0.443** | 93.0% | 0.248 | 0.870 | lr=1e-4, 50 ep | **PASS** |
 | 3000 (MLP h=32, no aug) | -0.005 | 98.4% | 0.000 | 0.000 | lr=3e-4, 50 ep | FAIL |
 
 - **MLP probe + adversarial augmentation solves shell-based classification** (KAIZEN-105)
