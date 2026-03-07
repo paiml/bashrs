@@ -209,19 +209,39 @@ pub fn explain_shell_wasm(source: &str) -> String {
         })
         .collect();
 
-    let sec_count = result.diagnostics.iter().filter(|d| d.code.starts_with("SEC")).count();
-    let det_count = result.diagnostics.iter().filter(|d| d.code.starts_with("DET")).count();
-    let idem_count = result.diagnostics.iter().filter(|d| d.code.starts_with("IDEM")).count();
+    let sec_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code.starts_with("SEC"))
+        .count();
+    let det_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code.starts_with("DET"))
+        .count();
+    let idem_count = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code.starts_with("IDEM"))
+        .count();
 
     let summary = if issues.is_empty() {
         "No issues found — script appears safe".to_string()
     } else {
         let mut parts = Vec::new();
-        if sec_count > 0 { parts.push(format!("{sec_count} security")); }
-        if det_count > 0 { parts.push(format!("{det_count} determinism")); }
-        if idem_count > 0 { parts.push(format!("{idem_count} idempotency")); }
+        if sec_count > 0 {
+            parts.push(format!("{sec_count} security"));
+        }
+        if det_count > 0 {
+            parts.push(format!("{det_count} determinism"));
+        }
+        if idem_count > 0 {
+            parts.push(format!("{idem_count} idempotency"));
+        }
         let other = issues.len() - sec_count - det_count - idem_count;
-        if other > 0 { parts.push(format!("{other} other")); }
+        if other > 0 {
+            parts.push(format!("{other} other"));
+        }
         format!("Found {} issues: {}", issues.len(), parts.join(", "))
     };
 
@@ -449,9 +469,14 @@ mod tests {
         let result = explain_shell_wasm("#!/bin/bash\neval \"$1\"\n");
         let parsed: serde_json::Value = serde_json::from_str(&result).expect("valid JSON");
         assert!(parsed["summary"].as_str().unwrap().contains("security"));
-        assert!(parsed["recommendation"].as_str().unwrap().contains("unsafe"));
+        assert!(parsed["recommendation"]
+            .as_str()
+            .unwrap()
+            .contains("unsafe"));
         let issues = parsed["issues"].as_array().unwrap();
         assert!(!issues.is_empty());
-        assert!(issues.iter().any(|i| i["code"].as_str().unwrap().starts_with("SEC")));
+        assert!(issues
+            .iter()
+            .any(|i| i["code"].as_str().unwrap().starts_with("SEC")));
     }
 }

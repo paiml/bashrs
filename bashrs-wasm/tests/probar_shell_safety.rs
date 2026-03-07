@@ -60,7 +60,10 @@ fn test_prb001_linter_wasm_json_structure() {
     let parsed: serde_json::Value = serde_json::from_str(&result).expect("valid JSON");
 
     // Verify required JSON fields
-    assert!(parsed["diagnostics"].is_array(), "Must have diagnostics array");
+    assert!(
+        parsed["diagnostics"].is_array(),
+        "Must have diagnostics array"
+    );
     assert!(parsed["count"].is_number(), "Must have count number");
 
     // Verify diagnostic structure
@@ -128,10 +131,7 @@ fn test_prb001_classifier_wasm_deterministic() {
     let input = "rm -rf $dir";
     let r1 = classify_shell_wasm(input);
     let r2 = classify_shell_wasm(input);
-    assert_eq!(
-        r1, r2,
-        "Classification must be deterministic (C-PRB-007)"
-    );
+    assert_eq!(r1, r2, "Classification must be deterministic (C-PRB-007)");
 }
 
 // --- Explain WASM correctness ---
