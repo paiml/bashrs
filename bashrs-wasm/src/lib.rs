@@ -24,6 +24,20 @@
 
 use wasm_bindgen::prelude::*;
 
+#[cfg(feature = "codebert")]
+mod wasm_encoder;
+
+#[cfg(feature = "codebert")]
+use std::cell::RefCell;
+
+#[cfg(feature = "codebert")]
+thread_local! {
+    /// Cached encoder model (loaded once, reused for all classifications).
+    static ENCODER: RefCell<Option<wasm_encoder::WasmEncoder>> = const { RefCell::new(None) };
+    /// Cached MLP probe weights.
+    static PROBE: RefCell<Option<wasm_encoder::MlpProbe>> = const { RefCell::new(None) };
+}
+
 /// Lint a shell script and return findings as JSON.
 ///
 /// Returns a JSON string with the structure:
@@ -228,6 +242,93 @@ pub fn explain_shell_wasm(source: &str) -> String {
     };
 
     serde_json::to_string(&output).unwrap_or_else(|_| "{}".to_string())
+}
+
+/// Load CodeBERT int8 model weights into WASM memory.
+///
+/// Call this once with the contents of `model_int8.safetensors`.
+/// The model is cached in thread-local storage for subsequent classifications.
+///
+/// Returns empty string on success, error message on failure.
+#[cfg(feature = "codebert")]
+#[wasm_bindgen]
+pub fn load_codebert_model(data: &[u8]) -> String {
+    match wasm_encoder::WasmEncoder::from_safetensors_bytes(data) {
+        Ok(encoder) => {
+            ENCODER.with(|cell| {
+                *cell.borrow_mut() = Some(encoder);
+            });
+            String::new()
+        }
+        Err(e) => e,
+    }
+}
+
+/// Load MLP probe weights for CodeBERT classification.
+///
+/// Call this once with the contents of `probe.json`.
+/// Returns empty string on success, error message on failure.
+#[cfg(feature = "codebert")]
+#[wasm_bindgen]
+pub fn load_codebert_probe(data: &[u8]) -> String {
+    match wasm_encoder::MlpProbe::from_json(data) {
+        Ok(probe) => {
+            PROBE.with(|cell| {
+                *cell.borrow_mut() = Some(probe);
+            });
+            String::new()
+        }
+        Err(e) => e,
+    }
+}
+
+/// Classify a shell script using CodeBERT encoder + MLP probe.
+///
+/// Requires `load_codebert_model` and `load_codebert_probe` to be called first.
+///
+/// Returns JSON:
+/// ```json
+/// {
+///   "label": "unsafe",
+///   "confidence": 0.87,
+///   "model": "codebert-int8",
+///   "error": null
+/// }
+/// ```
+#[cfg(feature = "codebert")]
+#[wasm_bindgen]
+pub fn classify_codebert_wasm(source: &str) -> String {
+    let result = ENCODER.with(|enc_cell| {
+        PROBE.with(|probe_cell| {
+            let enc = enc_cell.borrow();
+            let probe = probe_cell.borrow();
+            match (enc.as_ref(), probe.as_ref()) {
+                (Some(encoder), Some(probe)) => {
+                    let r = wasm_encoder::classify_with_codebert(encoder, probe, source);
+                    let label = if r.label == 0 { "safe" } else { "unsafe" };
+                    serde_json::json!({
+                        "label": label,
+                        "confidence": r.confidence,
+                        "model": "codebert-int8",
+                        "error": serde_json::Value::Null
+                    })
+                }
+                (None, _) => serde_json::json!({
+                    "label": serde_json::Value::Null,
+                    "confidence": 0.0,
+                    "model": "codebert-int8",
+                    "error": "Model not loaded. Call load_codebert_model() first."
+                }),
+                (_, None) => serde_json::json!({
+                    "label": serde_json::Value::Null,
+                    "confidence": 0.0,
+                    "model": "codebert-int8",
+                    "error": "Probe not loaded. Call load_codebert_probe() first."
+                }),
+            }
+        })
+    });
+    result.to_string()
 }
 
 /// Get the bashrs version.

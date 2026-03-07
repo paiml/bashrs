@@ -19,11 +19,12 @@ bashrs = { path = "../rash", default-features = false, features = ["minimal"] }
 wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+safetensors = { version = "0.4", optional = true }
 
 [features]
 default = []
 # CodeBERT WASM classifier (requires WASM-002/004)
-codebert = []
+codebert = ["safetensors"]
 # Docker-based cross-browser tests (requires Docker)
 docker = ["jugar-probar/docker"]
 
