@@ -29,11 +29,11 @@ concurrency:
 jobs:
   # ── Gate: clean-room must pass before publish ───────────
   gate:
-    uses: paiml/infra/.github/workflows/clean-room-gate.yml@main
+    uses: paiml/infra/.github/workflows/clean-room-gate.yml@15037afe26854cb61297c01fdef87219fe52ad29  # main 2026-03-07
     with:
       repo: ${{ github.event.repository.name }}
       pr_sha: ${{ github.sha }}
-    secrets: inherit
+    secrets: inherit  # pmat:ignore — GitHub Actions reusable workflow keyword, not plaintext
 
   # ── Verify: tag-version match + package tarball ─────────
   verify:

@@ -44,15 +44,16 @@ pub struct SscMetric {
 
 /// Generate the full SSC status report.
 pub fn generate_ssc_report() -> SscStatusReport {
-    use crate::corpus::baselines::corpus_baseline_entries;
+    use crate::corpus::baselines::corpus_baseline_entries_from;
     use crate::corpus::registry::CorpusRegistry;
 
-    // Load corpus once, share across sections that need it.
+    // Load corpus once, share across ALL sections (avoids double load).
     let registry = CorpusRegistry::load_full();
     let corpus_size = registry.entries.len();
 
     // Compute baseline entries once (lints entire corpus). Shared by baselines + dataset.
-    let baseline_entries = corpus_baseline_entries();
+    // Uses _from variant to reuse the already-loaded registry.
+    let baseline_entries = corpus_baseline_entries_from(&registry);
 
     let sections = vec![
         corpus_section_from(&registry),

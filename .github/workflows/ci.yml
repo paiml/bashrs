@@ -20,8 +20,8 @@ concurrency:
 
 jobs:
   unified:
-    uses: paiml/infra/.github/workflows/unified-gate.yml@main
+    uses: paiml/infra/.github/workflows/unified-gate.yml@15037afe26854cb61297c01fdef87219fe52ad29  # main 2026-03-07
     with:
       repo: ${{ github.event.repository.name }}
       pr_sha: ${{ github.event.pull_request.head.sha || github.sha }}
-    secrets: inherit
+    secrets: inherit  # pmat:ignore — GitHub Actions reusable workflow keyword, not plaintext
