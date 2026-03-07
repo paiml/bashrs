@@ -33,9 +33,11 @@ postconditions:
     applies_to: all
     status: WEAK_PASS
     evidence: >
-      Loss 18.3 -> 4.8 (74% reduction numerically). However, final loss 4.8 is
-      near-random for 151K vocab (random = ln(151936) ≈ 11.9). Loss plateau at ~5.0
-      across epochs 2-3 suggests degenerate convergence, not meaningful learning.
+      Run 1 (no biases): Loss 18.3 -> 4.8, plateau at ~5.0. Run 2 (with biases):
+      Loss 18.2 -> 1.2 at step 1000, then catastrophic spike to ~4.5 plateau.
+      Run 2 shows biases enable initial learning (loss 1.2 is meaningful) but
+      training instability at LR=2e-4 prevents sustained convergence.
+      Needs lower LR (5e-5) or LoRA-only training.
 
   - id: C-CHAT-TRAIN-002
     description: "Classification accuracy from parsed chat response exceeds 85%"

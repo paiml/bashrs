@@ -692,20 +692,18 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - **CHAT-004 COMPLETE**: Published to HuggingFace
   - Model: https://huggingface.co/paiml/shell-safety-chat (1.98GB safetensors + config + tokenizer)
   - Dataset: https://huggingface.co/datasets/paiml/shell-safety-conversations (17,942 entries, 35MB)
-- **CHAT-003 FAIL**: Model generates degenerate output (gibberish), inference evaluation fails all postconditions
-  - C-CHAT-TRAIN-001 (convergence): WEAK PASS — loss 18.3→4.8, but 4.8 is near-random for 151K vocab (random ≈ 11.9)
-  - C-CHAT-TRAIN-005 (adapter size): PASS — model is 1.98GB (full weights, not adapter-only)
-  - C-CHAT-TRAIN-002 (classification accuracy): FAIL — model outputs repetitive gibberish ("222dkdkdk...")
-  - C-CHAT-TRAIN-003 (shellcheck): FAIL — no parseable code in output
-  - C-CHAT-TRAIN-004 (citations): FAIL — no coherent text in output
-  - **Root cause**: entrenar did not save QKV attention biases (72 tensors) during training.
-    Qwen2 uses biases on Q/K/V projections; without them, inference produces degenerate output.
-    Additionally, loss plateau at ~5.0 suggests training itself was corrupted (likely trained
-    without biases too, causing gradient corruption in other layers).
-  - **Base model comparison**: Pre-fine-tuning Qwen2.5-Coder-0.5B-Instruct generates coherent
-    text with the same tokenizer and config, confirming the issue is in fine-tuning.
+- **CHAT-003 FAIL**: Two training runs attempted, both fail inference evaluation
+  - **Run 1** (without biases): Loss plateau at ~5.0, gibberish output ("222dkdkdk...")
+    - Root cause: entrenar dropped 72 QKV attention biases during serialization
+    - Fixed in entrenar@24bc0c7 (paiml/entrenar#258)
+  - **Run 2** (with biases): Loss drops to 1.2 by step 1000, then spikes to ~4.5 plateau
+    - Improvement: biases now loaded and saved correctly (290 tensors)
+    - Training instability: LR 2e-4 causes catastrophic spike at step ~1500
+    - Process killed at step 4004/13458 (external interruption)
+    - Needs: lower LR (5e-5), cosine warmup, or LoRA-only training
+  - C-CHAT-TRAIN-002..004: FAIL (loss plateau prevents coherent generation)
   - **Kill criterion**: KILL-CHAT-001 applies — ship classifier only, chat model not ready
-  - Filed: paiml/entrenar#257 (attention bias serialization bug)
+  - **Next steps**: Lower LR to 5e-5 with cosine warmup, or use LoRA-only adapter training
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
