@@ -1,0 +1,56 @@
+{
+  "evaluation_date": "2026-03-07",
+  "evaluator": "HuggingFace transformers 5.3.0 (CPU, torch 2.10.0)",
+  "model": "training/checkpoints/ssc-chat-v1",
+  "base_model": "Qwen2.5-Coder-0.5B-Instruct",
+  "verdict": "FAIL — model generates degenerate output",
+  "postconditions": {
+    "C-CHAT-TRAIN-001": {
+      "status": "WEAK_PASS",
+      "description": "Training convergence",
+      "evidence": "Loss 18.3 -> 4.8, but 4.8 is near-random for 151K vocab"
+    },
+    "C-CHAT-TRAIN-002": {
+      "status": "FAIL",
+      "description": "Classification accuracy > 85%",
+      "accuracy": 0.0,
+      "evidence": "Model outputs repetitive gibberish, no parseable safe/unsafe labels"
+    },
+    "C-CHAT-TRAIN-003": {
+      "status": "FAIL",
+      "description": "Shellcheck pass rate > 85%",
+      "pass_rate": 0.0,
+      "evidence": "No parseable code blocks in output"
+    },
+    "C-CHAT-TRAIN-004": {
+      "status": "FAIL",
+      "description": "Citation accuracy > 90%",
+      "accuracy": 0.0,
+      "evidence": "No coherent text in output, no rule citations extractable"
+    },
+    "C-CHAT-TRAIN-005": {
+      "status": "PASS",
+      "description": "Model size < 5GB",
+      "size_gb": 1.98
+    }
+  },
+  "root_cause": {
+    "issue": "entrenar missing attention bias serialization",
+    "github_issue": "paiml/entrenar#258",
+    "details": "Qwen2 uses QKV attention biases (72 tensors). entrenar checkpoint has 218 keys (weights only), base model has 290 keys (218 weights + 72 biases). Training likely ran without bias initialization, corrupting learned representations.",
+    "evidence": {
+      "fine_tuned_output": "222dkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdk...",
+      "base_model_output": "Yes, rm -rf / is a safe command in Unix-like operating systems... (coherent but wrong)"
+    }
+  },
+  "kill_criterion": {
+    "KILL-CHAT-001": "TRIGGERED — ship classifier only, chat model not ready"
+  },
+  "sample_outputs": [
+    {
+      "prompt": "Is rm -rf / safe?",
+      "fine_tuned": "222222222222222222222222222222dkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdk",
+      "base_model": "Yes, rm -rf / is a safe command in Unix-like operating systems..."
+    }
+  ]
+}
