@@ -665,7 +665,19 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - S3 bucket: interactive.paiml.com-production-mces4cme/shell-safety/
   - CloudFront invalidation: ELY820FVFXAFF
   - HTML + JS (11KB) + WASM (1.5MB), correct MIME types
-- **Remaining**: Qwen chat model training (Phase 3, GPU), WASM-002/004/005 (CodeBERT in browser), PRB-002/003/004/006/007
+- **Phase 5 WASM-004 DONE — KILL CRITERION 5 TRIGGERED**: Pure-Rust CodeBERT encoder implemented in bashrs-wasm
+  - `wasm_encoder.rs`: 400-line encoder (embedding, 12-layer transformer, attention, FFN, LayerNorm, GELU)
+  - Loads int8 SafeTensors weights (119MB), dequantizes to f32, runs full forward pass
+  - 15 unit tests + determinism verification + benchmark
+  - `classify_codebert_wasm()`, `load_codebert_model()`, `load_codebert_probe()` WASM functions
+  - WASM binary: 1.7MB with codebert feature (vs 1.5MB without)
+  - **Benchmark**: 2681ms for 33 tokens on native CPU (release mode)
+  - **Estimated WASM**: 5-13s (2-5x slowdown) — exceeds 2s kill threshold
+  - **Decision**: Ship CLI only for CodeBERT classification. Browser uses rule-based linter.
+  - Negative result published honestly per spec Section 11 Kill Criteria.
+  - WASM-005 (IndexedDB caching) cancelled — no model to cache in browser.
+  - PRB-002/003/004 cancelled — no CodeBERT WASM to test in browser.
+- **Remaining**: Qwen chat model training (Phase 3, GPU-blocked)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1559,8 +1571,8 @@ jobs:
 | WASM-001: Build bashrs linter as `wasm32-unknown-unknown` target (bashrs-wasm crate) | 4 hrs | ✅ Done (1.5MB release, 7 tests) |
 | WASM-002: Quantize CodeBERT to int8, export weights for browser loading | 2 hrs | ✅ Done (entrenar#249, --safetensors flag) |
 | WASM-003: Build `shell-safety.html` interactive app with lint + classify | 4 hrs | ✅ Done (rule-based, 150ms debounce) |
-| WASM-004: Wire CodeBERT WASM classifier (requires WASM-002) | 3 hrs | Unblocked (WASM-002 done) |
-| WASM-005: IndexedDB model caching (load once, persist) | 2 hrs | Blocked (WASM-004) |
+| WASM-004: Wire CodeBERT WASM classifier (requires WASM-002) | 3 hrs | ✅ Done — KILL CRITERION 5 TRIGGERED (2.7s native, ~8s WASM est.) |
+| WASM-005: IndexedDB model caching (load once, persist) | 2 hrs | Cancelled (WASM-004 kill criterion) |
 | WASM-006: Deploy to interactive.paiml.com/shell-safety/ | 1 hr | ✅ Done (S3 + CloudFront) |
 
 **Exit criterion**: Page loads, linter runs on keystroke, classifier runs on click,
@@ -1571,9 +1583,9 @@ no network calls after initial model download.
 | Task | Time | Status |
 |------|------|--------|
 | PRB-001: Write Probar test suite (tests/probar_shell_safety.rs) — Layer 1 logic tests | 3 hrs | ✅ Done (14 logic tests, 5 perf tests, 19 total) |
-| PRB-002: Wire WASM helper functions (load_bashrs_wasm, load_codebert_wasm, etc.) | 2 hrs | Blocked (WASM-002/004) |
-| PRB-003: Generate reference fixtures from native CodeBERT for WASM parity tests | 1 hr | Blocked (WASM-002/004) |
-| PRB-004: Write LLM correctness tests (NaN check, calibration, monotonicity, consistency) | 2 hrs | Blocked (WASM-002/004) |
+| PRB-002: Wire WASM helper functions (load_bashrs_wasm, load_codebert_wasm, etc.) | 2 hrs | Cancelled (WASM-004 kill criterion — CLI only) |
+| PRB-003: Generate reference fixtures from native CodeBERT for WASM parity tests | 1 hr | Cancelled (WASM-004 kill criterion — CLI only) |
+| PRB-004: Write LLM correctness tests (NaN check, calibration, monotonicity, consistency) | 2 hrs | Cancelled (WASM-004 kill criterion — CLI only) |
 | PRB-005: Write performance benchmark tests with hard budgets | 1 hr | ✅ Done (5 budget tests, all pass) |
 | PRB-006: Configure Docker cross-browser matrix (Chrome/Firefox/WebKit) | 2 hrs | Deferred (Docker infra) |
 | PRB-007: CI integration (logic=every commit, browser=pre-release, perf=every commit) | 1 hr | ✅ Done (Layer 1+3 via cargo test --workspace) |
@@ -1661,7 +1673,7 @@ Phases 1-4 reuse existing infrastructure.
 | 0 | Labels < 90% correct (C-LABEL-001) | Clean labels before training |
 | 1 | Level 3 fails C-CLF-001 | STOP classifier work. Document. Linter is sufficient. |
 | 3 | Human review < 2.5/5.0 | Ship classifier only. Chat not ready. |
-| 5 | CodeBERT WASM inference > 2s | Ship CLI only. Browser too slow for 125M. |
+| 5 | CodeBERT WASM inference > 2s | **TRIGGERED**: 2681ms native, est. 5-13s WASM. Ship CLI only. |
 | 6 | Probar Layer 1 fails (LLM correctness) | Debug WASM build. Do not deploy. |
 | 6 | Probar Layer 3 fails (performance budgets) | Profile and optimize. Raise budget if justified. |
 | 6 | Probar Layer 2 fails (cross-browser) | Ship Chrome-only. Fix Firefox/WebKit later. |

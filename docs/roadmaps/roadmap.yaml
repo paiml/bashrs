@@ -536,3 +536,31 @@ roadmap:
   - deployment
   - phase5
   notes: null
+- id: PMAT-158
+  github_issue: null
+  item_type: task
+  title: 'SSC-WASM004: CodeBERT WASM encoder — kill criterion 5 triggered (2.7s native, est. 8s WASM)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-07T15:00:00Z
+  updated: 2026-03-07T15:30:00Z
+  spec: docs/specifications/shell-safety-inference.md
+  acceptance_criteria:
+  - Pure-Rust encoder in wasm_encoder.rs (400 lines, no trueno dependency)
+  - Loads int8 SafeTensors (119MB), dequantizes, runs 12-layer transformer
+  - 15 unit tests pass (math primitives, encoder smoke, determinism, benchmark)
+  - WASM binary 1.7MB with codebert feature
+  - Benchmark 2681ms native release for 33 tokens — kill criterion 5 triggered
+  - WASM-005 and PRB-002/003/004 cancelled per kill criterion
+  - Decision documented — ship CLI only for CodeBERT
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - wasm
+  - codebert
+  - kill-criterion
+  - phase5
+  notes: Negative result published honestly per spec. Code retained behind codebert feature flag.

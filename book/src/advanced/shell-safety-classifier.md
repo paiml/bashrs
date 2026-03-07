@@ -628,12 +628,20 @@ const result = JSON.parse(lint_shell_wasm('eval "$1"'));
 // { diagnostics: [{ code: "SEC001", severity: "Error", message: "...", line: 1 }], count: 1 }
 ```
 
-### Future: CodeBERT Classifier
+### CodeBERT in WASM: Kill Criterion Triggered
 
-CodeBERT at 125M int8 (~125MB) can run in a browser. The planned WASM app at
-`interactive.paiml.com/shell-safety/` will add ML-based classification alongside
-the rule-based linter (requires WASM-002 and WASM-004 completion). Model weights
-will be cached in IndexedDB after first download.
+A pure-Rust CodeBERT encoder was implemented in `bashrs-wasm` (WASM-004) and
+benchmarked honestly. The result: **2.7s for 33 tokens on native CPU** (release mode),
+estimated 5-13s in WASM. This exceeds the 2s kill threshold from the spec.
+
+**Decision**: Ship CLI only for CodeBERT classification. The browser app uses the
+rule-based linter, which runs in <10ms. The encoder code remains in the crate
+behind the `codebert` feature flag for future optimization or WebGPU acceleration.
+
+```bash
+# CodeBERT classification is CLI-only
+bashrs classify --probe probe.json --model /path/to/codebert/ script.sh
+```
 
 ### Probar Testing
 
