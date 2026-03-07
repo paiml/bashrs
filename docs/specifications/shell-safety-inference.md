@@ -677,7 +677,13 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - Negative result published honestly per spec Section 11 Kill Criteria.
   - WASM-005 (IndexedDB caching) cancelled — no model to cache in browser.
   - PRB-002/003/004 cancelled — no CodeBERT WASM to test in browser.
-- **Remaining**: Qwen chat model training (Phase 3, GPU-blocked)
+- **CHAT-001 COMPLETE**: Training manifest, entrenar-format JSONL export (`--entrenar` flag), provable contract
+  - 17,942 conversations (17MB JSONL) in entrenar format (instruction/response/system)
+  - Training manifest: `training/ssc-chat-qwen-1.5b.yaml` — Qwen2.5-Coder-1.5B-Instruct, LoRA rank=16, alpha=32, Q+V
+  - Provable contract: `chat-model-training-v1.yaml` — 5 postconditions, 4 falsification tests, 1 kill criterion
+  - entrenar dry-run validated, batch_size=4, gradient_accumulation=4, NF4 quantization
+- **CHAT-002 IN PROGRESS**: Fine-tuning launched on RTX 4090 (CUDA 12.8, ~10GB free VRAM)
+- **Remaining**: CHAT-002 completion, CHAT-003 evaluation, CHAT-004 publish
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1551,10 +1557,10 @@ jobs:
 
 | Task | Time | Status |
 |------|------|--------|
-| CHAT-001: Configure Qwen-1.5B LoRA in entrenar | 3 hrs | Blocked (requires GPU not occupied by other training) |
-| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 6-10 hrs | Blocked |
-| CHAT-003: Evaluate + human review | 4 hrs | Blocked |
-| CHAT-004: Publish | 1 hr | Blocked |
+| CHAT-001: Configure Qwen-1.5B LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
+| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 6-10 hrs | In Progress (training launched on RTX 4090) |
+| CHAT-003: Evaluate + human review | 4 hrs | Blocked (requires CHAT-002) |
+| CHAT-004: Publish | 1 hr | Blocked (requires CHAT-003) |
 
 ### Phase 4: CLI (1 day)
 
