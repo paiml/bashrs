@@ -1557,9 +1557,9 @@ jobs:
 | Task | Time | Status |
 |------|------|--------|
 | WASM-001: Build bashrs linter as `wasm32-unknown-unknown` target (bashrs-wasm crate) | 4 hrs | ✅ Done (1.5MB release, 7 tests) |
-| WASM-002: Quantize CodeBERT to int8, export weights for browser loading | 2 hrs | Blocked (entrenar) |
+| WASM-002: Quantize CodeBERT to int8, export weights for browser loading | 2 hrs | ✅ Done (entrenar#249, --safetensors flag) |
 | WASM-003: Build `shell-safety.html` interactive app with lint + classify | 4 hrs | ✅ Done (rule-based, 150ms debounce) |
-| WASM-004: Wire CodeBERT WASM classifier (requires WASM-002) | 3 hrs | Blocked (WASM-002) |
+| WASM-004: Wire CodeBERT WASM classifier (requires WASM-002) | 3 hrs | Unblocked (WASM-002 done) |
 | WASM-005: IndexedDB model caching (load once, persist) | 2 hrs | Blocked (WASM-004) |
 | WASM-006: Deploy to interactive.paiml.com/shell-safety/ | 1 hr | ✅ Done (S3 + CloudFront) |
 
