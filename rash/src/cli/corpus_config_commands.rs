@@ -413,7 +413,11 @@ pub(crate) fn corpus_generate_conversations(
         .map(|e| (e.id.as_str(), e.input.as_str()))
         .collect();
 
-    let format_name = if entrenar_format { "entrenar" } else { "chatml" };
+    let format_name = if entrenar_format {
+        "entrenar"
+    } else {
+        "chatml"
+    };
     eprintln!(
         "{BOLD}Generating conversations from {} corpus entries (seed={seed}, format={format_name})...{RESET}",
         batch.len()
