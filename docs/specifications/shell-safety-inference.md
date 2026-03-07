@@ -692,15 +692,20 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - **CHAT-004 COMPLETE**: Published to HuggingFace
   - Model: https://huggingface.co/paiml/shell-safety-chat (1.98GB safetensors + config + tokenizer)
   - Dataset: https://huggingface.co/datasets/paiml/shell-safety-conversations (17,942 entries, 35MB)
-- **CHAT-003 PARTIAL**: Training metrics evaluated; inference evaluation blocked
-  - C-CHAT-TRAIN-001 (convergence): PASS — loss 18.3→4.8 over 3 epochs (74% reduction)
+- **CHAT-003 FAIL**: Model generates degenerate output (gibberish), inference evaluation fails all postconditions
+  - C-CHAT-TRAIN-001 (convergence): WEAK PASS — loss 18.3→4.8, but 4.8 is near-random for 151K vocab (random ≈ 11.9)
   - C-CHAT-TRAIN-005 (adapter size): PASS — model is 1.98GB (full weights, not adapter-only)
-  - Training stability: 9 rollbacks (all in first epoch), gradient norms converged to <1.0
-  - Throughput: avg 4,578 tok/s (peak 6,552), avg MFU 16.4% (peak 23.5%)
-  - C-CHAT-TRAIN-002..004 (classification/shellcheck/citation): BLOCKED — requires inference
-  - Inference blocked: realizar doesn't support Qwen tokenizer (BPE token decode error)
-  - entrenar has no generate/inference subcommand
-  - Filed: paiml/entrenar#256 (bridge device config), inference support needed
+  - C-CHAT-TRAIN-002 (classification accuracy): FAIL — model outputs repetitive gibberish ("222dkdkdk...")
+  - C-CHAT-TRAIN-003 (shellcheck): FAIL — no parseable code in output
+  - C-CHAT-TRAIN-004 (citations): FAIL — no coherent text in output
+  - **Root cause**: entrenar did not save QKV attention biases (72 tensors) during training.
+    Qwen2 uses biases on Q/K/V projections; without them, inference produces degenerate output.
+    Additionally, loss plateau at ~5.0 suggests training itself was corrupted (likely trained
+    without biases too, causing gradient corruption in other layers).
+  - **Base model comparison**: Pre-fine-tuning Qwen2.5-Coder-0.5B-Instruct generates coherent
+    text with the same tokenizer and config, confirming the issue is in fine-tuning.
+  - **Kill criterion**: KILL-CHAT-001 applies — ship classifier only, chat model not ready
+  - Filed: paiml/entrenar#257 (attention bias serialization bug)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1576,7 +1581,7 @@ jobs:
 |------|------|--------|
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
 | CHAT-002: Fine-tune (3 epochs, RTX 4090) | 87 min | ✅ Done (final_loss=4.800, best=0.764, 13,458 steps) |
-| CHAT-003: Evaluate + human review | 4 hrs | Partial (training metrics pass, inference blocked) |
+| CHAT-003: Evaluate + human review | 4 hrs | FAIL — model outputs gibberish (entrenar#258: missing QKV biases) |
 | CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-chat + paiml/shell-safety-conversations) |
 
 ### Phase 4: CLI (1 day)
