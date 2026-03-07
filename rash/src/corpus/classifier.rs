@@ -488,7 +488,7 @@ pub fn split_embeddings(
 
     for (i, entry) in embeddings.iter().enumerate() {
         let hash = fnv1a_hash(i as u64, seed);
-        if hash % 5 == 0 {
+        if hash.is_multiple_of(5) {
             test.push(entry.clone());
         } else {
             train.push(entry.clone());

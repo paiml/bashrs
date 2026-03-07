@@ -1220,6 +1220,7 @@ pub(crate) fn corpus_extract_embeddings(
 }
 
 /// Train linear probe classifier on cached embeddings (CLF-RUN step 2-3).
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn corpus_train_classifier(
     embeddings_path: PathBuf,
     output: PathBuf,
