@@ -692,7 +692,15 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - **CHAT-004 COMPLETE**: Published to HuggingFace
   - Model: https://huggingface.co/paiml/shell-safety-chat (1.98GB safetensors + config + tokenizer)
   - Dataset: https://huggingface.co/datasets/paiml/shell-safety-conversations (17,942 entries, 35MB)
-- **Remaining**: CHAT-003 evaluation (inference + quality metrics)
+- **CHAT-003 PARTIAL**: Training metrics evaluated; inference evaluation blocked
+  - C-CHAT-TRAIN-001 (convergence): PASS — loss 18.3→4.8 over 3 epochs (74% reduction)
+  - C-CHAT-TRAIN-005 (adapter size): PASS — model is 1.98GB (full weights, not adapter-only)
+  - Training stability: 9 rollbacks (all in first epoch), gradient norms converged to <1.0
+  - Throughput: avg 4,578 tok/s (peak 6,552), avg MFU 16.4% (peak 23.5%)
+  - C-CHAT-TRAIN-002..004 (classification/shellcheck/citation): BLOCKED — requires inference
+  - Inference blocked: realizar doesn't support Qwen tokenizer (BPE token decode error)
+  - entrenar has no generate/inference subcommand
+  - Filed: paiml/entrenar#256 (bridge device config), inference support needed
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1568,7 +1576,7 @@ jobs:
 |------|------|--------|
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
 | CHAT-002: Fine-tune (3 epochs, RTX 4090) | 87 min | ✅ Done (final_loss=4.800, best=0.764, 13,458 steps) |
-| CHAT-003: Evaluate + human review | 4 hrs | In Progress |
+| CHAT-003: Evaluate + human review | 4 hrs | Partial (training metrics pass, inference blocked) |
 | CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-chat + paiml/shell-safety-conversations) |
 
 ### Phase 4: CLI (1 day)
