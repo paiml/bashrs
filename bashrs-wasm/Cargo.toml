@@ -20,5 +20,17 @@ wasm-bindgen = "0.2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 
+[features]
+default = []
+# CodeBERT WASM classifier (requires WASM-002/004)
+codebert = []
+# Docker-based cross-browser tests (requires Docker)
+docker = ["jugar-probar/docker"]
+
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
+jugar-probar = { version = "1.0", default-features = false }
+
+[[test]]
+name = "probar_shell_safety"
+path = "tests/probar_shell_safety.rs"

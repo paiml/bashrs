@@ -655,7 +655,13 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - Split-pane editor with Bash/Makefile/Dockerfile support
   - Real-time classification + diagnostics with 150ms debounce
   - Fix suggestions from explain API
-- **Remaining**: Qwen chat model training (Phase 3, GPU), WASM-002/004/005/006 (CodeBERT in browser), Probar tests
+- **Phase 6 PRB-001 COMPLETE**: Probar test suite (`bashrs-wasm/tests/probar_shell_safety.rs`)
+  - 14 Layer 1 logic tests: linter correctness, classifier correctness, explain correctness, combined pipeline, JSON structure, determinism, multi-format
+  - 5 Layer 3 performance tests: linter <10ms, classify <10ms, explain <10ms, full pipeline <30ms, multi-format <30ms
+  - Provable contract: `probar-shell-safety-v1.yaml` with 9 falsification tests
+  - CodeBERT tests gated behind `codebert` feature (blocked on WASM-002/004)
+- **Phase 6 PRB-005 COMPLETE**: Performance benchmark tests with hard budgets (5 tests, all pass)
+- **Remaining**: Qwen chat model training (Phase 3, GPU), WASM-002/004/005/006 (CodeBERT in browser), PRB-002/003/004/006/007
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1558,15 +1564,15 @@ no network calls after initial model download.
 
 ### Phase 6: Probar Testing (WASM + LLM + Performance) (1.5 days)
 
-| Task | Time |
-|------|------|
-| PRB-001: Write Probar test suite (tests/probar_shell_safety.rs) — Layer 1 logic tests | 3 hrs |
-| PRB-002: Wire WASM helper functions (load_bashrs_wasm, load_codebert_wasm, etc.) | 2 hrs |
-| PRB-003: Generate reference fixtures from native CodeBERT for WASM parity tests | 1 hr |
-| PRB-004: Write LLM correctness tests (NaN check, calibration, monotonicity, consistency) | 2 hrs |
-| PRB-005: Write performance benchmark tests with hard budgets | 1 hr |
-| PRB-006: Configure Docker cross-browser matrix (Chrome/Firefox/WebKit) | 2 hrs |
-| PRB-007: CI integration (logic=every commit, browser=pre-release, perf=every commit) | 1 hr |
+| Task | Time | Status |
+|------|------|--------|
+| PRB-001: Write Probar test suite (tests/probar_shell_safety.rs) — Layer 1 logic tests | 3 hrs | ✅ Done (14 logic tests, 5 perf tests, 19 total) |
+| PRB-002: Wire WASM helper functions (load_bashrs_wasm, load_codebert_wasm, etc.) | 2 hrs | Blocked (WASM-002/004) |
+| PRB-003: Generate reference fixtures from native CodeBERT for WASM parity tests | 1 hr | Blocked (WASM-002/004) |
+| PRB-004: Write LLM correctness tests (NaN check, calibration, monotonicity, consistency) | 2 hrs | Blocked (WASM-002/004) |
+| PRB-005: Write performance benchmark tests with hard budgets | 1 hr | ✅ Done (5 budget tests, all pass) |
+| PRB-006: Configure Docker cross-browser matrix (Chrome/Firefox/WebKit) | 2 hrs | |
+| PRB-007: CI integration (logic=every commit, browser=pre-release, perf=every commit) | 1 hr | |
 
 **Kill gate**: C-PRB-001 through C-PRB-007. All Probar tests must pass before deployment.
 Browser tests (Layer 2) may be deferred if Docker infra blocks, but logic + performance
