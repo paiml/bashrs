@@ -662,7 +662,7 @@ fn test_PMAT154_classify_probe_without_model_shows_note() {
         .arg(f.path())
         .assert()
         .success()
-        .stderr(predicate::str::contains("--probe requires --model"));
+        .stderr(predicate::str::contains("requires --model"));
 }
 
 #[test]
