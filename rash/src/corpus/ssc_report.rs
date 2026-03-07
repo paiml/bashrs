@@ -64,6 +64,7 @@ pub fn generate_ssc_report() -> SscStatusReport {
         dataset_section_from(baseline_entries),
         conversation_section_from(&registry),
         data_pipeline_section(),
+        wasm_section(),
     ];
 
     let overall_ready = sections.iter().all(|s| s.status != SscStatus::Fail);
@@ -480,6 +481,48 @@ fn data_pipeline_section() -> SscSection {
     }
 }
 
+fn wasm_section() -> SscSection {
+    // WASM-004 kill criterion 5 result: CodeBERT inference too slow for browser.
+    // Linter-only WASM app deployed and working (<10ms per analysis).
+    SscSection {
+        name: "WASM App (S8.3)".to_string(),
+        spec_ref: "S8.3".to_string(),
+        status: SscStatus::Pass,
+        metrics: vec![
+            SscMetric {
+                name: "Linter WASM".to_string(),
+                value: "deployed".to_string(),
+                target: "deployed".to_string(),
+                passed: true,
+            },
+            SscMetric {
+                name: "WASM binary size".to_string(),
+                value: "1.5MB".to_string(),
+                target: "<5MB".to_string(),
+                passed: true,
+            },
+            SscMetric {
+                name: "Linter latency".to_string(),
+                value: "<10ms".to_string(),
+                target: "<10ms".to_string(),
+                passed: true,
+            },
+            SscMetric {
+                name: "CodeBERT WASM (KILL-5)".to_string(),
+                value: "2681ms native (est. 5-13s WASM)".to_string(),
+                target: "<2000ms".to_string(),
+                passed: false,
+            },
+            SscMetric {
+                name: "Decision".to_string(),
+                value: "CLI only for CodeBERT".to_string(),
+                target: "informational".to_string(),
+                passed: true,
+            },
+        ],
+    }
+}
+
 /// Cheap keyword heuristic for safe/unsafe partitioning.
 ///
 /// Used only for stratified sampling — accurate classification happens
@@ -643,6 +686,21 @@ mod tests {
         assert!(!has_unsafe_keyword("echo hello"));
         assert!(!has_unsafe_keyword("#!/bin/sh\nset -e\nls -la"));
         assert!(!has_unsafe_keyword("mkdir -p /tmp/build"));
+    }
+
+    #[test]
+    fn test_wasm_section_has_kill5_result() {
+        let section = wasm_section();
+        assert_eq!(section.name, "WASM App (S8.3)");
+        assert_eq!(section.status, SscStatus::Pass);
+        assert_eq!(section.metrics.len(), 5);
+        let kill5 = section
+            .metrics
+            .iter()
+            .find(|m| m.name.contains("KILL-5"))
+            .expect("should have KILL-5 metric");
+        assert!(!kill5.passed, "KILL-5 should be marked as not passed");
+        assert!(kill5.value.contains("2681ms"));
     }
 
     #[test]

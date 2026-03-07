@@ -123,12 +123,7 @@ struct EncoderLayer {
 }
 
 /// Scaled dot-product multi-head attention (bidirectional, no causal mask).
-fn multi_head_attention(
-    q: &[f32],
-    k: &[f32],
-    v: &[f32],
-    seq_len: usize,
-) -> Vec<f32> {
+fn multi_head_attention(q: &[f32], k: &[f32], v: &[f32], seq_len: usize) -> Vec<f32> {
     let scale = 1.0 / (HEAD_DIM as f32).sqrt();
     let mut output = vec![0.0_f32; seq_len * HIDDEN_SIZE];
 
@@ -209,8 +204,8 @@ impl EncoderLayer {
 
 /// Complete CodeBERT encoder for WASM inference.
 pub struct WasmEncoder {
-    word_embeddings: Vec<f32>,   // [VOCAB_SIZE, HIDDEN_SIZE]
-    position_embeddings: Vec<f32>, // [MAX_POSITION, HIDDEN_SIZE]
+    word_embeddings: Vec<f32>,       // [VOCAB_SIZE, HIDDEN_SIZE]
+    position_embeddings: Vec<f32>,   // [MAX_POSITION, HIDDEN_SIZE]
     token_type_embeddings: Vec<f32>, // [1, HIDDEN_SIZE]
     embed_ln: LayerNormParams,
     layers: Vec<EncoderLayer>,
@@ -221,8 +216,8 @@ impl WasmEncoder {
     ///
     /// Dequantizes all weights to f32 during loading.
     pub fn from_safetensors_bytes(data: &[u8]) -> Result<Self, String> {
-        let tensors = SafeTensors::deserialize(data)
-            .map_err(|e| format!("SafeTensors parse error: {e}"))?;
+        let tensors =
+            SafeTensors::deserialize(data).map_err(|e| format!("SafeTensors parse error: {e}"))?;
 
         let load = |name: &str| -> Result<Vec<f32>, String> {
             let tensor = tensors
@@ -355,10 +350,10 @@ impl WasmEncoder {
 
 /// MLP probe weights for binary classification (safe/unsafe).
 pub struct MlpProbe {
-    w1: Vec<f32>,    // [hidden, HIDDEN_SIZE]
-    b1: Vec<f32>,    // [hidden]
-    w2: Vec<f32>,    // [2, hidden]
-    b2: Vec<f32>,    // [2]
+    w1: Vec<f32>, // [hidden, HIDDEN_SIZE]
+    b1: Vec<f32>, // [hidden]
+    w2: Vec<f32>, // [2, hidden]
+    b2: Vec<f32>, // [2]
     hidden: usize,
 }
 
@@ -370,9 +365,7 @@ impl MlpProbe {
         let v: serde_json::Value =
             serde_json::from_slice(data).map_err(|e| format!("Probe JSON parse: {e}"))?;
 
-        let hidden = v["mlp_hidden"]
-            .as_u64()
-            .ok_or("missing mlp_hidden")? as usize;
+        let hidden = v["mlp_hidden"].as_u64().ok_or("missing mlp_hidden")? as usize;
 
         let w1: Vec<f32> = v["w1"]
             .as_array()
@@ -399,7 +392,13 @@ impl MlpProbe {
             .filter_map(|x| x.as_f64().map(|f| f as f32))
             .collect();
 
-        Ok(Self { w1, b1, w2, b2, hidden })
+        Ok(Self {
+            w1,
+            b1,
+            w2,
+            b2,
+            hidden,
+        })
     }
 
     /// Forward pass: embedding → Linear → ReLU → Linear → sigmoid → (label, confidence).

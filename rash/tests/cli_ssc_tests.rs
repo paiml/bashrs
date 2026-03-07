@@ -538,6 +538,17 @@ fn test_PMAT147_corpus_ssc_report_gate_json() {
         .stdout(predicate::str::contains("\"overall_ready\": true"));
 }
 
+#[test]
+fn test_PMAT158_corpus_ssc_report_has_wasm_section() {
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("ssc-report")
+        .arg("--gate")
+        .assert()
+        .success()
+        .stderr(predicate::str::contains("WASM App"));
+}
+
 // ============================================================================
 // bashrs corpus train-classifier (CLF-RUN step 2-3)
 // ============================================================================
