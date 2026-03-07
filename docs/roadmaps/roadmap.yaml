@@ -512,3 +512,27 @@ roadmap:
   - probar
   - phase6
   notes: null
+- id: PMAT-157
+  github_issue: null
+  item_type: task
+  title: 'SSC-DEPLOY: Deploy shell-safety.html to interactive.paiml.com (Phase 5 WASM-006)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-07T14:00:00Z
+  updated: 2026-03-07T14:30:00Z
+  spec: null
+  acceptance_criteria:
+  - shell-safety/index.html serves HTTP 200 from CloudFront
+  - pkg/bashrs_wasm.js serves with application/javascript MIME type
+  - pkg/bashrs_wasm_bg.wasm serves with application/wasm MIME type (1.5MB)
+  - CloudFront cache invalidated for /shell-safety/*
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - wasm
+  - deployment
+  - phase5
+  notes: null
