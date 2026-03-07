@@ -107,6 +107,7 @@ import init, {
   lint_makefile_wasm,
   lint_dockerfile_wasm,
   classify_shell_wasm,
+  explain_shell_wasm,
 } from './pkg/bashrs_wasm.js';
 
 const editor = document.getElementById('editor');
@@ -144,16 +145,19 @@ function analyze() {
 
   const t0 = performance.now();
 
-  let lintJson, classifyJson;
+  let lintJson, classifyJson, explainJson;
   if (format === 'bash') {
     lintJson = lint_shell_wasm(source);
     classifyJson = classify_shell_wasm(source);
+    explainJson = explain_shell_wasm(source);
   } else if (format === 'makefile') {
     lintJson = lint_makefile_wasm(source);
     classifyJson = null;
+    explainJson = null;
   } else {
     lintJson = lint_dockerfile_wasm(source);
     classifyJson = null;
+    explainJson = null;
   }
 
   const elapsed = (performance.now() - t0).toFixed(1);
@@ -161,11 +165,12 @@ function analyze() {
 
   const lint = JSON.parse(lintJson);
   const classify = classifyJson ? JSON.parse(classifyJson) : null;
+  const explain = explainJson ? JSON.parse(explainJson) : null;
 
-  renderResults(lint, classify);
+  renderResults(lint, classify, explain);
 }
 
-function renderResults(lint, classify) {
+function renderResults(lint, classify, explain) {
   let html = '';
 
   if (classify) {
@@ -181,20 +186,29 @@ function renderResults(lint, classify) {
         <span class="tag ${classify.has_idempotency ? 'on' : 'off'}">IDEM ${classify.has_idempotency ? '✗' : '✓'}</span>
       </div>
       <div class="confidence-bar"><div class="confidence-fill" style="width:${confPct}%;background:${confColor}"></div></div>
+      ${explain ? `<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--dim)">${escapeHtml(explain.summary)}</div>` : ''}
     </div>`;
   }
 
   if (lint.diagnostics.length === 0) {
     html += '<div class="empty-state">No issues found.</div>';
   } else {
+    // Merge fix suggestions from explain into diagnostics
+    const fixMap = {};
+    if (explain) {
+      for (const issue of explain.issues) {
+        if (issue.fix) fixMap[issue.code + ':' + issue.line] = issue.fix;
+      }
+    }
     html += '<div class="diagnostics">';
     for (const d of lint.diagnostics) {
       const sev = d.severity.toLowerCase();
       const icon = sev === 'error' ? '✗' : sev === 'warning' ? '⚠' : 'ℹ';
+      const fix = fixMap[d.code + ':' + d.line];
       html += `<div class="diag ${sev}">
         <span class="icon">${icon}</span>
         <span class="code">${d.code}</span>
-        <span class="msg">${escapeHtml(d.message)}</span>
+        <span class="msg">${escapeHtml(d.message)}${fix ? `<br><span style="color:var(--green);font-size:0.75rem">Fix: ${escapeHtml(fix)}</span>` : ''}</span>
         <span class="line">L${d.line}</span>
       </div>`;
     }
