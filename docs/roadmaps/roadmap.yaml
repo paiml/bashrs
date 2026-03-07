@@ -411,11 +411,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-OPTIMIZE: Optimize ssc-report conversation section (avoid full corpus load for sampling)'
-  status: planned
+  status: inprogress
   priority: high
   assigned_to: null
   created: 2026-03-06T12:32:08Z
-  updated: 2026-03-06T12:32:08Z
+  updated: 2026-03-07T08:42:51.930344957+00:00
   spec: null
   acceptance_criteria: []
   phases: []
