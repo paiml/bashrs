@@ -513,8 +513,11 @@ pub fn to_jsonl(conversations: &[Conversation]) -> String {
 
 /// Convert conversations to entrenar-compatible JSONL format.
 ///
-/// Entrenar expects `{"instruction": "...", "response": "...", "system": "..."}` per line.
-/// Each conversation's turns are mapped: system→system, user→instruction, assistant→response.
+/// Each conversation is formatted as a complete ChatML text sequence:
+/// `<|im_start|>system\n...<|im_end|>\n<|im_start|>user\n...<|im_end|>\n<|im_start|>assistant\n...<|im_end|>`
+///
+/// The `text` field is what entrenar tokenizes for causal LM training.
+/// Also includes `instruction`, `response`, `system` for metadata/evaluation.
 pub fn to_entrenar_jsonl(conversations: &[Conversation]) -> String {
     let mut output = String::new();
     for conv in conversations {
@@ -539,7 +542,14 @@ pub fn to_entrenar_jsonl(conversations: &[Conversation]) -> String {
         if instruction.is_empty() || response.is_empty() {
             continue;
         }
+        // Full ChatML-formatted text for causal LM training
+        let text = format!(
+            "<|im_start|>system\n{system}<|im_end|>\n\
+             <|im_start|>user\n{instruction}<|im_end|>\n\
+             <|im_start|>assistant\n{response}<|im_end|>"
+        );
         let sample = serde_json::json!({
+            "text": text,
             "instruction": instruction,
             "response": response,
             "system": system,
@@ -924,14 +934,18 @@ mod tests {
             ],
         }];
         let jsonl = to_entrenar_jsonl(&convs);
-        let parsed: serde_json::Value =
-            serde_json::from_str(jsonl.trim()).expect("valid JSON");
+        let parsed: serde_json::Value = serde_json::from_str(jsonl.trim()).expect("valid JSON");
         assert_eq!(parsed["instruction"], "Is eval $x safe?");
-        assert_eq!(
-            parsed["response"],
-            "No, eval on untrusted input is unsafe."
-        );
+        assert_eq!(parsed["response"], "No, eval on untrusted input is unsafe.");
         assert_eq!(parsed["system"], "You are a safety analyzer.");
+        // Must have ChatML-formatted text field for entrenar tokenization
+        let text = parsed["text"].as_str().expect("text field");
+        assert!(text.contains("<|im_start|>system"));
+        assert!(text.contains("<|im_start|>user"));
+        assert!(text.contains("<|im_start|>assistant"));
+        assert!(text.contains("<|im_end|>"));
+        assert!(text.contains("Is eval $x safe?"));
+        assert!(text.contains("No, eval on untrusted input is unsafe."));
     }
 
     #[test]
@@ -945,6 +959,9 @@ mod tests {
             }],
         }];
         let jsonl = to_entrenar_jsonl(&convs);
-        assert!(jsonl.is_empty(), "Should skip conversations without user/assistant turns");
+        assert!(
+            jsonl.is_empty(),
+            "Should skip conversations without user/assistant turns"
+        );
     }
 }
