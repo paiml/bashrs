@@ -54,8 +54,8 @@ rustyline.workspace = true  # REPL terminal line editing
 sysinfo = "0.31"  # For bench command - CPU/RAM/OS detection
 schemars = "0.8"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "6.60", optional = true }  # ML-powered error classification
-aprender = { path = "../../aprender", optional = true }  # BPE tokenizer for SSC C-TOK-001
-entrenar = { path = "../../entrenar", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
+aprender = { version = "0.27", optional = true }  # BPE tokenizer for SSC C-TOK-001
+entrenar = { version = "0.7", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
 
 # Compile mode dependencies (optional - not needed for WASM)
 zstd = { version = "0.13", optional = true }
