@@ -1416,6 +1416,10 @@ pub enum CorpusCommands {
         /// Maximum entries to process (default: all)
         #[arg(long)]
         limit: Option<usize>,
+
+        /// Output in entrenar-compatible JSONL format (instruction/response/system)
+        #[arg(long)]
+        entrenar: bool,
     },
 
     /// Run baseline classifiers: majority, keyword regex, linter (SSC v11 S5.5)

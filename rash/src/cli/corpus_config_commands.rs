@@ -397,9 +397,10 @@ pub(crate) fn corpus_generate_conversations(
     output: Option<PathBuf>,
     seed: u64,
     limit: Option<usize>,
+    entrenar_format: bool,
 ) -> Result<()> {
     use crate::cli::color::*;
-    use crate::corpus::conversations::{generate_batch, to_jsonl};
+    use crate::corpus::conversations::{generate_batch, to_entrenar_jsonl, to_jsonl};
     use crate::corpus::registry::CorpusRegistry;
 
     let registry = CorpusRegistry::load_full();
@@ -412,13 +413,18 @@ pub(crate) fn corpus_generate_conversations(
         .map(|e| (e.id.as_str(), e.input.as_str()))
         .collect();
 
+    let format_name = if entrenar_format { "entrenar" } else { "chatml" };
     eprintln!(
-        "{BOLD}Generating conversations from {} corpus entries (seed={seed})...{RESET}",
+        "{BOLD}Generating conversations from {} corpus entries (seed={seed}, format={format_name})...{RESET}",
         batch.len()
     );
 
     let (conversations, report) = generate_batch(&batch, seed);
-    let jsonl = to_jsonl(&conversations);
+    let jsonl = if entrenar_format {
+        to_entrenar_jsonl(&conversations)
+    } else {
+        to_jsonl(&conversations)
+    };
 
     match output {
         Some(ref path) => {

@@ -317,7 +317,8 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             output,
             seed,
             limit,
-        } => super::corpus_config_commands::corpus_generate_conversations(output, seed, limit),
+            entrenar,
+        } => super::corpus_config_commands::corpus_generate_conversations(output, seed, limit, entrenar),
         // SSC v11 baselines and validation
         CorpusCommands::Baselines => super::corpus_config_commands::corpus_baselines(),
         CorpusCommands::LabelAudit { limit } => {
