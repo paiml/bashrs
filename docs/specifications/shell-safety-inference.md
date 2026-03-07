@@ -689,7 +689,10 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - 13,458 steps (3 epochs × 4,486 batches), seq_len=512, batch_size=4, peak 5172 tok/s, MFU 18.6%
   - Final loss: 4.800, best loss: 0.764, epoch losses: 4.576/4.980/4.800
   - Model: `training/checkpoints/ssc-chat-v1/model.safetensors` (1.98GB)
-- **Remaining**: CHAT-003 evaluation, CHAT-004 publish
+- **CHAT-004 COMPLETE**: Published to HuggingFace
+  - Model: https://huggingface.co/paiml/shell-safety-chat (1.98GB safetensors + config + tokenizer)
+  - Dataset: https://huggingface.co/datasets/paiml/shell-safety-conversations (17,942 entries, 35MB)
+- **Remaining**: CHAT-003 evaluation (inference + quality metrics)
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1565,8 +1568,8 @@ jobs:
 |------|------|--------|
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
 | CHAT-002: Fine-tune (3 epochs, RTX 4090) | 87 min | ✅ Done (final_loss=4.800, best=0.764, 13,458 steps) |
-| CHAT-003: Evaluate + human review | 4 hrs | Blocked (requires CHAT-002) |
-| CHAT-004: Publish | 1 hr | Blocked (requires CHAT-003) |
+| CHAT-003: Evaluate + human review | 4 hrs | In Progress |
+| CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-chat + paiml/shell-safety-conversations) |
 
 ### Phase 4: CLI (1 day)
 
