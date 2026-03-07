@@ -1,0 +1,10 @@
+{
+  "best_loss": 0.7644604444503784,
+  "epochs_completed": 3,
+  "final_loss": 4.800017833709717,
+  "mode": "transformer",
+  "model_path": "/home/noah/models/qwen2.5-coder-0.5b-instruct-safetensors/",
+  "steps": 13458,
+  "training_mode": "CausalLm",
+  "weights_path": "training/checkpoints/ssc-chat-v1/model.safetensors"
+}

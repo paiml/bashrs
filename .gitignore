@@ -124,3 +124,6 @@ pkg/
 # PMAT
 **/.pmat/
 .pmat-qa/
+training/checkpoints/ssc-chat-v1/model.safetensors
+training/checkpoints/ssc-chat-v1/tokenizer.json
+training/conversations.jsonl
