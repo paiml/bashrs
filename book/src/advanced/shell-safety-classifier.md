@@ -583,15 +583,48 @@ and L2 regularization (weight_decay=1e-4) to handle 99.2/0.8% safe/unsafe imbala
 
 ## WASM Deployment
 
-CodeBERT at 125M int8 (~125MB) fits in a browser. The WASM app at `interactive.paiml.com/shell-safety/` provides:
+The `bashrs-wasm` crate provides browser-native shell safety analysis. The WASM binary
+is 1.5MB in release mode and runs the full linter in <10ms per analysis.
 
-- **ScriptEditor**: Paste or type a shell script
-- **AnalyzeButton**: Run linter + classifier on click
-- **SafetyResult**: Classification label + findings
-- **FixSuggestion**: Corrected script (when available)
-- **ModelStatus**: Model loading state (NotLoaded -> Loading -> Ready)
+### shell-safety.html
 
-The linter runs on every keystroke (<10ms). The classifier runs on button click. No network calls after initial model download (weights cached in IndexedDB).
+The interactive app at `bashrs-wasm/shell-safety.html` provides:
+
+- **ScriptEditor**: Split-pane editor with 150ms debounce analysis
+- **Format selector**: Bash, Makefile, or Dockerfile linting
+- **Classification**: Rule-based SAFE/UNSAFE label with confidence score
+- **Diagnostics**: Per-line findings with severity, code, and message
+- **Zero latency**: No network calls — all analysis runs locally in WASM
+
+```bash
+# Build and serve
+wasm-pack build bashrs-wasm --target web --release
+cd bashrs-wasm && python3 -m http.server 8000
+# Open http://localhost:8000/shell-safety.html
+```
+
+### WASM API
+
+```javascript
+import init, {
+  lint_shell_wasm,
+  lint_makefile_wasm,
+  lint_dockerfile_wasm,
+  classify_shell_wasm,
+  bashrs_version,
+} from './pkg/bashrs_wasm.js';
+
+await init();
+const result = JSON.parse(lint_shell_wasm('eval "$1"'));
+// { diagnostics: [{ code: "SEC001", severity: "Error", message: "...", line: 1 }], count: 1 }
+```
+
+### Future: CodeBERT Classifier
+
+CodeBERT at 125M int8 (~125MB) can run in a browser. The planned WASM app at
+`interactive.paiml.com/shell-safety/` will add ML-based classification alongside
+the rule-based linter (requires WASM-002 and WASM-004 completion). Model weights
+will be cached in IndexedDB after first download.
 
 ### Probar Testing
 

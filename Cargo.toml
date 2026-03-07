@@ -4,6 +4,7 @@ members = [
     "rash",
     "rash-runtime",
     "bashrs-oracle",
+    "bashrs-wasm",
 ]
 exclude = ["fuzz", "rash-mcp", "target/", ".profraw", ".profdata", ".vscode/", ".idea/", ".pmat", "proptest-regressions"]
 resolver = "2"

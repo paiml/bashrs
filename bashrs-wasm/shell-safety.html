@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shell Safety Analyzer — bashrs</title>
+<style>
+  :root {
+    --bg: #1a1b26; --fg: #c0caf5; --bg2: #24283b; --bg3: #414868;
+    --green: #9ece6a; --red: #f7768e; --yellow: #e0af68; --cyan: #7dcfff;
+    --blue: #7aa2f7; --dim: #565f89; --border: #3b4261;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'JetBrains Mono', 'Fira Code', monospace; background: var(--bg); color: var(--fg); min-height: 100vh; }
+  header { padding: 1rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 1rem; }
+  header h1 { font-size: 1.2rem; font-weight: 600; }
+  header .version { color: var(--dim); font-size: 0.85rem; }
+  .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .status-dot.loading { background: var(--yellow); animation: pulse 1s infinite; }
+  .status-dot.ready { background: var(--green); }
+  .status-dot.error { background: var(--red); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  main { display: grid; grid-template-columns: 1fr 1fr; gap: 0; height: calc(100vh - 56px); }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; grid-template-rows: 1fr 1fr; } }
+
+  .panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+  .panel:last-child { border-right: none; }
+  .panel-header { padding: 0.5rem 1rem; background: var(--bg2); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; }
+  .panel-header select { background: var(--bg3); color: var(--fg); border: 1px solid var(--border); padding: 0.25rem 0.5rem; border-radius: 4px; font-family: inherit; font-size: 0.8rem; }
+
+  #editor { flex: 1; background: var(--bg); color: var(--fg); border: none; padding: 1rem; font-family: inherit; font-size: 0.9rem; line-height: 1.6; resize: none; outline: none; tab-size: 4; }
+
+  .results { flex: 1; overflow-y: auto; padding: 0; }
+
+  .classification { padding: 1rem; border-bottom: 1px solid var(--border); }
+  .classification .label { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; }
+  .classification .label.safe { color: var(--green); }
+  .classification .label.unsafe { color: var(--red); }
+  .classification .meta { font-size: 0.8rem; color: var(--dim); display: flex; gap: 1rem; flex-wrap: wrap; }
+  .classification .meta .tag { padding: 0.15rem 0.5rem; border-radius: 3px; font-size: 0.75rem; }
+  .tag.on { background: rgba(247,118,142,0.15); color: var(--red); }
+  .tag.off { background: rgba(86,95,137,0.15); color: var(--dim); }
+
+  .confidence-bar { margin-top: 0.5rem; height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .confidence-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+
+  .diagnostics { padding: 0.5rem 0; }
+  .diag { padding: 0.5rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.82rem; display: flex; gap: 0.75rem; align-items: flex-start; }
+  .diag:hover { background: var(--bg2); }
+  .diag .icon { flex-shrink: 0; width: 18px; text-align: center; }
+  .diag .code { color: var(--cyan); flex-shrink: 0; min-width: 60px; }
+  .diag .msg { flex: 1; }
+  .diag .line { color: var(--dim); flex-shrink: 0; font-size: 0.75rem; }
+  .diag.error .icon { color: var(--red); }
+  .diag.warning .icon { color: var(--yellow); }
+  .diag.info .icon { color: var(--dim); }
+
+  .summary { padding: 0.75rem 1rem; background: var(--bg2); border-top: 1px solid var(--border); font-size: 0.8rem; color: var(--dim); display: flex; gap: 1rem; }
+  .summary .count { font-weight: 600; }
+  .summary .count.zero { color: var(--green); }
+  .summary .count.nonzero { color: var(--yellow); }
+
+  .empty-state { padding: 2rem; text-align: center; color: var(--dim); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<header>
+  <span class="status-dot loading" id="status-dot"></span>
+  <h1>Shell Safety Analyzer</h1>
+  <span class="version" id="version">loading...</span>
+</header>
+<main>
+  <div class="panel">
+    <div class="panel-header">
+      <span>Script Input</span>
+      <select id="format-select">
+        <option value="bash" selected>Bash / Shell</option>
+        <option value="makefile">Makefile</option>
+        <option value="dockerfile">Dockerfile</option>
+      </select>
+    </div>
+    <textarea id="editor" spellcheck="false" placeholder="#!/bin/bash&#10;# Paste or type a shell script here...&#10;&#10;echo &quot;Hello, world!&quot;">#!/bin/bash
+eval "$user_input"
+rm -rf /tmp/$dir
+password="hunter2"
+</textarea>
+  </div>
+  <div class="panel">
+    <div class="panel-header">
+      <span>Analysis Results</span>
+      <span id="timing" style="color: var(--dim); font-size: 0.75rem;"></span>
+    </div>
+    <div class="results" id="results">
+      <div class="empty-state">Loading WASM module...</div>
+    </div>
+    <div class="summary" id="summary" style="display:none;">
+      <span>Findings: <span class="count" id="count">0</span></span>
+    </div>
+  </div>
+</main>
+
+<script type="module">
+import init, {
+  bashrs_version,
+  lint_shell_wasm,
+  lint_makefile_wasm,
+  lint_dockerfile_wasm,
+  classify_shell_wasm,
+} from './pkg/bashrs_wasm.js';
+
+const editor = document.getElementById('editor');
+const results = document.getElementById('results');
+const summary = document.getElementById('summary');
+const countEl = document.getElementById('count');
+const timingEl = document.getElementById('timing');
+const statusDot = document.getElementById('status-dot');
+const versionEl = document.getElementById('version');
+const formatSelect = document.getElementById('format-select');
+
+let debounceTimer = null;
+let wasmReady = false;
+
+async function start() {
+  try {
+    await init();
+    const ver = bashrs_version();
+    versionEl.textContent = `v${ver}`;
+    statusDot.className = 'status-dot ready';
+    wasmReady = true;
+    analyze();
+  } catch (e) {
+    statusDot.className = 'status-dot error';
+    versionEl.textContent = 'load failed';
+    results.innerHTML = `<div class="empty-state" style="color:var(--red)">Failed to load WASM: ${e.message}</div>`;
+    console.error('WASM init failed:', e);
+  }
+}
+
+function analyze() {
+  if (!wasmReady) return;
+  const source = editor.value;
+  const format = formatSelect.value;
+
+  const t0 = performance.now();
+
+  let lintJson, classifyJson;
+  if (format === 'bash') {
+    lintJson = lint_shell_wasm(source);
+    classifyJson = classify_shell_wasm(source);
+  } else if (format === 'makefile') {
+    lintJson = lint_makefile_wasm(source);
+    classifyJson = null;
+  } else {
+    lintJson = lint_dockerfile_wasm(source);
+    classifyJson = null;
+  }
+
+  const elapsed = (performance.now() - t0).toFixed(1);
+  timingEl.textContent = `${elapsed}ms`;
+
+  const lint = JSON.parse(lintJson);
+  const classify = classifyJson ? JSON.parse(classifyJson) : null;
+
+  renderResults(lint, classify);
+}
+
+function renderResults(lint, classify) {
+  let html = '';
+
+  if (classify) {
+    const isSafe = classify.label === 'safe';
+    const confPct = classify.confidence.toFixed(1);
+    const confColor = isSafe ? 'var(--green)' : 'var(--red)';
+    html += `<div class="classification">
+      <div class="label ${classify.label}">${classify.label.toUpperCase()}</div>
+      <div class="meta">
+        <span>Confidence: ${confPct}%</span>
+        <span class="tag ${classify.has_security ? 'on' : 'off'}">SEC ${classify.has_security ? '✗' : '✓'}</span>
+        <span class="tag ${classify.has_determinism ? 'on' : 'off'}">DET ${classify.has_determinism ? '✗' : '✓'}</span>
+        <span class="tag ${classify.has_idempotency ? 'on' : 'off'}">IDEM ${classify.has_idempotency ? '✗' : '✓'}</span>
+      </div>
+      <div class="confidence-bar"><div class="confidence-fill" style="width:${confPct}%;background:${confColor}"></div></div>
+    </div>`;
+  }
+
+  if (lint.diagnostics.length === 0) {
+    html += '<div class="empty-state">No issues found.</div>';
+  } else {
+    html += '<div class="diagnostics">';
+    for (const d of lint.diagnostics) {
+      const sev = d.severity.toLowerCase();
+      const icon = sev === 'error' ? '✗' : sev === 'warning' ? '⚠' : 'ℹ';
+      html += `<div class="diag ${sev}">
+        <span class="icon">${icon}</span>
+        <span class="code">${d.code}</span>
+        <span class="msg">${escapeHtml(d.message)}</span>
+        <span class="line">L${d.line}</span>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  results.innerHTML = html;
+  summary.style.display = 'flex';
+  countEl.textContent = lint.count;
+  countEl.className = lint.count === 0 ? 'count zero' : 'count nonzero';
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+editor.addEventListener('input', () => {
+  clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(analyze, 150);
+});
+
+formatSelect.addEventListener('change', analyze);
+
+start();
+</script>
+</body>
+</html>
