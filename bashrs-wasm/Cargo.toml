@@ -1,0 +1,24 @@
+[package]
+name = "bashrs-wasm"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "WASM bindings for bashrs shell safety linter (SSC v11 Phase 5)"
+publish = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+bashrs = { path = "../rash", default-features = false, features = ["minimal"] }
+wasm-bindgen = "0.2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"

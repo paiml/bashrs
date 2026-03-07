@@ -464,3 +464,26 @@ roadmap:
   - cli-002
   - phase4
   notes: null
+- id: PMAT-155
+  github_issue: null
+  item_type: task
+  title: 'SSC-WASM: bashrs-wasm crate + shell-safety.html interactive app (Phase 5 WASM-001, WASM-003)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-07T11:00:00Z
+  updated: 2026-03-07T12:00:00Z
+  spec: null
+  acceptance_criteria:
+  - bashrs-wasm crate compiles for wasm32-unknown-unknown (1.5MB release)
+  - 7 unit tests pass (lint_shell, lint_makefile, lint_dockerfile, classify_shell safe+unsafe, version)
+  - shell-safety.html interactive app with split-pane editor, format selector, classification, diagnostics
+  - Feature-gated optional deps (rustyline, rand, sysinfo) for minimal WASM build
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - wasm
+  - phase5
+  notes: null

@@ -1538,10 +1538,10 @@ jobs:
 
 | Task | Time |
 |------|------|
-| WASM-001: Build CodeBERT encoder as `wasm32-unknown-unknown` target in entrenar | 4 hrs |
+| WASM-001: Build bashrs linter as `wasm32-unknown-unknown` target (bashrs-wasm crate) | 4 hrs | ✅ Done (1.5MB release, 7 tests) |
 | WASM-002: Quantize CodeBERT to int8, export weights for browser loading | 2 hrs |
-| WASM-003: Build `shell-safety.html` with presentar Brick widgets (TextArea, DataCard, Button, Stack) | 4 hrs |
-| WASM-004: Wire bashrs WASM linter (existing) + CodeBERT WASM classifier | 3 hrs |
+| WASM-003: Build `shell-safety.html` interactive app with lint + classify | 4 hrs | ✅ Done (rule-based, 150ms debounce) |
+| WASM-004: Wire CodeBERT WASM classifier (requires WASM-002) | 3 hrs |
 | WASM-005: IndexedDB model caching (load once, persist) | 2 hrs |
 | WASM-006: Deploy to interactive.paiml.com/shell-safety/ | 1 hr |
 
