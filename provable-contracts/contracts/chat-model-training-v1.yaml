@@ -1,0 +1,93 @@
+metadata:
+  version: "1.0.0"
+  description: "Chat model training — Qwen2.5-Coder-1.5B-Instruct LoRA fine-tuning on shell safety conversations"
+  references:
+    - "Hu et al. (2021) LoRA: Low-Rank Adaptation of Large Language Models"
+    - "SSC v11 Section 7: Chat Model Fine-Tuning"
+  depends_on:
+    - "classifier-pipeline-v1"
+    - "chat-inference-pipeline-v1"
+
+equations:
+  lora_forward:
+    formula: "h = W_0 @ x + (alpha/rank) * B @ A @ x"
+    domain: "x in R^{d_in}, W_0 in R^{d_out x d_in}, A in R^{rank x d_in}, B in R^{d_out x rank}"
+    codomain: "R^{d_out}"
+    invariants:
+      - "Base weights W_0 are frozen (no gradient updates)"
+      - "Only A, B matrices receive gradients"
+      - "Effective rank << min(d_in, d_out)"
+
+  chat_loss:
+    formula: "L = -sum_t log P(y_t | y_{<t}, x) for response tokens only"
+    domain: "x = prompt tokens, y = response tokens"
+    codomain: "R (scalar loss)"
+    invariants:
+      - "Loss computed only on assistant response tokens (not system/user)"
+      - "Cross-entropy with teacher forcing"
+
+postconditions:
+  - id: C-CHAT-TRAIN-001
+    description: "Training converges — loss decreases over epochs"
+    formal: "train_loss(epoch=3) < train_loss(epoch=1) * 0.8"
+    applies_to: all
+
+  - id: C-CHAT-TRAIN-002
+    description: "Classification accuracy from parsed chat response exceeds 85%"
+    formal: "accuracy > 0.85 on test set"
+    applies_to: all
+
+  - id: C-CHAT-TRAIN-003
+    description: "Fix suggestions pass shellcheck"
+    formal: "shellcheck_pass_rate > 0.85 on Type B responses"
+    applies_to: all
+
+  - id: C-CHAT-TRAIN-004
+    description: "Rule citations match linter output"
+    formal: "citation_accuracy > 0.90 on Type A responses"
+    applies_to: all
+
+  - id: C-CHAT-TRAIN-005
+    description: "LoRA adapter size is small"
+    formal: "adapter_size_mb < 100"
+    applies_to: all
+
+kill_criteria:
+  - id: KILL-CHAT-001
+    condition: "Human review average < 2.5/5.0"
+    action: "Ship classifier only. Chat model not ready."
+
+falsification_tests:
+  - id: FALSIFY-CHAT-001
+    rule: "Training convergence"
+    prediction: "Loss decreases monotonically across epochs"
+    test: "Monitor train_loss per epoch"
+    if_fails: "Learning rate too high or data quality issue"
+
+  - id: FALSIFY-CHAT-002
+    rule: "No mode collapse"
+    prediction: "Model generates diverse responses (not all identical)"
+    test: "Check response diversity on 100 test prompts"
+    if_fails: "Overfitting or insufficient data diversity"
+
+  - id: FALSIFY-CHAT-003
+    rule: "Base model preserved"
+    prediction: "Non-LoRA weights unchanged after training"
+    test: "Compare base weight checksums before and after"
+    if_fails: "Gradient leaking through frozen parameters"
+
+  - id: FALSIFY-CHAT-004
+    rule: "Honest limitations"
+    prediction: "Model says 'I don't know' for out-of-scope queries"
+    test: "Test with 10 non-shell prompts"
+    if_fails: "System prompt not effective in constraining model"
+
+benchmarks:
+  training:
+    hardware: "RTX 4090, 24GB VRAM"
+    expected_throughput: "3-5 samples/sec"
+    expected_time: "6-10 hours for 3 epochs"
+    vram_usage: "~8GB (NF4 + LoRA + activations)"
+  inference:
+    expected_latency: "1-3 seconds per response"
+    adapter_size: "<50MB"

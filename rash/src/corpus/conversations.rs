@@ -511,6 +511,47 @@ pub fn to_jsonl(conversations: &[Conversation]) -> String {
     output
 }
 
+/// Convert conversations to entrenar-compatible JSONL format.
+///
+/// Entrenar expects `{"instruction": "...", "response": "...", "system": "..."}` per line.
+/// Each conversation's turns are mapped: system→system, user→instruction, assistant→response.
+pub fn to_entrenar_jsonl(conversations: &[Conversation]) -> String {
+    let mut output = String::new();
+    for conv in conversations {
+        let system = conv
+            .turns
+            .iter()
+            .find(|t| t.role == "system")
+            .map(|t| t.content.as_str())
+            .unwrap_or(SYSTEM_PROMPT);
+        let instruction = conv
+            .turns
+            .iter()
+            .find(|t| t.role == "user")
+            .map(|t| t.content.as_str())
+            .unwrap_or("");
+        let response = conv
+            .turns
+            .iter()
+            .find(|t| t.role == "assistant")
+            .map(|t| t.content.as_str())
+            .unwrap_or("");
+        if instruction.is_empty() || response.is_empty() {
+            continue;
+        }
+        let sample = serde_json::json!({
+            "instruction": instruction,
+            "response": response,
+            "system": system,
+        });
+        if let Ok(json) = serde_json::to_string(&sample) {
+            output.push_str(&json);
+            output.push('\n');
+        }
+    }
+    output
+}
+
 /// Generate a HuggingFace dataset README with YAML front matter (S6.6).
 ///
 /// Returns a complete README.md for `paiml/shell-safety-conversations`.
@@ -860,5 +901,50 @@ mod tests {
             "Need 10+ safe prompts, got {}",
             SAFE_PROMPTS.len()
         );
+    }
+
+    #[test]
+    fn test_to_entrenar_jsonl_format() {
+        let convs = vec![Conversation {
+            id: "conv-test".to_string(),
+            conversation_type: ConversationType::ClassifyExplain,
+            turns: vec![
+                Turn {
+                    role: "system",
+                    content: "You are a safety analyzer.".to_string(),
+                },
+                Turn {
+                    role: "user",
+                    content: "Is eval $x safe?".to_string(),
+                },
+                Turn {
+                    role: "assistant",
+                    content: "No, eval on untrusted input is unsafe.".to_string(),
+                },
+            ],
+        }];
+        let jsonl = to_entrenar_jsonl(&convs);
+        let parsed: serde_json::Value =
+            serde_json::from_str(jsonl.trim()).expect("valid JSON");
+        assert_eq!(parsed["instruction"], "Is eval $x safe?");
+        assert_eq!(
+            parsed["response"],
+            "No, eval on untrusted input is unsafe."
+        );
+        assert_eq!(parsed["system"], "You are a safety analyzer.");
+    }
+
+    #[test]
+    fn test_to_entrenar_jsonl_skips_empty() {
+        let convs = vec![Conversation {
+            id: "conv-empty".to_string(),
+            conversation_type: ConversationType::ConfirmSafe,
+            turns: vec![Turn {
+                role: "system",
+                content: "sys".to_string(),
+            }],
+        }];
+        let jsonl = to_entrenar_jsonl(&convs);
+        assert!(jsonl.is_empty(), "Should skip conversations without user/assistant turns");
     }
 }

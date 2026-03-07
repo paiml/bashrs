@@ -549,6 +549,21 @@ fn test_PMAT158_corpus_ssc_report_has_wasm_section() {
         .stderr(predicate::str::contains("WASM App"));
 }
 
+#[test]
+fn test_CHAT001_generate_conversations_entrenar_format() {
+    bashrs_cmd()
+        .arg("corpus")
+        .arg("generate-conversations")
+        .arg("--limit")
+        .arg("3")
+        .arg("--entrenar")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"instruction\""))
+        .stdout(predicate::str::contains("\"response\""))
+        .stdout(predicate::str::contains("\"system\""));
+}
+
 // ============================================================================
 // bashrs corpus train-classifier (CLF-RUN step 2-3)
 // ============================================================================

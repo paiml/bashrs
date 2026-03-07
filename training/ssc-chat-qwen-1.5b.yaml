@@ -1,0 +1,59 @@
+entrenar: "1.0"
+
+name: ssc-chat-qwen-1.5b
+version: "1.0.0"
+description: >
+  Shell Safety Classifier chat model — Qwen2.5-Coder-1.5B-Instruct fine-tuned
+  with LoRA on 17,942 synthetic conversations from bashrs corpus (SSC v11 S7).
+  Binary classification + explanation + fix suggestions for shell scripts.
+
+seed: 42
+
+model:
+  source: "Qwen/Qwen2.5-Coder-1.5B-Instruct"
+  format: safetensors
+  device: "cuda"
+  dtype: "bfloat16"
+  architecture:
+    type: transformer
+    hidden_size: 1536
+    num_layers: 28
+    num_heads: 12
+    num_kv_heads: 2
+    intermediate_size: 8960
+    vocab_size: 151936
+    max_seq_length: 2048
+    rope_theta: 1000000.0
+
+data:
+  train: "/home/noah/src/bashrs/training/conversations.jsonl"
+  batch_size: 4
+
+optimizer:
+  name: "adamw"
+  lr: 0.0002
+
+scheduler:
+  name: "cosine"
+
+training:
+  epochs: 3
+  gradient_accumulation: 4
+  max_seq_length: 2048
+
+lora:
+  enabled: true
+  rank: 16
+  alpha: 32.0
+  target_modules: [q_proj, v_proj]
+  quantize_base: true
+  quantize_bits: 4
+  quant_type: nf4
+
+output:
+  dir: "training/checkpoints/ssc-chat-v1"
+  save_every: 500
+
+publish:
+  repo: "paiml/shell-safety-chat"
+  private: false
