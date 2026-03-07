@@ -1,6 +1,6 @@
 metadata:
   version: "1.0.0"
-  description: "Chat model training — Qwen2.5-Coder-1.5B-Instruct LoRA fine-tuning on shell safety conversations"
+  description: "Chat model training — Qwen2.5-Coder-0.5B-Instruct LoRA fine-tuning on shell safety conversations"
   references:
     - "Hu et al. (2021) LoRA: Low-Rank Adaptation of Large Language Models"
     - "SSC v11 Section 7: Chat Model Fine-Tuning"
@@ -84,10 +84,13 @@ falsification_tests:
 
 benchmarks:
   training:
-    hardware: "RTX 4090, 24GB VRAM"
-    expected_throughput: "3-5 samples/sec"
-    expected_time: "6-10 hours for 3 epochs"
-    vram_usage: "~8GB (NF4 + LoRA + activations)"
+    hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
+    model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
+    throughput: "2750 tok/s, MFU 9.9%"
+    expected_time: "~2.7 hours for 3 epochs"
+    vram_usage: "~10GB (f32 weights + optimizer states + activations)"
+    step_time: "~700ms per batch (seq_len=512, batch_size=4)"
+    note: "1.5B model OOM'd — f32 optimizer states exceed 24GB; NF4 not bridged in entrenar"
   inference:
     expected_latency: "1-3 seconds per response"
     adapter_size: "<50MB"

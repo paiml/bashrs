@@ -7,7 +7,7 @@
 **Stack**: bashrs + aprender + entrenar + trueno + realizador (Rust only, no Python)
 **HuggingFace Repos**:
   - `paiml/shell-safety-classifier` (CodeBERT binary classifier)
-  - `paiml/shell-safety-chat` (Qwen-1.5B LoRA chat adapter)
+  - `paiml/shell-safety-chat` (Qwen-0.5B LoRA chat adapter)
   - `paiml/shell-safety-conversations` (synthetic training dataset)
 **Prior art**: `shell-safety-inference-v1-v3-archive.md` (v1-v3 history)
 
@@ -39,7 +39,7 @@ Stage 2: Synthetic conversation generation
   - Generate ~50K instruction conversations in Rust
   - Purpose: training data for chat model
 
-Stage 3: Qwen2.5-Coder-1.5B-Instruct + LoRA (student)
+Stage 3: Qwen2.5-Coder-0.5B-Instruct + LoRA (student)
   - Chat model that classifies, explains, suggests fixes
   - Purpose: interactive developer tool
 ```
@@ -540,21 +540,23 @@ safety reasoning. The model card MUST state:
 
 ### 7.1 Base Model
 
-Qwen2.5-Coder-1.5B-Instruct. Already works in entrenar. Code-aware, chat-native.
+Qwen2.5-Coder-0.5B-Instruct. Code-aware, chat-native. Fits in 24GB with full f32
+optimizer states (1.5B OOM'd — entrenar doesn't yet support NF4 base quantization in bridge).
 
 ### 7.2 Configuration
 
 | Parameter | Value |
 |-----------|-------|
-| Base model | Qwen2.5-Coder-1.5B-Instruct |
+| Base model | Qwen2.5-Coder-0.5B-Instruct (896h, 24L, 14 heads) |
 | LoRA rank | 16, alpha = 32 |
 | LoRA targets | Q + V projections |
 | Trainable params | ~2M |
-| Training data | ~50K conversations |
+| Training data | 17,942 conversations (ChatML format) |
 | Epochs | 3 |
-| Optimizer | AdamW, lr=2e-4 |
-| Format | ChatML (Qwen native) |
-| Hardware | RTX 4090, CUDA |
+| Optimizer | AdamW, lr=2e-4, grad_accum=4 |
+| Format | ChatML (`<\|im_start\|>` tags, Qwen native) |
+| Sequence length | 512 tokens |
+| Hardware | RTX 4090, CUDA 12.8, ~12GB VRAM |
 
 ### 7.3 Evaluation
 
@@ -678,11 +680,14 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - WASM-005 (IndexedDB caching) cancelled — no model to cache in browser.
   - PRB-002/003/004 cancelled — no CodeBERT WASM to test in browser.
 - **CHAT-001 COMPLETE**: Training manifest, entrenar-format JSONL export (`--entrenar` flag), provable contract
-  - 17,942 conversations (17MB JSONL) in entrenar format (instruction/response/system)
-  - Training manifest: `training/ssc-chat-qwen-1.5b.yaml` — Qwen2.5-Coder-1.5B-Instruct, LoRA rank=16, alpha=32, Q+V
+  - 17,942 conversations (25MB JSONL) in entrenar ChatML format (`text` field with `<|im_start|>` tags)
+  - Training manifest: `training/ssc-chat-qwen-0.5b.yaml` — Qwen2.5-Coder-0.5B-Instruct, LoRA rank=16, alpha=32, Q+V
   - Provable contract: `chat-model-training-v1.yaml` — 5 postconditions, 4 falsification tests, 1 kill criterion
   - entrenar dry-run validated, batch_size=4, gradient_accumulation=4, NF4 quantization
-- **CHAT-002 IN PROGRESS**: Fine-tuning launched on RTX 4090 (CUDA 12.8, ~10GB free VRAM)
+- **CHAT-002 IN PROGRESS**: Fine-tuning running on RTX 4090 (CUDA 12.8, 88% GPU util, 12GB/24GB VRAM)
+  - Qwen2.5-Coder-0.5B-Instruct (downgraded from 1.5B — f32 optimizer states OOM'd on 1.5B)
+  - 4,486 batches × 3 epochs, seq_len=512, batch_size=4, grad_accum=4, ~1107 tok/s
+  - Checkpoints saving to `training/checkpoints/ssc-chat-v1/` (pruned to latest 5)
 - **Remaining**: CHAT-002 completion, CHAT-003 evaluation, CHAT-004 publish
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
@@ -1557,8 +1562,8 @@ jobs:
 
 | Task | Time | Status |
 |------|------|--------|
-| CHAT-001: Configure Qwen-1.5B LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
-| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 6-10 hrs | In Progress (training launched on RTX 4090) |
+| CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
+| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 6-10 hrs | In Progress (Qwen-0.5B on CUDA, 88% util, ~1107 tok/s) |
 | CHAT-003: Evaluate + human review | 4 hrs | Blocked (requires CHAT-002) |
 | CHAT-004: Publish | 1 hr | Blocked (requires CHAT-003) |
 

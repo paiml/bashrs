@@ -1,34 +1,34 @@
 entrenar: "1.0"
 
-name: ssc-chat-qwen-1.5b
+name: ssc-chat-qwen-0.5b
 version: "1.0.0"
 description: >
-  Shell Safety Classifier chat model — Qwen2.5-Coder-1.5B-Instruct fine-tuned
+  Shell Safety Classifier chat model — Qwen2.5-Coder-0.5B-Instruct fine-tuned
   with LoRA on 17,942 synthetic conversations from bashrs corpus (SSC v11 S7).
   Binary classification + explanation + fix suggestions for shell scripts.
 
 seed: 42
 
 model:
-  source: "/home/noah/models/qwen2.5-coder-1.5b-instruct-safetensors/"
+  source: "/home/noah/models/qwen2.5-coder-0.5b-instruct-safetensors/"
   format: safetensors
   device: "cuda"
   dtype: "bfloat16"
   architecture:
     type: transformer
-    hidden_size: 1536
-    num_layers: 28
-    num_heads: 12
+    hidden_size: 896
+    num_layers: 24
+    num_heads: 14
     num_kv_heads: 2
-    intermediate_size: 8960
+    intermediate_size: 4864
     vocab_size: 151936
-    max_seq_length: 2048
+    max_seq_length: 512
     rope_theta: 1000000.0
 
 data:
   train: "/home/noah/src/bashrs/training/conversations.jsonl"
-  tokenizer: "/home/noah/models/qwen2.5-coder-1.5b-instruct-safetensors/tokenizer.json"
-  seq_len: 2048
+  tokenizer: "/home/noah/models/qwen2.5-coder-0.5b-instruct-safetensors/tokenizer.json"
+  seq_len: 512
   input_column: "text"
   loader:
     batch_size: 4
@@ -44,7 +44,9 @@ scheduler:
 training:
   epochs: 3
   gradient_accumulation: 4
-  max_seq_length: 2048
+  max_seq_length: 512
+  checkpoint:
+    save_every: 500
 
 lora:
   enabled: true
