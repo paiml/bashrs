@@ -647,7 +647,15 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - Without `ml` feature: helpful error guiding to `--features ml`
   - Provable contract: `chat-inference-pipeline-v1.yaml` with 5 falsification tests
 - **Phase 4 CLI-003 COMPLETE**: 49 assert_cmd integration tests (6 new CLI-002 tests)
-- **Remaining**: Qwen chat model training (Phase 3, requires GPU), WASM app (presentar), Probar tests (jugar-probar)
+- **Phase 5 WASM-001 COMPLETE**: `bashrs-wasm` crate (1.5MB release, 9 tests, wasm32-unknown-unknown)
+  - lint_shell_wasm, lint_makefile_wasm, lint_dockerfile_wasm, classify_shell_wasm, explain_shell_wasm
+  - Feature-gated optional deps (rustyline, rand, sysinfo) for minimal WASM build
+  - Provable contract: `wasm-linter-v1.yaml` with 6 falsification tests
+- **Phase 5 WASM-003 COMPLETE**: `shell-safety.html` interactive app
+  - Split-pane editor with Bash/Makefile/Dockerfile support
+  - Real-time classification + diagnostics with 150ms debounce
+  - Fix suggestions from explain API
+- **Remaining**: Qwen chat model training (Phase 3, GPU), WASM-002/004/005/006 (CodeBERT in browser), Probar tests
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
