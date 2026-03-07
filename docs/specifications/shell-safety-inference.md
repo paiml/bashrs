@@ -1646,20 +1646,20 @@ Phases 1-4 reuse existing infrastructure.
 |----------|--------------|
 | C-WASM-001 | WASM binary < 5MB (excluding model weights) |
 | C-WASM-002 | Linter runs on keystroke < 10ms |
-| C-WASM-003 | Classifier inference < 500ms in browser (WebGPU) |
-| C-WASM-004 | Model weights cached in IndexedDB after first load |
-| C-WASM-005 | Zero network calls after initial model download |
+| C-WASM-003 | ~~Classifier inference < 500ms in browser (WebGPU)~~ KILL-5 triggered: 2.7s native |
+| C-WASM-004 | ~~Model weights cached in IndexedDB after first load~~ Cancelled (KILL-5) |
+| C-WASM-005 | ~~Zero network calls after initial model download~~ N/A (no model in browser) |
 
 ### Probar Testing (WASM + LLM Correctness + Performance)
 
 | Contract | Postcondition |
 |----------|--------------|
 | C-PRB-001 | Layer 1 (logic): 12 WASM tests pass without browser |
-| C-PRB-002 | Layer 2 (browser): Chrome + Firefox + WebKit all pass via Docker |
+| C-PRB-002 | ~~Layer 2 (browser): Chrome + Firefox + WebKit all pass via Docker~~ Deferred (Docker infra) |
 | C-PRB-003 | Layer 3 (performance): All 6 budgets met (linter <10ms, classifier <500ms, memory <200MB, load <5s, tokenizer <5ms, pipeline <600ms) |
-| C-PRB-004 | LLM correctness: No NaN/Inf in embeddings for any corpus sample |
-| C-PRB-005 | LLM correctness: High-confidence (>0.9) predictions >85% accurate |
-| C-PRB-006 | LLM correctness: WASM output matches native reference within 1% |
+| C-PRB-004 | ~~LLM correctness: No NaN/Inf in embeddings~~ Cancelled (KILL-5, no CodeBERT in WASM) |
+| C-PRB-005 | ~~LLM correctness: High-confidence predictions~~ Cancelled (KILL-5) |
+| C-PRB-006 | ~~LLM correctness: WASM/native parity~~ Cancelled (KILL-5) |
 | C-PRB-007 | Determinism: Repeated classify calls produce bit-identical results |
 
 ---
