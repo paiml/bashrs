@@ -20,11 +20,12 @@
 //!
 //! Gates: A < 60% → B-G = 0; schema_invalid → score = 0; B_L1 fail → B_L2/B_L3 = 0
 
+#[cfg(feature = "rand")]
 pub mod adversarial_generator;
 pub mod adversarial_templates;
 pub mod baselines;
-pub mod classifier;
 pub mod citl;
+pub mod classifier;
 pub mod contract_validation;
 pub mod convergence;
 pub mod conversations;

@@ -4,6 +4,7 @@
 //! (non-deterministic, non-idempotent, unsafe, needs-quoting), verified against the
 //! existing `derive_safety_label` heuristic for self-consistency.
 
+#[cfg(feature = "clap")]
 use crate::cli::args::ClassifyFormat;
 use crate::corpus::adversarial_templates::{
     self, AdversarialTemplate, COMMENTS, SETUP_LINES, SHEBANGS, TRAILING_LINES,
@@ -207,6 +208,7 @@ fn expand_template(rng: &mut ChaCha8Rng, template: &AdversarialTemplate) -> Stri
 ///
 /// Uses the same `analyze_lint` + `derive_safety_label` pipeline as the
 /// classify command to ensure self-consistency.
+#[cfg(feature = "clap")]
 fn verify_classification(script: &str, expected_class: u8) -> bool {
     use crate::cli::commands::classify_cmds::analyze_lint;
     use crate::corpus::dataset::derive_safety_label;
@@ -221,6 +223,12 @@ fn verify_classification(script: &str, expected_class: u8) -> bool {
     let actual_class = derive_safety_label(script, true, lint_clean, deterministic);
 
     actual_class == expected_class
+}
+
+/// Stub when classify CLI is not available (minimal build).
+#[cfg(not(feature = "clap"))]
+fn verify_classification(_script: &str, _expected_class: u8) -> bool {
+    true
 }
 
 /// Format generation statistics as a human-readable report.

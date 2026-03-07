@@ -286,7 +286,11 @@ fn ml_classify_with_probe(source: &str, probe_path: &Path, model_path: &Path) ->
 
 /// Run Stage 1 classification using MLP probe on CodeBERT embeddings.
 #[allow(unused_variables)]
-fn ml_classify_with_mlp_probe(source: &str, probe_path: &Path, model_path: &Path) -> Option<(u8, f64)> {
+fn ml_classify_with_mlp_probe(
+    source: &str,
+    probe_path: &Path,
+    model_path: &Path,
+) -> Option<(u8, f64)> {
     let weights = crate::corpus::classifier::load_mlp_probe(probe_path).ok()?;
 
     #[cfg(not(feature = "ml"))]

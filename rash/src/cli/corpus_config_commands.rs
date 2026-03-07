@@ -1069,9 +1069,8 @@ pub(crate) fn corpus_publish_conversations(output: PathBuf, seed: u64) -> Result
     // Write conversations JSONL
     let jsonl = to_jsonl(&conversations);
     let jsonl_path = output.join("conversations.jsonl");
-    std::fs::write(&jsonl_path, &jsonl).map_err(|e| {
-        Error::Validation(format!("Failed to write {}: {e}", jsonl_path.display()))
-    })?;
+    std::fs::write(&jsonl_path, &jsonl)
+        .map_err(|e| Error::Validation(format!("Failed to write {}: {e}", jsonl_path.display())))?;
 
     // Write dataset README
     let readme = generate_dataset_readme(&report);
@@ -1119,18 +1118,25 @@ pub(crate) fn corpus_publish_conversations(output: PathBuf, seed: u64) -> Result
 ///
 /// Non-zero labels are mapped to 1 (unsafe) for binary classification.
 #[cfg(feature = "ml")]
-fn load_classification_jsonl(path: &Path) -> Result<Vec<crate::corpus::dataset::ClassificationRow>> {
+fn load_classification_jsonl(
+    path: &Path,
+) -> Result<Vec<crate::corpus::dataset::ClassificationRow>> {
     use crate::corpus::dataset::ClassificationRow;
 
     let content = std::fs::read_to_string(path)
         .map_err(|e| Error::Validation(format!("Cannot read {}: {e}", path.display())))?;
 
     #[derive(serde::Deserialize)]
-    struct RawEntry { input: String, label: u8 }
+    struct RawEntry {
+        input: String,
+        label: u8,
+    }
 
     let mut entries = Vec::new();
     for line in content.lines() {
-        if line.trim().is_empty() { continue; }
+        if line.trim().is_empty() {
+            continue;
+        }
         match serde_json::from_str::<RawEntry>(line) {
             Ok(e) => entries.push(ClassificationRow {
                 input: e.input,
@@ -1167,7 +1173,11 @@ pub(crate) fn corpus_extract_embeddings(
 
         let mut rows: Vec<ClassificationRow> = if let Some(ref jsonl_path) = input_jsonl {
             let entries = load_classification_jsonl(jsonl_path)?;
-            eprintln!("  Input JSONL: {} entries from {}", entries.len(), jsonl_path.display());
+            eprintln!(
+                "  Input JSONL: {} entries from {}",
+                entries.len(),
+                jsonl_path.display()
+            );
             entries
         } else {
             use crate::corpus::baselines::corpus_baseline_entries;
@@ -1187,18 +1197,27 @@ pub(crate) fn corpus_extract_embeddings(
 
         // Extract with streaming writes (one entry at a time to disk)
         let start = std::time::Instant::now();
-        let report = extract_embeddings_streaming(&model, &rows, &output, &|i, total, elapsed_ms| {
-            let rate = if elapsed_ms > 0 { (i as f64 / elapsed_ms as f64) * 1000.0 } else { 0.0 };
-            let eta_s = if rate > 0.0 { ((total - i) as f64 / rate) as u64 } else { 0 };
-            eprintln!(
-                "  [{i}/{total}] {:.1}% | {:.2} entries/s | ETA: {}m {}s",
-                100.0 * i as f64 / total as f64,
-                rate,
-                eta_s / 60,
-                eta_s % 60,
-            );
-        })
-        .map_err(Error::Validation)?;
+        let report =
+            extract_embeddings_streaming(&model, &rows, &output, &|i, total, elapsed_ms| {
+                let rate = if elapsed_ms > 0 {
+                    (i as f64 / elapsed_ms as f64) * 1000.0
+                } else {
+                    0.0
+                };
+                let eta_s = if rate > 0.0 {
+                    ((total - i) as f64 / rate) as u64
+                } else {
+                    0
+                };
+                eprintln!(
+                    "  [{i}/{total}] {:.1}% | {:.2} entries/s | ETA: {}m {}s",
+                    100.0 * i as f64 / total as f64,
+                    rate,
+                    eta_s / 60,
+                    eta_s % 60,
+                );
+            })
+            .map_err(Error::Validation)?;
 
         let elapsed = start.elapsed();
         eprintln!(
@@ -1237,13 +1256,20 @@ pub(crate) fn corpus_train_classifier(
         evaluate_probe, load_embeddings, save_probe, split_embeddings, train_linear_probe,
     };
 
-    let probe_type = if mlp { format!("MLP probe (hidden={mlp_hidden})") } else { "linear probe".into() };
+    let probe_type = if mlp {
+        format!("MLP probe (hidden={mlp_hidden})")
+    } else {
+        "linear probe".into()
+    };
     eprintln!("{BOLD}Training {probe_type} classifier...{RESET}");
 
     // Load cached embeddings
-    let mut all_embeddings = load_embeddings(&embeddings_path)
-        .map_err(Error::Validation)?;
-    eprintln!("  Loaded {} embeddings from {}", all_embeddings.len(), embeddings_path.display());
+    let mut all_embeddings = load_embeddings(&embeddings_path).map_err(Error::Validation)?;
+    eprintln!(
+        "  Loaded {} embeddings from {}",
+        all_embeddings.len(),
+        embeddings_path.display()
+    );
 
     // Cap entries if --max-entries specified (avoids data labeling gaps, see #171)
     if let Some(max) = max_entries {
@@ -1256,7 +1282,11 @@ pub(crate) fn corpus_train_classifier(
     // Augment with additional embedding files (e.g. adversarial entries)
     for aug_path in &augment {
         let aug = load_embeddings(aug_path).map_err(Error::Validation)?;
-        eprintln!("  Augmenting with {} entries from {}", aug.len(), aug_path.display());
+        eprintln!(
+            "  Augmenting with {} entries from {}",
+            aug.len(),
+            aug_path.display()
+        );
         all_embeddings.extend(aug);
     }
 
@@ -1270,7 +1300,8 @@ pub(crate) fn corpus_train_classifier(
         .map_err(|e| Error::Validation(format!("Cannot create {}: {e}", output.display())))?;
 
     let test_report = if mlp {
-        let (mlp_weights, report) = train_and_evaluate_mlp(&train, &test, epochs, learning_rate, mlp_hidden)?;
+        let (mlp_weights, report) =
+            train_and_evaluate_mlp(&train, &test, epochs, learning_rate, mlp_hidden)?;
         // Save MLP weights
         let mlp_json = serde_json::to_string_pretty(&mlp_weights)
             .map_err(|e| Error::Validation(format!("Serialize MLP: {e}")))?;
@@ -1279,10 +1310,13 @@ pub(crate) fn corpus_train_classifier(
         report
     } else {
         let probe = train_linear_probe(&train, epochs, learning_rate);
-        eprintln!("  Train accuracy: {:.1}% | Train MCC: {:.3}", probe.train_accuracy * 100.0, probe.train_mcc);
+        eprintln!(
+            "  Train accuracy: {:.1}% | Train MCC: {:.3}",
+            probe.train_accuracy * 100.0,
+            probe.train_mcc
+        );
         let report = evaluate_probe(&probe, &test);
-        save_probe(&probe, &output.join("probe.json"))
-            .map_err(Error::Validation)?;
+        save_probe(&probe, &output.join("probe.json")).map_err(Error::Validation)?;
         report
     };
 
@@ -1292,9 +1326,13 @@ pub(crate) fn corpus_train_classifier(
     eprintln!("  Recall:    {:.3}", test_report.recall);
     eprintln!("  F1:        {:.3}", test_report.f1);
     eprintln!("  MCC:       {:.3}", test_report.mcc);
-    eprintln!("  Confusion: TP={} FP={} TN={} FN={}",
-        test_report.confusion.tp, test_report.confusion.fp,
-        test_report.confusion.tn, test_report.confusion.fn_);
+    eprintln!(
+        "  Confusion: TP={} FP={} TN={} FN={}",
+        test_report.confusion.tp,
+        test_report.confusion.fp,
+        test_report.confusion.tn,
+        test_report.confusion.fn_
+    );
 
     // Save evaluation
     let eval_json = serde_json::to_string_pretty(&test_report)
@@ -1306,18 +1344,27 @@ pub(crate) fn corpus_train_classifier(
     let beats_keyword = test_report.mcc > 0.3;
     let beats_linter = test_report.mcc > 0.4;
     eprintln!("\n{BOLD}Ship Gate C-CLF-001:{RESET}");
-    eprintln!("  Beats keyword baseline (MCC>0.3): {}", if beats_keyword {
-        format!("{GREEN}PASS{RESET}")
-    } else {
-        format!("{RED}FAIL{RESET}")
-    });
-    eprintln!("  Beats linter baseline (MCC>0.4): {}", if beats_linter {
-        format!("{GREEN}PASS{RESET}")
-    } else {
-        format!("{RED}FAIL{RESET}")
-    });
+    eprintln!(
+        "  Beats keyword baseline (MCC>0.3): {}",
+        if beats_keyword {
+            format!("{GREEN}PASS{RESET}")
+        } else {
+            format!("{RED}FAIL{RESET}")
+        }
+    );
+    eprintln!(
+        "  Beats linter baseline (MCC>0.4): {}",
+        if beats_linter {
+            format!("{GREEN}PASS{RESET}")
+        } else {
+            format!("{RED}FAIL{RESET}")
+        }
+    );
 
-    eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}Classifier artifacts saved to {}{RESET}", output.display());
+    eprintln!(
+        "\n{GREEN}\u{2713}{RESET} {BOLD}Classifier artifacts saved to {}{RESET}",
+        output.display()
+    );
 
     Ok(())
 }
@@ -1330,10 +1377,14 @@ fn train_and_evaluate_mlp(
     epochs: usize,
     learning_rate: f32,
     mlp_hidden: usize,
-) -> Result<(crate::corpus::classifier::MlpProbeWeights, crate::corpus::evaluation::EvaluationReport)> {
+) -> Result<(
+    crate::corpus::classifier::MlpProbeWeights,
+    crate::corpus::evaluation::EvaluationReport,
+)> {
     use entrenar::finetune::MlpProbe;
 
-    let hidden_size = train.first()
+    let hidden_size = train
+        .first()
         .map(|e| e.embedding.len())
         .ok_or_else(|| Error::Validation("No training embeddings".into()))?;
 
@@ -1349,20 +1400,38 @@ fn train_and_evaluate_mlp(
     } else {
         vec![1.0, 1.0]
     };
-    eprintln!("  Class weights: safe={:.3}, unsafe={:.3}", class_weights[0], class_weights[1]);
+    eprintln!(
+        "  Class weights: safe={:.3}, unsafe={:.3}",
+        class_weights[0], class_weights[1]
+    );
 
     let mut mlp = MlpProbe::new(hidden_size, mlp_hidden, 2);
-    eprintln!("  Parameters: {} ({} hidden)", mlp.num_parameters(), mlp_hidden);
-    mlp.train(&embeddings, &labels, epochs, learning_rate, Some(&class_weights), 1e-4);
+    eprintln!(
+        "  Parameters: {} ({} hidden)",
+        mlp.num_parameters(),
+        mlp_hidden
+    );
+    mlp.train(
+        &embeddings,
+        &labels,
+        epochs,
+        learning_rate,
+        Some(&class_weights),
+        1e-4,
+    );
 
     // Evaluate on train
-    let train_correct = embeddings.iter().zip(labels.iter())
-        .filter(|(e, &l)| mlp.predict(e) == l).count();
+    let train_correct = embeddings
+        .iter()
+        .zip(labels.iter())
+        .filter(|(e, &l)| mlp.predict(e) == l)
+        .count();
     let train_acc = train_correct as f64 / labels.len().max(1) as f64;
     eprintln!("  Train accuracy: {:.1}%", train_acc * 100.0);
 
     // Evaluate on test: build (pred, truth) pairs for evaluate()
-    let predictions: Vec<(u8, u8)> = test.iter()
+    let predictions: Vec<(u8, u8)> = test
+        .iter()
         .map(|e| (mlp.predict(&e.embedding) as u8, e.label))
         .collect();
     let report = crate::corpus::evaluation::evaluate(&predictions, "MLP probe");
@@ -1391,7 +1460,10 @@ fn train_and_evaluate_mlp(
     _epochs: usize,
     _lr: f32,
     _mlp_hidden: usize,
-) -> Result<(crate::corpus::classifier::MlpProbeWeights, crate::corpus::evaluation::EvaluationReport)> {
+) -> Result<(
+    crate::corpus::classifier::MlpProbeWeights,
+    crate::corpus::evaluation::EvaluationReport,
+)> {
     Err(Error::Validation("MLP probe requires --features ml".into()))
 }
 
@@ -1437,8 +1509,7 @@ pub(crate) fn corpus_run_classifier(
             .map_err(Error::Validation)?;
 
         // Save probe weights
-        save_probe(&report.probe, &output.join("probe.json"))
-            .map_err(Error::Validation)?;
+        save_probe(&report.probe, &output.join("probe.json")).map_err(Error::Validation)?;
 
         // Save evaluation report
         let eval_json = serde_json::to_string_pretty(&report.test_eval)
@@ -1455,18 +1526,27 @@ pub(crate) fn corpus_run_classifier(
         eprintln!("Test F1:        {:.3}", report.test_eval.f1);
         eprintln!();
         eprintln!("{BOLD}Ship Gate C-CLF-001:{RESET}");
-        eprintln!("  Beats keyword (MCC>0.3): {}", if report.beats_keyword {
-            format!("{GREEN}PASS{RESET}")
-        } else {
-            format!("{RED}FAIL{RESET}")
-        });
-        eprintln!("  Beats linter (MCC>0.4): {}", if report.beats_linter {
-            format!("{GREEN}PASS{RESET}")
-        } else {
-            format!("{RED}FAIL{RESET}")
-        });
+        eprintln!(
+            "  Beats keyword (MCC>0.3): {}",
+            if report.beats_keyword {
+                format!("{GREEN}PASS{RESET}")
+            } else {
+                format!("{RED}FAIL{RESET}")
+            }
+        );
+        eprintln!(
+            "  Beats linter (MCC>0.4): {}",
+            if report.beats_linter {
+                format!("{GREEN}PASS{RESET}")
+            } else {
+                format!("{RED}FAIL{RESET}")
+            }
+        );
 
-        eprintln!("\n{GREEN}\u{2713}{RESET} {BOLD}All artifacts saved to {}{RESET}", output.display());
+        eprintln!(
+            "\n{GREEN}\u{2713}{RESET} {BOLD}All artifacts saved to {}{RESET}",
+            output.display()
+        );
 
         Ok(())
     }

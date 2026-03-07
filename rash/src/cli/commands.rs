@@ -89,10 +89,10 @@ use purify_cmds::{purify_command, PurifyCommandOptions};
 use simulate_cmds::simulate_command;
 #[path = "adversarial_commands.rs"]
 mod adversarial_cmds;
-#[path = "classify_commands.rs"]
-pub(crate) mod classify_cmds;
 #[path = "chat_inference.rs"]
 pub(crate) mod chat_inference;
+#[path = "classify_commands.rs"]
+pub(crate) mod classify_cmds;
 #[path = "explain_command.rs"]
 mod explain_cmds;
 #[path = "fix_command.rs"]
@@ -451,7 +451,13 @@ fn dispatch_analysis(
             assumptions,
             output,
             chat_model,
-        } => fix_cmds::fix_command(&input, dry_run, assumptions, output.as_deref(), chat_model.as_deref()),
+        } => fix_cmds::fix_command(
+            &input,
+            dry_run,
+            assumptions,
+            output.as_deref(),
+            chat_model.as_deref(),
+        ),
         Commands::Classify {
             input,
             json,
