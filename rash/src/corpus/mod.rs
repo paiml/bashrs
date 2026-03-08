@@ -37,6 +37,7 @@ pub mod dataset;
 pub mod domain_categories;
 #[allow(clippy::expect_used)] // Error dedup uses expect() for internal invariants
 pub mod error_dedup;
+pub mod eval_harness;
 pub mod evaluation;
 pub mod generalization_tests;
 pub mod graph_priority;
