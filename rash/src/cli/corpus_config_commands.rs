@@ -122,15 +122,16 @@ pub(crate) fn corpus_label(input: PathBuf, output: Option<PathBuf>) -> Result<()
         let entry: serde_json::Value = serde_json::from_str(&line)
             .map_err(|e| Error::Validation(format!("Invalid JSON on line {}: {e}", total + 1)))?;
 
-        // Extract script text from "script", "text", or "input" field
+        // Extract script text from "script", "text", "input", or "unsafe_script" field
         let script = entry
             .get("script")
             .or_else(|| entry.get("text"))
             .or_else(|| entry.get("input"))
+            .or_else(|| entry.get("unsafe_script"))
             .and_then(|v| v.as_str())
             .ok_or_else(|| {
                 Error::Validation(format!(
-                    "Line {}: missing 'script', 'text', or 'input' field",
+                    "Line {}: missing 'script', 'text', 'input', or 'unsafe_script' field",
                     total + 1
                 ))
             })?;
