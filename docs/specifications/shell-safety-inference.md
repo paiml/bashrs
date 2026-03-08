@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.8.0
-**Status**: TRAINING IN PROGRESS — Run 7 Qwen3-4B NF4 QLoRA active (9.9GB VRAM, 1672 tok/s), entrenar#262+#263 fixed, 27,842 entries
+**Version**: 12.9.0
+**Status**: TRAINING IN PROGRESS — Run 7b Qwen3-4B NF4 QLoRA (restarted with LoRA fix), entrenar#262+#263+#264 fixed, loss=17.9 at step 27
 **Author**: paiml engineering
 **Date**: 2026-03-08
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -2678,3 +2678,4 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.6** | **2026-03-08** | **Data pipeline complete (Steps 7.1-7.4e DONE): (1) merge-data command with schema normalization (verificar→conversation format); (2) export-splits --input for fast path on merged JSONL; (3) balanced splits: 22,169/2,738/2,935 at 21.1% unsafe (vs 0.8% corpus-only); (4) 100% valid JSON, 0 cross-source dupes; (5) 11 FALSIFY contract tests; (6) 68 SSC CLI integration tests.** |
 | **12.7** | **2026-03-08** | **Training infrastructure (Step 7.5): (1) Training config aligned to entrenar TrainSpec schema (`model.path`, `training.mode`, `training.output_dir`); (2) Fixed stale `train-balanced.jsonl` refs → `train.jsonl` across pipeline/QA/spec; (3) `apr train plan` dry-run PASSES; (4) entrenar#262 fixed: Qwen3-4B q_proj shape mismatch (head_dim*num_heads≠hidden_size), 7 new tests; (5) entrenar#263 filed: NF4 quantization not applied; (6) QLoRA training contract `qwen3-4b-qlora-training-v1.yaml` with 8 FALSIFY tests; (7) Book chapter `advanced/shellsafetybench.md` added.** |
 | **12.8** | **2026-03-08** | **Training running (Step 7.6): (1) entrenar#263 FIXED: NF4+LoRA in CudaTransformerTrainer pretrain path — CudaNf4TransformerBlock with LoRA adapters, backward_nf4()+lora_optimizer_step(), 10 new tests; (2) Training config uses model config.json for proper head_dim=128; (3) Run 7 RUNNING: Qwen3-4B NF4 QLoRA on RTX 4090, 9.9GB VRAM, 1672 tok/s, 5543 steps/epoch; (4) Loss reporting fix pending (gradients flow correctly, loss value not captured in NF4 path).** |
+| **12.9** | **2026-03-08** | **Training restarted (Step 7.6b): (1) entrenar#264 FIXED: NF4 LoRA weights never updated with gradient_accumulation > 1 — optimizer was gated behind `if !accumulate_only`, always false for micro-batches; (2) Fix: run LoRA optimizer every micro-batch with lr/accumulation_steps; (3) Run 7 killed (LoRA frozen), Run 7b started with fix; (4) Loss now reported correctly: 17.9 at step 27 (expected for fresh LoRA on 151K vocab); (5) Training: 1432 tok/s, 9.9GB VRAM, warmup ramping LR from 6.5e-6 → 5e-5.** |
