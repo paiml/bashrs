@@ -1425,6 +1425,13 @@ pub enum CorpusCommands {
     /// Run baseline classifiers: majority, keyword regex, linter (SSC v11 S5.5)
     Baselines,
 
+    /// Show CWE taxonomy mapping for all linter rules (SSC v12 S14.2)
+    CweMapping {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Audit safety label accuracy (SSC v11 S5.3, C-LABEL-001)
     LabelAudit {
         /// Maximum unsafe entries to audit (default: 100)

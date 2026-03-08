@@ -323,6 +323,9 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         ),
         // SSC v11 baselines and validation
         CorpusCommands::Baselines => super::corpus_config_commands::corpus_baselines(),
+        CorpusCommands::CweMapping { json } => {
+            super::corpus_config_commands::corpus_cwe_mapping(json)
+        }
         CorpusCommands::LabelAudit { limit } => {
             super::corpus_config_commands::corpus_label_audit(limit)
         }

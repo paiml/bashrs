@@ -1,0 +1,199 @@
+# configs/cwe-mapping.yaml — CWE taxonomy mapping for bashrs linter rules
+#
+# Maps each bashrs linter rule to MITRE CWE ID, CVSS v3.1 base score,
+# and OWASP category. Used by:
+#   - ShellSafetyBench benchmark export (S14.4)
+#   - Eval harness CWE scoring metric (S14.5)
+#   - Model card / dataset card generation
+#
+# Sources:
+#   - CWE IDs: https://cwe.mitre.org/
+#   - CVSS v3.1: https://www.first.org/cvss/calculator/3.1
+#   - bashrs rules: rash/src/linter/rules/
+
+version: "1.0"
+name: bashrs-cwe-mapping
+
+rules:
+  # ── Security Rules (SEC) ──────────────────────────────────────────
+  - rule: SEC001
+    pattern: "Unquoted variable expansion"
+    cwe: CWE-78
+    cvss_score: 7.8
+    cvss_severity: High
+    cvss_vector: "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H"
+    owasp: "OS Command Injection"
+    description: >
+      Unquoted variable in command context allows word splitting and glob
+      expansion, enabling injection of arbitrary commands via crafted input.
+
+  - rule: SEC002
+    pattern: "eval usage"
+    cwe: CWE-94
+    cvss_score: 8.8
+    cvss_severity: High
+    cvss_vector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+    owasp: "Code Injection"
+    description: >
+      eval executes arbitrary string as code. Any variable in eval argument
+      is a code injection vector if attacker controls the variable.
+
+  - rule: SEC003
+    pattern: "Unquoted command substitution"
+    cwe: CWE-78
+    cvss_score: 7.8
+    cvss_severity: High
+    cvss_vector: "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H"
+    owasp: "OS Command Injection"
+    description: >
+      Unquoted $(...) output undergoes word splitting and globbing,
+      potentially executing unintended commands.
+
+  - rule: SEC004
+    pattern: "Backtick command substitution"
+    cwe: CWE-78
+    cvss_score: 7.8
+    cvss_severity: High
+    cvss_vector: "CVSS:3.1/AV:L/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:H"
+    owasp: "OS Command Injection"
+    description: >
+      Backtick substitution has confusing nesting behavior and is unquoted
+      by default, creating command injection opportunities.
+
+  - rule: SEC005
+    pattern: "Source/eval of variable"
+    cwe: CWE-94
+    cvss_score: 8.8
+    cvss_severity: High
+    cvss_vector: "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+    owasp: "Code Injection"
+    description: >
+      Sourcing a file path from a variable allows arbitrary code execution
+      if attacker controls the path.
+
+  - rule: SEC006
+    pattern: "Curl piped to shell"
+    cwe: CWE-829
+    cvss_score: 9.8
+    cvss_severity: Critical
+    cvss_vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+    owasp: "Inclusion of Untrusted Functionality"
+    description: >
+      curl | sh executes remote code without verification. MITM, DNS
+      hijacking, or compromised server leads to arbitrary code execution.
+
+  - rule: SEC007
+    pattern: "World-writable permissions"
+    cwe: CWE-732
+    cvss_score: 5.3
+    cvss_severity: Medium
+    cvss_vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:L/A:N"
+    owasp: "Incorrect Permission Assignment"
+    description: >
+      chmod 777 or similar world-writable permissions allow any local user
+      to modify files, enabling privilege escalation.
+
+  - rule: SEC008
+    pattern: "Hardcoded credentials"
+    cwe: CWE-798
+    cvss_score: 7.5
+    cvss_severity: High
+    cvss_vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+    owasp: "Use of Hard-coded Credentials"
+    description: >
+      Passwords, API keys, or tokens embedded in script source. Anyone with
+      read access to the script obtains the credentials.
+
+  - rule: SEC013
+    pattern: "Insecure /tmp usage"
+    cwe: CWE-377
+    cvss_score: 5.9
+    cvss_severity: Medium
+    cvss_vector: "CVSS:3.1/AV:L/AC:H/PR:N/UI:N/S:U/C:N/I:H/A:N"
+    owasp: "Insecure Temporary File"
+    description: >
+      Predictable temporary file paths in /tmp enable symlink attacks
+      (TOCTOU race). Use mktemp instead.
+
+  # ── Determinism Rules (DET) ───────────────────────────────────────
+  - rule: DET001
+    pattern: "$RANDOM usage"
+    cwe: CWE-330
+    cvss_score: 3.7
+    cvss_severity: Low
+    cvss_vector: "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N"
+    owasp: "Insufficient Randomness"
+    description: >
+      $RANDOM is non-deterministic and weak PRNG. Scripts using $RANDOM
+      produce different results on each run and are not reproducible.
+
+  - rule: DET002
+    pattern: "Timestamp in output"
+    cwe: CWE-330
+    cvss_score: 3.7
+    cvss_severity: Low
+    cvss_vector: "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N"
+    owasp: "Insufficient Randomness"
+    description: >
+      date, $SECONDS, or $EPOCHSECONDS embed non-deterministic timestamps.
+      Scripts are not reproducible across runs.
+
+  - rule: DET003
+    pattern: "Unsorted glob expansion"
+    cwe: CWE-330
+    cvss_score: 3.7
+    cvss_severity: Low
+    cvss_vector: "CVSS:3.1/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:N"
+    owasp: "Insufficient Randomness"
+    description: >
+      Glob expansion order is filesystem-dependent and locale-dependent.
+      Sort globs explicitly for deterministic ordering.
+
+  # ── Idempotency Rules (IDEM) ──────────────────────────────────────
+  - rule: IDEM001
+    pattern: "mkdir without -p"
+    cwe: CWE-362
+    cvss_score: 4.7
+    cvss_severity: Medium
+    cvss_vector: "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:N/I:N/A:H"
+    owasp: "Race Condition (TOCTOU)"
+    description: >
+      mkdir without -p fails if directory already exists, making script
+      non-idempotent. Use mkdir -p for safe re-runs.
+
+  - rule: IDEM002
+    pattern: "rm without -f"
+    cwe: CWE-362
+    cvss_score: 4.7
+    cvss_severity: Medium
+    cvss_vector: "CVSS:3.1/AV:L/AC:H/PR:L/UI:N/S:U/C:N/I:N/A:H"
+    owasp: "Race Condition (TOCTOU)"
+    description: >
+      rm without -f prompts or fails on nonexistent files, making script
+      non-idempotent. Use rm -f for safe re-runs.
+
+# ── OOD CWEs (not in bashrs linter — for eval only) ────────────────
+ood_cwes:
+  - cwe: CWE-426
+    name: "Untrusted Search Path"
+    description: "PATH manipulation allows execution of attacker-controlled binaries"
+    cvss_score: 7.8
+    cvss_severity: High
+
+  - cwe: CWE-77
+    name: "Command Injection via xargs"
+    description: "xargs without -0 splits on whitespace, enabling injection"
+    cvss_score: 8.1
+    cvss_severity: High
+
+  - cwe: CWE-116
+    name: "Improper Output Encoding"
+    description: "Log injection via echo of untrusted data (ANSI escapes, newlines)"
+    cvss_score: 5.3
+    cvss_severity: Medium
+
+  - cwe: CWE-250
+    name: "Execution with Unnecessary Privileges"
+    description: "Unnecessary sudo in scripts creates privilege escalation risk"
+    cvss_score: 7.8
+    cvss_severity: High

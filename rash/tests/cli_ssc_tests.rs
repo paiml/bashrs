@@ -819,3 +819,72 @@ fn test_CLI002_fix_without_chat_model_still_works() {
     let f = write_temp_script("#!/bin/sh\necho \"hello\"\n");
     bashrs_cmd().arg("fix").arg(f.path()).assert().success();
 }
+
+// ============================================================================
+// bashrs corpus cwe-mapping (SSC v12 S14.2)
+// ============================================================================
+
+#[test]
+fn test_SSB001_corpus_cwe_mapping_human_output() {
+    // FALSIFY-SSB-001: CWE mapping covers all linter rules
+    bashrs_cmd()
+        .args(["corpus", "cwe-mapping"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("CWE Taxonomy Mapping"))
+        .stdout(predicate::str::contains("SEC001"))
+        .stdout(predicate::str::contains("SEC006"))
+        .stdout(predicate::str::contains("CWE-829"))
+        .stdout(predicate::str::contains("IDEM002"))
+        .stdout(predicate::str::contains("OOD CWEs"))
+        .stdout(predicate::str::contains("CWE-426"))
+        .stdout(predicate::str::contains("disjoint=true"));
+}
+
+#[test]
+fn test_SSB001_corpus_cwe_mapping_json_output() {
+    // FALSIFY-SSB-001: JSON output has all required fields
+    let output = bashrs_cmd()
+        .args(["corpus", "cwe-mapping", "--json"])
+        .output()
+        .expect("cwe-mapping --json");
+    assert!(output.status.success());
+
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).expect("valid JSON");
+    let rules = json["linter_rules"].as_array().expect("linter_rules array");
+    assert_eq!(rules.len(), 14, "Must have 14 linter rules");
+
+    // Verify each rule has required fields
+    for rule in rules {
+        assert!(rule["rule"].is_string());
+        assert!(rule["cwe"].is_string());
+        assert!(rule["cvss_score"].is_number());
+        assert!(rule["owasp"].is_string());
+    }
+
+    let ood = json["ood_cwes"].as_array().expect("ood_cwes array");
+    assert_eq!(ood.len(), 4, "Must have 4 OOD CWEs");
+
+    let summary = &json["summary"];
+    assert_eq!(summary["total_rules"], 14);
+    assert_eq!(summary["ood_disjoint"], true);
+}
+
+#[test]
+fn test_SSB005_corpus_cwe_mapping_cvss_scores_valid() {
+    // FALSIFY-SSB-005: All CVSS scores in valid range
+    let output = bashrs_cmd()
+        .args(["corpus", "cwe-mapping", "--json"])
+        .output()
+        .expect("cwe-mapping --json");
+    let json: serde_json::Value = serde_json::from_slice(&output.stdout).expect("valid JSON");
+    for rule in json["linter_rules"].as_array().unwrap() {
+        let score = rule["cvss_score"].as_f64().unwrap();
+        assert!(
+            (0.0..=10.0).contains(&score),
+            "CVSS score {} out of range for {}",
+            score,
+            rule["rule"]
+        );
+    }
+}
