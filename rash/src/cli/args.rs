@@ -1443,6 +1443,39 @@ pub enum CorpusCommands {
         limit: Option<usize>,
     },
 
+    /// Validate pipeline tooling availability (SSC v12 S14 pipeline preflight)
+    PipelineCheck {
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Cross-validate bashrs labels against ShellCheck (SSC v12 S14.9 Step 7.4e)
+    ShellcheckValidate {
+        /// Number of samples to validate
+        #[arg(long, default_value = "500")]
+        samples: usize,
+
+        /// Random seed
+        #[arg(long, default_value = "42")]
+        seed: u64,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Run eval harness on benchmark predictions (SSC v12 S14.5)
+    EvalBenchmark {
+        /// Predictions JSONL file
+        #[arg(short, long)]
+        predictions: std::path::PathBuf,
+
+        /// Output as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Label external JSONL with linter findings + CWE mappings (SSC v12 pipeline)
     Label {
         /// Input JSONL file (one shell script per line, field: "script" or "text")

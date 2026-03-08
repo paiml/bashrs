@@ -391,6 +391,104 @@ pub fn format_eval_report(result: &EvalResult) -> String {
     out
 }
 
+/// Deserialization struct for JSONL predictions from external models.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct EvalPrediction {
+    /// Entry ID
+    #[serde(default)]
+    pub id: String,
+    /// Model classification ("safe" or "unsafe")
+    pub classification: String,
+    /// Ground truth label (0=safe, 1=unsafe)
+    #[serde(default)]
+    pub label: u8,
+    /// Rule IDs cited
+    #[serde(default)]
+    pub cited_rules: Vec<String>,
+    /// CWE IDs cited
+    #[serde(default)]
+    pub cited_cwes: Vec<String>,
+    /// Proposed fix
+    #[serde(default)]
+    pub proposed_fix: Option<String>,
+    /// Explanation text
+    #[serde(default)]
+    pub explanation: String,
+    /// Original script
+    #[serde(default)]
+    pub script: String,
+    /// Ground truth rules
+    #[serde(default)]
+    pub ground_truth_rules: Vec<String>,
+    /// Ground truth CWEs
+    #[serde(default)]
+    pub ground_truth_cwes: Vec<String>,
+}
+
+/// Simple eval result for CLI output (subset of EvalResult).
+#[derive(Debug, Clone, Serialize)]
+pub struct SimpleEvalResult {
+    pub detection_f1: f64,
+    pub rule_citation: f64,
+    pub cwe_mapping: f64,
+    pub fix_validity: f64,
+    pub explanation_quality: f64,
+    pub ood_generalization: f64,
+    pub weighted_score: f64,
+    pub total: usize,
+}
+
+/// Evaluate predictions from JSONL file format.
+///
+/// Each line contains both prediction and ground truth fields.
+pub fn evaluate_predictions(preds: &[EvalPrediction]) -> SimpleEvalResult {
+    let predictions: Vec<Prediction> = preds
+        .iter()
+        .enumerate()
+        .map(|(i, p)| Prediction {
+            id: if p.id.is_empty() {
+                format!("SSB-{:05}", i)
+            } else {
+                p.id.clone()
+            },
+            classification: p.classification.clone(),
+            cited_rules: p.cited_rules.clone(),
+            cited_cwes: p.cited_cwes.clone(),
+            proposed_fix: p.proposed_fix.clone(),
+            explanation: p.explanation.clone(),
+        })
+        .collect();
+
+    let ground_truth: Vec<GroundTruth> = preds
+        .iter()
+        .enumerate()
+        .map(|(i, p)| GroundTruth {
+            id: if p.id.is_empty() {
+                format!("SSB-{:05}", i)
+            } else {
+                p.id.clone()
+            },
+            label: p.label,
+            rules: p.ground_truth_rules.clone(),
+            cwes: p.ground_truth_cwes.clone(),
+            script: p.script.clone(),
+        })
+        .collect();
+
+    let result = run_eval(&predictions, &ground_truth);
+
+    SimpleEvalResult {
+        detection_f1: result.detection_f1,
+        rule_citation: result.rule_citation,
+        cwe_mapping: result.cwe_mapping,
+        fix_validity: result.fix_validity,
+        explanation_quality: result.explanation_quality,
+        ood_generalization: result.ood_generalization,
+        weighted_score: result.composite_score,
+        total: result.total,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

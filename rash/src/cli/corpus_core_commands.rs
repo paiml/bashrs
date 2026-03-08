@@ -329,6 +329,17 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ExportBenchmark { output, limit } => {
             super::corpus_config_commands::corpus_export_benchmark(output, limit)
         }
+        CorpusCommands::PipelineCheck { json } => {
+            super::corpus_config_commands::corpus_pipeline_check(json)
+        }
+        CorpusCommands::ShellcheckValidate {
+            samples,
+            seed,
+            json,
+        } => super::corpus_config_commands::corpus_shellcheck_validate(samples, seed, json),
+        CorpusCommands::EvalBenchmark { predictions, json } => {
+            super::corpus_config_commands::corpus_eval_benchmark(predictions, json)
+        }
         CorpusCommands::Label {
             input,
             output,

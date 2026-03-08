@@ -1003,3 +1003,115 @@ fn test_SSB007_corpus_label_external_jsonl() {
 
     std::fs::remove_file(&input_path).ok();
 }
+
+// ============================================================================
+// bashrs corpus pipeline-check
+// ============================================================================
+
+/// Get project root directory for tests that need config file access
+fn project_root() -> std::path::PathBuf {
+    std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .to_path_buf()
+}
+
+#[test]
+fn test_KAIZEN095_pipeline_check_runs() {
+    bashrs_cmd()
+        .current_dir(project_root())
+        .args(["corpus", "pipeline-check"])
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_KAIZEN095_pipeline_check_json_output() {
+    let output = bashrs_cmd()
+        .current_dir(project_root())
+        .args(["corpus", "pipeline-check", "--json"])
+        .output()
+        .expect("pipeline-check should run");
+
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let json: serde_json::Value = serde_json::from_str(&stdout).expect("valid JSON output");
+
+    assert!(json["pipeline_ready"].is_boolean());
+    assert!(json["tools"].is_array());
+    assert!(json["configs"].is_array());
+    assert!(json["artifacts"].is_array());
+
+    // bashrs must always be available
+    let tools = json["tools"].as_array().expect("tools array");
+    let bashrs_tool = tools
+        .iter()
+        .find(|t| t["tool"] == "bashrs")
+        .expect("bashrs in tools");
+    assert_eq!(bashrs_tool["available"], true);
+}
+
+// ── ShellSafetyBench cross-validation tests ──
+
+#[test]
+fn test_SSB006_shellcheck_validate_json_output() {
+    bashrs_cmd()
+        .args(["corpus", "shellcheck-validate", "--samples", "10", "--json"])
+        .timeout(std::time::Duration::from_secs(60))
+        .assert()
+        .success();
+}
+
+#[test]
+fn test_SSB007_eval_benchmark_requires_predictions_file() {
+    bashrs_cmd()
+        .args([
+            "corpus",
+            "eval-benchmark",
+            "--predictions",
+            "/nonexistent/predictions.jsonl",
+        ])
+        .assert()
+        .failure();
+}
+
+#[test]
+fn test_SSB008_eval_benchmark_with_synthetic_predictions() {
+    // Create synthetic predictions JSONL
+    let mut f = NamedTempFile::new().expect("create temp");
+    let pred1 = serde_json::json!({
+        "id": "SSB-00001",
+        "classification": "unsafe",
+        "label": 1,
+        "cited_rules": ["SEC001"],
+        "cited_cwes": ["CWE-78"],
+        "explanation": "This script is unsafe. SEC001: unquoted variable allows injection. Use double quotes instead.",
+        "ground_truth_rules": ["SEC001"],
+        "ground_truth_cwes": ["CWE-78"],
+        "script": "#!/bin/sh\nrm -rf $dir"
+    });
+    let pred2 = serde_json::json!({
+        "id": "SSB-00002",
+        "classification": "safe",
+        "label": 0,
+        "explanation": "This script is safe.",
+        "script": "#!/bin/sh\necho hello"
+    });
+    writeln!(f, "{}", serde_json::to_string(&pred1).unwrap()).unwrap();
+    writeln!(f, "{}", serde_json::to_string(&pred2).unwrap()).unwrap();
+    f.flush().unwrap();
+
+    bashrs_cmd()
+        .args([
+            "corpus",
+            "eval-benchmark",
+            "--predictions",
+            f.path().to_str().unwrap(),
+            "--json",
+        ])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("detection_f1"))
+        .stdout(predicate::str::contains("weighted_score"));
+}
