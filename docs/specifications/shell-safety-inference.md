@@ -219,7 +219,7 @@ resources:
     type: task
     machine: lambda
     command: >
-      apr data decontaminate training/shellsafetybench/splits/train-balanced.jsonl
+      apr data decontaminate training/shellsafetybench/splits/train.jsonl
         --reference training/shellsafetybench/splits/test.jsonl
     depends_on: [split-data]
 
@@ -227,7 +227,7 @@ resources:
     type: task
     machine: lambda
     command: >
-      alimentar quality score training/shellsafetybench/splits/train-balanced.jsonl
+      alimentar quality score training/shellsafetybench/splits/train.jsonl
         --profile ml-training --json
     quality_gate:
       parse: json
@@ -358,7 +358,7 @@ model:
     head_dim: 128
 
 data:
-  train: "training/shellsafetybench/splits/train-balanced.jsonl"
+  train: "training/shellsafetybench/splits/train.jsonl"
   val: "training/shellsafetybench/splits/val.jsonl"
   tokenizer: "/home/noah/src/models/qwen3-4b/tokenizer.json"
   seq_len: 512
@@ -429,14 +429,14 @@ version: "1.0"
 
 checks:
   - name: dataset-quality
-    command: "alimentar quality score training/shellsafetybench/splits/train-balanced.jsonl --profile ml-training --json"
+    command: "alimentar quality score training/shellsafetybench/splits/train.jsonl --profile ml-training --json"
     gate:
       field: score
       op: ">="
       value: 70
 
   - name: data-decontaminated
-    command: "apr data decontaminate training/shellsafetybench/splits/train-balanced.jsonl --reference training/shellsafetybench/splits/test.jsonl --json"
+    command: "apr data decontaminate training/shellsafetybench/splits/train.jsonl --reference training/shellsafetybench/splits/test.jsonl --json"
     gate:
       field: contamination_rate
       op: "<="
