@@ -64,6 +64,7 @@ pub fn generate_ssc_report() -> SscStatusReport {
         dataset_section_from(baseline_entries),
         conversation_section_from(&registry),
         data_pipeline_section(),
+        shellsafetybench_section(),
         wasm_section(),
     ];
 
@@ -476,6 +477,135 @@ fn data_pipeline_section() -> SscSection {
                 value: config.data.total_entries.to_string(),
                 target: ">0".to_string(),
                 passed: config_has_data,
+            },
+        ],
+    }
+}
+
+fn shellsafetybench_section() -> SscSection {
+    use crate::corpus::cwe_mapping;
+    use crate::corpus::eval_harness;
+
+    // Check CWE mapping completeness
+    let cwe_count = cwe_mapping::CWE_MAPPINGS.len();
+    let ood_count = cwe_mapping::OOD_CWES.len();
+    let ood_disjoint = cwe_mapping::verify_ood_disjoint();
+
+    // Check eval harness weights
+    let weight_sum = eval_harness::DETECTION_F1_WEIGHT
+        + eval_harness::RULE_CITATION_WEIGHT
+        + eval_harness::CWE_MAPPING_WEIGHT
+        + eval_harness::FIX_VALIDITY_WEIGHT
+        + eval_harness::EXPLANATION_WEIGHT
+        + eval_harness::OOD_WEIGHT;
+    let weights_valid = (weight_sum - 1.0).abs() < 1e-9;
+
+    // Check benchmark and conversation files
+    let benchmark_exists =
+        std::path::Path::new("training/shellsafetybench/benchmark.jsonl").exists();
+    let conversations_exists =
+        std::path::Path::new("training/shellsafetybench/conversations.jsonl").exists();
+    let pipeline_exists = std::path::Path::new("configs/pipeline/ssc.yaml").exists();
+    let qa_exists = std::path::Path::new("configs/qa/ssc-release-v1.yaml").exists();
+    let train_config_exists =
+        std::path::Path::new("configs/train/ssc-qwen3-4b-qlora.yaml").exists();
+    let contract_exists =
+        std::path::Path::new("provable-contracts/contracts/shellsafetybench-v1.yaml").exists();
+
+    let all_pass = cwe_count == 14
+        && ood_disjoint
+        && weights_valid
+        && benchmark_exists
+        && conversations_exists
+        && pipeline_exists
+        && contract_exists;
+
+    SscSection {
+        name: "ShellSafetyBench (S14)".to_string(),
+        spec_ref: "S14".to_string(),
+        status: if all_pass {
+            SscStatus::Pass
+        } else {
+            SscStatus::Warn
+        },
+        metrics: vec![
+            SscMetric {
+                name: "CWE mappings".to_string(),
+                value: format!("{cwe_count} rules"),
+                target: "14 rules".to_string(),
+                passed: cwe_count == 14,
+            },
+            SscMetric {
+                name: "OOD CWEs".to_string(),
+                value: format!("{ood_count} disjoint={ood_disjoint}"),
+                target: "4 disjoint=true".to_string(),
+                passed: ood_count == 4 && ood_disjoint,
+            },
+            SscMetric {
+                name: "Eval weights".to_string(),
+                value: format!("sum={weight_sum:.3}"),
+                target: "sum=1.000".to_string(),
+                passed: weights_valid,
+            },
+            SscMetric {
+                name: "Benchmark JSONL".to_string(),
+                value: if benchmark_exists {
+                    "present".to_string()
+                } else {
+                    "missing".to_string()
+                },
+                target: "present".to_string(),
+                passed: benchmark_exists,
+            },
+            SscMetric {
+                name: "Conversations JSONL".to_string(),
+                value: if conversations_exists {
+                    "present".to_string()
+                } else {
+                    "missing".to_string()
+                },
+                target: "present".to_string(),
+                passed: conversations_exists,
+            },
+            SscMetric {
+                name: "Pipeline manifest".to_string(),
+                value: if pipeline_exists {
+                    "present".to_string()
+                } else {
+                    "missing".to_string()
+                },
+                target: "present".to_string(),
+                passed: pipeline_exists,
+            },
+            SscMetric {
+                name: "QA gate config".to_string(),
+                value: if qa_exists {
+                    "present".to_string()
+                } else {
+                    "missing".to_string()
+                },
+                target: "present".to_string(),
+                passed: qa_exists,
+            },
+            SscMetric {
+                name: "Training config".to_string(),
+                value: if train_config_exists {
+                    "present".to_string()
+                } else {
+                    "missing".to_string()
+                },
+                target: "present".to_string(),
+                passed: train_config_exists,
+            },
+            SscMetric {
+                name: "Provable contract".to_string(),
+                value: if contract_exists {
+                    "present".to_string()
+                } else {
+                    "missing".to_string()
+                },
+                target: "present".to_string(),
+                passed: contract_exists,
             },
         ],
     }
