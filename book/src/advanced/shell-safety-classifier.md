@@ -727,6 +727,65 @@ bashrs classify Dockerfile
 
 Format is auto-detected. Use `--format` to override.
 
+## ShellSafetyBench (v12)
+
+ShellSafetyBench is the first shell-specific security benchmark + model, included in bashrs.
+
+### CWE Taxonomy Mapping
+
+Every linter rule maps to a MITRE CWE identifier with CVSS v3.1 scores:
+
+```bash
+# View the CWE mapping table
+bashrs corpus cwe-mapping
+
+# Get mapping as JSON (for pipeline consumption)
+bashrs corpus cwe-mapping --json
+```
+
+14 rules cover 8 unique CWEs, plus 4 OOD (out-of-distribution) CWEs for eval-only generalization testing.
+
+### Benchmark Export
+
+Export the corpus in DPO-compatible format for model training:
+
+```bash
+# Export full benchmark
+bashrs corpus export-benchmark -o training/shellsafetybench/benchmark.jsonl
+
+# Export first 100 entries
+bashrs corpus export-benchmark --limit 100
+```
+
+Each entry contains: `id`, `lang`, `cwe`, `rule`, `severity`, `script`, `chosen`, `rejected`, `source`, `conversation_type`.
+
+### Eval Harness
+
+Six weighted metrics (S14.5):
+
+| Metric | Weight | Description |
+|--------|--------|-------------|
+| Detection F1 | 25% | Binary safe/unsafe classification |
+| Rule Citation | 20% | Correct rule ID cited |
+| CWE Mapping | 10% | Correct CWE ID referenced |
+| Fix Validity | 15% | Suggested fix removes vulnerability |
+| Explanation | 15% | Coherent natural-language explanation |
+| OOD Generalization | 15% | Performance on novel CWE patterns |
+
+### Pipeline (Sovereign Tooling Only)
+
+The full pipeline is defined in `configs/pipeline/ssc.yaml`:
+
+```bash
+# One-command execution (when apr-cli is available)
+apr pipeline apply configs/pipeline/ssc.yaml
+
+# Manual step-by-step:
+bashrs corpus generate-conversations --entrenar -o conversations.jsonl
+bashrs corpus export-benchmark -o benchmark.jsonl
+bashrs corpus export-splits -o training/shellsafetybench/splits/
+```
+
 ## See Also
 
 - [Security Rules (SEC001-SEC024)](../linting/security.md)
