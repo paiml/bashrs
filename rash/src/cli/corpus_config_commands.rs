@@ -406,11 +406,34 @@ pub(crate) fn corpus_generate_conversations(
     let registry = CorpusRegistry::load_full();
     let max = limit.unwrap_or(registry.entries.len());
 
-    let batch: Vec<(&str, &str)> = registry
+    // v12: Transpile each entry to shell/Makefile/Dockerfile output first.
+    // generate_batch receives (id, shell_code) not (id, rust_source).
+    // This fixes the data quality issue where v3 conversations contained 85% Rust code.
+    let config = crate::Config::default();
+    let transpiled_entries: Vec<(String, String)> = registry
         .entries
         .iter()
         .take(max)
-        .map(|e| (e.id.as_str(), e.input.as_str()))
+        .map(|e| {
+            let shell_output = match e.format {
+                crate::corpus::registry::CorpusFormat::Bash => {
+                    crate::transpile(&e.input, &config).unwrap_or_else(|_| e.input.clone())
+                }
+                crate::corpus::registry::CorpusFormat::Makefile => {
+                    crate::transpile_makefile(&e.input, &config).unwrap_or_else(|_| e.input.clone())
+                }
+                crate::corpus::registry::CorpusFormat::Dockerfile => {
+                    crate::transpile_dockerfile(&e.input, &config)
+                        .unwrap_or_else(|_| e.input.clone())
+                }
+            };
+            (e.id.clone(), shell_output)
+        })
+        .collect();
+
+    let batch: Vec<(&str, &str)> = transpiled_entries
+        .iter()
+        .map(|(id, shell)| (id.as_str(), shell.as_str()))
         .collect();
 
     let format_name = if entrenar_format {
