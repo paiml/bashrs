@@ -7,8 +7,8 @@
 **Stack**: bashrs + aprender + entrenar + trueno + realizador (Rust only, no Python)
 **HuggingFace Repos**:
   - `paiml/shell-safety-classifier` (CodeBERT binary classifier)
-  - `paiml/shell-safety-chat` (Qwen-0.5B LoRA chat adapter)
   - `paiml/shell-safety-conversations` (synthetic training dataset)
+  - ~~`paiml/shell-safety-chat`~~ (DELETED — 32% accuracy after 6 runs, 0.5B model insufficient)
 **Prior art**: `shell-safety-inference-v1-v3-archive.md` (v1-v3 history)
 
 ---
@@ -583,7 +583,6 @@ optimizer states (1.5B OOM'd — entrenar doesn't yet support NF4 base quantizat
 | Artifact | Repo | Size | Purpose |
 |----------|------|------|---------|
 | CodeBERT classifier | `paiml/shell-safety-classifier` | ~500MB | Fast CI/CD triage (~20ms) |
-| Qwen-1.5B chat adapter | `paiml/shell-safety-chat` | ~50MB | Interactive analysis |
 | Conversation dataset | `paiml/shell-safety-conversations` | ~100MB | Reproducibility |
 
 ### 8.1 CLI
@@ -690,7 +689,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - Final loss: 4.800, best loss: 0.764, epoch losses: 4.576/4.980/4.800
   - Model: `training/checkpoints/ssc-chat-v1/model.safetensors` (1.98GB)
 - **CHAT-004 COMPLETE**: Published to HuggingFace
-  - Model: https://huggingface.co/paiml/shell-safety-chat (1.98GB safetensors + config + tokenizer)
+  - Model: ~~https://huggingface.co/paiml/shell-safety-chat~~ (DELETED — kill criterion confirmed)
   - Dataset: https://huggingface.co/datasets/paiml/shell-safety-conversations (17,942 entries, 35MB)
 - **CHAT-003 FAIL**: Four training runs, three entrenar bugs found and fixed
   - **Run 1** (without biases): Gibberish ("222dkdkdk...")
@@ -1609,7 +1608,7 @@ jobs:
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
 | CHAT-002: Fine-tune (RTX 4090) | 34 min | ✅ Done — Run 4 (1 epoch): loss=1.86, best=0.607 |
 | CHAT-003: Evaluate + human review | 8 hrs | FAIL — 32.0% accuracy (6 runs, 3 bugs fixed). Run 6: balanced data → 32%. Kill criterion CONFIRMED — 0.5B model capacity limit reached |
-| CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-chat + paiml/shell-safety-conversations) |
+| CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-conversations). Chat model DELETED (kill criterion) |
 
 ### Phase 4: CLI (1 day)
 
