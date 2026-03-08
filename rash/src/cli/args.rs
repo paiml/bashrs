@@ -1450,6 +1450,21 @@ pub enum CorpusCommands {
         json: bool,
     },
 
+    /// Merge corpus + verificar data into unified training JSONL (SSC v12 S14 Step 7.4)
+    MergeData {
+        /// Output file
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+
+        /// Additional JSONL input files to merge (e.g., verificar-labeled.jsonl)
+        #[arg(short, long)]
+        input: Vec<std::path::PathBuf>,
+
+        /// Random seed for shuffling
+        #[arg(long, default_value = "42")]
+        seed: u64,
+    },
+
     /// Cross-validate bashrs labels against ShellCheck (SSC v12 S14.9 Step 7.4e)
     ShellcheckValidate {
         /// Number of samples to validate

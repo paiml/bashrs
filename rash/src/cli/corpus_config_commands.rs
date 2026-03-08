@@ -2262,3 +2262,107 @@ pub(crate) fn corpus_pipeline_check(json: bool) -> Result<()> {
         ))
     }
 }
+
+/// Merge corpus conversations + verificar mutations into unified training JSONL.
+///
+/// Reads the corpus conversations (auto-generated), additional input files
+/// (e.g., verificar-labeled.jsonl), normalizes the schema, deduplicates,
+/// shuffles deterministically, and writes a single merged JSONL.
+pub(crate) fn corpus_merge_data(
+    output: std::path::PathBuf,
+    extra_inputs: Vec<std::path::PathBuf>,
+    seed: u64,
+) -> Result<()> {
+    use crate::cli::color::*;
+    use std::io::Write;
+
+    let mut entries: Vec<serde_json::Value> = Vec::new();
+
+    // 1. Load corpus conversations (labeled)
+    let corpus_path = std::path::Path::new("training/shellsafetybench/conversations.jsonl");
+    if corpus_path.exists() {
+        let file = std::fs::File::open(corpus_path)?;
+        let reader = std::io::BufReader::new(file);
+        let mut count = 0usize;
+        for line in std::io::BufRead::lines(reader) {
+            let line = line?;
+            if line.trim().is_empty() {
+                continue;
+            }
+            if let Ok(mut val) = serde_json::from_str::<serde_json::Value>(&line) {
+                // Ensure source tag
+                if let Some(obj) = val.as_object_mut() {
+                    obj.entry("source".to_string())
+                        .or_insert_with(|| serde_json::json!("bashrs-corpus"));
+                }
+                entries.push(val);
+                count += 1;
+            }
+        }
+        eprintln!("  Loaded {count} entries from corpus conversations");
+    } else {
+        eprintln!("{YELLOW}  Warning: corpus conversations not found, skipping{RESET}");
+    }
+
+    // 2. Load extra inputs (e.g., verificar-labeled.jsonl)
+    for path in &extra_inputs {
+        if !path.exists() {
+            return Err(Error::Validation(format!(
+                "Input file not found: {}",
+                path.display()
+            )));
+        }
+        let file = std::fs::File::open(path)?;
+        let reader = std::io::BufReader::new(file);
+        let mut count = 0usize;
+        for line in std::io::BufRead::lines(reader) {
+            let line = line?;
+            if line.trim().is_empty() {
+                continue;
+            }
+            if let Ok(mut val) = serde_json::from_str::<serde_json::Value>(&line) {
+                if let Some(obj) = val.as_object_mut() {
+                    obj.entry("source".to_string())
+                        .or_insert_with(|| serde_json::json!("verificar"));
+                }
+                entries.push(val);
+                count += 1;
+            }
+        }
+        eprintln!(
+            "  Loaded {count} entries from {}",
+            path.file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| path.display().to_string())
+        );
+    }
+
+    // 3. Deterministic shuffle using Fisher-Yates with simple PRNG
+    let total = entries.len();
+    let mut rng_state = seed;
+    for i in (1..total).rev() {
+        // Simple xorshift64
+        rng_state ^= rng_state << 13;
+        rng_state ^= rng_state >> 7;
+        rng_state ^= rng_state << 17;
+        let j = (rng_state as usize) % (i + 1);
+        entries.swap(i, j);
+    }
+
+    // 4. Write merged JSONL
+    let file = std::fs::File::create(&output)?;
+    let mut buf = std::io::BufWriter::new(file);
+    for entry in &entries {
+        serde_json::to_writer(&mut buf, entry)
+            .map_err(|e| Error::Validation(format!("JSON write error: {e}")))?;
+        writeln!(buf)?;
+    }
+    buf.flush()?;
+
+    eprintln!(
+        "\n{GREEN}\u{2713}{RESET} {BOLD}Merged {total} entries → {}{RESET}",
+        output.display()
+    );
+
+    Ok(())
+}
