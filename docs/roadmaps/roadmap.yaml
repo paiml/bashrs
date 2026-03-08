@@ -581,3 +581,117 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-160
+  github_issue: null
+  item_type: task
+  title: 'SSC-CWE-MAP: Create CWE mapping + CVSS scores config (S14.2, Step 7.1)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-08T19:01:55Z
+  updated: 2026-03-08T19:16:45Z
+  spec: null
+  acceptance_criteria:
+  - Create configs/cwe-mapping.yaml with CWE IDs and CVSS v3.1 base scores for all 14 bashrs linter rules
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - v12
+  notes: null
+- id: PMAT-161
+  github_issue: null
+  item_type: task
+  title: 'SSC-EXPORT-SPLITS: Export training data splits via alimentar (Steps 7.3-7.4d)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-03-08T19:01:57Z
+  updated: 2026-03-08T20:01:39.775467717+00:00
+  spec: null
+  acceptance_criteria:
+  - Generate conversations, label, merge, stratified split, balance, decontaminate, quality gate
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - v12
+  notes: null
+- id: PMAT-162
+  github_issue: null
+  item_type: task
+  title: 'SSC-BENCHMARK-SCHEMA: Implement DPO-compatible benchmark export (S14.4)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-08T19:01:59Z
+  updated: 2026-03-08T19:51:17Z
+  spec: null
+  acceptance_criteria:
+  - 'Export corpus in ShellSafetyBench schema: id, lang, cwe, rule, severity, script, chosen, rejected'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - v12
+  notes: null
+- id: PMAT-163
+  github_issue: null
+  item_type: task
+  title: 'SSC-EVAL-HARNESS: Implement 6-metric eval scoring (S14.5)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-08T19:02:00Z
+  updated: 2026-03-08T19:51:39Z
+  spec: null
+  acceptance_criteria:
+  - Detection F1, Rule Citation, CWE Mapping, Fix Validity, Explanation, OOD Generalization
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - v12
+  notes: null
+- id: PMAT-164
+  github_issue: null
+  item_type: task
+  title: 'SSC-TRAIN-V7: Qwen3-4B NF4 QLoRA training run (Steps 7.5-7.6)'
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-03-08T19:02:02Z
+  updated: 2026-03-08T19:02:02Z
+  spec: null
+  acceptance_criteria:
+  - Train plan + apply with sovereign entrenar. 5-7GB VRAM on RTX 4090.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - v12
+  notes: null
+- id: PMAT-165
+  github_issue: null
+  item_type: task
+  title: 'SSC-PUBLISH: HuggingFace dataset + model publication (Steps 7.10-7.10c)'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-03-08T19:02:03Z
+  updated: 2026-03-08T19:02:03Z
+  spec: null
+  acceptance_criteria:
+  - Publish paiml/shell-safety-bench dataset and paiml/shell-safety-qwen3-4b model after QA gate
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - ssc
+  - v12
+  notes: null
