@@ -722,6 +722,17 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
     - **Root cause shift**: FORMAT learned (some "Classification:" prefixes in output),
       but CLASS IMBALANCE dominates — 97.7% safe training data → model defaults "safe"
     - **Kill criterion**: KILL-CHAT-001 remains TRIGGERED
+  - **Run 6** (3 epochs, balanced v3 data): **32.0% accuracy — marginal improvement**
+    - Balanced dataset: 1512 safe (67%) + 756 unsafe (33%) = 2268 entries
+    - Downsampled safe to 2× unsafe, augmented with 350 adversarial entries
+    - 3 epochs with no catastrophic forgetting: loss 1.96→1.37→1.27 (monotonic)
+    - Safe recall: 60% (15/25, up from 44%), Unsafe recall: 4% (1/25, down from 12%)
+    - 17 code blocks, 2 pass shellcheck (11.8%), 0% citations
+    - Most unsafe predictions are "unknown" (16/25) — model lost format compliance
+    - **Root cause**: 0.5B model insufficient capacity to learn format + classification
+    - After 6 runs: 0%→3%→12%→28%→32% — diminishing returns at model capacity limit
+    - **Kill criterion**: KILL-CHAT-001 CONFIRMED. Ship classifier-only pipeline.
+    - **Recommendation**: Chat requires ≥7B model. MLP classifier (MCC=0.754) ships instead.
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1597,7 +1608,7 @@ jobs:
 |------|------|--------|
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
 | CHAT-002: Fine-tune (RTX 4090) | 34 min | ✅ Done — Run 4 (1 epoch): loss=1.86, best=0.607 |
-| CHAT-003: Evaluate + human review | 6 hrs | FAIL — 28.0% accuracy (5 runs, 3 bugs fixed). Run 5: Option C format-focused data → 2.3× improvement. Class imbalance now primary bottleneck |
+| CHAT-003: Evaluate + human review | 8 hrs | FAIL — 32.0% accuracy (6 runs, 3 bugs fixed). Run 6: balanced data → 32%. Kill criterion CONFIRMED — 0.5B model capacity limit reached |
 | CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-chat + paiml/shell-safety-conversations) |
 
 ### Phase 4: CLI (1 day)

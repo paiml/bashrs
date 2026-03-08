@@ -26,7 +26,7 @@ model:
     rope_theta: 1000000.0
 
 data:
-  train: "/home/noah/src/bashrs/training/conversations_v2.jsonl"
+  train: "/home/noah/src/bashrs/training/conversations_v3.jsonl"
   tokenizer: "/home/noah/models/qwen2.5-coder-0.5b-instruct-safetensors/tokenizer.json"
   seq_len: 512
   input_column: "text"
@@ -42,7 +42,7 @@ scheduler:
   name: "cosine"
 
 training:
-  epochs: 1
+  epochs: 3
   gradient_accumulation: 4
   max_seq_length: 512
   checkpoint:
@@ -58,7 +58,7 @@ lora:
   quant_type: nf4
 
 output:
-  dir: "training/checkpoints/ssc-chat-v2"
+  dir: "training/checkpoints/ssc-chat-v3"
   save_every: 500
 
 publish:
