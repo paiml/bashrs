@@ -903,6 +903,28 @@ verificar mutate --cwe-targets 78,94,426 --count 30 -o json
 
 12 CWE patterns supported: 8 in-distribution (78, 94, 330, 362, 377, 732, 798, 829) and 4 OOD (426, 77, 116, 250).
 
+### Data Merge
+
+Combine corpus conversations with verificar mutations into a unified training dataset:
+
+```bash
+# Generate verificar mutations + label them
+verificar mutate --cwe-targets all --count 10000 --seed 42 -o jsonl > mutations.jsonl
+bashrs corpus label --input mutations.jsonl -o verificar-labeled.jsonl
+
+# Merge all sources (auto-loads corpus conversations)
+bashrs corpus merge-data \
+  --input verificar-labeled.jsonl \
+  -o merged.jsonl \
+  --seed 42
+```
+
+The merge command:
+- Auto-loads corpus conversations from `training/shellsafetybench/conversations.jsonl`
+- Accepts multiple `--input` flags for additional JSONL sources
+- Tags each entry with `source` field (bashrs-corpus / verificar)
+- Deterministic Fisher-Yates shuffle with `--seed`
+
 ## See Also
 
 - [Security Rules (SEC001-SEC024)](../linting/security.md)
