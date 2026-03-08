@@ -712,6 +712,11 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - **Kill criterion**: KILL-CHAT-001 TRIGGERED — ship classifier only
   - **Remaining issue**: Full fine-tuning destroys instruction-following.
     Needs LoRA adapter-only training to preserve base model capabilities.
+  - **Run 5** (1 epoch, v2 data with classification prefix): IN PROGRESS
+    - Option C: All 17,942 responses prefixed with "Classification: safe/unsafe"
+    - Updated system message instructs model to begin with classification label
+    - Hypothesis: format-focused training data will teach model output FORMAT
+    - 17,536 safe + 406 unsafe entries in restructured conversations_v2.jsonl
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1587,7 +1592,7 @@ jobs:
 |------|------|--------|
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
 | CHAT-002: Fine-tune (RTX 4090) | 34 min | ✅ Done — Run 4 (1 epoch): loss=1.86, best=0.607 |
-| CHAT-003: Evaluate + human review | 6 hrs | FAIL — 12.1% accuracy (4 runs, 3 bugs fixed: entrenar#258 #259 #260) |
+| CHAT-003: Evaluate + human review | 6 hrs | FAIL — 12.1% accuracy (4 runs, 3 bugs fixed: entrenar#258 #259 #260). Run 5 in progress (Option C: format-focused data) |
 | CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-chat + paiml/shell-safety-conversations) |
 
 ### Phase 4: CLI (1 day)

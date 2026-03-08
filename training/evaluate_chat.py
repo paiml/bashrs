@@ -13,9 +13,11 @@ import subprocess
 import sys
 import random
 
-# Paths
-CHECKPOINT = os.path.join(os.path.dirname(__file__), "checkpoints/ssc-chat-v1")
-CONVERSATIONS = os.path.join(os.path.dirname(__file__), "conversations.jsonl")
+# Paths — configurable via env vars for v1 vs v2 evaluation
+CHECKPOINT = os.environ.get("SSC_CHECKPOINT",
+    os.path.join(os.path.dirname(__file__), "checkpoints/ssc-chat-v2"))
+CONVERSATIONS = os.environ.get("SSC_CONVERSATIONS",
+    os.path.join(os.path.dirname(__file__), "conversations_v2.jsonl"))
 
 def load_model():
     """Load fine-tuned model and tokenizer."""
@@ -43,12 +45,19 @@ def load_model():
     return model, tokenizer, device
 
 
+PREFILL = os.environ.get("SSC_PREFILL", "").strip()
+
+
 def build_prompt(system_msg, instruction):
-    """Build ChatML prompt."""
+    """Build ChatML prompt.
+
+    Set SSC_PREFILL="Classification: " to test prompt engineering (Option E).
+    Leave empty for pure model evaluation (Option C only).
+    """
     return (
         f"<|im_start|>system\n{system_msg}<|im_end|>\n"
         f"<|im_start|>user\n{instruction}<|im_end|>\n"
-        f"<|im_start|>assistant\n"
+        f"<|im_start|>assistant\n{PREFILL}"
     )
 
 
@@ -76,23 +85,32 @@ def generate(model, tokenizer, device, prompt, max_new_tokens=256):
 
 
 def load_test_set(n_safe=25, n_unsafe=25, seed=42):
-    """Load balanced test set from conversations."""
+    """Load balanced test set from conversations.
+
+    Works with both v1 (no prefix) and v2 (Classification: prefix) data.
+    """
     random.seed(seed)
     safe, unsafe = [], []
+
+    rules = [
+        "SEC001", "SEC002", "SEC003", "SEC004", "SEC005",
+        "SEC006", "SEC007", "SEC008", "DET001", "DET002",
+        "DET003", "DET004", "DET005", "DET006",
+        "IDEM001", "IDEM002", "IDEM003", "IDEM004",
+    ]
 
     with open(CONVERSATIONS) as f:
         for line in f:
             entry = json.loads(line)
             resp = entry["response"]
-            has_rules = any(r in resp for r in [
-                "SEC001", "SEC002", "SEC003", "SEC004", "SEC005",
-                "SEC006", "SEC007", "SEC008", "DET001", "DET002",
-                "DET003", "DET004", "DET005", "DET006",
-                "IDEM001", "IDEM002", "IDEM003", "IDEM004",
-            ])
-            if has_rules:
+            # v2 format: check after the "Classification: X\n\n" prefix
+            if resp.startswith("Classification: unsafe"):
                 unsafe.append(entry)
-            elif "safe" in resp.lower() and "unsafe" not in resp.lower():
+            elif resp.startswith("Classification: safe"):
+                safe.append(entry)
+            elif any(r in resp for r in rules):
+                unsafe.append(entry)
+            elif "doesn't contain known unsafe patterns" in resp:
                 safe.append(entry)
 
     random.shuffle(safe)
@@ -105,11 +123,21 @@ def load_test_set(n_safe=25, n_unsafe=25, seed=42):
 
 
 def classify_response(response):
-    """Parse model response to extract classification."""
+    """Parse model response to extract classification.
+
+    Priority: explicit "Classification: safe/unsafe" prefix > keyword fallback.
+    """
+    first_line = response.split("\n")[0].strip().lower()
+    # Check for explicit classification prefix (trained format)
+    if first_line.startswith("classification: unsafe"):
+        return "unsafe"
+    if first_line.startswith("classification: safe"):
+        return "safe"
+    # Keyword fallback for models without format training
     resp_lower = response.lower()
     if "unsafe" in resp_lower:
         return "unsafe"
-    elif "safe" in resp_lower:
+    if "safe" in resp_lower:
         return "safe"
     return "unknown"
 
