@@ -95,9 +95,9 @@ resources:
     command: >
       bashrs corpus merge-data
         --input training/shellsafetybench/verificar-labeled.jsonl
-        -o training/shellsafetybench/merged.jsonl
+        -o training/shellsafetybench/merged-training.jsonl
         --seed 42
-    output_artifacts: ["training/shellsafetybench/merged.jsonl"]
+    output_artifacts: ["training/shellsafetybench/merged-training.jsonl"]
     depends_on: [label-corpus, label-verificar]
 
   # ── Stage 2e: Split + Balance + Decontaminate ───────────────────
@@ -107,7 +107,7 @@ resources:
     machine: lambda
     command: >
       bashrs corpus export-splits
-        --input training/shellsafetybench/merged.jsonl
+        --input training/shellsafetybench/merged-training.jsonl
         -o training/shellsafetybench/splits/
     output_artifacts: ["training/shellsafetybench/splits/"]
     depends_on: [merge-data]
