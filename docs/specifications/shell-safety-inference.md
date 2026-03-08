@@ -2634,8 +2634,8 @@ that are then consumed by automated pipeline stages.
 | 7.4d | Quality gate | `alimentar quality score train.jsonl --profile ml-training` | **DONE** (B, 93.5%) |
 | 7.4e | Cross-validate vs ShellCheck | `bashrs corpus shellcheck-validate --samples 500 --json` | **DONE** (80%+ agreement) |
 | 7.4f | Hand-label 200 human validation set | Manual → `training/shellsafetybench/human-validation.jsonl` | 4 hours |
-| 7.5 | Training plan (dry-run) | `apr train plan --config configs/train/ssc-qwen3-4b-qlora.yaml` | 15 min |
-| 7.6 | Train Run 7 | `apr train apply --config configs/train/ssc-qwen3-4b-qlora.yaml --seed 42` | 2-4 hours |
+| 7.5 | Training plan (dry-run) | `apr train plan --task pretrain --config configs/train/ssc-qwen3-4b-qlora.yaml` | 15 min |
+| 7.6 | Train Run 7 | `apr train apply --task pretrain --config configs/train/ssc-qwen3-4b-qlora.yaml --seed 42` | 2-4 hours |
 | 7.6b | Monitor training | `apr train watch --config configs/train/ssc-qwen3-4b-qlora.yaml` | (concurrent) |
 | 7.7 | Eval static test set | `apr eval checkpoints/ --task classify --data splits/test.jsonl` | 1 hour |
 | 7.7b | Eval dynamic set | `verificar mutate --cwe-targets ood --count 500 --seed $(date) && apr eval` | 1 hour |
