@@ -637,6 +637,34 @@ fn shellsafetybench_section() -> SscSection {
                 target: "present".to_string(),
                 passed: contract_exists,
             },
+            {
+                // Check merged splits exist and have balanced class distribution
+                let train_path = "training/shellsafetybench/splits/train.jsonl";
+                let splits_exist = std::path::Path::new(train_path).exists();
+                let (train_total, train_unsafe) = if splits_exist {
+                    let content = std::fs::read_to_string(train_path).unwrap_or_default();
+                    let total = content.lines().filter(|l| !l.trim().is_empty()).count();
+                    let unsafe_count = content
+                        .lines()
+                        .filter(|l| l.contains("\"label\":1") || l.contains("\"label\": 1"))
+                        .count();
+                    (total, unsafe_count)
+                } else {
+                    (0, 0)
+                };
+                let unsafe_pct = if train_total > 0 {
+                    100.0 * train_unsafe as f64 / train_total as f64
+                } else {
+                    0.0
+                };
+                let balanced = unsafe_pct > 5.0; // >5% unsafe = balanced enough
+                SscMetric {
+                    name: "Merged splits".to_string(),
+                    value: format!("{train_total} train ({unsafe_pct:.1}% unsafe)"),
+                    target: ">5% unsafe".to_string(),
+                    passed: splits_exist && balanced,
+                }
+            },
         ],
     }
 }

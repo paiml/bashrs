@@ -2650,7 +2650,7 @@ that are then consumed by automated pipeline stages.
 | 7.10 | Publish dataset | `alimentar hub push splits/ paiml/shell-safety-bench --format parquet` | 30 min |
 | 7.10b | Publish model | `apr publish checkpoints/ paiml/shell-safety-qwen3-4b --license apache-2.0` | 30 min |
 | 7.10c | Create HF Space leaderboard | `presentar deploy --config configs/space/ssc-leaderboard.yaml` | 2 hours |
-| 7.11 | Verify F11 ("first shell benchmark") | Web search (manual, pre-publication) | 30 min |
+| 7.11 | Verify F11 ("first shell benchmark") | Web search (manual, pre-publication) | **DONE** (no shell-specific CWE benchmark found; closest: CASTLE=C, SecEval=MCQ, CyberNative=multi-lang) |
 
 **One-command execution**: `apr pipeline apply configs/pipeline/ssc.yaml`
 
@@ -2679,3 +2679,4 @@ in the pipeline manifest and execute automatically in dependency order.
 | 12.3 | 2026-03-08 | Implementation: CWE mapping module, benchmark export, eval harness, conversation data quality fix (transpile before export), JSONL escaping fix, training data splits (80/10/10). |
 | **12.4** | **2026-03-08** | **Implementation: (1) verificar CWE-targeted mutations (12 CWEs, safe/unsafe pairs, GH-11/12); (2) cross-linter validation CLI (bashrs vs ShellCheck); (3) eval harness CLI with JSONL predictions; (4) apr data audit/decontaminate/quality integration; (5) alimentar quality score B (93.5%); (6) book docs for all new commands; (7) 10 SSB assert_cmd tests. Decontamination: 20.67% n-gram overlap is structural (shell boilerplate), 0 exact duplicates.** |
 | **12.5** | **2026-03-08** | **Pipeline operational: (1) verificar mutation expansion to 500+ templates/seed (paiml/verificar#13); (2) pipeline-check preflight command; (3) corpus label accepts verificar format (unsafe_script); (4) 9,900 verificar-labeled mutations generated; (5) total 27,842 entries (17,942 corpus + 9,900 verificar); (6) SSC report with data stats; (7) 10 provable contract FALSIFY tests; (8) pipeline YAML corrected to match actual tool CLIs.** |
+| **12.6** | **2026-03-08** | **Data pipeline complete (Steps 7.1-7.4e DONE): (1) merge-data command with schema normalization (verificar→conversation format); (2) export-splits --input for fast path on merged JSONL; (3) balanced splits: 22,169/2,738/2,935 at 21.1% unsafe (vs 0.8% corpus-only); (4) 100% valid JSON, 0 cross-source dupes; (5) 11 FALSIFY contract tests; (6) 68 SSC CLI integration tests.** |
