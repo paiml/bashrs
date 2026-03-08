@@ -116,7 +116,7 @@ resources:
     type: task
     machine: lambda
     command: >
-      apr data decontaminate training/shellsafetybench/splits/train-balanced.jsonl
+      apr data decontaminate training/shellsafetybench/splits/train.jsonl
         --reference training/shellsafetybench/splits/test.jsonl
     depends_on: [split-data]
 
@@ -124,7 +124,7 @@ resources:
     type: task
     machine: lambda
     command: >
-      alimentar quality score training/shellsafetybench/splits/train-balanced.jsonl
+      alimentar quality score training/shellsafetybench/splits/train.jsonl
         --profile ml-training --json
     quality_gate:
       parse: json

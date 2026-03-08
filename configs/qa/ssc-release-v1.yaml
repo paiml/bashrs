@@ -43,7 +43,7 @@ checks:
 
   - name: splits-exist
     description: "Train/val/test splits exist"
-    command: "test -f training/shellsafetybench/splits-merged/train.jsonl && test -f training/shellsafetybench/splits-merged/test.jsonl"
+    command: "test -f training/shellsafetybench/splits/train.jsonl && test -f training/shellsafetybench/splits/test.jsonl"
 
   - name: class-balance
     description: "Unsafe class is >5% of training data (not extreme imbalance)"
@@ -62,7 +62,7 @@ checks:
   - name: dataset-quality
     description: "Training data passes alimentar quality check"
     command: >
-      apr data audit training/shellsafetybench/splits-merged/train.jsonl --json
+      apr data audit training/shellsafetybench/splits/train.jsonl --json
     gate:
       field: valid_json_pct
       op: ">="
