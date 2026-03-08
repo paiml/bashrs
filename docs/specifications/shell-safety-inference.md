@@ -712,11 +712,16 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
   - **Kill criterion**: KILL-CHAT-001 TRIGGERED — ship classifier only
   - **Remaining issue**: Full fine-tuning destroys instruction-following.
     Needs LoRA adapter-only training to preserve base model capabilities.
-  - **Run 5** (1 epoch, v2 data with classification prefix): IN PROGRESS
+  - **Run 5** (1 epoch, v2 data with classification prefix): **28.0% accuracy — 2.3× improvement!**
     - Option C: All 17,942 responses prefixed with "Classification: safe/unsafe"
-    - Updated system message instructs model to begin with classification label
-    - Hypothesis: format-focused training data will teach model output FORMAT
-    - 17,536 safe + 406 unsafe entries in restructured conversations_v2.jsonl
+    - Epoch 1: loss=1.667, ppl=5.30, best=0.791, 51 min @ 2983 tok/s
+    - Safe accuracy: 44% (11/25), Unsafe accuracy: 12% (3/25)
+    - 19 code blocks generated (4.75× run 4), 4 pass shellcheck (21.1%)
+    - Option E (prefill): 30.0% — marginal improvement from prompt engineering
+    - C-CHAT-TRAIN-002: FAIL (28.0%, target >85%)
+    - **Root cause shift**: FORMAT learned (some "Classification:" prefixes in output),
+      but CLASS IMBALANCE dominates — 97.7% safe training data → model defaults "safe"
+    - **Kill criterion**: KILL-CHAT-001 remains TRIGGERED
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1592,7 +1597,7 @@ jobs:
 |------|------|--------|
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
 | CHAT-002: Fine-tune (RTX 4090) | 34 min | ✅ Done — Run 4 (1 epoch): loss=1.86, best=0.607 |
-| CHAT-003: Evaluate + human review | 6 hrs | FAIL — 12.1% accuracy (4 runs, 3 bugs fixed: entrenar#258 #259 #260). Run 5 in progress (Option C: format-focused data) |
+| CHAT-003: Evaluate + human review | 6 hrs | FAIL — 28.0% accuracy (5 runs, 3 bugs fixed). Run 5: Option C format-focused data → 2.3× improvement. Class imbalance now primary bottleneck |
 | CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-chat + paiml/shell-safety-conversations) |
 
 ### Phase 4: CLI (1 day)

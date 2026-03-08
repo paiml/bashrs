@@ -1,5 +1,5 @@
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
   description: "Chat model training — Qwen2.5-Coder-0.5B-Instruct LoRA fine-tuning on shell safety conversations"
   references:
     - "Hu et al. (2021) LoRA: Low-Rank Adaptation of Large Language Models"
@@ -47,10 +47,14 @@ postconditions:
       Run 1: Gibberish output, 0% accuracy.
       Run 3 (3 epochs): 3.0% accuracy (1/33), degenerate output.
       Run 4 (1 epoch): 12.1% accuracy (4/33), coherent domain-relevant text.
-      Model generates structured advice about shell safety (command injection,
-      unquoted variables, non-determinism) but doesn't follow classification
-      FORMAT (no "safe"/"unsafe" label prefix). 4× improvement with 1 epoch.
-      Still below 85% threshold — needs LoRA or format-focused training.
+      Run 5 (1 epoch, v2 data): 28.0% accuracy (14/50), 2.3× improvement.
+        Safe: 11/25 (44%), Unsafe: 3/25 (12%).
+        19 code blocks generated (up from 4), 4 pass shellcheck (21.1%).
+        Model generates structured analysis, some with "Classification: safe" prefix.
+        Key issue: model tends to say "safe" for unsafe scripts.
+        Option C+E (prefill): 30.0% (15/50) — marginal improvement from prefill.
+      Still below 85% threshold. Full fine-tuning destroys format compliance.
+      Root cause: 97.7% safe data imbalance — model defaults to "safe".
 
   - id: C-CHAT-TRAIN-003
     description: "Fix suggestions pass shellcheck"
@@ -60,8 +64,9 @@ postconditions:
     evidence: >
       Run 3 (3 epochs): No code blocks generated.
       Run 4 (1 epoch): 4 code blocks generated, 1 passed shellcheck (25.0%).
-      Model generates bash code suggestions but shellcheck compliance is low.
-      Improvement: code blocks are now coherent enough to be parsed.
+      Run 5 (1 epoch, v2 data): 19 code blocks generated, 4 passed shellcheck (21.1%).
+      Code block volume 4.75× improvement; shellcheck pass rate stable at ~21-25%.
+      Model generates more code suggestions but quality remains below 85% threshold.
 
   - id: C-CHAT-TRAIN-004
     description: "Rule citations match linter output"
@@ -87,12 +92,13 @@ kill_criteria:
     action: "Ship classifier only. Chat model not ready."
     status: TRIGGERED
     evidence: >
-      Run 4 (1 epoch) model generates coherent domain-relevant text.
-      Classification accuracy 12.1% (4/33). Significant improvement over
-      run 3 (3.0%) but still far below 85% threshold.
-      Human review: ~2/5 — text is coherent and relevant but not structured.
-      Decision: ship classifier only. Chat model needs LoRA adapter training
-      to preserve base instruction-following while learning domain.
+      Run 5 (v2 data, classification prefix): 28.0% accuracy (14/50).
+      2.3× improvement over run 4 (12.1%), 9.3× over run 3 (3.0%).
+      Model generates 19 code blocks (up from 4). Structured analysis output.
+      Human review: ~2.5/5 — output is coherent, relevant, sometimes structured.
+      BUT: 97.7% safe data causes severe class imbalance — model defaults to "safe".
+      Kill criterion remains TRIGGERED. Need LoRA adapter-only training OR
+      class-balanced training data to reach 85% threshold.
 
 root_cause_analysis:
   - id: RCA-CHAT-001
@@ -225,20 +231,39 @@ benchmarks:
     final_loss: 2.671
     total_time: "2055s (34 min, 1 epoch)"
     insight: "1 epoch avoids catastrophic forgetting; model generates coherent domain text"
+  training_run_5:
+    note: "Option C — v2 data with Classification: prefix (format-focused training)"
+    hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
+    model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
+    data: "conversations_v2.jsonl (17,536 safe + 406 unsafe, classification prefix)"
+    epochs: 1
+    lr: 0.00005
+    throughput_avg: "2,983 tok/s"
+    epoch_1_loss: 1.667
+    epoch_1_perplexity: 5.30
+    best_loss: 0.791
+    final_loss: 2.160
+    total_time: "3042s (51 min, 1 epoch)"
+    insight: "2.3x accuracy improvement over run 4 (28% vs 12.1%); model generates structured analysis with code blocks (19 vs 4); still below 85% threshold"
   inference:
-    status: "FAIL — coherent domain text but missing classification format"
-    tested_with: "HuggingFace transformers 5.3.0 (CPU, torch 2.10.0)"
+    status: "FAIL — improved accuracy but still below 85% threshold"
+    tested_with: "HuggingFace transformers 5.3.0 (CUDA, torch 2.10.0)"
     model_size: "1.98GB"
     run_3_accuracy: "3.0% (1/33, 3 epochs, degraded)"
     run_4_accuracy: "12.1% (4/33, 1 epoch, coherent)"
-    run_4_shellcheck_rate: "25.0% (1/4 code blocks)"
-    run_4_citation_rate: "0.0%"
+    run_5_accuracy: "28.0% (14/50, 1 epoch, v2 data with classification prefix)"
+    run_5_safe_accuracy: "44.0% (11/25)"
+    run_5_unsafe_accuracy: "12.0% (3/25)"
+    run_5_shellcheck_rate: "21.1% (4/19 code blocks)"
+    run_5_citation_rate: "0.0%"
+    run_5_with_prefill: "30.0% (15/50) — marginal improvement from Option E"
     output_quality: >
-      Run 4 (1 epoch): Coherent domain-relevant English. Discusses command injection,
-      unquoted variables, non-deterministic operations. Generates numbered advice lists.
-      Produces some code blocks. BUT: doesn't prefix with "safe"/"unsafe" label,
-      doesn't cite specific rule IDs, some "potential potential" repetition.
-      4× improvement over run 3 (3 epochs). Key bottleneck: response FORMAT, not CONTENT.
+      Run 5 (v2 data): Structured analysis with some "Classification: safe" prefixes.
+      19 code blocks generated (4.75× run 4). Model correctly identifies safe scripts
+      ~44% of the time. BUT: defaults to "safe" for unsafe scripts (12% recall).
+      Root cause: 97.7% safe data imbalance. Key bottleneck shifted from FORMAT to
+      CLASS IMBALANCE — model learned to say "safe" as default since 97.7% of training
+      data is safe.
     bugs_fixed:
       - "entrenar#258: attention bias serialization (72 Qwen2 QKV bias tensors)"
       - "entrenar#259: config.json hardcoded LlamaForCausalLM instead of Qwen2ForCausalLM"
