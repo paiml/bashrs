@@ -272,6 +272,7 @@ fn compute_fix_validity(
 /// - Has structured response (contains rule ID, "unsafe"/"safe")
 /// - Minimum length (>50 chars for unsafe explanations)
 /// - Contains actionable advice (e.g., "use", "instead", "replace")
+#[allow(clippy::if_same_then_else)] // Intentional: safe and unsafe-with-keywords both get 0.25 for different reasons
 fn compute_explanation_quality(predictions: &[Prediction]) -> f64 {
     if predictions.is_empty() {
         return 0.0;
