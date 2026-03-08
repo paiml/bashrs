@@ -106,13 +106,9 @@ resources:
     type: task
     machine: lambda
     command: >
-      apr data split training/shellsafetybench/merged.jsonl
-        --train 0.8 --val 0.1 --test 0.1
-        --stratified
-        -o training/shellsafetybench/splits/ &&
-      apr data balance training/shellsafetybench/splits/train.jsonl
-        --strategy sqrt-inverse
-        -o training/shellsafetybench/splits/train-balanced.jsonl
+      bashrs corpus export-splits
+        --input training/shellsafetybench/merged.jsonl
+        -o training/shellsafetybench/splits/
     output_artifacts: ["training/shellsafetybench/splits/"]
     depends_on: [merge-data]
 
