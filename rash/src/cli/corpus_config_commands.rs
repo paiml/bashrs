@@ -4,6 +4,92 @@ use crate::cli::args::DatasetExportFormat;
 use crate::models::{Config, Error, Result};
 use std::path::{Path, PathBuf};
 
+/// Display CWE taxonomy mapping for all bashrs linter rules (SSC v12 S14.2).
+pub(crate) fn corpus_cwe_mapping(json: bool) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::cwe_mapping;
+
+    if json {
+        // JSON output for pipeline consumption
+        let entries: Vec<serde_json::Value> = cwe_mapping::CWE_MAPPINGS
+            .iter()
+            .map(|m| {
+                serde_json::json!({
+                    "rule": m.rule,
+                    "pattern": m.pattern,
+                    "cwe": m.cwe,
+                    "cwe_id": m.cwe_id,
+                    "cvss_score": m.cvss_score,
+                    "cvss_severity": m.cvss_severity.as_str(),
+                    "owasp": m.owasp,
+                })
+            })
+            .collect();
+        let ood: Vec<serde_json::Value> = cwe_mapping::OOD_CWES
+            .iter()
+            .map(|o| {
+                serde_json::json!({
+                    "cwe": o.cwe,
+                    "cwe_id": o.cwe_id,
+                    "name": o.name,
+                    "description": o.description,
+                    "cvss_score": o.cvss_score,
+                    "cvss_severity": o.cvss_severity.as_str(),
+                })
+            })
+            .collect();
+        let output = serde_json::json!({
+            "linter_rules": entries,
+            "ood_cwes": ood,
+            "summary": {
+                "total_rules": cwe_mapping::CWE_MAPPINGS.len(),
+                "unique_cwes": cwe_mapping::linter_cwe_ids().len(),
+                "ood_cwes": cwe_mapping::OOD_CWES.len(),
+                "ood_disjoint": cwe_mapping::verify_ood_disjoint(),
+            }
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+    } else {
+        // Human-readable table
+        println!("{BOLD}CWE Taxonomy Mapping (SSC v12 \u{00a7}14.2){RESET}");
+        println!();
+        println!(
+            "  {DIM}{:<8} {:<35} {:<10} {:>5} {:<10} {}{RESET}",
+            "Rule", "Pattern", "CWE", "CVSS", "Severity", "OWASP"
+        );
+        println!("  {}", "-".repeat(90));
+
+        for m in cwe_mapping::CWE_MAPPINGS {
+            let severity_color = match m.cvss_severity {
+                cwe_mapping::CvssSeverity::Critical => RED,
+                cwe_mapping::CvssSeverity::High => YELLOW,
+                cwe_mapping::CvssSeverity::Medium => CYAN,
+                cwe_mapping::CvssSeverity::Low => DIM,
+                cwe_mapping::CvssSeverity::None => DIM,
+            };
+            println!(
+                "  {:<8} {:<35} {:<10} {severity_color}{:>5.1}{RESET} {severity_color}{:<10}{RESET} {}",
+                m.rule, m.pattern, m.cwe, m.cvss_score, m.cvss_severity, m.owasp
+            );
+        }
+
+        println!();
+        println!("{BOLD}OOD CWEs (eval-only, not in linter){RESET}");
+        println!();
+        for o in cwe_mapping::OOD_CWES {
+            println!(
+                "  {:<10} {:<40} {:>5.1} ({})",
+                o.cwe, o.name, o.cvss_score, o.cvss_severity
+            );
+        }
+
+        println!();
+        println!("{DIM}{}{RESET}", cwe_mapping::summary());
+    }
+
+    Ok(())
+}
+
 pub(crate) fn corpus_domain_categories() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::domain_categories;
@@ -416,9 +502,9 @@ pub(crate) fn corpus_generate_conversations(
         .take(max)
         .map(|e| {
             let shell_output = match e.format {
-                crate::corpus::registry::CorpusFormat::Bash => {
-                    crate::transpile(&e.input, &config).unwrap_or_else(|_| e.input.clone())
-                }
+                crate::corpus::registry::CorpusFormat::Bash => crate::transpile(&e.input, &config)
+                    .map(|s| crate::corpus::dataset::strip_shell_preamble(&s))
+                    .unwrap_or_else(|_| e.input.clone()),
                 crate::corpus::registry::CorpusFormat::Makefile => {
                     crate::transpile_makefile(&e.input, &config).unwrap_or_else(|_| e.input.clone())
                 }

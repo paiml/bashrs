@@ -29,6 +29,7 @@ pub mod classifier;
 pub mod contract_validation;
 pub mod convergence;
 pub mod conversations;
+pub mod cwe_mapping;
 #[allow(clippy::expect_used)] // Dataset uses expect() for internal invariants
 pub mod dataset;
 #[allow(clippy::expect_used)] // Domain categories uses expect() for internal invariants
