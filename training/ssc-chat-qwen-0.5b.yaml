@@ -64,3 +64,4 @@ output:
 publish:
   repo: "paiml/shell-safety-chat"
   private: false
+  status: "DELETED — kill criterion KILL-CHAT-001 confirmed after 6 runs (32% accuracy)"
