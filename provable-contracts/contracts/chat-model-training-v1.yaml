@@ -31,13 +31,15 @@ postconditions:
     description: "Training converges — loss decreases over epochs"
     formal: "train_loss(epoch=3) < train_loss(epoch=1) * 0.8"
     applies_to: all
-    status: WEAK_PASS
+    status: FAIL
     evidence: >
-      Run 1 (no biases): Loss 18.3 -> 4.8, plateau at ~5.0. Run 2 (with biases):
-      Loss 18.2 -> 1.2 at step 1000, then catastrophic spike to ~4.5 plateau.
-      Run 2 shows biases enable initial learning (loss 1.2 is meaningful) but
-      training instability at LR=2e-4 prevents sustained convergence.
-      Needs lower LR (5e-5) or LoRA-only training.
+      Run 1 (no biases): Loss 18.3 -> 4.8, plateau at ~5.0.
+      Run 2 (with biases, LR=2e-4): Loss 18.2 -> 1.2, spike to ~4.5 (interrupted).
+      Run 3 (with biases, LR=5e-5): Epoch 1 loss=1.52 (ppl=4.56, meaningful learning).
+      Epoch 2 loss=3.88 (ppl=48.39, catastrophic forgetting). Epoch 3 in progress.
+      C-CHAT-TRAIN-001 FAILS: epoch 3 loss > epoch 1 loss * 0.8.
+      Root cause: full fine-tuning on 17K samples causes overfitting after 1 epoch.
+      Fix: reduce to 1 epoch or use LoRA adapter-only training.
 
   - id: C-CHAT-TRAIN-002
     description: "Classification accuracy from parsed chat response exceeds 85%"
@@ -136,24 +138,34 @@ falsification_tests:
     evidence: "Model produces gibberish for all prompts, in-scope and out-of-scope."
 
 benchmarks:
-  training:
+  training_run_1:
+    note: "Without biases (entrenar#258 not yet fixed)"
     hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
     model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
     throughput_avg: "4,578 tok/s"
-    throughput_peak: "6,552 tok/s"
-    mfu_avg: "16.4%"
-    mfu_peak: "23.5%"
-    total_time: "87 minutes (3 epochs, 13,458 steps)"
-    vram_usage: "~10GB (f32 weights + optimizer states + activations)"
-    step_time_avg: "~400ms per batch (seq_len=512, batch_size=4)"
     final_loss: 4.800
     best_loss: 0.764
     epoch_losses: [4.576, 4.980, 4.800]
-    rollbacks: 9
-    note: "1.5B model OOM'd — f32 optimizer states exceed 24GB; NF4 not bridged in entrenar"
+  training_run_3:
+    note: "With bias fix (entrenar#258) + config.json fix (#259), LR=5e-5"
+    hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
+    model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
+    throughput_avg: "5,190 tok/s"
+    throughput_peak: "6,197 tok/s"
+    mfu_avg: "18.6%"
+    mfu_peak: "22.2%"
+    vram_usage: "~10GB (f32 weights + optimizer states + activations)"
+    step_time_avg: "~350ms per batch (seq_len=512, batch_size=4)"
+    epoch_1_loss: 1.518
+    epoch_1_perplexity: 4.56
+    epoch_2_loss: 3.879
+    epoch_2_perplexity: 48.39
+    epoch_3_loss: "pending"
+    insight: "Epoch 1 shows meaningful learning; epochs 2-3 show catastrophic forgetting"
   inference:
-    status: "FAIL — model generates degenerate gibberish"
+    status: "PENDING — evaluating run 3 model"
     tested_with: "HuggingFace transformers 5.3.0 (CPU, torch 2.10.0)"
     model_size: "1.98GB"
-    root_cause: "entrenar missing attention bias serialization (72 Qwen2 QKV bias tensors)"
-    comparison: "Base model (pre-fine-tuning) generates coherent text with same config"
+    bugs_fixed:
+      - "entrenar#258: attention bias serialization (72 Qwen2 QKV bias tensors)"
+      - "entrenar#259: config.json hardcoded LlamaForCausalLM instead of Qwen2ForCausalLM"

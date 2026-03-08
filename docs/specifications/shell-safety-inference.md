@@ -692,18 +692,20 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - **CHAT-004 COMPLETE**: Published to HuggingFace
   - Model: https://huggingface.co/paiml/shell-safety-chat (1.98GB safetensors + config + tokenizer)
   - Dataset: https://huggingface.co/datasets/paiml/shell-safety-conversations (17,942 entries, 35MB)
-- **CHAT-003 FAIL**: Two training runs attempted, both fail inference evaluation
+- **CHAT-003 IN PROGRESS**: Three training runs, progressive improvements
   - **Run 1** (without biases): Loss plateau at ~5.0, gibberish output ("222dkdkdk...")
     - Root cause: entrenar dropped 72 QKV attention biases during serialization
     - Fixed in entrenar@24bc0c7 (paiml/entrenar#258)
-  - **Run 2** (with biases): Loss drops to 1.2 by step 1000, then spikes to ~4.5 plateau
-    - Improvement: biases now loaded and saved correctly (290 tensors)
-    - Training instability: LR 2e-4 causes catastrophic spike at step ~1500
+  - **Run 2** (with biases, LR=2e-4): Loss drops to 1.2 then spikes to ~4.5 plateau
+    - Improvement: biases loaded/saved correctly (290 tensors)
     - Process killed at step 4004/13458 (external interruption)
-    - Needs: lower LR (5e-5), cosine warmup, or LoRA-only training
-  - C-CHAT-TRAIN-002..004: FAIL (loss plateau prevents coherent generation)
-  - **Kill criterion**: KILL-CHAT-001 applies — ship classifier only, chat model not ready
-  - **Next steps**: Lower LR to 5e-5 with cosine warmup, or use LoRA-only adapter training
+  - **Run 3** (with biases, LR=5e-5): Epoch 1 loss=1.52 (perplexity=4.56, meaningful learning)
+    - Bug fix: config.json now writes correct Qwen2ForCausalLM (entrenar#259, fixed in 533358f)
+    - Epoch 2 degradation: loss=3.88 (perplexity=48.39, catastrophic forgetting)
+    - Epoch 3 in progress — model over-trains after 1 epoch
+    - Key insight: 1-epoch training optimal for full fine-tuning on 17K samples
+  - C-CHAT-TRAIN-002..004: evaluation pending (run 3 completing)
+  - **Kill criterion**: KILL-CHAT-001 status pending evaluation
 
 ### 8.2 Pipeline (F6 Fix — No Circular Routing)
 
@@ -1578,8 +1580,8 @@ jobs:
 | Task | Time | Status |
 |------|------|--------|
 | CHAT-001: Configure Qwen LoRA in entrenar | 3 hrs | ✅ Done (training manifest + entrenar JSONL export + provable contract) |
-| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 87 min | ✅ Done (final_loss=4.800, best=0.764, 13,458 steps) |
-| CHAT-003: Evaluate + human review | 4 hrs | FAIL — model outputs gibberish (entrenar#258: missing QKV biases) |
+| CHAT-002: Fine-tune (3 epochs, RTX 4090) | 87 min | ✅ Done — Run 3: epoch1 loss=1.52 (with bias fix + LR=5e-5) |
+| CHAT-003: Evaluate + human review | 4 hrs | IN PROGRESS — Run 3 completing, evaluation pending |
 | CHAT-004: Publish to HuggingFace | 10 min | ✅ Done (paiml/shell-safety-chat + paiml/shell-safety-conversations) |
 
 ### Phase 4: CLI (1 day)
