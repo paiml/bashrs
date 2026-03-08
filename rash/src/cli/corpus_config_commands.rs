@@ -1023,18 +1023,43 @@ pub(crate) fn corpus_validate_contracts() -> Result<()> {
 }
 
 /// Export dataset with train/val/test splits.
-pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
+pub(crate) fn corpus_export_splits(output: Option<PathBuf>, input: Option<PathBuf>) -> Result<()> {
     use crate::cli::color::*;
-    use crate::corpus::baselines::corpus_baseline_entries;
     use crate::corpus::dataset::{split_and_validate, ClassificationRow};
 
-    eprintln!("{BOLD}Building classification dataset from corpus...{RESET}");
-
-    let owned = corpus_baseline_entries();
-    let rows: Vec<ClassificationRow> = owned
-        .into_iter()
-        .map(|(input, label)| ClassificationRow { input, label })
-        .collect();
+    let rows: Vec<ClassificationRow> = if let Some(ref input_path) = input {
+        // Fast path: read from pre-merged JSONL
+        eprintln!("{BOLD}Loading from {}...{RESET}", input_path.display());
+        let content = std::fs::read_to_string(input_path)?;
+        content
+            .lines()
+            .filter(|l| !l.trim().is_empty())
+            .filter_map(|l| {
+                let v: serde_json::Value = serde_json::from_str(l).ok()?;
+                let input_text = v
+                    .get("instruction")
+                    .or_else(|| v.get("input"))
+                    .or_else(|| v.get("unsafe_script"))
+                    .or_else(|| v.get("script"))
+                    .and_then(|v| v.as_str())?
+                    .to_string();
+                let label = v.get("label").and_then(|v| v.as_u64()).unwrap_or(0) as u8;
+                Some(ClassificationRow {
+                    input: input_text,
+                    label,
+                })
+            })
+            .collect()
+    } else {
+        // Slow path: transpile full corpus
+        use crate::corpus::baselines::corpus_baseline_entries;
+        eprintln!("{BOLD}Building classification dataset from corpus...{RESET}");
+        let owned = corpus_baseline_entries();
+        owned
+            .into_iter()
+            .map(|(input, label)| ClassificationRow { input, label })
+            .collect()
+    };
 
     let total = rows.len();
     eprintln!("  Total entries: {total}");
@@ -2305,6 +2330,7 @@ pub(crate) fn corpus_merge_data(
     }
 
     // 2. Load extra inputs (e.g., verificar-labeled.jsonl)
+    // Normalize verificar mutation entries to conversation format matching corpus schema.
     for path in &extra_inputs {
         if !path.exists() {
             return Err(Error::Validation(format!(
@@ -2321,6 +2347,10 @@ pub(crate) fn corpus_merge_data(
                 continue;
             }
             if let Ok(mut val) = serde_json::from_str::<serde_json::Value>(&line) {
+                // Normalize verificar mutation entries to conversation format
+                if val.get("unsafe_script").is_some() && val.get("instruction").is_none() {
+                    val = normalize_verificar_entry(val);
+                }
                 if let Some(obj) = val.as_object_mut() {
                     obj.entry("source".to_string())
                         .or_insert_with(|| serde_json::json!("verificar"));
@@ -2365,4 +2395,72 @@ pub(crate) fn corpus_merge_data(
     );
 
     Ok(())
+}
+
+/// Normalize a verificar mutation entry into the conversation format used by corpus entries.
+///
+/// Input fields: unsafe_script, safe_script, cwe, vulnerability, mutation_description, label, findings
+/// Output fields: instruction, response, system, text, source, cwe, label, findings
+fn normalize_verificar_entry(val: serde_json::Value) -> serde_json::Value {
+    let unsafe_script = val
+        .get("unsafe_script")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let safe_script = val
+        .get("safe_script")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let cwe = val.get("cwe").and_then(|v| v.as_str()).unwrap_or("unknown");
+    let vulnerability = val
+        .get("vulnerability")
+        .and_then(|v| v.as_str())
+        .unwrap_or("unknown");
+    let mutation_desc = val
+        .get("mutation_description")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let label = val.get("label").cloned().unwrap_or(serde_json::json!(1));
+    let findings = val
+        .get("findings")
+        .cloned()
+        .unwrap_or(serde_json::json!([]));
+    let classification = val
+        .get("classification")
+        .cloned()
+        .unwrap_or(serde_json::json!("unsafe"));
+
+    let instruction = format!(
+        "Evaluate this shell script for security issues.\n\n```bash\n{unsafe_script}\n```",
+    );
+
+    let response = if label.as_u64() == Some(1) {
+        format!(
+            "This script contains a security vulnerability: {cwe} — {vulnerability}.\n\n\
+             **Issue**: {mutation_desc}\n\n\
+             **Fixed version**:\n```bash\n{safe_script}\n```",
+        )
+    } else {
+        format!(
+            "The linter did not detect known unsafe patterns in this script, but it may contain \
+             subtle vulnerabilities ({cwe} — {vulnerability}): {mutation_desc}\n\n\
+             **Safer version**:\n```bash\n{safe_script}\n```",
+        )
+    };
+
+    let system = "You are a shell script security analyzer. Evaluate scripts for vulnerabilities \
+                  including command injection, race conditions, hardcoded credentials, and other \
+                  CWE-mapped security issues.";
+
+    serde_json::json!({
+        "instruction": instruction,
+        "response": response,
+        "system": system,
+        "text": format!("{system}\n\n### Instruction:\n{instruction}\n\n### Response:\n{response}"),
+        "label": label,
+        "classification": classification,
+        "findings": findings,
+        "cwe": cwe,
+        "cwe_id": val.get("cwe_id").cloned().unwrap_or(serde_json::json!(0)),
+        "mutation_description": mutation_desc,
+    })
 }
