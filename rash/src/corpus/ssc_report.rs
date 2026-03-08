@@ -505,12 +505,24 @@ fn shellsafetybench_section() -> SscSection {
         std::path::Path::new("training/shellsafetybench/benchmark.jsonl").exists();
     let conversations_exists =
         std::path::Path::new("training/shellsafetybench/conversations.jsonl").exists();
+    let verificar_exists =
+        std::path::Path::new("training/shellsafetybench/verificar-labeled.jsonl").exists();
     let pipeline_exists = std::path::Path::new("configs/pipeline/ssc.yaml").exists();
     let qa_exists = std::path::Path::new("configs/qa/ssc-release-v1.yaml").exists();
     let train_config_exists =
         std::path::Path::new("configs/train/ssc-qwen3-4b-qlora.yaml").exists();
     let contract_exists =
         std::path::Path::new("provable-contracts/contracts/shellsafetybench-v1.yaml").exists();
+
+    // Count lines in data files (0 if missing)
+    let count_lines = |path: &str| -> usize {
+        std::fs::read_to_string(path)
+            .map(|s| s.lines().count())
+            .unwrap_or(0)
+    };
+    let corpus_entries = count_lines("training/shellsafetybench/conversations.jsonl");
+    let verificar_entries = count_lines("training/shellsafetybench/verificar-labeled.jsonl");
+    let total_entries = corpus_entries + verificar_entries;
 
     let all_pass = cwe_count == 14
         && ood_disjoint
@@ -596,6 +608,24 @@ fn shellsafetybench_section() -> SscSection {
                 },
                 target: "present".to_string(),
                 passed: train_config_exists,
+            },
+            SscMetric {
+                name: "Verificar mutations".to_string(),
+                value: if verificar_exists {
+                    format!("{verificar_entries} entries")
+                } else {
+                    "missing".to_string()
+                },
+                target: ">0 entries".to_string(),
+                passed: verificar_exists && verificar_entries > 0,
+            },
+            SscMetric {
+                name: "Total entries".to_string(),
+                value: format!(
+                    "{total_entries} (corpus={corpus_entries} + verificar={verificar_entries})"
+                ),
+                target: ">20000".to_string(),
+                passed: total_entries > 20000,
             },
             SscMetric {
                 name: "Provable contract".to_string(),
