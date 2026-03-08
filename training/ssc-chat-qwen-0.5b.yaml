@@ -36,13 +36,13 @@ data:
 
 optimizer:
   name: "adamw"
-  lr: 0.0002
+  lr: 0.00005
 
 scheduler:
   name: "cosine"
 
 training:
-  epochs: 3
+  epochs: 1
   gradient_accumulation: 4
   max_seq_length: 512
   checkpoint:
