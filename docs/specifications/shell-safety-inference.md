@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.5.0
-**Status**: IMPLEMENTATION IN PROGRESS — v12.5 pipeline operational, 27,842 entries (17,942 corpus + 9,900 verificar)
+**Version**: 12.8.0
+**Status**: TRAINING IN PROGRESS — Run 7 Qwen3-4B NF4 QLoRA active (9.9GB VRAM, 1672 tok/s), entrenar#262+#263 fixed, 27,842 entries
 **Author**: paiml engineering
 **Date**: 2026-03-08
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -2676,3 +2676,5 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.4** | **2026-03-08** | **Implementation: (1) verificar CWE-targeted mutations (12 CWEs, safe/unsafe pairs, GH-11/12); (2) cross-linter validation CLI (bashrs vs ShellCheck); (3) eval harness CLI with JSONL predictions; (4) apr data audit/decontaminate/quality integration; (5) alimentar quality score B (93.5%); (6) book docs for all new commands; (7) 10 SSB assert_cmd tests. Decontamination: 20.67% n-gram overlap is structural (shell boilerplate), 0 exact duplicates.** |
 | **12.5** | **2026-03-08** | **Pipeline operational: (1) verificar mutation expansion to 500+ templates/seed (paiml/verificar#13); (2) pipeline-check preflight command; (3) corpus label accepts verificar format (unsafe_script); (4) 9,900 verificar-labeled mutations generated; (5) total 27,842 entries (17,942 corpus + 9,900 verificar); (6) SSC report with data stats; (7) 10 provable contract FALSIFY tests; (8) pipeline YAML corrected to match actual tool CLIs.** |
 | **12.6** | **2026-03-08** | **Data pipeline complete (Steps 7.1-7.4e DONE): (1) merge-data command with schema normalization (verificar→conversation format); (2) export-splits --input for fast path on merged JSONL; (3) balanced splits: 22,169/2,738/2,935 at 21.1% unsafe (vs 0.8% corpus-only); (4) 100% valid JSON, 0 cross-source dupes; (5) 11 FALSIFY contract tests; (6) 68 SSC CLI integration tests.** |
+| **12.7** | **2026-03-08** | **Training infrastructure (Step 7.5): (1) Training config aligned to entrenar TrainSpec schema (`model.path`, `training.mode`, `training.output_dir`); (2) Fixed stale `train-balanced.jsonl` refs → `train.jsonl` across pipeline/QA/spec; (3) `apr train plan` dry-run PASSES; (4) entrenar#262 fixed: Qwen3-4B q_proj shape mismatch (head_dim*num_heads≠hidden_size), 7 new tests; (5) entrenar#263 filed: NF4 quantization not applied; (6) QLoRA training contract `qwen3-4b-qlora-training-v1.yaml` with 8 FALSIFY tests; (7) Book chapter `advanced/shellsafetybench.md` added.** |
+| **12.8** | **2026-03-08** | **Training running (Step 7.6): (1) entrenar#263 FIXED: NF4+LoRA in CudaTransformerTrainer pretrain path — CudaNf4TransformerBlock with LoRA adapters, backward_nf4()+lora_optimizer_step(), 10 new tests; (2) Training config uses model config.json for proper head_dim=128; (3) Run 7 RUNNING: Qwen3-4B NF4 QLoRA on RTX 4090, 9.9GB VRAM, 1672 tok/s, 5543 steps/epoch; (4) Loss reporting fix pending (gradients flow correctly, loss value not captured in NF4 path).** |
