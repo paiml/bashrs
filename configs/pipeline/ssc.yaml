@@ -139,14 +139,14 @@ resources:
     type: task
     machine: lambda
     command: >
-      apr train plan --config configs/train/ssc-qwen3-4b-qlora.yaml
+      apr train plan --task pretrain --config configs/train/ssc-qwen3-4b-qlora.yaml
     depends_on: [quality-gate, cuda-driver]
 
   train-apply:
     type: task
     machine: lambda
     command: >
-      apr train apply --config configs/train/ssc-qwen3-4b-qlora.yaml
+      apr train apply --task pretrain --config configs/train/ssc-qwen3-4b-qlora.yaml
         --seed 42
         --deterministic
     output_artifacts: ["training/checkpoints/ssc-chat-v7-qwen3-4b/"]
