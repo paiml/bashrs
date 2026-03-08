@@ -24,6 +24,7 @@
 pub mod adversarial_generator;
 pub mod adversarial_templates;
 pub mod baselines;
+pub mod benchmark_export;
 pub mod citl;
 pub mod classifier;
 pub mod contract_validation;

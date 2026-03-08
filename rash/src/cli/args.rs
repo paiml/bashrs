@@ -1432,6 +1432,17 @@ pub enum CorpusCommands {
         json: bool,
     },
 
+    /// Export corpus as ShellSafetyBench DPO-compatible JSONL (SSC v12 S14.4)
+    ExportBenchmark {
+        /// Output file (stdout if not specified)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+
+        /// Maximum entries to export
+        #[arg(long)]
+        limit: Option<usize>,
+    },
+
     /// Audit safety label accuracy (SSC v11 S5.3, C-LABEL-001)
     LabelAudit {
         /// Maximum unsafe entries to audit (default: 100)

@@ -772,8 +772,18 @@ pub fn strip_shell_preamble(script: &str) -> String {
         .lines()
         .filter(|line| {
             let s = line.trim();
-            // Filter preamble lines + structural wrappers
-            !is_shell_preamble(s) && s != "main() {" && s != "}"
+            // Filter preamble lines + structural wrappers.
+            // s == "'" catches the closing quote of multi-line IFS=' \t\n'
+            !is_shell_preamble(s) && s != "main() {" && s != "}" && s != "'"
+        })
+        .map(|line| {
+            // Dedent: strip leading whitespace from lines inside main() { ... }
+            let trimmed = line.trim_start();
+            if trimmed.is_empty() {
+                line
+            } else {
+                trimmed
+            }
         })
         .collect();
 
