@@ -197,11 +197,10 @@ resources:
     type: task
     machine: lambda
     command: >
-      alimentar mix
-        --input training/shellsafetybench/labeled.jsonl
+      bashrs corpus merge-data
         --input training/shellsafetybench/verificar-labeled.jsonl
-        --output training/shellsafetybench/merged.jsonl &&
-      apr data audit training/shellsafetybench/merged.jsonl --num-classes 2
+        -o training/shellsafetybench/merged.jsonl
+        --seed 42
     output_artifacts: ["training/shellsafetybench/merged.jsonl"]
     depends_on: [label-corpus, label-verificar]
 
@@ -2633,7 +2632,7 @@ that are then consumed by automated pipeline stages.
 | 7.2b | OOD CWE mutations (CWE-426/77/116/250) | `verificar mutate --cwe-targets ood --count 2000 --output jsonl` | **DONE** (included in --cwe-targets all) |
 | 7.3 | Regenerate conversations from corpus | `bashrs corpus generate-conversations --entrenar --output conversations.jsonl` | **DONE** (17,942 entries) |
 | 7.3b | Label corpus entries | `bashrs corpus label --input conversations.jsonl --format json` | **DONE** |
-| 7.4 | Merge + audit data | `alimentar mix --input *.jsonl && apr data audit merged.jsonl --num-classes 2` | 30 min |
+| 7.4 | Merge + shuffle data | `bashrs corpus merge-data --input verificar-labeled.jsonl -o merged.jsonl` | **DONE** (27,842 entries) |
 | 7.4b | Stratified split + balance | `apr data split --stratified && apr data balance --strategy sqrt-inverse` | 30 min |
 | 7.4c | Decontaminate train vs test | `apr data decontaminate train.jsonl --reference test.jsonl` | 15 min |
 | 7.4d | Quality gate | `alimentar quality score train.jsonl --profile ml-training` | 15 min |

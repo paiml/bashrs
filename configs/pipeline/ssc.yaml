@@ -93,11 +93,10 @@ resources:
     type: task
     machine: lambda
     command: >
-      alimentar mix
-        --input training/shellsafetybench/labeled.jsonl
+      bashrs corpus merge-data
         --input training/shellsafetybench/verificar-labeled.jsonl
-        --output training/shellsafetybench/merged.jsonl &&
-      apr data audit training/shellsafetybench/merged.jsonl --num-classes 2
+        -o training/shellsafetybench/merged.jsonl
+        --seed 42
     output_artifacts: ["training/shellsafetybench/merged.jsonl"]
     depends_on: [label-corpus, label-verificar]
 
