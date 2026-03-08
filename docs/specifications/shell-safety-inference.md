@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.3.0
-**Status**: IMPLEMENTATION IN PROGRESS — v12.3 benchmark export, eval harness, conversation fix
+**Version**: 12.4.0
+**Status**: IMPLEMENTATION IN PROGRESS — v12.4 cross-validation, verificar CWE mutations, data pipeline
 **Author**: paiml engineering
 **Date**: 2026-03-08
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -2677,3 +2677,5 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.0** | **2026-03-08** | **ShellSafetyBench reframe (S14): first shell-specific security benchmark + model. Key changes: (1) training data from real shell/Make/Docker corpus, not Rust transpiler output; (2) CWE taxonomy mapping for all linter rules; (3) verificar mutations for synthetic unsafe pairs; (4) DPO-compatible benchmark schema; (5) eval harness with 5 metrics; (6) Qwen3-4B NF4 QLoRA as specialist model; (7) HuggingFace publication plan (dataset + model + eval Space + leaderboard). Replaces conversations_v3.jsonl (2,268 entries, 85% Rust code) with ~28K entries of real shell code.** |
 | **12.1** | **2026-03-08** | **Hardened eval methodology from 4-stream review (arxiv SEC-bench/SafeGenBench, Popperian Leaderboard Illusion, batuta oracle stack review). Key changes: (1) CVSS v3.1 base scores on CWE table (S14.2); (2) human validation set 200 entries with Cohen's κ (S14.3); (3) dynamic eval via verificar, anti-gaming (S14.5.3); (4) OOD generalization as 6th metric at 15% weight (S14.5); (5) dual scoring: automated leaderboard + LLM-as-judge depth (S14.5.2); (6) F11-F15 falsifications added (S13); (7) cross-linter validation with ShellCheck (S14.8); (8) linter FP rate quantification target <5% (F15).** |
 | **12.2** | **2026-03-08** | **Sovereign tooling mandate (S2b) + VRAM budget (S8.1b.5). Tooling: ALL pipeline ops via apr-cli/alimentar/entrenar/verificar, 10 banned practices, forjar DAG manifest, QA checklist, one-command execution. VRAM: corrected from 2.9 GB (inference) to 5-7 GB (training), albor concurrent training infeasible (combined ~18-20 GB > 24 GB), KILL-CHAT-003 revised with scheduling options.** |
+| 12.3 | 2026-03-08 | Implementation: CWE mapping module, benchmark export, eval harness, conversation data quality fix (transpile before export), JSONL escaping fix, training data splits (80/10/10). |
+| **12.4** | **2026-03-08** | **Implementation: (1) verificar CWE-targeted mutations (12 CWEs, safe/unsafe pairs, GH-11/12); (2) cross-linter validation CLI (bashrs vs ShellCheck); (3) eval harness CLI with JSONL predictions; (4) apr data audit/decontaminate/quality integration; (5) alimentar quality score B (93.5%); (6) book docs for all new commands; (7) 10 SSB assert_cmd tests. Decontamination: 20.67% n-gram overlap is structural (shell boilerplate), 0 exact duplicates.** |

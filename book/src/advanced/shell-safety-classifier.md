@@ -855,6 +855,54 @@ Checks:
 - Config files: pipeline, training, QA gate, CWE mapping, contracts
 - Data artifacts: conversations, benchmark
 
+### Cross-Linter Validation
+
+Validates bashrs labels against ShellCheck as a secondary oracle:
+
+```bash
+# Validate 500 samples
+bashrs corpus shellcheck-validate --samples 500
+
+# JSON output for CI
+bashrs corpus shellcheck-validate --samples 100 --json
+```
+
+Reports agreement rate, ShellCheck-only findings (general quality), and bashrs-only findings (security-specific). Higher ShellCheck-only count is expected since ShellCheck checks general shell quality while bashrs focuses on SEC/DET/IDEM security rules.
+
+### Eval Harness CLI
+
+Evaluate model predictions against the benchmark:
+
+```bash
+# Run eval harness on predictions JSONL
+bashrs corpus eval-benchmark --predictions predictions.jsonl
+
+# JSON output
+bashrs corpus eval-benchmark --predictions predictions.jsonl --json
+```
+
+Predictions JSONL format:
+```json
+{"id":"SSB-00001","classification":"unsafe","label":1,"cited_rules":["SEC001"],"cited_cwes":["CWE-78"],"explanation":"...","ground_truth_rules":["SEC001"],"ground_truth_cwes":["CWE-78"]}
+```
+
+### CWE-Targeted Mutations (verificar)
+
+Generate safe/unsafe script pairs with specific CWE patterns:
+
+```bash
+# All CWE patterns (in-distribution + OOD)
+verificar mutate --cwe-targets all --count 200 -o jsonl
+
+# Out-of-distribution only (for eval generalization)
+verificar mutate --cwe-targets ood --count 50 -o jsonl
+
+# Specific CWEs
+verificar mutate --cwe-targets 78,94,426 --count 30 -o json
+```
+
+12 CWE patterns supported: 8 in-distribution (78, 94, 330, 362, 377, 732, 798, 829) and 4 OOD (426, 77, 116, 250).
+
 ## See Also
 
 - [Security Rules (SEC001-SEC024)](../linting/security.md)
