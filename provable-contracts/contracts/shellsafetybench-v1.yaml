@@ -53,3 +53,18 @@ falsification_tests:
     name: "CVSS scores are valid"
     expected: "All scores in [0.0, 10.0], severities match score ranges"
     test: test_cvss_scores_valid
+
+  - id: FALSIFY-SSB-006
+    name: "Eval harness weights sum to 1.0"
+    expected: "Detection F1 + Rule Citation + CWE + Fix + Explain + OOD = 1.0"
+    test: test_SSB006_eval_harness_weights_sum_to_one
+
+  - id: FALSIFY-SSB-007
+    name: "Data splits have zero exact duplicates between train and test"
+    expected: "apr data audit shows 0 duplicates, 100% valid JSON"
+    test: test_SSB007_eval_benchmark_requires_predictions_file
+
+  - id: FALSIFY-SSB-008
+    name: "Eval harness produces valid results on synthetic predictions"
+    expected: "detection_f1, rule_citation, weighted_score in output"
+    test: test_SSB008_eval_benchmark_with_synthetic_predictions
