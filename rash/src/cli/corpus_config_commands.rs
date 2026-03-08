@@ -1836,13 +1836,31 @@ pub(crate) fn corpus_run_classifier(
 /// Cross-validate bashrs labels against ShellCheck on corpus samples (Step 7.4e).
 pub(crate) fn corpus_shellcheck_validate(samples: usize, seed: u64, json: bool) -> Result<()> {
     use crate::cli::color::*;
-    use crate::corpus::baselines::corpus_baseline_entries;
 
     eprintln!(
         "{BOLD}Cross-validating bashrs labels vs ShellCheck ({samples} samples, seed={seed})...{RESET}"
     );
 
-    let entries = corpus_baseline_entries();
+    // Try pre-built splits first (fast path, ~1s vs ~120s for full corpus)
+    let splits_path = Path::new("training/shellsafetybench/splits/test.jsonl");
+    let entries: Vec<(String, u8)> = if splits_path.exists() {
+        let content = std::fs::read_to_string(splits_path).map_err(Error::Io)?;
+        content
+            .lines()
+            .filter(|l| !l.trim().is_empty())
+            .filter_map(|l| {
+                let v: serde_json::Value = serde_json::from_str(l).ok()?;
+                let input = v.get("input")?.as_str()?.to_string();
+                let label = v.get("label")?.as_u64()? as u8;
+                Some((input, label))
+            })
+            .collect()
+    } else {
+        // Fall back to full corpus transpilation (slow)
+        use crate::corpus::baselines::corpus_baseline_entries;
+        corpus_baseline_entries()
+    };
+
     let total = entries.len();
 
     // Deterministic sampling using seed

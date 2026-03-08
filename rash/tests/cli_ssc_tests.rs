@@ -1056,9 +1056,21 @@ fn test_KAIZEN095_pipeline_check_json_output() {
 
 #[test]
 fn test_SSB006_shellcheck_validate_json_output() {
+    // Create a minimal splits file so the fast path is used
+    let dir = tempfile::tempdir().expect("create tempdir");
+    let splits_dir = dir.path().join("training/shellsafetybench/splits");
+    std::fs::create_dir_all(&splits_dir).expect("create splits dir");
+    let test_jsonl = splits_dir.join("test.jsonl");
+    std::fs::write(
+        &test_jsonl,
+        "{\"input\":\"echo hello\",\"label\":0}\n{\"input\":\"rm -rf $dir\",\"label\":1}\n{\"input\":\"echo world\",\"label\":0}\n",
+    )
+    .expect("write test.jsonl");
+
     bashrs_cmd()
-        .args(["corpus", "shellcheck-validate", "--samples", "10", "--json"])
-        .timeout(std::time::Duration::from_secs(60))
+        .current_dir(dir.path())
+        .args(["corpus", "shellcheck-validate", "--samples", "3", "--json"])
+        .timeout(std::time::Duration::from_secs(30))
         .assert()
         .success();
 }
