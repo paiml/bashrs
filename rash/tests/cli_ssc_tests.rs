@@ -871,6 +871,33 @@ fn test_SSB001_corpus_cwe_mapping_json_output() {
 }
 
 #[test]
+fn test_SSB003_corpus_export_benchmark_produces_jsonl() {
+    // FALSIFY-SSB-003: Benchmark export has DPO schema
+    let output = bashrs_cmd()
+        .args(["corpus", "export-benchmark", "--limit", "5"])
+        .output()
+        .expect("export-benchmark");
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = stdout.trim().lines().collect();
+    assert!(lines.len() >= 1, "Should have at least 1 entry");
+
+    // Verify first line is valid JSON with required DPO fields
+    let entry: serde_json::Value = serde_json::from_str(lines[0]).expect("valid JSON");
+    assert!(entry["id"].is_string(), "Must have id");
+    assert!(entry["lang"].is_string(), "Must have lang");
+    assert!(entry["script"].is_string(), "Must have script");
+    assert!(entry["chosen"].is_string(), "Must have chosen");
+    assert!(entry["rejected"].is_string(), "Must have rejected");
+    assert!(entry["source"].is_string(), "Must have source");
+    assert!(
+        entry["conversation_type"].is_string(),
+        "Must have conversation_type"
+    );
+}
+
+#[test]
 fn test_SSB005_corpus_cwe_mapping_cvss_scores_valid() {
     // FALSIFY-SSB-005: All CVSS scores in valid range
     let output = bashrs_cmd()

@@ -202,10 +202,9 @@ fn build_chosen_response(
     is_unsafe: bool,
 ) -> String {
     if !is_unsafe {
-        return format!(
-            "Classification: safe\n\nThis script does not contain known unsafe patterns. \
+        return "Classification: safe\n\nThis script does not contain known unsafe patterns. \
              It follows good practices for shell scripting."
-        );
+            .to_string();
     }
 
     let mut response = String::from("Classification: unsafe\n\n");
@@ -267,7 +266,7 @@ mod tests {
     #[test]
     fn test_entry_has_required_fields() {
         let registry = CorpusRegistry::load_full();
-        let (entries, _) = export_benchmark(&registry, None);
+        let (entries, _) = export_benchmark(&registry, Some(200));
 
         for entry in entries.iter().take(10) {
             assert!(entry.id.starts_with("SSB-"), "ID must start with SSB-");
@@ -287,7 +286,7 @@ mod tests {
     #[test]
     fn test_unsafe_entry_has_cwe() {
         let registry = CorpusRegistry::load_full();
-        let (entries, _) = export_benchmark(&registry, None);
+        let (entries, _) = export_benchmark(&registry, Some(200));
 
         // Find first unsafe entry
         let unsafe_entry = entries
@@ -307,7 +306,7 @@ mod tests {
     #[test]
     fn test_safe_entry_is_correct() {
         let registry = CorpusRegistry::load_full();
-        let (entries, _) = export_benchmark(&registry, None);
+        let (entries, _) = export_benchmark(&registry, Some(200));
 
         let safe_entry = entries
             .iter()
@@ -357,7 +356,7 @@ mod tests {
     #[test]
     fn test_benchmark_dpo_schema() {
         let registry = CorpusRegistry::load_full();
-        let (entries, _) = export_benchmark(&registry, None);
+        let (entries, _) = export_benchmark(&registry, Some(200));
 
         assert!(
             entries.len() >= 17000,

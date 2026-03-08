@@ -98,14 +98,7 @@ pub(crate) fn corpus_export_benchmark(output: Option<PathBuf>, limit: Option<usi
     use crate::corpus::registry::CorpusRegistry;
 
     let registry = CorpusRegistry::load_full();
-    let (entries, summary) = benchmark_export::export_benchmark(&registry);
-
-    // Limit entries if requested
-    let entries_to_write: &[benchmark_export::BenchmarkEntry] = if let Some(max) = limit {
-        &entries[..max.min(entries.len())]
-    } else {
-        &entries
-    };
+    let (entries, summary) = benchmark_export::export_benchmark(&registry, limit);
 
     // Write JSONL
     let writer: Box<dyn std::io::Write> = if let Some(ref path) = output {
@@ -114,7 +107,7 @@ pub(crate) fn corpus_export_benchmark(output: Option<PathBuf>, limit: Option<usi
         Box::new(std::io::stdout())
     };
     let mut buf = std::io::BufWriter::new(writer);
-    for entry in entries_to_write {
+    for entry in &entries {
         serde_json::to_writer(&mut buf, entry)?;
         std::io::Write::write_all(&mut buf, b"\n")?;
     }
