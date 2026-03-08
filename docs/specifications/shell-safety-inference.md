@@ -80,7 +80,7 @@ declarative YAML + CLI, following the albor pipeline pattern (`configs/pipeline/
 | **Data import** | `alimentar import` | `alimentar import local ./corpus/ --output data.parquet` |
 | **Data publish** | `alimentar hub push` | `alimentar hub push splits/ paiml/shell-safety-bench` |
 | **Synthetic generation** | `verificar generate` | `verificar generate --language bash --count 10000 --strategy exhaustive` |
-| **Mutation** | `verificar mutate` | `verificar mutate --operator BSR,AOR --oracle IoOracle` |
+| **CWE mutation** | `verificar mutate` | `verificar mutate --cwe-targets all --count 10000 --output jsonl` |
 | **Training plan** | `apr train plan` | `apr train plan --config configs/train/ssc-qwen3-4b.yaml` |
 | **Training execute** | `apr train apply` | `apr train apply --config configs/train/ssc-qwen3-4b.yaml --seed 42` |
 | **Training monitor** | `apr train watch` | `apr train watch --config configs/train/ssc-qwen3-4b.yaml` |
@@ -155,28 +155,19 @@ resources:
     output_artifacts: ["training/shellsafetybench/conversations.jsonl"]
     depends_on: [data-dir]
 
-  # ── Stage 2b: Verificar Synthetic Generation ──
-  verificar-generate:
-    type: task
-    machine: lambda
-    command: >
-      verificar generate --language bash --count 10000
-        --max-depth 5 --strategy exhaustive
-        --output training/shellsafetybench/verificar-safe.jsonl
-    output_artifacts: ["training/shellsafetybench/verificar-safe.jsonl"]
-    depends_on: [data-dir]
-
+  # ── Stage 2b: Verificar CWE Mutations ──
   verificar-mutate:
     type: task
     machine: lambda
     command: >
       verificar mutate
-        --input training/shellsafetybench/verificar-safe.jsonl
-        --operator BSR,AOR
-        --oracle IoOracle
-        --output training/shellsafetybench/verificar-unsafe.jsonl
-    output_artifacts: ["training/shellsafetybench/verificar-unsafe.jsonl"]
-    depends_on: [verificar-generate]
+        --cwe-targets all
+        --count 10000
+        --seed 42
+        --output jsonl
+        > training/shellsafetybench/verificar-mutations.jsonl
+    output_artifacts: ["training/shellsafetybench/verificar-mutations.jsonl"]
+    depends_on: [data-dir]
 
   # ── Stage 2c: Label with bashrs lint ──
   label-corpus:
@@ -195,7 +186,7 @@ resources:
     machine: lambda
     command: >
       bashrs corpus label
-        --input training/shellsafetybench/verificar-unsafe.jsonl
+        --input training/shellsafetybench/verificar-mutations.jsonl
         --format json
         --output training/shellsafetybench/verificar-labeled.jsonl
     output_artifacts: ["training/shellsafetybench/verificar-labeled.jsonl"]
@@ -286,9 +277,9 @@ resources:
     type: task
     machine: lambda
     command: >
-      verificar generate --language bash --count 500
-        --seed "$(date +%Y%m%d)" --strategy exhaustive
-        --output /tmp/ssc-dynamic-eval.jsonl &&
+      verificar mutate --cwe-targets ood --count 500
+        --seed "$(date +%Y%m%d)" --output jsonl
+        > /tmp/ssc-dynamic-eval.jsonl &&
       apr eval training/checkpoints/ssc-chat-v7-qwen3-4b/
         --task classify
         --data /tmp/ssc-dynamic-eval.jsonl
@@ -2638,8 +2629,8 @@ that are then consumed by automated pipeline stages.
 | Step | Task | Sovereign Command | Estimate |
 |------|------|-------------------|----------|
 | 7.1 | Map CWE IDs + CVSS scores (spec update) | Manual → `configs/cwe-mapping.yaml` | 1 hour |
-| 7.2 | CWE-targeted mutations | `verificar generate --language bash --count 10000 --strategy exhaustive` | 1 day |
-| 7.2b | OOD CWE generators (CWE-426/77/116/250) | `verificar generate --cwe-targets 426,77,116,250 --count 2000` | 4 hours |
+| 7.2 | CWE-targeted mutations (in-distribution) | `verificar mutate --cwe-targets in-distribution --count 10000 --output jsonl` | 1 day |
+| 7.2b | OOD CWE mutations (CWE-426/77/116/250) | `verificar mutate --cwe-targets ood --count 2000 --output jsonl` | 4 hours |
 | 7.3 | Regenerate conversations from corpus | `bashrs corpus generate-conversations --entrenar --output conversations.jsonl` | 2 hours |
 | 7.3b | Label corpus entries | `bashrs corpus label --input conversations.jsonl --format json` | 30 min |
 | 7.4 | Merge + audit data | `alimentar mix --input *.jsonl && apr data audit merged.jsonl --num-classes 2` | 30 min |
@@ -2652,7 +2643,7 @@ that are then consumed by automated pipeline stages.
 | 7.6 | Train Run 7 | `apr train apply --config configs/train/ssc-qwen3-4b-qlora.yaml --seed 42` | 2-4 hours |
 | 7.6b | Monitor training | `apr train watch --config configs/train/ssc-qwen3-4b-qlora.yaml` | (concurrent) |
 | 7.7 | Eval static test set | `apr eval checkpoints/ --task classify --data splits/test.jsonl` | 1 hour |
-| 7.7b | Eval dynamic set | `verificar generate --count 500 --seed $(date) && apr eval` | 1 hour |
+| 7.7b | Eval dynamic set | `verificar mutate --cwe-targets ood --count 500 --seed $(date) && apr eval` | 1 hour |
 | 7.7c | Eval OOD novel-CWE set | `apr eval checkpoints/ --data ood-cwe-test.jsonl` | 1 hour |
 | 7.7d | LLM-as-judge 200-sample | `apr eval --judge claude-sonnet --data human-validation.jsonl` | 1 hour |
 | 7.8 | Baseline comparison | `apr bench checkpoints/ --task shell-safety --baselines gpt4o,claude,qwen-7b` | 2 hours |

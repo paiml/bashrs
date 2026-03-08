@@ -50,27 +50,18 @@ resources:
 
   # ── Stage 2b: Verificar Synthetic Generation ────────────────────
 
-  verificar-generate:
-    type: task
-    machine: lambda
-    command: >
-      verificar generate --language bash --count 10000
-        --max-depth 5 --strategy exhaustive
-        --output training/shellsafetybench/verificar-safe.jsonl
-    output_artifacts: ["training/shellsafetybench/verificar-safe.jsonl"]
-    depends_on: [data-dir]
-
   verificar-mutate:
     type: task
     machine: lambda
     command: >
       verificar mutate
-        --input training/shellsafetybench/verificar-safe.jsonl
-        --operator BSR,AOR
-        --oracle IoOracle
-        --output training/shellsafetybench/verificar-unsafe.jsonl
-    output_artifacts: ["training/shellsafetybench/verificar-unsafe.jsonl"]
-    depends_on: [verificar-generate]
+        --cwe-targets all
+        --count 10000
+        --seed 42
+        --output jsonl
+        > training/shellsafetybench/verificar-mutations.jsonl
+    output_artifacts: ["training/shellsafetybench/verificar-mutations.jsonl"]
+    depends_on: [data-dir]
 
   # ── Stage 2c: Label with bashrs lint ────────────────────────────
 
@@ -90,7 +81,7 @@ resources:
     machine: lambda
     command: >
       bashrs corpus label
-        --input training/shellsafetybench/verificar-unsafe.jsonl
+        --input training/shellsafetybench/verificar-mutations.jsonl
         --format json
         --output training/shellsafetybench/verificar-labeled.jsonl
     output_artifacts: ["training/shellsafetybench/verificar-labeled.jsonl"]
@@ -185,9 +176,9 @@ resources:
     type: task
     machine: lambda
     command: >
-      verificar generate --language bash --count 500
-        --seed "$(date +%Y%m%d)" --strategy exhaustive
-        --output /tmp/ssc-dynamic-eval.jsonl &&
+      verificar mutate --cwe-targets ood --count 500
+        --seed "$(date +%Y%m%d)" --output jsonl
+        > /tmp/ssc-dynamic-eval.jsonl &&
       apr eval training/checkpoints/ssc-chat-v7-qwen3-4b/
         --task classify
         --data /tmp/ssc-dynamic-eval.jsonl

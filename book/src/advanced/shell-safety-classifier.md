@@ -825,14 +825,35 @@ Six weighted metrics (S14.5):
 The full pipeline is defined in `configs/pipeline/ssc.yaml`:
 
 ```bash
+# Preflight check: verify all tools + configs available
+bashrs corpus pipeline-check
+
 # One-command execution (when apr-cli is available)
 apr pipeline apply configs/pipeline/ssc.yaml
 
 # Manual step-by-step:
 bashrs corpus generate-conversations --entrenar -o conversations.jsonl
+verificar mutate --cwe-targets all --count 10000 --seed 42 --output jsonl > mutations.jsonl
+bashrs corpus label --input conversations.jsonl --format json -o labeled.jsonl
 bashrs corpus export-benchmark -o benchmark.jsonl
 bashrs corpus export-splits -o training/shellsafetybench/splits/
 ```
+
+#### Pipeline Preflight
+
+```bash
+# Human-readable output
+bashrs corpus pipeline-check
+
+# JSON output for CI
+bashrs corpus pipeline-check --json
+```
+
+Checks:
+- Required tools: bashrs, verificar, alimentar, shellcheck
+- Optional tools: entrenar, apr-cli
+- Config files: pipeline, training, QA gate, CWE mapping, contracts
+- Data artifacts: conversations, benchmark
 
 ## See Also
 
