@@ -1099,6 +1099,49 @@ fn test_KAIZEN095_verificar_label_integration() {
     assert_eq!(labeled["cwe_id"], 78);
 }
 
+// ── merge-data tests ──
+
+#[test]
+fn test_KAIZEN095_merge_data_combines_sources() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let input_a = dir.path().join("a.jsonl");
+    let input_b = dir.path().join("b.jsonl");
+    let output = dir.path().join("merged.jsonl");
+
+    // Write two JSONL files
+    std::fs::write(
+        &input_a,
+        "{\"script\":\"echo a\",\"label\":0}\n{\"script\":\"echo b\",\"label\":0}\n",
+    )
+    .unwrap();
+    std::fs::write(&input_b, "{\"unsafe_script\":\"rm -rf $x\",\"label\":1}\n").unwrap();
+
+    bashrs_cmd()
+        .current_dir(project_root())
+        .args([
+            "corpus",
+            "merge-data",
+            "--input",
+            input_a.to_str().unwrap(),
+            "--input",
+            input_b.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    let contents = std::fs::read_to_string(&output).expect("read merged");
+    let lines: Vec<&str> = contents.lines().filter(|l| !l.is_empty()).collect();
+    // Should have at least the 3 entries from input files
+    // (corpus conversations may or may not exist depending on env)
+    assert!(
+        lines.len() >= 3,
+        "should merge at least 3 entries, got {}",
+        lines.len()
+    );
+}
+
 // ── ShellSafetyBench cross-validation tests ──
 
 #[test]

@@ -332,6 +332,11 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::PipelineCheck { json } => {
             super::corpus_config_commands::corpus_pipeline_check(json)
         }
+        CorpusCommands::MergeData {
+            output,
+            input,
+            seed,
+        } => super::corpus_config_commands::corpus_merge_data(output, input, seed),
         CorpusCommands::ShellcheckValidate {
             samples,
             seed,
