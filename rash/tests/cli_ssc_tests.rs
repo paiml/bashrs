@@ -1052,6 +1052,53 @@ fn test_KAIZEN095_pipeline_check_json_output() {
     assert_eq!(bashrs_tool["available"], true);
 }
 
+// ── FALSIFY-SSB-010: Verificar label integration ──
+
+#[test]
+fn test_KAIZEN095_verificar_label_integration() {
+    // Create a temp file with verificar mutation format
+    let mut input = NamedTempFile::new().expect("temp file");
+    let mutation = serde_json::json!({
+        "safe_script": "#!/bin/sh\ncp \"${src}\" \"${dst}\"",
+        "unsafe_script": "#!/bin/sh\nrm -rf $dir/tmp",
+        "cwe": "CWE-78",
+        "cwe_id": 78,
+        "vulnerability": "OS Command Injection",
+        "mutation_description": "Unquoted variable in rm"
+    });
+    writeln!(input, "{}", serde_json::to_string(&mutation).unwrap()).unwrap();
+    input.flush().unwrap();
+
+    let output_file = NamedTempFile::new().expect("temp output");
+    let output_path = output_file.path().to_str().unwrap();
+
+    bashrs_cmd()
+        .args([
+            "corpus",
+            "label",
+            "--input",
+            input.path().to_str().unwrap(),
+            "-o",
+            output_path,
+        ])
+        .assert()
+        .success();
+
+    let contents = std::fs::read_to_string(output_path).expect("read output");
+    let labeled: serde_json::Value = serde_json::from_str(contents.trim()).expect("valid JSON");
+
+    // Should have labeled the unsafe_script
+    assert!(labeled["label"].is_number(), "should have label field");
+    assert!(
+        labeled["classification"].is_string(),
+        "should have classification"
+    );
+    assert!(labeled["findings"].is_array(), "should have findings");
+    // Preserves original verificar fields
+    assert_eq!(labeled["cwe"], "CWE-78");
+    assert_eq!(labeled["cwe_id"], 78);
+}
+
 // ── ShellSafetyBench cross-validation tests ──
 
 #[test]

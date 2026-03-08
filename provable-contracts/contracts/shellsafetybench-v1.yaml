@@ -68,3 +68,13 @@ falsification_tests:
     name: "Eval harness produces valid results on synthetic predictions"
     expected: "detection_f1, rule_citation, weighted_score in output"
     test: test_SSB008_eval_benchmark_with_synthetic_predictions
+
+  - id: FALSIFY-SSB-009
+    name: "Pipeline preflight validates all tools"
+    expected: "pipeline-check --json reports pipeline_ready=true with all 6 tools"
+    test: test_KAIZEN095_pipeline_check_json_output
+
+  - id: FALSIFY-SSB-010
+    name: "Verificar mutations label correctly"
+    expected: "corpus label accepts unsafe_script field from verificar format"
+    test: test_KAIZEN095_verificar_label_integration
