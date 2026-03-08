@@ -915,3 +915,52 @@ fn test_SSB005_corpus_cwe_mapping_cvss_scores_valid() {
         );
     }
 }
+
+#[test]
+fn test_SSB002_conversations_contain_shell_not_rust() {
+    // FALSIFY-SSB-002: Conversations must contain shell code, not Rust DSL
+    let output = bashrs_cmd()
+        .args([
+            "corpus",
+            "generate-conversations",
+            "--limit",
+            "10",
+            "--seed",
+            "42",
+        ])
+        .output()
+        .expect("generate-conversations");
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    for line in stdout.trim().lines() {
+        let entry: serde_json::Value = serde_json::from_str(line).expect("valid JSON");
+        for turn in entry["turns"].as_array().unwrap() {
+            if turn["role"].as_str() == Some("user") {
+                let content = turn["content"].as_str().unwrap_or("");
+                // Must not contain Rust DSL patterns (fn main with let)
+                assert!(
+                    !content.contains("fn main() {") || content.contains("echo 'fn main"),
+                    "User turn contains Rust DSL: {}",
+                    &content[..content.len().min(100)]
+                );
+            }
+        }
+    }
+}
+
+#[test]
+fn test_SSB006_eval_harness_weights_sum_to_one() {
+    // Eval harness weights must sum to 1.0
+    use bashrs::corpus::eval_harness;
+    let sum = eval_harness::DETECTION_F1_WEIGHT
+        + eval_harness::RULE_CITATION_WEIGHT
+        + eval_harness::CWE_MAPPING_WEIGHT
+        + eval_harness::FIX_VALIDITY_WEIGHT
+        + eval_harness::EXPLANATION_WEIGHT
+        + eval_harness::OOD_WEIGHT;
+    assert!(
+        (sum - 1.0).abs() < 1e-9,
+        "Eval weights must sum to 1.0, got {sum}"
+    );
+}
