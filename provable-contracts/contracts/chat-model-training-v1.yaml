@@ -1,5 +1,5 @@
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   description: "Chat model training — Qwen2.5-Coder-0.5B-Instruct LoRA fine-tuning on shell safety conversations"
   references:
     - "Hu et al. (2021) LoRA: Low-Rank Adaptation of Large Language Models"
@@ -47,23 +47,33 @@ postconditions:
     applies_to: all
     status: FAIL
     evidence: >
-      Model generates degenerate output ("222dkdkdk..." repetitive gibberish).
-      Classification accuracy = 0% — no parseable safe/unsafe labels in output.
-      Tested with HuggingFace transformers on 50-sample balanced test set.
+      Run 1: Gibberish output, 0% accuracy.
+      Run 3: Semi-coherent English but no structured classification output.
+      Accuracy = 3.0% (1/33). The single correct answer was random chance —
+      "unsafe" appeared by coincidence in degenerate repeating tokens.
+      Model generates semi-coherent suggestions but degrades to repetitive
+      patterns ("111...", "PerPerPer...", "closureclosure...").
+      Root cause: 3 epochs of full fine-tuning causes catastrophic forgetting.
+      Epoch 1 loss=1.52 was optimal; epochs 2-3 degraded to loss ~4.0.
 
   - id: C-CHAT-TRAIN-003
     description: "Fix suggestions pass shellcheck"
     formal: "shellcheck_pass_rate > 0.85 on Type B responses"
     applies_to: all
     status: FAIL
-    evidence: "No parseable code blocks in model output — all responses are gibberish."
+    evidence: >
+      Run 3: No parseable code blocks in model output.
+      Model occasionally generates bash-like fragments but they degrade
+      to repetitive patterns before forming complete scripts.
 
   - id: C-CHAT-TRAIN-004
     description: "Rule citations match linter output"
     formal: "citation_accuracy > 0.90 on Type A responses"
     applies_to: all
     status: FAIL
-    evidence: "No coherent text in model output — no rule citations extractable."
+    evidence: >
+      Run 3: 0% citation accuracy. No rule IDs (SEC/DET/IDEM) in output.
+      Model lost instruction-following ability due to catastrophic forgetting.
 
   - id: C-CHAT-TRAIN-005
     description: "Model weights are reasonable size"
@@ -78,26 +88,53 @@ kill_criteria:
     action: "Ship classifier only. Chat model not ready."
     status: TRIGGERED
     evidence: >
-      Model output is degenerate gibberish — human review score would be 0/5.
-      Decision: ship classifier only. Chat model requires entrenar bug fix
-      (attention bias serialization) and retraining.
+      Run 3 model generates semi-coherent English but no structured output.
+      Classification accuracy 3.0% (random chance). Human review score ~1/5.
+      Decision: ship classifier only. Chat model requires 1-epoch training
+      or LoRA adapter-only fine-tuning.
 
 root_cause_analysis:
   - id: RCA-CHAT-001
     title: "entrenar does not serialize attention biases"
+    status: FIXED
     description: >
       Qwen2 architecture uses biases on Q, K, V attention projections (72 tensors
       total, 3 per layer × 24 layers). entrenar's checkpoint serialization only
-      saves weight matrices, not bias vectors. This means:
-      1. During training, biases were likely zero-initialized (not loaded from base)
-      2. Training optimized without proper bias initialization → corrupted gradients
-      3. Saved checkpoint missing 72 bias tensors → degenerate inference
+      saves weight matrices, not bias vectors.
     impact: "Model produces gibberish instead of coherent text"
-    fix: "paiml/entrenar#257 — serialize attention biases in safetensors checkpoint"
-    verification: >
-      Base Qwen2.5-Coder-0.5B-Instruct generates coherent text with same tokenizer
-      and config. Fine-tuned checkpoint (even with base biases merged back) produces
-      gibberish, confirming training itself was corrupted by missing biases.
+    fix: "paiml/entrenar#258 (fixed in 24bc0c7)"
+
+  - id: RCA-CHAT-002
+    title: "entrenar config.json hardcodes LlamaForCausalLM"
+    status: FIXED
+    description: >
+      save_config_and_metadata() hardcoded LlamaForCausalLM, model_type "llama",
+      tie_word_embeddings false. Causes wrong model class on HF load.
+    fix: "paiml/entrenar#259 (fixed in 533358f)"
+
+  - id: RCA-CHAT-003
+    title: "Bias tensors saved as 2D [1,N] instead of 1D [N]"
+    status: OPEN
+    description: >
+      Attention biases stored as [1, hidden_size] instead of [hidden_size].
+      HF transformers reports shape mismatch. Workaround: squeeze(0) post-process.
+    fix: "paiml/entrenar#260"
+
+  - id: RCA-CHAT-004
+    title: "3 epochs of full fine-tuning causes catastrophic forgetting"
+    status: OPEN
+    description: >
+      Full fine-tuning (all 494M params) on 17,942 samples:
+      - Epoch 1: loss=1.52, ppl=4.56 (meaningful learning, optimal checkpoint)
+      - Epoch 2: loss=3.88, ppl=48.39 (severe degradation)
+      - Epoch 3: loss=4.01, ppl=55.40 (worse than random)
+      Model memorizes training data in epoch 1, then forgets base capabilities.
+      Output becomes repetitive degenerate patterns ("111...", "PerPer...").
+    impact: "Model loses instruction-following and classification ability"
+    fix: >
+      Option A: Reduce to 1 epoch (stop before degradation).
+      Option B: Use LoRA adapter-only training (freeze base weights).
+      Option C: Add early stopping on validation loss.
 
 falsification_tests:
   - id: FALSIFY-CHAT-001
@@ -107,9 +144,10 @@ falsification_tests:
     if_fails: "Learning rate too high or data quality issue"
     result: FALSIFIED
     evidence: >
-      Loss decreased from 18.3 to ~1.0 (step 37) then rebounded to ~5.0.
-      Epoch losses: 4.576/4.980/4.800 — no meaningful improvement after epoch 1.
-      Loss plateau at ~5.0 indicates degenerate convergence.
+      Run 3 (LR=5e-5, bias fix): Epoch 1 loss=1.52 (good convergence).
+      Epoch 2 loss=3.88 (2.5× degradation). Epoch 3 loss=4.01 (continued decline).
+      Loss increases after epoch 1 — catastrophic forgetting from full fine-tuning.
+      1-epoch training is optimal for this data size (17K samples).
 
   - id: FALSIFY-CHAT-002
     rule: "No mode collapse"
@@ -118,16 +156,22 @@ falsification_tests:
     if_fails: "Overfitting or insufficient data diversity"
     result: FALSIFIED
     evidence: >
-      All test outputs are identical repetitive gibberish patterns ("222dkdkdk...").
-      Complete mode collapse to degenerate token sequences.
+      Run 1: Complete mode collapse ("222dkdkdk..." identical outputs).
+      Run 3: Partial improvement — generates diverse but degenerate text.
+      Output includes semi-coherent suggestions but degrades to repetitive
+      patterns ("111...", "PerPerPer...", "closureclosure...").
+      Mode collapse partially mitigated but not eliminated.
 
   - id: FALSIFY-CHAT-003
     rule: "Base model preserved"
     prediction: "Non-LoRA weights unchanged after training"
     test: "Compare base weight checksums before and after"
     if_fails: "Gradient leaking through frozen parameters"
-    result: NOT_TESTED
-    evidence: "Full causal LM training (not adapter-only) — all weights were updated."
+    result: FALSIFIED
+    evidence: >
+      Full causal LM training (not adapter-only) — all 494M weights updated.
+      Despite lora.enabled=true in YAML, entrenar performed full fine-tuning.
+      This is the root cause of catastrophic forgetting.
 
   - id: FALSIFY-CHAT-004
     rule: "Honest limitations"
@@ -135,7 +179,10 @@ falsification_tests:
     test: "Test with 10 non-shell prompts"
     if_fails: "System prompt not effective in constraining model"
     result: FALSIFIED
-    evidence: "Model produces gibberish for all prompts, in-scope and out-of-scope."
+    evidence: >
+      Run 3: Model attempts to answer all prompts but generates degenerate text.
+      No "I don't know" responses. Base model instruction-following destroyed
+      by 3 epochs of full fine-tuning.
 
 benchmarks:
   training_run_1:
@@ -160,12 +207,24 @@ benchmarks:
     epoch_1_perplexity: 4.56
     epoch_2_loss: 3.879
     epoch_2_perplexity: 48.39
-    epoch_3_loss: "pending"
-    insight: "Epoch 1 shows meaningful learning; epochs 2-3 show catastrophic forgetting"
+    epoch_3_loss: 4.015
+    epoch_3_perplexity: 55.40
+    total_time: "5475s (91 min, 3 epochs)"
+    best_loss: 0.630
+    final_loss: 4.825
+    insight: "Epoch 1 shows meaningful learning; epochs 2-3 cause catastrophic forgetting"
   inference:
-    status: "PENDING — evaluating run 3 model"
+    status: "FAIL — semi-coherent but no structured output"
     tested_with: "HuggingFace transformers 5.3.0 (CPU, torch 2.10.0)"
     model_size: "1.98GB"
+    classification_accuracy: "3.0% (1/33, random chance)"
+    shellcheck_rate: "N/A (no code blocks generated)"
+    citation_rate: "0.0%"
+    output_quality: >
+      Semi-coherent English (improved from pure gibberish in run 1).
+      Generates suggestion-like text but degrades to repetitive patterns.
+      No structured classification labels, rule citations, or code blocks.
     bugs_fixed:
       - "entrenar#258: attention bias serialization (72 Qwen2 QKV bias tensors)"
       - "entrenar#259: config.json hardcoded LlamaForCausalLM instead of Qwen2ForCausalLM"
+      - "entrenar#260: bias tensors saved as [1,N] instead of [N] (workaround: squeeze)"

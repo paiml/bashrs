@@ -1,56 +1,241 @@
 {
-  "evaluation_date": "2026-03-07",
-  "evaluator": "HuggingFace transformers 5.3.0 (CPU, torch 2.10.0)",
-  "model": "training/checkpoints/ssc-chat-v1",
-  "base_model": "Qwen2.5-Coder-0.5B-Instruct",
-  "verdict": "FAIL — model generates degenerate output",
-  "postconditions": {
-    "C-CHAT-TRAIN-001": {
-      "status": "WEAK_PASS",
-      "description": "Training convergence",
-      "evidence": "Loss 18.3 -> 4.8, but 4.8 is near-random for 151K vocab"
-    },
-    "C-CHAT-TRAIN-002": {
-      "status": "FAIL",
-      "description": "Classification accuracy > 85%",
-      "accuracy": 0.0,
-      "evidence": "Model outputs repetitive gibberish, no parseable safe/unsafe labels"
-    },
-    "C-CHAT-TRAIN-003": {
-      "status": "FAIL",
-      "description": "Shellcheck pass rate > 85%",
-      "pass_rate": 0.0,
-      "evidence": "No parseable code blocks in output"
-    },
-    "C-CHAT-TRAIN-004": {
-      "status": "FAIL",
-      "description": "Citation accuracy > 90%",
-      "accuracy": 0.0,
-      "evidence": "No coherent text in output, no rule citations extractable"
-    },
-    "C-CHAT-TRAIN-005": {
-      "status": "PASS",
-      "description": "Model size < 5GB",
-      "size_gb": 1.98
-    }
-  },
-  "root_cause": {
-    "issue": "entrenar missing attention bias serialization",
-    "github_issue": "paiml/entrenar#258",
-    "details": "Qwen2 uses QKV attention biases (72 tensors). entrenar checkpoint has 218 keys (weights only), base model has 290 keys (218 weights + 72 biases). Training likely ran without bias initialization, corrupting learned representations.",
-    "evidence": {
-      "fine_tuned_output": "222dkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdk...",
-      "base_model_output": "Yes, rm -rf / is a safe command in Unix-like operating systems... (coherent but wrong)"
-    }
-  },
-  "kill_criterion": {
-    "KILL-CHAT-001": "TRIGGERED — ship classifier only, chat model not ready"
-  },
-  "sample_outputs": [
+  "accuracy": 0.030303030303030304,
+  "shellcheck_rate": 0,
+  "citation_rate": 0.0,
+  "n_correct": 1,
+  "n_total": 33,
+  "n_shellcheck_pass": 0,
+  "n_shellcheck_total": 0,
+  "n_citation_match": 0.0,
+  "n_citation_total": 25,
+  "responses": [
     {
-      "prompt": "Is rm -rf / safe?",
-      "fine_tuned": "222222222222222222222222222222dkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdkdk",
-      "base_model": "Yes, rm -rf / is a safe command in Unix-like operating systems..."
+      "expected": "safe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here are some suggestions for refamping this script:\n\n1. Use a well compounded backternalled line instead of an alias.\n2. `awk` should handle line length control.\n3. `awk` should handle line source co"
+    },
+    {
+      "expected": "safe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here are some recommendations for potentially security-sine scripts corresponding with your scripting language \"bshell\":\n\n1. `sh.Stricty`  `sh.sLocal`  `sh.sLocal`  `sh.Stricty`  `sh.sLocal`  `sh.sLoc"
+    },
+    {
+      "expected": "safe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Certainly. Here's an optimized version of your script, with a well cleaned and well secured `main` function:\n\n```bash\n# This script always proceeds regardless of their input\n\n# 1. `main` function alwa"
+    },
+    {
+      "expected": "safe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here's an optimized version of your script, with a well cleaned and sanitized line:   `  111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "expected": "safe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "LINE).z.Z.Z.gz;\"); }\n```\n\nHere's a summary of the errors, and a best opinion out of 5:\n\n  1. `shd_script_stack_elements.sh` stack-eyed closurelosurelosure closureclosure closureclosure closureclosure "
+    },
+    {
+      "expected": "safe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here's an optimized version of your `fn main` function to fix it: `\n\n  1. `~` operator instead of `::`,  `` operator instead of `*`  `  2. `` operator instead of ``  `  3. `` operator instead of `*`  "
+    },
+    {
+      "expected": "safe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here are some recommendations for mitigating these security issues in `main` functions of `fn main`:\n\n1. `cmd hygiene hygiene hygiene hygiene hygiene hygiene hygiene hygiene hygiene hygiene hygiene hy"
+    },
+    {
+      "expected": "safe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here's an optimized version of your script, with a well cleaned and well-reviewed `main` function:\n\n```sh\n# This script always always targets a file, regardless of its name\n\n# This function always alw"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "It's that default default argument \"`i``:`i`:`i`:`i`:`i`:`i`:`i`:`i`:`i`:`i`:`i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i```i`"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "This script always outputs an error, \"An error(125)\ufffd\ufffdmentoscope dusk.\" The error(125) policyingly\u6270ammentoscope dusk.\" This error(125)\u6270ammentoscope dusk.\" This error(125)\u6270antoscope dusk.\" This error(12"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "() {\n  let a = 1;\n  let b = 1;\n  let n = 1;\n  let n1 = 1;\n  let n11 = 1;\n  let n111 = 1;\n  let n1111 = 1;\n  let n111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": ", 1));\n    println!(\"{(11,))\n  }\n  }\n  ```\nHere, are 4 sublists of `i64` arrays, and all their values should be set to their default values, i.e. `11`).\n\nHere's a `main` function, which only iterantan"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "This script primarily iterant on an array of numbers, and it's a source of non-idempotent results (`` ```) that it's an example of a security vulnerability, \"iambulance://\".\")\n\nHere, there are a pleth"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unsafe",
+      "correct": true,
+      "response_snippet": ": i6osis,long euler_omega: unsafe mutable LuckPerSumPerEleLongPerEleInfinityPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerPerP"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "It's that default<|fim_pad|>``default_ten-wage closure closure closure closure closure closure closure closure closure closure closure closure closure closure closure closure closure closure closure c"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here are some patterns in your script, but they collectively don't produce a predictable output, and they don\\''`t produce a predictable output, and they collectively don\\''`'`````````````````````````"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "); }\n```\n\nHere's a snippet of the context and an example of a problem, and a snippet of a snippet of a problem that might potentially potentially potentially potentially potentially potentially potent"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here's a potentially more secure and more secure `sh`script: \n\n```sh\n# This pattern multi-lineinhos long long long long long long long long long long long long long long long long long long long long "
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Here are some potentially potentially potentially potentially potentially potentially potentially potentially potentially potentially potentially potentially potentially potentially potentially potent"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "[&])) {\n  foreach ($1) {\n    if [[ $1 =~ \" int\u00e9ressant \"]] {\n      echo \"tazitize\"\n      if 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 "
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "This script's output changes between 0 and 11, which are all unpredictable sequences of numbers. The `main` function iterantliets sequences of numbers, and for each number, it multiplies it with the n"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "1], c[row*3+2]); } }\n```\n\nHere's a summary of the context and a well documented problem with respect to this section of the script, and an assessment of a potential mitigated security bug.\n\nHere's a s"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "n}`);\n  print(\"current_number=${n}\");\n  print(\"current_number=111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "Based on patterns, this script always always fizzishly regardless of its input, resulting in a \"123\" output. This is a classic example of a security vulnerability, \"ageless infinity,\" and its cause-ey"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "-y pkglock decltype,\" \"rm -rf /var/lib/apt/lists/*\"]); dist_filter(\"1.75.conf\"); ```\nHere's a summary of the best reviewed antiemplates:\n\n_patterns:  111  111  111  111  111  111  111  111  111  111  "
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "It's a non-deterministic source (`x` in the `main` function's array array array array array array array array array array array array array array array array array array array array array array array "
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "operator filtered total: {}\", total); }\n```\n\nHere's a summary of his output. Your output summary should\n\nCertainly, but this solution does not produce a senseless sense, and instead outputs an error/e"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "1..3 { let mut seen = seen; let mut count= 1; while count 1  { count = count/2; } while count 1  { count = count/2; } while count 1  { count = count/2; } while count 1  { count = count/2; } while coun"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "64 {\n    let n1, n2, n3, n4, n5, n6, n7, n8, n9, n11, n12, n13, n14, n15, n16, n17, n18, n19, n21, n22, n 13, n14, n 15, n 16, n 17, n 18, n 19, n 21, n 22, n  23, n  24, n  25, n  26, n  27, n  28, n"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "= main(1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "This script's output changes between \u0144 triples (`x` values) and their corresponding results (`y` values). The main function, `main`, processes a series of numbers (`x`) and outputs their corresponding"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "This script's output changes between 1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111"
+    },
+    {
+      "expected": "unsafe",
+      "predicted": "unknown",
+      "correct": false,
+      "response_snippet": "It's a non-determinant source (`( i``). The function definition (`fn`) always proceeds after its line (`{``)ler`). Additionally, all lines (```) always increment their numbers (```). This results in a"
     }
-  ]
+  ],
+  "run": 3,
+  "entrenar_bugs_fixed": [
+    "#258 (attention biases)",
+    "#259 (config.json)",
+    "#260 (bias shape)"
+  ],
+  "training": {
+    "lr": 5e-05,
+    "epochs": 3,
+    "epoch_losses": [
+      1.518,
+      3.879,
+      4.015
+    ],
+    "epoch_perplexities": [
+      4.56,
+      48.39,
+      55.4
+    ],
+    "best_loss": 0.63,
+    "final_loss": 4.825,
+    "total_steps": 13458,
+    "total_time_s": 5475
+  },
+  "diagnosis": {
+    "bias_fix": "Working \u2014 model generates English instead of gibberish",
+    "config_fix": "Working \u2014 model loads as Qwen2ForCausalLM",
+    "catastrophic_forgetting": "Full fine-tuning on 17K samples over-trains after 1 epoch",
+    "recommendation": "1-epoch training or LoRA adapter-only fine-tuning"
+  }
 }
