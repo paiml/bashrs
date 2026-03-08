@@ -58,8 +58,12 @@ pub struct ExportSummary {
 }
 
 /// Export corpus entries as ShellSafetyBench DPO-compatible JSONL.
-pub fn export_benchmark(registry: &CorpusRegistry) -> (Vec<BenchmarkEntry>, ExportSummary) {
+pub fn export_benchmark(
+    registry: &CorpusRegistry,
+    limit: Option<usize>,
+) -> (Vec<BenchmarkEntry>, ExportSummary) {
     let config = Config::default();
+    let max = limit.unwrap_or(registry.entries.len());
     let mut entries = Vec::new();
     let mut summary = ExportSummary {
         total: 0,
@@ -69,7 +73,7 @@ pub fn export_benchmark(registry: &CorpusRegistry) -> (Vec<BenchmarkEntry>, Expo
         by_cwe: std::collections::HashMap::new(),
     };
 
-    for (idx, corpus_entry) in registry.entries.iter().enumerate() {
+    for (idx, corpus_entry) in registry.entries.iter().take(max).enumerate() {
         // Transpile Rust DSL → shell code
         let shell_code = transpile_entry(corpus_entry, &config);
         if shell_code.is_empty() {
@@ -82,7 +86,16 @@ pub fn export_benchmark(registry: &CorpusRegistry) -> (Vec<BenchmarkEntry>, Expo
         let lang = format_to_lang(corpus_entry.format);
         let id = format!("SSB-{:05}", idx + 1);
 
-        let (rule, cwe, severity, is_unsafe) = if let Some(first_diag) = diagnostics.first() {
+        // Only SEC/DET/IDEM rules are "unsafe" indicators (same as baselines module).
+        // SC/REL rules fire on preamble and are false positives for safety labeling.
+        let security_diags: Vec<&LintDiagnostic> = diagnostics
+            .iter()
+            .filter(|d| {
+                d.rule.starts_with("SEC") || d.rule.starts_with("DET") || d.rule.starts_with("IDEM")
+            })
+            .collect();
+
+        let (rule, cwe, severity, is_unsafe) = if let Some(first_diag) = security_diags.first() {
             let rule_id = &first_diag.rule;
             let cwe_str = cwe_mapping::lookup_rule(rule_id)
                 .map(|m| m.cwe.to_string())
@@ -97,7 +110,8 @@ pub fn export_benchmark(registry: &CorpusRegistry) -> (Vec<BenchmarkEntry>, Expo
             )
         };
 
-        let chosen = build_chosen_response(&diagnostics, &shell_code, is_unsafe);
+        let sec_diag_refs: Vec<&LintDiagnostic> = security_diags.into_iter().collect();
+        let chosen = build_chosen_response(&sec_diag_refs, &shell_code, is_unsafe);
         let rejected = build_rejected_response(is_unsafe);
 
         summary.total += 1;
@@ -183,7 +197,7 @@ fn format_to_lang(format: CorpusFormat) -> String {
 }
 
 fn build_chosen_response(
-    diagnostics: &[LintDiagnostic],
+    diagnostics: &[&LintDiagnostic],
     shell_code: &str,
     is_unsafe: bool,
 ) -> String {
@@ -242,7 +256,7 @@ mod tests {
     #[test]
     fn test_export_produces_entries() {
         let registry = CorpusRegistry::load_full();
-        let (entries, summary) = export_benchmark(&registry);
+        let (entries, summary) = export_benchmark(&registry, Some(500));
 
         assert!(entries.len() > 100, "Should have >100 entries");
         assert!(summary.total > 100);
@@ -253,7 +267,7 @@ mod tests {
     #[test]
     fn test_entry_has_required_fields() {
         let registry = CorpusRegistry::load_full();
-        let (entries, _) = export_benchmark(&registry);
+        let (entries, _) = export_benchmark(&registry, None);
 
         for entry in entries.iter().take(10) {
             assert!(entry.id.starts_with("SSB-"), "ID must start with SSB-");
@@ -273,7 +287,7 @@ mod tests {
     #[test]
     fn test_unsafe_entry_has_cwe() {
         let registry = CorpusRegistry::load_full();
-        let (entries, _) = export_benchmark(&registry);
+        let (entries, _) = export_benchmark(&registry, None);
 
         // Find first unsafe entry
         let unsafe_entry = entries
@@ -293,7 +307,7 @@ mod tests {
     #[test]
     fn test_safe_entry_is_correct() {
         let registry = CorpusRegistry::load_full();
-        let (entries, _) = export_benchmark(&registry);
+        let (entries, _) = export_benchmark(&registry, None);
 
         let safe_entry = entries
             .iter()
@@ -330,11 +344,103 @@ mod tests {
     #[test]
     fn test_summary_by_lang() {
         let registry = CorpusRegistry::load_full();
-        let (_, summary) = export_benchmark(&registry);
+        let (_, summary) = export_benchmark(&registry, Some(500));
 
         assert!(
             summary.by_lang.contains_key("bash"),
             "Should have bash entries"
+        );
+    }
+
+    /// FALSIFY-SSB-003: Benchmark export has DPO-compatible schema.
+    /// All entries must have: id, lang, cwe, rule, severity, script, chosen, rejected.
+    #[test]
+    fn test_benchmark_dpo_schema() {
+        let registry = CorpusRegistry::load_full();
+        let (entries, _) = export_benchmark(&registry, None);
+
+        assert!(
+            entries.len() >= 17000,
+            "Expected >=17000, got {}",
+            entries.len()
+        );
+
+        for entry in &entries {
+            // Required fields must be non-empty
+            assert!(!entry.id.is_empty(), "id must not be empty");
+            assert!(!entry.lang.is_empty(), "lang must not be empty");
+            assert!(!entry.cwe.is_empty(), "cwe must not be empty");
+            assert!(!entry.rule.is_empty(), "rule must not be empty");
+            assert!(!entry.severity.is_empty(), "severity must not be empty");
+            assert!(!entry.script.is_empty(), "script must not be empty");
+            assert!(!entry.chosen.is_empty(), "chosen must not be empty");
+            assert!(!entry.rejected.is_empty(), "rejected must not be empty");
+
+            // DPO format: chosen and rejected must be different
+            assert_ne!(
+                entry.chosen, entry.rejected,
+                "Chosen and rejected must differ for {}",
+                entry.id
+            );
+        }
+    }
+
+    /// FALSIFY-SSB-002: Conversations contain shell code, not Rust.
+    /// Instruction fields must contain shell patterns, not fn main().
+    #[test]
+    fn test_conversations_contain_shell() {
+        use crate::corpus::conversations::generate_batch;
+        use crate::corpus::dataset::strip_shell_preamble;
+        use crate::corpus::registry::CorpusRegistry;
+
+        let registry = CorpusRegistry::load_full();
+        let config = crate::Config::default();
+
+        // Transpile first 50 entries
+        let transpiled: Vec<(String, String)> = registry
+            .entries
+            .iter()
+            .take(50)
+            .map(|e| {
+                let shell = match e.format {
+                    crate::corpus::registry::CorpusFormat::Bash => {
+                        crate::transpile(&e.input, &config)
+                            .map(|s| strip_shell_preamble(&s))
+                            .unwrap_or_else(|_| e.input.clone())
+                    }
+                    crate::corpus::registry::CorpusFormat::Makefile => {
+                        crate::transpile_makefile(&e.input, &config)
+                            .unwrap_or_else(|_| e.input.clone())
+                    }
+                    crate::corpus::registry::CorpusFormat::Dockerfile => {
+                        crate::transpile_dockerfile(&e.input, &config)
+                            .unwrap_or_else(|_| e.input.clone())
+                    }
+                };
+                (e.id.clone(), shell)
+            })
+            .collect();
+
+        let batch: Vec<(&str, &str)> = transpiled
+            .iter()
+            .map(|(id, s)| (id.as_str(), s.as_str()))
+            .collect();
+
+        let (conversations, _) = generate_batch(&batch, 42);
+
+        let mut rust_count = 0;
+        for conv in &conversations {
+            for turn in &conv.turns {
+                if turn.role == "user" && turn.content.contains("fn main") {
+                    rust_count += 1;
+                }
+            }
+        }
+
+        assert_eq!(
+            rust_count, 0,
+            "Found {} conversations containing Rust code (fn main). Expected 0.",
+            rust_count
         );
     }
 }
