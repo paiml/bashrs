@@ -1527,6 +1527,10 @@ pub enum CorpusCommands {
         /// Output directory for split JSONL files
         #[arg(short, long)]
         output: Option<std::path::PathBuf>,
+
+        /// Input merged JSONL (if omitted, uses corpus transpilation)
+        #[arg(long)]
+        input: Option<std::path::PathBuf>,
     },
 
     /// Show comprehensive SSC v11 readiness report

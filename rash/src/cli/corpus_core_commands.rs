@@ -362,8 +362,8 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ValidateContracts => {
             super::corpus_config_commands::corpus_validate_contracts()
         }
-        CorpusCommands::ExportSplits { output } => {
-            super::corpus_config_commands::corpus_export_splits(output)
+        CorpusCommands::ExportSplits { output, input } => {
+            super::corpus_config_commands::corpus_export_splits(output, input)
         }
         CorpusCommands::SscReport { json, gate } => {
             super::corpus_config_commands::corpus_ssc_report(json, gate)
