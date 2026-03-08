@@ -1,48 +1,515 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 11.0.0
-**Status**: DESIGN COMPLETE — falsified, re-falsified, mitigated, WASM UX + Brick profile-first + provable-contracts + Probar-first testing
+**Version**: 12.2.0
+**Status**: DESIGN COMPLETE — v12.2 sovereign tooling mandate (apr-cli orchestration, zero scripts)
 **Author**: paiml engineering
-**Date**: 2026-03-05
-**Stack**: bashrs + aprender + entrenar + trueno + realizador (Rust only, no Python)
+**Date**: 2026-03-08
+**Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
 **HuggingFace Repos**:
-  - `paiml/shell-safety-classifier` (CodeBERT binary classifier)
-  - `paiml/shell-safety-conversations` (synthetic training dataset)
-  - ~~`paiml/shell-safety-chat`~~ (DELETED — 32% accuracy after 6 runs, 0.5B model insufficient)
+  - `paiml/shell-safety-qwen3-4b` (Qwen3-4B NF4 QLoRA adapter for shell/Makefile/Dockerfile security)
+  - `paiml/shell-safety-bench` (first shell-specific security benchmark, CWE-mapped, 28K+ entries)
+  - `paiml/shell-safety-classifier` (CodeBERT binary classifier — Stage 1, existing)
+  - `paiml/shell-safety-conversations` (training dataset, v4 regenerated from real shell code)
+  - ~~`paiml/shell-safety-chat`~~ (DELETED — v1-v3 used Rust transpiler output, not shell code)
 **Prior art**: `shell-safety-inference-v1-v3-archive.md` (v1-v3 history)
 
 ---
 
 ## 1. Problem
 
-Shell scripts fail in ways that are hard to diagnose: injection, non-determinism,
-race conditions, missing quotes. The bashrs linter catches 24 known patterns (SEC001-SEC024 + DET/IDEM rules). We want:
+Shell scripts are the #1 attack surface for infrastructure — every CI/CD pipeline,
+every Dockerfile, every deploy script, every cron job. Yet **no ML-based security
+model or benchmark exists for shell/Makefile/Dockerfile**. Every code security
+benchmark (CASTLE, SafeGenBench, SecRepoBench, CyberNative DPO) covers
+C/C++/Python/Java but ignores the infrastructure glue code.
 
-1. A **fast classifier** (CodeBERT, 125M) that detects unsafe scripts in ~20ms
-2. A **chat model** (Qwen-1.5B) that explains WHY and suggests fixes
-3. Built entirely on the sovereign Rust AI stack
+The bashrs linter catches 24 known patterns (SEC001-SEC008, DET001-DET006,
+IDEM001-IDEM004, SC-prefixed ShellCheck rules). We want:
 
-## 2. Approach: Three-Stage Pipeline
+1. A **benchmark** (`ShellSafetyBench`) — first shell-specific security eval, CWE-mapped
+2. A **specialist model** (Qwen3-4B NF4 QLoRA) — trained on real shell/Make/Docker code
+3. A **fast classifier** (CodeBERT, 125M) — binary safe/unsafe in ~20ms for CI/CD
+4. Built entirely on the sovereign Rust AI stack, with verified labels from bashrs + verificar
+
+## 2. Approach: Four-Stage Pipeline (v12 Reframe)
 
 ```
-Stage 0: Add encoder support to entrenar (~2 days)
+Stage 0: Encoder support in entrenar (COMPLETE)
   - Bidirectional attention, absolute positions, GELU, RoBERTa weight loading
-  - An encoder is a decoder with fewer features — less code, not more
 
-Stage 1: CodeBERT classifier (teacher, 125M)
-  - Linear probe on frozen embeddings → escalate to fine-tune if needed
+Stage 1: CodeBERT classifier (COMPLETE)
+  - MLP probe on frozen embeddings, MCC=0.754
   - Binary: safe/unsafe, ~20ms CPU inference
-  - Purpose: validate labels, generate confidence scores, CI/CD triage
+  - Purpose: CI/CD triage, confidence scores
 
-Stage 2: Synthetic conversation generation
-  - Combine classifier scores + bashrs linter findings + corpus labels
-  - Generate ~50K instruction conversations in Rust
-  - Purpose: training data for chat model
+Stage 2: ShellSafetyBench — benchmark + training data (NEW)
+  - Source 1: bashrs corpus (17,942 real shell/Make/Docker entries)
+  - Source 2: verificar mutations (safe→unsafe pairs with CWE labels)
+  - Ground truth: bashrs lint findings (deterministic, auditable)
+  - Conversations: bashrs conversations.rs (4 types, 48 prompt variants)
+  - CWE mapping: SEC→CWE-78/94, DET→CWE-330, IDEM→CWE-362
+  - Data ops: alimentar (quality/split/balance) + apr data (audit/decontaminate)
+  - Output: ~28K labeled entries, DPO-compatible, published to HuggingFace
 
-Stage 3: Qwen2.5-Coder-0.5B-Instruct + LoRA (student)
-  - Chat model that classifies, explains, suggests fixes
-  - Purpose: interactive developer tool
+Stage 3: Qwen3-4B NF4 QLoRA specialist model (NEW)
+  - First LLM fine-tuned specifically for shell/Make/Docker security
+  - Trained on ShellSafetyBench data (real code, not transpiler output)
+  - NF4 quantized base (2 GB) + LoRA adapters (~47 MB)
+  - Orchestrated: apr train plan/apply (no raw entrenar invocation)
+  - Published: apr publish + alimentar hub push (no manual upload)
 ```
+
+---
+
+## 2b. Sovereign Tooling Mandate (v12.2)
+
+**HARD REQUIREMENT**: All ShellSafetyBench work MUST use sovereign Rust AI stack tooling.
+No ad-hoc Python scripts, no shell hacks, no one-off data munging. Every operation is
+declarative YAML + CLI, following the albor pipeline pattern (`configs/pipeline/albor.yaml`).
+
+### 2b.1 Tooling Map
+
+| Operation | Tool | Command Pattern |
+|-----------|------|-----------------|
+| **Orchestration** | `apr pipeline` | `apr pipeline plan/apply/status configs/pipeline/ssc.yaml` |
+| **Data audit** | `apr data audit` | `apr data audit train.jsonl --num-classes 2` |
+| **Data splitting** | `apr data split` | `apr data split data.jsonl --train 0.8 --val 0.1 --test 0.1 -o splits/` |
+| **Data balancing** | `apr data balance` | `apr data balance splits/train.jsonl --strategy sqrt-inverse` |
+| **Data decontamination** | `apr data decontaminate` | `apr data decontaminate train.jsonl --reference benchmarks/` |
+| **Data quality** | `alimentar quality` | `alimentar quality score data.jsonl --profile ml-training` |
+| **Data import** | `alimentar import` | `alimentar import local ./corpus/ --output data.parquet` |
+| **Data publish** | `alimentar hub push` | `alimentar hub push splits/ paiml/shell-safety-bench` |
+| **Synthetic generation** | `verificar generate` | `verificar generate --language bash --count 10000 --strategy exhaustive` |
+| **Mutation** | `verificar mutate` | `verificar mutate --operator BSR,AOR --oracle IoOracle` |
+| **Training plan** | `apr train plan` | `apr train plan --config configs/train/ssc-qwen3-4b.yaml` |
+| **Training execute** | `apr train apply` | `apr train apply --config configs/train/ssc-qwen3-4b.yaml --seed 42` |
+| **Training monitor** | `apr train watch` | `apr train watch --config configs/train/ssc-qwen3-4b.yaml` |
+| **Evaluation** | `apr eval` | `apr eval checkpoints/best/ --task classify --data splits/test.jsonl` |
+| **Model publish** | `apr publish` | `apr publish checkpoints/best/ paiml/shell-safety-qwen3-4b` |
+| **Quantize** | `apr quantize` | `apr quantize plan/apply --model checkpoint/ --method nf4` |
+| **Corpus labeling** | `bashrs lint` | `bashrs lint script.sh --format json` (ground truth) |
+| **Corpus export** | `bashrs corpus` | `bashrs corpus export-splits`, `generate-conversations` |
+| **Cross-linter** | `shellcheck` | `shellcheck -f json script.sh` (secondary oracle) |
+| **Benchmark** | `apr bench` | `apr bench checkpoint/ --task shell-safety` |
+| **QA gate** | `apr qa` | `apr qa --checklist ssc-release-v1.yaml` |
+
+### 2b.2 What Is BANNED
+
+| Banned Practice | Why | Sovereign Alternative |
+|----------------|-----|----------------------|
+| Python scripts for data processing | Non-sovereign, untraceable | `alimentar` CLI + `apr data` |
+| Ad-hoc `jq`/`awk`/`sed` data pipelines | Non-reproducible, fragile | `alimentar convert`, `alimentar filter-text` |
+| Manual JSONL construction | Error-prone, no validation | `bashrs corpus generate-conversations --entrenar` |
+| `curl` model downloads | No integrity verification | `apr run --model` (auto-download + cache + verify) |
+| Jupyter notebooks for analysis | Python dependency, non-deterministic | `alimentar repl`, `apr eval` |
+| Shell scripts for orchestration | What we're trying to FIX | `apr pipeline apply configs/pipeline/ssc.yaml` |
+| Manual train/val/test splits | No stratification guarantee | `apr data split --stratified` |
+| Raw `entrenar` binary invocation | Skips plan validation | `apr train plan` then `apr train apply` |
+| One-off metric computation | Non-reproducible | `apr eval` with saved config |
+| Manual HuggingFace upload | No metadata, no versioning | `alimentar hub push` + `apr publish` |
+
+### 2b.3 Pipeline Manifest
+
+All SSC operations are declared in a single pipeline manifest, executed by forjar via
+`apr pipeline apply`. This is the SSC equivalent of albor's `configs/pipeline/albor.yaml`.
+
+**File**: `configs/pipeline/ssc.yaml`
+
+```yaml
+version: "1.0"
+name: ssc-shellsafetybench-pipeline
+description: >
+  ShellSafetyBench: first shell-specific security benchmark + Qwen3-4B specialist model.
+  Orchestrated via apr-cli, no ad-hoc scripts.
+
+machines:
+  lambda:
+    hostname: lambda
+    addr: 127.0.0.1
+    user: noah
+    arch: x86_64
+    roles: [gpu-train, eval, data-pipeline]
+
+resources:
+  # ── Infrastructure ──
+  cuda-driver:
+    type: gpu
+    machine: lambda
+    gpu_backend: nvidia
+    driver_version: "550"
+    persistence_mode: true
+
+  data-dir:
+    type: file
+    machine: lambda
+    path: /home/noah/src/bashrs/training/shellsafetybench
+    state: directory
+
+  # ── Stage 2a: Corpus Export ──
+  corpus-export:
+    type: task
+    machine: lambda
+    command: >
+      bashrs corpus generate-conversations --entrenar
+        --output training/shellsafetybench/conversations.jsonl
+    output_artifacts: ["training/shellsafetybench/conversations.jsonl"]
+    depends_on: [data-dir]
+
+  # ── Stage 2b: Verificar Synthetic Generation ──
+  verificar-generate:
+    type: task
+    machine: lambda
+    command: >
+      verificar generate --language bash --count 10000
+        --max-depth 5 --strategy exhaustive
+        --output training/shellsafetybench/verificar-safe.jsonl
+    output_artifacts: ["training/shellsafetybench/verificar-safe.jsonl"]
+    depends_on: [data-dir]
+
+  verificar-mutate:
+    type: task
+    machine: lambda
+    command: >
+      verificar mutate
+        --input training/shellsafetybench/verificar-safe.jsonl
+        --operator BSR,AOR
+        --oracle IoOracle
+        --output training/shellsafetybench/verificar-unsafe.jsonl
+    output_artifacts: ["training/shellsafetybench/verificar-unsafe.jsonl"]
+    depends_on: [verificar-generate]
+
+  # ── Stage 2c: Label with bashrs lint ──
+  label-corpus:
+    type: task
+    machine: lambda
+    command: >
+      bashrs corpus label
+        --input training/shellsafetybench/conversations.jsonl
+        --format json
+        --output training/shellsafetybench/labeled.jsonl
+    output_artifacts: ["training/shellsafetybench/labeled.jsonl"]
+    depends_on: [corpus-export]
+
+  label-verificar:
+    type: task
+    machine: lambda
+    command: >
+      bashrs corpus label
+        --input training/shellsafetybench/verificar-unsafe.jsonl
+        --format json
+        --output training/shellsafetybench/verificar-labeled.jsonl
+    output_artifacts: ["training/shellsafetybench/verificar-labeled.jsonl"]
+    depends_on: [verificar-mutate]
+
+  # ── Stage 2d: Merge + Quality Audit ──
+  merge-data:
+    type: task
+    machine: lambda
+    command: >
+      alimentar mix
+        --input training/shellsafetybench/labeled.jsonl
+        --input training/shellsafetybench/verificar-labeled.jsonl
+        --output training/shellsafetybench/merged.jsonl &&
+      apr data audit training/shellsafetybench/merged.jsonl --num-classes 2
+    output_artifacts: ["training/shellsafetybench/merged.jsonl"]
+    depends_on: [label-corpus, label-verificar]
+
+  # ── Stage 2e: Split + Balance ──
+  split-data:
+    type: task
+    machine: lambda
+    command: >
+      apr data split training/shellsafetybench/merged.jsonl
+        --train 0.8 --val 0.1 --test 0.1
+        --stratified
+        -o training/shellsafetybench/splits/ &&
+      apr data balance training/shellsafetybench/splits/train.jsonl
+        --strategy sqrt-inverse
+        -o training/shellsafetybench/splits/train-balanced.jsonl
+    output_artifacts: ["training/shellsafetybench/splits/"]
+    depends_on: [merge-data]
+
+  decontaminate:
+    type: task
+    machine: lambda
+    command: >
+      apr data decontaminate training/shellsafetybench/splits/train-balanced.jsonl
+        --reference training/shellsafetybench/splits/test.jsonl
+    depends_on: [split-data]
+
+  quality-gate:
+    type: task
+    machine: lambda
+    command: >
+      alimentar quality score training/shellsafetybench/splits/train-balanced.jsonl
+        --profile ml-training --json
+    quality_gate:
+      parse: json
+      field: score
+      threshold: ["70"]
+      on_fail: block
+    depends_on: [decontaminate]
+
+  # ── Stage 3: Training ──
+  train-plan:
+    type: task
+    machine: lambda
+    command: >
+      apr train plan --config configs/train/ssc-qwen3-4b-qlora.yaml
+    depends_on: [quality-gate, cuda-driver]
+
+  train-apply:
+    type: task
+    machine: lambda
+    command: >
+      apr train apply --config configs/train/ssc-qwen3-4b-qlora.yaml
+        --seed 42
+        --deterministic
+    output_artifacts: ["training/checkpoints/ssc-chat-v7-qwen3-4b/"]
+    completion_check: "test -f training/checkpoints/ssc-chat-v7-qwen3-4b/adapter_config.json"
+    depends_on: [train-plan]
+
+  # ── Stage 4: Evaluation ──
+  eval-static:
+    type: task
+    machine: lambda
+    command: >
+      apr eval training/checkpoints/ssc-chat-v7-qwen3-4b/
+        --task classify
+        --data training/shellsafetybench/splits/test.jsonl
+        --device cuda
+        --output training/shellsafetybench/eval/static-results.json
+    output_artifacts: ["training/shellsafetybench/eval/static-results.json"]
+    depends_on: [train-apply]
+
+  eval-dynamic:
+    type: task
+    machine: lambda
+    command: >
+      verificar generate --language bash --count 500
+        --seed "$(date +%Y%m%d)" --strategy exhaustive
+        --output /tmp/ssc-dynamic-eval.jsonl &&
+      apr eval training/checkpoints/ssc-chat-v7-qwen3-4b/
+        --task classify
+        --data /tmp/ssc-dynamic-eval.jsonl
+        --device cuda
+        --output training/shellsafetybench/eval/dynamic-results.json
+    output_artifacts: ["training/shellsafetybench/eval/dynamic-results.json"]
+    depends_on: [train-apply]
+
+  eval-baselines:
+    type: task
+    machine: lambda
+    command: >
+      bashrs corpus baselines
+        --data training/shellsafetybench/splits/test.jsonl
+        --output training/shellsafetybench/eval/baselines.json
+    output_artifacts: ["training/shellsafetybench/eval/baselines.json"]
+    depends_on: [split-data]
+
+  # ── Stage 5: QA Gate ──
+  qa-gate:
+    type: task
+    machine: lambda
+    command: >
+      apr qa --checklist configs/qa/ssc-release-v1.yaml
+    quality_gate:
+      parse: json
+      field: pass
+      threshold: ["true"]
+      on_fail: block
+    depends_on: [eval-static, eval-dynamic, eval-baselines]
+
+  # ── Stage 6: Publish ──
+  publish-dataset:
+    type: task
+    machine: lambda
+    command: >
+      alimentar hub push training/shellsafetybench/splits/
+        paiml/shell-safety-bench
+        --format parquet
+    depends_on: [qa-gate]
+
+  publish-model:
+    type: task
+    machine: lambda
+    command: >
+      apr publish training/checkpoints/ssc-chat-v7-qwen3-4b/
+        paiml/shell-safety-qwen3-4b
+        --license apache-2.0
+    depends_on: [qa-gate]
+
+policy:
+  failure: stop_on_first
+  parallel_machines: false
+  retry: 1
+  bashrs_lint: true
+```
+
+### 2b.4 Training Config (entrenar schema)
+
+**File**: `configs/train/ssc-qwen3-4b-qlora.yaml`
+
+This replaces the ad-hoc `training/ssc-chat-qwen3-4b-qlora.yaml`. It follows
+the entrenar YAML schema exactly as used by albor:
+
+```yaml
+model:
+  source: "/home/noah/src/models/qwen3-4b/"
+  format: safetensors
+  device: "cuda"
+  dtype: "bfloat16"
+  architecture:
+    type: transformer
+    hidden_size: 2560
+    num_layers: 36
+    num_heads: 32
+    num_kv_heads: 8
+    intermediate_size: 9728
+    vocab_size: 151936
+    max_seq_length: 512
+    rope_theta: 1000000.0
+    head_dim: 128
+
+data:
+  train: "training/shellsafetybench/splits/train-balanced.jsonl"
+  val: "training/shellsafetybench/splits/val.jsonl"
+  tokenizer: "/home/noah/src/models/qwen3-4b/tokenizer.json"
+  seq_len: 512
+  input_column: "text"
+  loader:
+    batch_size: 4
+    shuffle: true
+
+optimizer:
+  name: "adamw"
+  lr: 0.00005
+  weight_decay: 0.01
+
+scheduler:
+  name: "cosine"
+  warmup_steps: 100
+
+training:
+  epochs: 1
+  gradient_accumulation: 4
+  max_seq_length: 512
+  deterministic: true
+  checkpoint:
+    save_every: 500
+    save_best: true
+    metric: "val_loss"
+    mode: "min"
+  validation:
+    every: 250
+  early_stopping:
+    enabled: true
+    metric: "val_loss"
+    patience: 5
+    min_delta: 0.001
+
+lora:
+  enabled: true
+  rank: 16
+  alpha: 32.0
+  target_modules: [q_proj, v_proj, o_proj, gate_proj]
+  quantize_base: true
+  quantize_bits: 4
+  quant_type: nf4
+
+output:
+  dir: "training/checkpoints/ssc-chat-v7-qwen3-4b"
+  save_every: 500
+
+monitoring:
+  terminal:
+    enabled: true
+    refresh_rate: 1000
+  alerts:
+    - condition: "loss > 10"
+      action: "stop"
+    - condition: "grad_norm > 100"
+      action: "warn"
+```
+
+### 2b.5 QA Checklist (apr qa)
+
+**File**: `configs/qa/ssc-release-v1.yaml`
+
+```yaml
+name: ssc-release-v1
+description: "ShellSafetyBench release quality gate"
+version: "1.0"
+
+checks:
+  - name: dataset-quality
+    command: "alimentar quality score training/shellsafetybench/splits/train-balanced.jsonl --profile ml-training --json"
+    gate:
+      field: score
+      op: ">="
+      value: 70
+
+  - name: data-decontaminated
+    command: "apr data decontaminate training/shellsafetybench/splits/train-balanced.jsonl --reference training/shellsafetybench/splits/test.jsonl --json"
+    gate:
+      field: contamination_rate
+      op: "<="
+      value: 0.01
+
+  - name: static-eval-f1
+    command: "cat training/shellsafetybench/eval/static-results.json"
+    gate:
+      field: detection_f1
+      op: ">="
+      value: 0.50
+
+  - name: beats-keyword-baseline
+    command: "cat training/shellsafetybench/eval/baselines.json"
+    gate:
+      field: model_mcc_vs_keyword
+      op: ">"
+      value: 0
+
+  - name: dynamic-eval-gap
+    description: "Static-dynamic gap < 15% (anti-overfitting)"
+    command: "cat training/shellsafetybench/eval/dynamic-results.json"
+    gate:
+      field: static_dynamic_gap
+      op: "<="
+      value: 0.15
+
+  - name: linter-fp-rate
+    description: "Linter false positive rate < 5% on human validation set"
+    gate:
+      field: fp_rate
+      op: "<="
+      value: 0.05
+
+  - name: model-card-exists
+    command: "test -f training/checkpoints/ssc-chat-v7-qwen3-4b/README.md"
+
+  - name: dataset-card-exists
+    command: "test -f training/shellsafetybench/splits/README.md"
+```
+
+### 2b.6 Execution
+
+The entire ShellSafetyBench pipeline runs as a single command:
+
+```bash
+# Plan (dry-run, validate DAG, estimate resources)
+apr pipeline plan configs/pipeline/ssc.yaml
+
+# Execute (runs all stages in dependency order)
+apr pipeline apply configs/pipeline/ssc.yaml
+
+# Monitor
+apr pipeline status
+```
+
+No step requires manual intervention, ad-hoc scripts, or non-sovereign tooling.
+Every intermediate artifact is tracked, every quality gate is enforced, and the
+pipeline is fully reproducible from a clean checkout.
 
 ---
 
@@ -733,17 +1200,175 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
     - **Kill criterion**: KILL-CHAT-001 CONFIRMED. Ship classifier-only pipeline.
     - **Recommendation**: Chat requires ≥7B model. MLP classifier (MCC=0.754) ships instead.
 
-### 8.2 Pipeline (F6 Fix — No Circular Routing)
+### 8.1b Phase 3b: LoRA Re-Run (CHAT-003 Invalidation)
+
+**Date added**: 2026-03-08
+**Status**: PLANNED — pending execution on Lambda RTX 4090
+
+#### 8.1b.1 Why Runs 1-6 Were Invalid
+
+All six CHAT-003 runs used **full fine-tuning**, not LoRA. The training manifest
+(`ssc-chat-qwen-0.5b.yaml`) contained `lora.enabled: true` with rank=16, alpha=32,
+target_modules=[q_proj, v_proj], but entrenar's `TransformerTrainer` had no LoRA
+integration at the time. The YAML `lora:` section was parsed and silently ignored.
+
+Evidence:
+- ENT-LoRA-001 (YAML wiring) was not implemented until 2026-03-07
+- Run 3 showed catastrophic forgetting after epoch 1 — classic full-FT failure mode
+- Run 4-6 showed "domain learning but format loss" — full-FT overwrites instruction tuning
+- Line 712-713 of this spec identified the root cause: "Full fine-tuning destroys
+  instruction-following. Needs LoRA adapter-only training."
+
+**Conclusion**: KILL-CHAT-001 was confirmed under invalid experimental conditions.
+The "0.5B insufficient capacity" conclusion (line 731) may be wrong — the model
+never had a fair trial with parameter-efficient fine-tuning.
+
+#### 8.1b.2 What Changed in entrenar
+
+ENT-LoRA-001 through ENT-LoRA-018 implemented between 2026-03-06 and 2026-03-08:
+
+- **ENT-LoRA-001**: YAML wiring — `lora:` config now creates LoRA layers in TransformerTrainer
+- **ENT-LoRA-002**: LoRALayer math — B@A=0 at init, forward = W@x + scale*(B@(A@x))
+- **ENT-LoRA-003**: Base weight freezing — only LoRA A/B matrices are trainable
+- **ENT-LoRA-004**: LoRA scaling (standard α/r and rsLoRA α/√r)
+- **ENT-LoRA-005**: Merge/unmerge for inference
+- **ENT-LoRA-006**: PEFT-compatible adapter save/load
+- **ENT-LoRA-007-018**: CLI integration, optimizer filtering, gradient accumulation,
+  checkpoint resume, target module selection, LoRA+ differential LR, NF4 quantization
+
+Falsification: 28 tests across 6 layers (F-MATH, F-FREEZE, F-CLI, F-CONV, F-CKPT, F-EDGE),
+all passing. Spec: `entrenar/docs/lora-qlora-enhancement.md` Section 6.
+
+#### 8.1b.3 Model Selection: Qwen3-4B NF4 QLoRA
+
+**Decision**: Upgrade from Qwen2.5-Coder-0.5B to Qwen3-4B based on first-principles analysis.
+
+**Why Qwen3-4B** (not 0.5B/1.5B Qwen2.5):
+- Qwen3-4B ≈ Qwen2.5-7B on code benchmarks (MBPP=67.0, EvalPlus=63.5)
+- Already instruction-tuned (Qwen3 post-trained models = instruct by default)
+- Think/non-think mode: fast classification (non-think) + deep explanations (think)
+- QK-layernorm for training stability, 8 KV heads (vs 2 in Qwen2.5)
+- **Already proven on this box**: Qwen3-4B NF4 QLoRA achieved 91.4% val accuracy
+- Weights already local: `/home/noah/src/models/qwen3-4b/` (3 safetensors shards)
+- Architecture: 36L, h=2560, 32Q/8KV heads, FFN=9728, Qwen3ForCausalLM
+
+**Why not alternatives**:
+- ~~Qwen2.5-Coder-0.5B~~: 6 failed runs, 494M too small for format+classify+explain
+- ~~Qwen2.5-Coder-1.5B~~: Code-specialized but Qwen2 architecture, 3× less capacity than 4B
+- ~~Qwen3-1.7B~~: Matches Qwen2.5-3B, viable fallback but 4B fits in VRAM budget
+- ~~Qwen3-0.6B~~: Too small (≈Qwen2.5-1.5B), same capacity class as failed runs
+- ~~Qwen2.5-Coder-3B~~: Base model only (not instruct-tuned), Qwen2 architecture
+
+**VRAM budget** (concurrent with albor 350M pretraining):
+- Albor GPU-resident training: ~12 GB
+- Qwen3-4B NF4 QLoRA: ~2.9 GB (NF4 base 2.0 + LoRA 24 MB + optimizer 94 MB + activations 0.75 GB)
+- System/display: ~0.5 GB
+- **Total: ~15.4 GB / 24 GB** — 8.6 GB headroom
+
+#### 8.1b.4 Run 7 Plan: Qwen3-4B NF4 QLoRA
+
+**Hypothesis**: Qwen3-4B with NF4 QLoRA provides sufficient capacity for
+format compliance + domain classification + code explanation, while LoRA
+preserves the base model's instruction-following and think/non-think modes.
+
+**Configuration** (manifest: `training/ssc-chat-qwen3-4b-qlora.yaml`):
+- Model: Qwen3-4B (local: `/home/noah/src/models/qwen3-4b/`)
+- Architecture: Qwen3ForCausalLM, 36L, h=2560, 32 heads, 8 KV heads
+- Quantization: NF4 (4-bit base weights, CUDA NF4 path)
+- LoRA: rank=16, alpha=32.0, targets=[q_proj, v_proj, o_proj, gate_proj]
+  - 4 target modules (following albor pattern for instruction tuning)
+  - o_proj: reshapes attention output (format compliance)
+  - gate_proj: modulates FFN (domain knowledge adaptation)
+  - ~11.8M trainable params (vs 4B frozen base)
+- Data: conversations_v3.jsonl (balanced: 1512 safe + 756 unsafe = 2268)
+- Training: 1 epoch, LR=5e-5, batch=4, grad_accum=4, seq_len=512
+- Hardware: Lambda RTX 4090 (concurrent with albor pretraining)
+
+**Success criteria** (from provable contract `chat-model-training-v1.yaml`):
+- C-CHAT-TRAIN-002: >85% combined accuracy on 50-entry eval set
+- C-CHAT-TRAIN-003: >85% shellcheck pass rate on generated code blocks
+- C-CHAT-TRAIN-004: >50% citation rate (references SEC/DET/IDEM rules)
+- NEW: Base model think/non-think mode preserved after LoRA adaptation
+
+**Expected differences from runs 1-6** (full-FT on 0.5B):
+1. No catastrophic forgetting — base weights frozen in NF4, only LoRA A/B adapt
+2. 8× model capacity — Qwen3-4B vs Qwen2.5-0.5B
+3. Better instruction-following baseline — Qwen3 post-training > Qwen2.5
+4. Smaller checkpoint — adapter only (~47 MB vs 1.98 GB full model)
+5. PEFT-compatible export — merge/unmerge for deployment flexibility
+
+#### 8.1b.5 VRAM Budget (Qwen3-4B NF4 QLoRA)
+
+Computed from architecture dims. Validated against albor pretrain-350m (measured 12.6 GB).
+
+| Component | Size | Notes |
+|-----------|------|-------|
+| Base model (NF4, frozen) | 2.0 GB | 3.8B params × 4 bits + quantization scales |
+| LoRA adapters (bf16) | 0.03 GB | 16.8M trainable params (144 adapter matrices) |
+| AdamW optimizer (fp32) | 0.20 GB | m + v + fp32 copy, only LoRA params |
+| Gradients (bf16) | 0.03 GB | Only LoRA params, base frozen |
+| Activations | 1.1–4.2 GB | Depends on micro-batch size + grad checkpointing |
+| NF4 dequant workspace | 0–0.2 GB | Per-layer bf16 dequant during backward (if needed) |
+| CUDA overhead | 0.3–0.5 GB | Context, fragmentation, cuBLAS workspace |
+| **Total** | **3.7–7.0 GB** | **Confirm empirically via `apr train plan`** |
+
+**Why SSC uses less VRAM than albor (12.6 GB) despite a 10× larger model:**
+
+Albor pretrains 350M with ALL params trainable. AdamW keeps 3 fp32 copies of
+every trainable param (m, v, master weights) = 4.2 GB optimizer states + 0.7 GB
+gradients + 1.4 GB GPU-resident grad accumulation workspace = **6.3 GB just for
+trainability overhead**.
+
+SSC QLoRA trains only 16.8M LoRA params (0.4% of base). Optimizer = 0.2 GB,
+gradients = 0.03 GB. The base model is bigger in VRAM (2.0 GB NF4 vs 0.7 GB bf16)
+but the optimizer savings are 21×.
+
+| | Albor (pretrain 350M) | SSC (QLoRA 4B) |
+|---|---|---|
+| Base model | 0.7 GB (bf16, trainable) | 2.0 GB (NF4, frozen) |
+| Trainable params | 350M (100%) | 16.8M (0.4%) |
+| Optimizer states | 4.2 GB | 0.2 GB |
+| Gradients + accum | 2.1 GB | 0.1 GB |
+| **Estimated total** | **~12.6 GB** (measured) | **~5–7 GB** (estimate) |
+
+**Concurrent training**: SSC (~5–7 GB) does NOT fit alongside albor (~12.6 GB) on
+a 24 GB RTX 4090. Schedule SSC when albor is idle, OR reduce albor to a checkpoint
+pause. The "2.9 GB" claim from the original manifest was an inference estimate, not
+a training estimate. Corrected.
+
+#### 8.1b.6 Updated Kill Criteria
+
+**KILL-CHAT-001 (revised)**: If Run 7 (Qwen3-4B NF4 QLoRA) fails to achieve
+>50% combined accuracy, THEN the task requires a larger model (≥8B) or
+fundamentally different approach. Ship MLP classifier (MCC=0.754) only.
+
+**KILL-CHAT-002 (new)**: If LoRA training shows no loss decrease after 500 steps
+(lr={5e-5, 1e-4, 2e-4} all tried), check: (a) `is_lora()` returns true,
+(b) LoRA layer gradients are non-zero, (c) NF4 dequantization is functioning.
+
+**KILL-CHAT-003 (revised)**: SSC and albor cannot train concurrently (combined
+~18–20 GB exceeds 24 GB VRAM). Options in priority order:
+1. Train SSC when albor hits a checkpoint pause (albor saves every 500 steps)
+2. Reduce SSC batch_size to 2 (saves ~1 GB activations)
+3. Enable gradient checkpointing for SSC (saves ~1–3 GB activations)
+4. Schedule SSC after albor completes current epoch
+
+### 8.2 Pipeline (v12 — ShellSafetyBench)
 
 ```
 bashrs check:
-    ├── bashrs lint (<1ms) ──> rule findings
-    ├── CodeBERT classify (~20ms) ──> confidence
+    ├── bashrs lint (<1ms) ──> rule findings + CWE IDs
+    ├── CodeBERT classify (~20ms) ──> confidence score
     v
-    Output: {label, confidence, findings[]}
+    Output: {label, confidence, findings[], cwe_ids[]}
 
 bashrs explain (explicit only, user invokes):
-    └── Qwen-1.5B chat (~2s) ──> natural language analysis
+    └── shell-safety-qwen3-4b (~2s) ──> structured safety review
+        ├── Verdict: safe / needs-review / unsafe
+        ├── Findings: rule IDs + line numbers + severity
+        ├── Explanation: WHY each finding matters (CWE context)
+        ├── Fix: concrete corrected code (shellcheck-validated)
+        └── Confidence: "checked N known patterns, M matched"
 ```
 
 Chat model invoked ONLY by explicit command. Never automatic.
@@ -1740,17 +2365,23 @@ Dataset can ship without either model. Negative results are published honestly.
 
 ## 12. What We Are NOT Doing
 
-| Excluded | Why |
-|----------|-----|
-| Python / PyTorch / HuggingFace lib | Sovereign Rust stack |
-| Qwen-0.5B as classifier | CodeBERT is 4x smaller, 10x faster, WASM-deployable |
-| Multi-GPU | Single RTX 4090 sufficient for 125M + 1.5B |
-| wgpu for training | CUDA proven path (wgpu used only for WASM inference) |
-| Multi-label | Binary first |
-| Confidence routing | Circular (F6) |
-| Claiming "safety reasoning" | Model learns patterns from linter, not reasoning (F5) |
-| Chat model in WASM | 1.5B too large for browser. Classifier + linter only. |
-| Playwright / Jest / Cypress | All WASM testing via Probar (pure Rust, zero JS) |
+| Excluded | Why | Sovereign Alternative |
+|----------|-----|----------------------|
+| Python / PyTorch / HuggingFace lib | Sovereign Rust stack | entrenar + aprender + trueno |
+| Ad-hoc Python data scripts | Non-reproducible, non-sovereign | alimentar CLI + apr data |
+| Shell scripts for orchestration | Ironic (fixing what we lint) | apr pipeline (forjar DAG) |
+| Manual JSONL/data munging | Error-prone, untraceable | alimentar convert/mix/filter |
+| Raw entrenar binary invocation | Skips plan validation + monitoring | apr train plan/apply/watch |
+| Manual HuggingFace upload | No metadata, no versioning | alimentar hub push + apr publish |
+| Jupyter notebooks | Python dependency | alimentar repl + apr eval |
+| Qwen-0.5B as classifier | CodeBERT is 4x smaller, 10x faster | CodeBERT via entrenar encoder |
+| Multi-GPU | Single RTX 4090 sufficient | — |
+| wgpu for training | CUDA proven path | CUDA via entrenar |
+| Multi-label | Binary first | — |
+| Confidence routing | Circular (F6) | — |
+| Claiming "safety reasoning" | Model learns patterns, not reasoning (F5) | — |
+| Chat model in WASM | Too large for browser (KILL-5) | CLI only |
+| Playwright / Jest / Cypress | Non-sovereign JS testing | Probar (pure Rust) |
 
 ---
 
@@ -1764,16 +2395,281 @@ All falsifications tracked and resolved:
 | F2 | CodeBERT tokenizer not trained on shell | **MITIGATED** | Validate first (C-TOK-001). Three fallback options. (S5.2) |
 | F3 | 116 unsafe test samples = weak statistics | **MITIGATED** | Use CI lower bounds, not point estimates. (S5.5) |
 | F4 | RoBERTa [CLS] weak without fine-tuning | **MITIGATED** | Test both [CLS] and mean-pool. Escalation ladder. (S5.4) |
-| F5 | Synthetic conversations are templates | **MITIGATED** | 10+ variants, honesty in model card, held-out eval. (S6.5) |
+| F5 | Synthetic conversations are templates | **RESOLVED (v12)** | Regenerated from real shell code via conversations.rs. 48 prompt variants. Old data had 90 unique responses; new data has per-entry lint-grounded responses. |
 | F6 | Confidence routing is circular | **RESOLVED** | Removed. Chat is explicit-only command. (S8.2) |
-| F7 | Labels derived from transpiler, not safety | **MITIGATED** | Manual audit of 100 labels before training. (S5.3) |
-| F8 | 926 unsafe examples is thin | **MITIGATED** | 50 OOD generalization test scripts. (S5.6) |
+| F7 | Labels derived from transpiler, not safety | **RESOLVED (v12)** | v12 uses bashrs lint on real shell code. Labels are SEC/DET/IDEM findings, not transpiler labels. CWE-mapped. |
+| F8 | 926 unsafe examples is thin | **RESOLVED (v12)** | ~7,600 unsafe examples from corpus + verificar mutations. 8× improvement. |
 | F9 | Timeline assumes no blockers | **MITIGATED** | Phase 0 scoped, buffer days added. 9-12 days. (S9) |
 | F10 | Scripts too short for rich embeddings | **ACKNOWLEDGED** | Value on multi-line scripts. Honest about limitation. |
+| F11 | "First shell-specific benchmark" may be false | **VERIFY** | Search HuggingFace, GitHub, arXiv for "bash security benchmark" or "shell vulnerability dataset" before publication. If competitor found, position as "first CWE-mapped" or "first with eval harness". |
+| F12 | ~28K entries ≠ quality benchmark | **MITIGATED** | SEC-bench achieves meaningful results with 600 CVEs. Report unique CWE coverage (15 CWEs), script complexity distribution (LOC histogram), and format diversity (3 languages). Size is necessary but not sufficient. |
+| F13 | "4B specialist beats 7B+ general" may not hold | **TEST** | General models may win on explanation quality even if specialist wins on detection. Report per-metric breakdown, not just composite score. Hypothesis is falsifiable. |
+| F14 | DPO chosen/rejected pairs may be template artifacts | **MITIGATE** | Audit 100 random pairs for genuine preference alignment. Rejected responses must be plausibly wrong (not strawman). Add verificar-generated near-miss rejects. |
+| F15 | Linter-derived labels have false positives | **QUANTIFY** | Hand-review 200 samples. Measure bashrs FP rate. Target: FP < 5%. If higher, add FP-aware noise labels or exclude ambiguous rules from ground truth. |
 
 ---
 
-## 14. Version History
+## 14. ShellSafetyBench (v12)
+
+### 14.1 Why This Doesn't Exist Yet
+
+Every code security benchmark focuses on compiled languages:
+
+| Benchmark | Languages | Shell/Bash? | Year |
+|-----------|----------|-------------|------|
+| CASTLE | C/C++ | No | 2025 |
+| SafeGenBench | 8 languages | No | 2025 |
+| SecRepoBench | Multi | No | 2025 |
+| CyberNative DPO | 11 languages | No | 2024 |
+| CodeAstra-7B | Multi | No | 2024 |
+| VulnLLM-R-7B | C/C++/Java/Python | No | 2025 |
+
+Shell scripts are the most common attack surface for infrastructure (CI/CD,
+Docker, deploy, cron) yet have zero ML-based security tooling or benchmarks.
+
+### 14.2 CWE Taxonomy Mapping
+
+bashrs linter rules mapped to MITRE CWE identifiers:
+
+| Rule | Pattern | CWE | CVSS v3.1 | OWASP Category |
+|------|---------|-----|-----------|----------------|
+| SEC001 | Unquoted variable expansion | CWE-78 | 7.8 (High) | OS Command Injection |
+| SEC002 | eval usage | CWE-94 | 8.8 (High) | Code Injection |
+| SEC003 | Unquoted command substitution | CWE-78 | 7.8 (High) | OS Command Injection |
+| SEC004 | Backtick command substitution | CWE-78 | 7.8 (High) | OS Command Injection |
+| SEC005 | Source/eval of variable | CWE-94 | 8.8 (High) | Code Injection |
+| SEC006 | Curl piped to shell | CWE-829 | 9.8 (Critical) | Inclusion of Untrusted Functionality |
+| SEC007 | World-writable permissions | CWE-732 | 5.3 (Medium) | Incorrect Permission Assignment |
+| SEC008 | Hardcoded credentials | CWE-798 | 7.5 (High) | Use of Hard-coded Credentials |
+| SEC013 | Insecure /tmp usage | CWE-377 | 5.9 (Medium) | Insecure Temporary File |
+| DET001 | $RANDOM usage | CWE-330 | 3.7 (Low) | Insufficient Randomness |
+| DET002 | Timestamp in output | CWE-330 | 3.7 (Low) | Insufficient Randomness |
+| DET003 | Unsorted glob expansion | CWE-330 | 3.7 (Low) | Insufficient Randomness |
+| IDEM001 | mkdir without -p | CWE-362 | 4.7 (Medium) | Race Condition (TOCTOU) |
+| IDEM002 | rm without -f | CWE-362 | 4.7 (Medium) | Race Condition (TOCTOU) |
+| IDEM003 | ln without -sf | CWE-362 | 4.7 (Medium) | Race Condition (TOCTOU) |
+
+CVSS base scores assume local attacker context (AV:L) for variable expansion and
+remote context (AV:N) for curl-pipe-bash. Scores enable **severity prioritization**
+in eval results, not just binary detection.
+
+### 14.3 Data Pipeline
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Source 1: bashrs corpus (17,942 entries)                 │
+│  ├── 16,431 Bash scripts                                 │
+│  ├── 804 Makefiles                                       │
+│  └── 707 Dockerfiles                                     │
+│  Labels: bashrs lint → SEC/DET/IDEM findings = unsafe    │
+│          no findings = safe                              │
+├──────────────────────────────────────────────────────────┤
+│  Source 2: verificar synthetic generation (~10K)          │
+│  ├── Generate safe programs (depth 3-5, all features)    │
+│  ├── Mutate to inject specific CWE patterns              │
+│  │   ├── AOR: arithmetic boundary errors                 │
+│  │   ├── BSR: boundary substitution (empty, overlong)    │
+│  │   └── CWE-targeted: inject $RANDOM, eval, unquoted   │
+│  └── Oracle: execute before/after, verify behavior Δ     │
+├──────────────────────────────────────────────────────────┤
+│  bashrs lint (each entry)                                │
+│  └── Ground truth labels with rule IDs + line numbers    │
+├──────────────────────────────────────────────────────────┤
+│  conversations.rs (generate training conversations)      │
+│  ├── Type A: Classify+Explain (unsafe + lint findings)   │
+│  ├── Type B: Fix (unsafe + corrected version)            │
+│  ├── Type C: Debug (non-deterministic + DET findings)    │
+│  ├── Type D: Confirm Safe (≥30% of total)                │
+│  └── 12 prompt variants per type (48 total phrasings)    │
+├──────────────────────────────────────────────────────────┤
+│  Output: ~28K entries in DPO-compatible JSONL             │
+│  ├── train split (80%)                                   │
+│  ├── val split (10%)                                     │
+│  └── test split (10%, held out for benchmark)            │
+├──────────────────────────────────────────────────────────┤
+│  Human Validation Set (200 entries)                       │
+│  ├── Security researchers label without seeing bashrs     │
+│  ├── Include bashrs false positives (safe flagged unsafe) │
+│  ├── Include bashrs false negatives (unsafe missed)       │
+│  ├── Report inter-annotator agreement (Cohen's κ)         │
+│  └── Purpose: measure linter-free generalization          │
+├──────────────────────────────────────────────────────────┤
+│  Dynamic Eval (anti-gaming, per SEC-bench methodology)   │
+│  ├── 500 verificar-generated scripts per eval run        │
+│  ├── Seeded by date + commit hash (reproducible but fresh)│
+│  ├── Prevents training-on-test contamination              │
+│  └── Report static and dynamic scores separately          │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 14.4 Benchmark Schema
+
+DPO-compatible format (same structure as CyberNative dataset, extended for shell):
+
+```json
+{
+  "id": "SSB-00142",
+  "lang": "bash",
+  "cwe": "CWE-78",
+  "rule": "SEC001",
+  "severity": "error",
+  "vulnerability": "OS Command Injection via unquoted variable",
+  "script": "#!/bin/bash\nrm -rf $USER_INPUT/tmp",
+  "chosen": "Classification: unsafe\n\n**SEC001** (line 2): Unquoted variable `$USER_INPUT` allows injection...\n\nFixed:\n```bash\n#!/bin/bash\nrm -rf \"${USER_INPUT:?}/tmp\"\n```",
+  "rejected": "This script looks fine. It removes a temporary directory.",
+  "source": "bashrs-corpus",
+  "conversation_type": "classify-explain"
+}
+```
+
+Fields specific to ShellSafetyBench (not in CyberNative):
+- `lang`: bash | makefile | dockerfile (infrastructure trifecta)
+- `rule`: bashrs-specific rule ID (SEC/DET/IDEM/SC codes)
+- `severity`: error | warning | info (from linter)
+- `script`: raw source code (not embedded in prompt)
+- `source`: bashrs-corpus | verificar-generated | verificar-mutated
+- `conversation_type`: classify-explain | fix | debug | confirm-safe
+
+### 14.5 Evaluation Metrics (Leaderboard)
+
+| Metric | Description | Weight |
+|--------|-------------|--------|
+| **Detection F1** | Binary safe/unsafe classification accuracy | 25% |
+| **Rule Citation** | Correct SEC/DET/IDEM rule ID in response | 20% |
+| **CWE Mapping** | Correct CWE ID referenced | 10% |
+| **Fix Validity** | Suggested fix passes shellcheck AND removes vuln | 15% |
+| **Explanation** | Response explains WHY the pattern is dangerous | 15% |
+| **OOD Generalization** | Correct on novel CWE patterns not in bashrs linter | 15% |
+
+The OOD (out-of-distribution) metric tests patterns the model was NOT trained on:
+- CWE-426: Untrusted search path (`PATH` manipulation)
+- CWE-77: Command injection via `xargs` without `-0`
+- CWE-116: Improper output encoding (log injection via `echo $untrusted`)
+- CWE-250: Execution with unnecessary privileges (`sudo` in scripts)
+- Scripts from external sources (GitHub Actions workflows, Docker Hub Dockerfiles)
+
+This prevents Goodhart's Law: a model that memorizes bashrs linter output will
+score 0% on OOD, exposing the gap between pattern matching and understanding.
+
+#### 14.5.1 Automated Scoring (Leaderboard)
+
+- Detection F1: parse first line for "Classification: safe/unsafe", compare to label
+- Rule Citation: regex match for rule IDs in response, compare to ground truth
+- Fix Validity: extract ```bash blocks, run `shellcheck -s sh`, re-lint with bashrs
+- CWE Mapping: regex match for CWE-\d+ in response
+- Explanation: check for key terms (injection, non-deterministic, race condition, etc.)
+- OOD: same automated pipeline but on held-out novel-CWE scripts
+
+#### 14.5.2 LLM-as-Judge Scoring (Depth)
+
+Automated regex scoring is fragile — a correct explanation using different terminology
+scores 0. For a 200-sample subset, use Claude/GPT-4 as judge (per SafeGenBench methodology):
+
+- **Explanation quality** (1-5): Does the response correctly identify the vulnerability,
+  explain the attack vector, and describe the impact? Scored by LLM judge.
+- **Fix completeness** (1-5): Does the fix address ALL vulnerabilities in the script,
+  not just the first one? Scored by LLM judge.
+- **Hallucination rate**: Does the response cite rules/CWEs that don't apply? Binary.
+
+Report both scores: automated is the leaderboard metric (reproducible, cheap);
+LLM-judge is reported in the paper (captures nuance, catches false negatives in
+automated scoring).
+
+#### 14.5.3 Dynamic Evaluation (Anti-Gaming)
+
+Static benchmarks invite overfitting (per "The Leaderboard Illusion", 2025).
+ShellSafetyBench includes a **regenerable dynamic split**:
+
+- Each eval run generates 500 fresh scripts via verificar (`--seed $(date +%Y%m%d)`)
+- Static portion (corpus-derived, ~2,800 test entries) stays fixed for reproducibility
+- Dynamic portion (verificar-generated) prevents training-on-test contamination
+- Report both scores: `Static: XX.X%, Dynamic: YY.Y%`
+- A large gap (Static >> Dynamic) indicates overfitting to the benchmark
+
+### 14.6 Baseline Models (to evaluate on ShellSafetyBench)
+
+| Model | Params | Type | Expected Strength |
+|-------|--------|------|-------------------|
+| GPT-4o | ~200B? | General | Good reasoning, no shell specialization |
+| Claude Sonnet 4.6 | ~100B? | General | Strong code analysis |
+| Qwen3-4B (base) | 4B | General | Zero-shot shell knowledge |
+| Qwen2.5-Coder-7B | 7B | Code | Code-specialized, no shell focus |
+| CodeLlama-7B | 7B | Code | Code-specialized, no shell focus |
+| **shell-safety-qwen3-4b** | **4B** | **Shell specialist** | **Trained on ShellSafetyBench** |
+| bashrs lint | N/A | Rule-based | Perfect on known rules, no novel detection |
+
+Hypothesis: shell-safety-qwen3-4b (4B) beats general-purpose 7B+ models on
+shell-specific security tasks due to domain specialization. General models
+will miss linter-specific rules and produce generic security advice.
+
+### 14.7 HuggingFace Deliverables
+
+| Artifact | Repo | Format |
+|----------|------|--------|
+| Benchmark dataset | `paiml/shell-safety-bench` | Parquet + JSONL, DPO-compatible |
+| QLoRA adapter | `paiml/shell-safety-qwen3-4b` | PEFT safetensors, merge-compatible |
+| Eval harness | `paiml/shell-safety-eval` | HF Space with model comparison |
+| Model card | In model repo | CWE coverage, benchmark scores, limitations |
+| Dataset card | In dataset repo | Generation methodology, label provenance |
+
+### 14.8 What Makes This Defensible
+
+1. **No competing dataset**: Shell/Make/Docker security has zero ML benchmarks (F11: verify pre-publication)
+2. **Verified labels**: Ground truth from deterministic linter, FP rate < 5% (F15: quantified on 200 samples)
+3. **Reproducible pipeline**: bashrs + verificar + conversations.rs = unlimited data
+4. **CWE-mapped + CVSS-scored**: Credible for security researchers, maps to OWASP/MITRE, enables severity prioritization
+5. **Three languages**: Bash + Makefile + Dockerfile = infrastructure trifecta
+6. **DPO-compatible**: Can train with RLHF/DPO, not just SFT
+7. **Sovereign stack**: No Python/PyTorch dependency in generation pipeline
+8. **Anti-gaming**: Dynamic eval via verificar prevents benchmark overfitting (per Leaderboard Illusion)
+9. **Dual scoring**: Automated (reproducible leaderboard) + LLM-as-judge (captures nuance)
+10. **OOD generalization**: 15% eval weight on novel CWEs not in training set — measures understanding vs memorization
+11. **Human validation**: 200-entry linter-free eval with inter-annotator agreement (Cohen's κ)
+12. **Cross-linter validation**: ShellCheck findings as secondary oracle — bashrs rules aren't idiosyncratic
+
+### 14.9 Implementation Plan (Phase 7 — Sovereign Tooling Only)
+
+**Orchestration**: `apr pipeline plan/apply configs/pipeline/ssc.yaml` (see S2b.3)
+
+All steps below are encoded as resources in the pipeline manifest. No ad-hoc scripts.
+Manual steps (7.1, 7.4c, 7.11) are the ONLY exceptions — they produce YAML/spec artifacts
+that are then consumed by automated pipeline stages.
+
+| Step | Task | Sovereign Command | Estimate |
+|------|------|-------------------|----------|
+| 7.1 | Map CWE IDs + CVSS scores (spec update) | Manual → `configs/cwe-mapping.yaml` | 1 hour |
+| 7.2 | CWE-targeted mutations | `verificar generate --language bash --count 10000 --strategy exhaustive` | 1 day |
+| 7.2b | OOD CWE generators (CWE-426/77/116/250) | `verificar generate --cwe-targets 426,77,116,250 --count 2000` | 4 hours |
+| 7.3 | Regenerate conversations from corpus | `bashrs corpus generate-conversations --entrenar --output conversations.jsonl` | 2 hours |
+| 7.3b | Label corpus entries | `bashrs corpus label --input conversations.jsonl --format json` | 30 min |
+| 7.4 | Merge + audit data | `alimentar mix --input *.jsonl && apr data audit merged.jsonl --num-classes 2` | 30 min |
+| 7.4b | Stratified split + balance | `apr data split --stratified && apr data balance --strategy sqrt-inverse` | 30 min |
+| 7.4c | Decontaminate train vs test | `apr data decontaminate train.jsonl --reference test.jsonl` | 15 min |
+| 7.4d | Quality gate | `alimentar quality score train.jsonl --profile ml-training` | 15 min |
+| 7.4e | Cross-validate vs ShellCheck | `shellcheck -f json` on 500 samples (secondary oracle) | 2 hours |
+| 7.4f | Hand-label 200 human validation set | Manual → `training/shellsafetybench/human-validation.jsonl` | 4 hours |
+| 7.5 | Training plan (dry-run) | `apr train plan --config configs/train/ssc-qwen3-4b-qlora.yaml` | 15 min |
+| 7.6 | Train Run 7 | `apr train apply --config configs/train/ssc-qwen3-4b-qlora.yaml --seed 42` | 2-4 hours |
+| 7.6b | Monitor training | `apr train watch --config configs/train/ssc-qwen3-4b-qlora.yaml` | (concurrent) |
+| 7.7 | Eval static test set | `apr eval checkpoints/ --task classify --data splits/test.jsonl` | 1 hour |
+| 7.7b | Eval dynamic set | `verificar generate --count 500 --seed $(date) && apr eval` | 1 hour |
+| 7.7c | Eval OOD novel-CWE set | `apr eval checkpoints/ --data ood-cwe-test.jsonl` | 1 hour |
+| 7.7d | LLM-as-judge 200-sample | `apr eval --judge claude-sonnet --data human-validation.jsonl` | 1 hour |
+| 7.8 | Baseline comparison | `apr bench checkpoints/ --task shell-safety --baselines gpt4o,claude,qwen-7b` | 2 hours |
+| 7.9 | QA release gate | `apr qa --checklist configs/qa/ssc-release-v1.yaml` | 30 min |
+| 7.10 | Publish dataset | `alimentar hub push splits/ paiml/shell-safety-bench --format parquet` | 30 min |
+| 7.10b | Publish model | `apr publish checkpoints/ paiml/shell-safety-qwen3-4b --license apache-2.0` | 30 min |
+| 7.10c | Create HF Space leaderboard | `presentar deploy --config configs/space/ssc-leaderboard.yaml` | 2 hours |
+| 7.11 | Verify F11 ("first shell benchmark") | Web search (manual, pre-publication) | 30 min |
+
+**One-command execution**: `apr pipeline apply configs/pipeline/ssc.yaml`
+
+Steps 7.1, 7.4f, and 7.11 are manual. All other steps are declaratively encoded
+in the pipeline manifest and execute automatically in dependency order.
+
+---
+
+## 15. Version History
 
 | Version | Date | Change |
 |---------|------|--------|
@@ -1786,3 +2682,7 @@ All falsifications tracked and resolved:
 | 9.0 | 2026-03-05 | Added WASM app via presentar. CodeBERT (125M int8) runs in browser. |
 | 10.0 | 2026-03-05 | Added provable-contracts (4 YAML contracts, pv scaffold/bind/audit pipeline) + Brick profile-first design (PROBAR-SPEC-009): 5 widgets, 18 test-first assertions, JIDOKA enforcement, ModelState state machine. |
 | **11.0** | **2026-03-05** | **Probar-first testing design (S8.4): 3-layer test suite (logic/browser/performance), 21 test-first tests, LLM correctness verification (NaN, calibration, monotonicity, reference parity), 6 hard performance budgets, Docker cross-browser matrix, dual-runtime strategy, 7 new contracts (C-PRB-001..007), Phase 6 added to implementation plan.** |
+| 11.1 | 2026-03-08 | Phase 3b: LoRA re-run after ENT-LoRA-001..018 implementation. 28 falsification tests pass. |
+| **12.0** | **2026-03-08** | **ShellSafetyBench reframe (S14): first shell-specific security benchmark + model. Key changes: (1) training data from real shell/Make/Docker corpus, not Rust transpiler output; (2) CWE taxonomy mapping for all linter rules; (3) verificar mutations for synthetic unsafe pairs; (4) DPO-compatible benchmark schema; (5) eval harness with 5 metrics; (6) Qwen3-4B NF4 QLoRA as specialist model; (7) HuggingFace publication plan (dataset + model + eval Space + leaderboard). Replaces conversations_v3.jsonl (2,268 entries, 85% Rust code) with ~28K entries of real shell code.** |
+| **12.1** | **2026-03-08** | **Hardened eval methodology from 4-stream review (arxiv SEC-bench/SafeGenBench, Popperian Leaderboard Illusion, batuta oracle stack review). Key changes: (1) CVSS v3.1 base scores on CWE table (S14.2); (2) human validation set 200 entries with Cohen's κ (S14.3); (3) dynamic eval via verificar, anti-gaming (S14.5.3); (4) OOD generalization as 6th metric at 15% weight (S14.5); (5) dual scoring: automated leaderboard + LLM-as-judge depth (S14.5.2); (6) F11-F15 falsifications added (S13); (7) cross-linter validation with ShellCheck (S14.8); (8) linter FP rate quantification target <5% (F15).** |
+| **12.2** | **2026-03-08** | **Sovereign tooling mandate (S2b) + VRAM budget (S8.1b.5). Tooling: ALL pipeline ops via apr-cli/alimentar/entrenar/verificar, 10 banned practices, forjar DAG manifest, QA checklist, one-command execution. VRAM: corrected from 2.9 GB (inference) to 5-7 GB (training), albor concurrent training infeasible (combined ~18-20 GB > 24 GB), KILL-CHAT-003 revised with scheduling options.** |

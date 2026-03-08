@@ -1,0 +1,86 @@
+# configs/train/ssc-qwen3-4b-qlora.yaml — ShellSafetyBench Qwen3-4B NF4 QLoRA
+#
+# Run 7: First real LoRA training after ENT-LoRA-001..018 implementation.
+# Qwen3-4B (matches Qwen2.5-7B benchmarks) with NF4 quantized base + LoRA adapters.
+# Estimated ~5-7 GB VRAM. Cannot run concurrent with albor (~12.6 GB).
+#
+# Architecture: h=2560, L=36, heads=32, kv_heads=8, FFN=9728, vocab=151936
+# Trainable: 16.8M LoRA params (0.4% of base) across 144 adapter matrices
+# Optimizer: AdamW on LoRA params only (~0.2 GB states)
+
+model:
+  source: "/home/noah/src/models/qwen3-4b/"
+  format: safetensors
+  device: "cuda"
+  dtype: "bfloat16"
+  architecture:
+    type: transformer
+    hidden_size: 2560
+    num_layers: 36
+    num_heads: 32
+    num_kv_heads: 8
+    intermediate_size: 9728
+    vocab_size: 151936
+    max_seq_length: 512
+    rope_theta: 1000000.0
+    head_dim: 128
+
+data:
+  train: "training/shellsafetybench/splits/train-balanced.jsonl"
+  val: "training/shellsafetybench/splits/val.jsonl"
+  tokenizer: "/home/noah/src/models/qwen3-4b/tokenizer.json"
+  seq_len: 512
+  input_column: "text"
+  loader:
+    batch_size: 4
+    shuffle: true
+
+optimizer:
+  name: "adamw"
+  lr: 0.00005
+  weight_decay: 0.01
+
+scheduler:
+  name: "cosine"
+  warmup_steps: 100
+
+training:
+  epochs: 1
+  gradient_accumulation: 4
+  max_seq_length: 512
+  deterministic: true
+  checkpoint:
+    save_every: 500
+    save_best: true
+    metric: "val_loss"
+    mode: "min"
+  validation:
+    every: 250
+  early_stopping:
+    enabled: true
+    metric: "val_loss"
+    patience: 5
+    min_delta: 0.001
+
+lora:
+  enabled: true
+  rank: 16
+  alpha: 32.0
+  target_modules: [q_proj, v_proj, o_proj, gate_proj]
+  quantize_base: true
+  quantize_bits: 4
+  quant_type: nf4
+
+output:
+  dir: "training/checkpoints/ssc-chat-v7-qwen3-4b"
+  save_every: 500
+
+monitoring:
+  terminal:
+    enabled: true
+    refresh_rate: 1000
+  alerts:
+    - condition: "loss > 10"
+      action: "stop"
+    - condition: "grad_norm > 100"
+      action: "warn"

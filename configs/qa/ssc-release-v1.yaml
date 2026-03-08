@@ -1,0 +1,69 @@
+# configs/qa/ssc-release-v1.yaml — ShellSafetyBench release quality gate
+#
+# Executed via: apr qa --checklist configs/qa/ssc-release-v1.yaml
+# All checks must pass before publishing to HuggingFace.
+
+name: ssc-release-v1
+description: "ShellSafetyBench release quality gate"
+version: "1.0"
+
+checks:
+  - name: dataset-quality
+    description: "Training data passes alimentar ml-training quality profile"
+    command: >
+      alimentar quality score training/shellsafetybench/splits/train-balanced.jsonl
+        --profile ml-training --json
+    gate:
+      field: score
+      op: ">="
+      value: 70
+
+  - name: data-decontaminated
+    description: "Train/test contamination rate below 1%"
+    command: >
+      apr data decontaminate training/shellsafetybench/splits/train-balanced.jsonl
+        --reference training/shellsafetybench/splits/test.jsonl --json
+    gate:
+      field: contamination_rate
+      op: "<="
+      value: 0.01
+
+  - name: static-eval-detection-f1
+    description: "Detection F1 on static test set >= 0.50"
+    command: "cat training/shellsafetybench/eval/static-results.json"
+    gate:
+      field: detection_f1
+      op: ">="
+      value: 0.50
+
+  - name: beats-keyword-baseline
+    description: "Model MCC exceeds keyword baseline MCC"
+    command: "cat training/shellsafetybench/eval/baselines.json"
+    gate:
+      field: model_mcc_vs_keyword
+      op: ">"
+      value: 0
+
+  - name: static-dynamic-gap
+    description: "Gap between static and dynamic eval < 15% (anti-overfitting)"
+    command: "cat training/shellsafetybench/eval/dynamic-results.json"
+    gate:
+      field: static_dynamic_gap
+      op: "<="
+      value: 0.15
+
+  - name: linter-fp-rate
+    description: "Linter false positive rate < 5% on human validation set"
+    command: "cat training/shellsafetybench/eval/human-validation-results.json"
+    gate:
+      field: fp_rate
+      op: "<="
+      value: 0.05
+
+  - name: model-card-exists
+    description: "Model card README exists in checkpoint directory"
+    command: "test -f training/checkpoints/ssc-chat-v7-qwen3-4b/README.md"
+
+  - name: dataset-card-exists
+    description: "Dataset card README exists in splits directory"
+    command: "test -f training/shellsafetybench/splits/README.md"

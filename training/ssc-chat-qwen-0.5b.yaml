@@ -64,4 +64,4 @@ output:
 publish:
   repo: "paiml/shell-safety-chat"
   private: false
-  status: "DELETED — kill criterion KILL-CHAT-001 confirmed after 6 runs (32% accuracy)"
+  status: "SUPERSEDED — runs 1-6 used full fine-tuning (LoRA was dead config). See ssc-chat-qwen-0.5b-lora.yaml for Run 7+"

@@ -1,0 +1,247 @@
+# configs/pipeline/ssc.yaml — ShellSafetyBench end-to-end pipeline
+#
+# Orchestrated via apr-cli + forjar DAG engine.
+# Execute: apr pipeline apply configs/pipeline/ssc.yaml
+#
+# Follows albor configs/pipeline/albor.yaml pattern.
+# All operations use sovereign Rust AI stack tooling — no Python, no ad-hoc scripts.
+
+version: "1.0"
+name: ssc-shellsafetybench-pipeline
+description: >
+  ShellSafetyBench: first shell-specific security benchmark + Qwen3-4B specialist model.
+  ~28K CWE-mapped entries (Bash + Makefile + Dockerfile), DPO-compatible,
+  with automated eval harness and anti-gaming dynamic evaluation.
+
+machines:
+  lambda:
+    hostname: lambda
+    addr: 127.0.0.1
+    user: noah
+    arch: x86_64
+    roles: [gpu-train, eval, data-pipeline]
+
+resources:
+  # ── Infrastructure ──────────────────────────────────────────────
+
+  cuda-driver:
+    type: gpu
+    machine: lambda
+    gpu_backend: nvidia
+    driver_version: "550"
+    persistence_mode: true
+
+  data-dir:
+    type: file
+    machine: lambda
+    path: /home/noah/src/bashrs/training/shellsafetybench
+    state: directory
+
+  # ── Stage 2a: Corpus Export ─────────────────────────────────────
+
+  corpus-export:
+    type: task
+    machine: lambda
+    command: >
+      bashrs corpus generate-conversations --entrenar
+        --output training/shellsafetybench/conversations.jsonl
+    output_artifacts: ["training/shellsafetybench/conversations.jsonl"]
+    depends_on: [data-dir]
+
+  # ── Stage 2b: Verificar Synthetic Generation ────────────────────
+
+  verificar-generate:
+    type: task
+    machine: lambda
+    command: >
+      verificar generate --language bash --count 10000
+        --max-depth 5 --strategy exhaustive
+        --output training/shellsafetybench/verificar-safe.jsonl
+    output_artifacts: ["training/shellsafetybench/verificar-safe.jsonl"]
+    depends_on: [data-dir]
+
+  verificar-mutate:
+    type: task
+    machine: lambda
+    command: >
+      verificar mutate
+        --input training/shellsafetybench/verificar-safe.jsonl
+        --operator BSR,AOR
+        --oracle IoOracle
+        --output training/shellsafetybench/verificar-unsafe.jsonl
+    output_artifacts: ["training/shellsafetybench/verificar-unsafe.jsonl"]
+    depends_on: [verificar-generate]
+
+  # ── Stage 2c: Label with bashrs lint ────────────────────────────
+
+  label-corpus:
+    type: task
+    machine: lambda
+    command: >
+      bashrs corpus label
+        --input training/shellsafetybench/conversations.jsonl
+        --format json
+        --output training/shellsafetybench/labeled.jsonl
+    output_artifacts: ["training/shellsafetybench/labeled.jsonl"]
+    depends_on: [corpus-export]
+
+  label-verificar:
+    type: task
+    machine: lambda
+    command: >
+      bashrs corpus label
+        --input training/shellsafetybench/verificar-unsafe.jsonl
+        --format json
+        --output training/shellsafetybench/verificar-labeled.jsonl
+    output_artifacts: ["training/shellsafetybench/verificar-labeled.jsonl"]
+    depends_on: [verificar-mutate]
+
+  # ── Stage 2d: Merge + Quality Audit ─────────────────────────────
+
+  merge-data:
+    type: task
+    machine: lambda
+    command: >
+      alimentar mix
+        --input training/shellsafetybench/labeled.jsonl
+        --input training/shellsafetybench/verificar-labeled.jsonl
+        --output training/shellsafetybench/merged.jsonl &&
+      apr data audit training/shellsafetybench/merged.jsonl --num-classes 2
+    output_artifacts: ["training/shellsafetybench/merged.jsonl"]
+    depends_on: [label-corpus, label-verificar]
+
+  # ── Stage 2e: Split + Balance + Decontaminate ───────────────────
+
+  split-data:
+    type: task
+    machine: lambda
+    command: >
+      apr data split training/shellsafetybench/merged.jsonl
+        --train 0.8 --val 0.1 --test 0.1
+        --stratified
+        -o training/shellsafetybench/splits/ &&
+      apr data balance training/shellsafetybench/splits/train.jsonl
+        --strategy sqrt-inverse
+        -o training/shellsafetybench/splits/train-balanced.jsonl
+    output_artifacts: ["training/shellsafetybench/splits/"]
+    depends_on: [merge-data]
+
+  decontaminate:
+    type: task
+    machine: lambda
+    command: >
+      apr data decontaminate training/shellsafetybench/splits/train-balanced.jsonl
+        --reference training/shellsafetybench/splits/test.jsonl
+    depends_on: [split-data]
+
+  quality-gate:
+    type: task
+    machine: lambda
+    command: >
+      alimentar quality score training/shellsafetybench/splits/train-balanced.jsonl
+        --profile ml-training --json
+    quality_gate:
+      parse: json
+      field: score
+      threshold: ["70"]
+      on_fail: block
+    depends_on: [decontaminate]
+
+  # ── Stage 3: Training ───────────────────────────────────────────
+
+  train-plan:
+    type: task
+    machine: lambda
+    command: >
+      apr train plan --config configs/train/ssc-qwen3-4b-qlora.yaml
+    depends_on: [quality-gate, cuda-driver]
+
+  train-apply:
+    type: task
+    machine: lambda
+    command: >
+      apr train apply --config configs/train/ssc-qwen3-4b-qlora.yaml
+        --seed 42
+        --deterministic
+    output_artifacts: ["training/checkpoints/ssc-chat-v7-qwen3-4b/"]
+    completion_check: "test -f training/checkpoints/ssc-chat-v7-qwen3-4b/adapter_config.json"
+    depends_on: [train-plan]
+
+  # ── Stage 4: Evaluation ─────────────────────────────────────────
+
+  eval-static:
+    type: task
+    machine: lambda
+    command: >
+      apr eval training/checkpoints/ssc-chat-v7-qwen3-4b/
+        --task classify
+        --data training/shellsafetybench/splits/test.jsonl
+        --device cuda
+        --output training/shellsafetybench/eval/static-results.json
+    output_artifacts: ["training/shellsafetybench/eval/static-results.json"]
+    depends_on: [train-apply]
+
+  eval-dynamic:
+    type: task
+    machine: lambda
+    command: >
+      verificar generate --language bash --count 500
+        --seed "$(date +%Y%m%d)" --strategy exhaustive
+        --output /tmp/ssc-dynamic-eval.jsonl &&
+      apr eval training/checkpoints/ssc-chat-v7-qwen3-4b/
+        --task classify
+        --data /tmp/ssc-dynamic-eval.jsonl
+        --device cuda
+        --output training/shellsafetybench/eval/dynamic-results.json
+    output_artifacts: ["training/shellsafetybench/eval/dynamic-results.json"]
+    depends_on: [train-apply]
+
+  eval-baselines:
+    type: task
+    machine: lambda
+    command: >
+      bashrs corpus baselines
+        --data training/shellsafetybench/splits/test.jsonl
+        --output training/shellsafetybench/eval/baselines.json
+    output_artifacts: ["training/shellsafetybench/eval/baselines.json"]
+    depends_on: [split-data]
+
+  # ── Stage 5: QA Gate ────────────────────────────────────────────
+
+  qa-gate:
+    type: task
+    machine: lambda
+    command: >
+      apr qa --checklist configs/qa/ssc-release-v1.yaml
+    quality_gate:
+      parse: json
+      field: pass
+      threshold: ["true"]
+      on_fail: block
+    depends_on: [eval-static, eval-dynamic, eval-baselines]
+
+  # ── Stage 6: Publish ────────────────────────────────────────────
+
+  publish-dataset:
+    type: task
+    machine: lambda
+    command: >
+      alimentar hub push training/shellsafetybench/splits/
+        paiml/shell-safety-bench
+        --format parquet
+    depends_on: [qa-gate]
+
+  publish-model:
+    type: task
+    machine: lambda
+    command: >
+      apr publish training/checkpoints/ssc-chat-v7-qwen3-4b/
+        paiml/shell-safety-qwen3-4b
+        --license apache-2.0
+    depends_on: [qa-gate]
+
+policy:
+  failure: stop_on_first
+  parallel_machines: false
+  retry: 1
+  bashrs_lint: true

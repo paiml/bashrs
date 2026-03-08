@@ -564,3 +564,20 @@ roadmap:
   - kill-criterion
   - phase5
   notes: Negative result published honestly per spec. Code retained behind codebert feature flag.
+- id: PMAT-159
+  github_issue: null
+  item_type: task
+  title: pre-commit hook missing cargo fmt gate — repeated CI L1 failures
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-03-07T22:06:32Z
+  updated: 2026-03-07T22:06:32Z
+  spec: null
+  acceptance_criteria:
+  - The PMAT-generated pre-commit hook does not run 'cargo fmt --check'. Commit ccf0fdfd7a pushed unformatted code after a prior fmt fix (9262f3672c). Blocked by PMAT-509 (pmat must add fmt to hook template). After PMAT-509 ships, run 'pmat hooks install' to get the updated hook.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
