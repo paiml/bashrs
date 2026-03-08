@@ -91,6 +91,123 @@ pub(crate) fn corpus_cwe_mapping(json: bool) -> Result<()> {
     Ok(())
 }
 
+/// Label external JSONL with linter findings + CWE mappings (SSC v12 pipeline).
+///
+/// Reads JSONL with "script" or "text" field, lints each entry, and outputs
+/// labeled JSONL with safety classification, rule IDs, CWE mappings, and CVSS scores.
+pub(crate) fn corpus_label(input: PathBuf, output: Option<PathBuf>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::cwe_mapping;
+    use crate::linter;
+
+    let file = std::fs::File::open(&input)?;
+    let reader = std::io::BufReader::new(file);
+
+    let writer: Box<dyn std::io::Write> = if let Some(ref path) = output {
+        Box::new(std::fs::File::create(path)?)
+    } else {
+        Box::new(std::io::stdout())
+    };
+    let mut buf = std::io::BufWriter::new(writer);
+
+    let mut total = 0usize;
+    let mut unsafe_count = 0usize;
+
+    for line in std::io::BufRead::lines(reader) {
+        let line = line?;
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let entry: serde_json::Value = serde_json::from_str(&line)
+            .map_err(|e| Error::Validation(format!("Invalid JSON on line {}: {e}", total + 1)))?;
+
+        // Extract script text from "script", "text", or "input" field
+        let script = entry
+            .get("script")
+            .or_else(|| entry.get("text"))
+            .or_else(|| entry.get("input"))
+            .and_then(|v| v.as_str())
+            .ok_or_else(|| {
+                Error::Validation(format!(
+                    "Line {}: missing 'script', 'text', or 'input' field",
+                    total + 1
+                ))
+            })?;
+
+        // Lint the script
+        let lint_result = linter::lint_shell(script);
+
+        // Only SEC/DET/IDEM rules are safety-relevant
+        let security_diags: Vec<&linter::Diagnostic> = lint_result
+            .diagnostics
+            .iter()
+            .filter(|d| {
+                d.code.starts_with("SEC") || d.code.starts_with("DET") || d.code.starts_with("IDEM")
+            })
+            .collect();
+
+        let is_unsafe = !security_diags.is_empty();
+        let label = if is_unsafe { 1 } else { 0 };
+
+        // Build findings with CWE mappings
+        let findings: Vec<serde_json::Value> = security_diags
+            .iter()
+            .map(|d| {
+                let cwe_info = cwe_mapping::lookup_rule(&d.code);
+                serde_json::json!({
+                    "rule": d.code,
+                    "message": d.message,
+                    "cwe": cwe_info.map(|c| c.cwe).unwrap_or("unknown"),
+                    "cwe_id": cwe_info.map(|c| c.cwe_id).unwrap_or(0),
+                    "cvss_score": cwe_info.map(|c| c.cvss_score).unwrap_or(0.0),
+                })
+            })
+            .collect();
+
+        // Output labeled entry (preserving original fields)
+        let mut labeled = entry.clone();
+        if let Some(obj) = labeled.as_object_mut() {
+            obj.insert("label".to_string(), serde_json::json!(label));
+            obj.insert(
+                "classification".to_string(),
+                serde_json::json!(if is_unsafe { "unsafe" } else { "safe" }),
+            );
+            obj.insert("findings".to_string(), serde_json::json!(findings));
+            obj.insert(
+                "finding_count".to_string(),
+                serde_json::json!(security_diags.len()),
+            );
+        }
+
+        serde_json::to_writer(&mut buf, &labeled)?;
+        std::io::Write::write_all(&mut buf, b"\n")?;
+
+        total += 1;
+        if is_unsafe {
+            unsafe_count += 1;
+        }
+    }
+
+    std::io::Write::flush(&mut buf)?;
+
+    if output.is_some() {
+        eprintln!("{BOLD}Label Summary{RESET}");
+        eprintln!("  Total:  {total}");
+        eprintln!(
+            "  Safe:   {} ({:.1}%)",
+            total - unsafe_count,
+            100.0 * (total - unsafe_count) as f64 / total.max(1) as f64
+        );
+        eprintln!(
+            "  Unsafe: {unsafe_count} ({:.1}%)",
+            100.0 * unsafe_count as f64 / total.max(1) as f64
+        );
+    }
+
+    Ok(())
+}
+
 /// Export corpus as ShellSafetyBench DPO-compatible JSONL (SSC v12 S14.4).
 pub(crate) fn corpus_export_benchmark(output: Option<PathBuf>, limit: Option<usize>) -> Result<()> {
     use crate::cli::color::*;
