@@ -210,6 +210,54 @@ cargo run -p bashrs --example conversation_generator
 
 Quality gates (S6.4): Type D >= 30%, no empty responses, variant distribution balanced (no single variant > 20%).
 
+### ShellSafetyBench (S14, v12)
+
+ShellSafetyBench is the first shell-specific security benchmark, with CWE-mapped entries in DPO-compatible format. It enables standardized evaluation of shell safety models.
+
+**CWE Taxonomy**: Every bashrs linter rule maps to a MITRE CWE ID with CVSS v3.1 base score:
+
+```bash
+# View CWE mapping for all 14 linter rules
+bashrs corpus cwe-mapping
+
+# JSON output for pipeline consumption
+bashrs corpus cwe-mapping --json
+```
+
+**Benchmark Export**: Export corpus as DPO-compatible JSONL:
+
+```bash
+# Export full benchmark (17,942 entries)
+bashrs corpus export-benchmark --output benchmark.jsonl
+
+# Schema: id, lang, cwe, rule, severity, script, chosen, rejected
+```
+
+**Eval Harness**: 6-metric weighted evaluation:
+
+| Metric | Weight | Description |
+|--------|--------|-------------|
+| Detection F1 | 25% | Binary classification F1 |
+| Rule Citation | 20% | Correct rule ID cited |
+| CWE Mapping | 10% | Correct CWE ID cited |
+| Fix Validity | 15% | Fix removes finding |
+| Explanation | 15% | Coherence heuristics |
+| OOD Generalize | 15% | Unseen CWE patterns |
+
+```bash
+# Run example with demo predictions
+cargo run -p bashrs --example shellsafetybench
+```
+
+**Pipeline**: Full end-to-end pipeline via sovereign Rust AI stack:
+
+```yaml
+# configs/pipeline/ssc.yaml — 6 stages, 16 resources
+# Execute: apr pipeline apply configs/pipeline/ssc.yaml
+```
+
+Contract: `provable-contracts/contracts/shellsafetybench-v1.yaml` (5 falsification tests).
+
 ## How It Works
 
 ### Stage 0: Rule-Based Pipeline

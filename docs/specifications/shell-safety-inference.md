@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.2.0
-**Status**: DESIGN COMPLETE — v12.2 sovereign tooling mandate (apr-cli orchestration, zero scripts)
+**Version**: 12.3.0
+**Status**: IMPLEMENTATION IN PROGRESS — v12.3 benchmark export, eval harness, conversation fix
 **Author**: paiml engineering
 **Date**: 2026-03-08
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
