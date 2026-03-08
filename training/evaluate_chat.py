@@ -26,14 +26,20 @@ def load_model():
     print(f"Loading model on {device}...")
 
     tokenizer = AutoTokenizer.from_pretrained(CHECKPOINT, trust_remote_code=True)
+    import sys
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+    print("Creating model...", flush=True)
     model = AutoModelForCausalLM.from_pretrained(
         CHECKPOINT,
-        torch_dtype=torch.float16 if device == "cuda" else torch.float32,
-        device_map=device,
+        torch_dtype=torch.float32,
         trust_remote_code=True,
+        low_cpu_mem_usage=True,
     )
+    print("Moving to device...", flush=True)
+    model = model.to(device)
     model.eval()
-    print(f"Model loaded: {sum(p.numel() for p in model.parameters())/1e6:.1f}M params")
+    print(f"Model loaded: {sum(p.numel() for p in model.parameters())/1e6:.1f}M params", flush=True)
     return model, tokenizer, device
 
 
@@ -172,7 +178,7 @@ def evaluate():
                 results["citation_total"] += 1
 
         status = "OK" if correct else "MISS"
-        print(f"[{i+1:3d}/{len(all_entries)}] {status} expected={expected_label} predicted={predicted} | {entry['instruction'][:60]}...")
+        print(f"[{i+1:3d}/{len(all_entries)}] {status} expected={expected_label} predicted={predicted} | {entry['instruction'][:60]}...", flush=True)
 
         results["responses"].append({
             "expected": expected_label,
