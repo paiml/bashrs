@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.4.0
-**Status**: IMPLEMENTATION IN PROGRESS — v12.4 cross-validation, verificar CWE mutations, data pipeline
+**Version**: 12.5.0
+**Status**: IMPLEMENTATION IN PROGRESS — v12.5 pipeline operational, 27,842 entries (17,942 corpus + 9,900 verificar)
 **Author**: paiml engineering
 **Date**: 2026-03-08
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -2628,16 +2628,16 @@ that are then consumed by automated pipeline stages.
 
 | Step | Task | Sovereign Command | Estimate |
 |------|------|-------------------|----------|
-| 7.1 | Map CWE IDs + CVSS scores (spec update) | Manual → `configs/cwe-mapping.yaml` | 1 hour |
-| 7.2 | CWE-targeted mutations (in-distribution) | `verificar mutate --cwe-targets in-distribution --count 10000 --output jsonl` | 1 day |
-| 7.2b | OOD CWE mutations (CWE-426/77/116/250) | `verificar mutate --cwe-targets ood --count 2000 --output jsonl` | 4 hours |
-| 7.3 | Regenerate conversations from corpus | `bashrs corpus generate-conversations --entrenar --output conversations.jsonl` | 2 hours |
-| 7.3b | Label corpus entries | `bashrs corpus label --input conversations.jsonl --format json` | 30 min |
+| 7.1 | Map CWE IDs + CVSS scores (spec update) | Manual → `configs/cwe-mapping.yaml` | **DONE** |
+| 7.2 | CWE-targeted mutations (in-distribution) | `verificar mutate --cwe-targets in-distribution --count 10000 --output jsonl` | **DONE** (9,900 entries) |
+| 7.2b | OOD CWE mutations (CWE-426/77/116/250) | `verificar mutate --cwe-targets ood --count 2000 --output jsonl` | **DONE** (included in --cwe-targets all) |
+| 7.3 | Regenerate conversations from corpus | `bashrs corpus generate-conversations --entrenar --output conversations.jsonl` | **DONE** (17,942 entries) |
+| 7.3b | Label corpus entries | `bashrs corpus label --input conversations.jsonl --format json` | **DONE** |
 | 7.4 | Merge + audit data | `alimentar mix --input *.jsonl && apr data audit merged.jsonl --num-classes 2` | 30 min |
 | 7.4b | Stratified split + balance | `apr data split --stratified && apr data balance --strategy sqrt-inverse` | 30 min |
 | 7.4c | Decontaminate train vs test | `apr data decontaminate train.jsonl --reference test.jsonl` | 15 min |
 | 7.4d | Quality gate | `alimentar quality score train.jsonl --profile ml-training` | 15 min |
-| 7.4e | Cross-validate vs ShellCheck | `shellcheck -f json` on 500 samples (secondary oracle) | 2 hours |
+| 7.4e | Cross-validate vs ShellCheck | `bashrs corpus shellcheck-validate --samples 500 --json` | **DONE** (80%+ agreement) |
 | 7.4f | Hand-label 200 human validation set | Manual → `training/shellsafetybench/human-validation.jsonl` | 4 hours |
 | 7.5 | Training plan (dry-run) | `apr train plan --config configs/train/ssc-qwen3-4b-qlora.yaml` | 15 min |
 | 7.6 | Train Run 7 | `apr train apply --config configs/train/ssc-qwen3-4b-qlora.yaml --seed 42` | 2-4 hours |
@@ -2679,3 +2679,4 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.2** | **2026-03-08** | **Sovereign tooling mandate (S2b) + VRAM budget (S8.1b.5). Tooling: ALL pipeline ops via apr-cli/alimentar/entrenar/verificar, 10 banned practices, forjar DAG manifest, QA checklist, one-command execution. VRAM: corrected from 2.9 GB (inference) to 5-7 GB (training), albor concurrent training infeasible (combined ~18-20 GB > 24 GB), KILL-CHAT-003 revised with scheduling options.** |
 | 12.3 | 2026-03-08 | Implementation: CWE mapping module, benchmark export, eval harness, conversation data quality fix (transpile before export), JSONL escaping fix, training data splits (80/10/10). |
 | **12.4** | **2026-03-08** | **Implementation: (1) verificar CWE-targeted mutations (12 CWEs, safe/unsafe pairs, GH-11/12); (2) cross-linter validation CLI (bashrs vs ShellCheck); (3) eval harness CLI with JSONL predictions; (4) apr data audit/decontaminate/quality integration; (5) alimentar quality score B (93.5%); (6) book docs for all new commands; (7) 10 SSB assert_cmd tests. Decontamination: 20.67% n-gram overlap is structural (shell boilerplate), 0 exact duplicates.** |
+| **12.5** | **2026-03-08** | **Pipeline operational: (1) verificar mutation expansion to 500+ templates/seed (paiml/verificar#13); (2) pipeline-check preflight command; (3) corpus label accepts verificar format (unsafe_script); (4) 9,900 verificar-labeled mutations generated; (5) total 27,842 entries (17,942 corpus + 9,900 verificar); (6) SSC report with data stats; (7) 10 provable contract FALSIFY tests; (8) pipeline YAML corrected to match actual tool CLIs.** |
