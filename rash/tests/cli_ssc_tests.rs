@@ -1142,6 +1142,79 @@ fn test_KAIZEN095_merge_data_combines_sources() {
     );
 }
 
+#[test]
+fn test_KAIZEN095_merge_data_normalizes_verificar_schema() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let input_verif = dir.path().join("verif.jsonl");
+    let output = dir.path().join("merged.jsonl");
+
+    // Verificar mutation format (unsafe_script, safe_script, cwe, etc.)
+    let verif_entry = serde_json::json!({
+        "unsafe_script": "#!/bin/sh\nrm -rf $dir/tmp",
+        "safe_script": "#!/bin/sh\nrm -rf \"${dir:?}\"/tmp",
+        "cwe": "CWE-78",
+        "cwe_id": 78,
+        "vulnerability": "OS Command Injection",
+        "mutation_description": "Unquoted variable",
+        "label": 1,
+        "classification": "unsafe",
+        "findings": [{"rule": "SEC010"}]
+    });
+    std::fs::write(
+        &input_verif,
+        format!("{}\n", serde_json::to_string(&verif_entry).unwrap()),
+    )
+    .unwrap();
+
+    bashrs_cmd()
+        .current_dir(project_root())
+        .args([
+            "corpus",
+            "merge-data",
+            "--input",
+            input_verif.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
+        .assert()
+        .success();
+
+    let contents = std::fs::read_to_string(&output).expect("read merged");
+    // Find the verificar entry (has source=verificar)
+    for line in contents.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        let v: serde_json::Value = serde_json::from_str(line).expect("valid JSON");
+        if v.get("source").and_then(|s| s.as_str()) == Some("verificar") {
+            // Must have conversation fields
+            assert!(
+                v.get("instruction").is_some(),
+                "must have instruction field"
+            );
+            assert!(v.get("response").is_some(), "must have response field");
+            assert!(v.get("system").is_some(), "must have system field");
+            assert!(v.get("text").is_some(), "must have text field");
+            // Instruction should contain the unsafe script in a bash code block
+            let instr = v["instruction"].as_str().expect("instruction is string");
+            assert!(
+                instr.contains("```bash"),
+                "instruction should contain bash code block"
+            );
+            assert!(
+                instr.contains("rm -rf"),
+                "instruction should contain the script"
+            );
+            // Response should reference the CWE
+            let resp = v["response"].as_str().expect("response is string");
+            assert!(resp.contains("CWE-78"), "response should reference CWE");
+            assert!(resp.contains("Fixed version"), "response should have fix");
+            return;
+        }
+    }
+    panic!("no verificar entry found in merged output");
+}
+
 // ── ShellSafetyBench cross-validation tests ──
 
 #[test]

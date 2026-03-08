@@ -78,3 +78,8 @@ falsification_tests:
     name: "Verificar mutations label correctly"
     expected: "corpus label accepts unsafe_script field from verificar format"
     test: test_KAIZEN095_verificar_label_integration
+
+  - id: FALSIFY-SSB-011
+    name: "Merge normalizes verificar entries to conversation format"
+    expected: "verificar entries get instruction/response/system/text fields with bash code blocks"
+    test: test_KAIZEN095_merge_data_normalizes_verificar_schema
