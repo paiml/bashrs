@@ -326,6 +326,9 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::CweMapping { json } => {
             super::corpus_config_commands::corpus_cwe_mapping(json)
         }
+        CorpusCommands::ExportBenchmark { output, limit } => {
+            super::corpus_config_commands::corpus_export_benchmark(output, limit)
+        }
         CorpusCommands::LabelAudit { limit } => {
             super::corpus_config_commands::corpus_label_audit(limit)
         }

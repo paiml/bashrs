@@ -91,6 +91,62 @@ pub(crate) fn corpus_cwe_mapping(json: bool) -> Result<()> {
     Ok(())
 }
 
+/// Export corpus as ShellSafetyBench DPO-compatible JSONL (SSC v12 S14.4).
+pub(crate) fn corpus_export_benchmark(output: Option<PathBuf>, limit: Option<usize>) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::benchmark_export;
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    let (entries, summary) = benchmark_export::export_benchmark(&registry);
+
+    // Limit entries if requested
+    let entries_to_write: &[benchmark_export::BenchmarkEntry] = if let Some(max) = limit {
+        &entries[..max.min(entries.len())]
+    } else {
+        &entries
+    };
+
+    // Write JSONL
+    let writer: Box<dyn std::io::Write> = if let Some(ref path) = output {
+        Box::new(std::fs::File::create(path)?)
+    } else {
+        Box::new(std::io::stdout())
+    };
+    let mut buf = std::io::BufWriter::new(writer);
+    for entry in entries_to_write {
+        serde_json::to_writer(&mut buf, entry)?;
+        std::io::Write::write_all(&mut buf, b"\n")?;
+    }
+    std::io::Write::flush(&mut buf)?;
+
+    // Print summary to stderr if outputting to file
+    if output.is_some() {
+        eprintln!("{BOLD}ShellSafetyBench Export Summary{RESET}");
+        eprintln!("  Total:   {}", summary.total);
+        eprintln!(
+            "  Safe:    {} ({:.1}%)",
+            summary.safe,
+            100.0 * summary.safe as f64 / summary.total.max(1) as f64
+        );
+        eprintln!(
+            "  Unsafe:  {} ({:.1}%)",
+            summary.unsafe_count,
+            100.0 * summary.unsafe_count as f64 / summary.total.max(1) as f64
+        );
+        eprintln!("  By lang:");
+        for (lang, count) in &summary.by_lang {
+            eprintln!("    {lang}: {count}");
+        }
+        eprintln!("  Unique CWEs: {}", summary.by_cwe.len());
+        if let Some(path) = &output {
+            eprintln!("  Written to: {}", path.display());
+        }
+    }
+
+    Ok(())
+}
+
 pub(crate) fn corpus_domain_categories() -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::domain_categories;
