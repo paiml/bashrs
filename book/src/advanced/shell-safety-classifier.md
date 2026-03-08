@@ -922,8 +922,21 @@ bashrs corpus merge-data \
 The merge command:
 - Auto-loads corpus conversations from `training/shellsafetybench/conversations.jsonl`
 - Accepts multiple `--input` flags for additional JSONL sources
+- **Normalizes verificar entries** to conversation format (adds instruction/response/system/text fields)
 - Tags each entry with `source` field (bashrs-corpus / verificar)
 - Deterministic Fisher-Yates shuffle with `--seed`
+
+After merging, export splits for training:
+
+```bash
+# Export 80/10/10 splits from merged data
+bashrs corpus export-splits \
+  --input merged.jsonl \
+  --output training/shellsafetybench/splits-merged/
+
+# Audit data quality
+apr data audit training/shellsafetybench/splits-merged/train.jsonl
+```
 
 ## See Also
 
