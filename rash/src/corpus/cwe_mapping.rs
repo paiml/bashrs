@@ -39,7 +39,7 @@ impl CvssSeverity {
     /// Get severity from CVSS score per FIRST.org specification.
     pub fn from_score(score: f64) -> Self {
         match score {
-            s if s == 0.0 => Self::None,
+            0.0 => Self::None,
             s if s <= 3.9 => Self::Low,
             s if s <= 6.9 => Self::Medium,
             s if s <= 8.9 => Self::High,

@@ -53,9 +53,10 @@ pub(crate) fn corpus_cwe_mapping(json: bool) -> Result<()> {
         // Human-readable table
         println!("{BOLD}CWE Taxonomy Mapping (SSC v12 \u{00a7}14.2){RESET}");
         println!();
+        let owasp_hdr = "OWASP";
         println!(
             "  {DIM}{:<8} {:<35} {:<10} {:>5} {:<10} {}{RESET}",
-            "Rule", "Pattern", "CWE", "CVSS", "Severity", "OWASP"
+            "Rule", "Pattern", "CWE", "CVSS", "Severity", owasp_hdr
         );
         println!("  {}", "-".repeat(90));
 
