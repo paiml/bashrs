@@ -604,11 +604,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-EXPORT-SPLITS: Export training data splits via alimentar (Steps 7.3-7.4d)'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-03-08T19:01:57Z
-  updated: 2026-03-08T20:01:39.775467717+00:00
+  updated: 2026-03-08T20:29:57Z
   spec: null
   acceptance_criteria:
   - Generate conversations, label, merge, stratified split, balance, decontaminate, quality gate
@@ -699,11 +699,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'New task: SSB-FIX-JSON'
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-03-08T20:27:06.395534009+00:00
-  updated: 2026-03-08T20:27:06.395534009+00:00
+  updated: 2026-03-08T20:29:57Z
   spec: null
   acceptance_criteria: []
   phases: []

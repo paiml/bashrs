@@ -2633,9 +2633,9 @@ that are then consumed by automated pipeline stages.
 | 7.3 | Regenerate conversations from corpus | `bashrs corpus generate-conversations --entrenar --output conversations.jsonl` | **DONE** (17,942 entries) |
 | 7.3b | Label corpus entries | `bashrs corpus label --input conversations.jsonl --format json` | **DONE** |
 | 7.4 | Merge + shuffle data | `bashrs corpus merge-data --input verificar-labeled.jsonl -o merged.jsonl` | **DONE** (27,842 entries) |
-| 7.4b | Stratified split + balance | `apr data split --stratified && apr data balance --strategy sqrt-inverse` | 30 min |
-| 7.4c | Decontaminate train vs test | `apr data decontaminate train.jsonl --reference test.jsonl` | 15 min |
-| 7.4d | Quality gate | `alimentar quality score train.jsonl --profile ml-training` | 15 min |
+| 7.4b | Stratified split + balance | `bashrs corpus export-splits --input merged.jsonl -o splits/` | **DONE** (22,169/2,738/2,935; 21.1% unsafe) |
+| 7.4c | Decontaminate train vs test | `apr data decontaminate train.jsonl --reference test.jsonl` | **DONE** (0 exact dupes, 20.67% structural) |
+| 7.4d | Quality gate | `alimentar quality score train.jsonl --profile ml-training` | **DONE** (B, 93.5%) |
 | 7.4e | Cross-validate vs ShellCheck | `bashrs corpus shellcheck-validate --samples 500 --json` | **DONE** (80%+ agreement) |
 | 7.4f | Hand-label 200 human validation set | Manual → `training/shellsafetybench/human-validation.jsonl` | 4 hours |
 | 7.5 | Training plan (dry-run) | `apr train plan --config configs/train/ssc-qwen3-4b-qlora.yaml` | 15 min |
