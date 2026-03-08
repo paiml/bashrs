@@ -77,6 +77,7 @@
 - [Mutation Testing](./advanced/mutation-testing.md)
 - [Performance Optimization](./advanced/performance.md)
 - [Shell Safety Classifier](./advanced/shell-safety-classifier.md)
+- [ShellSafetyBench Training Pipeline](./advanced/shellsafetybench.md)
 - [PMAT Integration](./advanced/pmat-integration.md)
 - [Dogfooding (Self-Validation)](./advanced/dogfooding.md)
 
