@@ -964,3 +964,42 @@ fn test_SSB006_eval_harness_weights_sum_to_one() {
         "Eval weights must sum to 1.0, got {sum}"
     );
 }
+
+#[test]
+fn test_SSB007_corpus_label_external_jsonl() {
+    // Label command should add classification, findings, and CWE mappings
+    let test_input = r#"{"script": "eval $user_data", "id": "test-001"}
+{"script": "echo 'hello'", "id": "test-002"}"#;
+
+    let input_path = std::env::temp_dir().join("bashrs_test_label.jsonl");
+    std::fs::write(&input_path, test_input).expect("write test input");
+
+    let output = bashrs_cmd()
+        .args(["corpus", "label", "--input"])
+        .arg(&input_path)
+        .output()
+        .expect("label command");
+    assert!(output.status.success(), "label must succeed");
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let lines: Vec<&str> = stdout.trim().lines().collect();
+    assert_eq!(lines.len(), 2, "Should output 2 labeled entries");
+
+    // First entry (eval) should be unsafe with CWE
+    let entry1: serde_json::Value = serde_json::from_str(lines[0]).expect("valid JSON");
+    assert_eq!(entry1["label"], 1, "eval should be unsafe");
+    assert_eq!(entry1["classification"], "unsafe");
+    assert!(
+        entry1["findings"]
+            .as_array()
+            .map_or(false, |a| !a.is_empty()),
+        "Should have findings"
+    );
+
+    // Second entry should be safe
+    let entry2: serde_json::Value = serde_json::from_str(lines[1]).expect("valid JSON");
+    assert_eq!(entry2["label"], 0, "echo should be safe");
+    assert_eq!(entry2["classification"], "safe");
+
+    std::fs::remove_file(&input_path).ok();
+}

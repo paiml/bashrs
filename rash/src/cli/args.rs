@@ -1443,6 +1443,21 @@ pub enum CorpusCommands {
         limit: Option<usize>,
     },
 
+    /// Label external JSONL with linter findings + CWE mappings (SSC v12 pipeline)
+    Label {
+        /// Input JSONL file (one shell script per line, field: "script" or "text")
+        #[arg(short, long)]
+        input: std::path::PathBuf,
+
+        /// Output JSONL file (labeled entries)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+
+        /// Output format
+        #[arg(long, default_value = "json")]
+        format: String,
+    },
+
     /// Audit safety label accuracy (SSC v11 S5.3, C-LABEL-001)
     LabelAudit {
         /// Maximum unsafe entries to audit (default: 100)

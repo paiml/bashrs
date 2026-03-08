@@ -329,6 +329,11 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::ExportBenchmark { output, limit } => {
             super::corpus_config_commands::corpus_export_benchmark(output, limit)
         }
+        CorpusCommands::Label {
+            input,
+            output,
+            format: _,
+        } => super::corpus_config_commands::corpus_label(input, output),
         CorpusCommands::LabelAudit { limit } => {
             super::corpus_config_commands::corpus_label_audit(limit)
         }
