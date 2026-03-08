@@ -1111,16 +1111,11 @@ pub(crate) fn corpus_export_splits(output: Option<PathBuf>) -> Result<()> {
             let mut out = String::new();
             for row in rows {
                 use std::fmt::Write as _;
-                let escaped_input = row
-                    .input
-                    .replace('\\', "\\\\")
-                    .replace('"', "\\\"")
-                    .replace('\n', "\\n");
-                let _ = writeln!(
-                    out,
-                    r#"{{"input":"{}","label":{}}}"#,
-                    escaped_input, row.label
-                );
+                // Use serde_json for correct escaping of all control chars
+                let json_input = serde_json::to_string(&row.input)
+                    .unwrap_or_else(|_| format!("\"{}\"", row.input));
+                // json_input already includes surrounding quotes
+                let _ = writeln!(out, r#"{{"input":{},"label":{}}}"#, json_input, row.label);
             }
             std::fs::write(&path, out)?;
             Ok(())

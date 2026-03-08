@@ -695,3 +695,19 @@ roadmap:
   - ssc
   - v12
   notes: null
+- id: SSB-FIX-JSON
+  github_issue: null
+  item_type: task
+  title: 'New task: SSB-FIX-JSON'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-03-08T20:27:06.395534009+00:00
+  updated: 2026-03-08T20:27:06.395534009+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
