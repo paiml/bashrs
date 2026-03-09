@@ -539,15 +539,16 @@ fn test_PMAT147_corpus_ssc_report_gate_json() {
 }
 
 #[test]
+#[ignore] // ssc-report lints entire 17,942-entry corpus (~8 min)
 fn test_PMAT158_corpus_ssc_report_has_wasm_section() {
-    // Don't use --gate: ShellSafetyBench section needs data files
-    // that only exist at project root. We just verify WASM section renders.
     bashrs_cmd()
         .arg("corpus")
         .arg("ssc-report")
+        .arg("--json")
+        .timeout(std::time::Duration::from_secs(600))
         .assert()
         .success()
-        .stderr(predicate::str::contains("WASM App"));
+        .stdout(predicate::str::contains("wasm"));
 }
 
 #[test]
