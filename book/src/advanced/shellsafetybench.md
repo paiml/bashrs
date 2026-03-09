@@ -124,57 +124,37 @@ Without `--input`, the command exports splits from the raw bashrs corpus only (n
 
 ## Training Configuration
 
-The Qwen3-4B NF4 QLoRA training config lives at `training/ssc-chat-qwen3-4b-qlora.yaml`:
+The Qwen3-4B NF4 QLoRA training config lives at `configs/train/ssc-qwen3-4b-qlora.yaml`:
 
 ```yaml
-entrenar: "1.0"
-
-name: ssc-chat-qwen3-4b-qlora
-version: "3.0.0"
-description: >
-  Shell Safety Classifier chat model — Qwen3-4B with NF4 QLoRA fine-tuning.
-
-seed: 42
-
 model:
-  source: "/home/noah/src/models/qwen3-4b/"
-  format: safetensors
-  device: "cuda"
-  dtype: "bfloat16"
-  architecture:
-    type: transformer
-    hidden_size: 2560
-    num_layers: 36
-    num_heads: 32
-    num_kv_heads: 8
-    intermediate_size: 9728
-    vocab_size: 151936
-    max_seq_length: 512
-    rope_theta: 1000000.0
-    head_dim: 128
+  path: "/home/noah/src/models/qwen3-4b/"
+  mode: transformer
+  config: "/home/noah/src/models/qwen3-4b/config.json"
 
 data:
-  train: "training/conversations_v3.jsonl"
+  train: "/home/noah/src/bashrs/training/shellsafetybench/splits/train.jsonl"
+  val: "/home/noah/src/bashrs/training/shellsafetybench/splits/val.jsonl"
   tokenizer: "/home/noah/src/models/qwen3-4b/tokenizer.json"
   seq_len: 512
-  input_column: "text"
-  loader:
-    batch_size: 4
-    shuffle: true
+  batch_size: 4
+  input_column: "input"
 
 optimizer:
   name: "adamw"
-  lr: 0.00005
-
-scheduler:
-  name: "cosine"
+  lr: 5.0e-5
+  weight_decay: 0.01
 
 training:
+  mode: "causal_lm"
   epochs: 1
   gradient_accumulation: 4
-  max_seq_length: 512
-  checkpoint:
-    save_every: 500
+  warmup_steps: 100
+  lr_scheduler: "cosine"
+  output_dir: "/home/noah/src/bashrs/training/checkpoints/ssc-chat-v7-qwen3-4b"
+  save_interval: 500
+  eval_interval: 250
+  patience: 5
 
 lora:
   enabled: true
@@ -184,18 +164,15 @@ lora:
   quantize_base: true
   quantize_bits: 4
   quant_type: nf4
-
-output:
-  dir: "training/checkpoints/ssc-chat-v7-qwen3-4b"
-  save_every: 500
 ```
 
 Key design choices:
 
-- **NF4 QLoRA**: The 4B base model is quantized to NF4 (~2GB), with LoRA adapters (rank 16, ~5.9M trainable params) trained in bfloat16. Total VRAM: ~5-7 GB.
+- **NF4 QLoRA**: The 4B base model is quantized to NF4 (~2GB), with LoRA adapters (rank 16, ~5.9M trainable params) on GPU. Total VRAM: ~9.9 GB on RTX 4090.
 - **1 epoch**: Full fine-tuning beyond 1 epoch causes catastrophic forgetting (validated in runs 3-6 with the 0.5B model). LoRA preserves base instruction-following.
 - **4 LoRA targets**: Q, V, O, and Gate projections. Follows the proven albor finetune-lora pattern.
-- **Cosine schedule**: Learning rate decays smoothly over the single epoch.
+- **Cosine schedule with warmup**: 100 warmup steps, then cosine decay over the single epoch.
+- **Eval every 250 steps**: Decoupled from checkpoint saving (every 500 steps). Early stopping with patience=5.
 
 ## CLI Commands Reference
 
@@ -413,6 +390,21 @@ bashrs corpus validate-contracts
 
 # 7. Run SSC readiness report
 bashrs corpus ssc-report --gate
+
+# 8. Train Qwen3-4B NF4 QLoRA
+apr train apply --task pretrain \
+  --config configs/train/ssc-qwen3-4b-qlora.yaml \
+  --seed 42 --deterministic
+
+# 9. Evaluate
+apr eval training/checkpoints/ssc-chat-v7-qwen3-4b/ \
+  --task classify \
+  --data training/shellsafetybench/splits/test.jsonl \
+  --device cuda \
+  --output training/shellsafetybench/eval/static-results.json
+
+# 10. QA gate
+apr qa --checklist configs/qa/ssc-release-v1.yaml
 ```
 
 ## Sovereign Stack
