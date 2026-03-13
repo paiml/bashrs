@@ -1943,13 +1943,11 @@ pub(crate) fn corpus_shellcheck_validate(samples: usize, seed: u64, json: bool) 
             }
         };
 
-        if bashrs_unsafe && sc_has_error {
+        if bashrs_unsafe == sc_has_error {
             agree += 1;
-        } else if !bashrs_unsafe && !sc_has_error {
-            agree += 1;
-        } else if sc_has_error && !bashrs_unsafe {
+        } else if sc_has_error {
             shellcheck_only += 1;
-        } else if bashrs_unsafe && !sc_has_error {
+        } else {
             bashrs_only += 1;
         }
     }
