@@ -380,6 +380,11 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::PublishConversations { output, seed } => {
             super::corpus_config_commands::corpus_publish_conversations(output, seed)
         }
+        CorpusCommands::ConvertSsb {
+            input,
+            output,
+            limit,
+        } => super::corpus_config_commands::corpus_convert_ssb(input, output, limit),
         CorpusCommands::ExtractEmbeddings {
             model,
             output,
