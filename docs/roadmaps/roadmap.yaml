@@ -661,11 +661,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-TRAIN-V7: Qwen3-4B NF4 QLoRA training run (Steps 7.5-7.6)'
-  status: planned
+  status: done
   priority: high
   assigned_to: null
   created: 2026-03-08T19:02:02Z
-  updated: 2026-03-08T19:02:02Z
+  updated: 2026-03-08T22:02:51.764725600+00:00
   spec: null
   acceptance_criteria:
   - Train plan + apply with sovereign entrenar. 5-7GB VRAM on RTX 4090.
@@ -706,6 +706,40 @@ roadmap:
   updated: 2026-03-08T20:29:57Z
   spec: null
   acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-166
+  github_issue: null
+  item_type: task
+  title: 'SSC-RETRAIN-FIX: Wire RoPE + QK-norm into entrenar CUDA forward (entrenar#270)'
+  status: done
+  priority: critical
+  assigned_to: null
+  created: 2026-03-14T10:36:49Z
+  updated: 2026-03-14T10:36:49Z
+  spec: null
+  acceptance_criteria:
+  - Root cause of CPU/GPU divergence. compute_attention_cuda() missing RoPE and QK-norm. Wire trueno-gpu RopeKernel (batched) + PerHeadRmsNormKernel into forward pass. Add q_norm/k_norm weight storage. Add backward pass support. CPU/GPU parity unit test.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-167
+  github_issue: null
+  item_type: task
+  title: 'SSC-RETRAIN-DATA: Convert SSB 22K train split to ChatML + training config v2'
+  status: done
+  priority: high
+  assigned_to: null
+  created: 2026-03-14T10:36:56Z
+  updated: 2026-03-14T10:51:00+00:00
+  spec: null
+  acceptance_criteria:
+  - Convert SSB train.jsonl {input,label} to ChatML conversation format for Qwen3-4B fine-tuning. Create ssc-chat-qwen3-4b-qlora-v2.yaml with lr=2e-5, 3 epochs, warmup=100, val every 200 steps, early stopping. Export as conversations_v4.jsonl.
   phases: []
   subtasks: []
   estimated_effort: null

@@ -1579,6 +1579,21 @@ pub enum CorpusCommands {
         seed: u64,
     },
 
+    /// Convert SSB splits to entrenar ChatML JSONL for chat model training (PMAT-167)
+    ConvertSsb {
+        /// Input JSONL file (SSB format: {"input":"...","label":0|1})
+        #[arg(short, long)]
+        input: std::path::PathBuf,
+
+        /// Output file (stdout if not specified)
+        #[arg(short, long)]
+        output: Option<std::path::PathBuf>,
+
+        /// Maximum entries to convert
+        #[arg(long)]
+        limit: Option<usize>,
+    },
+
     /// Extract [CLS] embeddings from CodeBERT for all corpus entries (CLF-RUN step 1)
     ExtractEmbeddings {
         /// Path to CodeBERT model directory (must contain model.safetensors)
