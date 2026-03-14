@@ -568,11 +568,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: pre-commit hook missing cargo fmt gate — repeated CI L1 failures
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-03-07T22:06:32Z
-  updated: 2026-03-07T22:06:32Z
+  updated: 2026-03-14T14:04:07.836345411+00:00
   spec: null
   acceptance_criteria:
   - The PMAT-generated pre-commit hook does not run 'cargo fmt --check'. Commit ccf0fdfd7a pushed unformatted code after a prior fmt fix (9262f3672c). Blocked by PMAT-509 (pmat must add fmt to hook template). After PMAT-509 ships, run 'pmat hooks install' to get the updated hook.
@@ -661,7 +661,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-TRAIN-V7: Qwen3-4B NF4 QLoRA training run (Steps 7.5-7.6)'
-  status: done
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-03-08T19:02:02Z
@@ -684,7 +684,7 @@ roadmap:
   priority: medium
   assigned_to: null
   created: 2026-03-08T19:02:03Z
-  updated: 2026-03-08T19:02:03Z
+  updated: 2026-03-14T14:04:05.101341188+00:00
   spec: null
   acceptance_criteria:
   - Publish paiml/shell-safety-bench dataset and paiml/shell-safety-qwen3-4b model after QA gate
@@ -715,7 +715,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-RETRAIN-FIX: Wire RoPE + QK-norm into entrenar CUDA forward (entrenar#270)'
-  status: done
+  status: completed
   priority: critical
   assigned_to: null
   created: 2026-03-14T10:36:49Z
@@ -732,7 +732,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-RETRAIN-DATA: Convert SSB 22K train split to ChatML + training config v2'
-  status: done
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-03-14T10:36:56Z
