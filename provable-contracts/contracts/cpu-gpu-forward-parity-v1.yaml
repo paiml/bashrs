@@ -1,0 +1,177 @@
+metadata:
+  version: "1.0.0"
+  description: "CPU/GPU transformer block forward pass parity — same input must produce same output"
+  references:
+    - "entrenar#270: CUDA forward path missing RoPE and QK-norm"
+    - "ENT-269: matmul_nt fix for HF weight transpose"
+    - "Vaswani et al. (2017) Attention Is All You Need"
+    - "Su et al. (2021) RoFormer: Enhanced Transformer with Rotary Position Embedding"
+  depends_on:
+    - "encoder-forward-v1"
+  issue: "https://github.com/paiml/entrenar/issues/270"
+
+equations:
+  cpu_forward:
+    formula: |
+      h = RMSNorm(x)
+      Q = h @ W_q^T + LoRA_q(h)
+      K = h @ W_k^T
+      V = h @ W_v^T + LoRA_v(h)
+      Q = QK_Norm(Q)
+      K = QK_Norm(K)
+      Q = RoPE(Q, pos)
+      K = RoPE(K, pos)
+      attn = softmax(Q @ K^T / sqrt(d_k)) @ V
+      out = x + attn @ W_o^T
+    domain: "x in R^{seq x hidden}, pos in N^{seq}"
+    codomain: "R^{seq x hidden}"
+    invariants:
+      - "RoPE provides positional information"
+      - "QK-norm stabilizes attention magnitudes"
+
+  gpu_forward:
+    formula: |
+      h = RMSNorm_GPU(x)
+      Q = NF4_GEMM(h, W_q_nf4) + LoRA_q_GPU(h)
+      K = NF4_GEMM(h, W_k_nf4)
+      V = NF4_GEMM(h, W_v_nf4) + LoRA_v_GPU(h)
+      Q = QK_Norm_GPU(Q)      # MISSING (entrenar#270)
+      K = QK_Norm_GPU(K)      # MISSING (entrenar#270)
+      Q = RoPE_GPU(Q, pos)    # MISSING (entrenar#270)
+      K = RoPE_GPU(K, pos)    # MISSING (entrenar#270)
+      attn = softmax(Q @ K^T / sqrt(d_k)) @ V
+      out = x + NF4_GEMM(attn, W_o_nf4)
+    domain: "x in R^{seq x hidden}, pos in N^{seq}"
+    codomain: "R^{seq x hidden}"
+    invariants:
+      - "Must apply same operations as CPU path"
+      - "NF4 quantization introduces bounded error (C-NF4-003)"
+
+proof_obligations:
+  - type: equivalence
+    property: "CPU/GPU forward parity"
+    formal: "|cpu_forward(x, pos) - gpu_forward(x, pos)| < tolerance for all x, pos"
+    tolerance: 1.0e-2
+    notes: "Tolerance accounts for NF4 quantization error + FP32 accumulation differences"
+    applies_to: all
+
+  - type: invariant
+    property: "RoPE applied on both paths"
+    formal: "cpu_forward applies RoPE iff gpu_forward applies RoPE"
+    applies_to: all
+
+  - type: invariant
+    property: "QK-norm applied on both paths"
+    formal: "cpu_forward applies QK-norm iff gpu_forward applies QK-norm"
+    applies_to: all
+
+  - type: invariant
+    property: "Operation ordering"
+    formal: "Both paths apply operations in order: projection → QK-norm → RoPE → attention"
+    applies_to: all
+
+  - type: bound
+    property: "NF4 quantization error"
+    formal: "|gpu_gemm(A, dequant(Q_nf4)) - cpu_matmul_nt(A, W)| < 1e-3 per element"
+    applies_to: all
+
+five_whys:
+  problem: "CPU inference produces different results than GPU training"
+  analysis:
+    why_1:
+      question: "Why does CPU inference differ from GPU training?"
+      answer: "CPU applies RoPE and QK-norm to Q/K, but CUDA path does not."
+    why_2:
+      question: "Why doesn't the CUDA path apply RoPE and QK-norm?"
+      answer: "compute_attention_cuda() was implemented with only minimum attention (projection → layout → GEMM → softmax → output)."
+    why_3:
+      question: "Why was compute_attention_cuda() implemented without RoPE/QK-norm?"
+      answer: "CUDA path was built as performance-optimized GPU pipeline. trueno-gpu has both kernels (RopeKernel, PerHeadRmsNormKernel) but they were never wired in."
+    why_4:
+      question: "Why wasn't the missing RoPE/QK-norm caught earlier?"
+      answer: "No CPU/GPU numerical parity test comparing full block forward pass output."
+    why_5:
+      question: "Why is there no CPU/GPU parity test?"
+      answer: "CPU and GPU paths developed independently. Contracts covered individual ops (C-NF4-003) but not composite transformer block."
+  root_cause: "Missing CPU/GPU parity contract for the full transformer block forward pass."
+
+divergence_inventory:
+  - component: "RoPE"
+    cpu_path: "attention.rs:apply_rope() — half-rotation layout, rope_theta from config"
+    gpu_path: "cuda_block.rs:compute_attention_cuda() — RopeNeoxKernel per position, before interleaved→batched"
+    impact: "Model has no positional information during GPU training"
+    fix: "Wire trueno-gpu RopeNeoxKernel (per-position loop) before interleaved→batched layout"
+    status: fixed
+
+  - component: "QK-norm"
+    cpu_path: "attention.rs:apply_qk_norm() — per-head RMSNorm on Q and K"
+    gpu_path: "cuda_block.rs:compute_attention_cuda() — PerHeadRmsNormKernel per position, before RoPE"
+    impact: "Unnormalized Q/K magnitudes during GPU training"
+    fix: "Wire trueno-gpu PerHeadRmsNormKernel after projection, before RoPE"
+    status: fixed
+
+  - component: "GEMM convention"
+    cpu_path: "matmul_nt(x, W) — W as [out_dim, in_dim] (HF convention)"
+    gpu_path: "NF4 GEMM accesses B[col, block] = B[N, K] (HF convention)"
+    impact: "Both correct — NF4 kernel already handles HF layout"
+    fix: "None needed"
+    status: verified_correct
+
+  - component: "LoRA GEMM convention"
+    cpu_path: "matmul(x, W) — W as [d_in, d_out]"
+    gpu_path: "gemm_forward(A, B, C, m, k, n) — B as [K, N] = [d_in, d_out]"
+    impact: "Both correct"
+    fix: "None needed"
+    status: verified_correct
+
+falsification_tests:
+  - id: FALSIFY-PARITY-001
+    rule: "RoPE presence"
+    prediction: "CUDA compute_attention_cuda() must call a RoPE kernel"
+    test: "grep cuda_block.rs for rope_forward or RopeKernel invocation"
+    if_fails: "RoPE not wired into CUDA path"
+    status: PASS
+    result: "PASS — rope_neox_forward() called in compute_attention_cuda() for both fp32 and NF4 variants (ENT-270 fix)"
+
+  - id: FALSIFY-PARITY-002
+    rule: "QK-norm presence"
+    prediction: "CUDA compute_attention_cuda() must call a per-head RMSNorm kernel on Q and K"
+    test: "grep cuda_block.rs for per_head_rmsnorm or qk_norm invocation"
+    if_fails: "QK-norm not wired into CUDA path"
+    status: PASS
+    result: "PASS — per_head_rmsnorm_forward() called on Q and K in compute_attention_cuda() for both fp32 and NF4 variants (ENT-270 fix)"
+
+  - id: FALSIFY-PARITY-003
+    rule: "Numerical parity"
+    prediction: "CPU and GPU forward pass produce outputs within 1e-2 tolerance for same input"
+    test: |
+      Load same model weights on CPU and GPU.
+      Run forward pass with identical input tensor and position indices.
+      Compare output element-wise: max |cpu - gpu| < 1e-2.
+    if_fails: "Fundamental implementation divergence between CPU and GPU paths"
+    status: UNBLOCKED
+    result: "UNBLOCKED — RoPE and QK-norm wired into CUDA path (ENT-270). Ready for numerical testing on GPU hardware."
+
+  - id: FALSIFY-PARITY-004
+    rule: "NF4 GEMM weight convention"
+    prediction: "NF4 GEMM kernel accesses B in [N, K] (HF convention)"
+    test: "Read Nf4GemmKernel::build_ptx() and verify scales[col * num_k_blocks + block_idx] access pattern"
+    if_fails: "NF4 kernel uses wrong weight layout"
+    status: PASS
+    result: "PASS — verified in trueno-gpu 0.4.33: scales indexed as [col, block] = B[N, K]"
+
+  - id: FALSIFY-PARITY-005
+    rule: "LoRA GEMM convention"
+    prediction: "LoRA adapters stored as [d_in, d_out], gemm_forward treats B as [K, N]"
+    test: "Verify LoRA upload and gemm_forward call signatures match"
+    if_fails: "LoRA weights transposed during GPU path"
+    status: PASS
+    result: "PASS — LoRA A[hidden, rank], B[rank, out_dim], gemm_forward(A, B, C, seq, hidden, rank) correct"
+
+  - id: FALSIFY-PARITY-006
+    rule: "Operation ordering"
+    prediction: "Both CPU and GPU apply: projection → QK-norm → RoPE → attention (in that order)"
+    test: "Compare operation sequence in attention.rs vs cuda_block.rs"
+    if_fails: "Operations applied in different order or subset"
+    status: PASS
+    result: "PASS — GPU now applies: projection → QK-norm → RoPE → interleaved-to-batched → attention (ENT-270 fix)"

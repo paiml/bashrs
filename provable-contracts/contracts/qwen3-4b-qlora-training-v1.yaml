@@ -207,6 +207,12 @@ falsification_tests:
       Compute accuracy = correct / total.
       Assert accuracy > 0.50 (random baseline for binary = 0.50).
     if_fails: "Model not learning from training data — check data format, label distribution, or adapter merging"
+    result: >
+      MARGINAL (2026-03-13): Strict format accuracy 0/3 (0%), lenient keyword accuracy 2/3 (66.7%).
+      Best checkpoint=100 (loss 6.66). Model generates on-topic text about shell classification
+      but does NOT follow "Classification: safe/unsafe" format. Lenient match only triggers when
+      response happens to mention "unsafe" in generic discussion text. Checkpoint-560 degenerates
+      to repetitive Chinese. KILL-CHAT-001 reconfirmed.
 
   - id: FALSIFY-QLORA-008
     rule: "VRAM budget"
@@ -226,6 +232,12 @@ falsification_tests:
       Verify at least 8/10 responses follow instruction format (structured output, not gibberish).
       Compare with pre-training baseline: response coherence must not degrade.
     if_fails: "LoRA rank too high or alpha too large — adapter overwriting base model behavior"
+    result: >
+      PARTIAL PASS (2026-03-13): Checkpoint-100 generates coherent English about shell safety
+      (no gibberish), but doesn't follow Classification format. Base model says "Hello my name is
+      my name is..." (repetitive but English). Checkpoint-560 FAILS: generates degenerate Chinese
+      (catastrophic forgetting at later training steps). Conclusion: early stopping at step 100
+      preserves coherence, extended training (560 steps) destroys it.
 
   - id: FALSIFY-QLORA-010
     rule: "Gradient accumulation correctness"
@@ -240,6 +252,10 @@ kill_criteria:
   - id: KILL-QLORA-001
     condition: "Accuracy < 50% on 50-entry eval after full training"
     action: "Task requires >= 8B model. Ship classifier-only pipeline (MLP probe MCC=0.754)."
+    result: >
+      TRIGGERED (2026-03-13, Run 7k): Strict format accuracy 0/3 (0%), lenient 66.7%.
+      Root cause: entrenar#270 (CUDA forward missing RoPE+QK-norm).
+      SUSPENDED pending retrain with v2 config (PMAT-167) after entrenar#270 fix.
 
   - id: KILL-QLORA-002
     condition: "VRAM exceeds 24GB (OOM on RTX 4090)"
@@ -265,12 +281,56 @@ benchmarks:
     failure_mode: "LoRA weights frozen at init — only LM head/norms trained"
     root_cause: "entrenar#264 — NF4 LoRA optimizer gated by `if !accumulate_only`, always false with grad_accum"
   run_7b:
-    note: "IN PROGRESS — first true QLoRA training (entrenar#264 fixed)"
+    note: "KILLED — NF4 GEMM forward produced garbage (trueno#180), backward not implemented"
     hardware: "RTX 4090, 24GB VRAM, CUDA"
     model: "Qwen3-4B (NF4 quantized, ~2GB base + LoRA adapters)"
     data: "ShellSafetyBench splits (22,169 train, 2,935 test)"
     actual_vram: "9.9 GB"
     actual_throughput: "1432 tok/s"
-    initial_loss: "17.9 (step 27, expected for fresh LoRA on 151K vocab)"
+    loss_trajectory: "17.4 → 16.8 (flat, above random ln(151936)=11.93)"
+    failure_mode: "TWO bugs: (1) NF4 GEMM warp reduction mixed columns, (2) backward stub returned error"
+    root_cause_1: "trueno#180 — Nf4GemmKernel threads had different cols but warp shuffle summed cross-column products"
+    root_cause_2: "gemm_nf4_backward_a returned Err, silently swallowed by .ok()?, no gradient flow through blocks"
+  run_7c:
+    note: "KILLED at step 245 — loss diverging, embed grad norms exploding (7K→26M)"
+    hardware: "NVIDIA Grace Blackwell GB10 (sm_121, CUDA 13.0, 128GB unified memory)"
+    loss_trajectory: "19.0 → 7.6 (best, step 170) → 11.8 (step 240, diverging)"
+    failure_mode: "NF4 LoRA backward path had NO gradient clipping — unbounded LoRA grads caused weight divergence"
+    root_cause: "entrenar standard fp32 backward clips via clip_workspace_gradients(), NF4 path skipped clipping entirely"
+    embed_grad_explosion: "7,512 (step 1) → 26,018,652 (step 225) — 3,400x increase"
+  run_7d:
+    note: "KILLED at step 40 — restarted as Run 7e to apply ENT-266 LoRA adapter save fix"
+    hardware: "NVIDIA Grace Blackwell GB10 (sm_121, CUDA 13.0, 128GB unified memory)"
+    model: "Qwen3-4B (NF4 quantized, ~2GB base + LoRA adapters)"
+    data: "conversations_v3.jsonl (2268 examples, 567 steps/epoch)"
+    fixes:
+      - "trueno a0b243a: Blackwell PTX compat (sm_70 clamp, cuModuleLoadData)"
+      - "entrenar 2699fc1: buffer overflow (ffn_out→swiglu_out), q_dim pre-warming, 9 cache key fixes"
+      - "entrenar 3f4a83a: NF4 LoRA gradient clipping (ENT-265) — global L2 clip across 6 grad buffers"
+    config_changes:
+      - "training.gradient.clip_norm: 1.0 (was null)"
+      - "binary built with --features cuda (was missing)"
+    throughput: "~16 tok/s (14.5-15.9 range)"
+    loss_trajectory: "19.0 (step 1) → 16.0 (step 20) → 9.34 (step 25) → 9.81 (step 40)"
+    embed_grad_range: "4,632 — 112,518 (elevated at step 35)"
+    kill_reason: "ENT-266 discovered — LoRA weights would be lost at end of training"
+  run_7e:
+    note: "RUNNING — restart of 7d with ENT-266 fix (LoRA adapter save in CUDA pretrain)"
+    hardware: "NVIDIA Grace Blackwell GB10 (sm_121, CUDA 13.0, 128GB unified memory)"
+    model: "Qwen3-4B (NF4 quantized, ~2GB base + LoRA adapters)"
+    data: "conversations_v3.jsonl (2268 examples, 567 steps/epoch)"
+    fixes:
+      - "All Run 7d fixes (trueno a0b243a, entrenar 2699fc1, entrenar 3f4a83a)"
+      - "ENT-266: save_cuda_lora_adapter() — downloads 72 LoRA matrices from GPU, saves PEFT adapter"
+    config_changes:
+      - "training.gradient.clip_norm: 1.0"
+      - "binary built with --features cuda"
+    checkpoints: "adapter_model.safetensors saved at every checkpoint (step 200, 400) + end of training"
+    throughput: "~16 tok/s"
+    eta: "~20h (567 steps, ~129s/step)"
     success_threshold: ">85% accuracy (C-CHAT-TRAIN-002)"
     kill_threshold: "<50% accuracy (KILL-QLORA-001)"
+    performance_analysis:
+      - "cuBLAS already used for attention GEMMs (ALB-075) — Flash Attention minimal benefit at seq=512"
+      - "NF4 GEMM is dominant bottleneck (~80% step time, 252 calls/step) — trueno#185 filed"
+      - "50-70% vs PyTorch gap from NF4 GEMM serial processing, not attention"

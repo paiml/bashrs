@@ -1,0 +1,119 @@
+entrenar: "1.0"
+
+name: ssc-chat-qwen3-4b-qlora-v2
+version: "4.0.0"
+description: >
+  Shell Safety Classifier chat model v2 — Qwen3-4B NF4 QLoRA retrain (PMAT-167).
+  Key changes from v1 (Run 7k):
+    1. Data: 22,169 entries (10x vs 2,268) from ShellSafetyBench train split
+    2. Response format: "Classification: safe/unsafe" prefix (matches eval harness)
+    3. Linter analysis in responses (rule-grounded, not free-form)
+    4. Lower lr: 2e-5 (vs 5e-5) for stability with larger dataset
+    5. 3 epochs (vs 1) — 10x data means fewer passes needed but 3 gives good coverage
+    6. Longer warmup: 100 steps (vs 20) for 22K dataset
+    7. Validation every 200 steps for early stopping
+    8. BLOCKED on entrenar#270: CUDA forward missing RoPE + QK-norm
+
+seed: 42
+
+model:
+  source: "/home/noah/src/models/qwen3-4b/"
+  format: safetensors
+  device: "cuda"
+  dtype: "bfloat16"
+  architecture:
+    type: transformer
+    hidden_size: 2560
+    num_layers: 36
+    num_heads: 32
+    num_kv_heads: 8
+    intermediate_size: 9728
+    vocab_size: 151936
+    max_seq_length: 512
+    rope_theta: 1000000.0
+    head_dim: 128
+
+data:
+  train: "/home/noah/src/bashrs/training/conversations_v4.jsonl"
+  tokenizer: "/home/noah/src/models/qwen3-4b/tokenizer.json"
+  seq_len: 512
+  input_column: "text"
+  loader:
+    batch_size: 4
+    shuffle: true
+
+optimizer:
+  name: "adamw"
+  lr: 0.00002
+  weight_decay: 0.01
+
+scheduler:
+  name: "cosine"
+  warmup:
+    steps: 100
+
+training:
+  epochs: 3
+  gradient:
+    accumulation_steps: 1
+    clip_norm: 1.0
+  checkpoint:
+    save_every: 200
+  validation:
+    eval_every: 200
+    patience: 3
+
+lora:
+  enabled: true
+  rank: 16
+  alpha: 32.0
+  target_modules: [q_proj, v_proj]
+  quantize_base: true
+  quantize_bits: 4
+  quant_type: nf4
+
+output:
+  dir: "/home/noah/src/bashrs/training/checkpoints/ssc-chat-v8-qwen3-4b"
+
+publish:
+  repo: "paiml/shell-safety-chat"
+  private: false
+  status: "BLOCKED — waiting for entrenar#270 (CUDA RoPE+QK-norm)"
+
+# Retrain rationale (PMAT-167, spec v12.17):
+#   Root cause of Run 7k failure: CUDA forward path missing RoPE + QK-norm (entrenar#270)
+#   Model learned position-agnostic patterns (loss floor 6.66 = ln(151936)/~1.8)
+#   but could not learn format compliance without positional encoding
+#
+# Changes from v1:
+#   Data:       2,268 → 22,169 entries (10x, ShellSafetyBench train split)
+#   Format:     "Classification: safe/unsafe" prefix in all responses
+#   Responses:  Linter-grounded analysis (SEC/DET/IDEM/SC rule citations)
+#   LR:         5e-5 → 2e-5 (lower for larger dataset stability)
+#   Epochs:     1 → 3 (more passes for format learning)
+#   Warmup:     20 → 100 steps (proportional to dataset size)
+#   Validation: Every 200 steps with patience=3 early stopping
+#   Checkpoints: Every 200 steps (vs 20) — fewer but more meaningful
+#
+# Preflight gate (6 checks, ALL must pass before training):
+#   1. RoPE active in CUDA forward (FALSIFY-PARITY-001)
+#   2. QK-norm active in CUDA forward (FALSIFY-PARITY-002)
+#   3. CPU/GPU parity < 1e-2 (FALSIFY-PARITY-003)
+#   4. LoRA adapters update after 10 steps
+#   5. Checkpoint round-trip: save → load → identical output
+#   6. Gradient clipping active (clip_norm=1.0)
+#
+# Expected outcome:
+#   - Random baseline: loss ~11.93 (ln(151936))
+#   - With RoPE: loss should break 6.66 floor within 200 steps
+#   - Target: loss < 3.0, accuracy > 85% on test split
+#   - Kill criterion: accuracy < 50% after 1 epoch → KILL-QLORA-002
+#
+# Run history:
+#   Runs 1-6: Qwen2.5-Coder-0.5B full FT (max 32%, catastrophic forgetting)
+#   Run 7:  KILLED — LoRA never updated (entrenar#264)
+#   Run 7b: KILLED — NF4 GEMM garbage (trueno#180)
+#   Run 7c: KILLED step 245 — loss diverging (no grad clip, entrenar#265)
+#   Run 7d: KILLED step 40 — LoRA not saved (entrenar#266)
+#   Run 7e/7k: 567 steps, loss=6.66 best, eval=66.7% MARGINAL
+#     Root cause: CUDA forward missing RoPE+QK-norm (entrenar#270)
