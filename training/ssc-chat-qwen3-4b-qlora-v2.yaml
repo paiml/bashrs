@@ -8,11 +8,11 @@ description: >
     1. Data: 22,169 entries (10x vs 2,268) from ShellSafetyBench train split
     2. Response format: "Classification: safe/unsafe" prefix (matches eval harness)
     3. Linter analysis in responses (rule-grounded, not free-form)
-    4. Lower lr: 2e-5 (vs 5e-5) for stability with larger dataset
+    4. Lower lr: 5e-6 (vs 2e-5) after Run 8 divergence at step 220 (ENT-275)
     5. 3 epochs (vs 1) — 10x data means fewer passes needed but 3 gives good coverage
     6. Longer warmup: 100 steps (vs 20) for 22K dataset
     7. Validation every 200 steps for early stopping
-    8. BLOCKED on entrenar#270: CUDA forward missing RoPE + QK-norm
+    8. Cosine LR decay auto-computed (ENT-275: max_steps = epochs × batches)
 
 seed: 42
 
@@ -44,7 +44,7 @@ data:
 
 optimizer:
   name: "adamw"
-  lr: 0.00002
+  lr: 0.000005
   weight_decay: 0.01
 
 scheduler:
@@ -73,12 +73,12 @@ lora:
   quant_type: nf4
 
 output:
-  dir: "/home/noah/src/bashrs/training/checkpoints/ssc-chat-v8-qwen3-4b"
+  dir: "/home/noah/src/bashrs/training/checkpoints/ssc-chat-v9-qwen3-4b"
 
 publish:
   repo: "paiml/shell-safety-chat"
   private: false
-  status: "BLOCKED — waiting for entrenar#270 (CUDA RoPE+QK-norm)"
+  status: "Run 9 READY — entrenar#270 fixed (RoPE+QK-norm), lr=5e-6, cosine decay active"
 
 # Retrain rationale (PMAT-167, spec v12.17):
 #   Root cause of Run 7k failure: CUDA forward path missing RoPE + QK-norm (entrenar#270)
@@ -89,7 +89,7 @@ publish:
 #   Data:       2,268 → 22,169 entries (10x, ShellSafetyBench train split)
 #   Format:     "Classification: safe/unsafe" prefix in all responses
 #   Responses:  Linter-grounded analysis (SEC/DET/IDEM/SC rule citations)
-#   LR:         5e-5 → 2e-5 (lower for larger dataset stability)
+#   LR:         5e-5 → 5e-6 (4x lower after Run 8 divergence at lr=2e-5)
 #   Epochs:     1 → 3 (more passes for format learning)
 #   Warmup:     20 → 100 steps (proportional to dataset size)
 #   Validation: Every 200 steps with patience=3 early stopping
@@ -117,3 +117,7 @@ publish:
 #   Run 7d: KILLED step 40 — LoRA not saved (entrenar#266)
 #   Run 7e/7k: 567 steps, loss=6.66 best, eval=66.7% MARGINAL
 #     Root cause: CUDA forward missing RoPE+QK-norm (entrenar#270)
+#   Run 8: KILLED step ~230 — loss 1.43→10.03 (lr=2e-5 too aggressive, no cosine decay)
+#     RoPE fix confirmed (loss broke 6.66 floor to 1.43), but constant lr caused divergence
+#     Root cause: max_steps=None → cosine scheduler inactive (ENT-275)
+#     Filed: ENT-274 (lower lr), ENT-275 (cosine decay), trueno#187-189 (NF4 perf)
