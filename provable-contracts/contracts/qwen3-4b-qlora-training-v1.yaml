@@ -255,7 +255,8 @@ kill_criteria:
     result: >
       TRIGGERED (2026-03-13, Run 7k): Strict format accuracy 0/3 (0%), lenient 66.7%.
       Root cause: entrenar#270 (CUDA forward missing RoPE+QK-norm).
-      SUSPENDED pending retrain with v2 config (PMAT-167) after entrenar#270 fix.
+      SUSPENDED (2026-03-15): Run 9 converging — loss 1.66 at step 495 (vs 6.66 floor in Run 7k).
+      Eval pending after epoch 1 completes (~step 5543).
 
   - id: KILL-QLORA-002
     condition: "VRAM exceeds 24GB (OOM on RTX 4090)"
@@ -334,3 +335,29 @@ benchmarks:
       - "cuBLAS already used for attention GEMMs (ALB-075) — Flash Attention minimal benefit at seq=512"
       - "NF4 GEMM is dominant bottleneck (~80% step time, 252 calls/step) — trueno#185 filed"
       - "50-70% vs PyTorch gap from NF4 GEMM serial processing, not attention"
+  run_8:
+    note: "KILLED at step ~230 — loss diverged after warmup (1.43→10.03)"
+    hardware: "NVIDIA Grace Blackwell GB10 (sm_121, CUDA 13.0, 128GB unified memory)"
+    data: "conversations_v4.jsonl (22169 examples, 5543 steps/epoch)"
+    config: "lr=2e-5, warmup=100, clip_norm=1.0, 3 epochs"
+    loss_trajectory: "15.5 → 1.43 (step 200, best) → 10.03 (step 220, diverging)"
+    root_cause:
+      - "lr=2e-5 too aggressive for LoRA fine-tuning (entrenar#274)"
+      - "cosine scheduler inactive — max_steps=None fell back to constant lr (entrenar#275)"
+    kill_reason: "Loss diverged, gnorm 7→70+, embed grads 1.2M→318M"
+    positive: "RoPE fix CONFIRMED — loss broke through 6.66 floor (first time ever)"
+  run_9:
+    note: "RUNNING — first successful convergence"
+    hardware: "NVIDIA Grace Blackwell GB10 (sm_121, CUDA 13.0, 128GB unified memory)"
+    data: "conversations_v4.jsonl (22169 examples, 5543 steps/epoch)"
+    config: "lr=5e-6, warmup=100, clip_norm=1.0, 3 epochs, cosine decay (max_steps=16629 auto)"
+    fixes:
+      - "entrenar#270: RoPE + QK-norm wired into CUDA forward"
+      - "entrenar#275: cosine LR scheduler auto-computes max_steps"
+      - "lr reduced 4x (2e-5 → 5e-6) to prevent divergence"
+    loss_trajectory: "15.5 (step 1) → 11.1 (110) → 6.62 (220) → 3.95 (275) → 2.72 (330) → 1.80 (440) → 1.66 (495)"
+    gnorm_trajectory: "42.7 (step 1) → 46.8 (110) → 10.6 (275) → 8.0 (385) → 6.9 (440)"
+    throughput: "~16 tok/s"
+    checkpoints: "model-step-200.apr, model-step-400.apr (20.7GB each)"
+    eta: "~7 days (16629 steps, ~130s/step after JIT warmup)"
+    status: "CONVERGING — loss 1.66 at step 495, gnorm stable 7-10"

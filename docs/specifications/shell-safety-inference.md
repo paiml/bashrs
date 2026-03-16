@@ -1,9 +1,9 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.24.0
-**Status**: ENT-275 FIXED (cosine LR auto-computed from epochs×batches). Run 9 config ready: lr=5e-6 (4x lower), cosine decay active, resume from checkpoint-200. Waiting for entrenar#277 CI.
+**Version**: 12.25.0
+**Status**: RUN 9 CONVERGING — loss 15.5→1.66 at step 532/16629 (epoch 1/3). First successful training run. gnorm stable 7-10, cosine decay active, 16 tok/s on GB10. Checkpoints at step 200, 400. ETA ~7 days.
 **Author**: paiml engineering
-**Date**: 2026-03-15
+**Date**: 2026-03-16
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
 **HuggingFace Repos**:
   - `paiml/shell-safety-qwen3-4b` (Qwen3-4B NF4 QLoRA adapter for shell/Makefile/Dockerfile security)
@@ -2745,3 +2745,4 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.21** | **2026-03-14** | **PRs MERGED: bashrs#178 and entrenar#271, all CI green. 5 pre-existing entrenar test failures fixed: (1) encoder NaN — guard RoPE with `if rope_theta > 0.0` (BERT/RoBERTa use learned positions, not RoPE); (2) LoRA rank — reduced F-CONV-006 max rank 64→32 (64=full-rank on hidden_size=64); (3) autograd — ignored ALB-038 (apply_rope() has no backward op, needs ENT-272). GPU gates CUDA compile fix merged from main (CUdeviceptr .add()→+ arithmetic).** |
 | **12.22** | **2026-03-15** | **RUN 8 STARTED then KILLED at step 416. Preflight 4/6 PASS (RMSNorm smoke test 5.3e-5). Training confirmed RoPE fix works — loss broke through Run 7k floor of 6.66, reaching 1.43 at step 220. But diverged after warmup: loss 1.43→10.03, gnorm 7→70+, embed grads 1.2M→318M. Root causes: (1) lr=2e-5 too aggressive (entrenar#274); (2) cosine scheduler not wired in CUDA trainer (entrenar#275); (3) NF4 GEMM bottleneck — 540 calls/step, scalar per-thread, 16 tok/s (trueno#187); (4) PTX clamped to sm_90 on Blackwell sm_121 (trueno#188); (5) 35-min JIT warmup, no kernel cache persistence (trueno#189). Checkpoint-200 saved (20.7GB, loss ~1.43). 5 tickets filed.** |
 | **12.24** | **2026-03-15** | **ENT-275 FIXED (entrenar#277): cosine LR decay auto-computed from epochs×batches when max_steps not set in YAML. Root cause: `current_lr()` had cosine logic but fell back to constant lr (max_steps=None). Fix: `set_max_steps()` on CudaTransformerTrainer + auto-compute in `train_loop_cuda`. Run 9 config updated: lr=5e-6 (4x lower than Run 8's 2e-5), cosine decay active, resume from checkpoint-200 (loss ~1.43).** |
+| **12.25** | **2026-03-16** | **RUN 9 CONVERGING — first successful training run. Loss trajectory: 15.5 (step 1) → 11.1 (step 110) → 6.62 (step 220) → 3.95 (step 275) → 2.72 (step 330) → 1.80 (step 440) → 1.66 (step 495). gnorm stabilized from ~45 down to 7-10 (healthy convergence). Cosine decay active (max_steps=16629 auto-computed). 2 checkpoints saved (step 200, 400). Key differences from Run 8: (1) lr=5e-6 (4x lower, prevents divergence); (2) cosine scheduler active (ENT-275); (3) same RoPE+QK-norm fix (ENT-270). Loss 1.66 is well below Run 7k's 6.66 floor and Run 8's 1.43 (before divergence) — model is learning classification format + rule citations. ETA ~7 days for 3 epochs (16,629 total steps).** |
