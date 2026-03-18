@@ -91,6 +91,10 @@ pub(crate) fn score_command(
         match format {
             ScoreOutputFormat::Human => {
                 print_human_score_results(&score, detailed);
+                // GH-181: show_grade was previously ignored for bash scripts
+                if show_grade {
+                    println!("\nGrade: {} ({:.1}/10.0)", score.grade, score.score);
+                }
             }
             ScoreOutputFormat::Json => {
                 print_json_score_results(&score);

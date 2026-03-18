@@ -2,8 +2,16 @@ use crate::cli::args::ReportFormat;
 use crate::models::{Error, Result};
 
 /// Execute quality gates based on configuration (v6.42.0)
-pub(crate) fn handle_gate_command(tier: u8, _report: ReportFormat) -> Result<()> {
+pub(crate) fn handle_gate_command(tier: u8, report: ReportFormat) -> Result<()> {
     use crate::gates::GateConfig;
+
+    // GH-181: Warn when --report format is not yet implemented
+    if !matches!(report, ReportFormat::Human) {
+        eprintln!(
+            "Warning: --report {:?} is not yet implemented for gate command. Using human format.",
+            report
+        );
+    }
 
     // Load gate configuration
     let config = GateConfig::load()?;
@@ -21,17 +29,18 @@ pub(crate) fn handle_gate_command(tier: u8, _report: ReportFormat) -> Result<()>
         }
     };
 
-    println!("Executing Tier {} Quality Gates...", tier);
-    println!("Gates enabled: {}", gates_to_run.join(", "));
-    println!("----------------------------------------");
+    // GH-181: Status headers go to stderr to avoid contaminating structured output
+    eprintln!("Executing Tier {} Quality Gates...", tier);
+    eprintln!("Gates enabled: {}", gates_to_run.join(", "));
+    eprintln!("----------------------------------------");
 
     let mut failures = Vec::new();
 
     for gate in gates_to_run {
-        print!("Checking {}... ", gate);
-        // Flush stdout to show progress
+        eprint!("Checking {}... ", gate);
+        // Flush stderr to show progress
         use std::io::Write;
-        let _ = std::io::stdout().flush();
+        let _ = std::io::stderr().flush();
 
         let success = match gate.as_str() {
             "clippy" => run_clippy_gate(&config),
@@ -42,26 +51,26 @@ pub(crate) fn handle_gate_command(tier: u8, _report: ReportFormat) -> Result<()>
             "satd" => run_satd_gate(&config),
             "mutation" => run_mutation_gate(&config),
             _ => {
-                println!("⚠️  Unknown gate");
+                eprintln!("⚠️  Unknown gate");
                 continue;
             }
         };
 
         if success {
-            println!("✅ PASS");
+            eprintln!("✅ PASS");
         } else {
-            println!("❌ FAIL");
+            eprintln!("❌ FAIL");
             failures.push(gate.clone());
         }
     }
 
-    println!("----------------------------------------");
+    eprintln!("----------------------------------------");
 
     if failures.is_empty() {
-        println!("✅ Tier {} Gates Passed!", tier);
+        eprintln!("✅ Tier {} Gates Passed!", tier);
         Ok(())
     } else {
-        println!("❌ Tier {} Gates Failed: {}", tier, failures.join(", "));
+        eprintln!("❌ Tier {} Gates Failed: {}", tier, failures.join(", "));
         // Exit with error code
         std::process::exit(1);
     }
@@ -113,7 +122,7 @@ fn run_coverage_gate(config: &crate::gates::GateConfig) -> bool {
             .unwrap_or_else(|_| std::process::ExitStatus::default());
         cov_status.success()
     } else {
-        println!("(cargo-llvm-cov not found, skipping) ");
+        eprintln!("(cargo-llvm-cov not found, skipping) ");
         true
     }
 }
@@ -133,7 +142,7 @@ fn run_security_gate(_config: &crate::gates::GateConfig) -> bool {
     match status {
         Ok(s) => s.success(),
         Err(_) => {
-            println!("(cargo-deny not found, skipping) ");
+            eprintln!("(cargo-deny not found, skipping) ");
             true
         }
     }
@@ -172,7 +181,7 @@ fn run_mutation_gate(config: &crate::gates::GateConfig) -> bool {
         match status {
             Ok(s) => s.success(),
             Err(_) => {
-                println!("(cargo-mutants not found, skipping) ");
+                eprintln!("(cargo-mutants not found, skipping) ");
                 true
             }
         }
