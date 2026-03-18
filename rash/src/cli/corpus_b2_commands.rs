@@ -101,7 +101,7 @@ pub(crate) fn print_b2_category(cat: &str, items: &[(String, String, String)], l
 }
 
 /// Diagnose B2 exact match failures from cached results (instant, no re-transpilation).
-pub(crate) fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize) -> Result<()> {
+pub(crate) fn corpus_diagnose_b2(filter: Option<&CorpusFormatArg>, limit: usize) -> Result<()> {
     use crate::cli::color::*;
 
     let score = corpus_load_last_run().ok_or_else(|| {
@@ -116,6 +116,17 @@ pub(crate) fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize
     let mut b1b2_count = 0usize;
 
     for r in &score.results {
+        // GH-181: Apply format filter when user passes --format
+        if let Some(fmt) = filter {
+            let dominated = match fmt {
+                CorpusFormatArg::Dockerfile => r.id.starts_with("D-"),
+                CorpusFormatArg::Makefile => r.id.starts_with("M-"),
+                CorpusFormatArg::Bash => !r.id.starts_with("D-") && !r.id.starts_with("M-"),
+            };
+            if !dominated {
+                continue;
+            }
+        }
         if !r.transpiled || r.output_exact {
             continue;
         }
@@ -150,7 +161,13 @@ pub(crate) fn corpus_diagnose_b2(_filter: Option<&CorpusFormatArg>, limit: usize
         }
     }
 
-    println!("{WHITE}B2 Exact Match Diagnosis{RESET} {DIM}(from cache){RESET}");
+    let filter_label = match filter {
+        Some(CorpusFormatArg::Bash) => " [bash only]",
+        Some(CorpusFormatArg::Makefile) => " [makefile only]",
+        Some(CorpusFormatArg::Dockerfile) => " [dockerfile only]",
+        None => "",
+    };
+    println!("{WHITE}B2 Exact Match Diagnosis{RESET} {DIM}(from cache){filter_label}{RESET}");
     println!("{DIM}────────────────────────────────────────{RESET}");
     println!(
         "Total B2 failures:       {RED}{}{RESET}",
