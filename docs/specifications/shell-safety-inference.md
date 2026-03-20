@@ -1189,7 +1189,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 ### 8.1b Phase 3b: LoRA Re-Run (CHAT-003 Invalidation)
 
 **Date added**: 2026-03-08
-**Status**: PLANNED — pending execution on Lambda RTX 4090
+**Status**: COMPLETE — Runs 7-11d executed on GB10 (128GB unified memory). See Section 16 for full run history.
 
 #### 8.1b.1 Why Runs 1-6 Were Invalid
 
@@ -2752,7 +2752,7 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.29** | **2026-03-18** | **Added Section 16: Training Lessons Learned. Codified 7 hard-won insights from 11 training runs. Run 11 at step 522, loss 2.34 at step 495 (normal noise after best of 1.558 at step 440).** |
 | **12.30** | **2026-03-20** | **NF4 GEMM optimization campaign (trueno#187): 3 approaches tested on GB10 unified memory. (1) Shared memory tiling: 45% SLOWER (barrier overhead > bandwidth savings when shared/global are same DRAM). (2) Vectorized dequant + register LUT: NO SPEEDUP (15 selp/lookup offsets iteration savings — kernel is instruction-bound, not memory-bound). (3) Reduced to 1 epoch: 5,543 steps (was 16,629), ETA 8 days (was 24). Key insight: NF4 scalar dequantization on unified memory is fundamentally instruction-limited; tensor core integration (WMMA) is the only path to significant speedup but requires kernel restructuring. Run 11d at step 616, loss 1.57, 15+ tok/s, MFU 0.49. Section 16.8 added: Unified memory negates classical GPU optimizations. Section 17 added: Recommended next steps.** |
 
-## 16. Training Lessons Learned (11 Runs, 8 Infrastructure Bugs)
+## 16. Training Lessons Learned (11 Runs, 9 Infrastructure Fixes)
 
 Codified from Runs 1-11 across Qwen2.5-Coder-0.5B (full FT) and Qwen3-4B (NF4 QLoRA).
 
@@ -2788,6 +2788,8 @@ Each crash produced a fix that benefits ALL future training:
 - **ENT-275**: Cosine LR decay auto-computes max_steps from epochs × batches
 - **ENT-276**: LoRA A/B weights saved/restored in APR checkpoint format
 - **ENT-282**: Delta checkpoints — only save trainable/updated weights, skip frozen projections
+- **ENT-283**: Loss EMA initialized to first observed loss (prevents false rollback warnings on cold start)
+- **Watchdog**: Kill competing GPU processes (apr eval benchmark consumed 18-48GB silently)
 
 The sovereign Rust stack (entrenar + trueno) is now battle-hardened for NF4 QLoRA training. No PyTorch escape hatch was needed.
 
