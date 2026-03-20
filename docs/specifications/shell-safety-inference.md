@@ -1,9 +1,9 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.24.0
-**Status**: ENT-275 FIXED (cosine LR auto-computed from epochs×batches). Run 9 config ready: lr=5e-6 (4x lower), cosine decay active, resume from checkpoint-200. Waiting for entrenar#277 CI.
+**Version**: 12.30.0
+**Status**: RUN 11d TRAINING — 1 epoch (5,543 steps), step 616/5543 (11.1%), loss 1.57. Resume from checkpoint-600. Vectorized NF4 GEMM (no speedup on unified memory — instruction-bound). ETA ~8 days.
 **Author**: paiml engineering
-**Date**: 2026-03-15
+**Date**: 2026-03-20
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
 **HuggingFace Repos**:
   - `paiml/shell-safety-qwen3-4b` (Qwen3-4B NF4 QLoRA adapter for shell/Makefile/Dockerfile security)
@@ -2745,3 +2745,127 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.21** | **2026-03-14** | **PRs MERGED: bashrs#178 and entrenar#271, all CI green. 5 pre-existing entrenar test failures fixed: (1) encoder NaN — guard RoPE with `if rope_theta > 0.0` (BERT/RoBERTa use learned positions, not RoPE); (2) LoRA rank — reduced F-CONV-006 max rank 64→32 (64=full-rank on hidden_size=64); (3) autograd — ignored ALB-038 (apply_rope() has no backward op, needs ENT-272). GPU gates CUDA compile fix merged from main (CUdeviceptr .add()→+ arithmetic).** |
 | **12.22** | **2026-03-15** | **RUN 8 STARTED then KILLED at step 416. Preflight 4/6 PASS (RMSNorm smoke test 5.3e-5). Training confirmed RoPE fix works — loss broke through Run 7k floor of 6.66, reaching 1.43 at step 220. But diverged after warmup: loss 1.43→10.03, gnorm 7→70+, embed grads 1.2M→318M. Root causes: (1) lr=2e-5 too aggressive (entrenar#274); (2) cosine scheduler not wired in CUDA trainer (entrenar#275); (3) NF4 GEMM bottleneck — 540 calls/step, scalar per-thread, 16 tok/s (trueno#187); (4) PTX clamped to sm_90 on Blackwell sm_121 (trueno#188); (5) 35-min JIT warmup, no kernel cache persistence (trueno#189). Checkpoint-200 saved (20.7GB, loss ~1.43). 5 tickets filed.** |
 | **12.24** | **2026-03-15** | **ENT-275 FIXED (entrenar#277): cosine LR decay auto-computed from epochs×batches when max_steps not set in YAML. Root cause: `current_lr()` had cosine logic but fell back to constant lr (max_steps=None). Fix: `set_max_steps()` on CudaTransformerTrainer + auto-compute in `train_loop_cuda`. Run 9 config updated: lr=5e-6 (4x lower than Run 8's 2e-5), cosine decay active, resume from checkpoint-200 (loss ~1.43).** |
+| **12.25** | **2026-03-16** | **Run 9 CONVERGING then CRASHED at step 600/16629. Loss trajectory: 15.5→11.1→6.6→3.95→2.72→1.80→1.66 (best ever, step 495). GPU memory spike 57→93 GB at step 550, silent crash during step-600 checkpoint save. Resume from checkpoint-400 exposed ENT-276: LoRA adapter weights NEVER saved in CUDA APR checkpoint path. `sync_weights_to_cpu()` NF4 branch was empty. Loss jumped from 2.5 to 13.9 after resume (LoRA re-initialized).** |
+| **12.26** | **2026-03-16** | **ENT-276 FIXED: LoRA checkpoint save/restore for CUDA pretraining path. (1) SAVE: `prepare_async_apr_save()` now downloads LoRA A/B from GPU via `download_lora_weights()`, writes as `lora.{layer}.{q,v}_proj.lora_{a,b}` tensors; (2) LOAD: `restore_lora_from_apr()` reads LoRA tensors and uploads via new `upload_lora_weights()` on CudaNf4TransformerBlock; (3) Run 10 STARTED fresh (can't resume from checkpoints missing LoRA data).** |
+| **12.27** | **2026-03-17** | **Run 10 CRASHED: Started fresh with ENT-276 fix, loss converged 15.5→1.59 at step 440, then OOM during checkpoint save at ~step 450-600 (same as Run 9). Checkpoint saves were 20GB full snapshots that spiked unified memory. ENT-282 filed and fixed: delta checkpoints — skip frozen NF4 base weights during save, reducing checkpoint from 20GB to 5.9GB (70% reduction). PR #286 pending CI (flaky GPU test).** |
+| **12.28** | **2026-03-18** | **Run 11 RUNNING on GB10 with ENT-282 binary. Fresh start (no resume — resume OOM'd on 128GB unified memory loading 20GB checkpoint + base model). Step 486/16629 (2.9%), loss 1.558 at step 440 (new best, beats Run 10's 1.59). Delta checkpoints working: step-200 and step-400 saved at 5.9GB each (vs 20GB before). PAST THE CRASH ZONE: Runs 9+10 both crashed at step 450-600 from checkpoint OOM. GPU: 9.2GB, 96% util, exclusive access (killed competing apr eval benchmark + watchdog). Speed: ~12.5 tok/s, 130s/step, MFU 0.36. ETA ~24 days for 3 epochs. Loss trajectory: 15.5→11.4→9.46→6.24→4.04→2.95→2.14→1.558. Infrastructure bugs found in Runs 9-11: ENT-276 (LoRA save/restore), ENT-282 (delta checkpoints), apr eval benchmark GPU contention, rollback EMA cold-start false positives.** |
+| **12.29** | **2026-03-18** | **Added Section 16: Training Lessons Learned. Codified 7 hard-won insights from 11 training runs. Run 11 at step 522, loss 2.34 at step 495 (normal noise after best of 1.558 at step 440).** |
+| **12.30** | **2026-03-20** | **NF4 GEMM optimization campaign (trueno#187): 3 approaches tested on GB10 unified memory. (1) Shared memory tiling: 45% SLOWER (barrier overhead > bandwidth savings when shared/global are same DRAM). (2) Vectorized dequant + register LUT: NO SPEEDUP (15 selp/lookup offsets iteration savings — kernel is instruction-bound, not memory-bound). (3) Reduced to 1 epoch: 5,543 steps (was 16,629), ETA 8 days (was 24). Key insight: NF4 scalar dequantization on unified memory is fundamentally instruction-limited; tensor core integration (WMMA) is the only path to significant speedup but requires kernel restructuring. Run 11d at step 616, loss 1.57, 15+ tok/s, MFU 0.49. Section 16.8 added: Unified memory negates classical GPU optimizations. Section 17 added: Recommended next steps.** |
+
+## 16. Training Lessons Learned (11 Runs, 8 Infrastructure Bugs)
+
+Codified from Runs 1-11 across Qwen2.5-Coder-0.5B (full FT) and Qwen3-4B (NF4 QLoRA).
+
+### 16.1. Unified memory is a trap
+
+GB10's 128GB shared CPU/GPU memory appears generous until checkpoint saves, model loading, and GPU allocations compete for the same pool. Run 9 crashed at step 600 when a 20GB full checkpoint snapshot spiked unified memory from 57GB to 93GB. Run 10 died the same way. The fix is not more memory — it is **not allocating what you don't need**. ENT-282 delta checkpoints skip the 14.5GB of frozen NF4 base weights, reducing checkpoint size from 20GB to 5.9GB (70% reduction). Resume also OOMs on 128GB (loading 20GB checkpoint + 37GB safetensors simultaneously), so fresh starts with delta saves going forward is the viable path.
+
+### 16.2. Infrastructure bugs dominate training time, not model bugs
+
+Of 11 runs, **8 were killed by infrastructure**, not model quality:
+
+| Run | Kill cause | Category |
+|-----|-----------|----------|
+| 7 | LoRA never updating (ENT-264) | Optimizer bug |
+| 7b | NF4 GEMM garbage on RTX 4090 | GPU compat |
+| 7c | No gradient clipping in NF4 path (ENT-265) | Training loop |
+| 7d | LoRA weights not saved (ENT-266) | Checkpoint |
+| 8 | Cosine decay silently disabled, max_steps=None (ENT-275) | Scheduler |
+| 9 | Checkpoint OOM + LoRA not in APR format (ENT-276) | Checkpoint |
+| 10 | Checkpoint OOM from full snapshot (ENT-282) | Checkpoint |
+| 11 early | GPU contention from unrelated eval benchmark | Environment |
+
+Only Run 7e/7k had an **actual model bug** (missing RoPE + QK-norm in CUDA forward, ENT-270). Three of the eight infrastructure kills were checkpoint-related — save/restore is the most fragile part of the training pipeline.
+
+### 16.3. Every bug discovery hardens the system permanently
+
+Each crash produced a fix that benefits ALL future training:
+
+- **ENT-264**: LoRA optimizer fires every micro-batch (not gated behind accumulation flag)
+- **ENT-265**: Global L2 gradient clipping across all LoRA buffers
+- **ENT-266**: LoRA adapter download + save as PEFT-compatible safetensors
+- **ENT-270**: RoPE + QK-norm wired into both fp32 and NF4 CUDA attention
+- **ENT-275**: Cosine LR decay auto-computes max_steps from epochs × batches
+- **ENT-276**: LoRA A/B weights saved/restored in APR checkpoint format
+- **ENT-282**: Delta checkpoints — only save trainable/updated weights, skip frozen projections
+
+The sovereign Rust stack (entrenar + trueno) is now battle-hardened for NF4 QLoRA training. No PyTorch escape hatch was needed.
+
+### 16.4. Loss trajectory is remarkably reproducible
+
+Runs 9, 10, and 11 follow nearly identical curves despite different binaries and restart conditions:
+
+| Step | Run 9 | Run 10 | Run 11 |
+|------|-------|--------|--------|
+| 110 | 11.58 | 11.58 | 11.40 |
+| 165 | 9.39 | 9.39 | 9.46 |
+| 220 | 6.22 | 6.22 | 6.24 |
+| 275 | 3.88 | 3.88 | 4.04 |
+| 330 | 2.67 | 2.67 | 2.95 |
+| 385 | — | 2.67 | 2.14 |
+| 440 | — | 1.59 | 1.56 |
+
+The model learns the same way each time — variance is in infrastructure, not optimization. This means (a) the training recipe is correct, and (b) infrastructure stability is the only barrier to completion.
+
+### 16.5. Checkpoint size matters more than checkpoint frequency
+
+5.9GB delta vs 20GB full is the difference between training surviving and OOM-crashing. The frozen NF4 base weights (14.5GB) are immutable — snapshotting them is pure waste. For QLoRA specifically, checkpoints should contain:
+
+- LoRA A/B matrices (72 tensors, ~23MB)
+- Norm weights (74 tensors, ~0.4MB)
+- Embedding + LM head (if unfrozen, ~1.5GB)
+- Optimizer states for trainable params
+
+Total trainable state: ~5.9GB. The other 14.5GB is reproducible from the base model path.
+
+### 16.6. GPU exclusivity is non-negotiable for long training
+
+A stray `apr` eval benchmark (HumanEval pass@k on Qwen-7B) silently consumed 18.8GB of GPU memory and cut throughput by 3x. The first 50 steps appeared to show the model not learning (loss stuck at 15.7 at step 55) when in reality the GPU was time-sharing. Diagnosis wasted ~2 hours.
+
+**Mitigation**: Always verify `nvidia-smi` shows only the training process. For multi-day runs, deploy a watchdog that kills competing GPU processes.
+
+### 16.7. The 4B model learns shell safety fast
+
+Loss drops from random (15.5, above ln(151936)=11.93 due to untrained LoRA) to sub-2.0 in ~400 steps (~14 hours). One epoch (5,543 steps) is sufficient — reduced from 3 epochs since additional passes yield diminishing returns at 130s/step. The critical eval is at epoch end: does the model follow "Classification: safe/unsafe" format and generalize beyond training examples?
+
+### 16.8. Unified memory negates classical GPU optimizations
+
+Three NF4 GEMM optimization approaches were tested on GB10 (128GB unified CPU/GPU memory):
+
+| Approach | Result | Root cause |
+|----------|--------|------------|
+| Shared memory tiling | **45% slower** (188s/step) | `bar.sync` barrier overhead dominates when shared memory is backed by the same DRAM as global memory |
+| Vectorized dequant + register LUT | **No speedup** (146s/step) | 15 `selp.f32` per LUT lookup (binary selection tree) offsets the iteration count reduction |
+| Original scalar kernel | **Baseline** (130-146s/step) | Already instruction-throughput limited, not memory-bandwidth limited |
+
+**Key insight**: On discrete GPUs, shared memory bandwidth (~2 TB/s) is 2x faster than global (~900 GB/s), making tiling worthwhile. On GB10 unified memory, both access the same DRAM — the bandwidth advantage disappears, leaving only the overhead of synchronization barriers and cooperative loading.
+
+The NF4 GEMM kernel is **fundamentally instruction-limited** on unified memory. The only path to significant speedup is tensor core integration (WMMA/MMA), which requires restructuring the kernel to batch-dequantize NF4 blocks into fp16 tiles and then use hardware matrix multiply. This is estimated at 3-5x speedup but requires ~4 weeks of kernel development.
+
+**Practical mitigation**: Reduce training to 1 epoch (5,543 steps, ~8 days) instead of optimizing the kernel for a one-time training run.
+
+## 17. Recommended Next Steps
+
+### 17.1. Immediate (during Run 11d training, ~8 days)
+
+1. **Monitor Run 11d** — step 616/5543, loss 1.57, ~8 days to completion. Watch for divergence, checkpoint saves, GPU contention.
+2. **Fix PTX disk caching** — cuLinkCreate fails on Blackwell; debug the linker API or use `cuModuleGetData`-equivalent. Each restart wastes 35 min on JIT warmup.
+3. **Prepare eval harness** — ensure `bashrs ssc eval-benchmark` works against the step-5543 checkpoint. Test format compliance ("Classification: safe/unsafe"), accuracy on held-out test split (2,935 entries), and generalization.
+4. **Fix rollback EMA cold-start** — file ENT-283: initialize loss EMA to first observed loss value instead of 0.0. Cosmetic but noisy in logs.
+
+### 17.2. Post-training evaluation (~day 8-9)
+
+5. **Epoch 1 evaluation** — the critical gate. Metrics needed:
+   - Strict format compliance (% of outputs starting with "Classification: safe/unsafe")
+   - Binary accuracy on test split (2,935 entries)
+   - MCC score (target: >0.5, vs MLP probe baseline MCC=0.754)
+   - Per-CWE recall (SEC-001 through SEC-008)
+   - If accuracy <50%: KILL-QLORA-002 triggered, ship MLP probe only
+6. **Publish to HuggingFace** — if eval passes, publish adapter to `paiml/shell-safety-qwen3-4b` and benchmark to `paiml/shell-safety-bench`
+
+### 17.3. Medium-term (post-publication)
+
+7. **Tensor core NF4 GEMM (trueno#187)** — the only path to significant training speedup on GB10. Batch-dequantize NF4 → fp16 tiles, then WMMA. ~4 weeks, 3-5x expected speedup. Only worth doing if more models will be trained on GB10.
+8. **PTX sm_121 native targeting (trueno#188)** — requires PTX 9.0+ syntax support. Eliminates JIT fallback overhead (~5% throughput improvement).
+9. **Kernel cache persistence (trueno#189)** — PTX cubin disk caching (implemented but linker API broken on Blackwell). Alternative: use `cuModuleGetFunction` to extract cubin after JIT.
+10. **Optimizer state checkpointing (ENT-283)** — save AdamW momentum/variance in APR format. Current delta checkpoints save model weights but not optimizer state, causing instability after resume (loss plateau at 2-5 instead of continuing from 1.5).

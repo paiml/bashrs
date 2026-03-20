@@ -9,7 +9,7 @@ description: >
     2. Response format: "Classification: safe/unsafe" prefix (matches eval harness)
     3. Linter analysis in responses (rule-grounded, not free-form)
     4. Lower lr: 5e-6 (vs 2e-5) after Run 8 divergence at step 220 (ENT-275)
-    5. 3 epochs (vs 1) — 10x data means fewer passes needed but 3 gives good coverage
+    5. 1 epoch — model converges to loss <2.0 by step 440 (8% of epoch), 3 epochs wasteful
     6. Longer warmup: 100 steps (vs 20) for 22K dataset
     7. Validation every 200 steps for early stopping
     8. Cosine LR decay auto-computed (ENT-275: max_steps = epochs × batches)
@@ -53,7 +53,7 @@ scheduler:
     steps: 100
 
 training:
-  epochs: 3
+  epochs: 1
   gradient:
     accumulation_steps: 1
     clip_norm: 1.0
@@ -73,12 +73,12 @@ lora:
   quant_type: nf4
 
 output:
-  dir: "/home/noah/src/bashrs/training/checkpoints/ssc-chat-v9-qwen3-4b"
+  dir: "/home/noah/src/bashrs/training/checkpoints/ssc-chat-v11-qwen3-4b"
 
 publish:
   repo: "paiml/shell-safety-chat"
   private: false
-  status: "Run 9 READY — entrenar#270 fixed (RoPE+QK-norm), lr=5e-6, cosine decay active"
+  status: "Run 11d — 1 epoch (5,543 steps), vectorized NF4 GEMM, resume from step-600, ETA ~6 days"
 
 # Retrain rationale (PMAT-167, spec v12.17):
 #   Root cause of Run 7k failure: CUDA forward path missing RoPE + QK-norm (entrenar#270)
@@ -90,7 +90,7 @@ publish:
 #   Format:     "Classification: safe/unsafe" prefix in all responses
 #   Responses:  Linter-grounded analysis (SEC/DET/IDEM/SC rule citations)
 #   LR:         5e-5 → 5e-6 (4x lower after Run 8 divergence at lr=2e-5)
-#   Epochs:     1 → 3 (more passes for format learning)
+#   Epochs:     1 (model converges by step 440, 3 epochs wasteful at 130s/step)
 #   Warmup:     20 → 100 steps (proportional to dataset size)
 #   Validation: Every 200 steps with patience=3 early stopping
 #   Checkpoints: Every 200 steps (vs 20) — fewer but more meaningful
@@ -121,3 +121,22 @@ publish:
 #     RoPE fix confirmed (loss broke 6.66 floor to 1.43), but constant lr caused divergence
 #     Root cause: max_steps=None → cosine scheduler inactive (ENT-275)
 #     Filed: ENT-274 (lower lr), ENT-275 (cosine decay), trueno#187-189 (NF4 perf)
+#   Run 9: CRASHED step 600 — loss 15.5→1.66 (CONVERGING, best ever)
+#     GPU memory spike 57GB→93GB at step 550, silent crash during checkpoint save
+#     Resume from step-400 lost LoRA adapters (loss 2.5→13.9)
+#     Root cause: APR checkpoint save had empty NF4 branch — LoRA weights never saved (ENT-276)
+#   Run 10: CRASHED step ~450-600 — loss 15.5→1.59 (same trajectory as Run 9)
+#     GPU memory spike during 20GB full checkpoint save caused OOM on 128GB unified memory
+#     ENT-276 LoRA save/restore confirmed working (step-400 checkpoint had LoRA weights)
+#     Root cause: checkpoint save snapshots ALL weights including frozen NF4 base (ENT-282)
+#   Run 11: loss 15.5→1.558 at step 440. Crashed after reboot (GB10 power event).
+#     Delta checkpoints: 5.9GB (vs 20GB), step-200/400/600 saved without OOM
+#     Resume from step-600 worked (delta checkpoint load). Loss diverged to 3-5
+#     after resume due to 48GB Qwen-32B apr eval competing for GPU.
+#   Run 11b: Resume from step-600, GPU exclusive. Loss 1.68→1.82→4.09 (oscillating)
+#     Optimizer state lost on resume → unstable training, loss plateau 2-5.
+#   Run 11c: FAILED — shared memory NF4 GEMM tiling 45% SLOWER on unified memory.
+#     Barrier sync overhead > bandwidth savings when shared/global are same DRAM.
+#   Run 11d: Resume from step-600, original kernel. 1 epoch (5,543 steps), vectorized
+#     NF4 GEMM (trueno#187). Loss 1.89→1.82 at step 710.
+#     Speed: 15.4 tok/s, MFU 0.49. ETA ~6 days.

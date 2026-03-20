@@ -684,7 +684,7 @@ roadmap:
   priority: medium
   assigned_to: null
   created: 2026-03-08T19:02:03Z
-  updated: 2026-03-14T14:04:05.101341188+00:00
+  updated: 2026-03-17T10:00:00Z
   spec: null
   acceptance_criteria:
   - Publish paiml/shell-safety-bench dataset and paiml/shell-safety-qwen3-4b model after QA gate
@@ -694,7 +694,121 @@ roadmap:
   labels:
   - ssc
   - v12
-  notes: null
+  notes: BLOCKED on Run 11 training completion (Run 10 crashed OOM at step 440). Run 11 in progress with ENT-282 delta checkpoints.
+- id: PMAT-168
+  github_issue: null
+  item_type: task
+  title: 'SSC-TRAIN-RUN10: Qwen3-4B NF4 QLoRA Run 10 on GB10 (3 epochs, 16629 steps)'
+  status: cancelled
+  priority: critical
+  assigned_to: null
+  created: 2026-03-16T10:00:00Z
+  updated: 2026-03-18T10:00:00Z
+  spec: docs/specifications/shell-safety-inference.md
+  acceptance_criteria:
+  - Run 10 completes 3 epochs (16,629 steps) without crash
+  - Loss continues below Run 9 trajectory (1.59 at step 440 vs 1.80)
+  - Checkpoints saved every 200 steps with LoRA weights (ENT-276 fix)
+  - Epoch 1 eval accuracy > 50% (KILL-QLORA-001 threshold)
+  phases: []
+  subtasks: []
+  estimated_effort: 7.5 days (ETA Mar 24-25)
+  labels:
+  - ssc
+  - training
+  - v12
+  notes: 'Run 10 CRASHED — loss 15.5→1.59 at step 440, OOM during checkpoint save (same failure as Run 9). Root cause: 20GB full checkpoint snapshot spiked unified memory.'
+- id: PMAT-169
+  github_issue: null
+  item_type: task
+  title: 'SSC-TRAIN-RUN11d: Qwen3-4B NF4 QLoRA 1 epoch (5,543 steps) on GB10'
+  status: inprogress
+  priority: critical
+  assigned_to: null
+  created: 2026-03-18T10:00:00Z
+  updated: 2026-03-20T14:00:00Z
+  spec: docs/specifications/shell-safety-inference.md
+  acceptance_criteria:
+  - Run 11d completes 1 epoch (5,543 steps) without crash
+  - Delta checkpoints save successfully (5.9GB)
+  - Loss < 2.0 at epoch end
+  - Epoch 1 eval accuracy > 50% (KILL-QLORA-001 threshold)
+  phases: []
+  subtasks: []
+  estimated_effort: ~8 days (ETA Mar 28)
+  labels:
+  - ssc
+  - training
+  - v12
+  notes: Run 11d at step 616/5543 (11.1%), loss 1.57. Reduced to 1 epoch (was 3). NF4 GEMM optimizations failed on unified memory (tiling 45% slower, vectorized no speedup — instruction-bound). Delta checkpoints working (5.9GB). 15+ tok/s, MFU 0.49.
+- id: PMAT-170
+  github_issue: null
+  item_type: task
+  title: 'SSC-EVAL: Prepare and run epoch 1 evaluation harness'
+  status: planned
+  priority: critical
+  assigned_to: null
+  created: 2026-03-20T14:00:00Z
+  updated: 2026-03-20T14:00:00Z
+  spec: docs/specifications/shell-safety-inference.md
+  acceptance_criteria:
+  - eval-benchmark runs against step-5543 checkpoint
+  - 'Format compliance measured (Classification: safe/unsafe prefix)'
+  - Binary accuracy and MCC on test split (2,935 entries)
+  - Per-CWE recall reported (SEC-001 through SEC-008)
+  - 'KILL-QLORA-002 gate: accuracy > 50% or kill'
+  phases: []
+  subtasks: []
+  estimated_effort: 2 days
+  labels:
+  - ssc
+  - eval
+  - v12
+  notes: Blocked on Run 11d completion (~Mar 28). Ensure bashrs ssc eval-benchmark works with entrenar CPU inference.
+- id: PMAT-171
+  github_issue: null
+  item_type: task
+  title: 'ENT-283: Fix rollback EMA cold-start + optimizer state checkpointing'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-03-20T14:00:00Z
+  updated: 2026-03-20T14:24:12.328121467+00:00
+  spec: docs/specifications/shell-safety-inference.md
+  acceptance_criteria:
+  - Loss EMA initialized to first observed loss value (not 0.0)
+  - AdamW momentum/variance saved in delta APR checkpoints
+  - Resume from checkpoint continues at same loss level without oscillation
+  phases: []
+  subtasks: []
+  estimated_effort: 3 days
+  labels:
+  - entrenar
+  - training
+  - v12
+  notes: 'Two issues: (1) rollback EMA starts at 0.0, triggers false rollbacks on every resume (cosmetic). (2) Optimizer state not saved — resume loses AdamW momentum, causing loss plateau at 2-5 instead of continuing from 1.5.'
+- id: PMAT-172
+  github_issue: null
+  item_type: task
+  title: 'SSC-PUBLISH: Publish model + benchmark to HuggingFace'
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-03-20T14:00:00Z
+  updated: 2026-03-20T14:00:00Z
+  spec: docs/specifications/shell-safety-inference.md
+  acceptance_criteria:
+  - LoRA adapter published to paiml/shell-safety-qwen3-4b
+  - Benchmark published to paiml/shell-safety-bench
+  - Model card with eval metrics, training details, CWE mapping
+  phases: []
+  subtasks: []
+  estimated_effort: 1 day
+  labels:
+  - ssc
+  - publish
+  - v12
+  notes: Blocked on PMAT-170 (eval must pass first). Only publish if accuracy > 50%.
 - id: SSB-FIX-JSON
   github_issue: null
   item_type: task
