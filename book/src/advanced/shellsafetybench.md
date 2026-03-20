@@ -13,7 +13,8 @@ Stage 2c: Label                  bashrs corpus label
 Stage 2d: Merge + Audit          bashrs corpus merge-data
 Stage 2e: Split + Decontaminate  bashrs corpus export-splits
 Stage 3:  Training               entrenar (Qwen3-4B NF4 QLoRA)
-Stage 4:  Evaluation             bashrs corpus eval-benchmark
+Stage 4a: Batch Inference        bashrs corpus batch-eval
+Stage 4b: Evaluation             bashrs corpus eval-benchmark
 Stage 5:  QA Gate                apr qa --checklist
 Stage 6:  Publish                alimentar hub push + apr publish
 ```
@@ -236,6 +237,23 @@ bashrs corpus export-benchmark --limit 100
 ```
 
 Each entry contains: `id`, `lang`, `cwe`, `rule`, `severity`, `script`, `chosen`, `rejected`, `source`, `conversation_type`.
+
+### batch-eval
+
+Run batch inference on a test split using a trained model checkpoint.
+Produces predictions JSONL compatible with `eval-benchmark`.
+
+```text
+# Run model inference on test split (requires --features ml)
+bashrs corpus batch-eval \
+  --model /path/to/model \
+  --test-data training/shellsafetybench/splits/test.jsonl \
+  --output /tmp/predictions.jsonl \
+  --max-tokens 128
+```
+
+The model loads once, then iterates through test entries with progress reporting.
+Output is `EvalPrediction`-compatible JSONL ready for `eval-benchmark`.
 
 ### eval-benchmark
 
