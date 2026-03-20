@@ -1292,3 +1292,57 @@ fn test_SSB008_eval_benchmark_with_synthetic_predictions() {
         .stdout(predicate::str::contains("detection_f1"))
         .stdout(predicate::str::contains("weighted_score"));
 }
+
+// ============================================================================
+// bashrs corpus batch-eval (SSC v12 S14 — batch inference bridge)
+// ============================================================================
+
+#[test]
+fn test_SSC_batch_eval_requires_ml_feature() {
+    // Without --features ml, batch-eval should fail with a clear message.
+    // We provide valid paths (even though model doesn't exist) to test
+    // the feature gate, not the file loading.
+    let test_data = write_temp_script(
+        r#"{"input": "echo hello", "label": 0}
+{"input": "eval \"$x\"", "label": 1}
+"#,
+    );
+    let output = tempfile::NamedTempFile::new().unwrap();
+    bashrs_cmd()
+        .args([
+            "corpus",
+            "batch-eval",
+            "--model",
+            "/tmp/nonexistent-model",
+            "--test-data",
+            test_data.path().to_str().unwrap(),
+            "--output",
+            output.path().to_str().unwrap(),
+        ])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("ml"));
+}
+
+#[test]
+fn test_SSC_batch_eval_help() {
+    bashrs_cmd()
+        .args(["corpus", "batch-eval", "--help"])
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("--model"))
+        .stdout(predicate::str::contains("--test-data"))
+        .stdout(predicate::str::contains("--output"))
+        .stdout(predicate::str::contains("--max-tokens"));
+}
+
+#[test]
+fn test_SSC_batch_eval_missing_args() {
+    bashrs_cmd()
+        .args(["corpus", "batch-eval"])
+        .assert()
+        .failure()
+        .stderr(predicate::str::contains("--model"))
+        .stderr(predicate::str::contains("--test-data"))
+        .stderr(predicate::str::contains("--output"));
+}
