@@ -768,17 +768,15 @@ roadmap:
 - id: PMAT-171
   github_issue: null
   item_type: task
-  title: 'ENT-283: Fix rollback EMA cold-start + optimizer state checkpointing'
-  status: inprogress
+  title: 'ENT-283: Fix rollback EMA cold-start'
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-03-20T14:00:00Z
-  updated: 2026-03-20T14:24:12.328121467+00:00
+  updated: 2026-03-20T17:00:00Z
   spec: docs/specifications/shell-safety-inference.md
   acceptance_criteria:
   - Loss EMA initialized to first observed loss value (not 0.0)
-  - AdamW momentum/variance saved in delta APR checkpoints
-  - Resume from checkpoint continues at same loss level without oscillation
   phases: []
   subtasks: []
   estimated_effort: 3 days
