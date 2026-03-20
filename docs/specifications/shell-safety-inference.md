@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
 **Version**: 12.30.0
-**Status**: RUN 11d TRAINING — 1 epoch (5,543 steps), step 616/5543 (11.1%), loss 1.57. Resume from checkpoint-600. Vectorized NF4 GEMM (no speedup on unified memory — instruction-bound). ETA ~8 days.
+**Status**: RUN 11d TRAINING — 1 epoch (5,543 steps), step 654/5543 (11.8%), loss 1.57. Resume from checkpoint-600. ETA ~7 days (Mar 27). /kaizen slash command added for continuous implementation.
 **Author**: paiml engineering
 **Date**: 2026-03-20
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -2685,7 +2685,7 @@ Root cause: `compute_attention_cuda()` missing RoPE+QK-norm (Five Whys in `cpu-g
 | 8.3 | CPU/GPU parity test | Unit test: forward(x) on CPU vs GPU, max|diff| < 1e-2 (FALSIFY-PARITY-003) | |
 | 8.4 | Preflight gate (6 checks) | (1) RoPE active, (2) QK-norm active, (3) CPU/GPU parity, (4) LoRA updates, (5) ckpt round-trip, (6) grad clip | |
 | 8.5 | Convert SSB data to ChatML | `bashrs corpus convert-ssb --input splits/train.jsonl -o training/conversations_v4.jsonl` | DONE |
-| 8.6 | Update training config | `training/ssc-chat-qwen3-4b-qlora-v2.yaml` — 22K data, lr=2e-5, 3 epochs, val every 200 steps, early stop | DONE |
+| 8.6 | Update training config | `training/ssc-chat-qwen3-4b-qlora-v2.yaml` — 22K data, lr=5e-6, 1 epoch, val every 200 steps, early stop | DONE |
 | 8.7 | Train Run 8 | `entrenar train training/ssc-chat-qwen3-4b-qlora-v2.yaml` (GB10, --features cuda) | ~24h |
 | 8.8 | Eval on test split (CUDA) | `cargo run --release --example ssc_eval -- --model-dir <ckpt> --data splits/test.jsonl --samples 200` | |
 | 8.9 | Ship or kill | PASS ≥85% accuracy → publish. KILL <50% → architecture insufficient. | |
