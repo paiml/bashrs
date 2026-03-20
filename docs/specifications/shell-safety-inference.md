@@ -1063,7 +1063,7 @@ bashrs safety-check script.sh      # Lint + classify combined (no chat)
 - `bashrs corpus generate-conversations` — S6.4 quality gates (type breakdown, variant balance, empty response check, ChatML system prompt)
 - `bashrs corpus publish-conversations` — HF-ready conversation dataset dir (JSONL + dataset card README)
 - 8 `cargo run --example` programs verified: shell_safety_classifier, explain_demo, baselines, label_audit, generalization_tests, contract_validation, ssc_data_pipeline, ssc_report
-- 43 assert_cmd CLI integration tests (cli_ssc_tests.rs): classify (safe/unsafe/json/makefile/dockerfile/multi-label/nonexistent/probe/model), explain (safe/unsafe/json/det/idem/makefile/nonexistent), fix (dry-run/output/assumptions/safe/nonexistent), safety-check (safe/unsafe/json/makefile/nonexistent), corpus subcommands, CLF-RUN pipeline
+- 71+ assert_cmd CLI integration tests (cli_ssc_tests.rs): classify, explain, fix, safety-check, corpus subcommands, CLF-RUN pipeline, SSB eval/batch-eval, MLP probe inference (43 base + 6 CLI-002 + 19 SSB + 3 batch-eval)
 - 4 provable-contracts YAML files created (S4.3.1): bidirectional-attention-v1, learned-position-embedding-v1, encoder-forward-v1, linear-probe-classifier-v1
 - SSC report optimized: keyword heuristic for conversation sampling (4+ min → 1.8s), shared corpus/baseline data (eliminated double corpus load via `corpus_baseline_entries_from()`, PMAT-152)
 - **Stage 0 COMPLETE**: All encoder components (ENC-001..008) implemented in entrenar with 30 tests. GitHub: paiml/entrenar#242
