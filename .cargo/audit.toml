@@ -7,6 +7,5 @@ ignore = []
 # Treat unmaintained crates as warnings, not errors
 informational_warnings = ["unmaintained"]
 
-[output]
-# Output format
-deny = ["yanked"]
+[yanked]
+enabled = true
