@@ -1832,6 +1832,8 @@ Subcommands for managing the SSC training corpus.
 | `publish-dataset` | Generate HuggingFace-ready dataset directory |
 | `ssc-report` | Comprehensive SSC readiness report |
 | `generate-conversations` | Generate synthetic training conversations |
+| `batch-eval` | Run batch model inference on test split (requires `ml` feature) |
+| `eval-benchmark` | Evaluate model predictions against benchmark |
 
 ### Examples
 
@@ -1858,6 +1860,16 @@ bashrs corpus ssc-report --json
 
 # Conversations
 bashrs corpus generate-conversations --output conversations.jsonl
+
+# Batch model inference (requires --features ml)
+bashrs corpus batch-eval \
+  --model /path/to/model \
+  --test-data test.jsonl \
+  --output predictions.jsonl
+
+# Evaluate predictions
+bashrs corpus eval-benchmark --predictions predictions.jsonl
+bashrs corpus eval-benchmark --predictions predictions.jsonl --json
 ```
 
 ---
