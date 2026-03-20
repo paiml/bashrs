@@ -1674,6 +1674,25 @@ pub enum CorpusCommands {
         #[arg(short, long, default_value = "42")]
         seed: u64,
     },
+
+    /// Run batch inference on test split using a trained model checkpoint (SSC v12 S14)
+    BatchEval {
+        /// Path to model directory (config.json + safetensors + optional LoRA adapter)
+        #[arg(short, long)]
+        model: std::path::PathBuf,
+
+        /// Path to test JSONL file (entries with "input" and "label" fields)
+        #[arg(short, long)]
+        test_data: std::path::PathBuf,
+
+        /// Output predictions JSONL path (compatible with eval-benchmark)
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+
+        /// Maximum tokens to generate per entry (default: 128)
+        #[arg(long, default_value = "128")]
+        max_tokens: usize,
+    },
 }
 
 /// Script format for classify command (SSC-022)

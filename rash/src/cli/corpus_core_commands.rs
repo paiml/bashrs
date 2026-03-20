@@ -441,6 +441,12 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::TierAnalysis => super::corpus_config_commands::corpus_tier_analysis(),
         CorpusCommands::TierTargets => super::corpus_config_commands::corpus_tier_targets(),
         CorpusCommands::Version => super::corpus_metrics_commands::corpus_version(),
+        CorpusCommands::BatchEval {
+            model,
+            test_data,
+            output,
+            max_tokens,
+        } => super::corpus_config_commands::corpus_batch_eval(model, test_data, output, max_tokens),
         // Handled in parent dispatchers
         _ => unreachable!(),
     }
