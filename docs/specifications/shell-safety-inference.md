@@ -2850,10 +2850,10 @@ The NF4 GEMM kernel is **fundamentally instruction-limited** on unified memory. 
 
 ### 17.1. Immediate (during Run 11d training, ~8 days)
 
-1. **Monitor Run 11d** — step 616/5543, loss 1.57, ~8 days to completion. Watch for divergence, checkpoint saves, GPU contention.
-2. **Fix PTX disk caching** — cuLinkCreate fails on Blackwell; debug the linker API or use `cuModuleGetData`-equivalent. Each restart wastes 35 min on JIT warmup.
-3. **Prepare eval harness** — ensure `bashrs ssc eval-benchmark` works against the step-5543 checkpoint. Test format compliance ("Classification: safe/unsafe"), accuracy on held-out test split (2,935 entries), and generalization.
-4. **Fix rollback EMA cold-start** — file ENT-283: initialize loss EMA to first observed loss value instead of 0.0. Cosmetic but noisy in logs.
+1. **Monitor Run 11d** — step 668/5543 (12.1%), loss 1.87 at step 655, ~7 days to completion. Watch for divergence, checkpoint saves, GPU contention.
+2. ~~**Fix PTX disk caching**~~ DONE — auto-detect target for Blackwell linker (trueno `aec5139`). Awaiting test on next restart.
+3. ~~**Prepare eval harness**~~ DONE — `bashrs corpus batch-eval` command added (bashrs `e612fcd`). Loads model, runs batch inference, produces EvalPrediction JSONL for `eval-benchmark`.
+4. ~~**Fix rollback EMA cold-start**~~ DONE — ENT-283 fix committed (entrenar `8135371`, GH #292). Loss EMA seeded to first observed loss.
 
 ### 17.2. Post-training evaluation (~day 8-9)
 
