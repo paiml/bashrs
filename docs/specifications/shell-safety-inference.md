@@ -3090,3 +3090,23 @@ PyTorch and entrenar load the same Qwen3-4B weights from the same safetensors, a
 | entrenar | 9.3 GB | Per-layer forward/backward, no autograd graph |
 | PyTorch (no grad ckpt) | 53.5 GB | Stores all 36 layers' activations |
 | PyTorch (grad ckpt) | ~10 GB | Recomputes activations, matches entrenar |
+
+### 18.9. bitsandbytes source code analysis (READ THE SOURCE)
+
+**Key files read** (cloned to `/home/noah/src/bitsandbytes/`):
+- `autograd/_functions.py:300-356` — `MatMul4Bit` forward/backward
+- `csrc/kernels.cu:26-43` — NF4 CUDA dequantization LUT (sequential 0-15, matches trueno)
+- `csrc/kernels.cu:517-522` — nibble unpack: `HIGH >> 4` → even, `LOW & 0xF` → odd
+
+**What bitsandbytes does** (`MatMul4Bit.forward`, line 320):
+```
+output = F.linear(A, F.dequantize_4bit(B, quant_state).to(A.dtype).t(), bias)
+```
+1. `dequantize_4bit(B)` → full tensor `[N, K]`
+2. `.to(A.dtype)` → cast to bf16
+3. `.t()` → transpose view to `[K, N]` (zero-copy)
+4. `F.linear(A, W_t)` → `A @ W_t.T` = `A @ W` via cuBLAS
+
+**Backward** (line 354): same — dequant, cast, transpose, matmul. Dequantizes EVERY pass.
+
+**cuBLAS status**: 5 attempts failed. Contract `nf4-cublas-parity-v2.yaml` with 5 FALSIFY tests to isolate failure to a single GEMM. Run 12 training on fused kernel while debugging.
