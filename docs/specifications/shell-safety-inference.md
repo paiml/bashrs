@@ -2942,7 +2942,7 @@ Compare against entrenar's Run 11 (steps 0-500, fresh start):
 
 **Adapter saved**: 23MB PEFT adapter at `/training/checkpoints/canary-pytorch/adapter/` — ready for eval.
 
-### 18.7. Root cause analysis: NF4 codebook mapping bug (Five Whys)
+### 18.7. Root cause analysis: forward pass loss gap (Five Whys, revised)
 
 1. **Why is step 1 loss 3.64 higher in entrenar?** → NF4 dequantized weights produce different values
 2. **Why different values?** → Different codebook index mapping between trueno and bitsandbytes
@@ -2966,10 +2966,19 @@ Compare against entrenar's Run 11 (steps 0-500, fresh start):
 
 The 16 codebook VALUES are identical (from the same normal distribution quantiles, per Dettmers et al. arXiv:2305.14314). But the nibble-to-index MAPPING differs. When trueno reads a nibble value of 8 from bitsandbytes-quantized weights, it incorrectly looks up `NF4_LUT[8] = 0.0796` when the weight was actually quantized to represent `NF4_LUT[248 & 0xF]` in bnb's encoding.
 
-**Impact**: Every positive weight in the model dequantizes to a wrong value. This corrupts ~50% of the 4B parameters, explaining the 3.64 loss gap and 3-4x slower convergence.
+**FALSIFIED**: The codebook index mapping hypothesis was wrong. Trueno's self-consistent quantize→dequantize cycle finds the same nearest codebook value regardless of LUT ordering. The nibble indices differ but the dequantized values are identical.
 
-**Tickets filed**: trueno#195, entrenar#298
-**Contract**: `nf4-codebook-parity-v1.yaml` (5 FALSIFY tests)
+**Revised root cause candidates** (step 1 loss: 15.50 vs 11.86):
+
+1. **Data sampling**: entrenar batch_size=4, canary batch_size=2 — different examples in step 1. The 3.64 gap may be a data artifact.
+2. **Pad token masking**: Both compute loss on padding, but HuggingFace auto-shifts labels. Verified: pad masking changes loss from 5.45 to 2.54 on the same example (2.14x).
+3. **Compute dtype**: bitsandbytes uses bfloat16 for GEMM after NF4 dequant. Trueno uses f32. Accumulation differences across 36 layers.
+4. **Attention implementation**: HuggingFace uses SDPA/Flash Attention. Trueno uses manual matmul attention.
+
+**Key insight from pad masking test**: Loss(all tokens) = 5.45, Loss(text only) = 2.54 for the same input. Pad masking alone can explain a 2x loss difference. The remaining 1.7x gap (adjusted for batch composition) is within range of compute dtype + attention implementation differences.
+
+**Updated tickets**: trueno#195 (revised), entrenar#298
+**Contract**: `nf4-codebook-parity-v1.yaml` — FALSIFY-NF4-001/002 now expected PASS
 **Reference**: Dettmers et al., "QLoRA: Efficient Finetuning of Quantized LLMs", arXiv:2305.14314 (2023)
 
 ### 18.8. Root cause analysis: 74x throughput gap (Five Whys)
