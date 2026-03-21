@@ -2922,15 +2922,17 @@ Log every step to `canary_log.jsonl`:
 
 Compare against entrenar's Run 11 (steps 0-500, fresh start):
 
-| Step | Entrenar loss | PyTorch loss | Delta |
-|------|--------------|-------------|-------|
-| 1 | 15.50 | ? | ? |
-| 55 | 15.71 | ? | ? |
-| 110 | 11.40 | ? | ? |
-| 220 | 6.24 | ? | ? |
-| 330 | 2.95 | ? | ? |
-| 440 | 1.56 | ? | ? |
-| 500 | ~1.3 | ? | ? |
+| Step | Entrenar loss | PyTorch loss | Delta | Notes |
+|------|--------------|-------------|-------|-------|
+| 1 | 15.50 | **12.08** | **-3.42** | PyTorch 28% lower — forward pass divergence |
+| 2 | — | **5.57** | — | Massive single-step drop (entrenar never shows this) |
+| 3 | — | **6.72** | — | Normal oscillation after step 2 |
+| 55 | 15.71 | ? | ? | |
+| 110 | 11.40 | ? | ? | |
+| 220 | 6.24 | ? | ? | |
+| 330 | 2.95 | ? | ? | |
+| 440 | 1.56 | ? | ? | |
+| 500 | ~1.3 | ? | ? | |
 
 ### 18.4. Decision matrix
 
@@ -2946,4 +2948,19 @@ Compare against entrenar's Run 11 (steps 0-500, fresh start):
 - **No pip install** — use `uv run --with torch,transformers,peft,bitsandbytes,accelerate`
 - Script: `training/canary_pytorch.py` (~100 lines)
 - Output: `training/checkpoints/canary-pytorch/canary_log.jsonl`
-- Duration: ~2-4 hours for 500 steps (estimated 5-10x faster than entrenar)
+- Duration: ~130s/step on GB10 (same as entrenar — unified memory neutralizes Flash Attention)
+
+### 18.6. Early findings (step 1-3)
+
+**CRITICAL: Step 1 loss gap of 3.42 (12.08 vs 15.50)**
+
+PyTorch and entrenar load the same Qwen3-4B weights from the same safetensors, apply the same NF4 quantization, and add the same LoRA (rank=16, alpha=32, Q+V). Yet the first forward pass produces different cross-entropy loss. This means the forward computation itself differs.
+
+**Candidate root causes** (to investigate with five-whys):
+
+1. **Pad token masking** — PyTorch's `labels` field auto-masks padding (label=-100 excluded from CE). Entrenar may compute CE over pad tokens, inflating loss.
+2. **Label shifting** — Causal LM training shifts labels by 1 (predict next token). If entrenar doesn't shift, the model sees trivial self-prediction mixed with real prediction, changing loss.
+3. **NF4 dequantization precision** — bitsandbytes uses fp16 compute dtype. Entrenar uses f32 with custom NF4 kernel. Precision differences accumulate across 36 layers.
+4. **Attention mask** — PyTorch handles causal mask + padding mask automatically. Entrenar may only apply causal mask, letting the model attend to padding.
+
+**Throughput finding**: PyTorch on GB10 = ~130s/step = ~15.6 tok/s. This is the SAME as entrenar. The NF4 GEMM is not the bottleneck on unified memory — the memory bandwidth is. Flash Attention provides no benefit when global memory and L2 cache are the same physical DRAM.
