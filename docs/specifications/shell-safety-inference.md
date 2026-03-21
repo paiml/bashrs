@@ -2963,4 +2963,20 @@ PyTorch and entrenar load the same Qwen3-4B weights from the same safetensors, a
 3. **NF4 dequantization precision** — bitsandbytes uses fp16 compute dtype. Entrenar uses f32 with custom NF4 kernel. Precision differences accumulate across 36 layers.
 4. **Attention mask** — PyTorch handles causal mask + padding mask automatically. Entrenar may only apply causal mask, letting the model attend to padding.
 
-**Throughput finding**: PyTorch on GB10 = ~130s/step = ~15.6 tok/s. This is the SAME as entrenar. The NF4 GEMM is not the bottleneck on unified memory — the memory bandwidth is. Flash Attention provides no benefit when global memory and L2 cache are the same physical DRAM.
+**Throughput finding**: PyTorch on GB10 = ~64s/step at batch_size=2 with gradient checkpointing (15.9 tok/s). At batch_size=4 without gradient checkpointing, ~130s/step (~18 tok/s) before OOM crash.
+
+**Canary crash (five-whys)**:
+1. Why crash? → Silent death at step ~30, twice
+2. Why silent? → CUDA OOM doesn't print to stdout, process exits
+3. Why OOM? → 53.5GB base + autograd activations growing each step
+4. Why all activations stored? → No `gradient_checkpointing_enable()` called
+5. Root fix → Enable gradient checkpointing (recompute activations in backward pass, trades ~30% compute for ~60% memory reduction)
+
+**Key insight for entrenar**: Entrenar uses 9.3GB for the same model because it recomputes activations per-layer by design (no autograd graph). This is effectively built-in gradient checkpointing — a genuine advantage of the sovereign stack. PyTorch needs explicit opt-in via `model.gradient_checkpointing_enable()`.
+
+**Memory comparison**:
+| Stack | GPU memory | Why |
+|-------|-----------|-----|
+| entrenar | 9.3 GB | Per-layer forward/backward, no autograd graph |
+| PyTorch (no grad ckpt) | 53.5 GB | Stores all 36 layers' activations |
+| PyTorch (grad ckpt) | ~10 GB | Recomputes activations, matches entrenar |
