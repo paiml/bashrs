@@ -1,9 +1,9 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.30.0
-**Status**: RUN 11d TRAINING — 1 epoch (5,543 steps), step 654/5543 (11.8%), loss 1.57. Resume from checkpoint-600. ETA ~7 days (Mar 27). /kaizen slash command added for continuous implementation.
+**Version**: 12.31.0
+**Status**: READY FOR RUN 12 — Run 11d stopped at step 1111/5543 (loss oscillating 2-5 from optimizer state loss on resume). Run 12 will be a clean fresh start with ENT-283 binary. ETA ~8.3 days from start.
 **Author**: paiml engineering
-**Date**: 2026-03-20
+**Date**: 2026-03-21
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
 **HuggingFace Repos**:
   - `paiml/shell-safety-qwen3-4b` (Qwen3-4B NF4 QLoRA adapter for shell/Makefile/Dockerfile security)
@@ -2751,6 +2751,7 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.28** | **2026-03-18** | **Run 11 RUNNING on GB10 with ENT-282 binary. Fresh start (no resume — resume OOM'd on 128GB unified memory loading 20GB checkpoint + base model). Step 486/16629 (2.9%), loss 1.558 at step 440 (new best, beats Run 10's 1.59). Delta checkpoints working: step-200 and step-400 saved at 5.9GB each (vs 20GB before). PAST THE CRASH ZONE: Runs 9+10 both crashed at step 450-600 from checkpoint OOM. GPU: 9.2GB, 96% util, exclusive access (killed competing apr eval benchmark + watchdog). Speed: ~12.5 tok/s, 130s/step, MFU 0.36. ETA ~24 days for 3 epochs. Loss trajectory: 15.5→11.4→9.46→6.24→4.04→2.95→2.14→1.558. Infrastructure bugs found in Runs 9-11: ENT-276 (LoRA save/restore), ENT-282 (delta checkpoints), apr eval benchmark GPU contention, rollback EMA cold-start false positives.** |
 | **12.29** | **2026-03-18** | **Added Section 16: Training Lessons Learned. Codified 7 hard-won insights from 11 training runs. Run 11 at step 522, loss 2.34 at step 495 (normal noise after best of 1.558 at step 440).** |
 | **12.30** | **2026-03-20** | **NF4 GEMM optimization campaign (trueno#187): 3 approaches tested on GB10 unified memory. (1) Shared memory tiling: 45% SLOWER (barrier overhead > bandwidth savings when shared/global are same DRAM). (2) Vectorized dequant + register LUT: NO SPEEDUP (15 selp/lookup offsets iteration savings — kernel is instruction-bound, not memory-bound). (3) Reduced to 1 epoch: 5,543 steps (was 16,629), ETA 8 days (was 24). Key insight: NF4 scalar dequantization on unified memory is fundamentally instruction-limited; tensor core integration (WMMA) is the only path to significant speedup but requires kernel restructuring. Run 11d at step 616, loss 1.57, 15+ tok/s, MFU 0.49. Section 16.8 added: Unified memory negates classical GPU optimizations. Section 17 added: Recommended next steps.** |
+| **12.31** | **2026-03-21** | **Run 11d STOPPED at step 1111/5543. Loss oscillating 2-5 (never recovered to pre-crash 1.2-1.6 range). Five-whys: (1) Why oscillating? AdamW has no momentum/variance. (2) Why no momentum? Optimizer state not saved in delta checkpoints. (3) Why not saved? ENT-282 focused on model weights + LoRA only. (4) Why does it matter? Without momentum, gradient noise dominates → loss plateau. (5) Root cause: delta checkpoint saves weights but not optimizer state (ENT-284, entrenar#293). Decision: restart fresh (Run 12) rather than continue with degraded model. Cost: 1.6 extra days. Benefit: loss converges to 1.2-1.5 (proven by Runs 9/10/11 pre-crash). Run 12 uses ENT-283 binary (no false rollbacks). Section 16.9 added.** |
 
 ## 16. Training Lessons Learned (11 Runs, 9 Infrastructure Fixes)
 
@@ -2846,14 +2847,30 @@ The NF4 GEMM kernel is **fundamentally instruction-limited** on unified memory. 
 
 **Practical mitigation**: Reduce training to 1 epoch (5,543 steps, ~8 days) instead of optimizing the kernel for a one-time training run.
 
+### 16.9. Optimizer state is as important as model weights
+
+Run 11d demonstrated that saving model weights + LoRA adapters without optimizer state produces a visibly degraded training run. The loss trajectory tells the story:
+
+| Phase | Steps | Loss range | Optimizer state |
+|-------|-------|-----------|-----------------|
+| Run 11 fresh (step 0-440) | 440 | 15.5 → 1.56 | Clean (initialized at step 0) |
+| Run 11 fresh (step 440-715) | 275 | 1.56 → 1.24 | Clean (continued) |
+| Run 11d resume (step 601-655) | 54 | 1.89 → 1.87 | **Lost** (checkpoint had no optimizer) |
+| Run 11d continue (step 655-1095) | 440 | 1.87 → 5.33 | Re-accumulating from scratch |
+
+With clean optimizer, loss reaches 1.24 by step 715. Without optimizer, loss at step 1095 is 5.33 — **4x worse at the same effective training distance**. The model weights are correct but gradients are noisy without AdamW's exponential moving average of past gradients (momentum) and squared gradients (variance).
+
+**Lesson**: Delta checkpoints must include optimizer state. Filed as ENT-284 (entrenar#293). Until fixed, fresh starts are preferable to resumes for training quality.
+
 ## 17. Recommended Next Steps
 
-### 17.1. Immediate (during Run 11d training, ~8 days)
+### 17.1. Immediate (Run 12 preparation)
 
-1. **Monitor Run 11d** — step 668/5543 (12.1%), loss 1.87 at step 655, ~7 days to completion. Watch for divergence, checkpoint saves, GPU contention.
-2. ~~**Fix PTX disk caching**~~ DONE — auto-detect target for Blackwell linker (trueno `aec5139`). Awaiting test on next restart.
-3. ~~**Prepare eval harness**~~ DONE — `bashrs corpus batch-eval` command added (bashrs `e612fcd`). Loads model, runs batch inference, produces EvalPrediction JSONL for `eval-benchmark`.
-4. ~~**Fix rollback EMA cold-start**~~ DONE — ENT-283 fix committed (entrenar `8135371`, GH #292). Loss EMA seeded to first observed loss.
+1. **Start Run 12 fresh** — clean optimizer, ENT-283 binary (no false rollbacks), 1 epoch (5,543 steps), ~8.3 days. Loss should converge to 1.2-1.5 as in Runs 9/10/11 pre-crash.
+2. ~~**Fix PTX disk caching**~~ DONE — auto-detect target for Blackwell linker (trueno `aec5139`). Test on Run 12 startup.
+3. ~~**Prepare eval harness**~~ DONE — `bashrs corpus batch-eval` + `eval-benchmark` ready.
+4. ~~**Fix rollback EMA cold-start**~~ DONE — ENT-283 (entrenar `8135371`).
+5. **Monitor Run 12** — watch for loss convergence below 2.0 by step 400, below 1.5 by step 600.
 
 ### 17.2. Post-training evaluation (~day 8-9)
 
