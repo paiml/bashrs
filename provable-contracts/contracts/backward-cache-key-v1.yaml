@@ -1,0 +1,37 @@
+contract:
+  name: backward-cache-key-v1
+  version: "1.0.0"
+  description: >
+    Provable contract: backward kernel cache keys must be unique per kernel.
+    Root cause of cuBLAS loss=0.0: warm! macro used hardcoded "silu_backward"
+    for ALL kernel cache keys, causing wrong kernel to be loaded at runtime.
+    Five-whys traced from loss=0.0 → CUDA context poisoned → silu_backward
+    JIT failure → cache key collision → copy-paste bug in warm! macro.
+  spec: docs/specifications/shell-safety-inference.md
+  section: "S18"
+  references:
+    - "trueno#200 — silu_backward PTX fails on Blackwell"
+    - "entrenar#300 — ENT-287 cuBLAS integration"
+    - "GH-480 — Blackwell backward branch JIT bug"
+
+tests:
+  - id: FALSIFY-CACHE-001
+    name: "warm! macro uses $key not hardcoded string"
+    description: >
+      Grep the backward cache warming code for hardcoded kernel names
+      inside the warm! macro. The macro must use $key parameter.
+      If any hardcoded string is found, the bug has regressed.
+    prediction: PASS
+    if_fails: "warm! macro has hardcoded key — all kernels cached under same name"
+    severity: critical
+
+  - id: FALSIFY-CACHE-002
+    name: "Each backward kernel has a unique cache key"
+    description: >
+      After warming, the cache must contain distinct entries for:
+      silu_backward, gelu_backward, relu_backward, gemm_backward_a_*,
+      gemm_backward_b_*, rms_norm_backward, etc.
+      Count unique keys >= number of distinct kernel types.
+    prediction: PASS
+    if_fails: "Cache key collision — multiple kernels stored under same key"
+    severity: critical
