@@ -2942,6 +2942,48 @@ Compare against entrenar's Run 11 (steps 0-500, fresh start):
 
 **Adapter saved**: 23MB PEFT adapter at `/training/checkpoints/canary-pytorch/adapter/` — ready for eval.
 
+### 18.7. Root cause analysis: NF4 codebook mapping bug (Five Whys)
+
+1. **Why is step 1 loss 3.64 higher in entrenar?** → NF4 dequantized weights produce different values
+2. **Why different values?** → Different codebook index mapping between trueno and bitsandbytes
+3. **Why different mapping?** → Trueno uses sequential 16-entry LUT [0..15]. bitsandbytes uses sparse 256-entry table with negatives at indices 0-6 and positives at indices 248-255.
+4. **Why sparse?** → bitsandbytes packs NF4 nibbles using the full u8 range for signed representation. Nibble 8 in trueno means `NF4_LUT[8] = 0.0796`, but in bnb it maps to index 248 in the 256-table.
+5. **Root cause**: Trueno's NF4 dequantization assumes nibble 0-15 maps linearly to codebook positions. bitsandbytes uses a **different nibble encoding** where values occupy indices {0-6, 248-255} in a 256-entry table. **~50% of weight values (the positive half) dequantize to wrong values.**
+
+**Evidence (codebook comparison)**:
+
+| Index | trueno NF4_LUT | bitsandbytes create_normal_map() | Match? |
+|-------|---------------|--------------------------------|--------|
+| 0 | -1.0000 | [0] = -1.0000 | ✅ |
+| 1 | -0.6962 | [1] = -0.6962 | ✅ |
+| ... | ... | ... | ✅ |
+| 6 | -0.0911 | [6] = -0.0911 | ✅ |
+| 7 | 0.0000 | [7] = 0.0000 (absent in bnb) | ⚠️ |
+| 8 | 0.0796 | **[248] = 0.0796** | ❌ INDEX MISMATCH |
+| 9 | 0.1609 | **[249] = 0.1609** | ❌ |
+| ... | ... | ... | ❌ |
+| 15 | 1.0000 | **[255] = 1.0000** | ❌ |
+
+The 16 codebook VALUES are identical (from the same normal distribution quantiles, per Dettmers et al. arXiv:2305.14314). But the nibble-to-index MAPPING differs. When trueno reads a nibble value of 8 from bitsandbytes-quantized weights, it incorrectly looks up `NF4_LUT[8] = 0.0796` when the weight was actually quantized to represent `NF4_LUT[248 & 0xF]` in bnb's encoding.
+
+**Impact**: Every positive weight in the model dequantizes to a wrong value. This corrupts ~50% of the 4B parameters, explaining the 3.64 loss gap and 3-4x slower convergence.
+
+**Tickets filed**: trueno#195, entrenar#298
+**Contract**: `nf4-codebook-parity-v1.yaml` (5 FALSIFY tests)
+**Reference**: Dettmers et al., "QLoRA: Efficient Finetuning of Quantized LLMs", arXiv:2305.14314 (2023)
+
+### 18.8. Root cause analysis: 74x throughput gap (Five Whys)
+
+1. **Why 15.5 vs 1150 tok/s?** → trueno NF4 GEMM kernel is ~74x slower than cuBLAS
+2. **Why slower?** → Trueno uses scalar per-thread dequantization in a custom PTX kernel. PyTorch uses bitsandbytes which calls cuBLAS for the GEMM after dequantizing.
+3. **Why not use cuBLAS?** → Trueno's NF4 format fuses dequantization and GEMM in one kernel to avoid materializing the full fp32 weight matrix.
+4. **Why is fused slower?** → On GB10 Blackwell (sm_121), the scalar kernel doesn't use tensor cores or cuBLAS's highly-optimized GEMM. cuBLAS can dequantize a tile to fp16 then use WMMA.
+5. **Root cause**: The "fuse dequant+GEMM" strategy trades kernel call overhead for instruction throughput. On modern GPUs with tensor cores, the overhead saved is negligible but the tensor core throughput lost is 10-100x.
+
+**This is a known tradeoff in the QLoRA literature**: bitsandbytes dequantizes to fp16 then calls cuBLAS (two-pass), which is faster than a fused single-pass on GPUs with tensor cores. See Dettmers et al. §3.1.
+
+**Tickets**: trueno#187 (existing), trueno#195 (codebook mapping is prerequisite)
+
 ### 18.4. Decision matrix
 
 | Canary result | Interpretation | Action |

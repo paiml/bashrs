@@ -1,0 +1,64 @@
+contract:
+  name: nf4-codebook-parity-v1
+  version: "1.0.0"
+  description: >
+    Falsification contract: verify trueno NF4 codebook mapping matches bitsandbytes.
+    Root cause of 3.64 loss gap at step 1 (15.50 vs 11.86).
+    See trueno#195, ENT-285, arXiv:2305.14314 (QLoRA, Dettmers et al. 2023).
+  spec: docs/specifications/shell-safety-inference.md
+  section: "S18.6"
+  references:
+    - "arXiv:2305.14314 — QLoRA: Efficient Finetuning of Quantized LLMs"
+    - "trueno#195 — NF4 codebook mapping incompatible with bitsandbytes"
+    - "entrenar#298 — NF4 weight loading uses wrong codebook mapping"
+
+tests:
+  - id: FALSIFY-NF4-001
+    name: "NF4 codebook values match bitsandbytes"
+    description: >
+      trueno NF4_LUT[0..15] values must match bitsandbytes create_normal_map()
+      non-zero entries in order. Values identical, mapping must agree.
+    prediction: FAIL
+    if_fails: "Codebook values diverge — trueno uses different quantile computation"
+    severity: critical
+
+  - id: FALSIFY-NF4-002
+    name: "NF4 nibble encoding matches bitsandbytes packing"
+    description: >
+      Given a weight value w, quantize with trueno and bitsandbytes independently.
+      The resulting nibble value must be identical for all 16 codebook entries.
+      If nibble 8 in trueno maps to 0.0796 but nibble 8 in bnb maps to 0.0,
+      the encoding is incompatible.
+    prediction: FAIL
+    if_fails: "Nibble encoding differs — trueno quantizes weights to different nibble indices than bitsandbytes"
+    severity: critical
+
+  - id: FALSIFY-NF4-003
+    name: "Dequantized weight parity: trueno vs bitsandbytes"
+    description: >
+      Load the same safetensors weight (e.g., model.layers.0.self_attn.q_proj.weight),
+      quantize to NF4 with both trueno and bitsandbytes, then dequantize.
+      Max absolute difference must be < 0.01.
+    prediction: FAIL
+    if_fails: "Dequantized weights diverge > 0.01 — confirms the codebook mapping bug"
+    severity: critical
+
+  - id: FALSIFY-NF4-004
+    name: "Forward pass loss parity after codebook fix"
+    description: >
+      After fixing the codebook mapping (trueno#195), run a single forward pass
+      with identical inputs. Loss must match PyTorch within 0.5 (11.86 ± 0.5).
+      Current entrenar loss: 15.50 (gap: 3.64).
+    prediction: PASS_AFTER_FIX
+    if_fails: "Additional forward pass bugs beyond codebook mapping"
+    severity: high
+
+  - id: FALSIFY-NF4-005
+    name: "Throughput gap is NOT caused by codebook mapping"
+    description: >
+      The 74x throughput gap (15.5 vs 1150 tok/s) is independent of
+      codebook mapping. This is a kernel performance issue (NF4 scalar
+      dequant vs cuBLAS), not a correctness issue.
+    prediction: PASS
+    if_fails: "Throughput gap has additional causes beyond kernel performance"
+    severity: medium
