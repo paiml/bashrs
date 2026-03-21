@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """PyTorch canary training — ground truth for entrenar comparison.
 
-Usage: uv run --with 'torch,transformers,peft,bitsandbytes,accelerate,datasets' canary_pytorch.py
+Usage (CUDA): uv run --index-url https://download.pytorch.org/whl/cu130 \
+              --with 'torch,transformers,peft,bitsandbytes,accelerate' canary_pytorch.py
 
 Replicates entrenar's exact config: Qwen3-4B NF4 QLoRA, lr=5e-6, cosine decay,
 warmup=100, batch_size=4, seq_len=512, grad_clip=1.0, LoRA rank=16 on Q+V.

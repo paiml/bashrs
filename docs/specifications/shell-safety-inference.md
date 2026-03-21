@@ -2924,15 +2924,23 @@ Compare against entrenar's Run 11 (steps 0-500, fresh start):
 
 | Step | Entrenar loss | PyTorch loss | Delta | Notes |
 |------|--------------|-------------|-------|-------|
-| 1 | 15.50 | **12.08** | **-3.42** | PyTorch 28% lower — forward pass divergence |
-| 2 | — | **5.57** | — | Massive single-step drop (entrenar never shows this) |
-| 3 | — | **6.72** | — | Normal oscillation after step 2 |
-| 55 | 15.71 | ? | ? | |
-| 110 | 11.40 | ? | ? | |
-| 220 | 6.24 | ? | ? | |
-| 330 | 2.95 | ? | ? | |
-| 440 | 1.56 | ? | ? | |
-| 500 | ~1.3 | ? | ? | |
+| 1 | 15.50 | 11.86 | **-3.64** | Forward pass divergence confirmed |
+| 10 | — | 11.85 | — | Warmup, lr=5e-7 |
+| 50 | — | 11.44 | — | Still warming up |
+| 100 | — | 3.17 | — | Warmup ends, rapid convergence |
+| 110 | **11.40** | **2.09** | **-9.31** | PyTorch 5.5x lower at same step |
+| 150 | — | 2.00 | — | |
+| 200 | — | 1.35 | — | |
+| 220 | **6.24** | ~1.3 | **-4.9** | |
+| 300 | — | 1.15 | — | |
+| 330 | **2.95** | ~1.2 | **-1.8** | |
+| 400 | — | 1.07 | — | |
+| 440 | **1.56** | 1.36 | **-0.20** | Converging to same floor |
+| 500 | ~1.3 | **1.35** | ~0 | **Final loss matches** |
+
+**CRITICAL FINDING**: Both stacks converge to the same loss (~1.3) but PyTorch arrives in **445 seconds** vs entrenar's **~65,000 seconds (18 hours)**. The 74x throughput gap (1,150 vs 15.5 tok/s) is the dominant factor. Entrenar's loss at step 110 (11.40) vs PyTorch's (2.09) shows entrenar needs 3-4x MORE steps to reach the same loss level — combined with 74x slower steps, this means entrenar takes ~200-300x longer wall time to reach the same model quality.
+
+**Adapter saved**: 23MB PEFT adapter at `/training/checkpoints/canary-pytorch/adapter/` — ready for eval.
 
 ### 18.4. Decision matrix
 
