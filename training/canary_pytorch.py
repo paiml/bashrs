@@ -16,7 +16,7 @@ MODEL_DIR = "/home/noah/src/models/qwen3-4b/"
 DATA_PATH = "/home/noah/src/bashrs/training/conversations_v4.jsonl"
 OUTPUT_DIR = "/home/noah/src/bashrs/training/checkpoints/canary-pytorch"
 MAX_STEPS = 500
-BATCH_SIZE = 4
+BATCH_SIZE = 2  # Reduced from 4 — GB10 unified memory leaks on crash, need margin
 SEQ_LEN = 512
 LR = 5e-6
 WARMUP_STEPS = 100
@@ -58,10 +58,21 @@ def main():
         bias="none",
         task_type=TaskType.CAUSAL_LM,
     )
+    # Enable gradient checkpointing BEFORE wrapping with LoRA.
+    # Five-whys: canary crashed silently at step ~30.
+    # 1. Why crash? → CUDA OOM (53GB base + autograd activations)
+    # 2. Why OOM? → PyTorch stores all layer activations for backward pass
+    # 3. Why all activations? → No gradient checkpointing enabled
+    # 4. Why does entrenar not have this problem? → entrenar recomputes activations per-layer
+    # 5. Root fix → model.gradient_checkpointing_enable() trades compute for memory
+    model.gradient_checkpointing_enable()
+    model.enable_input_require_grads()  # Required for gradient checkpointing with LoRA
+
     model = get_peft_model(model, lora_config)
     trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     total = sum(p.numel() for p in model.parameters())
     print(f"Trainable: {trainable:,} / {total:,} ({100*trainable/total:.2f}%)")
+    print(f"Gradient checkpointing: ENABLED")
 
     # --- Tokenizer ---
     tokenizer = AutoTokenizer.from_pretrained(MODEL_DIR, trust_remote_code=True)
@@ -133,10 +144,14 @@ def main():
         input_ids = batch["input_ids"].to(model.device)
         labels = batch["labels"].to(model.device)
 
-        outputs = model(input_ids=input_ids, labels=labels)
-        loss = outputs.loss
-
-        loss.backward()
+        try:
+            outputs = model(input_ids=input_ids, labels=labels)
+            loss = outputs.loss
+            loss.backward()
+        except RuntimeError as e:
+            print(f"\n*** CUDA ERROR at step {step+1}: {e}", flush=True)
+            import traceback; traceback.print_exc()
+            break
 
         # Grad clip
         grad_norm = torch.nn.utils.clip_grad_norm_(
