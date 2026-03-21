@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.31.0
-**Status**: READY FOR RUN 12 — Run 11d stopped at step 1111/5543 (loss oscillating 2-5 from optimizer state loss on resume). Run 12 will be a clean fresh start with ENT-283 binary. ETA ~8.3 days from start.
+**Version**: 12.32.0
+**Status**: CANARY RUN — PyTorch canary (500 steps, ~2-4h via uv) to establish ground truth before Run 12. Compare loss curves, throughput, eval quality against entrenar.
 **Author**: paiml engineering
 **Date**: 2026-03-21
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -2752,6 +2752,7 @@ in the pipeline manifest and execute automatically in dependency order.
 | **12.29** | **2026-03-18** | **Added Section 16: Training Lessons Learned. Codified 7 hard-won insights from 11 training runs. Run 11 at step 522, loss 2.34 at step 495 (normal noise after best of 1.558 at step 440).** |
 | **12.30** | **2026-03-20** | **NF4 GEMM optimization campaign (trueno#187): 3 approaches tested on GB10 unified memory. (1) Shared memory tiling: 45% SLOWER (barrier overhead > bandwidth savings when shared/global are same DRAM). (2) Vectorized dequant + register LUT: NO SPEEDUP (15 selp/lookup offsets iteration savings — kernel is instruction-bound, not memory-bound). (3) Reduced to 1 epoch: 5,543 steps (was 16,629), ETA 8 days (was 24). Key insight: NF4 scalar dequantization on unified memory is fundamentally instruction-limited; tensor core integration (WMMA) is the only path to significant speedup but requires kernel restructuring. Run 11d at step 616, loss 1.57, 15+ tok/s, MFU 0.49. Section 16.8 added: Unified memory negates classical GPU optimizations. Section 17 added: Recommended next steps.** |
 | **12.31** | **2026-03-21** | **Run 11d STOPPED at step 1111/5543. Loss oscillating 2-5 (never recovered to pre-crash 1.2-1.6 range). Five-whys: (1) Why oscillating? AdamW has no momentum/variance. (2) Why no momentum? Optimizer state not saved in delta checkpoints. (3) Why not saved? ENT-282 focused on model weights + LoRA only. (4) Why does it matter? Without momentum, gradient noise dominates → loss plateau. (5) Root cause: delta checkpoint saves weights but not optimizer state (ENT-284, entrenar#293). Decision: restart fresh (Run 12) rather than continue with degraded model. Cost: 1.6 extra days. Benefit: loss converges to 1.2-1.5 (proven by Runs 9/10/11 pre-crash). Run 12 uses ENT-283 binary (no false rollbacks). Section 16.9 added.** |
+| **12.32** | **2026-03-21** | **PyTorch canary run (S18). After 13 days and 0 completed epochs, running a 500-step PyTorch canary via `uv` (no pip install, ephemeral venv) to establish ground truth. Answers 3 critical unknowns: (1) Does a properly-trained Qwen3-4B NF4 QLoRA model actually pass eval for shell safety? (2) What loss/throughput should entrenar match? (3) Where does entrenar diverge from reference implementation? If canary eval fails → task is wrong, not stack. If canary eval passes → entrenar needs specific fixes. Section 18 added.** |
 
 ## 16. Training Lessons Learned (11 Runs, 9 Infrastructure Fixes)
 
@@ -2887,4 +2888,62 @@ With clean optimizer, loss reaches 1.24 by step 715. Without optimizer, loss at 
 7. **Tensor core NF4 GEMM (trueno#187)** — the only path to significant training speedup on GB10. Batch-dequantize NF4 → fp16 tiles, then WMMA. ~4 weeks, 3-5x expected speedup. Only worth doing if more models will be trained on GB10.
 8. **PTX sm_121 native targeting (trueno#188)** — requires PTX 9.0+ syntax support. Eliminates JIT fallback overhead (~5% throughput improvement).
 9. **Kernel cache persistence (trueno#189)** — PTX cubin disk caching (implemented but linker API broken on Blackwell). Alternative: use `cuModuleGetFunction` to extract cubin after JIT.
-10. **Optimizer state checkpointing (ENT-283)** — save AdamW momentum/variance in APR format. Current delta checkpoints save model weights but not optimizer state, causing instability after resume (loss plateau at 2-5 instead of continuing from 1.5).
+10. **Optimizer state checkpointing (ENT-284)** — save AdamW momentum/variance in APR format. Current delta checkpoints save model weights but not optimizer state, causing instability after resume (loss plateau at 2-5 instead of continuing from 1.5).
+
+## 18. PyTorch Canary Run
+
+### 18.1. Motivation
+
+After 13 days and 11+ training runs with 0 completed epochs, we have three critical unknowns:
+
+1. **Does the task work?** — Can a Qwen3-4B NF4 QLoRA model actually classify shell scripts? We've never evaluated a RoPE-enabled model. The only eval (Run 7k, no RoPE) scored 66.7% marginal.
+2. **What does "good" look like?** — What loss, throughput, and gradient norms should we expect from a correct implementation?
+3. **Where does entrenar diverge?** — If PyTorch produces a different loss curve, the delta tells us exactly which component (forward, backward, optimizer, data loading) is wrong.
+
+### 18.2. Approach
+
+Use `uv` (ephemeral Python environment, no pip install) to run a minimal PyTorch training script on GB10. The script replicates entrenar's exact configuration:
+
+| Parameter | Value |
+|-----------|-------|
+| Model | Qwen3-4B (`/home/noah/src/models/qwen3-4b/`) |
+| Quantization | NF4 (bitsandbytes) |
+| LoRA | rank=16, alpha=32, targets Q+V |
+| Data | `conversations_v4.jsonl` (22,169 entries) |
+| Batch size | 4, seq_len=512 |
+| LR | 5e-6, cosine decay, warmup=100 |
+| Grad clip | 1.0 |
+| Steps | 500 (canary, not full epoch) |
+
+### 18.3. Metrics to capture
+
+Log every step to `canary_log.jsonl`:
+- `step`, `loss`, `lr`, `grad_norm`, `tok_s`, `elapsed_s`
+
+Compare against entrenar's Run 11 (steps 0-500, fresh start):
+
+| Step | Entrenar loss | PyTorch loss | Delta |
+|------|--------------|-------------|-------|
+| 1 | 15.50 | ? | ? |
+| 55 | 15.71 | ? | ? |
+| 110 | 11.40 | ? | ? |
+| 220 | 6.24 | ? | ? |
+| 330 | 2.95 | ? | ? |
+| 440 | 1.56 | ? | ? |
+| 500 | ~1.3 | ? | ? |
+
+### 18.4. Decision matrix
+
+| Canary result | Interpretation | Action |
+|--------------|----------------|--------|
+| Loss matches entrenar, eval passes | Task works, entrenar is correct but slow | Run 12 fresh on entrenar (8.3 days) |
+| Loss matches entrenar, eval fails | Task is wrong — QLoRA can't do shell safety | KILL-QLORA-002, ship MLP probe only |
+| Loss much better than entrenar | Entrenar has a training bug | Debug entrenar using PyTorch as reference |
+| Loss much worse than entrenar | Unlikely but would indicate config mismatch | Debug canary script |
+
+### 18.5. Implementation
+
+- **No pip install** — use `uv run --with torch,transformers,peft,bitsandbytes,accelerate`
+- Script: `training/canary_pytorch.py` (~100 lines)
+- Output: `training/checkpoints/canary-pytorch/canary_log.jsonl`
+- Duration: ~2-4 hours for 500 steps (estimated 5-10x faster than entrenar)
