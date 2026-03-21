@@ -1,0 +1,3 @@
+{"batch_size":4,"epochs":1,"gpu":"NVIDIA GeForce RTX 4090","lr":0.00004999999873689376,"max_steps":null,"num_params":4022458880,"seq_len":512,"timestamp":1773046994753,"type":"config"}
+{"batch_size":4,"seq_len":512,"timestamp":1773046994777,"train_path":"/home/noah/src/bashrs/training/conversations_v3.jsonl","type":"provenance","val_path":null}
+{"model_path":"/home/noah/src/models/qwen3-4b/","optimizer":{"lr":0.00004999999873689376,"name":"adamw","params":{}},"timestamp":1773046994777,"training":{"epochs":1,"grad_clip":null,"gradient_accumulation":1,"max_steps":null,"save_interval":200,"seed":42,"warmup_steps":20},"type":"config_snapshot"}

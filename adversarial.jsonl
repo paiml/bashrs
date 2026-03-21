@@ -1,0 +1,350 @@
+{"input":"#!/usr/bin/env bash\n# Log rotation\ntoken=$RANDOM\necho \"Generated: $token\"","label":2}
+{"input":"#!/bin/bash\nset -euo pipefail\nidx=$RANDOM\necho \"Generated: $idx\"\nexit 0","label":2}
+{"input":"#!/bin/sh\ncount=$RANDOM\necho \"Generated: $count\"","label":2}
+{"input":"#!/bin/sh\n# Service management\nflag=$RANDOM\necho \"Generated: $flag\"","label":2}
+{"input":"#!/bin/bash\nbuf=$(( $RANDOM % 65536 ))\necho \"Value: $buf\"\necho \"Done.\"","label":2}
+{"input":"#!/bin/sh\n# Build automation\nset -u\nbuf=$(( $RANDOM % 1000 ))\necho \"Value: $buf\"","label":2}
+{"input":"#!/bin/sh\n# Package installation\noutput=$(( $RANDOM % 65536 ))\necho \"Value: $output\"\nexit 0","label":2}
+{"input":"#!/bin/sh\n# Database migration\nset -euo pipefail\nresult=$(( $RANDOM % 256 ))\necho \"Value: $result\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Package installation\nif [ $RANDOM -gt 5000 ]; then\n  echo \"triggered\"\nfi\nexit 0","label":2}
+{"input":"#!/bin/sh\n# Database migration\nset -euo pipefail\nif [ $RANDOM -gt 10000 ]; then\n  echo \"enabled\"\nfi","label":2}
+{"input":"#!/bin/sh\n# Log rotation\nset -euo pipefail\nif [ $RANDOM -gt 32000 ]; then\n  echo \"chosen\"\nfi","label":2}
+{"input":"#!/usr/bin/env bash\nset -u\nif [ $RANDOM -gt 5000 ]; then\n  echo \"enabled\"\nfi","label":2}
+{"input":"#!/usr/bin/env bash\n# Package installation\nfor i in 1 2 3; do\n  buf=$RANDOM\n  echo \"Iteration $i: $buf\"\ndone","label":2}
+{"input":"#!/usr/bin/env bash\nfor i in 1 2 3; do\n  idx=$RANDOM\n  echo \"Iteration $i: $idx\"\ndone","label":2}
+{"input":"#!/bin/sh\n# Deployment script\nfor i in 1 2 3; do\n  buf=$RANDOM\n  echo \"Iteration $i: $buf\"\ndone\nexit 0","label":2}
+{"input":"#!/bin/bash\n# Build automation\nfor i in 1 2 3; do\n  code=$RANDOM\n  echo \"Iteration $i: $code\"\ndone","label":2}
+{"input":"#!/usr/bin/env bash\nprintf \"%s-%d\\n\" \"id\" $RANDOM","label":2}
+{"input":"#!/bin/bash\n# Deployment script\nset -euo pipefail\nprintf \"%s-%d\\n\" \"session\" $RANDOM","label":2}
+{"input":"#!/usr/bin/env bash\n# Database migration\nprintf \"%s-%d\\n\" \"ref\" $RANDOM","label":2}
+{"input":"#!/bin/sh\nset -u\nprintf \"%s-%d\\n\" \"token\" $RANDOM","label":2}
+{"input":"#!/bin/sh\n# Configuration setup\nset -euo pipefail\nidx=\"/tmp/cache_${RANDOM}.dat\"\necho \"Temp file: $idx\"","label":2}
+{"input":"#!/bin/bash\n# Database migration\nflag=\"/tmp/cache_${RANDOM}.bak\"\necho \"Temp file: $flag\"","label":2}
+{"input":"#!/bin/bash\n# Database migration\nbuf=\"/tmp/cache_${RANDOM}.xml\"\necho \"Temp file: $buf\"\necho \"Complete.\"","label":2}
+{"input":"#!/bin/bash\nset -e\nbuf=\"/tmp/stage_${RANDOM}.tmp\"\necho \"Temp file: $buf\"\necho \"Done.\"","label":2}
+{"input":"#!/bin/sh\n# Deployment script\nset -u\ncase $(( $RANDOM % 2 )) in\n  0) echo \"first\";;\n  1) echo \"b\";;\n  *) echo \"option3\";;\nesac\necho \"Done.\"","label":2}
+{"input":"#!/bin/sh\n# Service management\ncase $(( $RANDOM % 6 )) in\n  0) echo \"alpha\";;\n  1) echo \"b\";;\n  *) echo \"option3\";;\nesac","label":2}
+{"input":"#!/usr/bin/env bash\n# Cleanup routine\nset -u\ncase $(( $RANDOM % 4 )) in\n  0) echo \"a\";;\n  1) echo \"option2\";;\n  *) echo \"fallback\";;\nesac","label":2}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\ncase $(( $RANDOM % 4 )) in\n  0) echo \"option1\";;\n  1) echo \"second\";;\n  *) echo \"option3\";;\nesac","label":2}
+{"input":"#!/bin/sh\n# Build automation\nset -eu\nlisten_port=$(( $RANDOM + 8000 ))\necho \"Listening on port $listen_port\"","label":2}
+{"input":"#!/bin/sh\n# Log rotation\nset -e\nhttp_port=$(( $RANDOM + 8000 ))\necho \"Listening on port $http_port\"","label":2}
+{"input":"#!/bin/sh\n# Build automation\nsvc_port=$(( $RANDOM + 1024 ))\necho \"Listening on port $svc_port\"","label":2}
+{"input":"#!/usr/bin/env bash\np=$(( $RANDOM + 5000 ))\necho \"Listening on port $p\"\necho \"Complete.\"","label":2}
+{"input":"#!/bin/bash\n# Service management\npause=$(( $RANDOM % 30 + 1 ))\nsleep \"$pause\"\necho \"Waited $pauses\"","label":2}
+{"input":"#!/bin/bash\n# Service management\nset -euo pipefail\nwait_time=$(( $RANDOM % 60 + 1 ))\nsleep \"$wait_time\"\necho \"Waited $wait_times\"","label":2}
+{"input":"#!/bin/sh\nbackoff=$(( $RANDOM % 30 + 1 ))\nsleep \"$backoff\"\necho \"Waited $backoffs\"","label":2}
+{"input":"#!/bin/sh\n# Configuration setup\nset -eu\nwait_time=$(( $RANDOM % 60 + 1 ))\nsleep \"$wait_time\"\necho \"Waited $wait_times\"","label":2}
+{"input":"#!/bin/bash\n# Database migration\nflag=$(printf \"%04x\" $RANDOM)\necho \"ID: $flag\"","label":2}
+{"input":"#!/bin/bash\nitem=$(printf \"%04x\" $RANDOM)\necho \"ID: $item\"\necho \"Complete.\"","label":2}
+{"input":"#!/bin/bash\n# Configuration setup\nstatus=$(printf \"%04x\" $RANDOM)\necho \"ID: $status\"","label":2}
+{"input":"#!/bin/sh\nset -e\ntoken=$(printf \"%04x\" $RANDOM)\necho \"ID: $token\"","label":2}
+{"input":"#!/bin/bash\nset -e\nchoices=\"primary cold north\"\ntmp=$RANDOM\necho \"Selected: $tmp\"\necho \"Complete.\"","label":2}
+{"input":"#!/bin/bash\n# Cleanup routine\nnodes=\"primary secondary medium\"\ncount=$RANDOM\necho \"Selected: $count\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\nnodes=\"primary secondary tertiary\"\nresult=$RANDOM\necho \"Selected: $result\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Database migration\nset -e\nchoices=\"fast blue medium\"\ntoken=$RANDOM\necho \"Selected: $token\"\nexit 0","label":2}
+{"input":"#!/bin/bash\nset -e\nn=0\nwhile [ \"$n\" -lt 5 ]; do\n  n=$(( n + 1 ))\n  sleep $(( $RANDOM % 3 + 1 ))\n  echo \"Retry $n\"\ndone\necho \"Done.\"","label":2}
+{"input":"#!/bin/bash\nn=0\nwhile [ \"$n\" -lt 7 ]; do\n  n=$(( n + 1 ))\n  sleep $(( $RANDOM % 3 + 1 ))\n  echo \"Retry $n\"\ndone","label":2}
+{"input":"#!/bin/bash\nretries=0\nwhile [ \"$retries\" -lt 7 ]; do\n  retries=$(( retries + 1 ))\n  sleep $(( $RANDOM % 3 + 1 ))\n  echo \"Retry $retries\"\ndone","label":2}
+{"input":"#!/bin/sh\n# Deployment script\ncount=0\nwhile [ \"$count\" -lt 5 ]; do\n  count=$(( count + 1 ))\n  sleep $(( $RANDOM % 3 + 1 ))\n  echo \"Retry $count\"\ndone","label":2}
+{"input":"#!/bin/sh\ndt=$(date +\"%Y%m%d%H%M%S\")\necho \"Timestamp: $dt\"","label":2}
+{"input":"#!/bin/bash\n# Configuration setup\ndt=$(date +\"%H:%M\")\necho \"Timestamp: $dt\"","label":2}
+{"input":"#!/bin/bash\n# Log rotation\nset -euo pipefail\ndt=$(date +\"%Y%m%d\")\necho \"Timestamp: $dt\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Database migration\nts=$(date +\"%Y-%m-%d %H:%M:%S\")\necho \"Timestamp: $ts\"\necho \"Complete.\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Package installation\nset -e\necho \"[$(date +\"%T\")] Build began\"","label":2}
+{"input":"#!/bin/bash\n# Service management\necho \"[$(date +\"%s\")] Process started\"","label":2}
+{"input":"#!/bin/bash\necho \"[$(date +\"%s\")] Process started\"\nexit 0","label":2}
+{"input":"#!/usr/bin/env bash\nset -u\necho \"[$(date +\"%c\")] Service initialized\"\nexit 0","label":2}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\narchive=\"logs_$(date +%Y%m%d_%H%M%S).dump\"\necho \"Backup: $archive\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Package installation\nset -euo pipefail\narchive=\"state_$(date +%Y%m%d_%H%M%S).sql\"\necho \"Backup: $archive\"\necho \"Complete.\"","label":2}
+{"input":"#!/bin/bash\n# Configuration setup\nset -e\ndump=\"config_$(date +%Y%m%d_%H%M%S).tar.gz\"\necho \"Backup: $dump\"\necho \"Done.\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -u\ndump=\"state_$(date +%Y%m%d_%H%M%S).sql\"\necho \"Backup: $dump\"\necho \"Complete.\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Service management\necho \"========================================\"\necho \"Report generated: $(date)\"\necho \"========================================\"","label":2}
+{"input":"#!/usr/bin/env bash\necho \"========================================\"\necho \"Report generated: $(date)\"\necho \"========================================\"","label":2}
+{"input":"#!/usr/bin/env bash\necho \"========================================\"\necho \"Report generated: $(date)\"\necho \"========================================\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Deployment script\necho \"========================================\"\necho \"Report generated: $(date)\"\necho \"========================================\"\necho \"Complete.\"","label":2}
+{"input":"#!/bin/sh\nset -euo pipefail\nunix_ts=$(date +%s)\necho \"Epoch: $unix_ts\"","label":2}
+{"input":"#!/bin/sh\nunix_ts=$(date +%s)\necho \"Epoch: $unix_ts\"","label":2}
+{"input":"#!/bin/bash\nepoch=$(date +%s)\necho \"Epoch: $epoch\"","label":2}
+{"input":"#!/bin/sh\n# Build automation\nbegin=$(date +%s)\necho \"Epoch: $begin\"","label":2}
+{"input":"#!/bin/sh\ns=$(date +%s)\necho \"Working...\"\nend=$(date +%s)\necho \"Elapsed: $(( end - s ))s\"\necho \"Done.\"","label":2}
+{"input":"#!/bin/bash\n# Deployment script\nstart=$(date +%s)\necho \"Working...\"\nt1=$(date +%s)\necho \"Elapsed: $(( t1 - start ))s\"","label":2}
+{"input":"#!/bin/sh\n# Build automation\nstart=$(date +%s)\necho \"Working...\"\nafter=$(date +%s)\necho \"Elapsed: $(( after - start ))s\"\necho \"Done.\"","label":2}
+{"input":"#!/bin/bash\n# Build automation\nset -e\ns=$(date +%s)\necho \"Working...\"\ne=$(date +%s)\necho \"Elapsed: $(( e - s ))s\"","label":2}
+{"input":"#!/bin/sh\noutfile=\"/var/log/agent_$(date +%Y%m%d).log\"\necho \"Logging to: $outfile\"\necho \"Done.\"","label":2}
+{"input":"#!/bin/sh\n# Package installation\ntarget=\"/var/log/myapp_$(date +%Y%m%d).log\"\necho \"Logging to: $target\"","label":2}
+{"input":"#!/bin/bash\nset -e\noutfile=\"/var/log/agent_$(date +%Y%m%d).log\"\necho \"Logging to: $outfile\"\necho \"Complete.\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Build automation\noutfile=\"/var/log/myapp_$(date +%Y%m%d).log\"\necho \"Logging to: $outfile\"","label":2}
+{"input":"#!/bin/bash\n# Log rotation\nset -euo pipefail\nts=`date +%s`\necho \"Time: $ts\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Database migration\ntime_val=`date +%s`\necho \"Time: $time_val\"","label":2}
+{"input":"#!/bin/sh\n# Build automation\nstamp=`date +%s`\necho \"Time: $stamp\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Build automation\nset -eu\ntime_val=`date +%s`\necho \"Time: $time_val\"","label":2}
+{"input":"#!/bin/bash\n# Service management\nset -euo pipefail\nfor f in *.tmp; do\n  echo \"Processing: $f\"\ndone","label":2}
+{"input":"#!/usr/bin/env bash\n# Database migration\nset -euo pipefail\nfor f in *.xml; do\n  echo \"Processing: $f\"\ndone","label":2}
+{"input":"#!/bin/bash\n# Configuration setup\nset -e\nfor f in *.tmp; do\n  echo \"Processing: $f\"\ndone","label":2}
+{"input":"#!/bin/sh\n# Deployment script\nfor f in *.csv; do\n  echo \"Processing: $f\"\ndone\necho \"Complete.\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Deployment script\ncat /var/log/*.out","label":2}
+{"input":"#!/bin/sh\nset -euo pipefail\ncat /var/log/*.out","label":2}
+{"input":"#!/bin/sh\ncat /var/log/*.txt","label":2}
+{"input":"#!/usr/bin/env bash\n# Build automation\nset -u\ncat /var/log/*.out","label":2}
+{"input":"#!/bin/bash\n# Database migration\nset -eu\nwc -l /tmp/*.log","label":2}
+{"input":"#!/bin/bash\nwc -l /tmp/*.dat","label":2}
+{"input":"#!/bin/bash\n# Cleanup routine\nwc -l /tmp/*.xml","label":2}
+{"input":"#!/usr/bin/env bash\n# Service management\nwc -l /tmp/*.bak","label":2}
+{"input":"#!/bin/bash\n# Deployment script\nhead -n 50 /var/log/*.log","label":2}
+{"input":"#!/bin/bash\n# Database migration\nhead -n 50 /var/log/*.err\nexit 0","label":2}
+{"input":"#!/bin/sh\n# Build automation\nhead -n 20 /var/log/*.txt","label":2}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -u\nhead -n 10 /var/log/*.txt\necho \"Done.\"","label":2}
+{"input":"#!/bin/bash\nset -e\nfor f in /tmp/data_*.log; do\n  echo \"File: $f\"\ndone","label":2}
+{"input":"#!/bin/sh\n# Cleanup routine\nset -euo pipefail\nfor f in /tmp/out_*.json; do\n  echo \"File: $f\"\ndone","label":2}
+{"input":"#!/bin/bash\n# Build automation\nfor f in /tmp/data_*.log; do\n  echo \"File: $f\"\ndone\necho \"Complete.\"","label":2}
+{"input":"#!/usr/bin/env bash\n# Package installation\nfor f in /tmp/cache_*.log; do\n  echo \"File: $f\"\ndone","label":2}
+{"input":"#!/bin/sh\n# Package installation\nmkdir \"/srv/cache\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/sh\n# Service management\nmkdir \"/var/lib/service\"","label":3}
+{"input":"#!/bin/bash\n# Build automation\nmkdir \"/var/lib/service\"","label":3}
+{"input":"#!/bin/bash\n# Deployment script\nset -u\nmkdir \"/opt/deploy\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Cleanup routine\nmkdir \"/opt/app/data/sub\"\necho \"Created directory\"","label":3}
+{"input":"#!/bin/bash\n# Package installation\nmkdir \"/opt/deploy/sub\"\necho \"Created directory\"","label":3}
+{"input":"#!/bin/sh\n# Deployment script\nmkdir \"/home/deploy/work/sub\"\necho \"Created directory\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Cleanup routine\nmkdir \"/srv/cache/sub\"\necho \"Created directory\"","label":3}
+{"input":"#!/bin/sh\nset -euo pipefail\necho \"Setting up /opt/deploy\"\nmkdir \"/opt/deploy\"","label":3}
+{"input":"#!/bin/sh\n# Build automation\necho \"Setting up /opt/app/data\"\nmkdir \"/opt/app/data\"\necho \"Done.\"","label":3}
+{"input":"#!/bin/bash\nset -u\necho \"Setting up /opt/release\"\nmkdir \"/opt/release\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/bash\nset -u\necho \"Setting up /srv/data\"\nmkdir \"/srv/data\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/sh\n# Cleanup routine\nmkdir \"/home/deploy/work\"\nmkdir \"/srv/output\"","label":3}
+{"input":"#!/bin/sh\n# Service management\nmkdir \"/srv/data\"\nmkdir \"/opt/data\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Deployment script\nset -e\nmkdir \"/srv/data\"\nmkdir \"/srv/cache\"\necho \"Done.\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Package installation\nset -e\nmkdir \"/srv/data\"\nmkdir \"/var/lib/run\"","label":3}
+{"input":"#!/bin/sh\n# Package installation\nmkdir \"/opt/build\"\nmkdir \"/opt/state\"\nmkdir \"/opt/archive\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Build automation\nset -e\nmkdir \"/opt/tmp\"\nmkdir \"/opt/run\"\nmkdir \"/opt/backup\"","label":3}
+{"input":"#!/bin/bash\nset -eu\nmkdir \"/opt/logs\"\nmkdir \"/opt/state\"\nmkdir \"/opt/export\"\nexit 0","label":3}
+{"input":"#!/bin/bash\n# Package installation\nset -euo pipefail\nmkdir \"/opt/tmp\"\nmkdir \"/opt/output\"\nmkdir \"/opt/export\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/bash\n# Build automation\necho \"Installing to /opt/service\"\nmkdir \"/opt/service\"\nmkdir \"/opt/service/bin\"\necho \"Done.\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/bash\n# Deployment script\necho \"Installing to /opt/myapp\"\nmkdir \"/opt/myapp\"\nmkdir \"/opt/myapp/bin\"\necho \"Done.\"\nexit 0","label":3}
+{"input":"#!/usr/bin/env bash\nset -eu\necho \"Installing to /usr/local/app\"\nmkdir \"/usr/local/app\"\nmkdir \"/usr/local/app/bin\"\necho \"Done.\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\nset -e\necho \"Installing to /opt/service\"\nmkdir \"/opt/service\"\nmkdir \"/opt/service/bin\"\necho \"Done.\"","label":3}
+{"input":"#!/bin/bash\nmkdir \"/home/deploy/work\"\nmkdir \"/home/deploy/work/config\"\necho \"Deployed.\"","label":3}
+{"input":"#!/bin/sh\n# Package installation\nmkdir \"/opt/app/data\"\nmkdir \"/opt/app/data/config\"\necho \"Deployed.\"\necho \"Done.\"","label":3}
+{"input":"#!/bin/bash\n# Cleanup routine\nset -e\nmkdir \"/srv/data\"\nmkdir \"/srv/data/config\"\necho \"Deployed.\"","label":3}
+{"input":"#!/bin/sh\n# Deployment script\nset -eu\nmkdir \"/home/user/data\"\nmkdir \"/home/user/data/config\"\necho \"Deployed.\"","label":3}
+{"input":"#!/bin/sh\nif [ \"init\" = \"init\" ]; then\n  mkdir \"/opt/deploy\"\nfi","label":3}
+{"input":"#!/bin/sh\n# Package installation\nif [ \"create\" = \"init\" ]; then\n  mkdir \"/srv/data\"\nfi","label":3}
+{"input":"#!/bin/sh\n# Package installation\nset -u\nif [ \"init\" = \"init\" ]; then\n  mkdir \"/srv/cache\"\nfi","label":3}
+{"input":"#!/bin/bash\nif [ \"init\" = \"init\" ]; then\n  mkdir \"/home/user/data\"\nfi","label":3}
+{"input":"#!/bin/bash\n# Configuration setup\nset -e\nrm \"/opt/cache/session.tmp\"","label":3}
+{"input":"#!/bin/sh\n# Log rotation\nrm \"/var/lib/app/report.csv\"","label":3}
+{"input":"#!/bin/bash\nrm \"/srv/logs/output.log\"\nexit 0","label":3}
+{"input":"#!/usr/bin/env bash\n# Build automation\nrm \"/opt/data/output.log\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Database migration\nset -euo pipefail\nrm -r \"/srv/data\"","label":3}
+{"input":"#!/usr/bin/env bash\nset -e\nrm -r \"/home/deploy/work\"","label":3}
+{"input":"#!/bin/bash\n# Deployment script\nrm -r \"/srv/data\"","label":3}
+{"input":"#!/bin/sh\n# Database migration\nset -e\nrm -r \"/home/user/data\"","label":3}
+{"input":"#!/bin/sh\nrm \"/home/user/work/cache.db\"\nrm \"/home/user/work/temp.dat\"\necho \"Complete.\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Database migration\nrm \"/var/lib/app/state.dat\"\nrm \"/var/lib/app/temp.dat\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Database migration\nrm \"/srv/logs/results.xml\"\nrm \"/srv/logs/socket.sock\"\nexit 0","label":3}
+{"input":"#!/usr/bin/env bash\n# Service management\nrm \"/srv/logs/data.json\"\nrm \"/srv/logs/socket.sock\"\necho \"Complete.\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Service management\nDEST=\"/srv/logs/results.xml\"\nrm \"${DEST}\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/sh\n# Service management\nDEST=\"/var/lib/app/output.log\"\nrm \"${DEST}\"\nexit 0","label":3}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\nDEST=\"/var/lib/app/output.log\"\nrm \"${DEST}\"","label":3}
+{"input":"#!/bin/sh\n# Configuration setup\nset -u\nDEST=\"/srv/logs/results.xml\"\nrm \"${DEST}\"\necho \"Done.\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Build automation\nrm \"/var/lib/app\"/*.tmp","label":3}
+{"input":"#!/usr/bin/env bash\n# Package installation\nrm \"/srv/logs\"/*.old","label":3}
+{"input":"#!/bin/sh\n# Build automation\nrm \"/opt/data\"/*.tmp","label":3}
+{"input":"#!/bin/bash\n# Package installation\nset -e\nrm \"/opt/data\"/*.bak","label":3}
+{"input":"#!/usr/bin/env bash\necho \"Cleaning up\"\nrm \"/home/user/work/report.csv\"\necho \"Clean.\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Build automation\necho \"Cleaning up\"\nrm \"/opt/data/session.tmp\"\necho \"Clean.\"\nexit 0","label":3}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -e\necho \"Cleaning up\"\nrm \"/home/user/work/cache.db\"\necho \"Clean.\"\nexit 0","label":3}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -eu\necho \"Cleaning up\"\nrm \"/var/lib/app/output.log\"\necho \"Clean.\"","label":3}
+{"input":"#!/bin/sh\n# Cleanup routine\nset -e\nrm -r \"/home/user/.local/cache\"\necho \"Cache cleared.\"\nexit 0","label":3}
+{"input":"#!/bin/bash\nrm -r \"/srv/cache\"\necho \"Cache cleared.\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Cleanup routine\nrm -r \"/opt/cache\"\necho \"Cache cleared.\"\necho \"Done.\"","label":3}
+{"input":"#!/bin/sh\n# Build automation\nset -e\nrm -r \"/home/user/.local/cache\"\necho \"Cache cleared.\"","label":3}
+{"input":"#!/bin/sh\nif [ \"clear\" = \"clean\" ]; then\n  rm \"/var/lib/app/config.txt\"\nfi","label":3}
+{"input":"#!/usr/bin/env bash\n# Package installation\nif [ \"purge\" = \"clean\" ]; then\n  rm \"/var/lib/app/cache.db\"\nfi\necho \"Complete.\"","label":3}
+{"input":"#!/usr/bin/env bash\nif [ \"wipe\" = \"clean\" ]; then\n  rm \"/home/user/work/report.csv\"\nfi","label":3}
+{"input":"#!/bin/sh\n# Deployment script\nset -u\nif [ \"purge\" = \"clean\" ]; then\n  rm \"/home/user/work/cache.db\"\nfi","label":3}
+{"input":"#!/bin/sh\n# Service management\nfor f in run.sock token.key gc.log; do\n  rm \"$f\"\ndone","label":3}
+{"input":"#!/usr/bin/env bash\n# Database migration\nset -eu\nfor f in cache.db session.tmp core.err; do\n  rm \"$f\"\ndone","label":3}
+{"input":"#!/usr/bin/env bash\n# Database migration\nset -euo pipefail\nfor f in temp.txt flag.set trace.out; do\n  rm \"$f\"\ndone\necho \"Complete.\"","label":3}
+{"input":"#!/bin/sh\n# Build automation\nset -u\nfor f in cache.db state.dat dump.sql; do\n  rm \"$f\"\ndone\necho \"Complete.\"","label":3}
+{"input":"#!/bin/sh\n# Database migration\nset -eu\nln -s \"/usr/local/bin/app\" \"/etc/app/active\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Cleanup routine\nset -euo pipefail\nln -s \"/opt/app/current\" \"/opt/app/latest\"","label":3}
+{"input":"#!/bin/sh\nln -s \"/home/user/.config/tool\" \"/home/user/.local/bin/tool\"","label":3}
+{"input":"#!/bin/bash\n# Configuration setup\nln -s \"/home/user/.config/tool\" \"/usr/bin/tool\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/bash\n# Log rotation\nset -eu\nln -s \"/opt/service/v3.1\" \"/opt/service/current\"\necho \"Done.\"","label":3}
+{"input":"#!/bin/bash\n# Log rotation\nln -s \"/opt/service/v3.1\" \"/opt/service/current\"","label":3}
+{"input":"#!/bin/sh\n# Service management\nln -s \"/opt/myapp/v3.1\" \"/opt/myapp/current\"","label":3}
+{"input":"#!/bin/bash\n# Service management\nset -eu\nln -s \"/opt/service/v1.0\" \"/opt/service/current\"\nexit 0","label":3}
+{"input":"#!/bin/sh\n# Package installation\nln -s \"/var/lib/settings\" \"/home/user/.settings\"","label":3}
+{"input":"#!/bin/bash\n# Configuration setup\nln -s \"/usr/share/defaults/conf\" \"/home/user/.toolrc\"","label":3}
+{"input":"#!/bin/sh\n# Cleanup routine\nln -s \"/srv/config/main\" \"/home/user/.config\"\nexit 0","label":3}
+{"input":"#!/bin/bash\n# Deployment script\nln -s \"/var/lib/settings\" \"/home/user/.profile\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Build automation\nln -s \"/opt/myapp/bin/myapp\" \"/usr/local/bin/myapp\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/bash\n# Deployment script\nset -eu\nln -s \"/opt/daemon/bin/daemon\" \"/usr/local/bin/daemon\"\necho \"Complete.\"","label":3}
+{"input":"#!/bin/bash\n# Configuration setup\nset -euo pipefail\nln -s \"/opt/daemon/bin/daemon\" \"/usr/local/bin/daemon\"","label":3}
+{"input":"#!/bin/sh\n# Configuration setup\nln -s \"/opt/tool/bin/tool\" \"/usr/local/bin/tool\"","label":3}
+{"input":"#!/bin/sh\n# Service management\nln -s \"/opt/shared/lib\" \"/var/lib/svc/lib\"\nexit 0","label":3}
+{"input":"#!/usr/bin/env bash\n# Cleanup routine\nln -s \"/opt/core/assets\" \"/srv/deploy/config\"","label":3}
+{"input":"#!/bin/bash\n# Database migration\nln -s \"/opt/shared/lib\" \"/var/lib/svc/lib\"","label":3}
+{"input":"#!/bin/sh\n# Deployment script\nln -s \"/opt/base/data\" \"/srv/deploy/assets\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Deployment script\nln -s \"/etc/tool/params.json\" \"/opt/tool/config/params.json\"","label":3}
+{"input":"#!/usr/bin/env bash\nln -s \"/etc/myapp/app.conf\" \"/opt/myapp/config/app.conf\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Deployment script\nln -s \"/etc/tool/config.toml\" \"/opt/tool/config/config.toml\"","label":3}
+{"input":"#!/usr/bin/env bash\nln -s \"/etc/myapp/settings.yaml\" \"/opt/myapp/config/settings.yaml\"","label":3}
+{"input":"#!/bin/sh\n# Cleanup routine\nln -s \"/usr/bin/tool-v2\" \"/opt/app/latest\"\nln -s \"/var/lib/app/state\" \"/srv/assets\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -e\nln -s \"/etc/app/config\" \"/home/user/.local/bin/tool\"\nln -s \"/var/lib/app/state\" \"/etc/defaults\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Package installation\nln -s \"/opt/app/current\" \"/home/user/.local/bin/tool\"\nln -s \"/opt/lib/libapp.so\" \"/srv/assets\"","label":3}
+{"input":"#!/bin/bash\n# Deployment script\nln -s \"/etc/app/config\" \"/opt/app/latest\"\nln -s \"/srv/app/assets\" \"/etc/defaults\"","label":3}
+{"input":"#!/usr/bin/env bash\nmkdir \"/srv/data\"\nln -s \"/opt/app/current\" \"/srv/data/link\"\necho \"Done.\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Service management\nmkdir \"/var/lib/service\"\nln -s \"/usr/bin/tool-v2\" \"/var/lib/service/link\"","label":3}
+{"input":"#!/bin/bash\n# Build automation\nset -u\nmkdir \"/srv/data\"\nln -s \"/usr/local/bin/app\" \"/srv/data/link\"","label":3}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\nmkdir \"/srv/cache\"\nln -s \"/usr/bin/tool-v2\" \"/srv/cache/link\"\necho \"Done.\"","label":3}
+{"input":"#!/bin/bash\n# Configuration setup\ncommand=\"echo hello\"\neval \"$command\"\necho \"Done.\"","label":4}
+{"input":"#!/bin/bash\nset -eu\naction=\"echo hello\"\neval \"$action\"","label":4}
+{"input":"#!/bin/sh\n# Deployment script\ninstruction=\"echo hello\"\neval \"$instruction\"","label":4}
+{"input":"#!/bin/bash\n# Deployment script\nset -euo pipefail\ncmd=\"echo hello\"\neval \"$cmd\"\necho \"Complete.\"","label":4}
+{"input":"#!/bin/sh\n# Database migration\nset -u\neval \"$@\"\necho \"Done.\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Service management\neval \"$@\"\necho \"Done.\"","label":4}
+{"input":"#!/bin/sh\n# Log rotation\neval \"$@\"\necho \"Done.\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Cleanup routine\neval \"$@\"\necho \"Done.\"","label":4}
+{"input":"#!/bin/bash\nset -eu\nread -r data\neval \"$data\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -e\nread -r line\neval \"$line\"","label":4}
+{"input":"#!/bin/bash\nread -r input\neval \"$input\"\nexit 0","label":4}
+{"input":"#!/usr/bin/env bash\n# Log rotation\nread -r input\neval \"$input\"","label":4}
+{"input":"#!/bin/bash\n# Database migration\nendpoint=\"https://example.com/pkg.tar.gz\"\ncurl $endpoint","label":4}
+{"input":"#!/bin/bash\n# Database migration\ntarget=\"https://releases.example.org/v1.0/app\"\ncurl $target","label":4}
+{"input":"#!/bin/bash\nset -e\ntarget=\"https://mirror.example.com/archive.zip\"\ncurl $target\nexit 0","label":4}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\ndownload_url=\"https://mirror.example.com/archive.zip\"\ncurl $download_url","label":4}
+{"input":"#!/usr/bin/env bash\n# Build automation\npkg_url=\"https://releases.example.org/v1.0/app\"\nwget $pkg_url","label":4}
+{"input":"#!/usr/bin/env bash\ndownload=\"https://cdn.example.net/download/tool\"\nwget $download","label":4}
+{"input":"#!/bin/bash\nset -u\nurl=\"https://mirror.example.com/archive.zip\"\nwget $url\necho \"Done.\"","label":4}
+{"input":"#!/bin/sh\n# Build automation\ndownload=\"https://cdn.example.net/download/tool\"\nwget $download","label":4}
+{"input":"#!/bin/sh\n# Build automation\nhost=\"worker-1.cluster.local\"\nssh $host \"echo connected\"\necho \"Complete.\"","label":4}
+{"input":"#!/bin/sh\n# Cleanup routine\nset -u\nnode=\"worker-1.cluster.local\"\nssh $node \"echo connected\"","label":4}
+{"input":"#!/bin/bash\nhost=\"server1.example.com\"\nssh $host \"echo connected\"","label":4}
+{"input":"#!/usr/bin/env bash\nset -eu\nhost=\"server1.example.com\"\nssh $host \"echo connected\"","label":4}
+{"input":"#!/bin/bash\n# Cleanup routine\nset -euo pipefail\nrepo=\"https://github.com/example/repo.git\"\ngit clone $repo","label":4}
+{"input":"#!/bin/sh\nsource=\"https://github.com/example/repo.git\"\ngit clone $source\necho \"Complete.\"","label":4}
+{"input":"#!/bin/bash\nupstream=\"https://github.com/example/repo.git\"\ngit clone $upstream","label":4}
+{"input":"#!/bin/sh\n# Build automation\nrepo_url=\"https://github.com/example/repo.git\"\ngit clone $repo_url","label":4}
+{"input":"#!/bin/sh\n# Cleanup routine\nfind \"/var/log\" -name \"*.tmp\" -exec sh -c 'echo \"{}\"' \\;","label":4}
+{"input":"#!/usr/bin/env bash\nfind \"/opt/data\" -name \"*.dat\" -exec sh -c 'echo \"{}\"' \\;","label":4}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\nfind \"/home/user\" -name \"*.xml\" -exec sh -c 'echo \"{}\"' \\;\necho \"Complete.\"","label":4}
+{"input":"#!/bin/sh\nfind \"/tmp\" -name \"*.xml\" -exec sh -c 'echo \"{}\"' \\;","label":4}
+{"input":"#!/bin/bash\n# Service management\nfind \"/opt/data\" -name \"*.bak\" -exec sh -c 'rm \"{}\"' \\;","label":4}
+{"input":"#!/bin/sh\n# Database migration\nset -euo pipefail\nfind \"/opt/data\" -name \"*.bak\" -exec sh -c 'rm \"{}\"' \\;","label":4}
+{"input":"#!/usr/bin/env bash\n# Database migration\nset -euo pipefail\nfind \"/tmp\" -name \"*.bak\" -exec sh -c 'rm \"{}\"' \\;\nexit 0","label":4}
+{"input":"#!/bin/sh\n# Configuration setup\nset -euo pipefail\nfind \"/var/cache\" -name \"*.tmp\" -exec sh -c 'rm \"{}\"' \\;","label":4}
+{"input":"#!/bin/bash\n# Build automation\nwget --no-check-certificate \"https://releases.example.org/v1.0/app\"\nexit 0","label":4}
+{"input":"#!/usr/bin/env bash\n# Build automation\nset -eu\nwget --no-check-certificate \"https://releases.example.org/v1.0/app\"","label":4}
+{"input":"#!/bin/sh\n# Package installation\nwget --no-check-certificate \"https://cdn.example.net/download/tool\"","label":4}
+{"input":"#!/bin/sh\n# Deployment script\nset -u\nwget --no-check-certificate \"https://example.com/pkg.tar.gz\"","label":4}
+{"input":"#!/bin/bash\n# Deployment script\nset -eu\ncurl -k \"https://cdn.example.net/download/tool\"\necho \"Complete.\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -u\ncurl -k \"https://example.com/pkg.tar.gz\"","label":4}
+{"input":"#!/usr/bin/env bash\ncurl -k \"https://mirror.example.com/archive.zip\"","label":4}
+{"input":"#!/bin/bash\n# Build automation\nset -e\ncurl -k \"https://example.com/pkg.tar.gz\"","label":4}
+{"input":"#!/bin/bash\n# Cleanup routine\nAPI_KEY=\"ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\ncurl -H \"Authorization: Bearer ${API_KEY}\" \"https://example.com/pkg.tar.gz\"\necho \"Done.\"","label":4}
+{"input":"#!/bin/bash\n# Deployment script\nAPI_KEY=\"ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\ncurl -H \"Authorization: Bearer ${API_KEY}\" \"https://example.com/pkg.tar.gz\"\necho \"Done.\"","label":4}
+{"input":"#!/bin/bash\nAPI_KEY=\"sk_live_abc123def456ghi789\"\ncurl -H \"Authorization: Bearer ${API_KEY}\" \"https://example.com/pkg.tar.gz\"\necho \"Done.\"","label":4}
+{"input":"#!/usr/bin/env bash\nAPI_KEY=\"password123!@#\"\ncurl -H \"Authorization: Bearer ${API_KEY}\" \"https://cdn.example.net/download/tool\"","label":4}
+{"input":"#!/bin/sh\nDB_PASSWORD=\"sk_live_abc123def456ghi789\"\nmysql -u root -p\"${DB_PASSWORD}\" \"mydb\"","label":4}
+{"input":"#!/usr/bin/env bash\nDB_PASSWORD=\"ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\nmysql -u root -p\"${DB_PASSWORD}\" \"mydb\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Database migration\nDB_PASSWORD=\"sk_live_abc123def456ghi789\"\nmysql -u root -p\"${DB_PASSWORD}\" \"production\"","label":4}
+{"input":"#!/bin/sh\n# Service management\nset -euo pipefail\nDB_PASSWORD=\"password123!@#\"\nmysql -u root -p\"${DB_PASSWORD}\" \"users\"\necho \"Complete.\"","label":4}
+{"input":"#!/bin/bash\n# Cleanup routine\nTOKEN=\"sk_live_abc123def456ghi789\"\necho \"Using token: ${TOKEN}\"","label":4}
+{"input":"#!/bin/sh\n# Cleanup routine\nTOKEN=\"sk_live_abc123def456ghi789\"\necho \"Using token: ${TOKEN}\"","label":4}
+{"input":"#!/bin/sh\n# Database migration\nTOKEN=\"ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\necho \"Using token: ${TOKEN}\"","label":4}
+{"input":"#!/bin/bash\n# Configuration setup\nset -u\nTOKEN=\"ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"\necho \"Using token: ${TOKEN}\"\nexit 0","label":4}
+{"input":"#!/usr/bin/env bash\n# Build automation\nset -euo pipefail\necho \"secret value\" > /tmp/predictable.txt\nsort /tmp/predictable.txt","label":4}
+{"input":"#!/bin/bash\necho \"secret value\" > /tmp/temp.dat\nhead -1 /tmp/temp.dat","label":4}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -u\necho \"processing\" > /tmp/output.log\nuniq /tmp/output.log","label":4}
+{"input":"#!/bin/sh\n# Database migration\necho \"staging\" > /tmp/output.log\nsort /tmp/output.log","label":4}
+{"input":"#!/bin/bash\n# Build automation\nTMPFILE=\"/tmp/build_output\"\necho \"digest\" > \"${TMPFILE}\"\ncat \"${TMPFILE}\"\necho \"Complete.\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Log rotation\nTMPFILE=\"/tmp/build_output\"\necho \"status\" > \"${TMPFILE}\"\nwc -l \"${TMPFILE}\"","label":4}
+{"input":"#!/bin/sh\n# Cleanup routine\nset -eu\nTMPFILE=\"/tmp/myapp_output\"\necho \"digest\" > \"${TMPFILE}\"\nsort \"${TMPFILE}\"","label":4}
+{"input":"#!/bin/sh\n# Build automation\nTMPFILE=\"/tmp/build_output\"\necho \"output\" > \"${TMPFILE}\"\nhead -1 \"${TMPFILE}\"","label":4}
+{"input":"#!/bin/sh\n# Cleanup routine\nset -euo pipefail\neval \"$(cat /tmp/vars.sh)\"","label":4}
+{"input":"#!/bin/sh\n# Configuration setup\nset -euo pipefail\neval \"$(cat /tmp/env.sh)\"","label":4}
+{"input":"#!/bin/sh\nset -e\neval \"$(cat /tmp/init.sh)\"","label":4}
+{"input":"#!/bin/bash\n# Cleanup routine\nset -eu\neval \"$(cat /tmp/vars.sh)\"","label":4}
+{"input":"#!/bin/bash\n# Build automation\ncurl -sS \"https://releases.example.org/v1.0/app\" | sh\nexit 0","label":4}
+{"input":"#!/bin/sh\n# Build automation\ncurl -sS \"https://mirror.example.com/archive.zip\" | sh\nexit 0","label":4}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\ncurl -sS \"https://example.com/pkg.tar.gz\" | sh","label":4}
+{"input":"#!/bin/sh\n# Package installation\ncurl -sS \"https://mirror.example.com/archive.zip\" | sh","label":4}
+{"input":"#!/bin/sh\n# Database migration\ncurl -sSL \"https://example.com/pkg.tar.gz\" | sh","label":4}
+{"input":"#!/bin/bash\ncurl -sSL \"https://mirror.example.com/archive.zip\" | sh\nexit 0","label":4}
+{"input":"#!/usr/bin/env bash\n# Database migration\nset -euo pipefail\ncurl -sSL \"https://cdn.example.net/download/tool\" | sh","label":4}
+{"input":"#!/usr/bin/env bash\ncurl -sSL \"https://example.com/pkg.tar.gz\" | sh","label":4}
+{"input":"#!/bin/sh\n# Configuration setup\nset -eu\nchmod 777 \"/opt/deploy\"","label":4}
+{"input":"#!/bin/bash\nset -eu\nchmod 777 \"/var/cache/app\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Database migration\nchmod 777 \"/tmp/staging\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\nset -u\nchmod 777 \"/var/cache/app\"\necho \"Done.\"","label":4}
+{"input":"#!/bin/sh\n# Log rotation\nset -eu\nTARGET=\"/srv/data\"\nsudo rm -rf $TARGET","label":4}
+{"input":"#!/bin/sh\n# Database migration\nTARGET=\"/var/lib/app\"\nsudo rm -rf $TARGET","label":4}
+{"input":"#!/bin/sh\n# Build automation\nset -eu\nTARGET=\"/etc/app\"\nsudo rm -rf $TARGET","label":4}
+{"input":"#!/bin/bash\nset -u\nTARGET=\"/opt/service\"\nsudo rm -rf $TARGET","label":4}
+{"input":"#!/usr/bin/env bash\nset -u\nmysql -e \"SELECT * FROM orders WHERE id=$USER_INPUT\"","label":4}
+{"input":"#!/bin/sh\n# Build automation\nmysql -e \"SELECT * FROM logs WHERE id=$USER_INPUT\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Service management\nmysql -e \"SELECT * FROM users WHERE id=$USER_INPUT\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Database migration\nset -euo pipefail\nmysql -e \"SELECT * FROM sessions WHERE id=$USER_INPUT\"\necho \"Done.\"","label":4}
+{"input":"#!/bin/bash\n# Service management\nfind \"/opt/data\" -name \"*.bak\" -exec sh -c 'rm \"{}\"' \\;","label":4}
+{"input":"#!/bin/sh\n# Log rotation\nfind \"/srv/data\" -name \"*.old\" -exec sh -c 'rm \"{}\"' \\;","label":4}
+{"input":"#!/bin/sh\n# Package installation\nset -e\nfind \"/srv/data\" -name \"*.tmp\" -exec sh -c 'rm \"{}\"' \\;\necho \"Complete.\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Database migration\nfind \"/srv/data\" -name \"*.bak\" -exec sh -c 'rm \"{}\"' \\;","label":4}
+{"input":"#!/bin/sh\n# Database migration\nset -u\ncmd=\"echo injected\"\neval \"$cmd\"","label":4}
+{"input":"#!/usr/bin/env bash\n# Cleanup routine\nset -euo pipefail\nexpr=\"echo injected\"\neval \"$expr\"","label":4}
+{"input":"#!/bin/bash\nexpr=\"echo injected\"\neval \"$expr\"\necho \"Complete.\"","label":4}
+{"input":"#!/bin/sh\n# Cleanup routine\naction=\"echo injected\"\neval \"$action\"","label":4}
+{"input":"#!/bin/sh\n# Package installation\nexport SECRET_KEY=\"AKIAIOSFODNN7EXAMPLE\"","label":4}
+{"input":"#!/usr/bin/env bash\nexport PRIVATE_KEY=\"sk_live_abc123def456ghi789\"\nexit 0","label":4}
+{"input":"#!/bin/sh\nset -euo pipefail\nexport PRIVATE_KEY=\"password123!@#\"","label":4}
+{"input":"#!/bin/bash\n# Service management\nset -u\nexport DB_PASSWORD=\"sk_live_abc123def456ghi789\"","label":4}
+{"input":"#!/bin/bash\nretval=\"hello world\"\necho $retval","label":1}
+{"input":"#!/bin/sh\n# Log rotation\nbuf=\"hello world\"\necho $buf","label":1}
+{"input":"#!/bin/sh\n# Log rotation\nDEST=\"/var/lib/service\"\ncd $DEST","label":1}
+{"input":"#!/usr/bin/env bash\n# Log rotation\nset -e\nDEST=\"/opt/app/data\"\ncd $DEST","label":1}
+{"input":"#!/usr/bin/env bash\n# Log rotation\nset -eu\nSRC=\"session.tmp\"\ncp $SRC backup/","label":1}
+{"input":"#!/usr/bin/env bash\n# Database migration\nSRC=\"config.txt\"\ncp $SRC backup/","label":1}
+{"input":"#!/bin/sh\n# Build automation\nFILE=\"/var/lib/report.csv\"\nif test -f $FILE; then\n  echo \"exists\"\nfi","label":1}
+{"input":"#!/bin/sh\n# Configuration setup\nFILE=\"/srv/report.csv\"\nif test -f $FILE; then\n  echo \"exists\"\nfi","label":1}
+{"input":"#!/usr/bin/env bash\n# Service management\nCONFIG=\"/srv/settings/settings.ini\"\ncat $CONFIG","label":1}
+{"input":"#!/bin/sh\n# Database migration\nCONFIG=\"/var/lib/svc/settings.ini\"\ncat $CONFIG","label":1}
+{"input":"#!/usr/bin/env bash\nSCRIPT=\"/var/lib/cron/run.sh\"\nchmod +x $SCRIPT","label":1}
+{"input":"#!/usr/bin/env bash\nset -u\nSCRIPT=\"/home/user/bin/deploy.sh\"\nchmod +x $SCRIPT","label":1}
+{"input":"#!/bin/sh\n# Service management\nset -u\nOLD=\"/srv/files/state.dat\"\nNEW=\"/srv/files/state.dat.bak\"\nmv $OLD \"${NEW}\"","label":1}
+{"input":"#!/usr/bin/env bash\nOLD=\"/opt/work/data.json\"\nNEW=\"/opt/work/data.json.bak\"\nmv $OLD \"${NEW}\"","label":1}
+{"input":"#!/bin/bash\nLOGFILE=\"/var/log/error.log\"\ngrep \"ERROR\" $LOGFILE","label":1}
+{"input":"#!/bin/sh\n# Configuration setup\nset -eu\nLOGFILE=\"/srv/logs/app.log\"\ngrep \"refused\" $LOGFILE","label":1}
+{"input":"#!/bin/bash\n# Cleanup routine\nINPUT=\"/var/log/config.txt\"\nwc -l $INPUT\necho \"Done.\"","label":1}
+{"input":"#!/bin/sh\n# Configuration setup\nINPUT=\"/opt/data/config.txt\"\nwc -l $INPUT","label":1}
+{"input":"#!/usr/bin/env bash\n# Service management\nset -u\nDATA=\"/srv/files/report.csv\"\nhead -n 50 $DATA\necho \"Complete.\"","label":1}
+{"input":"#!/usr/bin/env bash\n# Database migration\nDATA=\"/opt/data/data.json\"\nhead -n 20 $DATA\necho \"Done.\"","label":1}
+{"input":"#!/bin/bash\n# Log rotation\nLOG=\"/var/log/access.log\"\ntail -n 20 $LOG","label":1}
+{"input":"#!/bin/sh\n# Configuration setup\nLOG=\"/var/log/access.log\"\ntail -n 100 $LOG","label":1}
+{"input":"#!/bin/sh\n# Cleanup routine\nINPUT=\"/var/data/scores.dat\"\nsort $INPUT","label":1}
+{"input":"#!/usr/bin/env bash\nINPUT=\"/var/data/entries.log\"\nsort $INPUT\necho \"Complete.\"","label":1}
+{"input":"#!/bin/sh\n# Cleanup routine\nFILE_A=\"/var/lib/baseline.csv\"\nFILE_B=\"/var/lib/actual.dat\"\ndiff $FILE_A $FILE_B\necho \"Done.\"","label":1}
+{"input":"#!/bin/sh\n# Cleanup routine\nFILE_A=\"/opt/data/expected.dat\"\nFILE_B=\"/opt/data/current.csv\"\ndiff $FILE_A $FILE_B","label":1}
+{"input":"#!/bin/bash\n# Log rotation\nFILEPATH=\"/opt/work/state.dat\"\nNAME=$(basename $FILEPATH)\necho \"Done.\"","label":1}
+{"input":"#!/bin/bash\n# Build automation\nFILEPATH=\"/srv/files/state.dat\"\nNAME=$(basename $FILEPATH)","label":1}
+{"input":"#!/usr/bin/env bash\nFILEPATH=\"/opt/data/sub/results.xml\"\nPARENT=$(dirname $FILEPATH)\necho \"Done.\"","label":1}
+{"input":"#!/usr/bin/env bash\nset -euo pipefail\nFILEPATH=\"/srv/files/latest/results.xml\"\nPARENT=$(dirname $FILEPATH)","label":1}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\nset -u\nWORKDIR=\"/home/deploy/work\"\nls $WORKDIR","label":1}
+{"input":"#!/bin/sh\n# Database migration\nset -e\nWORKDIR=\"/home/user/data\"\nls $WORKDIR","label":1}
+{"input":"#!/bin/bash\n# Deployment script\nLINK=\"/opt/app/latest\"\nreadlink $LINK","label":1}
+{"input":"#!/bin/sh\n# Log rotation\nLINK=\"/etc/app/active\"\nreadlink $LINK","label":1}
+{"input":"#!/bin/sh\n# Build automation\nTARGET=\"/opt/data/results.xml\"\nstat $TARGET","label":1}
+{"input":"#!/bin/sh\nTARGET=\"/opt/data/cache.db\"\nstat $TARGET\nexit 0","label":1}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\nDEST=\"/srv/staging/report.csv\"\nmkdir -p \"/srv/staging\"\ntouch $DEST\necho \"Done.\"","label":1}
+{"input":"#!/bin/sh\n# Build automation\nDEST=\"/opt/out/data.json\"\nmkdir -p \"/opt/out\"\ntouch $DEST","label":1}
+{"input":"#!/bin/bash\n# Configuration setup\nDEST=\"/opt/app/state.dat\"\nchown \"www-data:www-data\" $DEST","label":1}
+{"input":"#!/usr/bin/env bash\nDEST=\"/var/lib/svc/cache.db\"\nchown \"root:root\" $DEST","label":1}
+{"input":"#!/bin/bash\nset -u\nBIN=\"/opt/stage/cli\"\ninstall -m 755 $BIN /usr/local/bin/","label":1}
+{"input":"#!/bin/sh\n# Cleanup routine\nset -euo pipefail\nBIN=\"/var/dist/daemon\"\ninstall -m 755 $BIN /usr/local/bin/\necho \"Complete.\"","label":1}
+{"input":"#!/bin/sh\n# Cleanup routine\nresult=\"output value\"\nprintf \"%s\\n\" ${result}","label":1}
+{"input":"#!/usr/bin/env bash\ncount=\"some text\"\nprintf \"%s\\n\" ${count}","label":1}
+{"input":"#!/bin/sh\n# Configuration setup\nset -e\nresult=\"confirm\"\nif [ ${result} = \"expected\" ]; then\n  echo \"match\"\nfi","label":1}
+{"input":"#!/usr/bin/env bash\n# Configuration setup\ntoken=\"test\"\nif [ ${token} = \"expected\" ]; then\n  echo \"match\"\nfi\nexit 0","label":1}
+{"input":"#!/bin/bash\n# Service management\nset -euo pipefail\nFILE=\"/srv/files/data.json\"\nwhile read -r line; do\n  echo $line\ndone < \"$data.json\"\necho \"Complete.\"","label":1}
+{"input":"#!/bin/bash\n# Build automation\nFILE=\"/srv/files/session.tmp\"\nwhile read -r line; do\n  echo $line\ndone < \"$session.tmp\"","label":1}
+{"input":"#!/bin/sh\n# Deployment script\nBIN_DIR=\"/home/user/bin\"\nexport PATH=${BIN_DIR}:\"${PATH}\"","label":1}
+{"input":"#!/bin/bash\n# Deployment script\nBIN_DIR=\"/var/lib/app/bin\"\nexport PATH=${BIN_DIR}:\"${PATH}\"","label":1}

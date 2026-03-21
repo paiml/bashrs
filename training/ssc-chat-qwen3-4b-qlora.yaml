@@ -1,0 +1,102 @@
+entrenar: "1.0"
+
+name: ssc-chat-qwen3-4b-qlora
+version: "3.0.0"
+description: >
+  Shell Safety Classifier chat model — Qwen3-4B with NF4 QLoRA fine-tuning.
+  Run 7: first LoRA training after ENT-LoRA-001..018 implementation. Upgraded
+  from Qwen2.5-Coder-0.5B (6 failed full-FT runs) to Qwen3-4B (8x capacity,
+  matches Qwen2.5-7B on code benchmarks, proven NF4 on this box at 91.4% val_acc).
+  Binary classification + explanation + fix suggestions for shell scripts.
+  Estimated ~5-7 GB VRAM training. Cannot run concurrent with albor (~12.6 GB).
+
+seed: 42
+
+model:
+  source: "/home/noah/src/models/qwen3-4b/"
+  format: safetensors
+  device: "cuda"
+  dtype: "bfloat16"
+  architecture:
+    type: transformer
+    hidden_size: 2560
+    num_layers: 36
+    num_heads: 32
+    num_kv_heads: 8
+    intermediate_size: 9728
+    vocab_size: 151936
+    max_seq_length: 512
+    rope_theta: 1000000.0
+    head_dim: 128
+
+data:
+  train: "/home/noah/src/bashrs/training/conversations_v3.jsonl"
+  tokenizer: "/home/noah/src/models/qwen3-4b/tokenizer.json"
+  seq_len: 512
+  input_column: "text"
+  loader:
+    batch_size: 4
+    shuffle: true
+
+optimizer:
+  name: "adamw"
+  lr: 0.00005
+
+scheduler:
+  name: "cosine"
+  warmup:
+    steps: 20
+
+training:
+  epochs: 1
+  gradient:
+    accumulation_steps: 1
+    clip_norm: 1.0
+  checkpoint:
+    save_every: 20
+
+lora:
+  enabled: true
+  rank: 16
+  alpha: 32.0
+  target_modules: [q_proj, v_proj]
+  quantize_base: true
+  quantize_bits: 4
+  quant_type: nf4
+
+output:
+  dir: "/home/noah/src/bashrs/training/checkpoints/ssc-chat-v7-qwen3-4b"
+
+publish:
+  repo: "paiml/shell-safety-chat"
+  private: false
+  status: "Run 7e ACTIVE on GB10 — ENT-266 LoRA save fix, grad_clip=1.0, ~20h ETA"
+
+# Model selection rationale:
+#   - Qwen3-4B matches Qwen2.5-7B on code benchmarks (MBPP=67.0, EvalPlus=63.5)
+#   - Already instruction-tuned (Qwen3 post-trained = instruct)
+#   - Think/non-think mode for fast classification vs deep explanation
+#   - NF4 QLoRA proven on RTX 4090 (91.4% val_acc with Qwen3-4B, prior work)
+#   - LoRA targets Q+V only (o_proj/gate_proj removed to reduce trainable params)
+#
+# Run history:
+#   Runs 1-6: Qwen2.5-Coder-0.5B, full fine-tuning (LoRA silently ignored)
+#     Run 1: Gibberish (missing QKV biases, entrenar#258)
+#     Run 2: Interrupted at step 4004
+#     Run 3: 3% accuracy (catastrophic forgetting, 3 epochs)
+#     Run 4: 12% accuracy (coherent domain text, 1 epoch)
+#     Run 5: 28% accuracy (v2 data with classification prefix)
+#     Run 6: 32% accuracy (balanced v3 data, 3 epochs)
+#   Run 7: RTX 4090, KILLED — LoRA never updated (entrenar#264, optimizer gated by accumulate_only)
+#   Run 7b: RTX 4090, KILLED — NF4 GEMM forward garbage (trueno#180, warp shuffle bug)
+#   Run 7c: GB10, KILLED at step 245 — loss diverging (embed grad 7K→26M)
+#     Root cause: NF4 LoRA backward had NO gradient clipping (entrenar#265)
+#     3 trueno fixes: sm_70 clamp, cuModuleLoadData for Blackwell, launch_kernel return
+#     3 entrenar fixes: buffer overflow (ffn_out→swiglu_out), q_dim pre-warming, 9 cache keys
+#   Run 7d: GB10, KILLED step 40 — loss 19→9.8 (healthy), but ENT-266 discovered:
+#     save_trained_model_cuda() did NOT save LoRA adapters (GPU buffers ephemeral)
+#   Run 7e: GB10, ACTIVE — ENT-266 fix: save_cuda_lora_adapter() wired into CUDA path
+#     Saves adapter_model.safetensors at each checkpoint + end of training
+#     Success: >85% accuracy on 50-entry eval (C-CHAT-TRAIN-002)
+#     Kill: <50% accuracy → task requires >=8B model (KILL-QLORA-001)
+#     If loss plateaus 8-10: raise clip_norm to 5.0 or 10.0

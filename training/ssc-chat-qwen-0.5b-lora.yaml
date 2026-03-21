@@ -1,0 +1,84 @@
+entrenar: "1.0"
+
+name: ssc-chat-qwen-0.5b-lora
+version: "2.0.0"
+description: >
+  Shell Safety Classifier chat model — Qwen2.5-Coder-0.5B-Instruct with ACTUAL LoRA
+  fine-tuning (runs 1-6 silently ignored LoRA config). Run 7: first real LoRA training
+  after ENT-LoRA-001..018 implementation. Binary classification + explanation + fix
+  suggestions. Adapter-only training preserves base model instruction-following.
+
+seed: 42
+
+model:
+  source: "/home/noah/models/qwen2.5-coder-0.5b-instruct-safetensors/"
+  format: safetensors
+  device: "cuda"
+  dtype: "bfloat16"
+  architecture:
+    type: transformer
+    hidden_size: 896
+    num_layers: 24
+    num_heads: 14
+    num_kv_heads: 2
+    intermediate_size: 4864
+    vocab_size: 151936
+    max_seq_length: 512
+    rope_theta: 1000000.0
+
+data:
+  train: "/home/noah/src/bashrs/training/conversations_v3.jsonl"
+  tokenizer: "/home/noah/models/qwen2.5-coder-0.5b-instruct-safetensors/tokenizer.json"
+  seq_len: 512
+  input_column: "text"
+  loader:
+    batch_size: 4
+    shuffle: true
+
+optimizer:
+  name: "adamw"
+  lr: 0.00005
+
+scheduler:
+  name: "cosine"
+
+training:
+  epochs: 1
+  gradient_accumulation: 4
+  max_seq_length: 512
+  checkpoint:
+    save_every: 500
+
+lora:
+  enabled: true
+  rank: 16
+  alpha: 32.0
+  target_modules: [q_proj, v_proj]
+  # NF4 quantization disabled for Run 7 — standard LoRA path first.
+  # If VRAM allows, full bf16 base gives cleaner gradient signal.
+  # Enable for Run 8 (1.5B model) if needed.
+  quantize_base: false
+  quantize_bits: 16
+  quant_type: none
+
+output:
+  dir: "training/checkpoints/ssc-chat-v4-lora"
+  save_every: 500
+
+publish:
+  repo: "paiml/shell-safety-chat"
+  private: false
+  status: "SUPERSEDED — upgraded to Qwen3-4B NF4 QLoRA. See ssc-chat-qwen3-4b-qlora.yaml"
+
+# Run history:
+#   Runs 1-6: Full fine-tuning (LoRA config was silently ignored by entrenar)
+#     Run 1: Gibberish (missing QKV biases)
+#     Run 2: Interrupted at step 4004
+#     Run 3: 3% accuracy (catastrophic forgetting, 3 epochs)
+#     Run 4: 12% accuracy (coherent domain text, 1 epoch)
+#     Run 5: 28% accuracy (v2 data with classification prefix)
+#     Run 6: 32% accuracy (balanced v3 data, 3 epochs)
+#   Run 7: THIS RUN — actual LoRA via ENT-LoRA-001..018
+#     Expected: No catastrophic forgetting, preserved instruction-following
+#     Success: >85% accuracy on 50-entry eval (C-CHAT-TRAIN-002)
+#     Kill: <50% accuracy → escalate to 1.5B QLoRA (Run 8)
