@@ -2975,10 +2975,22 @@ The 16 codebook VALUES are identical (from the same normal distribution quantile
 3. **Compute dtype**: bitsandbytes uses bfloat16 for GEMM after NF4 dequant. Trueno uses f32. Accumulation differences across 36 layers.
 4. **Attention implementation**: HuggingFace uses SDPA/Flash Attention. Trueno uses manual matmul attention.
 
-**Key insight from pad masking test**: Loss(all tokens) = 5.45, Loss(text only) = 2.54 for the same input. Pad masking alone can explain a 2x loss difference. The remaining 1.7x gap (adjusted for batch composition) is within range of compute dtype + attention implementation differences.
+**Key insight — the loss gap is a measurement artifact, NOT a bug:**
 
-**Updated tickets**: trueno#195 (revised), entrenar#298
-**Contract**: `nf4-codebook-parity-v1.yaml` — FALSIFY-NF4-001/002 now expected PASS
+| Factor | PyTorch canary | Entrenar | Impact on loss |
+|--------|---------------|----------|----------------|
+| Padding | Pads to 512, loss on ALL tokens | Variable-length, NO padding | Canary loss diluted by easy pad predictions |
+| Loss scope | ALL tokens (prompt + response + padding) | Response tokens ONLY | Entrenar loss is harder (response-only) |
+| Batch size | 2 | 4 | Different first-batch examples |
+
+Verified: same input, loss(all tokens) = 5.45 vs loss(text only) = 2.54 (2.14x). The canary's lower per-step loss is because it includes trivial padding predictions. **Entrenar's higher loss is correct behavior** — it computes a harder, more meaningful loss on response tokens only.
+
+Both converge to loss ~1.3 at step 500. The convergence RATE differs because of compute dtype (bf16 vs f32) and the 74x throughput gap — but the final model quality should be equivalent.
+
+**The real bug is the 74x throughput gap** (ENT-286, entrenar#299). See S18.8.
+
+**Updated tickets**: trueno#195 (revised — not a correctness bug), entrenar#299 (throughput)
+**Contract**: `nf4-codebook-parity-v1.yaml` — FALSIFY-NF4-001..003 now expected PASS
 **Reference**: Dettmers et al., "QLoRA: Efficient Finetuning of Quantized LLMs", arXiv:2305.14314 (2023)
 
 ### 18.8. Root cause analysis: 74x throughput gap (Five Whys)
@@ -2989,9 +3001,16 @@ The 16 codebook VALUES are identical (from the same normal distribution quantile
 4. **Why is fused slower?** → On GB10 Blackwell (sm_121), the scalar kernel doesn't use tensor cores or cuBLAS's highly-optimized GEMM. cuBLAS can dequantize a tile to fp16 then use WMMA.
 5. **Root cause**: The "fuse dequant+GEMM" strategy trades kernel call overhead for instruction throughput. On modern GPUs with tensor cores, the overhead saved is negligible but the tensor core throughput lost is 10-100x.
 
-**This is a known tradeoff in the QLoRA literature**: bitsandbytes dequantizes to fp16 then calls cuBLAS (two-pass), which is faster than a fused single-pass on GPUs with tensor cores. See Dettmers et al. §3.1.
+**This is a known tradeoff in the QLoRA literature**: bitsandbytes dequantizes to bf16 then calls cuBLAS (two-pass), which is faster than a fused single-pass on GPUs with tensor cores. See Dettmers et al. §3.1 (arXiv:2305.14314).
 
-**Tickets**: trueno#187 (existing), trueno#195 (codebook mapping is prerequisite)
+**Fix strategy** (ENT-286, entrenar#299): Implement the two-pass approach in trueno:
+1. Dequantize NF4 tile (e.g., 32×64) to bf16 in shared memory (~4KB)
+2. Call cuBLAS sgemm/hgemm on the bf16 tile (tensor cores)
+3. Accumulate partial results across tiles
+
+This gives tensor core throughput (potentially 10-50x improvement) while keeping memory bounded. The fused approach was 15.5 tok/s; the two-pass should reach 200-800+ tok/s based on cuBLAS peak throughput on GB10.
+
+**Tickets**: trueno#187 (kernel optimization), entrenar#299 (two-pass strategy)
 
 ### 18.4. Decision matrix
 
