@@ -3012,6 +3012,20 @@ This gives tensor core throughput (potentially 10-50x improvement) while keeping
 
 **Tickets**: trueno#187 (kernel optimization), entrenar#299 (two-pass strategy)
 
+**ENT-286 attempt (cuBLAS integration) — FAILED, reverted.** Three commits attempted to replace the fused NF4 kernel with pre-dequantized weights + cuBLAS:
+1. Forward-only cuBLAS: no throughput change (backward still fused)
+2. Forward+backward cuBLAS: loss=0.0, 142K tok/s (garbage — weight layout mismatch)
+3. Original fp32 weights: CUDA_ERROR_ILLEGAL_ADDRESS (dimension/stride mismatch)
+
+**Root cause of failure (five-whys)**:
+1. Why garbage? → cuBLAS reads weight buffer in wrong order
+2. Why wrong order? → NF4 fused kernel uses column-major block layout (optimized for its access pattern)
+3. Why can't cuBLAS read it? → cuBLAS expects standard row-major or column-major with explicit transpose flags
+4. Why not set transpose? → HF weights are `[out_features, in_features]` = `[N,K]`, cuBLAS `gemm_forward` assumes `[K,N]`
+5. Fix needed: add `GemmOp::Trans` handling for weight matrix in the cuBLAS GEMM call, or transpose weights during upload
+
+**Run 12 started** with the working fused kernel (15.5 tok/s). The cuBLAS throughput fix (ENT-286) requires proper layout conversion — deferred to a careful implementation with falsification tests.
+
 ### 18.4. Decision matrix
 
 | Canary result | Interpretation | Action |
