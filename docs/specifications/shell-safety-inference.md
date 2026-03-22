@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.35.0
-**Status**: SHIP GATE PASS — canary eval 90% accuracy (9/10) on intel CPU. Model learns shell safety. Worth completing training. Run 12 paused at step 94. cuBLAS parity verified.
+**Version**: 12.36.0
+**Status**: SHIP GATE PASS — canary eval 90% accuracy (9/10). Run 12 DEAD (step 55). Dimension-independent kernels: 8/20 fixed, 5/5 Run 12 JIT offenders fixed.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3326,5 +3326,34 @@ This refactor is **exclusively a training infrastructure change**. Inference (`a
 | RoPE | Custom PTX forward | Custom PTX backward | Forward: pre-warmed. **Backward: Yes** |
 | Softmax | Custom PTX forward | Custom PTX backward | Forward: pre-warmed. **Backward: Yes** |
 | AdamW optimizer | N/A | Custom PTX | **Yes** |
+
+#### Implementation progress (2026-03-22)
+
+**Contract**: `trueno/contracts/dimension-independent-kernels-v1.yaml` — 6 FALSIFY test IDs.
+**Test file**: `trueno-gpu/src/kernels/tests/dimension_independence.rs` — 30 tests (20 PASS, 10 IGNORE).
+
+**Audit results**: 30 training kernels audited. 10 already dimension-independent. 20 bake dimensions.
+
+**Fixed (8 kernels)**:
+- `InterleavedToBatchedKernel` — seq_len/n_heads/head_dim now runtime `.param`
+- `BatchedToInterleavedKernel` — same
+- `TransposeKernel` — rows/cols/total_elems now runtime `.param`
+- `BatchedTransposeKernel` — rows/cols/total_per_batch now runtime `.param`
+- `BatchedSoftmaxKernel` — total_rows/row_size now loaded from `.param`
+- `BatchedScaleKernel` — n now loaded from `.param`
+- `BatchedRmsNormBackwardKernel` — num_rows/hidden_dim/eps now loaded from `.param`
+- PTX builder: added `div_u32_reg()` and `rem_u32_reg()` for register-register ops
+
+**All 5 Run 12 JIT offenders fixed**: interleaved_to_batched, batched_transpose, batched_softmax, batched_to_interleaved, batched_rms_norm_backward.
+
+**Remaining (12 ignored tests)**: RoPE kernels (zero runtime params for dims), warp-shuffle kernels (hidden_dim controls PTX structure), tiled GEMM backward (tile_size baked). These are lower priority since the Run 12 offenders are fixed.
+
+**Run 12 post-mortem**: Died at step 55/5543. The JIT fallback worked (cuModuleLoadData succeeded) but kernels were re-JIT-compiled on EVERY step because dimension-specific cache keys created duplicate entries. The apr-leaderboard eval was also consuming 18.9GB GPU memory. Root cause: dimension-baking + resource contention.
+
+**Next steps**:
+1. Restart training (Run 13) with no competing GPU processes
+2. Update entrenar cache keys to be dimension-agnostic (one entry per kernel type)
+3. Publish trueno 0.4.36 with dimension-independent kernels (Friday-only policy)
+4. Fix remaining 12 kernels (RoPE, tiled GEMM, warp-shuffle backward)
 
 The forward custom PTX kernels (RMSNorm, SiLU, RoPE, softmax) are already pre-warmed before training starts and work fine. The problem is ONLY the backward variants that get compiled during active GPU work.
