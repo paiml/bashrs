@@ -3246,3 +3246,63 @@ PyTorch trained a working model in 7.4 minutes. Our sovereign Rust stack has bee
 **The cuBLAS fix IS correct** (proven by 4/5 parity tests, 298 tok/s verified). It just needs ALL backward kernels enumerated and pre-warmed before GPU work starts. Found and fixed 8 missing kernels across 8 attempts — a mechanical task, not a fundamental limitation.
 
 **In one sentence**: PyTorch ships pre-compiled GPU kernels; we JIT-compile ours, and Blackwell's JIT has a bug that crashes when compilation happens during active GPU work.
+
+### 18.14. The real fix: pre-compiled dimension-independent kernels
+
+#### The root architecture problem
+
+Trueno generates PTX dynamically with dimensions baked in:
+```
+// Current: M, K, N are constants in the PTX source
+.visible .entry gemm_forward_512_2560_4096( ... )
+```
+
+This means each (seq_len, hidden_size, output_dim) combination produces a UNIQUE kernel. A single training run compiles 50+ variants. Changing seq_len (variable-length sequences) triggers new compilations mid-training — which crashes Blackwell.
+
+#### The fix: runtime parameters
+
+Make all kernels dimension-independent — pass M, K, N as kernel arguments:
+```
+// Fixed: M, K, N are runtime parameters
+.visible .entry gemm_forward(.param .u32 m, .param .u32 k, .param .u32 n, ... )
+```
+
+This reduces ~50 dimension variants to ~15 unique kernel types:
+
+| Kernel type | Used in | Count |
+|-------------|---------|-------|
+| gemm_forward | All projections, lm_head | 1 |
+| gemm_backward_a | Gradient propagation | 1 |
+| gemm_backward_b | Weight gradient | 1 |
+| nf4_gemm_fused | NF4 forward (if not using cuBLAS) | 1 |
+| nf4_gemm_transpose | NF4 backward (if not using cuBLAS) | 1 |
+| batched_4d_gemm | Attention QK^T, attn@V | 1 |
+| rms_norm_forward | Pre-attention, pre-FFN norms | 1 |
+| rms_norm_backward | Norm gradient | 1 |
+| silu_forward | FFN activation | 1 |
+| silu_backward | FFN activation gradient | 1 |
+| rope_forward | Positional encoding | 1 |
+| rope_backward | Position gradient | 1 |
+| softmax_forward | Attention softmax | 1 |
+| softmax_backward | Softmax gradient | 1 |
+| adamw_step | Optimizer | 1 |
+
+15 kernels. Pre-compile once per GPU architecture. Ship as cubin blobs. Zero JIT at runtime.
+
+#### Implementation plan
+
+1. **Refactor trueno PTX builders**: Remove dimension constants from PTX templates, add `.param .u32` for all dimensions. The `build_ptx()` method already takes dimensions — just stop baking them into the PTX string.
+
+2. **Pre-compile at build time**: Add `build.rs` that invokes `nvcc --cubin` (or `cuModuleLoadData` at build time) for each of the 15 kernel types. Output: `kernels/*.cubin` files.
+
+3. **Ship cubin blobs**: Include pre-compiled cubins via `include_bytes!()` in the Rust binary. Zero filesystem dependency, zero JIT.
+
+4. **Runtime loading**: `cuModuleLoadData(cubin_bytes)` — instant, no compilation, no Blackwell JIT bug.
+
+#### Impact
+
+- **Eliminates ALL JIT compilation during training** — no more Blackwell context poisoning
+- **Eliminates 35-min PTX warmup** on every restart
+- **Enables cuBLAS integration** (no kernel compilation during active GPU work)
+- **Makes new GPU architectures work automatically** (cubin forward-compatibility)
+- **Estimated effort**: 1-2 weeks for trueno refactor + pre-compilation pipeline
