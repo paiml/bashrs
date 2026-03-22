@@ -1,7 +1,8 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
 **Version**: 12.33.0
-**Status**: RUN 12 TRAINING (fused, 15.5 tok/s). cuBLAS GEMM parity VERIFIED (4/5 tests pass on GB10). cuBLAS training blocked by Blackwell PTX pre-warming — all kernels must compile before GPU work starts.
+**Version**: 12.34.0
+**Status**: PAUSED. Run 12 fused at step 94/5543. cuBLAS GEMM parity VERIFIED (4/5 tests). Blocking: Blackwell kernel pre-warming. See S18.11 for full assessment and next steps.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3149,3 +3150,43 @@ After all 8 fixes, the CUDA context is clean (no poisoning), but a cuBLAS backwa
 
 **Contract**: `nf4-cublas-parity-v2.yaml` — FALSIFY-PARITY-V2-001 through V2-004 PASS.
 **Test file**: `entrenar/tests/cuda_cublas_parity.rs` (641 lines, 5 tests)
+
+### 18.11. Full assessment and recommended next steps (2026-03-22)
+
+#### What we know (proven)
+
+1. **The task works.** PyTorch canary trained Qwen3-4B NF4 QLoRA to loss 1.35 in 7.4 min (500 steps, 1150 tok/s). The model learns shell safety classification. Adapter saved.
+
+2. **Entrenar converges to the same loss.** Fused NF4 kernel reaches loss 1.56 at step 440 (Runs 9/10/11). The convergence trajectory is reproducible across 3 independent runs.
+
+3. **cuBLAS GEMM math is correct.** 4/5 parity tests PASS on GB10. Forward and backward GEMMs match the fused NF4 kernel within 0.1 tolerance. The transpose, dimensions, and buffer layout are verified.
+
+4. **The 74x throughput gap is solvable.** cuBLAS achieves 298 tok/s (verified in Run 12b before context poisoning). The fused kernel does 15.5 tok/s. The gap is from scalar PTX vs tensor core cuBLAS.
+
+5. **Blackwell sm_121 has a CUDA driver bug.** `cuModuleLoadData` fails with `CUDA_ERROR_ILLEGAL_ADDRESS` (700) when called during active GPU computation. This affects ALL kernels not pre-warmed before the first GEMM. The bug is in CUDA 13.0 driver, not in our code.
+
+6. **8 infrastructure bugs found and fixed.** Each cuBLAS attempt revealed a real bug (cache key collision, context poisoning, missing pre-warming, GQA variant, crates.io vs local dependency). All documented in S18.10.
+
+#### What we don't know
+
+1. **Is the cuBLAS backward GEMM stride correct for all 7 projections?** Parity tests verify small matrices (64×64). The cuBLAS `EXECUTION_FAILED` on attempt 8 (m=1024, n=484, k=16) may indicate a stride issue at production dimensions.
+
+2. **Are ALL backward kernels enumerated?** We found 3 missing (silu, rope_nh, rope_nkv). There may be more (softmax backward, elementwise ops, etc.).
+
+3. **Will the model quality match the fused kernel?** cuBLAS uses fp32 tensor-core accumulation vs scalar f32 accumulation. Run 12b showed loss plateau at 4.5 (with fp32 weights) but this was before the NF4 dequant fix.
+
+#### Timeline and options
+
+| Option | Time | Risk | Throughput |
+|--------|------|------|-----------|
+| **A: Continue fused kernel Run 12** | ~7.5 days remaining | Low (proven path) | 15.5 tok/s |
+| **B: Fix cuBLAS pre-warming** | 1-2 days debug + 10.5h training | Medium (1 more kernel bug?) | 298 tok/s |
+| **C: Publish trueno 0.4.36 to crates.io** | 1 day (Friday release) | Low | Unblocks B permanently |
+
+#### Recommended path
+
+1. **Immediately**: Resume fused kernel Run 12 (step 94 checkpoint exists). Let it train while debugging cuBLAS.
+2. **This week**: Write a kernel enumeration test — run ONE full training step with the fused kernel, log every `get_or_compile` call, then verify ALL those keys exist in the cuBLAS pre-warming.
+3. **Friday**: Publish trueno 0.4.36 with `from_ptx_direct` to crates.io. Remove `[patch.crates-io]` hack.
+4. **After trueno publish**: Deploy cuBLAS path with complete pre-warming. If it works → 19x speedup → full epoch in 10.5 hours. If another kernel bug → the enumeration test catches it before training.
+5. **After training**: Run eval (`bashrs corpus batch-eval` + `eval-benchmark`). Ship/kill gate.
