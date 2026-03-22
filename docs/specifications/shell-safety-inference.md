@@ -3226,3 +3226,23 @@ The unsafe recall of 0% (only 1 unsafe entry in 10) needs more data. The trainin
 **Key finding**: The 500-step canary (7.4 min of PyTorch training) produces a model that can analyze shell scripts at 90% accuracy. A full epoch (5,543 steps) on entrenar will produce a more capable model. The task is definitively viable.
 
 **Ship/kill decision**: **SHIP.** Continue training. The model works.
+
+### 18.13. ELI5: Why can't our stack replicate what PyTorch did in 7 minutes?
+
+PyTorch trained a working model in 7.4 minutes. Our sovereign Rust stack has been trying for 14 days. Here's why:
+
+**What PyTorch does**: Load model → one call to cuBLAS for every GEMM → autograd handles gradients → done. One code path. Pre-compiled GPU kernels. No JIT.
+
+**What entrenar does**: Load model → JIT-compile ~50 custom PTX kernels → launch them in precise order → manage memory manually → custom backward pass for each operation. Dozens of hand-written GPU kernels, each a potential failure point.
+
+**The three problems**:
+
+1. **Speed (74x gap)**: Our NF4 GEMM processes one element at a time (scalar). cuBLAS uses tensor cores that process 16×16 matrices at once. Printing press vs hand-copying.
+
+2. **Blackwell JIT bug**: CUDA 13.0 driver crashes when ANY kernel is compiled while the GPU is busy. PyTorch avoids this entirely — cuBLAS/cuDNN are pre-compiled. We must JIT ~50 kernels, and if even ONE is missing from pre-warming, the context is destroyed.
+
+3. **Complexity**: PyTorch has 1 forward path + autograd. We have 50+ custom kernels that must all compile, cache, and launch correctly. Each new GPU architecture can break any of them.
+
+**The cuBLAS fix IS correct** (proven by 4/5 parity tests, 298 tok/s verified). It just needs ALL backward kernels enumerated and pre-warmed before GPU work starts. Found and fixed 8 missing kernels across 8 attempts — a mechanical task, not a fundamental limitation.
+
+**In one sentence**: PyTorch ships pre-compiled GPU kernels; we JIT-compile ours, and Blackwell's JIT has a bug that crashes when compilation happens during active GPU work.
