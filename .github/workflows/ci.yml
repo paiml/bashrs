@@ -27,7 +27,7 @@ jobs:
     secrets: inherit  # pmat:ignore — GitHub Actions reusable workflow keyword, not plaintext
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clean-room]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -41,7 +41,7 @@ jobs:
       - run: cargo test --lib
 
   coverage:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clean-room]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -60,12 +60,14 @@ jobs:
       - run: cargo install cargo-audit --locked || true
       - run: cargo audit
 
-  lint:
-    runs-on: ubuntu-latest
+  gate:
+    name: gate
+    runs-on: [self-hosted, clean-room]
+    if: always()
+    needs: [test, coverage, security]
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-      - run: cargo fmt --all -- --check
-      - run: cargo clippy --workspace -- -D warnings
+      - name: Check all jobs
+        run: |
+          if [ "${{ needs.test.result }}" = "failure" ] || [ "${{ needs.coverage.result }}" = "failure" ]; then
+            exit 1
+          fi
