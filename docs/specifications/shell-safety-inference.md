@@ -3306,3 +3306,25 @@ This reduces ~50 dimension variants to ~15 unique kernel types:
 - **Enables cuBLAS integration** (no kernel compilation during active GPU work)
 - **Makes new GPU architectures work automatically** (cubin forward-compatibility)
 - **Estimated effort**: 1-2 weeks for trueno refactor + pre-compilation pipeline
+
+#### Scope: training only — inference is unaffected
+
+This refactor is **exclusively a training infrastructure change**. Inference (`apr run`) is NOT affected because:
+
+1. **CPU inference uses SIMD, not GPU kernels.** `apr run` on CPU uses trueno's AVX2/NEON vectorized matmul. No PTX, no JIT, no CUDA.
+
+2. **GPU inference uses cuBLAS.** `apr run --gpu` dispatches to cuBLAS for all GEMMs. cuBLAS is pre-compiled by NVIDIA. No custom kernels needed for forward-only inference.
+
+3. **The JIT problem is training-specific.** Training requires backward kernels (silu_backward, rope_backward, rms_norm_backward, softmax_backward, etc.) that don't exist in cuBLAS. These are the ~15 custom PTX kernels that need pre-compilation. Inference only runs the forward path, which already uses cuBLAS.
+
+| Component | Forward (inference) | Backward (training) | Affected by refactor? |
+|-----------|-------------------|--------------------|-----------------------|
+| Projection GEMMs | cuBLAS (pre-compiled) | cuBLAS (pre-compiled) | No |
+| Attention QK^T, V | cuBLAS (pre-compiled) | Custom PTX backward | **Yes** |
+| RMSNorm | Custom PTX forward | Custom PTX backward | Forward: pre-warmed. **Backward: Yes** |
+| SiLU | Custom PTX forward | Custom PTX backward | Forward: pre-warmed. **Backward: Yes** |
+| RoPE | Custom PTX forward | Custom PTX backward | Forward: pre-warmed. **Backward: Yes** |
+| Softmax | Custom PTX forward | Custom PTX backward | Forward: pre-warmed. **Backward: Yes** |
+| AdamW optimizer | N/A | Custom PTX | **Yes** |
+
+The forward custom PTX kernels (RMSNorm, SiLU, RoPE, softmax) are already pre-warmed before training starts and work fine. The problem is ONLY the backward variants that get compiled during active GPU work.
