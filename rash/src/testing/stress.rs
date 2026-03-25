@@ -269,3 +269,69 @@ impl StressTester {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stress_test_results_success_rate_zero_operations() {
+        let results = StressTestResults {
+            total_operations: 0,
+            successful_operations: 0,
+            failed_operations: 0,
+            average_latency_ms: 0.0,
+            max_latency_ms: 0.0,
+            min_latency_ms: 0.0,
+            memory_usage_mb: 0.0,
+            concurrent_threads: 0,
+            test_duration_secs: 0.0,
+            operations_per_second: 0.0,
+            error_details: Vec::new(),
+        };
+        assert!((results.success_rate() - 0.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_stress_test_results_success_rate_all_success() {
+        let results = StressTestResults {
+            total_operations: 100,
+            successful_operations: 100,
+            failed_operations: 0,
+            average_latency_ms: 1.0,
+            max_latency_ms: 5.0,
+            min_latency_ms: 0.5,
+            memory_usage_mb: 10.0,
+            concurrent_threads: 4,
+            test_duration_secs: 1.0,
+            operations_per_second: 100.0,
+            error_details: Vec::new(),
+        };
+        assert!((results.success_rate() - 100.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_stress_test_results_success_rate_partial() {
+        let results = StressTestResults {
+            total_operations: 200,
+            successful_operations: 150,
+            failed_operations: 50,
+            average_latency_ms: 2.0,
+            max_latency_ms: 10.0,
+            min_latency_ms: 0.1,
+            memory_usage_mb: 20.0,
+            concurrent_threads: 8,
+            test_duration_secs: 5.0,
+            operations_per_second: 40.0,
+            error_details: vec!["error1".to_string()],
+        };
+        assert!((results.success_rate() - 75.0).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn test_stress_tester_creation() {
+        let config = Config::default();
+        let tester = StressTester::new(config);
+        assert!(std::mem::size_of_val(&tester) > 0);
+    }
+}

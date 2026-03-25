@@ -238,3 +238,92 @@ mod kani_proofs {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::formal::{AbstractState, FormalEmitter, TinyAst};
+    use crate::formal::semantics::{posix_semantics, rash_semantics};
+
+    #[test]
+    fn test_echo_emitter_output() {
+        let ast = TinyAst::ExecuteCommand {
+            command_name: "echo".to_string(),
+            args: vec!["hello".to_string()],
+        };
+        assert!(ast.is_valid());
+        let posix_code = FormalEmitter::emit(&ast);
+        assert!(!posix_code.is_empty());
+        assert!(posix_code.contains("echo"));
+    }
+
+    #[test]
+    fn test_assignment_emitter_output() {
+        let ast = TinyAst::SetEnvironmentVariable {
+            name: "MY_VAR".to_string(),
+            value: "test_value".to_string(),
+        };
+        assert!(ast.is_valid());
+        let posix_code = FormalEmitter::emit(&ast);
+        assert!(!posix_code.is_empty());
+    }
+
+    #[test]
+    fn test_cd_emitter_output() {
+        let ast = TinyAst::ChangeDirectory {
+            path: "/tmp".to_string(),
+        };
+        assert!(ast.is_valid());
+        let posix_code = FormalEmitter::emit(&ast);
+        assert!(!posix_code.is_empty());
+    }
+
+    #[test]
+    fn test_sequence_emitter_output() {
+        let ast = TinyAst::Sequence {
+            commands: vec![
+                TinyAst::ExecuteCommand {
+                    command_name: "echo".to_string(),
+                    args: vec!["first".to_string()],
+                },
+                TinyAst::ExecuteCommand {
+                    command_name: "echo".to_string(),
+                    args: vec!["second".to_string()],
+                },
+            ],
+        };
+        assert!(ast.is_valid());
+        let posix_code = FormalEmitter::emit(&ast);
+        assert!(!posix_code.is_empty());
+    }
+
+    #[test]
+    fn test_echo_semantic_equivalence() {
+        let ast = TinyAst::ExecuteCommand {
+            command_name: "echo".to_string(),
+            args: vec!["hello".to_string()],
+        };
+        let initial_state = AbstractState::new();
+        if let Ok(rash_state) = rash_semantics::eval_rash(&ast, initial_state.clone()) {
+            let posix_code = FormalEmitter::emit(&ast);
+            if let Ok(posix_state) = posix_semantics::eval_posix(&posix_code, initial_state) {
+                assert!(rash_state.is_equivalent(&posix_state));
+            }
+        }
+    }
+
+    #[test]
+    fn test_assignment_semantic_equivalence() {
+        let ast = TinyAst::SetEnvironmentVariable {
+            name: "VAR".to_string(),
+            value: "test".to_string(),
+        };
+        let initial_state = AbstractState::new();
+        if let Ok(rash_state) = rash_semantics::eval_rash(&ast, initial_state.clone()) {
+            let posix_code = FormalEmitter::emit(&ast);
+            if let Ok(posix_state) = posix_semantics::eval_posix(&posix_code, initial_state) {
+                assert!(rash_state.is_equivalent(&posix_state));
+                assert_eq!(rash_state.get_env("VAR"), Some(&"test".to_string()));
+            }
+        }
+    }
+}
