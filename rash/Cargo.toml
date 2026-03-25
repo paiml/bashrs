@@ -165,3 +165,7 @@ harness = false
 
 # wasm-pack metadata removed - WASM support moved to probar/simular/jugar
 
+
+[build-dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml_ng = "0.10"

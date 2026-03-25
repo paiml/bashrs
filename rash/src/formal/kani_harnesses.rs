@@ -241,8 +241,8 @@ mod kani_proofs {
 
 #[cfg(test)]
 mod tests {
-    use crate::formal::{AbstractState, FormalEmitter, TinyAst};
     use crate::formal::semantics::{posix_semantics, rash_semantics};
+    use crate::formal::{AbstractState, FormalEmitter, TinyAst};
 
     #[test]
     fn test_echo_emitter_output() {
