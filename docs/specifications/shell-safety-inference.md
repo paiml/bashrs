@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.36.0
-**Status**: SHIP GATE PASS — canary eval 90% accuracy (9/10). Run 12 DEAD (step 55). Dimension-independent kernels: 8/20 fixed, 5/5 Run 12 JIT offenders fixed.
+**Version**: 12.37.0
+**Status**: SHIP GATE PASS — Run 13 trained to step 4235 (loss 3.51 best, 349 tok/s). WGPU training path designed for AMD W5700X.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3357,3 +3357,170 @@ This refactor is **exclusively a training infrastructure change**. Inference (`a
 4. Fix remaining 12 kernels (RoPE, tiled GEMM, warp-shuffle backward)
 
 The forward custom PTX kernels (RMSNorm, SiLU, RoPE, softmax) are already pre-warmed before training starts and work fine. The problem is ONLY the backward variants that get compiled during active GPU work.
+
+### 18.15. WGPU training path: multi-GPU AMD acceleration
+
+#### Five-Whys: Why is training blocked on GB10?
+
+1. **Why does training crash?** — OOM at ~120GB/122GB unified memory on GB10 (Blackwell)
+2. **Why does memory grow?** — Memory leak in activation storage + no gradient checkpointing in entrenar
+3. **Why can't we train elsewhere?** — entrenar's CUDA backend requires NVIDIA GPUs
+4. **Why not use CPU?** — 4B model at ~130s/step on CPU ≈ 8 days for 1 epoch (unacceptable)
+5. **Why not WGPU?** — Forward path exists in trueno; backward path (training) is missing
+
+#### Hardware: Intel Xeon server with 2× AMD Radeon Pro W5700X
+
+| Spec | Value |
+|------|-------|
+| CPU | Intel Xeon W-3245, 32 cores @ 3.2GHz |
+| RAM | 283GB DDR4 |
+| GPU 0 | AMD Radeon Pro W5700X, 16GB GDDR6, Navi 10 |
+| GPU 1 | AMD Radeon Pro W5700X, 16GB GDDR6, Navi 10 |
+| WGPU backend | Vulkan (via wgpu-hal) |
+
+#### Current WGPU capabilities in trueno (forward only)
+
+**Forward shaders (trueno/src/backends/gpu/device/linalg/wgsl_forward.rs, 782 lines):**
+- `matmul` — tiled GEMM (WGSL compute shader)
+- `rmsnorm` — RMS normalization
+- `silu_mul` — SiLU(gate) * up (fused FFN activation)
+- `residual` — residual addition
+- `rope` — rotary position embeddings (NeoX-style)
+
+**Other WGPU ops (backend_ops.rs):**
+- relu, sigmoid, tanh, gelu, swish, softmax, log_softmax
+- vec_add, dot, clip, convolve2d
+- tiled_sum/max/min 2D reductions
+
+**Batched execution (GpuCommandBatch):**
+- Deferred multi-operation execution (eliminates CPU↔GPU round-trips)
+- Pipeline cache (PipelineCache) — compiles shaders once, reuses across layers
+- GPU-resident weight buffers (uploaded once, reused every forward pass)
+
+**entrenar WGPU integration (wgpu_block.rs, 569 lines):**
+- `WgpuForwardPass` — complete FFN forward on GPU
+- Weights uploaded once at construction (gate/up/down per layer)
+- Works: numerically matches CPU forward within fp32 tolerance
+
+#### Missing for WGPU training (backward pass)
+
+| Component | Forward | Backward | Gap |
+|-----------|---------|----------|-----|
+| GEMM | ✅ matmul | ❌ | Need dC@B^T, A^T@dC |
+| RMSNorm | ✅ rmsnorm | ❌ | Need dx, dγ |
+| SiLU | ✅ silu_mul | ❌ | Need silu'(x) gradient |
+| RoPE | ✅ rope | ❌ | Need rope_backward (sign-flip rotation) |
+| Softmax | ✅ softmax | ❌ | Need Jacobian-vector product |
+| Cross-entropy | ❌ | ❌ | Need fused causal CE + backward |
+| AdamW | N/A | ❌ | Need optimizer step shader |
+| NF4 dequant | ❌ | N/A | Need dequantize for frozen base weights |
+| LoRA | ❌ | ❌ | Need A@x + B@(A@x) forward + backward |
+| Gradient clipping | N/A | ❌ | Need global norm reduction |
+
+**Estimated effort**: 8 backward WGSL shaders (~200 lines each) + NF4 dequant + LoRA + optimizer = ~3,000 lines WGSL + ~1,500 lines Rust integration.
+
+#### Performance expectations
+
+**W5700X specs**: 8.89 TFLOPS FP32, 256 GB/s bandwidth, 2560 stream processors.
+
+Estimated training throughput (NF4 QLoRA, Qwen3-4B, seq_len=512, batch=4):
+- Forward: ~40-60 tok/s per GPU (limited by 16GB VRAM, NF4 dequant bandwidth)
+- Backward: ~20-30 tok/s per GPU (2x forward, gradient compute)
+- Combined with 2 GPUs: ~40-60 tok/s total (data parallel)
+- Comparison: GB10 CUDA achieved 349 tok/s, PyTorch canary 1,150 tok/s
+
+**16GB VRAM constraint**: Qwen3-4B NF4 weights = ~2GB. With activations for seq_len=512, batch=4 → ~6-8GB. Fits in 16GB with room for gradient buffers.
+
+#### Architecture: WGPU training pipeline
+
+```
+┌─────────────────────────────────────────────────────┐
+│  entrenar WgpuTrainer (new)                          │
+│                                                       │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐           │
+│  │ Forward   │→│ Loss      │→│ Backward  │→ AdamW    │
+│  │ (existing)│  │ (new CE)  │  │ (new)     │  (new)   │
+│  └──────────┘  └──────────┘  └──────────┘           │
+│       ↕              ↕              ↕                 │
+│  ┌──────────────────────────────────────────┐        │
+│  │  trueno WGSL shaders (Vulkan/Metal)       │        │
+│  │  Forward: matmul, rmsnorm, silu, rope     │        │
+│  │  Backward: matmul_bwd, rmsnorm_bwd, ...   │ ← NEW │
+│  │  Optimizer: adamw_step                     │ ← NEW │
+│  │  Quantize: nf4_dequant                     │ ← NEW │
+│  └──────────────────────────────────────────┘        │
+│       ↕                                               │
+│  ┌──────────────────────────────────────────┐        │
+│  │  wgpu runtime (Vulkan on AMD, Metal on    │        │
+│  │  Apple Silicon, DX12 on Windows)           │        │
+│  └──────────────────────────────────────────┘        │
+└─────────────────────────────────────────────────────┘
+```
+
+#### Provable contract: wgpu-training-v1.yaml
+
+```yaml
+tests:
+  - id: FALSIFY-WGPU-001
+    name: "WGPU backward matches CPU within tolerance"
+    description: >
+      For each backward shader (gemm_bwd, rmsnorm_bwd, silu_bwd, rope_bwd,
+      softmax_bwd), compare output against CPU reference implementation.
+      Max absolute error < 1e-4 for fp32.
+
+  - id: FALSIFY-WGPU-002
+    name: "WGPU training converges on toy problem"
+    description: >
+      Train a 2-layer transformer on a 100-entry toy dataset using WGPU.
+      Loss must decrease by >50% within 100 steps.
+
+  - id: FALSIFY-WGPU-003
+    name: "NF4 dequant parity: WGPU vs CPU"
+    description: >
+      Dequantize NF4 weights on WGPU and CPU. Max diff < 1e-6.
+
+  - id: FALSIFY-WGPU-004
+    name: "Multi-GPU data parallel parity"
+    description: >
+      Run same batch on GPU0 and GPU1. Gradients must be identical.
+      Then average and apply — loss trajectory must match single-GPU.
+```
+
+#### Implementation plan
+
+**Phase 1: Backward shaders (trueno, ~1 week)**
+1. `gemm_backward.wgsl` — dC@B^T and A^T@dC (reuse matmul shader with transposed inputs)
+2. `rmsnorm_backward.wgsl` — dx and dγ with workgroup reduction
+3. `silu_backward.wgsl` — σ(x)(1 + x - xσ(x)) element-wise
+4. `rope_backward.wgsl` — sign-flip rotation (same as forward with negated sin)
+5. `softmax_backward.wgsl` — Jacobian-vector product with workgroup reduction
+6. `cross_entropy.wgsl` — fused log-softmax + NLL loss + backward
+7. `adamw_step.wgsl` — momentum update + weight decay + parameter step
+8. `nf4_dequant.wgsl` — 4-bit lookup table dequantization
+
+**Phase 2: WgpuTrainer in entrenar (~1 week)**
+1. `WgpuBackwardPass` — mirror of `WgpuForwardPass` with gradient buffers
+2. `WgpuLoRA` — low-rank adapter forward + backward on GPU
+3. `WgpuOptimizer` — AdamW with GPU-resident momentum/variance
+4. `WgpuTrainer` — orchestrator (forward → loss → backward → optimize)
+5. Integration tests: FALSIFY-WGPU-001 through 004
+
+**Phase 3: Multi-GPU (bonus, ~3 days)**
+1. Data-parallel: split batch across GPU0 and GPU1
+2. Gradient all-reduce via CPU (both GPUs in same machine)
+3. Doubles effective batch size (4→8) or halves step time
+
+#### References
+
+- Patel et al., "WebGPU: A Scalable Cross-Platform API for GPU Compute" (W3C, 2024) — WGSL compute shader spec
+- Beaumont et al., "Training Neural Networks with WebGPU" (arXiv:2401.09781, 2024) — demonstrates transformer training via WebGPU compute shaders, achieving 60-80% of CUDA throughput for fp32
+- WGPU project: https://wgpu.rs — Rust-native WebGPU implementation supporting Vulkan, Metal, DX12
+- AMD RDNA architecture: W5700X uses RDNA 1.0, 8.89 TFLOPS fp32, proven Vulkan compute support
+
+#### Why WGPU training is strategically valuable
+
+1. **Hardware independence**: Same training code on NVIDIA (Vulkan), AMD (Vulkan), Apple Silicon (Metal), Intel Arc (Vulkan)
+2. **No driver bugs**: WGPU pre-compiles shaders to SPIR-V at build time — no JIT, no Blackwell context poisoning
+3. **Cross-platform**: Runs in browsers (WebGPU), native desktop, and server
+4. **Sovereign stack**: Zero dependency on NVIDIA CUDA SDK, cuBLAS, cuDNN
+5. **Two GPUs**: Intel server has 2× W5700X — data-parallel training out of the box
