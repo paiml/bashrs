@@ -1,0 +1,55 @@
+contract:
+  name: wgpu-training-v1
+  version: "1.0.0"
+  description: >
+    Provable contract for WGPU-based transformer training on AMD GPUs.
+    Validates backward pass correctness, NF4 dequant parity, and
+    multi-GPU data parallel consistency. Enables training on non-NVIDIA
+    hardware (AMD W5700X via Vulkan, Apple Silicon via Metal).
+  spec: docs/specifications/shell-safety-inference.md
+  section: "S18.15"
+  references:
+    - "trueno WGPU backend: src/backends/gpu/device/linalg/wgsl_forward.rs"
+    - "entrenar WGPU forward: src/transformer/wgpu_block.rs"
+    - "Beaumont et al., Training Neural Networks with WebGPU (arXiv:2401.09781)"
+
+tests:
+  - id: FALSIFY-WGPU-001
+    name: "WGPU backward matches CPU within tolerance"
+    description: >
+      For each backward shader (gemm_bwd, rmsnorm_bwd, silu_bwd, rope_bwd,
+      softmax_bwd), compare output against CPU reference implementation.
+      Max absolute error < 1e-4 for fp32. Uses finite-difference validation.
+    prediction: PASS_AFTER_FIX
+    if_fails: "Backward shader has numerical bug"
+    severity: critical
+
+  - id: FALSIFY-WGPU-002
+    name: "WGPU training converges on toy problem"
+    description: >
+      Train a 2-layer transformer on a 100-entry toy dataset using WGPU
+      backend. Loss must decrease by >50% within 100 steps. Validates
+      end-to-end gradient flow through all WGSL shaders.
+    prediction: PASS_AFTER_FIX
+    if_fails: "Gradient flow broken — check shader chain"
+    severity: critical
+
+  - id: FALSIFY-WGPU-003
+    name: "NF4 dequant parity: WGPU vs CPU"
+    description: >
+      Dequantize NF4-quantized weights on WGPU (nf4_dequant.wgsl) and
+      CPU (trueno::quantize::dequantize_nf4). Max diff < 1e-6.
+      Tests block_size=64 with standard NF4 codebook.
+    prediction: PASS_AFTER_FIX
+    if_fails: "NF4 codebook or nibble ordering mismatch"
+    severity: critical
+
+  - id: FALSIFY-WGPU-004
+    name: "Multi-GPU gradient parity"
+    description: >
+      Run same batch on GPU0 and GPU1 (AMD W5700X pair). Gradients must
+      be identical (max diff < 1e-6). Then average and apply — loss
+      trajectory must match single-GPU within 1%.
+    prediction: PASS_AFTER_FIX
+    if_fails: "Non-determinism between GPUs or gradient averaging bug"
+    severity: high
