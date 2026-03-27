@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.38.0
-**Status**: SHIP GATE PASS — WGPU backward VERIFIED on AMD W5700X (FALSIFY-WGPU-001 SiLU PASS). 7 WGSL shaders + dispatch. Run 13 best loss 3.51.
+**Version**: 12.39.0
+**Status**: WGPU backward 3/3 PASS on AMD W5700X — SiLU + GEMM backward A + GEMM backward B verified via Vulkan. Run 13 best loss 3.51.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
