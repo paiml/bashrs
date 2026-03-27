@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.44.0
-**Status**: WGPU TRAINING CONVERGES — Phase 3 complete. Forward→loss→backward→AdamW loop updates weights on AMD W5700X. First non-NVIDIA training in sovereign stack.
+**Version**: 12.45.0
+**Status**: WGPU training with provable contracts. 9 bindings in ../provable-contracts (pv lint PASS). FFN backward chain on GPU. Phase 3 complete.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
