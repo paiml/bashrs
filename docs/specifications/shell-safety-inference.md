@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.42.0
-**Status**: WGPU training Phase 2 VERIFIED — WgpuTransformerTrainer PASS on AMD W5700X. 8/8 FALSIFY tests pass (7 backward + 1 convergence).
+**Version**: 12.43.0
+**Status**: WGPU training COMPLETE — 8/8 FALSIFY PASS on AMD W5700X. All docs/specs/README/examples updated across trueno + entrenar.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
