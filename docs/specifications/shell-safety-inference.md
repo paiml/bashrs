@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.45.0
-**Status**: WGPU training with provable contracts. 9 bindings in ../provable-contracts (pv lint PASS). FFN backward chain on GPU. Phase 3 complete.
+**Version**: 12.46.0
+**Status**: WGPU-only training. NF4 weight management + LoRA adapters added. FFN backward chain + AdamW on AMD W5700X. Per-layer dequant keeps VRAM < 16GB.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
