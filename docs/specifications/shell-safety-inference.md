@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.46.0
-**Status**: WGPU-only training. NF4 weight management + LoRA adapters added. FFN backward chain + AdamW on AMD W5700X. Per-layer dequant keeps VRAM < 16GB.
+**Version**: 12.47.0
+**Status**: WGPU-only. Qwen3-4B safetensors→NF4→GPU dequant VERIFIED on AMD W5700X (3.4s/layer). Full training pipeline: load→forward→backward→AdamW.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
