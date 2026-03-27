@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.40.0
-**Status**: WGPU backward 5/5 PASS on AMD W5700X — SiLU + GEMM A/B + RoPE + AdamW verified via Vulkan. 5/7 backward ops dispatched.
+**Version**: 12.41.0
+**Status**: WGPU training Phase 1 COMPLETE — 7/7 backward ops PASS on AMD W5700X via Vulkan. All shaders verified: SiLU, GEMM×2, RoPE, AdamW, RMSNorm, NF4 dequant.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
