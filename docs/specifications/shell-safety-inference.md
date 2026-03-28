@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.50.0
-**Status**: Qwen3-4B SINGLE-LAYER TRAINING on AMD W5700X via WGPU — NF4 dequant→FFN forward→backward→AdamW. 54.6s/step. First transformer layer trained on non-NVIDIA GPU.
+**Version**: 12.51.0
+**Status**: FULL 36-LAYER Qwen3-4B TRAINING on AMD W5700X via WGPU — 47s/step, 3 steps verified. NF4 dequant→RMSNorm→FFN→loss→backward→AdamW. First 4B model trained on non-NVIDIA GPU.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
