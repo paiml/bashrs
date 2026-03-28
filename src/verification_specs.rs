@@ -55,7 +55,9 @@ pub mod config_contracts {
     /// #[ensures(result == data.len())]
     /// #[invariant(data.len() > 0)]
     pub fn validated_len(data: &[u8]) -> usize {
-        debug_assert!(!data.is_empty());
+        // Contract: serialization-v1.yaml precondition (pv codegen)
+        contract_pre_serialize_roundtrip!(data);
+
         data.len()
     }
 }
