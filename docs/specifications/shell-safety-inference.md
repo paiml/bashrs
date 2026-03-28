@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.51.0
-**Status**: FULL 36-LAYER Qwen3-4B TRAINING on AMD W5700X via WGPU — 47s/step, 3 steps verified. NF4 dequant→RMSNorm→FFN→loss→backward→AdamW. First 4B model trained on non-NVIDIA GPU.
+**Version**: 12.52.0
+**Status**: REAL DATA TRAINING on AMD W5700X — Qwen3-4B + conversations_v4.jsonl + BPE tokenizer. Full 36-layer forward/backward/AdamW. First non-NVIDIA LLM training with real data in sovereign stack.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
