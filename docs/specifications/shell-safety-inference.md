@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.48.0
-**Status**: WGPU LoRA training VERIFIED on AMD W5700X. Forward+backward+AdamW for LoRA adapters. Qwen3-4B NF4 loading works. Ready for full 36-layer training.
+**Version**: 12.49.0
+**Status**: Full Qwen3-4B loaded for WGPU training — 36 layers NF4 + LoRA(Q,V) + tied embeddings. 54s load, 1.9GB NF4, 5.9M trainable params. AMD W5700X.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
