@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.53.0
-**Status**: GPU-accelerated Qwen3-4B training on AMD W5700X — FFN forward+backward+lm_head all on GPU GEMM. 49s/step (36 layers). Real data pipeline with tokenizer verified.
+**Version**: 12.54.0
+**Status**: WGPU training CLI running on AMD W5700X. `cargo run --example wgpu_train --features gpu`. Real data (conversations_v4.jsonl) + tokenizer + 36-layer GPU GEMM forward/backward.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
