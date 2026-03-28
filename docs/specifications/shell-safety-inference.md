@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.54.0
-**Status**: WGPU training CLI running on AMD W5700X. `cargo run --example wgpu_train --features gpu`. Real data (conversations_v4.jsonl) + tokenizer + 36-layer GPU GEMM forward/backward.
+**Version**: 12.55.0
+**Status**: LIVE TRAINING on AMD W5700X — step 7, loss=10.3, 85s/step. Real conversations_v4.jsonl data, Qwen3-4B 36-layer, GPU GEMM forward/backward/AdamW. First sovereign-stack LLM training on non-NVIDIA hardware.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
