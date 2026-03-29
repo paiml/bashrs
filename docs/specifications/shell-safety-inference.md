@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.65.0
-**Status**: WGPU sovereign-stack training operational. Full transformer pipeline (attention+FFN+LoRA) on AMD W5700X. Loss decreasing, checkpoint working. See S18.15 for distance-to-valid-model assessment.
+**Version**: 12.66.0
+**Status**: WGPU training LIVE — 39s/step, avg_loss 17.9 at step 23 (decreasing). Full pipeline on AMD W5700X, 32 cores free. ETA 2.2h to first checkpoint (step 200).
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3403,9 +3403,10 @@ grad_hidden → FFN backward (3 GPU GEMMs: down, gate, up) → LoRA Q/V AdamW (C
 | v2 | 03-29 | 15 | 14→52 | 12s | Full + CPU AdamW (lr=5e-4, spiked) |
 | v3 | 03-29 | 5 | 14.1→10.5 | 60s | Full + grad clip + lr=1e-4 (stable) |
 | v4 | 03-29 | 5 | 13.8→11.6 | 72s | Seq_len=32 + pre-transposed cache |
+| **v5** | **03-29** | **23+** | **avg 17.9↓** | **39s** | **Long run, clean machine, seq_len=32** |
 
-Key fixes applied: QK-norm (attention score explosion), norm-guard (O-projection
-amplification), gradient clipping (max_norm=1.0), CPU AdamW for LoRA (40x speedup).
+Key fixes: QK-norm, norm-guard, grad clipping (max_norm=1.0), CPU AdamW (40x speedup).
+Run v5 is LIVE: nohup on intel, ETA 2.2h to step 200 checkpoint.
 
 #### Distance to Valid Model
 
