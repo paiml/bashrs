@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.57.0
-**Status**: WGPU training CONVERGES on AMD W5700X — step 357, loss=1.956 (down from ~11-17). FFN weight cache eliminates 108 GPU dequant ops/step (~54s savings). Checkpoint save/load. 36-layer Qwen3-4B NF4 QLoRA, GPU GEMM forward/backward/AdamW.
+**Version**: 12.58.0
+**Status**: WGPU training with FULL backward pass — 36-layer FFN backward + LoRA Q/V AdamW. FFN weight cache eliminates 108 dequant ops/step. Checkpoint save/load. Qwen3-4B NF4 QLoRA on AMD W5700X.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3517,10 +3517,11 @@ Estimated training throughput (NF4 QLoRA, Qwen3-4B, seq_len=512, batch=4):
 
 **Phase 3: Optimization (in progress)**
 1. ✅ FFN weight dequant cache (eliminate 108 NF4 dequant ops/step, ~54s savings)
-2. ❌ Attention forward/backward on GPU (currently skipped — FFN only)
-3. ❌ GPU command batching (further reduce buffer transfer overhead)
-4. ❌ Multi-GPU data parallel (2× W5700X)
-5. ❌ Gradient accumulation for effective batch_size > 1
+2. ✅ Backward through all 36 FFN layers (was lm_head only)
+3. ✅ LoRA Q/V gradient computation + AdamW per layer (adapters now trained)
+4. ❌ Full attention forward/backward (QKV + RoPE + softmax)
+5. ❌ GPU command batching (further reduce buffer transfer overhead)
+6. ❌ Multi-GPU data parallel (2× W5700X)
 
 #### References
 
