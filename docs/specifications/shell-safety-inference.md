@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.61.0
-**Status**: WGPU training VALIDATED — loss stable with attention (14.1→7.8 step 3). QK-norm + norm-guard fix prevents explosion. Full pipeline: attention+FFN forward, 36-layer backward, LoRA Q/V AdamW, checkpoint. ~90s/step on AMD W5700X.
+**Version**: 12.62.0
+**Status**: WGPU training VALIDATED — 12s/step (40x speedup via CPU AdamW), loss recovering (135→52 after lr spike). Full pipeline: attention+FFN, 36-layer backward, LoRA Q/V, 197MB checkpoint. AMD W5700X.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)

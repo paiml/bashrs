@@ -29,7 +29,7 @@ path = "src/lib.rs"
 bashrs = { path = "rash", version = "6.65.0" }
 
 [dev-dependencies]
-provable-contracts = { path = "../provable-contracts/crates/provable-contracts" }
+provable-contracts = { version = "0.1.1", path = "../provable-contracts/crates/provable-contracts" }
 criterion.workspace = true
 
 [[test]]

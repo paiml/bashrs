@@ -29,6 +29,8 @@ fn main() {
                 contract: String,
                 equation: String,
                 status: String,
+                #[serde(default)]
+                function: Option<String>,
             }
 
             if let Ok(yaml) = std::fs::read_to_string(&binding_path) {
@@ -60,6 +62,79 @@ fn main() {
                             "[contract] AllImplemented: {} gap(s). Fix bindings or update status.",
                             gaps.len()
                         );
+                    }
+
+                    // ── Layer 2: Verify bound functions exist in source ──
+                    {
+                        let mut expected: std::collections::HashSet<String> =
+                            std::collections::HashSet::new();
+                        for b in &bf.bindings {
+                            if b.status == "implemented" {
+                                if let Some(ref func) = b.function {
+                                    let short =
+                                        func.rsplit("::").next().unwrap_or(func).to_lowercase();
+                                    expected.insert(short);
+                                }
+                            }
+                        }
+                        if !expected.is_empty() {
+                            let mut found: std::collections::HashSet<String> =
+                                std::collections::HashSet::new();
+                            fn scan_rs(
+                                dir: &std::path::Path,
+                                found: &mut std::collections::HashSet<String>,
+                            ) {
+                                let Ok(entries) = std::fs::read_dir(dir) else {
+                                    return;
+                                };
+                                for e in entries.flatten() {
+                                    let p = e.path();
+                                    if p.is_dir() {
+                                        let n =
+                                            p.file_name().and_then(|n| n.to_str()).unwrap_or("");
+                                        if n != "target" && n != ".git" {
+                                            scan_rs(&p, found);
+                                        }
+                                    } else if p.extension().and_then(|e| e.to_str()) == Some("rs") {
+                                        if let Ok(c) = std::fs::read_to_string(&p) {
+                                            for line in c.lines() {
+                                                let t = line.trim();
+                                                if t.starts_with("pub fn ")
+                                                    || t.starts_with("pub async fn ")
+                                                    || t.starts_with("pub(crate) fn ")
+                                                {
+                                                    let part = t
+                                                        .trim_start_matches("pub async fn ")
+                                                        .trim_start_matches("pub(crate) fn ")
+                                                        .trim_start_matches("pub fn ");
+                                                    let name = part
+                                                        .split('(')
+                                                        .next()
+                                                        .unwrap_or("")
+                                                        .split('<')
+                                                        .next()
+                                                        .unwrap_or("")
+                                                        .trim()
+                                                        .to_lowercase();
+                                                    if !name.is_empty() {
+                                                        found.insert(name);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            scan_rs(std::path::Path::new("src"), &mut found);
+                            scan_rs(std::path::Path::new("crates"), &mut found);
+                            let missing: Vec<_> = expected
+                                .iter()
+                                .filter(|n| !found.contains(n.as_str()))
+                                .collect();
+                            if !missing.is_empty() {
+                                println!("cargo:warning=[contract] L2: {} bound function(s) not found in source (soft warning)", missing.len());
+                            }
+                        }
                     }
                 }
             }
