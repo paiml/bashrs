@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.66.0
-**Status**: WGPU training LIVE — 39s/step, avg_loss 17.9 at step 23 (decreasing). Full pipeline on AMD W5700X, 32 cores free. ETA 2.2h to first checkpoint (step 200).
+**Version**: 12.67.0
+**Status**: WGPU training CONVERGED — loss=3.09 at step 639 (plateau since step 500). 3 checkpoints saved. 39s/step on AMD W5700X. First sovereign-stack LLM training result.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3403,16 +3403,16 @@ grad_hidden → FFN backward (3 GPU GEMMs: down, gate, up) → LoRA Q/V AdamW (C
 | v2 | 03-29 | 15 | 14→52 | 12s | Full + CPU AdamW (lr=5e-4, spiked) |
 | v3 | 03-29 | 5 | 14.1→10.5 | 60s | Full + grad clip + lr=1e-4 (stable) |
 | v4 | 03-29 | 5 | 13.8→11.6 | 72s | Seq_len=32 + pre-transposed cache |
-| **v5** | **03-29** | **23+** | **avg 17.9↓** | **39s** | **Long run, clean machine, seq_len=32** |
+| **v5** | **03-29** | **639+** | **3.09 (plateau)** | **39s** | **Long run, seq_len=32, 3 checkpoints** |
 
-Key fixes: QK-norm, norm-guard, grad clipping (max_norm=1.0), CPU AdamW (40x speedup).
-Run v5 is LIVE: nohup on intel, ETA 2.2h to step 200 checkpoint.
+Run v5 converged: loss plateau at ~3.09 since step 500. 3 checkpoints saved (193MB each).
+Checkpoints: step 200, 400, 600 at `/tmp/wgpu-train-output/`.
 
 #### Distance to Valid Model
 
 | Gate | Status | What's Needed |
 |------|--------|---------------|
-| **Training convergence** | 🟡 Partial | Loss decreasing but only 5 steps. Need 1000+ steps to plateau (~20h at 72s/step) |
+| **Training convergence** | ✅ DONE | Loss plateau at 3.09 since step 500 (639 steps, 3 checkpoints) |
 | **LoRA adapter quality** | 🟡 Unknown | LoRA Q/V adapters update each step, but backward uses simplified proxy gradients (not full attention backward) |
 | **lm_head quality** | 🟡 Promising | 389M params, real cross-entropy gradient, AdamW with grad clipping |
 | **Evaluation** | ❌ Missing | Need to run `eval-benchmark` on test split after training. Baseline: keyword MCC=0.448, MLP probe MCC=0.754 |
@@ -3476,8 +3476,8 @@ Stretch goal: MCC > 0.754 (beating MLP probe).
 | Phase 1: WGSL backward shaders | ✅ COMPLETE | 7 shaders in trueno, verified < 2.4e-7 error |
 | Phase 2: WgpuTrainer | ✅ COMPLETE | 36-layer forward/backward, LoRA, checkpoint |
 | Phase 3: Optimization | ✅ COMPLETE | Weight cache, CPU AdamW, QK-norm, grad clip, pre-transpose |
-| Phase 4: Long training run | ❌ NEXT | 1000+ steps at seq_len=32, lr=1e-4 |
-| Phase 5: Evaluation | ❌ BLOCKED on P4 | eval-benchmark on test split |
+| Phase 4: Long training run | ✅ COMPLETE | 639 steps, loss 3.09 plateau, 3 checkpoints |
+| Phase 5: Evaluation | ❌ NEXT | eval-benchmark on test split with step-600 checkpoint |
 | Phase 6: Export + publish | ❌ BLOCKED on P5 | HF adapter format, paiml/shell-safety-qwen3-4b |
 
 #### Why Sovereign-Stack Training Matters
