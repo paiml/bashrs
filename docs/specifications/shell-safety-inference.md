@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.63.0
-**Status**: WGPU training STABLE — loss monotonically decreasing (14.1→10.5 in 5 steps). Grad clipping (max_norm=1.0) + lr=1e-4. Full pipeline: attention+FFN, 36-layer backward, LoRA Q/V AdamW (CPU), checkpoint. AMD W5700X.
+**Version**: 12.64.0
+**Status**: WGPU training at seq_len=32 — loss 13.8→11.6 (3 steps), spike contained by grad clipping. Pre-transposed weight cache. 72s/step. Full pipeline on AMD W5700X.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
