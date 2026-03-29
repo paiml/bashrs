@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.59.0
-**Status**: WGPU training with FULL backward pass — 36-layer FFN backward + LoRA Q/V AdamW. FFN weight cache eliminates 108 dequant ops/step. Checkpoint save/load. Qwen3-4B NF4 QLoRA on AMD W5700X.
+**Version**: 12.60.0
+**Status**: WGPU training COMPLETE — attention forward (QKV+RoPE+GQA+causal+O) + FFN + 36-layer backward + LoRA Q/V AdamW + checkpoint. Weight cache (7 proj/layer). Building for validation run on AMD W5700X.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3421,20 +3421,25 @@ The forward custom PTX kernels (RMSNorm, SiLU, RoPE, softmax) are already pre-wa
 
 **Implemented**: 7 WGSL backward shaders (~530 lines), ~1,000 lines Rust dispatch, ~900 lines trainer, ~470 lines NF4/LoRA, ~170 lines runner.
 
-#### Training results (2026-03-28)
+#### Training results
+
+**Run v1 (2026-03-28): FFN-only forward, lm_head backward only**
 
 | Metric | Value |
 |--------|-------|
-| Steps completed | 357+ |
-| Initial loss | ~11-17 |
-| Final loss | 1.956 |
-| Average loss | 4.316 |
-| Grad norm | 0.594 |
-| Time per step | 85s |
-| Hardware | AMD Radeon Pro W5700X (16GB, Vulkan) |
-| Data | conversations_v4.jsonl (22,169 examples) |
-| LoRA rank | 16, alpha=32, Q+V adapters |
-| Trainable params | 5,898,240 (0.15% of 4B) |
+| Steps | 357+ |
+| Loss | 11→1.956 |
+| Time/step | 85s (108 NF4 dequant/step) |
+| Pipeline | FFN only, no attention, no LoRA in forward |
+
+**Run v2 (2026-03-29): Full pipeline — attention+FFN forward, 36-layer backward+LoRA**
+
+| Metric | Expected |
+|--------|----------|
+| Time/step | ~31s (dequant cached) + attention overhead |
+| Pipeline | Attention(QKV+RoPE+GQA+O) + FFN, backward through all layers |
+| LoRA | Q+V adapters active in forward AND backward |
+| Checkpoint | JSON save/load every N steps |
 
 #### Performance expectations
 
