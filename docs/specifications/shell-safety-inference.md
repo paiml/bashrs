@@ -1,6 +1,6 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.58.0
+**Version**: 12.59.0
 **Status**: WGPU training with FULL backward pass — 36-layer FFN backward + LoRA Q/V AdamW. FFN weight cache eliminates 108 dequant ops/step. Checkpoint save/load. Qwen3-4B NF4 QLoRA on AMD W5700X.
 **Author**: paiml engineering
 **Date**: 2026-03-22
@@ -3417,7 +3417,7 @@ The forward custom PTX kernels (RMSNorm, SiLU, RoPE, softmax) are already pre-wa
 | LoRA | ✅ lora_forward | ✅ lora_backward | Q+V adapters, GPU GEMM |
 | Gradient clipping | N/A | ✅ (CPU) | L2 norm, configurable |
 | Checkpoint | N/A | ✅ save/load | JSON, round-trip verified |
-| Attention | ❌ skipped | ❌ skipped | FFN-only path (Phase 4) |
+| Attention | ✅ QKV+RoPE+GQA+O | ❌ (CPU proxy) | Forward complete, backward simplified |
 
 **Implemented**: 7 WGSL backward shaders (~530 lines), ~1,000 lines Rust dispatch, ~900 lines trainer, ~470 lines NF4/LoRA, ~170 lines runner.
 
@@ -3519,7 +3519,7 @@ Estimated training throughput (NF4 QLoRA, Qwen3-4B, seq_len=512, batch=4):
 1. ✅ FFN weight dequant cache (eliminate 108 NF4 dequant ops/step, ~54s savings)
 2. ✅ Backward through all 36 FFN layers (was lm_head only)
 3. ✅ LoRA Q/V gradient computation + AdamW per layer (adapters now trained)
-4. ❌ Full attention forward/backward (QKV + RoPE + softmax)
+4. ✅ Attention forward with LoRA (QKV + RoPE + GQA + causal mask + O proj)
 5. ❌ GPU command batching (further reduce buffer transfer overhead)
 6. ❌ Multi-GPU data parallel (2× W5700X)
 
