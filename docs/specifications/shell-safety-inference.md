@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.67.0
-**Status**: WGPU training CONVERGED — loss=3.09 at step 639 (plateau since step 500). 3 checkpoints saved. 39s/step on AMD W5700X. First sovereign-stack LLM training result.
+**Version**: 12.68.0
+**Status**: 4 production fixes contracted (wgpu-production-training-v1.yaml, 7 FALSIFY tests). Fix 1 (real LoRA backward) in progress. Proof-of-concept: loss=3.09 plateau at step 1556.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3476,9 +3476,15 @@ Stretch goal: MCC > 0.754 (beating MLP probe).
 | Phase 1: WGSL backward shaders | ✅ COMPLETE | 7 shaders in trueno, verified < 2.4e-7 error |
 | Phase 2: WgpuTrainer | ✅ COMPLETE | 36-layer forward/backward, LoRA, checkpoint |
 | Phase 3: Optimization | ✅ COMPLETE | Weight cache, CPU AdamW, QK-norm, grad clip, pre-transpose |
-| Phase 4: Long training run | ✅ COMPLETE | 639 steps, loss 3.09 plateau, 3 checkpoints |
-| Phase 5: Evaluation | ❌ NEXT | eval-benchmark on test split with step-600 checkpoint |
-| Phase 6: Export + publish | ❌ BLOCKED on P5 | HF adapter format, paiml/shell-safety-qwen3-4b |
+| Phase 4: Proof-of-concept run | ✅ COMPLETE | 1556 steps, loss 3.09 plateau, 7 checkpoints |
+| Phase 4b: Production fixes | 🟡 IN PROGRESS | wgpu-production-training-v1.yaml (7 contracts) |
+| Phase 4b.1: Real LoRA backward | 🟡 CONTRACTED | C-WGPU-LORA-BWD-001..003 |
+| Phase 4b.2: seq_len=128 | 🟡 CONTRACTED | C-WGPU-SEQLEN-001 |
+| Phase 4b.3: Gradient accumulation | 🟡 CONTRACTED | C-WGPU-GRADACC-001 |
+| Phase 4b.4: Multi-epoch | 🟡 CONTRACTED | C-WGPU-EPOCH-001 |
+| Phase 5: Production training run | ❌ BLOCKED on P4b | Target: loss < 2.0, MCC > 0.50 |
+| Phase 6: Evaluation | ❌ BLOCKED on P5 | eval-benchmark on test split |
+| Phase 7: Export + publish | ❌ BLOCKED on P6 | HF adapter, paiml/shell-safety-qwen3-4b |
 
 #### Why Sovereign-Stack Training Matters
 
