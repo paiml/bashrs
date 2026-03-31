@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.71.0
-**Status**: SHIP PASS (MCC=0.6416). Phase 8: Five Whys → 5 fixes targeting MCC 0.75+ (forward-only eval, 6-module LoRA, rank=32, LoRA+, 5 epochs). Contracts written, research in progress.
+**Version**: 12.74.0
+**Status**: Forward-only eval shows 22x larger loss delta (safe=40 vs unsafe=63) but MCC=0.43 (noisy). Best MCC remains 0.6416 (lm_head-only). Phase 8.2-8.7 improvements needed for MCC 0.75+.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3518,7 +3518,7 @@ Kalajdzievski rsLoRA (2312.03732), Dettmers et al. QLoRA (2305.14314).
 | Phase 5: Production training | ✅ COMPLETE | 866 steps, loss 55→4.5, 1 checkpoint (step 500) |
 | Phase 6: Evaluation | ✅ **SHIP PASS** | **MCC=0.6416** on 500 test entries (>0.50 criteria) |
 | Phase 8: Model improvement | 🟡 IN PROGRESS | Five Whys → 7 fixes targeting MCC 0.75+ |
-| Phase 8.1: Forward-only eval | ❌ NEXT | Full 36-layer forward, LoRA in scoring (+10-15%) |
+| Phase 8.1: Forward-only eval | ⚠️ DONE | MCC=0.43 (delta=22x but noisy). Need variance reduction |
 | Phase 8.2: 7-module LoRA | ❌ NEXT | Q/K/V/O/gate/up/down (+5-10%) |
 | Phase 8.3: Rank 32 + rsLoRA | ❌ NEXT | alpha/sqrt(rank) scaling (+3-5%) |
 | Phase 8.4: NEFTune | ❌ NEXT | Embedding noise injection, trivial (+2-5%) |
