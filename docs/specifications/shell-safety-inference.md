@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.68.0
-**Status**: 4 production fixes contracted (wgpu-production-training-v1.yaml, 7 FALSIFY tests). Fix 1 (real LoRA backward) in progress. Proof-of-concept: loss=3.09 plateau at step 1556.
+**Version**: 12.69.0
+**Status**: SHIP CRITERIA PASS — MCC=0.6416 on ShellSafetyBench (500 test entries). Beats keyword baseline (0.448) by 43%. First sovereign-stack LLM trained and evaluated on non-NVIDIA hardware.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
