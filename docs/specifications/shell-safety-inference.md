@@ -3533,8 +3533,26 @@ there but needs variance reduction — possibly Unsloth's chunked CE or per-clas
 | AdamW step | 1.000000 | 1.16e-10 | PASS |
 
 This proves the sovereign WGPU training pipeline is numerically identical to CPU
-reference implementations — **0% accuracy degradation from GPU acceleration**
-(same property Unsloth claims for their Triton kernels).
+reference implementations — **0% accuracy degradation from GPU acceleration**.
+
+**Cross-framework canary** (trueno vs Burn, independent WGPU implementations):
+
+| Test | Cosine Sim | Status |
+|------|-----------|--------|
+| Matmul (trueno vs Burn WGPU) | 1.000000 | PASS |
+| SiLU (Burn vs CPU) | 1.000000 | PASS |
+| Matmul+SiLU composed | 1.000000 | PASS |
+
+**Performance canary** (trueno vs Burn, same AMD W5700X):
+
+| Workload | trueno GFLOP/s | Burn GFLOP/s | Speedup |
+|----------|---------------|-------------|---------|
+| FFN seq=4 | 8.3 | 3.2 | 2.62x |
+| FFN seq=32 | 61.2 | 25.7 | 2.38x |
+| FFN seq=128 | 180.8 | 99.5 | 1.82x |
+| lm_head | 3.4 | 1.9 | 1.78x |
+
+trueno is **numerically identical AND 1.8-2.6x faster** than Burn's WGPU backend.
 
 References: albor `finetune-lora.yaml`, apr-leaderboard `recipe-c`, Hayou LoRA+ (2402.12354),
 Jain NEFTune (2310.05914), Kalajdzievski rsLoRA (2312.03732), Unsloth gradient accumulation bug fix.
