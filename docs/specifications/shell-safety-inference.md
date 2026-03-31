@@ -3502,9 +3502,18 @@ grad_hidden → FFN backward (3 GPU GEMMs: down, gate, up) → LoRA Q/V AdamW (C
 **Conservative estimate**: Priorities 1-4 → MCC 0.77-0.85.
 Priority 1 alone is the single biggest win (eval literally ignores trained LoRA adapters).
 
-References: albor `finetune-lora.yaml` (6 modules), apr-leaderboard `recipe-c` (rank=32),
-Hayou et al. LoRA+ (2402.12354), Liu et al. DoRA (2402.09353), Jain et al. NEFTune (2310.05914),
-Kalajdzievski rsLoRA (2312.03732), Dettmers et al. QLoRA (2305.14314).
+**Phase 8.1 result**: Full-forward eval delta=22x (safe=40 vs unsafe=63) but MCC=0.43
+(high variance in safe class). lm_head-only MCC=0.6416 remains best. The signal is
+there but needs variance reduction — possibly Unsloth's chunked CE or per-class scoring.
+
+**Unsloth findings** (from research):
+- Gradient accumulation bug: varying seq lengths make loss `G` times too large
+- Chunked cross-entropy: never materialize full logits tensor (saves 60% VRAM)
+- Canary pattern: cosine similarity between optimized and reference implementations
+- Classification recipe: all 7 linear layers, rank=16, alpha=rank
+
+References: albor `finetune-lora.yaml`, apr-leaderboard `recipe-c`, Hayou LoRA+ (2402.12354),
+Jain NEFTune (2310.05914), Kalajdzievski rsLoRA (2312.03732), Unsloth gradient accumulation bug fix.
 
 #### Implementation Status
 
