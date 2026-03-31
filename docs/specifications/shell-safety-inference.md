@@ -3489,15 +3489,22 @@ grad_hidden → FFN backward (3 GPU GEMMs: down, gate, up) → LoRA Q/V AdamW (C
 
 **Improvement plan** (contract: `wgpu-model-improvement-v1.yaml`):
 
-| Priority | Fix | Expected MCC Impact |
-|----------|-----|-------------------|
-| 1 | Forward-only eval through full 36-layer transformer | +10-15% (LoRA participates) |
-| 2 | Target all 6 linear modules (not just Q+V) | +5-10% (standard practice) |
-| 3 | Increase rank 16→32 | +3-5% (more expressive) |
-| 4 | LoRA+ different LR for A/B (Hayou et al. 2024) | +2-3% (faster convergence) |
-| 5 | Train 5 epochs (not 3) | +1-3% (easy) |
+| Priority | Fix | Expected MCC | Effort | Reference |
+|----------|-----|-------------|--------|-----------|
+| 1 | Forward-only eval (use LoRA in scoring) | +10-15% | Medium | Five Whys Q2/Q3 |
+| 2 | Target all 7 modules (Q/K/V/O/gate/up/down) | +5-10% | Medium | albor, Unsloth, QLoRA paper |
+| 3 | Rank 32, alpha 64, rsLoRA scaling | +3-5% | Low | apr-leaderboard recipe-c, rsLoRA (2312.03732) |
+| 4 | NEFTune noise injection (ICLR 2024) | +2-5% | Trivial | Jain et al. (2310.05914) |
+| 5 | Focal loss for 79/21 class imbalance | +3-5% | Low | Lin et al. focal loss |
+| 6 | LoRA+ different LR for A/B | +2-3% | Low | Hayou et al. (2402.12354) |
+| 7 | albor hyperparams: beta2=0.95, wd=0.1 | +1-2% | Trivial | albor training.md |
 
-References: albor `finetune-lora.yaml`, apr-leaderboard `recipe-c`, Hayou et al. LoRA+ (2402.12354).
+**Conservative estimate**: Priorities 1-4 → MCC 0.77-0.85.
+Priority 1 alone is the single biggest win (eval literally ignores trained LoRA adapters).
+
+References: albor `finetune-lora.yaml` (6 modules), apr-leaderboard `recipe-c` (rank=32),
+Hayou et al. LoRA+ (2402.12354), Liu et al. DoRA (2402.09353), Jain et al. NEFTune (2310.05914),
+Kalajdzievski rsLoRA (2312.03732), Dettmers et al. QLoRA (2305.14314).
 
 #### Implementation Status
 
@@ -3510,13 +3517,14 @@ References: albor `finetune-lora.yaml`, apr-leaderboard `recipe-c`, Hayou et al.
 | Phase 4b: Production fixes | ✅ COMPLETE | Real LoRA bwd, seq_len=128, grad accum, multi-epoch |
 | Phase 5: Production training | ✅ COMPLETE | 866 steps, loss 55→4.5, 1 checkpoint (step 500) |
 | Phase 6: Evaluation | ✅ **SHIP PASS** | **MCC=0.6416** on 500 test entries (>0.50 criteria) |
-| Phase 8: Model improvement | 🟡 IN PROGRESS | Five Whys → 5 fixes targeting MCC 0.75+ |
-| Phase 8.1: Forward-only eval | ❌ NEXT | Full 36-layer forward without backward (~10s/entry) |
-| Phase 8.2: 6-module LoRA | ❌ NEXT | Q/V/K/O/gate/up/down (albor pattern, +5-10% MCC) |
-| Phase 8.3: Rank 32 | ❌ NEXT | 2x more expressive (apr-leaderboard pattern) |
-| Phase 8.4: LoRA+ | ❌ NEXT | Different lr for A/B (Hayou et al. 2024) |
-| Phase 8.5: 5 epochs | ❌ NEXT | More training passes |
-| Phase 8.6: Retrain + eval | ❌ BLOCKED on 8.1-8.5 | Target: MCC > 0.75 |
+| Phase 8: Model improvement | 🟡 IN PROGRESS | Five Whys → 7 fixes targeting MCC 0.75+ |
+| Phase 8.1: Forward-only eval | ❌ NEXT | Full 36-layer forward, LoRA in scoring (+10-15%) |
+| Phase 8.2: 7-module LoRA | ❌ NEXT | Q/K/V/O/gate/up/down (+5-10%) |
+| Phase 8.3: Rank 32 + rsLoRA | ❌ NEXT | alpha/sqrt(rank) scaling (+3-5%) |
+| Phase 8.4: NEFTune | ❌ NEXT | Embedding noise injection, trivial (+2-5%) |
+| Phase 8.5: Focal loss | ❌ NEXT | Class imbalance weighting (+3-5%) |
+| Phase 8.6: LoRA+ + albor HPs | ❌ NEXT | lr_B=16*lr_A, beta2=0.95, wd=0.1 |
+| Phase 8.7: Retrain + eval | ❌ BLOCKED on 8.1-8.6 | Target: MCC > 0.75 |
 | Phase 9: Export + publish | ❌ BLOCKED on P8.6 | HF adapter, paiml/shell-safety-qwen3-4b |
 
 #### Why Sovereign-Stack Training Matters
