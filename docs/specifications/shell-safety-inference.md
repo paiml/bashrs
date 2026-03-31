@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.69.0
-**Status**: SHIP CRITERIA PASS — MCC=0.6416 on ShellSafetyBench (500 test entries). Beats keyword baseline (0.448) by 43%. First sovereign-stack LLM trained and evaluated on non-NVIDIA hardware.
+**Version**: 12.71.0
+**Status**: SHIP PASS (MCC=0.6416). Phase 8: Five Whys → 5 fixes targeting MCC 0.75+ (forward-only eval, 6-module LoRA, rank=32, LoRA+, 5 epochs). Contracts written, research in progress.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
@@ -3432,7 +3432,8 @@ grad_hidden → FFN backward (3 GPU GEMMs: down, gate, up) → LoRA Q/V AdamW (C
 | **Publish** | ❌ Next | Push to `paiml/shell-safety-qwen3-4b` on HuggingFace |
 
 **Ship criteria**: MCC > 0.50 → **PASS** (MCC=0.6416, +43% over keyword baseline).
-Stretch goal: MCC > 0.754 (MLP probe) → not yet met (85% of MLP probe).
+**Stretch goal**: MCC > 0.754 (MLP probe) → not yet met (85% of MLP probe).
+**Improvement target**: MCC > 0.75 via 5 fixes (see Five Whys below).
 
 #### Hardware
 
@@ -3469,6 +3470,15 @@ Stretch goal: MCC > 0.754 (MLP probe) → not yet met (85% of MLP probe).
 **wgpu-attention-stability-v1.yaml** (entrenar, 2 tests):
 - C-WGPU-ATTN-STABLE-001/002: norm-guard, QK-norm + grad clipping — **PASS**
 
+**wgpu-production-training-v1.yaml** (entrenar, 7 tests):
+- F-LORA-BWD-001..003: real LoRA backward through attention — **PASS**
+- F-PROD-001: ship criteria MCC > 0.50 — **PASS** (MCC=0.6416)
+- F-SEQLEN/GRADACC/EPOCH: seq_len=128, accumulation, multi-epoch — **PASS**
+
+**wgpu-model-improvement-v1.yaml** (entrenar, 2 tests):
+- C-WGPU-IMPROVE-001: forward-only eval through full transformer — **PENDING**
+- C-WGPU-IMPROVE-002: 6-module LoRA beats 2-module — **PENDING**
+
 #### Five Whys: Why MCC=0.64 not 0.75+
 
 1. **Loss delta too small** (safe=11.689 vs unsafe=11.839, delta=0.150)
@@ -3500,7 +3510,14 @@ References: albor `finetune-lora.yaml`, apr-leaderboard `recipe-c`, Hayou et al.
 | Phase 4b: Production fixes | ✅ COMPLETE | Real LoRA bwd, seq_len=128, grad accum, multi-epoch |
 | Phase 5: Production training | ✅ COMPLETE | 866 steps, loss 55→4.5, 1 checkpoint (step 500) |
 | Phase 6: Evaluation | ✅ **SHIP PASS** | **MCC=0.6416** on 500 test entries (>0.50 criteria) |
-| Phase 7: Export + publish | ❌ NEXT | HF adapter format, paiml/shell-safety-qwen3-4b |
+| Phase 8: Model improvement | 🟡 IN PROGRESS | Five Whys → 5 fixes targeting MCC 0.75+ |
+| Phase 8.1: Forward-only eval | ❌ NEXT | Full 36-layer forward without backward (~10s/entry) |
+| Phase 8.2: 6-module LoRA | ❌ NEXT | Q/V/K/O/gate/up/down (albor pattern, +5-10% MCC) |
+| Phase 8.3: Rank 32 | ❌ NEXT | 2x more expressive (apr-leaderboard pattern) |
+| Phase 8.4: LoRA+ | ❌ NEXT | Different lr for A/B (Hayou et al. 2024) |
+| Phase 8.5: 5 epochs | ❌ NEXT | More training passes |
+| Phase 8.6: Retrain + eval | ❌ BLOCKED on 8.1-8.5 | Target: MCC > 0.75 |
+| Phase 9: Export + publish | ❌ BLOCKED on P8.6 | HF adapter, paiml/shell-safety-qwen3-4b |
 
 #### Why Sovereign-Stack Training Matters
 
