@@ -3469,6 +3469,26 @@ Stretch goal: MCC > 0.754 (MLP probe) → not yet met (85% of MLP probe).
 **wgpu-attention-stability-v1.yaml** (entrenar, 2 tests):
 - C-WGPU-ATTN-STABLE-001/002: norm-guard, QK-norm + grad clipping — **PASS**
 
+#### Five Whys: Why MCC=0.64 not 0.75+
+
+1. **Loss delta too small** (safe=11.689 vs unsafe=11.839, delta=0.150)
+2. **Eval skips transformer** — only uses lm_head, LoRA adapters don't contribute to scoring
+3. **Forward-only path missing** — full_train_step does backward+AdamW unnecessarily
+4. **Only Q+V targeted** — albor targets 6 modules (Q/V/O/gate/up/down), apr-leaderboard uses rank=32
+5. **No eval-in-the-loop** — training didn't optimize for classification quality
+
+**Improvement plan** (contract: `wgpu-model-improvement-v1.yaml`):
+
+| Priority | Fix | Expected MCC Impact |
+|----------|-----|-------------------|
+| 1 | Forward-only eval through full 36-layer transformer | +10-15% (LoRA participates) |
+| 2 | Target all 6 linear modules (not just Q+V) | +5-10% (standard practice) |
+| 3 | Increase rank 16→32 | +3-5% (more expressive) |
+| 4 | LoRA+ different LR for A/B (Hayou et al. 2024) | +2-3% (faster convergence) |
+| 5 | Train 5 epochs (not 3) | +1-3% (easy) |
+
+References: albor `finetune-lora.yaml`, apr-leaderboard `recipe-c`, Hayou et al. LoRA+ (2402.12354).
+
 #### Implementation Status
 
 | Phase | Status | Details |
