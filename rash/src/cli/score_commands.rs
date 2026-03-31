@@ -22,6 +22,15 @@ pub(crate) fn score_command(
     show_grade: bool,
     profile: Option<LintProfileArg>,
 ) -> Result<()> {
+    // GH-181: Jidoka — warn when --detailed is passed with JSON/Markdown
+    // (those formats always include full dimension data)
+    if detailed && !matches!(format, ScoreOutputFormat::Human) {
+        eprintln!(
+            "Warning: --detailed has no effect with {:?} format (dimensions are always included).",
+            format
+        );
+    }
+
     // Read input file
     let source = fs::read_to_string(input)
         .map_err(|e| Error::Internal(format!("Failed to read {}: {}", input.display(), e)))?;

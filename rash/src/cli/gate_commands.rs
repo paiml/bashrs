@@ -91,13 +91,31 @@ fn run_clippy_gate(config: &crate::gates::GateConfig) -> bool {
     status.success()
 }
 
-fn run_tests_gate(_config: &crate::gates::GateConfig) -> bool {
-    // Run tests with timeout (simulated for now by just running cargo test)
-    let status = std::process::Command::new("cargo")
-        .arg("test")
-        .status()
-        .unwrap_or_else(|_| std::process::ExitStatus::default());
-    status.success()
+fn run_tests_gate(config: &crate::gates::GateConfig) -> bool {
+    // GH-181: Use test_timeout from config to bound test execution
+    let timeout_secs = config.gates.test_timeout;
+
+    let mut child = match std::process::Command::new("cargo").arg("test").spawn() {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
+    loop {
+        match child.try_wait() {
+            Ok(Some(status)) => return status.success(),
+            Ok(None) => {
+                if std::time::Instant::now() >= deadline {
+                    let _ = child.kill();
+                    let _ = child.wait();
+                    eprintln!("(tests exceeded {}s timeout) ", timeout_secs);
+                    return false;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(250));
+            }
+            Err(_) => return false,
+        }
+    }
 }
 
 fn run_coverage_gate(config: &crate::gates::GateConfig) -> bool {
@@ -127,14 +145,42 @@ fn run_coverage_gate(config: &crate::gates::GateConfig) -> bool {
     }
 }
 
-fn run_complexity_gate(_config: &crate::gates::GateConfig) -> bool {
-    // Placeholder for complexity check integration
-    // Would typically run `bashrs score` or similar internal logic
-    true
+fn run_complexity_gate(config: &crate::gates::GateConfig) -> bool {
+    if !config.gates.check_complexity {
+        return true;
+    }
+
+    // GH-181: Use max_complexity from config instead of always returning true
+    let max = config.gates.max_complexity;
+    let status = std::process::Command::new("pmat")
+        .args([
+            "analyze",
+            "complexity",
+            "--max-cyclomatic",
+            &max.to_string(),
+        ])
+        .status();
+
+    match status {
+        Ok(s) => s.success(),
+        Err(_) => {
+            eprintln!(
+                "(pmat not found, complexity gate skipped — max_complexity={}) ",
+                max
+            );
+            true
+        }
+    }
 }
 
-fn run_security_gate(_config: &crate::gates::GateConfig) -> bool {
-    // Placeholder for cargo-deny or similar
+fn run_security_gate(config: &crate::gates::GateConfig) -> bool {
+    // GH-181: Respect security gate config (enabled flag, max_unsafe_blocks)
+    if let Some(ref security) = config.gates.security {
+        if !security.enabled {
+            return true;
+        }
+    }
+
     let status = std::process::Command::new("cargo")
         .args(["deny", "check"])
         .status();
