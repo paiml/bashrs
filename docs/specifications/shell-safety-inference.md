@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.78.0
-**Status**: **MCC=0.7703 — STRETCH GOAL PASS**. Beats MLP probe (0.754). v7 model (66M LoRA, rank=32) improved lm_head quality. 86.8% recall, 76.7% precision on 200 test entries.
+**Version**: 12.79.0
+**Status**: MCC=0.7703 on 200 entries (full-forward), MCC=0.6183 on 2935 (lm_head-only). 500-entry full-forward eval running (~5h). v7 model (66M LoRA, rank=32).
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
