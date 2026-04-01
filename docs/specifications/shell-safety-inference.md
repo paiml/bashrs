@@ -1,7 +1,7 @@
 # SPEC-SSC-2026-005: Shell Safety Classifier, Chat Model, and WASM App (Sovereign Rust Stack)
 
-**Version**: 12.76.0
-**Status**: v7 training LIVE — 7-module LoRA (66M params), rank=32. Learning 2.1x faster than v6 (loss 55→34 at step 27 vs 55→45). ETA step 200 in ~5h. MCC target 0.70-0.78.
+**Version**: 12.78.0
+**Status**: **MCC=0.7703 — STRETCH GOAL PASS**. Beats MLP probe (0.754). v7 model (66M LoRA, rank=32) improved lm_head quality. 86.8% recall, 76.7% precision on 200 test entries.
 **Author**: paiml engineering
 **Date**: 2026-03-22
 **Stack**: bashrs + verificar + entrenar + trueno + alimentar + apr-cli + forjar (Rust only, no Python, no ad-hoc scripts)
