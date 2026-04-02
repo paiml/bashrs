@@ -6,3 +6,5 @@
 # everyone who runs the test benefits from these saved cases.
 cc d6e619ec357e9251e4118192c4545b51cd29707b7599b202c97238a852cd432a # shrinks to input = "{''''¡,"
 cc 725879a5cee192481366842f5a0e63b6aec193a184d1c3784f197e8441d5e79c # shrinks to input = "{\"\"''\"¡\".."
+cc 5ba12a951dc90733572067cd9b192ecaa9f3f19522033ff9b8102213225f584f # shrinks to input = ""
+cc c8bc350ece4e3c3a9282a7c2aac07b4b75bdb4ce51c2a22397f0fdc01095a789 # shrinks to input = ""

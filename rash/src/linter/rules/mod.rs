@@ -951,6 +951,8 @@ fn lint_shell_filtered(
 /// assert!(result.diagnostics.len() >= 2);
 /// ```
 pub fn lint_shell(source: &str) -> LintResult {
+    // Contract: safety-classifier-v1.yaml precondition (pv codegen)
+    contract_pre_lint_shell!(source);
     use crate::linter::suppression::SuppressionManager;
 
     let mut result = LintResult::new();

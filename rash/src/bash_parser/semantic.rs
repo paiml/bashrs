@@ -109,6 +109,8 @@ impl SemanticAnalyzer {
     }
 
     pub fn analyze(&mut self, ast: &BashAst) -> SemanticResult<AnalysisReport> {
+        // Contract: parser-soundness-v1.yaml precondition (pv codegen)
+        contract_pre_semantic_analyze!(ast);
         // Take ownership temporarily to avoid borrow checker issues
         let mut scope = std::mem::replace(
             &mut self.global_scope,

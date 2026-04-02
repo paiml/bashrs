@@ -4,6 +4,6 @@
 #
 # It is recommended to check this file in to source control so that
 # everyone who runs the test benefits from these saved cases.
-cc d99a0e2c8c0d3b076cb345acf15377a1aadb5339e1b186ce7a1657956a081e00 # shrinks to input = "¡"
-cc 3861cdcd2930cf8c2e771de87762e2818eb0cdaecc344698c2d5e8e943e02ec4 # shrinks to input = "ࠀ$10"
-cc 4bcf6abcce4870fd995a77bb50d83d7603c12adbe15b5279f839308942613d53 # shrinks to input = ""
+cc 4e7eacc0cfbaaf342e7e0c0afb8e1e91778cdd1146ad443edefd2f5850e2649c # shrinks to stmt_count = 0
+cc 778d169147ee661b8900ba9e580409787d8c3184035221f4859c4569a3f2085c # shrinks to stmt_count = 0
+cc 0d45f9bb7ea4bf1f5387f13e2c2779e2229b2487753f93ccb56ad4242711bb9e # shrinks to stmt_count = 0

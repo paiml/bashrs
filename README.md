@@ -22,7 +22,7 @@
 
 ## Table of Contents
 
-- [What's New](#-whats-new-in-v6650)
+- [What's New](#whats-new-in-v6650)
 - [Why Rash?](#why-rash)
 - [Quick Start](#quick-start)
 - [Features](#features)
@@ -36,7 +36,7 @@
 - [Contributing](#contributing)
 - [License](#license)
 
-## 🚀 What's New in v6.65.0
+## What's New in v6.65.0
 
 **Latest Release** - 2026-02-27
 
@@ -44,6 +44,9 @@
   - 1,572 new coverage tests across 25 test files and 11 modules
   - CLI command coverage (corpus, lint, comply, installer)
   - Parser coverage (arithmetic, control flow, declarations, expressions)
+- **provable-contracts bumped to 0.2**: Updated contract verification dependency
+- **3 silently ignored CLI params now wired**: Gate timeout, complexity check, and security enable flags are functional
+- **`if ! command -v` parser fix**: Verified with 7 regression tests
 - **15,117 Tests**: All passing with zero failures
 - **Examples Fixed**: All 7 `cargo run --example` demos now work correctly in workspace
 - **Book Updated**: All `mdbook test` examples pass, transpiler docs corrected

@@ -857,3 +857,37 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-173
+  github_issue: null
+  item_type: task
+  title: Forward-only eval through full 36-layer transformer (Phase 8.1)
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-31T07:21:26Z
+  updated: 2026-03-31T08:29:33Z
+  spec: null
+  acceptance_criteria:
+  - 'C-WGPU-IMPROVE-001: Run attention+FFN+LoRA forward without backward/AdamW for eval scoring. Expected +10-15% MCC.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-174
+  github_issue: null
+  item_type: task
+  title: 7-module LoRA + rank=32 + retrain (Phase 8.2-8.3)
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-03-31T08:33:28Z
+  updated: 2026-03-31T09:00:52Z
+  spec: null
+  acceptance_criteria:
+  - Extend LoRA to Q/K/V/O/gate/up/down, rank=32, rsLoRA scaling. Retrain and eval. Target MCC>0.75.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null

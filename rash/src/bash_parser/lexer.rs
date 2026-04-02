@@ -118,6 +118,8 @@ impl Lexer {
     }
 
     pub fn tokenize(&mut self) -> Result<Vec<Token>, LexerError> {
+        // Contract: parser-soundness-v1.yaml precondition (pv codegen)
+        contract_pre_lex!(self.input);
         let mut tokens = Vec::new();
 
         loop {

@@ -62,6 +62,11 @@
 //! assert!(result.is_ok());
 //! ```
 
+// Contract assertions from YAML (pv codegen)
+#[macro_use]
+#[allow(unused_macros)]
+mod generated_contracts;
+
 /// Abstract syntax tree types and validation
 pub mod ast;
 /// Bash script parsing and AST generation

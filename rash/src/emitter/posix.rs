@@ -179,6 +179,8 @@ impl PosixEmitter {
     }
 
     pub fn emit(&self, ir: &ShellIR) -> Result<String> {
+        // Contract: encoder-roundtrip-v1.yaml precondition (pv codegen)
+        contract_pre_configuration!(ir);
         let mut output = String::new();
 
         // Collect used functions for selective runtime emission

@@ -9,6 +9,9 @@ pub fn escape_shell_string(s: &str) -> String {
         return "''".to_string();
     }
 
+    // Contract: encoder-roundtrip-v1.yaml precondition (pv codegen)
+    contract_pre_roundtrip!(s);
+
     // Check if the string needs escaping
     if is_safe_unquoted(s) {
         return s.to_string();
@@ -26,6 +29,8 @@ pub fn escape_shell_string(s: &str) -> String {
 
 /// Escape a variable name for shell
 pub fn escape_variable_name(name: &str) -> String {
+    // Contract: encoder-roundtrip-v1.yaml precondition (pv codegen)
+    contract_pre_roundtrip!(name);
     // Variable names should be valid shell identifiers
     if is_valid_shell_identifier(name) {
         name.to_string()
@@ -56,6 +61,8 @@ pub fn escape_variable_name(name: &str) -> String {
 
 /// Escape a command name for shell execution
 pub fn escape_command_name(cmd: &str) -> String {
+    // Contract: encoder-roundtrip-v1.yaml precondition (pv codegen)
+    contract_pre_roundtrip!(cmd);
     // Commands should not contain special characters
     if is_safe_command_name(cmd) {
         cmd.to_string()

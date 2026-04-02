@@ -470,6 +470,8 @@ impl BashParser {
     /// assert!(!ast.statements.is_empty());
     /// ```
     pub fn parse(&mut self) -> ParseResult<BashAst> {
+        // Contract: parser-soundness-v1.yaml precondition (pv codegen)
+        contract_pre_parse!(self.tokens);
         let start_time = std::time::Instant::now();
 
         // Emit ParseStart trace event

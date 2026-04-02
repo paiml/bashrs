@@ -90,6 +90,8 @@ fn create_hardcoded_secret_diagnostic(description: &str, span: Span) -> Diagnost
 
 /// Check for hardcoded secrets
 pub fn check(source: &str) -> LintResult {
+    // Contract: safety-classifier-v1.yaml precondition (pv codegen)
+    contract_pre_classify_secrets!(source);
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {

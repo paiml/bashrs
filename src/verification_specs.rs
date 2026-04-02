@@ -41,14 +41,20 @@ pub mod config_contracts {
     /// #[ensures(result == true ==> size <= max)]
     /// #[ensures(result == false ==> size > max)]
     pub fn validate_size(size: usize, max: usize) -> bool {
-        size <= max
+        contract_pre_configuration!();
+        let result = size <= max;
+        contract_post_configuration!(&"ok");
+        result
     }
 
     /// #[requires(len > 0)]
     /// #[ensures(result == true ==> index < len)]
     /// #[ensures(result == false ==> index >= len)]
     pub fn validate_index(index: usize, len: usize) -> bool {
-        index < len
+        contract_pre_configuration!();
+        let result = index < len;
+        contract_post_configuration!(&"ok");
+        result
     }
 
     /// #[requires(data.len() > 0)]
@@ -58,7 +64,9 @@ pub mod config_contracts {
         // Contract: serialization-v1.yaml precondition (pv codegen)
         contract_pre_serialize_roundtrip!(data);
 
-        data.len()
+        let result = data.len();
+        contract_post_configuration!(&"ok");
+        result
     }
 }
 
@@ -82,7 +90,10 @@ pub mod numeric_contracts {
     /// #[ensures(result == true ==> !val.is_nan())]
     /// #[ensures(result == false ==> val.is_nan() || val.is_infinite())]
     pub fn is_valid_float(val: f64) -> bool {
-        val.is_finite()
+        contract_pre_configuration!();
+        let result = val.is_finite();
+        contract_post_configuration!(&"ok");
+        result
     }
 
     /// #[requires(max > min)]
