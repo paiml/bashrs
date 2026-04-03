@@ -1,0 +1,102 @@
+contract:
+  name: encoder-roundtrip-v1
+  version: "1.0.0"
+  description: >
+    Provable escape function contracts (GH-183). The escape functions are
+    the #1 defense against shell injection in emitted code. Every special
+    character must be neutralized. A single unescaped metachar falsifies
+    the contract.
+  references:
+    - "GH-183: KZ-11 Missing provable contracts"
+    - "CWE-78: OS Command Injection"
+    - "binding.yaml: encoder-roundtrip-v1 (5 bindings)"
+  spec: docs/specifications/STDLIB.md
+  phase: "Encoder roundtrip"
+
+falsification_tests:
+  # ── escape_shell_string: injection prevention ────────────────
+  - id: F-ESC-001
+    description: "Shell metacharacters ($, `, |, ;) are always quoted"
+    input: '$(whoami); rm -rf /'
+    assertion: "escape_shell_string wraps input in quotes — metachar cannot execute"
+    status: PASS
+
+  - id: F-ESC-002
+    description: "Empty string produces '' (not empty output)"
+    input: ""
+    assertion: "escape_shell_string('') == \"''\""
+    status: PASS
+
+  - id: F-ESC-003
+    description: "Single quotes in input are safely escaped"
+    input: "don't"
+    assertion: "output uses '...''\"'\"''...' pattern — no unmatched quotes"
+    status: PASS
+
+  - id: F-ESC-004
+    description: "Safe alphanumeric strings are passed through unquoted"
+    input: "hello"
+    assertion: "escape_shell_string('hello') == 'hello' (no unnecessary quoting)"
+    status: PASS
+
+  - id: F-ESC-005
+    description: "Newlines are quoted (prevent command injection via newline)"
+    input: "foo\nbar"
+    assertion: "output is single-quoted — newline cannot split commands"
+    status: PASS
+
+  - id: F-ESC-006
+    description: "Unicode/bidi characters are always quoted (CVE-2021-42574)"
+    input: "test\u202Eexe"
+    assertion: "non-ASCII input is single-quoted — bidi attack neutralized"
+    status: PASS
+
+  # ── escape_variable_name: identifier sanitization ────────────
+  - id: F-ESC-007
+    description: "Valid shell identifier passes through unchanged"
+    input: "my_var_123"
+    assertion: "escape_variable_name('my_var_123') == 'my_var_123'"
+    status: PASS
+
+  - id: F-ESC-008
+    description: "Hyphens in variable names replaced with underscores"
+    input: "my-var"
+    assertion: "escape_variable_name('my-var') == 'my_var'"
+    status: PASS
+
+  - id: F-ESC-009
+    description: "Leading digit replaced with underscore (POSIX requirement)"
+    input: "123abc"
+    assertion: "result starts with _ not digit"
+    status: PASS
+
+  - id: F-ESC-010
+    description: "Injection attempt in variable name is sanitized"
+    input: "var;rm -rf /"
+    assertion: "all non-identifier chars become underscores"
+    status: PASS
+
+  # ── escape_command_name: safe command emission ───────────────
+  - id: F-ESC-011
+    description: "Simple command name passes through"
+    input: "ls"
+    assertion: "escape_command_name('ls') == 'ls'"
+    status: PASS
+
+  - id: F-ESC-012
+    description: "Path command name passes through"
+    input: "/usr/bin/grep"
+    assertion: "escape_command_name('/usr/bin/grep') == '/usr/bin/grep'"
+    status: PASS
+
+  - id: F-ESC-013
+    description: "Command name with spaces is escaped"
+    input: "my command"
+    assertion: "output is quoted — space cannot cause argument splitting"
+    status: PASS
+
+  - id: F-ESC-014
+    description: "Command name with shell metachar is escaped"
+    input: "cmd;evil"
+    assertion: "output is quoted — semicolon cannot inject second command"
+    status: PASS

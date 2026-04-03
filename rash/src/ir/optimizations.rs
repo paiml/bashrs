@@ -175,6 +175,8 @@ pub(crate) fn is_string_value(value: &ShellValue) -> bool {
         ShellValue::ExitCode => false,
         // Dynamic array access returns numeric values
         ShellValue::DynamicArrayAccess { .. } => false,
+        // Glob patterns are not strings for comparison
+        ShellValue::Glob(_) => false,
     }
 }
 

@@ -1,0 +1,47 @@
+contract:
+  name: benchmark-expansion-v1
+  version: "1.0.0"
+  description: >
+    ShellSafetyBench expansion generator (PMAT-176) produces valid,
+    deterministic, linter-consistent labeled entries for Bash, Makefile,
+    and Dockerfile formats.
+  references:
+    - "SSC v12 Phase 9 #10: Expand ShellSafetyBench to 50K+ entries"
+  spec: docs/specifications/shell-safety-inference.md
+  phase: "Phase 9"
+
+falsification_tests:
+  - id: F-EXPAND-001
+    description: "Bash expansion has both safe and unsafe labels"
+    assertion: "generate_expansion(Bash, 100, 42) has safe_count > 0 AND unsafe_count > 0"
+    status: PASS
+
+  - id: F-EXPAND-002
+    description: "Makefile expansion has both safe and unsafe labels"
+    assertion: "generate_expansion(Makefile, 100, 42) has safe_count > 0 AND unsafe_count > 0"
+    status: PASS
+
+  - id: F-EXPAND-003
+    description: "Dockerfile expansion has both safe and unsafe labels"
+    assertion: "generate_expansion(Dockerfile, 100, 42) has safe_count > 0 AND unsafe_count > 0"
+    status: PASS
+
+  - id: F-EXPAND-004
+    description: "Deterministic: same seed produces identical output"
+    assertion: "generate_expansion(Bash, 50, 42) == generate_expansion(Bash, 50, 42)"
+    status: PASS
+
+  - id: F-EXPAND-005
+    description: "Different seeds produce different output"
+    assertion: "generate_expansion(Bash, 50, 42) != generate_expansion(Bash, 50, 99)"
+    status: PASS
+
+  - id: F-EXPAND-006
+    description: "Labels agree with linter (label matches lint result)"
+    assertion: "for all entries: entry.label == label_script(entry.input, format)"
+    status: PASS
+
+  - id: F-EXPAND-007
+    description: "JSONL round-trip preserves data"
+    assertion: "write_jsonl(entries) then read_jsonl produces identical entries"
+    status: PASS

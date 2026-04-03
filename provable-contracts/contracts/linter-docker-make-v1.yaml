@@ -1,0 +1,92 @@
+contract:
+  name: linter-docker-make-v1
+  version: "1.0.0"
+  description: >
+    Provable Dockerfile and Makefile linter contracts (GH-183).
+    DOCKER rules detect container security/quality issues.
+    MAKE rules detect non-deterministic, non-idempotent, and unsafe patterns.
+    Each rule must detect known-bad and not false-positive on known-safe.
+  references:
+    - "GH-183: KZ-11 Missing provable contracts"
+    - "hadolint best practices (DOCKER rules)"
+  spec: docs/specifications/STDLIB.md
+  phase: "Linter Docker/Make"
+
+falsification_tests:
+  # ── DOCKER001: missing USER ──────────────────────────────────
+  - id: F-DOCKER001-SOUND
+    description: "DOCKER001 detects Dockerfile running as root"
+    input: "FROM ubuntu:latest\nRUN apt-get update"
+    assertion: "lint result contains DOCKER001"
+    status: PASS
+
+  - id: F-DOCKER001-PRECISE
+    description: "DOCKER001 does NOT flag Dockerfile with USER directive"
+    input: "FROM ubuntu:22.04\nUSER appuser\nRUN echo hi"
+    assertion: "lint result does NOT contain DOCKER001"
+    status: PASS
+
+  # ── DOCKER002: unpinned base image ──────────────────────────
+  - id: F-DOCKER002-SOUND
+    description: "DOCKER002 detects :latest tag"
+    input: "FROM ubuntu:latest\nRUN echo hi"
+    assertion: "lint result contains DOCKER002"
+    status: PASS
+
+  - id: F-DOCKER002-PRECISE
+    description: "DOCKER002 does NOT flag sha256-pinned image"
+    input: "FROM ubuntu@sha256:abc123\nRUN echo hi"
+    assertion: "lint result does NOT contain DOCKER002"
+    status: PASS
+
+  # ── DOCKER006: ADD vs COPY ──────────────────────────────────
+  - id: F-DOCKER006-SOUND
+    description: "DOCKER006 detects ADD used for local files"
+    input: "FROM ubuntu\nADD . /app"
+    assertion: "lint result contains DOCKER006"
+    status: PASS
+
+  - id: F-DOCKER006-PRECISE
+    description: "DOCKER006 does NOT flag COPY"
+    input: "FROM ubuntu\nCOPY . /app"
+    assertion: "lint result does NOT contain DOCKER006"
+    status: PASS
+
+  # ── MAKE001: unsorted wildcard ───────────────────────────────
+  - id: F-MAKE001-SOUND
+    description: "MAKE001 detects $(wildcard) without $(sort)"
+    input: "SRCS = $(wildcard *.c)"
+    assertion: "lint result contains MAKE001"
+    status: PASS
+
+  - id: F-MAKE001-PRECISE
+    description: "MAKE001 does NOT flag $(sort $(wildcard))"
+    input: "SRCS := $(sort $(wildcard *.c))"
+    assertion: "lint result does NOT contain MAKE001"
+    status: PASS
+
+  # ── MAKE002: mkdir without -p ────────────────────────────────
+  - id: F-MAKE002-SOUND
+    description: "MAKE002 detects mkdir without -p in recipe"
+    input: "all:\n\tmkdir /tmp/foo"
+    assertion: "lint result contains MAKE002"
+    status: PASS
+
+  - id: F-MAKE002-PRECISE
+    description: "MAKE002 does NOT flag mkdir -p"
+    input: "all:\n\tmkdir -p /tmp/foo"
+    assertion: "lint result does NOT contain MAKE002"
+    status: PASS
+
+  # ── MAKE004: missing .PHONY ──────────────────────────────────
+  - id: F-MAKE004-SOUND
+    description: "MAKE004 detects target without .PHONY"
+    input: "all:\n\techo done"
+    assertion: "lint result contains MAKE004"
+    status: PASS
+
+  - id: F-MAKE004-PRECISE
+    description: "MAKE004 does NOT flag .PHONY target"
+    input: ".PHONY: all\nall:\n\techo done"
+    assertion: "lint result does NOT contain MAKE004"
+    status: PASS

@@ -635,19 +635,161 @@ fn test_shell_execution_trim() {
 
 ---
 
+## File Iteration (`rash::stdlib::fs::glob`)
+
+### `glob(pattern: &str) -> impl Iterator<Item=String>`
+Iterate over files matching a glob pattern.
+
+**Rust Signature**:
+```rust
+fn main() {
+    for f in glob("*.txt") {
+        println!("{}", f);
+    }
+}
+```
+
+**Shell Output**:
+```sh
+for f in *.txt; do
+    rash_println "$f"
+done
+```
+
+**Properties**:
+- Pattern emitted UNQUOTED for shell expansion
+- Supports `*`, `?`, `**`, bracket expressions
+- POSIX-compliant glob expansion
+
+---
+
+### `mkdir(path: &str)`
+Create directory (with `-p` for idempotency).
+
+**Rust Signature**:
+```rust
+fn main() {
+    mkdir("/tmp/mydir");
+}
+```
+
+**Shell Output**:
+```sh
+mkdir -p /tmp/mydir
+```
+
+**Properties**:
+- Always uses `-p` flag (idempotent — safe to re-run)
+- Creates parent directories automatically
+
+---
+
+### `mv(src: &str, dst: &str)`
+Move or rename a file.
+
+**Rust Signature**:
+```rust
+fn main() {
+    mv("/tmp/old.txt", "/tmp/new.txt");
+}
+```
+
+**Shell Output**:
+```sh
+mv /tmp/old.txt /tmp/new.txt
+```
+
+---
+
+### `chmod(mode: &str, path: &str)`
+Change file permissions.
+
+**Rust Signature**:
+```rust
+fn main() {
+    chmod("755", "/tmp/script.sh");
+}
+```
+
+**Shell Output**:
+```sh
+chmod 755 /tmp/script.sh
+```
+
+---
+
+### `string_starts_with(s: &str, prefix: &str) -> bool`
+Check if string starts with prefix.
+
+**Rust Signature**:
+```rust
+fn main() {
+    if string_starts_with("hello.txt", "hello") {
+        println!("yes");
+    }
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_string_starts_with() {
+    haystack="$1"
+    prefix="$2"
+    case "$haystack" in
+        "$prefix"*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+```
+
+**Properties**:
+- Returns bool via exit code (POSIX predicate)
+- Case sensitive
+- Empty prefix always matches
+- Selectively emitted (dead code elimination)
+
+---
+
+### `string_ends_with(s: &str, suffix: &str) -> bool`
+Check if string ends with suffix.
+
+**Rust Signature**:
+```rust
+fn main() {
+    if string_ends_with("hello.txt", ".txt") {
+        println!("yes");
+    }
+}
+```
+
+**Shell Implementation**:
+```sh
+rash_string_ends_with() {
+    haystack="$1"
+    suffix="$2"
+    case "$haystack" in
+        *"$suffix") return 0 ;;
+        *) return 1 ;;
+    esac
+}
+```
+
+**Properties**:
+- Returns bool via exit code (POSIX predicate)
+- Case sensitive
+- Empty suffix always matches
+- Selectively emitted (dead code elimination)
+
+---
+
 ## Future Extensions (v1.0.0+)
 
 - `array::map(arr, fn)` - Map function (requires closures)
 - `array::filter(arr, fn)` - Filter function
-- `fs::mkdir(path)` - Create directory (recursive option)
-- `fs::move(src, dst)` - Move/rename file
-- `fs::chmod(path, mode)` - Change file permissions
-- `string::starts_with(s, prefix)` - Check string prefix
-- `string::ends_with(s, suffix)` - Check string suffix
 
 ---
 
-**Version**: 0.9.3 (Sprint 25)
+**Version**: 0.10.0 (GH-148)
 **Status**: Implemented
 **Author**: Rash Development Team
-**Date**: 2025-10-03
+**Date**: 2026-04-03

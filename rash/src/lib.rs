@@ -127,6 +127,8 @@ pub mod repl;
 pub mod services;
 /// Standard library function mappings
 pub mod stdlib;
+/// Stdlib function metadata (extracted for file-size discipline)
+pub mod stdlib_metadata;
 /// Test case generation from shell scripts
 #[cfg(not(target_arch = "wasm32"))]
 pub mod test_generator;

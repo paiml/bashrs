@@ -23,10 +23,85 @@ impl IrConverter {
                     return Ok(ShellIR::Noop);
                 }
 
-                // Issue #95: exec() is a DSL built-in that runs a shell command string
-                // It should use 'eval' to properly evaluate pipes and operators
+                // GH-148: exit(N) → exit N
+                if name == "exit" {
+                    let code = if let Some(arg) = args.first() {
+                        match self.convert_expr_to_value(arg)? {
+                            ShellValue::String(s) => s.parse::<u8>().unwrap_or(1),
+                            _ => 1,
+                        }
+                    } else {
+                        0
+                    };
+                    return Ok(ShellIR::Exit {
+                        code,
+                        message: None,
+                    });
+                }
+
+                // GH-148: sleep(N) → sleep N
+                if name == "sleep" {
+                    let mut cmd_args = Vec::new();
+                    for arg in args {
+                        cmd_args.push(self.convert_expr_to_value(arg)?);
+                    }
+                    return Ok(ShellIR::Exec {
+                        cmd: shell_ir::Command {
+                            program: "sleep".to_string(),
+                            args: cmd_args,
+                        },
+                        effects: self.analyze_command_effects(name),
+                    });
+                }
+
+                // GH-148: mkdir(path) → mkdir -p path (idempotent)
+                if name == "mkdir" {
+                    let mut cmd_args = vec![ShellValue::String("-p".to_string())];
+                    for arg in args {
+                        cmd_args.push(self.convert_expr_to_value(arg)?);
+                    }
+                    return Ok(ShellIR::Exec {
+                        cmd: shell_ir::Command {
+                            program: "mkdir".to_string(),
+                            args: cmd_args,
+                        },
+                        effects: self.analyze_command_effects(name),
+                    });
+                }
+
+                // GH-148: mv(src, dst) → mv src dst
+                if name == "mv" {
+                    let mut cmd_args = Vec::new();
+                    for arg in args {
+                        cmd_args.push(self.convert_expr_to_value(arg)?);
+                    }
+                    return Ok(ShellIR::Exec {
+                        cmd: shell_ir::Command {
+                            program: "mv".to_string(),
+                            args: cmd_args,
+                        },
+                        effects: self.analyze_command_effects(name),
+                    });
+                }
+
+                // GH-148: chmod(mode, path) → chmod mode path
+                if name == "chmod" {
+                    let mut cmd_args = Vec::new();
+                    for arg in args {
+                        cmd_args.push(self.convert_expr_to_value(arg)?);
+                    }
+                    return Ok(ShellIR::Exec {
+                        cmd: shell_ir::Command {
+                            program: "chmod".to_string(),
+                            args: cmd_args,
+                        },
+                        effects: self.analyze_command_effects(name),
+                    });
+                }
+
+                // GH-148: exec("cmd") → direct command execution (not eval)
+                // exec("mkdir -p /tmp/foo") → mkdir -p /tmp/foo
                 if name == "exec" {
-                    // Convert exec("cmd1 | cmd2") to eval 'cmd1 | cmd2'
                     let mut cmd_args = Vec::new();
                     for arg in args {
                         cmd_args.push(self.convert_expr_to_value(arg)?);

@@ -1,0 +1,79 @@
+contract:
+  name: purification-pipeline-v1
+  version: "1.0.0"
+  description: >
+    Provable purification contracts (GH-183). The bash purifier transforms
+    non-deterministic bash into safe, idempotent POSIX sh. Each invariant
+    is falsifiable — a single counterexample breaks the contract.
+  references:
+    - "GH-183: KZ-11 Missing provable contracts"
+    - "CLAUDE.md: Workflow 1 — Bash → Purified Bash (PRIMARY)"
+  spec: docs/specifications/STDLIB.md
+  phase: "Purification pipeline"
+
+falsification_tests:
+  # ── Determinism: remove non-deterministic constructs ─────────
+  - id: F-PURIFY-001
+    description: "$RANDOM is replaced with deterministic value"
+    input: "x=$RANDOM"
+    assertion: "purified output does NOT contain '$RANDOM'"
+    status: PASS
+
+  - id: F-PURIFY-002
+    description: "Purification is itself deterministic (same input → same output)"
+    input: "mkdir /tmp/foo\nrm /tmp/bar\necho $x"
+    assertion: "purify(input) == purify(input)"
+    status: PASS
+
+  # ── Idempotency: operations safe to re-run ───────────────────
+  - id: F-PURIFY-003
+    description: "mkdir becomes mkdir -p (safe to re-run)"
+    input: "mkdir /tmp/testdir"
+    assertion: "purified output contains 'mkdir -p'"
+    status: PASS
+
+  - id: F-PURIFY-004
+    description: "rm becomes rm -f (safe to re-run)"
+    input: "rm /tmp/old"
+    assertion: "purified output contains 'rm -f'"
+    status: PASS
+
+  # ── POSIX compliance ─────────────────────────────────────────
+  - id: F-PURIFY-005
+    description: "CLI purify replaces #!/bin/bash with #!/bin/sh (POSIX)"
+    input: "#!/bin/bash\necho hello"
+    assertion: "CLI 'bashrs purify' output starts with #!/bin/sh and does not contain #!/bin/bash"
+    status: PASS
+
+  # ── Variable safety ──────────────────────────────────────────
+  - id: F-PURIFY-006
+    description: "Unquoted variables get double-quoted"
+    input: "echo $unquoted_var"
+    assertion: "purified output contains '\"$unquoted_var\"'"
+    status: PASS
+
+  # ── Purify-then-lint cleanliness ─────────────────────────────
+  - id: F-PURIFY-007
+    description: "Purified output of non-deterministic input has zero DET violations"
+    input: "#!/bin/bash\nx=$RANDOM"
+    assertion: "lint(purify(input)) has zero DET-rule diagnostics"
+    status: PASS
+
+  - id: F-PURIFY-008
+    description: "Purified output of non-idempotent input has zero IDEM violations"
+    input: "mkdir /tmp/dir"
+    assertion: "lint(purify(input)) has zero IDEM-rule diagnostics"
+    status: PASS
+
+  # ── Behavioral equivalence (safe subset) ─────────────────────
+  - id: F-PURIFY-009
+    description: "Purification of already-pure code is idempotent"
+    input: "#!/bin/sh\necho \"hello\""
+    assertion: "purify(purify(input)) == purify(input)"
+    status: PASS
+
+  - id: F-PURIFY-010
+    description: "echo with literal args is preserved unchanged"
+    input: "echo hello world"
+    assertion: "purified output preserves 'echo hello world' semantics"
+    status: PASS

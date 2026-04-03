@@ -1,0 +1,89 @@
+contract:
+  name: parser-soundness-v1
+  version: "1.0.0"
+  description: >
+    Provable parser soundness contracts (GH-183). The bash parser must
+    correctly lex, parse, and produce ASTs for valid bash. It must not
+    silently drop constructs. Parse must be deterministic.
+  references:
+    - "GH-183: KZ-11 Missing provable contracts"
+    - "binding.yaml: parser-soundness-v1 (3 bindings: lex, parse, semantic)"
+  spec: docs/specifications/STDLIB.md
+  phase: "Parser soundness"
+
+falsification_tests:
+  # ── Lexing + parsing valid bash ──────────────────────────────
+  - id: F-PARSE-001
+    description: "Simple echo command parses successfully"
+    input: 'echo "hello world"'
+    assertion: "BashParser::new(input)?.parse() returns Ok"
+    status: PASS
+
+  - id: F-PARSE-002
+    description: "Variable assignment parses to Assignment AST node"
+    input: "x=42"
+    assertion: "AST contains Assignment { name: 'x' }"
+    status: PASS
+
+  - id: F-PARSE-003
+    description: "If-then-else parses to If AST node"
+    input: 'if [ "$x" = "1" ]; then echo yes; else echo no; fi'
+    assertion: "AST contains If node with then_block and else_block"
+    status: PASS
+
+  - id: F-PARSE-004
+    description: "For loop parses to For AST node"
+    input: "for f in *.txt; do echo \"$f\"; done"
+    assertion: "AST contains For { variable: 'f' }"
+    status: PASS
+
+  - id: F-PARSE-005
+    description: "Function definition parses to Function AST node"
+    input: "greet() { echo hello; }"
+    assertion: "AST contains Function { name: 'greet' }"
+    status: PASS
+
+  - id: F-PARSE-006
+    description: "Pipeline parses correctly"
+    input: "ls -la | grep foo | wc -l"
+    assertion: "AST contains Pipeline node"
+    status: PASS
+
+  # ── Determinism ──────────────────────────────────────────────
+  - id: F-PARSE-007
+    description: "Parsing is deterministic — same input, same AST"
+    input: 'x=1\nif [ "$x" ]; then echo yes; fi'
+    assertion: "parse(input) == parse(input)"
+    status: PASS
+
+  # ── Edge cases ───────────────────────────────────────────────
+  - id: F-PARSE-008
+    description: "Empty input parses to empty AST (no crash)"
+    input: ""
+    assertion: "parse returns Ok with empty statements"
+    status: PASS
+
+  - id: F-PARSE-009
+    description: "Comment-only input parses successfully"
+    input: "# this is a comment"
+    assertion: "parse returns Ok"
+    status: PASS
+
+  - id: F-PARSE-010
+    description: "Multi-line script preserves statement count"
+    input: "x=1\ny=2\necho $x $y"
+    assertion: "AST has exactly 3 statements"
+    status: PASS
+
+  # ── Construct preservation ───────────────────────────────────
+  - id: F-PARSE-011
+    description: "While loop parses to While AST node"
+    input: "while true; do sleep 1; done"
+    assertion: "AST contains While node"
+    status: PASS
+
+  - id: F-PARSE-012
+    description: "Case statement parses to Case AST node"
+    input: 'case "$1" in start) echo go;; stop) echo halt;; esac'
+    assertion: "AST contains Case node with 2 arms"
+    status: PASS

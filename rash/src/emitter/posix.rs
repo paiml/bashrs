@@ -4,7 +4,6 @@ use crate::ir::{Command, ShellIR, ShellValue};
 use crate::models::Result;
 use std::cell::RefCell;
 use std::fmt::Write;
-
 /// KAIZEN-083: Pre-computed indent strings to avoid `"    ".repeat(n)` allocation per emit call.
 /// Covers depths 0-8 (all practical shell scripts). Falls back to heap allocation for deeper nesting.
 const INDENT_CACHE: [&str; 9] = [
@@ -18,7 +17,6 @@ const INDENT_CACHE: [&str; 9] = [
     "                            ",
     "                                ",
 ];
-
 /// Return a cached indent string for the given depth, or allocate for rare deep nesting.
 fn get_indent(depth: usize) -> std::borrow::Cow<'static, str> {
     if depth < INDENT_CACHE.len() {
@@ -27,7 +25,6 @@ fn get_indent(depth: usize) -> std::borrow::Cow<'static, str> {
         std::borrow::Cow::Owned("    ".repeat(depth))
     }
 }
-
 /// Returns the shell operator string for an ArithmeticOp
 fn arithmetic_op_str(op: &crate::ir::shell_ir::ArithmeticOp) -> &'static str {
     use crate::ir::shell_ir::ArithmeticOp;
@@ -44,7 +41,6 @@ fn arithmetic_op_str(op: &crate::ir::shell_ir::ArithmeticOp) -> &'static str {
         ArithmeticOp::Shr => ">>",
     }
 }
-
 /// Returns precedence level for arithmetic operators (higher = binds tighter).
 /// Follows POSIX shell / C operator precedence.
 fn arithmetic_precedence(op: &crate::ir::shell_ir::ArithmeticOp) -> u8 {
@@ -58,7 +54,6 @@ fn arithmetic_precedence(op: &crate::ir::shell_ir::ArithmeticOp) -> u8 {
         ArithmeticOp::Mul | ArithmeticOp::Div | ArithmeticOp::Mod => 5,
     }
 }
-
 /// Try to constant-fold a boolean expression at compile time.
 /// Returns `Some(bool)` if all operands are literals, `None` if any are runtime values.
 fn try_fold_logical(value: &ShellValue) -> Option<bool> {
@@ -74,7 +69,6 @@ fn try_fold_logical(value: &ShellValue) -> Option<bool> {
         _ => None,
     }
 }
-
 /// Unwrap a Sequence containing a single If statement.
 /// The parser wraps `else if` branches in `Sequence([If { ... }])`.
 fn unwrap_single_if(ir: &ShellIR) -> &ShellIR {
@@ -85,7 +79,6 @@ fn unwrap_single_if(ir: &ShellIR) -> &ShellIR {
     }
     ir
 }
-
 /// Classify an if-statement structure for decision tracing.
 fn classify_if_structure(else_branch: Option<&ShellIR>) -> &'static str {
     match else_branch {
@@ -100,7 +93,6 @@ fn classify_if_structure(else_branch: Option<&ShellIR>) -> &'static str {
         }
     }
 }
-
 /// Classify a test expression for decision tracing.
 fn classify_test_expression(test: &ShellValue) -> &'static str {
     match test {
@@ -115,7 +107,6 @@ fn classify_test_expression(test: &ShellValue) -> &'static str {
         _ => "other_test",
     }
 }
-
 /// Determine whether a child arithmetic expression needs parenthesization
 /// relative to its parent operator. Returns true if parens are required.
 fn needs_arithmetic_parens(
@@ -131,12 +122,10 @@ fn needs_arithmetic_parens(
         false
     }
 }
-
 pub struct PosixEmitter {
     trace: RefCell<Vec<TranspilerDecision>>,
     tracing: bool,
 }
-
 impl Default for PosixEmitter {
     fn default() -> Self {
         Self {
@@ -145,12 +134,10 @@ impl Default for PosixEmitter {
         }
     }
 }
-
 impl PosixEmitter {
     pub fn new() -> Self {
         Self::default()
     }
-
     /// Create an emitter with decision tracing enabled.
     pub fn new_with_tracing() -> Self {
         Self {
@@ -158,7 +145,6 @@ impl PosixEmitter {
             tracing: true,
         }
     }
-
     /// Record a decision made during emission.
     /// No-op when tracing is disabled (the default for normal emit).
     #[inline]
@@ -172,36 +158,28 @@ impl PosixEmitter {
             ir_node: ir_node.to_string(),
         });
     }
-
     /// Drain and return the accumulated decision trace.
     pub fn take_trace(&self) -> DecisionTrace {
         self.trace.borrow_mut().drain(..).collect()
     }
-
     pub fn emit(&self, ir: &ShellIR) -> Result<String> {
         // Contract: encoder-roundtrip-v1.yaml precondition (pv codegen)
         contract_pre_configuration!(ir);
         let mut output = String::new();
-
         // Collect used functions for selective runtime emission
         let used_functions = ir.collect_used_functions();
-
         // Write the POSIX shell header (without main wrapper yet)
         self.write_header_without_main(&mut output, &used_functions)?;
-
         // Separate helper functions from main body
         let (helper_functions, main_body) = self.separate_functions(ir);
-
         // Emit helper functions at global scope
         for func_ir in &helper_functions {
             self.emit_ir(&mut output, func_ir, 0)?;
             writeln!(&mut output)?;
         }
-
         // Now open main() and emit its body
         writeln!(&mut output, "# Main script begins")?;
         writeln!(&mut output, "main() {{")?;
-
         if main_body.is_empty() {
             // Empty main needs a no-op for valid shell syntax
             writeln!(&mut output, "    :")?;
@@ -210,19 +188,15 @@ impl PosixEmitter {
                 self.emit_ir(&mut output, stmt_ir, 1)?;
             }
         }
-
         // Write the footer (closes main and adds execution)
         self.write_footer(&mut output)?;
-
         Ok(output)
     }
-
     /// KAIZEN-076: return references instead of cloning IR items.
     /// emit_ir takes &ShellIR, so cloning was unnecessary (~107K clones per corpus run).
     fn separate_functions<'a>(&self, ir: &'a ShellIR) -> (Vec<&'a ShellIR>, Vec<&'a ShellIR>) {
         let mut functions = Vec::new();
         let mut main_body = Vec::new();
-
         if let ShellIR::Sequence(items) = ir {
             for item in items {
                 match item {
@@ -233,10 +207,8 @@ impl PosixEmitter {
         } else {
             main_body.push(ir);
         }
-
         (functions, main_body)
     }
-
     fn write_header_without_main(
         &self,
         output: &mut String,
@@ -246,21 +218,17 @@ impl PosixEmitter {
         writeln!(output, "# Generated by Rash v{}", env!("CARGO_PKG_VERSION"))?;
         writeln!(output, "# POSIX-compliant shell script")?;
         writeln!(output)?;
-
         // Set strict error handling
         writeln!(output, "set -euf")?;
         writeln!(output, "IFS=' \t\n'")?; // POSIX-compatible IFS setting
         writeln!(output, "export LC_ALL=C")?;
         writeln!(output)?;
-
         // Include only the runtime functions actually used by the IR
         if self.needs_runtime(used_functions) {
             self.write_selective_runtime(output, used_functions)?;
         }
-
         Ok(())
     }
-
     fn write_footer(&self, output: &mut String) -> Result<()> {
         writeln!(output, "}}")?;
         writeln!(output)?;
@@ -269,20 +237,16 @@ impl PosixEmitter {
         writeln!(output)?;
         writeln!(output, "# Execute main function")?;
         writeln!(output, "main \"$@\"")?;
-
         Ok(())
     }
-
     fn write_println_function(&self, output: &mut String) -> Result<()> {
         let lines = ["rash_println() {", "    printf '%s\\n' \"$1\"", "}", ""];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_print_function(&self, output: &mut String) -> Result<()> {
         let lines = ["rash_print() {", "    printf '%s' \"$1\"", "}", ""];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_eprintln_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_eprintln() {",
@@ -292,7 +256,6 @@ impl PosixEmitter {
         ];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_require_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_require() {",
@@ -305,20 +268,16 @@ impl PosixEmitter {
         ];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_download_function(&self, output: &mut String) -> Result<()> {
         writeln!(output, "rash_download_verified() {{")?;
         writeln!(output, "    url=\"$1\"; dst=\"$2\"; checksum=\"$3\"")?;
         writeln!(output, "    ")?;
-
         self.write_download_logic(output)?;
         self.write_checksum_logic(output)?;
-
         writeln!(output, "}}")?;
         writeln!(output)?;
         Ok(())
     }
-
     fn write_download_logic(&self, output: &mut String) -> Result<()> {
         let lines = [
             "    if command -v curl >/dev/null 2>&1; then",
@@ -333,7 +292,6 @@ impl PosixEmitter {
         ];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_checksum_logic(&self, output: &mut String) -> Result<()> {
         let lines = [
             "    if command -v sha256sum >/dev/null 2>&1; then",
@@ -347,16 +305,13 @@ impl PosixEmitter {
         ];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_shell_lines(&self, output: &mut String, lines: &[&str]) -> Result<()> {
         for line in lines {
             writeln!(output, "{line}")?;
         }
         Ok(())
     }
-
     // Stdlib function implementations
-
     fn write_string_trim_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_string_trim() {",
@@ -371,7 +326,6 @@ impl PosixEmitter {
         ];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_string_contains_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_string_contains() {",
@@ -386,7 +340,34 @@ impl PosixEmitter {
         ];
         self.write_shell_lines(output, &lines)
     }
-
+    fn write_string_starts_with_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_starts_with() {",
+            "    haystack=\"$1\"",
+            "    prefix=\"$2\"",
+            "    case \"$haystack\" in",
+            "        \"$prefix\"*) return 0 ;;",
+            "        *) return 1 ;;",
+            "    esac",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
+    fn write_string_ends_with_function(&self, output: &mut String) -> Result<()> {
+        let lines = [
+            "rash_string_ends_with() {",
+            "    haystack=\"$1\"",
+            "    suffix=\"$2\"",
+            "    case \"$haystack\" in",
+            "        *\"$suffix\") return 0 ;;",
+            "        *) return 1 ;;",
+            "    esac",
+            "}",
+            "",
+        ];
+        self.write_shell_lines(output, &lines)
+    }
     fn write_string_len_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_string_len() {",
@@ -397,7 +378,6 @@ impl PosixEmitter {
         ];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_fs_exists_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_fs_exists() {",
@@ -408,7 +388,6 @@ impl PosixEmitter {
         ];
         self.write_shell_lines(output, &lines)
     }
-
     fn write_fs_read_file_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_fs_read_file() {",
@@ -644,6 +623,13 @@ impl PosixEmitter {
         }
         if used_functions.contains("rash_string_to_lower") {
             self.write_string_to_lower_function(output)?;
+        }
+
+        if used_functions.contains("rash_string_starts_with") {
+            self.write_string_starts_with_function(output)?;
+        }
+        if used_functions.contains("rash_string_ends_with") {
+            self.write_string_ends_with_function(output)?;
         }
 
         // FS stdlib functions
@@ -1216,6 +1202,7 @@ impl PosixEmitter {
             ShellValue::EnvVar { .. } => "env_var",
             ShellValue::ExitCode => "exit_code",
             ShellValue::DynamicArrayAccess { .. } => "dynamic_array",
+            ShellValue::Glob(_) => "glob_pattern",
         };
         self.record_decision("value_emit", choice, "Value");
 
@@ -1282,6 +1269,8 @@ impl PosixEmitter {
                     idx_expr
                 ))
             }
+            // GH-148: Glob patterns emitted UNQUOTED for shell expansion
+            ShellValue::Glob(pattern) => Ok(pattern.clone()),
         }
     }
 
@@ -1520,6 +1509,9 @@ impl PosixEmitter {
                     idx_expr
                 ));
             }
+            ShellValue::Glob(pattern) => {
+                result.push_str(pattern);
+            }
         }
         Ok(())
     }
@@ -1624,7 +1616,14 @@ impl PosixEmitter {
         // Predicate functions return bool via exit code (0 = true, 1 = false)
         matches!(
             name,
-            "rash_string_contains" | "rash_fs_exists" | "test" | "["
+            "rash_string_contains"
+                | "rash_string_starts_with"
+                | "rash_string_ends_with"
+                | "rash_fs_exists"
+                | "rash_fs_is_file"
+                | "rash_fs_is_dir"
+                | "test"
+                | "["
         )
     }
 }

@@ -15,6 +15,8 @@ pub fn is_stdlib_function(name: &str) -> bool {
             | "string_replace"
             | "string_to_upper"
             | "string_to_lower"
+            | "string_starts_with"
+            | "string_ends_with"
             // File system module
             | "fs_exists"
             | "fs_read_file"
@@ -35,6 +37,17 @@ pub fn is_stdlib_function(name: &str) -> bool {
             | "arg_count"
             // Exit code module (Sprint 27c)
             | "exit_code"
+            // Command execution module (GH-148)
+            | "capture"
+            | "exec"
+            | "exit"
+            | "sleep"
+            // File iteration module (GH-148)
+            | "glob"
+            // Directory/file management module (GH-148)
+            | "mkdir"
+            | "mv"
+            | "chmod"
     )
 }
 
@@ -43,157 +56,15 @@ pub fn get_shell_function_name(name: &str) -> String {
     format!("rash_{}", name)
 }
 
-/// Stdlib function metadata
-#[derive(Debug, Clone)]
-pub struct StdlibFunction {
-    pub name: &'static str,
-    pub shell_name: &'static str,
-    pub module: &'static str,
-    pub description: &'static str,
-}
+// Re-export metadata from extracted module (file size discipline)
+pub use crate::stdlib_metadata::{StdlibFunction, STDLIB_FUNCTIONS};
 
-/// All stdlib functions
-pub const STDLIB_FUNCTIONS: &[StdlibFunction] = &[
-    // String module
-    StdlibFunction {
-        name: "string_trim",
-        shell_name: "rash_string_trim",
-        module: "string",
-        description: "Remove leading and trailing whitespace",
-    },
-    StdlibFunction {
-        name: "string_contains",
-        shell_name: "rash_string_contains",
-        module: "string",
-        description: "Check if string contains substring",
-    },
-    StdlibFunction {
-        name: "string_len",
-        shell_name: "rash_string_len",
-        module: "string",
-        description: "Get string length",
-    },
-    StdlibFunction {
-        name: "string_replace",
-        shell_name: "rash_string_replace",
-        module: "string",
-        description: "Replace substring with another string",
-    },
-    StdlibFunction {
-        name: "string_to_upper",
-        shell_name: "rash_string_to_upper",
-        module: "string",
-        description: "Convert string to uppercase",
-    },
-    StdlibFunction {
-        name: "string_to_lower",
-        shell_name: "rash_string_to_lower",
-        module: "string",
-        description: "Convert string to lowercase",
-    },
-    // File system module
-    StdlibFunction {
-        name: "fs_exists",
-        shell_name: "rash_fs_exists",
-        module: "fs",
-        description: "Check if file/directory exists",
-    },
-    StdlibFunction {
-        name: "fs_read_file",
-        shell_name: "rash_fs_read_file",
-        module: "fs",
-        description: "Read entire file to string",
-    },
-    StdlibFunction {
-        name: "fs_write_file",
-        shell_name: "rash_fs_write_file",
-        module: "fs",
-        description: "Write string to file",
-    },
-    StdlibFunction {
-        name: "fs_copy",
-        shell_name: "rash_fs_copy",
-        module: "fs",
-        description: "Copy file from source to destination",
-    },
-    StdlibFunction {
-        name: "fs_remove",
-        shell_name: "rash_fs_remove",
-        module: "fs",
-        description: "Remove file or directory",
-    },
-    StdlibFunction {
-        name: "fs_is_file",
-        shell_name: "rash_fs_is_file",
-        module: "fs",
-        description: "Check if path is a regular file",
-    },
-    StdlibFunction {
-        name: "fs_is_dir",
-        shell_name: "rash_fs_is_dir",
-        module: "fs",
-        description: "Check if path is a directory",
-    },
-    // Environment module (Sprint 27a)
-    StdlibFunction {
-        name: "env",
-        shell_name: "inline_env_var",
-        module: "env",
-        description: "Get environment variable value (inline ${VAR})",
-    },
-    StdlibFunction {
-        name: "env_var_or",
-        shell_name: "inline_env_var_or",
-        module: "env",
-        description: "Get environment variable with default (inline ${VAR:-default})",
-    },
-    // Arguments module (Sprint 27b)
-    StdlibFunction {
-        name: "arg",
-        shell_name: "inline_positional_arg",
-        module: "args",
-        description: "Get command-line argument by position (inline $n)",
-    },
-    StdlibFunction {
-        name: "args",
-        shell_name: "inline_all_args",
-        module: "args",
-        description: "Get all command-line arguments (inline $@)",
-    },
-    StdlibFunction {
-        name: "arg_count",
-        shell_name: "inline_arg_count",
-        module: "args",
-        description: "Get command-line argument count (inline $#)",
-    },
-    // Exit code module (Sprint 27c)
-    StdlibFunction {
-        name: "exit_code",
-        shell_name: "inline_exit_code",
-        module: "status",
-        description: "Get exit code of last command (inline $?)",
-    },
-    // Sprint 28: Complete Missing Stdlib Functions - GREEN PHASE
-    StdlibFunction {
-        name: "string_split",
-        shell_name: "rash_string_split",
-        module: "string",
-        description: "Split string by delimiter into newline-separated output",
-    },
-    StdlibFunction {
-        name: "array_len",
-        shell_name: "rash_array_len",
-        module: "array",
-        description: "Count elements in newline-separated array",
-    },
-    StdlibFunction {
-        name: "array_join",
-        shell_name: "rash_array_join",
-        module: "array",
-        description: "Join newline-separated array elements with separator",
-    },
-];
-
+// Tests use STDLIB_FUNCTIONS below — the const is defined in stdlib_metadata.rs
+// Legacy anchor (do not add new entries here — edit stdlib_metadata.rs):
+const _STDLIB_METADATA_ANCHOR: () = {
+    // Compile-time check: STDLIB_FUNCTIONS exists and is non-empty
+    assert!(!STDLIB_FUNCTIONS.is_empty());
+};
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -212,6 +83,24 @@ mod tests {
         assert!(is_stdlib_function("fs_remove"));
         assert!(is_stdlib_function("fs_is_file"));
         assert!(is_stdlib_function("fs_is_dir"));
+
+        // Command execution functions (GH-148)
+        assert!(is_stdlib_function("capture"));
+        assert!(is_stdlib_function("exec"));
+        assert!(is_stdlib_function("exit"));
+        assert!(is_stdlib_function("sleep"));
+
+        // String prefix/suffix functions (GH-148)
+        assert!(is_stdlib_function("string_starts_with"));
+        assert!(is_stdlib_function("string_ends_with"));
+
+        // File iteration functions (GH-148)
+        assert!(is_stdlib_function("glob"));
+
+        // Directory/file management functions (GH-148)
+        assert!(is_stdlib_function("mkdir"));
+        assert!(is_stdlib_function("mv"));
+        assert!(is_stdlib_function("chmod"));
 
         // Not stdlib functions
         assert!(!is_stdlib_function("custom_function"));
@@ -364,6 +253,72 @@ mod tests {
         assert!(
             is_stdlib_function("array_join"),
             "array_join() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_GH148_starts_with_recognized() {
+        assert!(
+            is_stdlib_function("string_starts_with"),
+            "string_starts_with() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_GH148_ends_with_recognized() {
+        assert!(
+            is_stdlib_function("string_ends_with"),
+            "string_ends_with() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_GH148_starts_with_metadata() {
+        let metadata: Vec<&StdlibFunction> = STDLIB_FUNCTIONS
+            .iter()
+            .filter(|f| f.name == "string_starts_with")
+            .collect();
+
+        assert_eq!(metadata.len(), 1, "string_starts_with should have metadata entry");
+        assert_eq!(metadata[0].module, "string");
+        assert_eq!(metadata[0].shell_name, "rash_string_starts_with");
+    }
+
+    #[test]
+    fn test_GH148_ends_with_metadata() {
+        let metadata: Vec<&StdlibFunction> = STDLIB_FUNCTIONS
+            .iter()
+            .filter(|f| f.name == "string_ends_with")
+            .collect();
+
+        assert_eq!(metadata.len(), 1, "string_ends_with should have metadata entry");
+        assert_eq!(metadata[0].module, "string");
+        assert_eq!(metadata[0].shell_name, "rash_string_ends_with");
+    }
+
+    #[test]
+    fn test_GH148_glob_recognized() {
+        assert!(
+            is_stdlib_function("glob"),
+            "glob() should be recognized as stdlib function"
+        );
+    }
+
+    #[test]
+    fn test_GH148_glob_metadata() {
+        let metadata: Vec<&StdlibFunction> = STDLIB_FUNCTIONS
+            .iter()
+            .filter(|f| f.name == "glob")
+            .collect();
+
+        assert_eq!(metadata.len(), 1, "glob should have metadata entry");
+        assert_eq!(
+            metadata[0].module, "fs",
+            "glob should be in 'fs' module"
+        );
+        assert_eq!(
+            metadata[0].shell_name, "inline_glob",
+            "glob should use inline shell syntax"
         );
     }
 

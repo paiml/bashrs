@@ -30,6 +30,60 @@ impl IrConverter {
         if name == "exit_code" {
             return Ok(ShellValue::ExitCode);
         }
+        // GH-148: capture("cmd arg1 arg2") → $(cmd arg1 arg2)
+        // capture("cmd | filter") → $(sh -c 'cmd | filter')  (pipe-safe)
+        if name == "capture" {
+            if let Some(arg) = args.first() {
+                let cmd_value = self.convert_expr_to_value(arg)?;
+                match &cmd_value {
+                    ShellValue::String(s) => {
+                        // If the command contains shell operators (pipes, &&, ||, ;),
+                        // wrap in sh -c to preserve operator semantics
+                        let has_shell_operators = s.contains(" | ")
+                            || s.contains(" && ")
+                            || s.contains(" || ")
+                            || s.contains(';');
+                        if has_shell_operators {
+                            return Ok(ShellValue::CommandSubst(shell_ir::Command {
+                                program: "sh".to_string(),
+                                args: vec![
+                                    ShellValue::String("-c".to_string()),
+                                    ShellValue::String(s.clone()),
+                                ],
+                            }));
+                        }
+                        // Simple command: split into program + args
+                        let mut parts = s.split_whitespace();
+                        let program = parts.next().unwrap_or("").to_string();
+                        let cmd_args: Vec<ShellValue> =
+                            parts.map(|p| ShellValue::String(p.to_string())).collect();
+                        return Ok(ShellValue::CommandSubst(shell_ir::Command {
+                            program,
+                            args: cmd_args,
+                        }));
+                    }
+                    ShellValue::Concat(_) => {
+                        // For interpolated strings, fall through to regular handling
+                        return self.convert_regular_fn_call(name, args);
+                    }
+                    _ => return self.convert_regular_fn_call(name, args),
+                }
+            }
+            return self.convert_regular_fn_call(name, args);
+        }
+        // GH-148: glob("*.txt") → ShellValue::Glob("*.txt")
+        // Emitted unquoted so shell expansion works in for-in loops
+        if name == "glob" {
+            if let Some(arg) = args.first() {
+                let val = self.convert_expr_to_value(arg)?;
+                if let ShellValue::String(pattern) = val {
+                    return Ok(ShellValue::Glob(pattern));
+                }
+            }
+            return Err(crate::models::Error::Validation(
+                "glob() requires a string literal pattern argument".to_string(),
+            ));
+        }
         if name == "__format_concat" {
             return self.convert_format_concat(args);
         }

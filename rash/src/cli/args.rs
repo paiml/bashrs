@@ -2,7 +2,6 @@ use crate::models::{ShellDialect, VerificationLevel};
 use crate::validation::ValidationLevel;
 use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
-
 #[derive(Parser)]
 #[command(name = "bashrs")]
 #[command(about = "Rust-to-Shell transpiler for deterministic bootstrap scripts")]
@@ -10,28 +9,22 @@ use std::path::PathBuf;
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
-
     /// Verification stringency level
     #[arg(long, default_value = "strict")]
     pub verify: VerificationLevel,
-
     /// Target shell dialect
     #[arg(long, default_value = "posix")]
     pub target: ShellDialect,
-
     /// ShellCheck-compatible validation level
     #[arg(long, default_value = "minimal")]
     pub validation: ValidationLevel,
-
     /// Enable strict mode (fail on warnings)
     #[arg(long)]
     pub strict: bool,
-
     /// Enable verbose output
     #[arg(short, long)]
     pub verbose: bool,
 }
-
 #[derive(Subcommand)]
 pub enum Commands {
     /// Transpile Rust source to shell script
@@ -39,131 +32,103 @@ pub enum Commands {
         /// Input Rust file
         #[arg(value_name = "FILE")]
         input: PathBuf,
-
         /// Output shell script file
         #[arg(short, long, default_value = "install.sh")]
         output: PathBuf,
-
         /// Emit verification proof
         #[arg(long)]
         emit_proof: bool,
-
         /// Disable optimizations
         #[arg(long)]
         no_optimize: bool,
     },
-
     /// Check Rust source for Rash compatibility
     Check {
         /// Input Rust file
         #[arg(value_name = "FILE")]
         input: PathBuf,
     },
-
     /// Initialize new Rash project
     Init {
         /// Project directory
         #[arg(default_value = ".")]
         path: PathBuf,
-
         /// Project name
         #[arg(long)]
         name: Option<String>,
     },
-
     /// Verify shell script matches Rust source
     Verify {
         /// Rust source file
         rust_source: PathBuf,
-
         /// Shell script file
         shell_script: PathBuf,
     },
-
     /// Generate formal verification inspection report
     Inspect {
         /// Input AST file (JSON) or inline AST specification
         #[arg(value_name = "AST")]
         input: String,
-
         /// Output format
         #[arg(long, default_value = "markdown")]
         format: InspectionFormat,
-
         /// Output file (defaults to stdout)
         #[arg(short, long)]
         output: Option<PathBuf>,
-
         /// Include detailed traces
         #[arg(long)]
         detailed: bool,
     },
-
     // Playground feature removed in v1.0 - will be moved to separate rash-playground crate in v1.1
     /// Compile to standalone binary
     Compile {
         /// Input Rust source file
         rust_source: PathBuf,
-
         /// Output binary path
         #[arg(short, long)]
         output: PathBuf,
-
         /// Runtime type
         #[arg(long, value_enum, default_value = "dash")]
         runtime: CompileRuntime,
-
         /// Create self-extracting script instead of binary
         #[arg(long)]
         self_extracting: bool,
-
         /// Build distroless container
         #[arg(long)]
         container: bool,
-
         /// Container format
         #[arg(long, value_enum, default_value = "oci")]
         container_format: ContainerFormatArg,
     },
-
     /// Lint shell scripts or Rust source for safety issues
     Lint {
         /// Input file(s) or directories (shell script, Makefile, or Dockerfile)
         #[arg(value_name = "FILE", required = true, num_args = 1..)]
         input: Vec<PathBuf>,
-
         /// Output format
         #[arg(long, value_enum, default_value = "human")]
         format: LintFormat,
-
         /// Enable auto-fix suggestions (SAFE fixes only)
         #[arg(long)]
         fix: bool,
-
         /// Apply fixes with assumptions (requires --fix, includes SAFE + SAFE-WITH-ASSUMPTIONS fixes)
         #[arg(long, requires = "fix")]
         fix_assumptions: bool,
-
         /// Output file for fixed content
         #[arg(short, long)]
         output: Option<PathBuf>,
-
         /// Disable .bashrsignore file processing (Issue #58)
         #[arg(long)]
         no_ignore: bool,
-
         /// Path to ignore file (defaults to .bashrsignore in project root)
         #[arg(long, value_name = "FILE")]
         ignore_file: Option<PathBuf>,
-
         /// Suppress info-level messages, show only warnings and errors (Issue #75)
         #[arg(short = 'q', long)]
         quiet: bool,
-
         /// Minimum severity level to display (info, warning, error)
         #[arg(long, value_enum, default_value = "info")]
         level: LintLevel,
-
         /// Ignore specific rule codes (comma-separated: SEC010,DET002)
         #[arg(long, value_name = "RULES")]
         ignore: Option<String>,
@@ -1566,6 +1531,40 @@ pub enum CorpusCommands {
         /// Output directory (required)
         #[arg(short, long)]
         output: std::path::PathBuf,
+    },
+
+    /// Publish ShellSafetyBench to HuggingFace (SSC v12 S14.7, Phase 10)
+    PublishBenchmark {
+        /// Directory containing SSB split files (train.jsonl, val.jsonl, test.jsonl)
+        #[arg(short = 'i', long)]
+        input: std::path::PathBuf,
+
+        /// Output directory for HuggingFace-ready repository
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+
+        /// Version tag (e.g., "1.0.0")
+        #[arg(long, default_value = "1.0.0")]
+        version: String,
+    },
+
+    /// Generate expansion entries for ShellSafetyBench (Phase 9 #10: 27K → 50K+)
+    GenerateExpansion {
+        /// Script format to generate
+        #[arg(short, long, value_parser = ["bash", "makefile", "dockerfile"])]
+        format: String,
+
+        /// Number of entries to generate
+        #[arg(short, long, default_value = "5000")]
+        count: usize,
+
+        /// Output JSONL file
+        #[arg(short, long)]
+        output: std::path::PathBuf,
+
+        /// Random seed for reproducibility
+        #[arg(short, long, default_value = "42")]
+        seed: u64,
     },
 
     /// Export HuggingFace-ready conversation dataset (S6.6 paiml/shell-safety-conversations)

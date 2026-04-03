@@ -21,15 +21,12 @@ use crate::{check, transpile};
 use std::fs;
 use std::path::Path;
 use tracing::{info, warn};
-
 #[cfg(test)]
 #[path = "command_tests.rs"]
 mod command_tests;
-
 #[cfg(test)]
 #[path = "command_tests_display.rs"]
 mod command_tests_display;
-
 #[cfg(test)]
 #[path = "command_tests_gates.rs"]
 mod command_tests_gates;
@@ -145,6 +142,8 @@ pub(super) mod corpus_b2_fix_commands;
 pub(super) mod corpus_compare_commands;
 #[path = "corpus_config_commands.rs"]
 pub(super) mod corpus_config_commands;
+#[path = "corpus_expansion_commands.rs"]
+pub(super) mod corpus_expansion_commands;
 #[path = "corpus_convergence_commands.rs"]
 pub(super) mod corpus_convergence_commands;
 #[path = "corpus_core_commands.rs"]

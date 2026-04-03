@@ -1,0 +1,98 @@
+contract:
+  name: property-invariants-v1
+  version: "1.0.0"
+  description: >
+    Universal (∀-quantified) invariants verified by property-based testing.
+    Each property is tested across 256+ random inputs via proptest.
+    A single counterexample falsifies the claim. Stronger than example-based
+    tests because the input space is explored stochastically.
+  references:
+    - "GH-183: KZ-11 Missing provable contracts"
+    - "proptest crate: Hypothesis-style property testing for Rust"
+  spec: docs/specifications/STDLIB.md
+  phase: "Property invariants"
+
+falsification_tests:
+  # ── escape_shell_string universal properties ─────────────────
+  - id: P-ESC-001
+    description: "∀ strings: escape_shell_string never returns empty"
+    assertion: "∀s. escape(s).len() > 0"
+    cases: 256
+    status: PASS
+
+  - id: P-ESC-002
+    description: "∀ strings: escaped output is safe-unquoted or single-quoted"
+    assertion: "∀s. is_safe(escape(s)) ∨ escape(s).starts_with(quote)"
+    cases: 256
+    status: PASS
+
+  - id: P-ESC-003
+    description: "∀ strings with metacharacters: output is always quoted"
+    assertion: "∀s ∈ {s | s contains $`|;&}: escape(s).starts_with(quote)"
+    cases: 256
+    status: PASS
+
+  - id: P-ESC-004
+    description: "∀ strings: escape is deterministic"
+    assertion: "∀s. escape(s) == escape(s)"
+    cases: 256
+    status: PASS
+
+  # ── escape_variable_name universal properties ────────────────
+  - id: P-VAR-001
+    description: "∀ non-empty strings: result is valid POSIX identifier"
+    assertion: "∀s. starts_with(letter|_) ∧ all_chars(alnum|_)"
+    cases: 256
+    status: PASS
+
+  - id: P-VAR-002
+    description: "∀ strings: variable name escape is idempotent"
+    assertion: "∀s. escape(escape(s)) == escape(s)"
+    cases: 256
+    status: PASS
+
+  # ── escape_command_name universal properties ─────────────────
+  - id: P-CMD-001
+    description: "∀ non-empty strings: command name escape never empty"
+    assertion: "∀s. escape_cmd(s).len() > 0"
+    cases: 256
+    status: PASS
+
+  - id: P-CMD-002
+    description: "∀ strings with shell operators: command name is quoted"
+    assertion: "∀s ∈ {s | s contains ;|&}: escape_cmd(s).starts_with(quote)"
+    cases: 256
+    status: PASS
+
+  # ── Parser robustness ───────────────────────────────────────
+  - id: P-PARSE-001
+    description: "∀ ASCII strings: parser never panics"
+    assertion: "∀s ∈ ASCII^100. parse(s) ∈ {Ok(_), Err(_)} (no panic)"
+    cases: 256
+    status: PASS
+
+  - id: P-PARSE-002
+    description: "∀ valid simple bash: parse is deterministic"
+    assertion: "∀cmd,arg. parse(cmd+arg) == parse(cmd+arg)"
+    cases: 256
+    status: PASS
+
+  # ── Purification universal properties ────────────────────────
+  - id: P-PURIFY-001
+    description: "∀ valid bash: purification is idempotent"
+    assertion: "∀s ∈ valid_bash. purify(purify(s)) == purify(s)"
+    cases: 256
+    status: PASS
+
+  - id: P-PURIFY-002
+    description: "∀ $RANDOM assignments: purified output has no $RANDOM"
+    assertion: "∀var. ¬contains(purify(var=$RANDOM), $RANDOM)"
+    cases: 256
+    status: PASS
+
+  # ── Transpiler universal properties ──────────────────────────
+  - id: P-TRANSPILE-001
+    description: "∀ valid let+println programs: transpile is deterministic"
+    assertion: "∀var,val. transpile(prog) == transpile(prog)"
+    cases: 256
+    status: PASS

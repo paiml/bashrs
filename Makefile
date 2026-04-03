@@ -232,7 +232,7 @@ quick-validate: format-check lint-check check test-fast
 	@echo "✅ Quick validation passed!"
 
 # Full validation pipeline with quality gates
-validate: format lint check test quality-gate verify-specs test-shells shellcheck-validate audit
+validate: format lint check test quality-gate verify-specs test-shells shellcheck-validate test-contracts audit
 	@echo "✅ All validation passed!"
 	@echo "  ✓ Code formatting"
 	@echo "  ✓ Linting (clippy + custom)"
@@ -375,7 +375,7 @@ test-example:
 	@echo "✅ Example tests completed!"
 
 # Run ALL test styles comprehensively
-test-all: test test-shells test-determinism
+test-all: test test-shells test-determinism test-contracts
 	@echo "✅ All test styles completed!"
 	@echo "  - Unit tests ✓"
 	@echo "  - Documentation tests ✓"
@@ -383,6 +383,28 @@ test-all: test test-shells test-determinism
 	@echo "  - Example transpilation tests ✓"
 	@echo "  - Cross-shell compatibility ✓"
 	@echo "  - Determinism verification ✓"
+	@echo "  - Provable contracts ✓"
+
+# Provable contract falsification tests (GH-183)
+test-contracts: ## Run all provable contract falsification tests
+	@echo "🔬 Running provable contract falsification tests..."
+	@cargo test -p bashrs \
+		--test transpiler_core_contract_tests \
+		--test encoder_roundtrip_contract_tests \
+		--test parser_soundness_contract_tests \
+		--test linter_security_contract_tests \
+		--test linter_det_idem_contract_tests \
+		--test linter_docker_make_contract_tests \
+		--test purification_contract_tests \
+		--test property_falsification_tests
+	@echo "✅ All provable contracts passed falsification!"
+
+validate-contracts: test-contracts ## Validate contracts: run tests + count coverage
+	@echo "📋 Contract inventory:"
+	@echo "  YAMLs: $$(ls provable-contracts/contracts/*.yaml 2>/dev/null | wc -l) contract files"
+	@echo "  Tests: $$(grep -r '^fn falsify_\|^    fn prop_' rash/tests/*contract* rash/tests/property_falsification_tests.rs 2>/dev/null | wc -l) falsification tests"
+	@echo "  Score: $$(pmat work codebase-score 2>/dev/null | grep COMPOSITE | awk '{print $$2, $$4}')"
+	@echo "✅ Contract validation complete!"
 
 # Quality metrics (Enhanced with pmat integration + performance validation)
 quality-gate: quality-baseline analyze-complexity analyze-tdg validate-performance

@@ -1349,7 +1349,6 @@ fn write_split_file(
         .map_err(|e| Error::Validation(format!("Failed to write {}: {e}", path.display())))?;
     Ok(())
 }
-
 /// Publish HuggingFace-ready conversation dataset (S6.6).
 ///
 /// Generates conversations from full corpus, writes JSONL + dataset README.

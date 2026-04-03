@@ -3,12 +3,10 @@ use crate::ast::RestrictedAst;
 use crate::ir::{shell_ir::CaseArm, ShellIR, ShellValue};
 use crate::models::config::Config;
 use crate::models::error::{RashError, RashResult};
-
 pub struct ValidationPipeline {
     pub(crate) level: ValidationLevel,
     pub(crate) strict_mode: bool,
 }
-
 impl ValidationPipeline {
     pub fn new(config: &Config) -> Self {
         Self {
@@ -290,8 +288,9 @@ impl ValidationPipeline {
         }
 
         // Issue #95: exec() arguments ARE meant to be shell commands
-        // Skip shell operator validation (|, &&, ||) for exec() but keep shellshock protection
-        let is_exec_context = name == "exec";
+        // GH-148: capture() arguments are also shell commands (may contain pipes)
+        // Skip shell operator validation (|, &&, ||) for these but keep shellshock protection
+        let is_exec_context = name == "exec" || name == "capture";
 
         for arg in args {
             if is_exec_context {

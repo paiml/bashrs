@@ -680,11 +680,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-PUBLISH: HuggingFace dataset + model publication (Steps 7.10-7.10c)'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-03-08T19:02:03Z
-  updated: 2026-03-17T10:00:00Z
+  updated: 2026-04-03T07:07:32Z
   spec: null
   acceptance_criteria:
   - Publish paiml/shell-safety-bench dataset and paiml/shell-safety-qwen3-4b model after QA gate
@@ -722,11 +722,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-TRAIN-RUN11d: Qwen3-4B NF4 QLoRA 1 epoch (5,543 steps) on GB10'
-  status: inprogress
+  status: cancelled
   priority: critical
   assigned_to: null
   created: 2026-03-18T10:00:00Z
-  updated: 2026-03-20T14:00:00Z
+  updated: 2026-04-03T06:44:50Z
   spec: docs/specifications/shell-safety-inference.md
   acceptance_criteria:
   - Run 11d completes 1 epoch (5,543 steps) without crash
@@ -745,11 +745,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-EVAL: Prepare and run epoch 1 evaluation harness'
-  status: planned
+  status: completed
   priority: critical
   assigned_to: null
   created: 2026-03-20T14:00:00Z
-  updated: 2026-03-20T14:00:00Z
+  updated: 2026-04-03T07:05:00Z
   spec: docs/specifications/shell-safety-inference.md
   acceptance_criteria:
   - eval-benchmark runs against step-5543 checkpoint
@@ -789,11 +789,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SSC-PUBLISH: Publish model + benchmark to HuggingFace'
-  status: planned
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-03-20T14:00:00Z
-  updated: 2026-03-20T14:00:00Z
+  updated: 2026-04-03T07:06:26Z
   spec: docs/specifications/shell-safety-inference.md
   acceptance_criteria:
   - LoRA adapter published to paiml/shell-safety-qwen3-4b
@@ -886,6 +886,295 @@ roadmap:
   spec: null
   acceptance_criteria:
   - Extend LoRA to Q/K/V/O/gate/up/down, rank=32, rsLoRA scaling. Retrain and eval. Target MCC>0.75.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-175
+  github_issue: null
+  item_type: task
+  title: trueno GpuCommandBatch eval — 10-20x speedup (Phase 9.1)
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-02T22:22:37Z
+  updated: 2026-04-02T22:36:19Z
+  spec: null
+  acceptance_criteria:
+  - 'Batch all 36 layers into single GPU submission for eval. Currently 288 individual dispatches per entry at ~36s. Target: <3s/entry. Unblocks full 2935-entry eval to validate MCC=0.77.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-176
+  github_issue: null
+  item_type: task
+  title: 'SSC-EXPAND: Expand ShellSafetyBench from 27K to 50K+ entries (Phase 9 #10)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T07:07:45Z
+  updated: 2026-04-03T07:24:50Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-177
+  github_issue: null
+  item_type: task
+  title: 'GH-148: Transpiler stdlib — capture, exit, sleep (P0/P1 shell script essentials)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T07:30:15Z
+  updated: 2026-04-03T07:39:43Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-178
+  github_issue: null
+  item_type: task
+  title: 'Restructure SSC spec: 500-line main + sub-specs + DEEP contract integration'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T07:43:04Z
+  updated: 2026-04-03T07:48:37Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-179
+  github_issue: null
+  item_type: task
+  title: 'GH-148: Implement glob() in transpiler stdlib — file iteration in for loops'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T07:49:14Z
+  updated: 2026-04-03T08:16:07Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-180
+  github_issue: null
+  item_type: task
+  title: 'GH-148: Implement mkdir/chmod/mv in transpiler stdlib — remaining fs operations'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T08:17:06Z
+  updated: 2026-04-03T08:22:57Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-181
+  github_issue: null
+  item_type: task
+  title: 'GH-148: Implement starts_with/ends_with in transpiler stdlib — string prefix/suffix checks'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T08:25:35Z
+  updated: 2026-04-03T08:32:12Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-182
+  github_issue: null
+  item_type: task
+  title: 'GH-148: Allow pipe operators in capture() command strings'
+  status: completed
+  priority: critical
+  assigned_to: null
+  created: 2026-04-03T08:37:09Z
+  updated: 2026-04-03T08:43:55Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-183
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add provable contracts for transpiler core — parse/lower/emit pipeline'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T08:44:22Z
+  updated: 2026-04-03T08:46:00Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-184
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add provable contracts for SEC001-SEC008 linter security rules'
+  status: completed
+  priority: critical
+  assigned_to: null
+  created: 2026-04-03T08:48:07Z
+  updated: 2026-04-03T08:52:52Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-185
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add provable contracts for bash purification pipeline — determinism/idempotency/safety'
+  status: completed
+  priority: critical
+  assigned_to: null
+  created: 2026-04-03T09:01:56Z
+  updated: 2026-04-03T09:05:52Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-186
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add provable contracts for encoder-roundtrip escape functions (injection prevention)'
+  status: completed
+  priority: critical
+  assigned_to: null
+  created: 2026-04-03T09:08:19Z
+  updated: 2026-04-03T09:10:48Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-187
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add provable contracts for DET001-004 + IDEM001-003 linter rules'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T09:11:56Z
+  updated: 2026-04-03T09:14:49Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-188
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add provable contracts for parser-soundness — lex/parse/semantic'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T09:19:17Z
+  updated: 2026-04-03T09:21:14Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-189
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add provable contracts for Dockerfile + Makefile linter rules'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T09:24:38Z
+  updated: 2026-04-03T09:26:54Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-190
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add property-based falsification tests for escape + parser + purifier invariants'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T09:29:18Z
+  updated: 2026-04-03T09:31:30Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-191
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add Makefile contract enforcement — test-contracts target + validate-contracts'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T09:32:46Z
+  updated: 2026-04-03T09:35:28Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-192
+  github_issue: null
+  item_type: task
+  title: 'DEBT: Split 6 pre-existing oversized files — args.rs, commands.rs, posix.rs, shell_ir.rs, pipeline.rs, corpus_config_commands.rs'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-04-03T09:58:29Z
+  updated: 2026-04-03T09:58:29Z
+  spec: null
+  acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null

@@ -1,0 +1,52 @@
+contract:
+  name: hf-publish-v1
+  version: "1.0.0"
+  description: >
+    HuggingFace benchmark publication (PMAT-172) generates a complete,
+    valid dataset repository with proper metadata and split files.
+  references:
+    - "SSC v12 Phase 10: Export + publish to HuggingFace"
+    - "HuggingFace Datasets documentation"
+  spec: docs/specifications/shell-safety-inference.md
+  phase: "Phase 10"
+
+falsification_tests:
+  - id: F-HF-001
+    description: "README.md has YAML front matter (starts with '---')"
+    assertion: "output/README.md starts with '---\\n'"
+    status: PASS
+
+  - id: F-HF-002
+    description: "README.md contains HuggingFace dataset metadata"
+    assertion: "README.md contains 'pretty_name: ShellSafetyBench'"
+    status: PASS
+
+  - id: F-HF-003
+    description: "All three split files exist with HF naming"
+    assertion: "train.jsonl AND validation.jsonl AND test.jsonl exist (not val.jsonl)"
+    status: PASS
+
+  - id: F-HF-004
+    description: "dataset_infos.json is valid JSON with correct structure"
+    assertion: "serde_json::from_str succeeds AND has default.splits.train"
+    status: PASS
+
+  - id: F-HF-005
+    description: "Split files contain valid JSONL with input+label fields"
+    assertion: "every line in train.jsonl parses as {input: String, label: u8}"
+    status: PASS
+
+  - id: F-HF-006
+    description: "Summary statistics match actual file contents"
+    assertion: "summary.train_count == wc -l train.jsonl"
+    status: PASS
+
+  - id: F-HF-007
+    description: "Dataset card includes CWE coverage and baselines"
+    assertion: "README.md contains 'CWE' AND 'MLP probe' AND 'Qwen3-4B'"
+    status: PASS
+
+  - id: F-HF-008
+    description: "Dataset card includes citation BibTeX"
+    assertion: "README.md contains '@dataset{shellsafetybench'"
+    status: PASS

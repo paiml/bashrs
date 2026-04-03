@@ -1,0 +1,178 @@
+contract:
+  name: transpiler-stdlib-v1
+  version: "1.0.0"
+  description: >
+    Transpiler stdlib functions (GH-148) produce correct POSIX shell output.
+    capture() → $(...), exit() → exit N, sleep() → sleep N.
+  references:
+    - "GH-148: rash transpiler missing stdlib for real-world shell scripts"
+  spec: docs/specifications/shell-safety-inference.md
+  phase: "Transpiler stdlib"
+
+falsification_tests:
+  - id: F-STDLIB-001
+    description: "capture('whoami') produces $(whoami) in assignment context"
+    input: |
+      fn main() {
+          let user = capture("whoami");
+      }
+    assertion: "transpiled output contains 'user=\"$(whoami)\"'"
+    status: PASS
+
+  - id: F-STDLIB-002
+    description: "exit(0) produces 'exit 0' as standalone statement"
+    input: |
+      fn main() {
+          exit(0);
+      }
+    assertion: "transpiled output contains 'exit 0'"
+    status: PASS
+
+  - id: F-STDLIB-003
+    description: "sleep(5) produces 'sleep 5' as standalone statement"
+    input: |
+      fn main() {
+          sleep(5);
+      }
+    assertion: "transpiled output contains 'sleep 5'"
+    status: PASS
+
+  - id: F-STDLIB-004
+    description: "capture('date +%Y') splits program from args correctly"
+    input: |
+      fn main() {
+          let year = capture("date +%Y");
+      }
+    assertion: "transpiled output contains '$(date' and program is not single-quoted"
+    status: PASS
+
+  - id: F-STDLIB-005
+    description: "capture/exit/sleep are recognized as stdlib functions"
+    assertion: "is_stdlib_function('capture') AND is_stdlib_function('exit') AND is_stdlib_function('sleep')"
+    status: PASS
+
+  - id: F-STDLIB-006
+    description: "exit(1) produces non-zero exit code"
+    input: |
+      fn main() {
+          exit(1);
+      }
+    assertion: "transpiled output contains 'exit 1'"
+    status: PASS
+
+  - id: F-STDLIB-007
+    description: "glob('*.txt') in for-in loop produces unquoted shell pattern"
+    input: |
+      fn main() {
+          for f in glob("*.txt") {
+              println!("{}", f);
+          }
+      }
+    assertion: "transpiled output contains 'for' and '*.txt' unquoted (not '*.txt' or \"*.txt\")"
+    status: PASS
+
+  - id: F-STDLIB-008
+    description: "glob('/etc/*.conf') preserves directory prefix in pattern"
+    input: |
+      fn main() {
+          for config in glob("/etc/*.conf") {
+              println!("{}", config);
+          }
+      }
+    assertion: "transpiled output contains '/etc/*.conf' unquoted"
+    status: PASS
+
+  - id: F-STDLIB-009
+    description: "glob() is recognized as stdlib function"
+    assertion: "is_stdlib_function('glob') returns true"
+    status: PASS
+
+  - id: F-STDLIB-010
+    description: "mkdir(path) produces 'mkdir -p path' (idempotent)"
+    input: |
+      fn main() {
+          mkdir("/tmp/mydir");
+      }
+    assertion: "transpiled output contains 'mkdir' and '-p' and '/tmp/mydir'"
+    status: PASS
+
+  - id: F-STDLIB-011
+    description: "mv(src, dst) produces 'mv src dst'"
+    input: |
+      fn main() {
+          mv("/tmp/old.txt", "/tmp/new.txt");
+      }
+    assertion: "transpiled output contains 'mv' and both paths"
+    status: PASS
+
+  - id: F-STDLIB-012
+    description: "chmod(mode, path) produces 'chmod mode path'"
+    input: |
+      fn main() {
+          chmod("755", "/tmp/script.sh");
+      }
+    assertion: "transpiled output contains 'chmod 755 /tmp/script.sh'"
+    status: PASS
+
+  - id: F-STDLIB-013
+    description: "string_starts_with emits POSIX case-based prefix check"
+    input: |
+      fn main() {
+          let name = "hello.txt";
+          if string_starts_with(name, "hello") {
+              println!("yes");
+          }
+      }
+    assertion: "transpiled output contains rash_string_starts_with runtime function with case pattern"
+    status: PASS
+
+  - id: F-STDLIB-014
+    description: "string_ends_with emits POSIX case-based suffix check"
+    input: |
+      fn main() {
+          let name = "hello.txt";
+          if string_ends_with(name, ".txt") {
+              println!("yes");
+          }
+      }
+    assertion: "transpiled output contains rash_string_ends_with runtime function with case pattern"
+    status: PASS
+
+  - id: F-STDLIB-015
+    description: "starts_with/ends_with selectively emitted (dead code elimination)"
+    input: |
+      fn main() {
+          let x = "test";
+          if string_starts_with(x, "te") {
+              println!("yes");
+          }
+      }
+    assertion: "output contains rash_string_starts_with but NOT rash_string_ends_with"
+    status: PASS
+
+  - id: F-STDLIB-016
+    description: "capture() with pipe operator preserves pipeline via sh -c"
+    input: |
+      fn main() {
+          let count = capture("ls /tmp | wc -l");
+      }
+    assertion: "transpiled output contains $(sh ... 'ls /tmp | wc -l') — pipe not escaped"
+    status: PASS
+
+  - id: F-STDLIB-017
+    description: "capture() without pipes still uses direct command substitution"
+    input: |
+      fn main() {
+          let user = capture("whoami");
+      }
+    assertion: "transpiled output contains $(whoami) — no sh -c wrapper"
+    status: PASS
+
+  - id: F-STDLIB-018
+    description: "capture() with && operator uses sh -c wrapper"
+    input: |
+      fn main() {
+          let result = capture("test -d /tmp && echo yes");
+      }
+    assertion: "transpiled output wraps command in sh -c to preserve &&"
+    status: PASS
