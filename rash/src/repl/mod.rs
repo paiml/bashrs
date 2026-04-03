@@ -181,6 +181,7 @@ pub mod modes;
 pub mod multiline;
 pub mod parser;
 pub mod purifier;
+pub mod purifier_transforms;
 pub mod state;
 pub mod variables;
 
@@ -205,11 +206,13 @@ pub use linter::{format_lint_results, format_violations_with_context, lint_bash}
 pub use modes::ReplMode;
 pub use parser::{format_parse_error, parse_bash};
 pub use purifier::{
-    explain_purification_changes, explain_purification_changes_detailed,
-    format_purified_lint_result, format_purified_lint_result_with_context,
-    format_transformation_report, purify_and_lint, purify_and_validate, purify_bash, Alternative,
-    PurificationError, PurifiedLintResult, SafetyRationale, SafetySeverity, TransformationCategory,
-    TransformationExplanation,
+    explain_purification_changes, format_purified_lint_result,
+    format_purified_lint_result_with_context, purify_and_lint, purify_and_validate, purify_bash,
+    PurificationError, PurifiedLintResult,
+};
+pub use purifier_transforms::{
+    explain_purification_changes_detailed, format_transformation_report, Alternative,
+    SafetyRationale, SafetySeverity, TransformationCategory, TransformationExplanation,
 };
 pub use r#loop::run_repl;
 pub use state::ReplState;

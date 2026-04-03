@@ -1280,11 +1280,27 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'PMAT-199: Split rule_registry.rs (5010 lines) and args.rs (2660 lines)'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-04-03T15:10:44Z
-  updated: 2026-04-03T15:10:48.870897469+00:00
+  updated: 2026-04-03T15:29:49Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-200
+  github_issue: null
+  item_type: task
+  title: 'PMAT-200: Split repl/purifier.rs (3231), corpus/runner.rs (3056), emitter/dockerfile.rs (2453)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T15:51:20Z
+  updated: 2026-04-03T15:51:25.301838094+00:00
   spec: null
   acceptance_criteria: []
   phases: []
