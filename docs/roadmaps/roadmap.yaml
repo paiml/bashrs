@@ -1276,3 +1276,19 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-199
+  github_issue: null
+  item_type: task
+  title: 'PMAT-199: Split rule_registry.rs (5010 lines) and args.rs (2660 lines)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T15:10:44Z
+  updated: 2026-04-03T15:10:48.870897469+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
