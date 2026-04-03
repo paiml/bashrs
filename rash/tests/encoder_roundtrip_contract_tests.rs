@@ -141,10 +141,7 @@ fn falsify_ESC_007_valid_identifier() {
 #[test]
 fn falsify_ESC_008_hyphen_sanitized() {
     let result = escape_variable_name("my-var");
-    assert_eq!(
-        result, "my_var",
-        "F-ESC-008: hyphen must become underscore"
-    );
+    assert_eq!(result, "my_var", "F-ESC-008: hyphen must become underscore");
 }
 
 /// F-ESC-009: Leading digit → underscore
@@ -256,8 +253,5 @@ fn falsify_ESC_ROUNDTRIP_varname_idempotent() {
     let dirty = "my-var.name";
     let once = escape_variable_name(dirty);
     let twice = escape_variable_name(&once);
-    assert_eq!(
-        once, twice,
-        "variable name sanitization must be idempotent"
-    );
+    assert_eq!(once, twice, "variable name sanitization must be idempotent");
 }

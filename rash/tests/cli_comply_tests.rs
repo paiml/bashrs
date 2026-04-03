@@ -688,3 +688,116 @@ fn test_COMPLY_CLI_062_rules_markdown() {
         .stdout(predicate::str::contains("# Compliance Rules"))
         .stdout(predicate::str::contains("comply:disable"));
 }
+
+// ============================================================================
+// Phase 2: comply report tests (PMAT-196)
+// ============================================================================
+
+#[test]
+fn test_PMAT196_comply_report_markdown() {
+    bashrs_cmd()
+        .arg("comply")
+        .arg("report")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("# Compliance Report"))
+        .stdout(predicate::str::contains("**Grade**"))
+        .stdout(predicate::str::contains("## Artifacts"))
+        .stdout(predicate::str::contains("| Artifact |"));
+}
+
+#[test]
+fn test_PMAT196_comply_report_json() {
+    bashrs_cmd()
+        .arg("comply")
+        .arg("report")
+        .arg("--format")
+        .arg("json")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("\"grade\""))
+        .stdout(predicate::str::contains("\"score\""))
+        .stdout(predicate::str::contains("\"artifacts\""));
+}
+
+#[test]
+fn test_PMAT196_comply_report_to_file() {
+    let tmp = TempDir::new().expect("tempdir");
+    let out = tmp.path().join("report.md");
+    bashrs_cmd()
+        .arg("comply")
+        .arg("report")
+        .arg("--output")
+        .arg(out.to_str().expect("path"))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Report written to"));
+
+    let content = fs::read_to_string(&out).expect("read report");
+    assert!(content.contains("# Compliance Report"));
+}
+
+// ============================================================================
+// Phase 2: comply enforce tests (PMAT-196)
+// ============================================================================
+
+#[test]
+fn test_PMAT196_comply_enforce_help() {
+    bashrs_cmd()
+        .arg("comply")
+        .arg("enforce")
+        .arg("--help")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("pre-commit"))
+        .stdout(predicate::str::contains("--tier"))
+        .stdout(predicate::str::contains("--uninstall"));
+}
+
+// ============================================================================
+// Phase 2: comply diff tests (PMAT-196)
+// ============================================================================
+
+#[test]
+fn test_PMAT196_comply_diff_first_run() {
+    let tmp = TempDir::new().expect("tempdir");
+    // Create a shell script so there's something to check
+    fs::write(tmp.path().join("hello.sh"), "#!/bin/sh\necho hello\n").expect("write");
+
+    bashrs_cmd()
+        .arg("comply")
+        .arg("diff")
+        .arg("--path")
+        .arg(tmp.path().to_str().expect("path"))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("No previous compliance snapshot"))
+        .stdout(predicate::str::contains("Snapshot saved"));
+}
+
+#[test]
+fn test_PMAT196_comply_diff_second_run_shows_delta() {
+    let tmp = TempDir::new().expect("tempdir");
+    fs::write(tmp.path().join("hello.sh"), "#!/bin/sh\necho hello\n").expect("write");
+
+    // First run — saves snapshot
+    bashrs_cmd()
+        .arg("comply")
+        .arg("diff")
+        .arg("--path")
+        .arg(tmp.path().to_str().expect("path"))
+        .assert()
+        .success();
+
+    // Second run — shows diff
+    bashrs_cmd()
+        .arg("comply")
+        .arg("diff")
+        .arg("--path")
+        .arg(tmp.path().to_str().expect("path"))
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Compliance Diff"))
+        .stdout(predicate::str::contains("Score:"))
+        .stdout(predicate::str::contains("Grade:"));
+}

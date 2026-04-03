@@ -1,10 +1,10 @@
 //! IR statement emitters. Extracted from posix.rs.
-use crate::ir::shell_ir::{self, CasePattern, Command};
+use super::escape::{escape_shell_string, escape_variable_name};
+use super::posix::{classify_if_structure, get_indent, unwrap_single_if};
+use crate::ir::shell_ir::Command;
 use crate::ir::{ShellIR, ShellValue};
 use crate::models::Result;
 use std::fmt::Write;
-use super::escape::{escape_command_name, escape_shell_string, escape_variable_name};
-use super::posix::{get_indent, classify_if_structure, unwrap_single_if, classify_test_expression};
 impl super::posix::PosixEmitter {
     pub(crate) fn emit_ir(&self, output: &mut String, ir: &ShellIR, indent: usize) -> Result<()> {
         let ir_label = match ir {
@@ -119,7 +119,12 @@ impl super::posix::PosixEmitter {
             _ => self.emit_shell_value(value),
         }
     }
-    pub(crate) fn emit_exec_statement(&self, output: &mut String, cmd: &Command, indent: usize) -> Result<()> {
+    pub(crate) fn emit_exec_statement(
+        &self,
+        output: &mut String,
+        cmd: &Command,
+        indent: usize,
+    ) -> Result<()> {
         let choice = if cmd.program == "echo" || cmd.program == "printf" {
             "builtin_echo"
         } else if cmd.program.starts_with("rash_") {
@@ -179,7 +184,12 @@ impl super::posix::PosixEmitter {
         }
         Ok(())
     }
-    pub(crate) fn emit_elif_chain(&self, output: &mut String, else_ir: &ShellIR, indent: usize) -> Result<()> {
+    pub(crate) fn emit_elif_chain(
+        &self,
+        output: &mut String,
+        else_ir: &ShellIR,
+        indent: usize,
+    ) -> Result<()> {
         let indent_str = get_indent(indent + 1);
         let unwrapped = unwrap_single_if(else_ir);
         if let ShellIR::If {
@@ -215,7 +225,12 @@ impl super::posix::PosixEmitter {
         writeln!(output, "{indent_str}exit {code}")?;
         Ok(())
     }
-    pub(crate) fn emit_sequence(&self, output: &mut String, items: &[ShellIR], indent: usize) -> Result<()> {
+    pub(crate) fn emit_sequence(
+        &self,
+        output: &mut String,
+        items: &[ShellIR],
+        indent: usize,
+    ) -> Result<()> {
         if items.is_empty() {
             // Empty sequence needs at least ':' for valid POSIX syntax
             self.emit_noop(output, indent)?;
@@ -495,5 +510,4 @@ impl super::posix::PosixEmitter {
 
         BUILTINS.contains(&name) || EXTERNAL_COMMANDS.contains(&name)
     }
-
 }

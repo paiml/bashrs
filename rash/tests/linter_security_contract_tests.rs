@@ -136,10 +136,7 @@ fn falsify_SEC004_PRECISE_curl_normal() {
 #[test]
 fn falsify_SEC005_SOUND_api_key() {
     assert!(
-        has_diagnostic(
-            r#"API_KEY="sk-1234567890abcdef1234567890abcdef""#,
-            "SEC005"
-        ),
+        has_diagnostic(r#"API_KEY="sk-1234567890abcdef1234567890abcdef""#, "SEC005"),
         "F-SEC005-SOUND: hardcoded API key MUST be flagged"
     );
 }
@@ -223,7 +220,10 @@ fn falsify_SEC008_SOUND_wget_pipe_sh() {
 #[test]
 fn falsify_SEC008_PRECISE_curl_to_file() {
     assert!(
-        !has_diagnostic("curl -o install.sh https://example.com/install.sh", "SEC008"),
+        !has_diagnostic(
+            "curl -o install.sh https://example.com/install.sh",
+            "SEC008"
+        ),
         "F-SEC008-PRECISE: curl to file must NOT be flagged"
     );
 }

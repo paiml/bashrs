@@ -1168,11 +1168,107 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'DEBT: Split 6 pre-existing oversized files — args.rs, commands.rs, posix.rs, shell_ir.rs, pipeline.rs, corpus_config_commands.rs'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-04-03T09:58:29Z
-  updated: 2026-04-03T09:58:29Z
+  updated: 2026-04-03T11:07:54Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-193
+  github_issue: null
+  item_type: task
+  title: 'GH-183: Add contracts/ directory inside bashrs repo with symlinks to provable-contracts'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-04-03T10:23:03Z
+  updated: 2026-04-03T10:23:55Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-194
+  github_issue: null
+  item_type: task
+  title: 'Fix pmat comply failures CB-1208 + CB-1305: contract surface classification + binding existence'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T11:31:52Z
+  updated: 2026-04-03T11:55:10Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-195
+  github_issue: null
+  item_type: task
+  title: 'GAP-4: Create linter-coverage-v1.yaml contract — verify each linter rule fires on corpus entries per format'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T12:04:55Z
+  updated: 2026-04-03T12:10:18Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-196
+  github_issue: null
+  item_type: task
+  title: 'Comply Phase 2: implement bashrs comply report/enforce/diff (SPEC-COMPLY-2026-001 Phase 2)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T12:15:29Z
+  updated: 2026-04-03T12:22:10Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-197
+  github_issue: null
+  item_type: task
+  title: 'COMPLY-FIX: Fix CB-1201 YAML parse + CB-529 .pmat tracked + file health'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T12:28:22Z
+  updated: 2026-04-03T14:05:36Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-198
+  github_issue: null
+  item_type: task
+  title: 'PMAT-198: Fix CB-1305 — add invariants to 9 unclassified provable contracts'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T14:58:48Z
+  updated: 2026-04-03T15:00:58Z
   spec: null
   acceptance_criteria: []
   phases: []

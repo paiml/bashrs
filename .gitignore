@@ -130,3 +130,10 @@ training/conversations.jsonl
 training/shellsafetybench/
 .claude/worktrees/
 src/generated_contracts.rs
+
+# PMAT
+.pmat/backup/
+.pmat/context.idx/
+.pmat/workspace.idx/
+.pmat/deps-cache.json
+*.pmat_backup*

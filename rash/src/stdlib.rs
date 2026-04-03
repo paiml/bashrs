@@ -279,7 +279,11 @@ mod tests {
             .filter(|f| f.name == "string_starts_with")
             .collect();
 
-        assert_eq!(metadata.len(), 1, "string_starts_with should have metadata entry");
+        assert_eq!(
+            metadata.len(),
+            1,
+            "string_starts_with should have metadata entry"
+        );
         assert_eq!(metadata[0].module, "string");
         assert_eq!(metadata[0].shell_name, "rash_string_starts_with");
     }
@@ -291,7 +295,11 @@ mod tests {
             .filter(|f| f.name == "string_ends_with")
             .collect();
 
-        assert_eq!(metadata.len(), 1, "string_ends_with should have metadata entry");
+        assert_eq!(
+            metadata.len(),
+            1,
+            "string_ends_with should have metadata entry"
+        );
         assert_eq!(metadata[0].module, "string");
         assert_eq!(metadata[0].shell_name, "rash_string_ends_with");
     }
@@ -312,10 +320,7 @@ mod tests {
             .collect();
 
         assert_eq!(metadata.len(), 1, "glob should have metadata entry");
-        assert_eq!(
-            metadata[0].module, "fs",
-            "glob should be in 'fs' module"
-        );
+        assert_eq!(metadata[0].module, "fs", "glob should be in 'fs' module");
         assert_eq!(
             metadata[0].shell_name, "inline_glob",
             "glob should use inline shell syntax"

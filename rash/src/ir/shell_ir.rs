@@ -474,7 +474,6 @@ impl ShellExpression {
     }
 }
 
-
 #[cfg(test)]
 #[path = "shell_ir_tests.rs"]
 mod tests;

@@ -431,5 +431,4 @@ impl super::posix::PosixEmitter {
 
         Ok(())
     }
-
 }

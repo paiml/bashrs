@@ -12,6 +12,12 @@ contract:
   spec: docs/specifications/STDLIB.md
   phase: "Linter Docker/Make"
 
+invariants:
+  - "DOCKER rules detect container security issues (root user, unpinned images)"
+  - "DOCKER rules do NOT flag Dockerfiles with proper USER/pinned images"
+  - "MAKE rules detect non-deterministic wildcards and non-idempotent operations"
+  - "MAKE rules do NOT flag $(sort $(wildcard)) or mkdir -p"
+
 falsification_tests:
   # ── DOCKER001: missing USER ──────────────────────────────────
   - id: F-DOCKER001-SOUND

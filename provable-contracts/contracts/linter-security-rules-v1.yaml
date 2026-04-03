@@ -14,6 +14,12 @@ contract:
   spec: docs/specifications/world-class-bash-linter-spec.md
   phase: "Linter security"
 
+invariants:
+  - "Each SEC rule detects known-vulnerable patterns (soundness)"
+  - "Each SEC rule does NOT flag known-safe patterns (precision)"
+  - "SEC001-SEC008 cover OWASP top shell injection vectors"
+  - "Rules are independent: disabling one does not affect others"
+
 falsification_tests:
   # ── SEC001: eval injection ───────────────────────────────────
   - id: F-SEC001-SOUND

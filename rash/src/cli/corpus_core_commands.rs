@@ -330,20 +330,20 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             super::corpus_config_commands::corpus_export_benchmark(output, limit)
         }
         CorpusCommands::PipelineCheck { json } => {
-            super::corpus_config_commands::corpus_pipeline_check(json)
+            super::corpus_ssb_commands::corpus_pipeline_check(json)
         }
         CorpusCommands::MergeData {
             output,
             input,
             seed,
-        } => super::corpus_config_commands::corpus_merge_data(output, input, seed),
+        } => super::corpus_ssb_commands::corpus_merge_data(output, input, seed),
         CorpusCommands::ShellcheckValidate {
             samples,
             seed,
             json,
-        } => super::corpus_config_commands::corpus_shellcheck_validate(samples, seed, json),
+        } => super::corpus_ssb_commands::corpus_shellcheck_validate(samples, seed, json),
         CorpusCommands::EvalBenchmark { predictions, json } => {
-            super::corpus_config_commands::corpus_eval_benchmark(predictions, json)
+            super::corpus_ssb_commands::corpus_eval_benchmark(predictions, json)
         }
         CorpusCommands::Label {
             input,
@@ -387,7 +387,9 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             count,
             output,
             seed,
-        } => super::corpus_expansion_commands::corpus_generate_expansion(format, count, output, seed),
+        } => {
+            super::corpus_expansion_commands::corpus_generate_expansion(format, count, output, seed)
+        }
         CorpusCommands::PublishConversations { output, seed } => {
             super::corpus_config_commands::corpus_publish_conversations(output, seed)
         }
@@ -395,18 +397,15 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             input,
             output,
             limit,
-        } => super::corpus_config_commands::corpus_convert_ssb(input, output, limit),
+        } => super::corpus_ssb_commands::corpus_convert_ssb(input, output, limit),
         CorpusCommands::ExtractEmbeddings {
             model,
             output,
             limit,
             input_jsonl,
-        } => super::corpus_config_commands::corpus_extract_embeddings(
-            model,
-            output,
-            limit,
-            input_jsonl,
-        ),
+        } => {
+            super::corpus_ml_commands::corpus_extract_embeddings(model, output, limit, input_jsonl)
+        }
         CorpusCommands::TrainClassifier {
             embeddings,
             output,
@@ -417,7 +416,7 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             augment,
             mlp,
             mlp_hidden,
-        } => super::corpus_config_commands::corpus_train_classifier(
+        } => super::corpus_ml_commands::corpus_train_classifier(
             embeddings,
             output,
             epochs,
@@ -434,7 +433,7 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             epochs,
             learning_rate,
             seed,
-        } => super::corpus_config_commands::corpus_run_classifier(
+        } => super::corpus_ml_commands::corpus_run_classifier(
             model,
             output,
             epochs,
@@ -457,7 +456,7 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             test_data,
             output,
             max_tokens,
-        } => super::corpus_config_commands::corpus_batch_eval(model, test_data, output, max_tokens),
+        } => super::corpus_ssb_commands::corpus_batch_eval(model, test_data, output, max_tokens),
         // Handled in parent dispatchers
         _ => unreachable!(),
     }

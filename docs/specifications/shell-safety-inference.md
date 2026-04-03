@@ -105,6 +105,7 @@ has falsification tests (Popperian: designed to refute, not confirm).
 | `transpiler-stdlib-v1.yaml` | capture/exit/sleep (GH-148) | 6 FALSIFY | ✅ ALL PASS |
 | `benchmark-expansion-v1.yaml` | SSB 50K expansion quality | 7 FALSIFY | ✅ ALL PASS |
 | `hf-publish-v1.yaml` | HuggingFace publication | 8 FALSIFY | ✅ ALL PASS |
+| `linter-coverage-v1.yaml` | Linter rule coverage per format (GAP-4) | 6 FALSIFY | ✅ ALL PASS |
 
 ### Semantic Contracts (Spec-Level)
 
@@ -131,7 +132,7 @@ has falsification tests (Popperian: designed to refute, not confirm).
 | ~~GAP-1~~ | ~~transpiler-stdlib-v1.yaml~~ | ✅ CREATED (6 FALSIFY) |
 | ~~GAP-2~~ | ~~benchmark-expansion-v1.yaml~~ | ✅ CREATED (7 FALSIFY) |
 | ~~GAP-3~~ | ~~hf-publish-v1.yaml~~ | ✅ CREATED (8 FALSIFY) |
-| GAP-4 | `linter-coverage-v1.yaml` — 14 rules × 3 formats = 42 obligations | Linter |
+| ~~GAP-4~~ | ~~`linter-coverage-v1.yaml`~~ | ✅ CREATED (6 FALSIFY, 25 tests) |
 
 ---
 
@@ -304,7 +305,7 @@ format compliance is insufficient (KILL-5) so we ship classifier-only.
 | Stage 2: Benchmark | ✅ DONE | 49,842 entries, 16 tests, HF-ready |
 | Stage 3: Training | ✅ SHIP PASS | MCC=0.6416 lm_head, 0.7703 full-fwd |
 | WASM | ✅ DONE | Linter-only (KILL-4), shell-safety.html deployed |
-| Transpiler stdlib | ✅ PARTIAL | capture/exit/sleep done, glob pending |
+| Transpiler stdlib | ✅ DONE | capture/exit/sleep/glob/mkdir/chmod/mv |
 | Phase 10: Publish | 🟡 PARTIAL | CLI ready, HF upload pending |
 
 ### Test Counts
@@ -335,8 +336,8 @@ format compliance is insufficient (KILL-5) so we ship classifier-only.
 1. **Upload to HuggingFace** — `huggingface-cli upload paiml/shell-safety-bench`
 2. **trueno GpuCommandBatch** — 10-20x eval speedup, validate MCC on full 2935 test set
 3. **entrenar cosine LR decay** — break loss=4.6 plateau
-4. **Fill contract gaps** — GAP-1 through GAP-4 (Section 3)
-5. **GH-148 glob()** — last missing transpiler stdlib function
+4. ~~**Fill contract gaps** — GAP-1 through GAP-4 (Section 3)~~ ✅ ALL CLOSED
+5. ~~**GH-148 glob()** — last missing transpiler stdlib function~~ ✅ DONE
 
 ---
 

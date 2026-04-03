@@ -9,6 +9,13 @@ contract:
   spec: docs/specifications/shell-safety-inference.md
   phase: "Transpiler stdlib"
 
+invariants:
+  - "capture() produces $(...) command substitution in assignment context"
+  - "exit(N) produces 'exit N' as standalone statement"
+  - "sleep(N) produces 'sleep N' as standalone statement"
+  - "glob('pattern') emits unquoted pattern for shell expansion"
+  - "mkdir/chmod/mv produce correct POSIX commands"
+
 falsification_tests:
   - id: F-STDLIB-001
     description: "capture('whoami') produces $(whoami) in assignment context"

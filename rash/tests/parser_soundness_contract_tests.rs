@@ -35,7 +35,10 @@ where
 fn falsify_PARSE_001_echo_command() {
     let stmts = parse_ok("echo \"hello world\"");
     assert!(
-        has_stmt(&stmts, |s| matches!(s, BashStmt::Command { name, .. } if name == "echo")),
+        has_stmt(
+            &stmts,
+            |s| matches!(s, BashStmt::Command { name, .. } if name == "echo")
+        ),
         "F-PARSE-001: echo must parse to Command {{ name: 'echo' }}"
     );
 }
@@ -45,7 +48,10 @@ fn falsify_PARSE_001_echo_command() {
 fn falsify_PARSE_002_assignment() {
     let stmts = parse_ok("x=42");
     assert!(
-        has_stmt(&stmts, |s| matches!(s, BashStmt::Assignment { name, .. } if name == "x")),
+        has_stmt(
+            &stmts,
+            |s| matches!(s, BashStmt::Assignment { name, .. } if name == "x")
+        ),
         "F-PARSE-002: x=42 must parse to Assignment {{ name: 'x' }}"
     );
 }
@@ -55,7 +61,13 @@ fn falsify_PARSE_002_assignment() {
 fn falsify_PARSE_003_if_else() {
     let stmts = parse_ok("if [ \"$x\" = \"1\" ]; then echo yes; else echo no; fi");
     assert!(
-        has_stmt(&stmts, |s| matches!(s, BashStmt::If { else_block: Some(_), .. })),
+        has_stmt(&stmts, |s| matches!(
+            s,
+            BashStmt::If {
+                else_block: Some(_),
+                ..
+            }
+        )),
         "F-PARSE-003: if/else must parse to If with else_block"
     );
 }
@@ -65,7 +77,10 @@ fn falsify_PARSE_003_if_else() {
 fn falsify_PARSE_004_for_loop() {
     let stmts = parse_ok("for f in *.txt; do echo \"$f\"; done");
     assert!(
-        has_stmt(&stmts, |s| matches!(s, BashStmt::For { variable, .. } if variable == "f")),
+        has_stmt(
+            &stmts,
+            |s| matches!(s, BashStmt::For { variable, .. } if variable == "f")
+        ),
         "F-PARSE-004: for loop must parse to For {{ variable: 'f' }}"
     );
 }
@@ -75,7 +90,10 @@ fn falsify_PARSE_004_for_loop() {
 fn falsify_PARSE_005_function_def() {
     let stmts = parse_ok("greet() { echo hello; }");
     assert!(
-        has_stmt(&stmts, |s| matches!(s, BashStmt::Function { name, .. } if name == "greet")),
+        has_stmt(
+            &stmts,
+            |s| matches!(s, BashStmt::Function { name, .. } if name == "greet")
+        ),
         "F-PARSE-005: function must parse to Function {{ name: 'greet' }}"
     );
 }
@@ -113,7 +131,10 @@ fn falsify_PARSE_007_determinism_complex() {
     let input = "#!/bin/bash\nfor f in *.sh; do\n  echo \"$f\"\ndone\ngreet() { echo hi; }";
     let stmts1 = parse_ok(input);
     let stmts2 = parse_ok(input);
-    assert_eq!(stmts1, stmts2, "F-PARSE-007: complex parse must be deterministic");
+    assert_eq!(
+        stmts1, stmts2,
+        "F-PARSE-007: complex parse must be deterministic"
+    );
 }
 
 // ============================================================================
@@ -184,8 +205,5 @@ fn falsify_PARSE_012_case_statement() {
             false
         }
     });
-    assert!(
-        has_case,
-        "F-PARSE-012: case must parse to Case with 2 arms"
-    );
+    assert!(has_case, "F-PARSE-012: case must parse to Case with 2 arms");
 }

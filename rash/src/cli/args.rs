@@ -1775,6 +1775,47 @@ pub enum ComplyCommands {
         #[arg(short, long, value_enum, default_value = "text")]
         format: ComplyFormat,
     },
+
+    /// Generate compliance report (Phase 2)
+    Report {
+        /// Project path
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+
+        /// Output format
+        #[arg(short, long, value_enum, default_value = "markdown")]
+        format: ComplyFormat,
+
+        /// Write output to file
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// Scope to report
+        #[arg(long, value_enum)]
+        scope: Option<ComplyScopeArg>,
+    },
+
+    /// Install pre-commit compliance hooks (Phase 2)
+    Enforce {
+        /// Enforcement tier (1=fast, 2=standard, 3=strict)
+        #[arg(long, default_value = "1")]
+        tier: u8,
+
+        /// Remove enforcement hooks
+        #[arg(long)]
+        uninstall: bool,
+    },
+
+    /// Show compliance delta since last check (Phase 2)
+    Diff {
+        /// Project path
+        #[arg(short, long, default_value = ".")]
+        path: PathBuf,
+
+        /// Compare against last comply check
+        #[arg(long)]
+        since_last: bool,
+    },
 }
 
 /// Track subcommands

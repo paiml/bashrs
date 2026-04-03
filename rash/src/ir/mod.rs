@@ -33,9 +33,6 @@ mod tests;
 mod ir_expr_tests;
 
 #[cfg(test)]
-mod shell_ir_tests;
-
-#[cfg(test)]
 mod control_flow_tests;
 
 #[cfg(test)]

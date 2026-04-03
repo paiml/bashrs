@@ -54,7 +54,10 @@ fn falsify_PURIFY_002_determinism_complex() {
     let input = "#!/bin/bash\nx=$RANDOM\nmkdir /tmp/a\nrm /tmp/b\necho $var";
     let r1 = purify_bash(input).unwrap();
     let r2 = purify_bash(input).unwrap();
-    assert_eq!(r1, r2, "F-PURIFY-002: complex purification must be deterministic");
+    assert_eq!(
+        r1, r2,
+        "F-PURIFY-002: complex purification must be deterministic"
+    );
 }
 
 // ============================================================================
@@ -175,10 +178,7 @@ fn falsify_PURIFY_008_no_idem_violations_after_purify() {
     assert!(
         idem_violations.is_empty(),
         "F-PURIFY-008: purified output must have zero IDEM violations, found: {:?}",
-        idem_violations
-            .iter()
-            .map(|d| &d.code)
-            .collect::<Vec<_>>()
+        idem_violations.iter().map(|d| &d.code).collect::<Vec<_>>()
     );
 }
 

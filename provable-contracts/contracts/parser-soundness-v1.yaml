@@ -11,6 +11,12 @@ contract:
   spec: docs/specifications/STDLIB.md
   phase: "Parser soundness"
 
+invariants:
+  - "Valid bash always parses without error (soundness)"
+  - "Parse is deterministic: same input produces identical AST"
+  - "No constructs are silently dropped during parsing"
+  - "Semantic analysis detects all used-before-defined variables"
+
 falsification_tests:
   # ── Lexing + parsing valid bash ──────────────────────────────
   - id: F-PARSE-001

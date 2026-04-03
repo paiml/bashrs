@@ -24,7 +24,10 @@ fn falsify_CORE_001_determinism_simple() {
 
     let r1 = bashrs::transpile(input, &bashrs::Config::default()).unwrap();
     let r2 = bashrs::transpile(input, &bashrs::Config::default()).unwrap();
-    assert_eq!(r1, r2, "F-CORE-001: transpile(input) must equal transpile(input)");
+    assert_eq!(
+        r1, r2,
+        "F-CORE-001: transpile(input) must equal transpile(input)"
+    );
 }
 
 #[test]

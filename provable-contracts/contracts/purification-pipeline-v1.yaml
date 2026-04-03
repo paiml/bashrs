@@ -11,6 +11,13 @@ contract:
   spec: docs/specifications/STDLIB.md
   phase: "Purification pipeline"
 
+invariants:
+  - "Purified output is deterministic: same input produces identical output"
+  - "Non-deterministic constructs ($RANDOM, timestamps) are removed"
+  - "Operations are idempotent: mkdir -p, rm -f, ln -sf"
+  - "Output is POSIX-compliant (#!/bin/sh, passes shellcheck)"
+  - "Variables are double-quoted to prevent injection"
+
 falsification_tests:
   # ── Determinism: remove non-deterministic constructs ─────────
   - id: F-PURIFY-001

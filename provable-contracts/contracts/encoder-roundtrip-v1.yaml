@@ -13,6 +13,12 @@ contract:
   spec: docs/specifications/STDLIB.md
   phase: "Encoder roundtrip"
 
+invariants:
+  - "Shell metacharacters ($, `, |, ;) are always neutralized in emitted code"
+  - "Escape roundtrip is idempotent: escape(escape(s)) == escape(s)"
+  - "Empty strings produce valid shell output (not syntax errors)"
+  - "Variable names are sanitized to [A-Za-z0-9_]"
+
 falsification_tests:
   # ── escape_shell_string: injection prevention ────────────────
   - id: F-ESC-001

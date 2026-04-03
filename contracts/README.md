@@ -16,6 +16,7 @@ that are tested by the corresponding `*_contract_tests.rs` file.
 | purification-pipeline-v1.yaml | purification_contract_tests.rs | Purify invariants |
 | property-invariants-v1.yaml | property_falsification_tests.rs | Universal properties (proptest) |
 | transpiler-stdlib-v1.yaml | transpile_stdlib_tests.rs | Stdlib function emission |
+| linter-coverage-v1.yaml | linter_coverage_contract_tests.rs | Rule coverage per format (GAP-4) |
 
 ## Running
 

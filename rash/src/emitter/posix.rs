@@ -193,7 +193,10 @@ impl PosixEmitter {
     }
     /// KAIZEN-076: return references instead of cloning IR items.
     /// emit_ir takes &ShellIR, so cloning was unnecessary (~107K clones per corpus run).
-    pub(crate) fn separate_functions<'a>(&self, ir: &'a ShellIR) -> (Vec<&'a ShellIR>, Vec<&'a ShellIR>) {
+    pub(crate) fn separate_functions<'a>(
+        &self,
+        ir: &'a ShellIR,
+    ) -> (Vec<&'a ShellIR>, Vec<&'a ShellIR>) {
         let mut functions = Vec::new();
         let mut main_body = Vec::new();
         if let ShellIR::Sequence(items) = ir {

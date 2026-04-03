@@ -145,9 +145,8 @@ impl ValidationPipeline {
         Ok(())
     }
 
-    /// Check for known dangerous command injection patterns in string literals
-    // String/exec validators: see pipeline_string_validators.rs
-
+    /// Check for known dangerous command injection patterns in string literals.
+    /// String/exec validators: see pipeline_string_validators.rs
     pub(crate) fn validate_method_call(
         &self,
         receiver: &crate::ast::Expr,
@@ -268,7 +267,11 @@ impl ValidationPipeline {
         self.validate_ir_recursive(body)
     }
 
-    pub(crate) fn validate_ir_case(&self, scrutinee: &ShellValue, arms: &[CaseArm]) -> RashResult<()> {
+    pub(crate) fn validate_ir_case(
+        &self,
+        scrutinee: &ShellValue,
+        arms: &[CaseArm],
+    ) -> RashResult<()> {
         self.validate_shell_value(scrutinee)?;
         for arm in arms {
             if let Some(guard) = &arm.guard {

@@ -12,6 +12,13 @@ contract:
   spec: docs/specifications/STDLIB.md
   phase: "Property invariants"
 
+invariants:
+  - "All strings: escape_shell_string never returns empty"
+  - "All strings: escape roundtrip preserves length ordering"
+  - "All safe strings: escape preserves content (no false modification)"
+  - "All inputs: purify(purify(x)) == purify(x) (idempotent)"
+  - "All inputs: determinism — purify is a function (same input → same output)"
+
 falsification_tests:
   # ── escape_shell_string universal properties ─────────────────
   - id: P-ESC-001

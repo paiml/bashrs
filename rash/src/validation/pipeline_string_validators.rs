@@ -1,6 +1,6 @@
 //! String literal and exec-context validators. Extracted from pipeline.rs.
-use crate::models::error::{RashError, RashResult};
 use super::ValidationLevel;
+use crate::models::error::{RashError, RashResult};
 impl super::pipeline::ValidationPipeline {
     pub(crate) fn check_dangerous_patterns(s: &str) -> RashResult<()> {
         let dangerous_patterns = [
@@ -136,7 +136,11 @@ impl super::pipeline::ValidationPipeline {
         Ok(())
     }
 
-    pub(crate) fn validate_function_call(&self, name: &str, args: &[crate::ast::Expr]) -> RashResult<()> {
+    pub(crate) fn validate_function_call(
+        &self,
+        name: &str,
+        args: &[crate::ast::Expr],
+    ) -> RashResult<()> {
         if name.is_empty() {
             return Err(RashError::ValidationError(
                 "Empty function name".to_string(),

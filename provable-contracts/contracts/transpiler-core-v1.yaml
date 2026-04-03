@@ -12,6 +12,12 @@ contract:
   spec: docs/specifications/STDLIB.md
   phase: "Transpiler core"
 
+invariants:
+  - "Transpilation is deterministic: same Rust input → byte-identical shell output"
+  - "Output is POSIX-structured: #!/bin/sh, set -euf, main() wrapper"
+  - "All variables are double-quoted to prevent word splitting"
+  - "Only used stdlib functions are emitted (dead code elimination)"
+
 falsification_tests:
   # ── Determinism ──────────────────────────────────────────────
   - id: F-CORE-001

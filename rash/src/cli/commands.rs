@@ -25,12 +25,6 @@ use tracing::{info, warn};
 #[path = "command_tests.rs"]
 mod command_tests;
 #[cfg(test)]
-#[path = "command_tests_display.rs"]
-mod command_tests_display;
-#[cfg(test)]
-#[path = "command_tests_gates.rs"]
-mod command_tests_gates;
-#[cfg(test)]
 #[path = "command_tests_analysis.rs"]
 mod command_tests_analysis;
 #[cfg(test)]
@@ -39,6 +33,12 @@ mod command_tests_corpus1;
 #[cfg(test)]
 #[path = "command_tests_corpus2.rs"]
 mod command_tests_corpus2;
+#[cfg(test)]
+#[path = "command_tests_display.rs"]
+mod command_tests_display;
+#[cfg(test)]
+#[path = "command_tests_gates.rs"]
+mod command_tests_gates;
 
 #[cfg(test)]
 #[path = "command_tests_corpus3.rs"]
@@ -139,8 +139,6 @@ pub(super) mod corpus_b2_fix_commands;
 pub(super) mod corpus_compare_commands;
 #[path = "corpus_config_commands.rs"]
 pub(super) mod corpus_config_commands;
-#[path = "corpus_expansion_commands.rs"]
-pub(super) mod corpus_expansion_commands;
 #[path = "corpus_convergence_commands.rs"]
 pub(super) mod corpus_convergence_commands;
 #[path = "corpus_core_commands.rs"]
@@ -155,12 +153,16 @@ pub(super) mod corpus_diff_commands;
 pub(super) mod corpus_display_commands;
 #[path = "corpus_entry_commands.rs"]
 pub(super) mod corpus_entry_commands;
+#[path = "corpus_expansion_commands.rs"]
+pub(super) mod corpus_expansion_commands;
 #[path = "corpus_failure_commands.rs"]
 pub(super) mod corpus_failure_commands;
 #[path = "corpus_gate_commands.rs"]
 pub(super) mod corpus_gate_commands;
 #[path = "corpus_metrics_commands.rs"]
 pub(super) mod corpus_metrics_commands;
+#[path = "corpus_ml_commands.rs"]
+pub(super) mod corpus_ml_commands;
 #[path = "corpus_ops_commands.rs"]
 pub(super) mod corpus_ops_commands;
 #[path = "corpus_pipeline_commands.rs"]
@@ -171,6 +173,8 @@ pub(super) mod corpus_ranking_commands;
 pub(super) mod corpus_report_commands;
 #[path = "corpus_score_print_commands.rs"]
 pub(super) mod corpus_score_print_commands;
+#[path = "corpus_ssb_commands.rs"]
+pub(super) mod corpus_ssb_commands;
 #[path = "corpus_tier_commands.rs"]
 pub(super) mod corpus_tier_commands;
 #[path = "corpus_time_commands.rs"]

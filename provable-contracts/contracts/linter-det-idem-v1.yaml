@@ -13,6 +13,12 @@ contract:
   spec: docs/specifications/STDLIB.md
   phase: "Linter DET/IDEM"
 
+invariants:
+  - "DET rules detect all non-deterministic constructs ($RANDOM, timestamps, system state)"
+  - "DET rules do NOT false-positive on deterministic code"
+  - "IDEM rules detect non-idempotent operations (mkdir without -p, rm without -f)"
+  - "IDEM rules do NOT false-positive on idempotent operations"
+
 falsification_tests:
   # ── DET001: $RANDOM ──────────────────────────────────────────
   - id: F-DET001-SOUND

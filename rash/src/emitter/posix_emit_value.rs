@@ -1,10 +1,11 @@
 //! Value and expression emitters. Extracted from posix.rs.
-use crate::ir::shell_ir::{self, ArithmeticOp, Command};
+use super::escape::{escape_command_name, escape_shell_string, escape_variable_name};
+use super::posix::{
+    arithmetic_op_str, classify_test_expression, needs_arithmetic_parens, try_fold_logical,
+};
+use crate::ir::shell_ir::Command;
 use crate::ir::ShellValue;
 use crate::models::Result;
-use std::fmt::Write;
-use super::escape::{escape_command_name, escape_shell_string, escape_variable_name};
-use super::posix::{get_indent, arithmetic_op_str, arithmetic_precedence, try_fold_logical, needs_arithmetic_parens, classify_test_expression};
 impl super::posix::PosixEmitter {
     pub fn emit_shell_value(&self, value: &ShellValue) -> Result<String> {
         let choice = match value {
@@ -193,7 +194,11 @@ impl super::posix::PosixEmitter {
     }
 
     /// Emit dynamic array access in arithmetic context.
-    pub(crate) fn emit_arithmetic_dynamic_access(&self, array: &str, index: &ShellValue) -> Result<String> {
+    pub(crate) fn emit_arithmetic_dynamic_access(
+        &self,
+        array: &str,
+        index: &ShellValue,
+    ) -> Result<String> {
         let idx_expr = self.emit_dynamic_index_expr(index)?;
         Ok(format!(
             "$(eval \"printf '%s' \\\"\\${}_{}\\\"\")",
@@ -425,7 +430,11 @@ impl super::posix::PosixEmitter {
     }
 
     /// Emit a CommandSubst in test context, distinguishing predicates from value-producing functions.
-    pub(crate) fn emit_test_command_subst(&self, test: &ShellValue, cmd: &Command) -> Result<String> {
+    pub(crate) fn emit_test_command_subst(
+        &self,
+        test: &ShellValue,
+        cmd: &Command,
+    ) -> Result<String> {
         if self.is_predicate_function(&cmd.program) {
             self.emit_command(cmd)
         } else {
@@ -449,4 +458,3 @@ impl super::posix::PosixEmitter {
         )
     }
 }
-

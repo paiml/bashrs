@@ -100,16 +100,13 @@ pub mod escape;
 pub mod makefile;
 #[allow(clippy::expect_used)] // POSIX emitter uses expect() for code-generation invariants
 pub mod posix;
-mod posix_runtime;
 mod posix_emit_ir;
 mod posix_emit_value;
+mod posix_runtime;
 pub mod trace;
 
 #[cfg(test)]
 mod tests;
-
-#[cfg(test)]
-mod posix_tests;
 
 #[cfg(test)]
 #[path = "emitter_coverage_tests.rs"]

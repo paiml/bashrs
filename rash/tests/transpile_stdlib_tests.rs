@@ -7,7 +7,6 @@
 //! and capture-with-pipes. Extracted from transpile_quality_tests.rs
 //! for file-size discipline.
 
-
 // ============================================================================
 // GH-148: glob() stdlib — file iteration in for loops
 // ============================================================================
@@ -104,7 +103,10 @@ fn test_GH148_glob_deterministic() {
 
     let result1 = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
     let result2 = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
-    assert_eq!(result1, result2, "glob() transpilation must be deterministic");
+    assert_eq!(
+        result1, result2,
+        "glob() transpilation must be deterministic"
+    );
 }
 
 // ============================================================================
@@ -204,7 +206,10 @@ fn test_GH148_fs_ops_deterministic() {
 
     let result1 = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
     let result2 = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
-    assert_eq!(result1, result2, "fs operations transpilation must be deterministic");
+    assert_eq!(
+        result1, result2,
+        "fs operations transpilation must be deterministic"
+    );
 }
 
 // ============================================================================
@@ -308,7 +313,10 @@ fn test_GH148_starts_ends_with_deterministic() {
 
     let r1 = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
     let r2 = bashrs::transpile(rust_code, &bashrs::Config::default()).unwrap();
-    assert_eq!(r1, r2, "starts_with/ends_with transpilation must be deterministic");
+    assert_eq!(
+        r1, r2,
+        "starts_with/ends_with transpilation must be deterministic"
+    );
 }
 
 // ============================================================================
