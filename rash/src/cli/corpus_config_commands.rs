@@ -1,9 +1,7 @@
 //! Corpus configuration: domain analysis, tier management, quality gates, dataset export, and publishing.
-
 use crate::cli::args::DatasetExportFormat;
 use crate::models::{Config, Error, Result};
 use std::path::{Path, PathBuf};
-
 /// Display CWE taxonomy mapping for all bashrs linter rules (SSC v12 S14.2).
 pub(crate) fn corpus_cwe_mapping(json: bool) -> Result<()> {
     use crate::cli::color::*;

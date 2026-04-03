@@ -2,6 +2,7 @@ use crate::models::error::RashResult;
 use std::fmt;
 
 pub mod pipeline;
+mod pipeline_string_validators;
 pub mod rules;
 
 #[cfg(test)]

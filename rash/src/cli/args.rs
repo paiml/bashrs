@@ -132,158 +132,123 @@ pub enum Commands {
         /// Ignore specific rule codes (comma-separated: SEC010,DET002)
         #[arg(long, value_name = "RULES")]
         ignore: Option<String>,
-
         /// Exclude specific rule (shellcheck-compatible, can be repeated)
         #[arg(short = 'e', value_name = "CODE", action = clap::ArgAction::Append)]
         exclude: Option<Vec<String>>,
-
         /// Export diagnostics in CITL format for OIP integration (Issue #83)
         #[arg(long, value_name = "FILE")]
         citl_export: Option<PathBuf>,
-
         /// Lint profile for specialized validation (standard, coursera, devcontainer)
         #[arg(long, value_enum, default_value = "standard")]
         profile: LintProfileArg,
-
         /// Enable graded output mode (educational scoring with pass/fail criteria)
         #[arg(long)]
         graded: bool,
-
         /// CI mode: suppress colors, emit GitHub Actions annotations
         #[arg(long)]
         ci: bool,
-
         /// Minimum severity to trigger non-zero exit code (default: warning)
         #[arg(long, value_enum, default_value = "warning")]
         fail_on: LintLevel,
     },
-
     /// Purify bash scripts (determinism + idempotency + safety)
     Purify {
         /// Input bash script file
         #[arg(value_name = "FILE")]
         input: PathBuf,
-
         /// Output file (defaults to stdout)
         #[arg(short, long)]
         output: Option<PathBuf>,
-
         /// Show detailed transformation report
         #[arg(long)]
         report: bool,
-
         /// Generate test suite for purified script
         #[arg(long)]
         with_tests: bool,
-
         /// Generate property-based tests (100+ cases)
         #[arg(long)]
         property_tests: bool,
-
         /// Enable gradual type checking (check type annotations in comments)
         #[arg(long)]
         type_check: bool,
-
         /// Emit runtime type guards in purified output (implies --type-check)
         #[arg(long)]
         emit_guards: bool,
-
         /// Treat type warnings as errors
         #[arg(long)]
         type_strict: bool,
-
         /// Show unified diff of original vs purified output
         #[arg(long)]
         diff: bool,
-
         /// Verify purified output passes shellcheck
         #[arg(long)]
         verify: bool,
-
         /// Recursively purify all .sh files in a directory
         #[arg(long)]
         recursive: bool,
     },
-
     /// Combined safety check: lint findings + classification (SSC v11 S8.2)
     SafetyCheck {
         /// Input script file
         #[arg(value_name = "FILE")]
         input: PathBuf,
-
         /// Output as JSON
         #[arg(long)]
         json: bool,
-
         /// Force format (auto-detected from extension if omitted)
         #[arg(long, value_enum)]
         format: Option<ClassifyFormat>,
     },
-
     /// Apply auto-fixes to shell scripts (SSC v11 S8.1, Linter Spec S9)
     Fix {
         /// Input file(s) to fix
         #[arg(value_name = "FILE", required = true, num_args = 1..)]
         input: Vec<PathBuf>,
-
         /// Preview fixes without applying them
         #[arg(long)]
         dry_run: bool,
-
         /// Include SAFE-WITH-ASSUMPTIONS fixes (default: SAFE only)
         #[arg(long)]
         assumptions: bool,
-
         /// Write fixed output to a different file (single input only)
         #[arg(short, long)]
         output: Option<PathBuf>,
-
         /// Path to chat model directory for ML-powered fix suggestions (requires `ml` feature)
         #[arg(long, value_name = "DIR")]
         chat_model: Option<PathBuf>,
     },
-
     /// Explain script safety with detailed natural-language analysis (SSC v11 S8.1)
     Explain {
         /// Input script file
         #[arg(value_name = "FILE")]
         input: PathBuf,
-
         /// Output as JSON
         #[arg(long)]
         json: bool,
-
         /// Force format (auto-detected from extension if omitted)
         #[arg(long, value_enum)]
         format: Option<ClassifyFormat>,
-
         /// Path to chat model directory for ML-powered explanation (requires `ml` feature)
         #[arg(long, value_name = "DIR")]
         chat_model: Option<PathBuf>,
     },
-
     /// Classify script safety (supports bash, Makefile, Dockerfile)
     Classify {
         /// Input script file
         #[arg(value_name = "FILE")]
         input: PathBuf,
-
         /// Output as JSON
         #[arg(long)]
         json: bool,
-
         /// Multi-label mode: show all applicable labels, not just the primary one
         #[arg(long)]
         multi_label: bool,
-
         /// Force format (auto-detected from extension if omitted)
         #[arg(long, value_enum)]
         format: Option<ClassifyFormat>,
-
         /// Path to trained linear probe weights (probe.json from train-classifier)
         #[arg(long)]
         probe: Option<std::path::PathBuf>,
-
         /// Path to trained MLP probe weights (mlp_probe.json from train-classifier --mlp)
         #[arg(long)]
         mlp_probe: Option<std::path::PathBuf>,
