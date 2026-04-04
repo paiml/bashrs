@@ -287,6 +287,10 @@ make validate
 
 Minimum Supported Rust Version: **1.82**
 
+## Cookbook
+
+See [bashrs-cookbook](https://github.com/paiml/bashrs-cookbook) for examples and recipes.
+
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
