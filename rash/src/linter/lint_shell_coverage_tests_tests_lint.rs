@@ -375,4 +375,4 @@ fn test_write_results_sarif_severity_mapping() {
 
 #[test]
 
-include!("lint_shell_coverage_tests_tests_cont.rs");
+include!("lint_shell_coverage_tests_tests_write_result.rs");

@@ -352,5 +352,5 @@ pub fn format_ssc_report(report: &SscStatusReport) -> String {
 }
 
 #[cfg(test)]
-#[path = "ssc_report_tests_extracted.rs"]
+#[path = "ssc_report_tests_ssc_status.rs"]
 mod tests_extracted;

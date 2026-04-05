@@ -357,4 +357,4 @@ fn skip_var_name(chars: &[char], start: usize) -> usize {
 
 /// Check if $ at position j is an unquoted variable expansion ($VAR, not $( or ${ or $$)
 
-include!("rules_cont.rs");
+include!("rules_is_unquoted.rs");

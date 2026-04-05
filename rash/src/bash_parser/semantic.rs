@@ -559,4 +559,4 @@ impl SemanticAnalyzer {
 
 
 
-include!("semantic_cont_8.rs");
+include!("semantic_default.rs");

@@ -395,5 +395,5 @@ pub fn strip_ansi_codes(input: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "highlighting_tests_extracted.rs"]
+#[path = "highlighting_tests_repl_015.rs"]
 mod tests_extracted;

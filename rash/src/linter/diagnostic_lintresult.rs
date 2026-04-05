@@ -226,5 +226,5 @@ impl LintResult {
 }
 
 #[cfg(test)]
-#[path = "diagnostic_tests_extracted.rs"]
+#[path = "diagnostic_tests_span_creatio.rs"]
 mod tests_extracted;

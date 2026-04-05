@@ -83,5 +83,5 @@ fn detect_environment() -> EnvironmentInfo {
 }
 
 #[cfg(test)]
-#[path = "metrics_tests_extracted.rs"]
+#[path = "metrics_tests_metrics_001.rs"]
 mod tests_extracted;

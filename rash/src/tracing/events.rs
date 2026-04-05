@@ -390,5 +390,5 @@ pub enum Severity {
 }
 
 #[cfg(test)]
-#[path = "events_tests_extracted.rs"]
+#[path = "events_tests_trace_001.rs"]
 mod tests_extracted;

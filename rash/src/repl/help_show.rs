@@ -215,5 +215,5 @@ standard GNU Readline keybindings (like bash, python REPL, etc.).
 }
 
 #[cfg(test)]
-#[path = "help_tests_extracted.rs"]
+#[path = "help_tests_repl_015.rs"]
 mod tests_extracted;

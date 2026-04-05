@@ -189,5 +189,5 @@ pub fn get_history_path() -> anyhow::Result<PathBuf> {
 }
 
 #[cfg(test)]
-#[path = "logic_tests_extracted.rs"]
+#[path = "logic_tests_process_mode.rs"]
 mod tests_extracted;

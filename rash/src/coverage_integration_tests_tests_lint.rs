@@ -393,4 +393,4 @@ mod make_parser_integration {
 // ============================================================================
 
 
-include!("coverage_integration_tests_tests_cont.rs");
+include!("coverage_integration_tests_tests_config_defau.rs");

@@ -103,5 +103,5 @@ fn compute_hash(content: &[u8]) -> String {
 }
 
 #[cfg(test)]
-#[path = "rollback_tests_extracted.rs"]
+#[path = "rollback_tests_rollback_001.rs"]
 mod tests_extracted;

@@ -1,3 +1,3 @@
 #[cfg(test)]
-#[path = "state_tests_extracted.rs"]
+#[path = "state_tests_repl_state.rs"]
 mod tests_extracted;

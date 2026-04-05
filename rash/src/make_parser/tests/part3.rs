@@ -200,5 +200,5 @@ fn test_FUNC_SUBST_001_subst_with_other_functions() {
 // ============================================================================
 
 #[cfg(test)]
-#[path = "part3_tests_extracted.rs"]
+#[path = "part3_tests_prop_func.rs"]
 mod tests_extracted;

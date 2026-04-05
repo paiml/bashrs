@@ -310,5 +310,5 @@ pub fn test_pass_rate(passed: usize, total: usize) -> f64 {
 }
 
 #[cfg(test)]
-#[path = "logic_format_tests_extracted.rs"]
+#[path = "logic_format_tests_hex_encode.rs"]
 mod tests_extracted;

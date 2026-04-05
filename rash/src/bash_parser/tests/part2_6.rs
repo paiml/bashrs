@@ -391,4 +391,4 @@ command3
 
 #[test]
 
-include!("part2_6_cont.rs");
+include!("part2_6_edit_001.rs");

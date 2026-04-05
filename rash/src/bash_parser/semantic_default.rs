@@ -12,5 +12,5 @@ pub struct AnalysisReport {
 }
 
 #[cfg(test)]
-#[path = "semantic_tests_extracted.rs"]
+#[path = "semantic_tests_make_ast.rs"]
 mod tests_extracted;

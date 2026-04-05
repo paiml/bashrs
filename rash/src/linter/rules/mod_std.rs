@@ -122,5 +122,5 @@ mod docker003_tests;
 mod docker004_tests;
 
 #[cfg(test)]
-#[path = "mod_tests_extracted.rs"]
+#[path = "mod_tests_lint_profile.rs"]
 mod tests_extracted;

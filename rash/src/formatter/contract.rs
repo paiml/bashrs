@@ -475,5 +475,5 @@ impl Default for ContractSystem {
 }
 
 #[cfg(test)]
-#[path = "contract_tests_extracted.rs"]
+#[path = "contract_tests_contract_sys.rs"]
 mod tests_extracted;

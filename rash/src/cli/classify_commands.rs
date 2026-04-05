@@ -451,5 +451,5 @@ fn build_score_distribution(predicted_class: u8, confidence: f64) -> [f64; 5] {
 }
 
 #[cfg(test)]
-#[path = "classify_commands_tests_extracted.rs"]
+#[path = "classify_commands_tests_classify_saf.rs"]
 mod tests_extracted;

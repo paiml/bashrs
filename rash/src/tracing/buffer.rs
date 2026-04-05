@@ -242,5 +242,5 @@ pub struct BufferStats {
 }
 
 #[cfg(test)]
-#[path = "buffer_tests_extracted.rs"]
+#[path = "buffer_tests_trace_002.rs"]
 mod tests_extracted;

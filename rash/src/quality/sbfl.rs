@@ -350,5 +350,5 @@ pub fn localize_faults(
 }
 
 #[cfg(test)]
-#[path = "sbfl_tests_extracted.rs"]
+#[path = "sbfl_tests_ml_004.rs"]
 mod tests_extracted;

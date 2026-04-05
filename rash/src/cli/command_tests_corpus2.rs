@@ -377,5 +377,5 @@ mod viz_history_chart_cell {
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-#[path = "command_tests_corpus2_tests_ext.rs"]
+#[path = "command_tests_corpus2_tests_valid_bash.rs"]
 mod tests_ext;

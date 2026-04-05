@@ -92,5 +92,5 @@ pub fn convert_file_to_project(input: &Path, output_dir: &Path) -> Result<Conver
 }
 
 #[cfg(test)]
-#[path = "from_bash_tests_extracted.rs"]
+#[path = "from_bash_tests_installer_11.rs"]
 mod tests_extracted;

@@ -636,5 +636,5 @@ pub fn bash_script() -> impl Strategy<Value = BashAst> {
 }
 
 #[cfg(test)]
-#[path = "generators_tests_extracted.rs"]
+#[path = "generators_tests_generates_va.rs"]
 mod tests_extracted;

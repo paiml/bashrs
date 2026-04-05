@@ -371,5 +371,5 @@ fn tier_label(tier: CorpusTier) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "tier_analysis_tests_extracted.rs"]
+#[path = "tier_analysis_tests_make_entry.rs"]
 mod tests_extracted;

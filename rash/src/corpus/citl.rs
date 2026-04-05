@@ -447,5 +447,5 @@ fn status_str(passed: bool) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "citl_tests_extracted.rs"]
+#[path = "citl_tests_make_entry.rs"]
 mod tests_extracted;

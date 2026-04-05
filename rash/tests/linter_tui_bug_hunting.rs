@@ -400,4 +400,4 @@ fn hunt_snapshot_stability() {
 
 #[test]
 
-include!("linter_tui_bug_hunting_tests_cont.rs");
+include!("linter_tui_bug_hunting_tests_hunt_frame.rs");

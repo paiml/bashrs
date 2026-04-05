@@ -354,4 +354,4 @@ fn test_convert_add_to_copy_if_local_empty_line() {
 
 #[test]
 
-include!("command_tests_dockerfile_tests_cont.rs");
+include!("command_tests_dockerfile_tests_convert_add.rs");

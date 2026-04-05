@@ -278,5 +278,5 @@ fn test_SYNTAX_002_continuation_vs_no_continuation() {
 // ============================================================================
 
 #[cfg(test)]
-#[path = "part2_tests_extracted.rs"]
+#[path = "part2_tests_syntax_002.rs"]
 mod tests_extracted;

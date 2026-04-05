@@ -188,5 +188,5 @@ pub fn format_violations_with_context(result: &LintResult, source: &str) -> Stri
 }
 
 #[cfg(test)]
-#[path = "linter_tests_extracted.rs"]
+#[path = "linter_tests_repl_006.rs"]
 mod tests_extracted;

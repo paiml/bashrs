@@ -272,5 +272,5 @@ pub fn generate_dataset_readme(report: &QualityReport) -> String {
 }
 
 #[cfg(test)]
-#[path = "conversations_tests_extracted.rs"]
+#[path = "conversations_tests_generate_cla.rs"]
 mod tests_extracted;

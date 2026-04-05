@@ -248,5 +248,5 @@ fn quote_command_line(line: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "quoter_tests_extracted.rs"]
+#[path = "quoter_tests_config_002.rs"]
 mod tests_extracted;

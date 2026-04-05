@@ -396,5 +396,5 @@ impl ReplConfig {
 }
 
 #[cfg(test)]
-#[path = "config_tests_extracted.rs"]
+#[path = "config_tests_repl_003.rs"]
 mod tests_extracted;

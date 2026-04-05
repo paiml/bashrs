@@ -597,4 +597,4 @@ impl DebugSession {
 
 
 
-include!("debugger_cont_8.rs");
+include!("debugger_continueresult.rs");

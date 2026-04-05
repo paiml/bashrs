@@ -626,4 +626,4 @@ impl ProofInspector {
 }
 
 
-include!("inspector_cont.rs");
+include!("inspector_tests_proof_inspec.rs");

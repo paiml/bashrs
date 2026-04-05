@@ -8,5 +8,5 @@
 #![allow(clippy::expect_used)]
 
 #[cfg(test)]
-#[path = "gates_coverage_tests_tests_extracted.rs"]
+#[path = "gates_coverage_tests_tests_gate_result.rs"]
 mod tests_extracted;

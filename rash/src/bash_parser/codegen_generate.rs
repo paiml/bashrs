@@ -736,5 +736,5 @@ pub fn generate_purified_bash_with_guards(
 }
 
 #[cfg(test)]
-#[path = "codegen_tests_ext.rs"]
+#[path = "codegen_tests_generate_sim.rs"]
 mod tests_ext;

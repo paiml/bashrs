@@ -494,5 +494,5 @@ fn generate_comment(text: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "generators_tests_extracted.rs"]
+#[path = "generators_tests_span.rs"]
 mod tests_extracted;

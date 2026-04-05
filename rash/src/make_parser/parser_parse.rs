@@ -325,5 +325,5 @@ fn parse_target_rule(
 }
 
 #[cfg(test)]
-#[path = "parser_tests_extracted.rs"]
+#[path = "parser_tests_parse_empty.rs"]
 mod tests_extracted;

@@ -386,5 +386,5 @@ exit $?
 }
 
 #[cfg(test)]
-#[path = "mod_tests_ext.rs"]
+#[path = "mod_tests_discover_emp.rs"]
 mod tests_ext;

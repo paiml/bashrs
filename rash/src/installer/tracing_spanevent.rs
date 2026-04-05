@@ -595,5 +595,5 @@ fn truncate(s: &str, max_len: usize) -> String {
 }
 
 #[cfg(test)]
-#[path = "tracing_tests_extracted.rs"]
+#[path = "tracing_tests_tracing_001.rs"]
 mod tests_extracted;

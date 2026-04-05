@@ -102,5 +102,5 @@ pub fn sbfl_report(
 }
 
 #[cfg(test)]
-#[path = "lint_report_tests_extracted.rs"]
+#[path = "lint_report_tests_sample_lint.rs"]
 mod tests_extracted;

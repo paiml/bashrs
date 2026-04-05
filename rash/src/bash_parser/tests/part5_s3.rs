@@ -363,4 +363,4 @@ test_retry_deterministic() {
 
 #[test]
 
-include!("part5_s3_cont.rs");
+include!("part5_s3_bash_var.rs");

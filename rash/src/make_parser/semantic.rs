@@ -340,5 +340,5 @@ pub fn analyze_makefile(ast: &MakeAst) -> Vec<SemanticIssue> {
 }
 
 #[cfg(test)]
-#[path = "semantic_tests_extracted.rs"]
+#[path = "semantic_tests_func_shell.rs"]
 mod tests_extracted;

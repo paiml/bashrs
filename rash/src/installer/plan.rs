@@ -385,5 +385,5 @@ fn validate_artifacts(artifacts: &[Artifact], steps: &[Step]) -> Result<Vec<Vali
 }
 
 #[cfg(test)]
-#[path = "plan_tests_extracted.rs"]
+#[path = "plan_tests_plan_from.rs"]
 mod tests_extracted;

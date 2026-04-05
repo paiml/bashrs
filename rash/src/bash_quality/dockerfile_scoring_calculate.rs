@@ -265,5 +265,5 @@ fn generate_suggestions(source: &str, score: &DockerfileQualityScore) -> Vec<Str
 }
 
 #[cfg(test)]
-#[path = "dockerfile_scoring_tests_extracted.rs"]
+#[path = "dockerfile_scoring_tests_score_empty.rs"]
 mod tests_extracted;

@@ -284,5 +284,5 @@ pub fn suggest_fixes(
 }
 
 #[cfg(test)]
-#[path = "pattern_store_tests_extracted.rs"]
+#[path = "pattern_store_tests_classify_fai.rs"]
 mod tests_extracted;

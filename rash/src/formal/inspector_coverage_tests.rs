@@ -9,5 +9,5 @@
 #![allow(clippy::expect_used)]
 
 #[cfg(test)]
-#[path = "inspector_coverage_tests_tests_extracted.rs"]
+#[path = "inspector_coverage_tests_tests_empty_state.rs"]
 mod tests_extracted;

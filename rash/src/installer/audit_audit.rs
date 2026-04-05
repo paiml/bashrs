@@ -231,5 +231,5 @@ fn chrono_timestamp() -> String {
 }
 
 #[cfg(test)]
-#[path = "audit_tests_extracted.rs"]
+#[path = "audit_tests_testspec_2.rs"]
 mod tests_extracted;

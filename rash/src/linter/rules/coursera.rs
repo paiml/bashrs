@@ -279,5 +279,5 @@ pub fn lint_dockerfile_coursera(source: &str) -> LintResult {
 }
 
 #[cfg(test)]
-#[path = "coursera_tests_extracted.rs"]
+#[path = "coursera_tests_coursera001_.rs"]
 mod tests_extracted;

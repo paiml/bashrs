@@ -327,5 +327,5 @@ fn extract_variable_from_chown(line: &str) -> Option<String> {
 }
 
 #[cfg(test)]
-#[path = "sec011_tests_extracted.rs"]
+#[path = "sec011_tests_sec011_detec.rs"]
 mod tests_extracted;

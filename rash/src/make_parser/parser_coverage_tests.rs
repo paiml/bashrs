@@ -350,4 +350,4 @@ fn test_pattern_rule_no_recipe() {
 
 #[test]
 
-include!("parser_coverage_tests_tests_cont.rs");
+include!("parser_coverage_tests_tests_phony_target.rs");

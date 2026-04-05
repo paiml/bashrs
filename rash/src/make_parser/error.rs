@@ -340,5 +340,5 @@ impl MakeParseError {
 }
 
 #[cfg(test)]
-#[path = "error_tests_extracted.rs"]
+#[path = "error_tests_source_locat.rs"]
 mod tests_extracted;

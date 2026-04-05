@@ -362,4 +362,4 @@ pub struct Precondition {
     pub env_matches: HashMap<String, String>,
 }
 
-include!("spec_tests_cont.rs");
+include!("spec_tests_postconditio.rs");

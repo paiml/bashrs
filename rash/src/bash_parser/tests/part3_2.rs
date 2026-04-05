@@ -395,4 +395,4 @@ fn test_REDIR_001_bash_vs_posix_input_redir() {
 
 #[test]
 
-include!("part3_2_cont.rs");
+include!("part3_2_redir_002.rs");

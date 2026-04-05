@@ -359,4 +359,4 @@ fn test_coverage_command_html_to_file() {
 
 #[test]
 
-include!("command_tests_quality_tests_cont.rs");
+include!("command_tests_quality_tests_coverage_com.rs");

@@ -443,5 +443,5 @@ fn escape_json(s: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "progress_tests_extracted.rs"]
+#[path = "progress_tests_progress_001.rs"]
 mod tests_extracted;

@@ -312,5 +312,5 @@ impl Validator for ReplCompleter {}
 impl Helper for ReplCompleter {}
 
 #[cfg(test)]
-#[path = "completion_tests_ext.rs"]
+#[path = "completion_tests_repl_006.rs"]
 mod tests_ext;

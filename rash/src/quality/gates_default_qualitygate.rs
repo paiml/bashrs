@@ -402,4 +402,4 @@ impl QualityGate {
 
 
 
-include!("gates_default_cont_8.rs");
+include!("gates_default_gatesummary.rs");

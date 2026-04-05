@@ -132,5 +132,5 @@ impl DiffPreview {
 }
 
 #[cfg(test)]
-#[path = "dry_run_tests_extracted.rs"]
+#[path = "dry_run_tests_dryrun_001.rs"]
 mod tests_extracted;

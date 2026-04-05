@@ -338,5 +338,5 @@ fn mark_top_level_called_functions(source: &str, report: &mut CoverageReport) {
 }
 
 #[cfg(test)]
-#[path = "mod_tests_ext.rs"]
+#[path = "mod_tests_mark_top.rs"]
 mod tests_ext;

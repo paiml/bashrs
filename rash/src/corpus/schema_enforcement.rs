@@ -281,4 +281,4 @@ fn is_shell_assignment(line: &str) -> bool {
 
 /// Check if a `$` at position `i` is an unquoted variable expansion
 
-include!("schema_enforcement_cont.rs");
+include!("schema_enforcement_is_unquoted.rs");

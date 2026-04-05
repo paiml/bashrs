@@ -473,5 +473,5 @@ fn is_heredoc_pattern(line: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "sec010_tests_ext.rs"]
+#[path = "sec010_tests_sec010_detec.rs"]
 mod tests_ext;

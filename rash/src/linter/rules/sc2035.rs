@@ -166,5 +166,5 @@ pub fn check(source: &str) -> LintResult {
 }
 
 #[cfg(test)]
-#[path = "sc2035_tests_extracted.rs"]
+#[path = "sc2035_tests_sc2035_rm.rs"]
 mod tests_extracted;

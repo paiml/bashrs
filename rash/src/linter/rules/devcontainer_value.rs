@@ -148,4 +148,4 @@ pub fn list_devcontainer_rules() -> Vec<(&'static str, &'static str)> {
 }
 
 
-include!("devcontainer_tests_cont.rs");
+include!("devcontainer_tests_devcontainer.rs");

@@ -405,4 +405,4 @@ printf '%.2f\n' 3.14159
 
 #[test]
 
-include!("part4_6_cont.rs");
+include!("part4_6_bash_builtin.rs");

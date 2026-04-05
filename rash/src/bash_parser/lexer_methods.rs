@@ -1235,5 +1235,5 @@ impl Lexer {
 }
 
 #[cfg(test)]
-#[path = "lexer_tests_extracted.rs"]
+#[path = "lexer_tests_tokenize_sim.rs"]
 mod tests_extracted;

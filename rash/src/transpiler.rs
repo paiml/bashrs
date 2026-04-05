@@ -327,5 +327,5 @@ impl Default for Transpiler {
 }
 
 #[cfg(test)]
-#[path = "transpiler_tests_extracted.rs"]
+#[path = "transpiler_tests_xtask_001.rs"]
 mod tests_extracted;

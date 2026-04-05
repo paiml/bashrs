@@ -224,4 +224,4 @@ proptest! {
         }
     }
 
-include!("purification_property_tests_cont.rs");
+include!("purification_property_tests_prop_stateme.rs");

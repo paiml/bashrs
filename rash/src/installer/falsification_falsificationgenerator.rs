@@ -463,5 +463,5 @@ impl FalsificationReport {
 }
 
 #[cfg(test)]
-#[path = "falsification_tests_extracted.rs"]
+#[path = "falsification_tests_sample_insta.rs"]
 mod tests_extracted;

@@ -179,5 +179,5 @@ fn current_timestamp() -> u64 {
 }
 
 #[cfg(test)]
-#[path = "checkpoint_tests_extracted.rs"]
+#[path = "checkpoint_tests_checkpoint_1.rs"]
 mod tests_extracted;

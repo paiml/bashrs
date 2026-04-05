@@ -292,5 +292,5 @@ pub fn validate_all(snippet: &str) -> RashResult<()> {
 }
 
 #[cfg(test)]
-#[path = "rules_tests_extracted.rs"]
+#[path = "rules_tests_variable_exp.rs"]
 mod tests_extracted;

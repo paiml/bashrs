@@ -11,5 +11,5 @@
 #![allow(clippy::expect_used)]
 
 #[cfg(test)]
-#[path = "purifier_coverage_tests_tests_extracted.rs"]
+#[path = "purifier_coverage_tests_tests_make_lint.rs"]
 mod tests_extracted;

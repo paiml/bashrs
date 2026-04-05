@@ -408,5 +408,5 @@ fn write_citation(card: &mut String) {
 }
 
 #[cfg(test)]
-#[path = "model_card_tests_extracted.rs"]
+#[path = "model_card_tests_generate_mod.rs"]
 mod tests_extracted;

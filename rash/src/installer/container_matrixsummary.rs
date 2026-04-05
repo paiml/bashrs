@@ -88,5 +88,5 @@ fn escape_json(s: &str) -> String {
 }
 
 #[cfg(test)]
-#[path = "container_tests_extracted.rs"]
+#[path = "container_tests_container_00.rs"]
 mod tests_extracted;

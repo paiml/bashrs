@@ -430,5 +430,5 @@ impl Oracle {
 }
 
 #[cfg(test)]
-#[path = "oracle_tests_extracted.rs"]
+#[path = "oracle_tests_sample_diagn.rs"]
 mod tests_extracted;

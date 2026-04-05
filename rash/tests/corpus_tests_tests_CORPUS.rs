@@ -416,4 +416,4 @@ fn log_v2_failures(score: &bashrs::corpus::CorpusScore) {
 
 #[test]
 
-include!("corpus_tests_cont.rs");
+include!("corpus_tests_corpus_037.rs");

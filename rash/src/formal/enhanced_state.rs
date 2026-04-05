@@ -480,5 +480,5 @@ impl EnhancedState {
 }
 
 #[cfg(test)]
-#[path = "enhanced_state_tests_extracted.rs"]
+#[path = "enhanced_state_tests_default_stat.rs"]
 mod tests_extracted;

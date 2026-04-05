@@ -357,5 +357,5 @@ proptest! {
 // Regression tests for specific edge cases found by QuickCheck
 
 #[cfg(test)]
-#[path = "quickcheck_tests_tests_extracted.rs"]
+#[path = "quickcheck_tests_tests_null_charact.rs"]
 mod tests_extracted;

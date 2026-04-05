@@ -420,5 +420,5 @@ fn write_sarif<W: Write>(
 }
 
 #[cfg(test)]
-#[path = "output_tests_extracted.rs"]
+#[path = "output_tests_output_forma.rs"]
 mod tests_extracted;

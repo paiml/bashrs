@@ -8,5 +8,5 @@
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-#[path = "command_tests_corpus1_tests_extracted.rs"]
+#[path = "command_tests_corpus1_tests_sparkline_em.rs"]
 mod tests_extracted;

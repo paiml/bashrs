@@ -226,5 +226,5 @@ fn skip_command_substitution(chars: &[char], start: usize) -> usize {
 }
 
 #[cfg(test)]
-#[path = "sec019_tests_extracted.rs"]
+#[path = "sec019_tests_sec019_001.rs"]
 mod tests_extracted;

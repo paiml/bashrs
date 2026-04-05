@@ -360,4 +360,4 @@ fn test_compound_sub_and_mul_assign() {
 
 #[test]
 
-include!("parser_coverage_tests_tests_cont_3.rs");
+include!("parser_coverage_tests_tests_match_some.rs");

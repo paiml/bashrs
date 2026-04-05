@@ -437,5 +437,5 @@ impl Default for Formatter {
 }
 
 #[cfg(test)]
-#[path = "formatter_tests_ext.rs"]
+#[path = "formatter_tests_dummy_metada.rs"]
 mod tests_ext;

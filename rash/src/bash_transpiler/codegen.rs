@@ -677,5 +677,5 @@ impl BashToRashTranspiler {
 }
 
 #[cfg(test)]
-#[path = "codegen_tests_extracted.rs"]
+#[path = "codegen_tests_transpile_op.rs"]
 mod tests_extracted;

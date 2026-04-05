@@ -420,5 +420,5 @@ unsafe impl GlobalAlloc for FailingAllocator {
 }
 
 #[cfg(test)]
-#[path = "error_injection_tests_extracted.rs"]
+#[path = "error_injection_tests_parser_error.rs"]
 mod tests_extracted;

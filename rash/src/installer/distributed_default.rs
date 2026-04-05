@@ -185,5 +185,5 @@ pub fn format_execution_plan(plan: &ExecutionPlan, max_parallel: usize) -> Strin
 }
 
 #[cfg(test)]
-#[path = "distributed_tests_extracted.rs"]
+#[path = "distributed_tests_dist_001.rs"]
 mod tests_extracted;

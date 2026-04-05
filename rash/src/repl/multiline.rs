@@ -233,5 +233,5 @@ pub fn is_incomplete(input: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "multiline_tests_ext.rs"]
+#[path = "multiline_tests_repl_011.rs"]
 mod tests_ext;

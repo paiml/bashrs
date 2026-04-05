@@ -429,4 +429,4 @@ echo "Exit status: $?"
 
 #[test]
 
-include!("part4_s5_cont.rs");
+include!("part4_s5_tests_builtin_020.rs");

@@ -222,5 +222,5 @@ fn generate_suggestions(source: &str, score: &QualityScore) -> Vec<String> {
 }
 
 #[cfg(test)]
-#[path = "mod_tests_extracted.rs"]
+#[path = "mod_tests_score_empty.rs"]
 mod tests_extracted;

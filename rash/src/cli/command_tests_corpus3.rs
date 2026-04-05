@@ -8,5 +8,5 @@
 // ---------------------------------------------------------------------------
 
 #[cfg(test)]
-#[path = "command_tests_corpus3_tests_extracted.rs"]
+#[path = "command_tests_corpus3_tests_score_08.rs"]
 mod tests_extracted;

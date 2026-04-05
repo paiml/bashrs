@@ -449,5 +449,5 @@ pub fn find_undefined_variables(
 }
 
 #[cfg(test)]
-#[path = "sc2154_logic_tests_extracted.rs"]
+#[path = "sc2154_logic_tests_get_builtins.rs"]
 mod tests_extracted;

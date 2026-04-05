@@ -479,5 +479,5 @@ fn print_explanation(report: &ExplainReport) {
 }
 
 #[cfg(test)]
-#[path = "explain_command_tests_extracted.rs"]
+#[path = "explain_command_tests_explain_safe.rs"]
 mod tests_extracted;

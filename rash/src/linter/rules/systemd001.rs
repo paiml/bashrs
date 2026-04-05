@@ -353,5 +353,5 @@ fn check_post_conditions(state: &SystemdCheckState<'_>, result: &mut LintResult)
 }
 
 #[cfg(test)]
-#[path = "systemd001_tests_extracted.rs"]
+#[path = "systemd001_tests_f086_valid.rs"]
 mod tests_extracted;

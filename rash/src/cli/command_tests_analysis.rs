@@ -354,4 +354,4 @@ fn test_corpus_entry_new_defaults() {
 
 #[test]
 
-include!("command_tests_analysis_tests_cont.rs");
+include!("command_tests_analysis_tests_corpus_entry.rs");

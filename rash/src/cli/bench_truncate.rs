@@ -264,5 +264,5 @@ fn detect_regression_with_threshold(
 mod bench_coverage_tests;
 
 #[cfg(test)]
-#[path = "bench_tests_extracted.rs"]
+#[path = "bench_tests_calculate_me.rs"]
 mod tests_extracted;

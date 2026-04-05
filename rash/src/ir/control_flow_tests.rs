@@ -369,4 +369,4 @@ fn test_function_call_as_value() {
     );
 }
 
-include!("control_flow_tests_tests_cont.rs");
+include!("control_flow_tests_tests_for_loop.rs");

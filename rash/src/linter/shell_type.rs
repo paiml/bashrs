@@ -313,5 +313,5 @@ fn detect_from_path(path: &Path) -> Option<ShellType> {
 }
 
 #[cfg(test)]
-#[path = "shell_type_tests_extracted.rs"]
+#[path = "shell_type_tests_detect_zsh.rs"]
 mod tests_extracted;

@@ -532,5 +532,5 @@ fn current_commit() -> String {
 }
 
 #[cfg(test)]
-#[path = "dataset_tests_extracted.rs"]
+#[path = "dataset_tests_make_entry.rs"]
 mod tests_extracted;

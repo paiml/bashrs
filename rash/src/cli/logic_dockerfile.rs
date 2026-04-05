@@ -477,5 +477,5 @@ pub fn format_size_comparison(actual_bytes: u64, limit_bytes: u64) -> String {
 }
 
 #[cfg(test)]
-#[path = "logic_dockerfile_tests_extracted.rs"]
+#[path = "logic_dockerfile_tests_convert_add.rs"]
 mod tests_extracted;

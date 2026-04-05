@@ -402,4 +402,4 @@ timeout_task || true
 
 #[test]
 
-include!("part3_s7_cont.rs");
+include!("part3_s7_param_spec.rs");

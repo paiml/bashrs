@@ -368,4 +368,4 @@ fn test_PMAT142_corpus_model_card_to_file() {
 
 #[test]
 
-include!("cli_ssc_tests_tests_cont_3.rs");
+include!("cli_ssc_tests_tests_pmat142_corp.rs");

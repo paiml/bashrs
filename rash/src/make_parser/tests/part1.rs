@@ -154,5 +154,5 @@ fn test_RULE_SYNTAX_001_multiline_recipe() {
 }
 
 #[cfg(test)]
-#[path = "part1_tests_extracted.rs"]
+#[path = "part1_tests_rule_syntax.rs"]
 mod tests_extracted;

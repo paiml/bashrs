@@ -247,5 +247,5 @@ pub fn format_quality_matrix(stats: &[CategoryStats]) -> String {
 }
 
 #[cfg(test)]
-#[path = "domain_categories_tests_extracted.rs"]
+#[path = "domain_categories_tests_make_entry.rs"]
 mod tests_extracted;

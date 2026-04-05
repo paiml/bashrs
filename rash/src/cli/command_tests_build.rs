@@ -362,4 +362,4 @@ fn test_init_command_creates_rash_config() {
 
 #[test]
 
-include!("command_tests_build_tests_cont_2.rs");
+include!("command_tests_build_tests_build_comman_2.rs");

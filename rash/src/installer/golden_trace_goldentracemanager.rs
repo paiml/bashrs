@@ -251,5 +251,5 @@ impl SimulatedTraceCollector {
 }
 
 #[cfg(test)]
-#[path = "golden_trace_tests_extracted.rs"]
+#[path = "golden_trace_tests_golden_001.rs"]
 mod tests_extracted;

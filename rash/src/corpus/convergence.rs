@@ -379,5 +379,5 @@ pub fn format_convergence_status(statuses: &[FormatConvergenceStatus]) -> String
 }
 
 #[cfg(test)]
-#[path = "convergence_tests_ext.rs"]
+#[path = "convergence_tests_make_entry.rs"]
 mod tests_ext;

@@ -490,5 +490,5 @@ pub fn evaluate_predictions(preds: &[EvalPrediction]) -> SimpleEvalResult {
 }
 
 #[cfg(test)]
-#[path = "eval_harness_tests_extracted.rs"]
+#[path = "eval_harness_tests_make_predict.rs"]
 mod tests_extracted;

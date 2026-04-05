@@ -288,5 +288,5 @@ impl Default for Span {
 }
 
 #[cfg(test)]
-#[path = "ast_tests_extracted.rs"]
+#[path = "ast_tests_var_flavor.rs"]
 mod tests_extracted;

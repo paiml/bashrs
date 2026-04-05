@@ -312,5 +312,5 @@ impl Pattern {
 }
 
 #[cfg(test)]
-#[path = "restricted_tests_extracted.rs"]
+#[path = "restricted_tests_create_valid.rs"]
 mod tests_extracted;

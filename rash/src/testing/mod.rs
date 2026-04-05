@@ -485,5 +485,5 @@ struct ValidationTestCase {
 }
 
 #[cfg(test)]
-#[path = "mod_tests_extracted.rs"]
+#[path = "mod_tests_exhaustive_h.rs"]
 mod tests_extracted;

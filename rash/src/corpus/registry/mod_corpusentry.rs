@@ -492,5 +492,5 @@ impl CorpusRegistry {
 include!("corpus_data.rs");
 
 #[cfg(test)]
-#[path = "mod_tests_extracted.rs"]
+#[path = "mod_tests_corpus_reg.rs"]
 mod tests_extracted;

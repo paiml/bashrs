@@ -130,5 +130,5 @@ impl GateConfig {
 }
 
 #[cfg(test)]
-#[path = "gates_tests_extracted.rs"]
+#[path = "gates_tests_default_valu.rs"]
 mod tests_extracted;

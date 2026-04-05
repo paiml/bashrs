@@ -352,4 +352,4 @@ fn test_batch16_parameter_expansion() {
 
 #[test]
 
-include!("rule_registry_tests_s5_cont.rs");
+include!("rule_registry_tests_s5_batch17_back.rs");

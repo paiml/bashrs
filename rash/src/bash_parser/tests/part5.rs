@@ -384,4 +384,4 @@ echo "Hash-based number: $num"
 
 #[test]
 
-include!("part5_cont.rs");
+include!("part5_bash_var.rs");

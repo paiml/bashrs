@@ -485,5 +485,5 @@ pub fn classify_with_codebert(
 }
 
 #[cfg(test)]
-#[path = "wasm_encoder_tests_ext.rs"]
+#[path = "wasm_encoder_tests_gelu_zero.rs"]
 mod tests_ext;

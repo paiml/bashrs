@@ -328,5 +328,5 @@ fn is_valid_rule_code(code: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "suppression_tests_extracted.rs"]
+#[path = "suppression_tests_parse_file.rs"]
 mod tests_extracted;

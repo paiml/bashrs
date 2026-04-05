@@ -473,5 +473,5 @@ impl<T> BashNode<T> {
 }
 
 #[cfg(test)]
-#[path = "ast_tests_extracted.rs"]
+#[path = "ast_tests_ast_construc.rs"]
 mod tests_extracted;

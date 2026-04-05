@@ -376,5 +376,5 @@ fn handle_reload_command(state: &mut ReplState) {
 // This file (loop.rs) is now a thin shim that handles I/O only
 
 #[cfg(test)]
-#[path = "loop_tests_extracted.rs"]
+#[path = "loop_tests_repl_003.rs"]
 mod tests_extracted;

@@ -366,5 +366,5 @@ impl Default for TransformId {
 }
 
 #[cfg(test)]
-#[path = "transforms_tests_extracted.rs"]
+#[path = "transforms_tests_transform_id.rs"]
 mod tests_extracted;

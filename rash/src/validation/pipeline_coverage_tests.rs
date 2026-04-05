@@ -9,5 +9,5 @@
 #![allow(clippy::expect_used)]
 
 #[cfg(test)]
-#[path = "pipeline_coverage_tests_tests_extracted.rs"]
+#[path = "pipeline_coverage_tests_tests_strict_pipel.rs"]
 mod tests_extracted;

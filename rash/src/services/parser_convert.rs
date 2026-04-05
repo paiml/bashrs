@@ -417,5 +417,5 @@ fn extract_pattern_literal(expr: &SynExpr) -> Result<Literal> {
 }
 
 #[cfg(test)]
-#[path = "parser_tests_extracted.rs"]
+#[path = "parser_tests_convert_stmt.rs"]
 mod tests_extracted;

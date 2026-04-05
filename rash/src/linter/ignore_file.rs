@@ -482,5 +482,5 @@ impl IgnoreFile {
 }
 
 #[cfg(test)]
-#[path = "ignore_file_tests_extracted.rs"]
+#[path = "ignore_file_tests_issue_85.rs"]
 mod tests_extracted;

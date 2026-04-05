@@ -419,5 +419,5 @@ impl Default for LogMetadata {
 }
 
 #[cfg(test)]
-#[path = "logging_tests_extracted.rs"]
+#[path = "logging_tests_transform_lo.rs"]
 mod tests_extracted;

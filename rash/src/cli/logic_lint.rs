@@ -437,5 +437,5 @@ pub fn severity_icon(severity: &str) -> &'static str {
 }
 
 #[cfg(test)]
-#[path = "logic_lint_tests_extracted.rs"]
+#[path = "logic_lint_tests_build_ignore.rs"]
 mod tests_extracted;

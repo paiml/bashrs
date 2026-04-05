@@ -170,5 +170,5 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
 }
 
 #[cfg(test)]
-#[path = "ast_display_tests_extracted.rs"]
+#[path = "ast_display_tests_dummy_span.rs"]
 mod tests_extracted;

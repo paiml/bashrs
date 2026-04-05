@@ -456,5 +456,5 @@ fn days_since(date_str: &str) -> Option<u32> {
 }
 
 #[cfg(test)]
-#[path = "quality_gates_tests_extracted.rs"]
+#[path = "quality_gates_tests_make_score.rs"]
 mod tests_extracted;

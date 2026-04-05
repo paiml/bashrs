@@ -534,4 +534,4 @@ pub fn lint_shell(source: &str) -> LintResult {
 
 
 
-include!("mod_lint_cont_9.rs");
+include!("mod_std.rs");
