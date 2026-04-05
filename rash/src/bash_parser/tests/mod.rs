@@ -1,7 +1,10 @@
 //! Tests split for file health (<500 lines each).
 
 mod part1;
-mod part1_tests_extracted;
+mod part1_tests_prop_until;
+mod part1_prop_expansion;
+mod part1_prop_string;
+mod part1_prop_prefix;
 mod part2;
 mod part2_10;
 mod part2_2;

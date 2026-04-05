@@ -325,3 +325,8 @@ fn test_config_load_returns_none_when_missing() {
 #[test]
 
 include!("tests_s2_tests_config_load.rs");
+include!("tests_s2_rules.rs");
+include!("tests_s2_security.rs");
+include!("tests_s2_posix.rs");
+include!("tests_s2_docker.rs");
+include!("tests_s2_suppression.rs");
