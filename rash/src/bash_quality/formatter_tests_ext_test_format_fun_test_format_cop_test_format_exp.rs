@@ -393,5 +393,4 @@
         assert!(result.contains("x=1"));
         assert!(result.contains("y=2"));
         assert!(result.contains("\n"));
-    }
-}
+

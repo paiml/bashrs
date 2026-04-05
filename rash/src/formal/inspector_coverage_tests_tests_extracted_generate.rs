@@ -296,5 +296,4 @@
         assert!(text.contains("Generated:"));
         assert!(text.contains("Reasoning:"));
         assert!(text.contains("Considerations:"));
-    }
-}
+

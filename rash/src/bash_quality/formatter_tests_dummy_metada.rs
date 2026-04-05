@@ -160,4 +160,10 @@ mod tests {
         assert!(result.contains("function test()"));
     }
 
-include!("formatter_tests_ext_test_format_fun.rs");
+}
+
+#[cfg(test)]
+mod formatter_tests_ext_test_format_fun {
+    use super::*;
+    include!("formatter_tests_ext_test_format_fun.rs");
+}

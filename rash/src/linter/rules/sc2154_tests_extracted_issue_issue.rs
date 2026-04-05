@@ -479,5 +479,4 @@ echo "${ANOTHER_UNDEFINED}"
             2,
             "SC2154 should still flag regular undefined variables"
         );
-    }
-}
+

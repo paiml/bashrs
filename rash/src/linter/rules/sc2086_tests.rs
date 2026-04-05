@@ -435,4 +435,10 @@ fi
     }
 
     // Tests for find_dollar_position() helper (1 missed mutant)
+}
+
+#[cfg(test)]
+mod sc2086_tests_quoting {
+    use super::*;
     include!("sc2086_tests_quoting.rs");
+}

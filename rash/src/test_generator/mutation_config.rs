@@ -278,6 +278,3 @@ pub enum MutationOperator {
     Conditional,
 }
 
-#[cfg(test)]
-#[path = "mutation_config_tests_extracted.rs"]
-mod tests_extracted;

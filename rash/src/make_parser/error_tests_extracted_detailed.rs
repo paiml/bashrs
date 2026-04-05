@@ -469,5 +469,4 @@
             .with_column(8);
         let cloned = loc.clone();
         assert_eq!(loc, cloned);
-    }
-}
+

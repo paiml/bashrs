@@ -217,4 +217,10 @@ greet_user
         );
     }
 
-include!("mod_tests_ext_mark.rs");
+}
+
+#[cfg(test)]
+mod mod_tests_ext_mark {
+    use super::*;
+    include!("mod_tests_ext_mark.rs");
+}

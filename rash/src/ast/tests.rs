@@ -353,4 +353,9 @@ fn test_expr_array_try_block_handling() {
 
 #[test]
 
-include!("tests_tests_expr_collect.rs");
+
+#[cfg(test)]
+mod tests_tests_expr_collect {
+    use super::*;
+    include!("tests_tests_expr_collect.rs");
+}

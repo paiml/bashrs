@@ -446,5 +446,4 @@
             else_block: Some(vec![Stmt::Expr(Expr::Variable("z".to_string()))]),
         }]);
         assert!(p.validate_ast(&ast).is_ok());
-    }
-}
+

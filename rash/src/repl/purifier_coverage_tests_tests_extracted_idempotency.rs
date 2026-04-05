@@ -446,6 +446,4 @@
             // All explanations should have non-empty fields
             assert!(!e.title.is_empty());
             assert!(!e.what_changed.is_empty());
-        }
-    }
-}
+

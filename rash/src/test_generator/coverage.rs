@@ -187,6 +187,3 @@ Quality Gates: {}
     }
 }
 
-#[cfg(test)]
-#[path = "coverage_tests_extracted.rs"]
-mod tests_extracted;

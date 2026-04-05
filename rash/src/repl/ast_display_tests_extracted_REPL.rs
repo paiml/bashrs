@@ -335,5 +335,4 @@
         // Command with no args should not have "(args: X)"
         assert!(output.contains("Command: pwd"));
         assert!(!output.contains("(args: 0)"));
-    }
-}
+

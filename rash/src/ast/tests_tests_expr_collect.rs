@@ -208,5 +208,6 @@ fn test_invalid_ast_returns_validation_error() {
     match validate(&ast) {
         Err(crate::models::Error::Validation(_)) => (), // Expected
         _ => panic!("Expected validation error"),
+
     }
 }

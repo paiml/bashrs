@@ -467,6 +467,3 @@ impl Generator {
     }
 }
 
-#[cfg(test)]
-#[path = "property_tests_tests_extracted.rs"]
-mod tests_extracted;

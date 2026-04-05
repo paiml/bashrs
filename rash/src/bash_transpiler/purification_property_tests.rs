@@ -224,4 +224,10 @@ proptest! {
         }
     }
 
-include!("purification_property_tests_prop_stateme.rs");
+}
+
+#[cfg(test)]
+mod purification_property_tests_prop_stateme {
+    use super::*;
+    include!("purification_property_tests_prop_stateme.rs");
+}

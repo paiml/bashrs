@@ -404,5 +404,4 @@
             !bp.should_break_with_hit(&vars),
             "Should not break when disabled"
         );
-    }
-}
+

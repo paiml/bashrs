@@ -404,5 +404,4 @@
         let debug = format!("{:?}", file);
         assert!(debug.contains("File"));
         assert!(debug.contains("content"));
-    }
-}
+

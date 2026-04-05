@@ -212,4 +212,10 @@ mod tests {
         );
     }
 
-include!("breakpoint_tests_extracted_tests_repl_007.rs");
+}
+
+#[cfg(test)]
+mod breakpoint_tests_extracted_tests_repl_007 {
+    use super::*;
+    include!("breakpoint_tests_extracted_tests_repl_007.rs");
+}

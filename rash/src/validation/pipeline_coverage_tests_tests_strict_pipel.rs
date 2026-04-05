@@ -208,4 +208,10 @@ mod tests {
         assert!(p.validate_ast(&ast).is_ok(), "Unary arg in exec() ok");
     }
 
-include!("pipeline_coverage_tests_tests_extracted_exec.rs");
+}
+
+#[cfg(test)]
+mod pipeline_coverage_tests_tests_extracted_exec {
+    use super::*;
+    include!("pipeline_coverage_tests_tests_extracted_exec.rs");
+}

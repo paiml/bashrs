@@ -273,4 +273,10 @@ mod tests {
 
     // ── MetricsConfig budget checking ──
 
-include!("gates_coverage_tests_tests_extracted_check.rs");
+}
+
+#[cfg(test)]
+mod gates_coverage_tests_tests_extracted_check {
+    use super::*;
+    include!("gates_coverage_tests_tests_extracted_check.rs");
+}

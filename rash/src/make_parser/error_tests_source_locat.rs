@@ -210,4 +210,10 @@ mod tests {
         }
     }
 
-include!("error_tests_extracted_detailed.rs");
+}
+
+#[cfg(test)]
+mod error_tests_extracted_detailed {
+    use super::*;
+    include!("error_tests_extracted_detailed.rs");
+}

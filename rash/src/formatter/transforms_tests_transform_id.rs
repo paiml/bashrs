@@ -201,4 +201,10 @@ mod tests {
         assert_ne!(WhitespaceContext::Command, WhitespaceContext::Arithmetic);
     }
 
-include!("transforms_tests_extracted_whitespace.rs");
+}
+
+#[cfg(test)]
+mod transforms_tests_extracted_whitespace {
+    use super::*;
+    include!("transforms_tests_extracted_whitespace.rs");
+}

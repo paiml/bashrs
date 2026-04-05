@@ -308,5 +308,4 @@ mod tests {
             "Comment should be preserved in output:\n{}",
             output
         );
-    }
-}
+

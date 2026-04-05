@@ -204,4 +204,10 @@ mod inspector_coverage {
 
     // ── generate_report — Failure variant ────────────────────────────────────
 
-include!("inspector_coverage_tests_tests_extracted_generate.rs");
+}
+
+#[cfg(test)]
+mod inspector_coverage_tests_tests_extracted_generate {
+    use super::*;
+    include!("inspector_coverage_tests_tests_extracted_generate.rs");
+}

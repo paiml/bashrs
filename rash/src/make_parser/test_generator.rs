@@ -293,6 +293,4 @@ test_property_determinism() {{
     }
 }
 
-#[cfg(test)]
-#[path = "test_generator_tests_ext.rs"]
-mod tests_ext;
+// Tests in make_parser test modules

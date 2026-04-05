@@ -203,4 +203,10 @@ BUILD_TIME := $(shell date +%Y%m%d)"#;
         assert_eq!(issues[0].rule, "AUTO_PHONY");
     }
 
-include!("semantic_tests_extracted_FUNC.rs");
+}
+
+#[cfg(test)]
+mod semantic_tests_extracted_FUNC {
+    use super::*;
+    include!("semantic_tests_extracted_FUNC.rs");
+}

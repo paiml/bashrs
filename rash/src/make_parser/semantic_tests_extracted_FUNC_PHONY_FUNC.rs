@@ -336,5 +336,4 @@ SOURCES := $(wildcard *.c)"#;
         assert!(suggestion.contains("RANDOM_ID"));
         assert!(suggestion.contains(":="));
         assert!(suggestion.contains("42"));
-    }
-}
+

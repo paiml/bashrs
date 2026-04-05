@@ -201,4 +201,10 @@ mod tests {
         assert_eq!(config.gates.min_coverage, -10.0);
     }
 
-include!("gates_tests_extracted_gates.rs");
+}
+
+#[cfg(test)]
+mod gates_tests_extracted_gates {
+    use super::*;
+    include!("gates_tests_extracted_gates.rs");
+}

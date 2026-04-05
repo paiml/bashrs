@@ -204,4 +204,10 @@ mod tests {
         assert!(state.stderr.last().unwrap().contains("Permission denied"));
     }
 
-include!("enhanced_state_tests_extracted_state.rs");
+}
+
+#[cfg(test)]
+mod enhanced_state_tests_extracted_state {
+    use super::*;
+    include!("enhanced_state_tests_extracted_state.rs");
+}

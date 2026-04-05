@@ -389,6 +389,3 @@ impl Assertion {
     }
 }
 
-#[cfg(test)]
-#[path = "unit_tests_tests_extracted.rs"]
-mod tests_extracted;

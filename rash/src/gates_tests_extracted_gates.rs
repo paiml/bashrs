@@ -301,5 +301,4 @@
         assert!(config.gates.satd.is_some());
         assert!(config.gates.mutation.is_some());
         assert!(config.gates.security.is_some());
-    }
-}
+
