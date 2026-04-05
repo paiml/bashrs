@@ -8,6 +8,8 @@
 // Allow absurd extreme comparisons (defensive test assertions like usize >= 0)
 // TODO(v2.1.0): Clean up these assertions - Issue #TBD
 #![allow(clippy::absurd_extreme_comparisons)]
+// Rust 1.93: doc comments before dead-code-eliminated items trigger unused_doc_comments
+#![allow(unused_doc_comments)]
 // Allow multiple crate versions - transitive dependencies from different crates
 #![allow(clippy::multiple_crate_versions)]
 //!
