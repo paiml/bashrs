@@ -524,14 +524,4 @@ pub fn lint_shell(source: &str) -> LintResult {
     result
 }
 
-
-
-
-
-
-
-
-
-
-
-include!("mod_std.rs");
+include!("mod_lint_methods.rs");
