@@ -356,4 +356,4 @@ mod transpiler_integration {
     }
 }
 
-include!("coverage_integration_tests_incl2.rs");
+include!("coverage_integration_tests_tests_parse.rs");

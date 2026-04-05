@@ -352,4 +352,4 @@ fn test_IR_EXPR_022_unary_not() {
 
 #[test]
 
-include!("ir_expr_tests_incl2.rs");
+include!("ir_expr_tests_tests_IR.rs");

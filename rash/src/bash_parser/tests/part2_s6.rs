@@ -392,4 +392,4 @@ command3
 
 #[test]
 
-include!("part2_s6_incl2.rs");
+include!("part2_s6_cont.rs");

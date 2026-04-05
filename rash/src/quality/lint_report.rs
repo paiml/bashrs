@@ -558,4 +558,4 @@ impl RichLintReport {
     }
 }
 
-include!("lint_report_incl2.rs");
+include!("lint_report_sbfl.rs");

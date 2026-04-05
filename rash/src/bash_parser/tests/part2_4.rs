@@ -367,4 +367,4 @@ printf 'Total duration: %d seconds\n' "$duration"
 
 #[test]
 
-include!("part2_4_incl2.rs");
+include!("part2_4_cont.rs");

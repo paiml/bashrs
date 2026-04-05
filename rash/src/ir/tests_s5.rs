@@ -385,4 +385,4 @@ fn test_let_match_expression_produces_case_with_assignment() {
 
 #[test]
 
-include!("tests_s5_incl2.rs");
+include!("tests_s5_has.rs");

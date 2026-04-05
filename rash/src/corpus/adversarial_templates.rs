@@ -354,4 +354,4 @@ pub fn non_deterministic_templates() -> Vec<AdversarialTemplate> {
 
 // ── Class 3: Non-idempotent templates (25) ─────────────────────────────
 
-include!("adversarial_templates_incl2.rs");
+include!("adversarial_templates_non.rs");

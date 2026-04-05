@@ -354,4 +354,4 @@ fn test_MCOV_023_rash_print_no_newline() {
 
 #[test]
 
-include!("makefile_coverage_tests_incl2.rs");
+include!("makefile_coverage_tests_tests_MCOV.rs");

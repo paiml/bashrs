@@ -364,4 +364,4 @@ fn test_cov_lint_dockerfile() {
     let _ = lint_command(opts);
 }
 
-include!("command_tests_lint_cov_incl2.rs");
+include!("command_tests_lint_cov_tests_cov_4.rs");

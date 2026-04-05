@@ -294,4 +294,4 @@ pub struct MetricsAggregator {
     runs: Vec<InstallerMetrics>,
 }
 
-include!("metrics_incl3.rs");
+include!("metrics_metricsaggregator.rs");

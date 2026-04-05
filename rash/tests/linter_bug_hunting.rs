@@ -374,4 +374,4 @@ fn hunt_false_positive_edge_cases() {
 
 #[test]
 
-include!("linter_bug_hunting_incl2.rs");
+include!("linter_bug_hunting_hunt.rs");

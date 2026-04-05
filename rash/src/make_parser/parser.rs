@@ -359,4 +359,4 @@ pub fn parse_makefile(input: &str) -> Result<MakeAst, String> {
     })
 }
 
-include!("parser_incl2.rs");
+include!("parser_cont.rs");

@@ -184,4 +184,4 @@ fn generate_comment_stmt(pad: &str, text: &str) -> String {
 
 /// Generate a function definition
 
-include!("codegen_incl2.rs");
+include!("codegen_generate.rs");

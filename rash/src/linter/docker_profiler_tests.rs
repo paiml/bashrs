@@ -389,4 +389,4 @@ COPY . /app
     }
 }
 
-include!("docker_profiler_tests_incl2.rs");
+include!("docker_profiler_tests_tests_cont.rs");

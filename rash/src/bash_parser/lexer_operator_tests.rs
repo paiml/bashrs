@@ -207,4 +207,4 @@ fn test_LEX_OP_BRACE_002_range_expansion() {
 
 #[test]
 
-include!("lexer_operator_tests_incl2.rs");
+include!("lexer_operator_tests_tests_LEX.rs");

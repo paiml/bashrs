@@ -157,4 +157,4 @@ fn test_codegen_006_shebang_comment_skipped() {
 
 #[test]
 
-include!("codegen_tests_incl2.rs");
+include!("codegen_tests_tests_codegen_2.rs");

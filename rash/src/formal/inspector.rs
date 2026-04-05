@@ -203,4 +203,4 @@ pub enum VerificationResult {
 /// Proof inspector for generating detailed verification artifacts
 pub struct ProofInspector;
 
-include!("inspector_incl2.rs");
+include!("inspector_proofinspector.rs");

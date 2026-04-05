@@ -384,4 +384,4 @@ RUN apt-get install -y curl
 
 #[test]
 
-include!("canonical_matrix_test_incl2.rs");
+include!("canonical_matrix_test_cont.rs");

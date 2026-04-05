@@ -374,4 +374,4 @@ pub fn check_devcontainer011(json: &Value) -> LintResult {
     result
 }
 
-include!("devcontainer_incl2.rs");
+include!("devcontainer_value.rs");

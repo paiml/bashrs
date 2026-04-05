@@ -258,4 +258,4 @@ fn test_CLI_MAKE_005_purify_report() {
 
 #[test]
 
-include!("cli_make_tests_incl2.rs");
+include!("cli_make_tests_tests_CLI.rs");

@@ -351,4 +351,4 @@ fn test_ECOV_015_test_variable() {
 
 #[test]
 
-include!("emitter_coverage_tests_incl2.rs");
+include!("emitter_coverage_tests_tests_ECOV.rs");

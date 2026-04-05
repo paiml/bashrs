@@ -427,4 +427,4 @@ pub fn format_domain_coverage(stats: &[CategoryStats], score: &CorpusScore) -> S
     out
 }
 
-include!("domain_categories_incl2.rs");
+include!("domain_categories_coverage.rs");

@@ -350,4 +350,4 @@ fn test_parse_error_column_from_lexer() {
 /// format_parse_diagnostic with UnexpectedToken
 #[test]
 
-include!("parser_coverage_tests_incl2.rs");
+include!("parser_coverage_tests_tests_cont_2.rs");

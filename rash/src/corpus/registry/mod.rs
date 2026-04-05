@@ -141,4 +141,4 @@ pub struct CorpusEntry {
     pub idempotent: bool,
 }
 
-include!("mod_incl2.rs");
+include!("mod_corpusentry.rs");

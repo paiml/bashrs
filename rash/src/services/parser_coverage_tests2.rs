@@ -429,4 +429,4 @@ fn test_compound_bitwise_assigns() {
 
 #[test]
 
-include!("parser_coverage_tests2_incl2.rs");
+include!("parser_coverage_tests2_tests_cont.rs");

@@ -368,4 +368,4 @@ fn test_display_results_multiple_with_memory() {
 
 #[test]
 
-include!("bench_coverage_tests_incl2.rs");
+include!("bench_coverage_tests_tests_display.rs");

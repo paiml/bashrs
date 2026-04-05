@@ -360,4 +360,4 @@ fn test_injection_null_byte() {
 
 #[test]
 
-include!("adversarial_tests_incl2.rs");
+include!("adversarial_tests_main.rs");

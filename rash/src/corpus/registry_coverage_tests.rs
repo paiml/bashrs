@@ -350,4 +350,4 @@ fn test_REG_COV_026_load_full_larger_than_adversarial() {
 
 #[test]
 
-include!("registry_coverage_tests_incl2.rs");
+include!("registry_coverage_tests_tests_REG.rs");

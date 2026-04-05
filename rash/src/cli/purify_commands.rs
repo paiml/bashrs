@@ -383,4 +383,4 @@ fn purify_recursive(dir: &Path, opts: &PurifyCommandOptions<'_>) -> Result<()> {
     Ok(())
 }
 
-include!("purify_commands_incl2.rs");
+include!("purify_commands_walk.rs");

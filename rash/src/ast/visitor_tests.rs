@@ -377,4 +377,4 @@ fn test_transform_exprs_nested_expressions() {
 
 #[test]
 
-include!("visitor_tests_incl2.rs");
+include!("visitor_tests_methods.rs");

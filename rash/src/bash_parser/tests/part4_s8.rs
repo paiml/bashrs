@@ -400,4 +400,4 @@ fi
 
 #[test]
 
-include!("part4_s8_incl2.rs");
+include!("part4_s8_cont.rs");

@@ -388,4 +388,4 @@ cat data.txt > result.txt 2>&1
 
 #[test]
 
-include!("part3_s3_incl2.rs");
+include!("part3_s3_cont.rs");

@@ -313,4 +313,4 @@ fn calculate_safety_score(source: &str) -> f64 {
 
 /// Calculate maintainability score (0.0-10.0)
 
-include!("mod_incl2.rs");
+include!("mod_calculate.rs");

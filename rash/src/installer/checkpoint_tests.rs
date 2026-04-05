@@ -355,4 +355,4 @@ fn test_CHECKPOINT_COV_hermetic_consistency_matching_hash() {
 
 #[test]
 
-include!("checkpoint_tests_incl2.rs");
+include!("checkpoint_tests_tests_CHECKPOINT.rs");

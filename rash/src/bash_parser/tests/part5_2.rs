@@ -425,4 +425,4 @@ token=$(openssl rand -hex 32)  # 2^256 values, cryptographic
 // PURIFIED: echo "Script completed"
 #[test]
 
-include!("part5_2_incl2.rs");
+include!("part5_2_cont.rs");

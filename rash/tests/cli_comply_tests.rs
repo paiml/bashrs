@@ -372,4 +372,4 @@ fn test_COMPLY_CLI_050_check_uses_config_when_present() {
 
 #[test]
 
-include!("cli_comply_tests_incl2.rs");
+include!("cli_comply_tests_tests_cont.rs");

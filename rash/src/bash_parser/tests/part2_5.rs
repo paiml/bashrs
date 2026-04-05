@@ -386,4 +386,4 @@ bg %1
 
 #[test]
 
-include!("part2_5_incl2.rs");
+include!("part2_5_cont.rs");

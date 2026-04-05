@@ -355,4 +355,4 @@ pub(crate) fn schema_layer_counts(
     (l1, l2, l3, l4)
 }
 
-include!("corpus_viz_commands_incl2.rs");
+include!("corpus_viz_commands_corpus.rs");

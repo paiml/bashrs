@@ -379,4 +379,4 @@ fn run_measured_iterations(script: &Path, options: &BenchOptions) -> Result<(Vec
     Ok((results, memory_results))
 }
 
-include!("bench_incl2.rs");
+include!("bench_benchmark.rs");

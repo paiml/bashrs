@@ -365,4 +365,4 @@ fn test_shellcheck_variable_shadowing() {
 
 #[test]
 
-include!("shellcheck_validation_tests_incl2.rs");
+include!("shellcheck_validation_tests_main.rs");

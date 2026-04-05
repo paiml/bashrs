@@ -324,4 +324,4 @@ fn test_config_load_returns_none_when_missing() {
 
 #[test]
 
-include!("tests_s2_incl2.rs");
+include!("tests_s2_tests_cont.rs");

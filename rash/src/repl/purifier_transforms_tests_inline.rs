@@ -384,4 +384,4 @@ mod transformation_explanation_property_tests {
 // ===== REPL-013-003: ALTERNATIVE SUGGESTIONS TESTS (RED PHASE) =====
 
 
-include!("purifier_transforms_tests_inline_incl2.rs");
+include!("purifier_transforms_tests_inline_tests_REPL.rs");

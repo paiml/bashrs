@@ -367,4 +367,4 @@ fn test_IRPAT_017_let_match_bool_literal() {
 
 #[test]
 
-include!("ir_pattern_tests_incl2.rs");
+include!("ir_pattern_tests_main.rs");

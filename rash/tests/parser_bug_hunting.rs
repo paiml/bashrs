@@ -389,4 +389,4 @@ fn test_redirection_edge_cases() {
 
 #[test]
 
-include!("parser_bug_hunting_incl2.rs");
+include!("parser_bug_hunting_tests_cont.rs");

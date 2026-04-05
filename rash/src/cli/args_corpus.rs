@@ -984,4 +984,4 @@ pub enum CorpusCommands {
     },
 }
 
-include!("args_corpus_incl2.rs");
+include!("args_corpus_cont.rs");

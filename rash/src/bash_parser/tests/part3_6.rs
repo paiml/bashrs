@@ -353,4 +353,4 @@ TMPFILE="/tmp/$(basename "$0").tmp"
 
 #[test]
 
-include!("part3_6_incl2.rs");
+include!("part3_6_cont.rs");

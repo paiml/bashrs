@@ -358,4 +358,4 @@ fn test_arith_ternary() {
 
 #[test]
 
-include!("parser_arith_tests_incl2.rs");
+include!("parser_arith_tests_tests_arith.rs");

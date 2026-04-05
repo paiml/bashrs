@@ -394,4 +394,4 @@ pub fn format_mine_table(commits: &[FixCommit]) -> String {
     out
 }
 
-include!("oip_incl2.rs");
+include!("oip_format.rs");

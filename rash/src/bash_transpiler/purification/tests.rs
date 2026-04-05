@@ -370,4 +370,4 @@ fn test_purify_strict_mode_rejects_random() {
 
 #[test]
 
-include!("tests_incl2.rs");
+include!("tests_tests_purify_4.rs");

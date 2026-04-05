@@ -107,4 +107,4 @@ pub struct Lexer {
     column: usize,
 }
 
-include!("lexer_incl2.rs");
+include!("lexer_methods.rs");

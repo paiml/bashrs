@@ -360,4 +360,4 @@ fn test_DOCKER_BUILD_014_comment() {
 
 #[test]
 
-include!("dockerfile_tests_incl2.rs");
+include!("dockerfile_tests_tests_DOCKER_3.rs");

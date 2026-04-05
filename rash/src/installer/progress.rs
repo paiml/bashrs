@@ -391,4 +391,4 @@ impl InstallerProgress {
     }
 }
 
-include!("progress_incl2.rs");
+include!("progress_terminalrenderer.rs");

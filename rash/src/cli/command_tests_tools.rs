@@ -364,4 +364,4 @@ fn test_purify_command_with_lint() {
 
 #[test]
 
-include!("command_tests_tools_incl2.rs");
+include!("command_tests_tools_tests_purify.rs");

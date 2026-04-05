@@ -422,4 +422,4 @@ fn conversation_section_from(registry: &crate::corpus::registry::CorpusRegistry)
     }
 }
 
-include!("ssc_report_incl2.rs");
+include!("ssc_report_data.rs");

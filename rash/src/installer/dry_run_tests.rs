@@ -357,4 +357,4 @@ fn test_DRYRUN_COV_summary_has_changes_true_from_packages() {
 
 #[test]
 
-include!("dry_run_tests_incl2.rs");
+include!("dry_run_tests_tests_DRYRUN.rs");

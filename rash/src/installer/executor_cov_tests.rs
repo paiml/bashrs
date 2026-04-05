@@ -379,4 +379,4 @@ command_succeeds = "true"
 
 #[test]
 
-include!("executor_cov_tests_incl2.rs");
+include!("executor_cov_tests_tests_EXCOV.rs");

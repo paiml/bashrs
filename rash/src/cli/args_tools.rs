@@ -460,4 +460,4 @@ pub enum DockerfileCommands {
         format: ReportFormat,
     },
 }
-include!("args_tools_incl2.rs");
+include!("args_tools_cont.rs");

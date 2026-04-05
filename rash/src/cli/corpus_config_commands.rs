@@ -362,4 +362,4 @@ pub(crate) fn corpus_tier_weights() -> Result<()> {
     Ok(())
 }
 
-include!("corpus_config_commands_incl2.rs");
+include!("corpus_config_commands_corpus_3.rs");

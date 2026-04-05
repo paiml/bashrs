@@ -368,4 +368,4 @@ fn test_parse_assignment_array_large_numeric_index() {
 
 #[test]
 
-include!("parser_decl_tests_incl2.rs");
+include!("parser_decl_tests_tests_parse.rs");

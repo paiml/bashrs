@@ -354,4 +354,4 @@ fn test_PROGRESS_COV_013_json_full_render() {
 
 #[test]
 
-include!("progress_tests_incl2.rs");
+include!("progress_tests_tests_PROGRESS.rs");

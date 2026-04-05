@@ -361,4 +361,4 @@ fn main() {
 
 #[test]
 
-include!("cli_integration_incl2.rs");
+include!("cli_integration_tests_CLI_2.rs");

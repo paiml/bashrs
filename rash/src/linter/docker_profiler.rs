@@ -363,4 +363,4 @@ pub fn estimate_size(dockerfile: &str) -> SizeEstimate {
     }
 }
 
-include!("docker_profiler_incl2.rs");
+include!("docker_profiler_lookup.rs");

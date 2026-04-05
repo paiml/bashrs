@@ -358,4 +358,4 @@ fn comply_track_discover_all(path: &Path) -> Result<()> {
     Ok(())
 }
 
-include!("comply_commands_incl2.rs");
+include!("comply_commands_comply.rs");

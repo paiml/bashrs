@@ -385,4 +385,4 @@ pub(crate) fn load_ignore_file(
     }
 }
 
-include!("lint_commands_incl2.rs");
+include!("lint_commands_build.rs");

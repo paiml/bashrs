@@ -351,4 +351,4 @@ fn test_determinism_comments_skipped() {
 
 #[test]
 
-include!("rules_tests_incl2.rs");
+include!("rules_tests_tests_idempotency.rs");

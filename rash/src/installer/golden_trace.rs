@@ -359,4 +359,4 @@ impl TraceComparison {
     }
 }
 
-include!("golden_trace_incl2.rs");
+include!("golden_trace_goldentracemanager.rs");

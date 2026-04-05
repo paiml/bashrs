@@ -340,4 +340,4 @@ impl fmt::Display for FixSafetyLevel {
         }
     }
 }
-include!("diagnostic_incl2.rs");
+include!("diagnostic_fix.rs");

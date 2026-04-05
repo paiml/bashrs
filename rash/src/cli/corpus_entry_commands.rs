@@ -188,4 +188,4 @@ pub(crate) fn truncate_line(s: &str, max_len: usize) -> String {
 /// Classify a corpus entry's difficulty based on input features (spec §2.3).
 /// Returns tier 1-5 with factor breakdown.
 
-include!("corpus_entry_commands_incl2.rs");
+include!("corpus_entry_commands_classify.rs");

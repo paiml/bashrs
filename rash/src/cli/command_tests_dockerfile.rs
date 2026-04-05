@@ -369,4 +369,4 @@ fn test_dockerfile_size_check_command_custom_max_size_mb() {
 
 #[test]
 
-include!("command_tests_dockerfile_incl2.rs");
+include!("command_tests_dockerfile_tests_dockerfile.rs");

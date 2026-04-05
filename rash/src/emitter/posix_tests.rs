@@ -351,4 +351,4 @@ fn test_POSIX_COV_016_while_general_expression() {
 
 #[test]
 
-include!("posix_tests_incl2.rs");
+include!("posix_tests_tests_POSIX.rs");

@@ -392,4 +392,4 @@ Try: :explain ${HOME:-/tmp}
     .to_string()
 }
 
-include!("help_incl2.rs");
+include!("help_show.rs");

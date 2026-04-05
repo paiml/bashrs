@@ -358,4 +358,4 @@ pub fn format_safety_rationale(rationale: &SafetyRationale) -> String {
 
 // ===== REPL-013-003: ALTERNATIVE SUGGESTION GENERATION FUNCTIONS (RED PHASE STUBS) =====
 
-include!("purifier_transforms_incl2.rs");
+include!("purifier_transforms_generate.rs");

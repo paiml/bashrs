@@ -358,4 +358,4 @@ fn test_eprintln_macro_expr_in_match() {
 
 #[test]
 
-include!("parser_coverage_tests4_incl2.rs");
+include!("parser_coverage_tests4_tests_cont.rs");

@@ -395,4 +395,4 @@ fn test_AUDIT_COV_report_format_multiple_categories() {
 
 #[test]
 
-include!("audit_tests_incl2.rs");
+include!("audit_tests_tests_AUDIT_2.rs");

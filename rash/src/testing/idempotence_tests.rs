@@ -380,4 +380,4 @@ fn test_if_else_if_chain_idempotent() {
 
 #[test]
 
-include!("idempotence_tests_incl2.rs");
+include!("idempotence_tests_main.rs");

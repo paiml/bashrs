@@ -220,4 +220,4 @@ pub struct TypeAnnotation {
     pub is_param: bool,
 }
 
-include!("type_check_incl3.rs");
+include!("type_check_typechecker.rs");

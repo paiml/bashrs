@@ -352,4 +352,4 @@ fn test_config_validation_level_strict() {
 
 #[test]
 
-include!("config_tests_incl2.rs");
+include!("config_tests_tests_config.rs");

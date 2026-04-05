@@ -384,4 +384,4 @@ echo "Hash-based number: $num"
 
 #[test]
 
-include!("part5_incl2.rs");
+include!("part5_cont.rs");

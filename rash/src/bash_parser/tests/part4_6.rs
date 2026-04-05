@@ -405,4 +405,4 @@ printf '%.2f\n' 3.14159
 
 #[test]
 
-include!("part4_6_incl2.rs");
+include!("part4_6_cont.rs");

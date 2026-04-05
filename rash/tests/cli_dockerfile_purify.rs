@@ -378,4 +378,4 @@ CMD ["bash"]
 
 #[test]
 
-include!("cli_dockerfile_purify_incl2.rs");
+include!("cli_dockerfile_purify_tests_dockerfile_2.rs");

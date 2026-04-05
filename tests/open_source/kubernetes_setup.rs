@@ -357,4 +357,4 @@ cgroupDriver: systemd
 }
 
 
-include!("kubernetes_setup_incl2.rs");
+include!("kubernetes_setup_get.rs");

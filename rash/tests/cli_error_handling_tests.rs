@@ -356,4 +356,4 @@ fn test_version_flag() {
 
 #[test]
 
-include!("cli_error_handling_tests_incl2.rs");
+include!("cli_error_handling_tests_main.rs");

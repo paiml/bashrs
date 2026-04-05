@@ -360,4 +360,4 @@ fn install_framework_dependencies(framework: &str, manager: &str) {
 }
 
 
-include!("nodejs_project_bootstrap_incl2.rs");
+include!("nodejs_project_bootstrap_setup_2.rs");

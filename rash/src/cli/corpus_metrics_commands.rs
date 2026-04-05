@@ -380,4 +380,4 @@ pub(crate) fn corpus_dist() -> Result<()> {
     Ok(())
 }
 
-include!("corpus_metrics_commands_incl2.rs");
+include!("corpus_metrics_commands_corpus.rs");

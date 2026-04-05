@@ -359,4 +359,4 @@ fn calculate_layer_optimization_score(source: &str) -> f64 {
     score.min(10.0)
 }
 
-include!("dockerfile_scoring_incl2.rs");
+include!("dockerfile_scoring_calculate.rs");

@@ -344,4 +344,4 @@ mod arith_prec {
     }
 }
 
-include!("parser_arith_incl2.rs");
+include!("parser_arith_bashparser.rs");

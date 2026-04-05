@@ -370,4 +370,4 @@ mod installer_lock_cmd {
 // installer graph
 // ---------------------------------------------------------------------------
 
-include!("command_tests_installer_cov_incl2.rs");
+include!("command_tests_installer_cov_tests_cov_2.rs");

@@ -355,4 +355,4 @@ fn test_stmt_collect_calls_variants() {
 
 #[test]
 
-include!("restricted_tests_incl2.rs");
+include!("restricted_tests_tests_expr.rs");

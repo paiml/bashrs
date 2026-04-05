@@ -451,4 +451,4 @@ fn generate_makefile_templates(count: usize, seed: u64) -> Vec<String> {
 // Dockerfile templates
 // ============================================================================
 
-include!("expansion_generator_incl2.rs");
+include!("expansion_generator_generate.rs");

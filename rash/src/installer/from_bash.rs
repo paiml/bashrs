@@ -320,4 +320,4 @@ fn parse_sudo(line: &str) -> Option<String> {
 
 /// Generate installer.toml from extracted patterns
 
-include!("from_bash_incl3.rs");
+include!("from_bash_generate_2.rs");

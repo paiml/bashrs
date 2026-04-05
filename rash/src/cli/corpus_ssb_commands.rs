@@ -429,4 +429,4 @@ pub(crate) fn corpus_pipeline_check(json: bool) -> Result<()> {
     }
 }
 
-include!("corpus_ssb_commands_incl2.rs");
+include!("corpus_ssb_commands_corpus_2.rs");

@@ -288,4 +288,4 @@ fn process_data(num: u32, text: &str) {}
 
 #[test]
 
-include!("integration_tests_incl2.rs");
+include!("integration_tests_main.rs");

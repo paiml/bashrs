@@ -353,4 +353,4 @@ fn test_lint_shell_det_date() {
 
 #[test]
 
-include!("lint_shell_coverage_tests_incl2.rs");
+include!("lint_shell_coverage_tests_tests_lint_2.rs");

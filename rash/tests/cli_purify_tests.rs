@@ -373,4 +373,4 @@ echo $RELEASE
 
 #[test]
 
-include!("cli_purify_tests_incl2.rs");
+include!("cli_purify_tests_tests_PURIFY.rs");

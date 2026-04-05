@@ -353,4 +353,4 @@ fn test_corpus_print_failures_empty() {
 
 #[test]
 
-include!("command_tests_display_incl2.rs");
+include!("command_tests_display_tests_corpus.rs");

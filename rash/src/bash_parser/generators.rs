@@ -130,4 +130,4 @@ fn generate_stmt_assignment(name: &str, value: &BashExpr, exported: bool) -> Str
 
 /// Generate a function definition: name() { body }
 
-include!("generators_incl2.rs");
+include!("generators_generate.rs");

@@ -373,4 +373,4 @@ fn test_batch3_critical_security_rules_universal() {
 
 #[test]
 
-include!("rule_registry_tests_incl2.rs");
+include!("rule_registry_tests_tests_cont.rs");

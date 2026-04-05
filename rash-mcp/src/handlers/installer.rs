@@ -350,4 +350,4 @@ fn generate_project_name(description: &str) -> String {
 }
 
 
-include!("installer_incl2.rs");
+include!("installer_generate.rs");

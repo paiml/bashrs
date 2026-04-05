@@ -382,4 +382,4 @@ pub struct FixResult {
 /// assert!(fix_result.modified_source.is_none()); // No source in dry-run
 /// ```
 
-include!("autofix_incl2.rs");
+include!("autofix_apply.rs");

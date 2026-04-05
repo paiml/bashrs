@@ -378,4 +378,4 @@ fn test_ISSUE_059_001_nested_quotes_in_command_substitution() {
     }
 }
 
-include!("part5_s6_incl2.rs");
+include!("part5_s6_tests_ISSUE.rs");

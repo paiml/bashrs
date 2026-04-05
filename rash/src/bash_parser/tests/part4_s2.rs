@@ -467,4 +467,4 @@ trap "exit 1" INT    # Exit on Ctrl-C
 
 #[test]
 
-include!("part4_s2_incl2.rs");
+include!("part4_s2_cont.rs");

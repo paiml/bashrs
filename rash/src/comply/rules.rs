@@ -362,4 +362,4 @@ fn check_idempotency(content: &str, artifact: &Artifact) -> RuleResult {
     }
 }
 
-include!("rules_incl2.rs");
+include!("rules_check.rs");
