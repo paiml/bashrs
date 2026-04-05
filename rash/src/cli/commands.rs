@@ -574,7 +574,11 @@ fn dispatch_quality(command: Commands) -> Result<()> {
             trace,
         } => simulate_command(&input, seed, verify, mock_externals, format, trace),
         Commands::Gate { tier, report } => gate_cmds::handle_gate_command(tier, report),
-        Commands::Cfg { input, format, per_function } => cfg_cmds::cfg_command(&input, format, per_function),
+        Commands::Cfg {
+            input,
+            format,
+            per_function,
+        } => cfg_cmds::cfg_command(&input, format, per_function),
         _ => unreachable!("dispatch_quality called with non-quality command"),
     }
 }

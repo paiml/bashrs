@@ -1,0 +1,483 @@
+//! Semantic Analysis for Bash AST
+//!
+//! Performs semantic analysis including:
+//! - Variable scope resolution
+//! - Command effect tracking
+//! - Type inference (basic)
+
+use super::ast::*;
+use std::collections::{HashMap, HashSet};
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum SemanticError {
+    #[error("Undefined variable: {0}")]
+    UndefinedVariable(String),
+
+    #[error("Variable {0} used before assignment")]
+    UseBeforeAssignment(String),
+
+    #[error("Redefinition of function: {0}")]
+    FunctionRedefinition(String),
+}
+
+pub type SemanticResult<T> = Result<T, SemanticError>;
+
+/// Tracks variable scopes and their metadata
+#[derive(Debug, Clone)]
+pub struct ScopeInfo {
+    pub variables: HashMap<String, VarInfo>,
+    pub functions: HashMap<String, FunctionInfo>,
+    pub parent: Option<Box<ScopeInfo>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct VarInfo {
+    pub name: String,
+    pub exported: bool,
+    pub assigned: bool,
+    pub used: bool,
+    pub inferred_type: InferredType,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum InferredType {
+    String,
+    Integer,
+    Array,
+    Unknown,
+}
+
+#[derive(Debug, Clone)]
+pub struct FunctionInfo {
+    pub name: String,
+    pub parameter_count: usize,
+    pub calls_detected: HashSet<String>, // External commands called
+}
+
+/// Tracks side effects of commands
+#[derive(Debug, Clone)]
+pub struct EffectTracker {
+    pub file_reads: HashSet<String>,
+    pub file_writes: HashSet<String>,
+    pub network_access: bool,
+    pub process_spawns: HashSet<String>,
+    pub env_modifications: HashSet<String>,
+}
+
+impl EffectTracker {
+    pub fn new() -> Self {
+        Self {
+            file_reads: HashSet::new(),
+            file_writes: HashSet::new(),
+            network_access: false,
+            process_spawns: HashSet::new(),
+            env_modifications: HashSet::new(),
+        }
+    }
+
+    pub fn is_pure(&self) -> bool {
+        self.file_reads.is_empty()
+            && self.file_writes.is_empty()
+            && !self.network_access
+            && self.process_spawns.is_empty()
+            && self.env_modifications.is_empty()
+    }
+}
+
+impl Default for EffectTracker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub struct SemanticAnalyzer {
+    global_scope: ScopeInfo,
+    effects: EffectTracker,
+}
+
+impl SemanticAnalyzer {
+    pub fn new() -> Self {
+        Self {
+            global_scope: ScopeInfo {
+                variables: HashMap::new(),
+                functions: HashMap::new(),
+                parent: None,
+            },
+            effects: EffectTracker::new(),
+        }
+    }
+
+    pub fn analyze(&mut self, ast: &BashAst) -> SemanticResult<AnalysisReport> {
+        // Contract: parser-soundness-v1.yaml precondition (pv codegen)
+        contract_pre_semantic_analyze!(ast);
+        // Take ownership temporarily to avoid borrow checker issues
+        let mut scope = std::mem::replace(
+            &mut self.global_scope,
+            ScopeInfo {
+                variables: HashMap::new(),
+                functions: HashMap::new(),
+                parent: None,
+            },
+        );
+
+        for stmt in &ast.statements {
+            self.analyze_statement(stmt, &mut scope)?;
+        }
+
+        // Put the scope back
+        self.global_scope = scope;
+
+        Ok(AnalysisReport {
+            scope_info: self.global_scope.clone(),
+            effects: self.effects.clone(),
+            warnings: vec![],
+        })
+    }
+
+    fn analyze_statement(&mut self, stmt: &BashStmt, scope: &mut ScopeInfo) -> SemanticResult<()> {
+        match stmt {
+            BashStmt::Assignment {
+                name,
+                value,
+                exported,
+                ..
+            } => self.analyze_assignment_stmt(name, value, *exported, scope),
+
+            BashStmt::Command { name, args, .. } => self.analyze_command_stmt(name, args, scope),
+
+            BashStmt::Function { name, body, .. } => self.analyze_function_def(name, body, scope),
+
+            BashStmt::If {
+                condition,
+                then_block,
+                elif_blocks,
+                else_block,
+                ..
+            } => self.analyze_if_stmt(condition, then_block, elif_blocks, else_block, scope),
+
+            BashStmt::While {
+                condition, body, ..
+            }
+            | BashStmt::Until {
+                condition, body, ..
+            }
+            | BashStmt::For {
+                items: condition,
+                body,
+                ..
+            } => {
+                self.analyze_expression(condition, scope)?;
+                self.analyze_body(body, scope)
+            }
+
+            // Issue #68: C-style for loop
+            BashStmt::ForCStyle { body, .. } => self.analyze_body(body, scope),
+
+            BashStmt::Return { code, .. } => {
+                if let Some(expr) = code {
+                    self.analyze_expression(expr, scope)?;
+                }
+                Ok(())
+            }
+
+            BashStmt::Comment { .. } => Ok(()),
+
+            BashStmt::Case { word, arms, .. } => self.analyze_case_stmt(word, arms, scope),
+
+            BashStmt::Pipeline { commands, .. } => self.analyze_body(commands, scope),
+
+            BashStmt::AndList { left, right, .. } | BashStmt::OrList { left, right, .. } => {
+                self.analyze_statement(left, scope)?;
+                self.analyze_statement(right, scope)
+            }
+
+            BashStmt::BraceGroup { body, .. } | BashStmt::Coproc { body, .. } => {
+                self.analyze_body(body, scope)
+            }
+
+            BashStmt::Select { variable, body, .. } => {
+                self.analyze_select_stmt(variable, body, scope)
+            }
+
+            BashStmt::Negated { command, .. } => self.analyze_statement(command, scope),
+        }
+    }
+
+    /// Analyze a variable assignment statement.
+    fn analyze_assignment_stmt(
+        &mut self,
+        name: &str,
+        value: &BashExpr,
+        exported: bool,
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        let inferred_type = self.infer_type(value);
+
+        scope.variables.insert(
+            name.to_string(),
+            VarInfo {
+                name: name.to_string(),
+                exported,
+                assigned: true,
+                used: false,
+                inferred_type,
+            },
+        );
+
+        if exported {
+            self.effects.env_modifications.insert(name.to_string());
+        }
+
+        self.analyze_expression(value, scope)
+    }
+
+    /// Analyze a command statement, tracking effects and spawns.
+    fn analyze_command_stmt(
+        &mut self,
+        name: &str,
+        args: &[BashExpr],
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        self.track_command_effects(name);
+        self.effects.process_spawns.insert(name.to_string());
+
+        for arg in args {
+            self.analyze_expression(arg, scope)?;
+        }
+        Ok(())
+    }
+
+    /// Analyze a function definition, creating a child scope.
+    fn analyze_function_def(
+        &mut self,
+        name: &str,
+        body: &[BashStmt],
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        if scope.functions.contains_key(name) {
+            return Err(SemanticError::FunctionRedefinition(name.to_string()));
+        }
+
+        let mut func_scope = ScopeInfo {
+            variables: HashMap::new(),
+            functions: HashMap::new(),
+            parent: Some(Box::new(scope.clone())),
+        };
+
+        let mut calls = HashSet::new();
+        for stmt in body {
+            if let BashStmt::Command { name, .. } = stmt {
+                calls.insert(name.clone());
+            }
+            self.analyze_statement(stmt, &mut func_scope)?;
+        }
+
+        scope.functions.insert(
+            name.to_string(),
+            FunctionInfo {
+                name: name.to_string(),
+                parameter_count: 0, // TODO: detect from $1, $2, etc.
+                calls_detected: calls,
+            },
+        );
+        Ok(())
+    }
+
+    /// Analyze an if/elif/else statement.
+    fn analyze_if_stmt(
+        &mut self,
+        condition: &BashExpr,
+        then_block: &[BashStmt],
+        elif_blocks: &[(BashExpr, Vec<BashStmt>)],
+        else_block: &Option<Vec<BashStmt>>,
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        self.analyze_expression(condition, scope)?;
+        self.analyze_body(then_block, scope)?;
+
+        for (elif_cond, elif_body) in elif_blocks {
+            self.analyze_expression(elif_cond, scope)?;
+            self.analyze_body(elif_body, scope)?;
+        }
+
+        if let Some(else_body) = else_block {
+            self.analyze_body(else_body, scope)?;
+        }
+        Ok(())
+    }
+
+    /// Analyze a case statement with pattern arms.
+    fn analyze_case_stmt(
+        &mut self,
+        word: &BashExpr,
+        arms: &[CaseArm],
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        self.analyze_expression(word, scope)?;
+
+        for arm in arms {
+            self.analyze_body(&arm.body, scope)?;
+        }
+        Ok(())
+    }
+
+    /// Analyze a select statement, registering the iteration variable.
+    fn analyze_select_stmt(
+        &mut self,
+        variable: &str,
+        body: &[BashStmt],
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        // F017: Analyze select statement - variable is assigned in each iteration
+        scope.variables.insert(
+            variable.to_string(),
+            VarInfo {
+                name: variable.to_string(),
+                exported: false,
+                assigned: true,
+                used: false,
+                inferred_type: InferredType::String, // User selection is string
+            },
+        );
+        self.analyze_body(body, scope)
+    }
+
+    /// Analyze a sequence of statements (loop body, block, etc.).
+    fn analyze_body(&mut self, body: &[BashStmt], scope: &mut ScopeInfo) -> SemanticResult<()> {
+        for stmt in body {
+            self.analyze_statement(stmt, scope)?;
+        }
+        Ok(())
+    }
+
+    fn analyze_expression(&mut self, expr: &BashExpr, scope: &mut ScopeInfo) -> SemanticResult<()> {
+        match expr {
+            BashExpr::Variable(name) => {
+                // Mark variable as used
+                // Note: We don't error on undefined variables in bash
+                // since they can come from environment
+                Self::mark_var_used(scope, name);
+            }
+
+            BashExpr::CommandSubst(cmd) | BashExpr::CommandCondition(cmd) => {
+                self.analyze_statement(cmd, scope)?;
+            }
+
+            BashExpr::Array(items) | BashExpr::Concat(items) => {
+                for item in items {
+                    self.analyze_expression(item, scope)?;
+                }
+            }
+
+            BashExpr::Test(test_expr) => {
+                self.analyze_test_expr(test_expr, scope)?;
+            }
+
+            BashExpr::Literal(_) | BashExpr::Glob(_) => {}
+
+            BashExpr::Arithmetic(arith) => {
+                self.analyze_arithmetic(arith, scope)?;
+            }
+
+            BashExpr::DefaultValue { variable, default }
+            | BashExpr::ErrorIfUnset {
+                variable,
+                message: default,
+            } => {
+                Self::mark_var_used(scope, variable);
+                self.analyze_expression(default, scope)?;
+            }
+
+            BashExpr::AlternativeValue {
+                variable,
+                alternative,
+            } => {
+                Self::mark_var_used(scope, variable);
+                self.analyze_expression(alternative, scope)?;
+            }
+
+            BashExpr::AssignDefault { variable, default } => {
+                self.analyze_assign_default(variable, default, scope)?;
+            }
+
+            BashExpr::StringLength { variable } => {
+                Self::mark_var_used(scope, variable);
+            }
+
+            BashExpr::RemoveSuffix { variable, pattern }
+            | BashExpr::RemovePrefix { variable, pattern }
+            | BashExpr::RemoveLongestPrefix { variable, pattern }
+            | BashExpr::RemoveLongestSuffix { variable, pattern } => {
+                Self::mark_var_used(scope, variable);
+                self.analyze_expression(pattern, scope)?;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Mark a variable as used in the given scope.
+    fn mark_var_used(scope: &mut ScopeInfo, name: &str) {
+        if let Some(var) = scope.variables.get_mut(name) {
+            var.used = true;
+        }
+    }
+
+    /// Analyze ${VAR:=default} — assigns to VAR if unset.
+    fn analyze_assign_default(
+        &mut self,
+        variable: &str,
+        default: &BashExpr,
+        scope: &mut ScopeInfo,
+    ) -> SemanticResult<()> {
+        if let Some(var) = scope.variables.get_mut(variable) {
+            var.used = true;
+            var.assigned = true;
+        } else {
+            scope.variables.insert(
+                variable.to_string(),
+                VarInfo {
+                    name: variable.to_string(),
+                    exported: false,
+                    assigned: true,
+                    used: true,
+                    inferred_type: InferredType::Unknown,
+                },
+            );
+        }
+        self.analyze_expression(default, scope)
+    }
+
+    fn analyze_test_expr(&mut self, test: &TestExpr, scope: &mut ScopeInfo) -> SemanticResult<()> {
+        match test {
+            TestExpr::StringEq(a, b)
+            | TestExpr::StringNe(a, b)
+            | TestExpr::IntEq(a, b)
+            | TestExpr::IntNe(a, b)
+            | TestExpr::IntLt(a, b)
+            | TestExpr::IntLe(a, b)
+            | TestExpr::IntGt(a, b)
+            | TestExpr::IntGe(a, b) => {
+                self.analyze_expression(a, scope)?;
+                self.analyze_expression(b, scope)?;
+            }
+
+            TestExpr::FileExists(path)
+            | TestExpr::FileReadable(path)
+            | TestExpr::FileWritable(path)
+            | TestExpr::FileExecutable(path)
+            | TestExpr::FileDirectory(path) => {
+                self.analyze_expression(path, scope)?;
+                // File tests imply file reads
+                if let BashExpr::Literal(p) = path {
+                    self.effects.file_reads.insert(p.clone());
+                }
+            }
+
+            TestExpr::StringEmpty(s) | TestExpr::StringNonEmpty(s) => {
+                self.analyze_expression(s, scope)?;
+            }
+
+
+            include!("semantic_part2_incl2.rs");

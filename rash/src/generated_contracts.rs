@@ -157,4 +157,3 @@ macro_rules! contract_pre_lint_shell {
         let _contract_input = &$input;
     }};
 }
-
