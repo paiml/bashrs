@@ -68,7 +68,7 @@ Playbook                ✅ Complete     State machine testing (probar)
 Simulate                ✅ Complete     Deterministic replay
 LSP                     ✅ Core         bashrs lsp (diagnostics + Quick Fix code actions)
 CFG Analysis            ✅ Complete     bashrs cfg (formal CFG + complexity metrics)
-File Health             ⚠️ 75% done    73/298 files >500 lines remain (grade B, was C)
+File Health             ⚠️ 89% done    33/298 files >500 remain (grade B, 0 >2K)
 32 total subcommands
 ```
 
