@@ -14,7 +14,8 @@
 //!
 //! Split into:
 //! - `runner_types.rs`: Data types (CorpusResult, FormatScore, CorpusScore, etc.)
-//! - `runner_helpers.rs`: Validation, schema checks, MR relations, coverage detection
+//! - `runner_helpers.rs`: Free functions for coverage detection, error classification
+//! - `runner_checks.rs`: Validation methods (MR relations, schema, lint, behavioral)
 //! - `runner.rs` (this file): CorpusRunner struct and core run/compute/convergence methods
 
 use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, Grade};
@@ -22,7 +23,7 @@ use crate::models::Config;
 use std::collections::HashMap;
 
 // Re-export types so `crate::corpus::runner::TypeName` paths keep working.
-pub use super::runner_helpers::{
+pub(crate) use super::runner_helpers::{
     check_exact_match, classify_error, detect_coverage_ratio, detect_test_exists,
     extract_test_names, format_file_patterns, parse_lcov_file_coverage,
 };

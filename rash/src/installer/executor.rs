@@ -494,12 +494,4 @@ impl StepExecutor {
     }
 }
 
-impl Default for StepExecutor {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(test)]
-#[path = "executor_tests_extracted.rs"]
-mod tests_extracted;
+include!("executor_incl2.rs");
