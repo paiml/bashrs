@@ -1,3 +1,51 @@
+
+/// REDIR-001: RED Phase
+/// Test input redirection execution
+#[test]
+#[ignore]
+fn test_input_redirection_execution() {
+    let source = r#"
+fn main() {
+    let content = cat("input.txt");
+    echo(&content);
+}
+
+fn cat(file: &str) -> String { String::new() }
+fn echo(msg: &str) {}
+"#;
+
+    let config = Config::default();
+    let shell = transpile(source, &config).unwrap();
+
+    // Create test environment
+    let temp_dir = TempDir::new().unwrap();
+    let script_path = temp_dir.path().join("test_redir.sh");
+    let input_path = temp_dir.path().join("input.txt");
+
+    // Write test input
+    fs::write(&input_path, "Hello from file").unwrap();
+
+    // Modify script to use the temp input file
+    let modified_shell = shell.replace("input.txt", input_path.to_str().unwrap());
+    fs::write(&script_path, modified_shell).unwrap();
+
+    let output = Command::new("sh")
+        .arg(&script_path)
+        .output()
+        .expect("Failed to execute shell script");
+
+    assert!(
+        output.status.success(),
+        "Script should execute successfully"
+    );
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(
+        stdout.contains("Hello from file"),
+        "Should read content from redirected file"
+    );
+}
+
+include!("integration_tests_main_part3.rs");
 #[test]
 fn test_output_redirection_baseline() {
     let source = r#"
