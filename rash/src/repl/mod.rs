@@ -182,6 +182,7 @@ pub mod multiline;
 pub mod parser;
 pub mod purifier;
 pub mod purifier_transforms;
+pub mod purifier_transforms_gen;
 pub mod state;
 pub mod variables;
 
