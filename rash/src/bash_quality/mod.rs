@@ -16,6 +16,7 @@ pub mod dockerfile_scoring;
 pub mod formatter;
 #[allow(clippy::expect_used)] // Formatter config uses expect() for internal invariants
 pub mod formatter_config;
+mod formatter_expr;
 pub mod linter;
 pub mod scoring;
 pub mod scoring_config;
