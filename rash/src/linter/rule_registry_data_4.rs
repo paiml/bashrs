@@ -5,6 +5,13 @@ use crate::linter::shell_compatibility::ShellCompatibility;
 use std::collections::HashMap;
 
 pub(crate) fn register(registry: &mut HashMap<&'static str, RuleMetadata>) {
+    register_batch_a(registry);
+    register_batch_b(registry);
+    register_batch_c(registry);
+    super::rule_registry_data_4_more::register_more(registry);
+}
+
+fn register_batch_a(registry: &mut HashMap<&'static str, RuleMetadata>) {
     // === BATCH 15 CLASSIFICATIONS (13 rules) ===
 
     // Batch 15: Bash-specific parameter expansion (NotSh)
@@ -123,6 +130,9 @@ pub(crate) fn register(registry: &mut HashMap<&'static str, RuleMetadata>) {
 
     // === BATCH 16 CLASSIFICATIONS (6 rules) ===
 
+}
+
+fn register_batch_b(registry: &mut HashMap<&'static str, RuleMetadata>) {
     // Batch 16: Positional parameters & arithmetic (Universal)
     registry.insert(
         "SC2320",
@@ -230,6 +240,9 @@ pub(crate) fn register(registry: &mut HashMap<&'static str, RuleMetadata>) {
         },
     );
 
+}
+
+fn register_batch_c(registry: &mut HashMap<&'static str, RuleMetadata>) {
     // Batch 17: Parameter Expansion & Command Optimization (Mixed)
     registry.insert(
         "SC2292",
@@ -403,5 +416,4 @@ pub(crate) fn register(registry: &mut HashMap<&'static str, RuleMetadata>) {
             compatibility: ShellCompatibility::Universal,
         },
     );
-    super::rule_registry_data_4_more::register_more(registry);
 }
