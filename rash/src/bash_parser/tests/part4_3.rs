@@ -509,4 +509,3 @@ fi
     // 3. Build relative paths
     // 4. Check current directory
 }
-

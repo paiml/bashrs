@@ -490,4 +490,3 @@ fn test_lint_profile_display() {
     assert_eq!(LintProfile::Coursera.to_string(), "coursera");
     assert_eq!(LintProfile::DevContainer.to_string(), "devcontainer");
 }
-

@@ -479,4 +479,3 @@ fn test_BUILTIN_016_test_common_patterns() {
         "common test patterns should tokenize",
     );
 }
-

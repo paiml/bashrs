@@ -494,4 +494,3 @@ fn test_safety_rationale_add_attack_vector() {
         .attack_vectors_closed
         .contains(&"Path traversal".to_string()));
 }
-

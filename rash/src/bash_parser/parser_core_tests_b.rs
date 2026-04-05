@@ -496,4 +496,3 @@ fn test_parser_with_tracer() {
     let parser = BashParser::new("echo hello").unwrap().with_tracer(tracer);
     assert!(parser.tracer.is_some());
 }
-

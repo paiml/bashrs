@@ -479,4 +479,3 @@ mod comply_integration {
             ArtifactKind::Dockerfile,
         )
     }
-

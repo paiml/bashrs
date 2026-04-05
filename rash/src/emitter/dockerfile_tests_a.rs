@@ -496,4 +496,3 @@ fn test_DOCKER_COV_019_expose_i32() {
     let result = emit_dockerfile(&ast).unwrap();
     assert!(result.contains("EXPOSE 9090"), "I32 expose in: {result}");
 }
-

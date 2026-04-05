@@ -485,5 +485,3 @@ echo "${var:=assign}"
         result.err()
     );
 }
-
-/// F014: Parser handles here-string

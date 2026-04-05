@@ -496,4 +496,3 @@ wc -w <<< "count these words"
         }
     }
 }
-

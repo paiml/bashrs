@@ -50,3 +50,19 @@ mod tests;
 #[cfg(test)]
 #[path = "lint_shell_coverage_tests.rs"]
 mod lint_shell_coverage_tests;
+
+#[cfg(test)]
+#[path = "rule_registry_tests_s2.rs"]
+mod rule_registry_tests_s2;
+#[cfg(test)]
+#[path = "rule_registry_tests_s3.rs"]
+mod rule_registry_tests_s3;
+#[cfg(test)]
+#[path = "rule_registry_tests_s4.rs"]
+mod rule_registry_tests_s4;
+#[cfg(test)]
+#[path = "rule_registry_tests_s5.rs"]
+mod rule_registry_tests_s5;
+#[cfg(test)]
+#[path = "rule_registry_tests_s6.rs"]
+mod rule_registry_tests_s6;

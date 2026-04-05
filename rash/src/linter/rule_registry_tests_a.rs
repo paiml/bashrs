@@ -496,4 +496,3 @@ fn test_batch7_find_glob_efficiency_universal() {
         );
     }
 }
-

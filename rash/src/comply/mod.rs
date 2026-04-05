@@ -29,3 +29,7 @@ mod rules_tests;
 #[cfg(test)]
 #[path = "scoring_tests.rs"]
 mod scoring_tests;
+
+#[cfg(test)]
+#[path = "tests_s2.rs"]
+mod tests_s2;

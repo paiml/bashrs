@@ -497,4 +497,3 @@ fn test_generate_test_expr_file_executable() {
     let output = generate_test_expr(&expr);
     assert!(output.contains("-x /tmp"));
 }
-

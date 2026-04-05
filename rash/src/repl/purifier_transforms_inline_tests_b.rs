@@ -488,4 +488,3 @@ fn test_PURIFIER_COV_010_format_report_single_idempotency() {
     assert!(report.contains("mkdir /tmp/test"));
     assert!(report.contains("mkdir -p /tmp/test"));
 }
-

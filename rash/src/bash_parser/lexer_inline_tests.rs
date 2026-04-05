@@ -493,4 +493,3 @@ fn test_lexer_return() {
     let tokens = lexer.tokenize().unwrap();
     assert!(tokens.contains(&Token::Return));
 }
-

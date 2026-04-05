@@ -495,4 +495,3 @@ proptest! {
         let second = session.get_env(&var_name);
         prop_assert_eq!(first, second, "get_env should be deterministic");
     }
-

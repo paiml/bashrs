@@ -499,4 +499,3 @@ echo "line3" >> log.txt  # Keeps both
         }
     }
 }
-

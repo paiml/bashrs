@@ -490,4 +490,3 @@ popd
     // - Hard to trace (where are we now?)
     // - Explicit variables are clearer
 }
-

@@ -493,4 +493,3 @@ fn test_COV_POSIX_065_runtime_rash_string_replace() {
     let result = emitter().emit(&ir).unwrap();
     assert!(result.contains("rash_string_replace()"));
 }
-

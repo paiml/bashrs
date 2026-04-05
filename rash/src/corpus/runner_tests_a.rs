@@ -487,4 +487,3 @@ fn test_CORPUS_RUN_045_regression_score_drop() {
     assert_eq!(report.regressions.len(), 1);
     assert_eq!(report.regressions[0].dimension, "score");
 }
-

@@ -477,5 +477,3 @@ SPECIAL="hello\nworld"
         "F050 FALSIFIED: Purifier MUST handle edge cases"
     );
 }
-
-/// F051: Purified rm uses -f flag for idempotency

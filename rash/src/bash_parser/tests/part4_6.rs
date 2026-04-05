@@ -533,4 +533,3 @@ printf 'Name:\t%s\nAge:\t%d\nCity:\t%s\n' "Alice" 30 "NYC"
         }
     }
 }
-

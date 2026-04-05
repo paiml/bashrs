@@ -1,28 +1,32 @@
-name: 'bashrs lint'
-description: 'Lint shell scripts with bashrs for safety, determinism, and idempotency'
+name: 'bashrs'
+description: 'Lint, score, test, and analyze shell scripts with bashrs'
 branding:
   icon: 'shield'
   color: 'green'
 
 inputs:
+  command:
+    description: 'bashrs subcommand to run (lint, score, property, coverage, test, gate)'
+    required: false
+    default: 'lint'
   files:
-    description: 'Files or directories to lint (space-separated)'
+    description: 'Files or directories to analyze (space-separated)'
     required: false
     default: '.'
+  args:
+    description: 'Additional arguments passed to the bashrs command'
+    required: false
+    default: ''
   format:
-    description: 'Output format (human, json, sarif)'
+    description: 'Output format (human, json, sarif — availability depends on command)'
     required: false
     default: 'human'
-  level:
-    description: 'Minimum severity level to display (info, warning, error)'
-    required: false
-    default: 'info'
   fail-on:
-    description: 'Minimum severity to trigger non-zero exit (info, warning, error)'
+    description: 'Minimum severity to trigger non-zero exit (lint only: info, warning, error)'
     required: false
     default: 'warning'
   upload-sarif:
-    description: 'Upload SARIF results to GitHub Code Scanning'
+    description: 'Upload SARIF results to GitHub Code Scanning (lint only)'
     required: false
     default: 'false'
   version:
@@ -43,21 +47,53 @@ runs:
         fi
 
     - name: Add problem matcher
+      if: inputs.command == 'lint'
       shell: bash
       run: echo "::add-matcher::${{ github.action_path }}/.github/bashrs-problem-matcher.json"
 
-    - name: Run bashrs lint
+    - name: Run bashrs
       shell: bash
       run: |
-        ARGS="--ci --fail-on ${{ inputs.fail-on }} --level ${{ inputs.level }}"
-        if [ "${{ inputs.upload-sarif }}" = "true" ]; then
-          bashrs lint ${{ inputs.files }} --format sarif $ARGS > bashrs-results.sarif 2>&1 || true
-        else
-          bashrs lint ${{ inputs.files }} $ARGS
-        fi
+        CMD="${{ inputs.command }}"
+        FILES="${{ inputs.files }}"
+        EXTRA="${{ inputs.args }}"
+
+        case "$CMD" in
+          lint)
+            ARGS="--ci --fail-on ${{ inputs.fail-on }}"
+            if [ "${{ inputs.format }}" != "human" ]; then
+              ARGS="$ARGS --format ${{ inputs.format }}"
+            fi
+            if [ "${{ inputs.upload-sarif }}" = "true" ]; then
+              bashrs lint $FILES --format sarif $ARGS $EXTRA > bashrs-results.sarif 2>&1 || true
+            else
+              bashrs lint $FILES $ARGS $EXTRA
+            fi
+            ;;
+          score)
+            bashrs score $FILES --format ${{ inputs.format }} $EXTRA
+            ;;
+          property)
+            bashrs property $FILES --format ${{ inputs.format }} $EXTRA
+            ;;
+          coverage)
+            bashrs coverage $FILES --format terminal $EXTRA
+            ;;
+          test)
+            bashrs test $FILES $EXTRA
+            ;;
+          gate)
+            bashrs gate $EXTRA
+            ;;
+          *)
+            echo "::error::Unknown bashrs command: $CMD"
+            echo "Valid commands: lint, score, property, coverage, test, gate"
+            exit 1
+            ;;
+        esac
 
     - name: Upload SARIF
-      if: inputs.upload-sarif == 'true' && always()
+      if: inputs.command == 'lint' && inputs.upload-sarif == 'true' && always()
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: bashrs-results.sarif

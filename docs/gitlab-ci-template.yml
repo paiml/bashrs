@@ -1,0 +1,57 @@
+# GitLab CI template for bashrs
+# Copy this to your project's .gitlab-ci.yml or include it via:
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/paiml/bashrs/main/docs/gitlab-ci-template.yml'
+
+stages:
+  - quality
+
+# Lint shell scripts
+bashrs-lint:
+  stage: quality
+  image: rust:latest
+  before_script:
+    - cargo install bashrs
+  script:
+    - bashrs lint scripts/ --ci --fail-on warning
+  rules:
+    - changes:
+        - "**/*.sh"
+        - "**/Makefile"
+        - "**/Dockerfile"
+
+# Quality score
+bashrs-score:
+  stage: quality
+  image: rust:latest
+  before_script:
+    - cargo install bashrs
+  script:
+    - bashrs score scripts/deploy.sh --format json
+  rules:
+    - changes:
+        - "**/*.sh"
+  allow_failure: true
+
+# Property testing
+bashrs-property:
+  stage: quality
+  image: rust:latest
+  before_script:
+    - cargo install bashrs
+  script:
+    - bashrs property scripts/ --properties idempotency,determinism,safety
+  rules:
+    - changes:
+        - "**/*.sh"
+
+# Quality gate (merge request only)
+bashrs-gate:
+  stage: quality
+  image: rust:latest
+  before_script:
+    - cargo install bashrs
+  script:
+    - bashrs gate --tier standard
+  rules:
+    - if: $CI_MERGE_REQUEST_ID

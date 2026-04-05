@@ -1,0 +1,70 @@
+# Example: Using bashrs GitHub Action
+# Copy this to your repo's .github/workflows/ directory
+#
+# This workflow demonstrates lint, score, and property checking.
+# See action.yml for all available inputs.
+
+name: Shell Script Quality
+
+on:
+  push:
+    paths: ['**/*.sh', '**/Makefile']
+  pull_request:
+    paths: ['**/*.sh', '**/Makefile']
+
+jobs:
+  lint:
+    name: Lint Shell Scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: paiml/bashrs@main
+        with:
+          command: lint
+          files: scripts/
+          fail-on: warning
+
+  lint-sarif:
+    name: Lint (SARIF → Security Tab)
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: paiml/bashrs@main
+        with:
+          command: lint
+          files: scripts/
+          upload-sarif: 'true'
+
+  score:
+    name: Quality Score
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: paiml/bashrs@main
+        with:
+          command: score
+          files: scripts/deploy.sh
+          args: '--grade B'
+
+  property:
+    name: Property Testing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: paiml/bashrs@main
+        with:
+          command: property
+          files: scripts/deploy.sh
+          args: '--properties idempotency,determinism,safety'
+
+  gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: paiml/bashrs@main
+        with:
+          command: gate
+          args: '--tier production'

@@ -495,4 +495,3 @@ fn test_generate_arith_sub() {
     let output = generate_arith_expr(&expr);
     assert_eq!(output, "a - 1");
 }
-

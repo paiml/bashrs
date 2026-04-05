@@ -480,4 +480,3 @@ fn test_ASSIGN_COV_020_empty_assignment_before_pipe() {
         "Should parse empty assignment before pipe"
     );
 }
-

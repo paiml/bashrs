@@ -503,4 +503,3 @@ export CONFIG_FILE="/etc/app.conf"
     // | export -n VAR       | Unexport (bash)          | ✗     | ✓    | ✗      |
     // | export -f func      | Export function (bash)   | ✗     | ✓    | ✗      |
 }
-

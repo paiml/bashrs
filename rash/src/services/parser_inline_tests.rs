@@ -494,4 +494,3 @@ fn test_parse_multiple_main_functions_error() {
         .to_string()
         .contains("Multiple #[bashrs::main] functions found"));
 }
-

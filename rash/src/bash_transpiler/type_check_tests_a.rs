@@ -482,4 +482,3 @@ fn test_annotation_hint_preserved() {
     checker.check_ast(&ast);
     assert_eq!(checker.annotation_hint("config"), Some("path"));
 }
-

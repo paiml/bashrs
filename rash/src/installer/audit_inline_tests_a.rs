@@ -455,4 +455,3 @@ content = "eval $DYNAMIC_CMD"
         );
         assert!(report.findings.iter().any(|f| f.rule_id == "SEC008"));
     }
-

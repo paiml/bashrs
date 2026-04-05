@@ -492,4 +492,3 @@ unset data[x]               # Delete key
     // - No POSIX equivalent
     // - Use separate variables for portability
 }
-

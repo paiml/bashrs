@@ -49,6 +49,7 @@ rand = { version = "0.9", optional = true }
 rand_chacha = { version = "0.9", optional = true }
 batuta-common = "0.1"
 static_assertions = "1.1"
+rayon = "1.10"  # Parallel file linting (Sprint 14)
 regex = "1.10"  # For linter pattern matching
 glob = "0.3"    # For .bashrsignore pattern matching (Issue #58)
 rustyline = { workspace = true, optional = true }  # REPL terminal line editing
@@ -57,6 +58,13 @@ schemars = "0.8"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "6.60", optional = true }  # ML-powered error classification
 aprender = { version = "0.27", optional = true }  # BPE tokenizer for SSC C-TOK-001
 entrenar = { version = "0.7", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
+
+# Watch mode dependencies (file system watching)
+notify = { version = "7.0", optional = true }  # Cross-platform filesystem notifications
+notify-debouncer-mini = { version = "0.5", optional = true }  # Debounced file events
+
+# LSP dependencies (Language Server Protocol)
+tower-lsp = { version = "0.20", optional = true }  # LSP server framework
 
 # Compile mode dependencies (optional - not needed for WASM)
 zstd = { version = "0.13", optional = true }
@@ -77,7 +85,7 @@ crossterm = { version = "0.28", optional = true }
 
 [features]
 # Default includes core features for full functionality
-default = ["validation", "pretty-errors", "basic", "compile", "clap", "tokio", "tracing-subscriber", "rand", "rand_chacha", "rustyline", "sysinfo"]
+default = ["validation", "pretty-errors", "basic", "compile", "clap", "tokio", "tracing-subscriber", "rand", "rand_chacha", "rustyline", "sysinfo", "watch"]
 # Minimal build for smallest binary size (<3MB)
 minimal = []
 # Full build with all features (~6MB)
@@ -91,9 +99,9 @@ verification = []  # ["z3"] when available
 optimization = []
 validation = []
 pretty-errors = []
-lsp = []
+lsp = ["tower-lsp", "tokio"]  # Language Server Protocol for editor integration (Sprint 8)
 completions = []
-watch = []
+watch = ["notify", "notify-debouncer-mini"]  # File watching with debounced re-runs (World-Class Linter Spec)
 oracle = ["bashrs-oracle"]  # ML-powered error classification and fix suggestions
 ml = ["aprender", "entrenar"]  # SSC tokenizer validation, CodeBERT encoder, and ML classifier integration
 tui = ["ratatui", "crossterm"]  # Terminal UI with multi-panel layout

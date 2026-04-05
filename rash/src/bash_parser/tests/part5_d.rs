@@ -203,4 +203,3 @@ test_isolated() {
     // bashrs enforces DETERMINISTIC testing (foreground execution)
     // NEVER use background jobs in test code
 }
-

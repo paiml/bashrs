@@ -472,4 +472,3 @@ fn test_generate_purified_bash_pipeline() {
     let output = generate_purified_bash(&ast);
     assert!(output.contains("echo hello | grep h"));
 }
-

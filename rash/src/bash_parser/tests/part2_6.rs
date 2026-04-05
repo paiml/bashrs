@@ -533,4 +533,3 @@ command2
 // - HISTFILE - History file location
 // - HISTSIZE - History size limit
 // - fc command - Fix/repeat commands
-

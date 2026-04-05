@@ -486,4 +486,3 @@ fn test_TEST_OR_002_single_bracket() {
     let ast = parser.parse();
     assert!(ast.is_ok(), "-o inside [ ] should parse: {:?}", ast.err());
 }
-

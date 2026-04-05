@@ -502,4 +502,3 @@ jobs
     //
     // All options are interactive-only and NOT SUPPORTED in bashrs.
 }
-

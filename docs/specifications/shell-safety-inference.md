@@ -270,7 +270,7 @@ bashrs corpus ssc-report --gate
 ### Linting
 
 ```
-bashrs lint script.sh                # Lint shell script (14 rules)
+bashrs lint script.sh                # Lint shell script (502 rules)
 bashrs lint --makefile Makefile      # Lint Makefile
 bashrs lint --dockerfile Dockerfile  # Lint Dockerfile
 bashrs purify script.sh              # Determinism + idempotency enforcement

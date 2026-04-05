@@ -463,4 +463,3 @@
         let ir = from_ast(&ast).expect("Nested return __if_expr in else (elif) should work");
         assert_ir_is_sequence(&ir);
     }
-

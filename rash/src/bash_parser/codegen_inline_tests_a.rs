@@ -492,4 +492,3 @@ fn test_convert_c_increment_postfix_increment() {
     let output = convert_c_increment_to_posix("i++");
     assert_eq!(output, "i=$((i+1))");
 }
-

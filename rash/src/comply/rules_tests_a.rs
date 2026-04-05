@@ -485,4 +485,3 @@ fn test_docker_latest_from() {
         .iter()
         .any(|v| v.message.contains("DOCKER001")));
 }
-

@@ -44,4 +44,3 @@ fi
     let ast = parser.parse().unwrap();
     assert!(matches!(&ast.statements[0], BashStmt::If { .. }));
 }
-

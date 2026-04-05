@@ -569,4 +569,3 @@ rm -f "$temp_file"
 PATH="$HOME/.local/bin:$PATH"
 export PATH
 "#;
-

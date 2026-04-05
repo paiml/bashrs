@@ -94,3 +94,19 @@ struct IrConverter {
     /// and `x` is already in this set, it's a shadow that needs renaming.
     declared_vars: std::cell::RefCell<std::collections::HashSet<String>>,
 }
+
+#[cfg(test)]
+#[path = "tests_s2.rs"]
+mod tests_s2;
+#[cfg(test)]
+#[path = "tests_s3.rs"]
+mod tests_s3;
+#[cfg(test)]
+#[path = "tests_s4.rs"]
+mod tests_s4;
+#[cfg(test)]
+#[path = "tests_s5.rs"]
+mod tests_s5;
+#[cfg(test)]
+#[path = "tests_s6.rs"]
+mod tests_s6;

@@ -493,4 +493,3 @@ printf 'Hello\n'
         "Purified printf should parse without errors"
     );
 }
-
