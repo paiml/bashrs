@@ -593,6 +593,10 @@ impl Oracle {
     }
 }
 
-#[cfg(test)]
-#[path = "lib_tests_extracted.rs"]
-mod tests_extracted;
+
+
+
+
+
+
+include!("lib_cont_6.rs");
