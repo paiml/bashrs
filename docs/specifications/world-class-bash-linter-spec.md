@@ -39,7 +39,7 @@
 7. **Mutation** - Fault injection for test quality validation
 8. **Score** - Unified quality metric (TDG + Ruchy integration)
 
-### Current State (v6.65.1 — Updated 2026-04-04)
+### Current State (v6.65.1 — Updated 2026-04-05)
 
 ```
 Capability              Status          Coverage
@@ -68,8 +68,9 @@ Playbook                ✅ Complete     State machine testing (probar)
 Simulate                ✅ Complete     Deterministic replay
 LSP                     ✅ Core         bashrs lsp (diagnostics + Quick Fix code actions)
 CFG Analysis            ✅ Complete     bashrs cfg (formal CFG + complexity metrics)
-File Health             ✅ Complete     0/298 files >500 (grade A, all semantic names)
-32 total subcommands
+File Health             ✅ Complete     0/298 files >500 lines (grade B, all semantic names)
+Comply                  ⚠️ 2 failures   CB-200 (2 data fns grade B), CB-1308 (verification ladder)
+33 total subcommands
 ```
 
 ### Target State (v3.0.0 - World-Class)
