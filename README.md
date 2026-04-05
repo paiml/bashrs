@@ -1,100 +1,96 @@
-<div align="center">
-
 <p align="center">
-  <img src=".github/bashrs-hero.svg" alt="bashrs" width="800">
+  <img src=".github/bashrs-hero.svg" width="800" alt="bashrs">
 </p>
 
-<h1 align="center">Rash - Bidirectional Shell Safety Tool</h1>
+<h1 align="center">bashrs</h1>
 
 <p align="center">
-  <a href="https://crates.io/crates/bashrs"><img src="https://img.shields.io/crates/v/bashrs.svg" alt="Crates.io"></a>
-  <a href="https://docs.rs/bashrs"><img src="https://docs.rs/bashrs/badge.svg" alt="Documentation"></a>
-  <a href="https://paiml.github.io/bashrs/"><img src="https://img.shields.io/badge/book-The%20Rash%20Book-blue" alt="Book"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/crates/l/bashrs.svg" alt="License"></a>
-  <a href="https://github.com/paiml/bashrs/actions"><img src="https://github.com/paiml/bashrs/workflows/CI/badge.svg" alt="CI"></a>
+  <strong>Rust-to-POSIX Shell Transpiler</strong>
 </p>
 
 <p align="center">
-  <b>Bidirectional shell safety tool that purifies legacy bash scripts and lets you write shell scripts in REAL Rust with automatic safety guarantees.</b>
+  <a href="https://crates.io/crates/bashrs">
+    <img src="https://img.shields.io/crates/v/bashrs.svg" alt="crates.io">
+  </a>
+  <a href="https://docs.rs/bashrs">
+    <img src="https://docs.rs/bashrs/badge.svg" alt="docs.rs">
+  </a>
+  <a href="https://github.com/paiml/bashrs/actions">
+    <img src="https://github.com/paiml/bashrs/actions/workflows/ci.yml/badge.svg"
+         alt="CI">
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License">
+  </a>
+  <a href="https://blog.rust-lang.org/2024/10/17/Rust-1.82.0.html">
+    <img src="https://img.shields.io/badge/rust-1.82%2B-blue.svg" alt="Rust 1.82+">
+  </a>
 </p>
 
-</div>
+<p align="center">
+  <a href="#installation">Installation</a> |
+  <a href="#quick-start">Quick Start</a> |
+  <a href="#features">Features</a> |
+  <a href="https://paiml.github.io/bashrs/">Book</a> |
+  <a href="https://docs.rs/bashrs">API Docs</a>
+</p>
+
+A bidirectional shell safety tool that transpiles Rust to deterministic
+POSIX shell scripts and purifies legacy bash into safe, portable shell.
+Also known as **Rash** (the library crate). Part of the PAIML Sovereign
+AI Stack transpiler family alongside
+[depyler](https://github.com/paiml/depyler) and
+[decy](https://github.com/paiml/decy).
+
+---
 
 ## Table of Contents
 
-- [What's New](#whats-new-in-v6650)
-- [Why Rash?](#why-rash)
+- [What is bashrs?](#what-is-bashrs)
+- [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Features](#features)
-- [Usage](#usage)
-- [Advanced Testing](#advanced-testing)
-- [Documentation](#-documentation)
-- [Quality Metrics](#quality-metrics)
-- [Shell Compatibility](#shell-compatibility)
-- [Performance](#performance)
-- [MCP Server](#mcp-server)
-- [Contributing](#contributing)
+- [Architecture](#architecture)
+- [Quality](#quality)
+- [Sovereign AI Stack](#sovereign-ai-stack)
+- [Documentation](#documentation)
 - [License](#license)
 
-## What's New in v6.65.0
+## What is bashrs?
 
-**Latest Release** - 2026-02-27
+Shell scripts power CI/CD pipelines, deployment automation, and system
+configuration across every production environment. They are also
+notoriously fragile -- unquoted variables, non-idempotent operations,
+and injection vulnerabilities are the norm, not the exception.
 
-- **Coverage Milestone**: Line coverage raised from 94.00% to **95.04%** (19,204 uncovered lines remaining)
-  - 1,572 new coverage tests across 25 test files and 11 modules
-  - CLI command coverage (corpus, lint, comply, installer)
-  - Parser coverage (arithmetic, control flow, declarations, expressions)
-- **provable-contracts bumped to 0.2**: Updated contract verification dependency
-- **3 silently ignored CLI params now wired**: Gate timeout, complexity check, and security enable flags are functional
-- **`if ! command -v` parser fix**: Verified with 7 regression tests
-- **15,117 Tests**: All passing with zero failures
-- **Examples Fixed**: All 7 `cargo run --example` demos now work correctly in workspace
-- **Book Updated**: All `mdbook test` examples pass, transpiler docs corrected
+bashrs solves this in two directions:
 
-See [CHANGELOG.md](CHANGELOG.md) for complete release notes.
+1. **Rust to Shell** -- Write type-safe Rust, transpile to
+   deterministic POSIX shell with automatic safety guarantees.
+2. **Shell to Shell** -- Purify existing bash scripts by rewriting
+   unsafe patterns at the AST level, not just warning about them.
 
-## Why Rash?
+Generated scripts run on any POSIX-compliant system with zero runtime
+dependencies. Same input always produces identical output.
 
-Shell scripts are everywhere—CI/CD pipelines, deployment automation, system configuration—but they're notoriously difficult to write safely. Rash solves this by providing:
+## Installation
 
-1. **Bidirectional Safety**: Write in Rust and transpile to shell, or purify existing bash scripts
-2. **Automatic Transformation**: Don't just detect problems—fix them automatically
-3. **Deterministic Guarantees**: Same input always produces identical, reproducible output
-4. **Zero Runtime Dependencies**: Generated scripts run on any POSIX-compliant system
-
-## Features
-
-- 🛡️ **Automatic Safety**: Protection against shell injection, word splitting, glob expansion
-- 🔍 **Beyond Linting**: Full AST semantic understanding - **transforms** code, doesn't just warn
-- 📦 **Zero Runtime Dependencies**: Generated scripts work on any POSIX shell
-- 🎯 **Deterministic Output**: Same input always produces identical scripts
-- ✅ **ShellCheck Compliant**: All output passes strict linting
-
-### How Rash Exceeds ShellCheck
-
-| What ShellCheck Does | What Rash Does |
-|---------------------|----------------|
-| ⚠️ **Warns**: "$RANDOM is non-deterministic" | ✅ **Rewrites** to version-based deterministic IDs |
-| ⚠️ **Warns**: "mkdir may fail if exists" | ✅ **Transforms** to `mkdir -p` (idempotent) |
-| ⚠️ **Warns**: "Unquoted variable expansion" | ✅ **Quotes** all variables automatically |
-| Static pattern matching | **Full AST semantic understanding** |
-| Detects issues (read-only) | **Fixes issues (read-write transformation)** |
-
-**Key Difference**: ShellCheck tells you what's wrong. Rash **understands your code's intent** and rewrites it to be safe, deterministic, and idempotent — automatically.
-
-## Quick Start
-
-### Installation
+### CLI
 
 ```bash
-# From crates.io (recommended)
 cargo install bashrs
-
-# Or from source
-git clone https://github.com/paiml/bashrs
-cd bashrs
-cargo install --path rash
 ```
+
+### Library
+
+Add to your `Cargo.toml`:
+
+```toml
+[dependencies]
+bashrs = "6.65"
+```
+
+## Quick Start
 
 ### Write Rust, Get Safe Shell
 
@@ -111,39 +107,39 @@ fn main() {
     mkdir_p("{prefix}/share/myapp");
 
     if exec("cp myapp {prefix}/bin/") {
-        echo("✓ Binary installed");
+        echo("Binary installed");
     } else {
-        eprint("✗ Failed to install binary");
+        eprint("Failed to install binary");
         exit(1);
     }
 }
 ```
 
-**Transpile to safe POSIX shell**:
+Transpile to safe POSIX shell:
 
 ```bash
-$ bashrs build install.rs -o install.sh
+bashrs build install.rs -o install.sh
 ```
 
-### Or Purify Existing Bash
+### Purify Existing Bash
 
-**Before** (messy bash):
+**Before** (unsafe bash):
 ```bash
 #!/bin/bash
 SESSION_ID=$RANDOM                      # Non-deterministic
 mkdir /app/releases/$RELEASE            # Non-idempotent
-rm /app/current                         # Fails if doesn't exist
+rm /app/current                         # Fails if missing
 ```
 
 **After** (purified by Rash):
 ```bash
 #!/bin/sh
-session_id="session-${version}"         # ✅ Deterministic
-mkdir -p "/app/releases/${release}"     # ✅ Idempotent
-rm -f "/app/current"                    # ✅ Safe removal
+session_id="session-${version}"         # Deterministic
+mkdir -p "/app/releases/${release}"     # Idempotent
+rm -f "/app/current"                    # Safe removal
 ```
 
-## Usage
+### CLI Usage
 
 ```bash
 # Transpile Rust to shell
@@ -152,144 +148,141 @@ bashrs build input.rs -o output.sh
 # Purify legacy bash scripts
 bashrs purify messy.sh -o clean.sh
 
-# Interactive REPL with debugging
-bashrs repl
-
 # Lint shell scripts (including Dockerfiles)
 bashrs lint script.sh
-
-# Test bash scripts
-bashrs test script.sh
 
 # Quality scoring
 bashrs score script.sh
 
-# Comprehensive audit
-bashrs audit script.sh
-```
+# Interactive REPL
+bashrs repl
 
-## Advanced Testing
-
-Rash includes Probar integration for comprehensive quality assurance:
-
-```bash
-# State machine testing with playbooks
-bashrs playbook install.playbook.yaml --run
-
-# Mutation testing (goal: >90% kill rate)
+# Mutation testing
 bashrs mutate script.sh --count 10
-
-# Deterministic simulation replay
-bashrs simulate script.sh --seed 42 --verify
 ```
 
-**Mutation Operators**: Rash applies 10 mutation operators including string mutations, command substitutions, conditional inversions, and redirect modifications to verify test quality.
+## Features
 
-## 📚 Documentation
+- **POSIX Compliance** -- Generated scripts target POSIX sh and run on
+  sh, dash, bash, ash, zsh, and mksh.
+- **Injection Prevention** -- Automatic variable quoting, word-split
+  protection, and glob expansion suppression at the AST level.
+- **ShellCheck Integration** -- All transpiler output passes strict
+  ShellCheck validation (99.9% compliance).
+- **Dockerfile/Makefile Transpilation** -- Transpile and lint
+  Dockerfiles and Makefiles alongside shell scripts.
+- **Built-in Linter** -- 100+ lint rules with auto-fix, severity
+  levels, `.bashrsignore` support, and watch mode.
+- **Built-in Formatter** -- Configurable shell script formatter with
+  TOML configuration.
+- **Deterministic Output** -- Same input always produces identical
+  scripts. Verified across 17,882 corpus entries.
+- **MCP Server** -- Model Context Protocol server for AI-assisted shell
+  generation (`rash-mcp`, registered as `io.github.paiml/rash`).
+- **LSP Server** -- Language Server Protocol for editor integration.
+- **Mutation Testing** -- 10 mutation operators (string, command,
+  conditional, redirect) for test quality verification.
 
-**The Rash Book** is the canonical source for all documentation:
+### Beyond ShellCheck
 
-### [**→ Read The Rash Book**](https://paiml.github.io/bashrs/)
+| ShellCheck | bashrs |
+|------------|--------|
+| Warns about unquoted variables | Quotes all variables automatically |
+| Warns about non-deterministic `$RANDOM` | Rewrites to version-based deterministic IDs |
+| Warns about non-idempotent `mkdir` | Transforms to `mkdir -p` |
+| Static pattern matching | Full AST semantic understanding |
+| Read-only analysis | Read-write transformation |
 
-**Quick links**:
-- [Getting Started](https://paiml.github.io/bashrs/getting-started/installation.html)
-- [Quick Start Tutorial](https://paiml.github.io/bashrs/getting-started/quick-start.html)
-- [Linting Rules](https://paiml.github.io/bashrs/linting/security.html)
-- [Configuration Management](https://paiml.github.io/bashrs/config/overview.html)
-- [API Reference](https://docs.rs/bashrs)
+## Architecture
 
-**Why the book?**
-- ✅ All examples automatically tested
-- ✅ Always up-to-date with latest release
-- ✅ Comprehensive coverage of all features
-- ✅ Real-world examples and tutorials
+bashrs is a workspace of five crates:
 
-## Quality Metrics
+| Crate | Purpose |
+|-------|---------|
+| `bashrs` (rash) | Core library: parser, transpiler, linter, formatter |
+| `bashrs-specs` | Formal verification specs and benchmarks |
+| `bashrs-oracle` | ML-powered error classification |
+| `bashrs-wasm` | Browser-compatible WASM build |
+| `rash-runtime` | Runtime support for transpiled scripts |
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| **V2 Corpus Score** | 97.5/100 | ✅ Grade A+ |
-| **Corpus Entries** | 17,882 | ✅ 100% pass rate |
-| **Tests** | 15,117 passing | ✅ 100% pass rate |
-| **Line Coverage** | 95.04% | ✅ Exceeds 95% target |
-| **Transpilation** | 100% (17,882/17,882) | ✅ All entries compile |
-| **Behavioral** | 100% | ✅ Output matches spec |
-| **Deterministic** | 100% | ✅ Same input = same output |
-| **ShellCheck** | 99.9% compliant | ✅ All output passes |
-| **Cross-Shell** | 98.8% (sh + dash) | ✅ POSIX portable |
-| **Shell Compatibility** | 6 shells | ✅ sh, dash, bash, ash, zsh, mksh |
+The transpilation pipeline:
 
-### Falsification Testing (Popper Methodology)
+```
+Rust Source --> Parse (syn) --> Rash IR --> POSIX Shell AST --> Emit
+                                  |
+                                  +--> Makefile AST --> Emit
+                                  |
+                                  +--> Dockerfile AST --> Emit
+```
 
-Rash uses Popperian falsification—tests attempt to **disprove** functionality rather than prove it works:
+The purification pipeline:
+
+```
+Bash Source --> Parse (AST) --> Safety Analysis --> Rewrite --> Emit
+```
+
+## Quality
+
+| Metric | Value |
+|--------|-------|
+| Tests | 15,117 passing |
+| Line Coverage | 95.04% |
+| Corpus Score | 97.5/100 (Grade A+) |
+| Corpus Entries | 17,882 (100% pass) |
+| ShellCheck Compliance | 99.9% |
+| Cross-Shell Compatibility | 6 shells (sh, dash, bash, ash, zsh, mksh) |
+| Deterministic | 100% (same input = same output) |
+
+bashrs uses Popperian falsification -- tests attempt to disprove
+functionality rather than confirm it. A passing test means the
+falsification attempt failed.
 
 ```bash
-# Run 130-point transpiler falsification checklist
+# 130-point transpiler falsification checklist
 cargo test -p bashrs --test transpiler_tcode_tests
 
-# Run 30-point Dockerfile falsification checklist
+# 30-point Dockerfile falsification checklist
 cargo test -p bashrs --test dockerfile_dcode_tests
 ```
 
-A passing test means the falsification attempt **failed**—the feature works correctly.
+### Performance
 
-## Shell Compatibility
+| Operation | Time |
+|-----------|------|
+| Rust-to-Shell transpilation | 21.1 us |
+| Makefile parsing | 0.034--1.43 ms |
+| Memory usage | < 10 MB |
 
-Generated scripts are tested on:
+## Sovereign AI Stack
 
-| Shell | Version | Status |
-|-------|---------|--------|
-| POSIX sh | - | ✅ Full support |
-| dash | 0.5.11+ | ✅ Full support |
-| bash | 3.2+ | ✅ Full support |
-| ash (BusyBox) | 1.30+ | ✅ Full support |
-| zsh | 5.0+ | ✅ Full support |
-| mksh | R59+ | ✅ Full support |
+bashrs is part of the PAIML Sovereign AI Stack -- a pure-Rust ecosystem
+for privacy-preserving ML infrastructure.
 
-## Performance
+| Layer | Crate | Purpose |
+|-------|-------|---------|
+| Compute | [trueno](https://crates.io/crates/trueno) | SIMD/GPU primitives (AVX2/AVX-512/NEON) |
+| ML | [aprender](https://crates.io/crates/aprender) | ML algorithms, APR v2 model format |
+| Training | [entrenar](https://crates.io/crates/entrenar) | Autograd, LoRA/QLoRA, quantization |
+| Inference | [realizar](https://crates.io/crates/realizar) | LLM inference, GPU kernels |
+| Distribution | [repartir](https://crates.io/crates/repartir) | Distributed compute (CPU/GPU/Remote) |
+| Orchestration | [batuta](https://crates.io/crates/batuta) | Stack coordination and CLI |
+| Transpilers | **bashrs**, [depyler](https://crates.io/crates/depyler), [decy](https://crates.io/crates/decy) | Shell/Python/C to Rust |
+| Verification | [provable-contracts](https://crates.io/crates/provable-contracts) | YAML contract verification |
 
-Rash is designed for fast transpilation:
+## Documentation
 
-- **Rust-to-Shell**: 21.1µs transpile time
-- **Makefile Parsing**: 0.034-1.43ms (70-320x faster than targets)
-- **Memory Usage**: <10MB for most scripts
-
-## MCP Server
-
-Rash provides a Model Context Protocol (MCP) server for AI-assisted shell script generation:
-
-```bash
-# Install MCP server
-cargo install rash-mcp
-
-# Run server
-rash-mcp
-```
-
-Available in the official MCP registry as `io.github.paiml/rash`.
+- **The Rash Book**: [paiml.github.io/bashrs](https://paiml.github.io/bashrs/) -- canonical documentation with tested examples
+- **API Reference**: [docs.rs/bashrs](https://docs.rs/bashrs)
+- **Cookbook**: [bashrs-cookbook](https://github.com/paiml/bashrs-cookbook) -- examples and recipes
+- **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for details.
-
-```bash
-# Clone and test
-git clone https://github.com/paiml/bashrs.git
-cd bashrs
-make test
-
-# Run all quality checks
-make validate
-```
-
-
-## MSRV
-
-Minimum Supported Rust Version: **1.82**
-
-## Cookbook
-
-See [bashrs-cookbook](https://github.com/paiml/bashrs-cookbook) for examples and recipes.
+1. Fork the repository
+2. Make changes on the `master` branch
+3. Run quality gates: `make lint && make test`
+4. Run coverage: `make coverage`
+5. Submit a pull request
 
 ## License
 
@@ -298,5 +291,5 @@ MIT License. See [LICENSE](LICENSE) for details.
 ---
 
 <div align="center">
-<b>For comprehensive documentation, visit <a href="https://paiml.github.io/bashrs/">The Rash Book</a></b>
+<sub>Part of the <a href="https://github.com/paiml">PAIML</a> Sovereign AI Stack</sub>
 </div>
