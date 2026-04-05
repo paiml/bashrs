@@ -277,7 +277,13 @@ pub(crate) fn handle_corpus_analysis_ops(command: CorpusAnalysisCommands) -> Res
         CorpusAnalysisCommands::OrgPatterns => {
             super::corpus_convergence_commands::corpus_org_patterns()
         }
-        // Convergence
+        // Convergence + dataset + SSC commands
+        other => handle_corpus_convergence_ops(other),
+    }
+}
+
+fn handle_corpus_convergence_ops(command: CorpusAnalysisCommands) -> Result<()> {
+    match command {
         CorpusAnalysisCommands::ConvergeTable => {
             super::corpus_convergence_commands::corpus_converge_table()
         }
@@ -338,6 +344,13 @@ pub(crate) fn handle_corpus_analysis_ops(command: CorpusAnalysisCommands) -> Res
         CorpusAnalysisCommands::DatasetInfo => {
             super::corpus_config_commands::corpus_dataset_info()
         }
+        // SSC, training, and publishing commands
+        other => handle_corpus_ssc_ops(other),
+    }
+}
+
+fn handle_corpus_ssc_ops(command: CorpusAnalysisCommands) -> Result<()> {
+    match command {
         CorpusAnalysisCommands::GenerateConversations {
             output,
             seed,
@@ -491,5 +504,6 @@ pub(crate) fn handle_corpus_analysis_ops(command: CorpusAnalysisCommands) -> Res
             output,
             max_tokens,
         } => super::corpus_ssb_commands::corpus_batch_eval(model, test_data, output, max_tokens),
+        _ => unreachable!("handled in handle_corpus_analysis_ops"),
     }
 }

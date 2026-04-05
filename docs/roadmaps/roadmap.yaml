@@ -1803,3 +1803,19 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-230
+  github_issue: null
+  item_type: task
+  title: 'PMAT-230: Fix test binary build + CB-200 dispatch complexity'
+  status: inprogress
+  priority: critical
+  assigned_to: null
+  created: 2026-04-05T10:00:20Z
+  updated: 2026-04-05T10:00:20.870434564+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null

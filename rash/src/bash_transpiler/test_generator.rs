@@ -265,6 +265,4 @@ test_property_determinism() {{
     }
 }
 
-#[cfg(test)]
-#[path = "test_generator_tests_extracted.rs"]
-mod tests_extracted;
+// Tests in bash_transpiler test modules

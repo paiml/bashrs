@@ -201,5 +201,10 @@ mod tests {
         };
         assert!(matches!(stmt, BashStmt::OrList { .. }));
     }
+}
 
-include!("ast_tests_extracted_bracegroup.rs");
+#[cfg(test)]
+mod ast_bracegroup_tests {
+    use super::*;
+    include!("ast_tests_extracted_bracegroup.rs");
+}
