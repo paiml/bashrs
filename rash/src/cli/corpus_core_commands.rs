@@ -23,6 +23,7 @@ pub(crate) fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Validate { format } => {
             super::corpus_analysis_commands::corpus_validate(&format)
         }
+        CorpusCommands::Version => super::corpus_metrics_commands::corpus_version(),
         // Reporting and analysis
         _ => handle_corpus_analysis(command),
     }
@@ -484,7 +485,6 @@ pub(crate) fn handle_corpus_analysis_ops(command: CorpusAnalysisCommands) -> Res
         CorpusAnalysisCommands::TierTargets => {
             super::corpus_config_commands::corpus_tier_targets()
         }
-        CorpusAnalysisCommands::Version => super::corpus_metrics_commands::corpus_version(),
         CorpusAnalysisCommands::BatchEval {
             model,
             test_data,

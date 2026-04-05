@@ -11,7 +11,6 @@ pub enum CorpusAnalysisCommands {
         #[arg(short = 'n', long, default_value = "20")]
         limit: usize,
     },
-
     /// Decision frequency and pass/fail correlation summary (§11.10.1)
     Decisions,
 
@@ -24,14 +23,12 @@ pub enum CorpusAnalysisCommands {
         #[arg(value_name = "SIGNAL")]
         signal: String,
     },
-
     /// Suggest fixes for a failing corpus entry (§11.10.2)
     FixSuggest {
         /// Entry ID (e.g. B-143)
         #[arg(value_name = "ID")]
         id: String,
     },
-
     /// Show decision connectivity graph with usage counts (§11.10.3)
     Graph,
 
@@ -41,7 +38,6 @@ pub enum CorpusAnalysisCommands {
         #[arg(short = 'n', long, default_value = "20")]
         limit: usize,
     },
-
     /// Show blast radius of fixing a specific decision (§11.10.3)
     BlastRadius {
         /// Decision key (e.g. assignment_value:bool_literal)
@@ -500,7 +496,5 @@ pub enum CorpusAnalysisCommands {
         #[arg(long, default_value = "128")]
         max_tokens: usize,
     },
-
-    /// Corpus version and metadata info
-    Version,
 }
+

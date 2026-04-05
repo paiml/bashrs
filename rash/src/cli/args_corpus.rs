@@ -489,6 +489,9 @@ pub enum CorpusCommands {
     /// Analysis, SSC, and dataset subcommands (flattened from CorpusAnalysisCommands)
     #[command(flatten)]
     Analysis(CorpusAnalysisCommands),
+
+    /// Corpus version and metadata info
+    Version,
 }
 
 include!("args_corpus_datasetexpor.rs");
