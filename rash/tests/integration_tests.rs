@@ -289,3 +289,10 @@ fn process_data(num: u32, text: &str) {}
 #[test]
 
 include!("integration_tests_main.rs");
+include!("integration_tests_main_part2.rs");
+include!("integration_tests_main_part3.rs");
+include!("integration_tests_main_part4.rs");
+include!("integration_tests_main_part5.rs");
+include!("integration_tests_main_part6.rs");
+include!("integration_tests_main_part7.rs");
+include!("integration_tests_main_part8.rs");
