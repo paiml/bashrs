@@ -68,8 +68,9 @@ Playbook                ✅ Complete     State machine testing (probar)
 Simulate                ✅ Complete     Deterministic replay
 LSP                     ✅ Core         bashrs lsp (diagnostics + Quick Fix code actions)
 CFG Analysis            ✅ Complete     bashrs cfg (formal CFG + complexity metrics)
-File Health             ✅ Complete     0/298 files >500 lines (grade B, all semantic names)
-Comply                  ⚠️ 2 failures   CB-200 (2 data fns grade B), CB-1308 (verification ladder)
+File Health             ✅ Complete     0/298 files >500 lines (grade B, semantic names)
+pmat comply             ⚠️ 53/55 pass   CB-200 (1 dispatch fn), CB-1308 (verification ladder)
+Test Coverage           ⚠️ ~91%         Target: 95% (test binary needs include!() fix)
 33 total subcommands
 ```
 
