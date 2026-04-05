@@ -26,7 +26,9 @@ pub mod parser_arith;
 pub mod parser_cmd;
 pub mod parser_control;
 pub mod parser_decl;
+pub mod parser_error_display;
 pub mod parser_expr;
+pub mod parser_pipeline;
 pub mod semantic;
 
 pub use ast::{BashAst, BashExpr, BashNode, BashStmt};
@@ -79,3 +81,34 @@ mod lexer_operator_tests;
 #[cfg(test)]
 #[path = "parser_control_cov_tests.rs"]
 mod parser_control_cov_tests;
+
+#[cfg(test)]
+#[path = "parser_main_tests.rs"]
+mod parser_main_tests;
+#[cfg(test)]
+#[path = "parser_main_tests_p10.rs"]
+mod parser_main_tests_p10;
+#[cfg(test)]
+#[path = "parser_main_tests_p2.rs"]
+mod parser_main_tests_p2;
+#[cfg(test)]
+#[path = "parser_main_tests_p3.rs"]
+mod parser_main_tests_p3;
+#[cfg(test)]
+#[path = "parser_main_tests_p4.rs"]
+mod parser_main_tests_p4;
+#[cfg(test)]
+#[path = "parser_main_tests_p5.rs"]
+mod parser_main_tests_p5;
+#[cfg(test)]
+#[path = "parser_main_tests_p6.rs"]
+mod parser_main_tests_p6;
+#[cfg(test)]
+#[path = "parser_main_tests_p7.rs"]
+mod parser_main_tests_p7;
+#[cfg(test)]
+#[path = "parser_main_tests_p8.rs"]
+mod parser_main_tests_p8;
+#[cfg(test)]
+#[path = "parser_main_tests_p9.rs"]
+mod parser_main_tests_p9;
