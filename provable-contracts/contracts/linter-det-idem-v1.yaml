@@ -1,112 +1,108 @@
-contract:
-  name: linter-det-idem-v1
-  version: "1.0.0"
-  description: >
-    Provable determinism and idempotency linter contracts (GH-183).
-    DET rules detect non-deterministic constructs ($RANDOM, timestamps,
-    unordered globs, system state). IDEM rules detect non-idempotent
-    operations (mkdir without -p, rm without -f, ln without -sf).
-    Each rule must detect known-bad and not false-positive on known-safe.
+metadata:
+  version: 1.0.0
+  description: Provable determinism and idempotency linter contracts (GH-183). DET rules detect non-deterministic constructs
+    ($RANDOM, timestamps, unordered globs, system state). IDEM rules detect non-idempotent operations (mkdir without -p, rm
+    without -f, ln without -sf). Each rule must detect known-bad and not false-positive on known-safe.
   references:
-    - "GH-183: KZ-11 Missing provable contracts"
-    - "CLAUDE.md: Critical Invariants — Determinism + Idempotency"
-  spec: docs/specifications/STDLIB.md
-  phase: "Linter DET/IDEM"
-
+  - 'GH-183: KZ-11 Missing provable contracts'
+  - 'CLAUDE.md: Critical Invariants — Determinism + Idempotency'
+equations:
+  determinism_detection:
+    formula: 'forall s in NonDeterministic: exists rule in DET: fires(rule, s)'
+    domain: 's: script containing $RANDOM, timestamps, unordered globs, or system state'
+    codomain: Vec<LintDiagnostic> with DET rule IDs
+    invariants:
+    - DET rules detect all non-deterministic constructs
+    - DET rules do NOT false-positive on deterministic code
+proof_obligations:
+- type: invariant
+  property: DET rules detect all non-deterministic constructs
+  formal: DET rules detect all non-deterministic constructs
+  applies_to: all
+- type: invariant
+  property: DET rules do NOT false-positive on deterministic code
+  formal: DET rules do NOT false-positive on deterministic code
+  applies_to: all
 invariants:
-  - "DET rules detect all non-deterministic constructs ($RANDOM, timestamps, system state)"
-  - "DET rules do NOT false-positive on deterministic code"
-  - "IDEM rules detect non-idempotent operations (mkdir without -p, rm without -f)"
-  - "IDEM rules do NOT false-positive on idempotent operations"
-
+- DET rules detect all non-deterministic constructs ($RANDOM, timestamps, system state)
+- DET rules do NOT false-positive on deterministic code
+- IDEM rules detect non-idempotent operations (mkdir without -p, rm without -f)
+- IDEM rules do NOT false-positive on idempotent operations
 falsification_tests:
-  # ── DET001: $RANDOM ──────────────────────────────────────────
-  - id: F-DET001-SOUND
-    description: "DET001 detects $RANDOM usage"
-    input: "x=$RANDOM"
-    assertion: "lint result contains DET001"
-    status: PASS
-
-  - id: F-DET001-PRECISE
-    description: "DET001 does NOT flag literal integer assignment"
-    input: "x=42"
-    assertion: "lint result does NOT contain DET001"
-    status: PASS
-
-  # ── DET002: timestamps ──────────────────────────────────────
-  - id: F-DET002-SOUND
-    description: "DET002 detects date in command substitution"
-    input: "ts=$(date +%s); now=$(date)"
-    assertion: "lint result contains DET002 for date command substitution"
-    status: PASS
-
-  - id: F-DET002-PRECISE
-    description: "DET002 does NOT flag static string assignment"
-    input: 'ts="2024-01-01"'
-    assertion: "lint result does NOT contain DET002"
-    status: PASS
-
-  # ── DET003: unordered wildcards ──────────────────────────────
-  - id: F-DET003-SOUND
-    description: "DET003 detects unordered glob in for-loop"
-    input: "for f in *.txt; do echo \"$f\"; done"
-    assertion: "lint result contains DET003"
-    status: PASS
-
-  - id: F-DET003-PRECISE
-    description: "DET003 does NOT flag sorted glob"
-    input: 'for f in $(ls *.txt | sort); do echo "$f"; done'
-    assertion: "lint result does NOT contain DET003"
-    status: PASS
-
-  # ── DET004: system state commands ────────────────────────────
-  - id: F-DET004-SOUND
-    description: "DET004 detects command substitution with system-state command"
-    input: "mem=$(free -m)"
-    assertion: "lint result contains DET004"
-    status: PASS
-
-  - id: F-DET004-PRECISE
-    description: "DET004 does NOT flag static command"
-    input: 'msg=$(echo hello)'
-    assertion: "lint result does NOT contain DET004"
-    status: PASS
-
-  # ── IDEM001: mkdir without -p ────────────────────────────────
-  - id: F-IDEM001-SOUND
-    description: "IDEM001 detects mkdir without -p"
-    input: "mkdir /tmp/testdir"
-    assertion: "lint result contains IDEM001"
-    status: PASS
-
-  - id: F-IDEM001-PRECISE
-    description: "IDEM001 does NOT flag mkdir -p"
-    input: "mkdir -p /tmp/testdir"
-    assertion: "lint result does NOT contain IDEM001"
-    status: PASS
-
-  # ── IDEM002: rm without -f ──────────────────────────────────
-  - id: F-IDEM002-SOUND
-    description: "IDEM002 detects rm without -f"
-    input: "rm /tmp/old"
-    assertion: "lint result contains IDEM002"
-    status: PASS
-
-  - id: F-IDEM002-PRECISE
-    description: "IDEM002 does NOT flag rm -f"
-    input: "rm -f /tmp/old"
-    assertion: "lint result does NOT contain IDEM002"
-    status: PASS
-
-  # ── IDEM003: ln without -sf ─────────────────────────────────
-  - id: F-IDEM003-SOUND
-    description: "IDEM003 detects ln -s without force"
-    input: "ln -s /tmp/a /tmp/b"
-    assertion: "lint result contains IDEM003"
-    status: PASS
-
-  - id: F-IDEM003-PRECISE
-    description: "IDEM003 does NOT flag ln -sf"
-    input: "ln -sf /tmp/a /tmp/b"
-    assertion: "lint result does NOT contain IDEM003"
-    status: PASS
+- id: F-DET001-SOUND
+  rule: DET001 detects $RANDOM usage
+  prediction: lint result contains DET001
+  test: 'Given input, verify: lint result contains DET001'
+  if_fails: 'Contract violation: DET001 detects $RANDOM usage'
+- id: F-DET001-PRECISE
+  rule: DET001 does NOT flag literal integer assignment
+  prediction: lint result does NOT contain DET001
+  test: 'Given input, verify: lint result does NOT contain DET001'
+  if_fails: 'Contract violation: DET001 does NOT flag literal integer assignment'
+- id: F-DET002-SOUND
+  rule: DET002 detects date in command substitution
+  prediction: lint result contains DET002 for date command substitution
+  test: 'Given input, verify: lint result contains DET002 for date command substitution'
+  if_fails: 'Contract violation: DET002 detects date in command substitution'
+- id: F-DET002-PRECISE
+  rule: DET002 does NOT flag static string assignment
+  prediction: lint result does NOT contain DET002
+  test: 'Given input, verify: lint result does NOT contain DET002'
+  if_fails: 'Contract violation: DET002 does NOT flag static string assignment'
+- id: F-DET003-SOUND
+  rule: DET003 detects unordered glob in for-loop
+  prediction: lint result contains DET003
+  test: 'Given input, verify: lint result contains DET003'
+  if_fails: 'Contract violation: DET003 detects unordered glob in for-loop'
+- id: F-DET003-PRECISE
+  rule: DET003 does NOT flag sorted glob
+  prediction: lint result does NOT contain DET003
+  test: 'Given input, verify: lint result does NOT contain DET003'
+  if_fails: 'Contract violation: DET003 does NOT flag sorted glob'
+- id: F-DET004-SOUND
+  rule: DET004 detects command substitution with system-state com...
+  prediction: lint result contains DET004
+  test: 'Given input, verify: lint result contains DET004'
+  if_fails: 'Contract violation: DET004 detects command substitution with system-state com...'
+- id: F-DET004-PRECISE
+  rule: DET004 does NOT flag static command
+  prediction: lint result does NOT contain DET004
+  test: 'Given input, verify: lint result does NOT contain DET004'
+  if_fails: 'Contract violation: DET004 does NOT flag static command'
+- id: F-IDEM001-SOUND
+  rule: IDEM001 detects mkdir without -p
+  prediction: lint result contains IDEM001
+  test: 'Given input, verify: lint result contains IDEM001'
+  if_fails: 'Contract violation: IDEM001 detects mkdir without -p'
+- id: F-IDEM001-PRECISE
+  rule: IDEM001 does NOT flag mkdir -p
+  prediction: lint result does NOT contain IDEM001
+  test: 'Given input, verify: lint result does NOT contain IDEM001'
+  if_fails: 'Contract violation: IDEM001 does NOT flag mkdir -p'
+- id: F-IDEM002-SOUND
+  rule: IDEM002 detects rm without -f
+  prediction: lint result contains IDEM002
+  test: 'Given input, verify: lint result contains IDEM002'
+  if_fails: 'Contract violation: IDEM002 detects rm without -f'
+- id: F-IDEM002-PRECISE
+  rule: IDEM002 does NOT flag rm -f
+  prediction: lint result does NOT contain IDEM002
+  test: 'Given input, verify: lint result does NOT contain IDEM002'
+  if_fails: 'Contract violation: IDEM002 does NOT flag rm -f'
+- id: F-IDEM003-SOUND
+  rule: IDEM003 detects ln -s without force
+  prediction: lint result contains IDEM003
+  test: 'Given input, verify: lint result contains IDEM003'
+  if_fails: 'Contract violation: IDEM003 detects ln -s without force'
+- id: F-IDEM003-PRECISE
+  rule: IDEM003 does NOT flag ln -sf
+  prediction: lint result does NOT contain IDEM003
+  test: 'Given input, verify: lint result does NOT contain IDEM003'
+  if_fails: 'Contract violation: IDEM003 does NOT flag ln -sf'
+kani_harnesses:
+- id: KANI-LINTER_DET_IDEM-001
+  obligation: DET rules detect all non-deterministic constructs
+  property: DET rules detect all non-deterministic constructs
+  bound: 4
+  strategy: stub_float
+  harness: verify_linter_det_idem_invariant

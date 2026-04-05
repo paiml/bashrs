@@ -1,126 +1,119 @@
-contract:
-  name: linter-security-rules-v1
-  version: "1.0.0"
-  description: >
-    Provable security rule contracts (GH-183). Each SEC rule must detect
-    known-vulnerable patterns (soundness) and not flag known-safe patterns
-    (precision). A single missed detection or false positive falsifies the
-    contract.
+metadata:
+  version: 1.0.0
+  description: Provable security rule contracts (GH-183). Each SEC rule must detect known-vulnerable patterns (soundness)
+    and not flag known-safe patterns (precision). A single missed detection or false positive falsifies the contract.
   references:
-    - "GH-183: KZ-11 Missing provable contracts"
-    - "OWASP Command Injection"
-    - "CWE-78: OS Command Injection"
-    - "CWE-798: Hardcoded Credentials"
-  spec: docs/specifications/world-class-bash-linter-spec.md
-  phase: "Linter security"
-
+  - 'GH-183: KZ-11 Missing provable contracts'
+  - OWASP Command Injection
+  - 'CWE-78: OS Command Injection'
+  - 'CWE-798: Hardcoded Credentials'
+equations:
+  security_detection:
+    formula: 'forall s in Vulnerable: exists rule in SEC: fires(rule, s)'
+    domain: 's: script containing injection, eval, curl|sh, chmod 777, etc.'
+    codomain: Vec<LintDiagnostic> with SEC001-SEC008 rule IDs
+    invariants:
+    - SEC rules detect all OWASP-class vulnerabilities
+    - SEC rules do NOT false-positive on safe code
+proof_obligations:
+- type: invariant
+  property: SEC rules detect all OWASP-class vulnerabilities
+  formal: SEC rules detect all OWASP-class vulnerabilities
+  applies_to: all
+- type: invariant
+  property: SEC rules do NOT false-positive on safe code
+  formal: SEC rules do NOT false-positive on safe code
+  applies_to: all
 invariants:
-  - "Each SEC rule detects known-vulnerable patterns (soundness)"
-  - "Each SEC rule does NOT flag known-safe patterns (precision)"
-  - "SEC001-SEC008 cover OWASP top shell injection vectors"
-  - "Rules are independent: disabling one does not affect others"
-
+- Each SEC rule detects known-vulnerable patterns (soundness)
+- Each SEC rule does NOT flag known-safe patterns (precision)
+- SEC001-SEC008 cover OWASP top shell injection vectors
+- 'Rules are independent: disabling one does not affect others'
 falsification_tests:
-  # ── SEC001: eval injection ───────────────────────────────────
-  - id: F-SEC001-SOUND
-    description: "SEC001 detects eval with variable input"
-    input: 'eval "$user_input"'
-    assertion: "lint result contains SEC001 diagnostic"
-    status: PASS
-
-  - id: F-SEC001-PRECISE
-    description: "SEC001 does NOT flag eval as substring or safe POSIX indirection"
-    input: 'medieval=true; val="$(eval \"printf ...\")"'
-    assertion: "lint result does NOT contain SEC001 for substring or safe indirection pattern"
-    status: PASS
-
-  # ── SEC002: unquoted variable in dangerous command ───────────
-  - id: F-SEC002-SOUND
-    description: "SEC002 detects unquoted variable in network commands (curl/wget/ssh)"
-    input: "curl $URL"
-    assertion: "lint result contains SEC002 diagnostic"
-    status: PASS
-
-  - id: F-SEC002-PRECISE
-    description: "SEC002 does NOT flag quoted variable in network command"
-    input: 'curl "$URL"'
-    assertion: "lint result does NOT contain SEC002 diagnostic"
-    status: PASS
-
-  # ── SEC003: find -exec sh -c with {} ────────────────────────
-  - id: F-SEC003-SOUND
-    description: "SEC003 detects find -exec sh -c with embedded {}"
-    input: "find /tmp -exec sh -c 'echo {}' \\;"
-    assertion: "lint result contains SEC003 diagnostic"
-    status: PASS
-
-  - id: F-SEC003-PRECISE
-    description: "SEC003 does NOT flag find -exec without sh -c"
-    input: "find /tmp -exec rm {} \\;"
-    assertion: "lint result does NOT contain SEC003 diagnostic"
-    status: PASS
-
-  # ── SEC004: TLS verification disabled ────────────────────────
-  - id: F-SEC004-SOUND
-    description: "SEC004 detects curl --insecure"
-    input: "curl --insecure https://example.com"
-    assertion: "lint result contains SEC004 diagnostic"
-    status: PASS
-
-  - id: F-SEC004-PRECISE
-    description: "SEC004 does NOT flag curl with TLS enabled"
-    input: "curl https://example.com"
-    assertion: "lint result does NOT contain SEC004 diagnostic"
-    status: PASS
-
-  # ── SEC005: hardcoded secrets ────────────────────────────────
-  - id: F-SEC005-SOUND
-    description: "SEC005 detects hardcoded API key assignment"
-    input: 'API_KEY="sk-1234567890abcdef1234567890abcdef"'
-    assertion: "lint result contains SEC005 diagnostic"
-    status: PASS
-
-  - id: F-SEC005-PRECISE
-    description: "SEC005 does NOT flag normal variable assignment"
-    input: 'LOG_LEVEL="debug"'
-    assertion: "lint result does NOT contain SEC005 diagnostic"
-    status: PASS
-
-  # ── SEC006: unsafe temporary files ───────────────────────────
-  - id: F-SEC006-SOUND
-    description: "SEC006 detects predictable quoted temp file path"
-    input: 'TMPFILE="/tmp/myapp_output"'
-    assertion: "lint result contains SEC006 diagnostic"
-    status: PASS
-
-  - id: F-SEC006-PRECISE
-    description: "SEC006 does NOT flag mktemp usage"
-    input: 'tmpfile=$(mktemp)'
-    assertion: "lint result does NOT contain SEC006 diagnostic"
-    status: PASS
-
-  # ── SEC007: sudo without validation ──────────────────────────
-  - id: F-SEC007-SOUND
-    description: "SEC007 detects sudo rm -rf with unquoted variable"
-    input: "sudo rm -rf $DIR"
-    assertion: "lint result contains SEC007 diagnostic"
-    status: PASS
-
-  - id: F-SEC007-PRECISE
-    description: "SEC007 does NOT flag sudo with literal command"
-    input: "sudo apt-get update"
-    assertion: "lint result does NOT contain SEC007 diagnostic"
-    status: PASS
-
-  # ── SEC008: curl | sh pattern ────────────────────────────────
-  - id: F-SEC008-SOUND
-    description: "SEC008 detects curl piped to bash"
-    input: "curl https://example.com/install.sh | bash"
-    assertion: "lint result contains SEC008 diagnostic"
-    status: PASS
-
-  - id: F-SEC008-PRECISE
-    description: "SEC008 does NOT flag curl to file"
-    input: "curl -o install.sh https://example.com/install.sh"
-    assertion: "lint result does NOT contain SEC008 diagnostic"
-    status: PASS
+- id: F-SEC001-SOUND
+  rule: SEC001 detects eval with variable input
+  prediction: lint result contains SEC001 diagnostic
+  test: 'Given input, verify: lint result contains SEC001 diagnostic'
+  if_fails: 'Contract violation: SEC001 detects eval with variable input'
+- id: F-SEC001-PRECISE
+  rule: SEC001 does NOT flag eval as substring or safe POSIX indi...
+  prediction: lint result does NOT contain SEC001 for substring or safe indirection pattern
+  test: 'Given input, verify: lint result does NOT contain SEC001 for substring or safe indirection pattern'
+  if_fails: 'Contract violation: SEC001 does NOT flag eval as substring or safe POSIX indi...'
+- id: F-SEC002-SOUND
+  rule: SEC002 detects unquoted variable in network commands (cur...
+  prediction: lint result contains SEC002 diagnostic
+  test: 'Given input, verify: lint result contains SEC002 diagnostic'
+  if_fails: 'Contract violation: SEC002 detects unquoted variable in network commands (cur...'
+- id: F-SEC002-PRECISE
+  rule: SEC002 does NOT flag quoted variable in network command
+  prediction: lint result does NOT contain SEC002 diagnostic
+  test: 'Given input, verify: lint result does NOT contain SEC002 diagnostic'
+  if_fails: 'Contract violation: SEC002 does NOT flag quoted variable in network command'
+- id: F-SEC003-SOUND
+  rule: SEC003 detects find -exec sh -c with embedded {}
+  prediction: lint result contains SEC003 diagnostic
+  test: 'Given input, verify: lint result contains SEC003 diagnostic'
+  if_fails: 'Contract violation: SEC003 detects find -exec sh -c with embedded {}'
+- id: F-SEC003-PRECISE
+  rule: SEC003 does NOT flag find -exec without sh -c
+  prediction: lint result does NOT contain SEC003 diagnostic
+  test: 'Given input, verify: lint result does NOT contain SEC003 diagnostic'
+  if_fails: 'Contract violation: SEC003 does NOT flag find -exec without sh -c'
+- id: F-SEC004-SOUND
+  rule: SEC004 detects curl --insecure
+  prediction: lint result contains SEC004 diagnostic
+  test: 'Given input, verify: lint result contains SEC004 diagnostic'
+  if_fails: 'Contract violation: SEC004 detects curl --insecure'
+- id: F-SEC004-PRECISE
+  rule: SEC004 does NOT flag curl with TLS enabled
+  prediction: lint result does NOT contain SEC004 diagnostic
+  test: 'Given input, verify: lint result does NOT contain SEC004 diagnostic'
+  if_fails: 'Contract violation: SEC004 does NOT flag curl with TLS enabled'
+- id: F-SEC005-SOUND
+  rule: SEC005 detects hardcoded API key assignment
+  prediction: lint result contains SEC005 diagnostic
+  test: 'Given input, verify: lint result contains SEC005 diagnostic'
+  if_fails: 'Contract violation: SEC005 detects hardcoded API key assignment'
+- id: F-SEC005-PRECISE
+  rule: SEC005 does NOT flag normal variable assignment
+  prediction: lint result does NOT contain SEC005 diagnostic
+  test: 'Given input, verify: lint result does NOT contain SEC005 diagnostic'
+  if_fails: 'Contract violation: SEC005 does NOT flag normal variable assignment'
+- id: F-SEC006-SOUND
+  rule: SEC006 detects predictable quoted temp file path
+  prediction: lint result contains SEC006 diagnostic
+  test: 'Given input, verify: lint result contains SEC006 diagnostic'
+  if_fails: 'Contract violation: SEC006 detects predictable quoted temp file path'
+- id: F-SEC006-PRECISE
+  rule: SEC006 does NOT flag mktemp usage
+  prediction: lint result does NOT contain SEC006 diagnostic
+  test: 'Given input, verify: lint result does NOT contain SEC006 diagnostic'
+  if_fails: 'Contract violation: SEC006 does NOT flag mktemp usage'
+- id: F-SEC007-SOUND
+  rule: SEC007 detects sudo rm -rf with unquoted variable
+  prediction: lint result contains SEC007 diagnostic
+  test: 'Given input, verify: lint result contains SEC007 diagnostic'
+  if_fails: 'Contract violation: SEC007 detects sudo rm -rf with unquoted variable'
+- id: F-SEC007-PRECISE
+  rule: SEC007 does NOT flag sudo with literal command
+  prediction: lint result does NOT contain SEC007 diagnostic
+  test: 'Given input, verify: lint result does NOT contain SEC007 diagnostic'
+  if_fails: 'Contract violation: SEC007 does NOT flag sudo with literal command'
+- id: F-SEC008-SOUND
+  rule: SEC008 detects curl piped to bash
+  prediction: lint result contains SEC008 diagnostic
+  test: 'Given input, verify: lint result contains SEC008 diagnostic'
+  if_fails: 'Contract violation: SEC008 detects curl piped to bash'
+- id: F-SEC008-PRECISE
+  rule: SEC008 does NOT flag curl to file
+  prediction: lint result does NOT contain SEC008 diagnostic
+  test: 'Given input, verify: lint result does NOT contain SEC008 diagnostic'
+  if_fails: 'Contract violation: SEC008 does NOT flag curl to file'
+kani_harnesses:
+- id: KANI-LINTER_SECURITY_RULES-001
+  obligation: SEC rules detect all OWASP-class vulnerabilities
+  property: SEC rules detect all OWASP-class vulnerabilities
+  bound: 4
+  strategy: stub_float
+  harness: verify_linter_security_rules_invariant

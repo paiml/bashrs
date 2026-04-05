@@ -1,185 +1,127 @@
-contract:
-  name: transpiler-stdlib-v1
-  version: "1.0.0"
-  description: >
-    Transpiler stdlib functions (GH-148) produce correct POSIX shell output.
-    capture() → $(...), exit() → exit N, sleep() → sleep N.
+metadata:
+  version: 1.0.0
+  description: Transpiler stdlib functions (GH-148) produce correct POSIX shell output. capture() → $(...), exit() → exit
+    N, sleep() → sleep N.
   references:
-    - "GH-148: rash transpiler missing stdlib for real-world shell scripts"
-  spec: docs/specifications/shell-safety-inference.md
-  phase: "Transpiler stdlib"
-
+  - 'GH-148: rash transpiler missing stdlib for real-world shell scripts'
+equations:
+  stdlib_mapping:
+    formula: map_stdlib(rust_fn) -> shell_equivalent where behavior(rust_fn) ~= behavior(shell_equivalent)
+    domain: 'rust_fn: Rust std function (fs::read_to_string, env::var, etc.)'
+    codomain: String (shell command equivalent)
+    invariants:
+    - All mapped functions produce equivalent behavior
+    - Unmapped functions produce clear error
+proof_obligations:
+- type: invariant
+  property: All mapped functions produce equivalent behavior
+  formal: All mapped functions produce equivalent behavior
+  applies_to: all
+- type: invariant
+  property: Unmapped functions produce clear error
+  formal: Unmapped functions produce clear error
+  applies_to: all
 invariants:
-  - "capture() produces $(...) command substitution in assignment context"
-  - "exit(N) produces 'exit N' as standalone statement"
-  - "sleep(N) produces 'sleep N' as standalone statement"
-  - "glob('pattern') emits unquoted pattern for shell expansion"
-  - "mkdir/chmod/mv produce correct POSIX commands"
-
+- capture() produces $(...) command substitution in assignment context
+- exit(N) produces 'exit N' as standalone statement
+- sleep(N) produces 'sleep N' as standalone statement
+- glob('pattern') emits unquoted pattern for shell expansion
+- mkdir/chmod/mv produce correct POSIX commands
 falsification_tests:
-  - id: F-STDLIB-001
-    description: "capture('whoami') produces $(whoami) in assignment context"
-    input: |
-      fn main() {
-          let user = capture("whoami");
-      }
-    assertion: "transpiled output contains 'user=\"$(whoami)\"'"
-    status: PASS
-
-  - id: F-STDLIB-002
-    description: "exit(0) produces 'exit 0' as standalone statement"
-    input: |
-      fn main() {
-          exit(0);
-      }
-    assertion: "transpiled output contains 'exit 0'"
-    status: PASS
-
-  - id: F-STDLIB-003
-    description: "sleep(5) produces 'sleep 5' as standalone statement"
-    input: |
-      fn main() {
-          sleep(5);
-      }
-    assertion: "transpiled output contains 'sleep 5'"
-    status: PASS
-
-  - id: F-STDLIB-004
-    description: "capture('date +%Y') splits program from args correctly"
-    input: |
-      fn main() {
-          let year = capture("date +%Y");
-      }
-    assertion: "transpiled output contains '$(date' and program is not single-quoted"
-    status: PASS
-
-  - id: F-STDLIB-005
-    description: "capture/exit/sleep are recognized as stdlib functions"
-    assertion: "is_stdlib_function('capture') AND is_stdlib_function('exit') AND is_stdlib_function('sleep')"
-    status: PASS
-
-  - id: F-STDLIB-006
-    description: "exit(1) produces non-zero exit code"
-    input: |
-      fn main() {
-          exit(1);
-      }
-    assertion: "transpiled output contains 'exit 1'"
-    status: PASS
-
-  - id: F-STDLIB-007
-    description: "glob('*.txt') in for-in loop produces unquoted shell pattern"
-    input: |
-      fn main() {
-          for f in glob("*.txt") {
-              println!("{}", f);
-          }
-      }
-    assertion: "transpiled output contains 'for' and '*.txt' unquoted (not '*.txt' or \"*.txt\")"
-    status: PASS
-
-  - id: F-STDLIB-008
-    description: "glob('/etc/*.conf') preserves directory prefix in pattern"
-    input: |
-      fn main() {
-          for config in glob("/etc/*.conf") {
-              println!("{}", config);
-          }
-      }
-    assertion: "transpiled output contains '/etc/*.conf' unquoted"
-    status: PASS
-
-  - id: F-STDLIB-009
-    description: "glob() is recognized as stdlib function"
-    assertion: "is_stdlib_function('glob') returns true"
-    status: PASS
-
-  - id: F-STDLIB-010
-    description: "mkdir(path) produces 'mkdir -p path' (idempotent)"
-    input: |
-      fn main() {
-          mkdir("/tmp/mydir");
-      }
-    assertion: "transpiled output contains 'mkdir' and '-p' and '/tmp/mydir'"
-    status: PASS
-
-  - id: F-STDLIB-011
-    description: "mv(src, dst) produces 'mv src dst'"
-    input: |
-      fn main() {
-          mv("/tmp/old.txt", "/tmp/new.txt");
-      }
-    assertion: "transpiled output contains 'mv' and both paths"
-    status: PASS
-
-  - id: F-STDLIB-012
-    description: "chmod(mode, path) produces 'chmod mode path'"
-    input: |
-      fn main() {
-          chmod("755", "/tmp/script.sh");
-      }
-    assertion: "transpiled output contains 'chmod 755 /tmp/script.sh'"
-    status: PASS
-
-  - id: F-STDLIB-013
-    description: "string_starts_with emits POSIX case-based prefix check"
-    input: |
-      fn main() {
-          let name = "hello.txt";
-          if string_starts_with(name, "hello") {
-              println!("yes");
-          }
-      }
-    assertion: "transpiled output contains rash_string_starts_with runtime function with case pattern"
-    status: PASS
-
-  - id: F-STDLIB-014
-    description: "string_ends_with emits POSIX case-based suffix check"
-    input: |
-      fn main() {
-          let name = "hello.txt";
-          if string_ends_with(name, ".txt") {
-              println!("yes");
-          }
-      }
-    assertion: "transpiled output contains rash_string_ends_with runtime function with case pattern"
-    status: PASS
-
-  - id: F-STDLIB-015
-    description: "starts_with/ends_with selectively emitted (dead code elimination)"
-    input: |
-      fn main() {
-          let x = "test";
-          if string_starts_with(x, "te") {
-              println!("yes");
-          }
-      }
-    assertion: "output contains rash_string_starts_with but NOT rash_string_ends_with"
-    status: PASS
-
-  - id: F-STDLIB-016
-    description: "capture() with pipe operator preserves pipeline via sh -c"
-    input: |
-      fn main() {
-          let count = capture("ls /tmp | wc -l");
-      }
-    assertion: "transpiled output contains $(sh ... 'ls /tmp | wc -l') — pipe not escaped"
-    status: PASS
-
-  - id: F-STDLIB-017
-    description: "capture() without pipes still uses direct command substitution"
-    input: |
-      fn main() {
-          let user = capture("whoami");
-      }
-    assertion: "transpiled output contains $(whoami) — no sh -c wrapper"
-    status: PASS
-
-  - id: F-STDLIB-018
-    description: "capture() with && operator uses sh -c wrapper"
-    input: |
-      fn main() {
-          let result = capture("test -d /tmp && echo yes");
-      }
-    assertion: "transpiled output wraps command in sh -c to preserve &&"
-    status: PASS
+- id: F-STDLIB-001
+  rule: capture('whoami') produces $(whoami) in assignment context
+  prediction: transpiled output contains 'user="$(whoami)"'
+  test: 'Given input, verify: transpiled output contains ''user="$(whoami)"'''
+  if_fails: 'Contract violation: capture(''whoami'') produces $(whoami) in assignment context'
+- id: F-STDLIB-002
+  rule: exit(0) produces 'exit 0' as standalone statement
+  prediction: transpiled output contains 'exit 0'
+  test: 'Given input, verify: transpiled output contains ''exit 0'''
+  if_fails: 'Contract violation: exit(0) produces ''exit 0'' as standalone statement'
+- id: F-STDLIB-003
+  rule: sleep(5) produces 'sleep 5' as standalone statement
+  prediction: transpiled output contains 'sleep 5'
+  test: 'Given input, verify: transpiled output contains ''sleep 5'''
+  if_fails: 'Contract violation: sleep(5) produces ''sleep 5'' as standalone statement'
+- id: F-STDLIB-004
+  rule: capture('date +%Y') splits program from args correctly
+  prediction: transpiled output contains '$(date' and program is not single-quoted
+  test: 'Given input, verify: transpiled output contains ''$(date'' and program is not single-quoted'
+  if_fails: 'Contract violation: capture(''date +%Y'') splits program from args correctly'
+- id: F-STDLIB-005
+  rule: capture/exit/sleep are recognized as stdlib functions
+  prediction: is_stdlib_function('capture') AND is_stdlib_function('exit') AND is_stdlib_function('sleep')
+  test: is_stdlib_function('capture') AND is_stdlib_function('exit') AND is_stdlib_function('sleep')
+  if_fails: 'Contract violation: capture/exit/sleep are recognized as stdlib functions'
+- id: F-STDLIB-006
+  rule: exit(1) produces non-zero exit code
+  prediction: transpiled output contains 'exit 1'
+  test: 'Given input, verify: transpiled output contains ''exit 1'''
+  if_fails: 'Contract violation: exit(1) produces non-zero exit code'
+- id: F-STDLIB-007
+  rule: glob('*.txt') in for-in loop produces unquoted shell pattern
+  prediction: transpiled output contains 'for' and '*.txt' unquoted (not '*.txt' or "*.txt")
+  test: 'Given input, verify: transpiled output contains ''for'' and ''*.txt'' unquoted (not ''*.txt'' or "*.txt")'
+  if_fails: 'Contract violation: glob(''*.txt'') in for-in loop produces unquoted shell pattern'
+- id: F-STDLIB-008
+  rule: glob('/etc/*.conf') preserves directory prefix in pattern
+  prediction: transpiled output contains '/etc/*.conf' unquoted
+  test: 'Given input, verify: transpiled output contains ''/etc/*.conf'' unquoted'
+  if_fails: 'Contract violation: glob(''/etc/*.conf'') preserves directory prefix in pattern'
+- id: F-STDLIB-009
+  rule: glob() is recognized as stdlib function
+  prediction: is_stdlib_function('glob') returns true
+  test: is_stdlib_function('glob') returns true
+  if_fails: 'Contract violation: glob() is recognized as stdlib function'
+- id: F-STDLIB-010
+  rule: mkdir(path) produces 'mkdir -p path' (idempotent)
+  prediction: transpiled output contains 'mkdir' and '-p' and '/tmp/mydir'
+  test: 'Given input, verify: transpiled output contains ''mkdir'' and ''-p'' and ''/tmp/mydir'''
+  if_fails: 'Contract violation: mkdir(path) produces ''mkdir -p path'' (idempotent)'
+- id: F-STDLIB-011
+  rule: mv(src, dst) produces 'mv src dst
+  prediction: transpiled output contains 'mv' and both paths
+  test: 'Given input, verify: transpiled output contains ''mv'' and both paths'
+  if_fails: 'Contract violation: mv(src, dst) produces ''mv src dst'
+- id: F-STDLIB-012
+  rule: chmod(mode, path) produces 'chmod mode path
+  prediction: transpiled output contains 'chmod 755 /tmp/script.sh'
+  test: 'Given input, verify: transpiled output contains ''chmod 755 /tmp/script.sh'''
+  if_fails: 'Contract violation: chmod(mode, path) produces ''chmod mode path'
+- id: F-STDLIB-013
+  rule: string_starts_with emits POSIX case-based prefix check
+  prediction: transpiled output contains rash_string_starts_with runtime function with case pattern
+  test: 'Given input, verify: transpiled output contains rash_string_starts_with runtime function with case pattern'
+  if_fails: 'Contract violation: string_starts_with emits POSIX case-based prefix check'
+- id: F-STDLIB-014
+  rule: string_ends_with emits POSIX case-based suffix check
+  prediction: transpiled output contains rash_string_ends_with runtime function with case pattern
+  test: 'Given input, verify: transpiled output contains rash_string_ends_with runtime function with case pattern'
+  if_fails: 'Contract violation: string_ends_with emits POSIX case-based suffix check'
+- id: F-STDLIB-015
+  rule: starts_with/ends_with selectively emitted (dead code elim...
+  prediction: output contains rash_string_starts_with but NOT rash_string_ends_with
+  test: 'Given input, verify: output contains rash_string_starts_with but NOT rash_string_ends_with'
+  if_fails: 'Contract violation: starts_with/ends_with selectively emitted (dead code elim...'
+- id: F-STDLIB-016
+  rule: capture() with pipe operator preserves pipeline via sh -c
+  prediction: transpiled output contains $(sh ... 'ls /tmp | wc -l') — pipe not escaped
+  test: 'Given input, verify: transpiled output contains $(sh ... ''ls /tmp | wc -l'') — pipe not escaped'
+  if_fails: 'Contract violation: capture() with pipe operator preserves pipeline via sh -c'
+- id: F-STDLIB-017
+  rule: capture() without pipes still uses direct command substit...
+  prediction: transpiled output contains $(whoami) — no sh -c wrapper
+  test: 'Given input, verify: transpiled output contains $(whoami) — no sh -c wrapper'
+  if_fails: 'Contract violation: capture() without pipes still uses direct command substit...'
+- id: F-STDLIB-018
+  rule: capture() with && operator uses sh -c wrapper
+  prediction: transpiled output wraps command in sh -c to preserve &&
+  test: 'Given input, verify: transpiled output wraps command in sh -c to preserve &&'
+  if_fails: 'Contract violation: capture() with && operator uses sh -c wrapper'
+kani_harnesses:
+- id: KANI-TRANSPILER_STDLIB-001
+  obligation: All mapped functions produce equivalent behavior
+  property: All mapped functions produce equivalent behavior
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_stdlib_invariant

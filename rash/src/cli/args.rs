@@ -605,6 +605,19 @@ pub enum Commands {
         command: InstallerCommands,
     },
 
+    /// Control flow graph analysis for bash scripts (Sprint 5: Formal CFG)
+    Cfg {
+        /// Input bash script
+        #[arg(value_name = "FILE")]
+        input: PathBuf,
+        /// Output format
+        #[arg(long, value_enum, default_value = "human")]
+        format: CfgOutputFormat,
+        /// Show per-function CFG breakdown
+        #[arg(long)]
+        per_function: bool,
+    },
+
     /// Generate adversarial training data for shell safety classifier
     GenerateAdversarial {
         /// Output JSONL file path
@@ -631,6 +644,14 @@ pub enum Commands {
         #[arg(long)]
         stats: bool,
     },
+}
+
+/// Output format for cfg command (Sprint 5)
+#[derive(Clone, Debug, Default, ValueEnum)]
+pub enum CfgOutputFormat {
+    #[default]
+    Human,
+    Json,
 }
 
 /// Output format for playbook command

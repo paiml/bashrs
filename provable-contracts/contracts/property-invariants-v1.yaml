@@ -1,105 +1,104 @@
-contract:
-  name: property-invariants-v1
-  version: "1.0.0"
-  description: >
-    Universal (∀-quantified) invariants verified by property-based testing.
-    Each property is tested across 256+ random inputs via proptest.
-    A single counterexample falsifies the claim. Stronger than example-based
-    tests because the input space is explored stochastically.
+metadata:
+  version: 1.0.0
+  description: Universal (∀-quantified) invariants verified by property-based testing. Each property is tested across 256+
+    random inputs via proptest. A single counterexample falsifies the claim. Stronger than example-based tests because the
+    input space is explored stochastically.
   references:
-    - "GH-183: KZ-11 Missing provable contracts"
-    - "proptest crate: Hypothesis-style property testing for Rust"
-  spec: docs/specifications/STDLIB.md
-  phase: "Property invariants"
-
+  - 'GH-183: KZ-11 Missing provable contracts'
+  - 'proptest crate: Hypothesis-style property testing for Rust'
+equations:
+  invariant_checking:
+    formula: check(script, invariant) -> bool for invariant in {idempotency, determinism, posix, safety}
+    domain: 'script: String, invariant: PropertyType'
+    codomain: bool with violation details
+    invariants:
+    - Idempotency checks detect missing -p/-f flags
+    - Determinism checks detect $RANDOM, $$, date
+proof_obligations:
+- type: invariant
+  property: Idempotency checks detect missing -p/-f flags
+  formal: Idempotency checks detect missing -p/-f flags
+  applies_to: all
+- type: invariant
+  property: Determinism checks detect $RANDOM, $$, date
+  formal: Determinism checks detect $RANDOM, $$, date
+  applies_to: all
 invariants:
-  - "All strings: escape_shell_string never returns empty"
-  - "All strings: escape roundtrip preserves length ordering"
-  - "All safe strings: escape preserves content (no false modification)"
-  - "All inputs: purify(purify(x)) == purify(x) (idempotent)"
-  - "All inputs: determinism — purify is a function (same input → same output)"
-
+- 'All strings: escape_shell_string never returns empty'
+- 'All strings: escape roundtrip preserves length ordering'
+- 'All safe strings: escape preserves content (no false modification)'
+- 'All inputs: purify(purify(x)) == purify(x) (idempotent)'
+- 'All inputs: determinism — purify is a function (same input → same output)'
 falsification_tests:
-  # ── escape_shell_string universal properties ─────────────────
-  - id: P-ESC-001
-    description: "∀ strings: escape_shell_string never returns empty"
-    assertion: "∀s. escape(s).len() > 0"
-    cases: 256
-    status: PASS
-
-  - id: P-ESC-002
-    description: "∀ strings: escaped output is safe-unquoted or single-quoted"
-    assertion: "∀s. is_safe(escape(s)) ∨ escape(s).starts_with(quote)"
-    cases: 256
-    status: PASS
-
-  - id: P-ESC-003
-    description: "∀ strings with metacharacters: output is always quoted"
-    assertion: "∀s ∈ {s | s contains $`|;&}: escape(s).starts_with(quote)"
-    cases: 256
-    status: PASS
-
-  - id: P-ESC-004
-    description: "∀ strings: escape is deterministic"
-    assertion: "∀s. escape(s) == escape(s)"
-    cases: 256
-    status: PASS
-
-  # ── escape_variable_name universal properties ────────────────
-  - id: P-VAR-001
-    description: "∀ non-empty strings: result is valid POSIX identifier"
-    assertion: "∀s. starts_with(letter|_) ∧ all_chars(alnum|_)"
-    cases: 256
-    status: PASS
-
-  - id: P-VAR-002
-    description: "∀ strings: variable name escape is idempotent"
-    assertion: "∀s. escape(escape(s)) == escape(s)"
-    cases: 256
-    status: PASS
-
-  # ── escape_command_name universal properties ─────────────────
-  - id: P-CMD-001
-    description: "∀ non-empty strings: command name escape never empty"
-    assertion: "∀s. escape_cmd(s).len() > 0"
-    cases: 256
-    status: PASS
-
-  - id: P-CMD-002
-    description: "∀ strings with shell operators: command name is quoted"
-    assertion: "∀s ∈ {s | s contains ;|&}: escape_cmd(s).starts_with(quote)"
-    cases: 256
-    status: PASS
-
-  # ── Parser robustness ───────────────────────────────────────
-  - id: P-PARSE-001
-    description: "∀ ASCII strings: parser never panics"
-    assertion: "∀s ∈ ASCII^100. parse(s) ∈ {Ok(_), Err(_)} (no panic)"
-    cases: 256
-    status: PASS
-
-  - id: P-PARSE-002
-    description: "∀ valid simple bash: parse is deterministic"
-    assertion: "∀cmd,arg. parse(cmd+arg) == parse(cmd+arg)"
-    cases: 256
-    status: PASS
-
-  # ── Purification universal properties ────────────────────────
-  - id: P-PURIFY-001
-    description: "∀ valid bash: purification is idempotent"
-    assertion: "∀s ∈ valid_bash. purify(purify(s)) == purify(s)"
-    cases: 256
-    status: PASS
-
-  - id: P-PURIFY-002
-    description: "∀ $RANDOM assignments: purified output has no $RANDOM"
-    assertion: "∀var. ¬contains(purify(var=$RANDOM), $RANDOM)"
-    cases: 256
-    status: PASS
-
-  # ── Transpiler universal properties ──────────────────────────
-  - id: P-TRANSPILE-001
-    description: "∀ valid let+println programs: transpile is deterministic"
-    assertion: "∀var,val. transpile(prog) == transpile(prog)"
-    cases: 256
-    status: PASS
+- id: P-ESC-001
+  rule: '∀ strings: escape_shell_string never returns empty'
+  prediction: ∀s. escape(s).len() > 0
+  test: ∀s. escape(s).len() > 0
+  if_fails: 'Contract violation: ∀ strings: escape_shell_string never returns empty'
+- id: P-ESC-002
+  rule: '∀ strings: escaped output is safe-unquoted or single-quoted'
+  prediction: ∀s. is_safe(escape(s)) ∨ escape(s).starts_with(quote)
+  test: ∀s. is_safe(escape(s)) ∨ escape(s).starts_with(quote)
+  if_fails: 'Contract violation: ∀ strings: escaped output is safe-unquoted or single-quoted'
+- id: P-ESC-003
+  rule: '∀ strings with metacharacters: output is always quoted'
+  prediction: '∀s ∈ {s | s contains $`|;&}: escape(s).starts_with(quote)'
+  test: '∀s ∈ {s | s contains $`|;&}: escape(s).starts_with(quote)'
+  if_fails: 'Contract violation: ∀ strings with metacharacters: output is always quoted'
+- id: P-ESC-004
+  rule: '∀ strings: escape is deterministic'
+  prediction: ∀s. escape(s) == escape(s)
+  test: ∀s. escape(s) == escape(s)
+  if_fails: 'Contract violation: ∀ strings: escape is deterministic'
+- id: P-VAR-001
+  rule: '∀ non-empty strings: result is valid POSIX identifier'
+  prediction: ∀s. starts_with(letter|_) ∧ all_chars(alnum|_)
+  test: ∀s. starts_with(letter|_) ∧ all_chars(alnum|_)
+  if_fails: 'Contract violation: ∀ non-empty strings: result is valid POSIX identifier'
+- id: P-VAR-002
+  rule: '∀ strings: variable name escape is idempotent'
+  prediction: ∀s. escape(escape(s)) == escape(s)
+  test: ∀s. escape(escape(s)) == escape(s)
+  if_fails: 'Contract violation: ∀ strings: variable name escape is idempotent'
+- id: P-CMD-001
+  rule: '∀ non-empty strings: command name escape never empty'
+  prediction: ∀s. escape_cmd(s).len() > 0
+  test: ∀s. escape_cmd(s).len() > 0
+  if_fails: 'Contract violation: ∀ non-empty strings: command name escape never empty'
+- id: P-CMD-002
+  rule: '∀ strings with shell operators: command name is quoted'
+  prediction: '∀s ∈ {s | s contains ;|&}: escape_cmd(s).starts_with(quote)'
+  test: '∀s ∈ {s | s contains ;|&}: escape_cmd(s).starts_with(quote)'
+  if_fails: 'Contract violation: ∀ strings with shell operators: command name is quoted'
+- id: P-PARSE-001
+  rule: '∀ ASCII strings: parser never panics'
+  prediction: ∀s ∈ ASCII^100. parse(s) ∈ {Ok(_), Err(_)} (no panic)
+  test: ∀s ∈ ASCII^100. parse(s) ∈ {Ok(_), Err(_)} (no panic)
+  if_fails: 'Contract violation: ∀ ASCII strings: parser never panics'
+- id: P-PARSE-002
+  rule: '∀ valid simple bash: parse is deterministic'
+  prediction: ∀cmd,arg. parse(cmd+arg) == parse(cmd+arg)
+  test: ∀cmd,arg. parse(cmd+arg) == parse(cmd+arg)
+  if_fails: 'Contract violation: ∀ valid simple bash: parse is deterministic'
+- id: P-PURIFY-001
+  rule: '∀ valid bash: purification is idempotent'
+  prediction: ∀s ∈ valid_bash. purify(purify(s)) == purify(s)
+  test: ∀s ∈ valid_bash. purify(purify(s)) == purify(s)
+  if_fails: 'Contract violation: ∀ valid bash: purification is idempotent'
+- id: P-PURIFY-002
+  rule: '∀ $RANDOM assignments: purified output has no $RANDOM'
+  prediction: ∀var. ¬contains(purify(var=$RANDOM), $RANDOM)
+  test: ∀var. ¬contains(purify(var=$RANDOM), $RANDOM)
+  if_fails: 'Contract violation: ∀ $RANDOM assignments: purified output has no $RANDOM'
+- id: P-TRANSPILE-001
+  rule: '∀ valid let+println programs: transpile is deterministic'
+  prediction: ∀var,val. transpile(prog) == transpile(prog)
+  test: ∀var,val. transpile(prog) == transpile(prog)
+  if_fails: 'Contract violation: ∀ valid let+println programs: transpile is deterministic'
+kani_harnesses:
+- id: KANI-PROPERTY_INVARIANTS-001
+  obligation: Idempotency checks detect missing -p/-f flags
+  property: Idempotency checks detect missing -p/-f flags
+  bound: 4
+  strategy: stub_float
+  harness: verify_property_invariants_invariant

@@ -1,42 +1,51 @@
 metadata:
-  version: "1.0.0"
-  description: "Linear probe classifier — frozen encoder + trained linear head"
+  version: 1.0.0
+  description: Linear probe classifier — frozen encoder + trained linear head
   references:
-    - "Alain & Bengio (2016) Understanding intermediate layers using linear classifier probes"
-
+  - Alain & Bengio (2016) Understanding intermediate layers using linear classifier probes
 equations:
   linear_probe:
-    formula: "logits = W @ embedding + b ; probs = softmax(logits)"
-    domain: "embedding in R^{d_model}, W in R^{K x d_model}, b in R^K"
-    codomain: "probs in R^K, sum(probs) = 1, probs_i > 0"
+    formula: logits = W @ embedding + b ; probs = softmax(logits)
+    domain: embedding in R^{d_model}, W in R^{K x d_model}, b in R^K
+    codomain: probs in R^K, sum(probs) = 1, probs_i > 0
     invariants:
-      - "Frozen encoder weights do not receive gradients"
-      - "Only W and b are updated during training"
-      - "probs sum to 1.0"
-
+    - Frozen encoder weights do not receive gradients
+    - Only W and b are updated during training
+    - probs sum to 1.0
 proof_obligations:
-  - type: invariant
-    property: "Encoder frozen"
-    formal: "encoder_params_before == encoder_params_after for each training step"
-    applies_to: all
-  - type: invariant
-    property: "Probability simplex"
-    formal: "|sum(probs) - 1.0| < eps AND probs_i > 0 for all i"
-    tolerance: 1.0e-6
-    applies_to: all
-  - type: invariant
-    property: "Embedding determinism"
-    formal: "embed(x) == embed(x) for same x and weights (bit-identical)"
-    applies_to: all
-
+- type: invariant
+  property: Encoder frozen
+  formal: encoder_params_before == encoder_params_after for each training step
+  applies_to: all
+- type: invariant
+  property: Probability simplex
+  formal: '|sum(probs) - 1.0| < eps AND probs_i > 0 for all i'
+  tolerance: 1.0e-06
+  applies_to: all
+- type: invariant
+  property: Embedding determinism
+  formal: embed(x) == embed(x) for same x and weights (bit-identical)
+  applies_to: all
 falsification_tests:
-  - id: FALSIFY-PROBE-001
-    rule: "Encoder truly frozen"
-    prediction: "Encoder weights unchanged after 100 training steps"
-    test: "Snapshot encoder params, train, compare"
-    if_fails: "Gradient leaking through frozen parameters"
-  - id: FALSIFY-PROBE-002
-    rule: "Probability valid"
-    prediction: "Softmax output sums to 1.0 and all values > 0"
-    test: "proptest with random embeddings"
-    if_fails: "Numerical underflow in softmax or missing normalization"
+- id: FALSIFY-PROBE-001
+  rule: Encoder truly frozen
+  prediction: Encoder weights unchanged after 100 training steps
+  test: Snapshot encoder params, train, compare
+  if_fails: Gradient leaking through frozen parameters
+- id: FALSIFY-PROBE-002
+  rule: Probability valid
+  prediction: Softmax output sums to 1.0 and all values > 0
+  test: proptest with random embeddings
+  if_fails: Numerical underflow in softmax or missing normalization
+- id: FALSIFY-PROBE-003
+  rule: Embedding determinism
+  prediction: Same input produces bit-identical embedding
+  test: embed(x) twice with same weights, compare outputs
+  if_fails: Non-deterministic embedding — floating point or state dependency
+kani_harnesses:
+- id: KANI-LINEAR_PROBE_CLASSIFIER-001
+  obligation: Encoder frozen
+  property: Encoder frozen
+  bound: 4
+  strategy: stub_float
+  harness: verify_linear_probe_classifier_invariant

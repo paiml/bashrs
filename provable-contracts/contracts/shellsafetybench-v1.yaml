@@ -1,85 +1,106 @@
-contract:
-  name: shellsafetybench-v1
-  version: "1.0"
-  description: |
-    ShellSafetyBench pipeline contract (v12).
+metadata:
+  version: '1.0'
+  description: 'ShellSafetyBench pipeline contract (v12).
+
     Verifies CWE mapping, benchmark export schema, conversation quality,
-    and eval harness correctness.
-  created: "2026-03-08"
-  spec_ref: "docs/specifications/shell-safety-inference.md Section 14"
 
+    and eval harness correctness.'
+  references:
+  - docs/specifications/shell-safety-inference.md Section 14
+equations:
+  benchmark_validity:
+    formula: 'forall split in {train, val, test}: class_balance(split) in [15%, 85%] AND no_duplicates(train, test)'
+    domain: ShellSafetyBench dataset with 27K+ entries
+    codomain: Validated benchmark splits
+    invariants:
+    - No exact duplicates between train and test
+    - Class balance within acceptable range
+proof_obligations:
+- type: invariant
+  property: No exact duplicates between train and test
+  formal: No exact duplicates between train and test
+  applies_to: all
+- type: invariant
+  property: Class balance within acceptable range
+  formal: Class balance within acceptable range
+  applies_to: all
 preconditions:
-  - configs/cwe-mapping.yaml exists and is valid YAML
-  - bashrs corpus registry has >= 17000 entries
-  - transpiler produces shell output (not Rust code) for all 3 formats
-
+- configs/cwe-mapping.yaml exists and is valid YAML
+- bashrs corpus registry has >= 17000 entries
+- transpiler produces shell output (not Rust code) for all 3 formats
 postconditions:
-  - Every bashrs linter rule maps to exactly one CWE ID
-  - Every CWE mapping has a CVSS v3.1 base score
-  - Benchmark export produces valid DPO-compatible JSONL
-  - Generated conversations contain shell code (not Rust DSL)
-  - Eval harness computes all 6 metrics (F1, citation, CWE, fix, explain, OOD)
-  - Export schema has required fields: id, lang, cwe, rule, severity, script, chosen, rejected
-
+- Every bashrs linter rule maps to exactly one CWE ID
+- Every CWE mapping has a CVSS v3.1 base score
+- Benchmark export produces valid DPO-compatible JSONL
+- Generated conversations contain shell code (not Rust DSL)
+- Eval harness computes all 6 metrics (F1, citation, CWE, fix, explain, OOD)
+- Export schema has required fields: id, lang, cwe, rule, severity, script, chosen, rejected
 invariants:
-  - CWE mapping covers all 14 active linter rules (SEC001-SEC008, SEC013, DET001-DET003, IDEM001-IDEM002)
-  - OOD CWEs (426, 77, 116, 250) are NOT in linter rules (by definition)
-  - CVSS scores range from 0.0 to 10.0
-  - All conversation instruction fields contain ```bash code blocks
-  - Benchmark entries have non-empty chosen and rejected responses
-
+- CWE mapping covers all 14 active linter rules (SEC001-SEC008, SEC013, DET001-DET003, IDEM001-IDEM002)
+- OOD CWEs (426, 77, 116, 250) are NOT in linter rules (by definition)
+- CVSS scores range from 0.0 to 10.0
+- All conversation instruction fields contain ```bash code blocks
+- Benchmark entries have non-empty chosen and rejected responses
 falsification_tests:
-  - id: FALSIFY-SSB-001
-    name: "CWE mapping covers all linter rules"
-    expected: "14 rules mapped, each with CWE ID and CVSS score"
-    test: test_cwe_mapping_covers_all_rules
-
-  - id: FALSIFY-SSB-002
-    name: "Conversations contain shell code not Rust"
-    expected: "instruction fields contain #!/bin/sh or shell patterns, not fn main"
-    test: test_conversations_contain_shell
-
-  - id: FALSIFY-SSB-003
-    name: "Benchmark export has DPO schema"
-    expected: "All entries have id, lang, cwe, rule, script, chosen, rejected"
-    test: test_benchmark_dpo_schema
-
-  - id: FALSIFY-SSB-004
-    name: "OOD CWEs are disjoint from linter CWEs"
-    expected: "CWE-426, CWE-77, CWE-116, CWE-250 not in rule mappings"
-    test: test_ood_cwes_disjoint
-
-  - id: FALSIFY-SSB-005
-    name: "CVSS scores are valid"
-    expected: "All scores in [0.0, 10.0], severities match score ranges"
-    test: test_cvss_scores_valid
-
-  - id: FALSIFY-SSB-006
-    name: "Eval harness weights sum to 1.0"
-    expected: "Detection F1 + Rule Citation + CWE + Fix + Explain + OOD = 1.0"
-    test: test_SSB006_eval_harness_weights_sum_to_one
-
-  - id: FALSIFY-SSB-007
-    name: "Data splits have zero exact duplicates between train and test"
-    expected: "apr data audit shows 0 duplicates, 100% valid JSON"
-    test: test_SSB007_eval_benchmark_requires_predictions_file
-
-  - id: FALSIFY-SSB-008
-    name: "Eval harness produces valid results on synthetic predictions"
-    expected: "detection_f1, rule_citation, weighted_score in output"
-    test: test_SSB008_eval_benchmark_with_synthetic_predictions
-
-  - id: FALSIFY-SSB-009
-    name: "Pipeline preflight validates all tools"
-    expected: "pipeline-check --json reports pipeline_ready=true with all 6 tools"
-    test: test_KAIZEN095_pipeline_check_json_output
-
-  - id: FALSIFY-SSB-010
-    name: "Verificar mutations label correctly"
-    expected: "corpus label accepts unsafe_script field from verificar format"
-    test: test_KAIZEN095_verificar_label_integration
-
-  - id: FALSIFY-SSB-011
-    name: "Merge normalizes verificar entries to conversation format"
-    expected: "verificar entries get instruction/response/system/text fields with bash code blocks"
-    test: test_KAIZEN095_merge_data_normalizes_verificar_schema
+- id: FALSIFY-SSB-001
+  test: test_cwe_mapping_covers_all_rules
+  rule: CWE mapping covers all linter rules
+  prediction: 14 rules mapped, each with CWE ID and CVSS score
+  if_fails: 'Contract violation: CWE mapping covers all linter rules'
+- id: FALSIFY-SSB-002
+  test: test_conversations_contain_shell
+  rule: Conversations contain shell code not Rust
+  prediction: 'instruction fields contain #!/bin/sh or shell patterns, not fn main'
+  if_fails: 'Contract violation: Conversations contain shell code not Rust'
+- id: FALSIFY-SSB-003
+  test: test_benchmark_dpo_schema
+  rule: Benchmark export has DPO schema
+  prediction: All entries have id, lang, cwe, rule, script, chosen, rejected
+  if_fails: 'Contract violation: Benchmark export has DPO schema'
+- id: FALSIFY-SSB-004
+  test: test_ood_cwes_disjoint
+  rule: OOD CWEs are disjoint from linter CWEs
+  prediction: CWE-426, CWE-77, CWE-116, CWE-250 not in rule mappings
+  if_fails: 'Contract violation: OOD CWEs are disjoint from linter CWEs'
+- id: FALSIFY-SSB-005
+  test: test_cvss_scores_valid
+  rule: CVSS scores are valid
+  prediction: All scores in [0.0, 10.0], severities match score ranges
+  if_fails: 'Contract violation: CVSS scores are valid'
+- id: FALSIFY-SSB-006
+  test: test_SSB006_eval_harness_weights_sum_to_one
+  rule: Eval harness weights sum to 1.0
+  prediction: Detection F1 + Rule Citation + CWE + Fix + Explain + OOD = 1.0
+  if_fails: 'Contract violation: Eval harness weights sum to 1.0'
+- id: FALSIFY-SSB-007
+  test: test_SSB007_eval_benchmark_requires_predictions_file
+  rule: Data splits have zero exact duplicates between train and test
+  prediction: apr data audit shows 0 duplicates, 100% valid JSON
+  if_fails: 'Contract violation: Data splits have zero exact duplicates between train and test'
+- id: FALSIFY-SSB-008
+  test: test_SSB008_eval_benchmark_with_synthetic_predictions
+  rule: Eval harness produces valid results on synthetic predictions
+  prediction: detection_f1, rule_citation, weighted_score in output
+  if_fails: 'Contract violation: Eval harness produces valid results on synthetic predictions'
+- id: FALSIFY-SSB-009
+  test: test_KAIZEN095_pipeline_check_json_output
+  rule: Pipeline preflight validates all tools
+  prediction: pipeline-check --json reports pipeline_ready=true with all 6 tools
+  if_fails: 'Contract violation: Pipeline preflight validates all tools'
+- id: FALSIFY-SSB-010
+  test: test_KAIZEN095_verificar_label_integration
+  rule: Verificar mutations label correctly
+  prediction: corpus label accepts unsafe_script field from verificar format
+  if_fails: 'Contract violation: Verificar mutations label correctly'
+- id: FALSIFY-SSB-011
+  test: test_KAIZEN095_merge_data_normalizes_verificar_schema
+  rule: Merge normalizes verificar entries to conversation format
+  prediction: verificar entries get instruction/response/system/text fields with bash code blocks
+  if_fails: 'Contract violation: Merge normalizes verificar entries to conversation format'
+kani_harnesses:
+- id: KANI-SHELLSAFETYBENCH-001
+  obligation: No exact duplicates between train and test
+  property: No exact duplicates between train and test
+  bound: 4
+  strategy: stub_float
+  harness: verify_shellsafetybench_invariant

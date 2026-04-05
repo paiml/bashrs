@@ -1,86 +1,93 @@
-contract:
-  name: purification-pipeline-v1
-  version: "1.0.0"
-  description: >
-    Provable purification contracts (GH-183). The bash purifier transforms
-    non-deterministic bash into safe, idempotent POSIX sh. Each invariant
-    is falsifiable — a single counterexample breaks the contract.
+metadata:
+  version: 1.0.0
+  description: Provable purification contracts (GH-183). The bash purifier transforms non-deterministic bash into safe, idempotent
+    POSIX sh. Each invariant is falsifiable — a single counterexample breaks the contract.
   references:
-    - "GH-183: KZ-11 Missing provable contracts"
-    - "CLAUDE.md: Workflow 1 — Bash → Purified Bash (PRIMARY)"
-  spec: docs/specifications/STDLIB.md
-  phase: "Purification pipeline"
-
+  - 'GH-183: KZ-11 Missing provable contracts'
+  - 'CLAUDE.md: Workflow 1 — Bash → Purified Bash (PRIMARY)'
+equations:
+  purification:
+    formula: purify(bash_script) -> posix_script where is_deterministic(posix_script) AND is_idempotent(posix_script)
+    domain: 'bash_script: non-deterministic bash with $RANDOM, timestamps'
+    codomain: 'posix_script: deterministic, idempotent POSIX sh'
+    invariants:
+    - Purified output passes shellcheck -s sh
+    - All $RANDOM/timestamps removed
+    - Operations made idempotent with -p/-f flags
+proof_obligations:
+- type: invariant
+  property: Purified output passes shellcheck -s sh
+  formal: Purified output passes shellcheck -s sh
+  applies_to: all
+- type: invariant
+  property: All $RANDOM/timestamps removed
+  formal: All $RANDOM/timestamps removed
+  applies_to: all
+- type: invariant
+  property: Operations made idempotent with -p/-f flags
+  formal: Operations made idempotent with -p/-f flags
+  applies_to: all
 invariants:
-  - "Purified output is deterministic: same input produces identical output"
-  - "Non-deterministic constructs ($RANDOM, timestamps) are removed"
-  - "Operations are idempotent: mkdir -p, rm -f, ln -sf"
-  - "Output is POSIX-compliant (#!/bin/sh, passes shellcheck)"
-  - "Variables are double-quoted to prevent injection"
-
+- 'Purified output is deterministic: same input produces identical output'
+- Non-deterministic constructs ($RANDOM, timestamps) are removed
+- 'Operations are idempotent: mkdir -p, rm -f, ln -sf'
+- Output is POSIX-compliant (#!/bin/sh, passes shellcheck)
+- Variables are double-quoted to prevent injection
 falsification_tests:
-  # ── Determinism: remove non-deterministic constructs ─────────
-  - id: F-PURIFY-001
-    description: "$RANDOM is replaced with deterministic value"
-    input: "x=$RANDOM"
-    assertion: "purified output does NOT contain '$RANDOM'"
-    status: PASS
-
-  - id: F-PURIFY-002
-    description: "Purification is itself deterministic (same input → same output)"
-    input: "mkdir /tmp/foo\nrm /tmp/bar\necho $x"
-    assertion: "purify(input) == purify(input)"
-    status: PASS
-
-  # ── Idempotency: operations safe to re-run ───────────────────
-  - id: F-PURIFY-003
-    description: "mkdir becomes mkdir -p (safe to re-run)"
-    input: "mkdir /tmp/testdir"
-    assertion: "purified output contains 'mkdir -p'"
-    status: PASS
-
-  - id: F-PURIFY-004
-    description: "rm becomes rm -f (safe to re-run)"
-    input: "rm /tmp/old"
-    assertion: "purified output contains 'rm -f'"
-    status: PASS
-
-  # ── POSIX compliance ─────────────────────────────────────────
-  - id: F-PURIFY-005
-    description: "CLI purify replaces #!/bin/bash with #!/bin/sh (POSIX)"
-    input: "#!/bin/bash\necho hello"
-    assertion: "CLI 'bashrs purify' output starts with #!/bin/sh and does not contain #!/bin/bash"
-    status: PASS
-
-  # ── Variable safety ──────────────────────────────────────────
-  - id: F-PURIFY-006
-    description: "Unquoted variables get double-quoted"
-    input: "echo $unquoted_var"
-    assertion: "purified output contains '\"$unquoted_var\"'"
-    status: PASS
-
-  # ── Purify-then-lint cleanliness ─────────────────────────────
-  - id: F-PURIFY-007
-    description: "Purified output of non-deterministic input has zero DET violations"
-    input: "#!/bin/bash\nx=$RANDOM"
-    assertion: "lint(purify(input)) has zero DET-rule diagnostics"
-    status: PASS
-
-  - id: F-PURIFY-008
-    description: "Purified output of non-idempotent input has zero IDEM violations"
-    input: "mkdir /tmp/dir"
-    assertion: "lint(purify(input)) has zero IDEM-rule diagnostics"
-    status: PASS
-
-  # ── Behavioral equivalence (safe subset) ─────────────────────
-  - id: F-PURIFY-009
-    description: "Purification of already-pure code is idempotent"
-    input: "#!/bin/sh\necho \"hello\""
-    assertion: "purify(purify(input)) == purify(input)"
-    status: PASS
-
-  - id: F-PURIFY-010
-    description: "echo with literal args is preserved unchanged"
-    input: "echo hello world"
-    assertion: "purified output preserves 'echo hello world' semantics"
-    status: PASS
+- id: F-PURIFY-001
+  rule: $RANDOM is replaced with deterministic value
+  prediction: purified output does NOT contain '$RANDOM'
+  test: 'Given input, verify: purified output does NOT contain ''$RANDOM'''
+  if_fails: 'Contract violation: $RANDOM is replaced with deterministic value'
+- id: F-PURIFY-002
+  rule: Purification is itself deterministic (same input → same o...
+  prediction: purify(input) == purify(input)
+  test: 'Given input, verify: purify(input) == purify(input)'
+  if_fails: 'Contract violation: Purification is itself deterministic (same input → same o...'
+- id: F-PURIFY-003
+  rule: mkdir becomes mkdir -p (safe to re-run)
+  prediction: purified output contains 'mkdir -p'
+  test: 'Given input, verify: purified output contains ''mkdir -p'''
+  if_fails: 'Contract violation: mkdir becomes mkdir -p (safe to re-run)'
+- id: F-PURIFY-004
+  rule: rm becomes rm -f (safe to re-run)
+  prediction: purified output contains 'rm -f'
+  test: 'Given input, verify: purified output contains ''rm -f'''
+  if_fails: 'Contract violation: rm becomes rm -f (safe to re-run)'
+- id: F-PURIFY-005
+  rule: 'CLI purify replaces #!/bin/bash with #!/bin/sh (POSIX)'
+  prediction: 'CLI ''bashrs purify'' output starts with #!/bin/sh and does not contain #!/bin/bash'
+  test: 'Given input, verify: CLI ''bashrs purify'' output starts with #!/bin/sh and does not contain #!/bin/bash'
+  if_fails: 'Contract violation: CLI purify replaces #!/bin/bash with #!/bin/sh (POSIX)'
+- id: F-PURIFY-006
+  rule: Unquoted variables get double-quoted
+  prediction: purified output contains '"$unquoted_var"'
+  test: 'Given input, verify: purified output contains ''"$unquoted_var"'''
+  if_fails: 'Contract violation: Unquoted variables get double-quoted'
+- id: F-PURIFY-007
+  rule: Purified output of non-deterministic input has zero DET v...
+  prediction: lint(purify(input)) has zero DET-rule diagnostics
+  test: 'Given input, verify: lint(purify(input)) has zero DET-rule diagnostics'
+  if_fails: 'Contract violation: Purified output of non-deterministic input has zero DET v...'
+- id: F-PURIFY-008
+  rule: Purified output of non-idempotent input has zero IDEM vio...
+  prediction: lint(purify(input)) has zero IDEM-rule diagnostics
+  test: 'Given input, verify: lint(purify(input)) has zero IDEM-rule diagnostics'
+  if_fails: 'Contract violation: Purified output of non-idempotent input has zero IDEM vio...'
+- id: F-PURIFY-009
+  rule: Purification of already-pure code is idempotent
+  prediction: purify(purify(input)) == purify(input)
+  test: 'Given input, verify: purify(purify(input)) == purify(input)'
+  if_fails: 'Contract violation: Purification of already-pure code is idempotent'
+- id: F-PURIFY-010
+  rule: echo with literal args is preserved unchanged
+  prediction: purified output preserves 'echo hello world' semantics
+  test: 'Given input, verify: purified output preserves ''echo hello world'' semantics'
+  if_fails: 'Contract violation: echo with literal args is preserved unchanged'
+kani_harnesses:
+- id: KANI-PURIFICATION_PIPELINE-001
+  obligation: Purified output passes shellcheck -s sh
+  property: Purified output passes shellcheck -s sh
+  bound: 4
+  strategy: stub_float
+  harness: verify_purification_pipeline_invariant

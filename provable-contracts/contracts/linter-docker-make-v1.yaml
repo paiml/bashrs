@@ -1,98 +1,98 @@
-contract:
-  name: linter-docker-make-v1
-  version: "1.0.0"
-  description: >
-    Provable Dockerfile and Makefile linter contracts (GH-183).
-    DOCKER rules detect container security/quality issues.
-    MAKE rules detect non-deterministic, non-idempotent, and unsafe patterns.
-    Each rule must detect known-bad and not false-positive on known-safe.
+metadata:
+  version: 1.0.0
+  description: Provable Dockerfile and Makefile linter contracts (GH-183). DOCKER rules detect container security/quality
+    issues. MAKE rules detect non-deterministic, non-idempotent, and unsafe patterns. Each rule must detect known-bad and
+    not false-positive on known-safe.
   references:
-    - "GH-183: KZ-11 Missing provable contracts"
-    - "hadolint best practices (DOCKER rules)"
-  spec: docs/specifications/STDLIB.md
-  phase: "Linter Docker/Make"
-
+  - 'GH-183: KZ-11 Missing provable contracts'
+  - hadolint best practices (DOCKER rules)
+equations:
+  multi_format_linting:
+    formula: lint(file, fmt) produces diagnostics where fmt in {Dockerfile, Makefile}
+    domain: 'file: String, fmt: {Dockerfile, Makefile}'
+    codomain: Vec<LintDiagnostic>
+    invariants:
+    - Dockerfile rules fire on known-bad Dockerfiles
+    - Makefile rules fire on known-bad Makefiles
+proof_obligations:
+- type: invariant
+  property: Dockerfile rules fire on known-bad Dockerfiles
+  formal: Dockerfile rules fire on known-bad Dockerfiles
+  applies_to: all
+- type: invariant
+  property: Makefile rules fire on known-bad Makefiles
+  formal: Makefile rules fire on known-bad Makefiles
+  applies_to: all
 invariants:
-  - "DOCKER rules detect container security issues (root user, unpinned images)"
-  - "DOCKER rules do NOT flag Dockerfiles with proper USER/pinned images"
-  - "MAKE rules detect non-deterministic wildcards and non-idempotent operations"
-  - "MAKE rules do NOT flag $(sort $(wildcard)) or mkdir -p"
-
+- DOCKER rules detect container security issues (root user, unpinned images)
+- DOCKER rules do NOT flag Dockerfiles with proper USER/pinned images
+- MAKE rules detect non-deterministic wildcards and non-idempotent operations
+- MAKE rules do NOT flag $(sort $(wildcard)) or mkdir -p
 falsification_tests:
-  # ── DOCKER001: missing USER ──────────────────────────────────
-  - id: F-DOCKER001-SOUND
-    description: "DOCKER001 detects Dockerfile running as root"
-    input: "FROM ubuntu:latest\nRUN apt-get update"
-    assertion: "lint result contains DOCKER001"
-    status: PASS
-
-  - id: F-DOCKER001-PRECISE
-    description: "DOCKER001 does NOT flag Dockerfile with USER directive"
-    input: "FROM ubuntu:22.04\nUSER appuser\nRUN echo hi"
-    assertion: "lint result does NOT contain DOCKER001"
-    status: PASS
-
-  # ── DOCKER002: unpinned base image ──────────────────────────
-  - id: F-DOCKER002-SOUND
-    description: "DOCKER002 detects :latest tag"
-    input: "FROM ubuntu:latest\nRUN echo hi"
-    assertion: "lint result contains DOCKER002"
-    status: PASS
-
-  - id: F-DOCKER002-PRECISE
-    description: "DOCKER002 does NOT flag sha256-pinned image"
-    input: "FROM ubuntu@sha256:abc123\nRUN echo hi"
-    assertion: "lint result does NOT contain DOCKER002"
-    status: PASS
-
-  # ── DOCKER006: ADD vs COPY ──────────────────────────────────
-  - id: F-DOCKER006-SOUND
-    description: "DOCKER006 detects ADD used for local files"
-    input: "FROM ubuntu\nADD . /app"
-    assertion: "lint result contains DOCKER006"
-    status: PASS
-
-  - id: F-DOCKER006-PRECISE
-    description: "DOCKER006 does NOT flag COPY"
-    input: "FROM ubuntu\nCOPY . /app"
-    assertion: "lint result does NOT contain DOCKER006"
-    status: PASS
-
-  # ── MAKE001: unsorted wildcard ───────────────────────────────
-  - id: F-MAKE001-SOUND
-    description: "MAKE001 detects $(wildcard) without $(sort)"
-    input: "SRCS = $(wildcard *.c)"
-    assertion: "lint result contains MAKE001"
-    status: PASS
-
-  - id: F-MAKE001-PRECISE
-    description: "MAKE001 does NOT flag $(sort $(wildcard))"
-    input: "SRCS := $(sort $(wildcard *.c))"
-    assertion: "lint result does NOT contain MAKE001"
-    status: PASS
-
-  # ── MAKE002: mkdir without -p ────────────────────────────────
-  - id: F-MAKE002-SOUND
-    description: "MAKE002 detects mkdir without -p in recipe"
-    input: "all:\n\tmkdir /tmp/foo"
-    assertion: "lint result contains MAKE002"
-    status: PASS
-
-  - id: F-MAKE002-PRECISE
-    description: "MAKE002 does NOT flag mkdir -p"
-    input: "all:\n\tmkdir -p /tmp/foo"
-    assertion: "lint result does NOT contain MAKE002"
-    status: PASS
-
-  # ── MAKE004: missing .PHONY ──────────────────────────────────
-  - id: F-MAKE004-SOUND
-    description: "MAKE004 detects target without .PHONY"
-    input: "all:\n\techo done"
-    assertion: "lint result contains MAKE004"
-    status: PASS
-
-  - id: F-MAKE004-PRECISE
-    description: "MAKE004 does NOT flag .PHONY target"
-    input: ".PHONY: all\nall:\n\techo done"
-    assertion: "lint result does NOT contain MAKE004"
-    status: PASS
+- id: F-DOCKER001-SOUND
+  rule: DOCKER001 detects Dockerfile running as root
+  prediction: lint result contains DOCKER001
+  test: 'Given input, verify: lint result contains DOCKER001'
+  if_fails: 'Contract violation: DOCKER001 detects Dockerfile running as root'
+- id: F-DOCKER001-PRECISE
+  rule: DOCKER001 does NOT flag Dockerfile with USER directive
+  prediction: lint result does NOT contain DOCKER001
+  test: 'Given input, verify: lint result does NOT contain DOCKER001'
+  if_fails: 'Contract violation: DOCKER001 does NOT flag Dockerfile with USER directive'
+- id: F-DOCKER002-SOUND
+  rule: DOCKER002 detects :latest tag
+  prediction: lint result contains DOCKER002
+  test: 'Given input, verify: lint result contains DOCKER002'
+  if_fails: 'Contract violation: DOCKER002 detects :latest tag'
+- id: F-DOCKER002-PRECISE
+  rule: DOCKER002 does NOT flag sha256-pinned image
+  prediction: lint result does NOT contain DOCKER002
+  test: 'Given input, verify: lint result does NOT contain DOCKER002'
+  if_fails: 'Contract violation: DOCKER002 does NOT flag sha256-pinned image'
+- id: F-DOCKER006-SOUND
+  rule: DOCKER006 detects ADD used for local files
+  prediction: lint result contains DOCKER006
+  test: 'Given input, verify: lint result contains DOCKER006'
+  if_fails: 'Contract violation: DOCKER006 detects ADD used for local files'
+- id: F-DOCKER006-PRECISE
+  rule: DOCKER006 does NOT flag COPY
+  prediction: lint result does NOT contain DOCKER006
+  test: 'Given input, verify: lint result does NOT contain DOCKER006'
+  if_fails: 'Contract violation: DOCKER006 does NOT flag COPY'
+- id: F-MAKE001-SOUND
+  rule: MAKE001 detects $(wildcard) without $(sort)
+  prediction: lint result contains MAKE001
+  test: 'Given input, verify: lint result contains MAKE001'
+  if_fails: 'Contract violation: MAKE001 detects $(wildcard) without $(sort)'
+- id: F-MAKE001-PRECISE
+  rule: MAKE001 does NOT flag $(sort $(wildcard))
+  prediction: lint result does NOT contain MAKE001
+  test: 'Given input, verify: lint result does NOT contain MAKE001'
+  if_fails: 'Contract violation: MAKE001 does NOT flag $(sort $(wildcard))'
+- id: F-MAKE002-SOUND
+  rule: MAKE002 detects mkdir without -p in recipe
+  prediction: lint result contains MAKE002
+  test: 'Given input, verify: lint result contains MAKE002'
+  if_fails: 'Contract violation: MAKE002 detects mkdir without -p in recipe'
+- id: F-MAKE002-PRECISE
+  rule: MAKE002 does NOT flag mkdir -p
+  prediction: lint result does NOT contain MAKE002
+  test: 'Given input, verify: lint result does NOT contain MAKE002'
+  if_fails: 'Contract violation: MAKE002 does NOT flag mkdir -p'
+- id: F-MAKE004-SOUND
+  rule: MAKE004 detects target without .PHONY
+  prediction: lint result contains MAKE004
+  test: 'Given input, verify: lint result contains MAKE004'
+  if_fails: 'Contract violation: MAKE004 detects target without .PHONY'
+- id: F-MAKE004-PRECISE
+  rule: MAKE004 does NOT flag .PHONY target
+  prediction: lint result does NOT contain MAKE004
+  test: 'Given input, verify: lint result does NOT contain MAKE004'
+  if_fails: 'Contract violation: MAKE004 does NOT flag .PHONY target'
+kani_harnesses:
+- id: KANI-LINTER_DOCKER_MAKE-001
+  obligation: Dockerfile rules fire on known-bad Dockerfiles
+  property: Dockerfile rules fire on known-bad Dockerfiles
+  bound: 4
+  strategy: stub_float
+  harness: verify_linter_docker_make_invariant

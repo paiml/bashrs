@@ -1,95 +1,97 @@
-contract:
-  name: parser-soundness-v1
-  version: "1.0.0"
-  description: >
-    Provable parser soundness contracts (GH-183). The bash parser must
-    correctly lex, parse, and produce ASTs for valid bash. It must not
-    silently drop constructs. Parse must be deterministic.
+metadata:
+  version: 1.0.0
+  description: Provable parser soundness contracts (GH-183). The bash parser must correctly lex, parse, and produce ASTs for
+    valid bash. It must not silently drop constructs. Parse must be deterministic.
   references:
-    - "GH-183: KZ-11 Missing provable contracts"
-    - "binding.yaml: parser-soundness-v1 (3 bindings: lex, parse, semantic)"
-  spec: docs/specifications/STDLIB.md
-  phase: "Parser soundness"
-
+  - 'GH-183: KZ-11 Missing provable contracts'
+  - 'binding.yaml: parser-soundness-v1 (3 bindings: lex, parse, semantic)'
+equations:
+  parse_soundness:
+    formula: 'forall valid_bash s: parse(s) != Error AND emit(parse(s)) ~= s'
+    domain: 's: valid bash/sh script'
+    codomain: AST (Abstract Syntax Tree)
+    invariants:
+    - Valid bash always parses without error
+    - Roundtrip preserves semantic meaning
+proof_obligations:
+- type: invariant
+  property: Valid bash always parses without error
+  formal: Valid bash always parses without error
+  applies_to: all
+- type: invariant
+  property: Roundtrip preserves semantic meaning
+  formal: Roundtrip preserves semantic meaning
+  applies_to: all
 invariants:
-  - "Valid bash always parses without error (soundness)"
-  - "Parse is deterministic: same input produces identical AST"
-  - "No constructs are silently dropped during parsing"
-  - "Semantic analysis detects all used-before-defined variables"
-
+- Valid bash always parses without error (soundness)
+- 'Parse is deterministic: same input produces identical AST'
+- No constructs are silently dropped during parsing
+- Semantic analysis detects all used-before-defined variables
 falsification_tests:
-  # ── Lexing + parsing valid bash ──────────────────────────────
-  - id: F-PARSE-001
-    description: "Simple echo command parses successfully"
-    input: 'echo "hello world"'
-    assertion: "BashParser::new(input)?.parse() returns Ok"
-    status: PASS
-
-  - id: F-PARSE-002
-    description: "Variable assignment parses to Assignment AST node"
-    input: "x=42"
-    assertion: "AST contains Assignment { name: 'x' }"
-    status: PASS
-
-  - id: F-PARSE-003
-    description: "If-then-else parses to If AST node"
-    input: 'if [ "$x" = "1" ]; then echo yes; else echo no; fi'
-    assertion: "AST contains If node with then_block and else_block"
-    status: PASS
-
-  - id: F-PARSE-004
-    description: "For loop parses to For AST node"
-    input: "for f in *.txt; do echo \"$f\"; done"
-    assertion: "AST contains For { variable: 'f' }"
-    status: PASS
-
-  - id: F-PARSE-005
-    description: "Function definition parses to Function AST node"
-    input: "greet() { echo hello; }"
-    assertion: "AST contains Function { name: 'greet' }"
-    status: PASS
-
-  - id: F-PARSE-006
-    description: "Pipeline parses correctly"
-    input: "ls -la | grep foo | wc -l"
-    assertion: "AST contains Pipeline node"
-    status: PASS
-
-  # ── Determinism ──────────────────────────────────────────────
-  - id: F-PARSE-007
-    description: "Parsing is deterministic — same input, same AST"
-    input: 'x=1\nif [ "$x" ]; then echo yes; fi'
-    assertion: "parse(input) == parse(input)"
-    status: PASS
-
-  # ── Edge cases ───────────────────────────────────────────────
-  - id: F-PARSE-008
-    description: "Empty input parses to empty AST (no crash)"
-    input: ""
-    assertion: "parse returns Ok with empty statements"
-    status: PASS
-
-  - id: F-PARSE-009
-    description: "Comment-only input parses successfully"
-    input: "# this is a comment"
-    assertion: "parse returns Ok"
-    status: PASS
-
-  - id: F-PARSE-010
-    description: "Multi-line script preserves statement count"
-    input: "x=1\ny=2\necho $x $y"
-    assertion: "AST has exactly 3 statements"
-    status: PASS
-
-  # ── Construct preservation ───────────────────────────────────
-  - id: F-PARSE-011
-    description: "While loop parses to While AST node"
-    input: "while true; do sleep 1; done"
-    assertion: "AST contains While node"
-    status: PASS
-
-  - id: F-PARSE-012
-    description: "Case statement parses to Case AST node"
-    input: 'case "$1" in start) echo go;; stop) echo halt;; esac'
-    assertion: "AST contains Case node with 2 arms"
-    status: PASS
+- id: F-PARSE-001
+  rule: Simple echo command parses successfully
+  prediction: BashParser::new(input)?.parse() returns Ok
+  test: 'Given input, verify: BashParser::new(input)?.parse() returns Ok'
+  if_fails: 'Contract violation: Simple echo command parses successfully'
+- id: F-PARSE-002
+  rule: Variable assignment parses to Assignment AST node
+  prediction: 'AST contains Assignment { name: ''x'' }'
+  test: 'Given input, verify: AST contains Assignment { name: ''x'' }'
+  if_fails: 'Contract violation: Variable assignment parses to Assignment AST node'
+- id: F-PARSE-003
+  rule: If-then-else parses to If AST node
+  prediction: AST contains If node with then_block and else_block
+  test: 'Given input, verify: AST contains If node with then_block and else_block'
+  if_fails: 'Contract violation: If-then-else parses to If AST node'
+- id: F-PARSE-004
+  rule: For loop parses to For AST node
+  prediction: 'AST contains For { variable: ''f'' }'
+  test: 'Given input, verify: AST contains For { variable: ''f'' }'
+  if_fails: 'Contract violation: For loop parses to For AST node'
+- id: F-PARSE-005
+  rule: Function definition parses to Function AST node
+  prediction: 'AST contains Function { name: ''greet'' }'
+  test: 'Given input, verify: AST contains Function { name: ''greet'' }'
+  if_fails: 'Contract violation: Function definition parses to Function AST node'
+- id: F-PARSE-006
+  rule: Pipeline parses correctly
+  prediction: AST contains Pipeline node
+  test: 'Given input, verify: AST contains Pipeline node'
+  if_fails: 'Contract violation: Pipeline parses correctly'
+- id: F-PARSE-007
+  rule: Parsing is deterministic — same input, same AST
+  prediction: parse(input) == parse(input)
+  test: 'Given input, verify: parse(input) == parse(input)'
+  if_fails: 'Contract violation: Parsing is deterministic — same input, same AST'
+- id: F-PARSE-008
+  rule: Empty input parses to empty AST (no crash)
+  prediction: parse returns Ok with empty statements
+  test: parse returns Ok with empty statements
+  if_fails: 'Contract violation: Empty input parses to empty AST (no crash)'
+- id: F-PARSE-009
+  rule: Comment-only input parses successfully
+  prediction: parse returns Ok
+  test: 'Given input, verify: parse returns Ok'
+  if_fails: 'Contract violation: Comment-only input parses successfully'
+- id: F-PARSE-010
+  rule: Multi-line script preserves statement count
+  prediction: AST has exactly 3 statements
+  test: 'Given input, verify: AST has exactly 3 statements'
+  if_fails: 'Contract violation: Multi-line script preserves statement count'
+- id: F-PARSE-011
+  rule: While loop parses to While AST node
+  prediction: AST contains While node
+  test: 'Given input, verify: AST contains While node'
+  if_fails: 'Contract violation: While loop parses to While AST node'
+- id: F-PARSE-012
+  rule: Case statement parses to Case AST node
+  prediction: AST contains Case node with 2 arms
+  test: 'Given input, verify: AST contains Case node with 2 arms'
+  if_fails: 'Contract violation: Case statement parses to Case AST node'
+kani_harnesses:
+- id: KANI-PARSER_SOUNDNESS-001
+  obligation: Valid bash always parses without error
+  property: Valid bash always parses without error
+  bound: 4
+  strategy: stub_float
+  harness: verify_parser_soundness_invariant

@@ -1,69 +1,85 @@
-contract:
-  name: dimension-independent-kernels-v1
-  version: "1.0.0"
-  description: >
-    Provable contract for trueno kernel architecture: all GPU kernels must be
-    dimension-independent (pass M/K/N as runtime params, not baked into PTX).
-    This eliminates JIT compilation during training and the Blackwell context
-    poisoning bug (trueno#200). See S18.14.
-  spec: docs/specifications/shell-safety-inference.md
-  section: "S18.14"
+metadata:
+  version: 1.0.0
+  description: 'Provable contract for trueno kernel architecture: all GPU kernels must be dimension-independent (pass M/K/N
+    as runtime params, not baked into PTX). This eliminates JIT compilation during training and the Blackwell context poisoning
+    bug (trueno#200). See S18.14.'
   references:
-    - "trueno#200 — Blackwell cuModuleLoadData fails during active GPU work"
-    - "S18.10 — 8 training failures from JIT during GPU work"
-    - "S18.13 — ELI5: PyTorch ships pre-compiled, we JIT-compile"
+  - trueno#200 — Blackwell cuModuleLoadData fails during active GPU work
+  - S18.10 — 8 training failures from JIT during GPU work
+  - 'S18.13 — ELI5: PyTorch ships pre-compiled, we JIT-compile'
+equations:
+  dimension_independence:
+    formula: 'forall d in {128, 256, 512, 1024}: kernel(x, d) produces valid output'
+    domain: x in R^{n x d}, d in PowersOf2
+    codomain: R^{n x d}
+    invariants:
+    - Kernel works for any power-of-2 dimension
+    - Output shape matches input shape
+proof_obligations:
+- type: invariant
+  property: Kernel works for any power-of-2 dimension
+  formal: Kernel works for any power-of-2 dimension
+  applies_to: all
+- type: invariant
+  property: Output shape matches input shape
+  formal: Output shape matches input shape
+  applies_to: all
+falsification_tests:
+- id: FALSIFY-DIM-001
+  description: 'For each of the ~15 kernel types, emit PTX and verify that M, K, N (or equivalent dimensions) appear as .param
+    declarations, NOT as immediate constants in the instruction stream. Grep the PTX for patterns like "mov.u32 %r, 512" where
+    512 is a dimension — these should be "ld.param.u32 %r, [m]" instead.
 
-tests:
-  - id: FALSIFY-DIM-001
-    name: "Kernel PTX has no baked dimensions"
-    description: >
-      For each of the ~15 kernel types, emit PTX and verify that
-      M, K, N (or equivalent dimensions) appear as .param declarations,
-      NOT as immediate constants in the instruction stream.
-      Grep the PTX for patterns like "mov.u32 %r, 512" where 512 is
-      a dimension — these should be "ld.param.u32 %r, [m]" instead.
-    prediction: PASS_AFTER_FIX
-    if_fails: "Kernel still bakes dimensions — not fully parameterized"
-    severity: critical
+    '
+  prediction: PASS_AFTER_FIX
+  if_fails: Kernel still bakes dimensions — not fully parameterized
+  severity: critical
+  rule: Kernel PTX has no baked dimensions
+  test: 'Verify: PASS_AFTER_FIX'
+- id: FALSIFY-DIM-002
+  description: 'Generate PTX for gemm_forward with (M=4, K=64, N=64) and (M=8, K=128, N=256). The PTX source must be IDENTICAL
+    (dimensions are runtime params, not compile-time constants).
 
-  - id: FALSIFY-DIM-002
-    name: "Same PTX for different dimensions"
-    description: >
-      Generate PTX for gemm_forward with (M=4, K=64, N=64) and
-      (M=8, K=128, N=256). The PTX source must be IDENTICAL
-      (dimensions are runtime params, not compile-time constants).
-    prediction: PASS_AFTER_FIX
-    if_fails: "PTX differs between dimensions — still baking constants"
-    severity: critical
+    '
+  prediction: PASS_AFTER_FIX
+  if_fails: PTX differs between dimensions — still baking constants
+  severity: critical
+  rule: Same PTX for different dimensions
+  test: 'Verify: PASS_AFTER_FIX'
+- id: FALSIFY-DIM-003
+  description: 'After refactor, count distinct kernel types (unique PTX templates). Must be <= 20 (currently ~50+ dimension
+    variants). This ensures pre-compilation is feasible (15 cubins, not 50+).
 
-  - id: FALSIFY-DIM-003
-    name: "Total unique kernel count <= 20"
-    description: >
-      After refactor, count distinct kernel types (unique PTX templates).
-      Must be <= 20 (currently ~50+ dimension variants). This ensures
-      pre-compilation is feasible (15 cubins, not 50+).
-    prediction: PASS_AFTER_FIX
-    if_fails: "Too many kernel variants — some dimension still baked in"
-    severity: high
+    '
+  prediction: PASS_AFTER_FIX
+  if_fails: Too many kernel variants — some dimension still baked in
+  severity: high
+  rule: Total unique kernel count <= 20
+  test: 'Verify: PASS_AFTER_FIX'
+- id: FALSIFY-DIM-004
+  description: 'Load a pre-compiled cubin via cuModuleLoadData. Verify: (a) No PTX-JIT messages in stderr (b) Load time <
+    1ms (cubin is already compiled SASS) (c) Kernel function is callable
 
-  - id: FALSIFY-DIM-004
-    name: "Pre-compiled cubin loads without JIT"
-    description: >
-      Load a pre-compiled cubin via cuModuleLoadData. Verify:
-      (a) No PTX-JIT messages in stderr
-      (b) Load time < 1ms (cubin is already compiled SASS)
-      (c) Kernel function is callable
-    prediction: PASS_AFTER_FIX
-    if_fails: "cubin loading triggers JIT — binary format wrong or arch mismatch"
-    severity: critical
+    '
+  prediction: PASS_AFTER_FIX
+  if_fails: cubin loading triggers JIT — binary format wrong or arch mismatch
+  severity: critical
+  rule: Pre-compiled cubin loads without JIT
+  test: 'Verify: PASS_AFTER_FIX'
+- id: FALSIFY-DIM-005
+  description: 'Run one complete training step (forward + backward + optimizer) with pre-compiled cubins. Verify no cuModuleLoadData
+    or cuModuleLoadDataEx calls during the step. All kernels must be loaded from cubin before training starts.
 
-  - id: FALSIFY-DIM-005
-    name: "Zero JIT compilation during full training step"
-    description: >
-      Run one complete training step (forward + backward + optimizer)
-      with pre-compiled cubins. Verify no cuModuleLoadData or
-      cuModuleLoadDataEx calls during the step. All kernels must be
-      loaded from cubin before training starts.
-    prediction: PASS_AFTER_FIX
-    if_fails: "JIT still happening during training — some kernel not pre-compiled"
-    severity: critical
+    '
+  prediction: PASS_AFTER_FIX
+  if_fails: JIT still happening during training — some kernel not pre-compiled
+  severity: critical
+  rule: Zero JIT compilation during full training step
+  test: 'Verify: PASS_AFTER_FIX'
+kani_harnesses:
+- id: KANI-DIMENSION_INDEPENDENT_KERNELS-001
+  obligation: Kernel works for any power-of-2 dimension
+  property: Kernel works for any power-of-2 dimension
+  bound: 4
+  strategy: stub_float
+  harness: verify_dimension_independent_kernels_invariant

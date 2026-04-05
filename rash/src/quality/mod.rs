@@ -51,6 +51,9 @@ pub mod lint_report;
 // Control flow graph and complexity
 pub mod cfg;
 
+// AST-to-CFG bridge (Sprint 5: Formal CFG Construction)
+pub mod cfg_builder;
+
 // Mock command executor for testing gates
 #[allow(clippy::expect_used)] // Mock executor uses expect() for internal invariants
 pub mod mock_executor;
@@ -60,6 +63,7 @@ pub use cfg::{
     render_cfg_ascii, CfgBuilder, CfgEdge, CfgNode, ComplexityGrade, ComplexityMetrics,
     ControlFlowGraph,
 };
+pub use cfg_builder::{build_cfg_from_ast, build_per_function_cfgs};
 pub use gates::{GateConfig, GateResult, GateSummary, QualityGate, Tier};
 pub use lint_report::{histogram_bar, sbfl_report, ErrorCluster, RichLintReport};
 pub use mock_executor::{CommandExecutor, CommandResult, MockCommandExecutor, RealCommandExecutor};

@@ -1,64 +1,105 @@
-contract:
-  name: wasm-linter-v1
-  version: "1.0"
-  description: |
-    bashrs-wasm WASM linter bindings contract.
+metadata:
+  version: '1.0'
+  description: 'bashrs-wasm WASM linter bindings contract.
+
     Verifies that the WASM API surface produces correct JSON output
-    for shell/makefile/dockerfile linting and classification.
-  created: "2026-03-07"
-  spec_ref: "docs/specifications/shell-safety-inference.md Section 8.3"
 
+    for shell/makefile/dockerfile linting and classification.'
+  references:
+  - docs/specifications/shell-safety-inference.md Section 8.3
+equations:
+  wasm_api:
+    formula: lint_wasm(script, fmt) -> JSON where fmt in {shell, makefile, dockerfile}
+    domain: 'script: String, fmt: {shell, makefile, dockerfile}'
+    codomain: JSON with diagnostics array and count
+    invariants:
+    - All functions return valid JSON (never panic)
+    - WASM binary size < 5MB
+proof_obligations:
+- type: invariant
+  property: All functions return valid JSON (never panic)
+  formal: All functions return valid JSON (never panic)
+  applies_to: all
+- type: invariant
+  property: WASM binary size < 5MB
+  formal: WASM binary size < 5MB
+  applies_to: all
 preconditions:
-  - WASM binary compiles for wasm32-unknown-unknown
-  - bashrs linter module available under minimal feature
-
+- WASM binary compiles for wasm32-unknown-unknown
+- bashrs linter module available under minimal feature
 postconditions:
-  - lint_shell_wasm returns valid JSON with diagnostics array and count
-  - lint_makefile_wasm returns valid JSON with diagnostics array and count
-  - lint_dockerfile_wasm returns valid JSON with diagnostics array and count
-  - classify_shell_wasm returns valid JSON with label, confidence, signal booleans
-  - explain_shell_wasm returns valid JSON with summary, issues, recommendation
-  - Safe scripts produce label="safe" and zero security findings
-  - Unsafe scripts (eval) produce label="unsafe" and SEC findings
-
+- lint_shell_wasm returns valid JSON with diagnostics array and count
+- lint_makefile_wasm returns valid JSON with diagnostics array and count
+- lint_dockerfile_wasm returns valid JSON with diagnostics array and count
+- classify_shell_wasm returns valid JSON with label, confidence, signal booleans
+- explain_shell_wasm returns valid JSON with summary, issues, recommendation
+- Safe scripts produce label="safe" and zero security findings
+- Unsafe scripts (eval) produce label="unsafe" and SEC findings
 invariants:
-  - WASM binary size < 5MB in release mode (C-WASM-001)
-  - All functions return valid JSON (never panic)
-  - Classification label is exactly "safe" or "unsafe"
-  - Confidence is in range [10.0, 95.0]
-
+- WASM binary size < 5MB in release mode (C-WASM-001)
+- All functions return valid JSON (never panic)
+- Classification label is exactly "safe" or "unsafe"
+- Confidence is in range [10.0, 95.0]
 falsification_tests:
-  - id: FALSIFY-WASM-001
-    name: "Safe script produces safe classification"
-    input: "#!/bin/sh\necho hello\n"
-    expected: "label=safe, confidence>90, has_security=false"
-    test: test_classify_shell_wasm_safe
+- id: FALSIFY-WASM-001
+  input: '#!/bin/sh
 
-  - id: FALSIFY-WASM-002
-    name: "eval produces unsafe classification with SEC finding"
-    input: "#!/bin/bash\neval \"$1\"\n"
-    expected: "label=unsafe, has_security=true, findings>0"
-    test: test_classify_shell_wasm_unsafe
+    echo hello
 
-  - id: FALSIFY-WASM-003
-    name: "Lint output is valid JSON with required fields"
-    input: "#!/bin/bash\neval \"$user_input\"\n"
-    expected: "diagnostics is array, count is number, count>0"
-    test: test_lint_shell_wasm_unsafe_script
+    '
+  test: test_classify_shell_wasm_safe
+  rule: Safe script produces safe classification
+  prediction: label=safe, confidence>90, has_security=false
+  if_fails: 'Contract violation: Safe script produces safe classification'
+- id: FALSIFY-WASM-002
+  input: '#!/bin/bash
 
-  - id: FALSIFY-WASM-004
-    name: "Explain safe script says no issues"
-    input: "#!/bin/sh\necho hello\n"
-    expected: "summary contains 'No issues', recommendation contains 'safe'"
-    test: test_explain_shell_wasm_safe
+    eval "$1"
 
-  - id: FALSIFY-WASM-005
-    name: "Explain unsafe script identifies security category"
-    input: "#!/bin/bash\neval \"$1\"\n"
-    expected: "summary contains 'security', recommendation contains 'unsafe'"
-    test: test_explain_shell_wasm_unsafe
+    '
+  test: test_classify_shell_wasm_unsafe
+  rule: eval produces unsafe classification with SEC finding
+  prediction: label=unsafe, has_security=true, findings>0
+  if_fails: 'Contract violation: eval produces unsafe classification with SEC finding'
+- id: FALSIFY-WASM-003
+  input: '#!/bin/bash
 
-  - id: FALSIFY-WASM-006
-    name: "WASM binary size under 5MB"
-    expected: "release build wasm file < 5242880 bytes"
-    test: manual_wasm_size_check
+    eval "$user_input"
+
+    '
+  test: test_lint_shell_wasm_unsafe_script
+  rule: Lint output is valid JSON with required fields
+  prediction: diagnostics is array, count is number, count>0
+  if_fails: 'Contract violation: Lint output is valid JSON with required fields'
+- id: FALSIFY-WASM-004
+  input: '#!/bin/sh
+
+    echo hello
+
+    '
+  test: test_explain_shell_wasm_safe
+  rule: Explain safe script says no issues
+  prediction: summary contains 'No issues', recommendation contains 'safe'
+  if_fails: 'Contract violation: Explain safe script says no issues'
+- id: FALSIFY-WASM-005
+  input: '#!/bin/bash
+
+    eval "$1"
+
+    '
+  test: test_explain_shell_wasm_unsafe
+  rule: Explain unsafe script identifies security category
+  prediction: summary contains 'security', recommendation contains 'unsafe'
+  if_fails: 'Contract violation: Explain unsafe script identifies security category'
+- id: FALSIFY-WASM-006
+  test: manual_wasm_size_check
+  rule: WASM binary size under 5MB
+  prediction: release build wasm file < 5242880 bytes
+  if_fails: 'Contract violation: WASM binary size under 5MB'
+kani_harnesses:
+- id: KANI-WASM_LINTER-001
+  obligation: All functions return valid JSON (never panic)
+  property: All functions return valid JSON (never panic)
+  bound: 4
+  strategy: stub_float
+  harness: verify_wasm_linter_invariant

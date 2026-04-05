@@ -1,69 +1,87 @@
-contract:
-  name: nf4-cublas-throughput-v1
-  version: "1.0.0"
-  description: >
-    Provable contract for NF4 two-pass dequant+cuBLAS GEMM (ENT-286).
-    Verifies that the cuBLAS path produces identical results to the fused
-    NF4 kernel while achieving >10x throughput improvement.
-    See entrenar#299, trueno#187, arXiv:2305.14314 §3.1.
-  spec: docs/specifications/shell-safety-inference.md
-  section: "S18.8"
+metadata:
+  version: 1.0.0
+  description: Provable contract for NF4 two-pass dequant+cuBLAS GEMM (ENT-286). Verifies that the cuBLAS path produces identical
+    results to the fused NF4 kernel while achieving >10x throughput improvement. See entrenar#299, trueno#187, arXiv:2305.14314
+    §3.1.
   references:
-    - "arXiv:2305.14314 — QLoRA §3.1: dequantization strategy"
-    - "entrenar#299 — 74x throughput gap"
-    - "trueno#187 — NF4 GEMM optimization"
+  - 'arXiv:2305.14314 — QLoRA §3.1: dequantization strategy'
+  - entrenar#299 — 74x throughput gap
+  - trueno#187 — NF4 GEMM optimization
+equations:
+  throughput_baseline:
+    formula: throughput(nf4_gemm) >= target_tflops for given matrix dimensions
+    domain: 'M, N, K: matrix dimensions'
+    codomain: TFLOPS (throughput metric)
+    invariants:
+    - Throughput meets baseline for each matrix size
+    - No regression vs previous version
+proof_obligations:
+- type: invariant
+  property: Throughput meets baseline for each matrix size
+  formal: Throughput meets baseline for each matrix size
+  applies_to: all
+- type: invariant
+  property: No regression vs previous version
+  formal: No regression vs previous version
+  applies_to: all
+falsification_tests:
+- id: FALSIFY-CUBLAS-001
+  description: 'For a random [M=4, K=2560, N=2560] GEMM with NF4-quantized B: 1. Run fused NF4 kernel → output_fused 2. Dequantize
+    B to f32, run cuBLAS gemm_f32 → output_cublas Max absolute difference must be < 1e-3.
 
-tests:
-  - id: FALSIFY-CUBLAS-001
-    name: "cuBLAS GEMM produces identical output to fused NF4 kernel"
-    description: >
-      For a random [M=4, K=2560, N=2560] GEMM with NF4-quantized B:
-      1. Run fused NF4 kernel → output_fused
-      2. Dequantize B to f32, run cuBLAS gemm_f32 → output_cublas
-      Max absolute difference must be < 1e-3.
-    prediction: PASS
-    if_fails: "Dequantization or cuBLAS call produces different values — check LUT, transpose, scale"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: Dequantization or cuBLAS call produces different values — check LUT, transpose, scale
+  severity: critical
+  rule: cuBLAS GEMM produces identical output to fused NF4 kernel
+  test: 'Verify: PASS'
+- id: FALSIFY-CUBLAS-002
+  description: 'Time 100 GEMMs [M=4, K=2560, N=2560] on both paths. cuBLAS path must be at least 10x faster (wall time). Expected:
+    50-100x based on tensor core vs scalar throughput.
 
-  - id: FALSIFY-CUBLAS-002
-    name: "cuBLAS path is at least 10x faster than fused kernel"
-    description: >
-      Time 100 GEMMs [M=4, K=2560, N=2560] on both paths.
-      cuBLAS path must be at least 10x faster (wall time).
-      Expected: 50-100x based on tensor core vs scalar throughput.
-    prediction: PASS
-    if_fails: "cuBLAS overhead (handle creation, memory layout) eating the gains"
-    severity: high
+    '
+  prediction: PASS
+  if_fails: cuBLAS overhead (handle creation, memory layout) eating the gains
+  severity: high
+  rule: cuBLAS path is at least 10x faster than fused kernel
+  test: 'Verify: PASS'
+- id: FALSIFY-CUBLAS-003
+  description: 'In QLoRA, base weights are frozen. The dequantized f32 buffer must not change between step 1 and step 100.
+    Compare checksums.
 
-  - id: FALSIFY-CUBLAS-003
-    name: "Pre-dequantized weights are frozen (no mutation during training)"
-    description: >
-      In QLoRA, base weights are frozen. The dequantized f32 buffer must
-      not change between step 1 and step 100. Compare checksums.
-    prediction: PASS
-    if_fails: "Base weights being mutated — QLoRA invariant violated"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: Base weights being mutated — QLoRA invariant violated
+  severity: critical
+  rule: Pre-dequantized weights are frozen (no mutation during training)
+  test: 'Verify: PASS'
+- id: FALSIFY-CUBLAS-004
+  description: 'Qwen3-4B has 7 projections × 36 layers = 252 weight matrices. Dequantized at f32: ~8GB total. This must fit
+    within GB10''s 128GB unified memory alongside activations and optimizer state. Total GPU memory after dequant must be
+    < 25GB.
 
-  - id: FALSIFY-CUBLAS-004
-    name: "Memory overhead of dequantized buffers is bounded"
-    description: >
-      Qwen3-4B has 7 projections × 36 layers = 252 weight matrices.
-      Dequantized at f32: ~8GB total. This must fit within GB10's
-      128GB unified memory alongside activations and optimizer state.
-      Total GPU memory after dequant must be < 25GB.
-    prediction: PASS
-    if_fails: "Dequantized buffers exceed memory budget — need tiled approach"
-    severity: high
+    '
+  prediction: PASS
+  if_fails: Dequantized buffers exceed memory budget — need tiled approach
+  severity: high
+  rule: Memory overhead of dequantized buffers is bounded
+  test: 'Verify: PASS'
+- id: FALSIFY-CUBLAS-005
+  description: 'After fixing throughput, run 100 training steps on entrenar. Loss at step 100 should be within 20% of PyTorch
+    canary (3.17). Note: entrenar computes response-only loss (higher), so the comparison adjusts for this. Target: loss <
+    15.0 at step 100 (vs current 11.40 — improvement expected from better convergence at higher throughput due to larger effective
+    batch per wall-time).
 
-  - id: FALSIFY-CUBLAS-005
-    name: "Training loss matches PyTorch canary within 20% at step 100"
-    description: >
-      After fixing throughput, run 100 training steps on entrenar.
-      Loss at step 100 should be within 20% of PyTorch canary (3.17).
-      Note: entrenar computes response-only loss (higher), so the
-      comparison adjusts for this. Target: loss < 15.0 at step 100
-      (vs current 11.40 — improvement expected from better convergence
-      at higher throughput due to larger effective batch per wall-time).
-    prediction: PASS
-    if_fails: "Forward pass has additional bugs beyond throughput"
-    severity: medium
+    '
+  prediction: PASS
+  if_fails: Forward pass has additional bugs beyond throughput
+  severity: medium
+  rule: Training loss matches PyTorch canary within 20% at step 100
+  test: 'Verify: PASS'
+kani_harnesses:
+- id: KANI-NF4_CUBLAS_THROUGHPUT-001
+  obligation: Throughput meets baseline for each matrix size
+  property: Throughput meets baseline for each matrix size
+  bound: 4
+  strategy: stub_float
+  harness: verify_nf4_cublas_throughput_invariant

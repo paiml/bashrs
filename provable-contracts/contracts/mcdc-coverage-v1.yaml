@@ -1,0 +1,118 @@
+metadata:
+  version: 1.0.0
+  description: MC/DC (Modified Condition/Decision Coverage) analysis contract (PMAT-224). Verifies that bashrs coverage --mcdc
+    correctly decomposes compound conditions (&&, ||, -a, -o) into individual sub-conditions and reports the minimum number
+    of test pairs needed for full MC/DC coverage. Supports [[ ]], [ ], test builtin, if/while/elif guards, and both terminal
+    and JSON output formats.
+  references:
+  - 'PMAT-224: MCDC Sprint 10'
+  - docs/specifications/world-class-bash-linter-spec.md
+equations:
+  mcdc_decomposition:
+    formula: mcdc(decision) = {conditions} where each condition independently affects decision outcome
+    domain: 'decision: compound boolean expression (&&, ||, -a, -o)'
+    codomain: MCDCReport with conditions, test pairs, coverage percentage
+    invariants:
+    - Each condition is independently testable
+    - Required test pairs satisfy MC/DC criterion
+proof_obligations:
+- type: invariant
+  property: Each condition is independently testable
+  formal: Each condition is independently testable
+  applies_to: all
+- type: invariant
+  property: Required test pairs satisfy MC/DC criterion
+  formal: Required test pairs satisfy MC/DC criterion
+  applies_to: all
+invariants:
+- --mcdc flag activates MC/DC analysis in coverage command
+- Compound && conditions are decomposed into individual sub-conditions
+- Compound || conditions are decomposed into individual sub-conditions
+- POSIX -a / -o operators inside [ ] are recognized
+- Required test pairs = number of individual conditions per decision
+- JSON output includes mcdc object with decisions, conditions, operators
+- Terminal output shows MC/DC summary line with decision and condition counts
+- Without --mcdc flag, no MC/DC analysis is performed
+falsification_tests:
+- id: F-MCDC-HELP
+  rule: Help text documents --mcdc flag
+  prediction: bashrs coverage --help contains "--mcdc"
+  test: test_PMAT224_mcdc_flag_in_help
+  if_fails: --mcdc flag not documented in help
+- id: F-MCDC-AND
+  rule: Double-bracket && detected
+  prediction: 'Script with [[ -f /a && -d /b ]] produces MC/DC output with 2 conditions
+
+    '
+  test: test_PMAT224_mcdc_double_bracket_and
+  if_fails: Double-bracket && not parsed as compound condition
+- id: F-MCDC-OR
+  rule: Double-bracket || detected
+  prediction: 'Script with [[ $x -gt 0 || $y -lt 10 ]] produces MC/DC output with 2 conditions
+
+    '
+  test: test_PMAT224_mcdc_double_bracket_or
+  if_fails: Double-bracket || not parsed as compound condition
+- id: F-MCDC-DASH-A
+  rule: Single-bracket -a detected
+  prediction: 'Script with [ -f x -a -r x ] produces MC/DC output with 2 conditions
+
+    '
+  test: test_PMAT224_mcdc_single_bracket_dash_a
+  if_fails: POSIX -a operator not recognized
+- id: F-MCDC-NONE
+  rule: No compound conditions reports "none"
+  prediction: 'Script with only simple [ -f x ] shows "no compound conditions"
+
+    '
+  test: test_PMAT224_mcdc_no_compound_conditions
+  if_fails: Empty MC/DC report not shown correctly
+- id: F-MCDC-THREE
+  rule: Three conditions counted correctly
+  prediction: 'Script with [[ -f /a && -f /b && -f /c ]] reports 3 conditions and 3 test pairs
+
+    '
+  test: test_PMAT224_mcdc_three_conditions
+  if_fails: Multi-condition decision not counted correctly
+- id: F-MCDC-DETAIL
+  rule: Detailed output shows individual conditions
+  prediction: '--mcdc --detailed shows "MC/DC Decisions", [0], [1] condition indices
+
+    '
+  test: test_PMAT224_mcdc_detailed_shows_conditions
+  if_fails: Detailed MC/DC output missing condition breakdown
+- id: F-MCDC-JSON
+  rule: JSON output includes mcdc object
+  prediction: '--mcdc --format json includes total_decisions, total_conditions, required_test_pairs, and decisions array
+
+    '
+  test: test_PMAT224_mcdc_json_output
+  if_fails: JSON MC/DC output missing required fields
+- id: F-MCDC-NO-FLAG
+  rule: Without --mcdc flag, no MC/DC in output
+  prediction: '--format json without --mcdc does NOT contain "mcdc" key
+
+    '
+  test: test_PMAT224_mcdc_json_no_mcdc_flag
+  if_fails: MC/DC analysis runs without --mcdc flag
+- id: F-MCDC-WHILE
+  rule: While guard compound conditions detected
+  prediction: 'Script with while [[ -f /lock && $retry -gt 0 ]] produces 1 decision
+
+    '
+  test: test_PMAT224_mcdc_while_guard
+  if_fails: While loop compound condition not detected
+- id: F-MCDC-MULTI
+  rule: Multiple decisions counted
+  prediction: 'Script with 2 compound if statements reports 2 decisions, 4 conditions
+
+    '
+  test: test_PMAT224_mcdc_multiple_decisions
+  if_fails: Multiple decisions not counted correctly
+kani_harnesses:
+- id: KANI-MCDC_COVERAGE-001
+  obligation: Each condition is independently testable
+  property: Each condition is independently testable
+  bound: 4
+  strategy: stub_float
+  harness: verify_mcdc_coverage_invariant

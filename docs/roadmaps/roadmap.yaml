@@ -1296,11 +1296,490 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'PMAT-200: Split repl/purifier.rs (3231), corpus/runner.rs (3056), emitter/dockerfile.rs (2453)'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-04-03T15:51:20Z
-  updated: 2026-04-03T15:51:25.301838094+00:00
+  updated: 2026-04-03T16:09:09Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-201
+  github_issue: null
+  item_type: task
+  title: 'PMAT-201: Split 10 oversized production files — restore file health compliance'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-03T20:03:46Z
+  updated: 2026-04-04T06:34:39Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-202
+  github_issue: null
+  item_type: task
+  title: 'PMAT-202: Fix CB-200 TDG Grade Gate — refactor build_registry/extend_registry complexity'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T06:23:44Z
+  updated: 2026-04-04T06:34:33Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-203
+  github_issue: null
+  item_type: task
+  title: 'PMAT-203: Wire 7 unwired ShellCheck rules (SC2008-SC2014) into lint_shell'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-04-04T06:39:00Z
+  updated: 2026-04-04T06:42:01Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-204
+  github_issue: null
+  item_type: task
+  title: 'PMAT-204: Implement bashrs comply review — Layer 2 evidence-based review (SPEC-COMPLY Phase 3)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T06:43:18Z
+  updated: 2026-04-04T06:48:21Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-205
+  github_issue: null
+  item_type: task
+  title: 'PMAT-205: Fix CB-1201 — add rule field to 9 provable contracts + implement comply audit (Phase 3)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T06:52:48Z
+  updated: 2026-04-04T07:05:58Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-206
+  github_issue: null
+  item_type: task
+  title: 'PMAT-206: Semantic analysis warnings — unused variables (SC2034) and undefined variables (SC2154)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T09:03:03Z
+  updated: 2026-04-04T09:11:37Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-207
+  github_issue: null
+  item_type: task
+  title: 'PMAT-207: Parallel file linting with Rayon — lint multiple files concurrently (Sprint 14)'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-04-04T10:03:52Z
+  updated: 2026-04-04T10:08:56Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-208
+  github_issue: null
+  item_type: task
+  title: 'PMAT-208: Lint caching — skip unchanged files via content hash (Sprint 14 perf)'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-04-04T10:09:14Z
+  updated: 2026-04-04T10:14:51Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-209
+  github_issue: null
+  item_type: task
+  title: 'PMAT-204: WATCH — Implement bashrs watch subcommand with file-watching + debounced re-runs (World-Class Linter Spec Phase 2)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T10:26:37Z
+  updated: 2026-04-04T10:45:14Z
+  spec: null
+  acceptance_criteria:
+  - 'Implement the bashrs watch command: file system watching via notify crate, debounced re-execution of lint/format/test/score on changes, configurable debounce, glob-based file filtering. Closes feature gap vs Ruff/Deno watch modes.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-210
+  github_issue: null
+  item_type: task
+  title: 'PMAT-210: INCREMENTAL-LINT — bashrs lint --changed for CI-optimized git-aware incremental linting (Linter Spec S7.4)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T10:47:04Z
+  updated: 2026-04-04T10:53:52Z
+  spec: null
+  acceptance_criteria:
+  - Add --changed flag to bashrs lint that restricts linting to files modified in the git working tree (staged + unstaged). Uses git diff to discover changed shell files. Enables fast CI feedback by skipping unmodified files.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-211
+  github_issue: null
+  item_type: task
+  title: 'PMAT-211: LSP — bashrs lsp server for real-time diagnostics in editors (World-Class Linter Spec Sprint 8)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T11:00:44Z
+  updated: 2026-04-04T11:10:35Z
+  spec: null
+  acceptance_criteria:
+  - Implement Language Server Protocol server using tower-lsp. Provides real-time lint diagnostics on file open/save/change. Supports all 487 lint rules. VS Code, Neovim, Helix, Zed compatible. Feature-gated behind lsp flag.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-212
+  github_issue: null
+  item_type: task
+  title: 'PMAT-212: SEMANTIC-LINT — Wire SemanticAnalyzer into lint pipeline for AST-based SC2034/SC2154 (World-Class Linter Spec Sprint 5)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T11:13:18Z
+  updated: 2026-04-04T11:20:43Z
+  spec: null
+  acceptance_criteria:
+  - Wire the existing SemanticAnalyzer (bash_parser/semantic.rs) into lint_shell(). Replaces regex-based SC2034/SC2154 with proper AST+scope+export-aware analysis. Adds bashrs lint --semantic flag and bashrs check --undefined-vars/--unused-vars. The semantic analyzer already exists — this just connects it to the lint output.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-213
+  github_issue: null
+  item_type: task
+  title: 'PMAT-213: SEM003 — Dead code detection after exit/return (World-Class Linter Spec Sprint 5)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T11:21:45Z
+  updated: 2026-04-04T11:28:31Z
+  spec: null
+  acceptance_criteria:
+  - 'Add SEM003 lint rule: detect unreachable code after exit/return statements in bash scripts. Uses the existing bash parser AST to find statements that follow exit, return, exec, or unconditional exits in both then/else branches. Completes the dead code piece of Sprint 5.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-214
+  github_issue: null
+  item_type: task
+  title: 'PMAT-214: LSP-CODEACTION — Auto-fix via LSP code actions for editor Quick Fix (World-Class Linter Spec Sprint 8)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T11:30:31Z
+  updated: 2026-04-04T11:35:51Z
+  spec: null
+  acceptance_criteria:
+  - Add textDocument/codeAction handler to the LSP server. Exposes existing Fix data from lint diagnostics as LSP CodeActions with TextEdits. Enables Quick Fix in VS Code, Neovim, Helix. Completes the core LSP feature set.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-215
+  github_issue: null
+  item_type: task
+  title: 'PMAT-215: SCORE-TREND — Historical score tracking + trend display (World-Class Linter Spec Sprint 13)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T11:39:16Z
+  updated: 2026-04-04T11:47:23Z
+  spec: null
+  acceptance_criteria:
+  - Save score results to .bashrs/scores.jsonl on each bashrs score run. Add --trend N flag to show last N entries with direction arrows. Completes Sprint 13 TDG Scoring.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-216
+  github_issue: null
+  item_type: task
+  title: 'PMAT-216: TEST-GEN — bashrs test --generate for automated bash test generation (World-Class Linter Spec Sprint 9)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T11:48:45Z
+  updated: 2026-04-04T12:24:30Z
+  spec: null
+  acceptance_criteria:
+  - Add --generate flag to bashrs test that analyzes a bash script and outputs test stubs. Detects functions, args, file dependencies, and error handling patterns. Outputs BATS-compatible test files. No competitor has this feature.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-217
+  github_issue: null
+  item_type: task
+  title: 'PMAT-217: BRANCH-COV — bashrs coverage --branch for branch coverage analysis (Sprint 10)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T12:25:33Z
+  updated: 2026-04-04T12:32:44Z
+  spec: null
+  acceptance_criteria:
+  - Add --branch flag to bashrs coverage that tracks which if/elif/else/case branches are taken during test execution. Report branch coverage percentage alongside line coverage. Output in human, JSON, and LCOV formats.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-218
+  github_issue: null
+  item_type: task
+  title: 'PMAT-218: PROPERTY — bashrs property command for bash script property-based testing (Sprint 12)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T12:33:43Z
+  updated: 2026-04-04T12:41:18Z
+  spec: null
+  acceptance_criteria:
+  - 'Add bashrs property subcommand with 4 built-in properties: idempotency, determinism, posix, safety. Supports --properties filter, --iterations N, human/JSON output. Analyzes bash scripts statically for property violations.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-219
+  github_issue: null
+  item_type: task
+  title: 'PMAT-219: GH-ACTION — GitHub Actions action for bashrs lint/score/property (Sprint 16)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T14:01:23Z
+  updated: 2026-04-04T14:03:47Z
+  spec: null
+  acceptance_criteria:
+  - 'Create action.yml and entrypoint for a GitHub Actions marketplace action. Supports lint, score, property, coverage subcommands. Configurable via inputs: command, args, fail-on-warning. Outputs SARIF for GitHub Security tab integration.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-220
+  github_issue: null
+  item_type: task
+  title: 'PMAT-220: MIGRATE-GUIDE — ShellCheck to bashrs migration guide (Sprint 15)'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-04-04T14:03:53Z
+  updated: 2026-04-04T14:04:52Z
+  spec: null
+  acceptance_criteria:
+  - 'Create docs/migration-from-shellcheck.md covering: rule mapping (SC→bashrs), config migration (.shellcheckrc→.bashrsrc), CI migration (GitHub Actions, GitLab), feature comparison table, common workflows.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-221
+  github_issue: null
+  item_type: task
+  title: 'PMAT-221: LSP-HOVER — Add hover documentation for lint rules in LSP (Sprint 8)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T14:06:53Z
+  updated: 2026-04-04T14:12:09Z
+  spec: null
+  acceptance_criteria:
+  - Add HoverProvider to bashrs LSP that shows rule documentation (name, description, shell compatibility, fix suggestion) when hovering over a diagnostic. Covers all SC, SEC, DET, IDEM rules.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-222
+  github_issue: null
+  item_type: task
+  title: 'PMAT-222: GITLAB-CI — GitLab CI template for bashrs (Sprint 16)'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-04-04T14:12:13Z
+  updated: 2026-04-04T14:12:48Z
+  spec: null
+  acceptance_criteria:
+  - Create .gitlab-ci.yml template file for bashrs linting in GitLab CI/CD pipelines.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-223
+  github_issue: null
+  item_type: task
+  title: 'PMAT-223: TEST-GEN-EXT — Generate property + integration test stubs (Sprint 9)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T14:13:50Z
+  updated: 2026-04-04T14:32:38Z
+  spec: null
+  acceptance_criteria:
+  - 'Extend bashrs test --generate to also emit property test stubs (idempotency/determinism/posix/safety checks) and integration test stubs (end-to-end workflow, exit code, output validation). Adds --type flag: unit (default), property, integration, all.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-224
+  github_issue: null
+  item_type: task
+  title: 'PMAT-224: MCDC — Condition coverage (MC/DC) for bash scripts (Sprint 10)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T14:33:37Z
+  updated: 2026-04-04T14:41:27Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-225
+  github_issue: null
+  item_type: task
+  title: 'PMAT-225: PROPERTY-DSL — User-defined property checks via TOML DSL (Sprint 12)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T17:08:27Z
+  updated: 2026-04-04T17:16:41Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-226
+  github_issue: null
+  item_type: task
+  title: 'PMAT-226: PERF-10MS — Achieve <10ms lint latency per script (Sprint 14)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-04T17:18:53Z
+  updated: 2026-04-04T17:34:19Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: GH-188
+  github_issue: null
+  item_type: task
+  title: 'New task: GH-188'
+  status: completed
+  priority: medium
+  assigned_to: null
+  created: 2026-04-04T19:59:42.329168510+00:00
+  updated: 2026-04-04T20:15:26Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-227
+  github_issue: null
+  item_type: task
+  title: 'PMAT-227: CFG-BUILD — Formal control flow graph from bash AST (Sprint 5)'
+  status: completed
+  priority: high
+  assigned_to: null
+  created: 2026-04-05T05:46:00Z
+  updated: 2026-04-05T06:09:26Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-228
+  github_issue: null
+  item_type: task
+  title: 'PMAT-228: FILE-HEALTH — Replace oversized generated_contracts.rs with minimal stubs (5 files >2K)'
+  status: completed
+  priority: critical
+  assigned_to: null
+  created: 2026-04-05T06:16:13Z
+  updated: 2026-04-05T06:21:57Z
   spec: null
   acceptance_criteria: []
   phases: []

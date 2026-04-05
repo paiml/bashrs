@@ -1,0 +1,98 @@
+metadata:
+  version: 1.0.0
+  description: Property definition DSL contract (PMAT-225). Verifies that bashrs property --custom loads user-defined property
+    checks from TOML files. The DSL supports forbid rules (regex patterns that are violations when matched) and require rules
+    (patterns that must match at least one line). Custom properties integrate with built-in properties in both terminal and
+    JSON output.
+  references:
+  - 'PMAT-225: PROPERTY-DSL Sprint 12'
+  - docs/specifications/world-class-bash-linter-spec.md
+equations:
+  property_evaluation:
+    formula: eval_property(script, property_def) -> {pass, fail} with violations
+    domain: 'script: String, property_def: TOML with forbid/require rules'
+    codomain: PropertyResult with pass/fail, violations, suggestions
+    invariants:
+    - Forbid rules flag matching lines
+    - Require rules flag missing patterns
+proof_obligations:
+- type: invariant
+  property: Forbid rules flag matching lines
+  formal: Forbid rules flag matching lines
+  applies_to: all
+- type: invariant
+  property: Require rules flag missing patterns
+  formal: Require rules flag missing patterns
+  applies_to: all
+invariants:
+- --custom flag loads TOML property definitions
+- forbid rules flag lines matching the regex as violations
+- require rules flag missing patterns as violations
+- Custom properties appear in Custom Properties section of terminal output
+- JSON output includes custom_properties array when --custom is used
+- Invalid TOML files produce error (not crash)
+- Missing custom file produces error
+- Custom and built-in properties combine correctly
+falsification_tests:
+- id: F-DSL-HELP
+  rule: Help documents --custom flag
+  prediction: bashrs property --help contains "--custom"
+  test: test_PMAT225_custom_flag_in_help
+  if_fails: --custom flag not documented
+- id: F-DSL-FORBID-PASS
+  rule: Forbid rule passes on clean script
+  prediction: Script without sudo passes no-sudo custom property
+  test: test_PMAT225_custom_forbid_pass
+  if_fails: Forbid rule false positive
+- id: F-DSL-FORBID-FAIL
+  rule: Forbid rule catches violation
+  prediction: Script with sudo fails no-sudo custom property with message and suggestion
+  test: test_PMAT225_custom_forbid_fail
+  if_fails: Forbid rule not detecting violation
+- id: F-DSL-REQUIRE-PASS
+  rule: Require rule passes when pattern found
+  prediction: Script with set -e passes needs-set-e custom property
+  test: test_PMAT225_custom_require_pass
+  if_fails: Require rule false positive
+- id: F-DSL-REQUIRE-FAIL
+  rule: Require rule catches missing pattern
+  prediction: Script without set -e fails needs-set-e custom property
+  test: test_PMAT225_custom_require_fail
+  if_fails: Require rule not detecting missing pattern
+- id: F-DSL-REGEX
+  rule: Regex patterns work in forbid rules
+  prediction: Case-insensitive regex (?i)password catches PASSWORD=secret
+  test: test_PMAT225_custom_regex_pattern
+  if_fails: Regex patterns not working in custom rules
+- id: F-DSL-JSON
+  rule: JSON output includes custom properties
+  prediction: --custom --format json includes custom_properties array with name and violations
+  test: test_PMAT225_custom_json_output
+  if_fails: Custom properties missing from JSON output
+- id: F-DSL-NO-CUSTOM
+  rule: Without --custom no custom_properties in JSON
+  prediction: --format json without --custom has no custom_properties key
+  test: test_PMAT225_custom_json_no_custom
+  if_fails: Custom properties appear without --custom flag
+- id: F-DSL-BAD-TOML
+  rule: Invalid TOML produces error
+  prediction: Malformed TOML file causes non-zero exit
+  test: test_PMAT225_custom_invalid_toml
+  if_fails: Invalid TOML not rejected
+- id: F-DSL-MISSING
+  rule: Missing custom file produces error
+  prediction: Non-existent path causes non-zero exit
+  test: test_PMAT225_custom_missing_file
+  if_fails: Missing custom file not detected
+- id: F-DSL-COMBINED
+  rule: Custom and built-in properties combine
+  prediction: Script with builtin violation + passing custom shows both sections
+  test: test_PMAT225_custom_combined_with_builtin
+  if_fails: Custom and built-in properties not combined correctly
+kani_harnesses:
+- id: KANI-PROPERTY_DSL-001
+  obligation: Forbid rules flag matching lines
+  property: Forbid rules flag matching lines
+  bound: 4
+  strategy: stub_float
+  harness: verify_property_dsl_invariant

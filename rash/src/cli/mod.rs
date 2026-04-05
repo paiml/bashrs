@@ -1,4 +1,6 @@
 pub mod args;
+pub mod args_corpus;
+pub mod args_tools;
 pub mod bench;
 pub mod color;
 pub mod commands;

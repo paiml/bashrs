@@ -1,16 +1,28 @@
-contract:
-  name: linter-coverage-v1
+metadata:
   version: 1.0.0
-  description: 'Linter rule coverage contract (GAP-4). Verifies that each linter rule category fires on
-    at least one known-bad input per applicable format. A rule that never fires is dead code. A format
-    without coverage is an untested surface. Both falsify this contract.
-
-    '
+  description: Linter rule coverage contract (GAP-4). Verifies that each linter rule category fires on at least one known-bad
+    input per applicable format. A rule that never fires is dead code. A format without coverage is an untested surface. Both
+    falsify this contract.
   references:
   - 'SSC v13 Section 3 GAP-4: linter coverage'
   - 'GH-183: KZ-11 Missing provable contracts'
-  spec: docs/specifications/shell-safety-inference.md
-  phase: Linter coverage
+equations:
+  rule_coverage:
+    formula: 'forall rule in RuleSet(fmt): exists entry in Corpus(fmt): fires(rule, entry)'
+    domain: 'fmt: {Shell, Makefile, Dockerfile}, rule: LintRule'
+    codomain: bool (rule fires on at least one corpus entry)
+    invariants:
+    - Every active rule fires on at least one corpus entry
+    - No orphan rules without test coverage
+proof_obligations:
+- type: invariant
+  property: Every active rule fires on at least one corpus entry
+  formal: Every active rule fires on at least one corpus entry
+  applies_to: all
+- type: invariant
+  property: No orphan rules without test coverage
+  formal: No orphan rules without test coverage
+  applies_to: all
 invariants:
 - Every SEC rule fires on at least one shell input
 - Every DET rule fires on at least one shell input
@@ -21,40 +33,37 @@ invariants:
 falsification_tests:
 - id: F-LCOV-SEC-SHELL
   rule: SEC rule shell coverage
-  prediction: 'For each SEC rule R in {001..008}: exists input I such that lint_shell(I) contains diagnostic
-    with code R
+  prediction: 'For each SEC rule R in {001..008}: exists input I such that lint_shell(I) contains diagnostic with code R
 
     '
   test: All 8 core SEC rules (001-008) fire on known-bad shell inputs
   if_fails: 'Contract violation: SEC rule shell coverage'
 - id: F-LCOV-DET-SHELL
   rule: DET rule shell coverage
-  prediction: 'For each DET rule R in {001..004}: exists input I such that lint_shell(I) contains diagnostic
-    with code R
+  prediction: 'For each DET rule R in {001..004}: exists input I such that lint_shell(I) contains diagnostic with code R
 
     '
   test: All DET rules (001-004) fire on known-bad shell inputs
   if_fails: 'Contract violation: DET rule shell coverage'
 - id: F-LCOV-IDEM-SHELL
   rule: IDEM rule shell coverage
-  prediction: 'For each IDEM rule R in {001..003}: exists input I such that lint_shell(I) contains diagnostic
-    with code R
+  prediction: 'For each IDEM rule R in {001..003}: exists input I such that lint_shell(I) contains diagnostic with code R
 
     '
   test: All IDEM rules (001-003) fire on known-bad shell inputs
   if_fails: 'Contract violation: IDEM rule shell coverage'
 - id: F-LCOV-DOCKER
   rule: DOCKER rule coverage
-  prediction: 'For each DOCKER rule R in {001..006}: exists input I such that lint_dockerfile(I) contains
-    diagnostic with code R
+  prediction: 'For each DOCKER rule R in {001..006}: exists input I such that lint_dockerfile(I) contains diagnostic with
+    code R
 
     '
   test: All core DOCKER rules (001-006) fire on known-bad Dockerfiles
   if_fails: 'Contract violation: DOCKER rule coverage'
 - id: F-LCOV-MAKE
   rule: MAKE rule coverage
-  prediction: 'For each MAKE rule R in {001..010}: exists input I such that lint_makefile(I) contains
-    diagnostic with code R
+  prediction: 'For each MAKE rule R in {001..010}: exists input I such that lint_makefile(I) contains diagnostic with code
+    R
 
     '
   test: All core MAKE rules (001-010) fire on known-bad Makefiles
@@ -66,3 +75,10 @@ falsification_tests:
     '
   test: Union of all rule firings covers every registered rule
   if_fails: 'Contract violation: No dead rules'
+kani_harnesses:
+- id: KANI-LINTER_COVERAGE-001
+  obligation: Every active rule fires on at least one corpus entry
+  property: Every active rule fires on at least one corpus entry
+  bound: 4
+  strategy: stub_float
+  harness: verify_linter_coverage_invariant

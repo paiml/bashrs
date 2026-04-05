@@ -1,69 +1,90 @@
-contract:
-  name: wgpu-training-v1
-  version: "2.0.0"
-  description: >
-    Provable contract for WGPU-based transformer training on AMD GPUs.
-    Validates backward pass correctness, NF4 dequant parity,
-    checkpoint round-trip, and real data convergence. Enables training
-    on non-NVIDIA hardware (AMD W5700X via Vulkan).
-  spec: docs/specifications/shell-safety-inference.md
-  section: "S18.15"
+metadata:
+  version: 2.0.0
+  description: Provable contract for WGPU-based transformer training on AMD GPUs. Validates backward pass correctness, NF4
+    dequant parity, checkpoint round-trip, and real data convergence. Enables training on non-NVIDIA hardware (AMD W5700X
+    via Vulkan).
   references:
-    - "trueno WGPU backward: src/backends/gpu/device/backward.rs"
-    - "entrenar WGPU trainer: src/train/transformer_trainer/wgpu_trainer.rs"
-    - "entrenar WGPU checkpoint: src/train/transformer_trainer/wgpu_checkpoint.rs"
+  - 'trueno WGPU backward: src/backends/gpu/device/backward.rs'
+  - 'entrenar WGPU trainer: src/train/transformer_trainer/wgpu_trainer.rs'
+  - 'entrenar WGPU checkpoint: src/train/transformer_trainer/wgpu_checkpoint.rs'
+equations:
+  gpu_training:
+    formula: train(model, data, lr) -> model' where loss(model') < loss(model)
+    domain: 'model: NF4 quantized, data: training batch, lr: f64'
+    codomain: Updated model weights
+    invariants:
+    - Loss decreases over training steps
+    - Gradient norms bounded
+proof_obligations:
+- type: invariant
+  property: Loss decreases over training steps
+  formal: Loss decreases over training steps
+  applies_to: all
+- type: invariant
+  property: Gradient norms bounded
+  formal: Gradient norms bounded
+  applies_to: all
+falsification_tests:
+- id: FALSIFY-WGPU-001
+  description: '7 backward shaders verified on AMD W5700X: gemm_backward_a/b, rmsnorm_backward, silu_backward, rope_backward,
+    adamw_step, nf4_dequant. Max diff < 2.4e-7 for fp32.
 
-tests:
-  - id: FALSIFY-WGPU-001
-    name: "WGPU backward matches CPU within tolerance"
-    description: >
-      7 backward shaders verified on AMD W5700X: gemm_backward_a/b,
-      rmsnorm_backward, silu_backward, rope_backward, adamw_step,
-      nf4_dequant. Max diff < 2.4e-7 for fp32.
-    prediction: PASS
-    if_fails: "Backward shader has numerical bug"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: Backward shader has numerical bug
+  severity: critical
+  rule: WGPU backward matches CPU within tolerance
+  test: 'Verify: PASS'
+- id: FALSIFY-WGPU-002
+  description: 'Train lm_head on toy data via WGPU. Loss decreases by >10% in 50 steps. Verified by test_falsify_wgpu_002_toy_convergence.
 
-  - id: FALSIFY-WGPU-002
-    name: "WGPU training converges on toy problem"
-    description: >
-      Train lm_head on toy data via WGPU. Loss decreases by >10% in 50 steps.
-      Verified by test_falsify_wgpu_002_toy_convergence.
-    prediction: PASS
-    if_fails: "Gradient flow broken"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: Gradient flow broken
+  severity: critical
+  rule: WGPU training converges on toy problem
+  test: 'Verify: PASS'
+- id: FALSIFY-WGPU-003
+  description: 'Dequantize Qwen3-4B layer 0 NF4 on GPU. All values finite, >50% non-zero. Per-layer < 60MB. Verified by test_load_qwen3_4b_layer0_nf4.
 
-  - id: FALSIFY-WGPU-003
-    name: "NF4 dequant parity: WGPU vs CPU"
-    description: >
-      Dequantize Qwen3-4B layer 0 NF4 on GPU. All values finite, >50% non-zero.
-      Per-layer < 60MB. Verified by test_load_qwen3_4b_layer0_nf4.
-    prediction: PASS
-    if_fails: "NF4 codebook or nibble ordering mismatch"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: NF4 codebook or nibble ordering mismatch
+  severity: critical
+  rule: 'NF4 dequant parity: WGPU vs CPU'
+  test: 'Verify: PASS'
+- id: FALSIFY-WGPU-004
+  description: 'Run same batch on GPU0 and GPU1 (AMD W5700X pair). Gradients identical.
 
-  - id: FALSIFY-WGPU-004
-    name: "Multi-GPU gradient parity"
-    description: >
-      Run same batch on GPU0 and GPU1 (AMD W5700X pair). Gradients identical.
-    prediction: PENDING
-    if_fails: "Non-determinism between GPUs"
-    severity: high
+    '
+  prediction: PENDING
+  if_fails: Non-determinism between GPUs
+  severity: high
+  rule: Multi-GPU gradient parity
+  test: 'Verify: PENDING'
+- id: FALSIFY-WGPU-CKPT-001
+  description: 'Save/load LoRA adapters (A, B, optimizer state) via JSON checkpoint. Round-trip produces bit-identical weights.
 
-  - id: FALSIFY-WGPU-CKPT-001
-    name: "Checkpoint round-trip preserves LoRA weights"
-    description: >
-      Save/load LoRA adapters (A, B, optimizer state) via JSON checkpoint.
-      Round-trip produces bit-identical weights.
-    prediction: PASS
-    if_fails: "Serialization precision loss or field mismatch"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: Serialization precision loss or field mismatch
+  severity: critical
+  rule: Checkpoint round-trip preserves LoRA weights
+  test: 'Verify: PASS'
+- id: FALSIFY-WGPU-CKPT-002
+  description: 'Loading checkpoint from model with hidden_size=8 into model with hidden_size=16 must fail with descriptive
+    error.
 
-  - id: FALSIFY-WGPU-CKPT-002
-    name: "Checkpoint rejects dimension mismatch"
-    description: >
-      Loading checkpoint from model with hidden_size=8 into model with
-      hidden_size=16 must fail with descriptive error.
-    prediction: PASS
-    if_fails: "Missing validation in load_checkpoint"
-    severity: high
+    '
+  prediction: PASS
+  if_fails: Missing validation in load_checkpoint
+  severity: high
+  rule: Checkpoint rejects dimension mismatch
+  test: 'Verify: PASS'
+kani_harnesses:
+- id: KANI-WGPU_TRAINING-001
+  obligation: Loss decreases over training steps
+  property: Loss decreases over training steps
+  bound: 4
+  strategy: stub_float
+  harness: verify_wgpu_training_invariant

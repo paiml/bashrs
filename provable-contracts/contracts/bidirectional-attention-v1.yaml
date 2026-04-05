@@ -1,44 +1,55 @@
 metadata:
-  version: "1.0.0"
-  description: "Bidirectional (encoder) attention — full attention without causal mask"
+  version: 1.0.0
+  description: Bidirectional (encoder) attention — full attention without causal mask
   references:
-    - "Devlin et al. (2019) BERT: Pre-training of Deep Bidirectional Transformers"
-  depends_on: ["attention-kernel-v1", "softmax-kernel-v1"]
-
+  - 'Devlin et al. (2019) BERT: Pre-training of Deep Bidirectional Transformers'
+  depends_on:
+  - attention-kernel-v1
+  - softmax-kernel-v1
 equations:
   bidirectional_attention:
-    formula: "BiAttn(Q, K, V) = softmax(QK^T / sqrt(d_k)) * V"
-    domain: "Q in R^{n x d_k}, K in R^{n x d_k}, V in R^{n x d_v}"
-    codomain: "R^{n x d_v}"
+    formula: BiAttn(Q, K, V) = softmax(QK^T / sqrt(d_k)) * V
+    domain: Q in R^{n x d_k}, K in R^{n x d_k}, V in R^{n x d_v}
+    codomain: R^{n x d_v}
     invariants:
-      - "Every token attends to every other token (no mask)"
-      - "Attention weights are dense (no structural zeros)"
-      - "Equivalent to causal attention when n=1"
-
+    - Every token attends to every other token (no mask)
+    - Attention weights are dense (no structural zeros)
+    - Equivalent to causal attention when n=1
 proof_obligations:
-  - type: equivalence
-    property: "Causal parity on single-token input"
-    formal: "|BiAttn(q, k, v) - CausalAttn(q, k, v)| < eps for n=1"
-    tolerance: 1.0e-6
-    applies_to: all
-  - type: invariant
-    property: "Full attention density"
-    formal: "attn_weights[i][j] > 0 for all i, j in 0..n"
-    applies_to: all
-  - type: invariant
-    property: "Weight normalization"
-    formal: "sum_j(attn_weights[i][j]) = 1 for all i"
-    tolerance: 1.0e-5
-    applies_to: all
-
+- type: equivalence
+  property: Causal parity on single-token input
+  formal: '|BiAttn(q, k, v) - CausalAttn(q, k, v)| < eps for n=1'
+  tolerance: 1.0e-06
+  applies_to: all
+- type: invariant
+  property: Full attention density
+  formal: attn_weights[i][j] > 0 for all i, j in 0..n
+  applies_to: all
+- type: invariant
+  property: Weight normalization
+  formal: sum_j(attn_weights[i][j]) = 1 for all i
+  tolerance: 1.0e-05
+  applies_to: all
 falsification_tests:
-  - id: FALSIFY-BIATT-001
-    rule: "No causal mask applied"
-    prediction: "Upper triangle of attention matrix is non-zero"
-    test: "proptest with random Q, K, n >= 2"
-    if_fails: "Causal mask leaked into bidirectional path"
-  - id: FALSIFY-BIATT-002
-    rule: "Causal parity at n=1"
-    prediction: "Output identical to causal attention for single-token input"
-    test: "proptest comparing BiAttn and CausalAttn on n=1"
-    if_fails: "Mask application differs even when mask is trivial"
+- id: FALSIFY-BIATT-001
+  rule: No causal mask applied
+  prediction: Upper triangle of attention matrix is non-zero
+  test: proptest with random Q, K, n >= 2
+  if_fails: Causal mask leaked into bidirectional path
+- id: FALSIFY-BIATT-002
+  rule: Causal parity at n=1
+  prediction: Output identical to causal attention for single-token input
+  test: proptest comparing BiAttn and CausalAttn on n=1
+  if_fails: Mask application differs even when mask is trivial
+- id: FALSIFY-BIATT-003
+  rule: Weight normalization
+  prediction: Attention weight rows sum to 1.0 within tolerance
+  test: proptest with random Q, K, verify sum_j(attn_weights[i][j]) ~= 1.0
+  if_fails: Softmax normalization broken — weights do not sum to 1
+kani_harnesses:
+- id: KANI-BIDIRECTIONAL_ATTENTION-001
+  obligation: Causal parity on single-token input
+  property: Causal parity on single-token input
+  bound: 4
+  strategy: stub_float
+  harness: verify_bidirectional_attention_invariant

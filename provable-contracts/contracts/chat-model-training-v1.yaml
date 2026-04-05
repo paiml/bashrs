@@ -1,292 +1,273 @@
 metadata:
-  version: "1.5.0"
-  description: "Chat model training — Qwen2.5-Coder-0.5B-Instruct LoRA fine-tuning on shell safety conversations"
+  version: 1.5.0
+  description: Chat model training — Qwen2.5-Coder-0.5B-Instruct LoRA fine-tuning on shell safety conversations
   references:
-    - "Hu et al. (2021) LoRA: Low-Rank Adaptation of Large Language Models"
-    - "SSC v11 Section 7: Chat Model Fine-Tuning"
+  - 'Hu et al. (2021) LoRA: Low-Rank Adaptation of Large Language Models'
+  - 'SSC v11 Section 7: Chat Model Fine-Tuning'
   depends_on:
-    - "classifier-pipeline-v1"
-    - "chat-inference-pipeline-v1"
-
+  - classifier-pipeline-v1
+  - chat-inference-pipeline-v1
 equations:
   lora_forward:
-    formula: "h = W_0 @ x + (alpha/rank) * B @ A @ x"
-    domain: "x in R^{d_in}, W_0 in R^{d_out x d_in}, A in R^{rank x d_in}, B in R^{d_out x rank}"
-    codomain: "R^{d_out}"
+    formula: h = W_0 @ x + (alpha/rank) * B @ A @ x
+    domain: x in R^{d_in}, W_0 in R^{d_out x d_in}, A in R^{rank x d_in}, B in R^{d_out x rank}
+    codomain: R^{d_out}
     invariants:
-      - "Base weights W_0 are frozen (no gradient updates)"
-      - "Only A, B matrices receive gradients"
-      - "Effective rank << min(d_in, d_out)"
-
+    - Base weights W_0 are frozen (no gradient updates)
+    - Only A, B matrices receive gradients
+    - Effective rank << min(d_in, d_out)
   chat_loss:
-    formula: "L = -sum_t log P(y_t | y_{<t}, x) for response tokens only"
-    domain: "x = prompt tokens, y = response tokens"
-    codomain: "R (scalar loss)"
+    formula: L = -sum_t log P(y_t | y_{<t}, x) for response tokens only
+    domain: x = prompt tokens, y = response tokens
+    codomain: R (scalar loss)
     invariants:
-      - "Loss computed only on assistant response tokens (not system/user)"
-      - "Cross-entropy with teacher forcing"
-
+    - Loss computed only on assistant response tokens (not system/user)
+    - Cross-entropy with teacher forcing
+proof_obligations:
+- type: invariant
+  property: Base weights W_0 are frozen (no gradient updates)
+  formal: Base weights W_0 are frozen (no gradient updates)
+  applies_to: all
+- type: invariant
+  property: Only A, B matrices receive gradients
+  formal: Only A, B matrices receive gradients
+  applies_to: all
+- type: invariant
+  property: Effective rank << min(d_in, d_out)
+  formal: Effective rank << min(d_in, d_out)
+  applies_to: all
 postconditions:
-  - id: C-CHAT-TRAIN-001
-    description: "Training converges — loss decreases over epochs"
-    formal: "train_loss(epoch=3) < train_loss(epoch=1) * 0.8"
-    applies_to: all
-    status: PASS
-    evidence: >
-      Run 4 (1 epoch, LR=5e-5, bias fix): loss=1.86, ppl=6.44, best=0.607.
-      Model converges within single epoch (18.3→1.86). PASS for 1 epoch.
-      Run 3 (3 epochs): Epoch 1=1.52, Epoch 2=3.88, Epoch 3=4.01 — FAIL (diverges).
-      Run 6 (3 epochs, balanced data): Epoch 1=1.96, Epoch 2=1.37, Epoch 3=1.27.
-      Loss monotonically decreases: 1.27 < 1.96 * 0.8 = 1.57. PASS.
-      No catastrophic forgetting with smaller balanced dataset (2268 vs 17,942 entries).
+- id: C-CHAT-TRAIN-001
+  description: Training converges — loss decreases over epochs
+  formal: train_loss(epoch=3) < train_loss(epoch=1) * 0.8
+  applies_to: all
+  status: PASS
+  evidence: 'Run 4 (1 epoch, LR=5e-5, bias fix): loss=1.86, ppl=6.44, best=0.607. Model converges within single epoch (18.3→1.86).
+    PASS for 1 epoch. Run 3 (3 epochs): Epoch 1=1.52, Epoch 2=3.88, Epoch 3=4.01 — FAIL (diverges). Run 6 (3 epochs, balanced
+    data): Epoch 1=1.96, Epoch 2=1.37, Epoch 3=1.27. Loss monotonically decreases: 1.27 < 1.96 * 0.8 = 1.57. PASS. No catastrophic
+    forgetting with smaller balanced dataset (2268 vs 17,942 entries).
 
-  - id: C-CHAT-TRAIN-002
-    description: "Classification accuracy from parsed chat response exceeds 85%"
-    formal: "accuracy > 0.85 on test set"
-    applies_to: all
-    status: FAIL
-    evidence: >
-      Run 1: Gibberish output, 0% accuracy.
-      Run 3 (3 epochs): 3.0% accuracy (1/33), degenerate output.
-      Run 4 (1 epoch): 12.1% accuracy (4/33), coherent domain-relevant text.
-      Run 5 (1 epoch, v2 data): 28.0% accuracy (14/50), 2.3× improvement.
-        Safe: 11/25 (44%), Unsafe: 3/25 (12%).
-        19 code blocks generated (up from 4), 4 pass shellcheck (21.1%).
-        Model generates structured analysis, some with "Classification: safe" prefix.
-        Key issue: model tends to say "safe" for unsafe scripts.
-        Option C+E (prefill): 30.0% (15/50) — marginal improvement from prefill.
-      Still below 85% threshold. Full fine-tuning destroys format compliance.
-      Root cause: 97.7% safe data imbalance — model defaults to "safe".
-      Run 6 (3 epochs, balanced v3 data): 32.0% accuracy (16/50).
-        Safe: 15/25 (60%), Unsafe: 1/25 (4%).
-        17 code blocks generated, 2 pass shellcheck (11.8%).
-        Balanced data improved safe recall (60% vs 44%) but hurt unsafe recall (4% vs 12%).
-        Model generates "unknown" for 16/25 unsafe — format compliance regressed.
-        0.5B model too small to learn format + classification from 2268 balanced examples.
+    '
+- id: C-CHAT-TRAIN-002
+  description: Classification accuracy from parsed chat response exceeds 85%
+  formal: accuracy > 0.85 on test set
+  applies_to: all
+  status: FAIL
+  evidence: "Run 1: Gibberish output, 0% accuracy. Run 3 (3 epochs): 3.0% accuracy (1/33), degenerate output. Run 4 (1 epoch):\
+    \ 12.1% accuracy (4/33), coherent domain-relevant text. Run 5 (1 epoch, v2 data): 28.0% accuracy (14/50), 2.3× improvement.\n\
+    \  Safe: 11/25 (44%), Unsafe: 3/25 (12%).\n  19 code blocks generated (up from 4), 4 pass shellcheck (21.1%).\n  Model\
+    \ generates structured analysis, some with \"Classification: safe\" prefix.\n  Key issue: model tends to say \"safe\"\
+    \ for unsafe scripts.\n  Option C+E (prefill): 30.0% (15/50) — marginal improvement from prefill.\nStill below 85% threshold.\
+    \ Full fine-tuning destroys format compliance. Root cause: 97.7% safe data imbalance — model defaults to \"safe\". Run\
+    \ 6 (3 epochs, balanced v3 data): 32.0% accuracy (16/50).\n  Safe: 15/25 (60%), Unsafe: 1/25 (4%).\n  17 code blocks generated,\
+    \ 2 pass shellcheck (11.8%).\n  Balanced data improved safe recall (60% vs 44%) but hurt unsafe recall (4% vs 12%).\n\
+    \  Model generates \"unknown\" for 16/25 unsafe — format compliance regressed.\n  0.5B model too small to learn format\
+    \ + classification from 2268 balanced examples.\n"
+- id: C-CHAT-TRAIN-003
+  description: Fix suggestions pass shellcheck
+  formal: shellcheck_pass_rate > 0.85 on Type B responses
+  applies_to: all
+  status: FAIL
+  evidence: 'Run 3 (3 epochs): No code blocks generated. Run 4 (1 epoch): 4 code blocks generated, 1 passed shellcheck (25.0%).
+    Run 5 (1 epoch, v2 data): 19 code blocks generated, 4 passed shellcheck (21.1%). Code block volume 4.75× improvement;
+    shellcheck pass rate stable at ~21-25%. Model generates more code suggestions but quality remains below 85% threshold.
+    Run 6 (3 epochs, balanced v3 data): 17 code blocks, 2 passed shellcheck (11.8%). Code block generation maintained; shellcheck
+    rate declined slightly.
 
-  - id: C-CHAT-TRAIN-003
-    description: "Fix suggestions pass shellcheck"
-    formal: "shellcheck_pass_rate > 0.85 on Type B responses"
-    applies_to: all
-    status: FAIL
-    evidence: >
-      Run 3 (3 epochs): No code blocks generated.
-      Run 4 (1 epoch): 4 code blocks generated, 1 passed shellcheck (25.0%).
-      Run 5 (1 epoch, v2 data): 19 code blocks generated, 4 passed shellcheck (21.1%).
-      Code block volume 4.75× improvement; shellcheck pass rate stable at ~21-25%.
-      Model generates more code suggestions but quality remains below 85% threshold.
-      Run 6 (3 epochs, balanced v3 data): 17 code blocks, 2 passed shellcheck (11.8%).
-      Code block generation maintained; shellcheck rate declined slightly.
+    '
+- id: C-CHAT-TRAIN-004
+  description: Rule citations match linter output
+  formal: citation_accuracy > 0.90 on Type A responses
+  applies_to: all
+  status: FAIL
+  evidence: 'Run 3 (3 epochs): 0% citation accuracy. Run 4 (1 epoch): 0% citation accuracy. Model discusses security concepts
+    (injection, quoting, determinism) but doesn''t cite specific rule IDs. The training data contains rule IDs but the model
+    hasn''t learned to reproduce them.
 
-  - id: C-CHAT-TRAIN-004
-    description: "Rule citations match linter output"
-    formal: "citation_accuracy > 0.90 on Type A responses"
-    applies_to: all
-    status: FAIL
-    evidence: >
-      Run 3 (3 epochs): 0% citation accuracy.
-      Run 4 (1 epoch): 0% citation accuracy. Model discusses security concepts
-      (injection, quoting, determinism) but doesn't cite specific rule IDs.
-      The training data contains rule IDs but the model hasn't learned to reproduce them.
-
-  - id: C-CHAT-TRAIN-005
-    description: "Model weights are reasonable size"
-    formal: "model_size_gb < 5"
-    applies_to: all
-    status: PASS
-    evidence: "model.safetensors = 1.98GB (494M params, f32)"
-
+    '
+- id: C-CHAT-TRAIN-005
+  description: Model weights are reasonable size
+  formal: model_size_gb < 5
+  applies_to: all
+  status: PASS
+  evidence: model.safetensors = 1.98GB (494M params, f32)
 kill_criteria:
-  - id: KILL-CHAT-001
-    condition: "Human review average < 2.5/5.0"
-    action: "Ship classifier only. Chat model not ready."
-    status: TRIGGERED
-    evidence: >
-      Run 5 (v2 data, classification prefix): 28.0% accuracy (14/50).
-      2.3× improvement over run 4 (12.1%), 9.3× over run 3 (3.0%).
-      Model generates 19 code blocks (up from 4). Structured analysis output.
-      Human review: ~2.5/5 — output is coherent, relevant, sometimes structured.
-      BUT: 97.7% safe data causes severe class imbalance — model defaults to "safe".
-      Run 6 (balanced v3 data, 3 epochs): 32.0% accuracy (16/50).
-      Class balancing improved safe recall to 60% but unsafe recall dropped to 4%.
-      Model produces "unknown" for most unsafe scripts — format compliance insufficient.
-      After 6 training runs with progressive improvements:
-        Run 1: 0% → Run 3: 3% → Run 4: 12% → Run 5: 28% → Run 6: 32%.
-      Kill criterion CONFIRMED TRIGGERED. 0.5B model insufficient for chat task.
-      Recommendation: Ship classifier-only pipeline. Chat requires ≥7B model.
-
+- id: KILL-CHAT-001
+  condition: Human review average < 2.5/5.0
+  action: Ship classifier only. Chat model not ready.
+  status: TRIGGERED
+  evidence: "Run 5 (v2 data, classification prefix): 28.0% accuracy (14/50). 2.3× improvement over run 4 (12.1%), 9.3× over\
+    \ run 3 (3.0%). Model generates 19 code blocks (up from 4). Structured analysis output. Human review: ~2.5/5 — output\
+    \ is coherent, relevant, sometimes structured. BUT: 97.7% safe data causes severe class imbalance — model defaults to\
+    \ \"safe\". Run 6 (balanced v3 data, 3 epochs): 32.0% accuracy (16/50). Class balancing improved safe recall to 60% but\
+    \ unsafe recall dropped to 4%. Model produces \"unknown\" for most unsafe scripts — format compliance insufficient. After\
+    \ 6 training runs with progressive improvements:\n  Run 1: 0% → Run 3: 3% → Run 4: 12% → Run 5: 28% → Run 6: 32%.\nKill\
+    \ criterion CONFIRMED TRIGGERED. 0.5B model insufficient for chat task. Recommendation: Ship classifier-only pipeline.\
+    \ Chat requires ≥7B model.\n"
 root_cause_analysis:
-  - id: RCA-CHAT-001
-    title: "entrenar does not serialize attention biases"
-    status: FIXED
-    description: >
-      Qwen2 architecture uses biases on Q, K, V attention projections (72 tensors
-      total, 3 per layer × 24 layers). entrenar's checkpoint serialization only
-      saves weight matrices, not bias vectors.
-    impact: "Model produces gibberish instead of coherent text"
-    fix: "paiml/entrenar#258 (fixed in 24bc0c7)"
+- id: RCA-CHAT-001
+  title: entrenar does not serialize attention biases
+  status: FIXED
+  description: 'Qwen2 architecture uses biases on Q, K, V attention projections (72 tensors total, 3 per layer × 24 layers).
+    entrenar''s checkpoint serialization only saves weight matrices, not bias vectors.
 
-  - id: RCA-CHAT-002
-    title: "entrenar config.json hardcodes LlamaForCausalLM"
-    status: FIXED
-    description: >
-      save_config_and_metadata() hardcoded LlamaForCausalLM, model_type "llama",
-      tie_word_embeddings false. Causes wrong model class on HF load.
-    fix: "paiml/entrenar#259 (fixed in 533358f)"
+    '
+  impact: Model produces gibberish instead of coherent text
+  fix: paiml/entrenar#258 (fixed in 24bc0c7)
+- id: RCA-CHAT-002
+  title: entrenar config.json hardcodes LlamaForCausalLM
+  status: FIXED
+  description: 'save_config_and_metadata() hardcoded LlamaForCausalLM, model_type "llama", tie_word_embeddings false. Causes
+    wrong model class on HF load.
 
-  - id: RCA-CHAT-003
-    title: "Bias tensors saved as 2D [1,N] instead of 1D [N]"
-    status: OPEN
-    description: >
-      Attention biases stored as [1, hidden_size] instead of [hidden_size].
-      HF transformers reports shape mismatch. Workaround: squeeze(0) post-process.
-    fix: "paiml/entrenar#260"
+    '
+  fix: paiml/entrenar#259 (fixed in 533358f)
+- id: RCA-CHAT-003
+  title: Bias tensors saved as 2D [1,N] instead of 1D [N]
+  status: OPEN
+  description: 'Attention biases stored as [1, hidden_size] instead of [hidden_size]. HF transformers reports shape mismatch.
+    Workaround: squeeze(0) post-process.
 
-  - id: RCA-CHAT-004
-    title: "3 epochs of full fine-tuning causes catastrophic forgetting"
-    status: PARTIALLY_FIXED
-    description: >
-      Full fine-tuning (all 494M params) on 17,942 samples:
-      - Epoch 1: loss=1.52, ppl=4.56 (meaningful learning, optimal checkpoint)
-      - Epoch 2: loss=3.88, ppl=48.39 (severe degradation)
-      - Epoch 3: loss=4.01, ppl=55.40 (worse than random)
-      Model memorizes training data in epoch 1, then forgets base capabilities.
-      Output becomes repetitive degenerate patterns ("111...", "PerPer...").
-    impact: "Model loses instruction-following and classification ability"
-    fix: >
-      Option A: Reduce to 1 epoch (stop before degradation).
-      Option B: Use LoRA adapter-only training (freeze base weights).
-      Option C: Add early stopping on validation loss.
-      Run 6: Balanced dataset (2268 entries) avoids forgetting across 3 epochs.
-      Smaller dataset size is the key factor, not just epoch count.
+    '
+  fix: paiml/entrenar#260
+- id: RCA-CHAT-004
+  title: 3 epochs of full fine-tuning causes catastrophic forgetting
+  status: PARTIALLY_FIXED
+  description: 'Full fine-tuning (all 494M params) on 17,942 samples: - Epoch 1: loss=1.52, ppl=4.56 (meaningful learning,
+    optimal checkpoint) - Epoch 2: loss=3.88, ppl=48.39 (severe degradation) - Epoch 3: loss=4.01, ppl=55.40 (worse than random)
+    Model memorizes training data in epoch 1, then forgets base capabilities. Output becomes repetitive degenerate patterns
+    ("111...", "PerPer...").
 
-  - id: RCA-CHAT-005
-    title: "0.5B model has insufficient capacity for chat classification"
-    status: OPEN
-    description: >
-      After 6 training runs eliminating bugs (biases, config, forgetting) and
-      data issues (format, class imbalance), accuracy plateaus at 32%.
-      Run progression: 0% → 3% → 12% → 28% → 32%.
-      Model cannot simultaneously learn: (1) Classification: prefix format,
-      (2) safe vs unsafe discrimination, (3) structured analysis with code blocks.
-      0.5B params insufficient for multi-task chat output.
-    impact: "Chat model accuracy capped well below 85% threshold"
-    fix: >
-      Option A: Use larger model (≥7B params) with LoRA.
-      Option B: Ship classifier-only pipeline (MLP probe: MCC=0.754).
-      Option C: Distill from larger model to create better training data.
+    '
+  impact: Model loses instruction-following and classification ability
+  fix: 'Option A: Reduce to 1 epoch (stop before degradation). Option B: Use LoRA adapter-only training (freeze base weights).
+    Option C: Add early stopping on validation loss. Run 6: Balanced dataset (2268 entries) avoids forgetting across 3 epochs.
+    Smaller dataset size is the key factor, not just epoch count.
 
+    '
+- id: RCA-CHAT-005
+  title: 0.5B model has insufficient capacity for chat classification
+  status: OPEN
+  description: 'After 6 training runs eliminating bugs (biases, config, forgetting) and data issues (format, class imbalance),
+    accuracy plateaus at 32%. Run progression: 0% → 3% → 12% → 28% → 32%. Model cannot simultaneously learn: (1) Classification:
+    prefix format, (2) safe vs unsafe discrimination, (3) structured analysis with code blocks. 0.5B params insufficient for
+    multi-task chat output.
+
+    '
+  impact: Chat model accuracy capped well below 85% threshold
+  fix: 'Option A: Use larger model (≥7B params) with LoRA. Option B: Ship classifier-only pipeline (MLP probe: MCC=0.754).
+    Option C: Distill from larger model to create better training data.
+
+    '
 falsification_tests:
-  - id: FALSIFY-CHAT-001
-    rule: "Training convergence"
-    prediction: "Loss decreases monotonically across epochs"
-    test: "Monitor train_loss per epoch"
-    if_fails: "Learning rate too high or data quality issue"
-    result: FALSIFIED
-    evidence: >
-      Run 3 (LR=5e-5, bias fix): Epoch 1 loss=1.52 (good convergence).
-      Epoch 2 loss=3.88 (2.5× degradation). Epoch 3 loss=4.01 (continued decline).
-      Loss increases after epoch 1 — catastrophic forgetting from full fine-tuning.
-      1-epoch training is optimal for this data size (17K samples).
-      Run 6 (balanced 2268 entries): Loss monotonically decreases: 1.96→1.37→1.27.
-      With smaller balanced dataset, 3 epochs is safe. Forgetting is dataset-size dependent.
+- id: FALSIFY-CHAT-001
+  rule: Training convergence
+  prediction: Loss decreases monotonically across epochs
+  test: Monitor train_loss per epoch
+  if_fails: Learning rate too high or data quality issue
+  result: FALSIFIED
+  evidence: 'Run 3 (LR=5e-5, bias fix): Epoch 1 loss=1.52 (good convergence). Epoch 2 loss=3.88 (2.5× degradation). Epoch
+    3 loss=4.01 (continued decline). Loss increases after epoch 1 — catastrophic forgetting from full fine-tuning. 1-epoch
+    training is optimal for this data size (17K samples). Run 6 (balanced 2268 entries): Loss monotonically decreases: 1.96→1.37→1.27.
+    With smaller balanced dataset, 3 epochs is safe. Forgetting is dataset-size dependent.
 
-  - id: FALSIFY-CHAT-002
-    rule: "No mode collapse"
-    prediction: "Model generates diverse responses (not all identical)"
-    test: "Check response diversity on 100 test prompts"
-    if_fails: "Overfitting or insufficient data diversity"
-    result: FALSIFIED
-    evidence: >
-      Run 1: Complete mode collapse ("222dkdkdk..." identical outputs).
-      Run 3: Partial improvement — generates diverse but degenerate text.
-      Output includes semi-coherent suggestions but degrades to repetitive
-      patterns ("111...", "PerPerPer...", "closureclosure...").
-      Mode collapse partially mitigated but not eliminated.
+    '
+- id: FALSIFY-CHAT-002
+  rule: No mode collapse
+  prediction: Model generates diverse responses (not all identical)
+  test: Check response diversity on 100 test prompts
+  if_fails: Overfitting or insufficient data diversity
+  result: FALSIFIED
+  evidence: 'Run 1: Complete mode collapse ("222dkdkdk..." identical outputs). Run 3: Partial improvement — generates diverse
+    but degenerate text. Output includes semi-coherent suggestions but degrades to repetitive patterns ("111...", "PerPerPer...",
+    "closureclosure..."). Mode collapse partially mitigated but not eliminated.
 
-  - id: FALSIFY-CHAT-003
-    rule: "Base model preserved"
-    prediction: "Non-LoRA weights unchanged after training"
-    test: "Compare base weight checksums before and after"
-    if_fails: "Gradient leaking through frozen parameters"
-    result: FALSIFIED
-    evidence: >
-      Full causal LM training (not adapter-only) — all 494M weights updated.
-      Despite lora.enabled=true in YAML, entrenar performed full fine-tuning.
-      This is the root cause of catastrophic forgetting.
+    '
+- id: FALSIFY-CHAT-003
+  rule: Base model preserved
+  prediction: Non-LoRA weights unchanged after training
+  test: Compare base weight checksums before and after
+  if_fails: Gradient leaking through frozen parameters
+  result: FALSIFIED
+  evidence: 'Full causal LM training (not adapter-only) — all 494M weights updated. Despite lora.enabled=true in YAML, entrenar
+    performed full fine-tuning. This is the root cause of catastrophic forgetting.
 
-  - id: FALSIFY-CHAT-004
-    rule: "Honest limitations"
-    prediction: "Model says 'I don't know' for out-of-scope queries"
-    test: "Test with 10 non-shell prompts"
-    if_fails: "System prompt not effective in constraining model"
-    result: FALSIFIED
-    evidence: >
-      Run 3: Model attempts to answer all prompts but generates degenerate text.
-      No "I don't know" responses. Base model instruction-following destroyed
-      by 3 epochs of full fine-tuning.
+    '
+- id: FALSIFY-CHAT-004
+  rule: Honest limitations
+  prediction: Model says 'I don't know' for out-of-scope queries
+  test: Test with 10 non-shell prompts
+  if_fails: System prompt not effective in constraining model
+  result: FALSIFIED
+  evidence: 'Run 3: Model attempts to answer all prompts but generates degenerate text. No "I don''t know" responses. Base
+    model instruction-following destroyed by 3 epochs of full fine-tuning.
 
+    '
 benchmarks:
   training_run_1:
-    note: "Without biases (entrenar#258 not yet fixed)"
-    hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
-    model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
-    throughput_avg: "4,578 tok/s"
-    final_loss: 4.800
+    note: Without biases (entrenar#258 not yet fixed)
+    hardware: RTX 4090, 24GB VRAM, CUDA 12.8
+    model: Qwen2.5-Coder-0.5B-Instruct (494M params, f32)
+    throughput_avg: 4,578 tok/s
+    final_loss: 4.8
     best_loss: 0.764
-    epoch_losses: [4.576, 4.980, 4.800]
+    epoch_losses:
+    - 4.576
+    - 4.98
+    - 4.8
   training_run_3:
-    note: "With bias fix (entrenar#258) + config.json fix (#259), LR=5e-5"
-    hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
-    model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
-    throughput_avg: "5,190 tok/s"
-    throughput_peak: "6,197 tok/s"
-    mfu_avg: "18.6%"
-    mfu_peak: "22.2%"
-    vram_usage: "~10GB (f32 weights + optimizer states + activations)"
-    step_time_avg: "~350ms per batch (seq_len=512, batch_size=4)"
+    note: With bias fix (entrenar#258) + config.json fix (#259), LR=5e-5
+    hardware: RTX 4090, 24GB VRAM, CUDA 12.8
+    model: Qwen2.5-Coder-0.5B-Instruct (494M params, f32)
+    throughput_avg: 5,190 tok/s
+    throughput_peak: 6,197 tok/s
+    mfu_avg: 18.6%
+    mfu_peak: 22.2%
+    vram_usage: ~10GB (f32 weights + optimizer states + activations)
+    step_time_avg: ~350ms per batch (seq_len=512, batch_size=4)
     epoch_1_loss: 1.518
     epoch_1_perplexity: 4.56
     epoch_2_loss: 3.879
     epoch_2_perplexity: 48.39
     epoch_3_loss: 4.015
-    epoch_3_perplexity: 55.40
-    total_time: "5475s (91 min, 3 epochs)"
-    best_loss: 0.630
+    epoch_3_perplexity: 55.4
+    total_time: 5475s (91 min, 3 epochs)
+    best_loss: 0.63
     final_loss: 4.825
-    insight: "Epoch 1 shows meaningful learning; epochs 2-3 cause catastrophic forgetting"
+    insight: Epoch 1 shows meaningful learning; epochs 2-3 cause catastrophic forgetting
   training_run_4:
-    note: "1-epoch training (optimal configuration found)"
-    hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
-    model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
-    throughput_avg: "4,400 tok/s"
+    note: 1-epoch training (optimal configuration found)
+    hardware: RTX 4090, 24GB VRAM, CUDA 12.8
+    model: Qwen2.5-Coder-0.5B-Instruct (494M params, f32)
+    throughput_avg: 4,400 tok/s
     epoch_1_loss: 1.863
     epoch_1_perplexity: 6.44
     best_loss: 0.607
     final_loss: 2.671
-    total_time: "2055s (34 min, 1 epoch)"
-    insight: "1 epoch avoids catastrophic forgetting; model generates coherent domain text"
+    total_time: 2055s (34 min, 1 epoch)
+    insight: 1 epoch avoids catastrophic forgetting; model generates coherent domain text
   training_run_5:
-    note: "Option C — v2 data with Classification: prefix (format-focused training)"
-    hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
-    model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
-    data: "conversations_v2.jsonl (17,536 safe + 406 unsafe, classification prefix)"
+    note: 'Option C — v2 data with Classification: prefix (format-focused training)'
+    hardware: RTX 4090, 24GB VRAM, CUDA 12.8
+    model: Qwen2.5-Coder-0.5B-Instruct (494M params, f32)
+    data: conversations_v2.jsonl (17,536 safe + 406 unsafe, classification prefix)
     epochs: 1
-    lr: 0.00005
-    throughput_avg: "2,983 tok/s"
+    lr: 5.0e-05
+    throughput_avg: 2,983 tok/s
     epoch_1_loss: 1.667
-    epoch_1_perplexity: 5.30
+    epoch_1_perplexity: 5.3
     best_loss: 0.791
-    final_loss: 2.160
-    total_time: "3042s (51 min, 1 epoch)"
-    insight: "2.3x accuracy improvement over run 4 (28% vs 12.1%); model generates structured analysis with code blocks (19 vs 4); still below 85% threshold"
+    final_loss: 2.16
+    total_time: 3042s (51 min, 1 epoch)
+    insight: 2.3x accuracy improvement over run 4 (28% vs 12.1%); model generates structured analysis with code blocks (19
+      vs 4); still below 85% threshold
   training_run_6:
-    note: "Balanced v3 data — class-balanced training (67/33 safe/unsafe split)"
-    hardware: "RTX 4090, 24GB VRAM, CUDA 12.8"
-    model: "Qwen2.5-Coder-0.5B-Instruct (494M params, f32)"
-    data: "conversations_v3.jsonl (1512 safe + 756 unsafe = 2268 entries)"
+    note: Balanced v3 data — class-balanced training (67/33 safe/unsafe split)
+    hardware: RTX 4090, 24GB VRAM, CUDA 12.8
+    model: Qwen2.5-Coder-0.5B-Instruct (494M params, f32)
+    data: conversations_v3.jsonl (1512 safe + 756 unsafe = 2268 entries)
     epochs: 3
-    lr: 0.00005
+    lr: 5.0e-05
     epoch_1_loss: 1.965
     epoch_1_perplexity: 7.13
     epoch_2_loss: 1.367
@@ -296,38 +277,43 @@ benchmarks:
     best_loss: 0.815
     final_loss: 1.142
     total_steps: 1701
-    total_time: "1863s (31 min, 3 epochs)"
-    insight: "No catastrophic forgetting with balanced dataset (2268 vs 17,942 entries). Loss monotonically decreasing. But accuracy only 32% — model capacity is the bottleneck, not data."
+    total_time: 1863s (31 min, 3 epochs)
+    insight: No catastrophic forgetting with balanced dataset (2268 vs 17,942 entries). Loss monotonically decreasing. But
+      accuracy only 32% — model capacity is the bottleneck, not data.
   inference:
-    status: "FAIL — improved accuracy but still below 85% threshold"
-    tested_with: "HuggingFace transformers 5.3.0 (CUDA, torch 2.10.0)"
-    model_size: "1.98GB"
-    run_3_accuracy: "3.0% (1/33, 3 epochs, degraded)"
-    run_4_accuracy: "12.1% (4/33, 1 epoch, coherent)"
-    run_5_accuracy: "28.0% (14/50, 1 epoch, v2 data with classification prefix)"
-    run_5_safe_accuracy: "44.0% (11/25)"
-    run_5_unsafe_accuracy: "12.0% (3/25)"
-    run_5_shellcheck_rate: "21.1% (4/19 code blocks)"
-    run_5_citation_rate: "0.0%"
-    run_5_with_prefill: "30.0% (15/50) — marginal improvement from Option E"
-    run_6_accuracy: "32.0% (16/50, 3 epochs, balanced v3 data)"
-    run_6_safe_accuracy: "60.0% (15/25)"
-    run_6_unsafe_accuracy: "4.0% (1/25)"
-    run_6_shellcheck_rate: "11.8% (2/17 code blocks)"
-    run_6_citation_rate: "0.0%"
-    output_quality: >
-      Run 5 (v2 data): Structured analysis with some "Classification: safe" prefixes.
-      19 code blocks generated (4.75× run 4). Model correctly identifies safe scripts
-      ~44% of the time. BUT: defaults to "safe" for unsafe scripts (12% recall).
-      Root cause: 97.7% safe data imbalance. Key bottleneck shifted from FORMAT to
-      CLASS IMBALANCE — model learned to say "safe" as default since 97.7% of training
-      data is safe.
-      Run 6 (balanced v3 data): 32.0% accuracy (16/50). Safe recall improved to 60%
-      but unsafe recall dropped to 4%. Model produces "unknown" for 64% of unsafe scripts.
-      Balanced data fixed class imbalance but exposed model capacity limit — 0.5B params
-      cannot learn format + classification + analysis simultaneously.
-      Conclusion: Chat model experiment complete. Ship classifier-only pipeline.
+    status: FAIL — improved accuracy but still below 85% threshold
+    tested_with: HuggingFace transformers 5.3.0 (CUDA, torch 2.10.0)
+    model_size: 1.98GB
+    run_3_accuracy: 3.0% (1/33, 3 epochs, degraded)
+    run_4_accuracy: 12.1% (4/33, 1 epoch, coherent)
+    run_5_accuracy: 28.0% (14/50, 1 epoch, v2 data with classification prefix)
+    run_5_safe_accuracy: 44.0% (11/25)
+    run_5_unsafe_accuracy: 12.0% (3/25)
+    run_5_shellcheck_rate: 21.1% (4/19 code blocks)
+    run_5_citation_rate: 0.0%
+    run_5_with_prefill: 30.0% (15/50) — marginal improvement from Option E
+    run_6_accuracy: 32.0% (16/50, 3 epochs, balanced v3 data)
+    run_6_safe_accuracy: 60.0% (15/25)
+    run_6_unsafe_accuracy: 4.0% (1/25)
+    run_6_shellcheck_rate: 11.8% (2/17 code blocks)
+    run_6_citation_rate: 0.0%
+    output_quality: 'Run 5 (v2 data): Structured analysis with some "Classification: safe" prefixes. 19 code blocks generated
+      (4.75× run 4). Model correctly identifies safe scripts ~44% of the time. BUT: defaults to "safe" for unsafe scripts
+      (12% recall). Root cause: 97.7% safe data imbalance. Key bottleneck shifted from FORMAT to CLASS IMBALANCE — model learned
+      to say "safe" as default since 97.7% of training data is safe. Run 6 (balanced v3 data): 32.0% accuracy (16/50). Safe
+      recall improved to 60% but unsafe recall dropped to 4%. Model produces "unknown" for 64% of unsafe scripts. Balanced
+      data fixed class imbalance but exposed model capacity limit — 0.5B params cannot learn format + classification + analysis
+      simultaneously. Conclusion: Chat model experiment complete. Ship classifier-only pipeline.
+
+      '
     bugs_fixed:
-      - "entrenar#258: attention bias serialization (72 Qwen2 QKV bias tensors)"
-      - "entrenar#259: config.json hardcoded LlamaForCausalLM instead of Qwen2ForCausalLM"
-      - "entrenar#260: bias tensors saved as [1,N] instead of [N] (workaround: squeeze)"
+    - 'entrenar#258: attention bias serialization (72 Qwen2 QKV bias tensors)'
+    - 'entrenar#259: config.json hardcoded LlamaForCausalLM instead of Qwen2ForCausalLM'
+    - 'entrenar#260: bias tensors saved as [1,N] instead of [N] (workaround: squeeze)'
+kani_harnesses:
+- id: KANI-CHAT_MODEL_TRAINING-001
+  obligation: Base weights W_0 are frozen (no gradient updates)
+  property: Base weights W_0 are frozen (no gradient updates)
+  bound: 4
+  strategy: stub_float
+  harness: verify_chat_model_training_invariant

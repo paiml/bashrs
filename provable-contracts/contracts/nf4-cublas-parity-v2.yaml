@@ -1,81 +1,93 @@
-contract:
-  name: nf4-cublas-parity-v2
-  version: "2.0.0"
-  description: >
-    Falsification contract for NF4 cuBLAS GEMM parity (ENT-287).
-    Five cuBLAS integration attempts produced loss=0.0. This contract
-    isolates the failure to a SINGLE projection GEMM, not the full model.
-    Source: bitsandbytes csrc/kernels.cu (NF4 dequant + matmul4bit).
-  spec: docs/specifications/shell-safety-inference.md
-  section: "S18"
+metadata:
+  version: 2.0.0
+  description: 'Falsification contract for NF4 cuBLAS GEMM parity (ENT-287). Five cuBLAS integration attempts produced loss=0.0.
+    This contract isolates the failure to a SINGLE projection GEMM, not the full model. Source: bitsandbytes csrc/kernels.cu
+    (NF4 dequant + matmul4bit).'
   references:
-    - "bitsandbytes csrc/kernels.cu:520-521 — NF4 nibble order (HIGH then LOW)"
-    - "bitsandbytes autograd/_functions.py:320 — dequant().to(dtype).t() then linear"
-    - "trueno nf4_cpu.rs:173-174 — LOW then HIGH (opposite of bnb)"
-    - "arXiv:2305.14314 — QLoRA"
-    - "entrenar#300 — ENT-287 cuBLAS integration"
+  - bitsandbytes csrc/kernels.cu:520-521 — NF4 nibble order (HIGH then LOW)
+  - bitsandbytes autograd/_functions.py:320 — dequant().to(dtype).t() then linear
+  - trueno nf4_cpu.rs:173-174 — LOW then HIGH (opposite of bnb)
+  - arXiv:2305.14314 — QLoRA
+  - entrenar#300 — ENT-287 cuBLAS integration
+equations:
+  cublas_parity:
+    formula: '|nf4_gemm(A, B) - f32_gemm(dequant(A), B)| < tolerance'
+    domain: 'A: NF4 quantized matrix, B: f32 matrix'
+    codomain: R^{m x n} (GEMM output)
+    invariants:
+    - NF4 GEMM matches dequantized f32 GEMM within tolerance
+    - Performance >= 2x speedup vs f32
+proof_obligations:
+- type: invariant
+  property: NF4 GEMM matches dequantized f32 GEMM within tolerance
+  formal: NF4 GEMM matches dequantized f32 GEMM within tolerance
+  applies_to: all
+- type: invariant
+  property: Performance >= 2x speedup vs f32
+  formal: Performance >= 2x speedup vs f32
+  applies_to: all
+falsification_tests:
+- id: FALSIFY-PARITY-V2-001
+  description: 'Load Qwen3-4B q_proj weight [4096, 2560]. Quantize to NF4. Create random activation A[4, 2560]. Run fused
+    NF4 kernel: C_fused = gemm_nf4_forward(A, nf4, scales). Dequantize, transpose [4096,2560]→[2560,4096], run cuBLAS: C_cublas
+    = gemm_forward(A, W_t). Max |C_fused - C_cublas| must be < 0.1.
 
-tests:
-  - id: FALSIFY-PARITY-V2-001
-    name: "Single q_proj GEMM: fused NF4 vs cuBLAS on dequantized weights"
-    description: >
-      Load Qwen3-4B q_proj weight [4096, 2560]. Quantize to NF4.
-      Create random activation A[4, 2560].
-      Run fused NF4 kernel: C_fused = gemm_nf4_forward(A, nf4, scales).
-      Dequantize, transpose [4096,2560]→[2560,4096], run cuBLAS:
-      C_cublas = gemm_forward(A, W_t).
-      Max |C_fused - C_cublas| must be < 0.1.
-    prediction: PASS
-    if_fails: >
-      Dequantization or transpose produces wrong values. Debug:
-      (a) print first 10 values of W_t and verify against W_fused
-      (b) print first 10 output values from each path
-      (c) check cuBLAS return code
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: 'Dequantization or transpose produces wrong values. Debug: (a) print first 10 values of W_t and verify against
+    W_fused (b) print first 10 output values from each path (c) check cuBLAS return code
 
-  - id: FALSIFY-PARITY-V2-002
-    name: "Nibble unpack order: trueno vs bitsandbytes"
-    description: >
-      bitsandbytes: HIGH nibble → even index, LOW nibble → odd index
-      (kernels.cu:520-521).
-      trueno: LOW nibble → even index, HIGH nibble → odd index
-      (nf4_cpu.rs:173-174).
-      This means dequantize_nf4() outputs values in DIFFERENT order than
-      what bitsandbytes would produce from the same packed bytes.
-      For self-consistent trueno quantize→dequantize, this doesn't matter.
-      For loading bnb-quantized weights, it would swap every pair.
-      Test: quantize a known vector with trueno, dequantize, verify
-      round-trip matches original within NF4 tolerance.
-    prediction: PASS
-    if_fails: "trueno round-trip has unexpected error > 0.16 per element"
-    severity: medium
+    '
+  severity: critical
+  rule: 'Single q_proj GEMM: fused NF4 vs cuBLAS on dequantized weights'
+  test: 'Verify: PASS'
+- id: FALSIFY-PARITY-V2-002
+  description: 'bitsandbytes: HIGH nibble → even index, LOW nibble → odd index (kernels.cu:520-521). trueno: LOW nibble →
+    even index, HIGH nibble → odd index (nf4_cpu.rs:173-174). This means dequantize_nf4() outputs values in DIFFERENT order
+    than what bitsandbytes would produce from the same packed bytes. For self-consistent trueno quantize→dequantize, this
+    doesn''t matter. For loading bnb-quantized weights, it would swap every pair. Test: quantize a known vector with trueno,
+    dequantize, verify round-trip matches original within NF4 tolerance.
 
-  - id: FALSIFY-PARITY-V2-003
-    name: "GpuBuffer from_host upload verifiable"
-    description: >
-      Upload a known f32 vector [1.0, 2.0, 3.0, ...] via from_host.
-      Download via copy_to_host. Verify exact match.
-      If this fails, the GPU buffer is zero-initialized or corrupt.
-    prediction: PASS
-    if_fails: "GPU memory transfer bug — from_host doesn't actually copy data"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: trueno round-trip has unexpected error > 0.16 per element
+  severity: medium
+  rule: 'Nibble unpack order: trueno vs bitsandbytes'
+  test: 'Verify: PASS'
+- id: FALSIFY-PARITY-V2-003
+  description: 'Upload a known f32 vector [1.0, 2.0, 3.0, ...] via from_host. Download via copy_to_host. Verify exact match.
+    If this fails, the GPU buffer is zero-initialized or corrupt.
 
-  - id: FALSIFY-PARITY-V2-004
-    name: "cuBLAS gemm_f32 produces correct output for known input"
-    description: >
-      A = [[1,0],[0,1]] (identity 2x2), B = [[3,4],[5,6]].
-      C = A @ B should be [[3,4],[5,6]].
-      Run via cublas.gemm_f32 and verify exact match.
-    prediction: PASS
-    if_fails: "cuBLAS GEMM itself is broken — check handle, stream, compute type"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: GPU memory transfer bug — from_host doesn't actually copy data
+  severity: critical
+  rule: GpuBuffer from_host upload verifiable
+  test: 'Verify: PASS'
+- id: FALSIFY-PARITY-V2-004
+  description: 'A = [[1,0],[0,1]] (identity 2x2), B = [[3,4],[5,6]]. C = A @ B should be [[3,4],[5,6]]. Run via cublas.gemm_f32
+    and verify exact match.
 
-  - id: FALSIFY-PARITY-V2-005
-    name: "Full forward pass output is non-zero"
-    description: >
-      Load model, run one forward pass with cuBLAS weights,
-      verify output logits are not all zero.
-      This is the end-to-end test that previous attempts failed.
-    prediction: FAIL_UNTIL_FIXED
-    if_fails: "cuBLAS GEMM path still produces zeros — parity tests above should isolate which component"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: cuBLAS GEMM itself is broken — check handle, stream, compute type
+  severity: critical
+  rule: cuBLAS gemm_f32 produces correct output for known input
+  test: 'Verify: PASS'
+- id: FALSIFY-PARITY-V2-005
+  description: 'Load model, run one forward pass with cuBLAS weights, verify output logits are not all zero. This is the end-to-end
+    test that previous attempts failed.
+
+    '
+  prediction: FAIL_UNTIL_FIXED
+  if_fails: cuBLAS GEMM path still produces zeros — parity tests above should isolate which component
+  severity: critical
+  rule: Full forward pass output is non-zero
+  test: 'Verify: FAIL_UNTIL_FIXED'
+kani_harnesses:
+- id: KANI-NF4_CUBLAS_PARITY-001
+  obligation: NF4 GEMM matches dequantized f32 GEMM within tolerance
+  property: NF4 GEMM matches dequantized f32 GEMM within tolerance
+  bound: 4
+  strategy: stub_float
+  harness: verify_nf4_cublas_parity_invariant

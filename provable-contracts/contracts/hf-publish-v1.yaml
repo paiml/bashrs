@@ -1,52 +1,72 @@
-contract:
-  name: hf-publish-v1
-  version: "1.0.0"
-  description: >
-    HuggingFace benchmark publication (PMAT-172) generates a complete,
-    valid dataset repository with proper metadata and split files.
+metadata:
+  version: 1.0.0
+  description: HuggingFace benchmark publication (PMAT-172) generates a complete, valid dataset repository with proper metadata
+    and split files.
   references:
-    - "SSC v12 Phase 10: Export + publish to HuggingFace"
-    - "HuggingFace Datasets documentation"
-  spec: docs/specifications/shell-safety-inference.md
-  phase: "Phase 10"
-
+  - 'SSC v12 Phase 10: Export + publish to HuggingFace'
+  - HuggingFace Datasets documentation
+equations:
+  dataset_integrity:
+    formula: published_dataset == local_export (byte-identical after decompression)
+    domain: CorpusExport with train/val/test splits
+    codomain: HuggingFace Dataset with model card
+    invariants:
+    - All splits present and non-empty
+    - Model card contains required fields
+proof_obligations:
+- type: invariant
+  property: All splits present and non-empty
+  formal: All splits present and non-empty
+  applies_to: all
+- type: invariant
+  property: Model card contains required fields
+  formal: Model card contains required fields
+  applies_to: all
 falsification_tests:
-  - id: F-HF-001
-    description: "README.md has YAML front matter (starts with '---')"
-    assertion: "output/README.md starts with '---\\n'"
-    status: PASS
-
-  - id: F-HF-002
-    description: "README.md contains HuggingFace dataset metadata"
-    assertion: "README.md contains 'pretty_name: ShellSafetyBench'"
-    status: PASS
-
-  - id: F-HF-003
-    description: "All three split files exist with HF naming"
-    assertion: "train.jsonl AND validation.jsonl AND test.jsonl exist (not val.jsonl)"
-    status: PASS
-
-  - id: F-HF-004
-    description: "dataset_infos.json is valid JSON with correct structure"
-    assertion: "serde_json::from_str succeeds AND has default.splits.train"
-    status: PASS
-
-  - id: F-HF-005
-    description: "Split files contain valid JSONL with input+label fields"
-    assertion: "every line in train.jsonl parses as {input: String, label: u8}"
-    status: PASS
-
-  - id: F-HF-006
-    description: "Summary statistics match actual file contents"
-    assertion: "summary.train_count == wc -l train.jsonl"
-    status: PASS
-
-  - id: F-HF-007
-    description: "Dataset card includes CWE coverage and baselines"
-    assertion: "README.md contains 'CWE' AND 'MLP probe' AND 'Qwen3-4B'"
-    status: PASS
-
-  - id: F-HF-008
-    description: "Dataset card includes citation BibTeX"
-    assertion: "README.md contains '@dataset{shellsafetybench'"
-    status: PASS
+- id: F-HF-001
+  rule: README.md has YAML front matter (starts with '---')
+  prediction: output/README.md starts with '---\n'
+  test: 'Verify: output/README.md starts with ''---\n'''
+  if_fails: 'Contract violation: README.md has YAML front matter (starts with ''---'')'
+- id: F-HF-002
+  rule: README.md contains HuggingFace dataset metadata
+  prediction: 'README.md contains ''pretty_name: ShellSafetyBench'''
+  test: 'Verify: README.md contains ''pretty_name: ShellSafetyBench'''
+  if_fails: 'Contract violation: README.md contains HuggingFace dataset metadata'
+- id: F-HF-003
+  rule: All three split files exist with HF naming
+  prediction: train.jsonl AND validation.jsonl AND test.jsonl exist (not val.jsonl)
+  test: 'Verify: train.jsonl AND validation.jsonl AND test.jsonl exist (not val.jsonl)'
+  if_fails: 'Contract violation: All three split files exist with HF naming'
+- id: F-HF-004
+  rule: dataset_infos.json is valid JSON with correct structure
+  prediction: serde_json::from_str succeeds AND has default.splits.train
+  test: 'Verify: serde_json::from_str succeeds AND has default.splits.train'
+  if_fails: 'Contract violation: dataset_infos.json is valid JSON with correct structure'
+- id: F-HF-005
+  rule: Split files contain valid JSONL with input+label fields
+  prediction: 'every line in train.jsonl parses as {input: String, label: u8}'
+  test: 'Verify: every line in train.jsonl parses as {input: String, label: u8}'
+  if_fails: 'Contract violation: Split files contain valid JSONL with input+label fields'
+- id: F-HF-006
+  rule: Summary statistics match actual file contents
+  prediction: summary.train_count == wc -l train.jsonl
+  test: 'Verify: summary.train_count == wc -l train.jsonl'
+  if_fails: 'Contract violation: Summary statistics match actual file contents'
+- id: F-HF-007
+  rule: Dataset card includes CWE coverage and baselines
+  prediction: README.md contains 'CWE' AND 'MLP probe' AND 'Qwen3-4B'
+  test: 'Verify: README.md contains ''CWE'' AND ''MLP probe'' AND ''Qwen3-4B'''
+  if_fails: 'Contract violation: Dataset card includes CWE coverage and baselines'
+- id: F-HF-008
+  rule: Dataset card includes citation BibTeX
+  prediction: README.md contains '@dataset{shellsafetybench'
+  test: 'Verify: README.md contains ''@dataset{shellsafetybench'''
+  if_fails: 'Contract violation: Dataset card includes citation BibTeX'
+kani_harnesses:
+- id: KANI-HF_PUBLISH-001
+  obligation: All splits present and non-empty
+  property: All splits present and non-empty
+  bound: 4
+  strategy: stub_float
+  harness: verify_hf_publish_invariant

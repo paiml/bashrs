@@ -1,0 +1,75 @@
+metadata:
+  version: 1.0.0
+  description: Lint performance contract (PMAT-226). Verifies that bashrs lint --time reports lint latency, that the lint
+    engine scales sub-linearly with script size, and that incremental lint cost per 50 lines is under 100ms in debug mode
+    (under 10ms in release).
+  references:
+  - 'PMAT-226: PERF-10MS Sprint 14'
+  - docs/specifications/world-class-bash-linter-spec.md
+equations:
+  lint_latency:
+    formula: lint_time(script, n_lines) < 10ms for n_lines <= 50
+    domain: 'script: String, n_lines: usize'
+    codomain: Duration (latency in milliseconds)
+    invariants:
+    - 'Sub-linear scaling: 20x lines < 5x latency'
+    - Incremental lint cost < 10ms per 50 lines
+proof_obligations:
+- type: invariant
+  property: 'Sub-linear scaling: 20x lines < 5x latency'
+  formal: 'Sub-linear scaling: 20x lines < 5x latency'
+  applies_to: all
+- type: invariant
+  property: Incremental lint cost < 10ms per 50 lines
+  formal: Incremental lint cost < 10ms per 50 lines
+  applies_to: all
+invariants:
+- --time flag reports lint_time_ms to stderr
+- Without --time, no timing output appears
+- Timing works with dirty scripts (non-zero exit code)
+- Lint scales sub-linearly with script size
+- Incremental cost per 50 lines is under 100ms (debug)
+- Full lint completes under 1 second for 100-line script
+falsification_tests:
+- id: F-PERF-HELP
+  rule: Help documents --time flag
+  prediction: bashrs lint --help contains "--time"
+  test: test_PMAT226_time_flag_in_help
+  if_fails: --time flag not documented
+- id: F-PERF-TIME
+  rule: --time reports lint_time_ms
+  prediction: stderr contains "lint_time_ms:" with positive float value
+  test: test_PMAT226_time_outputs_lint_time_ms
+  if_fails: Timing not reported
+- id: F-PERF-NO-TIME
+  rule: Without --time no timing appears
+  prediction: stderr does NOT contain lint_time_ms
+  test: test_PMAT226_no_time_without_flag
+  if_fails: Timing appears without --time
+- id: F-PERF-DIRTY
+  rule: Timing works on dirty scripts
+  prediction: Scripts with lint errors still report lint_time_ms
+  test: test_PMAT226_time_with_dirty_script
+  if_fails: Timing not reported on lint failure
+- id: F-PERF-SCALE
+  rule: Lint scales sub-linearly
+  prediction: 20x more lines produces less than 5x latency
+  test: test_PMAT226_lint_scales_sublinearly
+  if_fails: Lint scales worse than O(n)
+- id: F-PERF-INCR
+  rule: Incremental cost under threshold
+  prediction: 50 extra lines adds less than 100ms (debug)
+  test: test_PMAT226_lint_incremental_overhead_under_10ms
+  if_fails: Incremental lint cost too high
+- id: F-PERF-BOUND
+  rule: Total lint under 1 second
+  prediction: 100-line script lints in under 1 second
+  test: test_PMAT226_lint_under_1_second
+  if_fails: Lint exceeds 1 second bound
+kani_harnesses:
+- id: KANI-LINT_PERF-001
+  obligation: 'Sub-linear scaling: 20x lines < 5x latency'
+  property: 'Sub-linear scaling: 20x lines < 5x latency'
+  bound: 4
+  strategy: stub_float
+  harness: verify_lint_perf_invariant

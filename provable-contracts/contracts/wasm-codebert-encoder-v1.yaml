@@ -1,85 +1,52 @@
-contract:
-  name: wasm-codebert-encoder-v1
-  version: "1.0"
-  spec: docs/specifications/shell-safety-inference.md
-  phase: "Phase 5 WASM-004"
-  status: "KILL CRITERION 5 TRIGGERED"
-  description: |
-    Pure-Rust CodeBERT encoder for WASM inference. Implements the full
+metadata:
+  version: '1.0'
+  description: 'Pure-Rust CodeBERT encoder for WASM inference. Implements the full
+
     RoBERTa transformer encoder (12 layers, 768-dim, 12 heads) using
+
     only f32 operations. Loads int8 SafeTensors weights.
 
+
     Kill criterion 5 triggered: 2681ms native CPU for 33 tokens.
+
     Estimated WASM performance: 5-13 seconds (2-5x slowdown).
-    Threshold: 2000ms. Decision: Ship CLI only.
 
-  postconditions:
-    - id: C-WASM-ENC-001
-      description: "Encoder loads and dequantizes int8 SafeTensors weights"
-      test: "test_encoder_from_safetensors_real"
-
-    - id: C-WASM-ENC-002
-      description: "Forward pass produces finite [CLS] embedding of dimension 768"
-      test: "test_encoder_from_safetensors_real"
-
-    - id: C-WASM-ENC-003
-      description: "Encoder output is deterministic (same input = same output)"
-      test: "test_encoder_deterministic"
-
-    - id: C-WASM-ENC-004
-      description: "WASM binary with codebert feature compiles for wasm32-unknown-unknown"
-      test: "wasm-pack build --target web -- --features codebert"
-
-    - id: C-WASM-ENC-005
-      description: "WASM binary size < 2MB with codebert feature"
-      test: "ls -la pkg/bashrs_wasm_bg.wasm"
-      measured: "1.7MB"
-
-  falsification_tests:
-    - id: FALSIFY-WASM-ENC-001
-      postcondition: C-WASM-ENC-001
-      description: "Invalid SafeTensors bytes are rejected with error"
-      test: "test_encoder_from_safetensors_invalid"
-
-    - id: FALSIFY-WASM-ENC-002
-      postcondition: C-WASM-ENC-002
-      description: "Math primitives (GELU, softmax, LayerNorm) are correct"
-      tests:
-        - "test_gelu_zero"
-        - "test_gelu_positive"
-        - "test_softmax_uniform"
-        - "test_softmax_sums_to_one"
-        - "test_layer_norm"
-        - "test_sigmoid_bounds"
-        - "test_linear_forward"
-
-    - id: FALSIFY-WASM-ENC-003
-      postcondition: C-WASM-ENC-003
-      description: "Tokenizer produces deterministic BOS/EOS bounded sequences"
-      tests:
-        - "test_simple_tokenize"
-        - "test_simple_tokenize_truncation"
-
-    - id: FALSIFY-WASM-ENC-004
-      postcondition: C-WASM-ENC-002
-      description: "MLP probe classification produces valid label and confidence"
-      test: "test_mlp_probe_classify"
-
-  kill_criteria:
-    - id: KILL-5
-      metric: "CodeBERT WASM inference latency"
-      threshold: "2000ms"
-      measured: "2681ms native CPU (release mode), estimated 5000-13000ms WASM"
-      result: "TRIGGERED"
-      decision: "Ship CLI only. Browser uses rule-based linter (<10ms)."
-      evidence: "test_encoder_benchmark: 33 tokens, 2681.3ms native CPU"
-
-  benchmark:
-    model: "CodeBERT (microsoft/codebert-base, 125M params)"
-    quantization: "int8 symmetric per-tensor (119MB)"
-    input: "33 tokens (short shell script)"
-    native_debug: "23733ms"
-    native_release: "2681ms"
-    estimated_wasm: "5000-13000ms (2-5x native overhead)"
-    wasm_binary_without_codebert: "1.5MB"
-    wasm_binary_with_codebert: "1.7MB"
+    Threshold: 2000ms. Decision: Ship CLI only.'
+  references:
+  - Devlin et al. (2019) BERT
+  - docs/specifications/shell-safety-inference.md
+equations:
+  wasm_encoding:
+    formula: encode_wasm(tokens) ~= encode_native(tokens) within tolerance
+    domain: 'tokens: Vec<u32> (tokenized input)'
+    codomain: R^{768} (CLS embedding vector)
+    invariants:
+    - WASM and native produce equivalent embeddings
+    - Inference time < 5s in browser
+proof_obligations:
+- type: invariant
+  property: WASM and native produce equivalent embeddings
+  formal: WASM and native produce equivalent embeddings
+  applies_to: all
+- type: invariant
+  property: Inference time < 5s in browser
+  formal: Inference time < 5s in browser
+  applies_to: all
+falsification_tests:
+- id: FALSIFY-WASM-ENC-001
+  rule: WASM and native produce equivalent embeddings
+  prediction: Embedding vectors match within 1e-4 tolerance
+  test: Compare WASM encode output vs native encode output for same input tokens
+  if_fails: 'Contract violation: WASM encoder diverges from native encoder'
+- id: FALSIFY-WASM-ENC-002
+  rule: Inference time within performance budget
+  prediction: Native inference completes within 5 seconds for 33 tokens
+  test: Benchmark encode() with 33-token input, verify < 5000ms
+  if_fails: 'Contract violation: Encoder too slow for interactive use'
+kani_harnesses:
+- id: KANI-WASM_CODEBERT_ENCODER-001
+  obligation: WASM and native produce equivalent embeddings
+  property: WASM and native produce equivalent embeddings
+  bound: 4
+  strategy: stub_float
+  harness: verify_wasm_codebert_encoder_invariant

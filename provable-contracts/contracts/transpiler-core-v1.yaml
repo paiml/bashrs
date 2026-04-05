@@ -1,115 +1,92 @@
-contract:
-  name: transpiler-core-v1
-  version: "1.0.0"
-  description: >
-    Core transpiler invariants (GH-183). Every Rust→Shell transpilation must
-    satisfy: determinism, POSIX structure, variable safety, and selective
-    stdlib emission. These are falsifiable — a single counterexample breaks
-    the contract.
+metadata:
+  version: 1.0.0
+  description: 'Core transpiler invariants (GH-183). Every Rust→Shell transpilation must satisfy: determinism, POSIX structure,
+    variable safety, and selective stdlib emission. These are falsifiable — a single counterexample breaks the contract.'
   references:
-    - "GH-183: KZ-11 Missing provable contracts"
-    - "GH-148: rash transpiler stdlib"
-  spec: docs/specifications/STDLIB.md
-  phase: "Transpiler core"
-
+  - 'GH-183: KZ-11 Missing provable contracts'
+  - 'GH-148: rash transpiler stdlib'
+equations:
+  transpilation:
+    formula: transpile(rust_ast) -> shell_script where shellcheck(shell_script) == PASS
+    domain: 'rust_ast: Rust AST (parsed from .rs file)'
+    codomain: String (POSIX sh script)
+    invariants:
+    - Output passes shellcheck -s sh
+    - Same input produces identical output (deterministic)
+proof_obligations:
+- type: invariant
+  property: Output passes shellcheck -s sh
+  formal: Output passes shellcheck -s sh
+  applies_to: all
+- type: invariant
+  property: Same input produces identical output (deterministic)
+  formal: Same input produces identical output (deterministic)
+  applies_to: all
 invariants:
-  - "Transpilation is deterministic: same Rust input → byte-identical shell output"
-  - "Output is POSIX-structured: #!/bin/sh, set -euf, main() wrapper"
-  - "All variables are double-quoted to prevent word splitting"
-  - "Only used stdlib functions are emitted (dead code elimination)"
-
+- 'Transpilation is deterministic: same Rust input → byte-identical shell output'
+- 'Output is POSIX-structured: #!/bin/sh, set -euf, main() wrapper'
+- All variables are double-quoted to prevent word splitting
+- Only used stdlib functions are emitted (dead code elimination)
 falsification_tests:
-  # ── Determinism ──────────────────────────────────────────────
-  - id: F-CORE-001
-    description: "Transpiling identical input twice produces byte-identical output"
-    input: |
-      fn main() {
-          let x = 42;
-          println!("{}", x);
-      }
-    assertion: "transpile(input) == transpile(input) for all valid inputs"
-    status: PASS
-
-  - id: F-CORE-002
-    description: "Determinism holds for complex programs with stdlib calls"
-    input: |
-      fn main() {
-          let user = capture("whoami");
-          mkdir("/tmp/test");
-          for f in glob("*.txt") { println!("{}", f); }
-          if string_starts_with(user, "root") { exit(1); }
-      }
-    assertion: "transpile(input) == transpile(input) — stdlib does not introduce non-determinism"
-    status: PASS
-
-  # ── POSIX Structure ──────────────────────────────────────────
-  - id: F-CORE-003
-    description: "Every transpiled script starts with #!/bin/sh shebang"
-    assertion: "output.starts_with('#!/bin/sh') for all inputs"
-    status: PASS
-
-  - id: F-CORE-004
-    description: "Every transpiled script contains 'set -euf' safety flags"
-    assertion: "output.contains('set -euf') for all inputs"
-    status: PASS
-
-  - id: F-CORE-005
-    description: "Every transpiled script wraps code in main() function"
-    assertion: "output.contains('main()') AND output.contains('main \"$@\"')"
-    status: PASS
-
-  # ── Variable Safety ──────────────────────────────────────────
-  - id: F-CORE-006
-    description: "Variable references are always double-quoted (prevents word splitting)"
-    input: |
-      fn main() {
-          let name = "hello world";
-          println!("{}", name);
-      }
-    assertion: "variable expansion uses \"$name\" not bare $name"
-    status: PASS
-
-  # ── Selective Stdlib Emission ────────────────────────────────
-  - id: F-CORE-007
-    description: "Unused stdlib functions are NOT emitted (dead code elimination)"
-    input: |
-      fn main() {
-          let x = 42;
-          println!("{}", x);
-      }
-    assertion: "output does NOT contain rash_string_ or rash_fs_ functions"
-    status: PASS
-
-  - id: F-CORE-008
-    description: "Used stdlib functions ARE emitted as shell function definitions"
-    input: |
-      fn main() {
-          if string_contains("hello world", "hello") {
-              println!("found");
-          }
-      }
-    assertion: "output contains 'rash_string_contains()' function definition"
-    status: PASS
-
-  # ── Idempotent Operations ────────────────────────────────────
-  - id: F-CORE-009
-    description: "mkdir() always uses -p flag for idempotency"
-    input: |
-      fn main() { mkdir("/tmp/test"); }
-    assertion: "output contains 'mkdir' AND '-p'"
-    status: PASS
-
-  # ── Pipe Safety ──────────────────────────────────────────────
-  - id: F-CORE-010
-    description: "capture() with pipes preserves pipeline semantics"
-    input: |
-      fn main() { let c = capture("ls | wc -l"); }
-    assertion: "output preserves '|' operator (not escaped as literal)"
-    status: PASS
-
-  - id: F-CORE-011
-    description: "capture() without pipes uses direct $(cmd) form"
-    input: |
-      fn main() { let u = capture("whoami"); }
-    assertion: "output contains $(whoami), no sh -c wrapper"
-    status: PASS
+- id: F-CORE-001
+  rule: Transpiling identical input twice produces byte-identical...
+  prediction: transpile(input) == transpile(input) for all valid inputs
+  test: 'Given input, verify: transpile(input) == transpile(input) for all valid inputs'
+  if_fails: 'Contract violation: Transpiling identical input twice produces byte-identical...'
+- id: F-CORE-002
+  rule: Determinism holds for complex programs with stdlib calls
+  prediction: transpile(input) == transpile(input) — stdlib does not introduce non-determinism
+  test: 'Given input, verify: transpile(input) == transpile(input) — stdlib does not introduce non-determinism'
+  if_fails: 'Contract violation: Determinism holds for complex programs with stdlib calls'
+- id: F-CORE-003
+  rule: 'Every transpiled script starts with #!/bin/sh shebang'
+  prediction: output.starts_with('#!/bin/sh') for all inputs
+  test: output.starts_with('#!/bin/sh') for all inputs
+  if_fails: 'Contract violation: Every transpiled script starts with #!/bin/sh shebang'
+- id: F-CORE-004
+  rule: Every transpiled script contains 'set -euf' safety flags
+  prediction: output.contains('set -euf') for all inputs
+  test: output.contains('set -euf') for all inputs
+  if_fails: 'Contract violation: Every transpiled script contains ''set -euf'' safety flags'
+- id: F-CORE-005
+  rule: Every transpiled script wraps code in main() function
+  prediction: output.contains('main()') AND output.contains('main "$@"')
+  test: output.contains('main()') AND output.contains('main "$@"')
+  if_fails: 'Contract violation: Every transpiled script wraps code in main() function'
+- id: F-CORE-006
+  rule: Variable references are always double-quoted (prevents wo...
+  prediction: variable expansion uses "$name" not bare $name
+  test: 'Given input, verify: variable expansion uses "$name" not bare $name'
+  if_fails: 'Contract violation: Variable references are always double-quoted (prevents wo...'
+- id: F-CORE-007
+  rule: Unused stdlib functions are NOT emitted (dead code elimin...
+  prediction: output does NOT contain rash_string_ or rash_fs_ functions
+  test: 'Given input, verify: output does NOT contain rash_string_ or rash_fs_ functions'
+  if_fails: 'Contract violation: Unused stdlib functions are NOT emitted (dead code elimin...'
+- id: F-CORE-008
+  rule: Used stdlib functions ARE emitted as shell function defin...
+  prediction: output contains 'rash_string_contains()' function definition
+  test: 'Given input, verify: output contains ''rash_string_contains()'' function definition'
+  if_fails: 'Contract violation: Used stdlib functions ARE emitted as shell function defin...'
+- id: F-CORE-009
+  rule: mkdir() always uses -p flag for idempotency
+  prediction: output contains 'mkdir' AND '-p'
+  test: 'Given input, verify: output contains ''mkdir'' AND ''-p'''
+  if_fails: 'Contract violation: mkdir() always uses -p flag for idempotency'
+- id: F-CORE-010
+  rule: capture() with pipes preserves pipeline semantics
+  prediction: output preserves '|' operator (not escaped as literal)
+  test: 'Given input, verify: output preserves ''|'' operator (not escaped as literal)'
+  if_fails: 'Contract violation: capture() with pipes preserves pipeline semantics'
+- id: F-CORE-011
+  rule: capture() without pipes uses direct $(cmd) form
+  prediction: output contains $(whoami), no sh -c wrapper
+  test: 'Given input, verify: output contains $(whoami), no sh -c wrapper'
+  if_fails: 'Contract violation: capture() without pipes uses direct $(cmd) form'
+kani_harnesses:
+- id: KANI-TRANSPILER_CORE-001
+  obligation: Output passes shellcheck -s sh
+  property: Output passes shellcheck -s sh
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_core_invariant

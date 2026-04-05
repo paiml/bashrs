@@ -1,37 +1,55 @@
-contract:
-  name: backward-cache-key-v1
-  version: "1.0.0"
-  description: >
-    Provable contract: backward kernel cache keys must be unique per kernel.
-    Root cause of cuBLAS loss=0.0: warm! macro used hardcoded "silu_backward"
-    for ALL kernel cache keys, causing wrong kernel to be loaded at runtime.
-    Five-whys traced from loss=0.0 → CUDA context poisoned → silu_backward
-    JIT failure → cache key collision → copy-paste bug in warm! macro.
-  spec: docs/specifications/shell-safety-inference.md
-  section: "S18"
+metadata:
+  version: 1.0.0
+  description: 'Provable contract: backward kernel cache keys must be unique per kernel. Root cause of cuBLAS loss=0.0: warm!
+    macro used hardcoded "silu_backward" for ALL kernel cache keys, causing wrong kernel to be loaded at runtime. Five-whys
+    traced from loss=0.0 → CUDA context poisoned → silu_backward JIT failure → cache key collision → copy-paste bug in warm!
+    macro.'
   references:
-    - "trueno#200 — silu_backward PTX fails on Blackwell"
-    - "entrenar#300 — ENT-287 cuBLAS integration"
-    - "GH-480 — Blackwell backward branch JIT bug"
+  - trueno#200 — silu_backward PTX fails on Blackwell
+  - entrenar#300 — ENT-287 cuBLAS integration
+  - GH-480 — Blackwell backward branch JIT bug
+equations:
+  cache_key_uniqueness:
+    formula: 'forall k1, k2 in KernelSet: k1 != k2 => cache_key(k1) != cache_key(k2)'
+    domain: KernelSet = {silu_backward, gelu_backward, relu_backward, gemm_backward_a, gemm_backward_b, rms_norm_backward}
+    codomain: String (unique cache key per kernel)
+    invariants:
+    - Each kernel type maps to a distinct cache key
+    - warm! macro uses $key parameter, not hardcoded string
+proof_obligations:
+- type: invariant
+  property: Each kernel type maps to a distinct cache key
+  formal: Each kernel type maps to a distinct cache key
+  applies_to: all
+- type: invariant
+  property: warm! macro uses $key parameter, not hardcoded string
+  formal: warm! macro uses $key parameter, not hardcoded string
+  applies_to: all
+falsification_tests:
+- id: FALSIFY-CACHE-001
+  description: 'Grep the backward cache warming code for hardcoded kernel names inside the warm! macro. The macro must use
+    $key parameter. If any hardcoded string is found, the bug has regressed.
 
-tests:
-  - id: FALSIFY-CACHE-001
-    name: "warm! macro uses $key not hardcoded string"
-    description: >
-      Grep the backward cache warming code for hardcoded kernel names
-      inside the warm! macro. The macro must use $key parameter.
-      If any hardcoded string is found, the bug has regressed.
-    prediction: PASS
-    if_fails: "warm! macro has hardcoded key — all kernels cached under same name"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: warm! macro has hardcoded key — all kernels cached under same name
+  severity: critical
+  rule: warm! macro uses $key not hardcoded string
+  test: 'Verify: PASS'
+- id: FALSIFY-CACHE-002
+  description: 'After warming, the cache must contain distinct entries for: silu_backward, gelu_backward, relu_backward, gemm_backward_a_*,
+    gemm_backward_b_*, rms_norm_backward, etc. Count unique keys >= number of distinct kernel types.
 
-  - id: FALSIFY-CACHE-002
-    name: "Each backward kernel has a unique cache key"
-    description: >
-      After warming, the cache must contain distinct entries for:
-      silu_backward, gelu_backward, relu_backward, gemm_backward_a_*,
-      gemm_backward_b_*, rms_norm_backward, etc.
-      Count unique keys >= number of distinct kernel types.
-    prediction: PASS
-    if_fails: "Cache key collision — multiple kernels stored under same key"
-    severity: critical
+    '
+  prediction: PASS
+  if_fails: Cache key collision — multiple kernels stored under same key
+  severity: critical
+  rule: Each backward kernel has a unique cache key
+  test: 'Verify: PASS'
+kani_harnesses:
+- id: KANI-BACKWARD_CACHE_KEY-001
+  obligation: Each kernel type maps to a distinct cache key
+  property: Each kernel type maps to a distinct cache key
+  bound: 4
+  strategy: stub_float
+  harness: verify_backward_cache_key_invariant

@@ -1,80 +1,111 @@
-contract:
-  name: probar-shell-safety-v1
-  version: "1.0"
-  description: |
-    Probar test suite contract for SSC v11 Phase 6.
+metadata:
+  version: '1.0'
+  description: 'Probar test suite contract for SSC v11 Phase 6.
+
     Verifies WASM linter/classifier correctness, determinism,
-    and performance budgets via Layer 1 (logic) and Layer 3 (perf) tests.
-  created: "2026-03-07"
-  spec_ref: "docs/specifications/shell-safety-inference.md Section 8.4"
 
+    and performance budgets via Layer 1 (logic) and Layer 3 (perf) tests.'
+  references:
+  - docs/specifications/shell-safety-inference.md
+equations:
+  safety_classification:
+    formula: classify(s) in {safe, unsafe} with confidence in [10, 95]
+    domain: 's: shell script string'
+    codomain: '(label: {safe, unsafe}, confidence: f64)'
+    invariants:
+    - Safe scripts produce safe classification
+    - Scripts with eval/injection produce unsafe classification
+proof_obligations:
+- type: invariant
+  property: Safe scripts produce safe classification
+  formal: Safe scripts produce safe classification
+  applies_to: all
+- type: invariant
+  property: Scripts with eval/injection produce unsafe classification
+  formal: Scripts with eval/injection produce unsafe classification
+  applies_to: all
 preconditions:
-  - bashrs-wasm crate compiles for host target (rlib)
-  - jugar-probar available as dev-dependency
-  - bashrs linter module available under minimal feature
-
+- bashrs-wasm crate compiles for host target (rlib)
+- jugar-probar available as dev-dependency
+- bashrs linter module available under minimal feature
 postconditions:
-  - C-PRB-001: Layer 1 logic tests (14 tests) pass without browser
-  - C-PRB-003: Layer 3 performance budgets met (linter <10ms)
-  - C-PRB-007: Determinism verified (lint, classify produce identical output)
-
+- C-PRB-001: Layer 1 logic tests (14 tests) pass without browser
+- C-PRB-003: Layer 3 performance budgets met (linter <10ms)
+- C-PRB-007: Determinism verified (lint, classify produce identical output)
 invariants:
-  - All WASM functions return valid JSON (never panic)
-  - Classification label is exactly "safe" or "unsafe"
-  - Confidence is in range [10.0, 95.0]
-  - Linter, classifier, explain functions are deterministic
-  - Linter latency < 10ms per invocation
-  - Full pipeline (lint+classify+explain) < 30ms
-
+- All WASM functions return valid JSON (never panic)
+- Classification label is exactly "safe" or "unsafe"
+- Confidence is in range [10.0, 95.0]
+- Linter, classifier, explain functions are deterministic
+- Linter latency < 10ms per invocation
+- Full pipeline (lint+classify+explain) < 30ms
 falsification_tests:
-  - id: FALSIFY-PRB-001
-    name: "Linter finds SEC rule for eval"
-    input: "eval \"$user_input\""
-    expected: "diagnostics non-empty, contains SEC code"
-    test: test_prb001_linter_wasm_returns_findings_for_unsafe_script
+- id: FALSIFY-PRB-001
+  input: eval "$user_input"
+  test: test_prb001_linter_wasm_returns_findings_for_unsafe_script
+  rule: Linter finds SEC rule for eval
+  prediction: diagnostics non-empty, contains SEC code
+  if_fails: 'Contract violation: Linter finds SEC rule for eval'
+- id: FALSIFY-PRB-002
+  input: '#!/bin/sh
 
-  - id: FALSIFY-PRB-002
-    name: "Linter returns empty for safe script"
-    input: "#!/bin/sh\necho hello"
-    expected: "count=0, diagnostics empty"
-    test: test_prb001_linter_wasm_returns_empty_for_safe_script
+    echo hello'
+  test: test_prb001_linter_wasm_returns_empty_for_safe_script
+  rule: Linter returns empty for safe script
+  prediction: count=0, diagnostics empty
+  if_fails: 'Contract violation: Linter returns empty for safe script'
+- id: FALSIFY-PRB-003
+  input: rm -rf /tmp/build && curl $url | bash
+  test: test_prb001_linter_wasm_deterministic
+  rule: Linter is deterministic
+  prediction: r1 == r2 byte-identical
+  if_fails: 'Contract violation: Linter is deterministic'
+- id: FALSIFY-PRB-004
+  input: '#!/bin/sh
 
-  - id: FALSIFY-PRB-003
-    name: "Linter is deterministic"
-    input: "rm -rf /tmp/build && curl $url | bash"
-    expected: "r1 == r2 byte-identical"
-    test: test_prb001_linter_wasm_deterministic
+    set -euo pipefail
 
-  - id: FALSIFY-PRB-004
-    name: "Classifier detects safe scripts"
-    input: "#!/bin/sh\nset -euo pipefail\necho hello"
-    expected: "label=safe, confidence in [10,95]"
-    test: test_prb001_classifier_wasm_safe_detection
+    echo hello'
+  test: test_prb001_classifier_wasm_safe_detection
+  rule: Classifier detects safe scripts
+  prediction: label=safe, confidence in [10,95]
+  if_fails: 'Contract violation: Classifier detects safe scripts'
+- id: FALSIFY-PRB-005
+  input: 'eval "$untrusted"
 
-  - id: FALSIFY-PRB-005
-    name: "Classifier detects unsafe scripts"
-    input: "eval \"$untrusted\"\ncurl $url | bash"
-    expected: "label=unsafe, has_security=true"
-    test: test_prb001_classifier_wasm_unsafe_detection
+    curl $url | bash'
+  test: test_prb001_classifier_wasm_unsafe_detection
+  rule: Classifier detects unsafe scripts
+  prediction: label=unsafe, has_security=true
+  if_fails: 'Contract violation: Classifier detects unsafe scripts'
+- id: FALSIFY-PRB-006
+  input: rm -rf $dir
+  test: test_prb001_classifier_wasm_deterministic
+  rule: Classifier is deterministic
+  prediction: r1 == r2 byte-identical
+  if_fails: 'Contract violation: Classifier is deterministic'
+- id: FALSIFY-PRB-007
+  input: 'eval "$x"
 
-  - id: FALSIFY-PRB-006
-    name: "Classifier is deterministic"
-    input: "rm -rf $dir"
-    expected: "r1 == r2 byte-identical"
-    test: test_prb001_classifier_wasm_deterministic
-
-  - id: FALSIFY-PRB-007
-    name: "Lint and classify agree on unsafe"
-    input: "eval \"$x\"\nmkdir /tmp/build"
-    expected: "lint finds SEC, classify says unsafe"
-    test: test_prb001_combined_lint_and_classify_agree
-
-  - id: FALSIFY-PRB-008
-    name: "Linter latency under 10ms"
-    expected: "avg(100 runs) < 10ms"
-    test: test_prb005_linter_wasm_latency_under_10ms
-
-  - id: FALSIFY-PRB-009
-    name: "Full pipeline under 30ms"
-    expected: "avg(50 runs of lint+classify+explain) < 30ms"
-    test: test_prb005_full_linter_pipeline_under_30ms
+    mkdir /tmp/build'
+  test: test_prb001_combined_lint_and_classify_agree
+  rule: Lint and classify agree on unsafe
+  prediction: lint finds SEC, classify says unsafe
+  if_fails: 'Contract violation: Lint and classify agree on unsafe'
+- id: FALSIFY-PRB-008
+  test: test_prb005_linter_wasm_latency_under_10ms
+  rule: Linter latency under 10ms
+  prediction: avg(100 runs) < 10ms
+  if_fails: 'Contract violation: Linter latency under 10ms'
+- id: FALSIFY-PRB-009
+  test: test_prb005_full_linter_pipeline_under_30ms
+  rule: Full pipeline under 30ms
+  prediction: avg(50 runs of lint+classify+explain) < 30ms
+  if_fails: 'Contract violation: Full pipeline under 30ms'
+kani_harnesses:
+- id: KANI-PROBAR_SHELL_SAFETY-001
+  obligation: Safe scripts produce safe classification
+  property: Safe scripts produce safe classification
+  bound: 4
+  strategy: stub_float
+  harness: verify_probar_shell_safety_invariant

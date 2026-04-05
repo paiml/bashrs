@@ -97,6 +97,8 @@ mod safety_check_cmds;
 // Quality command modules
 #[path = "audit_commands.rs"]
 mod audit_commands;
+#[path = "cfg_commands.rs"]
+mod cfg_cmds;
 #[path = "coverage_commands.rs"]
 mod coverage_commands;
 #[path = "score_commands.rs"]
@@ -265,7 +267,8 @@ fn dispatch_command(
         | Commands::Bench { .. }
         | Commands::Mutate { .. }
         | Commands::Simulate { .. }
-        | Commands::Gate { .. } => dispatch_quality(command),
+        | Commands::Gate { .. }
+        | Commands::Cfg { .. } => dispatch_quality(command),
 
         // Delegated subcommand groups
         Commands::Make { command: cmd } => make_cmds::handle_make_command(cmd),
@@ -571,6 +574,7 @@ fn dispatch_quality(command: Commands) -> Result<()> {
             trace,
         } => simulate_command(&input, seed, verify, mock_externals, format, trace),
         Commands::Gate { tier, report } => gate_cmds::handle_gate_command(tier, report),
+        Commands::Cfg { input, format, per_function } => cfg_cmds::cfg_command(&input, format, per_function),
         _ => unreachable!("dispatch_quality called with non-quality command"),
     }
 }
