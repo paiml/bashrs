@@ -27,6 +27,10 @@ pub mod ignore_file;
 pub mod make_preprocess;
 pub mod output;
 pub mod rule_registry;
+pub(crate) mod rule_registry_data_1;
+pub(crate) mod rule_registry_data_2;
+pub(crate) mod rule_registry_data_3;
+pub(crate) mod rule_registry_data_4;
 pub mod rules;
 pub mod shell_compatibility;
 pub mod shell_type;
@@ -51,6 +55,8 @@ mod tests;
 #[path = "lint_shell_coverage_tests.rs"]
 mod lint_shell_coverage_tests;
 
+pub(crate) mod rule_registry_data_11;
+pub(crate) mod rule_registry_data_12;
 #[cfg(test)]
 #[path = "rule_registry_tests_s2.rs"]
 mod rule_registry_tests_s2;
