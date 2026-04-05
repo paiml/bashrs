@@ -321,6 +321,5 @@ pub(crate) fn corpus_convert_ssb(
 ///
 /// Loads the model once, iterates through test entries, runs inference, parses
 /// classification output, and writes `EvalPrediction`-compatible JSONL.
-#[allow(unused_variables)]
 
 include!("corpus_ssb_commands_corpus.rs");

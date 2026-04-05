@@ -375,6 +375,4 @@ fn test_transform_exprs_nested_expressions() {
     assert_eq!(transform_count, 5);
 }
 
-#[test]
-
 include!("visitor_tests_methods.rs");

@@ -25,7 +25,6 @@ use std::collections::HashMap;
 // Re-export types so `crate::corpus::runner::TypeName` paths keep working.
 pub(crate) use super::runner_helpers::{
     check_exact_match, classify_error, detect_coverage_ratio, detect_test_exists,
-    extract_test_names, format_file_patterns, parse_lcov_file_coverage,
 };
 pub use super::runner_types::{
     ConvergenceEntry, CorpusResult, CorpusScore, FormatScore, Regression, RegressionReport,

@@ -351,9 +351,6 @@ fn test_expr_array_try_block_handling() {
     assert!(block_expr.validate().is_ok());
 }
 
-#[test]
-
-
 #[cfg(test)]
 mod tests_tests_expr_collect {
     use super::*;

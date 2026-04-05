@@ -2,7 +2,7 @@ use clap::Subcommand;
 use std::path::PathBuf;
 
 use super::args::{
-    CfgOutputFormat, ClassifyFormat, MutateFormat, PlaybookFormat, SimulateFormat,
+    CfgOutputFormat, MutateFormat, PlaybookFormat, SimulateFormat,
 };
 
 #[cfg(feature = "oracle")]

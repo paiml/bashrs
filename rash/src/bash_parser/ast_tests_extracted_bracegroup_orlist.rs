@@ -485,4 +485,4 @@
         assert_eq!(span.start_col, 10);
         assert_eq!(span.end_line, 8);
         assert_eq!(span.end_col, 20);
-
+    }

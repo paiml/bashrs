@@ -305,4 +305,3 @@ fi"#;
         assert!(output.contains("elif"), "elif preserved: {output}");
         assert!(!output.contains("else"), "no else block: {output}");
     }
-}

@@ -99,13 +99,10 @@
         let output = generate_purified_bash(&ast);
         assert!(output.contains("|"));
     }
-}
 
 // ============================================================================
 // Additional Coverage Tests - Direct Unit Tests
 // ============================================================================
-#[cfg(test)]
-mod codegen_coverage_tests {
     use super::*;
 
     // ============================================================================

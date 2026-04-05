@@ -1,6 +1,6 @@
 use clap::Subcommand;
 
-use super::args_corpus::{CorpusFormatArg, CorpusOutputFormat, DatasetExportFormat};
+use super::args_corpus::{CorpusFormatArg, DatasetExportFormat};
 
 /// Corpus analysis, SSC, and dataset subcommands (split from CorpusCommands for file health)
 #[derive(Subcommand)]

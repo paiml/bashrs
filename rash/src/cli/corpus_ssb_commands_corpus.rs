@@ -1,8 +1,8 @@
 pub(crate) fn corpus_batch_eval(
-    model_dir: PathBuf,
-    test_data: PathBuf,
-    output: PathBuf,
-    max_tokens: usize,
+    _model_dir: PathBuf,
+    _test_data: PathBuf,
+    _output: PathBuf,
+    _max_tokens: usize,
 ) -> Result<()> {
     #[cfg(not(feature = "ml"))]
     {

@@ -1,5 +1,4 @@
 // Transformation explanation types and safety rationale generators.
-use super::purifier::purify_bash;
 
 // ===== REPL-013-001: TRANSFORMATION EXPLANATION TYPES =====
 

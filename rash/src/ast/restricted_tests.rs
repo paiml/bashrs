@@ -353,6 +353,4 @@ fn test_stmt_collect_calls_variants() {
 // Expr::validate edge cases
 // ============================================================================
 
-#[test]
-
 include!("restricted_tests_tests_expr.rs");

@@ -1,6 +1,6 @@
 // formatter.rs - Bash script formatter
 // Following ruchy design patterns for code formatting
-use crate::bash_parser::ast::{ArithExpr, BashAst, BashExpr, BashStmt, TestExpr};
+use crate::bash_parser::ast::{BashAst, BashExpr, BashStmt};
 use crate::bash_quality::formatter_config::FormatterConfig;
 use anyhow::Result;
 
