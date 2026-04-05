@@ -513,6 +513,10 @@ impl CorpusRunner {
     }
 }
 
-#[cfg(test)]
-#[path = "runner_tests.rs"]
-mod tests;
+
+
+
+
+
+
+include!("runner_incl7.rs");
