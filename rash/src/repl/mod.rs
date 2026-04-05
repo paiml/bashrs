@@ -167,6 +167,8 @@ pub mod completion;
 pub mod config;
 pub mod debugger;
 pub mod determinism;
+pub mod determinism_idempotency;
+pub mod determinism_replay;
 pub mod diff;
 pub mod errors;
 pub mod executor;
@@ -191,11 +193,14 @@ pub use breakpoint::{Breakpoint, BreakpointManager};
 pub use config::ReplConfig;
 pub use debugger::{ContinueResult, DebugSession, LineComparison, StackFrame};
 pub use determinism::{
-    format_idempotency_report, format_replay_diff, DeterminismChecker, DeterminismIssue,
-    IdempotencyChecker, IdempotencyIssue, IdempotencyResult, IdempotencyVerifier,
-    NonDeterministicPattern, NonIdempotentOperation, OutputDifference, ReplayResult,
-    ReplayVerifier, RunOutput,
+    DeterminismChecker, DeterminismIssue, NonDeterministicPattern, OutputDifference, ReplayResult,
+    RunOutput,
 };
+pub use determinism_idempotency::{
+    format_idempotency_report, IdempotencyChecker, IdempotencyIssue, IdempotencyResult,
+    IdempotencyVerifier, NonIdempotentOperation,
+};
+pub use determinism_replay::{format_replay_diff, ReplayVerifier};
 pub use diff::display_diff;
 pub use errors::{
     format_command_error, format_error, format_lint_error, format_source_context, suggest_command,

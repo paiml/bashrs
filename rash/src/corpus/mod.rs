@@ -52,6 +52,8 @@ pub mod quality_gates;
 pub mod registry;
 #[allow(clippy::expect_used)] // Runner uses expect() for internal invariants
 pub mod runner;
+pub mod runner_helpers;
+pub mod runner_types;
 pub mod schema_enforcement;
 #[allow(clippy::expect_used)] // Report generation uses expect() for internal formatting
 pub mod ssc_report;
