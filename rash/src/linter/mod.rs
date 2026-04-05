@@ -72,3 +72,6 @@ mod rule_registry_tests_s5;
 #[cfg(test)]
 #[path = "rule_registry_tests_s6.rs"]
 mod rule_registry_tests_s6;
+pub(crate) mod rule_registry_data_1_more;
+pub(crate) mod rule_registry_data_3_more;
+pub(crate) mod rule_registry_data_4_more;
