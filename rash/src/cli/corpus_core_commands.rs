@@ -2,7 +2,7 @@
 //!
 //! Routes corpus subcommands to their implementation modules.
 
-use crate::cli::args::{CorpusCommands, CorpusFormatArg, CorpusOutputFormat};
+use crate::cli::args::{CorpusAnalysisCommands, CorpusCommands, CorpusFormatArg, CorpusOutputFormat};
 use crate::models::{Config, Error, Result};
 
 pub(crate) fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
@@ -111,9 +111,6 @@ pub(crate) fn handle_corpus_analysis(command: CorpusCommands) -> Result<()> {
             super::corpus_gate_commands::corpus_errors(&format, filter.as_ref())
         }
         CorpusCommands::Flaky { threshold } => super::corpus_diag_commands::corpus_flaky(threshold),
-        CorpusCommands::Suspicious { limit } => {
-            super::corpus_metrics_commands::corpus_suspicious(limit)
-        }
         // Metrics and scoring
         _ => handle_corpus_metrics(command),
     }
@@ -184,25 +181,12 @@ pub(crate) fn handle_corpus_ops(command: CorpusCommands) -> Result<()> {
             super::corpus_display_commands::corpus_heatmap(limit, filter.as_ref())
         }
         CorpusCommands::Dupes => super::corpus_ops_commands::corpus_dupes(),
-        CorpusCommands::Dedup => super::corpus_advanced_commands::corpus_dedup(),
         // Convergence
         CorpusCommands::Converged {
             min_rate,
             max_delta,
             min_stable,
         } => super::corpus_ops_commands::corpus_converged(min_rate, max_delta, min_stable),
-        CorpusCommands::ConvergeTable => {
-            super::corpus_convergence_commands::corpus_converge_table()
-        }
-        CorpusCommands::ConvergeDiff { from, to } => {
-            super::corpus_convergence_commands::corpus_converge_diff(from, to)
-        }
-        CorpusCommands::ConvergeStatus => {
-            super::corpus_convergence_commands::corpus_converge_status()
-        }
-        CorpusCommands::ConvergenceCheck => {
-            super::corpus_pipeline_commands::corpus_convergence_check()
-        }
         // Performance
         CorpusCommands::Benchmark { max_ms, filter } => {
             super::corpus_ops_commands::corpus_benchmark(max_ms, filter.as_ref())
@@ -253,67 +237,107 @@ pub(crate) fn handle_corpus_quality_ops(command: CorpusCommands) -> Result<()> {
         CorpusCommands::Schema => super::corpus_viz_commands::corpus_schema(),
         CorpusCommands::Todo => super::corpus_weight_commands::corpus_todo(),
         CorpusCommands::Audit => super::corpus_diag_commands::corpus_audit(),
-        // Patterns and decisions
-        CorpusCommands::Decisions => super::corpus_decision_commands::corpus_decisions(),
-        CorpusCommands::Patterns => super::corpus_decision_commands::corpus_patterns(),
-        CorpusCommands::PatternQuery { signal } => {
-            super::corpus_decision_commands::corpus_pattern_query(&signal)
-        }
-        CorpusCommands::FixSuggest { id } => {
-            super::corpus_decision_commands::corpus_fix_suggest(&id)
-        }
-        CorpusCommands::Graph => super::corpus_advanced_commands::corpus_graph(),
-        CorpusCommands::Impact { limit } => super::corpus_advanced_commands::corpus_impact(limit),
-        CorpusCommands::BlastRadius { decision } => {
-            super::corpus_advanced_commands::corpus_blast_radius(&decision)
-        }
-        CorpusCommands::Triage => super::corpus_advanced_commands::corpus_triage(),
-        CorpusCommands::LabelRules => super::corpus_advanced_commands::corpus_label_rules(),
-        CorpusCommands::OrgPatterns => super::corpus_convergence_commands::corpus_org_patterns(),
-        // Gates and quality checks
+        // Gates (non-analysis)
         CorpusCommands::Gate { min_score, max_ms } => {
             super::corpus_gate_commands::corpus_gate(min_score, max_ms)
         }
-        CorpusCommands::GateStatus => super::corpus_config_commands::corpus_gate_status_cmd(),
-        CorpusCommands::QualityGates => super::corpus_config_commands::corpus_quality_gates(),
-        CorpusCommands::MetricsCheck => super::corpus_config_commands::corpus_metrics_check(),
-        CorpusCommands::RegressionCheck => {
-            super::corpus_pipeline_commands::corpus_regression_check()
-        }
-        CorpusCommands::LintPipeline => super::corpus_pipeline_commands::corpus_lint_pipeline(),
-        CorpusCommands::PublishCheck => super::corpus_config_commands::corpus_publish_check(),
-        // Mining and fixes
-        CorpusCommands::Mine { limit } => super::corpus_convergence_commands::corpus_mine(limit),
-        CorpusCommands::FixGaps { limit } => {
-            super::corpus_convergence_commands::corpus_fix_gaps(limit)
-        }
-        CorpusCommands::DiagnoseB2 { filter, limit } => {
-            super::corpus_b2_commands::corpus_diagnose_b2(filter.as_ref(), limit)
-        }
-        CorpusCommands::FixB2 { apply } => super::corpus_b2_commands::corpus_fix_b2(apply),
-        // SSC, dataset, domain, tier
-        _ => handle_corpus_ssc_ops(command),
+        // All analysis commands (flattened from CorpusAnalysisCommands)
+        CorpusCommands::Analysis(analysis) => handle_corpus_analysis_ops(analysis),
+        // Handled in parent dispatchers
+        _ => unreachable!(),
     }
 }
 
-/// SSC v11 validation, dataset, domain, and tier commands.
-pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
+/// Analysis, SSC, dataset, domain, and tier commands (from CorpusAnalysisCommands).
+pub(crate) fn handle_corpus_analysis_ops(command: CorpusAnalysisCommands) -> Result<()> {
     match command {
+        // Patterns and decisions
+        CorpusAnalysisCommands::Suspicious { limit } => {
+            super::corpus_metrics_commands::corpus_suspicious(limit)
+        }
+        CorpusAnalysisCommands::Decisions => super::corpus_decision_commands::corpus_decisions(),
+        CorpusAnalysisCommands::Patterns => super::corpus_decision_commands::corpus_patterns(),
+        CorpusAnalysisCommands::PatternQuery { signal } => {
+            super::corpus_decision_commands::corpus_pattern_query(&signal)
+        }
+        CorpusAnalysisCommands::FixSuggest { id } => {
+            super::corpus_decision_commands::corpus_fix_suggest(&id)
+        }
+        CorpusAnalysisCommands::Graph => super::corpus_advanced_commands::corpus_graph(),
+        CorpusAnalysisCommands::Impact { limit } => {
+            super::corpus_advanced_commands::corpus_impact(limit)
+        }
+        CorpusAnalysisCommands::BlastRadius { decision } => {
+            super::corpus_advanced_commands::corpus_blast_radius(&decision)
+        }
+        CorpusAnalysisCommands::Dedup => super::corpus_advanced_commands::corpus_dedup(),
+        CorpusAnalysisCommands::Triage => super::corpus_advanced_commands::corpus_triage(),
+        CorpusAnalysisCommands::LabelRules => super::corpus_advanced_commands::corpus_label_rules(),
+        CorpusAnalysisCommands::OrgPatterns => {
+            super::corpus_convergence_commands::corpus_org_patterns()
+        }
+        // Convergence
+        CorpusAnalysisCommands::ConvergeTable => {
+            super::corpus_convergence_commands::corpus_converge_table()
+        }
+        CorpusAnalysisCommands::ConvergeDiff { from, to } => {
+            super::corpus_convergence_commands::corpus_converge_diff(from, to)
+        }
+        CorpusAnalysisCommands::ConvergeStatus => {
+            super::corpus_convergence_commands::corpus_converge_status()
+        }
+        CorpusAnalysisCommands::ConvergenceCheck => {
+            super::corpus_pipeline_commands::corpus_convergence_check()
+        }
+        // Gates and quality checks
+        CorpusAnalysisCommands::GateStatus => {
+            super::corpus_config_commands::corpus_gate_status_cmd()
+        }
+        CorpusAnalysisCommands::QualityGates => {
+            super::corpus_config_commands::corpus_quality_gates()
+        }
+        CorpusAnalysisCommands::MetricsCheck => {
+            super::corpus_config_commands::corpus_metrics_check()
+        }
+        CorpusAnalysisCommands::RegressionCheck => {
+            super::corpus_pipeline_commands::corpus_regression_check()
+        }
+        CorpusAnalysisCommands::LintPipeline => {
+            super::corpus_pipeline_commands::corpus_lint_pipeline()
+        }
+        CorpusAnalysisCommands::PublishCheck => {
+            super::corpus_config_commands::corpus_publish_check()
+        }
+        // Mining and fixes
+        CorpusAnalysisCommands::Mine { limit } => {
+            super::corpus_convergence_commands::corpus_mine(limit)
+        }
+        CorpusAnalysisCommands::FixGaps { limit } => {
+            super::corpus_convergence_commands::corpus_fix_gaps(limit)
+        }
+        CorpusAnalysisCommands::DiagnoseB2 { filter, limit } => {
+            super::corpus_b2_commands::corpus_diagnose_b2(filter.as_ref(), limit)
+        }
+        CorpusAnalysisCommands::FixB2 { apply } => {
+            super::corpus_b2_commands::corpus_fix_b2(apply)
+        }
         // Grammar and dataset
-        CorpusCommands::SchemaValidate => {
+        CorpusAnalysisCommands::SchemaValidate => {
             super::corpus_convergence_commands::corpus_schema_validate()
         }
-        CorpusCommands::GrammarErrors => {
+        CorpusAnalysisCommands::GrammarErrors => {
             super::corpus_convergence_commands::corpus_grammar_errors()
         }
-        CorpusCommands::FormatGrammar { format } => {
+        CorpusAnalysisCommands::FormatGrammar { format } => {
             super::corpus_convergence_commands::corpus_format_grammar(format)
         }
-        CorpusCommands::ExportDataset { format, output } => {
+        CorpusAnalysisCommands::ExportDataset { format, output } => {
             super::corpus_config_commands::corpus_export_dataset(format, output)
         }
-        CorpusCommands::DatasetInfo => super::corpus_config_commands::corpus_dataset_info(),
-        CorpusCommands::GenerateConversations {
+        CorpusAnalysisCommands::DatasetInfo => {
+            super::corpus_config_commands::corpus_dataset_info()
+        }
+        CorpusAnalysisCommands::GenerateConversations {
             output,
             seed,
             limit,
@@ -322,67 +346,67 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             output, seed, limit, entrenar,
         ),
         // SSC v11 baselines and validation
-        CorpusCommands::Baselines => super::corpus_config_commands::corpus_baselines(),
-        CorpusCommands::CweMapping { json } => {
+        CorpusAnalysisCommands::Baselines => super::corpus_config_commands::corpus_baselines(),
+        CorpusAnalysisCommands::CweMapping { json } => {
             super::corpus_config_commands::corpus_cwe_mapping(json)
         }
-        CorpusCommands::ExportBenchmark { output, limit } => {
+        CorpusAnalysisCommands::ExportBenchmark { output, limit } => {
             super::corpus_config_commands::corpus_export_benchmark(output, limit)
         }
-        CorpusCommands::PipelineCheck { json } => {
+        CorpusAnalysisCommands::PipelineCheck { json } => {
             super::corpus_ssb_commands::corpus_pipeline_check(json)
         }
-        CorpusCommands::MergeData {
+        CorpusAnalysisCommands::MergeData {
             output,
             input,
             seed,
         } => super::corpus_ssb_commands::corpus_merge_data(output, input, seed),
-        CorpusCommands::ShellcheckValidate {
+        CorpusAnalysisCommands::ShellcheckValidate {
             samples,
             seed,
             json,
         } => super::corpus_ssb_commands::corpus_shellcheck_validate(samples, seed, json),
-        CorpusCommands::EvalBenchmark { predictions, json } => {
+        CorpusAnalysisCommands::EvalBenchmark { predictions, json } => {
             super::corpus_ssb_commands::corpus_eval_benchmark(predictions, json)
         }
-        CorpusCommands::Label {
+        CorpusAnalysisCommands::Label {
             input,
             output,
             format: _,
         } => super::corpus_config_commands::corpus_label(input, output),
-        CorpusCommands::LabelAudit { limit } => {
+        CorpusAnalysisCommands::LabelAudit { limit } => {
             super::corpus_config_commands::corpus_label_audit(limit)
         }
-        CorpusCommands::GeneralizationTests => {
+        CorpusAnalysisCommands::GeneralizationTests => {
             super::corpus_config_commands::corpus_generalization_tests()
         }
-        CorpusCommands::TokenizerValidation => {
+        CorpusAnalysisCommands::TokenizerValidation => {
             super::corpus_config_commands::corpus_tokenizer_validation()
         }
-        CorpusCommands::ValidateContracts => {
+        CorpusAnalysisCommands::ValidateContracts => {
             super::corpus_config_commands::corpus_validate_contracts()
         }
-        CorpusCommands::ExportSplits { output, input } => {
+        CorpusAnalysisCommands::ExportSplits { output, input } => {
             super::corpus_config_commands::corpus_export_splits(output, input)
         }
-        CorpusCommands::SscReport { json, gate } => {
+        CorpusAnalysisCommands::SscReport { json, gate } => {
             super::corpus_config_commands::corpus_ssc_report(json, gate)
         }
-        CorpusCommands::ModelCard { output } => {
+        CorpusAnalysisCommands::ModelCard { output } => {
             super::corpus_config_commands::corpus_model_card(output)
         }
-        CorpusCommands::TrainingConfig { output, json } => {
+        CorpusAnalysisCommands::TrainingConfig { output, json } => {
             super::corpus_config_commands::corpus_training_config(output, json)
         }
-        CorpusCommands::PublishDataset { output } => {
+        CorpusAnalysisCommands::PublishDataset { output } => {
             super::corpus_config_commands::corpus_publish_dataset(output)
         }
-        CorpusCommands::PublishBenchmark {
+        CorpusAnalysisCommands::PublishBenchmark {
             input,
             output,
             version,
         } => super::corpus_expansion_commands::corpus_publish_benchmark(input, output, version),
-        CorpusCommands::GenerateExpansion {
+        CorpusAnalysisCommands::GenerateExpansion {
             format,
             count,
             output,
@@ -390,15 +414,15 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         } => {
             super::corpus_expansion_commands::corpus_generate_expansion(format, count, output, seed)
         }
-        CorpusCommands::PublishConversations { output, seed } => {
+        CorpusAnalysisCommands::PublishConversations { output, seed } => {
             super::corpus_config_commands::corpus_publish_conversations(output, seed)
         }
-        CorpusCommands::ConvertSsb {
+        CorpusAnalysisCommands::ConvertSsb {
             input,
             output,
             limit,
         } => super::corpus_ssb_commands::corpus_convert_ssb(input, output, limit),
-        CorpusCommands::ExtractEmbeddings {
+        CorpusAnalysisCommands::ExtractEmbeddings {
             model,
             output,
             limit,
@@ -406,7 +430,7 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
         } => {
             super::corpus_ml_commands::corpus_extract_embeddings(model, output, limit, input_jsonl)
         }
-        CorpusCommands::TrainClassifier {
+        CorpusAnalysisCommands::TrainClassifier {
             embeddings,
             output,
             epochs,
@@ -427,7 +451,7 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             mlp,
             mlp_hidden,
         ),
-        CorpusCommands::RunClassifier {
+        CorpusAnalysisCommands::RunClassifier {
             model,
             output,
             epochs,
@@ -441,23 +465,31 @@ pub(crate) fn handle_corpus_ssc_ops(command: CorpusCommands) -> Result<()> {
             seed,
         ),
         // Domain analysis
-        CorpusCommands::DomainCategories => {
+        CorpusAnalysisCommands::DomainCategories => {
             super::corpus_config_commands::corpus_domain_categories()
         }
-        CorpusCommands::DomainCoverage => super::corpus_config_commands::corpus_domain_coverage(),
-        CorpusCommands::DomainMatrix => super::corpus_config_commands::corpus_domain_matrix(),
+        CorpusAnalysisCommands::DomainCoverage => {
+            super::corpus_config_commands::corpus_domain_coverage()
+        }
+        CorpusAnalysisCommands::DomainMatrix => {
+            super::corpus_config_commands::corpus_domain_matrix()
+        }
         // Tier configuration
-        CorpusCommands::TierWeights => super::corpus_config_commands::corpus_tier_weights(),
-        CorpusCommands::TierAnalysis => super::corpus_config_commands::corpus_tier_analysis(),
-        CorpusCommands::TierTargets => super::corpus_config_commands::corpus_tier_targets(),
-        CorpusCommands::Version => super::corpus_metrics_commands::corpus_version(),
-        CorpusCommands::BatchEval {
+        CorpusAnalysisCommands::TierWeights => {
+            super::corpus_config_commands::corpus_tier_weights()
+        }
+        CorpusAnalysisCommands::TierAnalysis => {
+            super::corpus_config_commands::corpus_tier_analysis()
+        }
+        CorpusAnalysisCommands::TierTargets => {
+            super::corpus_config_commands::corpus_tier_targets()
+        }
+        CorpusAnalysisCommands::Version => super::corpus_metrics_commands::corpus_version(),
+        CorpusAnalysisCommands::BatchEval {
             model,
             test_data,
             output,
             max_tokens,
         } => super::corpus_ssb_commands::corpus_batch_eval(model, test_data, output, max_tokens),
-        // Handled in parent dispatchers
-        _ => unreachable!(),
     }
 }

@@ -13,7 +13,7 @@ use crate::cli::logic::{
     find_devcontainer_json as logic_find_devcontainer_json, format_timestamp, generate_diff_lines,
     hex_encode, pin_base_image_version, truncate_str,
 };
-use crate::cli::{Cli, Commands};
+use crate::cli::{Cli, Commands, CommandsExt};
 use crate::models::{Config, Error, Result};
 use crate::models::{ShellDialect, VerificationLevel};
 use crate::validation::ValidationLevel;
@@ -264,11 +264,11 @@ fn dispatch_command(
         | Commands::Score { .. }
         | Commands::Audit { .. }
         | Commands::Coverage { .. }
-        | Commands::Bench { .. }
-        | Commands::Mutate { .. }
-        | Commands::Simulate { .. }
+        | Commands::Ext(CommandsExt::Bench { .. })
+        | Commands::Ext(CommandsExt::Mutate { .. })
+        | Commands::Ext(CommandsExt::Simulate { .. })
         | Commands::Gate { .. }
-        | Commands::Cfg { .. } => dispatch_quality(command),
+        | Commands::Ext(CommandsExt::Cfg { .. }) => dispatch_quality(command),
 
         // Delegated subcommand groups
         Commands::Make { command: cmd } => make_cmds::handle_make_command(cmd),
@@ -279,7 +279,7 @@ fn dispatch_command(
             devcontainer_cmds::handle_devcontainer_command(cmd)
         }
         Commands::Config { command: cmd } => config_cmds::handle_config_command(cmd),
-        Commands::Installer { command: cmd } => {
+        Commands::Ext(CommandsExt::Installer { command: cmd }) => {
             super::installer_commands::handle_installer_command(cmd)
         }
         Commands::Comply { command: cmd } => comply_cmds::handle_comply_command(cmd),
@@ -287,15 +287,15 @@ fn dispatch_command(
 
         // Interactive, misc, and generation commands
         Commands::Repl { .. }
-        | Commands::Playbook { .. }
-        | Commands::GenerateAdversarial { .. } => dispatch_interactive(command),
+        | Commands::Ext(CommandsExt::Playbook { .. })
+        | Commands::Ext(CommandsExt::GenerateAdversarial { .. }) => dispatch_interactive(command),
 
         #[cfg(feature = "tui")]
         Commands::Tui => crate::tui::run()
             .map_err(|e| crate::models::Error::Io(std::io::Error::other(e.to_string()))),
 
         #[cfg(feature = "oracle")]
-        Commands::ExplainError { .. } => dispatch_interactive(command),
+        Commands::Ext(CommandsExt::ExplainError { .. }) => dispatch_interactive(command),
     }
 }
 

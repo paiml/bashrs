@@ -154,7 +154,7 @@ fn dispatch_quality(command: Commands) -> Result<()> {
             detailed,
             output,
         } => coverage_commands::coverage_command(&input, &format, min, detailed, output.as_deref()),
-        Commands::Bench {
+        Commands::Ext(CommandsExt::Bench {
             scripts,
             warmup,
             iterations,
@@ -166,7 +166,7 @@ fn dispatch_quality(command: Commands) -> Result<()> {
             measure_memory,
             csv,
             no_color,
-        } => {
+        }) => {
             use crate::cli::bench::{bench_command, BenchOptions};
             bench_command(BenchOptions {
                 scripts,
@@ -182,14 +182,14 @@ fn dispatch_quality(command: Commands) -> Result<()> {
                 no_color,
             })
         }
-        Commands::Mutate {
+        Commands::Ext(CommandsExt::Mutate {
             input,
             config,
             format,
             count,
             show_survivors,
             output,
-        } => mutate_command(
+        }) => mutate_command(
             &input,
             config.as_deref(),
             format,
@@ -197,20 +197,20 @@ fn dispatch_quality(command: Commands) -> Result<()> {
             show_survivors,
             output.as_deref(),
         ),
-        Commands::Simulate {
+        Commands::Ext(CommandsExt::Simulate {
             input,
             seed,
             verify,
             mock_externals,
             format,
             trace,
-        } => simulate_command(&input, seed, verify, mock_externals, format, trace),
+        }) => simulate_command(&input, seed, verify, mock_externals, format, trace),
         Commands::Gate { tier, report } => gate_cmds::handle_gate_command(tier, report),
-        Commands::Cfg {
+        Commands::Ext(CommandsExt::Cfg {
             input,
             format,
             per_function,
-        } => cfg_cmds::cfg_command(&input, format, per_function),
+        }) => cfg_cmds::cfg_command(&input, format, per_function),
         _ => unreachable!("dispatch_quality called with non-quality command"),
     }
 }
@@ -225,21 +225,21 @@ fn dispatch_interactive(command: Commands) -> Result<()> {
             timeout,
             max_depth,
         } => handle_repl_command(debug, sandboxed, max_memory, timeout, max_depth),
-        Commands::Playbook {
+        Commands::Ext(CommandsExt::Playbook {
             input,
             run,
             format,
             verbose,
             dry_run,
-        } => playbook_command(&input, run, format, verbose, dry_run),
-        Commands::GenerateAdversarial {
+        }) => playbook_command(&input, run, format, verbose, dry_run),
+        Commands::Ext(CommandsExt::GenerateAdversarial {
             output,
             seed,
             count_per_class,
             extra_needs_quoting,
             verify,
             stats,
-        } => adversarial_cmds::generate_adversarial_command(
+        }) => adversarial_cmds::generate_adversarial_command(
             &output,
             seed,
             count_per_class,
@@ -248,13 +248,13 @@ fn dispatch_interactive(command: Commands) -> Result<()> {
             stats,
         ),
         #[cfg(feature = "oracle")]
-        Commands::ExplainError {
+        Commands::Ext(CommandsExt::ExplainError {
             error,
             command,
             shell,
             format,
             detailed,
-        } => explain_error_command(&error, command.as_deref(), &shell, format, detailed),
+        }) => explain_error_command(&error, command.as_deref(), &shell, format, detailed),
         _ => unreachable!("dispatch_interactive called with non-interactive command"),
     }
 }
