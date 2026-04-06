@@ -378,6 +378,6 @@ pub fn format_convergence_status(statuses: &[FormatConvergenceStatus]) -> String
     out
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "convergence_tests_make_entry.rs"]
-// FIXME(PMAT-238): mod tests_ext;
+#[cfg(test)]
+#[path = "convergence_tests_make_entry.rs"]
+mod tests_ext;

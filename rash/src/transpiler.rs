@@ -326,6 +326,6 @@ impl Default for Transpiler {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "transpiler_tests_xtask_001.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "transpiler_tests_xtask_001.rs"]
+mod tests_extracted;

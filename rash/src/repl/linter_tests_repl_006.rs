@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::linter::{Diagnostic, Fix, Span};
 

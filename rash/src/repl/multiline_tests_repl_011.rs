@@ -390,4 +390,4 @@ mod tests {
     }
 }
 
-// FIXME(PMAT-238): include!("multiline_tests_proptest.rs");
+include!("multiline_tests_proptest.rs");

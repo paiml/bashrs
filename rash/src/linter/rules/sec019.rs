@@ -225,6 +225,6 @@ fn skip_command_substitution(chars: &[char], start: usize) -> usize {
     i
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "sec019_tests_sec019_001.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "sec019_tests_sec019_001.rs"]
+mod tests_extracted;

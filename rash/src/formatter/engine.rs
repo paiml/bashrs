@@ -482,6 +482,6 @@ impl Default for NormalizationEngine {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "engine_tests_engine_creat.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "engine_tests_engine_creat.rs"]
+mod tests_extracted;

@@ -419,6 +419,6 @@ unsafe impl GlobalAlloc for FailingAllocator {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "error_injection_tests_parser_error.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "error_injection_tests_parser_error.rs"]
+mod tests_extracted;

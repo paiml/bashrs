@@ -418,6 +418,6 @@ impl Default for LogMetadata {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "logging_tests_transform_lo.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "logging_tests_transform_lo.rs"]
+mod tests_extracted;

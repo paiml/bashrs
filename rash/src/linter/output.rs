@@ -419,6 +419,6 @@ fn write_sarif<W: Write>(
     Ok(())
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "output_tests_output_forma.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "output_tests_output_forma.rs"]
+mod tests_extracted;

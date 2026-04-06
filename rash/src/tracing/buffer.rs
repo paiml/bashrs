@@ -241,6 +241,6 @@ pub struct BufferStats {
     pub utilization: f64,
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "buffer_tests_trace_002.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "buffer_tests_trace_002.rs"]
+mod tests_extracted;

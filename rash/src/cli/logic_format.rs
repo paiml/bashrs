@@ -309,6 +309,6 @@ pub fn test_pass_rate(passed: usize, total: usize) -> f64 {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "logic_format_tests_hex_encode.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "logic_format_tests_hex_encode.rs"]
+mod tests_extracted;

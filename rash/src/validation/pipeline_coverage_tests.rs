@@ -8,6 +8,6 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "pipeline_coverage_tests_tests_strict_pipel.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "pipeline_coverage_tests_tests_strict_pipel.rs"]
+mod tests_extracted;

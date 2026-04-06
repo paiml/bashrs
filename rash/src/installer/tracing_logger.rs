@@ -230,6 +230,6 @@ fn truncate(s: &str, max_len: usize) -> String {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "tracing_tests_tracing_001.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "tracing_tests_tracing_001.rs"]
+mod tests_extracted;

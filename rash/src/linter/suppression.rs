@@ -327,6 +327,6 @@ fn is_valid_rule_code(code: &str) -> bool {
     !digit_part.is_empty() && digit_part.chars().all(|c| c.is_ascii_digit())
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "suppression_tests_parse_file.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "suppression_tests_parse_file.rs"]
+mod tests_extracted;

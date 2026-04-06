@@ -465,6 +465,6 @@ Validation Layers:
     out
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "schema_enforcement_tests_make_entry.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "schema_enforcement_tests_make_entry.rs"]
+mod tests_extracted;

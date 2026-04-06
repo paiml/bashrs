@@ -326,6 +326,6 @@ fn extract_variable_from_chown(line: &str) -> Option<String> {
     None
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "sec011_tests_sec011_detec.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "sec011_tests_sec011_detec.rs"]
+mod tests_extracted;

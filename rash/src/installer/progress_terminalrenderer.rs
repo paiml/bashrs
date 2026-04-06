@@ -442,6 +442,6 @@ fn escape_json(s: &str) -> String {
         .replace('\t', "\\t")
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "progress_tests_progress_001.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "progress_tests_progress_001.rs"]
+mod tests_extracted;

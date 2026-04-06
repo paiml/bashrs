@@ -206,5 +206,5 @@ mod purifier_coverage {
 #[cfg(test)]
 mod purifier_coverage_tests_tests_extracted_idempotency {
     use super::*;
-        // FIXME(PMAT-238): include!("purifier_coverage_tests_tests_extracted_idempotency.rs");
+    // FIXME(PMAT-238): include!("purifier_coverage_tests_tests_extracted_idempotency.rs");
 }

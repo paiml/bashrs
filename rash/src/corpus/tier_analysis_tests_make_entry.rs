@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::corpus::registry::{CorpusEntry, CorpusFormat};
 use crate::corpus::runner::CorpusResult;

@@ -360,4 +360,4 @@
         // If + becomes *, end would be much larger or wrong
         assert_eq!(span.end_col, 8, "End column must use +, not *");
     }
-    // FIXME(PMAT-238): include!("sc2086_tests_mutation.rs");
+    include!("sc2086_tests_mutation.rs");

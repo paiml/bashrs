@@ -385,4 +385,4 @@ rm /tmp/old
 // ===== PURIFIER_COV: Coverage tests for explain_purification_changes_detailed and format_transformation_report =====
 
 
-// FIXME(PMAT-238): include!("purifier_transforms_tests_inline_tests_PURIFIER.rs");
+include!("purifier_transforms_tests_inline_tests_PURIFIER.rs");

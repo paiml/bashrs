@@ -312,6 +312,6 @@ fn detect_from_path(path: &Path) -> Option<ShellType> {
     None
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "shell_type_tests_detect_zsh.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "shell_type_tests_detect_zsh.rs"]
+mod tests_extracted;

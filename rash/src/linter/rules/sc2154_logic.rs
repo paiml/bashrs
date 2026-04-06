@@ -448,6 +448,6 @@ pub fn find_undefined_variables(
     undefined
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "sc2154_logic_tests_get_builtins.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "sc2154_logic_tests_get_builtins.rs"]
+mod tests_extracted;

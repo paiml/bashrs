@@ -7,6 +7,6 @@ pub enum ContinueResult {
     Finished,
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "debugger_tests_ext.rs"]
-// FIXME(PMAT-238): mod tests_ext;
+#[cfg(test)]
+#[path = "debugger_tests_ext.rs"]
+mod tests_ext;

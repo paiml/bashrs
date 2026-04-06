@@ -488,6 +488,6 @@ pub fn gate_report(
     builder.build().render()
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "report_tests_ml_011.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "report_tests_ml_011.rs"]
+mod tests_extracted;

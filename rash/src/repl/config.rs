@@ -395,6 +395,6 @@ impl ReplConfig {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "config_tests_repl_003.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "config_tests_repl_003.rs"]
+mod tests_extracted;

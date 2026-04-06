@@ -1,4 +1,3 @@
-
 use super::*;
 
 #[test]
@@ -11,8 +10,7 @@ fn test_explain_safe_script() {
 
 #[test]
 fn test_explain_eval_security() {
-    let report =
-        generate_explanation("#!/bin/bash\neval \"$user_input\"\n", &ClassifyFormat::Bash);
+    let report = generate_explanation("#!/bin/bash\neval \"$user_input\"\n", &ClassifyFormat::Bash);
     assert_eq!(report.risk_level, "high");
     assert!(report.categories.iter().any(|c| c.category == "Security"));
     let sec = report
@@ -85,9 +83,9 @@ fn test_explain_critical_risk() {
 fn test_explain_why_coverage() {
     // Verify common rule codes return meaningful explanations
     for code in &[
-        "SEC001", "SEC002", "SEC003", "SEC004", "SEC005", "SEC006", "SEC007", "SEC008",
-        "SEC010", "SEC016", "SEC019", "SEC020", "SEC021", "SEC022", "SEC023", "SEC024",
-        "DET001", "DET002", "DET003", "DET004", "IDEM001", "IDEM002", "IDEM003",
+        "SEC001", "SEC002", "SEC003", "SEC004", "SEC005", "SEC006", "SEC007", "SEC008", "SEC010",
+        "SEC016", "SEC019", "SEC020", "SEC021", "SEC022", "SEC023", "SEC024", "DET001", "DET002",
+        "DET003", "DET004", "IDEM001", "IDEM002", "IDEM003",
     ] {
         let why = explain_why(code);
         assert!(
@@ -100,9 +98,9 @@ fn test_explain_why_coverage() {
 #[test]
 fn test_explain_fix_coverage() {
     for code in &[
-        "SEC001", "SEC002", "SEC003", "SEC004", "SEC005", "SEC006", "SEC007", "SEC008",
-        "SEC010", "SEC016", "SEC019", "SEC020", "SEC021", "SEC022", "SEC023", "SEC024",
-        "DET001", "DET002", "DET003", "DET004", "IDEM001", "IDEM002", "IDEM003",
+        "SEC001", "SEC002", "SEC003", "SEC004", "SEC005", "SEC006", "SEC007", "SEC008", "SEC010",
+        "SEC016", "SEC019", "SEC020", "SEC021", "SEC022", "SEC023", "SEC024", "DET001", "DET002",
+        "DET003", "DET004", "IDEM001", "IDEM002", "IDEM003",
     ] {
         let fix = explain_fix(code);
         assert!(

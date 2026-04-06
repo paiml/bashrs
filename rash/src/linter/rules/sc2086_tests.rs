@@ -440,5 +440,5 @@ fi
 #[cfg(test)]
 mod sc2086_tests_quoting {
     use super::*;
-    // FIXME(PMAT-238): include!("sc2086_tests_quoting.rs");
+    include!("sc2086_tests_quoting.rs");
 }

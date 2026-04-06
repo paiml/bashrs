@@ -436,6 +436,6 @@ pub fn severity_icon(severity: &str) -> &'static str {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "logic_lint_tests_build_ignore.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "logic_lint_tests_build_ignore.rs"]
+mod tests_extracted;

@@ -254,6 +254,6 @@ fn apply_single_fix(source: &str, span: &Span, replacement: &str) -> io::Result<
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "autofix_tests_apply_single.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "autofix_tests_apply_single.rs"]
+mod tests_extracted;

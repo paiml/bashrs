@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::corpus::registry::Grade;
 use crate::corpus::runner::FormatScore;

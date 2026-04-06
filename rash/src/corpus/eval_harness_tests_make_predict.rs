@@ -1,12 +1,6 @@
-
 use super::*;
 
-fn make_prediction(
-    id: &str,
-    classification: &str,
-    rules: &[&str],
-    cwes: &[&str],
-) -> Prediction {
+fn make_prediction(id: &str, classification: &str, rules: &[&str], cwes: &[&str]) -> Prediction {
     Prediction {
         id: id.to_string(),
         classification: classification.to_string(),

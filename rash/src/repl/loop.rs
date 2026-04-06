@@ -375,6 +375,6 @@ fn handle_reload_command(state: &mut ReplState) {
 // Note: Tests for REPL logic have been moved to logic.rs
 // This file (loop.rs) is now a thin shim that handles I/O only
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "loop_tests_repl_003.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "loop_tests_repl_003.rs"]
+mod tests_extracted;

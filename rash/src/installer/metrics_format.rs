@@ -82,6 +82,6 @@ fn detect_environment() -> EnvironmentInfo {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "metrics_tests_metrics_001.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "metrics_tests_metrics_001.rs"]
+mod tests_extracted;

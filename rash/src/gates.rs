@@ -129,6 +129,6 @@ impl GateConfig {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "gates_tests_default_valu.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "gates_tests_default_valu.rs"]
+mod tests_extracted;

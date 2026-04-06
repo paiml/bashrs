@@ -394,6 +394,6 @@ pub fn strip_ansi_codes(input: &str) -> String {
     result
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "highlighting_tests_repl_015.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "highlighting_tests_repl_015.rs"]
+mod tests_extracted;

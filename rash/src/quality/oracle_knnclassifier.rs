@@ -429,6 +429,6 @@ impl Oracle {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "oracle_tests_sample_diagn.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "oracle_tests_sample_diagn.rs"]
+mod tests_extracted;

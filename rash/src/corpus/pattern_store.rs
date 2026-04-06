@@ -283,6 +283,6 @@ pub fn suggest_fixes(
     suggestions
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "pattern_store_tests_classify_fai.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "pattern_store_tests_classify_fai.rs"]
+mod tests_extracted;

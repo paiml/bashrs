@@ -450,6 +450,6 @@ fn current_timestamp() -> u64 {
         .unwrap_or(0)
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "signature_tests_signature_10.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "signature_tests_signature_10.rs"]
+mod tests_extracted;

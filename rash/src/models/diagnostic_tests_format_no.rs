@@ -1,4 +1,3 @@
-
 use super::*;
 
 /// Helper to format a diagnostic with colors disabled

@@ -188,6 +188,6 @@ pub fn check(source: &str) -> LintResult {
     result
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "sc2024_tests_prop_sc2024.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "sc2024_tests_prop_sc2024.rs"]
+mod tests_extracted;

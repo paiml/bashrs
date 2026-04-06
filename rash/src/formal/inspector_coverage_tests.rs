@@ -8,6 +8,6 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "inspector_coverage_tests_tests_empty_state.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "inspector_coverage_tests_tests_empty_state.rs"]
+mod tests_extracted;

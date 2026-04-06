@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::bash_parser::ast::{AstMetadata, BashExpr, Span};
 

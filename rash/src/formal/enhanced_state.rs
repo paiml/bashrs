@@ -479,6 +479,6 @@ impl EnhancedState {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "enhanced_state_tests_default_stat.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "enhanced_state_tests_default_stat.rs"]
+mod tests_extracted;

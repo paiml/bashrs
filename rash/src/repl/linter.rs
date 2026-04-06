@@ -187,6 +187,6 @@ pub fn format_violations_with_context(result: &LintResult, source: &str) -> Stri
     output
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "linter_tests_repl_006.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "linter_tests_repl_006.rs"]
+mod tests_extracted;

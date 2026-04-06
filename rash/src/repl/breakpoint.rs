@@ -302,6 +302,6 @@ fn evaluate_condition(condition: &str, variables: &HashMap<String, String>) -> b
     perform_comparison(operator, var_value, value_part)
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "breakpoint_tests_repl_007.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "breakpoint_tests_repl_007.rs"]
+mod tests_extracted;

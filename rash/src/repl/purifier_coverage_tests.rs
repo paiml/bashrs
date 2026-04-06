@@ -10,6 +10,6 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "purifier_coverage_tests_tests_make_lint.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "purifier_coverage_tests_tests_make_lint.rs"]
+mod tests_extracted;

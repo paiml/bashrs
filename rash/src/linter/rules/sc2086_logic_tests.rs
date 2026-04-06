@@ -1,4 +1,3 @@
-
 use super::*;
 
 // ===== SHOULD SKIP LINE =====
@@ -131,8 +130,7 @@ fn test_get_cstyle_for_loop_vars_single() {
 
 #[test]
 fn test_get_cstyle_for_loop_vars_multiple() {
-    let source =
-        "for ((i=0; i<10; i++)); do\n  for ((j=0; j<5; j++)); do\n    echo\n  done\ndone";
+    let source = "for ((i=0; i<10; i++)); do\n  for ((j=0; j<5; j++)); do\n    echo\n  done\ndone";
     let vars = get_cstyle_for_loop_vars(source);
     assert!(vars.contains("i"));
     assert!(vars.contains("j"));
@@ -214,7 +212,7 @@ fn test_is_already_quoted_braced_not_immediately() {
     // No quote immediately before or after
     assert!(!is_already_quoted(line, 4, 8));
 
-#[test]
+    #[test]
     fn test_is_already_quoted_odd_quote_braced() {
         // Inside quoted string with braced var - odd quote count
         let line = r#"x="prefix${VAR}suffix""#;

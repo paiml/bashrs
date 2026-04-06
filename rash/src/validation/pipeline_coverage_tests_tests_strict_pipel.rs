@@ -1,4 +1,3 @@
-
 use crate::ast::restricted::{BinaryOp, Literal, UnaryOp};
 use crate::ast::{Expr, Function, RestrictedAst, Stmt, Type};
 use crate::ir::{shell_ir::CaseArm, shell_ir::CasePattern, Command, ShellIR, ShellValue};
@@ -210,5 +209,5 @@ fn test_exec_ctx_unary_arg() {
 #[cfg(test)]
 mod pipeline_coverage_tests_tests_extracted_exec {
     use super::*;
-        include!("pipeline_coverage_tests_tests_extracted_exec.rs");
+    include!("pipeline_coverage_tests_tests_extracted_exec.rs");
 }

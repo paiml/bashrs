@@ -169,6 +169,6 @@ fn format_statement(stmt: &BashStmt, indent: usize) -> String {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "ast_display_tests_dummy_span.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "ast_display_tests_dummy_span.rs"]
+mod tests_extracted;

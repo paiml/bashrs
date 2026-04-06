@@ -194,4 +194,4 @@ fn test_REPL_008_002_next_when_finished() {
     );
 }
 
-// FIXME(PMAT-238): include!("debugger_tests_extracted_tests_repl_008.rs");
+include!("debugger_tests_extracted_tests_repl_008.rs");

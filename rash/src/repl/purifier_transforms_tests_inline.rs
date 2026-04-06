@@ -384,4 +384,4 @@ mod transformation_explanation_property_tests {
 // ===== REPL-013-003: ALTERNATIVE SUGGESTIONS TESTS (RED PHASE) =====
 
 
-// FIXME(PMAT-238): include!("purifier_transforms_tests_inline_tests_REPL.rs");
+include!("purifier_transforms_tests_inline_tests_REPL.rs");

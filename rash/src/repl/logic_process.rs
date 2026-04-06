@@ -188,6 +188,6 @@ pub fn get_history_path() -> anyhow::Result<PathBuf> {
     Ok(history_path)
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "logic_tests_process_mode.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "logic_tests_process_mode.rs"]
+mod tests_extracted;

@@ -1,4 +1,3 @@
-
 use super::*;
 
 // Unit tests for shell date detection

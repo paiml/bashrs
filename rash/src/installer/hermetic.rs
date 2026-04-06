@@ -412,6 +412,6 @@ fn current_timestamp() -> u64 {
         .unwrap_or(0)
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "hermetic_tests_hermetic_109.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "hermetic_tests_hermetic_109.rs"]
+mod tests_extracted;

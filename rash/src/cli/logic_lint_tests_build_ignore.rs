@@ -1,4 +1,3 @@
-
 use super::*;
 use crate::cli::args::LintLevel;
 

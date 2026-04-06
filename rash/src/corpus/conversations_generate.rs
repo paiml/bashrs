@@ -271,6 +271,6 @@ pub fn generate_dataset_readme(report: &QualityReport) -> String {
     readme
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "conversations_tests_generate_cla.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "conversations_tests_generate_cla.rs"]
+mod tests_extracted;

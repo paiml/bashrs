@@ -1,4 +1,3 @@
-
 #![allow(clippy::panic)]
 use super::*;
 use tempfile::TempDir;

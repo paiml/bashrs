@@ -1,4 +1,3 @@
-
 use super::*;
 
 // Helper function to create a basic span for tests
@@ -219,8 +218,7 @@ fn test_apply_line_length_limit_short_line() {
 
 #[test]
 fn test_apply_line_length_limit_long_line() {
-    let long_line =
-        "gcc -o output file1.c file2.c file3.c file4.c file5.c file6.c file7.c file8.c";
+    let long_line = "gcc -o output file1.c file2.c file3.c file4.c file5.c file6.c file7.c file8.c";
     let output = apply_line_length_limit(long_line, 40);
     assert!(
         output.contains("\\"),

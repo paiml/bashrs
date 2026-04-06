@@ -8,6 +8,6 @@
 #![allow(clippy::expect_used)]
 
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "pattern_tests_tests_make_main.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "pattern_tests_tests_make_main.rs"]
+mod tests_extracted;

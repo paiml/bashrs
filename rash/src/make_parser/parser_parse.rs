@@ -324,6 +324,6 @@ fn parse_target_rule(
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "parser_tests_parse_empty.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "parser_tests_parse_empty.rs"]
+mod tests_extracted;

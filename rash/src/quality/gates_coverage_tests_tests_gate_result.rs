@@ -1,4 +1,3 @@
-
 use crate::quality::gates::*;
 use std::collections::HashMap;
 use std::time::Duration;
@@ -275,5 +274,5 @@ fn test_summary_all_passing_and_mixed() {
 #[cfg(test)]
 mod gates_coverage_tests_tests_extracted_check {
     use super::*;
-        // FIXME(PMAT-238): include!("gates_coverage_tests_tests_extracted_check.rs");
+    // FIXME(PMAT-238): include!("gates_coverage_tests_tests_extracted_check.rs");
 }

@@ -456,6 +456,6 @@ impl fmt::Display for Diagnostic {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "diagnostic_tests_format_no.rs"]
-// FIXME(PMAT-238): mod tests_ext;
+#[cfg(test)]
+#[path = "diagnostic_tests_format_no.rs"]
+mod tests_ext;
