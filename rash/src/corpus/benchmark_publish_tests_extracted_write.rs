@@ -1,6 +1,6 @@
-
-use super::super::*;
+use super::*;
 use std::io::Write;
+use std::path::Path;
 use tempfile::TempDir;
 
 fn write_test_splits(dir: &Path) {
@@ -169,8 +169,7 @@ fn test_PMAT172_publish_benchmark_end_to_end() {
     assert_eq!(summary.test_count, 2);
 
     // Verify README has YAML front matter
-    let readme =
-        std::fs::read_to_string(output_dir.path().join("README.md")).expect("read readme");
+    let readme = std::fs::read_to_string(output_dir.path().join("README.md")).expect("read readme");
     assert!(readme.starts_with("---\n"));
     assert!(readme.contains("ShellSafetyBench"));
 
