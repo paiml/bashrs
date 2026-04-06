@@ -198,4 +198,4 @@
         assert_eq!(output, "[ \"$y\" -ge 0 ]");
     }
 
-// FIXME(PMAT-238): include!("codegen_tests_ext_generate_generate.rs");
+include!("codegen_tests_ext_generate_generate.rs");

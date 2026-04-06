@@ -450,6 +450,6 @@ fn build_score_distribution(predicted_class: u8, confidence: f64) -> [f64; 5] {
     scores
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "classify_commands_tests_classify_saf.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "classify_commands_tests_classify_saf.rs"]
+mod tests_extracted;

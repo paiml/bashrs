@@ -476,6 +476,6 @@ impl BashToRashTranspiler {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "codegen_tests_transpile_op.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "codegen_tests_transpile_op.rs"]
+mod tests_extracted;

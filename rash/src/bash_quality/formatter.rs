@@ -436,6 +436,6 @@ impl Default for Formatter {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "formatter_tests_dummy_metada.rs"]
-// FIXME(PMAT-238): mod tests_ext;
+#[cfg(test)]
+#[path = "formatter_tests_dummy_metada.rs"]
+mod tests_ext;

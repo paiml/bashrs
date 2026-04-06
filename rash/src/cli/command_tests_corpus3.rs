@@ -7,6 +7,6 @@
 // corpus_decision_commands::score_impact_color
 // ---------------------------------------------------------------------------
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "command_tests_corpus3_tests_score_08.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "command_tests_corpus3_tests_score_08.rs"]
+mod tests_extracted;

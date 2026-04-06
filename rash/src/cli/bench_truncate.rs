@@ -263,6 +263,6 @@ fn detect_regression_with_threshold(
 #[path = "bench_coverage_tests.rs"]
 mod bench_coverage_tests;
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "bench_tests_calculate_me.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "bench_tests_calculate_me.rs"]
+mod tests_extracted;

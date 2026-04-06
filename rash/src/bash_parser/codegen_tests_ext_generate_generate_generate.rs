@@ -317,4 +317,4 @@
         assert!(output.starts_with("! "));
     }
 
-// FIXME(PMAT-238): include!("codegen_tests_cstyle_elif.rs");
+include!("codegen_tests_cstyle_elif.rs");

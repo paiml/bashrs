@@ -224,4 +224,4 @@ fn test_generate_purified_bash_if_statement() {
     assert!(output.contains("fi"));
 }
 
-    // FIXME(PMAT-238): include!("generators_tests_extracted_generate.rs");
+    include!("generators_tests_extracted_generate.rs");

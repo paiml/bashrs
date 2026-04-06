@@ -221,6 +221,6 @@ fn generate_suggestions(source: &str, score: &QualityScore) -> Vec<String> {
     suggestions
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "mod_tests_score_empty.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "mod_tests_score_empty.rs"]
+mod tests_extracted;

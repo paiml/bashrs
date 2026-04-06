@@ -1,4 +1,3 @@
-
 use super::*;
 
 // ── Bash classification tests ───────────────────────────────────
@@ -133,8 +132,7 @@ fn test_multi_label_unsafe_and_nondet() {
 
 #[test]
 fn test_multi_label_nondet_and_unquoted() {
-    let result =
-        classify_script_multi_label("#!/bin/bash\necho $RANDOM\n", &ClassifyFormat::Bash);
+    let result = classify_script_multi_label("#!/bin/bash\necho $RANDOM\n", &ClassifyFormat::Bash);
     assert!(result.labels.contains(&"non-deterministic".to_string()));
     assert!(result.labels.contains(&"needs-quoting".to_string()));
 }

@@ -472,6 +472,6 @@ impl<T> BashNode<T> {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "ast_tests_ast_construc.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "ast_tests_ast_construc.rs"]
+mod tests_extracted;

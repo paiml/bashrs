@@ -311,6 +311,6 @@ impl Pattern {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "restricted_tests_create_valid.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "restricted_tests_create_valid.rs"]
+mod tests_extracted;

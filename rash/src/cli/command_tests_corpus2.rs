@@ -376,6 +376,6 @@ mod viz_history_chart_cell {
 // corpus_analysis_commands::validate_corpus_entry
 // ---------------------------------------------------------------------------
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "command_tests_corpus2_tests_valid_bash.rs"]
-// FIXME(PMAT-238): mod tests_ext;
+#[cfg(test)]
+#[path = "command_tests_corpus2_tests_valid_bash.rs"]
+mod tests_ext;

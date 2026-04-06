@@ -362,4 +362,4 @@
         assert!(result.contains("${x#/tmp/}"));
     }
 
-// FIXME(PMAT-238): include!("formatter_tests_ext_test_format_fun_test_format_cop_test_format_exp.rs");
+include!("formatter_tests_ext_test_format_fun_test_format_cop_test_format_exp.rs");
