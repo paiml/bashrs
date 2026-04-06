@@ -347,6 +347,6 @@ fn test_codegen_031_redirect_input() {
 
 // Property test placeholder - will expand in GREEN phase
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "codegen_tests_tests_prop_codegen.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "codegen_tests_tests_prop_codegen.rs"]
+mod tests_extracted;

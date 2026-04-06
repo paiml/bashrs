@@ -288,6 +288,6 @@ pub fn generate_purified_bash_with_guards(
     output
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "codegen_tests_generate_sim.rs"]
-// FIXME(PMAT-238): mod tests_ext;
+#[cfg(test)]
+#[path = "codegen_tests_generate_sim.rs"]
+mod tests_ext;

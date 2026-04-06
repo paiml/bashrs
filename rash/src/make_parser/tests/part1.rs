@@ -153,6 +153,6 @@ fn test_RULE_SYNTAX_001_multiline_recipe() {
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "part1_tests_rule_syntax.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "part1_tests_rule_syntax.rs"]
+mod tests_extracted;

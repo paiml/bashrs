@@ -1,93 +1,91 @@
-#[cfg(test)]
-mod transformation_explanation_tests {
-    use super::*;
 
-    // ===== REPL-013-001: TRANSFORMATION EXPLANATION TESTS (RED PHASE) =====
+use super::*;
 
-    #[test]
-    fn test_REPL_013_001_transformation_category_display() {
-        // ARRANGE: Create categories
-        let idempotency = TransformationCategory::Idempotency;
-        let determinism = TransformationCategory::Determinism;
-        let safety = TransformationCategory::Safety;
+// ===== REPL-013-001: TRANSFORMATION EXPLANATION TESTS (RED PHASE) =====
 
-        // ASSERT: Categories are distinct
-        assert_ne!(idempotency, determinism);
-        assert_ne!(determinism, safety);
-        assert_ne!(safety, idempotency);
-    }
+#[test]
+fn test_REPL_013_001_transformation_category_display() {
+    // ARRANGE: Create categories
+    let idempotency = TransformationCategory::Idempotency;
+    let determinism = TransformationCategory::Determinism;
+    let safety = TransformationCategory::Safety;
 
-    #[test]
-    fn test_REPL_013_001_transformation_explanation_new() {
-        // ARRANGE & ACT: Create transformation explanation
-        let explanation = TransformationExplanation::new(
-            TransformationCategory::Idempotency,
-            "mkdir -p",
-            "mkdir /tmp",
-            "mkdir -p /tmp",
-            "Added -p flag",
-            "Prevents failure if exists",
-        );
+    // ASSERT: Categories are distinct
+    assert_ne!(idempotency, determinism);
+    assert_ne!(determinism, safety);
+    assert_ne!(safety, idempotency);
+}
 
-        // ASSERT: All fields set correctly
-        assert_eq!(explanation.category, TransformationCategory::Idempotency);
-        assert_eq!(explanation.title, "mkdir -p");
-        assert_eq!(explanation.original, "mkdir /tmp");
-        assert_eq!(explanation.transformed, "mkdir -p /tmp");
-        assert_eq!(explanation.what_changed, "Added -p flag");
-        assert_eq!(explanation.why_it_matters, "Prevents failure if exists");
-        assert_eq!(explanation.line_number, None);
-    }
+#[test]
+fn test_REPL_013_001_transformation_explanation_new() {
+    // ARRANGE & ACT: Create transformation explanation
+    let explanation = TransformationExplanation::new(
+        TransformationCategory::Idempotency,
+        "mkdir -p",
+        "mkdir /tmp",
+        "mkdir -p /tmp",
+        "Added -p flag",
+        "Prevents failure if exists",
+    );
 
-    #[test]
-    fn test_REPL_013_001_transformation_with_line_number() {
-        // ARRANGE & ACT: Create with line number
-        let explanation = TransformationExplanation::new(
-            TransformationCategory::Safety,
-            "Quote variables",
-            "echo $var",
-            "echo \"$var\"",
-            "Added quotes",
-            "Prevents splitting",
-        )
-        .with_line_number(42);
+    // ASSERT: All fields set correctly
+    assert_eq!(explanation.category, TransformationCategory::Idempotency);
+    assert_eq!(explanation.title, "mkdir -p");
+    assert_eq!(explanation.original, "mkdir /tmp");
+    assert_eq!(explanation.transformed, "mkdir -p /tmp");
+    assert_eq!(explanation.what_changed, "Added -p flag");
+    assert_eq!(explanation.why_it_matters, "Prevents failure if exists");
+    assert_eq!(explanation.line_number, None);
+}
 
-        // ASSERT: Line number set
-        assert_eq!(explanation.line_number, Some(42));
-    }
+#[test]
+fn test_REPL_013_001_transformation_with_line_number() {
+    // ARRANGE & ACT: Create with line number
+    let explanation = TransformationExplanation::new(
+        TransformationCategory::Safety,
+        "Quote variables",
+        "echo $var",
+        "echo \"$var\"",
+        "Added quotes",
+        "Prevents splitting",
+    )
+    .with_line_number(42);
 
-    #[test]
-    fn test_REPL_013_001_explain_mkdir_p_detailed() {
-        // ARRANGE: Code that needs mkdir -p
-        let original = "mkdir /tmp/test";
+    // ASSERT: Line number set
+    assert_eq!(explanation.line_number, Some(42));
+}
 
-        // ACT: Get detailed explanations
-        let result = explain_purification_changes_detailed(original);
+#[test]
+fn test_REPL_013_001_explain_mkdir_p_detailed() {
+    // ARRANGE: Code that needs mkdir -p
+    let original = "mkdir /tmp/test";
 
-        // ASSERT: Should detect mkdir -p transformation
-        assert!(result.is_ok());
-        let explanations = result.unwrap();
-        assert_eq!(explanations.len(), 1);
-        assert_eq!(
-            explanations[0].category,
-            TransformationCategory::Idempotency
-        );
-        assert_eq!(explanations[0].title, "mkdir → mkdir -p");
-        assert!(explanations[0].what_changed.contains("-p flag"));
-    }
+    // ACT: Get detailed explanations
+    let result = explain_purification_changes_detailed(original);
 
-    #[test]
-    fn test_REPL_013_001_format_empty_report() {
-        // ARRANGE: Empty transformations
-        let transformations: Vec<TransformationExplanation> = vec![];
+    // ASSERT: Should detect mkdir -p transformation
+    assert!(result.is_ok());
+    let explanations = result.unwrap();
+    assert_eq!(explanations.len(), 1);
+    assert_eq!(
+        explanations[0].category,
+        TransformationCategory::Idempotency
+    );
+    assert_eq!(explanations[0].title, "mkdir → mkdir -p");
+    assert!(explanations[0].what_changed.contains("-p flag"));
+}
 
-        // ACT: Format report
-        let report = format_transformation_report(&transformations);
+#[test]
+fn test_REPL_013_001_format_empty_report() {
+    // ARRANGE: Empty transformations
+    let transformations: Vec<TransformationExplanation> = vec![];
 
-        // ASSERT: Should return "no transformations" message
-        assert!(report.contains("No transformations"));
-        assert!(report.contains("already purified"));
-    }
+    // ACT: Format report
+    let report = format_transformation_report(&transformations);
+
+    // ASSERT: Should return "no transformations" message
+    assert!(report.contains("No transformations"));
+    assert!(report.contains("already purified"));
 }
 
 #[cfg(test)]
