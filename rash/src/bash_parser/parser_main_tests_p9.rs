@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
     use super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_ARITH_EXPR_008_logical_not() {
         // !x becomes Sub(Number(-1), Variable("x"))

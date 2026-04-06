@@ -466,4 +466,3 @@ impl Generator {
         }
     }
 }
-

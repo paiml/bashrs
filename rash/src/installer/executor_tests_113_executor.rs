@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::super::*;
 
     #[test]
     fn test_113_executor_new() {
@@ -197,7 +197,7 @@ mod tests {
 
     #[test]
     fn test_113_execute_step_script() {
-        use super::super::spec::InstallerSpec;
+        use crate::installer::spec::InstallerSpec;
 
         let toml = r#"
 [installer]
@@ -227,7 +227,7 @@ content = "echo 'step executed'"
 
     #[test]
     fn test_113_execute_step_file_write() {
-        use super::super::spec::InstallerSpec;
+        use crate::installer::spec::InstallerSpec;
 
         let test_path = "/tmp/bashrs_test_113_step_file.txt";
         let _ = std::fs::remove_file(test_path);
@@ -266,7 +266,7 @@ content = "step file content"
 
     #[test]
     fn test_113_execute_step_unknown_action() {
-        use super::super::spec::InstallerSpec;
+        use crate::installer::spec::InstallerSpec;
 
         let toml = r#"
 [installer]
@@ -292,7 +292,7 @@ action = "invalid-action"
 
     #[test]
     fn test_113_postcondition_file_exists() {
-        use super::super::spec::InstallerSpec;
+        use crate::installer::spec::InstallerSpec;
 
         let test_path = "/tmp/bashrs_test_113_postcond.txt";
 
@@ -335,7 +335,7 @@ file_exists = "{}"
 
     #[test]
     fn test_113_postcondition_fails() {
-        use super::super::spec::InstallerSpec;
+        use crate::installer::spec::InstallerSpec;
 
         let toml = r#"
 [installer]

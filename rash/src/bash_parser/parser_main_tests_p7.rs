@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
     use super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_COMPOUND_003_while_and_condition() {
         let input = r#"while [ "$i" -lt 10 ] && [ "$done" = "false" ]; do

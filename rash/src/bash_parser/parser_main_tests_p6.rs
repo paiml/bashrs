@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
-    use super::*;
+    use super::super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_EXT_GLOB_PATH_001_at_glob_in_for() {
         let input = "for f in /tmp/@(a|b|c).sh; do\n    echo \"$f\"\ndone";

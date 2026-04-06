@@ -207,4 +207,6 @@ mod tests {
         assert!(formatted.contains("BAZ = qux"));
     }
 
+}
+
 include!("logic_tests_extracted_process.rs");

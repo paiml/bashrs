@@ -458,4 +458,6 @@ impl Fix {
     }
 
 
+}
+
     include!("diagnostic_part2_incl2.rs");

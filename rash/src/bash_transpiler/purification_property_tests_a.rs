@@ -166,7 +166,6 @@ use proptest::prelude::*;
             }
         }
     }
-}
 
 // Unit tests for property test infrastructure
 #[cfg(test)]

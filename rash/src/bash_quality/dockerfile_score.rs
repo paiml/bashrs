@@ -478,4 +478,7 @@ fn calculate_security_score(source: &str) -> f64 {
         }
 
 
+}
+}
+
         include!("dockerfile_scoring_part2_incl2.rs");

@@ -90,7 +90,7 @@ mod tests {
 
     #[test]
     fn test_ml_006_sbfl_report() {
-        use super::super::sbfl::CoverageData;
+        use crate::quality::sbfl::CoverageData;
 
         let rankings = vec![
             SuspiciousnessRanking {

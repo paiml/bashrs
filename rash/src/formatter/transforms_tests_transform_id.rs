@@ -200,11 +200,11 @@ mod tests {
         assert_eq!(WhitespaceContext::Arithmetic, WhitespaceContext::Arithmetic);
         assert_ne!(WhitespaceContext::Command, WhitespaceContext::Arithmetic);
     }
-
 }
 
 #[cfg(test)]
 mod transforms_tests_extracted_whitespace {
     use super::*;
-    include!("transforms_tests_extracted_whitespace.rs");
 }
+
+include!("transforms_tests_extracted_whitespace.rs");

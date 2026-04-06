@@ -365,4 +365,3 @@
         assert!(tokens.iter().any(|t| matches!(t, Token::And)));
         assert!(tokens.iter().any(|t| matches!(t, Token::Or)));
     }
-}

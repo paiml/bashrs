@@ -28,8 +28,6 @@ use proptest::prelude::*;
                 // Should not wrap in command substitution for if statement
                 prop_assert!(!shell_code.contains("\"$(rash_string_contains"),
                            "Predicate functions should not be wrapped in command substitution");
-            }
-        }
 
         /// Property: stdlib fs_exists should generate test command
         #[test]

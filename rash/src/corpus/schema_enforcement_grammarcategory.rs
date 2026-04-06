@@ -475,4 +475,6 @@ pub fn validate_corpus(registry: &CorpusRegistry) -> SchemaReport {
     let total_violations: usize = results.iter().map(|r| r.violations.len()).sum();
 
 
+}
+
         include!("schema_enforcement_part2_incl2.rs");

@@ -355,4 +355,3 @@
             compatibility: ShellCompatibility::Universal,
         },
     );
-}

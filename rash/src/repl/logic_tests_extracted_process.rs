@@ -319,4 +319,3 @@
                 || matches!(result, LintCommandResult::Success(_))
         );
     }
-}

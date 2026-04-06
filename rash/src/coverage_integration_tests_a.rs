@@ -125,7 +125,6 @@
         let ast = parse_ok("x=$(echo $(date))");
         assert_eq!(ast.statements.len(), 1);
     }
-}
 
 // ============================================================================
 // Purification Integration

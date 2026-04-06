@@ -302,4 +302,3 @@
         assert!(result.contains("all"), "all target in: {result}");
         assert!(result.contains("build"), "build target in: {result}");
     }
-}

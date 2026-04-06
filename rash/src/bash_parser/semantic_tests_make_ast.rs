@@ -216,5 +216,6 @@ mod tests {
         let report = analyzer.analyze(&ast).unwrap();
         assert!(report.effects.process_spawns.contains("echo"));
     }
+}
 
 include!("semantic_tests_extracted_for.rs");

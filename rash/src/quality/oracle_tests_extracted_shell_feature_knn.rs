@@ -444,4 +444,3 @@
         // Should classify as MissingQuotes since we have more training examples for it
         assert_eq!(result.method, "k-NN");
     }
-}

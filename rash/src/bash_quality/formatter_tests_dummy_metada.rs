@@ -159,11 +159,11 @@ mod tests {
         let result = formatter.format(&ast).unwrap();
         assert!(result.contains("function test()"));
     }
-
 }
 
 #[cfg(test)]
 mod formatter_tests_ext_test_format_fun {
     use super::*;
-    include!("formatter_tests_ext_test_format_fun.rs");
 }
+
+include!("formatter_tests_ext_test_format_fun.rs");

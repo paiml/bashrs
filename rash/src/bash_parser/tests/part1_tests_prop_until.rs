@@ -475,5 +475,4 @@ mod property_tests {
             );
         }
     }
-
 }

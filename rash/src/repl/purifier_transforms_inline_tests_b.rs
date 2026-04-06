@@ -220,7 +220,6 @@ fn test_purified_lint_result_sec_violations_empty() {
     let plr = PurifiedLintResult::new("echo hello".to_string(), lint_result);
     assert!(plr.sec_violations().is_empty());
 }
-}
 
 // ===== PURIFIER_COV: Coverage tests for explain_purification_changes_detailed and format_transformation_report =====
 

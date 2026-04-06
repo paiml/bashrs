@@ -474,4 +474,6 @@ pub fn extract_function_calls(text: &str) -> Vec<(String, String)> {
     let mut pos = 0;
 
 
+}
+
     include!("parser_part2_incl2.rs");

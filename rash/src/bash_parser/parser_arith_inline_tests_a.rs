@@ -73,7 +73,6 @@ use crate::bash_parser::parser_arith::ArithToken;
             );
         }
     }
-}
 
 // ============================================================================
 // Coverage Tests - parse_arithmetic_expr (ARITH_EXPR_001-042)

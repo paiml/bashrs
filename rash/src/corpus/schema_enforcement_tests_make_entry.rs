@@ -204,4 +204,6 @@ mod tests {
         assert!(result.valid);
     }
 
+}
+
 include!("schema_enforcement_tests_extracted_validate.rs");

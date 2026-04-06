@@ -129,7 +129,6 @@ mkdir /tmp/test
         assert_eq!(format!("{}", Scope::User), "user");
         assert_eq!(format!("{}", Scope::System), "system");
     }
-}
 
 // ============================================================================
 // Make Parser Integration

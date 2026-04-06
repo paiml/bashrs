@@ -120,4 +120,3 @@
         }]);
         assert!(p.validate_ast(&ast).is_ok());
     }
-}

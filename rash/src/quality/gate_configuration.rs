@@ -480,4 +480,6 @@ pub struct GateViolation {
     pub file: Option<String>,
 
 
+}
+
     include!("gates_part2_incl2.rs");

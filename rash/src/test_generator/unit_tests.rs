@@ -388,4 +388,3 @@ impl Assertion {
         }
     }
 }
-

@@ -471,4 +471,7 @@ fn run_quality_gates(script: &Path, options: &BenchOptions) -> Result<Quality> {
         let lint_result = lint_shell(&source);
 
 
+}
+}
+
         include!("bench_part2_incl2.rs");

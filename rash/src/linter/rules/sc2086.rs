@@ -31,7 +31,6 @@ pub fn check(source: &str) -> LintResult {
 }
 
 #[cfg(test)]
-
 #[cfg(test)]
 #[path = "sc2086_tests.rs"]
 mod tests;

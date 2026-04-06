@@ -397,4 +397,3 @@
         };
         assert!(child.parent.is_some());
     }
-}

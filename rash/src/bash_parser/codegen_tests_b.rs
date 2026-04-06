@@ -88,5 +88,3 @@ use super::codegen::*;
                 _ => {}
             }
         }
-    }
-}

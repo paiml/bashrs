@@ -201,11 +201,11 @@ mod purifier_coverage {
     }
 
     // ── generate_idempotency_alternatives ────────────────────────────────────
-
 }
 
 #[cfg(test)]
 mod purifier_coverage_tests_tests_extracted_idempotency {
     use super::*;
-    include!("purifier_coverage_tests_tests_extracted_idempotency.rs");
 }
+
+include!("purifier_coverage_tests_tests_extracted_idempotency.rs");

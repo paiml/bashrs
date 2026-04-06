@@ -480,4 +480,8 @@ impl Formatter {
             BashExpr::Glob(pattern) => pattern.clone(),
 
 
+}
+}
+}
+
                     include!("formatter_part2_incl2.rs");

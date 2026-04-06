@@ -478,4 +478,7 @@ fn mark_top_level_called_functions(source: &str, report: &mut CoverageReport) {
         }
 
 
+}
+}
+
                 include!("mod_part2_incl2.rs");

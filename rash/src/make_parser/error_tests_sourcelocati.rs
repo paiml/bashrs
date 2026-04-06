@@ -480,4 +480,7 @@ mod tests {
         let score = error.quality_score();
 
 
+}
+}
+
         include!("error_part2_incl2.rs");

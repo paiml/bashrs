@@ -470,4 +470,6 @@ fi
     // Tests for find_dollar_position() helper (1 missed mutant)
 
 
+}
+
 include!("sc2086_part2_incl2.rs");

@@ -206,4 +206,6 @@ tier2_gates = ["clippy", "tests"]
         );
     }
 
+}
+
 include!("gates_tests_extracted_gates.rs");

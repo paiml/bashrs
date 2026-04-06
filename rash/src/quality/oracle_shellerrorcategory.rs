@@ -479,4 +479,6 @@ pub fn bootstrap_patterns() -> Vec<FixPattern> {
         FixPattern::new(
             "PAT-011",
 
+}
+
     include!("oracle_part2_incl2.rs");

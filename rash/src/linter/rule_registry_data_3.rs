@@ -101,7 +101,6 @@ fn register_batch_a(registry: &mut HashMap<&'static str, RuleMetadata>) {
             compatibility: ShellCompatibility::Universal,
         },
     );
-
 }
 
 fn register_batch_b(registry: &mut HashMap<&'static str, RuleMetadata>) {
@@ -300,7 +299,6 @@ fn register_batch_b(registry: &mut HashMap<&'static str, RuleMetadata>) {
             compatibility: ShellCompatibility::Universal,
         },
     );
-
 }
 
 fn register_batch_c(registry: &mut HashMap<&'static str, RuleMetadata>) {
@@ -447,5 +445,4 @@ fn register_batch_c(registry: &mut HashMap<&'static str, RuleMetadata>) {
             compatibility: ShellCompatibility::Universal,
         },
     );
-
 }

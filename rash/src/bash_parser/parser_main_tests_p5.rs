@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
-    use super::*;
+    use super::super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_LOCAL_FLAG_002_local_dash_r() {
         let input = "local -r FOO=\"bar\"";

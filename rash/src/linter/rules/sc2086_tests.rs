@@ -440,5 +440,6 @@ fi
 #[cfg(test)]
 mod sc2086_tests_quoting {
     use super::*;
-    include!("sc2086_tests_quoting.rs");
 }
+
+include!("sc2086_tests_quoting.rs");

@@ -104,7 +104,6 @@ use crate::bash_parser::parser_arith::ArithToken;
         // 1 , 2 , 3  =>  Number(3) (comma returns rightmost)
         assert_eq!(parse_arith("1 , 2 , 3"), ArithExpr::Number(3));
     }
-}
 
 // --- Batch 2: semicolons, -v test, env prefix, &> in conditions ---
 

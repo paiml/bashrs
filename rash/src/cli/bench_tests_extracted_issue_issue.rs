@@ -490,4 +490,3 @@
         let result = truncate_path(path, 5);
         assert!(result.len() <= 35); // Will be truncated with "..."
     }
-}

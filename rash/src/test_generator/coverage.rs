@@ -186,4 +186,3 @@ Quality Gates: {}
         )
     }
 }
-

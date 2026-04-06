@@ -203,11 +203,11 @@ mod tests {
         assert!(state.read_file(&PathBuf::from("/tmp/private.txt")).is_err());
         assert!(state.stderr.last().unwrap().contains("Permission denied"));
     }
-
 }
 
 #[cfg(test)]
 mod enhanced_state_tests_extracted_state {
     use super::*;
-    include!("enhanced_state_tests_extracted_state.rs");
 }
+
+include!("enhanced_state_tests_extracted_state.rs");

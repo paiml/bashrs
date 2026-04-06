@@ -208,5 +208,6 @@ mod tests {
 #[cfg(test)]
 mod restricted_tests_extracted_stmt {
     use super::*;
-    include!("restricted_tests_extracted_stmt.rs");
 }
+
+    include!("restricted_tests_extracted_stmt.rs");

@@ -18,8 +18,6 @@ use crate::installer::audit::*;
             prop_assert!(ends_correct, "JSON should end with closing brace");
             prop_assert!(contains_name, "JSON should contain installer name");
         }
-    }
-}
 
 /// Tests for Issue #112: audit postconditions not recognized with commands format
 mod issue_112_tests {

@@ -207,11 +207,11 @@ mod tests {
         })]);
         assert!(p.validate_ast(&ast).is_ok(), "Unary arg in exec() ok");
     }
-
 }
 
 #[cfg(test)]
 mod pipeline_coverage_tests_tests_extracted_exec {
     use super::*;
-    include!("pipeline_coverage_tests_tests_extracted_exec.rs");
 }
+
+include!("pipeline_coverage_tests_tests_extracted_exec.rs");

@@ -262,5 +262,4 @@ mod prop_string_tests {
             );
         }
     }
-
 }

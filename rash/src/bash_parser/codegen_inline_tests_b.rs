@@ -143,7 +143,6 @@ fn test_generate_comment_normal() {
     let output = generate_statement(&stmt);
     assert_eq!(output, "# This is a normal comment");
 }
-}
 
 #[cfg(test)]
 mod test_issue_64 {

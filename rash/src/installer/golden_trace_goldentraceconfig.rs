@@ -478,4 +478,6 @@ impl GoldenTraceManager {
     }
 
 
+}
+
     include!("golden_trace_part2_incl2.rs");

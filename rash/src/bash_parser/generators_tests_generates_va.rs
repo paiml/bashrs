@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::super::*;
+    use proptest::proptest;
     use proptest::strategy::ValueTree;
 
     proptest! {
@@ -224,4 +225,6 @@ mod tests {
         assert!(output.contains("fi"));
     }
 
-include!("generators_tests_extracted_generate.rs");
+}
+
+    include!("generators_tests_extracted_generate.rs");

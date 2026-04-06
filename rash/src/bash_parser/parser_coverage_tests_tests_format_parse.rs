@@ -33,7 +33,7 @@ fn test_format_parse_diagnostic_invalid_syntax() {
 /// build_snippet utility — exercises multi-line snippet rendering
 #[test]
 fn test_build_snippet_line_context() {
-    use super::parser::build_snippet;
+    use super::parser_error_display::build_snippet;
     let source = "line1\nline2\nline3\nline4";
     let snippet = build_snippet(source, 2, Some(3), 4);
     assert!(snippet.contains("line2"));
@@ -41,7 +41,7 @@ fn test_build_snippet_line_context() {
 
 #[test]
 fn test_build_snippet_first_line() {
-    use super::parser::build_snippet;
+    use super::parser_error_display::build_snippet;
     let source = "only_one_line";
     let snippet = build_snippet(source, 1, None, 1);
     assert!(snippet.contains("only_one_line"));

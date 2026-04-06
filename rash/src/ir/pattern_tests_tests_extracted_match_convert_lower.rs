@@ -496,4 +496,3 @@
             other => panic!("Expected ShellIR::Sequence, got {:?}", other),
         }
     }
-}

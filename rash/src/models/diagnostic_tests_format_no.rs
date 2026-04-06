@@ -204,11 +204,11 @@ mod tests {
         assert!(diag.note.is_some());
         assert!(diag.help.is_some());
     }
-
 }
 
 #[cfg(test)]
 mod diagnostic_tests_ext_categorize {
     use super::*;
-    include!("diagnostic_tests_ext_categorize.rs");
 }
+
+include!("diagnostic_tests_ext_categorize.rs");

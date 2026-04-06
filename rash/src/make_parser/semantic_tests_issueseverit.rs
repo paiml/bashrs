@@ -479,4 +479,7 @@ mod tests {
         use crate::make_parser::parse_makefile;
 
 
+}
+}
+
         include!("semantic_part2_incl2.rs");

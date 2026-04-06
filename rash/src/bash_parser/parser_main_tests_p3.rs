@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
-    use super::*;
+    use super::super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_parse_remove_longest_prefix() {
         let input = "echo ${x##pattern}";

@@ -186,7 +186,6 @@
         let output = generate_statement(&stmt);
         assert_eq!(output, "# This is a normal comment");
     }
-}
 
 #[cfg(test)]
 mod test_issue_64 {
@@ -305,3 +304,4 @@ fi"#;
         assert!(output.contains("elif"), "elif preserved: {output}");
         assert!(!output.contains("else"), "no else block: {output}");
     }
+}

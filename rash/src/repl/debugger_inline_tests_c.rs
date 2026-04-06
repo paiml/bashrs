@@ -34,7 +34,6 @@ use crate::repl::debugger::*;
         let second_filtered = session.filter_env(&prefix);
         prop_assert_eq!(filtered, second_filtered, "filter_env should be deterministic");
     }
-}
 
 // ===== REPL-009-003: Call Stack Tracking Property Tests =====
 

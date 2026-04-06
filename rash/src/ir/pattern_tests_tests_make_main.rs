@@ -199,4 +199,6 @@ mod tests {
         assert_ir_is_sequence(&ir);
     }
 
+}
+
 include!("pattern_tests_tests_extracted_match.rs");

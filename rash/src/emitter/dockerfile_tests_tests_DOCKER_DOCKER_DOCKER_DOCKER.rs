@@ -300,4 +300,3 @@
         assert!(result.contains("USER 65534"));
         assert!(result.contains("ENTRYPOINT"));
     }
-}

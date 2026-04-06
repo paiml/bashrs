@@ -129,7 +129,6 @@ fn register_batch_a(registry: &mut HashMap<&'static str, RuleMetadata>) {
     );
 
     // === BATCH 16 CLASSIFICATIONS (6 rules) ===
-
 }
 
 fn register_batch_b(registry: &mut HashMap<&'static str, RuleMetadata>) {
@@ -239,7 +238,6 @@ fn register_batch_b(registry: &mut HashMap<&'static str, RuleMetadata>) {
             compatibility: ShellCompatibility::Universal, // Brace expansion behavior is consistent
         },
     );
-
 }
 
 fn register_batch_c(registry: &mut HashMap<&'static str, RuleMetadata>) {

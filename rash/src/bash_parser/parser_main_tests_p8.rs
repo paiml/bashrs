@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
     use super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_arith_tok_015_octal_numbers() {
         let tokens = tokenize("077");

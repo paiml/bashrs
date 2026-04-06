@@ -2,7 +2,9 @@
 //!
 //! Routes corpus subcommands to their implementation modules.
 
-use crate::cli::args::{CorpusAnalysisCommands, CorpusCommands, CorpusFormatArg, CorpusOutputFormat};
+use crate::cli::args::{
+    CorpusAnalysisCommands, CorpusCommands, CorpusFormatArg, CorpusOutputFormat,
+};
 use crate::models::{Config, Error, Result};
 
 pub(crate) fn handle_corpus_command(command: CorpusCommands) -> Result<()> {
@@ -325,9 +327,7 @@ fn handle_corpus_convergence_ops(command: CorpusAnalysisCommands) -> Result<()> 
         CorpusAnalysisCommands::DiagnoseB2 { filter, limit } => {
             super::corpus_b2_commands::corpus_diagnose_b2(filter.as_ref(), limit)
         }
-        CorpusAnalysisCommands::FixB2 { apply } => {
-            super::corpus_b2_commands::corpus_fix_b2(apply)
-        }
+        CorpusAnalysisCommands::FixB2 { apply } => super::corpus_b2_commands::corpus_fix_b2(apply),
         // Grammar and dataset
         CorpusAnalysisCommands::SchemaValidate => {
             super::corpus_convergence_commands::corpus_schema_validate()
@@ -341,9 +341,7 @@ fn handle_corpus_convergence_ops(command: CorpusAnalysisCommands) -> Result<()> 
         CorpusAnalysisCommands::ExportDataset { format, output } => {
             super::corpus_config_commands::corpus_export_dataset(format, output)
         }
-        CorpusAnalysisCommands::DatasetInfo => {
-            super::corpus_config_commands::corpus_dataset_info()
-        }
+        CorpusAnalysisCommands::DatasetInfo => super::corpus_config_commands::corpus_dataset_info(),
         // SSC, training, and publishing commands
         other => handle_corpus_ssc_ops(other),
     }
@@ -489,15 +487,11 @@ fn handle_corpus_ssc_ops(command: CorpusAnalysisCommands) -> Result<()> {
             super::corpus_config_commands::corpus_domain_matrix()
         }
         // Tier configuration
-        CorpusAnalysisCommands::TierWeights => {
-            super::corpus_config_commands::corpus_tier_weights()
-        }
+        CorpusAnalysisCommands::TierWeights => super::corpus_config_commands::corpus_tier_weights(),
         CorpusAnalysisCommands::TierAnalysis => {
             super::corpus_config_commands::corpus_tier_analysis()
         }
-        CorpusAnalysisCommands::TierTargets => {
-            super::corpus_config_commands::corpus_tier_targets()
-        }
+        CorpusAnalysisCommands::TierTargets => super::corpus_config_commands::corpus_tier_targets(),
         CorpusAnalysisCommands::BatchEval {
             model,
             test_data,

@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod ranking_sparkline_str {
-    use super::super::corpus_ranking_commands::sparkline_str;
+    use crate::cli::commands::corpus_ranking_commands::sparkline_str;
 
     #[test]
     fn test_sparkline_empty_returns_empty() {

@@ -440,4 +440,3 @@
         let result = transpiler.transpile_test_expression(&expr).unwrap();
         assert!(result.contains("true"));
     }
-}

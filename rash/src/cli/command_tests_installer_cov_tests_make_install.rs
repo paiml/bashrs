@@ -476,4 +476,6 @@ mod installer_audit_cmd {
     }
 
 
+}
+
     include!("command_tests_installer_cov_part2_incl2.rs");

@@ -146,4 +146,3 @@
             assert!(!e.what_changed.is_empty());
         }
     }
-}

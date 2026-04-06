@@ -1,11 +1,3 @@
-    let output = generate_purified_bash(&ast);
-
-    assert!(
-        output.contains("$((5 + 3))"),
-        "Should generate arithmetic expansion"
-    );
-}
-
 #[test]
 fn test_codegen_019_command_substitution() {
     let ast = BashAst {

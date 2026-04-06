@@ -480,4 +480,8 @@ impl SemanticAnalyzer {
             }
 
 
+}
+}
+}
+
             include!("semantic_part2_incl2.rs");

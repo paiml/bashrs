@@ -49,7 +49,6 @@ fn test_REPL_013_003_explanation_with_alternatives() {
         "Use mkdir -p"
     );
 }
-}
 
 // ===== REPL-013-003: PROPERTY TESTS FOR ALTERNATIVES (GREEN PHASE) =====
 

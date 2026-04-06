@@ -477,4 +477,7 @@ mod tests {
         report.metadata.audited_at = "2025-12-28T10:00:00Z".to_string();
 
 
+}
+}
+
         include!("audit_part4_incl2.rs");

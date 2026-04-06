@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod decision_score_impact_color {
-    use super::super::corpus_decision_commands::score_impact_color;
+    use crate::cli::commands::corpus_decision_commands::score_impact_color;
 
     #[test]
     fn test_score_08_is_high() {

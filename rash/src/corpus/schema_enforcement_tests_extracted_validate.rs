@@ -403,4 +403,3 @@
             .iter()
             .any(|v| v.category == GrammarCategory::InvalidArithmetic));
     }
-}

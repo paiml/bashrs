@@ -277,4 +277,3 @@ pub enum MutationOperator {
     ReturnValue,
     Conditional,
 }
-

@@ -216,11 +216,11 @@ greet_user
             "Partial function name match should NOT mark function as covered"
         );
     }
-
 }
 
 #[cfg(test)]
 mod mod_tests_ext_mark {
     use super::*;
-    include!("mod_tests_ext_mark.rs");
 }
+
+include!("mod_tests_ext_mark.rs");

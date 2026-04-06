@@ -1,9 +1,7 @@
 use clap::Subcommand;
 use std::path::PathBuf;
 
-use super::args::{
-    CfgOutputFormat, MutateFormat, PlaybookFormat, SimulateFormat,
-};
+use super::args::{CfgOutputFormat, MutateFormat, PlaybookFormat, SimulateFormat};
 
 #[cfg(feature = "oracle")]
 use super::args::ExplainErrorFormat;

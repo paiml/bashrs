@@ -180,7 +180,6 @@ content = "echo hello"
                 "QUAL001 should be raised when no postconditions are present"
             );
         }
-    }
 
     // ============================================================================
     // Coverage Tests - audit_security_parsed (SEC_COV_001-012)
@@ -472,4 +471,3 @@ content = "tar xf myapp.tar.gz && ./install.sh"
             );
         }
     }
-}

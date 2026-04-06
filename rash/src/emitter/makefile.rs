@@ -100,5 +100,4 @@ struct MakefileConverter {
     vars: std::collections::HashMap<String, String>,
 }
 
-
 include!("makefile_makefileconvert.rs");

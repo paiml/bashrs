@@ -323,4 +323,3 @@
         let ast = parse(source).unwrap();
         assert_eq!(ast.entry_point, "entry");
     }
-}

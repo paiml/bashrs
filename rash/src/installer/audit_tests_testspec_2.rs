@@ -238,4 +238,6 @@ mod tests {
         }
     }
 
+}
+
 include!("audit_tests_extracted_AUDIT.rs");

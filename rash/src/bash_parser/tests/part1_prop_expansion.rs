@@ -385,5 +385,4 @@ mod prop_expansion_tests {
             );
         }
     }
-
 }

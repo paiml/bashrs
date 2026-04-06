@@ -478,4 +478,6 @@ impl ProgressRenderer for TerminalRenderer {
     }
 
 
+}
+
     include!("progress_part2_incl2.rs");

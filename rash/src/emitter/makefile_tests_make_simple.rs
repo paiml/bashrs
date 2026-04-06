@@ -211,4 +211,6 @@ mod tests {
         assert!(result.contains("clean"), "Target in: {result}");
     }
 
+}
+
 include!("makefile_tests_extracted_MAKE.rs");

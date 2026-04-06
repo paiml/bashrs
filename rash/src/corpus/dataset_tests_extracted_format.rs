@@ -454,4 +454,3 @@
         let output = export_multi_label_classification_jsonl(&[row]);
         assert!(output.is_empty(), "Failed entries should not appear");
     }
-}

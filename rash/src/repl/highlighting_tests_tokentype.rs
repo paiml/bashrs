@@ -478,4 +478,6 @@ mod tests {
     }
 
 
+}
+
         include!("highlighting_part2_incl2.rs");

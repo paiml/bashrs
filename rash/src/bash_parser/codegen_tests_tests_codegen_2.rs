@@ -357,5 +357,12 @@ fn test_codegen_018_arithmetic_expression() {
         },
     };
 
+    let output = generate_purified_bash(&ast);
+
+    assert!(
+        output.contains("$((5 + 3))"),
+        "Should generate arithmetic expansion"
+    );
+}
 
 include!("codegen_tests_tests_codegen.rs");

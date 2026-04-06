@@ -204,4 +204,6 @@ mod tests {
         assert_eq!(info.schema_fields.len(), 18);
     }
 
+}
+
 include!("dataset_tests_extracted_format.rs");

@@ -1,8 +1,8 @@
 //! Rule registry data — continuation of rule_registry_data_3.rs
 
-use std::collections::HashMap;
 use super::rule_registry::RuleMetadata;
 use crate::linter::shell_compatibility::ShellCompatibility;
+use std::collections::HashMap;
 
 pub(crate) fn register_more(registry: &mut HashMap<&'static str, RuleMetadata>) {
     // Batch 12: Loop & case patterns (Universal)

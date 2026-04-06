@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod analysis_validate_corpus_entry {
-    use super::super::corpus_analysis_commands::validate_corpus_entry;
+    use crate::cli::commands::corpus_analysis_commands::validate_corpus_entry;
     use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusTier};
     use std::collections::HashSet;
 

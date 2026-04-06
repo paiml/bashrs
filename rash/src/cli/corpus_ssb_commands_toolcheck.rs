@@ -471,4 +471,6 @@ pub(crate) fn corpus_merge_data(
     }
 
 
+}
+
     include!("corpus_ssb_commands_part2_incl2.rs");

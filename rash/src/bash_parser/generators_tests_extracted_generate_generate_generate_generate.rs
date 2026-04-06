@@ -408,4 +408,3 @@
             let _value = strategy.new_tree(&mut runner).unwrap().current();
         }
     }
-}

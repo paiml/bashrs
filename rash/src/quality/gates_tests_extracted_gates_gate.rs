@@ -371,4 +371,3 @@ max_memory_mb_per_entry = 20
         assert!(!config.check_budget("test_ms", 70000.0));
         assert!(config.check_budget("unknown", 9999.0)); // unknown key always passes
     }
-}

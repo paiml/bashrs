@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::super::*;
 
     #[test]
     fn test_DIST_001_graph_new() {
@@ -373,7 +373,7 @@ mod tests {
 
     #[test]
     fn test_DIST_022_from_spec() {
-        use super::super::spec::InstallerSpec;
+        use crate::installer::spec::InstallerSpec;
 
         let toml = r#"
 [installer]

@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
-    use super::*;
+    use super::super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_V_TEST_001_variable_set() {
         let input = "if [[ -v MYVAR ]]; then\n    echo set\nfi";

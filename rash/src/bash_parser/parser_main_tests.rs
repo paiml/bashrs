@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
-    use super::*;
+    use super::super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_parse_simple_assignment() {
         let mut parser = BashParser::new("FOO=bar").unwrap();

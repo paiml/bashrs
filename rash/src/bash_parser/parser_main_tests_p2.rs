@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
-    use super::parser_arith::ArithToken;
-    use super::*;
+    use super::super::*;
+    use crate::bash_parser::parser_arith::ArithToken;
     #[test]
     fn test_FORCSTYLE_COV_014_identifier_and_number() {
         // Tests both Token::Identifier and Token::Number paths

@@ -479,4 +479,8 @@ pub fn non_idempotent_templates() -> Vec<AdversarialTemplate> {
                         "/var/lib/app",
                         "/opt/cache",
 
+}
+}
+}
+
             include!("adversarial_templates_part2_incl2.rs");

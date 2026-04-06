@@ -222,5 +222,4 @@ impl IdempotencyChecker {
     }
 }
 
-
 include!("determinism_idempotency_idempotencyverifier.rs");

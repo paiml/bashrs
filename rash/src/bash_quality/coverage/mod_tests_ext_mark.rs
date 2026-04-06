@@ -447,4 +447,4 @@ test_greet() {
 "#;
         let result = generate_coverage(source);
         assert!(result.is_ok());
-
+    }

@@ -195,4 +195,6 @@ mod tests {
         );
     }
 
+}
+
 include!("debugger_tests_extracted_tests_repl_008.rs");

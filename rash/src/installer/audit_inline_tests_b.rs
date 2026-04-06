@@ -46,4 +46,3 @@ content = "tar xf myapp.tar.gz && ./install.sh"
             "Clean spec should have no SEC findings, got: {sec_findings:?}"
         );
     }
-}

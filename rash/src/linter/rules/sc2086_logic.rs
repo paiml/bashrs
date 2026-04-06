@@ -260,7 +260,6 @@ pub fn find_unquoted_vars(
     result
 }
 
-
 #[cfg(test)]
 #[path = "sc2086_logic_tests.rs"]
 mod tests;

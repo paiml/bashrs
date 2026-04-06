@@ -218,11 +218,11 @@ mod tests {
         let output = format_ast(&ast);
         assert!(output.contains("While loop (2 statements)"));
     }
-
 }
 
 #[cfg(test)]
 mod ast_display_tests_extracted_REPL {
     use super::*;
-    include!("ast_display_tests_extracted_REPL.rs");
 }
+
+include!("ast_display_tests_extracted_REPL.rs");

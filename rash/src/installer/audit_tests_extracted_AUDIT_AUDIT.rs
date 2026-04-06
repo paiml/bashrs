@@ -293,4 +293,6 @@
         use super::*;
         use crate::installer::spec::InstallerSpec;
 
-include!("audit_tests_extracted_AUDIT_AUDIT_112.rs");
+}
+
+        include!("audit_tests_extracted_AUDIT_AUDIT_112.rs");
