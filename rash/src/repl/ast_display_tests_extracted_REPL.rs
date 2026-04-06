@@ -336,3 +336,5 @@
         assert!(output.contains("Command: pwd"));
         assert!(!output.contains("(args: 0)"));
 
+
+}

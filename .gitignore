@@ -137,3 +137,4 @@ training/shellsafetybench/
 .pmat/workspace.idx/
 .pmat/deps-cache.json
 *.pmat_backup*
+.cargo/config.toml

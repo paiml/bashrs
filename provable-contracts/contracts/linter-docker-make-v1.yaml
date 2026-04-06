@@ -1,8 +1,10 @@
 metadata:
   version: 1.0.0
+  verification_level: L5
   description: Provable Dockerfile and Makefile linter contracts (GH-183). DOCKER rules detect container security/quality
     issues. MAKE rules detect non-deterministic, non-idempotent, and unsafe patterns. Each rule must detect known-bad and
     not false-positive on known-safe.
+  verification_command: cargo test -p bashrs --lib -- docker
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - hadolint best practices (DOCKER rules)

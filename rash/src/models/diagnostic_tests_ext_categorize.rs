@@ -327,3 +327,5 @@
         let msg = Diagnostic::extract_message(&error);
         assert_eq!(msg, "AST validation error: something wrong");
 
+
+}

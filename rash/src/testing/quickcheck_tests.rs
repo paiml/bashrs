@@ -359,3 +359,8 @@ proptest! {
 #[cfg(test)]
 #[path = "quickcheck_tests_tests_null_charact.rs"]
 mod tests_extracted;
+
+// Stdlib property tests (string_*, fs_*, loops, match, control flow)
+#[cfg(test)]
+#[path = "quickcheck_tests_stdlib.rs"]
+mod stdlib_tests;

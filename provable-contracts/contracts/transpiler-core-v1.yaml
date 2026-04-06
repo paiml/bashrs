@@ -1,7 +1,9 @@
 metadata:
   version: 1.0.0
+  verification_level: L5
   description: 'Core transpiler invariants (GH-183). Every Rust→Shell transpilation must satisfy: determinism, POSIX structure,
     variable safety, and selective stdlib emission. These are falsifiable — a single counterexample breaks the contract.'
+  verification_command: cargo test -p bashrs --lib -- transpil
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'GH-148: rash transpiler stdlib'

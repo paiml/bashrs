@@ -1,7 +1,9 @@
 metadata:
   version: 1.0.0
+  verification_level: L5
   description: Provable purification contracts (GH-183). The bash purifier transforms non-deterministic bash into safe, idempotent
     POSIX sh. Each invariant is falsifiable — a single counterexample breaks the contract.
+  verification_command: cargo test -p bashrs --lib -- purif
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'CLAUDE.md: Workflow 1 — Bash → Purified Bash (PRIMARY)'

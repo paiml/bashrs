@@ -1,7 +1,9 @@
 metadata:
   version: 1.0.0
+  verification_level: L5
   description: 'Provable escape function contracts (GH-183). The escape functions are the #1 defense against shell injection
     in emitted code. Every special character must be neutralized. A single unescaped metachar falsifies the contract.'
+  verification_command: cargo test -p bashrs --lib -- escape
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'CWE-78: OS Command Injection'

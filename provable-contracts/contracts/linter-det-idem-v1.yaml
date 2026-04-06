@@ -1,8 +1,10 @@
 metadata:
   version: 1.0.0
+  verification_level: L5
   description: Provable determinism and idempotency linter contracts (GH-183). DET rules detect non-deterministic constructs
     ($RANDOM, timestamps, unordered globs, system state). IDEM rules detect non-idempotent operations (mkdir without -p, rm
     without -f, ln without -sf). Each rule must detect known-bad and not false-positive on known-safe.
+  verification_command: cargo test -p bashrs --lib -- det
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'CLAUDE.md: Critical Invariants — Determinism + Idempotency'

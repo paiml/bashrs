@@ -229,5 +229,6 @@ proptest! {
 #[cfg(test)]
 mod purification_property_tests_prop_stateme {
     use super::*;
+    use proptest::prelude::*;
     include!("purification_property_tests_prop_stateme.rs");
 }

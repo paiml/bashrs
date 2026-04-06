@@ -1,4 +1,3 @@
-
 // ============================================================================
 // REDIR-005: Herestring <<<
 // ============================================================================
@@ -348,4 +347,3 @@ fn run_foreground() {}
     eprintln!("Exit code: {:?}", output.status.code());
     eprintln!("Stderr: {}", String::from_utf8_lossy(&output.stderr));
 }
-

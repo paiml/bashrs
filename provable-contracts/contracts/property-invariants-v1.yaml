@@ -1,8 +1,10 @@
 metadata:
   version: 1.0.0
+  verification_level: L5
   description: Universal (∀-quantified) invariants verified by property-based testing. Each property is tested across 256+
     random inputs via proptest. A single counterexample falsifies the claim. Stronger than example-based tests because the
     input space is explored stochastically.
+  verification_command: cargo test -p bashrs --test cli_property_tests
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'proptest crate: Hypothesis-style property testing for Rust'

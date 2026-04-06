@@ -1,7 +1,9 @@
 metadata:
   version: 1.0.0
+  verification_level: L5
   description: Provable security rule contracts (GH-183). Each SEC rule must detect known-vulnerable patterns (soundness)
     and not flag known-safe patterns (precision). A single missed detection or false positive falsifies the contract.
+  verification_command: cargo test -p bashrs --lib -- sec
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - OWASP Command Injection

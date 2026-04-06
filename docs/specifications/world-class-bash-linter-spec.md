@@ -47,16 +47,16 @@ Capability              Status          Coverage
 Lint                    ✅ Complete     487 rule files, 388 SC rules (129% of 300 target)
   Incremental (--changed) ✅ Complete   Git-aware, staged+unstaged+untracked
   Output formats        ✅ Complete     human, JSON, SARIF
-  Auto-fix              ✅ Partial      SAFE + SAFE-WITH-ASSUMPTIONS
+  Auto-fix              ✅ Complete     95 rules with fixes (108 fix instances)
   Profiles              ✅ Complete     standard, coursera, devcontainer
   CI mode               ✅ Complete     GitHub Actions annotations
-Semantic Analysis       ✅ Foundation   SEM001 (unused vars), SEM002 (undefined vars), symbol table
-Check                   ⚠️  Limited     Basic syntax + semantic analysis
+Semantic Analysis       ✅ Complete     SEM001-004 + formal CFG + cross-function data flow
+Check                   ✅ Complete     Syntax + semantic analysis (SEM001-004 + CFG)
 Format                  ✅ Complete     4 style presets (default, google, posix, linux)
 Test Runner             ✅ Implemented  bashrs test (per-script)
 Test Generation         ✅ Implemented  bashrs test --generate (BATS stubs, function/arg/dep/env detection)
 Coverage                ✅ Implemented  bashrs coverage (line + branch, LCOV/HTML/JSON)
-Property Testing        ✅ Implemented  bashrs property (4 built-in properties + proptest)
+Property Testing        ✅ Complete     bashrs property (4 properties + custom DSL + shrinking)
 Mutation Testing        ✅ Implemented  bashrs mutate (bash-specific operators)
 Unified Scoring         ✅ Implemented  bashrs score + bashrs gate + bashrs audit
 GitHub Actions          ✅ Complete     Multi-command action + SARIF + problem matcher
@@ -66,12 +66,12 @@ Bench                   ✅ Complete     bashrs bench (scientific benchmarking)
 Comply                  ✅ Complete     3-layer compliance system
 Playbook                ✅ Complete     State machine testing (probar)
 Simulate                ✅ Complete     Deterministic replay
-LSP                     ✅ Core         bashrs lsp (diagnostics + Quick Fix code actions)
+LSP                     ✅ Complete     bashrs lsp (diagnostics + Quick Fix + hover + VS Code .vsix)
 CFG Analysis            ✅ Complete     bashrs cfg (formal CFG + complexity metrics)
 File Health             ✅ Complete     0/298 files >500 lines (grade B, semantic names)
-pmat comply             ⚠️ 53/55 pass   CB-200 (1 dispatch fn), CB-1308 (verification ladder)
+pmat comply             ⚠️ 66/67 pass   CB-1308 (L5 requires CI evidence — contracts enriched with verification_command)
 Test Coverage           ⚠️ ~91%         Target: 95% (test binary needs include!() fix)
-33 total subcommands
+34 total subcommands
 ```
 
 ### Target State (v3.0.0 - World-Class)
@@ -780,14 +780,14 @@ impl QualityScorer {
 |---------|----------------|----------------------|------------|------|------|
 | **Linting** |
 | Rule Count | 502 | 350+ | ~300 | 700+ | 100+ |
-| Auto-Fix | ✅ Partial | ✅ Complete | ❌ | ✅ | ✅ |
+| Auto-Fix | ✅ Complete | ✅ Complete | ❌ | ✅ | ✅ |
 | Bash-Specific | ✅ | ✅ | ✅ | ❌ | ❌ |
 | Makefile Support | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Incremental (--changed) | ✅ | ✅ | ❌ | ✅ | ✅ |
 | False Positive Rate | ~8% | <5% | ~10% | <5% | ~7% |
 | **Type Checking** |
 | Syntax Check | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Semantic Check | ⚠️ Limited | ✅ Complete | ⚠️ Limited | ✅ | ✅ |
+| Semantic Check | ✅ Complete | ✅ Complete | ⚠️ Limited | ✅ | ✅ |
 | Data Flow Analysis | ✅ (SEM001/002) | ✅ | ❌ | ✅ | ✅ |
 | **Formatting** |
 | Auto-Format | ✅ | ✅ | ❌ | ✅ | ✅ |
@@ -799,7 +799,7 @@ impl QualityScorer {
 | **Coverage** |
 | Line Coverage | ✅ | ✅ | ❌ | ❌ | ✅ |
 | Branch Coverage | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Condition Coverage | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Condition Coverage | ✅ (MC/DC) | ✅ | ❌ | ❌ | ❌ |
 | **Mutation Testing** |
 | Bash Mutators | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Parallel Execution | ✅ (Rust) | ✅ (Bash) | ❌ | ❌ | ❌ |
@@ -815,7 +815,7 @@ impl QualityScorer {
 | **Integration** |
 | LSP Support | ✅ (diag + fix) | ✅ | ✅ | ✅ | ✅ |
 | CI/CD Integration | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Editor Plugins | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Editor Plugins | ✅ (VS Code) | ✅ | ✅ | ✅ | ✅ |
 
 **Summary**: bashrs v3.0.0 will be the **only tool** offering complete bash quality assurance (lint + test + coverage + mutation + scoring).
 
@@ -1391,14 +1391,14 @@ weights = { complexity = 0.15, coverage = 0.20, mutation = 0.25, lint = 0.20, de
 - [x] 388 ShellCheck-compatible rules (SC series)
 - [x] 99 additional rules (DET, IDEM, SEC, MAKE, DOCKER, REL, BASH, SYSTEMD, LAUNCHD)
 - [x] 487 total rule files — **129% of 300 target**
-- [x] Auto-fix for SAFE + SAFE-WITH-ASSUMPTIONS rules
+- [x] Auto-fix for 95 rules (108 fix instances) — SAFE + SAFE-WITH-ASSUMPTIONS (PMAT-236)
 - [x] Output formats: human, JSON, SARIF
 
 ---
 
-### Phase 2: Advanced Analysis — PARTIAL
+### Phase 2: Advanced Analysis — COMPLETE
 
-#### Sprint 5: Semantic Analysis — SUBSTANTIALLY COMPLETE
+#### Sprint 5: Semantic Analysis — COMPLETE
 - [x] Symbol table with scope tracking (SemanticAnalyzer)
 - [x] Variable assignment/usage tracking (VarInfo: assigned, used, exported)
 - [x] SEM001: Unused variable detection (AST-based, export-aware)
@@ -1414,9 +1414,15 @@ weights = { complexity = 0.15, coverage = 0.20, mutation = 0.25, lint = 0.20, de
   - Human-readable ASCII and JSON output formats
   - Complexity metrics: cyclomatic, essential, cognitive, max depth, decision points, loop count
   - 22 unit tests covering all construct types
-- [ ] Cross-function data flow analysis
+- [x] Cross-function data flow analysis (PMAT-234)
+  - SEM001: Unused variable detection (AST-level, export-aware, builtin-aware)
+  - SEM002: Undefined variable detection (AST-level, for/read/getopts-aware)
+  - SEM003: Dead code after exit/return/exec (wired into linter)
+  - SEM004: Cross-function variable leakage (missing `local` in functions)
+  - All SEM rules support inline suppression (`# shellcheck disable=SEM00x`)
+  - 16 CLI integration tests (assert_cmd)
 
-**Status**: ⚠️ Core semantic rules + formal CFG complete (SEM001-003, PMAT-227). Cross-function data flow remaining.
+**Status**: ✅ Complete (SEM001-004 + formal CFG, PMAT-227 + PMAT-234)
 
 ---
 
@@ -1431,7 +1437,7 @@ weights = { complexity = 0.15, coverage = 0.20, mutation = 0.25, lint = 0.20, de
 - [x] Lint profiles (standard, coursera, devcontainer)
 - [x] Incremental linting (`--changed` + `--since`)
 
-#### Sprint 8: LSP Integration — SUBSTANTIALLY COMPLETE
+#### Sprint 8: LSP Integration — COMPLETE
 - [x] Language Server Protocol server (`bashrs lsp`, tower-lsp)
 - [x] Real-time lint diagnostics on open/save/change
 - [x] Shell, Makefile, Dockerfile auto-detection
@@ -1446,13 +1452,18 @@ weights = { complexity = 0.15, coverage = 0.20, mutation = 0.25, lint = 0.20, de
   - Disable hint (`# shellcheck disable=SCxxxx`)
   - Markdown-formatted hover content
   - 9 unit tests (position_in_range + format_hover_content)
-- [ ] VS Code extension package (.vsix)
+- [x] VS Code extension package (.vsix) (PMAT-233)
+  - `editors/vscode/` with LanguageClient wiring
+  - Activates on shellscript, makefile, dockerfile
+  - Configurable server path (`bashrs.serverPath`)
+  - Builds with `npm run compile` + `vsce package`
+  - Provable contract: `vscode-extension-v1.yaml` (6 FALSIFY tests)
 
-**Status**: ⚠️ Full LSP with diagnostics + code actions + hover; VS Code packaging remaining
+**Status**: ✅ Complete (diagnostics + code actions + hover + VS Code .vsix)
 
 ---
 
-### Phase 3: Testing & Quality — PARTIAL
+### Phase 3: Testing & Quality — SUBSTANTIALLY COMPLETE
 
 #### Sprint 9: Test Generation — PARTIAL
 - [x] Template-based test generation (`bashrs test --generate`)
@@ -1482,7 +1493,7 @@ weights = { complexity = 0.15, coverage = 0.20, mutation = 0.25, lint = 0.20, de
 
 ---
 
-#### Sprint 10: Coverage Analysis — SUBSTANTIALLY COMPLETE
+#### Sprint 10: Coverage Analysis — COMPLETE
 - [x] Line coverage analysis (`bashrs coverage`)
 - [x] Output formats: terminal, JSON, HTML, LCOV
 - [x] Minimum coverage threshold (`--min`)
@@ -1509,14 +1520,14 @@ weights = { complexity = 0.15, coverage = 0.20, mutation = 0.25, lint = 0.20, de
 - [x] Output formats: human, JSON, CSV
 - [x] Survivor analysis (`--show-survivors`)
 
-#### Sprint 12: Property Testing — SUBSTANTIALLY COMPLETE
+#### Sprint 12: Property Testing — COMPLETE
 - [x] proptest integration (Rust-level)
 - [x] Determinism/idempotency properties verified
-- [x] Standalone `bashrs property` command (PMAT-218)
+- [x] Standalone `bashrs property` command (PMAT-218, PMAT-235)
   - 4 built-in properties: idempotency, determinism, posix, safety
   - `--properties` filter, `--iterations N`, human/JSON output
   - Static analysis with violation line numbers and suggestions
-  - 15 assert_cmd integration tests + 22 unit tests
+  - 24 assert_cmd integration tests + unit tests
 - [x] Property definition DSL for bash scripts (PMAT-225)
   - TOML DSL format with `[[property]]` + `[[property.rule]]` sections
   - `forbid` rules: regex patterns that must NOT match any line
@@ -1524,14 +1535,16 @@ weights = { complexity = 0.15, coverage = 0.20, mutation = 0.25, lint = 0.20, de
   - Custom message and suggestion per rule
   - `--custom props.toml` flag on `bashrs property` command
   - Combined with built-in properties in terminal and JSON output
-  - 12 assert_cmd integration tests + 14 unit tests
-- [ ] Bash-specific shrinking for minimal examples
+- [x] Bash-specific shrinking for minimal examples (PMAT-235)
+  - `shrink_to_minimal()` iteratively removes lines while preserving violation
+  - Preserves shebang, removes irrelevant lines
+  - Tested with unit tests for all 4 property types
 
-**Status**: ⚠️ Built-in + custom DSL properties complete (PMAT-218, PMAT-225), shrinking remaining
+**Status**: ✅ Complete (PMAT-218 + PMAT-225 + PMAT-235 shrinking)
 
 ---
 
-### Phase 4: Unified Scoring & Polish — PARTIAL
+### Phase 4: Unified Scoring & Polish — SUBSTANTIALLY COMPLETE
 
 #### Sprint 13: TDG Scoring — COMPLETE
 - [x] `bashrs score` — multi-dimensional quality scoring
@@ -1546,7 +1559,7 @@ weights = { complexity = 0.15, coverage = 0.20, mutation = 0.25, lint = 0.20, de
 
 ---
 
-#### Sprint 14: Performance Optimization — PARTIAL
+#### Sprint 14: Performance Optimization — COMPLETE
 - [x] Parallel rule execution (Rayon)
 - [x] Incremental linting (`--changed`, git-aware)
 - [x] Lint caching (file hash-based skip)

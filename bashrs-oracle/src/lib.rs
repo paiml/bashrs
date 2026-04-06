@@ -127,5 +127,4 @@ impl Default for Oracle {
     }
 }
 
-
 include!("lib_oracle.rs");

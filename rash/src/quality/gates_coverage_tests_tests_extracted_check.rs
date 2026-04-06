@@ -453,3 +453,6 @@
             let result = gate.run_gate(name);
             assert_eq!(result.gate_name, *name, "gate_name mismatch for {name}");
 
+
+    }
+}

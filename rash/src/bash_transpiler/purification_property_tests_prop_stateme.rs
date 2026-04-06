@@ -1,4 +1,4 @@
-
+proptest! {
     /// Property: Purification preserves number of statements (approximately)
     /// Note: Some transformations may add/remove statements
     #[test]
@@ -203,5 +203,6 @@
             }
         }
     }
+}
 
 include!("purification_property_tests_cont_tests_prop_mkdir.rs");

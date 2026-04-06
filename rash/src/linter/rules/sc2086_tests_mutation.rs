@@ -385,4 +385,4 @@
             1,
             "SC2086 SHOULD flag non-loop variable $other"
         );
-
+    }

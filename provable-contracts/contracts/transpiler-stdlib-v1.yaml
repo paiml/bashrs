@@ -1,7 +1,9 @@
 metadata:
   version: 1.0.0
+  verification_level: L5
   description: Transpiler stdlib functions (GH-148) produce correct POSIX shell output. capture() → $(...), exit() → exit
     N, sleep() → sleep N.
+  verification_command: cargo test -p bashrs --lib -- stdlib
   references:
   - 'GH-148: rash transpiler missing stdlib for real-world shell scripts'
 equations:

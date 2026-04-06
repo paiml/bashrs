@@ -1,4 +1,4 @@
-
+proptest! {
     /// Property: mkdir purified output is valid POSIX (no broken permission checks)
     #[test]
     fn prop_mkdir_purified_is_simple(
@@ -308,4 +308,6 @@ mod tests {
             "Comment should be preserved in output:\n{}",
             output
         );
+    }
+}
 

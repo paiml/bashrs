@@ -1,4 +1,3 @@
-
 /// REDIR-001: RED Phase
 /// Test input redirection execution
 #[test]

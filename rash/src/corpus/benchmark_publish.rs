@@ -337,5 +337,5 @@ pub fn publish_benchmark(
 }
 
 #[cfg(test)]
-#[path = "benchmark_publish_tests_write_test.rs"]
+#[path = "benchmark_publish_tests_extracted_write.rs"]
 mod tests_extracted;

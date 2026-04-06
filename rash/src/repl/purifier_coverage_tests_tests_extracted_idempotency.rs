@@ -447,3 +447,6 @@
             assert!(!e.title.is_empty());
             assert!(!e.what_changed.is_empty());
 
+
+    }
+}

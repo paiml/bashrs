@@ -12,10 +12,14 @@ macro_rules! contract_pre_exit_code_dispatch {
     () => {{}};
     ($input:expr) => {{
         let _pv_args = &$input;
-        debug_assert!(_pv_args.len() >= 2,
-            "Contract exit_code_dispatch: precondition violated — args.len() >= 2");
-        debug_assert!(_pv_args[0] == "lint",
-            "Contract exit_code_dispatch: precondition violated — args[0] == \"lint\"");
+        debug_assert!(
+            _pv_args.len() >= 2,
+            "Contract exit_code_dispatch: precondition violated — args.len() >= 2"
+        );
+        debug_assert!(
+            _pv_args[0] == "lint",
+            "Contract exit_code_dispatch: precondition violated — args[0] == \"lint\""
+        );
     }};
 }
 
@@ -43,8 +47,10 @@ macro_rules! contract_pre_severity_ordering {
     () => {{}};
     ($input:expr) => {{
         let _pv_diagnostics = &$input;
-        debug_assert!(_pv_diagnostics.len() >= 0,
-            "Contract severity_ordering: precondition violated — diagnostics.len() >= 0");
+        debug_assert!(
+            _pv_diagnostics.len() >= 0,
+            "Contract severity_ordering: precondition violated — diagnostics.len() >= 0"
+        );
     }};
 }
 
@@ -57,8 +63,10 @@ macro_rules! contract_pre_emit_posix {
     () => {{}};
     ($input:expr) => {{
         let _contract_input = &$input;
-        debug_assert!(!_contract_input.is_empty(),
-            "Contract emit_posix: precondition violated — !input.is_empty()");
+        debug_assert!(
+            !_contract_input.is_empty(),
+            "Contract emit_posix: precondition violated — !input.is_empty()"
+        );
     }};
 }
 
@@ -68,8 +76,10 @@ macro_rules! contract_pre_emit_purified {
     () => {{}};
     ($input:expr) => {{
         let _contract_input = &$input;
-        debug_assert!(!_contract_input.is_empty(),
-            "Contract emit_purified: precondition violated — !input.is_empty()");
+        debug_assert!(
+            !_contract_input.is_empty(),
+            "Contract emit_purified: precondition violated — !input.is_empty()"
+        );
     }};
 }
 
@@ -79,8 +89,10 @@ macro_rules! contract_pre_roundtrip {
     () => {{}};
     ($input:expr) => {{
         let _contract_input = &$input;
-        debug_assert!(!_contract_input.is_empty(),
-            "Contract roundtrip: precondition violated — !input.is_empty()");
+        debug_assert!(
+            !_contract_input.is_empty(),
+            "Contract roundtrip: precondition violated — !input.is_empty()"
+        );
     }};
 }
 
@@ -93,8 +105,10 @@ macro_rules! contract_pre_lex {
     () => {{}};
     ($input:expr) => {{
         let _pv_input = &$input;
-        debug_assert!(_pv_input.len() > 0,
-            "Contract lex: precondition violated — input.len() > 0");
+        debug_assert!(
+            _pv_input.len() > 0,
+            "Contract lex: precondition violated — input.len() > 0"
+        );
     }};
 }
 
@@ -104,8 +118,10 @@ macro_rules! contract_pre_parse {
     () => {{}};
     ($input:expr) => {{
         let _pv_input = &$input;
-        debug_assert!(_pv_input.len() > 0,
-            "Contract parse: precondition violated — input.len() > 0");
+        debug_assert!(
+            _pv_input.len() > 0,
+            "Contract parse: precondition violated — input.len() > 0"
+        );
     }};
 }
 
@@ -115,8 +131,10 @@ macro_rules! contract_pre_semantic_analyze {
     () => {{}};
     ($input:expr) => {{
         let _pv_input = &$input;
-        debug_assert!(_pv_input.len() > 0,
-            "Contract semantic_analyze: precondition violated — input.len() > 0");
+        debug_assert!(
+            _pv_input.len() > 0,
+            "Contract semantic_analyze: precondition violated — input.len() > 0"
+        );
     }};
 }
 
@@ -129,10 +147,14 @@ macro_rules! contract_pre_classify_filesystem {
     () => {{}};
     ($input:expr) => {{
         let _pv_source = &$input;
-        debug_assert!(!_pv_source.is_empty(),
-            "Contract classify_filesystem: precondition violated — !source.is_empty()");
-        debug_assert!(_pv_source.len() <= 1_000_000,
-            "Contract classify_filesystem: precondition violated — source.len() <= 1_000_000");
+        debug_assert!(
+            !_pv_source.is_empty(),
+            "Contract classify_filesystem: precondition violated — !source.is_empty()"
+        );
+        debug_assert!(
+            _pv_source.len() <= 1_000_000,
+            "Contract classify_filesystem: precondition violated — source.len() <= 1_000_000"
+        );
     }};
 }
 
@@ -142,10 +164,14 @@ macro_rules! contract_pre_classify_injection {
     () => {{}};
     ($input:expr) => {{
         let _pv_source = &$input;
-        debug_assert!(!_pv_source.is_empty(),
-            "Contract classify_injection: precondition violated — !source.is_empty()");
-        debug_assert!(_pv_source.len() <= 1_000_000,
-            "Contract classify_injection: precondition violated — source.len() <= 1_000_000");
+        debug_assert!(
+            !_pv_source.is_empty(),
+            "Contract classify_injection: precondition violated — !source.is_empty()"
+        );
+        debug_assert!(
+            _pv_source.len() <= 1_000_000,
+            "Contract classify_injection: precondition violated — source.len() <= 1_000_000"
+        );
     }};
 }
 
@@ -155,10 +181,14 @@ macro_rules! contract_pre_classify_secrets {
     () => {{}};
     ($input:expr) => {{
         let _pv_source = &$input;
-        debug_assert!(!_pv_source.is_empty(),
-            "Contract classify_secrets: precondition violated — !source.is_empty()");
-        debug_assert!(_pv_source.len() <= 1_000_000,
-            "Contract classify_secrets: precondition violated — source.len() <= 1_000_000");
+        debug_assert!(
+            !_pv_source.is_empty(),
+            "Contract classify_secrets: precondition violated — !source.is_empty()"
+        );
+        debug_assert!(
+            _pv_source.len() <= 1_000_000,
+            "Contract classify_secrets: precondition violated — source.len() <= 1_000_000"
+        );
     }};
 }
 
@@ -179,14 +209,18 @@ macro_rules! contract_pre_lint_shell {
 /// Stub — no domain assertions yet; add to YAML when invariants are specified.
 macro_rules! contract_pre_configuration {
     () => {{}};
-    ($input:expr) => {{ let _ = &$input; }};
+    ($input:expr) => {{
+        let _ = &$input;
+    }};
 }
 
 /// Postconditions for `configuration` validation.
 /// Stub — no domain assertions yet.
 macro_rules! contract_post_configuration {
     () => {{}};
-    ($output:expr) => {{ let _ = &$output; }};
+    ($output:expr) => {{
+        let _ = &$output;
+    }};
 }
 
 /// Preconditions for `serialize_roundtrip`.
@@ -195,7 +229,9 @@ macro_rules! contract_pre_serialize_roundtrip {
     () => {{}};
     ($input:expr) => {{
         let _contract_input = &$input;
-        debug_assert!(!_contract_input.is_empty(),
-            "Contract serialize_roundtrip: precondition violated — !input.is_empty()");
+        debug_assert!(
+            !_contract_input.is_empty(),
+            "Contract serialize_roundtrip: precondition violated — !input.is_empty()"
+        );
     }};
 }
