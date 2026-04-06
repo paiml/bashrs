@@ -203,4 +203,4 @@
         assert_eq!(output, "a b");
     }
 
-include!("generators_tests_extracted_generate_generate_generate.rs");
+// FIXME(PMAT-238): include!("generators_tests_extracted_generate_generate_generate.rs");

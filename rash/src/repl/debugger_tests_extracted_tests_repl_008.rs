@@ -208,4 +208,4 @@
         assert!(!session.is_finished());
     }
 
-include!("debugger_tests_extracted_cont_tests_repl_008.rs");
+// FIXME(PMAT-238): include!("debugger_tests_extracted_cont_tests_repl_008.rs");

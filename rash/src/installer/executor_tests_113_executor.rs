@@ -1,205 +1,204 @@
-#[cfg(test)]
-mod tests {
-    use super::super::*;
 
-    #[test]
-    fn test_113_executor_new() {
-        let executor = StepExecutor::new();
-        assert!(!executor.config.dry_run);
-        assert!(!executor.config.use_sudo);
-    }
+use super::super::*;
 
-    #[test]
-    fn test_113_executor_with_config() {
-        let config = ExecutorConfig {
-            dry_run: true,
-            use_sudo: true,
-            environment: HashMap::new(),
-            working_dir: None,
-            timeout_secs: 30,
-        };
-        let executor = StepExecutor::with_config(config);
-        assert!(executor.config.dry_run);
-        assert!(executor.config.use_sudo);
-    }
+#[test]
+fn test_113_executor_new() {
+    let executor = StepExecutor::new();
+    assert!(!executor.config.dry_run);
+    assert!(!executor.config.use_sudo);
+}
 
-    #[test]
-    fn test_113_execute_script_dry_run() {
-        let config = ExecutorConfig {
-            dry_run: true,
-            ..Default::default()
-        };
-        let executor = StepExecutor::with_config(config);
+#[test]
+fn test_113_executor_with_config() {
+    let config = ExecutorConfig {
+        dry_run: true,
+        use_sudo: true,
+        environment: HashMap::new(),
+        working_dir: None,
+        timeout_secs: 30,
+    };
+    let executor = StepExecutor::with_config(config);
+    assert!(executor.config.dry_run);
+    assert!(executor.config.use_sudo);
+}
 
-        let result = executor
-            .execute_script("test-step", "sh", "echo hello")
-            .expect("Execution should succeed");
+#[test]
+fn test_113_execute_script_dry_run() {
+    let config = ExecutorConfig {
+        dry_run: true,
+        ..Default::default()
+    };
+    let executor = StepExecutor::with_config(config);
 
-        assert!(result.success);
-        assert_eq!(result.exit_code, Some(0));
-        assert!(result.stdout.contains("[DRY-RUN]"));
-        assert!(result.stdout.contains("echo hello"));
-    }
+    let result = executor
+        .execute_script("test-step", "sh", "echo hello")
+        .expect("Execution should succeed");
 
-    #[test]
-    fn test_113_execute_script_real() {
-        let executor = StepExecutor::new();
+    assert!(result.success);
+    assert_eq!(result.exit_code, Some(0));
+    assert!(result.stdout.contains("[DRY-RUN]"));
+    assert!(result.stdout.contains("echo hello"));
+}
 
-        let result = executor
-            .execute_script("test-step", "sh", "echo 'hello world'")
-            .expect("Execution should succeed");
+#[test]
+fn test_113_execute_script_real() {
+    let executor = StepExecutor::new();
 
-        assert!(result.success);
-        assert_eq!(result.exit_code, Some(0));
-        assert!(result.stdout.contains("hello world"));
-    }
+    let result = executor
+        .execute_script("test-step", "sh", "echo 'hello world'")
+        .expect("Execution should succeed");
 
-    #[test]
-    fn test_113_execute_script_failure() {
-        let executor = StepExecutor::new();
+    assert!(result.success);
+    assert_eq!(result.exit_code, Some(0));
+    assert!(result.stdout.contains("hello world"));
+}
 
-        let result = executor
-            .execute_script("test-step", "sh", "exit 42")
-            .expect("Execution should succeed");
+#[test]
+fn test_113_execute_script_failure() {
+    let executor = StepExecutor::new();
 
-        assert!(!result.success);
-        assert_eq!(result.exit_code, Some(42));
-    }
+    let result = executor
+        .execute_script("test-step", "sh", "exit 42")
+        .expect("Execution should succeed");
 
-    #[test]
-    fn test_113_execute_apt_install_dry_run() {
-        let config = ExecutorConfig {
-            dry_run: true,
-            ..Default::default()
-        };
-        let executor = StepExecutor::with_config(config);
+    assert!(!result.success);
+    assert_eq!(result.exit_code, Some(42));
+}
 
-        let packages = vec!["vim".to_string(), "git".to_string()];
-        let result = executor
-            .execute_apt_install("test-step", &packages)
-            .expect("Execution should succeed");
+#[test]
+fn test_113_execute_apt_install_dry_run() {
+    let config = ExecutorConfig {
+        dry_run: true,
+        ..Default::default()
+    };
+    let executor = StepExecutor::with_config(config);
 
-        assert!(result.success);
-        assert!(result.stdout.contains("[DRY-RUN]"));
-        assert!(result.stdout.contains("vim"));
-        assert!(result.stdout.contains("git"));
-    }
+    let packages = vec!["vim".to_string(), "git".to_string()];
+    let result = executor
+        .execute_apt_install("test-step", &packages)
+        .expect("Execution should succeed");
 
-    #[test]
-    fn test_113_execute_apt_install_empty() {
-        let executor = StepExecutor::new();
+    assert!(result.success);
+    assert!(result.stdout.contains("[DRY-RUN]"));
+    assert!(result.stdout.contains("vim"));
+    assert!(result.stdout.contains("git"));
+}
 
-        let result = executor
-            .execute_apt_install("test-step", &[])
-            .expect("Execution should succeed");
+#[test]
+fn test_113_execute_apt_install_empty() {
+    let executor = StepExecutor::new();
 
-        assert!(result.success);
-        assert!(result.stdout.contains("No packages"));
-    }
+    let result = executor
+        .execute_apt_install("test-step", &[])
+        .expect("Execution should succeed");
 
-    #[test]
-    fn test_113_execute_file_write_dry_run() {
-        let config = ExecutorConfig {
-            dry_run: true,
-            ..Default::default()
-        };
-        let executor = StepExecutor::with_config(config);
+    assert!(result.success);
+    assert!(result.stdout.contains("No packages"));
+}
 
-        let result = executor
-            .execute_file_write("test-step", "/tmp/test.txt", "hello")
-            .expect("Execution should succeed");
+#[test]
+fn test_113_execute_file_write_dry_run() {
+    let config = ExecutorConfig {
+        dry_run: true,
+        ..Default::default()
+    };
+    let executor = StepExecutor::with_config(config);
 
-        assert!(result.success);
-        assert!(result.stdout.contains("[DRY-RUN]"));
-        assert!(result.stdout.contains("5 bytes"));
-    }
+    let result = executor
+        .execute_file_write("test-step", "/tmp/test.txt", "hello")
+        .expect("Execution should succeed");
 
-    #[test]
-    fn test_113_execute_file_write_real() {
-        let executor = StepExecutor::new();
-        let test_path = "/tmp/bashrs_test_113_file_write.txt";
+    assert!(result.success);
+    assert!(result.stdout.contains("[DRY-RUN]"));
+    assert!(result.stdout.contains("5 bytes"));
+}
 
-        // Clean up before test
-        let _ = std::fs::remove_file(test_path);
+#[test]
+fn test_113_execute_file_write_real() {
+    let executor = StepExecutor::new();
+    let test_path = "/tmp/bashrs_test_113_file_write.txt";
 
-        let result = executor
-            .execute_file_write("test-step", test_path, "test content")
-            .expect("Execution should succeed");
+    // Clean up before test
+    let _ = std::fs::remove_file(test_path);
 
-        assert!(result.success);
-        assert!(Path::new(test_path).exists());
+    let result = executor
+        .execute_file_write("test-step", test_path, "test content")
+        .expect("Execution should succeed");
 
-        let content = std::fs::read_to_string(test_path).expect("Should read file");
-        assert_eq!(content, "test content");
+    assert!(result.success);
+    assert!(Path::new(test_path).exists());
 
-        // Clean up
-        let _ = std::fs::remove_file(test_path);
-    }
+    let content = std::fs::read_to_string(test_path).expect("Should read file");
+    assert_eq!(content, "test content");
 
-    #[test]
-    fn test_113_execute_user_group_dry_run() {
-        let config = ExecutorConfig {
-            dry_run: true,
-            ..Default::default()
-        };
-        let executor = StepExecutor::with_config(config);
+    // Clean up
+    let _ = std::fs::remove_file(test_path);
+}
 
-        let result = executor
-            .execute_user_group("test-step", "testuser", "docker")
-            .expect("Execution should succeed");
+#[test]
+fn test_113_execute_user_group_dry_run() {
+    let config = ExecutorConfig {
+        dry_run: true,
+        ..Default::default()
+    };
+    let executor = StepExecutor::with_config(config);
 
-        assert!(result.success);
-        assert!(result.stdout.contains("[DRY-RUN]"));
-        assert!(result.stdout.contains("testuser"));
-        assert!(result.stdout.contains("docker"));
-    }
+    let result = executor
+        .execute_user_group("test-step", "testuser", "docker")
+        .expect("Execution should succeed");
 
-    #[test]
-    fn test_113_check_file_exists_true() {
-        let executor = StepExecutor::new();
+    assert!(result.success);
+    assert!(result.stdout.contains("[DRY-RUN]"));
+    assert!(result.stdout.contains("testuser"));
+    assert!(result.stdout.contains("docker"));
+}
 
-        // /tmp should always exist
-        let result = executor.check_file_exists("/tmp");
+#[test]
+fn test_113_check_file_exists_true() {
+    let executor = StepExecutor::new();
 
-        assert!(result.passed);
-        assert_eq!(result.check_type, "file_exists");
-    }
+    // /tmp should always exist
+    let result = executor.check_file_exists("/tmp");
 
-    #[test]
-    fn test_113_check_file_exists_false() {
-        let executor = StepExecutor::new();
+    assert!(result.passed);
+    assert_eq!(result.check_type, "file_exists");
+}
 
-        let result = executor.check_file_exists("/nonexistent/path/that/does/not/exist");
+#[test]
+fn test_113_check_file_exists_false() {
+    let executor = StepExecutor::new();
 
-        assert!(!result.passed);
-        assert_eq!(result.check_type, "file_exists");
-    }
+    let result = executor.check_file_exists("/nonexistent/path/that/does/not/exist");
 
-    #[test]
-    fn test_113_check_command_succeeds_true() {
-        let executor = StepExecutor::new();
+    assert!(!result.passed);
+    assert_eq!(result.check_type, "file_exists");
+}
 
-        let result = executor.check_command_succeeds("true");
+#[test]
+fn test_113_check_command_succeeds_true() {
+    let executor = StepExecutor::new();
 
-        assert!(result.passed);
-        assert_eq!(result.check_type, "command_succeeds");
-    }
+    let result = executor.check_command_succeeds("true");
 
-    #[test]
-    fn test_113_check_command_succeeds_false() {
-        let executor = StepExecutor::new();
+    assert!(result.passed);
+    assert_eq!(result.check_type, "command_succeeds");
+}
 
-        let result = executor.check_command_succeeds("false");
+#[test]
+fn test_113_check_command_succeeds_false() {
+    let executor = StepExecutor::new();
 
-        assert!(!result.passed);
-        assert_eq!(result.check_type, "command_succeeds");
-    }
+    let result = executor.check_command_succeeds("false");
 
-    #[test]
-    fn test_113_execute_step_script() {
-        use crate::installer::spec::InstallerSpec;
+    assert!(!result.passed);
+    assert_eq!(result.check_type, "command_succeeds");
+}
 
-        let toml = r#"
+#[test]
+fn test_113_execute_step_script() {
+    use crate::installer::spec::InstallerSpec;
+
+    let toml = r#"
 [installer]
 name = "test"
 version = "1.0.0"
@@ -214,26 +213,26 @@ interpreter = "sh"
 content = "echo 'step executed'"
 "#;
 
-        let spec = InstallerSpec::parse(toml).expect("Valid TOML");
-        let executor = StepExecutor::new();
+    let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+    let executor = StepExecutor::new();
 
-        let result = executor
-            .execute_step(&spec.step[0])
-            .expect("Should execute");
+    let result = executor
+        .execute_step(&spec.step[0])
+        .expect("Should execute");
 
-        assert!(result.success);
-        assert!(result.stdout.contains("step executed"));
-    }
+    assert!(result.success);
+    assert!(result.stdout.contains("step executed"));
+}
 
-    #[test]
-    fn test_113_execute_step_file_write() {
-        use crate::installer::spec::InstallerSpec;
+#[test]
+fn test_113_execute_step_file_write() {
+    use crate::installer::spec::InstallerSpec;
 
-        let test_path = "/tmp/bashrs_test_113_step_file.txt";
-        let _ = std::fs::remove_file(test_path);
+    let test_path = "/tmp/bashrs_test_113_step_file.txt";
+    let _ = std::fs::remove_file(test_path);
 
-        let toml = format!(
-            r#"
+    let toml = format!(
+        r#"
 [installer]
 name = "test"
 version = "1.0.0"
@@ -245,30 +244,30 @@ action = "file-write"
 path = "{}"
 content = "step file content"
 "#,
-            test_path
-        );
+        test_path
+    );
 
-        let spec = InstallerSpec::parse(&toml).expect("Valid TOML");
-        let executor = StepExecutor::new();
+    let spec = InstallerSpec::parse(&toml).expect("Valid TOML");
+    let executor = StepExecutor::new();
 
-        let result = executor
-            .execute_step(&spec.step[0])
-            .expect("Should execute");
+    let result = executor
+        .execute_step(&spec.step[0])
+        .expect("Should execute");
 
-        assert!(result.success);
-        assert!(Path::new(test_path).exists());
+    assert!(result.success);
+    assert!(Path::new(test_path).exists());
 
-        let content = std::fs::read_to_string(test_path).expect("Should read");
-        assert_eq!(content, "step file content");
+    let content = std::fs::read_to_string(test_path).expect("Should read");
+    assert_eq!(content, "step file content");
 
-        let _ = std::fs::remove_file(test_path);
-    }
+    let _ = std::fs::remove_file(test_path);
+}
 
-    #[test]
-    fn test_113_execute_step_unknown_action() {
-        use crate::installer::spec::InstallerSpec;
+#[test]
+fn test_113_execute_step_unknown_action() {
+    use crate::installer::spec::InstallerSpec;
 
-        let toml = r#"
+    let toml = r#"
 [installer]
 name = "test"
 version = "1.0.0"
@@ -279,28 +278,28 @@ name = "Unknown Action"
 action = "invalid-action"
 "#;
 
-        let spec = InstallerSpec::parse(toml).expect("Valid TOML");
-        let executor = StepExecutor::new();
+    let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+    let executor = StepExecutor::new();
 
-        let result = executor
-            .execute_step(&spec.step[0])
-            .expect("Should not error");
+    let result = executor
+        .execute_step(&spec.step[0])
+        .expect("Should not error");
 
-        assert!(!result.success);
-        assert!(result.stderr.contains("Unknown action"));
-    }
+    assert!(!result.success);
+    assert!(result.stderr.contains("Unknown action"));
+}
 
-    #[test]
-    fn test_113_postcondition_file_exists() {
-        use crate::installer::spec::InstallerSpec;
+#[test]
+fn test_113_postcondition_file_exists() {
+    use crate::installer::spec::InstallerSpec;
 
-        let test_path = "/tmp/bashrs_test_113_postcond.txt";
+    let test_path = "/tmp/bashrs_test_113_postcond.txt";
 
-        // Create the file first
-        std::fs::write(test_path, "test").expect("Should write");
+    // Create the file first
+    std::fs::write(test_path, "test").expect("Should write");
 
-        let toml = format!(
-            r#"
+    let toml = format!(
+        r#"
 [installer]
 name = "test"
 version = "1.0.0"
@@ -316,28 +315,28 @@ content = "echo 'done'"
 [step.postconditions]
 file_exists = "{}"
 "#,
-            test_path
-        );
+        test_path
+    );
 
-        let spec = InstallerSpec::parse(&toml).expect("Valid TOML");
-        let executor = StepExecutor::new();
+    let spec = InstallerSpec::parse(&toml).expect("Valid TOML");
+    let executor = StepExecutor::new();
 
-        let result = executor
-            .execute_step(&spec.step[0])
-            .expect("Should execute");
+    let result = executor
+        .execute_step(&spec.step[0])
+        .expect("Should execute");
 
-        assert!(result.success);
-        assert!(!result.postcondition_results.is_empty());
-        assert!(result.postcondition_results[0].passed);
+    assert!(result.success);
+    assert!(!result.postcondition_results.is_empty());
+    assert!(result.postcondition_results[0].passed);
 
-        let _ = std::fs::remove_file(test_path);
-    }
+    let _ = std::fs::remove_file(test_path);
+}
 
-    #[test]
-    fn test_113_postcondition_fails() {
-        use crate::installer::spec::InstallerSpec;
+#[test]
+fn test_113_postcondition_fails() {
+    use crate::installer::spec::InstallerSpec;
 
-        let toml = r#"
+    let toml = r#"
 [installer]
 name = "test"
 version = "1.0.0"
@@ -354,16 +353,15 @@ content = "echo 'done'"
 file_exists = "/nonexistent/file/that/does/not/exist"
 "#;
 
-        let spec = InstallerSpec::parse(toml).expect("Valid TOML");
-        let executor = StepExecutor::new();
+    let spec = InstallerSpec::parse(toml).expect("Valid TOML");
+    let executor = StepExecutor::new();
 
-        let result = executor
-            .execute_step(&spec.step[0])
-            .expect("Should execute");
+    let result = executor
+        .execute_step(&spec.step[0])
+        .expect("Should execute");
 
-        // Step should fail because postcondition fails
-        assert!(!result.success);
-        assert!(!result.postcondition_results.is_empty());
-        assert!(!result.postcondition_results[0].passed);
-    }
+    // Step should fail because postcondition fails
+    assert!(!result.success);
+    assert!(!result.postcondition_results.is_empty());
+    assert!(!result.postcondition_results[0].passed);
 }

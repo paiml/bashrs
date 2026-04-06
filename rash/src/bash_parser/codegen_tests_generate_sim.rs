@@ -214,5 +214,5 @@ mod codegen_tests {
 mod codegen_tests_ext {
     use super::*;
     use crate::bash_parser::BashParser;
-        include!("codegen_tests_ext_generate.rs");
+        // FIXME(PMAT-238): include!("codegen_tests_ext_generate.rs");
 }

@@ -1,183 +1,181 @@
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    #[test]
-    fn test_contract_system_creation() {
-        let system = ContractSystem::new();
-        assert!(system.function_sigs.contains_key("echo"));
-        assert!(system.function_sigs.contains_key("test"));
-        assert!(system.function_sigs.contains_key("read"));
-    }
+use super::*;
 
-    #[test]
-    fn test_type_inference_basic() {
-        let mut system = ContractSystem::new();
+#[test]
+fn test_contract_system_creation() {
+    let system = ContractSystem::new();
+    assert!(system.function_sigs.contains_key("echo"));
+    assert!(system.function_sigs.contains_key("test"));
+    assert!(system.function_sigs.contains_key("read"));
+}
 
-        let context = TypeContext::Assignment {
-            value_type: ShellType::String,
-        };
+#[test]
+fn test_type_inference_basic() {
+    let mut system = ContractSystem::new();
 
-        let inferred_type = system.infer_variable_type("var1", &context);
-        assert!(matches!(inferred_type, ShellType::TypeVar(_)));
+    let context = TypeContext::Assignment {
+        value_type: ShellType::String,
+    };
 
-        // Solve constraints
-        assert!(system.solve_constraints().is_ok());
+    let inferred_type = system.infer_variable_type("var1", &context);
+    assert!(matches!(inferred_type, ShellType::TypeVar(_)));
 
-        // Check that variable now has string type
-        let final_type = system.get_variable_type("var1").unwrap();
-        assert_eq!(*final_type, ShellType::String);
-    }
+    // Solve constraints
+    assert!(system.solve_constraints().is_ok());
 
-    #[test]
-    fn test_function_call_inference() {
-        let mut system = ContractSystem::new();
+    // Check that variable now has string type
+    let final_type = system.get_variable_type("var1").unwrap();
+    assert_eq!(*final_type, ShellType::String);
+}
 
-        let context = TypeContext::FunctionCall {
-            function: "echo".to_string(),
-            param_index: 0,
-        };
+#[test]
+fn test_function_call_inference() {
+    let mut system = ContractSystem::new();
 
-        let inferred_type = system.infer_variable_type("args", &context);
-        assert!(matches!(inferred_type, ShellType::TypeVar(_)));
+    let context = TypeContext::FunctionCall {
+        function: "echo".to_string(),
+        param_index: 0,
+    };
 
-        assert!(system.solve_constraints().is_ok());
+    let inferred_type = system.infer_variable_type("args", &context);
+    assert!(matches!(inferred_type, ShellType::TypeVar(_)));
 
-        let final_type = system.get_variable_type("args").unwrap();
-        assert!(matches!(final_type, ShellType::Array(_)));
-    }
+    assert!(system.solve_constraints().is_ok());
 
-    #[test]
-    fn test_arithmetic_context_inference() {
-        let mut system = ContractSystem::new();
+    let final_type = system.get_variable_type("args").unwrap();
+    assert!(matches!(final_type, ShellType::Array(_)));
+}
 
-        let context = TypeContext::Arithmetic;
-        let _inferred_type = system.infer_variable_type("num", &context);
+#[test]
+fn test_arithmetic_context_inference() {
+    let mut system = ContractSystem::new();
 
-        assert!(system.solve_constraints().is_ok());
+    let context = TypeContext::Arithmetic;
+    let _inferred_type = system.infer_variable_type("num", &context);
 
-        let final_type = system.get_variable_type("num").unwrap();
-        assert_eq!(*final_type, ShellType::Integer);
-    }
+    assert!(system.solve_constraints().is_ok());
 
-    #[test]
-    fn test_contract_validation() {
-        let mut system = ContractSystem::new();
+    let final_type = system.get_variable_type("num").unwrap();
+    assert_eq!(*final_type, ShellType::Integer);
+}
 
-        // Add a variable with string type
-        system
-            .type_env
-            .insert("var1".to_string(), ShellType::String);
+#[test]
+fn test_contract_validation() {
+    let mut system = ContractSystem::new();
 
-        // Add a contract expecting integer type
-        let contract = Contract {
-            kind: ContractKind::TypeAnnotation,
-            condition: ContractCondition::TypeConstraint {
-                var: "var1".to_string(),
-                expected_type: ShellType::Integer,
-            },
-            description: "var1 should be integer".to_string(),
-            location: Span::new(BytePos(0), BytePos(10)),
-        };
+    // Add a variable with string type
+    system
+        .type_env
+        .insert("var1".to_string(), ShellType::String);
 
-        system.add_contract(contract);
+    // Add a contract expecting integer type
+    let contract = Contract {
+        kind: ContractKind::TypeAnnotation,
+        condition: ContractCondition::TypeConstraint {
+            var: "var1".to_string(),
+            expected_type: ShellType::Integer,
+        },
+        description: "var1 should be integer".to_string(),
+        location: Span::new(BytePos(0), BytePos(10)),
+    };
 
-        let violations = system.validate_contracts();
-        assert_eq!(violations.len(), 1);
-        assert!(violations[0]
-            .reason
-            .contains("has type string but expected integer"));
-    }
+    system.add_contract(contract);
 
-    #[test]
-    fn test_non_null_contract() {
-        let mut system = ContractSystem::new();
+    let violations = system.validate_contracts();
+    assert_eq!(violations.len(), 1);
+    assert!(violations[0]
+        .reason
+        .contains("has type string but expected integer"));
+}
 
-        let contract = Contract {
-            kind: ContractKind::Precondition,
-            condition: ContractCondition::NonNull {
-                var: "undefined_var".to_string(),
-            },
-            description: "Variable must be defined".to_string(),
-            location: Span::new(BytePos(0), BytePos(10)),
-        };
+#[test]
+fn test_non_null_contract() {
+    let mut system = ContractSystem::new();
 
-        system.add_contract(contract);
+    let contract = Contract {
+        kind: ContractKind::Precondition,
+        condition: ContractCondition::NonNull {
+            var: "undefined_var".to_string(),
+        },
+        description: "Variable must be defined".to_string(),
+        location: Span::new(BytePos(0), BytePos(10)),
+    };
 
-        let violations = system.validate_contracts();
-        assert_eq!(violations.len(), 1);
-        assert!(violations[0].reason.contains("is not defined"));
-    }
+    system.add_contract(contract);
 
-    #[test]
-    fn test_function_signature_registration() {
-        let mut system = ContractSystem::new();
+    let violations = system.validate_contracts();
+    assert_eq!(violations.len(), 1);
+    assert!(violations[0].reason.contains("is not defined"));
+}
 
-        let custom_func = FunctionSignature {
-            name: "custom_func".to_string(),
-            parameters: vec![Parameter {
-                name: "input".to_string(),
-                param_type: ShellType::String,
-                is_optional: false,
-            }],
-            return_type: ShellType::Boolean,
-            preconditions: vec![],
-            postconditions: vec![],
-        };
+#[test]
+fn test_function_signature_registration() {
+    let mut system = ContractSystem::new();
 
-        system.register_function(custom_func);
-        assert!(system.function_sigs.contains_key("custom_func"));
-    }
+    let custom_func = FunctionSignature {
+        name: "custom_func".to_string(),
+        parameters: vec![Parameter {
+            name: "input".to_string(),
+            param_type: ShellType::String,
+            is_optional: false,
+        }],
+        return_type: ShellType::Boolean,
+        preconditions: vec![],
+        postconditions: vec![],
+    };
 
-    #[test]
-    fn test_shell_type_compatibility() {
-        let string_type = ShellType::String;
-        let int_type = ShellType::Integer;
-        let union_type = ShellType::Union(vec![ShellType::String, ShellType::Integer]);
+    system.register_function(custom_func);
+    assert!(system.function_sigs.contains_key("custom_func"));
+}
 
-        assert!(string_type.is_compatible(&string_type));
-        assert!(!string_type.is_compatible(&int_type));
-        assert!(union_type.is_compatible(&string_type));
-        assert!(union_type.is_compatible(&int_type));
-    }
+#[test]
+fn test_shell_type_compatibility() {
+    let string_type = ShellType::String;
+    let int_type = ShellType::Integer;
+    let union_type = ShellType::Union(vec![ShellType::String, ShellType::Integer]);
 
-    #[test]
-    fn test_array_type_inference() {
-        let mut system = ContractSystem::new();
+    assert!(string_type.is_compatible(&string_type));
+    assert!(!string_type.is_compatible(&int_type));
+    assert!(union_type.is_compatible(&string_type));
+    assert!(union_type.is_compatible(&int_type));
+}
 
-        // Test array type unification
-        let array_str = ShellType::Array(Box::new(ShellType::String));
-        let type_var = system.inference_engine.fresh_type_var();
+#[test]
+fn test_array_type_inference() {
+    let mut system = ContractSystem::new();
 
-        let constraint = TypeConstraint {
-            left: type_var.clone(),
-            right: array_str.clone(),
-            location: Span::new(BytePos(0), BytePos(10)),
-            reason: ConstraintReason::Assignment,
-        };
+    // Test array type unification
+    let array_str = ShellType::Array(Box::new(ShellType::String));
+    let type_var = system.inference_engine.fresh_type_var();
 
-        system.inference_engine.add_constraint(constraint);
-        assert!(system.solve_constraints().is_ok());
-    }
+    let constraint = TypeConstraint {
+        left: type_var.clone(),
+        right: array_str.clone(),
+        location: Span::new(BytePos(0), BytePos(10)),
+        reason: ConstraintReason::Assignment,
+    };
 
-    #[test]
-    fn test_contract_condition_logic() {
-        let type_constraint = ContractCondition::TypeConstraint {
-            var: "x".to_string(),
-            expected_type: ShellType::String,
-        };
+    system.inference_engine.add_constraint(constraint);
+    assert!(system.solve_constraints().is_ok());
+}
 
-        let non_null_constraint = ContractCondition::NonNull {
-            var: "y".to_string(),
-        };
+#[test]
+fn test_contract_condition_logic() {
+    let type_constraint = ContractCondition::TypeConstraint {
+        var: "x".to_string(),
+        expected_type: ShellType::String,
+    };
 
-        let and_condition =
-            ContractCondition::And(Box::new(type_constraint), Box::new(non_null_constraint));
+    let non_null_constraint = ContractCondition::NonNull {
+        var: "y".to_string(),
+    };
 
-        // Test that we can construct complex logical conditions
-        match and_condition {
-            ContractCondition::And(_, _) => {}
-            _ => panic!("Should be And condition"),
-        }
+    let and_condition =
+        ContractCondition::And(Box::new(type_constraint), Box::new(non_null_constraint));
+
+    // Test that we can construct complex logical conditions
+    match and_condition {
+        ContractCondition::And(_, _) => {}
+        _ => panic!("Should be And condition"),
     }
 }

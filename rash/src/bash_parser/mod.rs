@@ -102,9 +102,9 @@ mod parser_main_tests_p5;
 #[cfg(test)]
 #[path = "parser_main_tests_p6.rs"]
 mod parser_main_tests_p6;
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "parser_main_tests_p7.rs"]
-// FIXME(PMAT-238): mod parser_main_tests_p7;
+#[cfg(test)]
+#[path = "parser_main_tests_p7.rs"]
+mod parser_main_tests_p7;
 // FIXME(PMAT-238): #[cfg(test)]
 // FIXME(PMAT-238): #[path = "parser_main_tests_p8.rs"]
 // FIXME(PMAT-238): mod parser_main_tests_p8;

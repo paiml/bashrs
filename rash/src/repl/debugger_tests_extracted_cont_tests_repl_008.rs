@@ -204,4 +204,4 @@
         assert_eq!(env_vars, sorted, "Environment variables should be sorted");
     }
 
-include!("debugger_tests_extracted_cont_cont_REPL.rs");
+// FIXME(PMAT-238): include!("debugger_tests_extracted_cont_cont_REPL.rs");

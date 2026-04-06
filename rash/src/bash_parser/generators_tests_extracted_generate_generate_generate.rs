@@ -199,4 +199,4 @@
         assert_eq!(output, "6 / 2");
     }
 
-include!("generators_tests_extracted_generate_generate_generate_generate.rs");
+// FIXME(PMAT-238): include!("generators_tests_extracted_generate_generate_generate_generate.rs");

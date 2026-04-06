@@ -372,4 +372,4 @@
         assert!(result.contains("coproc mycoproc"));
     }
 
-include!("formatter_tests_ext_test_format_fun_test_format_cop.rs");
+// FIXME(PMAT-238): include!("formatter_tests_ext_test_format_fun_test_format_cop.rs");

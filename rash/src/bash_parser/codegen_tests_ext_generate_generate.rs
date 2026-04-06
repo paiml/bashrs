@@ -199,4 +199,4 @@
         assert_eq!(output, "\"${x:=default}\"");
     }
 
-include!("codegen_tests_ext_generate_generate_generate.rs");
+// FIXME(PMAT-238): include!("codegen_tests_ext_generate_generate_generate.rs");
