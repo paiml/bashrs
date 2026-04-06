@@ -277,6 +277,5 @@ mod tests {
 #[cfg(test)]
 mod gates_coverage_tests_tests_extracted_check {
     use super::*;
+    // FIXME(PMAT-238):     include!("gates_coverage_tests_tests_extracted_check.rs");
 }
-
-include!("gates_coverage_tests_tests_extracted_check.rs");

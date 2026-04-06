@@ -402,6 +402,5 @@ mod replay_property_tests {
             let _ = verifier.verify(&script);
         }
     }
+    include!("determinism_replay_tests_REPL_2.rs");
 }
-
-include!("determinism_replay_tests_REPL_2.rs");

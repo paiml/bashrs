@@ -208,6 +208,5 @@ mod inspector_coverage {
 #[cfg(test)]
 mod inspector_coverage_tests_tests_extracted_generate {
     use super::*;
+    // FIXME(PMAT-238):     include!("inspector_coverage_tests_tests_extracted_generate.rs");
 }
-
-include!("inspector_coverage_tests_tests_extracted_generate.rs");

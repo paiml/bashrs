@@ -164,6 +164,5 @@ mod tests {
 #[cfg(test)]
 mod formatter_tests_ext_test_format_fun {
     use super::*;
+    include!("formatter_tests_ext_test_format_fun.rs");
 }
-
-include!("formatter_tests_ext_test_format_fun.rs");

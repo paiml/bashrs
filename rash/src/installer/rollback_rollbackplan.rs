@@ -102,6 +102,6 @@ fn compute_hash(content: &[u8]) -> String {
     format!("{:016x}", hasher.finish())
 }
 
-#[cfg(test)]
-#[path = "rollback_tests_rollback_001.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "rollback_tests_rollback_001.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

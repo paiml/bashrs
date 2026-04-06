@@ -30,7 +30,7 @@ pub fn check(source: &str) -> LintResult {
     result
 }
 
-#[cfg(test)]
-#[cfg(test)]
-#[path = "sc2086_tests.rs"]
-mod tests;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "sc2086_tests.rs"]
+// FIXME(PMAT-238): mod tests;

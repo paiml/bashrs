@@ -206,6 +206,5 @@ mod convert_function_call_tests {
 
     // ─── 3. from_image_as basic ──────────────────────────────────────
 
+    include!("dockerfile_tests_tests_DOCKER_DOCKER.rs");
 }
-
-include!("dockerfile_tests_tests_DOCKER_DOCKER.rs");

@@ -473,6 +473,5 @@ mod tests {
     }
 
 
-}
-
     include!("breakpoint_part2_incl2.rs");
+}

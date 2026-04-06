@@ -354,6 +354,5 @@ mod transpiler_integration {
         assert!(result.contains("flag="));
         assert!(result.contains("other="));
     }
+    include!("coverage_integration_tests_tests_parse.rs");
 }
-
-include!("coverage_integration_tests_tests_parse.rs");

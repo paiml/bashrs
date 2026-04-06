@@ -203,6 +203,5 @@ mod tests {
         );
     }
 
+    include!("oracle_tests_extracted_shell.rs");
 }
-
-include!("oracle_tests_extracted_shell.rs");

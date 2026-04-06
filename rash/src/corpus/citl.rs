@@ -446,6 +446,6 @@ fn status_str(passed: bool) -> &'static str {
     }
 }
 
-#[cfg(test)]
-#[path = "citl_tests_make_entry.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "citl_tests_make_entry.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

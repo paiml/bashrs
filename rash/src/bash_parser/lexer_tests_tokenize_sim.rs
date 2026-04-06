@@ -198,6 +198,5 @@ mod tests {
     // ============================================================================
     // LexerError Tests
     // ============================================================================
+    include!("lexer_tests_extracted_lexer.rs");
 }
-
-include!("lexer_tests_extracted_lexer.rs");

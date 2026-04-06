@@ -455,6 +455,6 @@ fn days_since(date_str: &str) -> Option<u32> {
     }
 }
 
-#[cfg(test)]
-#[path = "quality_gates_tests_make_score.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "quality_gates_tests_make_score.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

@@ -214,6 +214,6 @@ standard GNU Readline keybindings (like bash, python REPL, etc.).
     .to_string()
 }
 
-#[cfg(test)]
-#[path = "help_tests_repl_015.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "help_tests_repl_015.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

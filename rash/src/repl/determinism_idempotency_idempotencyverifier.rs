@@ -298,7 +298,5 @@ rm /tmp/file    # Line 4: issue
         assert_eq!(issues[0].line, 3); // Line 3 in 1-indexed
         assert_eq!(issues[1].line, 5); // Line 5 in 1-indexed
     }
+    include!("determinism_idempotency_idempotencyverifier_prop_repl_012_001_mkdir_without_p_always_detected.rs");
 }
-
-
-include!("determinism_idempotency_idempotencyverifier_prop_repl_012_001_mkdir_without_p_always_detected.rs");

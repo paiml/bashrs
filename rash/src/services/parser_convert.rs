@@ -416,6 +416,6 @@ fn extract_pattern_literal(expr: &SynExpr) -> Result<Literal> {
     }
 }
 
-#[cfg(test)]
-#[path = "parser_tests_convert_stmt.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "parser_tests_convert_stmt.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

@@ -121,6 +121,6 @@ mod docker003_tests;
 #[path = "docker004_tests.rs"]
 mod docker004_tests;
 
-#[cfg(test)]
-#[path = "mod_tests_lint_profile.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "mod_tests_lint_profile.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

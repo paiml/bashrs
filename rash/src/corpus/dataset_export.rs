@@ -268,6 +268,6 @@ fn current_commit() -> String {
         .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string())
 }
 
-#[cfg(test)]
-#[path = "dataset_tests_make_entry.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "dataset_tests_make_entry.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

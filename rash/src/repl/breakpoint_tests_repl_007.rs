@@ -216,6 +216,5 @@ mod tests {
 #[cfg(test)]
 mod breakpoint_tests_extracted_tests_repl_007 {
     use super::*;
+    include!("breakpoint_tests_extracted_tests_repl_007.rs");
 }
-
-include!("breakpoint_tests_extracted_tests_repl_007.rs");

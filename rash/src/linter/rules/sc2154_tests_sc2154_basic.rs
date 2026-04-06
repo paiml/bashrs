@@ -203,6 +203,5 @@ done
 #[cfg(test)]
 mod sc2154_tests_extracted_issue {
     use super::*;
+    include!("sc2154_tests_extracted_issue.rs");
 }
-
-include!("sc2154_tests_extracted_issue.rs");

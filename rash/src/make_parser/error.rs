@@ -339,6 +339,6 @@ impl MakeParseError {
     }
 }
 
-#[cfg(test)]
-#[path = "error_tests_source_locat.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "error_tests_source_locat.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

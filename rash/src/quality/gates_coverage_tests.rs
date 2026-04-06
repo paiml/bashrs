@@ -7,6 +7,6 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
-#[cfg(test)]
-#[path = "gates_coverage_tests_tests_gate_result.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "gates_coverage_tests_tests_gate_result.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

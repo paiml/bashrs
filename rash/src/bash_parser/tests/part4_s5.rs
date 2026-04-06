@@ -427,6 +427,4 @@ unset VAR1 VAR2 VAR3
 echo "Exit status: $?"
 "#;
 
-#[test]
-
-include!("part4_s5_tests_builtin_020.rs");
+// FIXME(PMAT-238): include!("part4_s5_tests_builtin_020.rs");

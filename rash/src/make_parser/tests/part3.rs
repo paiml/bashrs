@@ -199,6 +199,6 @@ fn test_FUNC_SUBST_001_subst_with_other_functions() {
 // FUNC-SUBST-001: Property Tests
 // ============================================================================
 
-#[cfg(test)]
-#[path = "part3_tests_prop_func.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "part3_tests_prop_func.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

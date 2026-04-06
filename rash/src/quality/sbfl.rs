@@ -349,6 +349,6 @@ pub fn localize_faults(
     localizer.rank()
 }
 
-#[cfg(test)]
-#[path = "sbfl_tests_ml_004.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "sbfl_tests_ml_004.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

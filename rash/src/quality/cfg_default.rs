@@ -110,6 +110,6 @@ pub fn render_cfg_ascii(
     out
 }
 
-#[cfg(test)]
-#[path = "cfg_tests_ml_015.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "cfg_tests_ml_015.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

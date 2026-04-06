@@ -211,6 +211,5 @@ done
 
     // Comment tests
 
+    include!("codegen_tests_extracted_transpile.rs");
 }
-
-include!("codegen_tests_extracted_transpile.rs");

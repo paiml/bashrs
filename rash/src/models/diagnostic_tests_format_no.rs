@@ -209,6 +209,5 @@ mod tests {
 #[cfg(test)]
 mod diagnostic_tests_ext_categorize {
     use super::*;
+    include!("diagnostic_tests_ext_categorize.rs");
 }
-
-include!("diagnostic_tests_ext_categorize.rs");

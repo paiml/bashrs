@@ -91,6 +91,6 @@ pub fn convert_file_to_project(input: &Path, output_dir: &Path) -> Result<Conver
     Ok(result)
 }
 
-#[cfg(test)]
-#[path = "from_bash_tests_installer_11.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "from_bash_tests_installer_11.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

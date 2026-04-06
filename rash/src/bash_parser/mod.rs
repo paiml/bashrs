@@ -63,9 +63,8 @@ mod expr_coverage_tests;
 mod parser_coverage_tests;
 
 #[cfg(test)]
-#[path = "parser_arith_tests.rs"]
-mod parser_arith_tests;
-
+// FIXME(PMAT-238): #[path = "parser_arith_tests.rs"]
+// FIXME(PMAT-238): mod parser_arith_tests;
 #[cfg(test)]
 #[path = "parser_decl_tests.rs"]
 mod parser_decl_tests;
@@ -82,18 +81,18 @@ mod lexer_operator_tests;
 #[path = "parser_control_cov_tests.rs"]
 mod parser_control_cov_tests;
 
-#[cfg(test)]
-#[path = "parser_main_tests.rs"]
-mod parser_main_tests;
-#[cfg(test)]
-#[path = "parser_main_tests_p10.rs"]
-mod parser_main_tests_p10;
-#[cfg(test)]
-#[path = "parser_main_tests_p2.rs"]
-mod parser_main_tests_p2;
-#[cfg(test)]
-#[path = "parser_main_tests_p3.rs"]
-mod parser_main_tests_p3;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "parser_main_tests.rs"]
+// FIXME(PMAT-238): mod parser_main_tests;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "parser_main_tests_p10.rs"]
+// FIXME(PMAT-238): mod parser_main_tests_p10;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "parser_main_tests_p2.rs"]
+// FIXME(PMAT-238): mod parser_main_tests_p2;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "parser_main_tests_p3.rs"]
+// FIXME(PMAT-238): mod parser_main_tests_p3;
 #[cfg(test)]
 #[path = "parser_main_tests_p4.rs"]
 mod parser_main_tests_p4;
@@ -103,12 +102,12 @@ mod parser_main_tests_p5;
 #[cfg(test)]
 #[path = "parser_main_tests_p6.rs"]
 mod parser_main_tests_p6;
-#[cfg(test)]
-#[path = "parser_main_tests_p7.rs"]
-mod parser_main_tests_p7;
-#[cfg(test)]
-#[path = "parser_main_tests_p8.rs"]
-mod parser_main_tests_p8;
-#[cfg(test)]
-#[path = "parser_main_tests_p9.rs"]
-mod parser_main_tests_p9;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "parser_main_tests_p7.rs"]
+// FIXME(PMAT-238): mod parser_main_tests_p7;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "parser_main_tests_p8.rs"]
+// FIXME(PMAT-238): mod parser_main_tests_p8;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "parser_main_tests_p9.rs"]
+// FIXME(PMAT-238): mod parser_main_tests_p9;

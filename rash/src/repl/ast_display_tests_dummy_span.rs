@@ -223,6 +223,5 @@ mod tests {
 #[cfg(test)]
 mod ast_display_tests_extracted_REPL {
     use super::*;
+    include!("ast_display_tests_extracted_REPL.rs");
 }
-
-include!("ast_display_tests_extracted_REPL.rs");

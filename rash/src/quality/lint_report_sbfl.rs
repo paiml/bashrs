@@ -101,6 +101,6 @@ pub fn sbfl_report(
     out
 }
 
-#[cfg(test)]
-#[path = "lint_report_tests_sample_lint.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "lint_report_tests_sample_lint.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

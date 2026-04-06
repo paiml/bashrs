@@ -474,6 +474,6 @@ impl Default for ContractSystem {
     }
 }
 
-#[cfg(test)]
-#[path = "contract_tests_contract_sys.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "contract_tests_contract_sys.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

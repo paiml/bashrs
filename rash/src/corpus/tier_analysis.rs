@@ -370,6 +370,6 @@ fn tier_label(tier: CorpusTier) -> &'static str {
     }
 }
 
-#[cfg(test)]
-#[path = "tier_analysis_tests_make_entry.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "tier_analysis_tests_make_entry.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

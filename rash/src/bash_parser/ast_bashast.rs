@@ -477,6 +477,5 @@ mod tests {
     use super::*;
 
 
-}
-
     include!("ast_part2_incl2.rs");
+}

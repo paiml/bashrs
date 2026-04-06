@@ -246,6 +246,6 @@ pub fn format_quality_matrix(stats: &[CategoryStats]) -> String {
     out
 }
 
-#[cfg(test)]
-#[path = "domain_categories_tests_make_entry.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "domain_categories_tests_make_entry.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

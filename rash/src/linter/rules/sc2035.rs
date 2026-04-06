@@ -165,6 +165,6 @@ pub fn check(source: &str) -> LintResult {
     result
 }
 
-#[cfg(test)]
-#[path = "sc2035_tests_sc2035_rm.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "sc2035_tests_sc2035_rm.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

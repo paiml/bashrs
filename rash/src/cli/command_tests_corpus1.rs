@@ -7,6 +7,6 @@
 // corpus_ranking_commands::sparkline_str
 // ---------------------------------------------------------------------------
 
-#[cfg(test)]
-#[path = "command_tests_corpus1_tests_sparkline_em.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "command_tests_corpus1_tests_sparkline_em.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

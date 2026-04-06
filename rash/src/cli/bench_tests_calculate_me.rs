@@ -201,6 +201,5 @@ mod tests {
         assert!((harm_mean - 1.714).abs() < 0.01);
     }
 
+    include!("bench_tests_extracted_issue.rs");
 }
-
-include!("bench_tests_extracted_issue.rs");

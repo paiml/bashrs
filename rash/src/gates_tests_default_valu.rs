@@ -205,6 +205,5 @@ mod tests {
 #[cfg(test)]
 mod gates_tests_extracted_gates {
     use super::*;
+    include!("gates_tests_extracted_gates.rs");
 }
-
-include!("gates_tests_extracted_gates.rs");

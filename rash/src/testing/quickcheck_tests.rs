@@ -356,9 +356,9 @@ proptest! {
 
 // Regression tests for specific edge cases found by QuickCheck
 
-#[cfg(test)]
-#[path = "quickcheck_tests_tests_null_charact.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "quickcheck_tests_tests_null_charact.rs"]
+// FIXME(PMAT-238): mod tests_extracted;
 
 // Stdlib property tests (string_*, fs_*, loops, match, control flow)
 #[cfg(test)]

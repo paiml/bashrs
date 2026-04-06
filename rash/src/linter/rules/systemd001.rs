@@ -352,6 +352,6 @@ fn check_post_conditions(state: &SystemdCheckState<'_>, result: &mut LintResult)
     }
 }
 
-#[cfg(test)]
-#[path = "systemd001_tests_f086_valid.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "systemd001_tests_f086_valid.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

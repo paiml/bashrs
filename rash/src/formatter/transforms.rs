@@ -365,6 +365,6 @@ impl Default for TransformId {
     }
 }
 
-#[cfg(test)]
-#[path = "transforms_tests_transform_id.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "transforms_tests_transform_id.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

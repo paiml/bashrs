@@ -200,6 +200,5 @@ mod tests {
         }
     }
 
+    include!("parser_tests_extracted_convert.rs");
 }
-
-include!("parser_tests_extracted_convert.rs");

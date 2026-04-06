@@ -208,6 +208,5 @@ mod tests {
 #[cfg(test)]
 mod enhanced_state_tests_extracted_state {
     use super::*;
+    include!("enhanced_state_tests_extracted_state.rs");
 }
-
-include!("enhanced_state_tests_extracted_state.rs");

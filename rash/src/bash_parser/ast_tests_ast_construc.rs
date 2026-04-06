@@ -206,6 +206,5 @@ mod tests {
 #[cfg(test)]
 mod ast_bracegroup_tests {
     use super::*;
+    include!("ast_tests_extracted_bracegroup.rs");
 }
-
-include!("ast_tests_extracted_bracegroup.rs");

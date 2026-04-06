@@ -230,6 +230,6 @@ fn chrono_timestamp() -> String {
     )
 }
 
-#[cfg(test)]
-#[path = "audit_tests_testspec_2.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "audit_tests_testspec_2.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

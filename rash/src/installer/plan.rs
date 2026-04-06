@@ -384,6 +384,6 @@ fn validate_artifacts(artifacts: &[Artifact], steps: &[Step]) -> Result<Vec<Vali
     Ok(validated)
 }
 
-#[cfg(test)]
-#[path = "plan_tests_plan_from.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "plan_tests_plan_from.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

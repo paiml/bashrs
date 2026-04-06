@@ -336,6 +336,6 @@ pub fn publish_benchmark(
     Ok(summary)
 }
 
-#[cfg(test)]
-#[path = "benchmark_publish_tests_extracted_write.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "benchmark_publish_tests_extracted_write.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

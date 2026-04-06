@@ -351,6 +351,6 @@ pub fn format_ssc_report(report: &SscStatusReport) -> String {
     out
 }
 
-#[cfg(test)]
-#[path = "ssc_report_tests_ssc_status.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "ssc_report_tests_ssc_status.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

@@ -214,6 +214,5 @@ mod tests {
 #[cfg(test)]
 mod error_tests_extracted_detailed {
     use super::*;
+    include!("error_tests_extracted_detailed.rs");
 }
-
-include!("error_tests_extracted_detailed.rs");

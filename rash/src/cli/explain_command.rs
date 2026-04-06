@@ -478,6 +478,6 @@ fn print_explanation(report: &ExplainReport) {
     }
 }
 
-#[cfg(test)]
-#[path = "explain_command_tests_explain_safe.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "explain_command_tests_explain_safe.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

@@ -477,6 +477,5 @@ tier2_gates = ["clippy", "tests"]
     }
 
 
-}
-
     include!("gates_part3_incl2.rs");
+}

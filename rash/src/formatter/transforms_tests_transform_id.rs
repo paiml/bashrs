@@ -205,6 +205,5 @@ mod tests {
 #[cfg(test)]
 mod transforms_tests_extracted_whitespace {
     use super::*;
+    include!("transforms_tests_extracted_whitespace.rs");
 }
-
-include!("transforms_tests_extracted_whitespace.rs");

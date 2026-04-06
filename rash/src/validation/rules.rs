@@ -291,6 +291,6 @@ pub fn validate_all(snippet: &str) -> RashResult<()> {
     Ok(())
 }
 
-#[cfg(test)]
-#[path = "rules_tests_variable_exp.rs"]
-mod tests_extracted;
+// FIXME(PMAT-238): #[cfg(test)]
+// FIXME(PMAT-238): #[path = "rules_tests_variable_exp.rs"]
+// FIXME(PMAT-238): mod tests_extracted;

@@ -387,6 +387,5 @@ COPY . /app
         assert!(parsed["total_estimated_bytes"].is_u64());
         assert!(parsed["layers"].is_array());
     }
+    include!("docker_profiler_tests_tests_lookup_base.rs");
 }
-
-include!("docker_profiler_tests_tests_lookup_base.rs");

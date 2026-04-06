@@ -207,6 +207,5 @@ BUILD_TIME := $(shell date +%Y%m%d)"#;
 #[cfg(test)]
 mod semantic_tests_extracted_FUNC {
     use super::*;
+    include!("semantic_tests_extracted_FUNC.rs");
 }
-
-include!("semantic_tests_extracted_FUNC.rs");
