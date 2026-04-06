@@ -212,5 +212,5 @@ mod tests {
 #[cfg(test)]
 mod pipeline_coverage_tests_tests_extracted_exec {
     use super::*;
-    // FIXME(PMAT-238):     include!("pipeline_coverage_tests_tests_extracted_exec.rs");
+        include!("pipeline_coverage_tests_tests_extracted_exec.rs");
 }

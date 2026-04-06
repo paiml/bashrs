@@ -350,4 +350,4 @@ fn test_CORPUS_RUN_034_format_file_patterns() {
 
 #[test]
 
-include!("runner_tests_tests_CORPUS_2.rs");
+// FIXME(PMAT-238): include!("runner_tests_tests_CORPUS_2.rs");

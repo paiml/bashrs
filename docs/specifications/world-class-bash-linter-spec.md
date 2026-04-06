@@ -39,7 +39,7 @@
 7. **Mutation** - Fault injection for test quality validation
 8. **Score** - Unified quality metric (TDG + Ruchy integration)
 
-### Current State (v6.65.1 — Updated 2026-04-05)
+### Current State (v6.65.1 — Updated 2026-04-06)
 
 ```
 Capability              Status          Coverage
@@ -70,7 +70,7 @@ LSP                     ✅ Complete     bashrs lsp (diagnostics + Quick Fix + h
 CFG Analysis            ✅ Complete     bashrs cfg (formal CFG + complexity metrics)
 File Health             ✅ Complete     0/298 files >500 lines (grade B, semantic names)
 pmat comply             ⚠️ 66/67 pass   CB-1308 (L5 requires CI evidence — contracts enriched with verification_command)
-Test Coverage           ⚠️ ~91%         Target: 95% (test binary needs include!() fix)
+Test Coverage           ⚠️ 78%          Target: 95% (10,218 tests pass; 435 broken test decls disabled — re-enabling)
 34 total subcommands
 ```
 

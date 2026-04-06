@@ -63,8 +63,8 @@ mod expr_coverage_tests;
 mod parser_coverage_tests;
 
 #[cfg(test)]
-// FIXME(PMAT-238): #[path = "parser_arith_tests.rs"]
-// FIXME(PMAT-238): mod parser_arith_tests;
+#[path = "parser_arith_tests.rs"]
+mod parser_arith_tests;
 #[cfg(test)]
 #[path = "parser_decl_tests.rs"]
 mod parser_decl_tests;

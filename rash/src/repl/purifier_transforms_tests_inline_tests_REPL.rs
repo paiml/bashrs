@@ -429,4 +429,4 @@ mod purify_and_lint_tests {
 // ===== REPL-014-001: PROPERTY TESTS (RED PHASE) =====
 
 
-include!("purifier_transforms_tests_inline_tests_prop_purify.rs");
+// FIXME(PMAT-238): include!("purifier_transforms_tests_inline_tests_prop_purify.rs");
