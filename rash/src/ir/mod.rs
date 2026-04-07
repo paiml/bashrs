@@ -102,9 +102,11 @@ mod tests_s2;
 #[path = "tests_s3.rs"]
 mod tests_s3;
 // FIXME(PMAT-238): #[cfg(test)]
+#[cfg(test)]
 #[path = "tests_s4.rs"]
 mod tests_s4;
 // FIXME(PMAT-238): #[cfg(test)]
+#[cfg(test)]
 #[path = "tests_s5.rs"]
 mod tests_s5;
 #[cfg(test)]

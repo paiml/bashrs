@@ -26,7 +26,7 @@ autobins = false
 path = "src/lib.rs"
 
 [dependencies]
-bashrs = { path = "rash", version = "6.65.1" }
+bashrs = { path = "rash", version = "6.66.0" }
 
 [dev-dependencies]
 provable-contracts = { version = "0.3", path = "../provable-contracts/crates/provable-contracts" }
@@ -77,7 +77,7 @@ regex-automata = "0.5"
 regex-syntax = "0.9"
 
 [workspace.package]
-version = "6.65.1"
+version = "6.66.0"
 edition = "2021"
 rust-version = "1.82"
 authors = ["Pragmatic AI Labs"]
