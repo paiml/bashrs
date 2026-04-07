@@ -39,7 +39,7 @@
 7. **Mutation** - Fault injection for test quality validation
 8. **Score** - Unified quality metric (TDG + Ruchy integration)
 
-### Current State (v6.65.1 — Updated 2026-04-06)
+### Current State (v6.65.1 — Updated 2026-04-07)
 
 ```
 Capability              Status          Coverage
@@ -68,10 +68,12 @@ Playbook                ✅ Complete     State machine testing (probar)
 Simulate                ✅ Complete     Deterministic replay
 LSP                     ✅ Complete     bashrs lsp (diagnostics + Quick Fix + hover + VS Code .vsix)
 CFG Analysis            ✅ Complete     bashrs cfg (formal CFG + complexity metrics)
-File Health             ✅ Complete     0/298 files >500 lines (grade B, semantic names)
-pmat comply             ⚠️ 66/67 pass   CB-1308 (L5 requires CI evidence — contracts enriched with verification_command)
-Test Coverage           ✅ 90%          14,300 tests pass / 0 fail / 68 ignored
+File Health             ✅ Complete     0 F-grade files, TDG 95.0 average
+pmat comply             ⚠️ 66/67 pass   CB-1308 (L5 requires CI evidence)
+Test Suite              ✅ 14,300       0 failures, 68 ignored, 34s run, 5s build
+Test Coverage           ✅ 90.3%        Target: 95% (5 irreducible test files remain)
 Provable Contracts      ✅ Grade A/B    12 bashrs contracts: 5×A + 7×B (mean 0.90)
+Open Issues             ✅ 0            All GitHub issues closed
 34 total subcommands
 ```
 
