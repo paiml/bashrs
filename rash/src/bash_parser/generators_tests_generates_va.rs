@@ -1,5 +1,5 @@
 
-use super::super::*;
+use super::*;
 use proptest::proptest;
 use proptest::strategy::ValueTree;
 

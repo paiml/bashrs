@@ -1,5 +1,9 @@
 
 use super::*;
+use crate::linter::LintResult;
+use crate::repl::purifier::PurifiedLintResult;
+use crate::repl::purifier::purify_and_lint;
+use crate::repl::purifier::{format_purified_lint_result, purify_and_validate, format_purified_lint_result_with_context, PurificationError};
 
 // ===== REPL-013-001: TRANSFORMATION EXPLANATION TESTS (RED PHASE) =====
 

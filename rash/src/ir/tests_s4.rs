@@ -5,6 +5,50 @@ use crate::ast::{Expr, Function, RestrictedAst, Stmt, Type};
 use proptest::prelude::*;
 use rstest::*;
 
+fn convert_let_stmt(name: &str, value: Expr) -> ShellIR {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Void,
+            body: vec![Stmt::Let {
+                name: name.to_string(),
+                value,
+                declaration: true,
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+    from_ast(&ast).expect("IR conversion should succeed")
+}
+
+fn extract_let_value(ir: &ShellIR) -> &ShellValue {
+    match ir {
+        ShellIR::Sequence(stmts) => match &stmts[0] {
+            ShellIR::Let { value, .. } => value,
+            other => panic!("Expected Let, got {:?}", other),
+        },
+        other => panic!("Expected Sequence, got {:?}", other),
+    }
+}
+
+fn convert_let_stmt_err(name: &str, value: Expr) -> crate::models::Error {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Void,
+            body: vec![Stmt::Let {
+                name: name.to_string(),
+                value,
+                declaration: true,
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+    from_ast(&ast).expect_err("Expected conversion error")
+}
+
 // Helper: wrap a single let statement in a main function and convert to IR
 
 /// RED TEST: Optimization disabled should preserve arithmetic

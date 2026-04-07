@@ -322,6 +322,6 @@ pub fn bash_script() -> impl Strategy<Value = BashAst> {
     })
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "generators_tests_generates_va.rs"]
-// FIXME(PMAT-238): mod tests_extracted;
+#[cfg(test)]
+#[path = "generators_tests_generates_va.rs"]
+mod tests_extracted;

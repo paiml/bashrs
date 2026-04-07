@@ -162,6 +162,6 @@ pub use super::purifier_transforms_gen::{
     generate_safety_alternatives,
 };
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "purifier_transforms_tests_inline.rs"]
-// FIXME(PMAT-238): mod tests_inline;
+#[cfg(test)]
+#[path = "purifier_transforms_tests_inline.rs"]
+mod tests_inline;

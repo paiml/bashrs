@@ -4,11 +4,16 @@ mod purifier_coverage {
     use crate::repl::purifier::{
         explain_purification_changes, explain_purification_changes_detailed, format_alternatives,
         format_purified_lint_result, format_purified_lint_result_with_context,
-        format_safety_rationale, format_transformation_report, generate_determinism_alternatives,
-        generate_determinism_rationale, generate_idempotency_alternatives,
-        generate_idempotency_rationale, generate_safety_alternatives, generate_safety_rationale,
-        purify_and_lint, Alternative, PurificationError, PurifiedLintResult, SafetyRationale,
-        SafetySeverity, TransformationCategory, TransformationExplanation,
+        format_safety_rationale, purify_and_lint, Alternative, PurificationError,
+        PurifiedLintResult, SafetyRationale, SafetySeverity,
+    };
+    use crate::repl::purifier_transforms::{
+        generate_determinism_alternatives, generate_determinism_rationale,
+        generate_idempotency_alternatives, generate_idempotency_rationale,
+        generate_safety_rationale, TransformationCategory, TransformationExplanation,
+    };
+    use crate::repl::purifier_transforms_gen::{
+        format_transformation_report, generate_safety_alternatives,
     };
 
     // ── helpers ──────────────────────────────────────────────────────────────

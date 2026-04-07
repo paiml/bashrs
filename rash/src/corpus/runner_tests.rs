@@ -352,5 +352,5 @@ fn test_CORPUS_RUN_017_classify_error_unsupported() {
 }
 
 
-// FIXME(PMAT-238): include!("runner_tests_tests_CORPUS_3.rs");
+include!("runner_tests_tests_CORPUS_3.rs");
 
