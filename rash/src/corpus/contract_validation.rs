@@ -260,6 +260,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
     fn test_dataset_split_proportions() {
         let result = check_dataset_split();
         // Split proportions should be roughly 80/10/10

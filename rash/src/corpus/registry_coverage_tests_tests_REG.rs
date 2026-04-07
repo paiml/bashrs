@@ -11,6 +11,7 @@ fn test_REG_COV_047_tier5_bash_via_full() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_048_tier5_makefile_via_full() {
     let r = CorpusRegistry::load_full();
     let t5m: Vec<_> = r
@@ -28,6 +29,7 @@ fn test_REG_COV_048_tier5_makefile_via_full() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_049_tier5_dockerfile_via_full() {
     let r = CorpusRegistry::load_full();
     let t5d: Vec<_> = r
@@ -45,6 +47,7 @@ fn test_REG_COV_049_tier5_dockerfile_via_full() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_050_load_full_all_entries_valid() {
     assert_entries_valid(&CorpusRegistry::load_full().entries, "load_full");
 }
@@ -60,6 +63,7 @@ fn test_REG_COV_051_load_full_no_duplicate_ids() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_052_expansion_entries_over_1000() {
     let adv_len = CorpusRegistry::load_all_with_adversarial().len();
     let full_len = CorpusRegistry::load_full().len();
@@ -88,6 +92,7 @@ fn test_REG_COV_054_deterministic_flag_always_true() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_055_expansion_makefile_count() {
     let r = CorpusRegistry::load_full();
     let mfp = r
@@ -99,6 +104,7 @@ fn test_REG_COV_055_expansion_makefile_count() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_056_expansion_dockerfile_count() {
     let r = CorpusRegistry::load_full();
     let dfp = r
@@ -151,6 +157,7 @@ fn test_REG_COV_029_by_tier_only_matching() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_030_by_format_and_tier() {
     let r = CorpusRegistry::load_all();
     let bt = r.by_format_and_tier(CorpusFormat::Bash, CorpusTier::Trivial);
@@ -218,6 +225,7 @@ fn test_REG_COV_035_registry_debug_clone() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_036_m001_correct() {
     let r = CorpusRegistry::load_tier1();
     let m = r.entries.iter().find(|e| e.id == "M-001").unwrap();
@@ -228,6 +236,7 @@ fn test_REG_COV_036_m001_correct() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_037_d001_correct() {
     let r = CorpusRegistry::load_tier1();
     let d = r.entries.iter().find(|e| e.id == "D-001").unwrap();
@@ -236,6 +245,7 @@ fn test_REG_COV_037_d001_correct() {
 }
 
 #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_REG_COV_038_b001_correct() {
     let r = CorpusRegistry::load_tier1();
     let b = r.entries.iter().find(|e| e.id == "B-001").unwrap();

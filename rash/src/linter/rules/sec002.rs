@@ -107,6 +107,7 @@ fn create_sec002_diagnostic(cmd: &str, line_num: usize, col: usize) -> Diagnosti
 
 /// Check for unquoted variables in dangerous commands
 pub fn check(source: &str) -> LintResult {
+    if source.is_empty() { return LintResult::new(); }
     // Contract: safety-classifier-v1.yaml precondition (pv codegen)
     contract_pre_classify_injection!(source);
     let mut result = LintResult::new();

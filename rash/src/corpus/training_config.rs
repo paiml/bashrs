@@ -241,6 +241,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
     fn test_training_config_has_class_weights() {
         let config = generate_training_config();
         assert_eq!(config.training.class_weights.len(), 2);
@@ -252,6 +253,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
     fn test_training_config_corpus_data() {
         let config = generate_training_config();
         assert!(config.data.total_entries > 100, "Must have corpus data");

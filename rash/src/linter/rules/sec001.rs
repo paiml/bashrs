@@ -53,6 +53,7 @@ fn is_safe_eval_indirection(line: &str, col: usize) -> bool {
 
 /// Check for command injection via eval
 pub fn check(source: &str) -> LintResult {
+    if source.is_empty() { return LintResult::new(); }
     // Contract: safety-classifier-v1.yaml precondition (pv codegen)
     contract_pre_classify_injection!(source);
     let mut result = LintResult::new();

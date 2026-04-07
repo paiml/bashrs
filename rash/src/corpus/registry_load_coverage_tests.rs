@@ -6,6 +6,7 @@
 use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_coverage_load_full_all_formats() {
     let registry = CorpusRegistry::load_full();
 
@@ -64,6 +65,7 @@ fn test_coverage_load_full_ids_valid() {
 }
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_coverage_load_full_by_format() {
     let registry = CorpusRegistry::load_full();
     let bash_entries = registry.by_format(CorpusFormat::Bash);

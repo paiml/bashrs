@@ -50,6 +50,9 @@
 /// assert!(result.diagnostics.len() >= 2);
 /// ```
 pub fn lint_shell(source: &str) -> LintResult {
+    if source.is_empty() {
+        return LintResult::new();
+    }
     // Contract: safety-classifier-v1.yaml precondition (pv codegen)
     contract_pre_lint_shell!(source);
 

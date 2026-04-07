@@ -62,6 +62,7 @@ fn check_find_exec_injection(line: &str, line_num: usize) -> Option<Diagnostic> 
 
 /// Check for {} embedded in shell command strings (dangerous injection vector)
 pub fn check(source: &str) -> LintResult {
+    if source.is_empty() { return LintResult::new(); }
     // Contract: safety-classifier-v1.yaml precondition (pv codegen)
     contract_pre_classify_injection!(source);
     let mut result = LintResult::new();

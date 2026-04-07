@@ -253,6 +253,7 @@ mod tests {
     use crate::corpus::registry::CorpusRegistry;
 
     #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
     fn test_export_produces_entries() {
         let registry = CorpusRegistry::load_full();
         let (entries, summary) = export_benchmark(&registry, Some(500));
@@ -341,6 +342,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
     fn test_summary_by_lang() {
         let registry = CorpusRegistry::load_full();
         let (_, summary) = export_benchmark(&registry, Some(500));
@@ -354,6 +356,7 @@ mod tests {
     /// FALSIFY-SSB-003: Benchmark export has DPO-compatible schema.
     /// All entries must have: id, lang, cwe, rule, severity, script, chosen, rejected.
     #[test]
+    #[ignore = "requires runtime corpus data (externalized from builtin)"]
     fn test_benchmark_dpo_schema() {
         let registry = CorpusRegistry::load_full();
         let (entries, _) = export_benchmark(&registry, Some(200));

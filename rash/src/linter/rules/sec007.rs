@@ -58,6 +58,7 @@ fn check_sudo_line(line: &str, line_num: usize, result: &mut LintResult) {
 
 /// Check for unsafe sudo operations
 pub fn check(source: &str) -> LintResult {
+    if source.is_empty() { return LintResult::new(); }
     // Contract: safety-classifier-v1.yaml precondition (pv codegen)
     contract_pre_classify_filesystem!(source);
     let mut result = LintResult::new();

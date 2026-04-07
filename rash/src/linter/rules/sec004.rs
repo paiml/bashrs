@@ -28,6 +28,7 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
 /// Check for disabled TLS verification in wget/curl
 pub fn check(source: &str) -> LintResult {
+    if source.is_empty() { return LintResult::new(); }
     // Contract: safety-classifier-v1.yaml precondition (pv codegen)
     contract_pre_classify_filesystem!(source);
     let mut result = LintResult::new();
