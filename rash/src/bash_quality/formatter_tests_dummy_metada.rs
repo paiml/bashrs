@@ -161,5 +161,6 @@ fn test_format_function_not_normalized() {
 #[cfg(test)]
 mod formatter_tests_ext_test_format_fun {
     use super::*;
-    // FIXME(PMAT-238): include!("formatter_tests_ext_test_format_fun.rs");
+    use crate::bash_parser::ast::{ArithExpr, TestExpr};
+    include!("formatter_tests_ext_test_format_fun.rs");
 }

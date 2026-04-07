@@ -203,10 +203,6 @@ mod inspector_coverage {
     }
 
     // ── generate_report — Failure variant ────────────────────────────────────
-}
 
-#[cfg(test)]
-mod inspector_coverage_tests_tests_extracted_generate {
-    use super::*;
-    // FIXME(PMAT-238): include!("inspector_coverage_tests_tests_extracted_generate.rs");
+    include!("inspector_coverage_tests_tests_extracted_generate.rs");
 }

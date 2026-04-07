@@ -1,5 +1,6 @@
 
 use super::*;
+use crate::installer::spec::InstallerSpec;
 
 /// Simplified test spec for audit testing
 #[derive(Debug, Clone)]

@@ -385,6 +385,6 @@ exit $?
     }
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "mod_tests_discover_emp.rs"]
-// FIXME(PMAT-238): mod tests_ext;
+#[cfg(test)]
+#[path = "mod_tests_discover_emp.rs"]
+mod tests_ext;
