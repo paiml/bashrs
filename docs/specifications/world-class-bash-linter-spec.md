@@ -70,8 +70,8 @@ LSP                     ✅ Complete     bashrs lsp (diagnostics + Quick Fix + h
 CFG Analysis            ✅ Complete     bashrs cfg (formal CFG + complexity metrics)
 File Health             ✅ Complete     0/298 files >500 lines (grade B, semantic names)
 pmat comply             ⚠️ 66/67 pass   CB-1308 (L5 requires CI evidence — contracts enriched with verification_command)
-Test Coverage           ⚠️ 87%          Target: 95% (13,147 tests pass; 30 broken test decls remain)
-Provable Contracts      ⚠️ Grade D      34 contracts, mean 0.52 — need bindings (D5) + Kani (D3)
+Test Coverage           ⚠️ 90%          Target: 95% (14,300 tests pass; 5 irreducible disabled)
+Provable Contracts      ⚠️ Grade D+     35 contracts, mean 0.60 — 13 bound, gates-quality-v1 added
 34 total subcommands
 ```
 

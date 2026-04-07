@@ -1,0 +1,89 @@
+contract:
+  name: semantic-rules-v1
+  version: "1.0.0"
+  description: "Semantic analysis lint rules SEM001-SEM004 for bash scripts"
+  verification_level: L2
+
+preconditions:
+  - id: PRE-SEM-001
+    description: "bashrs linter is operational"
+    check: "bashrs lint --help exits successfully"
+
+tests:
+  - id: FALSIFY-SEM-001
+    description: "SEM001 detects unused variables"
+    type: behavioral
+    input: |
+      #!/bin/bash
+      unused="hello"
+      echo "world"
+    assertion: "Output must contain SEM001 and reference 'unused'"
+    falsification: "Remove SEM001 check — unused variables silently ignored"
+
+  - id: FALSIFY-SEM-002
+    description: "SEM001 does NOT flag exported variables"
+    type: behavioral
+    input: |
+      #!/bin/bash
+      export API_KEY="secret"
+    assertion: "Output must NOT contain SEM001"
+    falsification: "Flag exported vars — false positive on environment setup scripts"
+
+  - id: FALSIFY-SEM-003
+    description: "SEM001 does NOT flag underscore-prefixed variables"
+    type: behavioral
+    input: |
+      #!/bin/bash
+      _unused="ignored"
+      echo done
+    assertion: "Output must NOT contain SEM001"
+    falsification: "Flag _prefixed vars — violates bash convention for intentionally ignored"
+
+  - id: FALSIFY-SEM-004
+    description: "SEM003 detects unreachable code after exit"
+    type: behavioral
+    input: |
+      #!/bin/bash
+      exit 0
+      echo "unreachable"
+    assertion: "Output must contain SEM003"
+    falsification: "Remove SEM003 — dead code goes undetected"
+
+  - id: FALSIFY-SEM-005
+    description: "SEM004 detects variable leakage in functions"
+    type: behavioral
+    input: |
+      #!/bin/bash
+      setup() {
+        result="done"
+      }
+    assertion: "Output must contain SEM004 and reference 'result'"
+    falsification: "Remove SEM004 — function scope bugs go undetected"
+
+  - id: FALSIFY-SEM-006
+    description: "SEM004 does NOT flag local variables"
+    type: behavioral
+    input: |
+      #!/bin/bash
+      setup() {
+        local result="done"
+      }
+    assertion: "Output must NOT contain SEM004"
+    falsification: "Flag local vars — false positive breaks all well-written functions"
+
+  - id: FALSIFY-SEM-007
+    description: "SEM rules support inline suppression"
+    type: behavioral
+    input: |
+      #!/bin/bash
+      # shellcheck disable=SEM001
+      unused="hello"
+      echo world
+    assertion: "Output must NOT contain SEM001 for suppressed line"
+    falsification: "Ignore suppression — breaks shellcheck compatibility"
+
+postconditions:
+  - id: POST-SEM-001
+    description: "All SEM rules are wired into lint_shell() pipeline"
+  - id: POST-SEM-002
+    description: "SEM rules appear in all output formats (human, JSON, SARIF)"

@@ -1,0 +1,60 @@
+contract:
+  name: vscode-extension-v1
+  version: "1.0.0"
+  description: "VS Code extension for bashrs LSP — packaging and integration"
+  verification_level: L2
+
+preconditions:
+  - id: PRE-VSEXT-001
+    description: "bashrs binary is installed and accessible"
+    check: "which bashrs || cargo build -p bashrs --bin bashrs"
+
+tests:
+  - id: FALSIFY-VSEXT-001
+    description: "Extension package.json has required VS Code manifest fields"
+    type: structural
+    assertion: |
+      package.json must contain: name, displayName, version, engines.vscode,
+      main, activationEvents, contributes.configuration
+    falsification: "Remove 'main' field — extension fails to load"
+
+  - id: FALSIFY-VSEXT-002
+    description: "Extension activates on shellscript, makefile, dockerfile languages"
+    type: behavioral
+    assertion: |
+      activationEvents must include onLanguage:shellscript, onLanguage:makefile,
+      onLanguage:dockerfile
+    falsification: "Remove onLanguage:shellscript — no diagnostics on .sh files"
+
+  - id: FALSIFY-VSEXT-003
+    description: "Extension spawns bashrs lsp as language server"
+    type: behavioral
+    assertion: |
+      extension.ts must create LanguageClient with command='bashrs' args=['lsp']
+    falsification: "Change args to ['lint'] — LSP protocol fails to initialize"
+
+  - id: FALSIFY-VSEXT-004
+    description: "TypeScript compiles without errors"
+    type: structural
+    assertion: "tsc -p ./ produces zero errors"
+    falsification: "Introduce type error — compile fails"
+
+  - id: FALSIFY-VSEXT-005
+    description: "VSIX package builds successfully"
+    type: integration
+    assertion: "vsce package produces a valid .vsix file"
+    falsification: "Remove main entry point — packaging fails"
+
+  - id: FALSIFY-VSEXT-006
+    description: "Server path is configurable via bashrs.serverPath setting"
+    type: behavioral
+    assertion: |
+      contributes.configuration must include bashrs.serverPath with type string
+      and default 'bashrs'
+    falsification: "Remove setting — users cannot override binary path"
+
+postconditions:
+  - id: POST-VSEXT-001
+    description: "Extension .vsix is installable via code --install-extension"
+  - id: POST-VSEXT-002
+    description: "LSP diagnostics appear within 2 seconds of opening a .sh file"

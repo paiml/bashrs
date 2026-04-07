@@ -237,4 +237,4 @@ high_risk_components = ["linter"]
         assert_eq!(config.risk_based.high_risk_components, vec!["linter"]);
     }
 
-// FIXME(PMAT-238): include!("gates_tests_extracted_gates_gate.rs");
+include!("gates_tests_extracted_gates_gate.rs");

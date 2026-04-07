@@ -1,0 +1,58 @@
+metadata:
+  version: 1.0.0
+  verification_level: L3
+  description: Quality gate configuration and enforcement. Verifies that gate configs
+    parse correctly, tier assignments work, and individual gates can be enabled/disabled.
+  verification_command: cargo test -p bashrs --lib -- gates
+  references:
+  - 'Spec Section 6: Quality Scoring System'
+  - 'ML-001 to ML-012: Quality Gates'
+equations:
+  gate_enforcement:
+    formula: 'forall tier in {1,2,3}: gates_for_tier(config, tier) returns correct gate set'
+    domain: 'tier: {1,2,3}, config: GateConfig'
+    codomain: 'Vec<String> (gate names for tier)'
+    invariants:
+    - Tier 1 gates are a subset of tier 2 gates
+    - Tier 2 gates are a subset of tier 3 gates
+    - Unknown gate names return GateResult::Failed
+proof_obligations:
+- type: invariant
+  property: Tier 1 gates are a subset of tier 2 gates
+  formal: forall g in gates_for_tier(1) => g in gates_for_tier(2)
+  applies_to: all
+- type: invariant
+  property: Unknown gate names return GateResult::Failed
+  formal: run_gate(config, "nonexistent") == GateResult::Failed
+  applies_to: all
+invariants:
+- Default GateConfig has valid metadata (version, tool name)
+- Gate configs deserialize from TOML without panic
+- Disabled gates always return GateResult::Passed
+falsification_tests:
+- id: F-GATE-DEFAULT
+  rule: Default GateConfig valid
+  prediction: GateConfig::default() has version "1.0.0" and tool "bashrs"
+  test: 'let c = GateConfig::default(); assert_eq!(c.metadata.version, "1.0.0")'
+  if_fails: 'Contract violation: default config metadata invalid'
+- id: F-GATE-TIER-SUBSET
+  rule: Tier subset property
+  prediction: len(gates_for_tier(1)) <= len(gates_for_tier(2)) <= len(gates_for_tier(3))
+  test: 'assert!(tier1.len() <= tier2.len() && tier2.len() <= tier3.len())'
+  if_fails: 'Contract violation: tier gates not monotonically increasing'
+- id: F-GATE-UNKNOWN
+  rule: Unknown gate fails
+  prediction: run_gate(config, "nonexistent") returns failed status
+  test: 'let r = run_gate(&config, "nonexistent"); assert!(r.status == "failed")'
+  if_fails: 'Contract violation: unknown gate did not fail'
+- id: F-GATE-DISABLED
+  rule: Disabled gate passes
+  prediction: Disabled gate always returns passed
+  test: 'let r = run_gate(&disabled, "clippy"); assert!(r.status == "passed")'
+  if_fails: 'Contract violation: disabled gate did not pass'
+kani_harnesses:
+- id: KANI-GATES-001
+  obligation: Default GateConfig has valid metadata (version, tool name)
+  property: Default GateConfig has valid metadata (version, tool name)
+  bound: 4
+  strategy: stub_float

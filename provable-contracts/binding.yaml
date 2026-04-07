@@ -160,3 +160,17 @@ bindings:
     file: rash/src/corpus/dataset_exportformat.rs
     status: implemented
     confidence: 0.65
+
+  # === gates-quality-v1 ===
+  - contract: gates-quality-v1
+    equation: gate_enforcement
+    function: gates_for_tier
+    file: rash/src/quality/gates.rs
+    status: implemented
+    confidence: 0.90
+  - contract: gates-quality-v1
+    equation: gate_enforcement
+    function: run_gate
+    file: rash/src/quality/gates.rs
+    status: implemented
+    confidence: 0.90
