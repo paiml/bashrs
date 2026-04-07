@@ -69,10 +69,10 @@ Simulate                ✅ Complete     Deterministic replay
 LSP                     ✅ Complete     bashrs lsp (diagnostics + Quick Fix + hover + VS Code .vsix)
 CFG Analysis            ✅ Complete     bashrs cfg (formal CFG + complexity metrics)
 File Health             ✅ Complete     0 F-grade files, TDG 95.0 average
-pmat comply             ⚠️ 66/67 pass   CB-1308 (L5 requires CI evidence)
-Test Suite              ✅ 14,300       0 failures, 68 ignored, 34s run, 5s build
-Test Coverage           ✅ 90.3%        Target: 95% (5 irreducible test files remain)
-Provable Contracts      ✅ Grade A/B    12 bashrs contracts: 5×A + 7×B (mean 0.90)
+Test Suite              ✅ 14,583       0 failures, 68 ignored, 34s run, 5s build
+Test Coverage           ✅ 90.8%        93.1% function cov (target: 95% line)
+Provable Contracts      ✅ Grade A/B    12 bashrs contracts: 8×A + 4×B (mean 0.92)
+pmat comply             ✅ 69/69        All checks passing
 Open Issues             ✅ 0            All GitHub issues closed
 34 total subcommands
 ```
