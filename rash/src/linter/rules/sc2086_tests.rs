@@ -1,4 +1,3 @@
-
 use super::*;
 
 #[test]
@@ -241,201 +240,200 @@ fn test_mutation_column_calculation_braced() {
     assert_eq!(span.start_col, 6, "Start should be at $ (column 6)");
     assert_eq!(
         span.end_col, 12,
-        "End should include closing }
-(column 12)"
-        );
-    }
+        "End should include closing }} (column 12)"
+    );
+}
 
-    #[test]
-    fn test_mutation_column_calculation_simple() {
-        // MUTATION: Verifies column calculation for simple $VAR (no braces)
-        let bash_code = "echo $VAR";
-        let result = check(bash_code);
+#[test]
+fn test_mutation_column_calculation_simple() {
+    // MUTATION: Verifies column calculation for simple $VAR (no braces)
+    let bash_code = "echo $VAR";
+    let result = check(bash_code);
 
-        assert_eq!(result.diagnostics.len(), 1);
-        let span = result.diagnostics[0].span;
+    assert_eq!(result.diagnostics.len(), 1);
+    let span = result.diagnostics[0].span;
 
-        assert_eq!(span.start_col, 6, "Start should be at $ (column 6)");
-        assert_eq!(span.end_col, 10, "End should be after VAR (column 10)");
-    }
+    assert_eq!(span.start_col, 6, "Start should be at $ (column 6)");
+    assert_eq!(span.end_col, 10, "End should be after VAR (column 10)");
+}
 
-    #[test]
-    fn test_mutation_line_numbers() {
-        // MUTATION: If + becomes - in check function (line 121),
-        // line numbers will be incorrect
-        let bash_code = r#"
+#[test]
+fn test_mutation_line_numbers() {
+    // MUTATION: If + becomes - in check function (line 121),
+    // line numbers will be incorrect
+    let bash_code = r#"
 #!/bin/bash
 echo "first"
 echo $VAR
 echo "last"
 "#;
 
-        let result = check(bash_code);
-        assert_eq!(
-            result.diagnostics.len(),
-            1,
-            "Should detect one unquoted variable"
-        );
-        assert_eq!(
-            result.diagnostics[0].span.start_line, 4,
-            "Should report line 4"
-        );
-        assert_eq!(
-            result.diagnostics[0].span.end_line, 4,
-            "End line should also be 4"
-        );
-    }
+    let result = check(bash_code);
+    assert_eq!(
+        result.diagnostics.len(),
+        1,
+        "Should detect one unquoted variable"
+    );
+    assert_eq!(
+        result.diagnostics[0].span.start_line, 4,
+        "Should report line 4"
+    );
+    assert_eq!(
+        result.diagnostics[0].span.end_line, 4,
+        "End line should also be 4"
+    );
+}
 
-    #[test]
-    fn test_mutation_arithmetic_check_logic() {
-        // MUTATION: If && becomes || in check function (line 127),
-        // verify arithmetic detection still works correctly
-        let bash_code = "result=$(( $x + $y ))";
-        let result = check(bash_code);
-        assert_eq!(
-            result.diagnostics.len(),
-            0,
-            "Arithmetic context check must work"
-        );
+#[test]
+fn test_mutation_arithmetic_check_logic() {
+    // MUTATION: If && becomes || in check function (line 127),
+    // verify arithmetic detection still works correctly
+    let bash_code = "result=$(( $x + $y ))";
+    let result = check(bash_code);
+    assert_eq!(
+        result.diagnostics.len(),
+        0,
+        "Arithmetic context check must work"
+    );
 
-        // Also verify non-arithmetic is still caught
-        let bash_code2 = "echo $x";
-        let result2 = check(bash_code2);
-        assert_eq!(
-            result2.diagnostics.len(),
-            1,
-            "Non-arithmetic should be flagged"
-        );
-    }
+    // Also verify non-arithmetic is still caught
+    let bash_code2 = "echo $x";
+    let result2 = check(bash_code2);
+    assert_eq!(
+        result2.diagnostics.len(),
+        1,
+        "Non-arithmetic should be flagged"
+    );
+}
 
-    #[test]
-    fn test_mutation_column_offset() {
-        // MUTATION: Additional test for column calculation edge cases
-        let bash_code = "ls ${FILE}";
-        let result = check(bash_code);
+#[test]
+fn test_mutation_column_offset() {
+    // MUTATION: Additional test for column calculation edge cases
+    let bash_code = "ls ${FILE}";
+    let result = check(bash_code);
 
-        assert_eq!(result.diagnostics.len(), 1);
-        let span = result.diagnostics[0].span;
+    assert_eq!(result.diagnostics.len(), 1);
+    let span = result.diagnostics[0].span;
 
-        // Verify the span covers the entire variable expression
-        // "${FILE}" is 7 characters, span.end_col - span.start_col should be 7
-        assert_eq!(
-            span.end_col - span.start_col,
-            7,
-            "Span length should cover ${{FILE}}"
-        );
-        assert!(span.start_col >= 4, "Should start after 'ls '");
-    }
+    // Verify the span covers the entire variable expression
+    // "${FILE}" is 7 characters, span.end_col - span.start_col should be 7
+    assert_eq!(
+        span.end_col - span.start_col,
+        7,
+        "Span length should cover ${{FILE}}"
+    );
+    assert!(span.start_col >= 4, "Should start after 'ls '");
+}
 
-    #[test]
-    fn test_mutation_multiline_line_calculation() {
-        // MUTATION: Ensures line number calculation handles multiple lines correctly
-        let bash_code = r#"echo "line 1"
+#[test]
+fn test_mutation_multiline_line_calculation() {
+    // MUTATION: Ensures line number calculation handles multiple lines correctly
+    let bash_code = r#"echo "line 1"
 echo "line 2"
 echo $VAR1
 echo "line 4"
 echo $VAR2"#;
 
-        let result = check(bash_code);
-        assert_eq!(
-            result.diagnostics.len(),
-            2,
-            "Should detect two unquoted variables"
-        );
+    let result = check(bash_code);
+    assert_eq!(
+        result.diagnostics.len(),
+        2,
+        "Should detect two unquoted variables"
+    );
 
-        // Verify line numbers are correct
-        assert_eq!(
-            result.diagnostics[0].span.start_line, 3,
-            "First variable on line 3"
-        );
-        assert_eq!(
-            result.diagnostics[1].span.start_line, 5,
-            "Second variable on line 5"
-        );
-    }
+    // Verify line numbers are correct
+    assert_eq!(
+        result.diagnostics[0].span.start_line, 3,
+        "First variable on line 3"
+    );
+    assert_eq!(
+        result.diagnostics[1].span.start_line, 5,
+        "Second variable on line 5"
+    );
+}
 
-    // ===== Mutation Coverage Tests - Iteration 2 (Helper Functions) =====
-    // These tests target the 24 missed mutants from Iteration 1
+// ===== Mutation Coverage Tests - Iteration 2 (Helper Functions) =====
+// These tests target the 24 missed mutants from Iteration 1
 
-    // Tests for should_skip_line() helper (6 missed mutants)
+// Tests for should_skip_line() helper (6 missed mutants)
 
-    #[test]
-    fn test_mutation_should_skip_comment_lines() {
-        // MUTATION: Line 22:30 - delete ! in !line.contains("if [")
-        // Should skip comments, not flag variables in comments
-        let bash_code = "# This is a comment with $VAR\necho $ACTUAL";
-        let result = check(bash_code);
-        assert_eq!(
-            result.diagnostics.len(),
-            1,
-            "Should only detect $ACTUAL, not $VAR in comment"
-        );
-        assert!(result.diagnostics[0].message.contains("$ACTUAL"));
-    }
+#[test]
+fn test_mutation_should_skip_comment_lines() {
+    // MUTATION: Line 22:30 - delete ! in !line.contains("if [")
+    // Should skip comments, not flag variables in comments
+    let bash_code = "# This is a comment with $VAR\necho $ACTUAL";
+    let result = check(bash_code);
+    assert_eq!(
+        result.diagnostics.len(),
+        1,
+        "Should only detect $ACTUAL, not $VAR in comment"
+    );
+    assert!(result.diagnostics[0].message.contains("$ACTUAL"));
+}
 
-    #[test]
-    fn test_mutation_should_detect_vars_in_test_conditions() {
-        // MUTATION: Line 22:27 - && replaced with || in line.contains('=') && !line.contains("if [")
-        // MUTATION: Line 22:53 - && replaced with || in !line.contains("if [") && !line.contains("[ ")
-        // Should detect unquoted vars in test conditions, not skip them as assignments
-        let bash_code = "if [ $VAR = value ]; then echo ok; fi";
-        let result = check(bash_code);
-        assert_eq!(
-            result.diagnostics.len(),
-            1,
-            "Should detect $VAR in test condition"
-        );
-        assert!(result.diagnostics[0].message.contains("$VAR"));
-    }
+#[test]
+fn test_mutation_should_detect_vars_in_test_conditions() {
+    // MUTATION: Line 22:27 - && replaced with || in line.contains('=') && !line.contains("if [")
+    // MUTATION: Line 22:53 - && replaced with || in !line.contains("if [") && !line.contains("[ ")
+    // Should detect unquoted vars in test conditions, not skip them as assignments
+    let bash_code = "if [ $VAR = value ]; then echo ok; fi";
+    let result = check(bash_code);
+    assert_eq!(
+        result.diagnostics.len(),
+        1,
+        "Should detect $VAR in test condition"
+    );
+    assert!(result.diagnostics[0].message.contains("$VAR"));
+}
 
-    #[test]
-    fn test_mutation_should_skip_simple_assignments() {
-        // MUTATION: Line 25:27 - < replaced with <=, >, or ==
-        // Should skip variable assignments (eq_pos < first_space)
-        let bash_code = "VAR=value\necho $VAR";
-        let result = check(bash_code);
-        assert_eq!(
-            result.diagnostics.len(),
-            1,
-            "Should only detect $VAR in echo, not assignment"
-        );
-        assert_eq!(
-            result.diagnostics[0].span.start_line, 2,
-            "Should be on line 2 (echo)"
-        );
-    }
+#[test]
+fn test_mutation_should_skip_simple_assignments() {
+    // MUTATION: Line 25:27 - < replaced with <=, >, or ==
+    // Should skip variable assignments (eq_pos < first_space)
+    let bash_code = "VAR=value\necho $VAR";
+    let result = check(bash_code);
+    assert_eq!(
+        result.diagnostics.len(),
+        1,
+        "Should only detect $VAR in echo, not assignment"
+    );
+    assert_eq!(
+        result.diagnostics[0].span.start_line, 2,
+        "Should be on line 2 (echo)"
+    );
+}
 
-    #[test]
-    fn test_mutation_assignment_position_boundary() {
-        // MUTATION: Line 25:27 - < replaced with <= (boundary condition)
-        // Verifies eq_pos < first_space (not <=)
-        let bash_code = "X= value\necho $X"; // Space after =, eq_pos < first_space still true
-        let result = check(bash_code);
-        // Should skip the assignment line and only flag echo
-        assert_eq!(result.diagnostics.len(), 1, "Should detect $X in echo only");
-    }
+#[test]
+fn test_mutation_assignment_position_boundary() {
+    // MUTATION: Line 25:27 - < replaced with <= (boundary condition)
+    // Verifies eq_pos < first_space (not <=)
+    let bash_code = "X= value\necho $X"; // Space after =, eq_pos < first_space still true
+    let result = check(bash_code);
+    // Should skip the assignment line and only flag echo
+    assert_eq!(result.diagnostics.len(), 1, "Should detect $X in echo only");
+}
 
-    #[test]
-    fn test_mutation_should_skip_negation_in_contains() {
-        // MUTATION: Line 22:56 - delete ! in !line.contains("[ ")
-        // Tests that negation logic is correct (skip assignments, not test conditions)
-        let bash_code = r#"
+#[test]
+fn test_mutation_should_skip_negation_in_contains() {
+    // MUTATION: Line 22:56 - delete ! in !line.contains("[ ")
+    // Tests that negation logic is correct (skip assignments, not test conditions)
+    let bash_code = r#"
 VAR=123
 if [ $TEST = ok ]; then
     echo done
 fi
 "#;
-        let result = check(bash_code);
-        // Should detect $TEST in the if condition
-        assert_eq!(
-            result.diagnostics.len(),
-            1,
-            "Should detect $TEST in condition"
-        );
-        assert!(result.diagnostics[0].message.contains("$TEST"));
-    }
+    let result = check(bash_code);
+    // Should detect $TEST in the if condition
+    assert_eq!(
+        result.diagnostics.len(),
+        1,
+        "Should detect $TEST in condition"
+    );
+    assert!(result.diagnostics[0].message.contains("$TEST"));
+}
 
-    // Tests for find_dollar_position() helper (1 missed mutant)
+// Tests for find_dollar_position() helper (1 missed mutant)
 
 #[cfg(test)]
 mod sc2086_tests_quoting {

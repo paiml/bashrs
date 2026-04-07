@@ -78,12 +78,12 @@ fn test_cli_check_command() {
 
 #[test]
 fn test_cli_init_command() {
-    let args = vec!["rash", "init", "--name", "myproject"];
+    let args = vec!["rash", "init", "myproject", "--name", "myproject"];
     let cli = Cli::parse_from(args);
 
     match cli.command {
         Commands::Init { path, name } => {
-            assert_eq!(path, PathBuf::from("."));
+            assert_eq!(path, PathBuf::from("myproject"));
             assert_eq!(name, Some("myproject".to_string()));
         }
         _ => panic!("Expected Init command"),
