@@ -1,5 +1,5 @@
 
-use super::super::*;
+use super::*;
 
 #[test]
 fn test_DIST_001_graph_new() {
