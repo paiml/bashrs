@@ -59,13 +59,18 @@ fn preprocess_line_continuations_with_metadata(input: &str) -> PreprocessingResu
         // Check if this line ends with backslash (continuation)
         while line.trim_end().ends_with('\\') && i + 1 < lines.len() {
             // Record the position where we're about to insert the continuation
-            let break_position = line.trim_end().strip_suffix('\\').unwrap().trim_end().len();
+            let break_position = line
+                .trim_end()
+                .strip_suffix('\\')
+                .expect("backslash suffix verified by while condition")
+                .trim_end()
+                .len();
 
             // Remove the trailing backslash and any trailing whitespace
             line = line
                 .trim_end()
                 .strip_suffix('\\')
-                .unwrap()
+                .expect("backslash suffix verified by while condition")
                 .trim_end()
                 .to_string();
 
