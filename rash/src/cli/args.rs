@@ -54,8 +54,7 @@ pub enum Commands {
     },
     /// Initialize new Rash project
     Init {
-        /// Project directory
-        #[arg(default_value = ".")]
+        /// Project directory (required — prevents accidental CWD mutation)
         path: PathBuf,
         /// Project name
         #[arg(long)]

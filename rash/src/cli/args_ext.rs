@@ -179,8 +179,8 @@ pub enum CommandsExt {
 
     /// Generate adversarial training data for shell safety classifier
     GenerateAdversarial {
-        /// Output JSONL file path
-        #[arg(short, long, default_value = "adversarial.jsonl")]
+        /// Output JSONL file path (required — prevents accidental CWD file creation)
+        #[arg(short, long)]
         output: PathBuf,
 
         /// RNG seed for reproducible generation
