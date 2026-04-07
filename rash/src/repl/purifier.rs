@@ -441,6 +441,6 @@ fn collect_change_explanations(original: &str, purified: &str) -> Vec<String> {
 // so callers using crate::repl::purifier::TransformationCategory etc. still work.
 pub use super::purifier_transforms::*;
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "purifier_tests.rs"]
-// FIXME(PMAT-238): mod tests;
+#[cfg(test)]
+#[path = "purifier_tests.rs"]
+mod tests;

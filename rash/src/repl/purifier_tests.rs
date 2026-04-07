@@ -1,3 +1,4 @@
+use super::*;
 use crate::linter::Severity;
 
 // ===== UNIT TESTS (RED PHASE) =====

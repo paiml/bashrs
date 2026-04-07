@@ -232,6 +232,6 @@ pub fn is_incomplete(input: &str) -> bool {
     bash_keywords_need_continuation(input)
 }
 
-// FIXME(PMAT-238): #[cfg(test)]
-// FIXME(PMAT-238): #[path = "multiline_tests_repl_011.rs"]
-// FIXME(PMAT-238): mod tests_ext;
+#[cfg(test)]
+#[path = "multiline_tests_repl_011.rs"]
+mod tests_ext;

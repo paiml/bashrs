@@ -1,5 +1,7 @@
 
 use super::*;
+use crate::repl::debugger::DebugSession;
+use crate::repl::ContinueResult;
 
 // ===== UNIT TESTS (RED PHASE) =====
 
