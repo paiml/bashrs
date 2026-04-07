@@ -107,3 +107,33 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_no_orphan_rules
+- id: KANI-LINTER_COVERAGE-003
+  obligation: Every SEC rule fires on at least one shell input
+  property: Every SEC rule fires on at least one shell input
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_COVERAGE-004
+  obligation: Every DET rule fires on at least one shell input
+  property: Every DET rule fires on at least one shell input
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_COVERAGE-005
+  obligation: Every IDEM rule fires on at least one shell input
+  property: Every IDEM rule fires on at least one shell input
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_COVERAGE-006
+  obligation: Every DOCKER rule fires on at least one Dockerfile input
+  property: Every DOCKER rule fires on at least one Dockerfile input
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_COVERAGE-007
+  obligation: Every MAKE rule fires on at least one Makefile input
+  property: Every MAKE rule fires on at least one Makefile input
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_COVERAGE-008
+  obligation: No rule is dead code (zero hits across all inputs)
+  property: No rule is dead code (zero hits across all inputs)
+  bound: 4
+  strategy: stub_float

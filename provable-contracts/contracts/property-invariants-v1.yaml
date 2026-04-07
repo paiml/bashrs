@@ -114,3 +114,28 @@ kani_harnesses:
   property: Determinism property detects $RANDOM usage
   bound: 4
   strategy: stub_float
+- id: KANI-PROPERTY_INVARIANTS-003
+  obligation: 'All strings: escape_shell_string never returns empty'
+  property: 'All strings: escape_shell_string never returns empty'
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_INVARIANTS-004
+  obligation: 'All strings: escape roundtrip preserves length ordering'
+  property: 'All strings: escape roundtrip preserves length ordering'
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_INVARIANTS-005
+  obligation: 'All safe strings: escape preserves content (no false modification)'
+  property: 'All safe strings: escape preserves content (no false modification)'
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_INVARIANTS-006
+  obligation: 'All inputs: purify(purify(x)) == purify(x) (idempotent)'
+  property: 'All inputs: purify(purify(x)) == purify(x) (idempotent)'
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_INVARIANTS-007
+  obligation: 'All inputs: determinism — purify is a function (same input → same output)'
+  property: 'All inputs: determinism — purify is a function (same input → same output)'
+  bound: 4
+  strategy: stub_float

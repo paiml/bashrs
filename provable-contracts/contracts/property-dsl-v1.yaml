@@ -106,3 +106,43 @@ kani_harnesses:
   property: Require rules flag missing patterns
   bound: 4
   strategy: stub_float
+- id: KANI-PROPERTY_DSL-003
+  obligation: --custom flag loads TOML property definitions
+  property: --custom flag loads TOML property definitions
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_DSL-004
+  obligation: forbid rules flag lines matching the regex as violations
+  property: forbid rules flag lines matching the regex as violations
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_DSL-005
+  obligation: require rules flag missing patterns as violations
+  property: require rules flag missing patterns as violations
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_DSL-006
+  obligation: Custom properties appear in Custom Properties section of terminal output
+  property: Custom properties appear in Custom Properties section of terminal output
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_DSL-007
+  obligation: JSON output includes custom_properties array when --custom is used
+  property: JSON output includes custom_properties array when --custom is used
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_DSL-008
+  obligation: Invalid TOML files produce error (not crash)
+  property: Invalid TOML files produce error (not crash)
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_DSL-009
+  obligation: Missing custom file produces error
+  property: Missing custom file produces error
+  bound: 4
+  strategy: stub_float
+- id: KANI-PROPERTY_DSL-010
+  obligation: Custom and built-in properties combine correctly
+  property: Custom and built-in properties combine correctly
+  bound: 4
+  strategy: stub_float

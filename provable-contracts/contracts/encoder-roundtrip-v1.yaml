@@ -118,3 +118,23 @@ kani_harnesses:
   property: Empty strings produce valid shell output
   bound: 4
   strategy: stub_float
+- id: KANI-ENCODER_ROUNDTRIP-003
+  obligation: Shell metacharacters ($, `, |, ;) are always neutralized in emitted code
+  property: Shell metacharacters ($, `, |, ;) are always neutralized in emitted code
+  bound: 4
+  strategy: stub_float
+- id: KANI-ENCODER_ROUNDTRIP-004
+  obligation: 'Escape roundtrip is idempotent: escape(escape(s)) == escape(s)'
+  property: 'Escape roundtrip is idempotent: escape(escape(s)) == escape(s)'
+  bound: 4
+  strategy: stub_float
+- id: KANI-ENCODER_ROUNDTRIP-005
+  obligation: Empty strings produce valid shell output (not syntax errors)
+  property: Empty strings produce valid shell output (not syntax errors)
+  bound: 4
+  strategy: stub_float
+- id: KANI-ENCODER_ROUNDTRIP-006
+  obligation: Variable names are sanitized to [A-Za-z0-9_]
+  property: Variable names are sanitized to [A-Za-z0-9_]
+  bound: 4
+  strategy: stub_float

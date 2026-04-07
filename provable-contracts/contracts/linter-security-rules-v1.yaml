@@ -140,3 +140,23 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_security_rules_no_false_positives
+- id: KANI-LINTER_SECURITY_RULES-003
+  obligation: Each SEC rule detects known-vulnerable patterns (soundness)
+  property: Each SEC rule detects known-vulnerable patterns (soundness)
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_SECURITY_RULES-004
+  obligation: Each SEC rule does NOT flag known-safe patterns (precision)
+  property: Each SEC rule does NOT flag known-safe patterns (precision)
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_SECURITY_RULES-005
+  obligation: SEC001-SEC008 cover OWASP top shell injection vectors
+  property: SEC001-SEC008 cover OWASP top shell injection vectors
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_SECURITY_RULES-006
+  obligation: 'Rules are independent: disabling one does not affect others'
+  property: 'Rules are independent: disabling one does not affect others'
+  bound: 4
+  strategy: stub_float

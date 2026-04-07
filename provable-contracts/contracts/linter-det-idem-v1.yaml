@@ -129,3 +129,18 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_det_idem_no_false_positives
+- id: KANI-LINTER_DET_IDEM-003
+  obligation: DET rules detect all non-deterministic constructs ($RANDOM, timestamps, system state)
+  property: DET rules detect all non-deterministic constructs ($RANDOM, timestamps, system state)
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_DET_IDEM-004
+  obligation: IDEM rules detect non-idempotent operations (mkdir without -p, rm without -f)
+  property: IDEM rules detect non-idempotent operations (mkdir without -p, rm without -f)
+  bound: 4
+  strategy: stub_float
+- id: KANI-LINTER_DET_IDEM-005
+  obligation: IDEM rules do NOT false-positive on idempotent operations
+  property: IDEM rules do NOT false-positive on idempotent operations
+  bound: 4
+  strategy: stub_float
