@@ -1,5 +1,5 @@
-
-use super::super::*;
+use super::*;
+use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
 use crate::bash_parser::parser_arith::ArithToken;
 #[test]
 fn test_parse_simple_assignment() {
@@ -212,9 +212,7 @@ fn test_parse_arithmetic_complex() {
                     match arith.as_ref() {
                         ArithExpr::Mul(left, right) => {
                             assert!(matches!(left.as_ref(), ArithExpr::Add(_, _)));
-                            assert!(
-                                matches!(right.as_ref(), ArithExpr::Variable(v) if v == "c")
-                            );
+                            assert!(matches!(right.as_ref(), ArithExpr::Variable(v) if v == "c"));
                         }
                         _ => panic!("Expected Mul expression at top level"),
                     }
@@ -241,9 +239,7 @@ fn test_parse_arithmetic_precedence() {
                     // Should be: Add(a, Mul(b, c)) - multiplication has higher precedence
                     match arith.as_ref() {
                         ArithExpr::Add(left, right) => {
-                            assert!(
-                                matches!(left.as_ref(), ArithExpr::Variable(v) if v == "a")
-                            );
+                            assert!(matches!(left.as_ref(), ArithExpr::Variable(v) if v == "a"));
                             assert!(matches!(right.as_ref(), ArithExpr::Mul(_, _)));
                         }
                         _ => panic!("Expected Add expression at top level"),
@@ -392,8 +388,7 @@ fn test_FORCSTYLE_COV_006_variable_token() {
 #[test]
 fn test_FORCSTYLE_COV_007_no_semicolon_before_do() {
     // No semicolon between )) and do
-    let (init, cond, incr) =
-        parse_for_c_style_parts("for ((i=0; i<10; i++))\ndo\necho $i\ndone");
+    let (init, cond, incr) = parse_for_c_style_parts("for ((i=0; i<10; i++))\ndo\necho $i\ndone");
     assert_eq!(init, "i=0");
     assert!(cond.contains("i<10") || cond.contains("i <10") || cond.contains("i< 10"));
     assert!(!incr.is_empty());
@@ -415,8 +410,7 @@ fn test_FORCSTYLE_COV_009_nested_parentheses() {
 
 #[test]
 fn test_FORCSTYLE_COV_010_number_tokens() {
-    let (init, cond, incr) =
-        parse_for_c_style_parts("for ((i=0; i<100; i++)); do echo $i; done");
+    let (init, cond, incr) = parse_for_c_style_parts("for ((i=0; i<100; i++)); do echo $i; done");
     assert!(init.contains("0"));
     assert!(cond.contains("100"));
     assert!(!incr.is_empty());
@@ -462,4 +456,16 @@ fn test_FORCSTYLE_COV_013_assign_token() {
     // Tests the Token::Assign (=) path in the content reader
     let (init, _, _) = parse_for_c_style_parts("for ((i=0; i<10; i++)); do echo ok; done");
     assert!(init.contains("=") || init.contains("0"));
+}
+
+fn parse_arith(input: &str) -> ArithExpr {
+    let mut parser = BashParser::new(&format!("echo $(({input}))")).expect("parser init");
+    let ast = parser.parse().expect("parse");
+    match &ast.statements[0] {
+        BashStmt::Command { args, .. } => match &args[0] {
+            BashExpr::Arithmetic(expr) => *expr.clone(),
+            other => panic!("Expected Arithmetic, got {other:?}"),
+        },
+        other => panic!("Expected Command, got {other:?}"),
+    }
 }

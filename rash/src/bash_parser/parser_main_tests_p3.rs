@@ -1,5 +1,5 @@
-
-use super::super::*;
+use super::*;
+use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
 use crate::bash_parser::parser_arith::ArithToken;
 #[test]
 fn test_parse_remove_longest_prefix() {
@@ -469,3 +469,8 @@ fn test_parse_command_substitution() {
 // ============================================================================
 // Coverage Tests - Comments
 // ============================================================================
+
+fn tokenize(input: &str) -> Vec<ArithToken> {
+    let parser = BashParser::new("echo x").expect("parser init");
+    parser.tokenize_arithmetic(input).expect("tokenize")
+}

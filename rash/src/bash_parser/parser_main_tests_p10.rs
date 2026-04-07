@@ -1,5 +1,5 @@
-
-use super::super::*;
+use super::*;
+use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
 use crate::bash_parser::parser_arith::ArithToken;
 #[test]
 fn test_V_TEST_001_variable_set() {
@@ -16,8 +16,7 @@ fn test_V_TEST_001_variable_set() {
 #[test]
 fn test_ENV_PREFIX_001_while_ifs() {
     // IFS='=' before read — env prefix, not assignment condition
-    let input =
-        "while IFS='=' read -r key value; do\n    echo \"$key=$value\"\ndone < input.txt";
+    let input = "while IFS='=' read -r key value; do\n    echo \"$key=$value\"\ndone < input.txt";
     let mut parser = BashParser::new(input).expect("parser");
     let ast = parser.parse();
     assert!(
@@ -211,8 +210,8 @@ fn test_FILE_TEST_001_symlink() {
 fn test_FILE_TEST_002_all_operators() {
     // Test all file test operators
     for op in [
-        "-f", "-e", "-s", "-d", "-r", "-w", "-x", "-L", "-h", "-p", "-b", "-c", "-g", "-k",
-        "-u", "-t", "-O", "-G", "-N", "-v", "-n", "-z",
+        "-f", "-e", "-s", "-d", "-r", "-w", "-x", "-L", "-h", "-p", "-b", "-c", "-g", "-k", "-u",
+        "-t", "-O", "-G", "-N", "-v", "-n", "-z",
     ] {
         let input = format!("[ {} /tmp/test ]", op);
         let mut parser = BashParser::new(&input).expect("parser");

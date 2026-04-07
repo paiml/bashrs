@@ -1,6 +1,21 @@
-
-use super::super::*;
+use super::*;
+use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
 use crate::bash_parser::parser_arith::ArithToken;
+
+fn parse_for_c_style_parts(input: &str) -> (String, String, String) {
+    let mut parser = BashParser::new(input).expect("parser init");
+    let ast = parser.parse().expect("parse");
+    match &ast.statements[0] {
+        BashStmt::ForCStyle {
+            init,
+            condition,
+            increment,
+            ..
+        } => (init.clone(), condition.clone(), increment.clone()),
+        other => panic!("Expected ForCStyle, got {other:?}"),
+    }
+}
+
 #[test]
 fn test_FORCSTYLE_COV_014_identifier_and_number() {
     // Tests both Token::Identifier and Token::Number paths
