@@ -329,3 +329,184 @@ impl Default for Transpiler {
 #[cfg(test)]
 #[path = "transpiler_tests_xtask_001.rs"]
 mod tests_extracted;
+
+#[cfg(test)]
+mod tests_coverage {
+    #![allow(clippy::unwrap_used)]
+    #![allow(clippy::expect_used)]
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_transpiler_default_impl() {
+        let t = Transpiler::default();
+        assert!(t.input.is_none());
+        assert!(t.output.is_none());
+        assert!(t.permissions.is_none());
+    }
+
+    #[test]
+    fn test_transpiler_default_eq_new() {
+        let a = Transpiler::new();
+        let b = Transpiler::default();
+        assert_eq!(format!("{a:?}"), format!("{b:?}"));
+    }
+
+    #[test]
+    fn test_transpiler_config_builder() {
+        use crate::models::ShellDialect;
+        let config = Config {
+            target: ShellDialect::Bash,
+            ..Default::default()
+        };
+        let t = Transpiler::new().config(config.clone());
+        assert_eq!(format!("{:?}", t.config), format!("{config:?}"));
+    }
+
+    #[test]
+    fn test_transpiler_missing_both_input_and_output() {
+        let result = Transpiler::new().transpile();
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_transpiler_permissions_without_unix() {
+        // Setting permissions on the builder should not panic
+        let t = Transpiler::new().permissions(0o644);
+        assert_eq!(t.permissions, Some(0o644));
+    }
+
+    #[test]
+    fn test_transpiler_clone() {
+        let t = Transpiler::new()
+            .input("foo.rs")
+            .output("bar.sh")
+            .permissions(0o755);
+        let cloned = t.clone();
+        assert_eq!(
+            cloned.input.expect("should have input").to_str(),
+            Some("foo.rs")
+        );
+        assert_eq!(
+            cloned.output.expect("should have output").to_str(),
+            Some("bar.sh")
+        );
+        assert_eq!(cloned.permissions, Some(0o755));
+    }
+
+    #[test]
+    fn test_transpiler_input_file_not_readable() {
+        let temp_dir = TempDir::new().expect("should create temp dir");
+        let output_path = temp_dir.path().join("out.sh");
+
+        let result = Transpiler::new()
+            .input("/nonexistent/path/to/file.rs")
+            .output(&output_path)
+            .transpile();
+
+        assert!(result.is_err());
+        match result {
+            Err(Error::Io(e)) => {
+                let msg = format!("{e}");
+                assert!(msg.contains("Failed to read input file"));
+            }
+            other => panic!("Expected Io error, got {:?}", other),
+        }
+    }
+
+    #[test]
+    fn test_transpiler_empty_parent_path() {
+        // When output path has no parent (just a filename), it should still work
+        let temp_dir = TempDir::new().expect("should create temp dir");
+        let input_path = temp_dir.path().join("input.rs");
+        fs::write(&input_path, "fn main() { let x = 1; }").expect("should write");
+
+        // Use a path within temp_dir so we don't pollute the filesystem
+        let output_path = temp_dir.path().join("output.sh");
+        let result = Transpiler::new()
+            .input(&input_path)
+            .output(&output_path)
+            .transpile();
+
+        assert!(result.is_ok(), "Transpilation failed: {:?}", result);
+    }
+
+    #[test]
+    fn test_transpiler_overwrites_existing_output() {
+        let temp_dir = TempDir::new().expect("should create temp dir");
+        let input_path = temp_dir.path().join("input.rs");
+        let output_path = temp_dir.path().join("output.sh");
+
+        fs::write(&input_path, "fn main() { let x = 1; }").expect("should write");
+        fs::write(&output_path, "old content").expect("should write");
+
+        let result = Transpiler::new()
+            .input(&input_path)
+            .output(&output_path)
+            .transpile();
+
+        assert!(result.is_ok());
+        let content = fs::read_to_string(&output_path).expect("should read");
+        assert!(content.contains("#!/bin/sh"), "Should have new content");
+        assert!(!content.contains("old content"), "Should be overwritten");
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_transpiler_permissions_0o644() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp_dir = TempDir::new().expect("should create temp dir");
+        let input_path = temp_dir.path().join("input.rs");
+        let output_path = temp_dir.path().join("output.sh");
+
+        fs::write(&input_path, "fn main() { let x = 1; }").expect("should write");
+
+        let result = Transpiler::new()
+            .input(&input_path)
+            .output(&output_path)
+            .permissions(0o644)
+            .transpile();
+
+        assert!(result.is_ok());
+        let metadata = fs::metadata(&output_path).expect("should get metadata");
+        let mode = metadata.permissions().mode() & 0o777;
+        assert_eq!(mode, 0o644);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn test_transpiler_no_permissions_set() {
+        // When permissions is None, no set_permissions call should be made
+        let temp_dir = TempDir::new().expect("should create temp dir");
+        let input_path = temp_dir.path().join("input.rs");
+        let output_path = temp_dir.path().join("output.sh");
+
+        fs::write(&input_path, "fn main() { let x = 1; }").expect("should write");
+
+        let result = Transpiler::new()
+            .input(&input_path)
+            .output(&output_path)
+            .transpile();
+
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+    }
+
+    #[test]
+    fn test_transpiler_deeply_nested_output_dir() {
+        let temp_dir = TempDir::new().expect("should create temp dir");
+        let input_path = temp_dir.path().join("input.rs");
+        let output_path = temp_dir.path().join("a/b/c/d/e/output.sh");
+
+        fs::write(&input_path, "fn main() { let x = 1; }").expect("should write");
+
+        let result = Transpiler::new()
+            .input(&input_path)
+            .output(&output_path)
+            .transpile();
+
+        assert!(result.is_ok());
+        assert!(output_path.exists());
+    }
+}

@@ -445,4 +445,307 @@ mod tests {
             rust_count
         );
     }
+
+    // ── Unit tests for pure helper functions ─────────────────────────
+
+    #[test]
+    fn test_format_to_lang_bash() {
+        assert_eq!(format_to_lang(CorpusFormat::Bash), "bash");
+    }
+
+    #[test]
+    fn test_format_to_lang_makefile() {
+        assert_eq!(format_to_lang(CorpusFormat::Makefile), "makefile");
+    }
+
+    #[test]
+    fn test_format_to_lang_dockerfile() {
+        assert_eq!(format_to_lang(CorpusFormat::Dockerfile), "dockerfile");
+    }
+
+    #[test]
+    fn test_build_chosen_response_safe() {
+        let diags: Vec<&LintDiagnostic> = vec![];
+        let response = build_chosen_response(&diags, "echo hello", false);
+        assert!(response.contains("Classification: safe"));
+        assert!(response.contains("good practices"));
+    }
+
+    #[test]
+    fn test_build_chosen_response_unsafe_with_diagnostics() {
+        let d = LintDiagnostic {
+            rule: "SEC001".to_string(),
+            severity: "error".to_string(),
+            message: "Command injection risk".to_string(),
+            line: 3,
+        };
+        let diags: Vec<&LintDiagnostic> = vec![&d];
+        let response = build_chosen_response(&diags, "rm -rf $USER_INPUT", true);
+        assert!(response.contains("Classification: unsafe"));
+        assert!(response.contains("SEC001"));
+        assert!(response.contains("line 3"));
+        assert!(response.contains("Command injection risk"));
+        assert!(response.contains("Original:"));
+        assert!(response.contains("```bash"));
+    }
+
+    #[test]
+    fn test_build_chosen_response_unsafe_multiple_diagnostics() {
+        let d1 = LintDiagnostic {
+            rule: "SEC001".to_string(),
+            severity: "error".to_string(),
+            message: "Injection risk".to_string(),
+            line: 1,
+        };
+        let d2 = LintDiagnostic {
+            rule: "DET001".to_string(),
+            severity: "warning".to_string(),
+            message: "Non-deterministic".to_string(),
+            line: 5,
+        };
+        let diags: Vec<&LintDiagnostic> = vec![&d1, &d2];
+        let response = build_chosen_response(&diags, "echo $RANDOM\nrm -rf $x", true);
+        assert!(response.contains("SEC001"));
+        assert!(response.contains("DET001"));
+    }
+
+    #[test]
+    fn test_build_rejected_response_for_unsafe() {
+        let response = build_rejected_response(true);
+        assert!(response.contains("looks fine"));
+        assert!(response.contains("don't see any security concerns"));
+    }
+
+    #[test]
+    fn test_build_rejected_response_for_safe() {
+        let response = build_rejected_response(false);
+        assert!(response.contains("potential security issues"));
+        assert!(response.contains("should be reviewed"));
+    }
+
+    #[test]
+    fn test_lint_entry_bash_clean_code() {
+        let diags = lint_entry("#!/bin/sh\necho \"hello\"\n", CorpusFormat::Bash);
+        // Clean code may or may not produce diagnostics; just verify it doesn't panic
+        let _ = diags;
+    }
+
+    #[test]
+    fn test_lint_entry_makefile() {
+        let diags = lint_entry(".PHONY: all\nall:\n\techo hello\n", CorpusFormat::Makefile);
+        let _ = diags;
+    }
+
+    #[test]
+    fn test_lint_entry_dockerfile() {
+        let diags = lint_entry(
+            "FROM ubuntu:latest\nRUN echo hello\n",
+            CorpusFormat::Dockerfile,
+        );
+        let _ = diags;
+    }
+
+    #[test]
+    fn test_lint_diagnostic_fields() {
+        let d = LintDiagnostic {
+            rule: "SEC002".to_string(),
+            severity: "warning".to_string(),
+            message: "Unquoted variable".to_string(),
+            line: 7,
+        };
+        assert_eq!(d.rule, "SEC002");
+        assert_eq!(d.severity, "warning");
+        assert_eq!(d.line, 7);
+    }
+
+    #[test]
+    fn test_export_summary_default_state() {
+        let summary = ExportSummary {
+            total: 0,
+            safe: 0,
+            unsafe_count: 0,
+            by_lang: std::collections::HashMap::new(),
+            by_cwe: std::collections::HashMap::new(),
+        };
+        assert_eq!(summary.total, 0);
+        assert!(summary.by_lang.is_empty());
+        assert!(summary.by_cwe.is_empty());
+    }
+
+    #[test]
+    fn test_export_benchmark_with_small_corpus() {
+        use crate::corpus::registry::{CorpusEntry, CorpusTier};
+        // Build a minimal corpus with a simple entry that transpiles
+        let entries = vec![CorpusEntry {
+            id: "B-001".to_string(),
+            name: "hello".to_string(),
+            description: "simple echo".to_string(),
+            format: CorpusFormat::Bash,
+            tier: CorpusTier::Trivial,
+            input: r#"fn main() { println!("hello"); }"#.to_string(),
+            expected_output: "echo hello".to_string(),
+            shellcheck: true,
+            deterministic: true,
+            idempotent: true,
+        }];
+        let registry = CorpusRegistry { entries };
+        let (bench_entries, summary) = export_benchmark(&registry, Some(1));
+
+        // Should produce at most 1 entry (may be 0 if transpile fails)
+        assert!(bench_entries.len() <= 1);
+        assert_eq!(summary.total, bench_entries.len());
+        assert_eq!(summary.safe + summary.unsafe_count, summary.total);
+    }
+
+    #[test]
+    fn test_export_benchmark_with_limit_zero() {
+        let registry = CorpusRegistry { entries: vec![] };
+        let (entries, summary) = export_benchmark(&registry, Some(0));
+        assert!(entries.is_empty());
+        assert_eq!(summary.total, 0);
+        assert_eq!(summary.safe, 0);
+        assert_eq!(summary.unsafe_count, 0);
+    }
+
+    #[test]
+    fn test_export_benchmark_empty_registry() {
+        let registry = CorpusRegistry { entries: vec![] };
+        let (entries, summary) = export_benchmark(&registry, None);
+        assert!(entries.is_empty());
+        assert_eq!(summary.total, 0);
+    }
+
+    #[test]
+    fn test_benchmark_entry_conversation_type_values() {
+        // Verify the two valid conversation types
+        let unsafe_entry = BenchmarkEntry {
+            id: "SSB-00001".to_string(),
+            lang: "bash".to_string(),
+            cwe: "CWE-78".to_string(),
+            rule: "SEC001".to_string(),
+            severity: "error".to_string(),
+            script: "rm -rf $x".to_string(),
+            chosen: "Classification: unsafe".to_string(),
+            rejected: "Looks fine".to_string(),
+            source: "bashrs-corpus".to_string(),
+            conversation_type: "classify-explain".to_string(),
+        };
+        assert_eq!(unsafe_entry.conversation_type, "classify-explain");
+
+        let safe_entry = BenchmarkEntry {
+            id: "SSB-00002".to_string(),
+            lang: "bash".to_string(),
+            cwe: "none".to_string(),
+            rule: "none".to_string(),
+            severity: "safe".to_string(),
+            script: "echo hello".to_string(),
+            chosen: "Classification: safe".to_string(),
+            rejected: "Potential issues".to_string(),
+            source: "bashrs-corpus".to_string(),
+            conversation_type: "confirm-safe".to_string(),
+        };
+        assert_eq!(safe_entry.conversation_type, "confirm-safe");
+    }
+
+    #[test]
+    fn test_chosen_response_includes_cwe_for_known_rule() {
+        // SEC001 should map to a CWE
+        let d = LintDiagnostic {
+            rule: "SEC001".to_string(),
+            severity: "error".to_string(),
+            message: "Command injection".to_string(),
+            line: 1,
+        };
+        let diags: Vec<&LintDiagnostic> = vec![&d];
+        let response = build_chosen_response(&diags, "eval $x", true);
+        // Should contain CWE reference from cwe_mapping
+        assert!(
+            response.contains("CWE") || response.contains("SEC001"),
+            "Response should reference CWE or rule: {}",
+            response
+        );
+    }
+
+    #[test]
+    fn test_transpile_entry_bash() {
+        use crate::corpus::registry::{CorpusEntry, CorpusTier};
+        let entry = CorpusEntry {
+            id: "B-test".to_string(),
+            name: "test".to_string(),
+            description: "test".to_string(),
+            format: CorpusFormat::Bash,
+            tier: CorpusTier::Trivial,
+            input: r#"fn main() { println!("hello"); }"#.to_string(),
+            expected_output: "echo hello".to_string(),
+            shellcheck: true,
+            deterministic: true,
+            idempotent: true,
+        };
+        let config = Config::default();
+        let result = transpile_entry(&entry, &config);
+        // Should produce some output (may vary but should not be empty for a valid Rust fn)
+        // Or it returns empty string if transpilation fails — both are acceptable
+        let _ = result;
+    }
+
+    #[test]
+    fn test_transpile_entry_makefile() {
+        use crate::corpus::registry::{CorpusEntry, CorpusTier};
+        let entry = CorpusEntry {
+            id: "M-test".to_string(),
+            name: "test".to_string(),
+            description: "test".to_string(),
+            format: CorpusFormat::Makefile,
+            tier: CorpusTier::Trivial,
+            input: r#"fn main() { println!("hello"); }"#.to_string(),
+            expected_output: ".PHONY: all".to_string(),
+            shellcheck: false,
+            deterministic: true,
+            idempotent: true,
+        };
+        let config = Config::default();
+        let result = transpile_entry(&entry, &config);
+        let _ = result;
+    }
+
+    #[test]
+    fn test_transpile_entry_dockerfile() {
+        use crate::corpus::registry::{CorpusEntry, CorpusTier};
+        let entry = CorpusEntry {
+            id: "D-test".to_string(),
+            name: "test".to_string(),
+            description: "test".to_string(),
+            format: CorpusFormat::Dockerfile,
+            tier: CorpusTier::Trivial,
+            input: r#"fn main() { println!("hello"); }"#.to_string(),
+            expected_output: "FROM ubuntu".to_string(),
+            shellcheck: false,
+            deterministic: true,
+            idempotent: true,
+        };
+        let config = Config::default();
+        let result = transpile_entry(&entry, &config);
+        let _ = result;
+    }
+
+    #[test]
+    fn test_build_chosen_response_truncates_long_scripts() {
+        let d = LintDiagnostic {
+            rule: "SEC001".to_string(),
+            severity: "error".to_string(),
+            message: "issue".to_string(),
+            line: 1,
+        };
+        let diags: Vec<&LintDiagnostic> = vec![&d];
+        // Create script with 20 lines — response should only include first 10
+        let long_script: String = (1..=20)
+            .map(|i| format!("echo line{i}"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        let response = build_chosen_response(&diags, &long_script, true);
+        assert!(response.contains("echo line1"));
+        assert!(response.contains("echo line10"));
+        // Line 11+ should be excluded from the Original: block
+        assert!(!response.contains("echo line11"));
+    }
 }

@@ -1985,3 +1985,67 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-240
+  github_issue: null
+  item_type: task
+  title: DONE
+  status: planned
+  priority: low
+  assigned_to: null
+  created: 2026-04-07T07:48:29Z
+  updated: 2026-04-07T07:48:29Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-241
+  github_issue: null
+  item_type: task
+  title: 'REWRITE-5: Rewrite 5 remaining test files + add provable contracts (93 tests)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-04-07T07:49:14Z
+  updated: 2026-04-07T07:49:14.719510988+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-242
+  github_issue: null
+  item_type: task
+  title: 'DEEP-CONTRACTS: Enrich 8 bashrs contracts to Grade A — spec depth + bindings + Kani'
+  status: inprogress
+  priority: critical
+  assigned_to: null
+  created: 2026-04-07T08:34:27Z
+  updated: 2026-04-07T08:34:27.506635740+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-243
+  github_issue: null
+  item_type: task
+  title: 'COV-95: Write tests for 8 uncovered production files — 90→95% coverage'
+  status: inprogress
+  priority: critical
+  assigned_to: null
+  created: 2026-04-07T16:46:30Z
+  updated: 2026-04-07T16:46:30.963728557+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null

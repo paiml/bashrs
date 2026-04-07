@@ -566,7 +566,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "bashrs"
-version = "6.65.1"
+version = "6.66.0"
 dependencies = [
  "anyhow",
  "aprender 0.27.5",
@@ -636,7 +636,7 @@ dependencies = [
 
 [[package]]
 name = "bashrs-oracle"
-version = "6.65.1"
+version = "6.66.0"
 dependencies = [
  "anyhow",
  "aprender 0.26.3",
@@ -653,14 +653,14 @@ dependencies = [
 
 [[package]]
 name = "bashrs-runtime"
-version = "6.65.1"
+version = "6.66.0"
 dependencies = [
  "anyhow",
 ]
 
 [[package]]
 name = "bashrs-specs"
-version = "6.65.1"
+version = "6.66.0"
 dependencies = [
  "bashrs",
  "criterion",
@@ -669,7 +669,7 @@ dependencies = [
 
 [[package]]
 name = "bashrs-wasm"
-version = "6.65.1"
+version = "6.66.0"
 dependencies = [
  "bashrs",
  "jugar-probar",
@@ -4186,9 +4186,9 @@ dependencies = [
 
 [[package]]
 name = "provable-contracts"
-version = "0.2.2"
+version = "0.3.1"
 dependencies = [
- "provable-contracts-macros 0.2.2",
+ "provable-contracts-macros 0.3.1",
  "regex",
  "serde",
  "serde_json",
@@ -4220,7 +4220,7 @@ dependencies = [
 
 [[package]]
 name = "provable-contracts-macros"
-version = "0.2.2"
+version = "0.3.1"
 dependencies = [
  "proc-macro2",
  "quote",

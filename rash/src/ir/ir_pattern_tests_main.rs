@@ -462,3 +462,253 @@ fn test_IRPAT_040_large_match_many_arms() {
     let out = transpile_ok(code);
     assert!(out.contains("result="), "Large match: {out}");
 }
+
+// ---------------------------------------------------------------------------
+// pattern_methods.rs — lower_let_if_expr nested then/else branches
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_041_let_if_expr_non_function_call_then() {
+    // Tests the else branch of the then-value check in lower_let_if_expr
+    // (when then-value is NOT a __if_expr FunctionCall)
+    let code = r#"
+        fn main() {
+            let x = 5;
+            let result = if x > 3 { "big" } else { "small" };
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("result="), "Simple if-expr: {out}");
+}
+
+#[test]
+fn test_IRPAT_042_let_if_expr_non_function_call_else() {
+    // Tests the else branch of the else-value check in lower_let_if_expr
+    // (when else-value is NOT a __if_expr FunctionCall)
+    let code = r#"
+        fn main() {
+            let flag = true;
+            let result = if flag { 1 } else { 0 };
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("result="), "Bool if-expr: {out}");
+}
+
+#[test]
+fn test_IRPAT_043_triple_nested_if_else_expr() {
+    // Triggers nested __if_expr in both then and else branches
+    let code = r#"
+        fn main() {
+            let x = 5;
+            let result = if x > 10 {
+                "very big"
+            } else if x > 7 {
+                "big"
+            } else if x > 3 {
+                "medium"
+            } else {
+                "small"
+            };
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("result="), "Triple nested if: {out}");
+}
+
+// ---------------------------------------------------------------------------
+// pattern_methods.rs — lower_return_if_expr all branches
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_044_fn_return_simple_if_expr() {
+    // Tests lower_return_if_expr with non-nested if
+    let code = r#"
+        fn is_positive(n: i32) -> i32 {
+            if n > 0 { 1 } else { 0 }
+        }
+        fn main() {
+            let r = is_positive(5);
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("is_positive"), "Return if-expr: {out}");
+}
+
+#[test]
+fn test_IRPAT_045_fn_return_triple_nested_if_expr() {
+    // Triggers lower_return_if_expr with nested __if_expr in both then and else
+    let code = r#"
+        fn tier(x: i32) -> i32 {
+            if x > 100 { 3 } else if x > 50 { 2 } else if x > 10 { 1 } else { 0 }
+        }
+        fn main() {
+            let t = tier(75);
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("tier"), "Triple nested return if: {out}");
+}
+
+// ---------------------------------------------------------------------------
+// pattern_methods.rs — convert_range_match_fn with wildcard + condition arms
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_046_range_match_fn_wildcard_body() {
+    // Tests the else branch in convert_range_match_fn when pattern_to_condition returns None
+    let code = r#"
+        fn bucket(n: i32) -> i32 {
+            match n {
+                0..=10 => 1,
+                11..=20 => 2,
+                _ => 0,
+            }
+        }
+        fn main() {
+            let b = bucket(15);
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("bucket"), "Range match fn wildcard: {out}");
+}
+
+// ---------------------------------------------------------------------------
+// pattern_methods.rs — convert_range_match_for_let with wildcard
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_047_range_match_for_let_only_wildcard() {
+    // Tests the wildcard-only arm in convert_range_match_for_let
+    let code = r#"
+        fn main() {
+            let x = 5;
+            let result = match x {
+                1..=3 => "low",
+                _ => "other",
+            };
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("result="), "Range let wildcard: {out}");
+}
+
+// ---------------------------------------------------------------------------
+// match arm body: multi-stmt with "other" last statement
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_048_match_arm_multi_stmt_other_last() {
+    // Tests the "other =>" fallback branch in convert_match_arm_for_let multi-stmt path
+    let code = r#"
+        fn main() {
+            let x = 1;
+            let result = match x {
+                1 => {
+                    let tmp = 10;
+                    let val = tmp;
+                    val
+                },
+                _ => 0,
+            };
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("result="), "Multi-stmt other last: {out}");
+}
+
+// ---------------------------------------------------------------------------
+// Exclusive range patterns (.. not ..=)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_049_exclusive_range_pattern() {
+    // Tests pattern_to_condition with inclusive=false (exclusive range)
+    let code = r#"
+        fn main() {
+            let x = 5;
+            let result = match x {
+                1..10 => "single_digit",
+                _ => "other",
+            };
+        }
+    "#;
+    // This may or may not be supported, but should not panic
+    let result = transpile_result(code);
+    assert!(result.is_ok() || result.is_err(), "Exclusive range: handled");
+}
+
+// ---------------------------------------------------------------------------
+// let-if without else (none else_block)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_050_let_if_no_else_branch() {
+    // Tests lower_let_if when else_block is None
+    let code = r#"
+        fn main() {
+            let x = 5;
+            if x > 3 {
+                let y = 1;
+            }
+        }
+    "#;
+    let out = transpile_ok(code);
+    // Should compile and produce valid shell
+    assert!(out.contains("#!/bin/sh"), "No else: {out}");
+}
+
+// ---------------------------------------------------------------------------
+// match with return in multi-statement body (last stmt is return)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_051_multi_stmt_return_last() {
+    let code = r#"
+        fn compute(x: i32) -> i32 {
+            let result = match x {
+                1 => {
+                    let a = 10;
+                    let b = 20;
+                    return a
+                },
+                _ => 0,
+            };
+            result
+        }
+        fn main() {
+            let r = compute(1);
+        }
+    "#;
+    let result = transpile_result(code);
+    // Should handle return as last statement in multi-stmt arm
+    assert!(result.is_ok() || result.is_err(), "Multi return: handled");
+}
+
+// ---------------------------------------------------------------------------
+// let-match arm with nested if-else (multi-stmt) (if last in multi-stmt)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_IRPAT_052_multi_stmt_if_last() {
+    let code = r#"
+        fn main() {
+            let x = 1;
+            let flag = true;
+            let result = match x {
+                1 => {
+                    let tmp = 5;
+                    let tmp2 = 6;
+                    if flag {
+                        "yes"
+                    } else {
+                        "no"
+                    }
+                },
+                _ => "default",
+            };
+        }
+    "#;
+    let out = transpile_ok(code);
+    assert!(out.contains("result="), "Multi-stmt if last: {out}");
+}

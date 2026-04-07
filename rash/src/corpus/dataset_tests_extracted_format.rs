@@ -454,3 +454,482 @@
         let output = export_multi_label_classification_jsonl(&[row]);
         assert!(output.is_empty(), "Failed entries should not appear");
     }
+
+    // ── validate_export tests ────────────────────────────────────────
+
+    #[test]
+    fn test_validate_export_all_classes_present() {
+        let rows = vec![
+            ClassificationRow { input: "echo safe".to_string(), label: 0 },
+            ClassificationRow { input: "eval $x".to_string(), label: 1 },
+        ];
+        let v = validate_export(&rows, 2);
+        assert!(v.passed, "Should pass with all classes present: {:?}", v.errors);
+        assert_eq!(v.total, 2);
+        assert_eq!(v.num_classes, 2);
+    }
+
+    #[test]
+    fn test_validate_export_missing_class() {
+        let rows = vec![
+            ClassificationRow { input: "echo safe1".to_string(), label: 0 },
+            ClassificationRow { input: "echo safe2".to_string(), label: 0 },
+        ];
+        let v = validate_export(&rows, 2);
+        assert!(!v.passed, "Should fail with missing class 1");
+        assert!(v.errors.iter().any(|e| e.contains("missing classes")));
+    }
+
+    #[test]
+    fn test_validate_export_extreme_imbalance() {
+        // 96 safe + 4 unsafe = 96% dominance -> error
+        let mut rows: Vec<ClassificationRow> = (0..96)
+            .map(|i| ClassificationRow { input: format!("safe_script_{i}"), label: 0 })
+            .collect();
+        rows.extend((0..4).map(|i| ClassificationRow {
+            input: format!("unsafe_script_{i}"),
+            label: 1,
+        }));
+        let v = validate_export(&rows, 2);
+        assert!(!v.passed, "Should fail with >95% dominance");
+        assert!(v.errors.iter().any(|e| e.contains("extreme class imbalance")));
+    }
+
+    #[test]
+    fn test_validate_export_moderate_imbalance_warning() {
+        // 90 safe + 10 unsafe = 90% dominance -> warning but passes
+        let mut rows: Vec<ClassificationRow> = (0..90)
+            .map(|i| ClassificationRow { input: format!("safe_code_{i}"), label: 0 })
+            .collect();
+        rows.extend((0..10).map(|i| ClassificationRow {
+            input: format!("unsafe_code_{i}"),
+            label: 1,
+        }));
+        let v = validate_export(&rows, 2);
+        // May or may not pass depending on preamble check
+        // But should have imbalance warning
+        assert!(v.warnings.iter().any(|w| w.contains("class imbalance")));
+    }
+
+    #[test]
+    fn test_validate_export_preamble_contamination() {
+        let rows = vec![
+            ClassificationRow { input: "#!/bin/sh\necho safe".to_string(), label: 0 },
+            ClassificationRow { input: "eval $x".to_string(), label: 1 },
+        ];
+        let v = validate_export(&rows, 2);
+        assert!(!v.passed, "Should fail with preamble contamination");
+        assert!(v.errors.iter().any(|e| e.contains("preamble contamination")));
+    }
+
+    #[test]
+    fn test_validate_export_preamble_set_euf() {
+        let rows = vec![
+            ClassificationRow { input: "set -euf pipefail\necho hi".to_string(), label: 0 },
+            ClassificationRow { input: "bad cmd".to_string(), label: 1 },
+        ];
+        let v = validate_export(&rows, 2);
+        assert!(!v.passed);
+        assert!(v.errors.iter().any(|e| e.contains("preamble")));
+    }
+
+    #[test]
+    fn test_validate_export_preamble_ifs() {
+        let rows = vec![
+            ClassificationRow { input: "IFS=' \\t\\n'\necho hi".to_string(), label: 0 },
+            ClassificationRow { input: "bad cmd".to_string(), label: 1 },
+        ];
+        let v = validate_export(&rows, 2);
+        assert!(!v.passed);
+        assert!(v.errors.iter().any(|e| e.contains("preamble")));
+    }
+
+    #[test]
+    fn test_validate_export_preamble_export_lc_all() {
+        let rows = vec![
+            ClassificationRow { input: "export LC_ALL=C\necho hi".to_string(), label: 0 },
+            ClassificationRow { input: "bad cmd".to_string(), label: 1 },
+        ];
+        let v = validate_export(&rows, 2);
+        assert!(!v.passed);
+    }
+
+    #[test]
+    fn test_validate_export_trivial_inputs_warning() {
+        let rows = vec![
+            ClassificationRow { input: "ab".to_string(), label: 0 },
+            ClassificationRow { input: "eval $dangerous_cmd".to_string(), label: 1 },
+        ];
+        let v = validate_export(&rows, 2);
+        assert!(v.warnings.iter().any(|w| w.contains("trivial inputs")));
+    }
+
+    #[test]
+    fn test_validate_export_length_confound_error() {
+        // Class 0: very short inputs, class 1: very long inputs -> length confound
+        let mut rows: Vec<ClassificationRow> = (0..10)
+            .map(|i| ClassificationRow { input: format!("s{i}x"), label: 0 })
+            .collect();
+        rows.extend((0..10).map(|i| ClassificationRow {
+            input: format!("x{}", "y".repeat(200 + i)),
+            label: 1,
+        }));
+        let v = validate_export(&rows, 2);
+        assert!(
+            v.errors.iter().any(|e| e.contains("length confound"))
+                || v.warnings.iter().any(|w| w.contains("length spread")),
+            "Should detect length confound or spread: errors={:?} warnings={:?}",
+            v.errors,
+            v.warnings
+        );
+    }
+
+    #[test]
+    fn test_validate_export_length_spread_warning() {
+        // Class 0: avg ~5 chars, class 1: avg ~30 chars -> 6x ratio -> warning
+        let mut rows: Vec<ClassificationRow> = (0..10)
+            .map(|i| ClassificationRow { input: format!("ab{i}cd"), label: 0 })
+            .collect();
+        rows.extend((0..10).map(|i| ClassificationRow {
+            input: format!("x{}{i}", "z".repeat(30)),
+            label: 1,
+        }));
+        let v = validate_export(&rows, 2);
+        // 6x ratio should trigger warning (>5x) but not error (<10x)
+        let has_length_issue = v.errors.iter().any(|e| e.contains("length"))
+            || v.warnings.iter().any(|w| w.contains("length"));
+        assert!(has_length_issue, "Should detect length spread");
+    }
+
+    #[test]
+    fn test_validate_export_clean_passes() {
+        let rows = vec![
+            ClassificationRow { input: "echo hello world".to_string(), label: 0 },
+            ClassificationRow { input: "echo goodbye world".to_string(), label: 0 },
+            ClassificationRow { input: "eval dangerous cmd".to_string(), label: 1 },
+            ClassificationRow { input: "eval another bad cmd".to_string(), label: 1 },
+        ];
+        let v = validate_export(&rows, 2);
+        assert!(v.passed, "Clean data should pass: {:?}", v.errors);
+    }
+
+    // ── ExportValidation Display tests ───────────────────────────────
+
+    #[test]
+    fn test_export_validation_display_pass() {
+        let v = ExportValidation {
+            passed: true,
+            total: 100,
+            num_classes: 2,
+            class_counts: [80, 20, 0, 0, 0],
+            errors: vec![],
+            warnings: vec![],
+        };
+        let display = format!("{v}");
+        assert!(display.contains("PASS"));
+        assert!(display.contains("100 samples"));
+        assert!(display.contains("2 classes"));
+        assert!(display.contains("Class 0:"));
+        assert!(display.contains("Class 1:"));
+    }
+
+    #[test]
+    fn test_export_validation_display_fail_with_errors() {
+        let v = ExportValidation {
+            passed: false,
+            total: 50,
+            num_classes: 1,
+            class_counts: [50, 0, 0, 0, 0],
+            errors: vec!["missing classes [1]".to_string()],
+            warnings: vec!["trivial inputs: 2 samples have <3 chars".to_string()],
+        };
+        let display = format!("{v}");
+        assert!(display.contains("FAIL"));
+        assert!(display.contains("ERROR: missing classes"));
+        assert!(display.contains("WARN: trivial inputs"));
+    }
+
+    // ── Split and SplitResult tests ──────────────────────────────────
+
+    #[test]
+    fn test_split_display() {
+        assert_eq!(format!("{}", Split::Train), "train");
+        assert_eq!(format!("{}", Split::Val), "val");
+        assert_eq!(format!("{}", Split::Test), "test");
+    }
+
+    #[test]
+    fn test_split_and_validate_basic() {
+        let rows: Vec<ClassificationRow> = (0..100)
+            .map(|i| ClassificationRow {
+                input: format!("echo script number {i} with unique content"),
+                label: if i % 5 == 0 { 1 } else { 0 },
+            })
+            .collect();
+        let result = split_and_validate(rows, 2);
+        let total = result.train.len() + result.val.len() + result.test.len();
+        assert_eq!(total, 100);
+        // Hash-based split should give roughly 80/10/10
+        assert!(result.train.len() > 50, "Train should be majority: {}", result.train.len());
+        assert!(result.val.len() > 0, "Val should have entries");
+        assert!(result.test.len() > 0, "Test should have entries");
+    }
+
+    #[test]
+    fn test_split_and_validate_deterministic() {
+        let rows1: Vec<ClassificationRow> = (0..50)
+            .map(|i| ClassificationRow {
+                input: format!("deterministic_test_script_{i}"),
+                label: if i % 3 == 0 { 1 } else { 0 },
+            })
+            .collect();
+        let rows2 = rows1.clone();
+
+        let result1 = split_and_validate(rows1, 2);
+        let result2 = split_and_validate(rows2, 2);
+
+        assert_eq!(result1.train.len(), result2.train.len());
+        assert_eq!(result1.val.len(), result2.val.len());
+        assert_eq!(result1.test.len(), result2.test.len());
+    }
+
+    #[test]
+    fn test_split_result_display() {
+        let rows: Vec<ClassificationRow> = (0..20)
+            .map(|i| ClassificationRow {
+                input: format!("display test script {i}"),
+                label: if i % 4 == 0 { 1 } else { 0 },
+            })
+            .collect();
+        let result = split_and_validate(rows, 2);
+        let display = format!("{result}");
+        assert!(display.contains("Split Result"));
+        assert!(display.contains("train:"));
+        assert!(display.contains("val:"));
+        assert!(display.contains("test:"));
+    }
+
+    #[test]
+    fn test_split_result_display_with_validation_errors() {
+        // All same class -> missing class error
+        let rows: Vec<ClassificationRow> = (0..10)
+            .map(|i| ClassificationRow {
+                input: format!("only safe script {i}"),
+                label: 0,
+            })
+            .collect();
+        let result = split_and_validate(rows, 2);
+        let display = format!("{result}");
+        assert!(display.contains("ERROR:") || display.contains("FAIL"));
+    }
+
+    // ── assign_split and fnv1a_hash tests ────────────────────────────
+
+    #[test]
+    fn test_assign_split_consistent() {
+        let split1 = assign_split("echo hello world");
+        let split2 = assign_split("echo hello world");
+        assert_eq!(split1, split2);
+    }
+
+    #[test]
+    fn test_assign_split_different_inputs_differ() {
+        // Different inputs should map to different splits (probabilistic but
+        // with enough diversity we expect at least 2 distinct splits)
+        let inputs: Vec<String> = (0..100).map(|i| format!("unique script {i}")).collect();
+        let mut has_train = false;
+        let mut has_val = false;
+        let mut has_test = false;
+        for input in &inputs {
+            match assign_split(input) {
+                Split::Train => has_train = true,
+                Split::Val => has_val = true,
+                Split::Test => has_test = true,
+            }
+        }
+        let distinct = [has_train, has_val, has_test].iter().filter(|&&b| b).count();
+        assert!(distinct >= 2, "Should produce at least 2 distinct splits with 100 inputs");
+    }
+
+    #[test]
+    fn test_fnv1a_hash_deterministic() {
+        let h1 = fnv1a_hash(b"test input");
+        let h2 = fnv1a_hash(b"test input");
+        assert_eq!(h1, h2);
+    }
+
+    #[test]
+    fn test_fnv1a_hash_different_inputs() {
+        let h1 = fnv1a_hash(b"hello");
+        let h2 = fnv1a_hash(b"world");
+        assert_ne!(h1, h2);
+    }
+
+    #[test]
+    fn test_fnv1a_hash_empty() {
+        let h = fnv1a_hash(b"");
+        // FNV-1a with empty input is just the offset basis
+        assert_eq!(h, 0xcbf29ce484222325);
+    }
+
+    // ── strip_shell_preamble tests ───────────────────────────────────
+
+    #[test]
+    fn test_strip_shell_preamble_removes_shebang() {
+        let script = "#!/bin/sh\necho hello\n";
+        let stripped = strip_shell_preamble(script);
+        assert!(!stripped.contains("#!/bin/sh"));
+        assert!(stripped.contains("echo hello"));
+    }
+
+    #[test]
+    fn test_strip_shell_preamble_removes_set() {
+        let script = "#!/bin/sh\nset -euf\necho hello\n";
+        let stripped = strip_shell_preamble(script);
+        assert!(!stripped.contains("set -euf"));
+        assert!(stripped.contains("echo hello"));
+    }
+
+    #[test]
+    fn test_strip_shell_preamble_removes_main_wrapper() {
+        let script = "#!/bin/sh\nmain() {\n  echo hello\n}\nmain \"$@\"\n";
+        let stripped = strip_shell_preamble(script);
+        assert!(!stripped.contains("main()"));
+        assert!(!stripped.contains("main \"$@\""));
+        assert!(stripped.contains("echo hello"));
+    }
+
+    #[test]
+    fn test_strip_shell_preamble_preserves_body() {
+        let script = "echo line1\necho line2\n";
+        let stripped = strip_shell_preamble(script);
+        assert!(stripped.contains("echo line1"));
+        assert!(stripped.contains("echo line2"));
+    }
+
+    #[test]
+    fn test_strip_shell_preamble_empty_input() {
+        // All lines are preamble -> returns original
+        let script = "#!/bin/sh\n# comment\n";
+        let stripped = strip_shell_preamble(script);
+        // Should fallback to original since stripping produces empty body
+        assert!(!stripped.is_empty());
+    }
+
+    #[test]
+    fn test_strip_shell_preamble_removes_trap() {
+        let script = "#!/bin/sh\ntrap 'rm -rf /tmp/x' EXIT\necho hi\n";
+        let stripped = strip_shell_preamble(script);
+        assert!(!stripped.contains("trap"));
+        assert!(stripped.contains("echo hi"));
+    }
+
+    #[test]
+    fn test_strip_shell_preamble_removes_export() {
+        let script = "export LC_ALL=C\necho hello\n";
+        let stripped = strip_shell_preamble(script);
+        assert!(!stripped.contains("export"));
+        assert!(stripped.contains("echo hello"));
+    }
+
+    #[test]
+    fn test_strip_shell_preamble_removes_ifs() {
+        let script = "IFS=' \\t\\n'\necho hello\n";
+        let stripped = strip_shell_preamble(script);
+        assert!(!stripped.contains("IFS="));
+        assert!(stripped.contains("echo hello"));
+    }
+
+    // ── is_shell_preamble tests ──────────────────────────────────────
+
+    #[test]
+    fn test_is_shell_preamble_empty() {
+        assert!(is_shell_preamble(""));
+    }
+
+    #[test]
+    fn test_is_shell_preamble_comment() {
+        assert!(is_shell_preamble("# Generated by Rash"));
+        assert!(is_shell_preamble("#!/bin/sh"));
+    }
+
+    #[test]
+    fn test_is_shell_preamble_set() {
+        assert!(is_shell_preamble("set -euf"));
+    }
+
+    #[test]
+    fn test_is_shell_preamble_main_call() {
+        assert!(is_shell_preamble("main \"$@\""));
+    }
+
+    #[test]
+    fn test_is_shell_preamble_not_preamble() {
+        assert!(!is_shell_preamble("echo hello"));
+        assert!(!is_shell_preamble("mkdir -p /tmp/build"));
+        assert!(!is_shell_preamble("for i in 1 2 3; do"));
+    }
+
+    // ── classify_single tests ────────────────────────────────────────
+
+    #[test]
+    fn test_classify_single_safe() {
+        let cr = classify_single("echo hello world", true, true, true);
+        assert_eq!(cr.label, 0);
+        assert!(!cr.input.is_empty());
+    }
+
+    #[test]
+    fn test_classify_single_unsafe_not_transpiled() {
+        let cr = classify_single("echo hello", false, true, true);
+        assert_eq!(cr.label, 1);
+    }
+
+    #[test]
+    fn test_classify_single_unsafe_not_lint_clean() {
+        let cr = classify_single("echo hello", true, false, true);
+        assert_eq!(cr.label, 1);
+    }
+
+    #[test]
+    fn test_classify_single_unsafe_not_deterministic() {
+        let cr = classify_single("echo hello", true, true, false);
+        assert_eq!(cr.label, 1);
+    }
+
+    #[test]
+    fn test_classify_single_strips_preamble() {
+        let cr = classify_single("#!/bin/sh\nset -euf\necho hello", true, true, true);
+        assert!(!cr.input.contains("#!/bin/sh"));
+        assert!(!cr.input.contains("set -euf"));
+        assert!(cr.input.contains("echo hello"));
+    }
+
+    // ── line_has_unquoted_var edge cases ─────────────────────────────
+
+    #[test]
+    fn test_line_has_unquoted_var_escaped_dollar() {
+        assert!(!line_has_unquoted_var("echo \\$HOME"));
+    }
+
+    #[test]
+    fn test_line_has_unquoted_var_in_double_quotes() {
+        assert!(!line_has_unquoted_var("echo \"$HOME is here\""));
+    }
+
+    #[test]
+    fn test_line_has_unquoted_var_mixed_quotes() {
+        // Outside quotes: $USER should be detected
+        assert!(line_has_unquoted_var("echo '$HOME' $USER"));
+    }
+
+    #[test]
+    fn test_line_has_unquoted_var_brace_form() {
+        assert!(line_has_unquoted_var("echo ${HOME}"));
+        assert!(!line_has_unquoted_var("echo \"${HOME}\""));
+    }
+
+    #[test]
+    fn test_line_has_unquoted_var_underscore_prefix() {
+        assert!(line_has_unquoted_var("echo $_VAR"));
+    }

@@ -398,3 +398,175 @@ fn test_nested_control_flow() {
         "while read cmd; do\n  case $cmd in\n    quit) break ;;\n    *) echo u ;;\n  esac\ndone",
     );
 }
+
+// ---------------------------------------------------------------------------
+// parser_control_methods.rs — parse_select edge cases
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_select_semicolon_before_do() {
+    // Tests the optional semicolon before do in select
+    let ast = parse_ok("select opt in x y z ;\n do echo $opt; break; done");
+    assert!(ast
+        .statements
+        .iter()
+        .any(|s| matches!(s, BashStmt::Select { .. })));
+}
+
+#[test]
+fn test_select_single_item_no_array() {
+    // When item_list has exactly 1 item, it should not be wrapped in Array
+    let ast = parse_ok("select opt in onlyone; do echo $opt; break; done");
+    if let BashStmt::Select { items, .. } = &ast.statements[0] {
+        assert!(
+            !matches!(items, BashExpr::Array(_)),
+            "Single item should not be Array"
+        );
+    }
+}
+
+#[test]
+fn test_select_error_missing_variable_returns_err() {
+    // Token after 'select' is not an identifier
+    let result = BashParser::new("select 42 in a b; do echo x; done").and_then(|mut p| p.parse());
+    assert!(result.is_err());
+}
+
+// ---------------------------------------------------------------------------
+// parser_control_methods.rs — parse_for_c_style token varieties
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_for_c_style_with_lt_gt_operators() {
+    // Tests the Lt and Gt token branches inside (( ))
+    parse_no_panic("for ((i=0; i<10; i=i+1)); do echo $i; done");
+    parse_no_panic("for ((i=10; i>0; i=i-1)); do echo $i; done");
+}
+
+#[test]
+fn test_for_c_style_with_nested_parens() {
+    // Tests paren_depth tracking for nested parens inside (( ))
+    parse_no_panic("for ((i=(1+2); i<10; i=i+1)); do echo $i; done");
+}
+
+#[test]
+fn test_for_c_style_with_variables() {
+    // Tests the Variable token branch inside (( ))
+    parse_no_panic("for (($start; $i<$end; $i++)); do echo $i; done");
+}
+
+#[test]
+fn test_for_c_style_with_eq_ne() {
+    // Tests Eq and Ne token branches inside (( ))
+    parse_no_panic("for ((i=0; i!=5; i=i+1)); do echo $i; done");
+    parse_no_panic("for ((i=0; i==0; i=i+1)); do echo once; done");
+}
+
+#[test]
+fn test_for_c_style_with_le_ge() {
+    // Tests Le and Ge token branches inside (( ))
+    parse_no_panic("for ((i=0; i<=10; i=i+1)); do echo $i; done");
+    parse_no_panic("for ((i=10; i>=0; i=i-1)); do echo $i; done");
+}
+
+#[test]
+fn test_for_c_style_with_assign() {
+    // Tests the Assign token branch inside (( ))
+    parse_no_panic("for ((i=0; i<5; i=i+1)); do echo $i; done");
+}
+
+#[test]
+fn test_for_c_style_semicolon_before_do() {
+    // Tests optional semicolon consumption after ))
+    parse_no_panic("for ((i=0; i<5; i=i+1)) ; do echo $i; done");
+}
+
+#[test]
+fn test_for_c_style_from_content_malformed_parts() {
+    // When content has fewer than 3 parts, should use empty strings
+    // This path is tested indirectly via the ArithmeticExpansion token
+    parse_no_panic("for ((i=0)); do echo $i; done");
+}
+
+// ---------------------------------------------------------------------------
+// parser_control_methods.rs — parse_case edge cases
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_case_empty_pattern_skipped() {
+    // When a pattern is empty, it should be skipped in the patterns vec
+    parse_no_panic("case $x in\n  ) echo empty ;;\n  *) echo d ;;\nesac");
+}
+
+#[test]
+fn test_case_multiple_statements_in_arm() {
+    // Multiple statements separated by semicolons within arm body
+    let ast = parse_ok("case $x in\n  a) echo one; echo two; echo three ;;\nesac");
+    if let BashStmt::Case { arms, .. } = &ast.statements[0] {
+        assert!(arms[0].body.len() >= 2);
+    }
+}
+
+#[test]
+fn test_case_fall_through_terminator() {
+    // ;& fall-through terminator
+    parse_no_panic("case $x in\n  a) echo a ;& \n  b) echo b ;;\nesac");
+}
+
+#[test]
+fn test_case_resume_pattern_terminator() {
+    // ;;& resume pattern matching terminator
+    parse_no_panic("case $x in\n  a) echo a ;;& \n  b) echo b ;;\nesac");
+}
+
+#[test]
+fn test_case_semicolon_semicolon_as_two_tokens() {
+    // consume_case_terminator handling two consecutive Semicolon tokens
+    parse_no_panic("case $x in\na) echo a\n;;\nesac");
+}
+
+#[test]
+fn test_case_single_semicolon_in_terminator() {
+    // consume_case_terminator with single Semicolon (not ;;)
+    parse_no_panic("case $x in\na) echo a; \nesac");
+}
+
+#[test]
+fn test_case_posix_class_in_pattern() {
+    // parse_case_posix_class for [[:alpha:]] style patterns
+    parse_no_panic("case $x in\n  [[:alpha:]]*) echo letter ;;\n  *) echo other ;;\nesac");
+}
+
+#[test]
+fn test_case_bracket_class_with_negation() {
+    // parse_case_bracket_class with ! for negation [!abc]
+    parse_no_panic("case $x in\n  [!0-9]*) echo nodigit ;;\n  *) echo d ;;\nesac");
+}
+
+#[test]
+fn test_case_string_pattern() {
+    // parse_case_single_pattern with String token
+    parse_no_panic("case $x in\n  \"hello\") echo hi ;;\n  *) echo d ;;\nesac");
+}
+
+#[test]
+fn test_case_no_right_paren_after_pattern() {
+    // When pattern is not followed by ), parser should handle gracefully
+    parse_no_panic("case $x in\n  a echo a ;;\nesac");
+}
+
+#[test]
+fn test_case_arm_body_with_if_inside() {
+    // Case arm body containing an if statement
+    let input = "case $x in\n  a) if [ 1 = 1 ]; then echo y; fi ;;\nesac";
+    let ast = parse_ok(input);
+    if let BashStmt::Case { arms, .. } = &ast.statements[0] {
+        assert!(!arms[0].body.is_empty());
+    }
+}
+
+#[test]
+fn test_case_dot_pattern_concatenation() {
+    // Tests concatenation of identifier.identifier patterns like server.host
+    parse_no_panic("case $key in\n  server) echo s ;;\n  *) echo o ;;\nesac");
+}

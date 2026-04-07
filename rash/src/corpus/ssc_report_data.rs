@@ -317,6 +317,7 @@ fn has_unsafe_keyword(script: &str) -> bool {
 }
 
 /// Format the report as a human-readable string.
+#[allow(clippy::expect_used)]
 pub fn format_ssc_report(report: &SscStatusReport) -> String {
     use std::fmt::Write;
     let mut out = String::new();
