@@ -5,6 +5,8 @@ metadata:
     random inputs via proptest. A single counterexample falsifies the claim. Stronger than example-based tests because the
     input space is explored stochastically.
   verification_command: cargo test -p bashrs --test cli_property_tests
+  depends_on:
+  - parser-soundness-v1
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'proptest crate: Hypothesis-style property testing for Rust'
@@ -13,6 +15,9 @@ equations:
     formula: check(script, invariant) -> bool for invariant in {idempotency, determinism, posix, safety}
     domain: 'script: String, invariant: PropertyType'
     codomain: bool with violation details
+    kernel_structure: "verify: (script, invariant_set) → Vec<InvariantResult> via static analysis"
+    tolerances:
+      max_latency_ms: 100
     invariants:
     - Idempotency checks detect missing -p/-f flags
     - Determinism checks detect $RANDOM, $$, date
@@ -104,3 +109,8 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_property_invariants_invariant
+- id: KANI-PROPERTY_INVARIANTS-002
+  obligation: Determinism property detects $RANDOM usage
+  property: Determinism property detects $RANDOM usage
+  bound: 4
+  strategy: stub_float

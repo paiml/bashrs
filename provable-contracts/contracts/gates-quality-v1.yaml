@@ -7,11 +7,19 @@ metadata:
   references:
   - 'Spec Section 6: Quality Scoring System'
   - 'ML-001 to ML-012: Quality Gates'
+  depends_on:
+  - linter-coverage-v1
+  - linter-security-rules-v1
+  - linter-det-idem-v1
 equations:
   gate_enforcement:
     formula: 'forall tier in {1,2,3}: gates_for_tier(config, tier) returns correct gate set'
     domain: 'tier: {1,2,3}, config: GateConfig'
     codomain: 'Vec<String> (gate names for tier)'
+    kernel_structure: 'dispatch: (GateConfig, tier) → Vec<gate_name> via match on Tier enum'
+    tolerances:
+      gate_execution_timeout_s: 300
+      max_gates_per_tier: 20
     invariants:
     - Tier 1 gates are a subset of tier 2 gates
     - Tier 2 gates are a subset of tier 3 gates
@@ -54,5 +62,15 @@ kani_harnesses:
 - id: KANI-GATES-001
   obligation: Default GateConfig has valid metadata (version, tool name)
   property: Default GateConfig has valid metadata (version, tool name)
+  bound: 4
+  strategy: stub_float
+- id: KANI-GATES-002
+  obligation: Tier 1 gates are a subset of tier 2 gates
+  property: Tier 1 gates are a subset of tier 2 gates
+  bound: 4
+  strategy: stub_float
+- id: KANI-GATES-003
+  obligation: Unknown gate names return GateResult::Failed
+  property: Unknown gate names return GateResult::Failed
   bound: 4
   strategy: stub_float

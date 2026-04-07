@@ -4,11 +4,24 @@ metadata:
   description: Provable security rule contracts (GH-183). Each SEC rule must detect known-vulnerable patterns (soundness)
     and not flag known-safe patterns (precision). A single missed detection or false positive falsifies the contract.
   verification_command: cargo test -p bashrs --lib -- sec
+  depends_on:
+  - parser-soundness-v1
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - OWASP Command Injection
   - 'CWE-78: OS Command Injection'
   - 'CWE-798: Hardcoded Credentials'
+kernel_structure:
+  phases:
+  - name: tokenize
+    description: Split shell source into lines and identify command tokens
+    invariant: All lines are examined for security patterns
+  - name: pattern_match
+    description: Match tokens against OWASP injection vectors (eval, curl|sh, chmod 777, hardcoded secrets)
+    invariant: SEC001-SEC008 cover all OWASP top shell injection vectors
+  - name: emit_diagnostics
+    description: Emit LintDiagnostic with rule ID, severity, span, and fix suggestion
+    invariant: Each diagnostic has a unique SEC rule ID and actionable message
 equations:
   security_detection:
     formula: 'forall s in Vulnerable: exists rule in SEC: fires(rule, s)'
@@ -21,10 +34,12 @@ proof_obligations:
 - type: invariant
   property: SEC rules detect all OWASP-class vulnerabilities
   formal: SEC rules detect all OWASP-class vulnerabilities
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: SEC rules do NOT false-positive on safe code
   formal: SEC rules do NOT false-positive on safe code
+  tolerance: 0.05
   applies_to: all
 invariants:
 - Each SEC rule detects known-vulnerable patterns (soundness)
@@ -119,3 +134,9 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_linter_security_rules_invariant
+- id: KANI-LINTER_SECURITY_RULES-002
+  obligation: SEC rules do NOT false-positive on safe code
+  property: SEC rules do NOT false-positive on safe code
+  bound: 4
+  strategy: stub_float
+  harness: verify_security_rules_no_false_positives

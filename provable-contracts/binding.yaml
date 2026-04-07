@@ -137,6 +137,100 @@ bindings:
     status: implemented
     confidence: 0.65
 
+  # === linter-security-rules-v1 ===
+  - contract: linter-security-rules-v1
+    equation: security_detection
+    function: check
+    file: rash/src/linter/rules/sec001.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-security-rules-v1
+    equation: security_detection
+    function: check
+    file: rash/src/linter/rules/sec002.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-security-rules-v1
+    equation: security_detection
+    function: check
+    file: rash/src/linter/rules/sec003.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-security-rules-v1
+    equation: security_detection
+    function: check
+    file: rash/src/linter/rules/sec004.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-security-rules-v1
+    equation: security_detection
+    function: check
+    file: rash/src/linter/rules/sec005.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-security-rules-v1
+    equation: security_detection
+    function: check
+    file: rash/src/linter/rules/sec006.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-security-rules-v1
+    equation: security_detection
+    function: check
+    file: rash/src/linter/rules/sec007.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-security-rules-v1
+    equation: security_detection
+    function: check
+    file: rash/src/linter/rules/sec008.rs
+    status: implemented
+    confidence: 0.90
+
+  # === linter-det-idem-v1 ===
+  - contract: linter-det-idem-v1
+    equation: determinism_detection
+    function: check
+    file: rash/src/linter/rules/det001.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-det-idem-v1
+    equation: determinism_detection
+    function: check
+    file: rash/src/linter/rules/det002.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-det-idem-v1
+    equation: determinism_detection
+    function: check
+    file: rash/src/linter/rules/det003.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-det-idem-v1
+    equation: determinism_detection
+    function: check
+    file: rash/src/linter/rules/det004.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-det-idem-v1
+    equation: determinism_detection
+    function: check
+    file: rash/src/linter/rules/idem001.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-det-idem-v1
+    equation: determinism_detection
+    function: check
+    file: rash/src/linter/rules/idem002.rs
+    status: implemented
+    confidence: 0.90
+  - contract: linter-det-idem-v1
+    equation: determinism_detection
+    function: check
+    file: rash/src/linter/rules/idem003.rs
+    status: implemented
+    confidence: 0.90
+
   # === linter-coverage-v1 ===
   - contract: linter-coverage-v1
     equation: rule_coverage
@@ -174,3 +268,67 @@ bindings:
     file: rash/src/quality/gates.rs
     status: implemented
     confidence: 0.90
+
+  # === parser-soundness-v1 ===
+  - contract: parser-soundness-v1
+    equation: parse_soundness
+    function: new
+    file: rash/src/bash_parser/parser.rs
+    status: implemented
+    confidence: 0.90
+  - contract: parser-soundness-v1
+    equation: parse_soundness
+    function: parse
+    file: rash/src/bash_parser/parser.rs
+    status: implemented
+    confidence: 0.90
+
+  # === transpiler-core-v1 ===
+  - contract: transpiler-core-v1
+    equation: transpilation
+    function: transpile
+    file: rash/src/bash_transpiler/codegen_transpileoptions.rs
+    status: implemented
+    confidence: 0.90
+  - contract: transpiler-core-v1
+    equation: transpilation
+    function: BashToRashTranspiler
+    file: rash/src/bash_transpiler/codegen.rs
+    status: implemented
+    confidence: 0.85
+
+  # === transpiler-stdlib-v1 ===
+  - contract: transpiler-stdlib-v1
+    equation: stdlib_mapping
+    function: is_stdlib_function
+    file: rash/src/stdlib.rs
+    status: implemented
+    confidence: 0.90
+  - contract: transpiler-stdlib-v1
+    equation: stdlib_mapping
+    function: transpile
+    file: rash/src/bash_transpiler/codegen_transpileoptions.rs
+    status: implemented
+    confidence: 0.80
+
+  # === property-invariants-v1 ===
+  - contract: property-invariants-v1
+    equation: invariant_verification
+    function: check_idempotency
+    file: rash/src/cli/property.rs
+    status: implemented
+    confidence: 0.80
+  - contract: property-invariants-v1
+    equation: invariant_verification
+    function: check_determinism
+    file: rash/src/cli/property.rs
+    status: implemented
+    confidence: 0.80
+
+  # === property-dsl-v1 ===
+  - contract: property-dsl-v1
+    equation: property_evaluation
+    function: evaluate_custom_properties
+    file: rash/src/cli/property.rs
+    status: implemented
+    confidence: 0.75

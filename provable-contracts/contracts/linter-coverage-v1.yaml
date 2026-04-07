@@ -5,9 +5,24 @@ metadata:
     input per applicable format. A rule that never fires is dead code. A format without coverage is an untested surface. Both
     falsify this contract.
   verification_command: cargo test -p bashrs --lib -- coverage
+  depends_on:
+  - linter-security-rules-v1
+  - linter-det-idem-v1
+  - linter-docker-make-v1
   references:
   - 'SSC v13 Section 3 GAP-4: linter coverage'
   - 'GH-183: KZ-11 Missing provable contracts'
+kernel_structure:
+  phases:
+  - name: enumerate_rules
+    description: Collect all registered lint rules per format (Shell, Makefile, Dockerfile)
+    invariant: Every registered rule is enumerated
+  - name: lint_corpus
+    description: Run each rule against the full corpus for its format
+    invariant: Each corpus entry is linted by all applicable rules
+  - name: verify_coverage
+    description: Check that every rule fired on at least one corpus entry
+    invariant: No rule is dead code (zero hits across all inputs)
 equations:
   rule_coverage:
     formula: 'forall rule in RuleSet(fmt): exists entry in Corpus(fmt): fires(rule, entry)'
@@ -20,10 +35,12 @@ proof_obligations:
 - type: invariant
   property: Every active rule fires on at least one corpus entry
   formal: Every active rule fires on at least one corpus entry
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: No orphan rules without test coverage
   formal: No orphan rules without test coverage
+  tolerance: 0.0
   applies_to: all
 invariants:
 - Every SEC rule fires on at least one shell input
@@ -84,3 +101,9 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_linter_coverage_invariant
+- id: KANI-LINTER_COVERAGE-002
+  obligation: No orphan rules without test coverage
+  property: No orphan rules without test coverage
+  bound: 4
+  strategy: stub_float
+  harness: verify_no_orphan_rules

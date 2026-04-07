@@ -7,6 +7,24 @@ metadata:
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'GH-148: rash transpiler stdlib'
+  depends_on:
+  - parser-soundness-v1
+  - transpiler-stdlib-v1
+  - encoder-roundtrip-v1
+kernel_structure:
+  phases:
+  - name: Rust parsing
+    description: Parse Rust source into syn AST
+    invariant: Valid Rust input always produces a parseable AST
+  - name: IR lowering
+    description: Lower syn AST to intermediate representation (BashAst)
+    invariant: All supported Rust constructs map to IR nodes
+  - name: Purification
+    description: Apply determinism and idempotency transforms to IR
+    invariant: Non-deterministic patterns ($RANDOM, $$, timestamps) are eliminated
+  - name: POSIX emission
+    description: Emit POSIX sh with shebang, set -euf, main() wrapper, and selective stdlib emission
+    invariant: Output is byte-identical for identical input (deterministic)
 equations:
   transpilation:
     formula: transpile(rust_ast) -> shell_script where shellcheck(shell_script) == PASS
@@ -19,10 +37,12 @@ proof_obligations:
 - type: invariant
   property: Output passes shellcheck -s sh
   formal: Output passes shellcheck -s sh
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: Same input produces identical output (deterministic)
   formal: Same input produces identical output (deterministic)
+  tolerance: 0.0
   applies_to: all
 invariants:
 - 'Transpilation is deterministic: same Rust input → byte-identical shell output'
@@ -91,4 +111,22 @@ kani_harnesses:
   property: Output passes shellcheck -s sh
   bound: 4
   strategy: stub_float
-  harness: verify_transpiler_core_invariant
+  harness: verify_transpiler_core_shellcheck
+- id: KANI-TRANSPILER_CORE-002
+  obligation: Same input produces identical output (deterministic)
+  property: Same input produces identical output (deterministic)
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_core_determinism
+- id: KANI-TRANSPILER_CORE-003
+  obligation: Output is POSIX-structured with shebang, set -euf, and main() wrapper
+  property: 'Output is POSIX-structured: #!/bin/sh, set -euf, main() wrapper'
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_core_posix_structure
+- id: KANI-TRANSPILER_CORE-004
+  obligation: All variables are double-quoted to prevent word splitting
+  property: All variables are double-quoted to prevent word splitting
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_core_variable_quoting

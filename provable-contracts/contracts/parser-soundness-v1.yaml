@@ -7,6 +7,19 @@ metadata:
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'binding.yaml: parser-soundness-v1 (3 bindings: lex, parse, semantic)'
+  depends_on:
+  - encoder-roundtrip-v1
+kernel_structure:
+  phases:
+  - name: Lexing
+    description: Tokenize input string into Token stream (O(n) scan)
+    invariant: Every byte is consumed exactly once
+  - name: Parsing
+    description: Recursive descent over Token stream producing BashAst nodes for each grammar production (if, for, while, case, function, pipeline, assignment)
+    invariant: Valid bash always yields Ok(AST), never silently drops constructs
+  - name: Semantic analysis
+    description: Walk AST to detect used-before-defined variables and collect scope information
+    invariant: All variable references are validated against scope chain
 equations:
   parse_soundness:
     formula: 'forall valid_bash s: parse(s) != Error AND emit(parse(s)) ~= s'
@@ -19,10 +32,12 @@ proof_obligations:
 - type: invariant
   property: Valid bash always parses without error
   formal: Valid bash always parses without error
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: Roundtrip preserves semantic meaning
   formal: Roundtrip preserves semantic meaning
+  tolerance: 0.0
   applies_to: all
 invariants:
 - Valid bash always parses without error (soundness)
@@ -97,3 +112,21 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_parser_soundness_invariant
+- id: KANI-PARSER_SOUNDNESS-002
+  obligation: Roundtrip preserves semantic meaning
+  property: Roundtrip preserves semantic meaning
+  bound: 4
+  strategy: stub_float
+  harness: verify_parser_roundtrip_semantic
+- id: KANI-PARSER_SOUNDNESS-003
+  obligation: Parse is deterministic — same input produces identical AST
+  property: 'Parse is deterministic: same input produces identical AST'
+  bound: 4
+  strategy: stub_float
+  harness: verify_parser_determinism
+- id: KANI-PARSER_SOUNDNESS-004
+  obligation: No constructs are silently dropped during parsing
+  property: No constructs are silently dropped during parsing
+  bound: 4
+  strategy: stub_float
+  harness: verify_parser_no_silent_drop

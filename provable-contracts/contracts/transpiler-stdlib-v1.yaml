@@ -6,6 +6,20 @@ metadata:
   verification_command: cargo test -p bashrs --lib -- stdlib
   references:
   - 'GH-148: rash transpiler missing stdlib for real-world shell scripts'
+  depends_on:
+  - transpiler-core-v1
+  - encoder-roundtrip-v1
+kernel_structure:
+  phases:
+  - name: Function recognition
+    description: is_stdlib_function() checks static match table for known Rust function names (capture, exit, sleep, glob, mkdir, chmod, mv, string_starts_with, string_ends_with)
+    invariant: Known functions always recognized, unknown functions produce clear error
+  - name: Shell emission
+    description: Each matched function has a codegen path emitting the POSIX shell equivalent (capture to $(), exit to exit N, glob to unquoted pattern)
+    invariant: Emitted shell commands are behaviorally equivalent to Rust originals
+  - name: Dead code elimination
+    description: Only stdlib functions actually used in the program are emitted as runtime helper definitions
+    invariant: Unused helpers never appear in output
 equations:
   stdlib_mapping:
     formula: map_stdlib(rust_fn) -> shell_equivalent where behavior(rust_fn) ~= behavior(shell_equivalent)
@@ -18,10 +32,12 @@ proof_obligations:
 - type: invariant
   property: All mapped functions produce equivalent behavior
   formal: All mapped functions produce equivalent behavior
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: Unmapped functions produce clear error
   formal: Unmapped functions produce clear error
+  tolerance: 0.0
   applies_to: all
 invariants:
 - capture() produces $(...) command substitution in assignment context
@@ -126,4 +142,28 @@ kani_harnesses:
   property: All mapped functions produce equivalent behavior
   bound: 4
   strategy: stub_float
-  harness: verify_transpiler_stdlib_invariant
+  harness: verify_transpiler_stdlib_behavioral_equiv
+- id: KANI-TRANSPILER_STDLIB-002
+  obligation: Unmapped functions produce clear error
+  property: Unmapped functions produce clear error
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_stdlib_unmapped_error
+- id: KANI-TRANSPILER_STDLIB-003
+  obligation: capture() produces $(...) command substitution in assignment context
+  property: capture() produces $(...) command substitution in assignment context
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_stdlib_capture_subst
+- id: KANI-TRANSPILER_STDLIB-004
+  obligation: glob() emits unquoted pattern for shell expansion
+  property: glob(pattern) emits unquoted pattern for shell expansion
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_stdlib_glob_unquoted
+- id: KANI-TRANSPILER_STDLIB-005
+  obligation: mkdir/chmod/mv produce correct POSIX commands
+  property: mkdir/chmod/mv produce correct POSIX commands
+  bound: 4
+  strategy: stub_float
+  harness: verify_transpiler_stdlib_fs_commands

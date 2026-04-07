@@ -4,9 +4,27 @@ metadata:
   description: Provable purification contracts (GH-183). The bash purifier transforms non-deterministic bash into safe, idempotent
     POSIX sh. Each invariant is falsifiable — a single counterexample breaks the contract.
   verification_command: cargo test -p bashrs --lib -- purif
+  depends_on:
+  - parser-soundness-v1
+  - encoder-roundtrip-v1
+  - linter-det-idem-v1
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'CLAUDE.md: Workflow 1 — Bash → Purified Bash (PRIMARY)'
+kernel_structure:
+  phases:
+  - name: parse
+    description: Parse non-deterministic bash script into AST
+    invariant: Valid bash always parses without error
+  - name: detect_nondet
+    description: Identify $RANDOM, timestamps, and non-idempotent operations in AST
+    invariant: All non-deterministic constructs are detected
+  - name: rewrite
+    description: Apply determinism and idempotency transformations (mkdir -p, rm -f, ln -sf)
+    invariant: Operations made idempotent with -p/-f flags
+  - name: emit
+    description: Emit purified POSIX sh script with quoted variables and shebang
+    invariant: Output passes shellcheck -s sh
 equations:
   purification:
     formula: purify(bash_script) -> posix_script where is_deterministic(posix_script) AND is_idempotent(posix_script)
@@ -20,14 +38,17 @@ proof_obligations:
 - type: invariant
   property: Purified output passes shellcheck -s sh
   formal: Purified output passes shellcheck -s sh
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: All $RANDOM/timestamps removed
   formal: All $RANDOM/timestamps removed
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: Operations made idempotent with -p/-f flags
   formal: Operations made idempotent with -p/-f flags
+  tolerance: 0.0
   applies_to: all
 invariants:
 - 'Purified output is deterministic: same input produces identical output'
@@ -93,3 +114,15 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_purification_pipeline_invariant
+- id: KANI-PURIFICATION_PIPELINE-002
+  obligation: All $RANDOM/timestamps removed
+  property: All $RANDOM/timestamps removed
+  bound: 4
+  strategy: stub_float
+  harness: verify_purification_no_random_timestamps
+- id: KANI-PURIFICATION_PIPELINE-003
+  obligation: Operations made idempotent with -p/-f flags
+  property: Operations made idempotent with -p/-f flags
+  bound: 4
+  strategy: stub_float
+  harness: verify_purification_idempotent_flags

@@ -5,9 +5,22 @@ metadata:
     ($RANDOM, timestamps, unordered globs, system state). IDEM rules detect non-idempotent operations (mkdir without -p, rm
     without -f, ln without -sf). Each rule must detect known-bad and not false-positive on known-safe.
   verification_command: cargo test -p bashrs --lib -- det
+  depends_on:
+  - parser-soundness-v1
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'CLAUDE.md: Critical Invariants — Determinism + Idempotency'
+kernel_structure:
+  phases:
+  - name: scan_nondet
+    description: Scan shell source for non-deterministic constructs ($RANDOM, date, unordered globs, system state)
+    invariant: DET001-DET004 detect all non-deterministic patterns
+  - name: scan_nonidem
+    description: Scan shell source for non-idempotent operations (mkdir, rm, ln without safety flags)
+    invariant: IDEM001-IDEM003 detect all non-idempotent operations
+  - name: emit_diagnostics
+    description: Emit LintDiagnostic with DET/IDEM rule ID, severity, span, and auto-fix suggestion
+    invariant: Each diagnostic includes an actionable fix
 equations:
   determinism_detection:
     formula: 'forall s in NonDeterministic: exists rule in DET: fires(rule, s)'
@@ -20,10 +33,12 @@ proof_obligations:
 - type: invariant
   property: DET rules detect all non-deterministic constructs
   formal: DET rules detect all non-deterministic constructs
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: DET rules do NOT false-positive on deterministic code
   formal: DET rules do NOT false-positive on deterministic code
+  tolerance: 0.05
   applies_to: all
 invariants:
 - DET rules detect all non-deterministic constructs ($RANDOM, timestamps, system state)
@@ -108,3 +123,9 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_linter_det_idem_invariant
+- id: KANI-LINTER_DET_IDEM-002
+  obligation: DET rules do NOT false-positive on deterministic code
+  property: DET rules do NOT false-positive on deterministic code
+  bound: 4
+  strategy: stub_float
+  harness: verify_det_idem_no_false_positives

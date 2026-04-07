@@ -4,6 +4,8 @@ metadata:
     checks from TOML files. The DSL supports forbid rules (regex patterns that are violations when matched) and require rules
     (patterns that must match at least one line). Custom properties integrate with built-in properties in both terminal and
     JSON output.
+  depends_on:
+  - parser-soundness-v1
   references:
   - 'PMAT-225: PROPERTY-DSL Sprint 12'
   - docs/specifications/world-class-bash-linter-spec.md
@@ -12,6 +14,9 @@ equations:
     formula: eval_property(script, property_def) -> {pass, fail} with violations
     domain: 'script: String, property_def: TOML with forbid/require rules'
     codomain: PropertyResult with pass/fail, violations, suggestions
+    kernel_structure: "evaluate: (script, property_rules) → Vec<PropertyViolation> via regex + AST matching"
+    tolerances:
+      max_latency_ms: 100
     invariants:
     - Forbid rules flag matching lines
     - Require rules flag missing patterns
@@ -96,3 +101,8 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_property_dsl_invariant
+- id: KANI-PROPERTY_DSL-002
+  obligation: Require rules flag missing patterns
+  property: Require rules flag missing patterns
+  bound: 4
+  strategy: stub_float

@@ -4,6 +4,8 @@ metadata:
   description: 'Provable escape function contracts (GH-183). The escape functions are the #1 defense against shell injection
     in emitted code. Every special character must be neutralized. A single unescaped metachar falsifies the contract.'
   verification_command: cargo test -p bashrs --lib -- escape
+  depends_on:
+  - parser-soundness-v1
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - 'CWE-78: OS Command Injection'
@@ -13,6 +15,9 @@ equations:
     formula: escape(escape(s)) == escape(s) (idempotent)
     domain: 's: arbitrary string (including shell metacharacters)'
     codomain: String (safe for shell evaluation)
+    kernel_structure: "escape: string → quoted_shell_safe_string via metachar replacement + quoting"
+    tolerances:
+      max_latency_ms: 100
     invariants:
     - Shell metacharacters ($, `, |, ;) are always neutralized
     - Empty strings produce valid shell output
@@ -108,3 +113,8 @@ kani_harnesses:
   bound: 4
   strategy: stub_float
   harness: verify_encoder_roundtrip_invariant
+- id: KANI-ENCODER_ROUNDTRIP-002
+  obligation: Empty strings produce valid shell output
+  property: Empty strings produce valid shell output
+  bound: 4
+  strategy: stub_float

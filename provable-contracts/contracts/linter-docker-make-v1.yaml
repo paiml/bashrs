@@ -8,6 +8,20 @@ metadata:
   references:
   - 'GH-183: KZ-11 Missing provable contracts'
   - hadolint best practices (DOCKER rules)
+  depends_on:
+  - linter-coverage-v1
+  - linter-det-idem-v1
+kernel_structure:
+  phases:
+  - name: Line scanning
+    description: Split input into lines and classify format (Dockerfile or Makefile)
+    invariant: Every line is visited exactly once
+  - name: Dockerfile rule matching
+    description: DOCKER001-006 rules scan for security and quality issues using line-prefix matching (FROM, ADD, USER, HEALTHCHECK)
+    invariant: Known-bad patterns always detected (soundness), known-safe patterns never flagged (precision)
+  - name: Makefile rule matching
+    description: MAKE001-004 rules detect non-deterministic wildcards, non-idempotent operations, and missing .PHONY using regex matching
+    invariant: $(wildcard) without $(sort) always detected, mkdir -p never flagged
 equations:
   multi_format_linting:
     formula: lint(file, fmt) produces diagnostics where fmt in {Dockerfile, Makefile}
@@ -20,10 +34,12 @@ proof_obligations:
 - type: invariant
   property: Dockerfile rules fire on known-bad Dockerfiles
   formal: Dockerfile rules fire on known-bad Dockerfiles
+  tolerance: 0.0
   applies_to: all
 - type: invariant
   property: Makefile rules fire on known-bad Makefiles
   formal: Makefile rules fire on known-bad Makefiles
+  tolerance: 0.0
   applies_to: all
 invariants:
 - DOCKER rules detect container security issues (root user, unpinned images)
@@ -97,4 +113,22 @@ kani_harnesses:
   property: Dockerfile rules fire on known-bad Dockerfiles
   bound: 4
   strategy: stub_float
-  harness: verify_linter_docker_make_invariant
+  harness: verify_linter_dockerfile_soundness
+- id: KANI-LINTER_DOCKER_MAKE-002
+  obligation: Makefile rules fire on known-bad Makefiles
+  property: Makefile rules fire on known-bad Makefiles
+  bound: 4
+  strategy: stub_float
+  harness: verify_linter_makefile_soundness
+- id: KANI-LINTER_DOCKER_MAKE-003
+  obligation: DOCKER rules do NOT flag Dockerfiles with proper USER/pinned images
+  property: DOCKER rules do NOT flag Dockerfiles with proper USER/pinned images
+  bound: 4
+  strategy: stub_float
+  harness: verify_linter_dockerfile_precision
+- id: KANI-LINTER_DOCKER_MAKE-004
+  obligation: MAKE rules do NOT flag $(sort $(wildcard)) or mkdir -p
+  property: MAKE rules do NOT flag $(sort $(wildcard)) or mkdir -p
+  bound: 4
+  strategy: stub_float
+  harness: verify_linter_makefile_precision
