@@ -84,13 +84,13 @@ mod parser_control_cov_tests;
 #[cfg(test)]
 #[path = "parser_main_tests.rs"]
 mod parser_main_tests;
-// FIXME(PMAT-238): #[cfg(test)]
+#[cfg(test)]
 #[path = "parser_main_tests_p10.rs"]
 mod parser_main_tests_p10;
-// FIXME(PMAT-238): #[cfg(test)]
+#[cfg(test)]
 #[path = "parser_main_tests_p2.rs"]
 mod parser_main_tests_p2;
-// FIXME(PMAT-238): #[cfg(test)]
+#[cfg(test)]
 #[path = "parser_main_tests_p3.rs"]
 mod parser_main_tests_p3;
 #[cfg(test)]
@@ -105,9 +105,9 @@ mod parser_main_tests_p6;
 #[cfg(test)]
 #[path = "parser_main_tests_p7.rs"]
 mod parser_main_tests_p7;
-// FIXME(PMAT-238): #[cfg(test)]
+#[cfg(test)]
 #[path = "parser_main_tests_p8.rs"]
 mod parser_main_tests_p8;
-// FIXME(PMAT-238): #[cfg(test)]
+#[cfg(test)]
 #[path = "parser_main_tests_p9.rs"]
 mod parser_main_tests_p9;

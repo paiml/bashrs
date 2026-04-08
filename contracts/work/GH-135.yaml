@@ -1,0 +1,6 @@
+# Auto-generated from .pmat-work/GH-135/contract.json
+name: "GH-135"
+surface: work-contract
+verification_summary:
+  target_level: L1
+  current_level: L1

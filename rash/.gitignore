@@ -1,0 +1,4 @@
+# Exclude fuzz corpus files with non-ASCII names
+
+# Fuzz corpus files with non-ASCII/special characters
+*[^a-zA-Z0-9._/-]*
