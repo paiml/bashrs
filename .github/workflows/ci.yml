@@ -18,5 +18,23 @@ jobs:
     uses: paiml/.github/.github/workflows/sovereign-ci.yml@main
     with:
       repo: ${{ github.event.repository.name }}
+      # Phase 3 pilot (medium workload) — build-performance.md §7 Phase 3.
+      # Workspace with rash + runtime + wasm — moderate dep graph,
+      # candidate for mid-range hit-rate signal between copia and aprender.
+      enable_sccache: true
     secrets: inherit
 
+  # Top-level gate: org ruleset requires status check named "gate" (exact match).
+  # The reusable workflow produces "ci / gate" which doesn't satisfy the ruleset.
+  gate:
+    runs-on: ubuntu-latest
+    needs: [ci]
+    if: always()
+    steps:
+      - name: Check required jobs
+        run: |
+          if [ "${{ needs.ci.result }}" != "success" ]; then
+            echo "ci failed: ${{ needs.ci.result }}"
+            exit 1
+          fi
+          echo "All required jobs passed"
