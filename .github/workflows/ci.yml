@@ -22,6 +22,7 @@ jobs:
       # Workspace with rash + runtime + wasm — moderate dep graph,
       # candidate for mid-range hit-rate signal between copia and aprender.
       enable_sccache: true
+      use_nextest: true
     secrets: inherit
 
   # Top-level gate: org ruleset requires status check named "gate" (exact match).
