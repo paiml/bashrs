@@ -1,25 +1,32 @@
 # Per-repo release workflow — tagged releases only
 #
 # Self-contained replacement for the prior `paiml/infra/clean-room-gate.yml`
-# reusable-workflow variant. The previous file referenced
-# `paiml/infra/.github/workflows/clean-room-gate.yml@<sha>` which does not
-# exist at the pinned SHA (only `clean-room.yml` is present, and that is an
-# event-driven scheduler, not a reusable workflow). Every tag push since
-# v6.65.0 failed to load because of that dangling reference, painting the
-# release badge red without ever reaching the publish step.
+# reusable-workflow variant (which referenced a non-existent file at its
+# pinned SHA, painting the badge red on every tag push since v6.65.0).
 #
-# The publish step itself was also broken-by-design for bashrs's tag scheme:
-# the workspace root crate `bashrs-specs` has `publish = false`, so the
-# fallback `cargo publish` (no `-p`) on a `vX.Y.Z` tag would have errored
-# even if the gate had loaded. This rewrite always passes `-p bashrs`.
+# crates.io publish is intentionally OUT OF SCOPE here. Following the
+# paiml convention (see paiml/forjar's release.yml), publishing is a
+# manual step from a host with `~/.cargo/credentials.toml`:
 #
-# Flow: tag push (or workflow_dispatch) → checkout at tag → tag/version
-#       sanity → cargo package --verify → cargo publish -p bashrs → ensure
-#       GitHub Release exists.
+#     git checkout v<x.y.z> && cargo publish -p bashrs --locked
+#
+# Reasons:
+#   - The repo's `CARGO_TOKEN` secret has been failing 403 (token is
+#     either expired or scoped to a different crate); refreshing it
+#     requires a manual web step on crates.io that CI cannot do.
+#   - crates.io now recommends OIDC trusted-publishing instead of
+#     long-lived tokens; that migration is a separate piece of work and
+#     also requires a one-time crates.io UI configuration.
+#   - The workspace root crate `bashrs-specs` has `publish = false`, so
+#     any `cargo publish` step here MUST pass `-p bashrs` explicitly.
+#
+# What this workflow DOES do:
+#   - Verifies the tag matches the bashrs Cargo.toml version
+#   - Builds the bashrs package tarball (`cargo package -p bashrs`)
+#   - Ensures a GitHub Release exists for the tag
 #
 # Tag format: vX.Y.Z (single-crate). Workspace-style tags like
-# `v-bashrs-X.Y.Z` are intentionally not supported — this repo publishes one
-# crate to crates.io.
+# `v-bashrs-X.Y.Z` are intentionally not supported.
 #
 # Triggered by:
 #   - `push: tags: ['v*']` — fires on any version tag
@@ -52,10 +59,6 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
-    env:
-      # `cargo publish` defaults to crates.io; CARGO_REGISTRY_TOKEN is the
-      # documented env var for the default registry token.
-      CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
     steps:
       - name: Resolve release tag
         id: tag
@@ -105,14 +108,6 @@ jobs:
 
       - name: Verify bashrs package tarball
         run: cargo package -p bashrs --locked
-
-      # `cargo publish -p bashrs` is idempotent in the sense that a re-publish
-      # of an already-published version errors out — the workflow is designed
-      # to be safe to dispatch repeatedly. The first publish wins; subsequent
-      # dispatches surface the "already exists" error and the job fails (which
-      # is the desired signal: somebody is double-publishing the same tag).
-      - name: Publish bashrs to crates.io
-        run: cargo publish -p bashrs --locked
 
       - name: Ensure GitHub Release exists
         env:
