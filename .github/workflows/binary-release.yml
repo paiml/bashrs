@@ -67,24 +67,16 @@ jobs:
         with:
           ref: ${{ steps.tag.outputs.tag }}
 
-      # bashrs depends on provable-contracts via Cargo path dep
-      # (`../provable-contracts/crates/provable-contracts`). The repo
-      # was archived (it's now part of paiml/aprender as
-      # `aprender-contracts`), but the archived repo is still reachable
-      # for checkout. We clone it inside the workspace, then move it to
-      # the parent dir where Cargo expects it (symlinks have proven
-      # flaky across cross images, so we copy outright).
-      - name: Checkout provable-contracts (path dep)
-        uses: actions/checkout@v4
-        with:
-          repository: paiml/provable-contracts
-          path: provable-contracts-clone
-
-      - name: Place provable-contracts at parent dir for Cargo path dep
-        run: |
-          set -euxo pipefail
-          mv "$GITHUB_WORKSPACE/provable-contracts-clone" "$GITHUB_WORKSPACE/../provable-contracts"
-          test -f "$GITHUB_WORKSPACE/../provable-contracts/crates/provable-contracts/Cargo.toml"
+      # bashrs's only reference to provable-contracts is a [dev-dependencies]
+      # entry resolved from crates.io (not a path dep on a sibling clone).
+      # Earlier revisions of this workflow checked out paiml/provable-contracts
+      # to `$GITHUB_WORKSPACE/../provable-contracts/` because Cargo.toml had a
+      # `path = ".."` override. That layout broke aarch64-cross builds:
+      # `cross` mounts only the workspace dir into its Docker container, so a
+      # sibling-of-workspace path is unreachable inside the cross image. The
+      # crates.io 0.3.x release matches the archived sibling's last published
+      # version semantically, so the override was redundant — we now resolve
+      # purely from crates.io.
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
