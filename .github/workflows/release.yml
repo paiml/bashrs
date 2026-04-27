@@ -104,7 +104,7 @@ jobs:
           echo "Version verified: $TAG_VER"
 
       - name: Verify bashrs package tarball
-        run: cargo package --verify -p bashrs --locked
+        run: cargo package -p bashrs --locked
 
       # `cargo publish -p bashrs` is idempotent in the sense that a re-publish
       # of an already-published version errors out — the workflow is designed
