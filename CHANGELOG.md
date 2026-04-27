@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.66.1] - 2026-04-27
+
+### Fixed
+- `binary-release.yml`: explicit `rustup target add` against the workspace-pinned toolchain so x86_64-unknown-linux-musl native cross-compiles don't fail with "can't find crate for `core`" mid-build (PR #200). The dtolnay/rust-toolchain `targets:` parameter is shadowed by `rust-toolchain.toml` once cargo resolves the channel for the workspace.
+- `binary-release.yml`: drop `provable-contracts` `path = ".."` Cargo dev-dependency override so aarch64 cross builds resolve the dep purely from crates.io (PR #201). cross v0.2.5 mounts only the workspace dir into its Docker container — sibling-of-workspace path deps were unreachable inside the cross image. The crates.io 0.3.x release is semantically identical to the archived sibling, so the override was redundant.
+
+### Notes
+- v6.66.0 binary-release backfill is unrecoverable: the workflow checks out at the release tag, so the v6.66.0 tag still has the pre-fix Cargo.toml that expects a sibling `../provable-contracts/`. v6.66.1 is the first tag that the corrected `binary-release.yml` can build cleanly across all four Linux targets (x86_64/aarch64 × musl/gnu).
+
 ### Added
 - SEC020: Dangerous command execution patterns (`bash -c "$var"`, `exec "$var"`, `xargs sh`, `ssh "$cmd"`, `su -c`, `perl -e`, `awk system()`)
 - SEC021: Destructive system operations (dd disk wipe, fork bomb, sysrq, iptables flush, `chmod -R 000`, `rm -rf /`)

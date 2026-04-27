@@ -566,7 +566,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "bashrs"
-version = "6.66.0"
+version = "6.66.1"
 dependencies = [
  "anyhow",
  "aprender 0.27.5",
@@ -636,7 +636,7 @@ dependencies = [
 
 [[package]]
 name = "bashrs-oracle"
-version = "6.66.0"
+version = "6.66.1"
 dependencies = [
  "anyhow",
  "aprender 0.26.3",
@@ -653,14 +653,14 @@ dependencies = [
 
 [[package]]
 name = "bashrs-runtime"
-version = "6.66.0"
+version = "6.66.1"
 dependencies = [
  "anyhow",
 ]
 
 [[package]]
 name = "bashrs-specs"
-version = "6.66.0"
+version = "6.66.1"
 dependencies = [
  "bashrs",
  "criterion",
@@ -669,7 +669,7 @@ dependencies = [
 
 [[package]]
 name = "bashrs-wasm"
-version = "6.66.0"
+version = "6.66.1"
 dependencies = [
  "bashrs",
  "jugar-probar",
