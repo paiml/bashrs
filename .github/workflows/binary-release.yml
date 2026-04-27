@@ -97,10 +97,15 @@ jobs:
 
       - name: Build bashrs
         run: |
+          # The workspace's default-run package is `bashrs-specs`, not
+          # `bashrs`. The `bashrs` binary lives in the `rash/` package
+          # (also named `bashrs`); -p selects it explicitly so cargo
+          # doesn't error with "no bin target named `bashrs` in
+          # default-run packages".
           if [ "${{ matrix.cross }}" = "true" ]; then
-            cross build --release --bin bashrs --target ${{ matrix.target }} --locked
+            cross build --release -p bashrs --bin bashrs --target ${{ matrix.target }} --locked
           else
-            cargo build --release --bin bashrs --target ${{ matrix.target }} --locked
+            cargo build --release -p bashrs --bin bashrs --target ${{ matrix.target }} --locked
           fi
 
       - name: Strip binary
