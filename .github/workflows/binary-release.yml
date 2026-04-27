@@ -67,6 +67,21 @@ jobs:
         with:
           ref: ${{ steps.tag.outputs.tag }}
 
+      # bashrs depends on provable-contracts via Cargo path dep
+      # (`../provable-contracts/crates/provable-contracts`). The repo
+      # was archived (it's now part of paiml/aprender as
+      # `aprender-contracts`), but the archived repo is still reachable
+      # for checkout. Mirror forjar's binary-release.yml dance: clone
+      # alongside the workspace and symlink so Cargo can resolve.
+      - name: Checkout provable-contracts (path dep)
+        uses: actions/checkout@v4
+        with:
+          repository: paiml/provable-contracts
+          path: provable-contracts
+
+      - name: Symlink provable-contracts for Cargo path deps
+        run: ln -sf "$GITHUB_WORKSPACE/provable-contracts" "$GITHUB_WORKSPACE/../provable-contracts"
+
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
