@@ -71,16 +71,20 @@ jobs:
       # (`../provable-contracts/crates/provable-contracts`). The repo
       # was archived (it's now part of paiml/aprender as
       # `aprender-contracts`), but the archived repo is still reachable
-      # for checkout. Mirror forjar's binary-release.yml dance: clone
-      # alongside the workspace and symlink so Cargo can resolve.
+      # for checkout. We clone it inside the workspace, then move it to
+      # the parent dir where Cargo expects it (symlinks have proven
+      # flaky across cross images, so we copy outright).
       - name: Checkout provable-contracts (path dep)
         uses: actions/checkout@v4
         with:
           repository: paiml/provable-contracts
-          path: provable-contracts
+          path: provable-contracts-clone
 
-      - name: Symlink provable-contracts for Cargo path deps
-        run: ln -sf "$GITHUB_WORKSPACE/provable-contracts" "$GITHUB_WORKSPACE/../provable-contracts"
+      - name: Place provable-contracts at parent dir for Cargo path dep
+        run: |
+          set -euxo pipefail
+          mv "$GITHUB_WORKSPACE/provable-contracts-clone" "$GITHUB_WORKSPACE/../provable-contracts"
+          test -f "$GITHUB_WORKSPACE/../provable-contracts/crates/provable-contracts/Cargo.toml"
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
