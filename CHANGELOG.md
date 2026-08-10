@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.66.2] - 2026-08-10
+
+### Fixed
+
+- **SC2188 false positive on backslash line-continuation** ([#211](https://github.com/paiml/bashrs/issues/211)).
+  `sc2188::check` iterated raw physical lines via `source.lines()`, so the redirect
+  line of a valid multi-line command was reported as "Redirection without command":
+
+  ```sh
+  sha256sum /etc/hostname \
+            /etc/hosts \
+    > /tmp/out.sha256      # <- was flagged as a lone redirect
+  ```
+
+  Since SC2188 is `Severity::Error`, this was not cosmetic — it aborted
+  `forjar apply`, which treats a bashrs error as a fatal I8 violation. The rule now
+  folds physical lines into logical lines before testing, honouring backslash parity
+  (an even run is an escaped literal, not a continuation), comments, and CRLF.
+  Genuine lone redirects are still reported, at their physical line number.
+
+### Added
+
+- `contracts/linter-logical-lines-v1.yaml` — provable contract for logical-line
+  folding in line-oriented rules, with 10 falsification tests and 3 Kani harnesses.
+- 11 new SC2188 tests, including exhaustive soundness/precision checks over bounded
+  backslash runs (these stand in for the Kani harnesses, which cannot currently be
+  executed — see [#212](https://github.com/paiml/bashrs/issues/212)).
+
 ## [6.66.1] - 2026-04-27
 
 ### Fixed

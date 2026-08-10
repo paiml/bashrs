@@ -1,0 +1,160 @@
+metadata:
+  version: 1.0.0
+  verification_level: L5
+  description: >-
+    Provable contract for LOGICAL-LINE analysis in line-oriented lint rules (GH-211).
+    Shell folds a physical line ending in an unescaped backslash into the next one, so a
+    rule that reasons over `source.lines()` reasons over the wrong unit. SC2188
+    ("Redirection without command") asked "does this redirection have a command?" - a
+    question about the logical line - while iterating physical lines, and therefore
+    reported valid multi-line commands as hard errors. Because SC2188 is Severity::Error,
+    that false positive is not cosmetic: forjar treats a bashrs error as a fatal I8
+    violation and aborts `forjar apply`. This contract fixes the soundness/precision pair
+    for continuation folding and pins the edge cases that make folding subtle.
+  verification_command: cargo test -p bashrs --lib linter::rules::sc2188
+  depends_on:
+  - parser-soundness-v1
+  references:
+  - 'GH-211: SC2188 false positive on backslash line-continuation before a redirect'
+  - 'paiml/infra PMAT-204: the forjar apply this false positive aborted'
+  - 'POSIX.1-2017 Shell Command Language 2.2.1: Escape Character (Backslash)'
+
+kernel_structure:
+  phases:
+  - name: fold_continuations
+    description: >-
+      Classify each physical line as either continuing the previous logical line or
+      beginning a new one. A line continues the next iff it ends in an ODD number of
+      trailing backslashes and is not a comment.
+    invariant: >-
+      A physical line is analysed as the head of a logical line iff its predecessor did
+      not leave the logical line open.
+  - name: apply_line_rule
+    description: Run the lone-redirect test against logical-line heads only.
+    invariant: Continuation lines are never tested in isolation.
+  - name: emit_diagnostics
+    description: Emit SC2188 at the PHYSICAL line of the offending logical-line head.
+    invariant: Reported span points at a line the reader can actually navigate to.
+
+equations:
+  continuation_parity:
+    formula: 'continues(l) <=> (not is_comment(l)) and (trailing_backslashes(l) mod 2 = 1)'
+    domain: 'l: a physical line, \r already stripped'
+    codomain: bool
+    invariants:
+    - 'An ODD run of trailing backslashes continues the logical line'
+    - 'An EVEN run is an escaped literal backslash and terminates it'
+    - 'A comment runs to end of line, so it never continues regardless of parity'
+  logical_head:
+    formula: 'is_head(l_i) <=> not continues(l_{i-1});  is_head(l_1) = true'
+    domain: 'i: 1-indexed physical line number'
+    codomain: bool
+    invariants:
+    - 'The first physical line is always a logical-line head'
+    - 'Exactly the heads are subject to the lone-redirect test'
+
+proof_obligations:
+- type: invariant
+  property: SC2188 does not fire on a redirect reached by line continuation
+  formal: 'forall s: continues(prev(s)) => not fires(SC2188, s)'
+  tolerance: 0.0
+  applies_to: all
+- type: invariant
+  property: SC2188 still fires on a genuine lone redirect
+  formal: 'forall s: is_head(s) and matches(^\s*[<>], s) and not heredoc(s) => fires(SC2188, s)'
+  tolerance: 0.0
+  applies_to: all
+- type: invariant
+  property: Diagnostic line numbers remain physical and 1-indexed
+  formal: 'fires(SC2188, l_i) => span.start_line = i'
+  tolerance: 0.0
+  applies_to: all
+- type: invariant
+  property: Folding is a pure function of the input text
+  formal: 'check(s) = check(s) for all s (determinism)'
+  tolerance: 0.0
+  applies_to: all
+
+invariants:
+- 'PRECISION: a redirect on a continuation line is never reported as a lone redirect'
+- 'SOUNDNESS: a genuine lone redirect is still reported, including immediately after a
+  continued command ends'
+- 'An EVEN number of trailing backslashes is an escaped literal, not a continuation'
+- 'A trailing backslash inside a comment does not swallow the following line'
+- 'CRLF input folds identically to LF input'
+- 'Heredoc bodies remain exempt under folding'
+- 'Diagnostics report the physical, 1-indexed line of the offending logical-line head'
+- 'No bashrs error-severity diagnostic is emitted for input that `bash -n` accepts as
+  valid, for the continuation-before-redirect shape'
+
+kani_harnesses:
+- id: KANI-LINTER_LOGICAL_LINES-001
+  obligation: An ODD run of trailing backslashes continues the logical line
+  property: 'continues(l) <=> trailing_backslashes(l) mod 2 = 1'
+  bound: 8
+  strategy: bounded_int
+  harness: verify_continuation_parity
+- id: KANI-LINTER_LOGICAL_LINES-002
+  obligation: SC2188 does not fire on a redirect reached by line continuation
+  property: 'continues(prev) => no SC2188 diagnostic'
+  bound: 8
+  strategy: bounded_int
+  harness: verify_continuation_suppresses_redirect
+- id: KANI-LINTER_LOGICAL_LINES-003
+  obligation: SC2188 still fires on a genuine lone redirect
+  property: 'not continues(prev) and lone redirect => exactly one SC2188 diagnostic'
+  bound: 8
+  strategy: bounded_int
+  harness: verify_lone_redirect_still_detected
+
+falsification_tests:
+- id: F-SC2188-CONTINUATION-PRECISE
+  rule: A redirect reached by backslash continuation is not a lone redirect
+  prediction: 'lint of "sha256sum a \\\n b \\\n  > out" contains NO SC2188'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::continuation_into_redirect_is_not_a_lone_redirect
+  if_fails: 'Contract violation: valid multi-line commands are rejected; forjar apply will abort on them'
+- id: F-SC2188-SINGLE-BREAK-PRECISE
+  rule: A single continuation before a redirect is not a lone redirect
+  prediction: 'lint of "cat a.txt \\\n  > out.txt" contains NO SC2188'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::continuation_single_break_before_redirect
+  if_fails: 'Contract violation: the simplest continuation shape still false-positives'
+- id: F-SC2188-LONE-SOUND
+  rule: A genuine lone redirect after a continuation ends is still flagged, at the right line
+  prediction: 'lint of "cat a.txt \\\n  b.txt\n> truncate.txt" contains SC2188 at line 3'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::genuine_lone_redirect_after_a_continued_command_still_flagged
+  if_fails: 'Contract violation: folding over-reached and suppressed a real defect'
+- id: F-SC2188-EVEN-BACKSLASH-SOUND
+  rule: An escaped backslash at EOL does not continue the logical line
+  prediction: 'lint of "printf ''x'' \\\\\n> f.txt" contains SC2188'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::escaped_backslash_at_eol_is_not_a_continuation
+  if_fails: 'Contract violation: backslash parity is mishandled; escaped literals read as continuations'
+- id: F-SC2188-COMMENT-SOUND
+  rule: A trailing backslash in a comment does not swallow the next line
+  prediction: 'lint of "# a comment \\\n> real.txt" contains SC2188'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::commented_continuation_does_not_suppress_a_later_lone_redirect
+  if_fails: 'Contract violation: a comment can hide a real lone redirect'
+- id: F-SC2188-CRLF-PRECISE
+  rule: CRLF input folds continuations the same as LF
+  prediction: 'lint of "cat a.txt \\\r\n  > out.txt\r\n" contains NO SC2188'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::crlf_continuation_is_handled
+  if_fails: 'Contract violation: line-ending handling defeats the backslash test'
+- id: F-SC2188-FIRSTLINE-SOUND
+  rule: A lone redirect on line 1 is flagged at line 1
+  prediction: 'lint of "> output.txt" contains SC2188 with span.start_line = 1'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::lone_redirect_on_first_line_still_flagged_at_line_1
+  if_fails: 'Contract violation: the first line is not treated as a logical head, or spans are off by one'
+- id: F-SC2188-MULTI-SOUND
+  rule: Independent lone redirects are each flagged
+  prediction: 'lint of "> a.txt\necho ok\n< b.txt" contains 2 SC2188 diagnostics'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::multiple_independent_lone_redirects_all_flagged
+  if_fails: 'Contract violation: continuation state leaks across unrelated lines'
+- id: F-SC2188-HEREDOC-PRECISE
+  rule: Heredoc bodies stay exempt under folding
+  prediction: 'lint of "cat <<EOF\nhello\nEOF" contains NO SC2188'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests::heredoc_still_exempt_under_continuation_folding
+  if_fails: 'Contract violation: folding broke the pre-existing heredoc exemption'
+- id: F-SC2188-NO-LINTER-REGRESSION
+  rule: The whole linter suite still passes with folding in place
+  prediction: 'cargo test -p bashrs --lib linter reports 0 failures'
+  test: cargo test -p bashrs --lib linter
+  if_fails: 'Contract violation: logical-line folding regressed another rule'
