@@ -7,14 +7,17 @@
 mod kani_proofs {
     use crate::formal::semantics::{posix_semantics, rash_semantics};
     use crate::formal::{AbstractState, FormalEmitter, TinyAst};
+    // GH-212: `let s: String = kani::any()` is an E0277 — String is not (and
+    // cannot be) kani::Arbitrary. These harnesses had never been compiled.
+    use crate::kani_bounded::{any_bounded_identifier, any_bounded_string};
 
     /// Verify that echo commands preserve their output exactly
     #[kani::proof]
+    #[kani::unwind(7)]
     fn verify_echo_semantic_equivalence() {
-        // Create a bounded string for the argument
-        let arg: String = kani::any();
-        kani::assume(arg.len() <= 10); // Bound the string length
-        kani::assume(arg.chars().all(|c| c.is_ascii_alphanumeric())); // Simple chars only
+        // Bounded at 6, not the original's 10: the state space is 62^N, and the
+        // bound must be justified by a measured runtime rather than a wish.
+        let arg = any_bounded_string::<6>();
 
         let ast = TinyAst::ExecuteCommand {
             command_name: "echo".to_string(),
@@ -48,21 +51,13 @@ mod kani_proofs {
 
     /// Verify that environment variable assignments are preserved
     #[kani::proof]
+    #[kani::unwind(6)]
     fn verify_assignment_semantic_equivalence() {
-        // Create bounded strings for name and value
-        let name: String = kani::any();
-        let value: String = kani::any();
-
-        // Bound the strings
-        kani::assume(name.len() > 0 && name.len() <= 8);
-        kani::assume(value.len() <= 10);
-
-        // Ensure valid variable name
-        kani::assume(name.chars().all(|c| c.is_ascii_alphabetic() || c == '_'));
-        kani::assume(
-            name.chars().next().unwrap().is_ascii_alphabetic()
-                || name.chars().next().unwrap() == '_',
-        );
+        // any_bounded_identifier encodes the leading-char rule the original
+        // spelled out with two assumes (and an `.unwrap()` on `next()` that
+        // would have been reachable had len == 0 slipped through).
+        let name = any_bounded_identifier::<4>();
+        let value = any_bounded_string::<5>();
 
         let ast = TinyAst::SetEnvironmentVariable {
             name: name.clone(),

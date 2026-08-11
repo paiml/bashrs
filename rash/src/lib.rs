@@ -113,6 +113,9 @@ pub mod gates;
 pub mod installer;
 /// Intermediate representation for transpilation
 pub mod ir;
+/// Bounded symbolic values for Kani harnesses (see GH-212)
+#[cfg(kani)]
+pub mod kani_bounded;
 /// Shell script linting with ShellCheck-equivalent rules
 pub mod linter;
 /// Makefile parsing and purification

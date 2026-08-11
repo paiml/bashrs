@@ -560,14 +560,63 @@ fuzz-trophies:
 verify: verify-kani verify-creusot verify-smt verify-model verify-properties
 	@echo "✅ All formal verification passed!"
 
+# GH-212: this target used to report success while proving NOTHING. The crate
+# had not compiled under cfg(kani) for months — 19 errors in its own harness
+# files — and every invocation was suffixed `|| true`, so the failure was
+# swallowed. Contracts declaring `kani_harnesses:` were undischarged the entire
+# time while the gate read green. `pv validate` passing meant the contract was
+# well-formed, not that its obligations held.
+#
+# Two outcomes are now distinguished, because they do not mean the same thing:
+#
+#   BUILD failure  -> HARD FAIL. This IS the GH-212 defect: a harness that does
+#                     not compile can never prove anything. Caught by
+#                     --only-codegen in ~106s, without invoking the solver.
+#   No convergence -> UNPROVEN. Reported loudly, non-fatal. Bounded model
+#                     checking is exponential; "did not finish in the budget" is
+#                     not "the property is false", and failing the build on it
+#                     would make `make verify` permanently red — which is how a
+#                     gate teaches people to bypass it.
+#
+# MEASURED 2026-08-11, kani 0.67.0, 32-core box: none of these harnesses
+# converge. CBMC spends its time inside alloc::raw_vec / Layout / LayoutError —
+# Rust's ALLOCATOR — because every harness calls an escaping function that
+# returns a heap String. Shrinking the input bound does not help: 8, 4 and 2
+# characters all time out, so string LENGTH was never the bottleneck. Proving
+# these properties needs the escapers refactored onto caller-provided &mut [u8]
+# buffers so no allocation is reachable from a harness. Tracked separately.
+KANI_TIMEOUT   ?= 300
+KANI_HARNESSES := verify_escape_safety verify_variable_expansion_safety verify_injection_safety
+
 verify-kani:
 	@echo "🔍 Running Kani model checker..."
-	@if cargo +nightly kani --version >/dev/null 2>&1; then \
-		cargo +nightly kani --harnesses verify_parser_soundness --unwind 10 || true; \
-		cargo +nightly kani --harnesses verify_escape_safety --unwind 10 || true; \
-		cargo +nightly kani --harnesses verify_injection_safety --unwind 10 || true; \
-	else \
+	@if ! cargo +nightly kani --version >/dev/null 2>&1; then \
 		echo "⚠️  Kani not installed, skipping bounded model checking"; \
+		exit 0; \
+	fi; \
+	echo "  [1/2] cfg(kani) build — GH-212 regression guard"; \
+	if ! cargo +nightly kani -p bashrs --only-codegen; then \
+		echo "❌ bashrs does not compile under cfg(kani): every harness is unrunnable,"; \
+		echo "   and every contract declaring kani_harnesses: is undischarged."; \
+		exit 1; \
+	fi; \
+	echo "  [2/2] solving — budget $(KANI_TIMEOUT)s per harness"; \
+	unproven=0; \
+	for h in $(KANI_HARNESSES); do \
+		timeout $(KANI_TIMEOUT) cargo +nightly kani -p bashrs --harness $$h >/dev/null 2>&1; \
+		rc=$$?; \
+		if [ $$rc -eq 0 ]; then \
+			echo "    ✅ $$h VERIFIED"; \
+		elif [ $$rc -eq 124 ]; then \
+			echo "    ⏱  $$h UNPROVEN — no convergence in $(KANI_TIMEOUT)s"; \
+			unproven=$$((unproven+1)); \
+		else \
+			echo "    ❌ $$h FAILED (exit $$rc) — a property was refuted"; \
+			exit 1; \
+		fi; \
+	done; \
+	if [ $$unproven -gt 0 ]; then \
+		echo "  ⚠️  kani: $$unproven/$(words $(KANI_HARNESSES)) unproven (allocator-bound; see the comment above this target)"; \
 	fi
 
 verify-creusot:
