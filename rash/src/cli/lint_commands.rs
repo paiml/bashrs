@@ -200,7 +200,13 @@ fn lint_single_file(input: &Path, opts: &LintCommandOptions<'_>) -> Result<()> {
         emit_ci_annotations(input, &result);
         exit_for_fail_on(&result, opts.fail_on)
     } else {
-        output_lint_results(&result, opts.format, input)
+        // GH-209: print, THEN apply the --fail-on threshold. Previously this
+        // called a variant that picked the exit code itself, so --fail-on was
+        // honoured only under --ci and `bashrs lint --fail-on error Makefile`
+        // still exited 1 on a warnings-only run. Default is Warning, so the
+        // out-of-the-box exit codes are unchanged.
+        output_lint_results_no_exit(&result, opts.format, input)?;
+        exit_for_fail_on(&result, opts.fail_on)
     }
 }
 

@@ -81,8 +81,43 @@ pub fn check(source: &str) -> LintResult {
 }
 
 /// Check if a recipe line already has error handling
+/// GH-209: this used to be a substring test for the literal `"|| exit"`, so the
+/// compound form
+///
+/// ```make
+/// curl -fsSL "$(URL)" | tar xz || { echo "✗ download failed"; exit 1; }
+/// ```
+///
+/// was reported as missing error handling — even though it handles errors
+/// strictly better than a bare `|| exit 1`, since the user learns what failed.
+/// The offered autofix appended a second `|| exit 1` after a block that already
+/// exits, which is dead code.
+///
+/// Now: find the `||` and inspect its tail, so any failure branch that
+/// terminates counts — `|| exit 1`, `|| { …; exit 1; }`, `|| return 1`, and the
+/// common `die`/`fail`/`abort` helpers.
 fn has_error_handling(recipe: &str) -> bool {
-    recipe.contains("|| exit") || recipe.contains("set -e") || recipe.contains("&&")
+    if recipe.contains("set -e") || recipe.contains("&&") {
+        return true;
+    }
+
+    let Some(idx) = recipe.find("||") else {
+        return false;
+    };
+    let tail = &recipe[idx + 2..];
+
+    if tail.contains("exit") || tail.contains("return") {
+        return true;
+    }
+
+    // `|| die "msg"` and `|| { fail …` — the brace may be its own token
+    // (`|| { fail`) or glued on (`||{fail`), so strip it before the first word
+    // rather than from it.
+    tail.trim_start()
+        .trim_start_matches('{')
+        .split_whitespace()
+        .next()
+        .is_some_and(|w| matches!(w, "die" | "fail" | "abort" | "error" | "bail"))
 }
 
 /// Find if the recipe contains a critical command
@@ -413,4 +448,28 @@ mod tests {
             }
         }
     }
+
+    /// GH-209: `|| { echo ...; exit 1; }` IS error handling — better than a bare
+    /// `|| exit 1`. The old substring test for the literal "|| exit" missed it,
+    /// and the autofix appended a second `|| exit 1` after a block that exits.
+    #[test]
+    fn gh209_compound_error_handler_is_recognized() {
+        assert!(has_error_handling(
+            "curl -fsSL \"$(URL)\" | tar xz || { echo \"failed\"; exit 1; }"
+        ));
+        assert!(has_error_handling("rm -rf \"$(DIR)\" || { echo \"rm failed\"; exit 1; }"));
+        assert!(has_error_handling("cmd || return 1"));
+        assert!(has_error_handling("cmd || die \"nope\""));
+        assert!(has_error_handling("cmd || { fail \"nope\"; }"));
+    }
+
+    /// And a recipe with NO handling must still be reported, or the fix is a
+    /// false negative rather than a fix.
+    #[test]
+    fn gh209_unhandled_command_still_reported() {
+        assert!(!has_error_handling("curl -fsSL \"$(URL)\" | tar xz"));
+        let result = check("target:\n\tcurl -fsSL \"$(URL)\" | tar xz\n");
+        assert!(!result.diagnostics.is_empty(), "genuinely unhandled curl must still fire");
+    }
+
 }
