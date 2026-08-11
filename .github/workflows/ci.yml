@@ -34,6 +34,17 @@ jobs:
       # members with 0 errors (bashrs, bashrs_oracle, bashrs_runtime,
       # bashrs_specs, bashrs_wasm).
       test_workspace: true
+      # rash/src/testing/shellcheck_validation_tests.rs shells out to shellcheck
+      # and `.expect()`s it, so those 23 tests PANIC where it is absent. They
+      # never ran before because `--lib` scoped to the root stub package; turning
+      # test_workspace on is what surfaced them.
+      #
+      # Installed rather than skipped: that module asserts a stated critical
+      # invariant — "every generated script must pass `shellcheck -s sh`" — so
+      # skipping it in CI would swap a red for a silent green, which is the exact
+      # failure mode this repo keeps getting bitten by. infra's clean-room gate
+      # already installs shellcheck for bashrs for the same reason.
+      extra_pkgs: shellcheck
     secrets: inherit
 
   # Top-level gate: org ruleset requires status check named "gate" (exact match).
