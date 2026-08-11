@@ -1,7 +1,17 @@
-# Example: Using bashrs GitHub Action
-# Copy this to your repo's .github/workflows/ directory
+# Example: Using the bashrs GitHub Action
 #
-# This workflow demonstrates lint, score, and property checking.
+# TEMPLATE — copy this into your own repo's .github/workflows/ directory and
+# point `files:` at your scripts. It lives under docs/examples/ ON PURPOSE:
+# anything under .github/workflows/ is EXECUTED by GitHub, and this file
+# references paths that exist in YOUR repo, not in bashrs.
+#
+# It sat in .github/workflows/ from the start and ran on every push touching
+# `**/*.sh` or `**/Makefile`, failing continuously from v6.66.0 (2026-04-08)
+# because `scripts/deploy.sh` does not exist here and `--tier production` is not
+# a valid tier. Five permanently-red checks on unrelated PRs is how a team
+# learns to ignore red.
+#
+# `bashrs gate --tier` takes 1=fast, 2=pre-commit, 3=nightly.
 # See action.yml for all available inputs.
 
 name: Shell Script Quality
@@ -67,4 +77,4 @@ jobs:
       - uses: paiml/bashrs@main
         with:
           command: gate
-          args: '--tier production'
+          args: '--tier 3'
