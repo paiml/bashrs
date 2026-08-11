@@ -265,7 +265,7 @@ mod corpus_diff_chrono_free_date {
 
 #[cfg(test)]
 mod corpus_core_smoke {
-    use crate::cli::args::CorpusCommands;
+    use crate::cli::args::{CorpusCommands, CorpusScoringCommands};
 
     // These tests load the full corpus (17,942 entries) and are slow (~30-60s each).
     // They are marked #[ignore] for normal `cargo test` but are included in coverage runs
@@ -390,12 +390,12 @@ mod corpus_core_smoke {
     #[ignore] // slow: loads full corpus + runs all entries
     fn test_cov_corpus_handle_run_human() {
         use crate::cli::args::CorpusOutputFormat;
-        let cmd = CorpusCommands::Run {
+        let cmd = CorpusCommands::Scoring(CorpusScoringCommands::Run {
             format: CorpusOutputFormat::Human,
             filter: None,
             min_score: None,
             log: false,
-        };
+        });
         let _ = super::super::corpus_core_cmds::handle_corpus_command(cmd);
     }
 
@@ -403,12 +403,12 @@ mod corpus_core_smoke {
     #[ignore] // slow: loads full corpus + runs all entries
     fn test_cov_corpus_handle_run_json() {
         use crate::cli::args::CorpusOutputFormat;
-        let cmd = CorpusCommands::Run {
+        let cmd = CorpusCommands::Scoring(CorpusScoringCommands::Run {
             format: CorpusOutputFormat::Json,
             filter: None,
             min_score: None,
             log: false,
-        };
+        });
         let _ = super::super::corpus_core_cmds::handle_corpus_command(cmd);
     }
 
@@ -416,12 +416,12 @@ mod corpus_core_smoke {
     #[ignore] // slow: loads full corpus + runs bash entries
     fn test_cov_corpus_handle_run_with_bash_filter() {
         use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
-        let cmd = CorpusCommands::Run {
+        let cmd = CorpusCommands::Scoring(CorpusScoringCommands::Run {
             format: CorpusOutputFormat::Human,
             filter: Some(CorpusFormatArg::Bash),
             min_score: None,
             log: false,
-        };
+        });
         let _ = super::super::corpus_core_cmds::handle_corpus_command(cmd);
     }
 
@@ -429,12 +429,12 @@ mod corpus_core_smoke {
     #[ignore] // slow: loads full corpus + runs makefile entries
     fn test_cov_corpus_handle_run_with_makefile_filter() {
         use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
-        let cmd = CorpusCommands::Run {
+        let cmd = CorpusCommands::Scoring(CorpusScoringCommands::Run {
             format: CorpusOutputFormat::Human,
             filter: Some(CorpusFormatArg::Makefile),
             min_score: None,
             log: false,
-        };
+        });
         let _ = super::super::corpus_core_cmds::handle_corpus_command(cmd);
     }
 
@@ -442,12 +442,12 @@ mod corpus_core_smoke {
     fn test_cov_corpus_handle_run_with_dockerfile_filter() {
         use crate::cli::args::{CorpusFormatArg, CorpusOutputFormat};
         // Dockerfile corpus is small (~700 entries), so this is fast enough
-        let cmd = CorpusCommands::Run {
+        let cmd = CorpusCommands::Scoring(CorpusScoringCommands::Run {
             format: CorpusOutputFormat::Human,
             filter: Some(CorpusFormatArg::Dockerfile),
             min_score: None,
             log: false,
-        };
+        });
         let _ = super::super::corpus_core_cmds::handle_corpus_command(cmd);
     }
 
@@ -455,12 +455,12 @@ mod corpus_core_smoke {
     #[ignore] // slow: loads full corpus + runs all entries
     fn test_cov_corpus_handle_run_with_min_score_passing() {
         use crate::cli::args::CorpusOutputFormat;
-        let cmd = CorpusCommands::Run {
+        let cmd = CorpusCommands::Scoring(CorpusScoringCommands::Run {
             format: CorpusOutputFormat::Human,
             filter: None,
             min_score: Some(0.0), // should always pass
             log: false,
-        };
+        });
         let res = super::super::corpus_core_cmds::handle_corpus_command(cmd);
         assert!(res.is_ok());
     }
@@ -469,12 +469,12 @@ mod corpus_core_smoke {
     #[ignore] // slow: loads full corpus + runs all entries
     fn test_cov_corpus_handle_run_with_high_min_score() {
         use crate::cli::args::CorpusOutputFormat;
-        let cmd = CorpusCommands::Run {
+        let cmd = CorpusCommands::Scoring(CorpusScoringCommands::Run {
             format: CorpusOutputFormat::Human,
             filter: None,
             min_score: Some(999.0), // impossible threshold
             log: false,
-        };
+        });
         let res = super::super::corpus_core_cmds::handle_corpus_command(cmd);
         assert!(res.is_err());
     }

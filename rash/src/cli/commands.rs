@@ -133,6 +133,8 @@ mod make_cmds;
 pub(super) mod corpus_advanced_commands;
 #[path = "corpus_analysis_commands.rs"]
 pub(super) mod corpus_analysis_commands;
+#[path = "corpus_analysis_dispatch.rs"]
+pub(super) mod corpus_analysis_dispatch;
 #[path = "corpus_b2_commands.rs"]
 pub(super) mod corpus_b2_commands;
 #[path = "corpus_b2_fix_commands.rs"]

@@ -1,6 +1,12 @@
 pub mod args;
 pub mod args_corpus;
 pub mod args_corpus_analysis;
+pub mod args_corpus_analysis_diag;
+pub mod args_corpus_analysis_gates;
+pub mod args_corpus_analysis_pipeline;
+pub mod args_corpus_diagnostics;
+pub mod args_corpus_operations;
+pub mod args_corpus_scoring;
 pub mod args_ext;
 pub mod args_tools;
 pub mod bench;
