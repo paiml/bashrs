@@ -23,6 +23,17 @@ jobs:
       # candidate for mid-range hit-rate signal between copia and aprender.
       enable_sccache: true
       use_nextest: true
+      # GH-214: without this the reusable workflow runs `--lib`, which scopes to
+      # the ROOT package (bashrs-specs) and never builds rash/, bashrs-oracle,
+      # bashrs-runtime or bashrs-wasm. bashrs-oracle's test module therefore
+      # failed to compile for months while every check stayed green. `--workspace
+      # --lib` is what makes a rotting workspace member loud.
+      #
+      # Verified locally before enabling, because turning this on blind would red
+      # the whole pipeline: `cargo test --workspace --lib --no-run` builds all 5
+      # members with 0 errors (bashrs, bashrs_oracle, bashrs_runtime,
+      # bashrs_specs, bashrs_wasm).
+      test_workspace: true
     secrets: inherit
 
   # Top-level gate: org ruleset requires status check named "gate" (exact match).
