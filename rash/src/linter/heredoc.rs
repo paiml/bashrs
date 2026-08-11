@@ -123,7 +123,10 @@ mod tests {
         assert!(r.contains(&4), "python line 4 must be inside the region");
         assert!(!r.contains(&2), "the opening line is real shell");
         assert!(!r.contains(&5), "the terminator is not body");
-        assert!(!r.contains(&6), "code after the heredoc must still be linted");
+        assert!(
+            !r.contains(&6),
+            "code after the heredoc must still be linted"
+        );
     }
 
     #[test]
@@ -155,7 +158,10 @@ mod tests {
         let src = "cat <<'DOC'\nexample: cat <<'INNER'\nDOC\necho after\n";
         let r = quoted_heredoc_lines(src);
         assert!(r.contains(&2), "the doc line is body");
-        assert!(!r.contains(&4), "code after the outer heredoc is still linted");
+        assert!(
+            !r.contains(&4),
+            "code after the outer heredoc is still linted"
+        );
     }
 
     #[test]

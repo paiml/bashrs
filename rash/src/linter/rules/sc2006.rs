@@ -28,8 +28,6 @@
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
-
-
 /// Regex to detect backtick command substitution: `command`
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
 static BACKTICK_PATTERN: std::sync::LazyLock<Regex> =
