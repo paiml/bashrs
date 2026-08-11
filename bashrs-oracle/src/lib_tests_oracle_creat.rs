@@ -1,7 +1,13 @@
 #[cfg(test)]
 mod tests {
     #![allow(clippy::expect_used)]
-    use super::*;
+    // `crate::*`, not `super::*`: this file is pulled in by lib_cont.rs via
+    // `#[path = "lib_tests_oracle_creat.rs"] mod tests_extracted;`, so `super`
+    // is lib_cont — not the crate root where Oracle/ErrorCategory/Corpus/
+    // OracleConfig/ErrorFeatures/DriftStatus actually live. PMAT-229 renamed
+    // the file into that submodule and `super::*` quietly stopped reaching
+    // them; nothing built this member, so it stayed broken. See GH-214.
+    use crate::*;
 
     #[test]
     fn test_oracle_creation() {
