@@ -143,34 +143,17 @@ pub(crate) fn handle_lint_fixes(
     }
 }
 
-/// Display lint results and exit with the appropriate code.
-pub(crate) fn output_lint_results(
-    result: &crate::linter::LintResult,
-    format: LintFormat,
-    input: &Path,
-) -> Result<()> {
-    use crate::linter::output::write_results;
+// GH-209: `output_lint_results` used to live here and chose the exit code
+// itself — `has_warnings() -> exit(1)` — with no knowledge of `--fail-on`.
+// Since it was the ONLY path for a single file outside `--ci` mode, the
+// documented `--fail-on error` flag did nothing for the most common invocation
+// (`bashrs lint Makefile`), and a warnings-only run still exited 1. It is
+// removed rather than taught about `--fail-on`, so no caller can reintroduce
+// an exit decision that bypasses the threshold: printing and exiting are now
+// separate, and `exit_for_fail_on` is the single place that decides.
 
-    let output_format = super::convert_lint_format(format);
-    let file_path = input.to_str().unwrap_or("unknown");
-    write_results(&mut std::io::stdout(), result, output_format, file_path)
-        .map_err(|e| Error::Internal(format!("Failed to write lint results: {e}")))?;
-
-    // Exit with appropriate code (Issue #6)
-    // Exit 0: No issues
-    // Exit 1: Warnings found
-    // Exit 2: Errors found
-    if result.has_errors() {
-        std::process::exit(2);
-    } else if result.has_warnings() {
-        std::process::exit(1);
-    }
-
-    Ok(())
-}
-
-/// Display lint results without calling process::exit (for multi-file aggregation).
-fn output_lint_results_no_exit(
+/// Display lint results without calling process::exit.
+pub(crate) fn output_lint_results_no_exit(
     result: &crate::linter::LintResult,
     format: LintFormat,
     input: &Path,

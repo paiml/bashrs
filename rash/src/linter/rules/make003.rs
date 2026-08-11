@@ -131,6 +131,33 @@ fn check_unquoted_vars(line: &str, line_num: usize, result: &mut LintResult) {
         }
 
         if chars[i] == '$' && i + 1 < chars.len() {
+            // GH-209: `$$` is Make's escape for a literal `$`; the shell (or an
+            // embedded awk/perl program) receives a single `$`, so it is NOT a
+            // Make variable and must not be parsed as one.
+            //
+            // Previously `parse_variable_reference` fell into its `$VAR` branch,
+            // scanned zero alphanumerics because the next char is `$`, and
+            // emitted a diagnostic spanning one character whose autofix was
+            // `"$"` — replacing Make's escape with a quoted dollar, which
+            // changes what the shell receives. The canonical trigger is the
+            // self-documenting-help idiom present in most Makefiles:
+            //
+            //     @awk '… { printf "  %-12s %s\n", $$1, $$2 }' "$(MAKEFILE_LIST)"
+            //
+            // where `$$1`/`$$2` are awk FIELD references, not variables to
+            // quote — quoting them breaks the awk program.
+            //
+            // Both characters are consumed. Whatever follows is shell-level
+            // (`$1`, `$TMPDIR`), and deciding whether THAT wants quoting needs
+            // to know if it sits inside an embedded awk/perl/jq program. This
+            // rule cannot know that, and guessing produced an autofix users
+            // could not apply — so it stays silent here rather than emit advice
+            // that is wrong in the common case.
+            if chars[i + 1] == '$' {
+                i += 2;
+                continue;
+            }
+
             // F037 FIX: If we're inside a quoted string, skip this variable
             if in_double_quote || in_single_quote {
                 i += 1;
@@ -282,4 +309,38 @@ mod tests {
             result.diagnostics
         );
     }
+
+    /// GH-209: `$$` is Make's escape for a literal `$`. The self-documenting
+    /// help idiom passes `$$1`/`$$2` to awk as FIELD references; the old code
+    /// emitted a one-char diagnostic whose fix was `"$"`.
+    #[test]
+    fn gh209_make_escaped_dollar_is_not_a_variable() {
+        // UNQUOTED on purpose. The awk-in-single-quotes form from the issue is
+        // already skipped by the quote tracking above, so a test using it would
+        // pass with or without this fix — vacuous. Outside quotes is where the
+        // old code fell into its `$VAR` branch, scanned zero alphanumerics
+        // because the next char is `$`, and emitted a one-character diagnostic
+        // whose autofix was `"$"`.
+        let src = "clean:\n\trm -rf $$1\n";
+        let result = check(src);
+        assert!(
+            result.diagnostics.is_empty(),
+            "GH-209: $$ is Make's escape for a literal $, not an unquoted variable. Got: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// The escape must not blind the rule to a genuinely unquoted variable
+    /// elsewhere on the same line — otherwise the fix trades a false positive
+    /// for a false negative.
+    #[test]
+    fn gh209_escape_does_not_suppress_a_real_finding_on_the_same_line() {
+        let src = "clean:\n\t@awk '{print $$1}'; rm -rf $(BUILD_DIR)\n";
+        let result = check(src);
+        assert!(
+            !result.diagnostics.is_empty(),
+            "an unquoted $(BUILD_DIR) must still be reported alongside $$1"
+        );
+    }
+
 }

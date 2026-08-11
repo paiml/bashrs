@@ -370,6 +370,22 @@ fn lint_shell_filtered(
     apply_rule!("REL004", rel004::check);
     apply_rule!("REL005", rel005::check);
 
+    // GH-217: drop diagnostics that land inside a QUOTED heredoc body. Such a
+    // body is literal text, not shell — that is what quoting the delimiter
+    // means — so every line-oriented rule was reporting on embedded Python,
+    // awk and jq. SC1007 is Severity::Error, so those false positives blocked
+    // commits.
+    //
+    // Filtered here, once, rather than in each rule: sc2006 carried a private
+    // copy of this logic (issue #96) and the other 384 rules did not, which is
+    // exactly how this recurred one rule at a time. Doing it at the point where
+    // diagnostics are aggregated covers every existing rule and every future
+    // one for free.
+    let heredoc_lines = crate::linter::heredoc::quoted_heredoc_lines(source);
+    result
+        .diagnostics
+        .retain(|diag| !heredoc_lines.contains(&diag.span.start_line));
+
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);
     result

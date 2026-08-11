@@ -27,19 +27,6 @@
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
-use std::collections::HashSet;
-
-/// Regex to detect single-quoted heredoc: << 'DELIM' or <<- 'DELIM'
-#[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static HEREDOC_SINGLE_QUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"<<-?\s*'(\w+)'").expect("valid single-quoted heredoc regex")
-});
-
-/// Regex to detect double-quoted heredoc: << "DELIM" or <<- "DELIM"
-#[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static HEREDOC_DOUBLE_QUOTED: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r#"<<-?\s*"(\w+)""#).expect("valid double-quoted heredoc regex")
-});
 
 /// Regex to detect backtick command substitution: `command`
 #[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
@@ -55,46 +42,12 @@ static ASSIGNMENT_BACKTICK: std::sync::LazyLock<Regex> = std::sync::LazyLock::ne
     .expect("valid assignment backtick regex")
 });
 
-/// Collect line numbers inside a heredoc body (from start_idx+1 until delimiter is found)
-fn collect_heredoc_body_lines(
-    lines: &[&str],
-    start_idx: usize,
-    delimiter: &str,
-    quoted_lines: &mut HashSet<usize>,
-) {
-    for (inner_idx, inner_line) in lines.iter().enumerate().skip(start_idx + 1) {
-        if inner_line.trim() == delimiter {
-            break;
-        }
-        quoted_lines.insert(inner_idx + 1);
-    }
-}
-
-/// Issue #96: Parse heredoc regions and return line numbers inside quoted heredocs
-/// Quoted heredocs (single or double quoted delimiter) have literal content - no expansion
-fn get_quoted_heredoc_lines(source: &str) -> HashSet<usize> {
-    let mut quoted_lines = HashSet::new();
-    let lines: Vec<&str> = source.lines().collect();
-
-    for (idx, line) in lines.iter().enumerate() {
-        for pattern in &[&*HEREDOC_SINGLE_QUOTED, &*HEREDOC_DOUBLE_QUOTED] {
-            if let Some(caps) = pattern.captures(line) {
-                if let Some(delim) = caps.get(1) {
-                    collect_heredoc_body_lines(&lines, idx, delim.as_str(), &mut quoted_lines);
-                }
-            }
-        }
-    }
-
-    quoted_lines
-}
-
 /// Check for deprecated backtick command substitution
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Issue #96: Get lines inside quoted heredocs (content is literal, not expanded)
-    let quoted_heredoc_lines = get_quoted_heredoc_lines(source);
+    let quoted_heredoc_lines = crate::linter::heredoc::quoted_heredoc_lines(source);
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
