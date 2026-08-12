@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.66.3] - 2026-08-12
+
+### Fixed
+
+- **Five lint false positives that were driving users to disable `bashrs lint`**
+  ([#219](https://github.com/paiml/bashrs/pull/219), GH-217, GH-209). Diagnostics
+  inside quoted heredocs (`<<'EOF'`) are no longer emitted at all — the body of a
+  quoted heredoc is literal text, not shell, so SC1007 and friends had no business
+  firing there. MAKE003 now skips Make's `$$` escape before checking quoting;
+  MAKE010 recognises `|| exit`, `|| return` and `|| die`-style tails as error
+  handling; and MAKE016 is retired outright, because its autofix **corrupted
+  Makefiles**.
+- **CLI stack overflow from an oversized clap frame**
+  ([#216](https://github.com/paiml/bashrs/pull/216), [#215](https://github.com/paiml/bashrs/issues/215)).
+  Subcommand enums are split so the generated `clap` builder no longer places one
+  huge frame on the stack. This bit `cargo test` (2 MB thread stacks) while
+  `cargo nextest` (8 MB process stacks) hid it.
+- **RUSTSEC-2026-0204**: crossbeam-epoch bumped to 0.9.20
+  ([#210](https://github.com/paiml/bashrs/pull/210)).
+
+### Internal
+
+- Kani harnesses now **compile** under `cfg(kani)`, and `make verify-kani` no
+  longer swallows the failure with `|| true`
+  ([#221](https://github.com/paiml/bashrs/pull/221), [#212](https://github.com/paiml/bashrs/issues/212)).
+  The crate had not built under `cfg(kani)` since the harnesses were added. Two
+  harnesses that could not fail were deleted rather than repaired. Note the
+  harnesses do not yet converge — tracked in
+  [#220](https://github.com/paiml/bashrs/issues/220).
+- `bashrs-oracle`'s extracted test module points at the crate root instead of
+  `super`, so the member compiles again
+  ([#223](https://github.com/paiml/bashrs/pull/223), [#214](https://github.com/paiml/bashrs/issues/214)).
+  CI now runs `--workspace --lib`, which is what makes a rotting workspace member
+  loud; it had been silently broken for months because the default `--lib` scoped
+  to the root package only.
+- A workflow **template** living in `.github/workflows/` was being executed by
+  GitHub as a real workflow ([#222](https://github.com/paiml/bashrs/pull/222)).
+
 ## [6.66.2] - 2026-08-10
 
 ### Fixed
