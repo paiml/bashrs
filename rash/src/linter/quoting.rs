@@ -51,8 +51,11 @@ enum Ctx {
     Paren,
     /// Inside `${ ... }` — code.
     Brace,
-    /// Inside `$(( ... ))` — code, and `<<` there is a left shift, not a heredoc.
+    /// Inside `$(( ... ))` or a bare `(( ... ))` — code, and `<<` there is a
+    /// left shift, not a heredoc.
     Arith,
+    /// Inside `$'...'` — literal, but `\'` is an escape, unlike `'...'`.
+    Ansi,
 }
 
 /// A pending or in-progress heredoc body.
@@ -61,6 +64,10 @@ struct Heredoc {
     delim: String,
     /// `<<-` strips leading tabs from the terminator.
     strip_tabs: bool,
+    /// `<<'X'` / `<<"X"` — the body is literal text with no expansion.
+    quoted: bool,
+    /// 1-indexed line the body starts on, for the unterminated fail-safe.
+    body_start: usize,
 }
 
 /// Column ranges, per line, that are inside a string literal.
@@ -73,6 +80,10 @@ pub struct QuotedRegions {
     /// `(start_col, end_col)` ranges.
     per_line: Vec<Vec<(usize, usize)>>,
     any: bool,
+    /// 1-indexed lines inside a body whose delimiter was quoted. Those bodies
+    /// are literal text by definition, so every rule is dropped there — see
+    /// [`quoted_heredoc_lines`].
+    quoted_heredoc: std::collections::HashSet<usize>,
 }
 
 impl QuotedRegions {
@@ -89,16 +100,31 @@ impl QuotedRegions {
             per_line.push(ranges);
         }
 
-        // Fail-safe: a quote that never closes means everything after it was
+        // Fail-safe: a region that never closes means everything after it was
         // masked on a guess. Discard that part of the mask rather than let the
-        // syntax rules go blind for the rest of the file — the unterminated
-        // quote itself is SC1078's job, and it is not in the allowlist.
-        if let Some((line, col)) = scanner.quote_open_at {
+        // rules go blind for the rest of the file — an unterminated quote is
+        // SC1078's finding and an unterminated heredoc is SC1044's, and neither
+        // is in the allowlist.
+        let mut discard_at = scanner.quote_open_at;
+        if let Some(open) = scanner.body.as_ref() {
+            // A heredoc still open at EOF never had a terminator. Its body was
+            // a guess, so neither mask it nor report it as a heredoc body.
+            let from = (open.body_start, 1);
+            discard_at = Some(min_position(discard_at, from));
+            scanner
+                .quoted_heredoc
+                .retain(|line| *line < open.body_start);
+        }
+        if let Some((line, col)) = discard_at {
             discard_from(&mut per_line, line, col);
             any = per_line.iter().any(|ranges| !ranges.is_empty());
         }
 
-        Self { per_line, any }
+        Self {
+            per_line,
+            any,
+            quoted_heredoc: scanner.quoted_heredoc,
+        }
     }
 
     /// Is the 1-indexed `(line, col)` position inside a string literal?
@@ -114,6 +140,40 @@ impl QuotedRegions {
     pub fn is_empty(&self) -> bool {
         !self.any
     }
+
+    /// 1-indexed lines inside a body whose heredoc delimiter was quoted.
+    pub fn quoted_heredoc_lines(&self) -> &std::collections::HashSet<usize> {
+        &self.quoted_heredoc
+    }
+
+    /// The literal ranges on a 1-indexed line, in ascending order.
+    fn ranges_for(&self, line: usize) -> &[(usize, usize)] {
+        line.checked_sub(1)
+            .and_then(|i| self.per_line.get(i))
+            .map_or(&[], Vec::as_slice)
+    }
+}
+
+/// The earlier of two optional 1-indexed `(line, col)` positions.
+fn min_position(a: Option<(usize, usize)>, b: (usize, usize)) -> (usize, usize) {
+    match a {
+        Some(a) if a <= b => a,
+        _ => b,
+    }
+}
+
+/// 1-indexed lines inside a body whose heredoc delimiter was quoted (GH-217).
+///
+/// A quoted-delimiter body is literal text by definition — that is what quoting
+/// the delimiter means — so no shell rule should analyse it.
+///
+/// This resolves quoting first. The previous implementation scanned raw bytes
+/// for `<<` with no notion of comments or strings, so a line of documentation
+/// mentioning `<<'PY'` opened a body that never closed and silenced EVERY rule
+/// for the rest of the file. An unterminated heredoc does not silence anything
+/// either: see the fail-safe in [`QuotedRegions::analyze`].
+pub fn quoted_heredoc_lines(source: &str) -> std::collections::HashSet<usize> {
+    QuotedRegions::analyze(source).quoted_heredoc
 }
 
 /// Rules whose subject is shell *syntax*, and which are therefore meaningless
@@ -135,10 +195,13 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // Function/parameter syntax — `function(a, b)` inside an awk or SQL program.
     "SC1065", // Function parameters in shell
     // Redirection/operator syntax appearing as text.
+    "SC1007", // Remove space after = — `skip = 0` inside an awk program is awk
     "SC1014", // Use `if cmd; then`
     "SC1036", // ( is invalid here
     "SC1037", // Braces required for positionals > 9
     "SC1041", // Expected EOF
+    // Characters that are a typo in code and ordinary text in a message.
+    "SC1100", // Unicode dash — an em-dash in `echo "gate FAILED — fix it"` is prose
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
@@ -174,12 +237,22 @@ pub fn mask_literals(source: &str) -> String {
 }
 
 fn mask_line(line: &str, line_no: usize, regions: &QuotedRegions, out: &mut Vec<u8>) {
+    // Walk the line's ranges with a cursor rather than calling `is_literal` per
+    // byte: that was a linear scan of the range list for every byte, so a long
+    // single line with many literals went quadratic (a 400 KB one-line script
+    // took 15s).
+    let ranges = regions.ranges_for(line_no);
+    let mut next = 0;
+
     for (col, byte) in line.bytes().enumerate() {
-        if byte != b'\r' && regions.is_literal(line_no, col + 1) {
-            out.push(b'x');
-        } else {
-            out.push(byte);
+        let col = col + 1;
+        while next < ranges.len() && ranges[next].1 < col {
+            next += 1;
         }
+        let literal = ranges
+            .get(next)
+            .is_some_and(|&(start, end)| col >= start && col <= end);
+        out.push(if literal && byte != b'\r' { b'x' } else { byte });
     }
 }
 
@@ -268,6 +341,8 @@ fn coalesce(marks: &[bool]) -> Vec<(usize, usize)> {
 #[derive(Debug, Default)]
 struct Scanner {
     stack: Vec<Ctx>,
+    /// 1-indexed lines inside a quoted-delimiter heredoc body.
+    quoted_heredoc: std::collections::HashSet<usize>,
     /// 1-indexed line currently being scanned.
     line_no: usize,
     /// Where the outermost currently-open quote started, for the EOF fail-safe.
@@ -292,13 +367,14 @@ impl Scanner {
         while i < bytes.len() {
             i = match self.stack.last().copied() {
                 Some(Ctx::Single) => self.step_single(bytes, i, &mut marks),
+                Some(Ctx::Ansi) => self.step_ansi(bytes, i, &mut marks),
                 Some(Ctx::Double) => self.step_double(bytes, i, &mut marks),
                 _ => self.step_code(bytes, i, &mut marks),
             };
         }
 
         if self.body.is_none() {
-            self.body = self.pending.pop_front();
+            self.body = self.take_pending();
         }
         marks
     }
@@ -316,12 +392,22 @@ impl Scanner {
             line
         };
         if candidate.trim_end() == doc.delim {
-            self.body = self.pending.pop_front();
+            self.body = self.take_pending();
             return true;
         }
 
+        if doc.quoted {
+            self.quoted_heredoc.insert(self.line_no);
+        }
         marks.iter_mut().for_each(|m| *m = true);
         true
+    }
+
+    /// The next pending heredoc, with its body starting on the next line.
+    fn take_pending(&mut self) -> Option<Heredoc> {
+        let mut doc = self.pending.pop_front()?;
+        doc.body_start = self.line_no + 1;
+        Some(doc)
     }
 
     /// Inside `'...'`: everything is literal, the next `'` closes.
@@ -332,6 +418,29 @@ impl Scanner {
             marks[i] = true;
         }
         i + 1
+    }
+
+    /// Inside `$'...'`: literal, but backslash escapes — so `$'don\'t'` is one
+    /// word, not two. Treating it as a plain `'...'` flipped quote parity for
+    /// the rest of the file.
+    fn step_ansi(&mut self, bytes: &[u8], i: usize, marks: &mut [bool]) -> usize {
+        match bytes[i] {
+            b'\\' => {
+                marks[i] = true;
+                if let Some(m) = marks.get_mut(i + 1) {
+                    *m = true;
+                }
+                i + 2
+            }
+            b'\'' => {
+                self.pop_quote();
+                i + 1
+            }
+            _ => {
+                marks[i] = true;
+                i + 1
+            }
+        }
     }
 
     /// Remember where the OUTERMOST open quote began, so the EOF fail-safe can
@@ -348,7 +457,7 @@ impl Scanner {
         if !self
             .stack
             .iter()
-            .any(|c| matches!(c, Ctx::Single | Ctx::Double))
+            .any(|c| matches!(c, Ctx::Single | Ctx::Double | Ctx::Ansi))
         {
             self.quote_open_at = None;
         }
@@ -398,7 +507,7 @@ impl Scanner {
             }
             b'$' => self.open_expansion(bytes, i, marks),
             b'#' => self.maybe_comment(bytes, i, marks),
-            b'(' => self.open_paren(i),
+            b'(' => self.open_paren(bytes, i),
             b')' => self.close_paren(bytes, i),
             b'}' => {
                 self.pop_if(Ctx::Brace);
@@ -422,6 +531,16 @@ impl Scanner {
             }
             (Some(b'{'), _) => {
                 self.stack.push(Ctx::Brace);
+                i + 2
+            }
+            // `$'...'` is ANSI-C quoting and `$"..."` is locale translation;
+            // both are string literals whose opening delimiter is two bytes.
+            (Some(b'\''), _) => {
+                self.push_quote(Ctx::Ansi, i);
+                i + 2
+            }
+            (Some(b'"'), _) => {
+                self.push_quote(Ctx::Double, i);
                 i + 2
             }
             _ => {
@@ -449,7 +568,14 @@ impl Scanner {
 
     /// A `(` only nests when we are already inside one; a stray `(` at top
     /// level (a subshell, or `((` arithmetic) must not unbalance the stack.
-    fn open_paren(&mut self, i: usize) -> usize {
+    fn open_paren(&mut self, bytes: &[u8], i: usize) -> usize {
+        // A bare `(( … ))` is bash's arithmetic COMMAND. Without this it left
+        // the stack empty, so the `<<` in `(( a << b ))` looked like a heredoc
+        // opener and masked the rest of the file as its body.
+        if bytes.get(i + 1) == Some(&b'(') {
+            self.stack.push(Ctx::Arith);
+            return i + 2;
+        }
         if matches!(self.stack.last(), Some(Ctx::Paren | Ctx::Arith)) {
             self.stack.push(Ctx::Paren);
         }
@@ -563,7 +689,12 @@ fn parse_quoted_delim(
         return (None, bytes.len());
     }
     let delim = String::from_utf8_lossy(&bytes[open + 1..end]).into_owned();
-    let doc = (!delim.is_empty()).then_some(Heredoc { delim, strip_tabs });
+    let doc = (!delim.is_empty()).then_some(Heredoc {
+        delim,
+        strip_tabs,
+        quoted: true,
+        body_start: 0,
+    });
     (doc, end + 1)
 }
 
@@ -576,7 +707,15 @@ fn parse_bare_delim(bytes: &[u8], start: usize, strip_tabs: bool) -> (Option<Her
         end += 1;
     }
     let delim = String::from_utf8_lossy(&bytes[start..end]).into_owned();
-    (Some(Heredoc { delim, strip_tabs }), end)
+    (
+        Some(Heredoc {
+            delim,
+            strip_tabs,
+            quoted: false,
+            body_start: 0,
+        }),
+        end,
+    )
 }
 
 #[cfg(test)]
@@ -787,7 +926,9 @@ mod tests {
             ("SC1035", sc1035::check),
             ("SC1036", sc1036::check),
             ("SC1037", sc1037::check),
+            ("SC1007", sc1007::check),
             ("SC1041", sc1041::check),
+            ("SC1100", sc1100::check),
             ("SC1044", sc1044::check),
             ("SC1045", sc1045::check),
             ("SC1065", sc1065::check),
@@ -839,6 +980,81 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ---- adversarial review regressions ----
+
+    #[test]
+    fn test_GH226_quoting_heredoc_marker_in_a_comment_opens_nothing() {
+        // The worst regression the review found: a line of documentation
+        // mentioning `<<'PY'` opened a body that never closed, and once the
+        // heredoc filter reached the CLI that silenced EVERY rule for the rest
+        // of the file.
+        let src = "#!/bin/sh\n# embed python with <<'PY' ... PY\neval \"$USER_INPUT\"\n";
+        assert!(quoted_heredoc_lines(src).is_empty());
+        assert_eq!(mask_literals(src).lines().nth(2), src.lines().nth(2));
+    }
+
+    #[test]
+    fn test_GH226_quoting_heredoc_marker_in_a_string_opens_nothing() {
+        let src = "sed -i \"s/<<'EOF'/<<EOF/\" gen.sh\neval \"$X\"\n";
+        assert!(quoted_heredoc_lines(src).is_empty());
+    }
+
+    #[test]
+    fn test_GH226_quoting_unterminated_heredoc_does_not_blind_the_file() {
+        // Mirror of the unterminated-quote fail-safe.
+        let src = "cat <<'EOF'\nreport\neval \"$USER_INPUT\"\n";
+        assert!(quoted_heredoc_lines(src).is_empty());
+        assert_eq!(mask_literals(src), src);
+    }
+
+    #[test]
+    fn test_GH226_quoting_terminated_heredoc_is_still_reported() {
+        let src = "cat <<'EOF'\nreport [0-9]\nEOF\necho ok\n";
+        assert_eq!(quoted_heredoc_lines(src), [2].into_iter().collect());
+    }
+
+    #[test]
+    fn test_GH226_quoting_unquoted_heredoc_is_not_a_quoted_region() {
+        let src = "cat <<EOF\nvalue $x\nEOF\n";
+        assert!(quoted_heredoc_lines(src).is_empty());
+    }
+
+    #[test]
+    fn test_GH226_quoting_bare_arithmetic_left_shift_is_not_a_heredoc() {
+        // `(( a << b ))` left the stack empty, so `<<` looked like a heredoc
+        // opener and masked the rest of the file as its body.
+        let src = "(( mask = one << shift ))\nif [ -f y]; then :; fi\n";
+        assert_eq!(mask_literals(src), src);
+        assert!(quoted_heredoc_lines(src).is_empty());
+    }
+
+    #[test]
+    fn test_GH226_quoting_ansi_c_escaped_apostrophe_keeps_parity() {
+        // `$'don\'t'` is ONE word. Treating `$'` as a bare `$` plus an ordinary
+        // `'` flipped quote parity for the rest of the file, in both directions.
+        let src = concat!(r#"x=$'don\'t' ; echo 'ok'"#, "\n");
+        let regions = QuotedRegions::analyze(src);
+        // The ANSI-C literal body is text ...
+        assert!(
+            regions.is_literal(1, 7),
+            "the `don` inside $'...' is literal"
+        );
+        // ... and the trailing `'ok'` is still recognised as its own literal,
+        // which only holds if the escaped apostrophe did not close the region.
+        assert!(regions.is_literal(1, 21), "'ok' must still be a literal");
+    }
+
+    #[test]
+    fn test_GH226_quoting_ansi_c_does_not_leak_into_later_lines() {
+        let src = concat!(
+            r#"printf $'bad \'%s\'' "$c""#,
+            "\n",
+            "if [ -f y]; then :; fi\n"
+        );
+        let regions = QuotedRegions::analyze(src);
+        assert!(!regions.is_literal(2, 10), "line 2 must stay lintable");
     }
 
     #[test]

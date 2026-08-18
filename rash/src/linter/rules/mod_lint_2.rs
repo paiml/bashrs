@@ -384,21 +384,25 @@ fn lint_shell_filtered(
     apply_rule!("REL004", rel004::check);
     apply_rule!("REL005", rel005::check);
 
-    // GH-217: drop diagnostics that land inside a QUOTED heredoc body. Such a
-    // body is literal text, not shell — that is what quoting the delimiter
-    // means — so every line-oriented rule was reporting on embedded Python,
-    // awk and jq. SC1007 is Severity::Error, so those false positives blocked
-    // commits.
+    // GH-217 drops diagnostics inside a QUOTED heredoc body — the body is
+    // literal text by definition, which is what quoting the delimiter means.
+    // That filter was only ever applied in `lint_shell_filtered`, and the CLI
+    // reaches `lint_shell` (cli/logic_lint.rs:91), so users never got it.
     //
-    // Filtered here, once, rather than in each rule: sc2006 carried a private
-    // copy of this logic (issue #96) and the other 384 rules did not, which is
-    // exactly how this recurred one rule at a time. Doing it at the point where
-    // diagnostics are aggregated covers every existing rule and every future
-    // one for free.
+    // SEC* and DET* are exempt, exactly as the embedded-program filter above
+    // exempts them: a quoted heredoc is very often a script being SENT
+    // somewhere to run — `ssh "$HOST" <<'REMOTE' ... REMOTE` — and dropping
+    // everything there reported `eval "$UNTRUSTED"` and `curl ... | sh` as
+    // clean. Syntax noise inside embedded Python or awk is what GH-217 was
+    // filed about, and that is still filtered.
     let heredoc_lines = crate::linter::heredoc::quoted_heredoc_lines(source);
-    result
-        .diagnostics
-        .retain(|diag| !heredoc_lines.contains(&diag.span.start_line));
+    if !heredoc_lines.is_empty() {
+        result.diagnostics.retain(|diag| {
+            diag.code.starts_with("SEC")
+                || diag.code.starts_with("DET")
+                || !heredoc_lines.contains(&diag.span.start_line)
+        });
+    }
 
     // Messages from masked rules must quote the user's text, not the filler.
     crate::linter::quoting::restore_masked_messages(source, &masked, &mut result);

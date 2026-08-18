@@ -19,25 +19,117 @@
 //! the defective `[ -f x]` these rules exist to catch — pass it.
 
 /// Byte offsets of every `[` on `line` that opens a `[ … ]` test command.
+///
+/// Three conditions, all necessary:
+///
+/// 1. `[` begins a word — excludes `arr[0]` and `M["k"]`;
+/// 2. `[` sits in COMMAND position — excludes `grep [a b] file`, where the
+///    bracket is a glob in an argument;
+/// 3. the bracket encloses a blank — excludes `case` glob patterns such as
+///    `[0-7][0-7][0-7])`, while still admitting `[-z "$1"]` and `[$x = y]`,
+///    which are the two most common novice `test` bugs and fail at runtime
+///    with `[-z: command not found`.
 pub fn openers(line: &str) -> Vec<usize> {
     let bytes = line.as_bytes();
-    (0..bytes.len())
-        .filter(|&i| bytes[i] == b'[' && starts_word(bytes, i) && ends_word(bytes, i))
+    command_positions(line)
+        .into_iter()
+        .filter(|&i| bytes[i] == b'[' && bytes.get(i + 1) != Some(&b'['))
+        .filter(|&i| encloses_blank(line, i))
         .collect()
 }
 
-/// `[` must begin a word: start of line, or after a blank or a control operator.
-fn starts_word(bytes: &[u8], i: usize) -> bool {
-    match i.checked_sub(1).map(|p| bytes[p]) {
-        None => true,
-        Some(b) => b.is_ascii_whitespace() || matches!(b, b';' | b'&' | b'|' | b'(' | b'`'),
+/// `[` must enclose a blank to be a test rather than a glob character class.
+fn encloses_blank(line: &str, open: usize) -> bool {
+    let bytes = line.as_bytes();
+    if bytes.get(open + 1).is_some_and(u8::is_ascii_whitespace) {
+        return true;
+    }
+    close_of(line, open)
+        .is_some_and(|close| bytes[open + 1..close].iter().any(u8::is_ascii_whitespace))
+}
+
+/// Byte offsets at which a word begins a command, on this line.
+///
+/// A command begins at the start of the line, after a control operator, or
+/// after a reserved word that is followed by another command.
+fn command_positions(line: &str) -> Vec<usize> {
+    let bytes = line.as_bytes();
+    let mut out = Vec::new();
+    let mut expect_command = true;
+    let mut i = 0;
+
+    while i < bytes.len() {
+        if bytes[i].is_ascii_whitespace() {
+            i += 1;
+        } else if operator_at(bytes, i) {
+            expect_command = true;
+            i += 1;
+        } else {
+            let end = word_end(bytes, i);
+            if expect_command {
+                out.push(i);
+                expect_command = leads_a_command(&line[i..end]);
+            }
+            i = end;
+        }
+    }
+    out
+}
+
+/// Is the byte at `i` a control operator here?
+///
+/// `;`, `&` and `|` always are. `(` and a backtick only when they begin a word:
+/// in `[[ $x =~ ^(a|[0-9]+)$ ]]` the parenthesis is part of a regex, and reading
+/// it as a subshell made the following `[0-9]` look like a test in command
+/// position.
+fn operator_at(bytes: &[u8], i: usize) -> bool {
+    match bytes[i] {
+        b';' | b'&' | b'|' => true,
+        b'(' | b'`' => match i.checked_sub(1).map(|p| bytes[p]) {
+            None => true,
+            Some(b) => b.is_ascii_whitespace() || matches!(b, b';' | b'&' | b'|' | b'('),
+        },
+        _ => false,
     }
 }
 
-/// `[` must end a word: a blank must follow. This is what excludes `[[`, glob
-/// character classes and array subscripts.
-fn ends_word(bytes: &[u8], i: usize) -> bool {
-    bytes.get(i + 1).is_some_and(u8::is_ascii_whitespace)
+fn word_end(bytes: &[u8], start: usize) -> usize {
+    let mut end = start + 1;
+    while end < bytes.len() && !bytes[end].is_ascii_whitespace() && !operator_at(bytes, end) {
+        end += 1;
+    }
+    end
+}
+
+/// Reserved words after which another command still follows.
+fn leads_a_command(word: &str) -> bool {
+    matches!(
+        word,
+        "if" | "elif" | "while" | "until" | "then" | "do" | "else" | "!" | "{"
+    )
+}
+
+/// Byte offsets of every `[[` on `line` that opens a bash `[[ … ]]` test.
+///
+/// `[[ -f x]]` is a genuine syntax error (`bash -n` rejects it), so excluding
+/// double brackets from SC1020 entirely lost real coverage.
+pub fn double_openers(line: &str) -> Vec<usize> {
+    let bytes = line.as_bytes();
+    command_positions(line)
+        .into_iter()
+        .filter(|&i| bytes[i] == b'[' && bytes.get(i + 1) == Some(&b'['))
+        .collect()
+}
+
+/// Byte offset of the `]]` closing the `[[` opened at `open`, if any.
+///
+/// The closing bracket must end a word, which is how the `]]` inside a
+/// character class — `[[ "$x" =~ ^[[:space:]]*fn ]]` — is skipped: it is
+/// followed by `*`, not by a blank.
+pub fn double_close_of(line: &str, open: usize) -> Option<usize> {
+    let bytes = line.as_bytes();
+    (open + 2..bytes.len().saturating_sub(1))
+        .find(|&j| bytes[j] == b']' && bytes[j + 1] == b']' && closes_word(bytes, j + 1))
 }
 
 /// Byte offset of the `]` closing the test opened at `open`, if any.
@@ -98,6 +190,58 @@ mod tests {
         let line = "[ -f file.txt]";
         let open = openers(line)[0];
         assert_eq!(close_of(line, open), Some(13));
+    }
+
+    #[test]
+    fn test_GH226_bracket_missing_space_after_open_is_still_a_test() {
+        // Adversarial review: requiring a blank AFTER `[` excluded the two most
+        // common novice test bugs, which used to be reported at Error severity.
+        assert_eq!(openers(r#"if [-z "$1"]; then echo usage; fi"#), vec![3]);
+        assert_eq!(openers("if [$x = y]; then exit 1; fi"), vec![3]);
+    }
+
+    #[test]
+    fn test_GH226_bracket_glob_in_argument_position_is_not_a_test() {
+        // A bracket carrying a blank is only a test in COMMAND position.
+        assert!(openers("grep [a b] file").is_empty());
+        assert!(openers("echo [a b]").is_empty());
+    }
+
+    #[test]
+    fn test_GH226_bracket_double_bracket_defect_is_found() {
+        // `[[ -f x]]` is a real bash syntax error; excluding `[[` wholesale
+        // from SC1020 lost that coverage.
+        let line = "[[ -f x]]";
+        assert_eq!(double_openers(line), vec![0]);
+        assert_eq!(double_close_of(line, 0), Some(7));
+    }
+
+    #[test]
+    fn test_GH226_bracket_double_close_skips_character_classes() {
+        let line = r#"if [[ "$x" =~ ^[[:space:]]*fn ]]; then :; fi"#;
+        let open = double_openers(line)[0];
+        let close = double_close_of(line, open).expect("the real ]] must be found");
+        assert_eq!(&line[close..close + 2], "]]");
+        assert!(
+            line.as_bytes()[close - 1].is_ascii_whitespace(),
+            "no defect here"
+        );
+    }
+
+    #[test]
+    fn test_GH226_bracket_regex_group_is_not_a_command_separator() {
+        // Adversarial review: `(` inside a regex made the following character
+        // class look like a test command in command position.
+        assert!(openers(r#"    if [[ $line =~ ^\*\*([0-9]+)\..+$ ]]; then :; fi"#).is_empty());
+        assert!(openers(
+            r#"if [[ "$l" =~ ^[[:space:]]*fn[[:space:]]+([a-zA-Z_][a-zA-Z0-9_]*) ]]; then"#
+        )
+        .is_empty());
+    }
+
+    #[test]
+    fn test_GH226_bracket_real_subshell_still_opens_a_command() {
+        assert_eq!(openers("( [ -f x] )"), vec![2]);
     }
 
     #[test]

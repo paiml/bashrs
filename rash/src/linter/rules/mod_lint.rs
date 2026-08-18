@@ -89,7 +89,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc1091::check(source));
     result.merge(sc1094::check(source));
     result.merge(sc1097::check(source));
-    result.merge(sc1100::check(source));
+    result.merge(sc1100::check(&masked));
     result.merge(sc1109::check(source));
     result.merge(sc1008::check(source));
     result.merge(sc1084::check(source));
@@ -103,7 +103,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc1129::check(source));
 
     // New SC1xxx rules
-    result.merge(sc1007::check(source));
+    result.merge(sc1007::check(&masked));
     result.merge(sc1009::check(source));
     result.merge(sc1020::check(&masked));
     result.merge(sc1035::check(&masked));

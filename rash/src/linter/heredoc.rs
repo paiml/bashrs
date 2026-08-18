@@ -76,38 +76,16 @@ fn quoted_openers_on_line(line: &str) -> Vec<String> {
 /// body (e.g. a heredoc containing shell examples), which silently extends the
 /// suppressed region past where it should end.
 pub fn quoted_heredoc_lines(source: &str) -> HashSet<usize> {
-    let mut inside = HashSet::new();
-    let mut pending: Vec<String> = Vec::new();
-    let mut active: Option<String> = None;
-
-    for (idx, line) in source.lines().enumerate() {
-        let line_num = idx + 1;
-
-        if let Some(delim) = active.clone() {
-            // `<<-` permits a tab-indented terminator; trimming is the lenient
-            // reading and matches the previous behaviour in sc2006.
-            if line.trim() == delim {
-                // Terminator reached; a second opener from the same command
-                // (`cmd <<'A' <<'B'`) starts consuming immediately.
-                active = if pending.is_empty() {
-                    None
-                } else {
-                    Some(pending.remove(0))
-                };
-            } else {
-                inside.insert(line_num);
-            }
-            continue;
-        }
-
-        let mut openers = quoted_openers_on_line(line);
-        if !openers.is_empty() {
-            active = Some(openers.remove(0));
-            pending = openers;
-        }
-    }
-
-    inside
+    // GH-226 review: this used to scan raw bytes for `<<` with no notion of
+    // comments or quoting, so a line of documentation mentioning `<<'PY'`
+    // opened a body that never closed. Once the filter was wired into the CLI
+    // path, that silenced EVERY rule for the rest of the file — a script full
+    // of `eval "$USER_INPUT"` and `curl | sh` reported "No issues found".
+    //
+    // `linter::quoting` resolves quoting first and carries a fail-safe for an
+    // unterminated body, so it answers this correctly. Delegating keeps one
+    // scanner rather than two that disagree.
+    crate::linter::quoting::quoted_heredoc_lines(source)
 }
 
 #[cfg(test)]

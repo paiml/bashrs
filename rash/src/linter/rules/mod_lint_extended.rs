@@ -65,12 +65,20 @@ fn apply_extended_lint_rules(source: &str, result: &mut LintResult) {
     // literal text by definition, which is what quoting the delimiter means.
     // That filter was only ever applied in `lint_shell_filtered`, and the CLI
     // reaches `lint_shell` (cli/logic_lint.rs:91), so users never got it.
-    // Applying it on both entry points is the point of a central filter.
+    //
+    // SEC* and DET* are exempt, exactly as the embedded-program filter above
+    // exempts them: a quoted heredoc is very often a script being SENT
+    // somewhere to run — `ssh "$HOST" <<'REMOTE' ... REMOTE` — and dropping
+    // everything there reported `eval "$UNTRUSTED"` and `curl ... | sh` as
+    // clean. Syntax noise inside embedded Python or awk is what GH-217 was
+    // filed about, and that is still filtered.
     let heredoc_lines = crate::linter::heredoc::quoted_heredoc_lines(source);
     if !heredoc_lines.is_empty() {
-        result
-            .diagnostics
-            .retain(|diag| !heredoc_lines.contains(&diag.span.start_line));
+        result.diagnostics.retain(|diag| {
+            diag.code.starts_with("SEC")
+                || diag.code.starts_with("DET")
+                || !heredoc_lines.contains(&diag.span.start_line)
+        });
     }
 
     // Apply inline suppression filtering

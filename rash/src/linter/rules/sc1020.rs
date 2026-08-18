@@ -46,9 +46,16 @@ pub fn check(source: &str) -> LintResult {
 /// applies the POSIX word rules instead.
 fn line_diagnostics(line: &str, line_num: usize) -> Vec<Diagnostic> {
     let bytes = line.as_bytes();
-    posix_bracket::openers(line)
+    let single = posix_bracket::openers(line)
         .into_iter()
-        .filter_map(|open| posix_bracket::close_of(line, open).map(|close| (open, close)))
+        .filter_map(|open| posix_bracket::close_of(line, open).map(|close| (open, close)));
+    // `[[ -f x]]` is a real bash syntax error too.
+    let double = posix_bracket::double_openers(line)
+        .into_iter()
+        .filter_map(|open| posix_bracket::double_close_of(line, open).map(|close| (open, close)));
+
+    single
+        .chain(double)
         .filter(|&(open, close)| missing_space_before_close(bytes, open, close))
         .map(|(_, close)| {
             let col = close + 1;
