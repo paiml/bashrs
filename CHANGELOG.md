@@ -132,6 +132,16 @@ by auditing the release path rather than by any ticket.
   unbounded. It also shelled out to cargo clippy, cargo audit and pmat. The gates
   are now disabled, which is all the test's own doc-comment claims to check, and
   it runs in 0.01s.
+- **Two `unsound` advisories** that `cargo audit` passes over but
+  `cargo deny check advisories` denies: RUSTSEC-2026-0190 (`anyhow::Error::downcast_mut`
+  undefined behaviour) and RUSTSEC-2026-0097 (`rand::rng` unsoundness with a custom
+  logger). anyhow 1.0.102 → 1.0.104, rand 0.9.2 → 0.9.5 and 0.8.5 → 0.8.7. Upgraded
+  rather than added to `deny.toml`'s ignore list, since patched versions exist.
+- **A second flaky test, and this one was a real data race.**
+  `check_makefile_dry_run` named its temporary Makefile after the process id
+  alone, so the concurrently-running tests in one process all shared a single
+  path — one thread overwrote another's file, or removed it between the write and
+  the `make` invocation. The name now carries a per-call sequence number.
 - **A flaky diagnostic test** (2 of 6 full runs under CPU contention). Its helper
   set and then cleared `NO_COLOR` in the *process* environment — the "SAFETY: only
   called from serial tests" comment was false, and the crate has no `serial_test`
