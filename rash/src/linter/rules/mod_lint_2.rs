@@ -79,10 +79,24 @@ fn lint_shell_filtered(
     let mut result = LintResult::new();
 
     // Helper macro to conditionally apply rules
+    // GH-226: shell-SYNTAX rules must not see the *contents* of string
+    // literals. `export PATTERN="PMAT-[0-9]{4}"` is a regex, not a test
+    // expression, and `"^Diff in"` is a grep pattern, not the `for ... in`
+    // keyword. Resolve quoting once, then feed those rules a copy in which
+    // literals are inert filler of identical length, so spans still line up.
+    // Rules that are *about* quoting are excluded by the allowlist in
+    // `quoting::QUOTE_SENSITIVE_RULES` so they keep seeing the real text.
+    let masked = crate::linter::quoting::mask_literals(source);
+
     macro_rules! apply_rule {
         ($rule_id:expr, $check_fn:expr) => {
             if should_apply_rule($rule_id, shell_type) {
-                result.merge($check_fn(source));
+                let input = if crate::linter::quoting::is_quote_sensitive($rule_id) {
+                    masked.as_str()
+                } else {
+                    source
+                };
+                result.merge($check_fn(input));
             }
         };
     }
@@ -385,6 +399,9 @@ fn lint_shell_filtered(
     result
         .diagnostics
         .retain(|diag| !heredoc_lines.contains(&diag.span.start_line));
+
+    // Messages from masked rules must quote the user's text, not the filler.
+    crate::linter::quoting::restore_masked_messages(source, &masked, &mut result);
 
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);

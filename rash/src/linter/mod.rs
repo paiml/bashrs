@@ -28,6 +28,7 @@ pub mod heredoc;
 pub mod ignore_file;
 pub mod make_preprocess;
 pub mod output;
+pub mod quoting;
 pub mod rule_registry;
 pub(crate) mod rule_registry_data_1;
 pub(crate) mod rule_registry_data_2;
