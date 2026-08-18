@@ -57,15 +57,27 @@ fn dangerous_command(name: &str) -> Option<&'static str> {
     DANGEROUS_COMMANDS.iter().copied().find(|&c| c == name)
 }
 
-/// The leftmost unquoted expansion sitting in argument position of a dangerous
-/// command. Expansions in command position are excluded on purpose: word
-/// splitting there is intentional (`sh_c='sh -c'; $sh_c 'docker version'`) and
-/// SC2183 already reports it with the appropriate severity. See GH-229.
+/// Roles in which an unquoted expansion is reportable.
+///
+/// `RedirectTarget` is included: `curl … > $OUT` is bash's "ambiguous redirect"
+/// when `$OUT` splits, so the fetched body silently goes nowhere — or, if the
+/// value globs, to a file nobody named. The fix SEC002 offers (wrap it in
+/// quotes) is exactly right there, and unlike SC2086's blanket warning this one
+/// is scoped to a command that moves data, which is why it stays at error
+/// severity.
+///
+/// `CommandName` is *excluded* on purpose: word splitting there is intentional
+/// (`sh_c='sh -c'; $sh_c 'docker version'`) and SC2183 already reports it with
+/// the appropriate severity. See GH-229.
+const REPORTABLE_ROLES: &[WordRole] = &[WordRole::Argument, WordRole::RedirectTarget];
+
+/// The leftmost unquoted expansion sitting in a reportable position of a
+/// dangerous command.
 fn command_offence(cmd: &SimpleCommand) -> Option<Offence> {
     let name = dangerous_command(cmd.name.as_deref()?)?;
     cmd.words
         .iter()
-        .filter(|w| w.role == WordRole::Argument)
+        .filter(|w| REPORTABLE_ROLES.contains(&w.role))
         .flat_map(|w| w.expansions.iter())
         .find(|e| !e.quoted)
         .map(|e| Offence {
@@ -689,11 +701,115 @@ mod tests {
     }
 
     #[test]
-    fn test_GH228_redirect_target_is_not_an_argument() {
-        // Only $URL is reported; $OUT is a redirect target (SC2086's business).
+    fn test_GH228_leftmost_offence_wins_over_redirect_target() {
+        // Both $URL and $OUT are reportable; one finding per line, leftmost.
         let r = check("curl $URL > $OUT");
         assert_eq!(r.diagnostics.len(), 1);
         assert_eq!(r.diagnostics[0].span.start_col, 6);
+    }
+
+    // ================================================================
+    // GH-228 adversarial review, finding 7: an unquoted redirect target
+    // of a dangerous command is an "ambiguous redirect", not a non-event.
+    // ================================================================
+
+    #[test]
+    fn test_GH228_unquoted_redirect_target_is_reported() {
+        let r = check("curl -sSfL https://example.com/x > $OUT");
+        assert_eq!(r.diagnostics.len(), 1);
+        let d = &r.diagnostics[0];
+        assert_eq!(d.severity, Severity::Error);
+        assert_eq!((d.span.start_col, d.span.end_col), (36, 40));
+        assert_eq!(d.fix.as_ref().unwrap().replacement, "\"$OUT\"");
+        assert!(d.message.contains("curl"));
+    }
+
+    #[test]
+    fn test_GH228_append_redirect_target_is_reported() {
+        let r = check("wget -q https://x -O- >> $LOG");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert_eq!(r.diagnostics[0].span.start_col, 26);
+    }
+
+    #[test]
+    fn test_GH228_quoted_redirect_target_is_not_reported() {
+        assert_eq!(check(r#"curl -sSfL https://x > "$OUT""#).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_GH228_redirect_target_of_safe_command_is_not_reported() {
+        // Still SEC002's narrow contract: the *command* must be dangerous.
+        assert_eq!(check("echo hi > $OUT").diagnostics.len(), 0);
+        assert_eq!(check("cat f > $OUT").diagnostics.len(), 0);
+    }
+
+    // ================================================================
+    // GH-228 adversarial review, finding 6: `eval`, `find -exec` and
+    // `sh -c` must not swallow the dangerous command.
+    // ================================================================
+
+    #[test]
+    fn test_GH228_eval_prefix_still_reports_the_real_command() {
+        let r = check("eval curl $URL");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert_eq!(r.diagnostics[0].span.start_col, 11);
+        assert!(r.diagnostics[0].message.contains("curl"));
+
+        let r = check("eval ssh $HOST uptime");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert!(r.diagnostics[0].message.contains("ssh"));
+    }
+
+    #[test]
+    fn test_GH228_eval_of_a_variable_is_not_flagged() {
+        // GH-229 invariant: the command name is unresolvable, so SEC002 stays out.
+        assert_eq!(check(r#"eval "$cmd""#).diagnostics.len(), 0);
+        assert_eq!(check("eval $CMD").diagnostics.len(), 0);
+        assert_eq!(check(r#"eval "$sh_c" 'docker version'"#).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_GH228_find_exec_reports_the_executed_command() {
+        let r = check(r"find . -exec curl $URL {} \;");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert_eq!(r.diagnostics[0].span.start_col, 19);
+        assert!(r.diagnostics[0].message.contains("curl"));
+    }
+
+    #[test]
+    fn test_GH228_find_exec_safe_command_is_not_flagged() {
+        assert_eq!(check(r"find . -exec sed -i s/a/b/ $F \;").diagnostics.len(), 0);
+        assert_eq!(check(r#"find . -exec curl "$URL" {} \;"#).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_GH228_sh_dash_c_script_string_keeps_the_finding() {
+        // The dangerous command lives in a single-quoted literal glued to an
+        // unquoted expansion; the inner shell word-splits *and re-parses* it.
+        let r = check("sh -c 'curl '$URL");
+        assert_eq!(r.diagnostics.len(), 1);
+        let d = &r.diagnostics[0];
+        assert_eq!(d.severity, Severity::Error);
+        assert_eq!((d.span.start_col, d.span.end_col), (14, 18));
+        assert!(d.message.contains("curl"));
+        assert_eq!(d.fix.as_ref().unwrap().replacement, "\"$URL\"");
+    }
+
+    #[test]
+    fn test_GH229_sh_dash_c_fully_literal_script_is_not_flagged() {
+        // The GH-229 shape must stay clean whichever way the shell is spelled.
+        assert_eq!(check("sh -c 'docker version'").diagnostics.len(), 0);
+        assert_eq!(check("sudo -E sh -c 'docker version'").diagnostics.len(), 0);
+        assert_eq!(check(r#"sh -c "$SCRIPT""#).diagnostics.len(), 0);
+        assert_eq!(check("sh -c $CMD").diagnostics.len(), 0);
+        assert_eq!(check(r#"bash -c "curl $URL""#).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_GH228_script_operand_reported_once_not_twice() {
+        // The operand word belongs to both `sh` and the synthetic inner command;
+        // the one-finding-per-line rule must still hold.
+        assert_eq!(check("sh -c 'curl '$URL' '$OTHER").diagnostics.len(), 1);
     }
 
     #[test]

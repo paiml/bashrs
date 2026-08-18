@@ -103,10 +103,29 @@ const RESERVED_WORDS: &[&str] = &[
 ];
 
 /// Words that delegate to another command; the real command name follows.
+///
+/// `eval` is on the list for the same reason `timestamp_flow::CMD_PREFIXES`
+/// lists it: `eval curl $URL` runs `curl`, so `curl` — not `eval` — is the
+/// command whose argument list the unquoted expansion lands in. The two lists
+/// are deliberately different lengths, not contradictory: `CMD_PREFIXES` only
+/// has to see through the prefixes that precede a *build* command, whereas this
+/// one is the full delegation set every rule built on [`simple_commands`] needs.
 const WRAPPER_COMMANDS: &[&str] = &[
-    "sudo", "doas", "env", "command", "exec", "nohup", "nice", "ionice", "setsid", "stdbuf",
-    "time", "timeout", "busybox", "xargs",
+    "sudo", "doas", "env", "command", "exec", "eval", "nohup", "nice", "ionice", "setsid",
+    "stdbuf", "time", "timeout", "busybox", "xargs",
 ];
+
+/// `find` predicates whose operand is a fresh command line (terminated by `;`
+/// or `+`). `find . -exec curl $URL {} \;` really does run `curl`, and the `\;`
+/// reaches the lexer as an ordinary word, so nothing else would split it off.
+const EXEC_PREDICATES: &[&str] = &["-exec", "-execdir", "-ok", "-okdir"];
+
+/// Commands that accept [`EXEC_PREDICATES`].
+const EXEC_HOSTS: &[&str] = &["find", "gfind"];
+
+/// Shells whose `-c` operand is a *script string*, not a plain argument.
+/// `busybox sh -c` resolves through the wrapper list to `sh`.
+const SHELL_COMMANDS: &[&str] = &["sh", "bash", "dash", "ash", "ksh", "mksh", "zsh"];
 
 /// Upper bound on words skipped while resolving through wrappers. Bounds the
 /// false-positive surface; termination does not depend on it.
@@ -144,7 +163,9 @@ pub fn simple_commands(line: &str) -> Vec<SimpleCommand> {
 
 fn collect(text: &str, base: usize, depth: u8, out: &mut Vec<SimpleCommand>) {
     let toks = WordLexer::new(text, base).run();
+    let first = out.len();
     build_commands(text, base, &toks, out);
+    append_script_operands(out, first);
     if depth >= MAX_SUB_DEPTH {
         return;
     }
@@ -671,16 +692,85 @@ fn to_shell_word(text: &str, base: usize, w: &RawWord) -> ShellWord {
     }
 }
 
+/// True for a fully literal `-exec` / `-execdir` / `-ok` / `-okdir` predicate.
+fn is_exec_predicate(w: &ShellWord) -> bool {
+    w.expansions.is_empty() && EXEC_PREDICATES.contains(&w.literal.as_str())
+}
+
+/// True for a fully literal short-option cluster ending in `c`: `-c`, `-ec`, `-xc`.
+fn is_dash_c(w: &ShellWord) -> bool {
+    w.expansions.is_empty()
+        && w.literal.starts_with('-')
+        && !w.literal.starts_with("--")
+        && w.literal.ends_with('c')
+        && w.literal.len() >= 2
+}
+
 fn build_commands(text: &str, base: usize, toks: &[Tok], out: &mut Vec<SimpleCommand>) {
     let mut st = CmdState::new();
+    // Sticky for the whole pipeline stage so `-exec a \; -exec b \;` both split.
+    let mut exec_host = false;
     for tok in toks {
         match tok {
-            Tok::Sep => st.finish(out),
+            Tok::Sep => {
+                st.finish(out);
+                exec_host = false;
+            }
             Tok::Redir => st.redirect = true,
-            Tok::Word(w) => st.push_word(to_shell_word(text, base, w)),
+            Tok::Word(w) => {
+                let word = to_shell_word(text, base, w);
+                let split = exec_host && is_exec_predicate(&word);
+                st.push_word(word);
+                exec_host |= st.name.as_deref().is_some_and(|n| EXEC_HOSTS.contains(&n));
+                if split {
+                    // The predicate ends this command; the next word is a name.
+                    st.finish(out);
+                }
+            }
         }
     }
     st.finish(out);
+}
+
+/// The command hiding in a `sh -c` script operand that glues literal text to an
+/// unquoted expansion: `sh -c 'curl '$URL`. At run time the inner shell receives
+/// `curl <value of $URL>` and word-splits *and re-parses* it, which is the whole
+/// injection — so the literal names the command and the expansion is its
+/// argument text.
+///
+/// Returns `None` for the two shapes that must stay silent:
+/// * `sh -c 'docker version'` — nothing unquoted, so nothing to report;
+/// * `sh -c "$SCRIPT"` / `sh -c $CMD` — no literal prefix, so the command name is
+///   unresolvable, exactly the GH-229 dispatcher rule.
+fn script_operand(cmd: &SimpleCommand) -> Option<SimpleCommand> {
+    if !SHELL_COMMANDS.contains(&cmd.name.as_deref()?) {
+        return None;
+    }
+    let mut rest = cmd.words.iter().skip_while(|w| !is_dash_c(w));
+    rest.next()?;
+    let operand = rest.next()?;
+    if operand.expansions.iter().all(|e| e.quoted) {
+        return None;
+    }
+    let name = basename(operand.literal.split_whitespace().next()?).to_string();
+    Some(SimpleCommand {
+        name: Some(name),
+        words: vec![ShellWord {
+            role: WordRole::Argument,
+            ..operand.clone()
+        }],
+    })
+}
+
+/// Append the synthetic inner command of every `sh -c <script>` in `out[from..]`.
+fn append_script_operands(out: &mut Vec<SimpleCommand>, from: usize) {
+    let extra: Vec<SimpleCommand> = out
+        .get(from..)
+        .unwrap_or(&[])
+        .iter()
+        .filter_map(script_operand)
+        .collect();
+    out.extend(extra);
 }
 
 #[cfg(test)]
@@ -884,5 +974,114 @@ mod tests {
     #[test]
     fn test_SW_020_arithmetic_is_not_an_expansion() {
         assert!(all_expansions("curl $(( x + $y ))").is_empty());
+    }
+
+    // ================================================================
+    // GH-228 adversarial review: commands reached through `eval`,
+    // `find -exec` and `sh -c` must still resolve to a command name.
+    // ================================================================
+
+    /// Helper: the role of the word carrying `$name` in the command called `cmd`.
+    fn role_of(line: &str, cmd: &str, name: &str) -> Option<WordRole> {
+        simple_commands(line)
+            .into_iter()
+            .filter(|c| c.name.as_deref() == Some(cmd))
+            .flat_map(|c| c.words)
+            .find(|w| w.expansions.iter().any(|e| e.name == name))
+            .map(|w| w.role)
+    }
+
+    #[test]
+    fn test_GH228_eval_is_a_wrapper_like_every_other_prefix() {
+        assert_eq!(cmd_names("eval curl $URL")[0].as_deref(), Some("curl"));
+        assert_eq!(
+            cmd_names("eval ssh $HOST uptime")[0].as_deref(),
+            Some("ssh")
+        );
+        // Chained with the other wrappers.
+        assert_eq!(
+            cmd_names("sudo eval timeout 5 curl $U")[0].as_deref(),
+            Some("curl")
+        );
+        assert_eq!(
+            role_of("eval curl $URL", "curl", "URL"),
+            Some(WordRole::Argument)
+        );
+    }
+
+    #[test]
+    fn test_GH228_eval_of_a_variable_stays_unresolvable() {
+        // GH-229 invariant: `eval "$cmd"` has no literal command name.
+        assert_eq!(cmd_names(r#"eval "$cmd""#), vec![None]);
+        assert_eq!(cmd_names("eval $CMD"), vec![None]);
+    }
+
+    #[test]
+    fn test_GH228_find_exec_starts_a_new_command() {
+        let names = cmd_names(r"find . -exec curl $URL {} \;");
+        assert_eq!(names[0].as_deref(), Some("find"));
+        assert!(names.contains(&Some("curl".to_string())));
+        assert_eq!(
+            role_of(r"find . -exec curl $URL {} \;", "curl", "URL"),
+            Some(WordRole::Argument)
+        );
+    }
+
+    #[test]
+    fn test_GH228_find_exec_repeats_and_variants() {
+        for pred in ["-exec", "-execdir", "-ok", "-okdir"] {
+            let line = format!(r"find . {} wget $U {{}} \;", pred);
+            assert!(
+                cmd_names(&line).contains(&Some("wget".to_string())),
+                "{} must start a command",
+                pred
+            );
+        }
+        // The second `-exec` still splits even though the open command is `grep`.
+        let two = r"find . -exec grep -l x {} \; -exec curl $U {} \;";
+        assert!(cmd_names(two).contains(&Some("curl".to_string())));
+    }
+
+    #[test]
+    fn test_GH228_exec_predicate_only_splits_under_find() {
+        // `-exec` is not a find predicate here, so `curl` stays an argument.
+        let names = cmd_names("mytool -exec curl $U");
+        assert_eq!(names, vec![Some("mytool".to_string())]);
+    }
+
+    #[test]
+    fn test_GH228_shell_dash_c_script_operand_resolves() {
+        let names = cmd_names("sh -c 'curl '$URL");
+        assert_eq!(names[0].as_deref(), Some("sh"));
+        assert!(names.contains(&Some("curl".to_string())));
+        assert_eq!(
+            role_of("sh -c 'curl '$URL", "curl", "URL"),
+            Some(WordRole::Argument)
+        );
+        // Option clusters and other shells.
+        assert!(cmd_names("bash -ec 'ssh '$H").contains(&Some("ssh".to_string())));
+        assert!(cmd_names("busybox sh -c 'wget '$U").contains(&Some("wget".to_string())));
+    }
+
+    #[test]
+    fn test_GH228_shell_dash_c_without_unquoted_expansion_is_silent() {
+        // GH-229's dispatcher shape: nothing unquoted, so no synthetic command.
+        assert_eq!(cmd_names("sh -c 'docker version'"), vec![Some("sh".into())]);
+        // Quoted expansion inside the script: nothing splits, nothing to report.
+        assert_eq!(cmd_names(r#"sh -c "curl $URL""#), vec![Some("sh".into())]);
+        // No literal prefix -> unresolvable command name, same as `$sh_c …`.
+        assert_eq!(cmd_names(r#"sh -c "$SCRIPT""#), vec![Some("sh".into())]);
+        assert_eq!(cmd_names("sh -c $CMD"), vec![Some("sh".into())]);
+    }
+
+    #[test]
+    fn test_GH228_shell_dash_c_operand_columns_are_absolute() {
+        let e = all_expansions("sh -c 'curl '$URL");
+        // The operand's expansion is reported once per command it belongs to,
+        // but every copy keeps the same absolute byte column.
+        assert!(!e.is_empty());
+        for x in &e {
+            assert_eq!((x.col, x.end_col), (14, 18));
+        }
     }
 }

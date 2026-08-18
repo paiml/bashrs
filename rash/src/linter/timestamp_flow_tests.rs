@@ -231,6 +231,39 @@ fn test_GH230_classify_comparisons_are_benign() {
     assert_eq!(class_of("[ \"$TS\" -gt 100 ]", "TS"), SinkClass::Benign);
 }
 
+// A condition is Benign for the *condition*. The body on the same physical
+// line is a separate command and gets its own verdict; the strongest wins.
+#[test]
+fn test_GH230_classify_oneline_condition_does_not_speak_for_the_body() {
+    assert_eq!(
+        class_of("if [ -n \"$TS\" ]; then cp b.tar \"o/b-$TS.tar\"; fi", "TS"),
+        SinkClass::Reproducible
+    );
+    assert_eq!(
+        class_of(
+            "until [ -z \"$TS\" ]; do cp b.tar \"o/b-$TS.tar\"; break; done",
+            "TS"
+        ),
+        SinkClass::Reproducible
+    );
+    assert_eq!(
+        class_of("if [ -n \"$TS\" ]; then echo \"$TS\"; fi", "TS"),
+        SinkClass::Benign
+    );
+    assert_eq!(
+        class_of("while [ \"$TS\" -lt 5 ]; do sleep 1; done", "TS"),
+        SinkClass::Benign
+    );
+}
+
+#[test]
+fn test_GH230_command_parts_split_on_top_level_semicolons_only() {
+    assert_eq!(command_parts("a; b; c"), vec!["a", " b", " c"]);
+    assert_eq!(command_parts("echo \"a;b\""), vec!["echo \"a;b\""]);
+    assert_eq!(command_parts("echo $(f; g)"), vec!["echo $(f; g)"]);
+    assert_eq!(command_parts("echo 'x;y'"), vec!["echo 'x;y'"]);
+}
+
 #[test]
 fn test_GH230_classify_unknown_is_the_default() {
     assert_eq!(class_of("send_metric \"$TS\"", "TS"), SinkClass::Unknown);

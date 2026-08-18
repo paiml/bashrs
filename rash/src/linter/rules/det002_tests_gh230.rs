@@ -67,6 +67,63 @@ fn test_GH230_taint_propagates_two_hops() {
     );
 }
 
+// A one-line compound used to be classified as ONE unit, so the comparison in
+// the condition marked the artifact write in the body benign. The sink is in
+// the body whichever line it is written on.
+#[test]
+fn test_GH230_oneline_if_body_sink_not_masked_by_condition() {
+    let script = "#!/bin/bash\nTS=$(date +%s)\nif [ -n \"$TS\" ]; then cp build.tar \"out/build-$TS.tar\"; fi\n";
+    let r = check(script);
+    assert_eq!(
+        r.diagnostics.len(),
+        1,
+        "the `cp` in the body is a reproducible sink"
+    );
+    assert!(
+        r.diagnostics[0].message.contains("line 3"),
+        "the body, not the condition, is the sink; got: {}",
+        r.diagnostics[0].message
+    );
+}
+
+#[test]
+fn test_GH230_oneline_until_body_sink_not_masked_by_condition() {
+    let script = "#!/bin/bash\nTS=$(date +%s)\nuntil [ -z \"$TS\" ]; do cp b.tar \"out/b-$TS.tar\"; break; done\n";
+    let r = check(script);
+    assert_eq!(r.diagnostics.len(), 1);
+    assert!(r.diagnostics[0].message.contains("line 3"), "got: {}", r.diagnostics[0].message);
+}
+
+#[test]
+fn test_GH230_oneline_if_body_that_only_logs_stays_quiet() {
+    // The other half of the same contract: splitting the line must not turn a
+    // guarded log line into a finding.
+    let script = "#!/bin/bash\nTS=$(date +%s)\nif [ -n \"$TS\" ]; then echo \"started at $TS\"; fi\n";
+    assert_eq!(count(script), 0);
+}
+
+#[test]
+fn test_GH230_oneline_while_body_without_the_value_stays_quiet() {
+    let script = "#!/bin/bash\nTS=$(date +%s)\nwhile [ \"$TS\" -lt 5 ]; do sleep 1; done\n";
+    assert_eq!(count(script), 0);
+}
+
+#[test]
+fn test_GH230_guarded_use_agrees_with_the_unguarded_one() {
+    // Default-deny does not care whether a use is guarded: an unclassifiable
+    // sink is reported the same on one line as on two.
+    let guarded = "TS=$(date +%s)\nif [ -n \"$TS\" ]; then send_metric \"$TS\"; fi\n";
+    let bare = "TS=$(date +%s)\nsend_metric \"$TS\"\n";
+    assert_eq!(count(guarded), count(bare));
+    assert_eq!(count(bare), 1);
+}
+
+#[test]
+fn test_GH230_semicolon_inside_quotes_does_not_split() {
+    // The split is quote- and depth-aware: this is one `echo`, still benign.
+    assert_eq!(count("TS=$(date +%s)\necho \"a;b $TS\"\n"), 0);
+}
+
 #[test]
 fn test_GH230_unused_capture_still_flagged() {
     // Contract F-DET002-SOUND: default-deny. An unused capture stays reported.
@@ -334,5 +391,31 @@ mod props {
                 prop_assert_eq!(&once, &render(&script));
             }
         }
+    }
+}
+
+#[test]
+fn test_GH230_append_to_an_artifact_is_not_a_log() {
+    // Adversarial review: the append test looked at the OPERATOR, so the rule
+    // was defeated by changing one character (`>` -> `>>`).
+    let script = "#!/bin/sh\nTS=$(date +%s)\necho \"$TS\" >> dist/checksums.txt\n";
+    assert_eq!(check(script).diagnostics.len(), 1, "a checksum file is an artifact");
+
+    let script = "#!/bin/sh\nTS=$(date +%s)\necho \"build=$TS\" >> release.env\n";
+    assert_eq!(check(script).diagnostics.len(), 1, "release.env is an artifact");
+}
+
+#[test]
+fn test_GH230_append_to_a_real_log_stays_benign() {
+    for script in [
+        "#!/bin/sh\nTS=$(date +%s)\necho \"[$TS] started\" >> /var/log/app.log\n",
+        "#!/bin/sh\nTS=$(date +%s)\necho \"[$TS] started\" >> \"$LOG_FILE\"\n",
+        "#!/bin/sh\nTS=$(date +%s)\necho \"[$TS]\" | tee -a \"$LOG_FILE\"\n",
+    ] {
+        assert_eq!(
+            check(script).diagnostics.len(),
+            0,
+            "a timestamp on a log line is the point of a log line: {script}"
+        );
     }
 }

@@ -28,8 +28,11 @@
 //!
 //! * The `SOURCE_DATE_EPOCH` gate is *line* granular, so `date -u +%Y%m%d` on a
 //!   line that merely mentions `SOURCE_DATE_EPOCH` elsewhere is exempted.
-//! * Only `|` splits a pipeline; `&&`, `||` and `;` do not, so a compound line
-//!   is classified as a whole and usually lands on `Unknown` (still reported).
+//! * `&&` and `||` do not split a line, so a compound line joined by them is
+//!   classified as a whole and usually lands on `Unknown` (still reported).
+//!   `;` does split it into commands and `|` into pipeline segments, and the
+//!   strongest verdict over the parts wins - a one-line `if …; then cp …; fi`
+//!   is judged on the `cp`, not on the condition guarding it.
 
 use std::collections::HashSet;
 
@@ -640,25 +643,68 @@ fn references(hay: &str, var: &str) -> bool {
     false
 }
 
-/// Strongest sink the value reaches on this command line.
+/// Strongest sink the value reaches on this line.
+///
+/// The line is first cut into commands at `;`, then each command is classified
+/// on its own and the **strongest** verdict wins. Classifying the whole line as
+/// one unit let the condition of `if …; then cp …; fi` speak for the body it
+/// guards: the condition is a comparison, so the artifact write three words to
+/// its right was silently reported as `Benign`.
 fn classify_sink(code: &str, n: &Needle<'_>) -> SinkClass {
-    let segs = pipeline_segments(code);
+    command_parts(code)
+        .into_iter()
+        .filter_map(|part| classify_part(part, n))
+        .max()
+        .unwrap_or(SinkClass::Unknown)
+}
+
+/// Strongest sink inside one command (a pipeline with no top-level `;`).
+///
+/// `None` when the value never reaches this command, so that a part which does
+/// not mention it - `fi`, `done`, an `else` branch - cannot drag the verdict
+/// down.
+fn classify_part(part: &str, n: &Needle<'_>) -> Option<SinkClass> {
+    let segs = pipeline_segments(part);
     let last = segs.len().saturating_sub(1);
     let mut carries = false;
-    let mut class = SinkClass::Unknown;
+    let mut class = None;
     for (i, seg) in segs.iter().enumerate() {
         carries = carries || n.found_in(seg);
         if !carries {
             continue;
         }
         if is_reproducible_segment(seg, n) {
-            return SinkClass::Reproducible;
+            return Some(SinkClass::Reproducible);
         }
-        if i == last && is_benign_segment(seg, n) {
-            class = SinkClass::Benign;
-        }
+        class = Some(if i == last && is_benign_segment(seg, n) {
+            SinkClass::Benign
+        } else {
+            SinkClass::Unknown
+        });
     }
     class
+}
+
+/// Split a line into commands at unquoted top-level `;`.
+///
+/// A `;` terminates a command, so the condition and the body of a one-line
+/// `if …; then …; fi` are different commands and must be judged separately.
+/// Depth and literal masking keep a `;` inside `$( )`, `${ }` or quotes out of
+/// the split, and a stray empty part (from `;;`) is harmless: it carries
+/// nothing, so [`classify_part`] discards it.
+fn command_parts(code: &str) -> Vec<&str> {
+    let m = Scanner::scan(code);
+    let b = code.as_bytes();
+    let mut out = Vec::new();
+    let mut start = 0;
+    for i in 0..b.len() {
+        if b[i] == b';' && !m.is_literal(i) && m.depth_at(i) == 1 {
+            out.push(&code[start..i]);
+            start = i + 1;
+        }
+    }
+    out.push(&code[start..]);
+    out
 }
 
 /// Does this segment write the value into a build artifact?
@@ -700,12 +746,28 @@ fn reproducible_by_redirect(seg: &str, n: &Needle<'_>) -> bool {
     }
 }
 
+/// Destinations that really are append-only logs.
+///
+/// Adversarial review: an append used to be benign on the strength of the
+/// OPERATOR alone, so `>> dist/checksums.txt` and `>> release.env` — build
+/// artifacts — were unreported, and the rule was defeated by changing one
+/// character. The claim being made is "append-only log", so the DESTINATION has
+/// to support it. Anything else is left unclassified, and unclassified is
+/// reported.
+fn is_log_target(target: &str) -> bool {
+    let t = unquote(target).to_ascii_lowercase();
+    t.starts_with("/dev/")
+        || ["log", "journal", "history", "audit", "trace"]
+            .iter()
+            .any(|marker| t.contains(marker))
+}
+
 /// Does this segment merely print, log or compare the value?
 fn is_benign_segment(seg: &str, n: &Needle<'_>) -> bool {
     if is_test_context(seg, n) {
         return true;
     }
-    if matches!(redirect_of(seg), Some(Redirect::Append(t)) if !n.found_in(t)) {
+    if matches!(redirect_of(seg), Some(Redirect::Append(t)) if !n.found_in(t) && is_log_target(t)) {
         return true;
     }
     match command_word(seg) {
@@ -720,7 +782,8 @@ fn benign_command(cw: &str, seg: &str, n: &Needle<'_>) -> bool {
         return true;
     }
     if cw == "tee" {
-        return has_append_flag(seg);
+        // Same reasoning as the `>>` case: `tee -a dist/checksums.txt` is not a log.
+        return has_append_flag(seg) && seg.split_whitespace().any(is_log_target);
     }
     PRINT_CMDS.contains(&cw) && redirect_is_benign(redirect_of(seg), n)
 }
@@ -729,7 +792,7 @@ fn benign_command(cw: &str, seg: &str, n: &Needle<'_>) -> bool {
 fn redirect_is_benign(r: Option<Redirect<'_>>, n: &Needle<'_>) -> bool {
     match r {
         None | Some(Redirect::Fd) => true,
-        Some(Redirect::Append(t)) => !n.found_in(t),
+        Some(Redirect::Append(t)) => !n.found_in(t) && is_log_target(t),
         Some(Redirect::Truncate(t)) => is_sinkless(t),
     }
 }
