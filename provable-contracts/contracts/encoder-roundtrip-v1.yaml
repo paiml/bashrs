@@ -12,7 +12,7 @@ metadata:
   - 'binding.yaml: encoder-roundtrip-v1 (5 bindings)'
 equations:
   escape_roundtrip:
-    formula: escape(escape(s)) == escape(s) (idempotent)
+    formula: unescape(escape(s)) == s (lossless; escape is NOT idempotent)
     domain: 's: arbitrary string (including shell metacharacters)'
     codomain: String (safe for shell evaluation)
     kernel_structure: "escape: string → quoted_shell_safe_string via metachar replacement + quoting"
@@ -32,7 +32,9 @@ proof_obligations:
   applies_to: all
 invariants:
 - Shell metacharacters ($, `, |, ;) are always neutralized in emitted code
-- 'Escape roundtrip is idempotent: escape(escape(s)) == escape(s)'
+- 'Escape is lossless: unescape(escape(s)) == s for all s. It is NOT idempotent —
+  escape("") == "''" but escape("''") == ''"''"''"''"'' — idempotence holds only
+  where is_safe_unquoted(s). Discharged by verify_escape_roundtrip at bound 4.'
 - Empty strings produce valid shell output (not syntax errors)
 - Variable names are sanitized to [A-Za-z0-9_]
 falsification_tests:
@@ -111,30 +113,29 @@ kani_harnesses:
   obligation: Shell metacharacters ($, `, |, ;) are always neutralized
   property: Shell metacharacters ($, `, |, ;) are always neutralized
   bound: 4
-  strategy: stub_float
-  harness: verify_encoder_roundtrip_invariant
+  harness: verify_escape_safety
 - id: KANI-ENCODER_ROUNDTRIP-002
   obligation: Empty strings produce valid shell output
   property: Empty strings produce valid shell output
   bound: 4
-  strategy: stub_float
+  harness: verify_escape_safety
 - id: KANI-ENCODER_ROUNDTRIP-003
   obligation: Shell metacharacters ($, `, |, ;) are always neutralized in emitted code
   property: Shell metacharacters ($, `, |, ;) are always neutralized in emitted code
   bound: 4
-  strategy: stub_float
+  harness: verify_injection_safety
 - id: KANI-ENCODER_ROUNDTRIP-004
-  obligation: 'Escape roundtrip is idempotent: escape(escape(s)) == escape(s)'
-  property: 'Escape roundtrip is idempotent: escape(escape(s)) == escape(s)'
+  obligation: 'Escape is lossless: unescape(escape(s)) == s (escape is not idempotent)'
+  property: 'Escape is lossless: unescape(escape(s)) == s (escape is not idempotent)'
   bound: 4
-  strategy: stub_float
+  harness: verify_escape_roundtrip
 - id: KANI-ENCODER_ROUNDTRIP-005
   obligation: Empty strings produce valid shell output (not syntax errors)
   property: Empty strings produce valid shell output (not syntax errors)
   bound: 4
-  strategy: stub_float
+  harness: verify_escape_safety
 - id: KANI-ENCODER_ROUNDTRIP-006
   obligation: Variable names are sanitized to [A-Za-z0-9_]
   property: Variable names are sanitized to [A-Za-z0-9_]
   bound: 4
-  strategy: stub_float
+  harness: verify_variable_expansion_safety

@@ -113,6 +113,10 @@ mod tests;
 mod emitter_coverage_tests;
 
 #[cfg(test)]
+#[path = "escape_differential_tests.rs"]
+mod escape_differential_tests;
+
+#[cfg(test)]
 #[path = "makefile_coverage_tests.rs"]
 mod makefile_coverage_tests;
 

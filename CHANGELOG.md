@@ -70,6 +70,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Internal
 
+- **The Kani escaping harnesses now converge — and two of them were proving the
+  wrong thing** ([#225](https://github.com/paiml/bashrs/issues/225), closes
+  [#220](https://github.com/paiml/bashrs/issues/220)).
+
+  `verify_escape_safety` previously ran 600 s without emitting a verdict, with
+  CBMC at 7.4 GB RSS inside `alloc::raw_vec` / `Layout` / `handle_alloc_error`:
+  every harness called an escaper that returns a heap `String`, so the solver had
+  to model Rust's allocator. Input length was never the bottleneck — 2, 4 and 8
+  characters all timed out.
+
+  `emitter::escape` now has an allocation-free core that writes into a
+  caller-provided `&mut [u8]`: `escape_bytes_len`, `escape_bytes_into`,
+  `escape_shell_len`, `escape_shell_into`, `is_safe_unquoted_bytes`,
+  `escape_variable_bytes_into` and `is_valid_shell_identifier_bytes` are new
+  public API (additive). `escape_shell_string` and `escape_variable_name` are now
+  thin wrappers over it. `kani_bounded::any_bounded_bytes` removes the last
+  allocation, the one inside the generator itself.
+
+  **Escaping behaviour is unchanged.** A frozen copy of the pre-#225
+  implementation lives in `emitter::escape_differential_tests` and is diffed
+  against the live escaper on every `cargo test` across ~345 000 inputs
+  (exhaustive ASCII pairs, exhaustive 3-symbol adversarial alphabet, deterministic
+  Unicode fuzz, proptest), plus a real-`sh` round-trip over the ASCII and
+  adversarial corpora. `bashrs purify` output over a 290-file corpus is
+  byte-identical before and after.
+
+  Fixing convergence exposed two false properties, both now corrected and pinned
+  by ordinary tests so they cannot return with a proof attached:
+
+  - `verify_escape_safety` Property 1 asserted the escaped result is always
+    single-quoted. It is not — safe words pass through verbatim, so the assertion
+    was refuted by 3906 of the 3907 inputs its own generator produced. It is now
+    the disjunction `is_safe_unquoted(out) ∨ out is single-quoted`.
+  - `contains_unescaped_metachar` tracked `'` and `\` but not `"`, so after the
+    `'"'"'` requote idiom it believed it was outside quotes and reported *correct*
+    output as unsafe. Replaced by a POSIX-faithful three-state scanner. The old
+    alphabet (ASCII alphanumerics) could never produce a quote, so the harness had
+    never reached the requote branch at all; the alphabet is now unconstrained
+    bytes.
+
+  Measured with kani 0.67.0 at input bound N = 4, every unwinding assertion
+  SUCCESS: `verify_escape_safety` 17.9 s, `verify_escape_roundtrip` 21.2 s,
+  `verify_escape_buffer_contract` 5.5 s, `verify_variable_expansion_safety`
+  0.4 s, `verify_injection_safety` 20.2 s — all inside the 300 s budget.
+
+- **Escape contracts now state only true things.**
+  `encoder-roundtrip-v1.yaml` claimed `escape(escape(s)) == escape(s)`; that is
+  false (`escape("") == "''"` but `escape("''") == ''"'"''"'"''`) and held only
+  on already-safe strings. Restated as the lossless round-trip
+  `unescape(escape(s)) == s`, which is what is actually proved.
+  `property-invariants-v1.yaml`'s unfalsifiable "escape roundtrip preserves length
+  ordering" is replaced by the provable bound
+  `escape_bytes_len(b) <= 5 * b.len() + 2`. Obligations that name a harness now
+  name one that exists; the two that named non-existent harnesses
+  (`verify_encoder_roundtrip_invariant`, `verify_property_invariants_invariant`)
+  are relabelled — one discharged, one explicitly UNDISCHARGED.
+
 - New shared module `bashrs::linter::shell_words`: a total, panic-free split of one
   physical line into simple commands with per-word roles and per-expansion quoting
   state, recursing into `$( … )` and `` ` … ` ``. Intended to replace the

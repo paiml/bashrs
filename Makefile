@@ -579,14 +579,32 @@ verify: verify-kani verify-creusot verify-smt verify-model verify-properties
 #                     gate teaches people to bypass it.
 #
 # MEASURED 2026-08-11, kani 0.67.0, 32-core box: none of these harnesses
-# converge. CBMC spends its time inside alloc::raw_vec / Layout / LayoutError —
-# Rust's ALLOCATOR — because every harness calls an escaping function that
-# returns a heap String. Shrinking the input bound does not help: 8, 4 and 2
-# characters all time out, so string LENGTH was never the bottleneck. Proving
-# these properties needs the escapers refactored onto caller-provided &mut [u8]
-# buffers so no allocation is reachable from a harness. Tracked separately.
+# converged. CBMC spent its time inside alloc::raw_vec / Layout / LayoutError —
+# Rust's ALLOCATOR — because every harness called an escaping function that
+# returns a heap String. Shrinking the input bound did not help: 8, 4 and 2
+# characters all timed out, so string LENGTH was never the bottleneck.
+#
+# FIXED by GH-225 (closes GH-220). The escapers were split onto caller-provided
+# &mut [u8] buffers (emitter::escape::escape_bytes_into) and the generators onto
+# caller-owned arrays (kani_bounded::any_bounded_bytes), so no allocation is
+# reachable from a harness. RE-MEASURED 2026-08-18, kani 0.67.0, 48-core box,
+# input bound N = 4 over an UNCONSTRAINED byte alphabet (the old alphabet was
+# ASCII alphanumerics, which cannot produce a quote and so never reached the
+# requote branch at all):
+#
+#   verify_escape_safety              SUCCESSFUL   17.9 s
+#   verify_escape_roundtrip           SUCCESSFUL   21.2 s
+#   verify_escape_buffer_contract     SUCCESSFUL    5.5 s
+#   verify_variable_expansion_safety  SUCCESSFUL    0.4 s
+#   verify_injection_safety           SUCCESSFUL   20.2 s
+#
+# Every unwinding assertion reported SUCCESS in all five, so these are not
+# under-approximations. All are far inside KANI_TIMEOUT; if one of them starts
+# reporting UNPROVEN, that is a regression worth investigating, not weather.
 KANI_TIMEOUT   ?= 300
-KANI_HARNESSES := verify_escape_safety verify_variable_expansion_safety verify_injection_safety
+KANI_HARNESSES := verify_escape_safety verify_escape_roundtrip \
+                  verify_escape_buffer_contract \
+                  verify_variable_expansion_safety verify_injection_safety
 
 verify-kani:
 	@echo "🔍 Running Kani model checker..."
