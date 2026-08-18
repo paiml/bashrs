@@ -40,6 +40,7 @@
 //! fi
 //! ```
 
+use crate::linter::taint::{self, TaintKind, TaintMap};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// File operation commands that are path traversal vectors
@@ -52,57 +53,45 @@ const TRAVERSAL_PATTERNS: &[&str] = &[
     "/..", // Absolute parent reference
 ];
 
-/// Track validation patterns on a line, updating validated_vars and in_validation_block.
-/// Returns true if the line was a validation-related line and should be skipped.
-fn track_validation_patterns(
-    trimmed: &str,
-    validated_vars: &mut Vec<String>,
-    in_validation_block: &mut bool,
-) -> bool {
-    if is_path_validation_check(trimmed) {
-        if let Some(var) = extract_validated_variable(trimmed) {
-            validated_vars.push(var);
-        }
-        *in_validation_block = true;
-        return true;
+/// Check file operations for path traversal risks.
+///
+/// GH-227: a file operation is a traversal risk only when the path expression
+/// can be influenced from outside the script. The old implementation asked
+/// `contains_unvalidated_variable` alone, which matched `mkdir -p "$OUT_DIR"`
+/// on the substring `DIR` even for a literal path.
+fn check_file_ops(line: &str, line_num: usize, taint: &TaintMap, result: &mut LintResult) {
+    let kind = taint.line_taint(line_num, line);
+    if kind == TaintKind::Clean {
+        return;
     }
-
-    if trimmed.contains("realpath") || trimmed.contains("readlink -f") {
-        if let Some(var) = extract_assigned_variable(trimmed) {
-            validated_vars.push(var);
+    for file_op in FILE_OPS {
+        let Some(cmd_col) = find_command(line, file_op) else {
+            continue;
+        };
+        if !contains_unvalidated_variable(line, file_op) {
+            continue;
         }
-        return true;
+        let span = Span::new(line_num + 1, cmd_col + 1, line_num + 1, line.len());
+        let diag = Diagnostic::new(
+            "SEC010",
+            severity_for(kind),
+            format!("Path traversal risk in {} - validate paths don't contain '..' or start with '/'", file_op),
+            span,
+        );
+        result.add(diag);
+        break;
     }
-
-    if is_validation_function_call(trimmed) {
-        if let Some(var) = extract_function_argument_variable(trimmed) {
-            validated_vars.push(var);
-        }
-        return true;
-    }
-
-    false
 }
 
-/// Check file operations for path traversal risks with unvalidated variables
-fn check_file_ops(line: &str, line_num: usize, validated_vars: &[String], result: &mut LintResult) {
-    for file_op in FILE_OPS {
-        if let Some(cmd_col) = find_command(line, file_op) {
-            if is_variable_validated(line, validated_vars) {
-                continue;
-            }
-            if contains_unvalidated_variable(line, file_op) {
-                let span = Span::new(line_num + 1, cmd_col + 1, line_num + 1, line.len());
-                let diag = Diagnostic::new(
-                    "SEC010",
-                    Severity::Error,
-                    format!("Path traversal risk in {} - validate paths don't contain '..' or start with '/'", file_op),
-                    span,
-                );
-                result.add(diag);
-                break;
-            }
-        }
+/// GH-227: grade the severity by provenance.
+///
+/// Proven external input reaching an unguarded path is a vulnerability and
+/// keeps exit code 2. A variable this file never assigns is a *guess* about
+/// the environment, and a guess must not break a build.
+fn severity_for(kind: TaintKind) -> Severity {
+    match kind {
+        TaintKind::External => Severity::Error,
+        _ => Severity::Warning,
     }
 }
 
@@ -133,29 +122,24 @@ fn check_traversal_patterns(line: &str, line_num: usize, result: &mut LintResult
 /// Check for path traversal vulnerabilities
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-    let mut validated_vars: Vec<String> = Vec::new();
-    let mut in_validation_block = false;
+    let taint = taint::analyze(source);
+    // GH-227: the body of a quoted heredoc is data, not shell. The taint pass
+    // deliberately ignores it, so the rule must ignore it too — otherwise a
+    // variable "assigned" inside the body reads as unknown-provenance and the
+    // rule fires on a line the script never executes.
+    let heredoc_body = crate::linter::heredoc::quoted_heredoc_lines(source);
 
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim();
 
-        if trimmed.starts_with('#') || is_heredoc_pattern(line) {
+        if trimmed.starts_with('#')
+            || is_heredoc_pattern(line)
+            || heredoc_body.contains(&(line_num + 1))
+        {
             continue;
         }
 
-        if track_validation_patterns(trimmed, &mut validated_vars, &mut in_validation_block) {
-            continue;
-        }
-
-        if trimmed == "fi" || trimmed.starts_with("fi ") || trimmed.starts_with("fi;") {
-            in_validation_block = false;
-        }
-
-        if in_validation_block && (trimmed.contains("exit") || trimmed.contains("return")) {
-            continue;
-        }
-
-        check_file_ops(line, line_num, &validated_vars, &mut result);
+        check_file_ops(line, line_num, &taint, &mut result);
         check_traversal_patterns(line, line_num, &mut result);
     }
 
@@ -201,6 +185,47 @@ const SAFE_VAR_PATTERNS: &[&str] = &[
     "XDG_",        // XDG directories are safe
 ];
 
+/// Substrings that suggest untrusted or user-provided input.
+///
+/// GH-227 note: this is a NAME heuristic over the whole line, not a dataflow
+/// fact. It is now only one of two necessary conditions — `check_file_ops`
+/// also requires `crate::linter::taint` to say the line can be influenced from
+/// outside the script.
+const USER_INPUT_PATTERNS: &[&str] = &[
+    "USER",      // USER_FILE, USER_PATH, etc.
+    "INPUT",     // INPUT_PATH, INPUT_FILE, etc.
+    "UPLOAD",    // Uploaded files
+    "ARCHIVE",   // Archive files (could be user-provided)
+    "UNTRUSTED", // Explicitly untrusted
+    "EXTERNAL",  // External input
+    "REMOTE",    // Remote data
+    "ARG",       // Command line arguments
+    "NAME",      // Could be user-provided name
+    "FILE",      // Generic file variables
+    "PATH",      // Generic path variables (but not PATH env var)
+    "DIR",       // Generic directory variables
+];
+
+/// Issue #73: the line uses only patterns known to be safe.
+fn is_known_safe_line(line: &str) -> bool {
+    if SAFE_VAR_PATTERNS.iter().any(|p| line.contains(p)) {
+        return true;
+    }
+    // Script directory parent (..) with BASH_SOURCE is intentional:
+    // `cd "$(dirname "${BASH_SOURCE[0]}")/.."`
+    line.contains("dirname") && line.contains("..")
+}
+
+/// Every `PATH` mention on the line is the `PATH` environment variable.
+fn only_path_env_var(line: &str) -> bool {
+    if !line.contains("$PATH") && !line.contains("${PATH}") {
+        return false;
+    }
+    let path_count = line.matches("PATH").count();
+    let dollar_path_count = line.matches("$PATH").count() + line.matches("${PATH}").count();
+    path_count == dollar_path_count
+}
+
 /// Check if line contains unvalidated variable in file operation
 fn contains_unvalidated_variable(line: &str, _cmd: &str) -> bool {
     // Look for variable usage: $VAR, ${VAR}, "$VAR"
@@ -208,57 +233,16 @@ fn contains_unvalidated_variable(line: &str, _cmd: &str) -> bool {
         return false;
     }
 
-    // Issue #73: Skip known-safe patterns
-    for safe_pattern in SAFE_VAR_PATTERNS {
-        if line.contains(safe_pattern) {
-            return false;
-        }
-    }
-
-    // Issue #73: Script directory parent (..) with BASH_SOURCE is intentional
-    // Pattern: cd "$(dirname "${BASH_SOURCE[0]}")/.."
-    if line.contains("dirname") && line.contains("..") {
+    if is_known_safe_line(line) || only_path_env_var(line) {
         return false;
     }
 
-    // Check if this looks like user input (common patterns)
-    // These patterns suggest untrusted or user-provided input
-    let user_input_patterns = [
-        "USER",      // USER_FILE, USER_PATH, etc.
-        "INPUT",     // INPUT_PATH, INPUT_FILE, etc.
-        "UPLOAD",    // Uploaded files
-        "ARCHIVE",   // Archive files (could be user-provided)
-        "UNTRUSTED", // Explicitly untrusted
-        "EXTERNAL",  // External input
-        "REMOTE",    // Remote data
-        "ARG",       // Command line arguments
-        "NAME",      // Could be user-provided name
-        "FILE",      // Generic file variables
-        "PATH",      // Generic path variables (but not PATH env var)
-        "DIR",       // Generic directory variables
-    ];
-
+    // If no suspicious pattern is found, assume it's safe. This reduces false
+    // positives for common scripts.
     let line_upper = line.to_uppercase();
-
-    // Don't flag the PATH environment variable itself
-    if line.contains("$PATH") || line.contains("${PATH}") {
-        // This is the PATH env var, not a user path
-        let path_count = line.matches("PATH").count();
-        let dollar_path_count = line.matches("$PATH").count() + line.matches("${PATH}").count();
-        if path_count == dollar_path_count {
-            return false; // All PATH references are the env var
-        }
-    }
-
-    for pattern in &user_input_patterns {
-        if line_upper.contains(pattern) {
-            return true;
-        }
-    }
-
-    // If no suspicious pattern found, assume it's safe
-    // This reduces false positives for common scripts
-    false
+    USER_INPUT_PATTERNS
+        .iter()
+        .any(|pattern| line_upper.contains(pattern))
 }
 
 /// Check if line contains any file operation
@@ -272,176 +256,6 @@ fn is_validation_context(line: &str) -> bool {
     let validation_keywords = ["if", "case", "grep", "=~", "==", "!="];
 
     validation_keywords.iter().any(|kw| line.contains(kw))
-}
-
-/// Issue #104: Check if line is a path validation check
-/// Patterns: if [[ "$VAR" == *".."* ]] or [[ "$VAR" == /* ]]
-fn is_path_validation_check(line: &str) -> bool {
-    // Must be an if/test statement
-    if !line.contains("if") && !line.starts_with("[[") && !line.starts_with('[') {
-        return false;
-    }
-
-    // Must check for path traversal patterns
-    let validation_patterns = [
-        "*\"..\"/",  // *".."*
-        "*..*",      // *..*
-        "/*",        // /* (absolute path check)
-        "\"/\"*",    // starts with /
-        "=~ \\.\\.", // regex match for ..
-    ];
-
-    // Check for ".." in the condition
-    if line.contains("..") && (line.contains("==") || line.contains("=~") || line.contains("!=")) {
-        return true;
-    }
-
-    // Check for absolute path validation
-    if (line.contains("== /*") || line.contains("== \"/\""))
-        && (line.contains("==") || line.contains("!="))
-    {
-        return true;
-    }
-
-    validation_patterns.iter().any(|p| line.contains(p))
-}
-
-/// Issue #104: Extract variable name being validated from a check
-fn extract_validated_variable(line: &str) -> Option<String> {
-    // Look for $VAR or ${VAR} patterns
-    let patterns = ["$", "${"];
-
-    for pattern in patterns {
-        if let Some(start) = line.find(pattern) {
-            let rest = &line[start..];
-
-            // Handle ${VAR} format
-            if rest.starts_with("${") {
-                if let Some(end) = rest.find('}') {
-                    let var_name = &rest[2..end];
-                    // Remove array index if present: VAR[0] -> VAR
-                    let var_name = var_name.split('[').next().unwrap_or(var_name);
-                    return Some(var_name.to_string());
-                }
-            }
-            // Handle $VAR format
-            else if let Some(after_dollar) = rest.strip_prefix('$') {
-                let var_chars: String = after_dollar
-                    .chars()
-                    .take_while(|c| c.is_alphanumeric() || *c == '_')
-                    .collect();
-                if !var_chars.is_empty() {
-                    return Some(var_chars);
-                }
-            }
-        }
-    }
-
-    None
-}
-
-/// Issue #104: Extract variable being assigned (left side of =)
-fn extract_assigned_variable(line: &str) -> Option<String> {
-    // Pattern: VAR=$(realpath ...) or VAR=`realpath ...`
-    if let Some(eq_pos) = line.find('=') {
-        let before_eq = line[..eq_pos].trim();
-        // Get the last word before = (in case of export VAR= etc.)
-        let var_name = before_eq.split_whitespace().last()?;
-        // Validate it's a valid variable name
-        if var_name.chars().all(|c| c.is_alphanumeric() || c == '_') {
-            return Some(var_name.to_string());
-        }
-    }
-    None
-}
-
-/// Issue #104: Check if any variable on the line has been validated
-fn is_variable_validated(line: &str, validated_vars: &[String]) -> bool {
-    for var in validated_vars {
-        // Check for $VAR, ${VAR}, or "${VAR}"
-        let patterns = [
-            format!("${}", var),
-            format!("${{{}}}", var),
-            format!("\"${}\"", var),
-            format!("\"${{{}}}\"", var),
-        ];
-
-        for pattern in &patterns {
-            if line.contains(pattern) {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-/// Issue #127: Check if this is a validation function call
-/// Patterns: validate_path, validate_input, check_path, sanitize_path, etc.
-fn is_validation_function_call(line: &str) -> bool {
-    let validation_prefixes = [
-        "validate_",
-        "check_",
-        "verify_",
-        "sanitize_",
-        "clean_",
-        "safe_",
-        "is_valid_",
-        "is_safe_",
-        "assert_",
-    ];
-
-    let line_lower = line.to_lowercase();
-
-    // Check if line starts with a validation function call (not a definition)
-    // Skip function definitions: validate_path() { ... }
-    if line.contains("()") && (line.contains('{') || line.trim().ends_with("()")) {
-        return false;
-    }
-
-    for prefix in validation_prefixes {
-        if line_lower.contains(prefix) {
-            // Make sure it's a function call, not just containing the word
-            // Should have a variable argument after it
-            if line.contains('$') {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-/// Issue #127: Extract variable passed to a validation function
-/// Pattern: validate_path "$VAR" or validate_input "${VAR}"
-fn extract_function_argument_variable(line: &str) -> Option<String> {
-    // Look for quoted variable arguments: "$VAR" or "${VAR}"
-    // Find the first variable after a function call
-
-    // Find position of first $
-    let dollar_pos = line.find('$')?;
-    let rest = &line[dollar_pos..];
-
-    // Handle ${VAR} format
-    if rest.starts_with("${") {
-        if let Some(end) = rest.find('}') {
-            let var_name = &rest[2..end];
-            // Remove array index if present: VAR[0] -> VAR
-            let var_name = var_name.split('[').next().unwrap_or(var_name);
-            return Some(var_name.to_string());
-        }
-    }
-    // Handle $VAR format
-    else if let Some(after_dollar) = rest.strip_prefix('$') {
-        let var_chars: String = after_dollar
-            .chars()
-            .take_while(|c| c.is_alphanumeric() || *c == '_')
-            .collect();
-        if !var_chars.is_empty() {
-            return Some(var_chars);
-        }
-    }
-
-    None
 }
 
 /// Issue #106: Check if this is a heredoc pattern

@@ -1,6 +1,6 @@
 # Linter Rules Reference
 
-This chapter provides a complete reference for all linter rules in bashrs v6.64.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration (SC1xxx + SC2xxx).
+This chapter provides a complete reference for all linter rules in bashrs v6.67.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration (SC1xxx + SC2xxx).
 
 ## Table of Contents
 
@@ -97,6 +97,17 @@ wget "${FILE_PATH}"
 ssh "${HOST}"
 git clone "${REPO}"
 ```
+
+**Detection pattern:** The line is split into simple commands (recursing into
+`$( … )` and `` ` … ` ``, each of which is a fresh quoting context). A finding is
+emitted only for an unquoted expansion in **argument** position of a word that
+resolves, in **command** position, to one of the names above. Wrapper commands
+(`sudo`, `env`, `timeout`, …) are followed through to the real command name.
+
+**Excluded on purpose:**
+- Expansions in command position (`$sh_c 'docker version'`) — SC2183 reports those.
+- Dangerous names occurring inside quoted argument text (`echo 'docker run' $x`).
+- Redirect targets (`curl "$u" > $out`) — SC2086 reports those.
 
 **Auto-fix:** Wraps variable in double quotes: `"${VAR}"`
 

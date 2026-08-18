@@ -46,6 +46,13 @@ invariants:
 - Each SEC rule does NOT flag known-safe patterns (precision)
 - SEC001-SEC008 cover OWASP top shell injection vectors
 - 'Rules are independent: disabling one does not affect others'
+- 'SEC002 scope: an unquoted expansion in ARGUMENT position of a dangerous command
+  (curl, wget, ssh, scp, git, rsync, docker, kubectl), including inside a command
+  substitution, which is a fresh quoting context. Expansions in COMMAND position are
+  excluded (SC2183 covers those), as are dangerous command names occurring inside
+  quoted literals.'
+- 'SEC002 spans are 1-indexed BYTE columns covering the whole expansion, so applying
+  the suggested fix is a valid, non-panicking splice.'
 falsification_tests:
 - id: F-SEC001-SOUND
   rule: SEC001 detects eval with variable input
@@ -67,6 +74,26 @@ falsification_tests:
   prediction: lint result does NOT contain SEC002 diagnostic
   test: 'Given input, verify: lint result does NOT contain SEC002 diagnostic'
   if_fails: 'Contract violation: SEC002 does NOT flag quoted variable in network command'
+- id: F-SEC002-PRECISE-DISPATCHER
+  rule: SEC002 does NOT flag an expansion in COMMAND position, nor a dangerous command
+    name appearing inside a quoted argument (GH-229). SC2183 already covers variable
+    command names with the correct severity.
+  prediction: lint result does NOT contain SEC002 for `$sh_c 'docker version'` or for
+    `echo 'docker run $IMAGE'`
+  test: 'Given input, verify: lint result does NOT contain SEC002 diagnostic'
+  if_fails: 'Contract violation: SEC002 flags a command-position expansion or a quoted
+    literal that merely spells a dangerous command name'
+- id: F-SEC002-SOUND-CMDSUB
+  rule: SEC002 treats a command substitution as a FRESH quoting context (POSIX 2.6.3),
+    so `out="$(curl -sSfL $url)"` IS flagged while `out="$(curl -sSfL "$url")"` is NOT
+    (GH-228). The emitted span covers the whole expansion so the fix splices correctly,
+    and all columns are byte offsets so `--fix` cannot panic on non-ASCII lines.
+  prediction: lint result contains exactly one SEC002 diagnostic for the unquoted form
+    and zero for the quoted form; span covers `$url` and is a valid char boundary
+  test: 'Given input, verify: lint result contains SEC002 diagnostic with span covering
+    the whole expansion'
+  if_fails: 'Contract violation: quoting state leaks across a command substitution
+    boundary, or the emitted span is not a valid byte range'
 - id: F-SEC003-SOUND
   rule: SEC003 detects find -exec sh -c with embedded {}
   prediction: lint result contains SEC003 diagnostic

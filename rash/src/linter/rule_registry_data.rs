@@ -23,7 +23,7 @@ const RULES: &[(&str, &str, ShellCompatibility)] = &[
     ("SC1109", "Unquoted HTML entity in script", ShellCompatibility::Universal),
     ("SC1129", "Missing space before ! in negation", ShellCompatibility::Universal),
     ("SEC001", "Command injection vulnerability", ShellCompatibility::Universal),
-    ("SEC002", "Unsafe eval usage", ShellCompatibility::Universal),
+    ("SEC002", "Unquoted variable in dangerous command", ShellCompatibility::Universal),
     ("SEC003", "Unquoted variables (injection risk)", ShellCompatibility::Universal),
     ("SEC004", "User input in commands", ShellCompatibility::Universal),
     ("SEC005", "Unsafe PATH modification", ShellCompatibility::Universal),

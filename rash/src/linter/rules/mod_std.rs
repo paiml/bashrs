@@ -114,6 +114,10 @@ pub fn lint_makefile(source: &str) -> LintResult {
 }
 
 #[cfg(test)]
+#[path = "det002_tests_gh230.rs"]
+mod det002_tests_gh230;
+
+#[cfg(test)]
 #[path = "docker003_tests.rs"]
 mod docker003_tests;
 

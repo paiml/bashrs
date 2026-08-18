@@ -64,7 +64,7 @@ CorpusEntry::new(
 - `rust_source`: The Rust code to transpile
 - `expected_contains`: A line that must appear in the generated shell output (used for B1 containment and B2 exact match)
 
-## Current Status (v6.65.0)
+## Current Status (v6.67.0)
 
 - **17,882 entries** (16,411 Bash + 784 Makefile + 687 Dockerfile)
 - **97.0/100 (A+)** overall score

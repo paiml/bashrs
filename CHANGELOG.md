@@ -5,7 +5,286 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [6.67.0] - 2026-08-18
+
+This release is almost entirely **false-positive removal in the linter**, from six
+reports that all shared one root cause: a rule that pattern-matched text instead of
+analysing shell. Across a 290-file corpus of real-world scripts the total finding
+count drops from 27,389 to 21,785, and `Severity::Error` findings — the ones that
+gate CI — drop from 5,069 to 1,694.
+
+Every removal below was measured, and every rule was checked to still report the
+defect it exists for. Two genuinely unsafe constructs are now reported that were
+invisible before (an unquoted expansion inside a command substitution, and an
+unquoted argument to `docker login`).
+
+### Fixed
+
+- **Shell-syntax rules fired inside string literals, so any script containing a
+  regex got errors** ([GH-226](https://github.com/paiml/bashrs/issues/226)).
+  `export PATTERN="PMAT-[0-9]{4}"` produced SC1020 "missing space before closing
+  ] in test expression", and `grep "^Diff in" file.txt` produced SC1035 "missing
+  space after 'in' keyword". Neither `]` nor `in` is shell syntax there. Quoting
+  is now resolved once, up front, in the new `linter::quoting` module, and the
+  11 shell-syntax rules receive a copy of the source in which literal *text* is
+  inert filler of identical byte length, so spans still line up.
+
+  Deliberately narrow: quote characters are boundaries rather than content (rules
+  that tokenise on them, such as here-string handling, must keep seeing them);
+  `$VAR`, `${...}`, `$(...)` and backticks stay visible because an expansion is
+  code; and it is an allowlist rather than all of SC1xxx, so rules that are
+  *about* quoting (SC1003, SC1078, SC2016, SC2086 …) keep seeing literals instead
+  of going blind. If a quote never closes, the mask is discarded from that point
+  so a mis-parse cannot silence the rest of the file.
+
+- **SC1020 and SC1140 treated any `[` as a test command**
+  ([GH-226](https://github.com/paiml/bashrs/issues/226)). Array subscripts
+  (`${BASH_SOURCE[0]}`), regex character classes (`[[:space:]]`), `case` glob
+  patterns (`[0-7][0-7][0-7])`) and associative-array keys (`M["a|b"]=x`) were all
+  reported as errors. SC1020 additionally mis-parsed `[[`, skipping the first
+  bracket and treating the second as a single-bracket test. POSIX requires `[` to
+  be its own word, which is now the discriminator. Across the corpus both rules go
+  from 1,044 and 769 findings to zero, with the real defects (`[ -f x]`,
+  `[ -f x ] extra`) still reported.
+
+- **Quoted heredoc bodies were still linted through the CLI**
+  ([GH-217](https://github.com/paiml/bashrs/issues/217)). The GH-217 filter was
+  only ever applied in `lint_shell_filtered`, while the CLI calls `lint_shell`, so
+  users never received the fix. Now applied on both entry points.
+
+- **SEC002 fired on correctly quoted code and missed genuinely unquoted code**
+  ([GH-228](https://github.com/paiml/bashrs/issues/228)). The rule tracked quoting
+  with two booleans toggled over the raw line, with no model of `$( … )`. In
+  `out="$(curl -sSfL "$url" | cut -d' ' -f1)"` the opening quote of `"$url"` turned
+  the "in double quotes" flag *off*, so a correctly quoted variable was reported —
+  while in the same line without the inner quotes the genuinely bare `$url` was
+  skipped. A command substitution is now a fresh quoting context, as POSIX 2.6.3
+  requires. `${VAR}` in argument position is now detected too; previously the rule
+  required an alphanumeric byte immediately after `$` and never saw braced forms.
+- **SEC002 flagged the command-dispatcher idiom**
+  ([GH-229](https://github.com/paiml/bashrs/issues/229)). `$sh_c 'docker version'`
+  — Docker's own `get-docker.sh` idiom — was reported as an "unquoted variable in
+  docker command", because `docker` was matched anywhere in the line including
+  inside quoted arguments. Following the advice ("add quotes") breaks the script.
+  SEC002 now only considers a word that is in *command* position, and only reports
+  expansions in *argument* position; SC2183 already covers variable command names
+  with the appropriate severity.
+- **`bashrs lint --fix` corrupted source and could abort on SEC002 findings.** The
+  emitted span was one character wide and the replacement was the literal string
+  `"$VAR"`, so `OPTS=x; curl $URL` was rewritten to `OPTS=x; curl "$VAR"URL`. The
+  span now covers the whole expansion and the fix quotes the source text verbatim,
+  so modifiers such as `${URL:-default}` survive. Columns were also counted in
+  `char`s while the splicer indexes `byte`s, which aborted the process
+  (`byte index … is not a char boundary`) on any non-ASCII line.
+
+- **SEC010/SEC014 path traversal: follow the data, not the spelling of a variable
+  name** ([GH-227](https://github.com/paiml/bashrs/issues/227)). SEC010 fired
+  whenever a line contained a `$` and any of a dozen generic substrings (`DIR`,
+  `FILE`, `PATH`, `NAME`, …) appeared *anywhere* on that line — so
+  `OUT_DIR="build/results"; mkdir -p "$OUT_DIR"` was reported as an **error**,
+  with no dataflow of any kind behind the claim. SEC010 was the single largest
+  source of error-severity findings in a 290-script corpus (1,113 of 5,069); it
+  is now 37. SEC014 had no dataflow either and is down from 857 to 83.
+
+  Three defects are fixed together:
+  - A finding now requires the path expression to be reachable from input
+    *outside* the script (new `linter::taint` pass: literal assignments
+    propagate as clean, `$1`/`$@`/`read`/`$OPTARG`/network command substitution
+    as external, `realpath`/`readlink -f` sanitise).
+  - A **real** dominating guard now clears the finding, including the `case`
+    form (`case "$1" in *..*|/*) exit 2 ;; esac`) and `grep -qE '(^|/)\.\.'`,
+    which the old `if`-only recogniser could not see. A guard that only prints a
+    message, guards a different variable, or comes *after* the use does nothing.
+  - A function is trusted as a validator only if its **body** actually tests for
+    traversal and aborts. Previously the *name* was the whole test, so
+    `validate_path() { :; }` silenced the rule — a control any three-line rename
+    defeated.
+
+  Severity is now graded by provenance: proven external input reaching an
+  unguarded path stays `Error` (exit code 2); a variable the file never assigns
+  is a guess about the environment and reports as `Warning`, so it cannot break
+  a build. Both rules also stop linting the body of a quoted heredoc, which is
+  data rather than shell.
+
+  Known limitations are documented at the bottom of `rash/src/linter/taint.rs`:
+  the analysis is one file, one ordered pass, no fixpoint; cross-file, loop
+  back-edges, `eval`, and call-site resolution are out of scope, and each is a
+  deliberate false negative rather than a false positive.
+
+- **DET002 fired on any `date`, including on its own documented remedy**
+  ([GH-230](https://github.com/paiml/bashrs/issues/230)). The rule matched the
+  text `$(date` with no notion of where the value went, so it treated three
+  unlike things identically:
+
+  ```sh
+  TIMESTAMP="$(date +%Y%m%d)"; cp build.log "out/report_$TIMESTAMP.log"  # correct
+  echo "[$(date '+%F %T')] started" | tee -a "$LOG_FILE"                 # false positive
+  TIMESTAMP="$(date -u -d "@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m%d)" # fires on the fix
+  ```
+
+  A timestamp on a log line is the point of a log line, and `SOURCE_DATE_EPOCH`
+  is the reproducible-builds project's specified mechanism — a script adopting
+  it is *more* deterministic, yet the finding did not change. There was no edit
+  that cleared the rule.
+
+  `linter::timestamp_flow` now follows the value to its sink and classifies it:
+  reproducible (an artifact name or contents, a hash, a build id, a truncating
+  redirect), benign (stdout/stderr, an append-only log, a comparison,
+  arithmetic), or unknown. Only non-benign is reported, any read of
+  `SOURCE_DATE_EPOCH` clears the rule and untaints what it feeds, and the
+  message names the sink line instead of saying "requires manual fix" while
+  naming no fix that works. The `Fix` suggestions are printed at all now —
+  `linter::output` rendered only `fix.replacement`, so every UNSAFE fix showed a
+  bare `Fix:` and its advice was dead text (this also affected DET001, IDEM003
+  and SC2008–SC2014). `bashrs explain DET002` used to recommend
+  `${BUILD_TIME:-$(date +%s)}`, which DET002 then flagged.
+
+  **Behaviour change worth knowing:** `if [ $(date +%s) -gt 1000 ]` is no longer
+  reported. A compared timestamp never reaches an artifact, so that is correct
+  for a reproducibility rule — but the underlying concern, time-dependent
+  control flow, deserves its own rule and is filed as a follow-up rather than
+  left mislabelled.
+
+### Verification
+
+Every fix in this release removes findings, so the release was reviewed
+adversarially — by agents whose brief was to find a *false negative*, the linter
+going silent on a real defect, which is strictly worse than the false positives
+being removed. It found seven, all fixed here and pinned by tests. The two worth
+recording because they shipped in the branch under review:
+
+- A heredoc marker inside a **comment** (`# embed python with <<'PY' … PY`)
+  opened a body that never closed, and once the GH-217 filter reached the CLI
+  that dropped every diagnostic for the rest of the file — a script containing
+  `eval "$USER_INPUT"`, `curl … | sh` and `chmod 777 /etc/passwd` reported *no
+  issues found*, exit 0. `heredoc::quoted_heredoc_lines` now delegates to
+  `linter::quoting`, which resolves quoting first, and an unterminated heredoc
+  no longer silences anything either.
+- The path-taint controls added for GH-227 were defeatable by a *mention*:
+  the word "exit" in a log message counted as a rejection, and a `case`
+  dispatcher whose `*/*)` arm merely echoed while its `*)` arm exited cleared
+  taint on its subject. That is GH-227's own defect one level down, and the
+  paired-arm requirement now closes it.
+
+The other five: a bare `(( a << b ))` was parsed as a heredoc opener; `$'don\'t'`
+inverted the quote mask; masking was quadratic on a long single line (15s on a
+400 KB script); `[-z "$1"]` and `[[ -f x]]` lost their coverage; and SEC002 lost
+`eval`, `find -exec` and `sh -c`.
+
+### Release engineering
+
+Four defects each failed a release gate; none is a linter change, all were found
+by auditing the release path rather than by any ticket.
+
+- **RUSTSEC-2026-0258** (h2 "unbounded empty DATA frames", published 2026-08-17).
+  `ci / security` runs a bare `cargo audit` and `.cargo/audit.toml` ignores
+  nothing, so this reddened the required gate. h2 0.4.13 → 0.4.16, and fastrand
+  2.4.0 (yanked) → 2.5.0 while the lock was open.
+- **`mdbook build` aborted**, so `./scripts/check-book-updated.sh` — the release's
+  own book gate — had been failing since before 6.66.0, which is why the book had
+  not been rebuilt since March. `book.toml` still declared `multilingual`, removed
+  from mdbook, and `git-repository-icon = "fa-github"`, which no longer resolves
+  now that mdbook has dropped the bundled Font Awesome.
+- **`cargo test -p bashrs --lib` did not terminate.**
+  `test_coverage_run_gate_all_known_names_return_named_results` built a quality
+  gate with every gate ENABLED, and the tests gate shells out to
+  `cargo test --lib -p bashrs` — which reaches that same test and spawns again,
+  unbounded. It also shelled out to cargo clippy, cargo audit and pmat. The gates
+  are now disabled, which is all the test's own doc-comment claims to check, and
+  it runs in 0.01s.
+- **Two `unsound` advisories** that `cargo audit` passes over but
+  `cargo deny check advisories` denies: RUSTSEC-2026-0190 (`anyhow::Error::downcast_mut`
+  undefined behaviour) and RUSTSEC-2026-0097 (`rand::rng` unsoundness with a custom
+  logger). anyhow 1.0.102 → 1.0.104, rand 0.9.2 → 0.9.5 and 0.8.5 → 0.8.7. Upgraded
+  rather than added to `deny.toml`'s ignore list, since patched versions exist.
+- **A second flaky test, and this one was a real data race.**
+  `check_makefile_dry_run` named its temporary Makefile after the process id
+  alone, so the concurrently-running tests in one process all shared a single
+  path — one thread overwrote another's file, or removed it between the write and
+  the `make` invocation. The name now carries a per-call sequence number.
+- **A flaky diagnostic test** (2 of 6 full runs under CPU contention). Its helper
+  set and then cleared `NO_COLOR` in the *process* environment — the "SAFETY: only
+  called from serial tests" comment was false, and the crate has no `serial_test`
+  dependency — so one thread's `remove_var` landed between another's `set_var` and
+  its `format!`, leaking ANSI codes into output asserted to be plain.
+  `Diagnostic::render(bool)` takes the decision as an argument instead.
+
+### Internal
+
+- **The Kani escaping harnesses now converge — and two of them were proving the
+  wrong thing** ([#225](https://github.com/paiml/bashrs/issues/225), closes
+  [#220](https://github.com/paiml/bashrs/issues/220)).
+
+  `verify_escape_safety` previously ran 600 s without emitting a verdict, with
+  CBMC at 7.4 GB RSS inside `alloc::raw_vec` / `Layout` / `handle_alloc_error`:
+  every harness called an escaper that returns a heap `String`, so the solver had
+  to model Rust's allocator. Input length was never the bottleneck — 2, 4 and 8
+  characters all timed out.
+
+  `emitter::escape` now has an allocation-free core that writes into a
+  caller-provided `&mut [u8]`: `escape_bytes_len`, `escape_bytes_into`,
+  `escape_shell_len`, `escape_shell_into`, `is_safe_unquoted_bytes`,
+  `escape_variable_bytes_into` and `is_valid_shell_identifier_bytes` are new
+  public API (additive). `escape_shell_string` and `escape_variable_name` are now
+  thin wrappers over it. `kani_bounded::any_bounded_bytes` removes the last
+  allocation, the one inside the generator itself.
+
+  **Escaping behaviour is unchanged.** A frozen copy of the pre-#225
+  implementation lives in `emitter::escape_differential_tests` and is diffed
+  against the live escaper on every `cargo test` across ~345 000 inputs
+  (exhaustive ASCII pairs, exhaustive 3-symbol adversarial alphabet, deterministic
+  Unicode fuzz, proptest), plus a real-`sh` round-trip over the ASCII and
+  adversarial corpora. `bashrs purify` output over a 290-file corpus is
+  byte-identical before and after.
+
+  Fixing convergence exposed two false properties, both now corrected and pinned
+  by ordinary tests so they cannot return with a proof attached:
+
+  - `verify_escape_safety` Property 1 asserted the escaped result is always
+    single-quoted. It is not — safe words pass through verbatim, so the assertion
+    was refuted by 3906 of the 3907 inputs its own generator produced. It is now
+    the disjunction `is_safe_unquoted(out) ∨ out is single-quoted`.
+  - `contains_unescaped_metachar` tracked `'` and `\` but not `"`, so after the
+    `'"'"'` requote idiom it believed it was outside quotes and reported *correct*
+    output as unsafe. Replaced by a POSIX-faithful three-state scanner. The old
+    alphabet (ASCII alphanumerics) could never produce a quote, so the harness had
+    never reached the requote branch at all; the alphabet is now unconstrained
+    bytes.
+
+  Measured with kani 0.67.0 at input bound N = 4, every unwinding assertion
+  SUCCESS: `verify_escape_safety` 17.9 s, `verify_escape_roundtrip` 21.2 s,
+  `verify_escape_buffer_contract` 5.5 s, `verify_variable_expansion_safety`
+  0.4 s, `verify_injection_safety` 20.2 s — all inside the 300 s budget.
+
+- **Escape contracts now state only true things.**
+  `encoder-roundtrip-v1.yaml` claimed `escape(escape(s)) == escape(s)`; that is
+  false (`escape("") == "''"` but `escape("''") == ''"'"''"'"''`) and held only
+  on already-safe strings. Restated as the lossless round-trip
+  `unescape(escape(s)) == s`, which is what is actually proved.
+  `property-invariants-v1.yaml`'s unfalsifiable "escape roundtrip preserves length
+  ordering" is replaced by the provable bound
+  `escape_bytes_len(b) <= 5 * b.len() + 2`. Obligations that name a harness now
+  name one that exists; the two that named non-existent harnesses
+  (`verify_encoder_roundtrip_invariant`, `verify_property_invariants_invariant`)
+  are relabelled — one discharged, one explicitly UNDISCHARGED.
+
+- New shared module `bashrs::linter::shell_words`: a total, panic-free split of one
+  physical line into simple commands with per-word roles and per-expansion quoting
+  state, recursing into `$( … )` and `` ` … ` ``. Intended to replace the
+  `line.contains(cmd)` / quote-parity heuristics in other rules (MAKE003, SC2183).
+
+- Four new analysis modules, each replacing a substring heuristic with something
+  that models shell: `linter::quoting` (where string literals begin and end),
+  `linter::shell_words` (word roles and per-expansion quoting state),
+  `linter::taint` (intra-file provenance for the path rules), and
+  `linter::timestamp_flow` (where a `date` value ends up). `linter::rules::
+  posix_bracket` locates a real `[ … ]` test command for SC1020 and SC1140.
+  All are total and panic-free on malformed input; their known limitations are
+  documented in each module rather than left implicit.
+
+- `rash/src/linter/rules/sec010_logic.rs` deleted — a dead second copy of the
+  exact heuristics GH-227 fixed, imported by nothing. Leaving it is how the bug
+  comes back.
 
 ## [6.66.3] - 2026-08-12
 

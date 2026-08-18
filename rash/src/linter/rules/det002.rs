@@ -1,146 +1,104 @@
-//! DET002: Non-deterministic timestamp usage
+//! DET002: Non-deterministic timestamp usage that reaches a build artifact
 //!
-//! **Rule**: Detect usage of `date` commands that produce timestamps
+//! **Rule**: A timestamp is a reproducibility defect when it reaches the *name
+//! or contents of a build artifact*. A timestamp on a log line is the point of
+//! a log line, and a timestamp derived from `SOURCE_DATE_EPOCH` is this rule's
+//! own remedy - GH-230: both used to be reported identically to real
+//! non-determinism, which made the rule unactionable.
 //!
-//! **Why this matters**:
-//! Scripts using `date +%s` or similar will produce different output on each run,
-//! breaking determinism and making reproducible builds impossible.
+//! The destination analysis lives in [`crate::linter::timestamp_flow`].
 //!
-//! **Auto-fix**: Suggest replacing with version-based identifier
+//! **Auto-fix**: UNSAFE - the remedy needs human judgement, so suggestions only.
 //!
 //! ## Examples
 //!
-//! ❌ **BAD** (non-deterministic):
+//! BAD (the artifact's name changes on every run):
 //! ```bash
 //! RELEASE="release-$(date +%s)"
-//! BUILD_ID=$(date +%Y%m%d%H%M%S)
+//! TS=$(date +%Y%m%d); cp build.log "out/report_$TS.log"
 //! ```
 //!
-//! ✅ **GOOD** (deterministic):
+//! GOOD (reproducible, or not an artifact at all):
 //! ```bash
-//! RELEASE="release-${VERSION}"
-//! BUILD_ID="${VERSION}"
+//! BUILD_DATE=$(date -u -d "@${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}" +%Y%m%d)
+//! echo "[$(date)] started" >> "$LOG_FILE"
 //! ```
 
+use crate::linter::timestamp_flow::{analyze, SinkClass, TimestampUse};
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
-/// Check for timestamp usage in shell script
+/// The remedy DET002 hands the user. It reads `SOURCE_DATE_EPOCH`, so pasting
+/// it into a script does **not** re-trigger DET002 - that self-contradiction is
+/// the core of GH-230 and `test_GH230_remedy_text_does_not_self_flag` pins it.
+const REMEDY: &str = "Derive it from SOURCE_DATE_EPOCH: \
+     BUILD_DATE=$(date -u -d \"@${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}\" +%Y%m%d)";
+
+/// Advice for the case where the timestamp is only ever logged.
+const LOG_ADVICE: &str = "If it is only for logging, send it to an append-only sink \
+     (>>, tee -a, logger), or suppress with `# bashrs disable-line=DET002`.";
+
+/// Check for timestamp usage that reaches a reproducible sink.
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-    let lines: Vec<&str> = source.lines().collect();
-
-    // Track if previous lines had an intentional marker
-    let mut intentional_context = false;
-
-    for (line_num, line) in lines.iter().enumerate() {
-        // Check for marker comments that indicate intentional timestamp usage
-        if is_intentional_timestamp_marker(line) {
-            intentional_context = true;
-            continue;
-        }
-
-        // Reset context if we encounter code that's not a comment/assignment
-        if !line.trim().is_empty() && !line.trim().starts_with('#') && !is_variable_assignment(line)
-        {
-            intentional_context = false;
-        }
-
-        // Check for various date patterns
-        let patterns = [("date +%s", 8), ("$(date", 6), ("`date", 5)];
-
-        for (pattern, len) in patterns {
-            if let Some(col) = line.find(pattern) {
-                // Skip if this is intentional timestamp for tracking/benchmarking
-                if intentional_context && is_timestamp_for_tracking(line) {
-                    continue;
-                }
-
-                let span = Span::new(line_num + 1, col + 1, line_num + 1, col + len + 1);
-
-                let fix = Fix::new_unsafe(vec![
-                    "Option 1: Use version: RELEASE=\"release-${VERSION}\"".to_string(),
-                    "Option 2: Use git commit: RELEASE=\"release-$(git rev-parse --short HEAD)\""
-                        .to_string(),
-                    "Option 3: Pass as argument: RELEASE=\"release-$1\"".to_string(),
-                    "Option 4: Use SOURCE_DATE_EPOCH for reproducible builds".to_string(),
-                    "Option 5: Mark as intentional: # Intentional: timestamp for result tracking"
-                        .to_string(),
-                ]);
-
-                let diag = Diagnostic::new(
-                    "DET002",
-                    Severity::Error,
-                    "Non-deterministic timestamp usage - requires manual fix (UNSAFE)",
-                    span,
-                )
-                .with_fix(fix);
-
-                result.add(diag);
-                break; // Only report once per line
-            }
+    for u in analyze(source) {
+        if u.class != SinkClass::Benign {
+            result.add(build_diagnostic(&u));
         }
     }
-
     result
 }
 
-/// Check if a line contains a marker indicating intentional timestamp usage
-/// Expanded in Issue #58 to support metrics recording scripts
-fn is_intentional_timestamp_marker(line: &str) -> bool {
-    let line_lower = line.to_lowercase();
-    let markers = [
-        // Intentional markers (explicit)
-        "intentional: timestamp",
-        "intentional timestamp",
-        // Result tracking markers
-        "timestamp for result tracking",
-        "timestamp for tracking",
-        // Benchmark markers
-        "benchmark result",
-        "benchmark recording",
-        // Logging markers
-        "logging timestamp",
-        "log timestamp",
-        // Metrics markers (Issue #58)
-        "metrics recording",
-        "record metric",
-        "record-metric",
-        "metrics timestamp",
-        // Telemetry markers
-        "telemetry",
-        "observability",
-    ];
-
-    markers.iter().any(|marker| line_lower.contains(marker))
+/// Build the diagnostic for one reportable timestamp.
+///
+/// The span deliberately stays on the `date` occurrence rather than moving to
+/// the sink: `# bashrs disable-line=DET002` and `.bashrsignore` line scopes are
+/// both keyed on `span.start_line`, so moving the anchor would silently
+/// invalidate every existing user suppression. The sink is named in the message
+/// instead.
+fn build_diagnostic(u: &TimestampUse) -> Diagnostic {
+    let span = Span::new(u.line, u.col, u.line, u.col + u.len);
+    Diagnostic::new("DET002", Severity::Error, message_for(u), span).with_fix(det002_fix())
 }
 
-/// Check if timestamp is used for file tracking (not program logic)
-fn is_timestamp_for_tracking(line: &str) -> bool {
-    // Timestamp used in variable assignment for filenames is tracking
-    // Timestamp in conditional logic is NOT tracking
-    let line_trimmed = line.trim();
-
-    // Not tracking if used in conditional
-    if line_trimmed.starts_with("if ")
-        || line_trimmed.starts_with("elif ")
-        || line_trimmed.starts_with("while ")
-        || line_trimmed.contains("[ $(date")
-        || line_trimmed.contains("[[ $(date")
-    {
-        return false;
+/// Message text, naming the sink line when we proved one.
+fn message_for(u: &TimestampUse) -> String {
+    match (u.class, u.sink_line, u.sink_text.as_deref(), u.var.as_deref()) {
+        (SinkClass::Reproducible, Some(l), Some(t), _) => format!(
+            "Timestamp reaches reproducible output at line {l}: `{}` - the artifact's name or \
+             contents change on every run. {REMEDY}",
+            elide(t, 60)
+        ),
+        (_, _, _, Some(v)) => format!(
+            "Timestamp captured in `${v}`; its destination is not provably reproducible. \
+             If it names or fills a build artifact: {REMEDY}. {LOG_ADVICE}"
+        ),
+        _ => format!(
+            "Timestamp used here; its destination is not provably reproducible. \
+             {REMEDY} {LOG_ADVICE}"
+        ),
     }
-
-    // Tracking if used in variable assignment
-    line_trimmed.contains('=') && !line_trimmed.starts_with('[')
 }
 
-/// Check if line is a variable assignment
-fn is_variable_assignment(line: &str) -> bool {
-    let trimmed = line.trim();
-    !trimmed.is_empty()
-        && !trimmed.starts_with('#')
-        && trimmed.contains('=')
-        && !trimmed.starts_with('[')
+/// Shorten a quoted source line for the message.
+fn elide(s: &str, max: usize) -> String {
+    if s.chars().count() <= max {
+        return s.to_string();
+    }
+    let head: String = s.chars().take(max.saturating_sub(3)).collect();
+    format!("{head}...")
+}
+
+/// UNSAFE fix: five alternatives, every one of them DET002-clean itself.
+fn det002_fix() -> Fix {
+    Fix::new_unsafe(vec![
+        format!("Reproducible builds: {REMEDY} - reading SOURCE_DATE_EPOCH clears DET002"),
+        "Use the release version: RELEASE=\"release-${VERSION}\"".to_string(),
+        "Use the commit: RELEASE=\"release-$(git rev-parse --short HEAD)\"".to_string(),
+        "Send the timestamp to a log, not an artifact: `... >> \"$LOG_FILE\"`, \
+         `... | tee -a \"$LOG_FILE\"`, or `logger \"...\"`"
+            .to_string(),
+        "Suppress with rationale: # bashrs disable-line=DET002".to_string(),
+    ])
 }
 
 #[cfg(test)]
@@ -230,9 +188,12 @@ RESULT_FILE="results/baseline_$(date +%s).md"
         );
     }
 
+    // GH-230: this assertion encoded the bug. A timestamp that is only
+    // *compared* never reaches a build artifact, so it is not a reproducibility
+    // defect and DET002 must not report it. Time-dependent control flow is a
+    // real but different concern; it belongs in its own rule, not in DET002.
     #[test]
-    fn test_DET002_still_flags_timestamp_in_logic() {
-        // Even with marker, timestamp in program logic should be flagged
+    fn test_GH230_det002_comparison_sink_not_flagged() {
         let script = r#"#!/bin/bash
 # Intentional: timestamp for result tracking
 if [ $(date +%s) -gt 1000 ]; then
@@ -243,8 +204,8 @@ fi
 
         assert_eq!(
             result.diagnostics.len(),
-            1,
-            "Timestamp in logic should still be flagged even with marker"
+            0,
+            "Timestamp in a comparison is not a reproducible-output defect (GH-230)"
         );
     }
 

@@ -79,10 +79,24 @@ fn lint_shell_filtered(
     let mut result = LintResult::new();
 
     // Helper macro to conditionally apply rules
+    // GH-226: shell-SYNTAX rules must not see the *contents* of string
+    // literals. `export PATTERN="PMAT-[0-9]{4}"` is a regex, not a test
+    // expression, and `"^Diff in"` is a grep pattern, not the `for ... in`
+    // keyword. Resolve quoting once, then feed those rules a copy in which
+    // literals are inert filler of identical length, so spans still line up.
+    // Rules that are *about* quoting are excluded by the allowlist in
+    // `quoting::QUOTE_SENSITIVE_RULES` so they keep seeing the real text.
+    let masked = crate::linter::quoting::mask_literals(source);
+
     macro_rules! apply_rule {
         ($rule_id:expr, $check_fn:expr) => {
             if should_apply_rule($rule_id, shell_type) {
-                result.merge($check_fn(source));
+                let input = if crate::linter::quoting::is_quote_sensitive($rule_id) {
+                    masked.as_str()
+                } else {
+                    source
+                };
+                result.merge($check_fn(input));
             }
         };
     }
@@ -370,21 +384,28 @@ fn lint_shell_filtered(
     apply_rule!("REL004", rel004::check);
     apply_rule!("REL005", rel005::check);
 
-    // GH-217: drop diagnostics that land inside a QUOTED heredoc body. Such a
-    // body is literal text, not shell — that is what quoting the delimiter
-    // means — so every line-oriented rule was reporting on embedded Python,
-    // awk and jq. SC1007 is Severity::Error, so those false positives blocked
-    // commits.
+    // GH-217 drops diagnostics inside a QUOTED heredoc body — the body is
+    // literal text by definition, which is what quoting the delimiter means.
+    // That filter was only ever applied in `lint_shell_filtered`, and the CLI
+    // reaches `lint_shell` (cli/logic_lint.rs:91), so users never got it.
     //
-    // Filtered here, once, rather than in each rule: sc2006 carried a private
-    // copy of this logic (issue #96) and the other 384 rules did not, which is
-    // exactly how this recurred one rule at a time. Doing it at the point where
-    // diagnostics are aggregated covers every existing rule and every future
-    // one for free.
+    // SEC* and DET* are exempt, exactly as the embedded-program filter above
+    // exempts them: a quoted heredoc is very often a script being SENT
+    // somewhere to run — `ssh "$HOST" <<'REMOTE' ... REMOTE` — and dropping
+    // everything there reported `eval "$UNTRUSTED"` and `curl ... | sh` as
+    // clean. Syntax noise inside embedded Python or awk is what GH-217 was
+    // filed about, and that is still filtered.
     let heredoc_lines = crate::linter::heredoc::quoted_heredoc_lines(source);
-    result
-        .diagnostics
-        .retain(|diag| !heredoc_lines.contains(&diag.span.start_line));
+    if !heredoc_lines.is_empty() {
+        result.diagnostics.retain(|diag| {
+            diag.code.starts_with("SEC")
+                || diag.code.starts_with("DET")
+                || !heredoc_lines.contains(&diag.span.start_line)
+        });
+    }
+
+    // Messages from masked rules must quote the user's text, not the filler.
+    crate::linter::quoting::restore_masked_messages(source, &masked, &mut result);
 
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);

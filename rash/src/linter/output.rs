@@ -84,8 +84,18 @@ fn write_human<W: Write>(
             diag.span, diag
         )?;
 
+        // GH-230: an UNSAFE fix has no automatic replacement, only suggested
+        // alternatives. Printing `fix.replacement` unconditionally rendered a
+        // bare `Fix:` line and made every alternative unreachable - DET001,
+        // DET002, IDEM003 and SC2008-SC2014 all build their advice that way.
         if let Some(ref fix) = diag.fix {
-            writeln!(writer, "  {GREEN}Fix:{RESET} {}", fix.replacement)?;
+            if fix.replacement.is_empty() {
+                for alt in &fix.suggested_alternatives {
+                    writeln!(writer, "  {GREEN}Fix:{RESET} {alt}")?;
+                }
+            } else {
+                writeln!(writer, "  {GREEN}Fix:{RESET} {}", fix.replacement)?;
+            }
         }
         writeln!(writer)?;
     }

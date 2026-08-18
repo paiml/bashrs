@@ -28,6 +28,7 @@ pub mod heredoc;
 pub mod ignore_file;
 pub mod make_preprocess;
 pub mod output;
+pub mod quoting;
 pub mod rule_registry;
 pub(crate) mod rule_registry_data_1;
 pub(crate) mod rule_registry_data_2;
@@ -36,7 +37,14 @@ pub(crate) mod rule_registry_data_4;
 pub mod rules;
 pub mod shell_compatibility;
 pub mod shell_type;
+/// Word / command-position analysis shared by lint rules (GH-228, GH-229)
+pub mod shell_words;
 pub mod suppression;
+/// Intra-file taint analysis shared by the path-safety rules (GH-227)
+pub mod taint;
+
+/// Timestamp sink analysis shared by DET002 (GH-230)
+pub(crate) mod timestamp_flow;
 
 pub use autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};
 pub use citl::{CitlDiagnostic, CitlExport, CitlSpan, CitlSuggestion, CitlSummary};

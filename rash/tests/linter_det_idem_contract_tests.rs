@@ -70,6 +70,35 @@ fn falsify_DET002_PRECISE_static_string() {
     );
 }
 
+// GH-230: DET002 is about a timestamp reaching a *reproducible sink*.
+
+#[test]
+fn falsify_DET002_SINK_artifact_path() {
+    assert!(
+        has_diagnostic("cp a \"b_$(date +%s)\"", "DET002"),
+        "F-DET002-SINK: timestamp in an artifact path MUST be flagged"
+    );
+}
+
+#[test]
+fn falsify_DET002_PRECISE_log_append() {
+    assert!(
+        !has_diagnostic("echo \"$(date +%s)\" >> app.log", "DET002"),
+        "F-DET002-LOG: timestamp on an append-only log must NOT be flagged"
+    );
+}
+
+#[test]
+fn falsify_DET002_PRECISE_source_date_epoch() {
+    assert!(
+        !has_diagnostic(
+            "D=$(date -u -d \"@${SOURCE_DATE_EPOCH:-$(date +%s)}\" +%Y%m%d)",
+            "DET002"
+        ),
+        "F-DET002-SDE: adopting SOURCE_DATE_EPOCH must clear DET002"
+    );
+}
+
 // ============================================================================
 // DET003: unordered wildcards
 // ============================================================================

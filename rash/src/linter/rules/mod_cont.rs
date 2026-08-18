@@ -32,7 +32,6 @@ pub mod sec007;
 pub mod sec008;
 pub mod sec009;
 pub mod sec010;
-pub mod sec010_logic;
 pub mod sec011;
 pub mod sec012;
 pub mod sec013;

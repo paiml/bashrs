@@ -17,6 +17,7 @@
 //! [ "$x" = "y" ]
 //! ```
 
+use crate::linter::rules::posix_bracket;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(source: &str) -> LintResult {
@@ -30,54 +31,56 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Find test command patterns: [ ... ]
-        // We look for `[ ` to start and then check if `]` is preceded by non-space
-        let bytes = line.as_bytes();
-        let mut i = 0;
-
-        while i < bytes.len() {
-            // Find opening `[ ` (single bracket test, not `[[`)
-            if bytes[i] == b'['
-                && (i == 0 || !bytes[i - 1].is_ascii_alphanumeric())
-                && (i + 1 >= bytes.len() || bytes[i + 1] != b'[')
-            {
-                // Check it's not an array subscript: $arr[idx]
-                if i > 0 && (bytes[i - 1].is_ascii_alphanumeric() || bytes[i - 1] == b'}') {
-                    i += 1;
-                    continue;
-                }
-
-                // Find the matching ]
-                if let Some(close_pos) = line[i + 1..].find(']') {
-                    let abs_close = i + 1 + close_pos;
-                    // Check if character before ] is not a space
-                    if abs_close > 0
-                        && bytes[abs_close - 1] != b' '
-                        && bytes[abs_close - 1] != b'\t'
-                    {
-                        // Make sure there's actual content between [ and ] (not empty)
-                        let inner = line[i + 1..abs_close].trim();
-                        if !inner.is_empty() {
-                            let col = abs_close + 1;
-                            result.add(Diagnostic::new(
-                                "SC1020",
-                                Severity::Error,
-                                "Missing space before closing ] in test expression",
-                                Span::new(line_num, col, line_num, col + 1),
-                            ));
-                        }
-                    }
-                    i = abs_close + 1;
-                } else {
-                    i += 1;
-                }
-            } else {
-                i += 1;
-            }
+        for diag in line_diagnostics(line, line_num) {
+            result.add(diag);
         }
     }
 
     result
+}
+
+/// One finding per `[ … ]` test whose closing bracket has no blank before it.
+///
+/// GH-226: this used to scan for any `[`, so `[[`, glob character classes,
+/// array subscripts and case patterns all looked like tests. `posix_bracket`
+/// applies the POSIX word rules instead.
+fn line_diagnostics(line: &str, line_num: usize) -> Vec<Diagnostic> {
+    let bytes = line.as_bytes();
+    let single = posix_bracket::openers(line)
+        .into_iter()
+        .filter_map(|open| posix_bracket::close_of(line, open).map(|close| (open, close)));
+    // `[[ -f x]]` is a real bash syntax error too.
+    let double = posix_bracket::double_openers(line)
+        .into_iter()
+        .filter_map(|open| posix_bracket::double_close_of(line, open).map(|close| (open, close)));
+
+    single
+        .chain(double)
+        .filter(|&(open, close)| missing_space_before_close(bytes, open, close))
+        .map(|(_, close)| {
+            let col = close + 1;
+            Diagnostic::new(
+                "SC1020",
+                Severity::Error,
+                "Missing space before closing ] in test expression",
+                Span::new(line_num, col, line_num, col + 1),
+            )
+        })
+        .collect()
+}
+
+/// True when `]` is preceded by a non-blank and the test is not empty.
+fn missing_space_before_close(bytes: &[u8], open: usize, close: usize) -> bool {
+    let Some(prev) = close.checked_sub(1).map(|p| bytes[p]) else {
+        return false;
+    };
+    if prev.is_ascii_whitespace() {
+        return false;
+    }
+    // `[ ]` has nothing to complain about; the defect needs actual content.
+    bytes
+        .get(open + 1..close)
+        .is_some_and(|inner| inner.iter().any(|b| !b.is_ascii_whitespace()))
 }
 
 #[cfg(test)]

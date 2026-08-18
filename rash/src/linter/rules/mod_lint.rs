@@ -58,23 +58,28 @@ pub fn lint_shell(source: &str) -> LintResult {
 
     let mut result = LintResult::new();
 
+    // GH-226: shell-SYNTAX rules must not see the contents of string literals
+    // (a regex character class is not a test expression). Same allowlist and
+    // same mechanism as `lint_shell_filtered`.
+    let masked = crate::linter::quoting::mask_literals(source);
+
     // Parse the shell script
     // For now, we'll use a simple token-based approach
     // In production, this would use the bash_parser AST
 
     // Run SC1xxx rules (source code issues)
-    result.merge(sc1014::check(source));
+    result.merge(sc1014::check(&masked));
     result.merge(sc1017::check(source));
     result.merge(sc1018::check(source));
-    result.merge(sc1026::check(source));
+    result.merge(sc1026::check(&masked));
     result.merge(sc1028::check(source));
-    result.merge(sc1036::check(source));
+    result.merge(sc1036::check(&masked));
     result.merge(sc1038::check(source));
     result.merge(sc1040::check(source));
-    result.merge(sc1041::check(source));
-    result.merge(sc1044::check(source));
-    result.merge(sc1045::check(source));
-    result.merge(sc1065::check(source));
+    result.merge(sc1041::check(&masked));
+    result.merge(sc1044::check(&masked));
+    result.merge(sc1045::check(&masked));
+    result.merge(sc1065::check(&masked));
     result.merge(sc1066::check(source));
     result.merge(sc1075::check(source));
     result.merge(sc1082::check(source));
@@ -84,7 +89,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc1091::check(source));
     result.merge(sc1094::check(source));
     result.merge(sc1097::check(source));
-    result.merge(sc1100::check(source));
+    result.merge(sc1100::check(&masked));
     result.merge(sc1109::check(source));
     result.merge(sc1008::check(source));
     result.merge(sc1084::check(source));
@@ -98,23 +103,23 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc1129::check(source));
 
     // New SC1xxx rules
-    result.merge(sc1007::check(source));
+    result.merge(sc1007::check(&masked));
     result.merge(sc1009::check(source));
-    result.merge(sc1020::check(source));
-    result.merge(sc1035::check(source));
+    result.merge(sc1020::check(&masked));
+    result.merge(sc1035::check(&masked));
     result.merge(sc1068::check(source));
     result.merge(sc1069::check(source));
     result.merge(sc1095::check(source));
     result.merge(sc1099::check(source));
     result.merge(sc1101::check(source));
-    result.merge(sc1037::check(source));
+    result.merge(sc1037::check(&masked));
     result.merge(sc1076::check(source));
     result.merge(sc1087::check(source));
     result.merge(sc1105::check(source));
     result.merge(sc1106::check(source));
     result.merge(sc1131::check(source));
     result.merge(sc1139::check(source));
-    result.merge(sc1140::check(source));
+    result.merge(sc1140::check(&masked));
     result.merge(sc1003::check(source));
     result.merge(sc1004::check(source));
     result.merge(sc1012::check(source));
@@ -445,6 +450,9 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2323::check(source));
     result.merge(sc2324::check(source));
     result.merge(sc2325::check(source));
+
+    // Messages from masked rules must quote the user's text, not the filler.
+    crate::linter::quoting::restore_masked_messages(source, &masked, &mut result);
 
     // Extended rules: determinism, idempotency, security, performance, portability, reliability
     // Plus inline suppression filtering and embedded program exclusion

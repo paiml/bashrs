@@ -159,15 +159,58 @@ echo "Deploying version: $VERSION" | tee "$LOG_FILE"
 
 ### What it Detects
 
-Use of `date` commands that produce timestamps:
-- `$(date +%s)` - Unix epoch
-- `$(date +%Y%m%d)` - Date formatting
-- `` `date` `` - Backtick date command
-- `date +%H%M%S` - Time formatting
+A `date` invocation whose value **reaches a build artifact**. Since GH-230 the
+rule follows the value to its destination rather than firing on the call, so it
+reports only these sinks:
+
+| Sink | Example |
+|---|---|
+| Artifact name or content | `cp build.log "out/report_$TS.log"`, `tar -czf "backup_$TS.tgz" /data` |
+| Truncating redirect | `echo hi > "report_$TS.txt"`, `printf '%s' "$TS" \| tee build.stamp` |
+| Checksummed payload | `echo "$TS" \| sha256sum > sums.txt` |
+| Build identifier | `docker build -t "img:$TS" .`, `BUILD_ID=$(date +%Y%m%d)` |
+| Destination not provable | `ts=$(date +%s)` with no observed use, `send_metric "$TS"` |
+
+The three spellings it recognises are `$(date ...)`, `` `date ...` `` and
+`date +%s`, and only when they are real shell code - not inside a comment, a
+single-quoted string, or a quoted heredoc body.
+
+### What it does NOT flag
+
+These were false positives before GH-230:
+
+```bash
+# 1. Logs. A timestamp on a log line is the point of a log line.
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] started" >> "$LOG_FILE"
+echo "[$(date)] started" | tee -a "$LOG_FILE"
+logger "started at $(date +%s)"
+
+# 2. stdout / stderr / the bit bucket
+echo "now: $(date +%s)"
+echo "[$(date +%s)] warn" >&2
+echo "$(date +%s)" > /dev/null
+
+# 3. Comparisons and arithmetic - no artifact is produced
+NOW=$(date +%s)
+if [ "$NOW" -gt 100 ]; then echo yes; fi
+
+# 4. SOURCE_DATE_EPOCH - DET002's own remedy
+BUILD_DATE=$(date -u -d "@${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}" +%Y%m%d)
+cp build.log "out/report_$BUILD_DATE.log"   # also clean: the value is reproducible
+
+# 5. Text, not code
+# never use $(date +%s) in a build
+echo 'literal $(date +%s) not executed'
+```
+
+An intentional-timestamp marker still suppresses the rule, but it must now be in
+a **comment** - `# Intentional: timestamp for result tracking`. Before GH-230 the
+word `telemetry` anywhere on a line, including inside a URL, silently disabled
+the rule for the whole following assignment block.
 
 ### Why This Matters
 
-Scripts using timestamps produce different output on each run, breaking:
+A timestamp that lands in an artifact breaks:
 - **Reproducible builds**: Can't recreate exact build artifact
 - **Testing**: Tests depend on execution time
 - **Debugging**: Can't reproduce issues
@@ -224,10 +267,22 @@ With VERSION=1.0.0: release-1.0.0, myapp-1.0.0.tar.gz  # Same!
 **Not auto-fixable** - requires manual decision about deterministic alternative.
 
 **Fix suggestions**:
-1. **Version-based**: `RELEASE="release-${VERSION}"`
-2. **Git commit**: `RELEASE="release-$(git rev-parse --short HEAD)"`
-3. **Argument-based**: `RELEASE="release-$1"` (pass as parameter)
-4. **SOURCE_DATE_EPOCH**: For reproducible builds (see below)
+1. **SOURCE_DATE_EPOCH** (preferred): `BUILD_DATE=$(date -u -d "@${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}" +%Y%m%d)` - reading that variable clears DET002
+2. **Version-based**: `RELEASE="release-${VERSION}"`
+3. **Git commit**: `RELEASE="release-$(git rev-parse --short HEAD)"`
+4. **Send it to a log, not an artifact**: `... >> "$LOG_FILE"`, `... | tee -a "$LOG_FILE"`, or `logger "..."`
+5. **Suppress with rationale**: `# bashrs disable-line=DET002`
+
+The diagnostic names the sink line, so you can see *where* the timestamp lands:
+
+```text
+2:12-18 [error] DET002: Timestamp reaches reproducible output at line 3:
+`cp build.log "out/report_$TIMESTAMP.log"` - the artifact's name or contents
+change on every run. Derive it from SOURCE_DATE_EPOCH: ...
+```
+
+The span stays on the `date` call, so existing `# bashrs disable-line=DET002`
+comments and `.bashrsignore` line scopes keep working.
 
 ### Reproducible Builds: SOURCE_DATE_EPOCH
 

@@ -303,7 +303,7 @@ mkdir /tmp/build    # IDEM001: Non-idempotent
 - SEC001-019 (Security)
 - Most SC1xxx and SC2xxx quoting/syntax rules
 
-### Current Status (v6.64.0)
+### Current Status (v6.67.0)
 
 - **396 rules classified** in the rule registry
 - **Shell compatibility** specified for every rule (Universal, NotSh, ShOnly, BashOnly)

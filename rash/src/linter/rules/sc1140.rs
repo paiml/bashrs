@@ -15,14 +15,8 @@
 //   [ -n "$var" ]; then       # ; then is valid
 //   [ -f file ] | cat         # pipe is valid
 
+use crate::linter::rules::posix_bracket;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
-
-/// Matches ] followed by whitespace and then an unexpected token.
-/// Valid tokens after ] include: ;, &&, ||, |, ), then, do, else, elif, fi,
-/// done, esac, end-of-line, and comments.
-static BRACKET_EXTRA: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"\]\s+(\S+)").expect("SC1140 regex must compile"));
 
 /// Tokens that are valid after ]
 const VALID_AFTER_BRACKET: &[&str] = &[
@@ -35,102 +29,48 @@ pub fn check(source: &str) -> LintResult {
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
-        let trimmed = line.trim_start();
-        if trimmed.starts_with('#') {
+        if line.trim_start().starts_with('#') {
             continue;
         }
-
-        // Skip [[ ]] — only check single brackets
-        if trimmed.contains("[[") || trimmed.contains("]]") {
-            continue;
-        }
-
-        // Find single bracket test commands
-        if let Some(bracket_end) = find_single_bracket_close(line) {
-            let after = &line[bracket_end + 1..];
-            let after_trimmed = after.trim_start();
-
-            if after_trimmed.is_empty() {
-                continue;
-            }
-
-            // Get the first token after ]
-            let first_token: &str = after_trimmed.split_whitespace().next().unwrap_or("");
-
-            if first_token.is_empty() {
-                continue;
-            }
-
-            // Check if the token starts with a valid sequence
-            let is_valid = VALID_AFTER_BRACKET
-                .iter()
-                .any(|&valid| first_token == valid || first_token.starts_with(valid))
-                || first_token.starts_with(';')
-                || first_token.starts_with('#')
-                || first_token.starts_with('|')
-                || first_token.starts_with('&')
-                || first_token.starts_with('>')
-                || first_token.starts_with('<');
-
-            if !is_valid {
-                let col = bracket_end + 1 + (after.len() - after_trimmed.len());
-                let end_col = col + first_token.len();
-
-                result.add(Diagnostic::new(
-                    "SC1140",
-                    Severity::Error,
-                    format!(
-                        "Unexpected token '{}' after ]. Did you forget && or || ?",
-                        first_token
-                    ),
-                    Span::new(line_num, col + 1, line_num, end_col + 1),
-                ));
-            }
+        if let Some(diag) = line_diagnostic(line, line_num) {
+            result.add(diag);
         }
     }
 
     result
 }
 
-/// Find the position of the closing ] of a single bracket test command.
-/// Returns None if no valid single bracket test found.
-fn find_single_bracket_close(line: &str) -> Option<usize> {
-    let bytes = line.as_bytes();
-    let mut i = 0;
+/// GH-226: this used to accept any `[` as a test opener and any `]` as its
+/// close, so an associative-array assignment (`M[k]=v`) or a case pattern
+/// (`[0-7][0-7])`) produced `Severity::Error` findings. `posix_bracket` applies
+/// the POSIX word rules, so only a real `[ … ]` command is considered.
+fn line_diagnostic(line: &str, line_num: usize) -> Option<Diagnostic> {
+    let open = *posix_bracket::openers(line).first()?;
+    let close = posix_bracket::close_of(line, open)?;
 
-    while i < bytes.len() {
-        if bytes[i] == b'[' {
-            // Skip [[ — double brackets
-            if i + 1 < bytes.len() && bytes[i + 1] == b'[' {
-                i += 2;
-                // Skip past ]]
-                while i < bytes.len() {
-                    if i + 1 < bytes.len() && bytes[i] == b']' && bytes[i + 1] == b']' {
-                        i += 2;
-                        break;
-                    }
-                    i += 1;
-                }
-                continue;
-            }
+    let after = line.get(close + 1..)?;
+    let after_trimmed = after.trim_start();
+    let first_token = after_trimmed.split_whitespace().next()?;
 
-            // Found single [, find matching ]
-            let mut j = i + 1;
-            while j < bytes.len() {
-                if bytes[j] == b']' {
-                    // Make sure it's not ]]
-                    if j + 1 < bytes.len() && bytes[j + 1] == b']' {
-                        j += 2;
-                        continue;
-                    }
-                    return Some(j);
-                }
-                j += 1;
-            }
-        }
-        i += 1;
+    if is_valid_after_bracket(first_token) {
+        return None;
     }
-    None
+
+    let col = close + 1 + (after.len() - after_trimmed.len());
+    let end_col = col + first_token.len();
+    Some(Diagnostic::new(
+        "SC1140",
+        Severity::Error,
+        format!("Unexpected token '{first_token}' after ]. Did you forget && or || ?"),
+        Span::new(line_num, col + 1, line_num, end_col + 1),
+    ))
+}
+
+fn is_valid_after_bracket(token: &str) -> bool {
+    VALID_AFTER_BRACKET
+        .iter()
+        .any(|&valid| token == valid || token.starts_with(valid))
+        || token.starts_with([';', '#', '|', '&', '>', '<'])
 }
 
 #[cfg(test)]

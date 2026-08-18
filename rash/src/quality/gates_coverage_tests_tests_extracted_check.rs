@@ -306,9 +306,37 @@
     }
 
     /// Verify all gate name strings route to known gates (no typos).
+    ///
+    /// Every gate is DISABLED deliberately. With `with_defaults()` the tests
+    /// gate shells out to `cargo test --lib -p bashrs`, which reaches this very
+    /// test and spawns again — unbounded recursion that hung
+    /// `cargo test -p bashrs --lib` indefinitely. The gates also shell out to
+    /// `cargo clippy`, `cargo audit` and `pmat`. None of that is needed to
+    /// check what this test's own doc-comment claims: that each name routes to
+    /// a gate of that name.
     #[test]
     fn test_coverage_run_gate_all_known_names_return_named_results() {
-        let gate = QualityGate::with_defaults();
+        let gate = QualityGate::new(GateConfig {
+            gates: GatesConfig {
+                run_clippy: false,
+                run_tests: false,
+                check_coverage: false,
+                mutation: MutationConfig {
+                    enabled: false,
+                    ..MutationConfig::default()
+                },
+                security: SecurityConfig {
+                    enabled: false,
+                    ..SecurityConfig::default()
+                },
+                satd: SatdConfig {
+                    enabled: false,
+                    ..SatdConfig::default()
+                },
+                ..GatesConfig::default()
+            },
+            ..GateConfig::default()
+        });
         for name in &[
             "clippy",
             "complexity",

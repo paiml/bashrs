@@ -430,8 +430,18 @@ impl CorpusRunner {
     pub(crate) fn check_makefile_dry_run(&self, output: &str) -> bool {
         use std::io::Write;
 
+        // The path must be unique per CALL, not per process: the test harness runs
+        // these concurrently in one process, so a pid-only name meant one thread
+        // overwrote another's Makefile — or removed it between the write and the
+        // `make` invocation — which made test_CORPUS_RUN_062 fail under load.
+        static SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+        let seq = SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+
         let tmp_dir = std::env::temp_dir();
-        let tmp_path = tmp_dir.join(format!("bashrs_makefile_check_{}", std::process::id()));
+        let tmp_path = tmp_dir.join(format!(
+            "bashrs_makefile_check_{}_{seq}",
+            std::process::id()
+        ));
         let tmp_str = tmp_path.to_string_lossy().to_string();
 
         let write_ok =
