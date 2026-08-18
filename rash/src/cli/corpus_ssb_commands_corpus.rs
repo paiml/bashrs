@@ -1,10 +1,13 @@
+// GH-233 dogfood: these were underscore-prefixed to silence the unused-
+// parameter warning on the `not(feature = "ml")` arm below, but the
+// `feature = "ml"` arm DOES use them, unprefixed — an underscore prefix is
+// part of the identifier in Rust, not cosmetic, so that arm could not compile
+// at all under `--features ml`. Pre-existing since before v6.66.3; never
+// caught because nothing builds this feature. Genuinely unused on the
+// default (non-ml) build, where only the early-return arm compiles — that is
+// the real, per-feature situation the allow documents, not a blanket escape.
+#[cfg_attr(not(feature = "ml"), allow(unused_variables))]
 pub(crate) fn corpus_batch_eval(
-    // GH-233 dogfood: these were underscore-prefixed to silence the unused-
-    // parameter warning on the `not(feature = "ml")` arm below, but the
-    // `feature = "ml"` arm DOES use them, unprefixed — an underscore prefix is
-    // part of the identifier in Rust, not cosmetic, so that arm could not
-    // compile at all under `--features ml`. Pre-existing since before v6.66.3;
-    // never caught because nothing builds this feature.
     model_dir: PathBuf,
     test_data: PathBuf,
     output: PathBuf,
