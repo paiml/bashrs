@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 This release is almost entirely **false-positive removal in the linter**, from six
 reports that all shared one root cause: a rule that pattern-matched text instead of
 analysing shell. Across a 290-file corpus of real-world scripts the total finding
-count drops from 27,389 to 21,829, and `Severity::Error` findings — the ones that
-gate CI — drop from 5,069 to 1,776.
+count drops from 27,389 to 21,785, and `Severity::Error` findings — the ones that
+gate CI — drop from 5,069 to 1,694.
 
 Every removal below was measured, and every rule was checked to still report the
 defect it exists for. Two genuinely unsafe constructs are now reported that were
@@ -83,8 +83,8 @@ unquoted argument to `docker login`).
   `FILE`, `PATH`, `NAME`, …) appeared *anywhere* on that line — so
   `OUT_DIR="build/results"; mkdir -p "$OUT_DIR"` was reported as an **error**,
   with no dataflow of any kind behind the claim. SEC010 was the single largest
-  source of error-severity findings in a 290-script corpus (1,105 of 5,045); it
-  is now 36. SEC014 had no dataflow either and is down from 852 to 80.
+  source of error-severity findings in a 290-script corpus (1,113 of 5,069); it
+  is now 37. SEC014 had no dataflow either and is down from 857 to 83.
 
   Three defects are fixed together:
   - A finding now requires the path expression to be reachable from input
@@ -110,6 +110,66 @@ unquoted argument to `docker login`).
   the analysis is one file, one ordered pass, no fixpoint; cross-file, loop
   back-edges, `eval`, and call-site resolution are out of scope, and each is a
   deliberate false negative rather than a false positive.
+
+- **DET002 fired on any `date`, including on its own documented remedy**
+  ([GH-230](https://github.com/paiml/bashrs/issues/230)). The rule matched the
+  text `$(date` with no notion of where the value went, so it treated three
+  unlike things identically:
+
+  ```sh
+  TIMESTAMP="$(date +%Y%m%d)"; cp build.log "out/report_$TIMESTAMP.log"  # correct
+  echo "[$(date '+%F %T')] started" | tee -a "$LOG_FILE"                 # false positive
+  TIMESTAMP="$(date -u -d "@${SOURCE_DATE_EPOCH:-$(date +%s)}" +%Y%m%d)" # fires on the fix
+  ```
+
+  A timestamp on a log line is the point of a log line, and `SOURCE_DATE_EPOCH`
+  is the reproducible-builds project's specified mechanism — a script adopting
+  it is *more* deterministic, yet the finding did not change. There was no edit
+  that cleared the rule.
+
+  `linter::timestamp_flow` now follows the value to its sink and classifies it:
+  reproducible (an artifact name or contents, a hash, a build id, a truncating
+  redirect), benign (stdout/stderr, an append-only log, a comparison,
+  arithmetic), or unknown. Only non-benign is reported, any read of
+  `SOURCE_DATE_EPOCH` clears the rule and untaints what it feeds, and the
+  message names the sink line instead of saying "requires manual fix" while
+  naming no fix that works. The `Fix` suggestions are printed at all now —
+  `linter::output` rendered only `fix.replacement`, so every UNSAFE fix showed a
+  bare `Fix:` and its advice was dead text (this also affected DET001, IDEM003
+  and SC2008–SC2014). `bashrs explain DET002` used to recommend
+  `${BUILD_TIME:-$(date +%s)}`, which DET002 then flagged.
+
+  **Behaviour change worth knowing:** `if [ $(date +%s) -gt 1000 ]` is no longer
+  reported. A compared timestamp never reaches an artifact, so that is correct
+  for a reproducibility rule — but the underlying concern, time-dependent
+  control flow, deserves its own rule and is filed as a follow-up rather than
+  left mislabelled.
+
+### Verification
+
+Every fix in this release removes findings, so the release was reviewed
+adversarially — by agents whose brief was to find a *false negative*, the linter
+going silent on a real defect, which is strictly worse than the false positives
+being removed. It found seven, all fixed here and pinned by tests. The two worth
+recording because they shipped in the branch under review:
+
+- A heredoc marker inside a **comment** (`# embed python with <<'PY' … PY`)
+  opened a body that never closed, and once the GH-217 filter reached the CLI
+  that dropped every diagnostic for the rest of the file — a script containing
+  `eval "$USER_INPUT"`, `curl … | sh` and `chmod 777 /etc/passwd` reported *no
+  issues found*, exit 0. `heredoc::quoted_heredoc_lines` now delegates to
+  `linter::quoting`, which resolves quoting first, and an unterminated heredoc
+  no longer silences anything either.
+- The path-taint controls added for GH-227 were defeatable by a *mention*:
+  the word "exit" in a log message counted as a rejection, and a `case`
+  dispatcher whose `*/*)` arm merely echoed while its `*)` arm exited cleared
+  taint on its subject. That is GH-227's own defect one level down, and the
+  paired-arm requirement now closes it.
+
+The other five: a bare `(( a << b ))` was parsed as a heredoc opener; `$'don\'t'`
+inverted the quote mask; masking was quadratic on a long single line (15s on a
+400 KB script); `[-z "$1"]` and `[[ -f x]]` lost their coverage; and SEC002 lost
+`eval`, `find -exec` and `sh -c`.
 
 ### Release engineering
 
