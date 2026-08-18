@@ -2,6 +2,93 @@
 
 This chapter documents bashrs's comprehensive false positive testing framework, which ensures the linter doesn't flag valid bash patterns as errors.
 
+## What the linter refuses to guess (v6.67.0)
+
+Most false positives in bashrs came from one habit: a rule searching a physical
+line for a substring, then reporting as if it had analysed shell. v6.67.0 replaces
+that habit in five places. Each is worth knowing, because each also tells you what
+the linter will *not* report.
+
+### String literals are not code
+
+Shell-syntax rules see a copy of your script in which the *text* inside quotes has
+been replaced by inert filler. So this is clean:
+
+```bash
+export PATTERN="PMAT-[0-9]{4}"   # `]` is a regex, not a test expression
+grep "^Diff in" file.txt         # `in` is a word, not the for/case keyword
+```
+
+Quote characters themselves, and every expansion — `$VAR`, `${VAR}`, `$(...)`,
+backticks — stay visible, because an expansion is code. In
+`echo "[$(date '+%H:%M')] started"` the brackets are text while `date` is a real
+command, and both are treated accordingly.
+
+Rules that are *about* quoting (SC1003, SC1078, SC2016, SC2086, …) are excluded
+from this and keep seeing your literals — otherwise fixing a false positive would
+buy a false negative. If a quote never closes, the whole mask is discarded from
+that point rather than silently hiding the rest of the file.
+
+### `[` must be its own word to be a test command
+
+SC1020 and SC1140 now require what POSIX requires. These are all clean:
+
+```bash
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then :; fi   # array subscript
+if [[ "$line" =~ ^[[:space:]]*fn ]]; then :; fi      # character class
+case "$mode" in [0-7][0-7][0-7]) :; ;; esac          # glob pattern
+declare -A M; M["a|b"]="c"                           # associative array key
+```
+
+while `[ -f file.txt]` and `[ -f x ] extra` are still reported.
+
+### SEC002 reads command position
+
+An expansion supplying the *command word* is not reported — word splitting there
+is the documented dispatcher idiom:
+
+```bash
+sh_c='sh -c'
+[ "$(id -u)" -ne 0 ] && sh_c='sudo -E sh -c'
+$sh_c 'docker version'     # not SEC002; SC2183 covers variable command names
+```
+
+An unquoted expansion in *argument* position still is, including inside a command
+substitution — a context SEC002 previously got exactly backwards.
+
+### SEC010/SEC014 require taint, and inspect validators
+
+A path built only from literals is not a traversal risk, so nothing is reported.
+A real guard that dominates the use clears the finding:
+
+```bash
+case "$1" in ""|*..*|/*) echo "bad name" >&2; exit 2 ;; esac
+OUT_DIR="build/$1"
+mkdir -p "$OUT_DIR"        # clean: the guard tests traversal and aborts
+```
+
+A function counts as a validator only if its **body** tests for traversal and
+aborts. Naming a no-op `validate_path` no longer silences anything.
+
+Severity is graded by provenance: proven external input reaching an unguarded path
+is an `error`; a variable the file never assigns is a guess about the environment
+and reports as a `warning`, so it cannot break your build.
+
+### DET002 follows the timestamp to its sink
+
+The defect is a timestamp reaching a reproducible *output*, not the calling of
+`date`. These are clean:
+
+```bash
+echo "[$(date '+%F %T')] started" | tee -a "$LOG_FILE"     # a log line
+STAMP=$(date -u -d "@${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}" +%Y%m%d)
+```
+
+Reading `SOURCE_DATE_EPOCH` is the reproducible-builds remedy and clears the rule,
+including for whatever the value then feeds. A timestamp landing in an artifact
+name, a hash input or a truncating redirect is still reported, and the message now
+names the sink line.
+
 ## Overview
 
 bashrs uses a **Popper Falsification** methodology - every valid bash pattern must pass the linter without triggering false positives. The test suite currently covers **230 structured tests** across two categories:

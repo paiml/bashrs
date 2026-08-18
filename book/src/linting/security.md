@@ -96,7 +96,7 @@ Not auto-fixable - requires manual security review.
 An unquoted variable expansion in **argument position** of a dangerous command
 (`curl`, `wget`, `ssh`, `scp`, `git`, `rsync`, `docker`, `kubectl`).
 
-Since v6.66.4 the rule parses the line into simple commands instead of searching the
+Since v6.67.0 the rule parses the line into simple commands instead of searching the
 raw text, which fixes three classes of defect (GH-228, GH-229):
 
 - A command substitution starts a **fresh quoting context**, so `"$url"` inside

@@ -5,9 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [6.67.0] - 2026-08-18
+
+This release is almost entirely **false-positive removal in the linter**, from six
+reports that all shared one root cause: a rule that pattern-matched text instead of
+analysing shell. Across a 290-file corpus of real-world scripts the total finding
+count drops from 27,389 to 21,829, and `Severity::Error` findings — the ones that
+gate CI — drop from 5,069 to 1,776.
+
+Every removal below was measured, and every rule was checked to still report the
+defect it exists for. Two genuinely unsafe constructs are now reported that were
+invisible before (an unquoted expansion inside a command substitution, and an
+unquoted argument to `docker login`).
 
 ### Fixed
+
+- **Shell-syntax rules fired inside string literals, so any script containing a
+  regex got errors** ([GH-226](https://github.com/paiml/bashrs/issues/226)).
+  `export PATTERN="PMAT-[0-9]{4}"` produced SC1020 "missing space before closing
+  ] in test expression", and `grep "^Diff in" file.txt` produced SC1035 "missing
+  space after 'in' keyword". Neither `]` nor `in` is shell syntax there. Quoting
+  is now resolved once, up front, in the new `linter::quoting` module, and the
+  11 shell-syntax rules receive a copy of the source in which literal *text* is
+  inert filler of identical byte length, so spans still line up.
+
+  Deliberately narrow: quote characters are boundaries rather than content (rules
+  that tokenise on them, such as here-string handling, must keep seeing them);
+  `$VAR`, `${...}`, `$(...)` and backticks stay visible because an expansion is
+  code; and it is an allowlist rather than all of SC1xxx, so rules that are
+  *about* quoting (SC1003, SC1078, SC2016, SC2086 …) keep seeing literals instead
+  of going blind. If a quote never closes, the mask is discarded from that point
+  so a mis-parse cannot silence the rest of the file.
+
+- **SC1020 and SC1140 treated any `[` as a test command**
+  ([GH-226](https://github.com/paiml/bashrs/issues/226)). Array subscripts
+  (`${BASH_SOURCE[0]}`), regex character classes (`[[:space:]]`), `case` glob
+  patterns (`[0-7][0-7][0-7])`) and associative-array keys (`M["a|b"]=x`) were all
+  reported as errors. SC1020 additionally mis-parsed `[[`, skipping the first
+  bracket and treating the second as a single-bracket test. POSIX requires `[` to
+  be its own word, which is now the discriminator. Across the corpus both rules go
+  from 1,044 and 769 findings to zero, with the real defects (`[ -f x]`,
+  `[ -f x ] extra`) still reported.
+
+- **Quoted heredoc bodies were still linted through the CLI**
+  ([GH-217](https://github.com/paiml/bashrs/issues/217)). The GH-217 filter was
+  only ever applied in `lint_shell_filtered`, while the CLI calls `lint_shell`, so
+  users never received the fix. Now applied on both entry points.
 
 - **SEC002 fired on correctly quoted code and missed genuinely unquoted code**
   ([GH-228](https://github.com/paiml/bashrs/issues/228)). The rule tracked quoting
@@ -67,6 +110,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the analysis is one file, one ordered pass, no fixpoint; cross-file, loop
   back-edges, `eval`, and call-site resolution are out of scope, and each is a
   deliberate false negative rather than a false positive.
+
+### Release engineering
+
+Four defects each failed a release gate; none is a linter change, all were found
+by auditing the release path rather than by any ticket.
+
+- **RUSTSEC-2026-0258** (h2 "unbounded empty DATA frames", published 2026-08-17).
+  `ci / security` runs a bare `cargo audit` and `.cargo/audit.toml` ignores
+  nothing, so this reddened the required gate. h2 0.4.13 → 0.4.16, and fastrand
+  2.4.0 (yanked) → 2.5.0 while the lock was open.
+- **`mdbook build` aborted**, so `./scripts/check-book-updated.sh` — the release's
+  own book gate — had been failing since before 6.66.0, which is why the book had
+  not been rebuilt since March. `book.toml` still declared `multilingual`, removed
+  from mdbook, and `git-repository-icon = "fa-github"`, which no longer resolves
+  now that mdbook has dropped the bundled Font Awesome.
+- **`cargo test -p bashrs --lib` did not terminate.**
+  `test_coverage_run_gate_all_known_names_return_named_results` built a quality
+  gate with every gate ENABLED, and the tests gate shells out to
+  `cargo test --lib -p bashrs` — which reaches that same test and spawns again,
+  unbounded. It also shelled out to cargo clippy, cargo audit and pmat. The gates
+  are now disabled, which is all the test's own doc-comment claims to check, and
+  it runs in 0.01s.
+- **A flaky diagnostic test** (2 of 6 full runs under CPU contention). Its helper
+  set and then cleared `NO_COLOR` in the *process* environment — the "SAFETY: only
+  called from serial tests" comment was false, and the crate has no `serial_test`
+  dependency — so one thread's `remove_var` landed between another's `set_var` and
+  its `format!`, leaking ANSI codes into output asserted to be plain.
+  `Diagnostic::render(bool)` takes the decision as an argument instead.
 
 ### Internal
 
@@ -131,6 +202,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   physical line into simple commands with per-word roles and per-expansion quoting
   state, recursing into `$( … )` and `` ` … ` ``. Intended to replace the
   `line.contains(cmd)` / quote-parity heuristics in other rules (MAKE003, SC2183).
+
+- Four new analysis modules, each replacing a substring heuristic with something
+  that models shell: `linter::quoting` (where string literals begin and end),
+  `linter::shell_words` (word roles and per-expansion quoting state),
+  `linter::taint` (intra-file provenance for the path rules), and
+  `linter::timestamp_flow` (where a `date` value ends up). `linter::rules::
+  posix_bracket` locates a real `[ … ]` test command for SC1020 and SC1140.
+  All are total and panic-free on malformed input; their known limitations are
+  documented in each module rather than left implicit.
+
+- `rash/src/linter/rules/sec010_logic.rs` deleted — a dead second copy of the
+  exact heuristics GH-227 fixed, imported by nothing. Leaving it is how the bug
+  comes back.
 
 ## [6.66.3] - 2026-08-12
 

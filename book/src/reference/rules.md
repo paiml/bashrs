@@ -1,6 +1,6 @@
 # Linter Rules Reference
 
-This chapter provides a complete reference for all linter rules in bashrs v6.64.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration (SC1xxx + SC2xxx).
+This chapter provides a complete reference for all linter rules in bashrs v6.67.0, including security rules, determinism rules, idempotency rules, config rules, Makefile rules, Dockerfile rules, and ShellCheck integration (SC1xxx + SC2xxx).
 
 ## Table of Contents
 

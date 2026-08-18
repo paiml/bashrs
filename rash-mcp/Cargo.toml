@@ -20,7 +20,7 @@ useless_format = "allow"  # String literals in format! are intentional for reada
 expect_used = "allow"  # Handler implementations use expect for required fields
 
 [dependencies]
-bashrs = { version = "6.42", path = "../rash" }  # Use path for workspace dev, version for publish
+bashrs = { version = "6.67", path = "../rash" }  # Use path for workspace dev, version for publish
 pforge-runtime = "0.1.4"
 # Use workspace dependencies for version unification (Issue #57)
 serde.workspace = true
