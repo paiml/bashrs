@@ -16,6 +16,13 @@ categories.workspace = true
 all-features = true
 rustdoc-args = ["--generate-link-to-definition"]
 
+# GH-233 dogfood: declares every interface this crate ships, so "we have no
+# HTTP/MCP surface" is an enforced fact rather than an assumption. bashrs is
+# CLI-only — `--help` advertises no mcp/serve/http subcommand. MCP and HTTP
+# surfaces for this project live in the separate rash-mcp crate.
+[package.metadata.transports]
+cli = { e2e = "cli_integration" }
+
 [lints]
 workspace = true
 
