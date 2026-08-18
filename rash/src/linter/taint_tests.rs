@@ -221,6 +221,179 @@ fn test_GH227_line_hard_fails() {
     assert!(!line_hard_fails("echo bad >&2"));
 }
 
+// ---------------------------------------------------------------------------
+// GH-227 regressions: a control any *mention* defeats is not a control either
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_GH227_hard_fail_must_be_a_command_not_a_word() {
+    // The word `exit` inside a message is text, not a rejection.
+    assert!(!line_hard_fails(
+        r#"echo "WARNING: $P contains '..' (set STRICT=1 to exit on this)" >&2"#
+    ));
+    assert!(!line_hard_fails("  # TODO: should we exit here?"));
+    assert!(!line_hard_fails(r#"printf 'abort the run?\n'"#));
+    assert!(!line_hard_fails(r#"trap 'exit 1' TERM"#));
+    assert!(!line_hard_fails("echo continue"));
+    // …but a real command still counts, wherever it sits in the line.
+    assert!(line_hard_fails("  [ -n \"$1\" ] || exit 1"));
+    assert!(line_hard_fails("{ echo bad >&2; exit 3; }"));
+    assert!(line_hard_fails("then exit 1"));
+}
+
+#[test]
+fn test_GH227_exit_zero_is_not_a_rejection() {
+    assert!(!line_hard_fails("exit 0"));
+    assert!(!line_hard_fails("  return 0"));
+    assert!(!line_hard_fails("  return"));
+    assert!(line_hard_fails("exit"));
+    assert!(line_hard_fails("exit 2"));
+}
+
+#[test]
+fn test_GH227_warn_only_block_does_not_untaint() {
+    let src = concat!(
+        "P=\"$1\"\n",
+        "if [[ \"$P\" == *..* ]]; then\n",
+        "  echo \"WARNING: $P has '..' (set STRICT=1 to exit on this)\" >&2\n",
+        "fi\n",
+        "cat \"/data/$P\"\n",
+    );
+    assert_eq!(taint_of(src, 4, "P"), TaintKind::External);
+}
+
+#[test]
+fn test_GH227_case_arms_must_pair_pattern_and_abort() {
+    // The `*/*` arm only echoes; the `exit 1` belongs to the catch-all arm.
+    let src = concat!(
+        "CMD=\"$1\"\n",
+        "case \"$CMD\" in\n",
+        "  install) shift ;;\n",
+        "  */*)     echo \"path form\" ;;\n",
+        "  *)       echo \"unknown\"; exit 1 ;;\n",
+        "esac\n",
+        "cat \"/data/$CMD\"\n",
+    );
+    assert_eq!(taint_of(src, 6, "CMD"), TaintKind::External);
+
+    // Same arm: still a guard.
+    let guarded = concat!(
+        "CMD=\"$1\"\n",
+        "case \"$CMD\" in\n",
+        "  */*) exit 1 ;;\n",
+        "  *)   shift ;;\n",
+        "esac\n",
+        "cat \"/data/$CMD\"\n",
+    );
+    assert_eq!(taint_of(guarded, 5, "CMD"), TaintKind::Clean);
+}
+
+#[test]
+fn test_GH227_inline_case_arms_must_pair_pattern_and_abort() {
+    let src = "case \"$1\" in */*) echo path ;; *) exit 1 ;; esac\nD=\"in/$1\"\n";
+    assert_eq!(taint_of(src, 1, "1"), TaintKind::External);
+}
+
+#[test]
+fn test_GH227_else_branch_abort_is_not_a_traversal_guard() {
+    let src = concat!(
+        "P=\"$1\"\n",
+        "if [[ \"$P\" == *..* ]]; then\n",
+        "  echo warn >&2\n",
+        "else\n",
+        "  exit 1\n",
+        "fi\n",
+        "cat \"/data/$P\"\n",
+    );
+    assert_eq!(taint_of(src, 6, "P"), TaintKind::External);
+}
+
+#[test]
+fn test_GH227_validator_must_pair_pattern_and_abort() {
+    // Warns on traversal, exits on something else entirely.
+    assert!(!body_is_path_validator(&[
+        "validate_path() {",
+        "  if [[ \"$1\" == *..* ]]; then",
+        "    echo \"warning: suspicious path\" >&2",
+        "  fi",
+        "  if [ -z \"$1\" ]; then",
+        "    exit 1",
+        "  fi",
+        "}",
+    ]));
+    // The same guard doing both is still accepted.
+    assert!(body_is_path_validator(&[
+        "validate_path() {",
+        "  if [[ \"$1\" == *..* ]]; then",
+        "    exit 1",
+        "  fi",
+        "}",
+    ]));
+}
+
+#[test]
+fn test_GH227_branch_assignment_merges_taint() {
+    let src = concat!(
+        "if [ -n \"$1\" ]; then\n",
+        "  P=\"$1\"\n",
+        "else\n",
+        "  P=/default\n",
+        "fi\n",
+        "cat \"/data/$P\"\n",
+    );
+    assert_eq!(taint_of(src, 5, "P"), TaintKind::External);
+}
+
+#[test]
+fn test_GH227_branch_assignment_order_does_not_matter() {
+    let swapped = concat!(
+        "if [ -z \"$1\" ]; then\n",
+        "  P=/default\n",
+        "else\n",
+        "  P=\"$1\"\n",
+        "fi\n",
+        "cat \"/data/$P\"\n",
+    );
+    assert_eq!(taint_of(swapped, 5, "P"), TaintKind::External);
+}
+
+#[test]
+fn test_GH227_first_conditional_assignment_is_judged_on_its_own_value() {
+    // No earlier assignment to merge with: a literal in an `if` stays Clean, or
+    // the merge would re-create the false positives GH-227 removed.
+    let src = concat!(
+        "if [ -z \"$OUT\" ]; then\n",
+        "  OUT_DIR=\"build/results\"\n",
+        "fi\n",
+        "mkdir -p \"$OUT_DIR\"\n",
+    );
+    assert_eq!(taint_of(src, 3, "OUT_DIR"), TaintKind::Clean);
+}
+
+#[test]
+fn test_GH227_merge_does_not_cross_constructs() {
+    // `ARGS=""` at the top of the loop is a reset, not a branch of the `if`
+    // three constructs away: merging with that stale value over-taints.
+    let src = concat!(
+        "helper() {\n",
+        "  if [ -n \"$V\" ]; then\n",
+        "    ARGS=\"$V\"\n",
+        "  fi\n",
+        "}\n",
+        "for spec in a b; do\n",
+        "  ARGS=\"\"\n",
+        "  cat \"/data/$ARGS\"\n",
+        "done\n",
+    );
+    assert_eq!(taint_of(src, 7, "ARGS"), TaintKind::Clean);
+}
+
+#[test]
+fn test_GH227_guarded_assignment_merges_taint() {
+    let src = "P=\"$1\"\n[ -n \"$P\" ] || P=/default\ncat \"/data/$P\"\n";
+    assert_eq!(taint_of(src, 2, "P"), TaintKind::External);
+}
+
 #[test]
 fn test_GH227_guard_untaints_reports_the_closing_line() {
     let lines = ["case \"$1\" in", "  *..*) exit 1 ;;", "esac", "mkdir -p x"];

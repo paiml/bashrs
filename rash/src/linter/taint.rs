@@ -81,6 +81,18 @@ const READ_OPTS_WITH_ARG: &[&str] = &["-p", "-d", "-n", "-N", "-t", "-u", "-i"];
 /// Bytes that may precede the name of a shell assignment.
 const ASSIGN_DELIMS: &[u8] = b" \t;&|(){}";
 
+/// Characters that end one statement and begin the next.
+const STATEMENT_SEPARATORS: &[char] = &[';', '&', '|', '\n', '(', ')', '{', '}'];
+
+/// Words that may introduce a statement without being its command.
+const STATEMENT_KEYWORDS: &[&str] = &["if", "then", "do", "while", "until", "time", "!"];
+
+/// Keywords that open a conditional or loop body.
+const BLOCK_OPENERS: &[&str] = &["if", "case", "while", "until", "for"];
+
+/// Keywords that close one.
+const BLOCK_CLOSERS: &[&str] = &["fi", "esac", "done"];
+
 /// How much external influence a value may carry.
 ///
 /// Ordered: `Clean < Ambient < External`. Propagation takes the maximum.
@@ -151,6 +163,9 @@ impl TaintMap {
 struct Ctx {
     current: HashMap<String, TaintKind>,
     changes: HashMap<String, Vec<(usize, TaintKind)>>,
+    /// `var -> conditional construct its last assignment sat in`. Two
+    /// assignments merge only when they are branches of the *same* construct.
+    blocks: HashMap<String, Option<usize>>,
     /// Whether the line currently being applied sits in a function body.
     in_function: bool,
 }
@@ -183,6 +198,7 @@ pub fn analyze(source: &str) -> TaintMap {
     let in_function = function_body_lines(&lines);
     let validators = collect_validator_functions(&lines);
     let untaints = guard_untaints(&lines, &in_function);
+    let blocks = block_ids(&lines, &heredoc_body);
 
     let mut ctx = Ctx::default();
     for (idx, line) in lines.iter().enumerate() {
@@ -190,7 +206,7 @@ pub fn analyze(source: &str) -> TaintMap {
             continue;
         }
         ctx.in_function = in_function.contains(&idx);
-        apply_line(&mut ctx, line, idx + 1);
+        apply_line(&mut ctx, line, idx + 1, blocks.get(idx).copied().flatten());
         apply_validator_call(&mut ctx, line, &validators, idx + 1);
         apply_untaints(&mut ctx, untaints.get(&idx), idx + 1);
     }
@@ -380,32 +396,198 @@ fn is_valid_name(word: &str) -> bool {
 }
 
 // ---------------------------------------------------------------------------
+// code / literal / comment separation
+//
+// GH-227 regression: matching a control keyword against the raw text of a line
+// makes the *mention* of that keyword — in an `echo`, in a comment, in a `trap`
+// string — indistinguishable from running it. Everything that decides whether a
+// guard rejects its input therefore looks at code only.
+// ---------------------------------------------------------------------------
+
+/// `text` with comments dropped and every string literal blanked.
+fn code_only(text: &str) -> String {
+    scan_text(text, true)
+}
+
+/// `text` with comments dropped, literals intact — for pattern matching, where
+/// the *contents* of `*".."*` are the thing being looked for.
+fn bare_code(text: &str) -> String {
+    scan_text(text, false)
+}
+
+/// Quoting is resolved one physical line at a time, matching the rest of this
+/// pass; an unbalanced quote cannot then swallow the remainder of a block.
+fn scan_text(text: &str, blank_literals: bool) -> String {
+    text.split('\n')
+        .map(|line| scan_line(line, blank_literals))
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn scan_line(line: &str, blank_literals: bool) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut quote: Option<char> = None;
+    for c in line.chars() {
+        match quote {
+            Some(q) => quote = scan_in_quote(&mut out, c, q, blank_literals),
+            None => {
+                if !scan_in_code(&mut out, c, &mut quote, blank_literals) {
+                    break;
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Consume one character inside a literal; returns the quote state after it.
+fn scan_in_quote(out: &mut String, c: char, quote: char, blank: bool) -> Option<char> {
+    if c == quote {
+        out.push(if blank { '\u{1}' } else { c });
+        return None;
+    }
+    if !blank {
+        out.push(c);
+    }
+    Some(quote)
+}
+
+/// Consume one character outside a literal; returns false when a comment starts
+/// and the rest of the line is dropped.
+fn scan_in_code(out: &mut String, c: char, quote: &mut Option<char>, blank: bool) -> bool {
+    if c == '#' && starts_word(out) {
+        return false;
+    }
+    if c == '"' || c == '\'' {
+        *quote = Some(c);
+        if !blank {
+            out.push(c);
+        }
+        return true;
+    }
+    out.push(c);
+    true
+}
+
+fn starts_word(out: &str) -> bool {
+    match out.chars().last() {
+        None => true,
+        Some(c) => c.is_whitespace(),
+    }
+}
+
+/// The statements of a chunk of code, in order.
+fn statements(code: &str) -> std::str::Split<'_, &'static [char]> {
+    code.split(STATEMENT_SEPARATORS)
+}
+
+/// The command word of a statement and its first argument.
+fn command_word(stmt: &str) -> Option<(&str, Option<&str>)> {
+    let mut words = stmt
+        .split_whitespace()
+        .skip_while(|w| STATEMENT_KEYWORDS.contains(w));
+    Some((words.next()?, words.next()))
+}
+
+/// The first word of every statement in `code` that is one of `words`.
+fn count_keywords(code: &str, words: &[&str]) -> usize {
+    statements(code)
+        .filter_map(|stmt| stmt.split_whitespace().next())
+        .filter(|word| words.contains(word))
+        .count()
+}
+
+// ---------------------------------------------------------------------------
 // statement recognisers
 // ---------------------------------------------------------------------------
 
-fn apply_line(ctx: &mut Ctx, line: &str, from: usize) {
+fn apply_line(ctx: &mut Ctx, line: &str, from: usize, block: Option<usize>) {
     if apply_read(ctx, line, from) {
         return;
     }
     if apply_for_loop(ctx, line, from) {
         return;
     }
-    apply_assignment(ctx, line, from);
+    apply_assignment(ctx, line, from, block);
 }
 
-fn apply_assignment(ctx: &mut Ctx, line: &str, from: usize) -> bool {
+fn apply_assignment(ctx: &mut Ctx, line: &str, from: usize, block: Option<usize>) -> bool {
     let Some((name, rhs)) = split_assignment(line) else {
         return false;
     };
-    let kind = if is_sanitizer_rhs(rhs) {
+    let fresh = if is_sanitizer_rhs(rhs) {
         TaintKind::Clean
     } else {
         rhs_taint(ctx, rhs)
     };
-    // Always overwrite: reassignment from a literal really does clean a
-    // variable, and reassignment from input really does re-taint it.
+    // A *straight-line* reassignment from a literal really does clean a
+    // variable, and one from input really does re-taint it. A conditional one
+    // cannot lower the taint: the other branch may have run instead.
+    let kind = if block.is_some() || assignment_is_guarded(line, &name) {
+        merged_kind(ctx, &name, fresh, block)
+    } else {
+        fresh
+    };
+    ctx.blocks.insert(name.clone(), block);
     ctx.set(name, kind, from);
     true
+}
+
+/// Merge a conditional assignment with the taint the variable already carries,
+/// so that the verdict no longer depends on which branch was written last
+/// (GH-227: `if …; then P="$1"; else P=/default; fi` lost the taint entirely,
+/// and swapping the branches brought it back).
+///
+/// Two conditions keep the merge honest:
+///
+/// * the file must have assigned the variable before — a *first* assignment
+///   inside an `if` is judged on its own value, or `if …; then D="build"; fi`
+///   would become `Ambient` and re-create the false positives GH-227 removed;
+/// * the earlier assignment must belong to the same construct, so a reset at
+///   the top of a loop body does not inherit a stale value from an unrelated
+///   function.
+fn merged_kind(ctx: &Ctx, name: &str, fresh: TaintKind, block: Option<usize>) -> TaintKind {
+    match ctx.current.get(name) {
+        Some(prior) if ctx.blocks.get(name) == Some(&block) => fresh.max(*prior),
+        _ => fresh,
+    }
+}
+
+/// An assignment reached only through `&&`/`||` runs conditionally too.
+fn assignment_is_guarded(line: &str, name: &str) -> bool {
+    let code = code_only(line);
+    let head = match word_pos(&code, name) {
+        Some(pos) => code.get(..pos).unwrap_or(""),
+        None => code.as_str(),
+    };
+    head.contains("&&") || head.contains("||")
+}
+
+/// For every line, the index of the outermost conditional or loop it sits
+/// inside — `None` at top level.
+///
+/// Heredoc bodies are data, and are not allowed to unbalance the nesting count.
+fn block_ids(lines: &[&str], heredoc_body: &HashSet<usize>) -> Vec<Option<usize>> {
+    let mut out = Vec::with_capacity(lines.len());
+    let mut open: Option<usize> = None;
+    let mut depth: usize = 0;
+    for (idx, line) in lines.iter().enumerate() {
+        if heredoc_body.contains(&(idx + 1)) {
+            out.push(open);
+            continue;
+        }
+        let code = code_only(line);
+        let opens = count_keywords(&code, BLOCK_OPENERS);
+        if open.is_none() && opens > 0 {
+            open = Some(idx);
+        }
+        out.push(open);
+        depth = (depth + opens).saturating_sub(count_keywords(&code, BLOCK_CLOSERS));
+        if depth == 0 {
+            open = None;
+        }
+    }
+    out
 }
 
 /// Split `NAME=value`, tolerating `export`/`local`/`readonly` prefixes and
@@ -579,10 +761,19 @@ fn guard_untaints(lines: &[&str], in_function: &HashSet<usize>) -> HashMap<usize
 /// A guard written on a single line: `[[ "$V" == *..* ]] && exit 1`, or a
 /// one-line `case … esac`.
 fn inline_guard(line: &str) -> Option<String> {
+    let subject = var_names(line).into_iter().next()?;
+    if is_inline_case(line) {
+        return case_rejects_traversal(line).then_some(subject);
+    }
     if !line_tests_traversal(line) || !line_hard_fails(line) {
         return None;
     }
-    var_names(line).into_iter().next()
+    Some(subject)
+}
+
+fn is_inline_case(line: &str) -> bool {
+    let code = bare_code(line);
+    code.contains("case ") && code.contains("esac")
 }
 
 /// A multi-line `case … esac` or `if … fi` guard. Returns the index of the
@@ -590,10 +781,10 @@ fn inline_guard(line: &str) -> Option<String> {
 fn block_guard(lines: &[&str], idx: usize) -> Option<(usize, String)> {
     let trimmed = lines.get(idx)?.trim();
     if trimmed.starts_with("case ") && trimmed.ends_with(" in") {
-        return scan_guard_block(lines, idx, "esac", true);
+        return guard_block(lines, idx, "esac", case_rejects_traversal);
     }
     if is_if_opener(trimmed) && line_tests_traversal(trimmed) {
-        return scan_guard_block(lines, idx, "fi", false);
+        return guard_block(lines, idx, "fi", then_branch_rejects);
     }
     None
 }
@@ -602,24 +793,53 @@ fn is_if_opener(trimmed: &str) -> bool {
     trimmed.starts_with("if ") || trimmed.starts_with("elif ")
 }
 
-/// `pattern_in_body`: for `case`, the traversal pattern lives in the arms; for
-/// `if`, it has already been found on the opener.
-fn scan_guard_block(
+/// Delimit the block opened at `idx` and hand its text to `rejects`.
+fn guard_block(
     lines: &[&str],
     idx: usize,
     closer: &str,
-    pattern_in_body: bool,
+    rejects: impl Fn(&str) -> bool,
 ) -> Option<(usize, String)> {
     let subject = var_names(lines.get(idx)?).into_iter().next()?;
     let end = find_closer(lines, idx, closer)?;
-    let body = lines.get(idx..=end)?;
-    if pattern_in_body && !body.iter().any(|l| line_guards_traversal(l)) {
-        return None;
+    let body = lines.get(idx..=end)?.join("\n");
+    rejects(&body).then_some((end, subject))
+}
+
+/// Does some `case` arm both *match* a traversal pattern and abort?
+///
+/// GH-227: the previous implementation asked whether the block contained a
+/// traversal pattern anywhere and a rejection anywhere — two independent
+/// `any()`s. A stock dispatcher (`*/*) echo …;; *) exit 1;;`) satisfied both
+/// and cleared the taint on its subject. `;;` terminates an arm, so splitting
+/// on it puts the pattern and the rejection that must pair in one chunk.
+fn case_rejects_traversal(text: &str) -> bool {
+    bare_code(text).split(";;").any(arm_rejects_traversal)
+}
+
+fn arm_rejects_traversal(arm: &str) -> bool {
+    line_is_traversal_case_arm(arm) && text_hard_fails(&code_only(arm))
+}
+
+/// Does the branch the traversal test selects abort?
+///
+/// GH-227: crediting an `exit` from the `else` branch made the *absence* of a
+/// rejection on the guarded path look like a guard, so the scan stops at the
+/// first `else`/`elif`.
+fn then_branch_rejects(text: &str) -> bool {
+    for stmt in statements(&code_only(text)) {
+        if opens_other_branch(stmt) {
+            return false;
+        }
+        if statement_hard_fails(stmt) {
+            return true;
+        }
     }
-    if !body.iter().any(|l| line_hard_fails(l)) {
-        return None;
-    }
-    Some((end, subject))
+    false
+}
+
+fn opens_other_branch(stmt: &str) -> bool {
+    matches!(stmt.split_whitespace().next(), Some("else") | Some("elif"))
 }
 
 fn find_closer(lines: &[&str], start: usize, closer: &str) -> Option<usize> {
@@ -669,23 +889,38 @@ fn line_is_traversal_case_arm(line: &str) -> bool {
     }
 }
 
-/// The line rejects traversal, either as an explicit test or as a `case` arm.
-fn line_guards_traversal(line: &str) -> bool {
-    line_tests_traversal(line) || line_is_traversal_case_arm(line)
-}
-
 /// The line abandons the current path. A guard that only prints a message is
 /// not a guard. `continue` counts: inside a loop it skips the body, which is
 /// the loop-shaped spelling of "reject this input".
+///
+/// GH-227: the rejection must be a *command*, not a word. Substring matching
+/// made `echo "set STRICT=1 to exit on this"` — and `# should we exit here?` —
+/// indistinguishable from `exit 1`, so a warn-only path check silenced
+/// SEC010/SEC014 for the rest of the file. A control any mention defeats is not
+/// a control.
 fn line_hard_fails(line: &str) -> bool {
-    let trimmed = line.trim();
-    trimmed.contains("exit")
-        || trimmed.contains("continue")
-        || trimmed.contains("return 1")
-        || trimmed.contains("return $?")
-        || trimmed.contains("die ")
-        || trimmed.contains("fatal ")
-        || trimmed.contains("abort ")
+    text_hard_fails(&code_only(line))
+}
+
+fn text_hard_fails(code: &str) -> bool {
+    statements(code).any(statement_hard_fails)
+}
+
+fn statement_hard_fails(stmt: &str) -> bool {
+    match command_word(stmt) {
+        Some((cmd, arg)) => command_hard_fails(cmd, arg),
+        None => false,
+    }
+}
+
+/// `exit 0` and `return 0` report success — they are not rejections.
+fn command_hard_fails(cmd: &str, arg: Option<&str>) -> bool {
+    match cmd {
+        "exit" => arg != Some("0"),
+        "return" => arg.is_some_and(|status| status != "0"),
+        "continue" | "die" | "fatal" | "abort" => true,
+        _ => false,
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -715,8 +950,20 @@ fn collect_validator_functions(lines: &[&str]) -> HashSet<String> {
     out
 }
 
+/// GH-227: the same any-line ∧ any-line flaw one level down. A function that
+/// *warns* on traversal and *exits* on something unrelated was registered as a
+/// validator — the realistic shape of a permissive one. The body must contain a
+/// guard that does both, which is exactly what [`inline_guard`] and
+/// [`block_guard`] already decide.
 fn body_is_path_validator(body: &[&str]) -> bool {
-    body.iter().any(|l| line_guards_traversal(l)) && body.iter().any(|l| line_hard_fails(l))
+    (0..body.len()).any(|idx| body_line_guards(body, idx))
+}
+
+fn body_line_guards(body: &[&str], idx: usize) -> bool {
+    match body.get(idx) {
+        Some(line) => inline_guard(line).is_some() || block_guard(body, idx).is_some(),
+        None => false,
+    }
 }
 
 /// 0-based indices of every line belonging to a function definition.
@@ -818,6 +1065,11 @@ fn word_boundaries_ok(bytes: &[u8], pos: usize, len: usize) -> bool {
 //   `External` — so they warn, they never break a build.
 // * Path insensitivity: a guard inside an `if` branch untaints unconditionally
 //   from the block's end. Favours a false negative over a false positive.
+// * Assignments are merged, not joined: a conditional assignment takes the
+//   maximum of its own value and the variable's prior taint, so the result no
+//   longer depends on the textual order of the branches — but there is still no
+//   per-branch state, so a variable tainted in one branch reads as tainted in
+//   the other one too (over-tainting — conservative).
 // * No back edges: a reassignment textually *after* a use is not seen. Loops
 //   that re-taint on the second iteration are missed.
 // * Function scope is flattened: `$1` inside a function body is treated as the
@@ -825,7 +1077,13 @@ fn word_boundaries_ok(bytes: &[u8], pos: usize, len: usize) -> bool {
 // * Arrays and namerefs are tracked by base name only.
 // * `eval` bodies are not analysed; `${!x}` is pessimistically `External`.
 // * `X=$(cat /some/file)` is `Clean` — only `EXTERNAL_DATA_CMDS` and nested
-//   tainted variables mark a substitution external.
+//   tainted variables mark a substitution external. Reading a path out of a
+//   config file therefore does not taint it; the file's own contents are
+//   treated as script-owned data. This is deliberate: the alternative marks
+//   every `$(…)` external and reintroduces the noise GH-227 removed.
+// * Command substitutions are read one physical line at a time, so a `$(…)`
+//   that spans lines — a here-document body inside one, in particular — is
+//   invisible to `cmd_sub_taint`: `P=$(cat <<EOF … $1 … EOF)` reads `Clean`.
 // * Quoting is not tracked: `'$FOO'` counts as an expansion (over-tainting).
 // ---------------------------------------------------------------------------
 
