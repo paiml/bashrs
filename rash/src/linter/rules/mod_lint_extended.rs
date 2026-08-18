@@ -61,6 +61,18 @@ fn apply_extended_lint_rules(source: &str, result: &mut LintResult) {
     result.merge(rel004::check(source));
     result.merge(rel005::check(source));
 
+    // GH-217 drops diagnostics inside a QUOTED heredoc body — the body is
+    // literal text by definition, which is what quoting the delimiter means.
+    // That filter was only ever applied in `lint_shell_filtered`, and the CLI
+    // reaches `lint_shell` (cli/logic_lint.rs:91), so users never got it.
+    // Applying it on both entry points is the point of a central filter.
+    let heredoc_lines = crate::linter::heredoc::quoted_heredoc_lines(source);
+    if !heredoc_lines.is_empty() {
+        result
+            .diagnostics
+            .retain(|diag| !heredoc_lines.contains(&diag.span.start_line));
+    }
+
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);
     result

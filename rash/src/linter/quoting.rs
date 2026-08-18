@@ -82,10 +82,20 @@ impl QuotedRegions {
         let mut per_line = Vec::new();
         let mut any = false;
 
-        for line in source.lines() {
+        for (idx, line) in source.lines().enumerate() {
+            scanner.line_no = idx + 1;
             let ranges = coalesce(&scanner.scan_line(line));
             any |= !ranges.is_empty();
             per_line.push(ranges);
+        }
+
+        // Fail-safe: a quote that never closes means everything after it was
+        // masked on a guess. Discard that part of the mask rather than let the
+        // syntax rules go blind for the rest of the file — the unterminated
+        // quote itself is SC1078's job, and it is not in the allowlist.
+        if let Some((line, col)) = scanner.quote_open_at {
+            discard_from(&mut per_line, line, col);
+            any = per_line.iter().any(|ranges| !ranges.is_empty());
         }
 
         Self { per_line, any }
@@ -122,25 +132,13 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     "SC1035", // Missing space after keyword
     "SC1044", // Unclosed do..done
     "SC1045", // Missing ;; in case
-    "SC1046", // Missing fi
-    "SC1047", // Missing fi
-    "SC1048", // Missing then
-    "SC1049", // Missing then
-    "SC1050", // Expected then
-    "SC1053", // ;; in wrong place
-    "SC1058", // Expected do
-    "SC1061", // Missing done
-    "SC1062", // Expected done
-    // Function/parameter syntax — `function(a, b)` inside an awk or SQL string.
-    "SC1064", // Expected { after function
+    // Function/parameter syntax — `function(a, b)` inside an awk or SQL program.
     "SC1065", // Function parameters in shell
-    "SC1073", // Couldn't parse this
     // Redirection/operator syntax appearing as text.
     "SC1014", // Use `if cmd; then`
     "SC1036", // ( is invalid here
     "SC1037", // Braces required for positionals > 9
     "SC1041", // Expected EOF
-    "SC1072", // Unexpected token
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
@@ -191,23 +189,22 @@ fn mask_line(line: &str, line_no: usize, regions: &QuotedRegions, out: &mut Vec<
 /// filler. The diagnostic's own span identifies the text exactly, so the
 /// substitution is not a guess.
 pub fn restore_masked_messages(source: &str, masked: &str, result: &mut crate::linter::LintResult) {
+    if result.diagnostics.is_empty() {
+        return;
+    }
+    // Index the lines once. `lines().nth(n)` per diagnostic is quadratic on a
+    // large file with many findings.
+    let src_lines: Vec<&str> = source.lines().collect();
+    let masked_lines: Vec<&str> = masked.lines().collect();
+
     for diag in result.diagnostics.iter_mut() {
         if !is_quote_sensitive(&diag.code) {
             continue;
         }
+        let (line, lo, hi) = (diag.span.start_line, diag.span.start_col, diag.span.end_col);
         let (Some(from), Some(to)) = (
-            span_text(
-                masked,
-                diag.span.start_line,
-                diag.span.start_col,
-                diag.span.end_col,
-            ),
-            span_text(
-                source,
-                diag.span.start_line,
-                diag.span.start_col,
-                diag.span.end_col,
-            ),
+            span_text(&masked_lines, line, lo, hi),
+            span_text(&src_lines, line, lo, hi),
         ) else {
             continue;
         };
@@ -218,15 +215,32 @@ pub fn restore_masked_messages(source: &str, masked: &str, result: &mut crate::l
 }
 
 /// The bytes of a 1-indexed line between 1-indexed `[start, end)` columns.
-fn span_text(source: &str, line: usize, start: usize, end: usize) -> Option<String> {
+fn span_text(lines: &[&str], line: usize, start: usize, end: usize) -> Option<String> {
     if start == 0 || end <= start {
         return None;
     }
-    let text = source.lines().nth(line.checked_sub(1)?)?;
-    let bytes = text.as_bytes();
+    let bytes = lines.get(line.checked_sub(1)?)?.as_bytes();
     let hi = end.saturating_sub(1).min(bytes.len());
     let lo = start.saturating_sub(1).min(hi);
     Some(String::from_utf8_lossy(&bytes[lo..hi]).into_owned())
+}
+
+/// Drop every marked range at or after 1-indexed `(line, col)`.
+fn discard_from(per_line: &mut [Vec<(usize, usize)>], line: usize, col: usize) {
+    for (idx, ranges) in per_line.iter_mut().enumerate() {
+        let ln = idx + 1;
+        if ln > line {
+            ranges.clear();
+        } else if ln == line {
+            ranges.retain_mut(|range| {
+                if range.0 >= col {
+                    return false;
+                }
+                range.1 = range.1.min(col - 1);
+                true
+            });
+        }
+    }
 }
 
 /// Coalesce a per-byte literal mask into inclusive 1-indexed column ranges.
@@ -254,6 +268,10 @@ fn coalesce(marks: &[bool]) -> Vec<(usize, usize)> {
 #[derive(Debug, Default)]
 struct Scanner {
     stack: Vec<Ctx>,
+    /// 1-indexed line currently being scanned.
+    line_no: usize,
+    /// Where the outermost currently-open quote started, for the EOF fail-safe.
+    quote_open_at: Option<(usize, usize)>,
     /// Heredocs opened on this line, awaiting their bodies, in POSIX order.
     pending: std::collections::VecDeque<Heredoc>,
     /// The body currently being consumed.
@@ -309,11 +327,31 @@ impl Scanner {
     /// Inside `'...'`: everything is literal, the next `'` closes.
     fn step_single(&mut self, bytes: &[u8], i: usize, marks: &mut [bool]) -> usize {
         if bytes[i] == b'\'' {
-            self.stack.pop();
+            self.pop_quote();
         } else {
             marks[i] = true;
         }
         i + 1
+    }
+
+    /// Remember where the OUTERMOST open quote began, so the EOF fail-safe can
+    /// discard a mask built on an unterminated one.
+    fn push_quote(&mut self, ctx: Ctx, i: usize) {
+        if self.quote_open_at.is_none() {
+            self.quote_open_at = Some((self.line_no, i + 1));
+        }
+        self.stack.push(ctx);
+    }
+
+    fn pop_quote(&mut self) {
+        self.stack.pop();
+        if !self
+            .stack
+            .iter()
+            .any(|c| matches!(c, Ctx::Single | Ctx::Double))
+        {
+            self.quote_open_at = None;
+        }
     }
 
     /// Inside `"..."`: literal, except the expansions that re-enter code.
@@ -327,7 +365,7 @@ impl Scanner {
                 i + 2
             }
             b'"' => {
-                self.stack.pop();
+                self.pop_quote();
                 i + 1
             }
             b'`' => {
@@ -347,11 +385,11 @@ impl Scanner {
         match bytes[i] {
             b'\\' => i + 2,
             b'\'' => {
-                self.stack.push(Ctx::Single);
+                self.push_quote(Ctx::Single, i);
                 i + 1
             }
             b'"' => {
-                self.stack.push(Ctx::Double);
+                self.push_quote(Ctx::Double, i);
                 i + 1
             }
             b'`' => {
@@ -709,6 +747,97 @@ mod tests {
         }
         for code in ["SC1020", "SC1035", "SC1140"] {
             assert!(is_quote_sensitive(code), "{code} is shell syntax");
+        }
+    }
+
+    #[test]
+    fn test_GH226_quoting_unterminated_quote_does_not_blind_later_lines() {
+        // Fail-safe: without it, the unclosed quote on line 2 masks everything
+        // after it and SC1020 stops seeing the real defect on line 3.
+        let src = "echo start\necho 'unterminated\n[ -f x]\n";
+        let regions = QuotedRegions::analyze(src);
+        assert!(!regions.is_literal(3, 7), "line 3 must stay lintable");
+        assert!(
+            !regions.is_literal(2, 8),
+            "the guessed region is discarded too"
+        );
+        assert_eq!(mask_literals(src), src, "nothing may be masked");
+    }
+
+    #[test]
+    fn test_GH226_quoting_terminated_multiline_quote_is_still_masked() {
+        // The fail-safe must not fire when the quote does close.
+        let src = "echo 'a\nb'\n[ -f x]\n";
+        let regions = QuotedRegions::analyze(src);
+        assert!(regions.is_literal(1, 7), "the quoted text is still literal");
+        assert!(!regions.is_literal(3, 7));
+    }
+
+    /// Every allowlist entry, paired with the rule it names.
+    ///
+    /// Each right-hand side is a compile-time reference to the rule module, so
+    /// an entry naming a rule that does not exist cannot be added — which is
+    /// how 11 of the original 22 entries (SC1046..SC1073) went unnoticed.
+    fn allowlisted_checks() -> Vec<(&'static str, fn(&str) -> crate::linter::LintResult)> {
+        use crate::linter::rules::*;
+        vec![
+            ("SC1014", sc1014::check),
+            ("SC1020", sc1020::check),
+            ("SC1026", sc1026::check),
+            ("SC1035", sc1035::check),
+            ("SC1036", sc1036::check),
+            ("SC1037", sc1037::check),
+            ("SC1041", sc1041::check),
+            ("SC1044", sc1044::check),
+            ("SC1045", sc1045::check),
+            ("SC1065", sc1065::check),
+            ("SC1140", sc1140::check),
+        ]
+    }
+
+    #[test]
+    fn test_GH226_quoting_allowlist_names_only_rules_that_exist() {
+        let known = allowlisted_checks();
+        for code in QUOTE_SENSITIVE_RULES {
+            assert!(
+                known.iter().any(|(c, _)| c == code),
+                "{code} is allowlisted but names no rule module"
+            );
+        }
+        assert_eq!(
+            known.len(),
+            QUOTE_SENSITIVE_RULES.len(),
+            "allowlist and module list must stay in step"
+        );
+    }
+
+    #[test]
+    fn test_GH226_quoting_allowlisted_rules_find_nothing_in_a_pure_literal() {
+        // The property the allowlist exists for: given a line that is entirely
+        // a quoted string, no allowlisted rule may report anything once the
+        // literal is masked — whatever shell-looking text the string contains.
+        let sources = [
+            // No `$10` here: an expansion inside double quotes is real code,
+            // and SC1037 is right to report it. Only the *text* is masked.
+            r#"echo "if [ x] ; then for i in done ] function(a,b) ( ) fi""#,
+            r#"echo 'case x in [0-9]) do done esac ] { } function f(a) [[ ]] $10'"#,
+            r#"printf '  x Found [[ ]] (bash-specific) and function keyword
+'"#,
+        ];
+        for src in sources {
+            let masked = mask_literals(src);
+            for (code, check) in allowlisted_checks() {
+                let found = check(&masked);
+                assert!(
+                    found.diagnostics.is_empty(),
+                    "{code} fired inside a string literal: {:?} on {src}",
+                    found
+                        .diagnostics
+                        .iter()
+                        .map(|d| &d.message)
+                        .collect::<Vec<_>>()
+                );
+            }
         }
     }
 
