@@ -40,6 +40,8 @@ pub mod shell_type;
 /// Word / command-position analysis shared by lint rules (GH-228, GH-229)
 pub mod shell_words;
 pub mod suppression;
+/// Timestamp sink analysis shared by DET002 (GH-230)
+pub(crate) mod timestamp_flow;
 
 pub use autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};
 pub use citl::{CitlDiagnostic, CitlExport, CitlSpan, CitlSuggestion, CitlSummary};

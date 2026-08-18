@@ -391,7 +391,7 @@ fn explain_why(code: &str) -> String {
         "SEC023" => "Data exfiltration (reverse shells, DNS exfil, curl POST) leaks sensitive data.",
         "SEC024" => "Race conditions (TOCTOU, symlink attacks) enable privilege escalation.",
         "DET001" => "$RANDOM produces different values on each run, making output unpredictable.",
-        "DET002" => "date/time commands produce different output on each run.",
+        "DET002" => "A timestamp that reaches a build artifact's name or contents makes the build unreproducible.",
         "DET003" => "$$ (process ID) changes on each invocation, breaking reproducibility.",
         "DET004" => "System state commands (df, free, ps, etc.) return different values each time.",
         "IDEM001" => "mkdir without -p fails if the directory already exists.",
@@ -422,7 +422,9 @@ fn explain_fix(code: &str) -> String {
         "SEC023" => "Remove exfiltration vectors. Use firewall rules to restrict outbound connections.",
         "SEC024" => "Use atomic operations (mv, flock) instead of check-then-act sequences.",
         "DET001" => "Accept randomness as a parameter: ${SEED:-42} instead of $RANDOM.",
-        "DET002" => "Use a fixed timestamp parameter: ${BUILD_TIME:-$(date +%s)}",
+        // GH-230: the old advice, `${BUILD_TIME:-$(date +%s)}`, was itself
+        // flagged by DET002. Reading SOURCE_DATE_EPOCH clears the rule.
+        "DET002" => "Derive build timestamps from SOURCE_DATE_EPOCH: BUILD_DATE=$(date -u -d \"@${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}\" +%Y%m%d). Timestamps that only reach logs (>>, tee -a, logger) are not flagged.",
         "DET003" => "Use a fixed identifier instead of $$: ${RUN_ID:-default}",
         "DET004" => "Pass system state as parameters instead of querying at runtime.",
         "IDEM001" => "Use mkdir -p to create directories idempotently.",

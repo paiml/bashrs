@@ -66,6 +66,21 @@ falsification_tests:
   prediction: lint result does NOT contain DET002
   test: 'Given input, verify: lint result does NOT contain DET002'
   if_fails: 'Contract violation: DET002 does NOT flag static string assignment'
+- id: F-DET002-SINK
+  rule: DET002 detects a timestamp that reaches a build artifact path
+  prediction: lint result contains DET002 for cp a "b_$(date +%s)"
+  test: 'Given input, verify: lint result contains DET002 for an artifact path'
+  if_fails: 'Contract violation: DET002 detects a timestamp reaching a build artifact path'
+- id: F-DET002-LOG
+  rule: DET002 does NOT flag a timestamp on an append-only log sink
+  prediction: lint result does NOT contain DET002
+  test: 'Given input, verify: lint result does NOT contain DET002'
+  if_fails: 'Contract violation: DET002 does NOT flag a timestamp on an append-only log'
+- id: F-DET002-SDE
+  rule: DET002 does NOT flag a timestamp derived from SOURCE_DATE_EPOCH
+  prediction: lint result does NOT contain DET002
+  test: 'Given input, verify: lint result does NOT contain DET002'
+  if_fails: 'Contract violation: DET002 must not fire on its own remedy (GH-230)'
 - id: F-DET003-SOUND
   rule: DET003 detects unordered glob in for-loop
   prediction: lint result contains DET003
