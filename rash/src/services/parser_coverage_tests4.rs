@@ -356,6 +356,4 @@ fn test_eprintln_macro_expr_in_match() {
 
 // === Match expression in let position ===
 
-#[test]
-
 include!("parser_coverage_tests4_tests_match_expr.rs");

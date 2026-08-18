@@ -18,7 +18,7 @@
 use std::path::PathBuf;
 
 use crate::installer::audit::{
-    AuditCategory, AuditContext, AuditFinding, AuditMetadata, AuditReport, AuditSeverity,
+    AuditCategory, AuditContext, AuditFinding, AuditReport, AuditSeverity,
 };
 
 // =============================================================================
@@ -392,7 +392,5 @@ fn test_AUDIT_COV_report_format_multiple_categories() {
     assert!(formatted.contains("Hermetic\n"));
     assert!(formatted.contains("Best Practices\n"));
 }
-
-#[test]
 
 include!("audit_tests_tests_AUDIT_2.rs");

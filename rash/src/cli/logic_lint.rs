@@ -62,6 +62,11 @@ pub enum FileType {
     Shell,
     Makefile,
     Dockerfile,
+    /// A `.rs` file. bashrs lints shell, Makefiles and Dockerfiles; it has no
+    /// Rust rules, and running the SHELL rules over Rust produced nonsense —
+    /// `let x = 42;` came back as SC1068 "don't put spaces around the = in
+    /// 'let' assignments" on perfectly good Rust.
+    Rust,
     Unknown,
 }
 
@@ -71,6 +76,8 @@ impl FileType {
             FileType::Makefile
         } else if super::is_dockerfile(filename) {
             FileType::Dockerfile
+        } else if filename.ends_with(".rs") {
+            FileType::Rust
         } else {
             FileType::Shell
         }
@@ -90,6 +97,10 @@ pub fn process_lint(source: &str, filename: &str, options: &LintOptions) -> Lint
         FileType::Dockerfile => lint_dockerfile_with_profile(source, profile),
         FileType::Shell => lint_shell(source),
         FileType::Unknown => lint_shell(source),
+        // No Rust rules exist. Returning nothing is honest; running the shell
+        // rules is not. The caller reports this rather than printing a clean
+        // bill of health.
+        FileType::Rust => crate::linter::LintResult::new(),
     };
 
     // Determine minimum severity

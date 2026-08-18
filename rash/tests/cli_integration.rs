@@ -28,28 +28,35 @@ fn bashrs_cmd() -> Command {
     assert_cmd::cargo_bin_cmd!("bashrs")
 }
 
-/// Create a temporary Rust file with given content
-fn create_temp_rust_file(content: &str) -> NamedTempFile {
-    let mut file = NamedTempFile::new().expect("Failed to create temp file");
+/// Create a temporary file carrying the extension the tool dispatches on.
+///
+/// The suffix is load-bearing: these helpers used to create extensionless temp
+/// files, so `bashrs lint` could not tell Rust from shell and linted a `.rs`
+/// fixture with SHELL rules — `let x = 42;` came back as SC1068 "don't put
+/// spaces around the = in 'let' assignments".
+fn create_temp_file_with_suffix(content: &str, suffix: &str) -> NamedTempFile {
+    let mut file = tempfile::Builder::new()
+        .suffix(suffix)
+        .tempfile()
+        .expect("Failed to create temp file");
     file.write_all(content.as_bytes())
         .expect("Failed to write to temp file");
     file
+}
+
+/// Create a temporary Rust file with given content
+fn create_temp_rust_file(content: &str) -> NamedTempFile {
+    create_temp_file_with_suffix(content, ".rs")
 }
 
 /// Create a temporary shell script with given content
 fn create_temp_shell_file(content: &str) -> NamedTempFile {
-    let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(content.as_bytes())
-        .expect("Failed to write to temp file");
-    file
+    create_temp_file_with_suffix(content, ".sh")
 }
 
 /// Create a temporary Makefile with given content
 fn create_temp_makefile(content: &str) -> NamedTempFile {
-    let mut file = NamedTempFile::new().expect("Failed to create temp file");
-    file.write_all(content.as_bytes())
-        .expect("Failed to write to temp file");
-    file
+    create_temp_file_with_suffix(content, ".mk")
 }
 
 // ============================================================================
@@ -244,9 +251,19 @@ fn test_CLI_004_init_new_project() {
 fn test_CLI_004_init_current_directory() {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
 
+    // `init` requires an explicit PATH — its own help says so: "(required —
+    // prevents accidental CWD mutation)". Asserting that a bare `init`
+    // succeeds asserted the absence of that safety property.
     bashrs_cmd()
         .current_dir(temp_dir.path())
         .arg("init")
+        .assert()
+        .failure();
+
+    bashrs_cmd()
+        .current_dir(temp_dir.path())
+        .arg("init")
+        .arg("proj")
         .assert()
         .success();
 }
@@ -263,14 +280,21 @@ fn main() {
 }
 "#;
 
-    let shell_script = r#"#!/bin/sh
-printf '%s\n' "Hello"
-"#;
-
     let rust_file = create_temp_rust_file(rust_code);
-    let shell_file = create_temp_shell_file(shell_script);
+    let shell_file = create_temp_shell_file("");
 
-    // Note: This test may fail depending on exact verification implementation
+    // `verify` compares the source against what the transpiler emits, so the
+    // shell side has to BE that emission. Hand-writing it and hoping for a
+    // match is why this carried a "may fail depending on the implementation"
+    // note; transpile-then-verify is the property actually worth asserting.
+    bashrs_cmd()
+        .arg("build")
+        .arg(rust_file.path())
+        .arg("-o")
+        .arg(shell_file.path())
+        .assert()
+        .success();
+
     bashrs_cmd()
         .arg("verify")
         .arg(rust_file.path())
@@ -298,7 +322,10 @@ fn test_CLI_005_verify_nonexistent_rust() {
 
 #[test]
 fn test_CLI_006_inspect_ast_json() {
-    let ast_json = r#"{"type": "Program", "body": []}"#;
+    // The real TinyAst schema is an externally-tagged enum; `{"type":"Program"}`
+    // was never a shape this tool accepted.
+    let ast_json =
+        r#"{"Sequence":{"commands":[{"ExecuteCommand":{"command_name":"echo","args":["hi"]}}]}}"#;
 
     bashrs_cmd()
         .arg("inspect")
@@ -311,7 +338,10 @@ fn test_CLI_006_inspect_ast_json() {
 
 #[test]
 fn test_CLI_006_inspect_markdown_output() {
-    let ast_json = r#"{"type": "Program", "body": []}"#;
+    // The real TinyAst schema is an externally-tagged enum; `{"type":"Program"}`
+    // was never a shape this tool accepted.
+    let ast_json =
+        r#"{"Sequence":{"commands":[{"ExecuteCommand":{"command_name":"echo","args":["hi"]}}]}}"#;
 
     bashrs_cmd()
         .arg("inspect")
@@ -324,7 +354,10 @@ fn test_CLI_006_inspect_markdown_output() {
 
 #[test]
 fn test_CLI_006_inspect_with_detailed_traces() {
-    let ast_json = r#"{"type": "Program", "body": []}"#;
+    // The real TinyAst schema is an externally-tagged enum; `{"type":"Program"}`
+    // was never a shape this tool accepted.
+    let ast_json =
+        r#"{"Sequence":{"commands":[{"ExecuteCommand":{"command_name":"echo","args":["hi"]}}]}}"#;
 
     bashrs_cmd()
         .arg("inspect")
@@ -359,6 +392,4 @@ fn main() {
         .success();
 }
 
-#[test]
-
-include!("cli_integration_tests_CLI_2.rs");
+include!("fragments/cli_integration_tests_CLI_2.rs");

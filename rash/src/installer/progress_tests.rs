@@ -352,6 +352,4 @@ fn test_PROGRESS_COV_013_json_full_render() {
     assert!(out.contains("\"completed\": 1") && out.contains("\"failed\": 1"));
 }
 
-#[test]
-
 include!("progress_tests_tests_PROGRESS.rs");

@@ -211,66 +211,65 @@ fn test_is_already_quoted_braced_not_immediately() {
     // dollar at 4, var ends at 8, after starts with }
     // No quote immediately before or after
     assert!(!is_already_quoted(line, 4, 8));
+}
+#[test]
+fn test_is_already_quoted_odd_quote_braced() {
+    // Inside quoted string with braced var - odd quote count
+    let line = r#"x="prefix${VAR}suffix""#;
+    // One quote before the $, then }suffix" has quote
+    // dollar at 10, var ends at 14 (VAR)
+    assert!(is_already_quoted(line, 10, 14));
+}
 
-    #[test]
-    fn test_is_already_quoted_odd_quote_braced() {
-        // Inside quoted string with braced var - odd quote count
-        let line = r#"x="prefix${VAR}suffix""#;
-        // One quote before the $, then }suffix" has quote
-        // dollar at 10, var ends at 14 (VAR)
-        assert!(is_already_quoted(line, 10, 14));
-    }
+#[test]
+fn test_is_already_quoted_escaped_quote_before() {
+    // Escaped quote doesn't count
+    let line = r#"echo \"$VAR"#;
+    // The \" is escaped, so quote count is 0 (even)
+    // dollar at 7, ends at 11
+    assert!(!is_already_quoted(line, 7, 11));
+}
 
-    #[test]
-    fn test_is_already_quoted_escaped_quote_before() {
-        // Escaped quote doesn't count
-        let line = r#"echo \"$VAR"#;
-        // The \" is escaped, so quote count is 0 (even)
-        // dollar at 7, ends at 11
-        assert!(!is_already_quoted(line, 7, 11));
-    }
+// ===== FORMAT VAR TEXT =====
 
-    // ===== FORMAT VAR TEXT =====
+#[test]
+fn test_format_var_text_simple() {
+    assert_eq!(format_var_text("VAR", false), "$VAR");
+    assert_eq!(format_var_text("foo", false), "$foo");
+}
 
-    #[test]
-    fn test_format_var_text_simple() {
-        assert_eq!(format_var_text("VAR", false), "$VAR");
-        assert_eq!(format_var_text("foo", false), "$foo");
-    }
+#[test]
+fn test_format_var_text_braced() {
+    assert_eq!(format_var_text("VAR", true), "${VAR}");
+    assert_eq!(format_var_text("foo", true), "${foo}");
+}
 
-    #[test]
-    fn test_format_var_text_braced() {
-        assert_eq!(format_var_text("VAR", true), "${VAR}");
-        assert_eq!(format_var_text("foo", true), "${foo}");
-    }
+// ===== FORMAT QUOTED VAR =====
 
-    // ===== FORMAT QUOTED VAR =====
+#[test]
+fn test_format_quoted_var_simple() {
+    assert_eq!(format_quoted_var("VAR", false), "\"$VAR\"");
+}
 
-    #[test]
-    fn test_format_quoted_var_simple() {
-        assert_eq!(format_quoted_var("VAR", false), "\"$VAR\"");
-    }
+#[test]
+fn test_format_quoted_var_braced() {
+    assert_eq!(format_quoted_var("VAR", true), "\"${VAR}\"");
+}
 
-    #[test]
-    fn test_format_quoted_var_braced() {
-        assert_eq!(format_quoted_var("VAR", true), "\"${VAR}\"");
-    }
+// ===== LINE HAS ARITHMETIC MARKERS =====
 
-    // ===== LINE HAS ARITHMETIC MARKERS =====
+#[test]
+fn test_line_has_arithmetic_markers_command_sub() {
+    assert!(line_has_arithmetic_markers("x=$(( a + b ))"));
+}
 
-    #[test]
-    fn test_line_has_arithmetic_markers_command_sub() {
-        assert!(line_has_arithmetic_markers("x=$(( a + b ))"));
-    }
+#[test]
+fn test_line_has_arithmetic_markers_standalone() {
+    assert!(line_has_arithmetic_markers("(( i++ ))"));
+}
 
-    #[test]
-    fn test_line_has_arithmetic_markers_standalone() {
-        assert!(line_has_arithmetic_markers("(( i++ ))"));
-    }
-
-    #[test]
-    fn test_line_has_arithmetic_markers_none() {
-        assert!(!line_has_arithmetic_markers("echo $VAR"));
-        assert!(!line_has_arithmetic_markers("ls -la"));
-    }
+#[test]
+fn test_line_has_arithmetic_markers_none() {
+    assert!(!line_has_arithmetic_markers("echo $VAR"));
+    assert!(!line_has_arithmetic_markers("ls -la"));
 }

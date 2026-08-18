@@ -1,3 +1,4 @@
+#[test]
 fn test_BUILTIN_020_unset_exit_status() {
     let mut lexer = Lexer::new(BUILTIN_020_UNSET_EXIT_STATUS_INPUT);
     let result = lexer.tokenize();

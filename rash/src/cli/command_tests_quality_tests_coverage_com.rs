@@ -1,3 +1,4 @@
+#[test]
 fn test_coverage_command_lcov() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("script.sh");

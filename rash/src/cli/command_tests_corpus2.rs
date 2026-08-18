@@ -241,7 +241,7 @@ mod compare_percentile {
         let data: Vec<f64> = (1..=10).map(|x| x as f64).collect();
         let result = percentile(&data, 90.0);
         assert!(
-            result >= 1.0 && result <= 10.0,
+            (1.0..=10.0).contains(&result),
             "P90 should be in range [1,10], got {result}"
         );
     }

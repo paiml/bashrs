@@ -1,3 +1,4 @@
+#[test]
 fn test_literal_u16_suffix() {
     let ast = parse(r#"#[bashrs::main] fn f(x: u16) { let v: u16 = 1000u16; }"#).unwrap();
     assert!(

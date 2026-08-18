@@ -371,6 +371,4 @@ echo $RELEASE
 // Test: PURIFY_007 - Idempotency Transformations
 // ============================================================================
 
-#[test]
-
-include!("cli_purify_tests_tests_PURIFY.rs");
+include!("fragments/cli_purify_tests_tests_PURIFY.rs");

@@ -917,7 +917,9 @@ mod tests {
     /// Each right-hand side is a compile-time reference to the rule module, so
     /// an entry naming a rule that does not exist cannot be added — which is
     /// how 11 of the original 22 entries (SC1046..SC1073) went unnoticed.
-    fn allowlisted_checks() -> Vec<(&'static str, fn(&str) -> crate::linter::LintResult)> {
+    type LintCheck = fn(&str) -> crate::linter::LintResult;
+
+    fn allowlisted_checks() -> Vec<(&'static str, LintCheck)> {
         use crate::linter::rules::*;
         vec![
             ("SC1014", sc1014::check),

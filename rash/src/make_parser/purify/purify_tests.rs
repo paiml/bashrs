@@ -356,6 +356,4 @@ fn test_purify_reproducible_detect_bare_random() {
     );
 }
 
-#[test]
-
 include!("purify_tests_tests_purify_2.rs");

@@ -1,9 +1,7 @@
 #![allow(clippy::expect_used)]
 use super::*;
-use crate::ast::restricted::{BinaryOp, Literal, UnaryOp};
+use crate::ast::restricted::{BinaryOp, Literal};
 use crate::ast::{Expr, Function, RestrictedAst, Stmt, Type};
-use proptest::prelude::*;
-use rstest::*;
 
 // Helper: wrap a single let statement in a main function and convert to IR
 

@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_reproducible_detect_process_id() {
     let ast = make_ast(vec![var("TMP", "/tmp/build_$$$$")]);
     let result = reproducible_builds::analyze_reproducible_builds(&ast);
@@ -347,7 +348,5 @@ fn test_purify_is_safe_detect_missing_dependency() {
     };
     assert!(!report::is_safe_transformation(&t));
 }
-
-#[test]
 
 include!("purify_tests_tests_purify.rs");

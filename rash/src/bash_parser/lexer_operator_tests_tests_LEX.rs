@@ -1,3 +1,4 @@
+#[test]
 fn test_LEX_OP_BRACE_003_nested_brace_expansion() {
     let tokens = lex("echo {a,{b,c}}");
     assert!(

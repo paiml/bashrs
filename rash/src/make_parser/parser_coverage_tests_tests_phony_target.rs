@@ -1,3 +1,4 @@
+#[test]
 fn test_phony_target_marked() {
     let input = ".PHONY: build test\nbuild:\n\tcargo build\ntest:\n\tcargo test";
     let ast = parse_makefile(input).unwrap();

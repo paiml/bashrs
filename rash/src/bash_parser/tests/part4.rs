@@ -364,6 +364,4 @@ echo $HOME
     // Common use: Quickly return to home directory
 }
 
-#[test]
-
 include!("part4_builtin_005.rs");

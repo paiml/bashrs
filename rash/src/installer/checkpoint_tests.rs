@@ -353,6 +353,4 @@ fn test_CHECKPOINT_COV_hermetic_consistency_matching_hash() {
     assert!(result.is_ok());
 }
 
-#[test]
-
 include!("checkpoint_tests_tests_CHECKPOINT.rs");

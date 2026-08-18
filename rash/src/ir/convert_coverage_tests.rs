@@ -376,6 +376,4 @@ fn test_fn_context_for_array_and_variable() {
     assert_seq(&from_ast(&ast2).unwrap());
 }
 
-#[test]
-
 include!("convert_coverage_tests_tests_fn_context.rs");

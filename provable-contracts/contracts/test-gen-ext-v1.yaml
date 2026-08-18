@@ -1,0 +1,122 @@
+metadata:
+  version: 1.0.0
+  description: 'Test generation extension contract (PMAT-223). Verifies that bashrs test --generate emits property test stubs
+    (idempotency, determinism, POSIX, safety) and integration test stubs (exit codes, output validation, environment isolation)
+    via the --generate-type flag with values: unit (default), property, integration, all.'
+  references:
+  - 'PMAT-223: TEST-GEN-EXT Sprint 9'
+  - docs/specifications/unified-testing-quality-spec.md
+equations:
+  test_generation:
+    formula: generate(script, type) -> test_suite where type in {unit, property, integration}
+    domain: 'script: bash script, type: TestGenType'
+    codomain: String (BATS-compatible test suite)
+    invariants:
+    - Generated tests are syntactically valid BATS
+    - Property tests check idempotency and determinism
+proof_obligations:
+- type: invariant
+  property: Generated tests are syntactically valid BATS
+  formal: Generated tests are syntactically valid BATS
+  applies_to: all
+- type: invariant
+  property: Property tests check idempotency and determinism
+  formal: Property tests check idempotency and determinism
+  applies_to: all
+invariants:
+- --generate-type unit produces BATS unit test stubs (default behavior)
+- --generate-type property produces idempotency, determinism, POSIX, and safety checks
+- --generate-type integration produces exit code, output, environment, and workflow tests
+- --generate-type all concatenates unit + property + integration output
+- Property tests include at least 3 idempotency, 3 determinism, 3 POSIX, and 3 safety checks
+- Integration tests include exit code, stdout, stderr, and environment isolation checks
+- Output to file works for all generate types
+falsification_tests:
+- id: F-TGE-PROP-HEADER
+  rule: Property type emits correct header
+  prediction: 'bashrs test <script> --generate --generate-type property outputs text containing "Property Tests" and "--generate-type
+    property"
+
+    '
+  test: test_PMAT223_generate_type_property_header
+  if_fails: Property test generation header is missing or incorrect
+- id: F-TGE-PROP-IDEMP
+  rule: Property type emits idempotency checks
+  prediction: 'Output contains @test blocks for "idempotency: running twice", "no mkdir without -p", and "no rm without -f"
+
+    '
+  test: test_PMAT223_property_idempotency_checks
+  if_fails: Idempotency property tests not generated
+- id: F-TGE-PROP-DETERM
+  rule: Property type emits determinism checks
+  prediction: 'Output contains @test blocks for "no RANDOM usage", "no process ID usage", and "no date-dependent output"
+
+    '
+  test: test_PMAT223_property_determinism_checks
+  if_fails: Determinism property tests not generated
+- id: F-TGE-PROP-POSIX
+  rule: Property type emits POSIX compliance checks
+  prediction: 'Output contains @test blocks for syntax check, no bashisms, no source keyword
+
+    '
+  test: test_PMAT223_property_posix_checks
+  if_fails: POSIX compliance property tests not generated
+- id: F-TGE-PROP-SAFETY
+  rule: Property type emits safety checks
+  prediction: 'Output contains @test blocks for no eval, no curl-pipe-sh, no chmod 777
+
+    '
+  test: test_PMAT223_property_safety_checks
+  if_fails: Safety property tests not generated
+- id: F-TGE-INTEG-HEADER
+  rule: Integration type emits correct header
+  prediction: 'bashrs test <script> --generate --generate-type integration outputs text containing "Integration Tests" and
+    "--generate-type integration"
+
+    '
+  test: test_PMAT223_generate_type_integration_header
+  if_fails: Integration test generation header is missing or incorrect
+- id: F-TGE-INTEG-EXIT
+  rule: Integration type emits exit code and output tests
+  prediction: 'Output contains @test blocks for "exits with 0", "produces output on stdout", "no errors on stderr"
+
+    '
+  test: test_PMAT223_integration_exit_code_tests
+  if_fails: Exit code/output integration tests not generated
+- id: F-TGE-INTEG-ENV
+  rule: Integration type emits environment isolation test
+  prediction: 'Output contains @test block for "works in clean environment" with env -i
+
+    '
+  test: test_PMAT223_integration_env_isolation
+  if_fails: Environment isolation integration test not generated
+- id: F-TGE-ALL
+  rule: All type combines unit + property + integration
+  prediction: 'bashrs test <script> --generate --generate-type all produces output containing unit markers ("script exists"),
+    property markers ("idempotency:"), and integration markers ("integration:")
+
+    '
+  test: test_PMAT223_generate_type_all_includes_all
+  if_fails: All type does not combine all three test categories
+- id: F-TGE-DEFAULT-UNIT
+  rule: Default generate type is unit
+  prediction: 'bashrs test <script> --generate (without --generate-type) produces unit tests but NOT property or integration
+    tests
+
+    '
+  test: test_PMAT223_generate_type_unit_is_default
+  if_fails: Default generate type is not unit
+- id: F-TGE-HELP
+  rule: Help text documents --generate-type flag
+  prediction: 'bashrs test --help output contains "generate-type"
+
+    '
+  test: test_PMAT223_generate_type_in_help
+  if_fails: --generate-type not documented in help
+kani_harnesses:
+- id: KANI-TEST_GEN_EXT-001
+  obligation: Generated tests are syntactically valid BATS
+  property: Generated tests are syntactically valid BATS
+  bound: 4
+  strategy: stub_float
+  harness: verify_test_gen_ext_invariant

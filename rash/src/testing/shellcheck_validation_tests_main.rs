@@ -1,3 +1,4 @@
+#[test]
 fn test_shellcheck_long_variable_names() {
     let source = r#"
         fn main() {

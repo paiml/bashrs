@@ -1,3 +1,4 @@
+#[test]
 fn test_AUDIT_COV_report_format_empty_findings() {
     let report = AuditReport::new("clean", "1.0.0", PathBuf::from("/clean"));
     let formatted = report.format();
@@ -364,7 +365,5 @@ content = """
     assert!(bp005.is_some());
     assert!(bp005.unwrap().description.contains("60 lines"));
 }
-
-#[test]
 
 include!("audit_tests_tests_AUDIT.rs");

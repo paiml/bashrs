@@ -1,3 +1,4 @@
+#[test]
 fn test_config_validation_level_paranoid() {
     let cfg = Config {
         validation_level: Some(ValidationLevel::Paranoid),

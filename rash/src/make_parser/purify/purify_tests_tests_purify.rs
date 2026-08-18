@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_is_safe_detect_output_conflict() {
     let t = Transformation::DetectOutputConflict {
         target_names: vec!["a".to_string()],

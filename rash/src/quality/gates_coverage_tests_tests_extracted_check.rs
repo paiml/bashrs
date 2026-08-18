@@ -117,8 +117,6 @@
     // ── Partial TOML parsing (missing sections get defaults) ──
 
     #[test]
-
-    #[test]
     fn test_coverage_run_gate_clippy_disabled() {
         let config = GateConfig {
             gates: GatesConfig {

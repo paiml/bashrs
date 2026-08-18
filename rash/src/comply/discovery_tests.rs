@@ -357,7 +357,7 @@ fn test_artifact_kind_copy() {
 #[test]
 fn test_artifact_kind_clone() {
     let kind = ArtifactKind::Makefile;
-    let kind2 = kind.clone();
+    let kind2 = kind;
     assert_eq!(kind, kind2);
 }
 

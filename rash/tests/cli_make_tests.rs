@@ -256,6 +256,4 @@ fn test_CLI_MAKE_005_purify_report() {
     cleanup(makefile);
 }
 
-#[test]
-
-include!("cli_make_tests_tests_CLI.rs");
+include!("fragments/cli_make_tests_tests_CLI.rs");

@@ -394,6 +394,4 @@ fn test_REDIR_001_bash_vs_posix_input_redir() {
 // REDIR-002: Output Redirection (>, >>) (POSIX, SUPPORTED)
 // ============================================================================
 
-#[test]
-
 include!("part3_s2_redir_002.rs");

@@ -370,6 +370,4 @@ fn test_COMPLY_CLI_050_check_uses_config_when_present() {
         .stdout(predicate::str::contains("COMPLIANCE CHECK"));
 }
 
-#[test]
-
-include!("cli_comply_tests_tests_comply_cli.rs");
+include!("fragments/cli_comply_tests_tests_comply_cli.rs");

@@ -349,6 +349,4 @@ fn test_POSIX_COV_016_while_general_expression() {
     assert!(result.contains("[ "));
 }
 
-#[test]
-
 include!("posix_tests_tests_POSIX.rs");

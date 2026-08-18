@@ -1,3 +1,4 @@
+#[test]
 fn test_BUILTIN_011_pwd_basic() {
     // DOCUMENTATION: pwd prints current working directory
     // Most common form, no flags

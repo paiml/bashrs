@@ -121,7 +121,7 @@ fn test_grade_from_fail_count_all_grades() {
 fn test_schema_layer_counts_all_pass() {
     use super::corpus_viz_commands::schema_layer_counts;
     let results = vec![mock_result("B-001", true), mock_result("B-002", true)];
-    let entries = vec![
+    let entries = [
         mock_entry("B-001", "test1", CorpusFormat::Bash),
         mock_entry("B-002", "test2", CorpusFormat::Bash),
     ];
@@ -137,7 +137,7 @@ fn test_schema_layer_counts_all_pass() {
 fn test_schema_layer_counts_all_fail() {
     use super::corpus_viz_commands::schema_layer_counts;
     let results = vec![mock_result("B-001", false), mock_result("B-002", false)];
-    let entries = vec![
+    let entries = [
         mock_entry("B-001", "t1", CorpusFormat::Bash),
         mock_entry("B-002", "t2", CorpusFormat::Bash),
     ];
@@ -153,7 +153,7 @@ fn test_schema_layer_counts_all_fail() {
 fn test_schema_layer_counts_partial() {
     use super::corpus_viz_commands::schema_layer_counts;
     let results = vec![mock_result_partial("B-001")];
-    let entries = vec![mock_entry("B-001", "t1", CorpusFormat::Bash)];
+    let entries = [mock_entry("B-001", "t1", CorpusFormat::Bash)];
     let indices: Vec<(usize, &CorpusEntry)> = entries.iter().enumerate().collect();
     let (l1, l2, l3, l4) = schema_layer_counts(&results, &indices);
     assert_eq!(l1, 1); // transpiled
@@ -350,7 +350,5 @@ fn test_corpus_print_failures_empty() {
     let result = corpus_print_failures(&failures, &CorpusOutputFormat::Human);
     assert!(result.is_ok());
 }
-
-#[test]
 
 include!("command_tests_display_tests_corpus.rs");

@@ -1,3 +1,4 @@
+#[test]
 fn test_POSIX_COV_017_emit_while_condition_recursive() {
     use crate::ir::shell_ir::ComparisonOp;
     let config = Config::default();

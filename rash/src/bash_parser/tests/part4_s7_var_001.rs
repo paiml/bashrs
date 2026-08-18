@@ -1,3 +1,4 @@
+#[test]
 fn test_VAR_001_home_variable_supported() {
     // DOCUMENTATION: HOME is SUPPORTED (POSIX environment variable, HIGH priority)
     //
@@ -136,3 +137,19 @@ rm -f "$temp_file"
 PATH="$HOME/.local/bin:$PATH"
 export PATH
 "#;
+
+#[test]
+fn test_VAR_001_home_common_patterns_parse_s() {
+    // Wire up VAR_001_HOME_COMMON_PATTERNS_INPUT: it documents 8 real-world $HOME
+    // idioms but nothing fed it to the parser, so clippy correctly flagged it dead.
+    for (i, line) in VAR_001_HOME_COMMON_PATTERNS_INPUT.lines().enumerate() {
+        if line.trim().is_empty() || line.trim_start().starts_with('#') {
+            continue;
+        }
+        assert!(
+            BashParser::new(line).is_ok(),
+            "line {} should at least tokenize: {line:?}",
+            i + 1
+        );
+    }
+}

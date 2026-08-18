@@ -368,6 +368,4 @@ fn test_purify_strict_mode_rejects_random() {
 
 // ============== Command purification tests ==============
 
-#[test]
-
 include!("tests_tests_purify_4.rs");

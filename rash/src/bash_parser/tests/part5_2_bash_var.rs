@@ -1,3 +1,4 @@
+#[test]
 fn test_BASH_VAR_003_seconds_not_supported() {
     // $SECONDS is NOT SUPPORTED (non-deterministic, time-dependent)
     let seconds_variable = concat!(

@@ -1,3 +1,4 @@
+#[test]
 fn test_AUDIT_COV_parsed_spec_qual003_no_timeout() {
     use crate::installer::spec::InstallerSpec;
 

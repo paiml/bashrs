@@ -1,3 +1,4 @@
+#[test]
 fn test_posix_sh_shebang_ok() {
     let art = shell_artifact();
     let result = check_rule(RuleId::Posix, "#!/bin/sh\necho hello\n", &art);

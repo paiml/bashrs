@@ -180,8 +180,6 @@ fn test_noop_emission() {
     assert!(result.contains(":"));
 }
 
-#[test]
-
 include!("tests_tests_header_and.rs");
 include!("tests_emitter_api.rs");
 include!("tests_emitter_args.rs");

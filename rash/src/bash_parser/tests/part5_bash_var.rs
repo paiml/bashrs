@@ -1,3 +1,4 @@
+#[test]
 fn test_BASH_VAR_002_random_common_antipatterns() {
     // DOCUMENTATION: Common $RANDOM antipatterns and their fixes (8 antipatterns)
     //

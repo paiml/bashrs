@@ -385,6 +385,4 @@ cat data.txt > result.txt 2>&1
     }
 }
 
-#[test]
-
 include!("part3_3_redir_003.rs");

@@ -376,6 +376,4 @@ CMD ["bash"]
 // PHASE 5 (RED): Tests for DOCKER005 - Add --no-install-recommends
 // ============================================================================
 
-#[test]
-
-include!("cli_dockerfile_purify_tests_dockerfile_2.rs");
+include!("fragments/cli_dockerfile_purify_tests_dockerfile_2.rs");

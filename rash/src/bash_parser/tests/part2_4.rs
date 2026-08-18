@@ -365,6 +365,4 @@ printf 'Total duration: %d seconds\n' "$duration"
     // Scripts are explicit (log when you need to log)
 }
 
-#[test]
-
 include!("part2_4_prompt_001.rs");

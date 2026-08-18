@@ -430,6 +430,4 @@ printf 'Error: %s\n' "msg" >&2   # Errors to stderr
 // VAR-001: HOME Environment Variable (POSIX SUPPORTED - HIGH PRIORITY)
 // ============================================================================
 
-#[test]
-
 include!("part4_7_var_001.rs");

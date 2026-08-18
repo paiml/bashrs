@@ -1,3 +1,4 @@
+#[test]
 fn test_BUILTIN_010_export_command_supported() {
     // DOCUMENTATION: export is SUPPORTED (POSIX builtin)
     // export sets and exports environment variables to child processes

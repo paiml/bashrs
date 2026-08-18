@@ -1,3 +1,4 @@
+#[test]
 fn test_parse_assignment_append() {
     // The lexer tokenizes `x+=more` as Identifier("x"), Identifier("+="), Identifier("more")
     // but parse_statement dispatches to parse_identifier_statement which handles +=

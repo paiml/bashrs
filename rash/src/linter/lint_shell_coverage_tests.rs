@@ -351,6 +351,4 @@ fn test_lint_shell_det_date() {
     let _count = result.diagnostics.len();
 }
 
-#[test]
-
 include!("lint_shell_coverage_tests_tests_lint_2.rs");

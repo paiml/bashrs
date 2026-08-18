@@ -1,4 +1,11 @@
 
+// These fixture structs mirror the real InstallerSpec shape for readability
+// even where a given field/variant has no reader yet in this test module —
+// `author`, `TestStep::name`, `has_checkpoint`, `has_timing` and
+// `TestAction::Other` document the spec faithfully without every one being
+// exercised by the audit tests below.
+#![allow(dead_code)]
+
 use super::*;
 use crate::installer::spec::InstallerSpec;
 

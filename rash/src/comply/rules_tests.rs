@@ -38,14 +38,6 @@ fn config_artifact() -> Artifact {
     )
 }
 
-fn workflow_artifact() -> Artifact {
-    Artifact::new(
-        PathBuf::from(".github/workflows/ci.yml"),
-        Scope::Project,
-        ArtifactKind::Workflow,
-    )
-}
-
 // =============================================================================
 // RuleId methods
 // =============================================================================
@@ -348,7 +340,5 @@ fn test_determinism_comments_skipped() {
 // =============================================================================
 // Idempotency (COMPLY-003)
 // =============================================================================
-
-#[test]
 
 include!("rules_tests_tests_idempotency.rs");

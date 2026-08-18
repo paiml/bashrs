@@ -1,6 +1,5 @@
 use super::*;
-use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
-use crate::bash_parser::parser_arith::ArithToken;
+use crate::bash_parser::ast::{BashExpr, BashStmt, Redirect};
 
 fn parse_for_c_style_parts(input: &str) -> (String, String, String) {
     let mut parser = BashParser::new(input).expect("parser init");

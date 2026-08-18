@@ -366,6 +366,4 @@ fn test_PMAT142_corpus_model_card_to_file() {
 // bashrs corpus training-config
 // ============================================================================
 
-#[test]
-
-include!("cli_ssc_tests_tests_pmat142_corp.rs");
+include!("fragments/cli_ssc_tests_tests_pmat142_corp.rs");

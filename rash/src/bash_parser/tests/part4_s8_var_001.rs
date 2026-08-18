@@ -1,3 +1,4 @@
+#[test]
 fn test_VAR_001_home_comparison_table() {
     // COMPREHENSIVE COMPARISON: HOME in POSIX vs Bash
     //

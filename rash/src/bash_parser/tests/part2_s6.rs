@@ -390,6 +390,4 @@ command3
     // - Deterministic flow (no interactive selection)
 }
 
-#[test]
-
 include!("part2_s6_edit_001.rs");

@@ -362,6 +362,4 @@ fn test_purify_command_with_lint() {
     let _ = result;
 }
 
-#[test]
-
 include!("command_tests_tools_tests_purify.rs");

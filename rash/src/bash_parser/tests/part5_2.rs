@@ -423,6 +423,4 @@ token=$(openssl rand -hex 32)  # 2^256 values, cryptographic
 // OPTION 3: Remove timing logic entirely
 // INPUT: echo "Script ran for $SECONDS seconds"
 // PURIFIED: echo "Script completed"
-#[test]
-
 include!("part5_2_bash_var.rs");

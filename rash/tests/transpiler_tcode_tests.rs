@@ -348,6 +348,4 @@ fn test_t021_precedence() {
     }
 }
 
-#[test]
-
-include!("transpiler_tcode_tests_tests_t022_groupin.rs");
+include!("fragments/transpiler_tcode_tests_tests_t022_groupin.rs");

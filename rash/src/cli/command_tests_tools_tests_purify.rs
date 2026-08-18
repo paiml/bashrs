@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_command_with_output_and_report() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("messy.sh");

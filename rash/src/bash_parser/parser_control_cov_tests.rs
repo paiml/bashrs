@@ -26,10 +26,6 @@ fn parse_ok(input: &str) {
     );
 }
 
-fn parse_ok_result(input: &str) -> super::ast::BashAst {
-    BashParser::new(input).and_then(|mut p| p.parse()).unwrap()
-}
-
 // ---------------------------------------------------------------------------
 // C-style for loop: parse_for_c_style via double-paren tokens
 // ---------------------------------------------------------------------------

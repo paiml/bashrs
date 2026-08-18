@@ -363,6 +363,4 @@ fn test_shellcheck_variable_shadowing() {
 // PROPERTY 7: Long variable names pass ShellCheck
 // ============================================================================
 
-#[test]
-
 include!("shellcheck_validation_tests_main.rs");

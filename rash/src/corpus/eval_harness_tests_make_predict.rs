@@ -120,7 +120,7 @@ fn test_fix_validity_with_fix() {
         gt_slice.iter().map(|g| (g.id.as_str(), g)).collect();
     let validity = compute_fix_validity(&pred_slice, &gt_map);
     // The fix "echo \"$var\"" should not trigger SEC001 (quoted var)
-    assert!(validity >= 0.0 && validity <= 1.0);
+    assert!((0.0..=1.0).contains(&validity));
 }
 
 #[test]

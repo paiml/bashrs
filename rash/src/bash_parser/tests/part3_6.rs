@@ -351,6 +351,4 @@ TMPFILE="/tmp/$(basename "$0").tmp"
     }
 }
 
-#[test]
-
 include!("part3_6_param_spec.rs");

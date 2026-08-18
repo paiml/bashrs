@@ -1,3 +1,4 @@
+#[test]
 fn test_build_command_empty_file() {
     let temp_dir = TempDir::new().unwrap();
     let input_path = temp_dir.path().join("empty.rs");

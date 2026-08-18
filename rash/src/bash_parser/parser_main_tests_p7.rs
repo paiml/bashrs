@@ -294,12 +294,6 @@ mod tokenize_arithmetic_tests {
         parser.tokenize_arithmetic(input).unwrap()
     }
 
-    /// Helper: call tokenize_arithmetic expecting an error
-    fn tokenize_err(input: &str) -> ParseError {
-        let parser = BashParser::new("echo x").unwrap();
-        parser.tokenize_arithmetic(input).unwrap_err()
-    }
-
     #[test]
     fn test_arith_tok_001_empty_input() {
         let tokens = tokenize("");

@@ -385,6 +385,4 @@ bg %1
     // All forms require interactive job suspension, NOT SUPPORTED.
 }
 
-#[test]
-
 include!("part2_s5_job_003.rs");

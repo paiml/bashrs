@@ -465,6 +465,4 @@ trap "exit 1" INT    # Exit on Ctrl-C
 // Use export for variables needed by child processes
 // Quote values with spaces for safety
 
-#[test]
-
 include!("part4_s2_builtin_010.rs");

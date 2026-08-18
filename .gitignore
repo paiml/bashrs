@@ -79,10 +79,14 @@ install.sh
 *.tar.gz
 bootstrap-report.json
 
-# Test artifacts (consolidated under tests/)
-test_*.rs
-test-*
-*_test.rs
+# Test artifacts. ROOT-ANCHORED on purpose: these were unanchored, so they
+# matched at any depth and silently swallowed 18 real files — including
+# rash/src/cli/test_generate.rs and 13 suites under rash/tests/. A source file
+# that git cannot see is a file CI never compiles and a fresh clone does not
+# have.
+/test_*.rs
+/test-*
+/*_test.rs
 /tests/fixtures/tmp/
 /tests/shellcheck-output/
 

@@ -382,6 +382,4 @@ RUN apt-get install -y curl
 // MATRIX TEST 7: Cross-File Type Idempotency (Property Test)
 // ============================================================================
 
-#[test]
-
-include!("canonical_matrix_test_matrix_prope.rs");
+include!("fragments/canonical_matrix_test_matrix_prope.rs");

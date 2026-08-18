@@ -1,3 +1,4 @@
+#[test]
 fn test_check_if_statement() {
     let mut checker = TypeChecker::new();
     let ast = make_ast(vec![BashStmt::If {

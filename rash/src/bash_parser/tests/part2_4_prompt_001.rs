@@ -1,3 +1,4 @@
+#[test]
 fn test_PROMPT_001_interactive_vs_script_mode_hooks() {
     // DOCUMENTATION: Interactive hooks vs script mode
     //

@@ -1,3 +1,4 @@
+#[test]
 fn test_SPCOV_027_println_expr_position() {
     // Test println! as the last expression in a block (expr position)
     let code = r#"
@@ -349,7 +350,5 @@ fn test_SPCOV_050_skip_type_alias() {
     "#;
     parse_ok(code);
 }
-
-#[test]
 
 include!("parser_coverage_tests5_counter.rs");

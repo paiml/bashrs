@@ -1,12 +1,11 @@
 #[cfg(test)]
 mod inspector_coverage {
-    use std::collections::HashMap;
+
     use std::path::PathBuf;
 
     use crate::formal::{
-        AbstractState, AnnotatedAst, EmitterJustification, EnvChange, EquivalenceAnalysis,
-        ExecutionStep, ExecutionTrace, FileSystemEntry, FilesystemChange, ProofInspector,
-        StateTransformation, TinyAst, VerificationReport, VerificationResult,
+        AbstractState, EnvChange, FilesystemChange, ProofInspector, TinyAst, VerificationReport,
+        VerificationResult,
     };
 
     // ── builder helpers ──────────────────────────────────────────────────────

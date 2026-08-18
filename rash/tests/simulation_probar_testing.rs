@@ -356,6 +356,4 @@ fn test_simulation_resource_limits() {
 // S8xx: ESCAPE SEQUENCES
 // ============================================================================
 
-#[test]
-
-include!("simulation_probar_testing_simulation_e.rs");
+include!("fragments/simulation_probar_testing_simulation_e.rs");

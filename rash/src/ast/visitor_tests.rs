@@ -75,16 +75,6 @@ impl Visitor<()> for ExprTypeVisitor {
     }
 }
 
-/// Test mutable visitor that transforms expressions
-struct ExprTransformVisitor;
-
-impl VisitorMut<()> for ExprTransformVisitor {
-    fn visit_ast_mut(&mut self, _ast: &mut RestrictedAst) {}
-    fn visit_function_mut(&mut self, _function: &mut Function) {}
-    fn visit_stmt_mut(&mut self, _stmt: &mut Stmt) {}
-    fn visit_expr_mut(&mut self, _expr: &mut Expr) {}
-}
-
 #[test]
 fn test_counting_visitor() {
     let mut visitor = CountingVisitor::new();

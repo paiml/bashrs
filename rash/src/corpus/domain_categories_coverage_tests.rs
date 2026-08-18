@@ -9,7 +9,7 @@ use crate::corpus::domain_categories::{
     DomainCategory,
 };
 use crate::corpus::registry::Grade;
-use crate::corpus::runner::{CorpusScore, FormatScore};
+use crate::corpus::runner::CorpusScore;
 
 fn make_stats(cat: DomainCategory, total: usize, capacity: usize, passed: usize) -> CategoryStats {
     let failed = total.saturating_sub(passed);

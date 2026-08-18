@@ -1,3 +1,4 @@
+#[test]
 fn test_reproducible_builds_random_in_variable() {
     let ast = MakeAst {
         items: vec![MakeItem::Variable {

@@ -1,3 +1,4 @@
+#[test]
 fn test_CORPUS_RUN_049_lint_rate_serde_roundtrip() {
     let entry = ConvergenceEntry {
         lint_passed: 890,

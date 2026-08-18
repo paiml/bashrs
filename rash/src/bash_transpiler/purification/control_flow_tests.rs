@@ -7,7 +7,6 @@
 #![allow(clippy::expect_used)]
 
 use super::*;
-use crate::bash_parser::ast::*;
 
 /// Construct a Purifier with default options.
 fn make_purifier() -> Purifier {
@@ -358,7 +357,5 @@ fn test_purify_control_flow_for_c_style_basic() {
 }
 
 // ===== 12. ForCStyle — init/condition/increment preserved as-is =====
-
-#[test]
 
 include!("control_flow_tests_tests_purify_2.rs");

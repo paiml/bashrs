@@ -1,3 +1,4 @@
+#[test]
 fn test_PROGRESS_COV_014_summary_format_success() {
     let s = InstallationSummary {
         name: "my-app".into(),

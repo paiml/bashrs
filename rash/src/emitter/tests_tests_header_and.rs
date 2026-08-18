@@ -1,3 +1,4 @@
+#[test]
 fn test_header_and_footer_structure() {
     let config = Config::default();
     let emitter = PosixEmitter::new();

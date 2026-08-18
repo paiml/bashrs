@@ -322,8 +322,6 @@ fn test_config_load_returns_none_when_missing() {
     assert!(ComplyConfig::load(dir.path()).is_none());
 }
 
-#[test]
-
 include!("tests_s2_tests_config_load.rs");
 include!("tests_s2_rules.rs");
 include!("tests_s2_security.rs");

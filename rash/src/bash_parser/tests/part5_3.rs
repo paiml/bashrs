@@ -361,6 +361,4 @@ test_retry_deterministic() {
     // NEVER use $SECONDS in test code
 }
 
-#[test]
-
 include!("part5_3_bash_var.rs");

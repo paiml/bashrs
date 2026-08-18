@@ -233,15 +233,17 @@ fn main() {
     // Current behavior: Constant folding (result=15)
     // Alternative: Arithmetic expansion (result=$((10 + 5)))
     assert!(
-        add_script.contains("+") || add_script.contains("add") || add_script.contains("result=15"),
+        add_script.contains("+")
+            || add_script.contains("add")
+            || add_script.contains("result='15'"),
         "Addition operator should appear OR constant-fold to 15"
     );
     assert!(
-        sub_script.contains("-") || sub_script.contains("sub") || sub_script.contains("result=5"),
+        sub_script.contains("-") || sub_script.contains("sub") || sub_script.contains("result='5'"),
         "Subtraction operator should appear OR constant-fold to 5"
     );
     assert!(
-        div_script.contains("/") || div_script.contains("div") || div_script.contains("result=2"),
+        div_script.contains("/") || div_script.contains("div") || div_script.contains("result='2'"),
         "Division operator should appear OR constant-fold to 2"
     );
 }

@@ -1,3 +1,4 @@
+#[test]
 fn test_BASH_BUILTIN_005_printf_format_specifiers() {
     // DOCUMENTATION: printf format specifiers (POSIX)
     //

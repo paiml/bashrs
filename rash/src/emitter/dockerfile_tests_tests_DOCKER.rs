@@ -1,3 +1,4 @@
+#[test]
 fn test_DOCKER_COV_022_from_image_pushes_existing_stage() {
     // Two from_image calls — second one pushes the first stage
     let ast = make_simple_ast(vec![

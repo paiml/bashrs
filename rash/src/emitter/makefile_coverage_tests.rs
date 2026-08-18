@@ -352,6 +352,4 @@ fn test_MCOV_023_rash_print_no_newline() {
     assert!(result.contains("no newline"));
 }
 
-#[test]
-
 include!("makefile_coverage_tests_tests_MCOV.rs");

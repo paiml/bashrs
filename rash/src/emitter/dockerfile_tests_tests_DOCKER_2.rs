@@ -1,3 +1,4 @@
+#[test]
 fn test_DOCKER_COV_008_expr_to_string_i32() {
     // Line 314: Literal::I32 in expr_to_string
     let ast = make_simple_ast(vec![
@@ -373,7 +374,5 @@ fn test_DOCKER_COV_021_no_stage_run_copy_env() {
     // Instructions before FROM should have been skipped (no stage)
     assert!(!result.contains("RUN"), "No RUN before FROM");
 }
-
-#[test]
 
 include!("dockerfile_tests_tests_DOCKER.rs");

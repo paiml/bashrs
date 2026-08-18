@@ -331,31 +331,6 @@ impl ValidationPipeline {
         Ok(())
     }
 
-    #[cfg(test)]
-    pub(crate) fn validate_expression(&self, expr: &crate::ir::ShellExpression) -> RashResult<()> {
-        use crate::ir::ShellExpression;
-
-        match expr {
-            ShellExpression::Variable(name, quoted) => {
-                if !quoted && self.level >= ValidationLevel::Minimal {
-                    return Err(RashError::ValidationError(format!(
-                        "Unquoted variable ${name} (SC2086)"
-                    )));
-                }
-            }
-            ShellExpression::Command(cmd) => {
-                if cmd.contains('`') && self.level >= ValidationLevel::Minimal {
-                    return Err(RashError::ValidationError(
-                        "Use $(...) instead of backticks (SC2006)".to_string(),
-                    ));
-                }
-            }
-            ShellExpression::String(_) => {}
-            ShellExpression::Arithmetic(_) => {}
-        }
-        Ok(())
-    }
-
     #[cfg(debug_assertions)]
     pub(crate) fn verify_with_embedded_rules(&self, script: &str) -> RashResult<()> {
         super::rules::validate_all(script)

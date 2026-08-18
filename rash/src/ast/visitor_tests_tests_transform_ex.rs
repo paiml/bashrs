@@ -1,3 +1,4 @@
+#[test]
 fn test_transform_exprs_deep_nested_modification() {
     let mut ast = RestrictedAst {
         functions: vec![Function {

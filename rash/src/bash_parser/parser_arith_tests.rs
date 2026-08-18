@@ -356,6 +356,4 @@ fn test_arith_ternary() {
 // Exponentiation
 // ===========================================================================
 
-#[test]
-
 include!("parser_arith_tests_tests_arith.rs");

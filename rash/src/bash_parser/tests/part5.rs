@@ -382,6 +382,4 @@ echo "Hash-based number: $num"
     // AVOID: Strategy 5 (/dev/urandom) unless cryptographic randomness required
 }
 
-#[test]
-
 include!("part5_bash_var.rs");

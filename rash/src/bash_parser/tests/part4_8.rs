@@ -397,6 +397,4 @@ fi
     }
 }
 
-#[test]
-
 include!("part4_8_var_001.rs");

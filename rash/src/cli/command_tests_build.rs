@@ -360,6 +360,4 @@ fn test_init_command_creates_rash_config() {
 
 // Sprint 40: build_command configuration variants
 
-#[test]
-
 include!("command_tests_build_tests_build_comman_2.rs");

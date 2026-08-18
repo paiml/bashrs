@@ -382,6 +382,4 @@ fn test_BASH_BUILTIN_003_let_refactoring() {
 // - select menu → config file or case statement
 // - TTY checks → assume batch mode always
 
-#[test]
-
 include!("part2_task_1.rs");

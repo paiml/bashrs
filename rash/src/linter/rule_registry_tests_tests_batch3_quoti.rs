@@ -1,3 +1,4 @@
+#[test]
 fn test_batch3_quoting_rules_universal() {
     // Quoting and glob safety rules (SC2053-SC2058, SC2060-SC2063, SC2065-SC2066)
     let quoting_rules = vec![

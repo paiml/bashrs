@@ -1,3 +1,4 @@
+#[test]
 fn test_lint_shell_det_process_id() {
     let script = "echo $$\n";
     let result = lint_shell(script);
@@ -351,7 +352,5 @@ fn test_lint_shell_result_has_diagnostic_fields() {
         assert!(diag.span.start_line >= 1, "Diagnostic line should be >= 1");
     }
 }
-
-#[test]
 
 include!("lint_shell_coverage_tests_tests_lint.rs");

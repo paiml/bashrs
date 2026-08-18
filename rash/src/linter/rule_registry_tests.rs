@@ -371,6 +371,4 @@ fn test_batch3_critical_security_rules_universal() {
     }
 }
 
-#[test]
-
 include!("rule_registry_tests_tests_batch3_quoti.rs");

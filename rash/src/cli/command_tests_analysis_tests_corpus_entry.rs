@@ -1,3 +1,4 @@
+#[test]
 fn test_corpus_entry_new_makefile_no_shellcheck() {
     let entry = CorpusEntry::new(
         "M-001",

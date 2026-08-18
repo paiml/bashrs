@@ -1,3 +1,4 @@
+#[test]
 fn test_ECOV_040_test_bool_false() {
     let r = e()
         .emit(&if_ir(ShellValue::Bool(false), ShellIR::Noop, None))

@@ -1,3 +1,4 @@
+#[test]
 fn test_CORPUS_RUN_035_per_format_convergence_entry() {
     // Verify convergence_entry extracts per-format stats from CorpusScore
     let runner = CorpusRunner::new(Config::default());
@@ -376,7 +377,5 @@ fn test_CORPUS_RUN_048_lint_rate_in_convergence() {
     assert_eq!(entry.lint_passed, 2);
     assert!((entry.lint_rate - 2.0 / 3.0).abs() < 0.01);
 }
-
-#[test]
 
 include!("runner_tests_tests_CORPUS.rs");

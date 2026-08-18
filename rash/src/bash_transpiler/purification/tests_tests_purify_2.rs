@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_command_substitution() {
     let ast = BashAst {
         statements: vec![BashStmt::Assignment {
@@ -359,7 +360,5 @@ fn test_purify_remove_prefix() {
 
     assert!(!purifier.report().determinism_fixes.is_empty());
 }
-
-#[test]
 
 include!("tests_tests_purify.rs");

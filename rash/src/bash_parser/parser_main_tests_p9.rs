@@ -1,6 +1,5 @@
 use super::*;
-use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
-use crate::bash_parser::parser_arith::ArithToken;
+use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt};
 #[test]
 fn test_ARITH_EXPR_008_logical_not() {
     // !x becomes Sub(Number(-1), Variable("x"))

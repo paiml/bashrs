@@ -1,3 +1,4 @@
+#[test]
 fn test_exclusive_for_range_with_variable_end_subtracts_one() {
     use crate::ast::restricted::Pattern;
 

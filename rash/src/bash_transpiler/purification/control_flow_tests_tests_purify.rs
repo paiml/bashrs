@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_control_flow_if_purifies_else_body() {
     let mut purifier = make_purifier();
     let stmt = BashStmt::If {

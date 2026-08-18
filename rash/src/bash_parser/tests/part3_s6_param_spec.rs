@@ -1,3 +1,4 @@
+#[test]
 fn test_PARAM_SPEC_003_process_id_in_subshells() {
     // DOCUMENTATION: $$ behavior in subshells (POSIX gotcha)
     //

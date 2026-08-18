@@ -101,11 +101,7 @@ fn main() {
 
     // 4. Summary
     println!("\n3. Summary");
-    println!(
-        "   {} → {}",
-        cwe_mapping::summary(),
-        "CWE taxonomy verified"
-    );
+    println!("   {} → CWE taxonomy verified", cwe_mapping::summary());
     println!("   Pipeline config: configs/pipeline/ssc.yaml");
     println!("   QA gate: configs/qa/ssc-release-v1.yaml");
     println!("   Training: configs/train/ssc-qwen3-4b-qlora.yaml");

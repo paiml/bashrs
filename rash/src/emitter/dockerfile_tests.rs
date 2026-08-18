@@ -1,4 +1,4 @@
-#[allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used)]
 use super::*;
 use crate::ast::restricted::{Function, Type};
 
@@ -357,7 +357,5 @@ fn test_DOCKER_BUILD_014_comment() {
         "Comment in: {result}"
     );
 }
-
-#[test]
 
 include!("dockerfile_tests_tests_DOCKER_3.rs");

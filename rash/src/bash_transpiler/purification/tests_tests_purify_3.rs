@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_for_loop() {
     let ast = BashAst {
         statements: vec![BashStmt::For {
@@ -370,7 +371,5 @@ fn test_purify_coproc() {
 }
 
 // ============== Expression purification tests ==============
-
-#[test]
 
 include!("tests_tests_purify_2.rs");

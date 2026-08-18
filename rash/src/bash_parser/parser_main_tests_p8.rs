@@ -1,5 +1,5 @@
 use super::*;
-use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
+use crate::bash_parser::ast::{ArithExpr, BashStmt};
 use crate::bash_parser::parser_arith::ArithToken;
 #[test]
 fn test_arith_tok_015_octal_numbers() {
@@ -397,12 +397,6 @@ mod parse_arithmetic_expr_tests {
     fn parse_arith(input: &str) -> ArithExpr {
         let mut parser = BashParser::new("echo x").unwrap();
         parser.parse_arithmetic_expr(input).unwrap()
-    }
-
-    /// Helper: parse expecting an error
-    fn parse_arith_err(input: &str) -> ParseError {
-        let mut parser = BashParser::new("echo x").unwrap();
-        parser.parse_arithmetic_expr(input).unwrap_err()
     }
 
     // ── Primary (Level 15) ────────────────────────────────────────────

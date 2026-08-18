@@ -1,3 +1,4 @@
+#[test]
 fn test_arith_power() {
     // 2 ** 10 => Mul(Number(2), Number(10))  -- power lowered to Mul
     assert_eq!(

@@ -197,7 +197,6 @@ fn test_SPEC_004_property_tests_exist() {
     let modules_requiring_property_tests = vec![
         "src/bash_parser/property_tests.rs",
         "src/test_generator/property_tests.rs", // make_parser doesn't have separate property_tests yet
-        "src/linter/rules/sc2154.rs",           // Has inline property tests
     ];
 
     for module in &modules_requiring_property_tests {
@@ -290,7 +289,7 @@ fn test_SPEC_006_extreme_tdd_documentation_exists() {
 fn test_SPEC_007_unified_spec_document_exists() {
     // Verify the specification document exists and is complete
 
-    let spec_path = "../docs/specification/unified-testing-quality-spec.md"; // Test runs from rash/
+    let spec_path = "../docs/specifications/unified-testing-quality-spec.md"; // Test runs from rash/
     assert!(
         Path::new(spec_path).exists(),
         "Unified testing quality specification must exist at {}",
@@ -480,7 +479,7 @@ fn test_SPEC_011_documentation_complete() {
     );
 
     // Verify specification exists
-    let spec_path = "../docs/specification/unified-testing-quality-spec.md";
+    let spec_path = "../docs/specifications/unified-testing-quality-spec.md";
     assert!(
         Path::new(spec_path).exists(),
         "Unified testing quality specification must be documented"

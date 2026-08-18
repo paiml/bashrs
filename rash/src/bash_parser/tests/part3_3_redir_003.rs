@@ -1,3 +1,4 @@
+#[test]
 fn test_REDIR_003_purification_strategy() {
     // DOCUMENTATION: Purification strategy for &> redirection
     //

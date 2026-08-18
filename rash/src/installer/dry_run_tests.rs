@@ -355,6 +355,4 @@ fn test_DRYRUN_COV_summary_has_changes_true_from_packages() {
     assert!(summary.has_changes());
 }
 
-#[test]
-
 include!("dry_run_tests_tests_DRYRUN.rs");

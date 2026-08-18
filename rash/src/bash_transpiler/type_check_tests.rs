@@ -370,6 +370,4 @@ fn test_declare_uppercase_a_sets_assoc_array() {
     );
 }
 
-#[test]
-
 include!("type_check_tests_tests_declare_with.rs");

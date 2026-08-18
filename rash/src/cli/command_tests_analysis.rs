@@ -72,7 +72,7 @@ fn test_percentile_sorted_data() {
     let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0];
     let p50 = percentile(&data, 50.0);
     // idx = (50/100 * 9).round() = 4.5.round() = 4 => data[4] = 5.0 (or 6.0 depending on rounding)
-    assert!(p50 >= 5.0 && p50 <= 6.0, "P50 should be ~5.5, got {p50}");
+    assert!((5.0..=6.0).contains(&p50), "P50 should be ~5.5, got {p50}");
     let p0 = percentile(&data, 0.0);
     assert!((p0 - 1.0).abs() < 0.01);
     let p100 = percentile(&data, 100.0);
@@ -84,7 +84,7 @@ fn test_percentile_p90() {
     use super::corpus_compare_commands::percentile;
     let data: Vec<f64> = (1..=100).map(|i| i as f64).collect();
     let p90 = percentile(&data, 90.0);
-    assert!(p90 >= 89.0 && p90 <= 91.0, "P90 should be ~90, got {p90}");
+    assert!((89.0..=91.0).contains(&p90), "P90 should be ~90, got {p90}");
 }
 
 #[test]
@@ -351,7 +351,5 @@ fn test_corpus_entry_new_defaults() {
     assert!(entry.deterministic);
     assert!(entry.idempotent);
 }
-
-#[test]
 
 include!("command_tests_analysis_tests_corpus_entry.rs");

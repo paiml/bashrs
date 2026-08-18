@@ -1,3 +1,4 @@
+#[test]
 fn test_IR_EXPR_023_exec_function_call() {
     let out = transpile_main(r#"exec("ls -la");"#);
     // exec() maps to eval in shell

@@ -1,3 +1,4 @@
+#[test]
 fn test_EXPR_VAL_021_unary_neg() {
     let ir = convert_let_stmt(
         "neg",

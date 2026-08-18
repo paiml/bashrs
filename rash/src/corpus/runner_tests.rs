@@ -1,4 +1,4 @@
-#[allow(clippy::unwrap_used)]
+#![allow(clippy::unwrap_used)]
 use super::*;
 use crate::corpus::registry::CorpusTier;
 

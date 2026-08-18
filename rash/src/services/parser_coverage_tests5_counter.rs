@@ -1,3 +1,4 @@
+#[test]
 fn test_SPCOV_051_skip_trait_item() {
     let code = r#"
         trait Greet { fn hello(&self); }

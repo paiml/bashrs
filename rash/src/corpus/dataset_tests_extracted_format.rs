@@ -671,8 +671,8 @@
         assert_eq!(total, 100);
         // Hash-based split should give roughly 80/10/10
         assert!(result.train.len() > 50, "Train should be majority: {}", result.train.len());
-        assert!(result.val.len() > 0, "Val should have entries");
-        assert!(result.test.len() > 0, "Test should have entries");
+        assert!(!result.val.is_empty(), "Val should have entries");
+        assert!(!result.test.is_empty(), "Test should have entries");
     }
 
     #[test]

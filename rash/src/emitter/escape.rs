@@ -147,7 +147,7 @@ pub fn escape_shell_into(s: &str, out: &mut [u8]) -> Option<usize> {
     escape_bytes_into(s.as_bytes(), out)
 }
 
-/// Byte-level form of [`is_valid_shell_identifier`]: `[A-Za-z_][A-Za-z0-9_]*`, non-empty.
+/// `[A-Za-z_][A-Za-z0-9_]*`, non-empty.
 ///
 /// Equivalent to the char version — the predicate is ASCII-only, so any non-ASCII byte
 /// fails it exactly as any non-ASCII char fails the char version.
@@ -305,17 +305,6 @@ pub fn escape_command_name(cmd: &str) -> String {
 #[cfg(test)]
 fn is_safe_unquoted(s: &str) -> bool {
     is_safe_unquoted_bytes(s.as_bytes())
-}
-
-/// Check if a string is a valid POSIX shell identifier (ASCII only).
-///
-/// Delegates to [`is_valid_shell_identifier_bytes`]; the two are equivalent because the
-/// predicate admits ASCII only.
-///
-/// Test-only since GH-225, for the same reason as [`is_safe_unquoted`].
-#[cfg(test)]
-fn is_valid_shell_identifier(name: &str) -> bool {
-    is_valid_shell_identifier_bytes(name.as_bytes())
 }
 
 /// Check if a command name is safe

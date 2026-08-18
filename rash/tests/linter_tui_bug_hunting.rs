@@ -398,6 +398,4 @@ fn hunt_snapshot_stability() {
 // BUG HUNT: Frame Sequence Transitions
 // ============================================================================
 
-#[test]
-
-include!("linter_tui_bug_hunting_tests_hunt_frame.rs");
+include!("fragments/linter_tui_bug_hunting_tests_hunt_frame.rs");

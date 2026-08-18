@@ -1,3 +1,4 @@
+#[test]
 fn test_PORTABILITY_001_detect_bashisms() {
     // ARRANGE: Makefile with bash-specific syntax
     let makefile = r#"

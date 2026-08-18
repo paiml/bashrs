@@ -277,8 +277,7 @@ fn test_overall_ready_true_when_no_fail() {
 
 #[test]
 fn test_overall_ready_false_when_fail_present() {
-    let sections = vec![
-        SscSection {
+    let sections = [SscSection {
             name: "Good".to_string(),
             spec_ref: "S1".to_string(),
             status: SscStatus::Pass,
@@ -289,8 +288,7 @@ fn test_overall_ready_false_when_fail_present() {
             spec_ref: "S2".to_string(),
             status: SscStatus::Fail,
             metrics: vec![],
-        },
-    ];
+        }];
     let overall_ready = sections.iter().all(|s| s.status != SscStatus::Fail);
     assert!(!overall_ready);
 }

@@ -427,6 +427,4 @@ fn test_compound_bitwise_assigns() {
 // convert_literal: suffix variants
 // ============================================================================
 
-#[test]
-
 include!("parser_coverage_tests2_tests_literal_u16.rs");

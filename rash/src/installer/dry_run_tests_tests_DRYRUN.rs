@@ -1,3 +1,4 @@
+#[test]
 fn test_DRYRUN_COV_summary_has_changes_true_from_services() {
     let summary = DryRunSummary {
         services_enabled: 1,

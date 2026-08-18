@@ -1,3 +1,4 @@
+#[test]
 fn test_CHECKPOINT_COV_hermetic_consistency_mismatched_hash() {
     let temp_dir = TempDir::new().unwrap();
     let mut store = CheckpointStore::new(temp_dir.path()).unwrap();

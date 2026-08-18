@@ -250,7 +250,7 @@ fn test_conditional_nested() {
     match &ast.items[0] {
         MakeItem::Conditional { then_items, .. } => {
             // Inner conditional should be parsed
-            assert!(then_items.len() >= 1);
+            assert!(!then_items.is_empty());
         }
         other => panic!("Expected Conditional, got {:?}", other),
     }
@@ -262,7 +262,7 @@ fn test_conditional_with_comment_inside() {
     let ast = parse_makefile(input).unwrap();
     match &ast.items[0] {
         MakeItem::Conditional { then_items, .. } => {
-            assert!(then_items.len() >= 1);
+            assert!(!then_items.is_empty());
         }
         other => panic!("Expected Conditional, got {:?}", other),
     }
@@ -274,7 +274,7 @@ fn test_conditional_with_target_inside() {
     let ast = parse_makefile(input).unwrap();
     match &ast.items[0] {
         MakeItem::Conditional { then_items, .. } => {
-            assert!(then_items.len() >= 1);
+            assert!(!then_items.is_empty());
             assert!(matches!(then_items[0], MakeItem::Target { .. }));
         }
         other => panic!("Expected Conditional, got {:?}", other),
@@ -348,7 +348,5 @@ fn test_pattern_rule_no_recipe() {
 }
 
 // === .PHONY target detection ===
-
-#[test]
 
 include!("parser_coverage_tests_tests_phony_target.rs");

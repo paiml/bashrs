@@ -155,6 +155,4 @@ fn test_codegen_006_shebang_comment_skipped() {
     assert!(output.starts_with("#!/bin/sh\n"));
 }
 
-#[test]
-
 include!("codegen_tests_tests_codegen_2.rs");

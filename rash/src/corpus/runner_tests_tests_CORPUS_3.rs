@@ -1,5 +1,6 @@
 use crate::corpus::runner_helpers::{extract_test_names, format_file_patterns, parse_lcov_file_coverage};
 use std::collections::HashSet;
+#[test]
 fn test_CORPUS_RUN_018_classify_error_type() {
     let (cat, conf) = classify_error("type mismatch in assignment");
     assert_eq!(cat.as_deref(), Some("type_error"));
@@ -349,7 +350,5 @@ fn test_CORPUS_RUN_034_format_file_patterns() {
     let docker_patterns = format_file_patterns(CorpusFormat::Dockerfile);
     assert!(docker_patterns.iter().any(|p| p.contains("dockerfile")));
 }
-
-#[test]
 
 include!("runner_tests_tests_CORPUS_2.rs");

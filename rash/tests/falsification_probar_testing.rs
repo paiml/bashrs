@@ -374,6 +374,4 @@ fn test_falsification_subshells_cmdsub() {
 // 6.8 TRAPS AND SIGNALS (F081-F090)
 // ============================================================================
 
-#[test]
-
-include!("falsification_probar_testing_tests_falsification.rs");
+include!("fragments/falsification_probar_testing_tests_falsification.rs");

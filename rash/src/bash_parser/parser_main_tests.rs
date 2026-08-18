@@ -1,6 +1,5 @@
 use super::*;
-use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
-use crate::bash_parser::parser_arith::ArithToken;
+use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt};
 #[test]
 fn test_parse_simple_assignment() {
     let mut parser = BashParser::new("FOO=bar").unwrap();
@@ -456,16 +455,4 @@ fn test_FORCSTYLE_COV_013_assign_token() {
     // Tests the Token::Assign (=) path in the content reader
     let (init, _, _) = parse_for_c_style_parts("for ((i=0; i<10; i++)); do echo ok; done");
     assert!(init.contains("=") || init.contains("0"));
-}
-
-fn parse_arith(input: &str) -> ArithExpr {
-    let mut parser = BashParser::new(&format!("echo $(({input}))")).expect("parser init");
-    let ast = parser.parse().expect("parse");
-    match &ast.statements[0] {
-        BashStmt::Command { args, .. } => match &args[0] {
-            BashExpr::Arithmetic(expr) => *expr.clone(),
-            other => panic!("Expected Arithmetic, got {other:?}"),
-        },
-        other => panic!("Expected Command, got {other:?}"),
-    }
 }

@@ -372,6 +372,4 @@ echo "Session: $SESSION_ID"
         .stdout(predicate::str::contains("DET001"));
 }
 
-#[test]
-
-include!("test_fix_safety_taxonomy_tests_cont.rs");
+include!("fragments/test_fix_safety_taxonomy_tests_cont.rs");

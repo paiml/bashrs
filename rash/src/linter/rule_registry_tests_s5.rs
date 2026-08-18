@@ -350,6 +350,4 @@ fn test_batch16_parameter_expansion() {
 
 // === BATCH 17 TESTS (6 tests) ===
 
-#[test]
-
 include!("rule_registry_tests_s5_batch17_back.rs");

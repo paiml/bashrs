@@ -350,6 +350,4 @@ fn test_IR_EXPR_022_unary_not() {
 // convert_expr: FunctionCall with exec name
 // ====================================================================
 
-#[test]
-
 include!("ir_expr_tests_tests_IR.rs");

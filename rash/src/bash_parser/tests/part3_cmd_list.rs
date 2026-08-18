@@ -1,3 +1,4 @@
+#[test]
 fn test_CMD_LIST_001_operator_precedence() {
     // DOCUMENTATION: Operator precedence and grouping
     //

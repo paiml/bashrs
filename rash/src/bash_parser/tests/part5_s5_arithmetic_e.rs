@@ -1,3 +1,4 @@
+#[test]
 fn test_arithmetic_expansion_in_loop() {
     let script = r#"
 count=3

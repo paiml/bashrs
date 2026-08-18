@@ -1,3 +1,4 @@
+#[test]
 fn test_expr_collect_function_calls_comprehensive() {
     let mut calls = Vec::new();
 

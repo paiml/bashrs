@@ -290,8 +290,8 @@
 
     /// Tests for Issue #112: audit postconditions not recognized with commands format
     mod issue_112_tests {
-        use super::*;
-        use crate::installer::spec::InstallerSpec;
+        
+        
 
 }
 

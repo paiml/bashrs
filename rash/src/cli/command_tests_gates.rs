@@ -44,8 +44,10 @@ fn mock_result(id: &str, all_pass: bool) -> CorpusResult {
     }
 }
 
-fn mock_result_custom(
-    id: &str,
+/// The nine independent-pass/fail flags `mock_result_custom` used to take
+/// positionally — clippy's `too_many_arguments` was right that nine bools in a
+/// row invites a mis-ordered call that still type-checks.
+struct MockFlags {
     transpiled: bool,
     contains: bool,
     exact: bool,
@@ -54,20 +56,22 @@ fn mock_result_custom(
     deterministic: bool,
     metamorphic: bool,
     cross_shell: bool,
-) -> CorpusResult {
+}
+
+fn mock_result_custom(id: &str, f: MockFlags) -> CorpusResult {
     CorpusResult {
         id: id.to_string(),
-        transpiled,
-        output_contains: contains,
-        output_exact: exact,
-        output_behavioral: behavioral,
+        transpiled: f.transpiled,
+        output_contains: f.contains,
+        output_exact: f.exact,
+        output_behavioral: f.behavioral,
         has_test: true,
         coverage_ratio: 0.5,
         schema_valid: true,
-        lint_clean: lint,
-        deterministic,
-        metamorphic_consistent: metamorphic,
-        cross_shell_agree: cross_shell,
+        lint_clean: f.lint,
+        deterministic: f.deterministic,
+        metamorphic_consistent: f.metamorphic,
+        cross_shell_agree: f.cross_shell,
         expected_output: None,
         actual_output: Some("echo test".into()),
         error: None,
@@ -121,7 +125,19 @@ fn test_corpus_result_score_all_fail() {
 
 #[test]
 fn test_corpus_result_score_partial() {
-    let r = mock_result_custom("B-001", true, true, false, false, true, false, true, false);
+    let r = mock_result_custom(
+        "B-001",
+        MockFlags {
+            transpiled: true,
+            contains: true,
+            exact: false,
+            behavioral: false,
+            lint: true,
+            deterministic: false,
+            metamorphic: true,
+            cross_shell: false,
+        },
+    );
     let s = r.score();
     // A(30) + B1(10) + B2(0, exact=false) + B3(0, contains but behavioral=false => 0? No,
     // b3 = if contains && behavioral -> 7 else 0. contains=true, behavioral=false => 0)
@@ -156,7 +172,19 @@ fn test_result_fail_dims_all_fail() {
 #[test]
 fn test_result_fail_dims_mixed() {
     use super::corpus_failure_commands::result_fail_dims;
-    let r = mock_result_custom("B-001", true, true, false, true, false, true, true, true);
+    let r = mock_result_custom(
+        "B-001",
+        MockFlags {
+            transpiled: true,
+            contains: true,
+            exact: false,
+            behavioral: true,
+            lint: false,
+            deterministic: true,
+            metamorphic: true,
+            cross_shell: true,
+        },
+    );
     let dims = result_fail_dims(&r);
     assert_eq!(dims.len(), 2); // B2 and D
     assert!(dims.contains(&"B2"));
@@ -169,7 +197,19 @@ fn test_count_dimension_failures() {
     let results = vec![
         mock_result("B-001", true),
         mock_result("B-002", false),
-        mock_result_custom("B-003", true, true, false, true, true, true, true, true),
+        mock_result_custom(
+            "B-003",
+            MockFlags {
+                transpiled: true,
+                contains: true,
+                exact: false,
+                behavioral: true,
+                lint: true,
+                deterministic: true,
+                metamorphic: true,
+                cross_shell: true,
+            },
+        ),
     ];
     let dims = count_dimension_failures(&results);
     // "A Transpilation": 1 fail (B-002)
@@ -279,7 +319,19 @@ fn test_result_dim_pass_all_fail() {
 #[test]
 fn test_result_dim_pass_specific() {
     use super::corpus_diag_commands::result_dim_pass;
-    let r = mock_result_custom("B-001", true, false, true, false, true, false, true, false);
+    let r = mock_result_custom(
+        "B-001",
+        MockFlags {
+            transpiled: true,
+            contains: false,
+            exact: true,
+            behavioral: false,
+            lint: true,
+            deterministic: false,
+            metamorphic: true,
+            cross_shell: false,
+        },
+    );
     assert!(result_dim_pass(&r, 0)); // transpiled
     assert!(!result_dim_pass(&r, 1)); // output_contains
     assert!(result_dim_pass(&r, 2)); // output_exact
@@ -336,7 +388,19 @@ fn test_dim_format_rate_different_dims() {
     let registry = crate::corpus::registry::CorpusRegistry {
         entries: vec![mock_entry("B-001", "t1", CorpusFormat::Bash)],
     };
-    let r = mock_result_custom("B-001", true, true, false, true, false, true, false, true);
+    let r = mock_result_custom(
+        "B-001",
+        MockFlags {
+            transpiled: true,
+            contains: true,
+            exact: false,
+            behavioral: true,
+            lint: false,
+            deterministic: true,
+            metamorphic: false,
+            cross_shell: true,
+        },
+    );
     let results = vec![r];
     // dim 0 (transpiled) = true => 100%
     assert!((dim_format_rate(&registry, &results, CorpusFormat::Bash, 0) - 100.0).abs() < 0.01);

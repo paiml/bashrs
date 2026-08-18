@@ -24,7 +24,6 @@
 use super::posix::PosixEmitter;
 use crate::ir::shell_ir::{ArithmeticOp, CaseArm, CasePattern, ComparisonOp};
 use crate::ir::{Command, EffectSet, ShellIR, ShellValue};
-use crate::models::Config;
 
 fn emitter() -> PosixEmitter {
     PosixEmitter::new()

@@ -366,6 +366,4 @@ fn test_parse_assignment_array_large_numeric_index() {
 // Append operator: +=
 // ===========================================================================
 
-#[test]
-
 include!("parser_decl_tests_tests_parse.rs");

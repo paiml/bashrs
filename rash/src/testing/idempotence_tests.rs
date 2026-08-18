@@ -378,6 +378,4 @@ fn test_if_else_if_chain_idempotent() {
 // PROPERTY 7: Boolean expressions in conditions
 // ============================================================================
 
-#[test]
-
 include!("idempotence_tests_main.rs");

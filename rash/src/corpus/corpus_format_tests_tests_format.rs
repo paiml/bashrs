@@ -1,3 +1,4 @@
+#[test]
 fn test_format_convergence_criteria_none_met() {
     let criteria = ConvergenceCriteria {
         rate_met: false,

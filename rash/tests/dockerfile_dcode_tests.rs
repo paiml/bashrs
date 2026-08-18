@@ -351,6 +351,4 @@ CMD ["/app"]
     }
 }
 
-#[test]
-
-include!("dockerfile_dcode_tests_tests_d020_numeric.rs");
+include!("fragments/dockerfile_dcode_tests_tests_d020_numeric.rs");

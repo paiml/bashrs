@@ -349,6 +349,4 @@ build:
 // ========================================
 
 /// Test PORTABILITY_001: Detect bashisms in recipes ([[, $(()), etc.)
-#[test]
-
 include!("tests_tests_PORTABILITY.rs");

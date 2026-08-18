@@ -1,3 +1,4 @@
+#[test]
 fn test_parse_test_readable() {
     let expr = parse_condition("[ -r /etc/passwd ]");
     let test = unwrap_test(expr);

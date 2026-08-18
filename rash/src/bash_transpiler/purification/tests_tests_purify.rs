@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_remove_longest_prefix() {
     let ast = BashAst {
         statements: vec![BashStmt::Assignment {

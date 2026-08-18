@@ -1,3 +1,4 @@
+#[test]
 fn test_JOB_003_job_specifications() {
     // DOCUMENTATION: Job specification syntax (interactive only)
     //

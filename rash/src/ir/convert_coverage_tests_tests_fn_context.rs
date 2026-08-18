@@ -1,3 +1,4 @@
+#[test]
 fn test_fn_context_match_with_should_echo() {
     let ast = make_with_fn(
         "cls",

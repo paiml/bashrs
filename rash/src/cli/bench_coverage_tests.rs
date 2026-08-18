@@ -366,6 +366,4 @@ fn test_display_results_multiple_with_memory() {
 // Edge case and integration tests
 // =============================================================================
 
-#[test]
-
 include!("bench_coverage_tests_tests_display.rs");

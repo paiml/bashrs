@@ -1,3 +1,4 @@
+#[test]
 fn test_RUNNER_COV_021_detect_regressions_no_regressions() {
     let previous = make_convergence(95.0, 90, 75, 8, 7, 96.0, 90.0, 88.0, 85);
     let current = make_convergence(96.0, 92, 77, 9, 8, 97.0, 91.0, 89.0, 87);

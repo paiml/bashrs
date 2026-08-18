@@ -1,3 +1,4 @@
+#[test]
 fn test_dockerfile_full_validate_human() {
     let temp_dir = TempDir::new().unwrap();
     let input = temp_dir.path().join("Dockerfile");
@@ -351,7 +352,5 @@ fn test_convert_add_to_copy_if_local_empty_line() {
     let result = convert_add_to_copy_if_local(line);
     assert_eq!(result, line, "Empty line should be unchanged");
 }
-
-#[test]
 
 include!("command_tests_dockerfile_tests_convert_add.rs");

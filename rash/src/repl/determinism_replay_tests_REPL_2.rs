@@ -144,7 +144,7 @@ mod diff_tests {
 #[cfg(test)]
 mod diff_property_tests {
     use super::*;
-    use proptest::prelude::*;
+    
 
     proptest! {
         #[test]

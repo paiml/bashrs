@@ -1,3 +1,4 @@
+#[test]
 fn test_match_some_and_none_patterns() {
     let ast = parse(r#"fn main() { match opt { Some(v) => { let g = v; } None => {} } }"#).unwrap();
     match &ast.functions[0].body[0] {

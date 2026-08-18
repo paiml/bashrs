@@ -1,3 +1,4 @@
+#[test]
 fn test_REDIR_002_basic_output_redirection() {
     // DOCUMENTATION: Basic output redirection (>) is SUPPORTED (POSIX)
     //

@@ -1,3 +1,4 @@
+#[test]
 fn test_RUNNER_COV2_014_converged_edge_cases() {
     assert!(!CorpusRunner::is_converged(&[]));
     assert!(!CorpusRunner::is_converged(&[

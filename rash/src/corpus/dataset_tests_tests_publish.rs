@@ -1,3 +1,4 @@
+#[test]
 fn test_publish_readiness_all_pass() {
     let score = make_score(500, 500, 0, 1.0, 99.0, Grade::APlus, 3);
     let checks = check_publish_readiness(&score);

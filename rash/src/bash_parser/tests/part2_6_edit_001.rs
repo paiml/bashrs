@@ -1,3 +1,4 @@
+#[test]
 fn test_EDIT_001_readline_configuration() {
     // DOCUMENTATION: Readline configuration (interactive only)
     //

@@ -13,7 +13,6 @@
 use crate::emitter::posix::PosixEmitter;
 use crate::ir::shell_ir::{ArithmeticOp, CaseArm, CasePattern, ComparisonOp};
 use crate::ir::{Command, EffectSet, ShellIR, ShellValue};
-use crate::models::Config;
 
 fn e() -> PosixEmitter {
     PosixEmitter::new()
@@ -348,7 +347,5 @@ fn test_ECOV_015_test_variable() {
         "Variable test: {r}"
     );
 }
-
-#[test]
 
 include!("emitter_coverage_tests_tests_ECOV.rs");

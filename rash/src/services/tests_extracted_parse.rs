@@ -1,3 +1,4 @@
+#[test]
 fn test_type_conversion_edge_cases() {
     // Test various type syntax that should be converted correctly
     let source = r#"

@@ -38,10 +38,12 @@ fn test_RUNNER_COV_001_parse_lcov_coverage_ratio_with_valid_data() {
     // Write a minimal LCOV file and check that load_format_coverage picks it up.
     // Since FORMAT_COVERAGE is a OnceLock, we can only test this once per process.
     // Instead, test the behavior of CorpusResult with a manual coverage ratio.
-    let mut result = CorpusResult::default();
-    result.transpiled = true;
-    result.schema_valid = true;
-    result.coverage_ratio = 0.75;
+    let result = CorpusResult {
+        transpiled: true,
+        schema_valid: true,
+        coverage_ratio: 0.75,
+        ..CorpusResult::default()
+    };
 
     let score = result.score();
     // C = 0.75 * 15 = 11.25, but A=30, D/E/F/G all 0
@@ -53,10 +55,12 @@ fn test_RUNNER_COV_001_parse_lcov_coverage_ratio_with_valid_data() {
 
 #[test]
 fn test_RUNNER_COV_002_parse_lcov_full_coverage() {
-    let mut result = CorpusResult::default();
-    result.transpiled = true;
-    result.schema_valid = true;
-    result.coverage_ratio = 1.0;
+    let result = CorpusResult {
+        transpiled: true,
+        schema_valid: true,
+        coverage_ratio: 1.0,
+        ..CorpusResult::default()
+    };
 
     let score = result.score();
     // A=30, C=15
@@ -76,11 +80,13 @@ fn test_RUNNER_COV_002_parse_lcov_full_coverage() {
 fn test_RUNNER_COV_003_classify_error_syntax_error() {
     // Test that syntax-related error messages are classified correctly.
     // We set the error_category manually since classify_error is private.
-    let mut result = CorpusResult::default();
-    result.transpiled = false;
-    result.error = Some("parse error: unexpected token".to_string());
-    result.error_category = Some("syntax_error".to_string());
-    result.error_confidence = Some(0.5);
+    let result = CorpusResult {
+        transpiled: false,
+        error: Some("parse error: unexpected token".to_string()),
+        error_category: Some("syntax_error".to_string()),
+        error_confidence: Some(0.5),
+        ..CorpusResult::default()
+    };
 
     assert_eq!(result.error_category.as_deref(), Some("syntax_error"));
     assert_eq!(result.error_confidence, Some(0.5));
@@ -90,11 +96,13 @@ fn test_RUNNER_COV_003_classify_error_syntax_error() {
 
 #[test]
 fn test_RUNNER_COV_004_classify_error_unsupported_construct() {
-    let mut result = CorpusResult::default();
-    result.transpiled = false;
-    result.error = Some("unsupported construct: dyn Trait".to_string());
-    result.error_category = Some("unsupported_construct".to_string());
-    result.error_confidence = Some(0.5);
+    let result = CorpusResult {
+        transpiled: false,
+        error: Some("unsupported construct: dyn Trait".to_string()),
+        error_category: Some("unsupported_construct".to_string()),
+        error_confidence: Some(0.5),
+        ..CorpusResult::default()
+    };
 
     assert_eq!(
         result.error_category.as_deref(),
@@ -105,22 +113,26 @@ fn test_RUNNER_COV_004_classify_error_unsupported_construct() {
 
 #[test]
 fn test_RUNNER_COV_005_classify_error_type_error() {
-    let mut result = CorpusResult::default();
-    result.transpiled = false;
-    result.error = Some("type mismatch: expected String got i32".to_string());
-    result.error_category = Some("type_error".to_string());
-    result.error_confidence = Some(0.5);
+    let result = CorpusResult {
+        transpiled: false,
+        error: Some("type mismatch: expected String got i32".to_string()),
+        error_category: Some("type_error".to_string()),
+        error_confidence: Some(0.5),
+        ..CorpusResult::default()
+    };
 
     assert_eq!(result.error_category.as_deref(), Some("type_error"));
 }
 
 #[test]
 fn test_RUNNER_COV_006_classify_error_unknown() {
-    let mut result = CorpusResult::default();
-    result.transpiled = false;
-    result.error = Some("something completely unrecognized".to_string());
-    result.error_category = Some("unknown".to_string());
-    result.error_confidence = Some(0.5);
+    let result = CorpusResult {
+        transpiled: false,
+        error: Some("something completely unrecognized".to_string()),
+        error_category: Some("unknown".to_string()),
+        error_confidence: Some(0.5),
+        ..CorpusResult::default()
+    };
 
     assert_eq!(result.error_category.as_deref(), Some("unknown"));
 }
@@ -341,6 +353,13 @@ fn test_RUNNER_COV_020_format_score_not_found() {
 // ConvergenceEntry::detect_regressions
 // ---------------------------------------------------------------------------
 
+// 9 positional args, all f64/usize: a real hazard (two adjacent arguments of
+// the same type could be transposed and still compile), but it is called 14
+// times from the included fragment below with numeric literals whose meaning
+// is given by the parameter names at each call site; regrouping into a struct
+// would mean re-annotating all 14 without changing what is tested. Tracked
+// rather than silently allowed elsewhere.
+#[allow(clippy::too_many_arguments)]
 fn make_convergence(
     score: f64,
     passed: usize,
@@ -376,7 +395,5 @@ fn make_convergence(
         lint_rate: lint_passed as f64 / 100.0,
     }
 }
-
-#[test]
 
 include!("runner_coverage_tests_tests_RUNNER.rs");

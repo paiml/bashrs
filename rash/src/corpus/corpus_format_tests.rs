@@ -9,8 +9,7 @@ use crate::corpus::citl::{
     format_convergence_criteria, format_lint_pipeline, format_regression_report,
     ConvergenceCriteria, LintPipelineEntry, RegressionEntry, RegressionReport,
 };
-use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusTier, Grade};
-use crate::corpus::runner::{CorpusResult, CorpusScore};
+use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusTier};
 use crate::corpus::schema_enforcement::{
     format_grammar_errors, format_grammar_spec, format_schema_report, validate_corpus,
     validate_entry, GrammarCategory, SchemaReport, ValidationLayer,
@@ -355,7 +354,5 @@ fn test_format_convergence_criteria_all_met() {
     assert!(table.contains("1000/900"));
     assert!(table.contains("clean"));
 }
-
-#[test]
 
 include!("corpus_format_tests_tests_format.rs");

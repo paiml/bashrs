@@ -1,3 +1,4 @@
+#[test]
 fn test_BUILTIN_005_cd_tilde_expansion() {
     // DOCUMENTATION: cd ~ uses tilde expansion (POSIX)
     // ~ expands to $HOME

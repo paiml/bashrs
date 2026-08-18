@@ -1,3 +1,4 @@
+#[test]
 fn test_config_load_returns_none_on_corrupt() {
     let dir = tempfile::tempdir().unwrap();
     let config_dir = dir.path().join(".bashrs");

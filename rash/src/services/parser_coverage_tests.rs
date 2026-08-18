@@ -358,6 +358,4 @@ fn test_compound_sub_and_mul_assign() {
 // Match patterns: Some/None/Ok/Err, range
 // ============================================================================
 
-#[test]
-
 include!("parser_coverage_tests_tests_match_some.rs");

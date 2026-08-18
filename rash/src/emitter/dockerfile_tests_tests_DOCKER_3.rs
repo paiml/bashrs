@@ -1,3 +1,4 @@
+#[test]
 fn test_DOCKER_BUILD_015_let_binding_becomes_env() {
     let ast = make_simple_ast(vec![
         Stmt::Expr(Expr::FunctionCall {
@@ -352,7 +353,5 @@ fn test_DOCKER_COV_007_expr_to_string_u32() {
     let result = emit_dockerfile(&ast).unwrap();
     assert!(result.contains("65536"), "U32 label in: {result}");
 }
-
-#[test]
 
 include!("dockerfile_tests_tests_DOCKER_2.rs");

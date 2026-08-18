@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_control_flow_for_c_style_preserves_strings() {
     let mut purifier = make_purifier();
     let stmt = BashStmt::ForCStyle {
@@ -392,7 +393,5 @@ fn test_purify_control_flow_if_purifies_elif_bodies() {
 }
 
 // ===== 26. If — purifies else body =====
-
-#[test]
 
 include!("control_flow_tests_tests_purify.rs");

@@ -1,3 +1,4 @@
+#[test]
 fn test_expr_literal_non_string_validates() {
     assert!(Expr::Literal(Literal::Bool(true)).validate().is_ok());
     assert!(Expr::Literal(Literal::U16(42)).validate().is_ok());

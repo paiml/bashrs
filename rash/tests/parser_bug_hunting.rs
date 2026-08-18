@@ -387,6 +387,4 @@ fn test_redirection_edge_cases() {
 // EDGE CASE: Control Flow Edge Cases
 // ============================================================================
 
-#[test]
-
-include!("parser_bug_hunting_tests_control_flow.rs");
+include!("fragments/parser_bug_hunting_tests_control_flow.rs");

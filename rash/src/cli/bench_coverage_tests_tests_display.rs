@@ -1,3 +1,4 @@
+#[test]
 fn test_display_csv_results_zero_mean_baseline() {
     // Edge case: all results have zero mean (baseline_mean = 0)
     let results = vec![

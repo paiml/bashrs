@@ -7,7 +7,6 @@
 #![allow(clippy::expect_used)]
 
 use super::*;
-use crate::bash_parser::ast::*;
 
 fn default_metadata() -> AstMetadata {
     AstMetadata {

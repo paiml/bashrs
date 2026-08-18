@@ -1,3 +1,4 @@
+#[test]
 fn test_codegen_007_function_definition() {
     let ast = BashAst {
         statements: vec![BashStmt::Function {

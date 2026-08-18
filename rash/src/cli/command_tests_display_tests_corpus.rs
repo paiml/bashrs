@@ -1,3 +1,4 @@
+#[test]
 fn test_corpus_print_failures_human_format() {
     use super::corpus_report_commands::corpus_print_failures;
     use crate::cli::args::CorpusOutputFormat;

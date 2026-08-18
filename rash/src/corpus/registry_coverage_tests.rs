@@ -368,6 +368,4 @@ fn test_REG_COV_026_load_full_larger_than_adversarial() {
     assert!(CorpusRegistry::load_full().len() > CorpusRegistry::load_all_with_adversarial().len());
 }
 
-#[test]
-
 include!("registry_coverage_tests_tests_REG.rs");

@@ -1,3 +1,4 @@
+#[test]
 fn test_TASK_1_2_script_mode_only_philosophy() {
     // DOCUMENTATION: bashrs supports SCRIPT MODE ONLY
     //

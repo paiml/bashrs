@@ -1,3 +1,4 @@
+#[test]
 fn test_declare_with_assignment() {
     let mut checker = TypeChecker::new();
     let ast = make_ast(vec![BashStmt::Command {
@@ -356,7 +357,5 @@ fn test_parse_type_name_all_variants() {
 // ============================================================================
 // Complex AST Walk Tests
 // ============================================================================
-
-#[test]
 
 include!("type_check_tests_tests_check_if.rs");

@@ -93,6 +93,29 @@ HEALTHCHECK --interval=30s --timeout=3s \
 CMD ["/app/app"]
 "#;
 
+/// Strip ANSI escape sequences before matching.
+///
+/// `bashrs score` colours its output unconditionally, so the grade arrives as
+/// `Overall Grade: \x1b[33mB\x1b[0m` and a `contains("Grade: B")` never
+/// matched. Asserting on escape sequences is a test defect either way — the
+/// assertion is about the grade, not the palette.
+fn plain(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            for c2 in chars.by_ref() {
+                if c2.is_ascii_alphabetic() {
+                    break;
+                }
+            }
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 #[test]
 fn test_issue_010_dockerfile_flag_exists() {
     // RED: Test that --dockerfile flag is recognized
@@ -140,7 +163,7 @@ fn test_issue_010_score_dockerfile_mode_bad() {
         .unwrap();
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = plain(&String::from_utf8_lossy(&output.stdout));
 
     // Should mention grade and likely D or F
     assert!(stdout.contains("Overall Grade:"));
@@ -167,7 +190,7 @@ fn test_issue_010_score_dockerfile_mode_excellent() {
         .unwrap();
 
     assert!(output.status.success());
-    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stdout = plain(&String::from_utf8_lossy(&output.stdout));
 
     // Should mention grade and likely A or B
     assert!(stdout.contains("Overall Grade:"));

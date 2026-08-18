@@ -351,6 +351,4 @@ fn test_build_dataset_matches_entries_to_results() {
 
 // === Publish readiness checks ===
 
-#[test]
-
 include!("dataset_tests_tests_publish.rs");

@@ -213,7 +213,13 @@ pub fn load_mlp_probe(path: &Path) -> Result<MlpProbeWeights, String> {
 }
 
 /// Classify using MLP probe: embedding → Linear → ReLU → Linear → softmax.
+///
+/// The row-major GEMM indexing (`w1[i * hidden_size + j]`) needs both the row
+/// and column index, so `iter().enumerate()` over one operand does not express
+/// it; the range-loop form is what clippy's own `needless_range_loop`
+/// documentation names as the exception.
 #[cfg(any(feature = "ml", test))]
+#[allow(clippy::needless_range_loop)]
 fn mlp_forward(weights: &MlpProbeWeights, embedding: &[f32]) -> (u8, f64) {
     // Layer 1: hidden = ReLU(W1 @ embedding + b1)
     let mut hidden = vec![0.0f32; weights.mlp_hidden];
@@ -290,12 +296,10 @@ mod tests {
                         } else {
                             -1.0
                         }
+                    } else if j < dim / 2 {
+                        -1.0
                     } else {
-                        if j < dim / 2 {
-                            -1.0
-                        } else {
-                            1.0
-                        }
+                        1.0
                     };
                     // Add some noise based on index
                     *val += (i as f32 * 0.01) * if j % 2 == 0 { 1.0 } else { -1.0 };

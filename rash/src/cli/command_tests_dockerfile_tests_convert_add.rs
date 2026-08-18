@@ -1,3 +1,4 @@
+#[test]
 fn test_convert_add_to_copy_if_local_malformed_no_args() {
     let line = "ADD";
     let result = convert_add_to_copy_if_local(line);

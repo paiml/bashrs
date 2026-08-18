@@ -1,3 +1,4 @@
+#[test]
 fn test_PARAM_SPEC_004_background_pid_purification_strategy() {
     // DOCUMENTATION: bashrs purification strategy for $! and &
     //

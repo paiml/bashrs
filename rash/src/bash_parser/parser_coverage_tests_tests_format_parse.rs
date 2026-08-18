@@ -1,3 +1,4 @@
+#[test]
 fn test_format_parse_diagnostic_unexpected_token() {
     use super::parser::format_parse_diagnostic;
     let source = "if true; echo hi; fi";

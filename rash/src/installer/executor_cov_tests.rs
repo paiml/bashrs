@@ -377,6 +377,4 @@ command_succeeds = "true"
 // but we test the non-dry-run path structure
 // ---------------------------------------------------------------------------
 
-#[test]
-
 include!("executor_cov_tests_tests_EXCOV.rs");

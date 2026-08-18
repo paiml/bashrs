@@ -1,3 +1,4 @@
+#[test]
 fn test_INSTALLER_AUDIT_report_metadata_populated() {
     let report = audit_toml(
         r#"

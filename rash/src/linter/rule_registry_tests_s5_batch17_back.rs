@@ -1,3 +1,4 @@
+#[test]
 fn test_batch17_backtick_command_substitution_universal() {
     // Batch 17: Backtick & command substitution (Universal - POSIX)
     let backtick_rules = vec![

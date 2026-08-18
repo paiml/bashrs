@@ -8,8 +8,7 @@
 
 use super::adversarial_templates::{
     all_templates, needs_quoting_templates, non_deterministic_templates, non_idempotent_templates,
-    unsafe_templates, AdversarialTemplate, ParamSlot, COMMENTS, SETUP_LINES, SHEBANGS,
-    TRAILING_LINES,
+    unsafe_templates, ParamSlot, COMMENTS, SETUP_LINES, SHEBANGS, TRAILING_LINES,
 };
 
 // ── Constants coverage ────────────────────────────────────────────────────

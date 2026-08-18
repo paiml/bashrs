@@ -1,3 +1,4 @@
+#[test]
 fn test_purify_rm_adds_force_flag() {
     let ast = BashAst {
         statements: vec![BashStmt::Command {
@@ -348,7 +349,5 @@ fn test_purify_until_loop() {
 
     assert!(matches!(&purified.statements[0], BashStmt::Until { .. }));
 }
-
-#[test]
 
 include!("tests_tests_purify_3.rs");

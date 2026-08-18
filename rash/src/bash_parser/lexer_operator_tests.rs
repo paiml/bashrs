@@ -8,7 +8,7 @@
 #![allow(clippy::unwrap_used)]
 #![allow(clippy::expect_used)]
 
-use super::lexer::{Lexer, LexerError, Token};
+use super::lexer::{Lexer, Token};
 
 /// Helper: tokenize input and return the token vector.
 fn lex(input: &str) -> Vec<Token> {
@@ -204,7 +204,5 @@ fn test_LEX_OP_BRACE_002_range_expansion() {
         tokens
     );
 }
-
-#[test]
 
 include!("lexer_operator_tests_tests_LEX.rs");

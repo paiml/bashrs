@@ -1,3 +1,4 @@
+#[test]
 fn test_MCOV_024_print_no_newline() {
     let ast = make_ast(vec![Stmt::Expr(Expr::FunctionCall {
         name: "print".to_string(),

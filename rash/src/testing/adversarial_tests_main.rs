@@ -1,3 +1,4 @@
+#[test]
 fn test_injection_quote_escape() {
     let source = r#"
         fn main() {

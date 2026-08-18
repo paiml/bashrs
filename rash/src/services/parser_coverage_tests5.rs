@@ -358,6 +358,4 @@ fn test_SPCOV_026_vec_macro() {
 // println! in expression position
 // ---------------------------------------------------------------------------
 
-#[test]
-
 include!("parser_coverage_tests5_main.rs");

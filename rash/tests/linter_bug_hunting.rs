@@ -372,6 +372,4 @@ fn hunt_false_positive_edge_cases() {
 // BUG HUNT: Malformed Syntax Recovery
 // ============================================================================
 
-#[test]
-
-include!("linter_bug_hunting_hunt.rs");
+include!("fragments/linter_bug_hunting_hunt.rs");

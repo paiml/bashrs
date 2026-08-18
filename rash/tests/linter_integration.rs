@@ -140,8 +140,7 @@ password="secret123"
 
 #[test]
 fn test_clean_script_has_no_issues() {
-    let script = r#"
-#!/bin/sh
+    let script = r#"#!/bin/sh
 set -euo pipefail
 
 name="${1:-default}"

@@ -102,7 +102,7 @@ mod tests {
     fn test_port004_detects_input_process_subst() {
         let script = "#!/bin/sh\ndiff <(sort file1) <(sort file2)";
         let result = check(script);
-        assert!(result.diagnostics.len() >= 1);
+        assert!(!result.diagnostics.is_empty());
         assert_eq!(result.diagnostics[0].code, "PORT004");
         assert_eq!(result.diagnostics[0].severity, Severity::Warning);
     }

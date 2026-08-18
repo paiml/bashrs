@@ -358,6 +358,4 @@ fn test_injection_null_byte() {
 // CATEGORY 6: Quote Escaping Attacks
 // ============================================================================
 
-#[test]
-
 include!("adversarial_tests_main.rs");

@@ -1,3 +1,4 @@
+#[test]
 fn test_complex_boolean_conditions_idempotent() {
     let source = r#"
         fn main() {

@@ -399,6 +399,4 @@ timeout_task || true
     }
 }
 
-#[test]
-
 include!("part3_7_param_spec.rs");

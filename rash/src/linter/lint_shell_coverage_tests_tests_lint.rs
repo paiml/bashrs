@@ -1,3 +1,4 @@
+#[test]
 fn test_lint_shell_result_diagnostics_sorted_by_line() {
     // Multi-issue script: verify diagnostics are produced
     let script = "echo $RANDOM\nmkdir /tmp/x\necho $$\n";
@@ -372,7 +373,5 @@ fn test_write_results_sarif_severity_mapping() {
     // Note -> "note"
     assert_eq!(sarif_results[5]["level"], "note");
 }
-
-#[test]
 
 include!("lint_shell_coverage_tests_tests_write_result.rs");

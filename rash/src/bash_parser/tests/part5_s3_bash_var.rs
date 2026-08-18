@@ -1,3 +1,4 @@
+#[test]
 fn test_BASH_VAR_003_seconds_comparison_table() {
     // DOCUMENTATION: Comprehensive $SECONDS comparison (Bash vs POSIX vs Purified)
     //

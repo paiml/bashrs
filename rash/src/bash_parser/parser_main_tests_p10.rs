@@ -1,6 +1,5 @@
 use super::*;
-use crate::bash_parser::ast::{ArithExpr, BashExpr, BashStmt, Redirect, Span, TestExpr};
-use crate::bash_parser::parser_arith::ArithToken;
+use crate::bash_parser::ast::{BashStmt, Redirect};
 #[test]
 fn test_V_TEST_001_variable_set() {
     let input = "if [[ -v MYVAR ]]; then\n    echo set\nfi";

@@ -365,6 +365,4 @@ fn test_IRPAT_017_let_match_bool_literal() {
 // match with string patterns
 // ---------------------------------------------------------------------------
 
-#[test]
-
 include!("ir_pattern_tests_main.rs");

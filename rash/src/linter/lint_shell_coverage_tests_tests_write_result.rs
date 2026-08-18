@@ -1,3 +1,4 @@
+#[test]
 fn test_write_results_json_empty() {
     let result = LintResult::new();
     let mut buf = Vec::new();

@@ -1,3 +1,4 @@
+#[test]
 fn test_visitor_traits_exist() {
     // Test that the traits are properly defined
     fn test_visitor<V: Visitor<String>>(_v: V) {}

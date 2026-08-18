@@ -1,3 +1,4 @@
+#[test]
 fn test_EXCOV_015_apt_install_real_no_sudo() {
     let executor = StepExecutor::new();
     let packages = vec!["nonexistent_package_xyz".to_string()];

@@ -256,7 +256,7 @@ fn test_is_automatic_variable_normal_filename() {
 
 #[test]
 fn test_target_has_prerequisite_true() {
-    use crate::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, Span};
+    use crate::make_parser::ast::{MakeAst, MakeItem, Span};
 
     let ast = MakeAst {
         items: vec![MakeItem::Target {
@@ -278,7 +278,7 @@ fn test_target_has_prerequisite_true() {
 
 #[test]
 fn test_target_has_prerequisite_false() {
-    use crate::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, Span};
+    use crate::make_parser::ast::{MakeAst, MakeItem, Span};
 
     let ast = MakeAst {
         items: vec![MakeItem::Target {
@@ -300,7 +300,7 @@ fn test_target_has_prerequisite_false() {
 
 #[test]
 fn test_target_has_prerequisite_nonexistent_target() {
-    use crate::make_parser::ast::{MakeAst, MakeItem, MakeMetadata, Span};
+    use crate::make_parser::ast::{MakeAst, MakeItem, Span};
 
     let ast = MakeAst {
         items: vec![MakeItem::Target {
@@ -347,7 +347,5 @@ fn test_reproducible_builds_date_in_variable() {
         .iter()
         .any(|t| matches!(t, Transformation::SuggestSourceDateEpoch { .. })));
 }
-
-#[test]
 
 include!("tests_tests_reproducible.rs");

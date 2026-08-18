@@ -1,3 +1,4 @@
+#[test]
 fn test_IRPAT_018_let_match_string_patterns() {
     let code = r#"
         fn main() {

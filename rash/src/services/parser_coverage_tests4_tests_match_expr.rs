@@ -1,3 +1,4 @@
+#[test]
 fn test_match_expr_multi_arm_in_let() {
     let ast = parse(r#"fn main() { let x = match v { 0 => 10, 1 => 20, _ => 30 }; }"#).unwrap();
     match &ast.functions[0].body[0] {

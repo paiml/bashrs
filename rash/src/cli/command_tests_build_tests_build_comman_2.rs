@@ -1,3 +1,4 @@
+#[test]
 fn test_build_command_with_proof_emission() {
     let temp_dir = TempDir::new().unwrap();
     let input_path = temp_dir.path().join("test.rs");
@@ -360,7 +361,5 @@ fn test_generate_proof_different_dialects() {
         assert!(proof.contains("\"version\": \"1.0\""));
     }
 }
-
-#[test]
 
 include!("command_tests_build_tests_build_comman.rs");

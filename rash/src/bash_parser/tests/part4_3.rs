@@ -365,6 +365,4 @@ echo "Working in $(pwd)"
     // | pwd -P      | Physical path (resolve)  | ✓     | ✓    | ✓      |
 }
 
-#[test]
-
 include!("part4_3_builtin_011.rs");

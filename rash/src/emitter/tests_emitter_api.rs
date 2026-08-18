@@ -18,19 +18,18 @@ fn test_emit_public_api() {
 
 #[test]
 fn test_different_shell_dialects() {
-    let mut config = Config::default();
-
+    // `emit()` takes no Config/dialect parameter, so it cannot yet select
+    // between POSIX and Bash output — it always emits POSIX. The two
+    // `config.target` assignments below were dead (clippy: "value ... is never
+    // read"), which is the accurate reflection of that: nothing routes a
+    // dialect choice into `emit`. Tracked as a gap, not silently hidden.
     let ir = ShellIR::Noop;
 
-    // Test POSIX (default)
-    config.target = crate::models::ShellDialect::Posix;
     let result = emit(&ir).unwrap();
-    assert!(result.contains("#!/bin/sh"));
-
-    // Test Bash (should still emit POSIX for now)
-    config.target = crate::models::ShellDialect::Bash;
-    let result = emit(&ir).unwrap();
-    assert!(result.contains("#!/bin/sh"));
+    assert!(
+        result.contains("#!/bin/sh"),
+        "emit() always targets POSIX today, regardless of ShellDialect"
+    );
 }
 
 #[test]

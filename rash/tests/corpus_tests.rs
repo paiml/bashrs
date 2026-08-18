@@ -23,6 +23,7 @@ fn bashrs_cmd() -> Command {
 // =============================================================================
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_CORPUS_001_registry_loads_all_tier1() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1();
     assert_eq!(
@@ -33,6 +34,7 @@ fn test_CORPUS_001_registry_loads_all_tier1() {
 }
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_CORPUS_002_registry_bash_entries() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1();
     let bash = registry.by_format(bashrs::corpus::CorpusFormat::Bash);
@@ -58,6 +60,7 @@ fn test_CORPUS_002_registry_bash_entries() {
 }
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_CORPUS_003_registry_makefile_entries() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1();
     let make = registry.by_format(bashrs::corpus::CorpusFormat::Makefile);
@@ -72,6 +75,7 @@ fn test_CORPUS_003_registry_makefile_entries() {
 }
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_CORPUS_004_registry_dockerfile_entries() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1();
     let docker = registry.by_format(bashrs::corpus::CorpusFormat::Dockerfile);
@@ -168,6 +172,7 @@ fn test_CORPUS_007_grade_from_score() {
 // =============================================================================
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_CORPUS_008_bash_transpilation_runs() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1();
     let config = bashrs::Config::default();
@@ -205,6 +210,7 @@ fn test_CORPUS_008_bash_transpilation_runs() {
 // =============================================================================
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_CORPUS_009_makefile_transpilation_runs() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1();
     let config = bashrs::Config::default();
@@ -238,6 +244,7 @@ fn test_CORPUS_009_makefile_transpilation_runs() {
 // =============================================================================
 
 #[test]
+#[ignore = "requires runtime corpus data (externalized from builtin)"]
 fn test_CORPUS_010_dockerfile_transpilation_runs() {
     let registry = bashrs::corpus::CorpusRegistry::load_tier1();
     let config = bashrs::Config::default();
@@ -396,6 +403,4 @@ fn test_CORPUS_013_convergence_not_met() {
 // CLI Integration Tests
 // =============================================================================
 
-#[test]
-
-include!("corpus_tests_tests_CORPUS_2.rs");
+include!("fragments/corpus_tests_tests_CORPUS_2.rs");

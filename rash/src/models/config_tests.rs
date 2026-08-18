@@ -71,7 +71,7 @@ fn test_shell_dialect_debug_ash() {
 #[test]
 fn test_shell_dialect_clone() {
     let original = ShellDialect::Bash;
-    let cloned = original.clone();
+    let cloned = original;
     assert_eq!(original, cloned);
 }
 
@@ -188,7 +188,7 @@ fn test_verification_level_debug_paranoid() {
 #[test]
 fn test_verification_level_clone() {
     let original = VerificationLevel::Paranoid;
-    let cloned = original.clone();
+    let cloned = original;
     assert_eq!(original, cloned);
 }
 
@@ -349,7 +349,5 @@ fn test_config_validation_level_strict() {
     };
     assert_eq!(cfg.validation_level, Some(ValidationLevel::Strict));
 }
-
-#[test]
 
 include!("config_tests_tests_config.rs");

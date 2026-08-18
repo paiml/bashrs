@@ -354,6 +354,4 @@ fn test_version_flag() {
         .stdout(predicate::str::contains("bashrs"));
 }
 
-#[test]
-
-include!("cli_error_handling_tests_main.rs");
+include!("fragments/cli_error_handling_tests_main.rs");
