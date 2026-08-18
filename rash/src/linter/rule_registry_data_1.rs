@@ -139,7 +139,7 @@ pub(crate) fn register(registry: &mut HashMap<&'static str, RuleMetadata>) {
         "SEC002",
         RuleMetadata {
             id: "SEC002",
-            name: "Unsafe eval usage",
+            name: "Unquoted variable in dangerous command",
             compatibility: ShellCompatibility::Universal,
         },
     );

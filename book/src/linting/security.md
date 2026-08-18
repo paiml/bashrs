@@ -93,7 +93,21 @@ Not auto-fixable - requires manual security review.
 
 ### What it Detects
 
-Variables used in commands without proper quoting. As of v6.63.0, SEC002 uses **word-boundary matching** to avoid false positives when dangerous command names appear as substrings of other words (e.g., `curl_handler` no longer triggers a `curl` warning).
+An unquoted variable expansion in **argument position** of a dangerous command
+(`curl`, `wget`, `ssh`, `scp`, `git`, `rsync`, `docker`, `kubectl`).
+
+Since v6.66.4 the rule parses the line into simple commands instead of searching the
+raw text, which fixes three classes of defect (GH-228, GH-229):
+
+- A command substitution starts a **fresh quoting context**, so `"$url"` inside
+  `"$( … )"` is correctly seen as quoted, and a bare `$url` inside it is correctly
+  seen as unquoted.
+- Only the word in **command position** names the command. A dangerous name inside a
+  quoted argument is just text, and an expansion in command position is left to
+  SC2183.
+- The reported span covers the whole expansion in **byte** columns, so `--fix`
+  splices correctly instead of corrupting the line (and no longer panics on
+  non-ASCII input).
 
 ### Why This Matters
 
@@ -107,20 +121,30 @@ Unquoted variables can lead to:
 ❌ **VULNERABILITY**:
 ```bash
 #!/bin/bash
-rm -rf $HOME/my-folder  # SEC002: Word splitting risk
-cd $HOME/my projects    # SEC002: Will fail on space
+curl $URL                          # SEC002: word splitting / injection risk
+out="$(curl -sSfL $url | head -1)"  # SEC002: unquoted inside a substitution
 ```
 
 ✅ **SAFE**:
 ```bash
 #!/bin/bash
-rm -rf "${HOME}/my-folder"  # Quoted - safe
-cd "${HOME}/my projects"    # Quoted - handles spaces
+curl "${URL}"                        # Quoted - safe
+out="$(curl -sSfL "$url" | head -1)"  # Quoted inside the substitution - safe
+```
+
+**Not** a SEC002 finding — the command is a variable, not `docker`:
+
+```bash
+#!/bin/sh
+sh_c='sh -c'
+[ "$(id -u)" -ne 0 ] && sh_c='sudo -E sh -c'
+$sh_c 'docker version'   # SC2183 covers this; quoting $sh_c would break it
 ```
 
 ### Auto-fix
 
-Automatically quotes unquoted variables.
+Automatically quotes the offending expansion, preserving it verbatim
+(`${URL:-default}` becomes `"${URL:-default}"`).
 
 ## SEC003: Command Injection via find -exec sh -c
 

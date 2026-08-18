@@ -37,6 +37,8 @@ pub(crate) mod rule_registry_data_4;
 pub mod rules;
 pub mod shell_compatibility;
 pub mod shell_type;
+/// Word / command-position analysis shared by lint rules (GH-228, GH-229)
+pub mod shell_words;
 pub mod suppression;
 
 pub use autofix::{apply_fixes, apply_fixes_to_file, FixOptions, FixResult};

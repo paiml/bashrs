@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **SEC002 fired on correctly quoted code and missed genuinely unquoted code**
+  ([GH-228](https://github.com/paiml/bashrs/issues/228)). The rule tracked quoting
+  with two booleans toggled over the raw line, with no model of `$( … )`. In
+  `out="$(curl -sSfL "$url" | cut -d' ' -f1)"` the opening quote of `"$url"` turned
+  the "in double quotes" flag *off*, so a correctly quoted variable was reported —
+  while in the same line without the inner quotes the genuinely bare `$url` was
+  skipped. A command substitution is now a fresh quoting context, as POSIX 2.6.3
+  requires. `${VAR}` in argument position is now detected too; previously the rule
+  required an alphanumeric byte immediately after `$` and never saw braced forms.
+- **SEC002 flagged the command-dispatcher idiom**
+  ([GH-229](https://github.com/paiml/bashrs/issues/229)). `$sh_c 'docker version'`
+  — Docker's own `get-docker.sh` idiom — was reported as an "unquoted variable in
+  docker command", because `docker` was matched anywhere in the line including
+  inside quoted arguments. Following the advice ("add quotes") breaks the script.
+  SEC002 now only considers a word that is in *command* position, and only reports
+  expansions in *argument* position; SC2183 already covers variable command names
+  with the appropriate severity.
+- **`bashrs lint --fix` corrupted source and could abort on SEC002 findings.** The
+  emitted span was one character wide and the replacement was the literal string
+  `"$VAR"`, so `OPTS=x; curl $URL` was rewritten to `OPTS=x; curl "$VAR"URL`. The
+  span now covers the whole expansion and the fix quotes the source text verbatim,
+  so modifiers such as `${URL:-default}` survive. Columns were also counted in
+  `char`s while the splicer indexes `byte`s, which aborted the process
+  (`byte index … is not a char boundary`) on any non-ASCII line.
+
+### Internal
+
+- New shared module `bashrs::linter::shell_words`: a total, panic-free split of one
+  physical line into simple commands with per-word roles and per-expansion quoting
+  state, recursing into `$( … )` and `` ` … ` ``. Intended to replace the
+  `line.contains(cmd)` / quote-parity heuristics in other rules (MAKE003, SC2183).
+
 ## [6.66.3] - 2026-08-12
 
 ### Fixed
