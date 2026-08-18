@@ -196,8 +196,18 @@ pub fn restore_masked_messages(source: &str, masked: &str, result: &mut crate::l
             continue;
         }
         let (Some(from), Some(to)) = (
-            span_text(masked, diag.span.start_line, diag.span.start_col, diag.span.end_col),
-            span_text(source, diag.span.start_line, diag.span.start_col, diag.span.end_col),
+            span_text(
+                masked,
+                diag.span.start_line,
+                diag.span.start_col,
+                diag.span.end_col,
+            ),
+            span_text(
+                source,
+                diag.span.start_line,
+                diag.span.start_col,
+                diag.span.end_col,
+            ),
         ) else {
             continue;
         };
@@ -495,9 +505,7 @@ fn parse_heredoc_opener(bytes: &[u8], start: usize) -> (Option<Heredoc>, usize) 
 
     match bytes.get(i) {
         Some(&q @ (b'\'' | b'"')) => parse_quoted_delim(bytes, i, q, strip_tabs),
-        Some(b) if b.is_ascii_alphabetic() || *b == b'_' => {
-            parse_bare_delim(bytes, i, strip_tabs)
-        }
+        Some(b) if b.is_ascii_alphabetic() || *b == b'_' => parse_bare_delim(bytes, i, strip_tabs),
         // A numeric or operator "delimiter" is a left shift, not a heredoc.
         _ => (None, i.max(start + 1)),
     }
@@ -664,7 +672,10 @@ mod tests {
     fn test_GH226_quoting_arith_left_shift_is_not_a_heredoc() {
         let src = "x=$(( 1 << n ))\necho ok";
         let m = mask(src);
-        assert_eq!(m[1], ".......", "the rest of the file must not be a heredoc body");
+        assert_eq!(
+            m[1], ".......",
+            "the rest of the file must not be a heredoc body"
+        );
     }
 
     #[test]
@@ -703,7 +714,13 @@ mod tests {
 
     #[test]
     fn test_GH226_quoting_unterminated_quote_does_not_panic() {
-        for src in ["echo 'unterminated", "echo \"unterminated", "x=$(", "x=${", "cat <<"] {
+        for src in [
+            "echo 'unterminated",
+            "echo \"unterminated",
+            "x=$(",
+            "x=${",
+            "cat <<",
+        ] {
             let _ = QuotedRegions::analyze(src);
         }
     }

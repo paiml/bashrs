@@ -391,7 +391,7 @@ fn use_color() -> bool {
 
 /// Colorize a snippet line with gutter pipes (blue) and carets (red)
 fn write_snippet_line(
-    f: &mut fmt::Formatter<'_>,
+    f: &mut impl fmt::Write,
     line: &str,
     blue: &str,
     red: &str,
@@ -413,10 +413,31 @@ fn write_snippet_line(
     }
 }
 
+impl Diagnostic {
+    /// Render exactly as `Display` does, with colour decided by the caller.
+    ///
+    /// GH-226 release audit: the tests used to force monochrome by setting and
+    /// then clearing `NO_COLOR` in the process environment, which raced with
+    /// every other test that formatted a `Diagnostic` — one thread's
+    /// `remove_var` landed between another's `set_var` and its `format!`, so
+    /// ANSI codes leaked into the expected-plain output. Passing the decision
+    /// in removes the shared mutable state instead of serialising access to it.
+    pub fn render(&self, color: bool) -> String {
+        let mut out = String::new();
+        // `write!` to a String cannot fail; the formatter API still returns Result.
+        let _ = self.write_to(&mut out, color);
+        out
+    }
+}
+
 impl fmt::Display for Diagnostic {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let color = use_color();
+        self.write_to(f, use_color())
+    }
+}
 
+impl Diagnostic {
+    fn write_to(&self, f: &mut impl fmt::Write, color: bool) -> fmt::Result {
         let red = if color { "\x1b[1;31m" } else { "" };
         let blue = if color { "\x1b[1;34m" } else { "" };
         let cyan = if color { "\x1b[1;36m" } else { "" };

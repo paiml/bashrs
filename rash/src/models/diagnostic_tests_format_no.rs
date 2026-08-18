@@ -1,12 +1,13 @@
 use super::*;
 
-/// Helper to format a diagnostic with colors disabled
+/// Format a diagnostic with colors disabled.
+///
+/// This used to set and clear `NO_COLOR` in the process environment, which
+/// raced with every other test formatting a `Diagnostic` and made
+/// `test_diagnostic_display_no_file` flaky under CPU contention. `render`
+/// takes the decision as an argument, so there is no shared state to race on.
 fn format_no_color(diag: &Diagnostic) -> String {
-    // SAFETY: Only called from serial tests
-    unsafe { std::env::set_var("NO_COLOR", "1") };
-    let result = format!("{diag}");
-    unsafe { std::env::remove_var("NO_COLOR") };
-    result
+    diag.render(false)
 }
 
 #[test]
