@@ -34,6 +34,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `char`s while the splicer indexes `byte`s, which aborted the process
   (`byte index … is not a char boundary`) on any non-ASCII line.
 
+- **SEC010/SEC014 path traversal: follow the data, not the spelling of a variable
+  name** ([GH-227](https://github.com/paiml/bashrs/issues/227)). SEC010 fired
+  whenever a line contained a `$` and any of a dozen generic substrings (`DIR`,
+  `FILE`, `PATH`, `NAME`, …) appeared *anywhere* on that line — so
+  `OUT_DIR="build/results"; mkdir -p "$OUT_DIR"` was reported as an **error**,
+  with no dataflow of any kind behind the claim. SEC010 was the single largest
+  source of error-severity findings in a 290-script corpus (1,105 of 5,045); it
+  is now 36. SEC014 had no dataflow either and is down from 852 to 80.
+
+  Three defects are fixed together:
+  - A finding now requires the path expression to be reachable from input
+    *outside* the script (new `linter::taint` pass: literal assignments
+    propagate as clean, `$1`/`$@`/`read`/`$OPTARG`/network command substitution
+    as external, `realpath`/`readlink -f` sanitise).
+  - A **real** dominating guard now clears the finding, including the `case`
+    form (`case "$1" in *..*|/*) exit 2 ;; esac`) and `grep -qE '(^|/)\.\.'`,
+    which the old `if`-only recogniser could not see. A guard that only prints a
+    message, guards a different variable, or comes *after* the use does nothing.
+  - A function is trusted as a validator only if its **body** actually tests for
+    traversal and aborts. Previously the *name* was the whole test, so
+    `validate_path() { :; }` silenced the rule — a control any three-line rename
+    defeated.
+
+  Severity is now graded by provenance: proven external input reaching an
+  unguarded path stays `Error` (exit code 2); a variable the file never assigns
+  is a guess about the environment and reports as `Warning`, so it cannot break
+  a build. Both rules also stop linting the body of a quoted heredoc, which is
+  data rather than shell.
+
+  Known limitations are documented at the bottom of `rash/src/linter/taint.rs`:
+  the analysis is one file, one ordered pass, no fixpoint; cross-file, loop
+  back-edges, `eval`, and call-site resolution are out of scope, and each is a
+  deliberate false negative rather than a false positive.
+
 ### Internal
 
 - New shared module `bashrs::linter::shell_words`: a total, panic-free split of one

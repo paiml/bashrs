@@ -24,6 +24,7 @@
 //! realpath --relative-to=/data "/data/$USER_INPUT"
 //! ```
 
+use crate::linter::taint::{self, TaintKind, TaintMap};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// Commands that operate on file paths and are path traversal vectors
@@ -33,7 +34,7 @@ const FILE_COMMANDS: &[&str] = &[
 ];
 
 /// Check a single line for path traversal, returning a diagnostic if found
-fn check_line(line: &str, line_num: usize) -> Option<Diagnostic> {
+fn check_line(line: &str, line_num: usize, taint: &TaintMap) -> Option<Diagnostic> {
     let trimmed = line.trim();
 
     if trimmed.starts_with('#') || trimmed.is_empty() {
@@ -48,7 +49,12 @@ fn check_line(line: &str, line_num: usize) -> Option<Diagnostic> {
         let cmd_pos = trimmed.find(cmd)?;
         let after_cmd = &trimmed[cmd_pos + cmd.len()..];
 
-        if has_variable_in_path(after_cmd) {
+        // GH-227: only report when the interpolated path can actually be
+        // influenced from outside the script. `cat "/data/$x"` where `x="a"`
+        // is not a traversal risk.
+        if has_variable_in_path(after_cmd)
+            && taint.path_taint(line_num, after_cmd) != TaintKind::Clean
+        {
             let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
             return Some(Diagnostic::new(
                 "SEC014",
@@ -68,9 +74,15 @@ fn check_line(line: &str, line_num: usize) -> Option<Diagnostic> {
 /// Check for path traversal vulnerabilities
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    let taint = taint::analyze(source);
+    // GH-227: a quoted heredoc body is data, not shell — see sec010::check.
+    let heredoc_body = crate::linter::heredoc::quoted_heredoc_lines(source);
 
     for (line_num, line) in source.lines().enumerate() {
-        if let Some(diag) = check_line(line, line_num) {
+        if heredoc_body.contains(&(line_num + 1)) {
+            continue;
+        }
+        if let Some(diag) = check_line(line, line_num, &taint) {
             result.add(diag);
         }
     }
@@ -193,6 +205,49 @@ mod tests {
         let script = r#"cp "$SRC/$FILE" /dest/"#;
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // ------------------------------------------------------------------
+    // GH-227: SEC014 had no dataflow at all — any `<file-cmd> …/"$VAR"…`
+    // fired, including paths built entirely from string literals.
+    // ------------------------------------------------------------------
+
+    #[test]
+    fn test_GH227_sec014_literal_var_in_path_not_flagged() {
+        let script = "#!/bin/bash\nx=\"a\"\ncat \"/data/$x\"\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 0, "got: {:?}", result.diagnostics);
+    }
+
+    #[test]
+    fn test_GH227_sec014_literal_out_dir_not_flagged() {
+        let script = "#!/bin/bash\nset -euo pipefail\nOUT_DIR=\"build/results\"\nmkdir -p \"$OUT_DIR\"\ncat > \"$OUT_DIR/report.md\" <<'INNER'\nhello\nINNER\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 0, "got: {:?}", result.diagnostics);
+    }
+
+    #[test]
+    fn test_GH227_sec014_positional_in_path_flagged() {
+        let script = r#"cat "/data/$1""#;
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SEC014");
+        assert_eq!(result.diagnostics[0].severity, Severity::Warning);
+    }
+
+    #[test]
+    fn test_GH227_sec014_env_var_in_path_still_flagged() {
+        // Never assigned in this file => unproven external influence => still reported.
+        let script = r#"cat "/data/$USER_INPUT""#;
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_GH227_sec014_guarded_positional_not_flagged() {
+        let script = "#!/bin/bash\ncase \"$1\" in *..*|/*) exit 2 ;; esac\ncat \"/data/$1\"\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 0, "got: {:?}", result.diagnostics);
     }
 }
 

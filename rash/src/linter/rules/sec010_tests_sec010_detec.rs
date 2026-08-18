@@ -11,7 +11,9 @@ fn test_SEC010_detects_cp_with_user_file() {
     assert_eq!(result.diagnostics.len(), 1);
     let diag = &result.diagnostics[0];
     assert_eq!(diag.code, "SEC010");
-    assert_eq!(diag.severity, Severity::Error);
+    // GH-227: `USER_FILE` is never assigned in this file, so its external
+    // influence is a guess about the environment, not a proof. A guess warns.
+    assert_eq!(diag.severity, Severity::Warning);
     assert!(diag.message.contains("Path traversal"));
 }
 
@@ -289,35 +291,33 @@ mkdir -p "$RAID_PATH/targets"
 }
 
 #[test]
-fn test_SEC010_127_check_function_tracks_var() {
-    // Issue #127: check_* functions also count as validation
+fn test_GH227_undefined_validator_name_is_not_evidence() {
+    // Was `test_SEC010_127_check_function_tracks_var`, which asserted that a
+    // call to `check_path` silences the rule. `check_path` is never DEFINED in
+    // this script, so there is no body to inspect and no evidence of anything —
+    // exactly the i227d defect. GH-227: the name alone is not a control.
     let script = r#"
 check_path "$SRC_PATH"
 cp "$SRC_PATH/file" /destination/
 "#;
     let result = check(script);
 
-    assert_eq!(
-        result.diagnostics.len(),
-        0,
-        "Expected no diagnostics for variable passed to check_path()"
-    );
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].code, "SEC010");
 }
 
 #[test]
-fn test_SEC010_127_sanitize_function_tracks_var() {
-    // Issue #127: sanitize_* functions also count as validation
+fn test_GH227_undefined_sanitizer_name_is_not_evidence() {
+    // Was `test_SEC010_127_sanitize_function_tracks_var`. Same defect as above:
+    // `sanitize_input` is never defined here, so the call proves nothing.
     let script = r#"
 sanitize_input "$USER_FILE"
 cat "$USER_FILE"
 "#;
     let result = check(script);
 
-    assert_eq!(
-        result.diagnostics.len(),
-        0,
-        "Expected no diagnostics for variable passed to sanitize_input()"
-    );
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].code, "SEC010");
 }
 
 #[test]
@@ -352,50 +352,6 @@ mkdir -p "$USER_DIR"
 // Unit tests for helper functions to increase coverage
 
 #[test]
-fn test_is_validation_function_call_various_prefixes() {
-    // Test all validation function prefixes
-    assert!(is_validation_function_call(r#"validate_path "$PATH""#));
-    assert!(is_validation_function_call(r#"check_input "$INPUT""#));
-    assert!(is_validation_function_call(r#"verify_file "$FILE""#));
-    assert!(is_validation_function_call(r#"sanitize_input "$INPUT""#));
-    assert!(is_validation_function_call(r#"clean_path "$PATH""#));
-    assert!(is_validation_function_call(r#"safe_copy "$FILE""#));
-    assert!(is_validation_function_call(r#"is_valid_path "$PATH""#));
-    assert!(is_validation_function_call(r#"is_safe_input "$INPUT""#));
-    assert!(is_validation_function_call(r#"assert_path "$PATH""#));
-
-    // Should not match without variable
-    assert!(!is_validation_function_call("validate_path /fixed/path"));
-    // Should not match function definitions
-    assert!(!is_validation_function_call("validate_path() {"));
-    assert!(!is_validation_function_call("validate_path()"));
-}
-
-#[test]
-fn test_extract_function_argument_variable_formats() {
-    // Test ${VAR} format
-    assert_eq!(
-        extract_function_argument_variable(r#"validate_path "${PATH}""#),
-        Some("PATH".to_string())
-    );
-    // Test ${VAR[0]} format (array index stripped)
-    assert_eq!(
-        extract_function_argument_variable(r#"validate_path "${ARGS[0]}""#),
-        Some("ARGS".to_string())
-    );
-    // Test $VAR format
-    assert_eq!(
-        extract_function_argument_variable(r#"validate_path "$PATH""#),
-        Some("PATH".to_string())
-    );
-    // Test no variable
-    assert_eq!(
-        extract_function_argument_variable("validate_path /fixed/path"),
-        None
-    );
-}
-
-#[test]
 fn test_is_heredoc_pattern_variants() {
     // Test various heredoc patterns
     assert!(is_heredoc_pattern("cat <<EOF"));
@@ -416,7 +372,6 @@ fn test_is_heredoc_pattern_variants() {
 #[cfg(test)]
 mod property_tests {
 use super::*;
-use crate::linter::Severity;
 use proptest::prelude::*;
 
 proptest! {
@@ -460,4 +415,305 @@ proptest! {
         prop_assert_eq!(result.diagnostics[0].code.as_str(), "SEC010");
     }
 }
+}
+
+// ============================================================================
+// GH-227: SEC010 fired on literal paths, was not cleared by real inline
+// validation, and WAS cleared by a no-op function named `validate_path`.
+//
+// The rule now requires the path expression to carry taint that can actually
+// come from outside the script (see `crate::linter::taint`).
+// ============================================================================
+
+/// Count SEC010 diagnostics in a lint result.
+fn sec010_count(script: &str) -> usize {
+    check(script)
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SEC010")
+        .count()
+}
+
+const GH227_LITERAL: &str = r#"#!/bin/bash
+set -euo pipefail
+OUT_DIR="build/results"
+mkdir -p "$OUT_DIR"
+cat > "$OUT_DIR/report.md" <<'INNER'
+hello
+INNER
+"#;
+
+const GH227_TAINTED: &str = r#"#!/bin/bash
+OUT_DIR="build/$1"
+mkdir -p "$OUT_DIR"
+cat > "$OUT_DIR/report.md" <<'INNER'
+hello
+INNER
+"#;
+
+const GH227_HARDENED: &str = r#"#!/bin/bash
+case "$1" in ""|*..*|/*) echo "bad name" >&2; exit 2 ;; esac
+OUT_DIR="build/$1"
+mkdir -p "$OUT_DIR"
+cat > "$OUT_DIR/report.md" <<'INNER'
+hello
+INNER
+"#;
+
+const GH227_NOOP_VALIDATOR: &str = r#"#!/bin/bash
+validate_path() {
+    :
+}
+OUT_DIR="build/$1"
+validate_path "$OUT_DIR"
+mkdir -p "$OUT_DIR"
+cat > "$OUT_DIR/report.md" <<'INNER'
+hello
+INNER
+"#;
+
+#[test]
+fn test_GH227_literal_path_not_flagged() {
+    // `OUT_DIR` is assigned a string literal: nothing on these lines can be
+    // influenced from outside the script.
+    assert_eq!(
+        sec010_count(GH227_LITERAL),
+        0,
+        "literal path must not be a traversal finding: {:?}",
+        check(GH227_LITERAL).diagnostics
+    );
+}
+
+#[test]
+fn test_GH227_positional_taint_still_flagged() {
+    let result = check(GH227_TAINTED);
+    let sec010: Vec<_> = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SEC010")
+        .collect();
+    assert_eq!(sec010.len(), 2, "got: {:?}", result.diagnostics);
+    for d in sec010 {
+        assert_eq!(d.severity, Severity::Error, "$1 is proven external input");
+    }
+}
+
+#[test]
+fn test_GH227_inline_case_guard_clears_taint() {
+    assert_eq!(
+        sec010_count(GH227_HARDENED),
+        0,
+        "a dominating `case` guard that exits must clear the finding: {:?}",
+        check(GH227_HARDENED).diagnostics
+    );
+}
+
+#[test]
+fn test_GH227_noop_validator_does_not_clear() {
+    let result = check(GH227_NOOP_VALIDATOR);
+    let sec010: Vec<_> = result
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SEC010")
+        .collect();
+    assert_eq!(
+        sec010.len(),
+        2,
+        "a function named validate_path whose body is `:` validates nothing: {:?}",
+        result.diagnostics
+    );
+    for d in sec010 {
+        assert_eq!(d.severity, Severity::Error);
+    }
+}
+
+#[test]
+fn test_GH227_transitive_literal_not_flagged() {
+    let script = r#"#!/bin/bash
+BASE_DIR="/srv"
+SUB_DIR="$BASE_DIR/data"
+mkdir -p "$SUB_DIR"
+"#;
+    assert_eq!(sec010_count(script), 0);
+}
+
+#[test]
+fn test_GH227_literal_dest_dir_not_flagged() {
+    let script = r#"#!/bin/bash
+DEST_DIR="/opt/app"
+cp /etc/hosts "$DEST_DIR/hosts"
+"#;
+    assert_eq!(sec010_count(script), 0);
+}
+
+#[test]
+fn test_GH227_multiline_case_guard_clears_taint() {
+    let script = r#"#!/bin/bash
+case "$1" in
+  *..*|/*) echo bad >&2; exit 2 ;;
+esac
+TARGET_DIR="out/$1"
+mkdir -p "$TARGET_DIR"
+"#;
+    assert_eq!(sec010_count(script), 0);
+}
+
+#[test]
+fn test_GH227_read_is_external_taint() {
+    let script = r#"#!/bin/bash
+read -r name
+mkdir -p "build/$name"
+"#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].severity, Severity::Error);
+}
+
+#[test]
+fn test_GH227_getopts_optarg_is_external() {
+    let script = r#"#!/bin/bash
+while getopts "d:" opt; do
+  case "$opt" in
+    d) OUT_DIR="$OPTARG" ;;
+  esac
+done
+mkdir -p "$OUT_DIR"
+"#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].severity, Severity::Error);
+}
+
+#[test]
+fn test_GH227_in_file_validator_with_return_clears() {
+    let script = r#"#!/bin/bash
+validate_path() {
+  case "$1" in
+    *..*|/*) echo "bad" >&2; return 1 ;;
+  esac
+}
+RAID_PATH="$1"
+validate_path "$RAID_PATH" || exit 1
+mkdir -p "$RAID_PATH/targets"
+"#;
+    assert_eq!(
+        sec010_count(script),
+        0,
+        "got: {:?}",
+        check(script).diagnostics
+    );
+}
+
+#[test]
+fn test_GH227_unassigned_var_is_ambient_warning() {
+    // Never assigned in this file: an environment variable or one set by a
+    // sourced file. Real but unproven -> Warning, not a build-breaking Error.
+    let script = r#"cp "$USER_FILE" /destination/"#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1);
+    assert_eq!(result.diagnostics[0].severity, Severity::Warning);
+}
+
+#[test]
+fn test_GH227_reassignment_from_literal_cleans() {
+    let script = r#"#!/bin/bash
+P="$1"
+P="/opt/fixed"
+mkdir -p "$P/x"
+"#;
+    assert_eq!(sec010_count(script), 0);
+}
+
+#[test]
+fn test_GH227_reassignment_from_input_retaints() {
+    let script = r#"#!/bin/bash
+P="/opt/fixed"
+P="$1"
+mkdir -p "$P/x"
+"#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].severity, Severity::Error);
+}
+
+#[test]
+fn test_GH227_guard_on_wrong_variable_does_not_clear() {
+    let script = r#"#!/bin/bash
+case "$OTHER" in *..*) exit 1 ;; esac
+D="in/$1"
+mkdir -p "$D"
+"#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].severity, Severity::Error);
+}
+
+#[test]
+fn test_GH227_guard_without_exit_does_not_clear() {
+    let script = r#"#!/bin/bash
+case "$1" in *..*) echo bad >&2 ;; esac
+D="in/$1"
+mkdir -p "$D"
+"#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].severity, Severity::Error);
+}
+
+#[test]
+fn test_GH227_guard_after_use_does_not_clear() {
+    let script = r#"#!/bin/bash
+D="in/$1"
+mkdir -p "$D"
+case "$1" in *..*) exit 1 ;; esac
+"#;
+    assert_eq!(sec010_count(script), 1);
+}
+
+#[test]
+fn test_GH227_escaped_regex_guard_recognised() {
+    let script = r#"#!/bin/bash
+if printf '%s' "$1" | grep -qE '(^|/)\.\.(/|$)'; then exit 1; fi
+D="in/$1"
+mkdir -p "$D"
+"#;
+    assert_eq!(
+        sec010_count(script),
+        0,
+        "got: {:?}",
+        check(script).diagnostics
+    );
+}
+
+#[test]
+fn test_GH227_validator_named_but_body_only_echoes() {
+    let script = r#"#!/bin/bash
+check_path() { echo "$1"; }
+check_path "$1"
+D="in/$1"
+mkdir -p "$D"
+"#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].severity, Severity::Error);
+}
+
+#[test]
+fn test_GH227_external_cmdsub_is_tainted() {
+    let script = r#"#!/bin/bash
+D=$(curl -s https://example.invalid/name)
+mkdir -p "$D"
+"#;
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1, "got: {:?}", result.diagnostics);
+    assert_eq!(result.diagnostics[0].severity, Severity::Error);
+}
+
+#[test]
+fn test_GH227_realpath_still_sanitizes() {
+    let script = r#"#!/bin/bash
+S=$(realpath -m "$1")
+cp "$S" /dest/
+"#;
+    assert_eq!(sec010_count(script), 0);
 }

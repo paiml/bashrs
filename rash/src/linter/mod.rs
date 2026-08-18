@@ -40,6 +40,9 @@ pub mod shell_type;
 /// Word / command-position analysis shared by lint rules (GH-228, GH-229)
 pub mod shell_words;
 pub mod suppression;
+/// Intra-file taint analysis shared by the path-safety rules (GH-227)
+pub mod taint;
+
 /// Timestamp sink analysis shared by DET002 (GH-230)
 pub(crate) mod timestamp_flow;
 
