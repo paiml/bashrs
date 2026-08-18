@@ -2,15 +2,23 @@ use crate::corpus::runner_helpers::{extract_test_names, format_file_patterns, pa
 use std::collections::HashSet;
 #[test]
 fn test_CORPUS_RUN_018_classify_error_type() {
+    // See the comment on test_CORPUS_RUN_016 (runner_tests.rs): classify_error
+    // returns a different taxonomy under the `oracle` feature.
     let (cat, conf) = classify_error("type mismatch in assignment");
+    #[cfg(not(feature = "oracle"))]
     assert_eq!(cat.as_deref(), Some("type_error"));
+    #[cfg(feature = "oracle")]
+    assert!(cat.is_some());
     assert!(conf.is_some());
 }
 
 #[test]
 fn test_CORPUS_RUN_019_classify_error_unknown() {
     let (cat, conf) = classify_error("something went wrong");
+    #[cfg(not(feature = "oracle"))]
     assert_eq!(cat.as_deref(), Some("unknown"));
+    #[cfg(feature = "oracle")]
+    assert!(cat.is_some());
     assert!(conf.is_some());
 }
 

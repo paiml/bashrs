@@ -82,6 +82,9 @@ pub(crate) fn chat_generate(
             use_bias: false,
             head_dim_override: None,
             architecture: Default::default(),
+            hf_architecture: None,
+            hf_model_type: None,
+            tie_word_embeddings: false,
         }
     };
 
@@ -131,6 +134,15 @@ fn load_model_config(path: &Path) -> Result<entrenar::transformer::TransformerCo
         use_bias: json["use_bias"].as_bool().unwrap_or(false),
         head_dim_override: json["head_dim"].as_u64().map(|v| v as usize),
         architecture: Default::default(),
+        // Conservative defaults, matching the hardcoded branch above: this
+        // repo has zero test coverage under `--features ml` (nothing has
+        // ever compiled it), so reading these opportunistically from
+        // config.json's "architectures"/"model_type"/"tie_word_embeddings"
+        // keys is left for whoever next touches this pipeline with a real
+        // checkpoint to validate against, rather than guessed here.
+        hf_architecture: None,
+        hf_model_type: None,
+        tie_word_embeddings: false,
     })
 }
 

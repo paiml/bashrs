@@ -1,8 +1,14 @@
 pub(crate) fn corpus_batch_eval(
-    _model_dir: PathBuf,
-    _test_data: PathBuf,
-    _output: PathBuf,
-    _max_tokens: usize,
+    // GH-233 dogfood: these were underscore-prefixed to silence the unused-
+    // parameter warning on the `not(feature = "ml")` arm below, but the
+    // `feature = "ml"` arm DOES use them, unprefixed — an underscore prefix is
+    // part of the identifier in Rust, not cosmetic, so that arm could not
+    // compile at all under `--features ml`. Pre-existing since before v6.66.3;
+    // never caught because nothing builds this feature.
+    model_dir: PathBuf,
+    test_data: PathBuf,
+    output: PathBuf,
+    max_tokens: usize,
 ) -> Result<()> {
     #[cfg(not(feature = "ml"))]
     {
@@ -15,9 +21,12 @@ pub(crate) fn corpus_batch_eval(
 
     #[cfg(feature = "ml")]
     {
-        use crate::cli::chat_inference::{format_explain_prompt, SYSTEM_PROMPT};
+        // chat_inference is declared as a submodule of cli::commands
+        // (commands.rs:86 `#[path = "chat_inference.rs"] pub(crate) mod
+        // chat_inference;`), not directly under cli — GH-233 dogfood found
+        // this path had never resolved under `--features ml`.
+        use crate::cli::commands::chat_inference::{format_explain_prompt, SYSTEM_PROMPT};
         use crate::cli::color::*;
-        use crate::corpus::cwe_mapping;
         use entrenar::finetune::{GenerateConfig, InstructConfig, InstructPipeline};
         use entrenar::transformer::TransformerConfig;
         use std::io::Write;
@@ -48,6 +57,9 @@ pub(crate) fn corpus_batch_eval(
                 use_bias: json["use_bias"].as_bool().unwrap_or(false),
                 head_dim_override: json["head_dim"].as_u64().map(|v| v as usize),
                 architecture: Default::default(),
+                hf_architecture: None,
+                hf_model_type: None,
+                tie_word_embeddings: false,
             }
         } else {
             // Default to Qwen2.5-Coder-1.5B-Instruct dimensions
@@ -64,6 +76,9 @@ pub(crate) fn corpus_batch_eval(
                 use_bias: false,
                 head_dim_override: None,
                 architecture: Default::default(),
+                hf_architecture: None,
+                hf_model_type: None,
+                tie_word_embeddings: false,
             }
         };
 

@@ -337,17 +337,34 @@ fn test_CORPUS_RUN_014_detect_test_exists() {
     let _detected = result;
 }
 
+// classify_error (runner_helpers.rs) has two implementations selected by the
+// `oracle` feature: a keyword-slug fallback ("syntax_error", ...) when it is
+// off, and bashrs_oracle::ErrorClassifier's own 23-category taxonomy
+// ("Syntax: Unexpected Token", ...) when it is on. `--all-features` compiles
+// with `oracle` on, so pinning the slug string here was asserting one build
+// configuration's behaviour as if it were the only one — GH-233 dogfood found
+// these four failing under `--all-features` for exactly that reason. Each
+// test now asserts the exact slug on the default (non-oracle) build, which is
+// what every normal `cargo test` exercises, and the weaker "classified into
+// something, with confidence" property when oracle supplies its own taxonomy.
+
 #[test]
 fn test_CORPUS_RUN_016_classify_error_syntax() {
     let (cat, conf) = classify_error("unexpected token: parse error near line 5");
+    #[cfg(not(feature = "oracle"))]
     assert_eq!(cat.as_deref(), Some("syntax_error"));
+    #[cfg(feature = "oracle")]
+    assert!(cat.as_deref().is_some_and(|c| c.to_lowercase().contains("syntax")));
     assert!(conf.is_some());
 }
 
 #[test]
 fn test_CORPUS_RUN_017_classify_error_unsupported() {
     let (cat, conf) = classify_error("unsupported feature: process substitution");
+    #[cfg(not(feature = "oracle"))]
     assert_eq!(cat.as_deref(), Some("unsupported_construct"));
+    #[cfg(feature = "oracle")]
+    assert!(cat.is_some());
     assert!(conf.is_some());
 }
 

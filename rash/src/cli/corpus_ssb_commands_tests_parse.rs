@@ -2,42 +2,68 @@
 ///
 /// Looks for "Classification: safe" or "Classification: unsafe" in the output.
 /// Extracts SEC/DET/IDEM/SC rule patterns and maps them to CWEs.
+///
+/// Split into three single-purpose helpers (GH-233 dogfood: this function was
+/// cognitive complexity 33 against a 25 threshold, in code that had never
+/// compiled before — nothing had ever measured it). Each phase is independent
+/// and testable on its own.
 #[cfg_attr(not(feature = "ml"), allow(dead_code))]
 fn parse_batch_eval_output(output: &str) -> (String, Vec<String>, Vec<String>) {
-    use crate::corpus::cwe_mapping;
+    let classification = classify_batch_eval_output(output);
+    let rules = extract_rule_ids(output);
+    let cwes = map_rules_to_cwes(&rules);
+    (classification, rules, cwes)
+}
 
-    // Parse classification
+/// Does the model output classify the input as "safe" or "unsafe"?
+///
+/// Prefers an explicit "Classification: <safe|unsafe>" line; falls back to
+/// the bare word "unsafe" appearing anywhere, and defaults to "safe".
+#[cfg_attr(not(feature = "ml"), allow(dead_code))]
+fn classify_batch_eval_output(output: &str) -> String {
     let lower = output.to_lowercase();
-    let classification =
-        if lower.contains("classification: unsafe") || lower.contains("classification:unsafe") {
-            "unsafe".to_string()
-        } else if lower.contains("classification: safe") || lower.contains("classification:safe") {
-            "safe".to_string()
-        } else if lower.contains("unsafe") {
-            // Fallback: look for the word "unsafe" anywhere
-            "unsafe".to_string()
-        } else {
-            "safe".to_string()
-        };
+    if lower.contains("classification: unsafe") || lower.contains("classification:unsafe") {
+        "unsafe".to_string()
+    } else if lower.contains("classification: safe") || lower.contains("classification:safe") {
+        "safe".to_string()
+    } else if lower.contains("unsafe") {
+        "unsafe".to_string()
+    } else {
+        "safe".to_string()
+    }
+}
 
-    // Extract rule IDs (SEC001, DET002, IDEM003, SC2039, etc.)
+/// Is `word` shaped like a rule id (SEC001, DET002, IDEM003, SC2039, ...)?
+#[cfg_attr(not(feature = "ml"), allow(dead_code))]
+fn is_rule_id(word: &str) -> bool {
+    match word.len() {
+        6 if word.starts_with("SEC") => word[3..].chars().all(|c| c.is_ascii_digit()),
+        6 if word.starts_with("DET") => word[3..].chars().all(|c| c.is_ascii_digit()),
+        7 if word.starts_with("IDEM") => word[4..].chars().all(|c| c.is_ascii_digit()),
+        6 if word.starts_with("SC") => word[2..].chars().all(|c| c.is_ascii_digit()),
+        _ => false,
+    }
+}
+
+/// Every distinct rule id (SEC001, DET002, IDEM003, SC2039, ...) mentioned in
+/// `output`, in first-seen order.
+#[cfg_attr(not(feature = "ml"), allow(dead_code))]
+fn extract_rule_ids(output: &str) -> Vec<String> {
     let mut rules: Vec<String> = Vec::new();
     for word in output.split(|c: char| !c.is_alphanumeric()) {
-        let is_rule = match word.len() {
-            6 if word.starts_with("SEC") && word[3..].chars().all(|c| c.is_ascii_digit()) => true,
-            6 if word.starts_with("DET") && word[3..].chars().all(|c| c.is_ascii_digit()) => true,
-            7 if word.starts_with("IDEM") && word[4..].chars().all(|c| c.is_ascii_digit()) => true,
-            6 if word.starts_with("SC") && word[2..].chars().all(|c| c.is_ascii_digit()) => true,
-            _ => false,
-        };
-        if is_rule && !rules.contains(&word.to_string()) {
+        if is_rule_id(word) && !rules.iter().any(|r| r == word) {
             rules.push(word.to_string());
         }
     }
+    rules
+}
 
-    // Map rules to CWEs
+/// The distinct CWE ids that `rules` map to, in first-seen order.
+#[cfg_attr(not(feature = "ml"), allow(dead_code))]
+fn map_rules_to_cwes(rules: &[String]) -> Vec<String> {
+    use crate::corpus::cwe_mapping;
     let mut cwes: Vec<String> = Vec::new();
-    for rule in &rules {
+    for rule in rules {
         if let Some(mapping) = cwe_mapping::lookup_rule(rule) {
             let cwe = mapping.cwe.to_string();
             if !cwes.contains(&cwe) {
@@ -45,8 +71,7 @@ fn parse_batch_eval_output(output: &str) -> (String, Vec<String>, Vec<String>) {
             }
         }
     }
-
-    (classification, rules, cwes)
+    cwes
 }
 
 /// Extract shell code from markdown code block in SSB input text.
