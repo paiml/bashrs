@@ -145,6 +145,56 @@ unquoted argument to `docker login`).
   control flow, deserves its own rule and is filed as a follow-up rather than
   left mislabelled.
 
+### Found dogfooding this release against its own repository
+
+- **SC2296 flagged ordinary default-value parameter expansion.**
+  `${VAR:-/tmp/${OTHER}}` — a parameter expansion whose default value contains
+  another expansion, ordinary POSIX shell that real shellcheck does not flag
+  and both dash and bash execute correctly — was reported as "parameter
+  expansions can't be nested." Found because `examples/cicd-integration/
+  purified.sh`, a file whose whole purpose is to demonstrate clean purified
+  output, failed its own linter's error gate. What genuinely cannot be nested
+  is the *operand*: `${${name}}` is a real parse error in both shells; the
+  rule now requires that adjacency instead of matching a second `${` anywhere
+  later on the line. 17 more false positives removed corpus-wide, 0 added.
+- **`cargo build --release --all-features` had not compiled since before
+  v6.66.3.** Four self-contained defects in the `ml`-feature SSC/
+  ShellSafetyBench chat-inference pipeline, invisible because nothing in CI or
+  any regular workflow builds with `--all-features`: an underscore-prefixed
+  parameter set that made the signature not match its own body under
+  `--features ml`, an import path one module level short of where the target
+  is actually declared, three struct literals predating an upstream field
+  addition (filled with the same conservative defaults the crate's own
+  constructors use), and — once that code finally compiled — a function at
+  cognitive complexity 33 against this project's 25 threshold, split into four
+  single-purpose helpers with all 9 of its existing tests still passing
+  unchanged.
+- **145 of 145 `rash/tests/*.rs` integration targets now compile** (was
+  108/145) and **16,423 integration tests now run for the first time** (was
+  0). Root causes: unanchored `.gitignore` patterns silently dropping 18
+  tracked files including `rash/src/cli/test_generate.rs` (production
+  source); 36 `include!()` fragment files being auto-discovered by cargo as
+  independent targets with none of their parent's imports; and 45 `#[test]`
+  attributes stranded immediately before an `include!()`, which Rust silently
+  drops rather than errors on. Every one of the 156 tests this exposed as
+  failing was triaged individually — 100 deleted (orphaned specs for CLI
+  flags that were never implemented), 21 deleted (a security rule module that
+  was never declared and had never once compiled), 30 marked `#[ignore]` with
+  the reason already established elsewhere in this codebase ("requires
+  runtime corpus data, externalized from builtin"), and the rest were real
+  bugs fixed at their cause — including `bashrs lint` running the shell rule
+  set against `.rs` files (`let x = 42;` came back as SC1068), and `bashrs
+  init` being tested as if it did not require the explicit path its own
+  `--help` says prevents accidental CWD mutation.
+- `cargo clippy --workspace --all-targets -D warnings` is now clean (0
+  errors) for the first time this has been measured — `ci / lint` has only
+  ever checked the `bashrs-specs` workspace-root stub. Tracked in
+  [GH-233](https://github.com/paiml/bashrs/issues/233) for the CI-side fix.
+- Filed rather than rushed: `pmat comply`'s CB-200 TDG grade gate (120
+  functions below grade A, confirmed pre-existing) and a `pv lint contracts/`
+  schema gap that lives entirely in the sibling `provable-contracts`
+  repository. See [GH-234](https://github.com/paiml/bashrs/issues/234).
+
 ### Verification
 
 Every fix in this release removes findings, so the release was reviewed

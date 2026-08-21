@@ -13,39 +13,82 @@
 //   [ \( -f file \) ]
 //   [[ (expr) ]]   # double brackets handle parens natively
 
+use crate::linter::rules::quoting::is_inside_quoted_string;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// Find bare `(` or `)` characters that are NOT part of `$(...)` command
 /// substitution or `\(` / `\)` escaped parens.
 /// Returns byte offsets of each bare paren.
+/// Consume a multi-byte token at `i` that is NOT a bare paren, updating depths.
+///
+/// Returns the index just past it, or `None` when `i` is not one of them.
+///
+/// Issue #243: arithmetic expansion is tracked SEPARATELY from command
+/// substitution because it is not symmetric with it. `$((` opens with two
+/// parens and closes with two, but the old code matched it as a plain `$(`:
+/// depth went up by ONE, both parens of `))` were then seen with depth 1 and 0
+/// respectively, and the second fell through to the bare-paren arm. So
+///
+/// ```sh
+/// [ -n "$(find /tmp -mmin "+$((H * 60))" 2>/dev/null)" ]
+/// ```
+///
+/// produced three SC1028 findings telling the author to write `\(` — which
+/// would break the script, since these parens are required syntax. shellcheck
+/// accepts it. At Severity::Error this made the ordinary "did this command
+/// produce output" idiom unlintable.
+///
+/// The empty `()` arm is a POSIX function definition — `name() { ... }`. An
+/// empty pair is never test-grouping syntax, so it cannot be what this rule
+/// looks for. Before this, a function defined on a line that also contained a
+/// test was flagged twice, at the parens of the definition itself.
+fn consume_non_bare_token(
+    bytes: &[u8],
+    i: usize,
+    arith: &mut u32,
+    cmd_sub: &mut u32,
+) -> Option<usize> {
+    let next = bytes.get(i + 1).copied();
+    match bytes[i] {
+        // An escaped character is already escaped; skip it entirely.
+        b'\\' => Some(i + 2),
+        b'$' if next == Some(b'(') && bytes.get(i + 2) == Some(&b'(') => {
+            *arith += 1;
+            Some(i + 3)
+        }
+        b')' if *arith > 0 && next == Some(b')') => {
+            *arith -= 1;
+            Some(i + 2)
+        }
+        b'$' if next == Some(b'(') => {
+            *cmd_sub += 1;
+            Some(i + 2)
+        }
+        b'(' if *cmd_sub == 0 && next == Some(b')') => Some(i + 2),
+        _ => None,
+    }
+}
+
+/// Positions of parens that are bare test-grouping syntax, not expansion,
+/// not a function definition, and not text inside a quoted string.
 fn find_bare_parens(line: &str) -> Vec<usize> {
     let bytes = line.as_bytes();
     let mut results = Vec::new();
     let mut cmd_sub_depth: u32 = 0;
-
+    let mut arith_depth: u32 = 0;
     let mut i = 0;
+
     while i < bytes.len() {
+        if let Some(next) = consume_non_bare_token(bytes, i, &mut arith_depth, &mut cmd_sub_depth) {
+            i = next;
+            continue;
+        }
         match bytes[i] {
-            b'\\' => {
-                // Skip escaped character entirely
-                i += 2;
-                continue;
-            }
-            b'$' if i + 1 < bytes.len() && bytes[i + 1] == b'(' => {
-                // Start of $(...) command substitution
-                cmd_sub_depth += 1;
-                i += 2;
-                continue;
-            }
-            b'(' if cmd_sub_depth == 0 => {
-                results.push(i);
-            }
-            b')' if cmd_sub_depth > 0 => {
-                cmd_sub_depth -= 1;
-            }
-            b')' => {
-                results.push(i);
-            }
+            b'(' if cmd_sub_depth == 0 && !is_inside_quoted_string(line, i) => results.push(i),
+            b')' if cmd_sub_depth > 0 => cmd_sub_depth -= 1,
+            // Issue #243: parens inside a quoted string are text, not test
+            // grouping. `log "waiting (${n}s elapsed)"` is not a syntax error.
+            b')' if !is_inside_quoted_string(line, i) => results.push(i),
             _ => {}
         }
         i += 1;
@@ -54,24 +97,18 @@ fn find_bare_parens(line: &str) -> Vec<usize> {
 }
 
 /// Check if a line contains a single-bracket test `[ ... ]` (not `[[ ... ]]`).
+/// True if the line contains a POSIX single-bracket test (`[ ... ]`).
+///
+/// A `[` opens one only when the next byte is a space. `[[` is bash's own
+/// construct and is excluded by checking the preceding byte.
+///
+/// (The original also skipped when the byte after `[` was another `[`, which
+/// could never fire: that byte had already been required to be a space.)
 fn has_single_bracket_test(line: &str) -> bool {
     let bytes = line.as_bytes();
-    for (i, &b) in bytes.iter().enumerate() {
-        if b == b'[' {
-            // Check next char is space (single bracket test)
-            if i + 1 < bytes.len() && bytes[i + 1] == b' ' {
-                // But NOT `[[` (double bracket)
-                if i > 0 && bytes[i - 1] == b'[' {
-                    continue;
-                }
-                if i + 1 < bytes.len() && bytes[i + 1] == b'[' {
-                    continue;
-                }
-                return true;
-            }
-        }
-    }
-    false
+    bytes.iter().enumerate().any(|(i, &b)| {
+        b == b'[' && bytes.get(i + 1) == Some(&b' ') && (i == 0 || bytes[i - 1] != b'[')
+    })
 }
 
 pub fn check(source: &str) -> LintResult {
@@ -168,5 +205,41 @@ mod tests {
         let code = "echo (hello)";
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    /// Issue #243: parens belonging to arithmetic expansion are not test parens.
+    #[test]
+    fn test_arithmetic_expansion_parens_are_not_bare() {
+        let code = r#"is_stale() { [ -n "$(find /tmp -mmin "+$((HOURS * 60))" 2>/dev/null)" ]; }"#;
+        let result = check(code);
+        assert!(
+            result.diagnostics.is_empty(),
+            "SC1028 fired on $(( )) / $( ) parens, which are required syntax: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// Bare arithmetic expansion inside a test, without command substitution.
+    #[test]
+    fn test_arithmetic_expansion_alone_inside_test() {
+        let code = r#"[ "$((a + b))" -gt 0 ] && echo yes"#;
+        let result = check(code);
+        assert!(
+            result.diagnostics.is_empty(),
+            "SC1028 fired on a bare $(( )) inside a test: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// Guard the guard: a genuinely bare paren inside a test must STILL be
+    /// reported, so the expansion-tracking cannot be widened into "never fire".
+    #[test]
+    fn test_genuinely_bare_paren_still_detected() {
+        let code = r#"[ (a = b) ]"#;
+        let result = check(code);
+        assert!(
+            !result.diagnostics.is_empty(),
+            "a real bare paren in a test must still be flagged"
+        );
     }
 }
