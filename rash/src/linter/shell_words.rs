@@ -151,9 +151,16 @@ pub const MAX_SUB_DEPTH: u8 = 32;
 /// // The outer word is an assignment prefix, so the outer command has no name.
 /// // The inner command substitution is analysed as its own command.
 /// let curl = cmds.iter().find(|c| c.name.as_deref() == Some("curl")).unwrap();
-/// let arg = curl.words.iter().find(|w| w.role == WordRole::Argument).unwrap();
-/// assert_eq!(arg.expansions[0].text, "$url");
-/// assert!(!arg.expansions[0].quoted);
+///
+/// // Select the word by what it IS, not by role: `-sSfL` is also an Argument
+/// // and carries no expansions, so `find(role == Argument)` returns that one.
+/// let url = curl.words.iter().find(|w| w.raw == "$url").unwrap();
+/// assert_eq!(url.role, WordRole::Argument);
+///
+/// // GH-228: a command substitution opens a FRESH quoting context, so `$url`
+/// // is unquoted even though the enclosing word opened a double quote.
+/// assert_eq!(url.expansions[0].text, "$url");
+/// assert!(!url.expansions[0].quoted);
 /// ```
 pub fn simple_commands(line: &str) -> Vec<SimpleCommand> {
     let mut out = Vec::new();
