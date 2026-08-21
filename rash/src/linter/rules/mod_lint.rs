@@ -72,7 +72,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc1017::check(source));
     result.merge(sc1018::check(source));
     result.merge(sc1026::check(&masked));
-    result.merge(sc1028::check(source));
+    result.merge(sc1028::check(&masked));
     result.merge(sc1036::check(&masked));
     result.merge(sc1038::check(source));
     result.merge(sc1040::check(source));
@@ -228,7 +228,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2101::check(source));
     result.merge(sc2102::check(source));
     result.merge(sc2103::check(source));
-    result.merge(sc2104::check(source));
+    result.merge(sc2104::check(&masked));
     result.merge(sc2105::check(source));
     result.merge(sc2106::check(source));
     result.merge(sc2107::check(source));

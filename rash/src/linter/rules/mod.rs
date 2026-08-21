@@ -2,7 +2,6 @@
 
 // ShellCheck SC1xxx rules (source code issues)
 pub mod posix_bracket;
-pub mod quoting;
 pub mod sc1003;
 pub mod sc1004;
 pub mod sc1007;

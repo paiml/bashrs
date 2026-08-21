@@ -202,6 +202,9 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     "SC1041", // Expected EOF
     // Characters that are a typo in code and ordinary text in a message.
     "SC1100", // Unicode dash — an em-dash in `echo "gate FAILED — fix it"` is prose
+    // Paren and bracket syntax that is ordinary punctuation in a message.
+    "SC1028", // Bare ( ) in a test — `log "waiting (${n}s elapsed)"` is prose
+    "SC2104", // Missing space before ] — `"usage: rag [--source|--videos]"` is prose
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
@@ -935,6 +938,8 @@ mod tests {
             ("SC1045", sc1045::check),
             ("SC1065", sc1065::check),
             ("SC1140", sc1140::check),
+            ("SC1028", sc1028::check),
+            ("SC2104", sc2104::check),
         ]
     }
 
@@ -1069,6 +1074,49 @@ mod tests {
             "cat <<",
         ] {
             let _ = QuotedRegions::analyze(src);
+        }
+    }
+
+    /// No allowlisted rule may report a position that lies inside a literal —
+    /// checked through `lint_shell`, the path callers actually use.
+    ///
+    /// This is general over the whole allowlist, so it needs no per-rule
+    /// fixture, and it guards a divergence the module-existence test above
+    /// cannot see: `mod_lint_2.rs` derives masked-vs-unmasked from
+    /// [`is_quote_sensitive`], but `mod_lint.rs` HARDCODES the choice at each
+    /// call site (`sc1014::check(&masked)` beside `sc1017::check(source)`).
+    /// Adding a code to the allowlist therefore did nothing on that path, and
+    /// nothing failed. SC1028 and SC2104 were added and were still quote-blind
+    /// until their call sites were changed by hand; this test is what makes the
+    /// next such addition fail loudly instead of silently.
+    #[test]
+    fn test_GH226_no_allowlisted_rule_reports_inside_a_literal() {
+        // Real lines from the infra fleet's machine scripts, each of which put
+        // shell-looking punctuation inside a string where it is prose.
+        let corpus = [
+            r#"[ $# -gt 0 ] || { echo 'usage: rag [--source|--videos]' >&2; exit 2; }"#,
+            r#"log "still waiting for the NAS (${waited}s elapsed)""#,
+            r#"echo "corpus built; intel's rag-reindex.timer runs daily." >&2"#,
+            r#"die "usage: nas-move.sh <source-dir> [--execute]""#,
+            r#"grep "^Diff in" "$file""#,
+            r#"export PATTERN="PMAT-[0-9]{4}""#,
+        ];
+
+        for src in corpus {
+            let regions = QuotedRegions::analyze(src);
+            for d in crate::linter::lint_shell(src).diagnostics {
+                if !is_quote_sensitive(&d.code) {
+                    continue;
+                }
+                assert!(
+                    !regions.is_literal(d.span.start_line, d.span.start_col),
+                    "{} reported at {}:{}, which is inside a string literal — \
+                     it is allowlisted, so it should have been given masked source.\n  {src}",
+                    d.code,
+                    d.span.start_line,
+                    d.span.start_col
+                );
+            }
         }
     }
 }

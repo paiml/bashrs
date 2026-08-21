@@ -13,7 +13,6 @@
 //   [ \( -f file \) ]
 //   [[ (expr) ]]   # double brackets handle parens natively
 
-use crate::linter::rules::quoting::is_inside_quoted_string;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// Find bare `(` or `)` characters that are NOT part of `$(...)` command
@@ -84,11 +83,9 @@ fn find_bare_parens(line: &str) -> Vec<usize> {
             continue;
         }
         match bytes[i] {
-            b'(' if cmd_sub_depth == 0 && !is_inside_quoted_string(line, i) => results.push(i),
+            b'(' if cmd_sub_depth == 0 => results.push(i),
             b')' if cmd_sub_depth > 0 => cmd_sub_depth -= 1,
-            // Issue #243: parens inside a quoted string are text, not test
-            // grouping. `log "waiting (${n}s elapsed)"` is not a syntax error.
-            b')' if !is_inside_quoted_string(line, i) => results.push(i),
+            b')' => results.push(i),
             _ => {}
         }
         i += 1;
