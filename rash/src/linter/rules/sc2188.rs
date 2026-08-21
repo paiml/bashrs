@@ -13,6 +13,68 @@ fn ends_with_continuation(line: &str) -> bool {
     line.chars().rev().take_while(|&c| c == '\\').count() % 2 == 1
 }
 
+/// Is `tok` a redirection that already carries its target?
+///
+/// `>&2`, `2>&1`, `<&-`, `>>out`, `2>/dev/null` — the operand is attached, so
+/// no following word is consumed.
+fn redirect_has_attached_target(tok: &str) -> bool {
+    let b = tok.as_bytes();
+    let mut i = 0;
+    while i < b.len() && b[i].is_ascii_digit() {
+        i += 1;
+    }
+    if i >= b.len() || (b[i] != b'<' && b[i] != b'>') {
+        return false;
+    }
+    i += 1;
+    // `>>`, `<<`, `<>`, `>|`, `>&`, `<&`
+    if i < b.len() && matches!(b[i], b'>' | b'<' | b'|' | b'&') {
+        i += 1;
+    }
+    i < b.len() // something follows the operator, so the target is attached
+}
+
+/// Is `tok` a bare redirection operator, whose target is the NEXT word?
+fn is_bare_redirect_operator(tok: &str) -> bool {
+    let b = tok.as_bytes();
+    let mut i = 0;
+    while i < b.len() && b[i].is_ascii_digit() {
+        i += 1;
+    }
+    if i >= b.len() || (b[i] != b'<' && b[i] != b'>') {
+        return false;
+    }
+    i += 1;
+    if i < b.len() && matches!(b[i], b'>' | b'<' | b'|' | b'&') {
+        i += 1;
+    }
+    i == b.len()
+}
+
+/// Does a COMMAND follow the leading redirections on this line?
+///
+/// Issue #239: POSIX permits redirections anywhere in a simple command,
+/// including BEFORE the command name (`>&2 echo "..."`, `> out.txt cat in.txt`).
+/// Matching `^\s*[<>]` alone reports those as "redirection without command",
+/// and at Severity::Error that aborts `forjar apply`.
+///
+/// Consume leading redirections — with attached targets, or bare operators that
+/// take the next word — and report only if nothing is left.
+fn command_follows_redirections(line: &str) -> bool {
+    let mut toks = line.split_whitespace().peekable();
+    while let Some(tok) = toks.peek().copied() {
+        if redirect_has_attached_target(tok) {
+            toks.next();
+        } else if is_bare_redirect_operator(tok) {
+            toks.next();
+            toks.next(); // its target
+        } else {
+            return true; // a word that is not a redirection: the command
+        }
+    }
+    false
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -51,7 +113,10 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        if LONE_REDIRECT.is_match(line) && !line.contains("<<") {
+        if LONE_REDIRECT.is_match(line)
+            && !line.contains("<<")
+            && !command_follows_redirections(line)
+        {
             let diagnostic = Diagnostic::new(
                 "SC2188",
                 Severity::Error,
@@ -253,6 +318,50 @@ mod tests {
             } else {
                 assert_eq!(got, 1, "even run ({n}) does not continue: redirect is lone");
             }
+        }
+    }
+
+    // ── Issue #239: a redirection may PRECEDE the command ────────────────────
+
+    /// The reported case. `>&2 echo "..."` is valid POSIX and extremely common
+    /// for writing to stderr; at Severity::Error this aborted `forjar apply`.
+    #[test]
+    fn test_sc2188_redirection_before_the_command_is_valid() {
+        for src in [
+            ">&2 echo 'message to stderr'\n",
+            "2>&1 echo hi\n",
+            "> out.txt cat in.txt\n",
+            "  >>log.txt printf '%s\\n' done\n",
+            "2>/dev/null command -v rsync\n",
+            "< input.txt sort\n",
+        ] {
+            let r = check(src);
+            assert!(
+                r.diagnostics.is_empty(),
+                "SC2188 fired on valid POSIX `{}`: {:?}",
+                src.trim(),
+                r.diagnostics
+            );
+        }
+    }
+
+    /// Guard the guard: a genuinely commandless redirection must still fire, or
+    /// the fix has simply switched the rule off.
+    #[test]
+    fn test_sc2188_a_truly_lone_redirection_still_fires() {
+        // `2>&1` alone is NOT here: `LONE_REDIRECT` is `^\s*[<>]`, so a line
+        // starting with an fd digit was never in this rule's scope. That is a
+        // pre-existing gap (paiml/bashrs#249), not a regression from this fix —
+        // and widening a Severity::Error rule to report MORE does not belong in
+        // a release whose purpose is removing false positives.
+        for src in ["> file\n", ">> file\n", "< input\n", ">&2\n"] {
+            let r = check(src);
+            assert_eq!(
+                r.diagnostics.len(),
+                1,
+                "SC2188 missed a real lone redirect `{}`",
+                src.trim()
+            );
         }
     }
 }
