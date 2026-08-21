@@ -10,7 +10,6 @@
 // Good:
 //   if [ "$var" = "value" ]; then
 
-use crate::linter::rules::quoting::is_inside_quoted_string;
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
@@ -43,13 +42,16 @@ fn is_inside_param_expansion(line: &str, pos: usize) -> bool {
 /// Three ways it is not:
 ///   * `]]` — the closing half of a double-bracket test.
 ///   * Inside `${...}` — e.g. `${#array[@]}`, `${var[$key]}` (issue #88).
-///   * Inside a quoted string — a usage message such as
-///     `'prog [--source|--videos]'` is documentation (issue #244).
+///
+/// Quoted text is NOT handled here: SC2104 is in `linter::quoting`'s allowlist,
+/// so it receives a source in which literal text is already inert filler
+/// (issue #244). A rule that also guarded quoting itself would be a second,
+/// divergent implementation of it.
 fn is_real_missing_space(line: &str, end: usize) -> bool {
     if end < line.len() && line.chars().nth(end) == Some(']') {
         return false;
     }
-    !is_inside_param_expansion(line, end - 1) && !is_inside_quoted_string(line, end - 1)
+    !is_inside_param_expansion(line, end - 1)
 }
 
 /// Build the fixed line with a space inserted before the `]`.
@@ -230,24 +232,36 @@ mod tests {
     /// Issue #244: a `[` inside a quoted string is documentation, not test syntax.
     #[test]
     fn test_bracket_inside_single_quoted_string_is_not_a_test() {
+        // The real line from machines/lambda-labs/rag. Through `lint_shell`,
+        // where the quoting allowlist applies (see the double-quoted twin).
         let code = r#"[ $# -gt 0 ] || { echo 'usage: prog [--source|--videos]' >&2; exit 2; }"#;
-        let result = check(code);
+        let found: Vec<_> = crate::linter::lint_shell(code)
+            .diagnostics
+            .into_iter()
+            .filter(|d| d.code == "SC2104")
+            .collect();
         assert!(
-            result.diagnostics.is_empty(),
-            "SC2104 fired inside a single-quoted usage string: {:?}",
-            result.diagnostics
+            found.is_empty(),
+            "SC2104 fired inside a single-quoted usage string: {found:?}"
         );
     }
 
     /// The same, double-quoted.
     #[test]
     fn test_bracket_inside_double_quoted_string_is_not_a_test() {
+        // Through `lint_shell`, not `check`: SC2104 is in
+        // `linter::quoting::QUOTE_SENSITIVE_RULES`, so literal text is made
+        // inert BEFORE the rule runs. Calling `check` directly bypasses that
+        // and would be testing a path no caller uses.
         let code = r#"[ -n "$x" ] && echo "opts: [--a|--b]""#;
-        let result = check(code);
+        let found: Vec<_> = crate::linter::lint_shell(code)
+            .diagnostics
+            .into_iter()
+            .filter(|d| d.code == "SC2104")
+            .collect();
         assert!(
-            result.diagnostics.is_empty(),
-            "SC2104 fired inside a double-quoted string: {:?}",
-            result.diagnostics
+            found.is_empty(),
+            "SC2104 fired inside a double-quoted string: {found:?}"
         );
     }
 
