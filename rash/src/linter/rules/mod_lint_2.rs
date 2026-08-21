@@ -413,6 +413,15 @@ fn lint_shell_filtered(
         .diagnostics
         .retain(|diag| !suppression_manager.is_suppressed(&diag.code, diag.span.start_line));
 
+    // Issue #240: a comment meant as a suppression that matches none of the
+    // supported forms is silently inert. Reported AFTER filtering and at
+    // Warning, so it can itself be suppressed and can never gate a build.
+    crate::linter::suppression::report_unrecognised_directives(
+        source,
+        &suppression_manager,
+        &mut result,
+    );
+
     result
 }
 

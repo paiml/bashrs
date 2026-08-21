@@ -87,6 +87,13 @@ fn apply_extended_lint_rules(source: &str, result: &mut LintResult) {
         .diagnostics
         .retain(|diag| !suppression_manager.is_suppressed(&diag.code, diag.span.start_line));
 
+    // Issue #240 — this is the path `lint_shell` (and therefore the CLI) takes.
+    crate::linter::suppression::report_unrecognised_directives(
+        source,
+        &suppression_manager,
+        result,
+    );
+
     // Filter out diagnostics inside embedded programs (awk, sed, perl, etc.)
     // See: https://github.com/paiml/bashrs/issues/137
     // Security (SEC*) and determinism (DET*) rules are exempt — they detect
