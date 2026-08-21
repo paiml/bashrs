@@ -10,6 +10,7 @@
 // Good:
 //   if [ "$var" = "value" ]; then
 
+use crate::linter::rules::quoting::is_inside_quoted_string;
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
@@ -37,64 +38,56 @@ fn is_inside_param_expansion(line: &str, pos: usize) -> bool {
     depth > 0
 }
 
+/// Is this `]` real test syntax, or is it text that merely looks like it?
+///
+/// Three ways it is not:
+///   * `]]` — the closing half of a double-bracket test.
+///   * Inside `${...}` — e.g. `${#array[@]}`, `${var[$key]}` (issue #88).
+///   * Inside a quoted string — a usage message such as
+///     `'prog [--source|--videos]'` is documentation (issue #244).
+fn is_real_missing_space(line: &str, end: usize) -> bool {
+    if end < line.len() && line.chars().nth(end) == Some(']') {
+        return false;
+    }
+    !is_inside_param_expansion(line, end - 1) && !is_inside_quoted_string(line, end - 1)
+}
+
+/// Build the fixed line with a space inserted before the `]`.
+fn fixed_line(line: &str, start: usize, end: usize, matched: &str) -> String {
+    let spaced = format!("{} ]", &matched[..matched.len() - 1]);
+    format!("{}{}{}", &line[..start], spaced, &line[end..])
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (i, line) in source.lines().enumerate() {
         let line_num = i + 1;
 
-        // Skip comments
-        if line.trim_start().starts_with('#') {
+        // Comments are prose; `[[...]]` is bash's own construct, not SC2104.
+        if line.trim_start().starts_with('#') || !TEST_COMMAND.is_match(line) || line.contains("[[")
+        {
             continue;
         }
 
-        // Only check lines with test commands
-        if !TEST_COMMAND.is_match(line) {
-            continue;
-        }
-
-        // Skip double brackets [[...]]
-        if line.contains("[[") {
-            continue;
-        }
-
-        // Find missing spaces before ]
         for mat in MISSING_SPACE_BEFORE_BRACKET.find_iter(line) {
-            let match_str = mat.as_str();
-
-            // Skip if next char is ] (this is ]])
-            if mat.end() < line.len() && line.chars().nth(mat.end()) == Some(']') {
+            if !is_real_missing_space(line, mat.end()) {
                 continue;
             }
-
-            // Issue #88: Skip ] inside parameter expansions ${...}
-            // e.g., ${#array[@]}, ${var[$key]}, ${var:-default}
-            if is_inside_param_expansion(line, mat.end() - 1) {
-                continue;
-            }
-
-            let start_col = mat.start() + 1;
-            let end_col = mat.end() + 1;
-
-            // Auto-fix: insert space before ]
-            // Match is like "value]" - we need to insert space before ]
-            let fixed_match = format!("{} ]", &match_str[..match_str.len() - 1]);
-            let fixed_line = format!(
-                "{}{}{}",
-                &line[..mat.start()],
-                fixed_match,
-                &line[mat.end()..]
+            result.add(
+                Diagnostic::new(
+                    "SC2104",
+                    Severity::Error,
+                    "Missing space before ]",
+                    Span::new(line_num, mat.start() + 1, line_num, mat.end() + 1),
+                )
+                .with_fix(Fix::new(fixed_line(
+                    line,
+                    mat.start(),
+                    mat.end(),
+                    mat.as_str(),
+                ))),
             );
-
-            let diagnostic = Diagnostic::new(
-                "SC2104",
-                Severity::Error,
-                "Missing space before ]",
-                Span::new(line_num, start_col, line_num, end_col),
-            )
-            .with_fix(Fix::new(fixed_line));
-
-            result.add(diagnostic);
         }
     }
 
@@ -232,5 +225,43 @@ mod tests {
         let code = r#"if [ "${var[${idx}]}" = "test" ]; then"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    /// Issue #244: a `[` inside a quoted string is documentation, not test syntax.
+    #[test]
+    fn test_bracket_inside_single_quoted_string_is_not_a_test() {
+        let code = r#"[ $# -gt 0 ] || { echo 'usage: prog [--source|--videos]' >&2; exit 2; }"#;
+        let result = check(code);
+        assert!(
+            result.diagnostics.is_empty(),
+            "SC2104 fired inside a single-quoted usage string: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// The same, double-quoted.
+    #[test]
+    fn test_bracket_inside_double_quoted_string_is_not_a_test() {
+        let code = r#"[ -n "$x" ] && echo "opts: [--a|--b]""#;
+        let result = check(code);
+        assert!(
+            result.diagnostics.is_empty(),
+            "SC2104 fired inside a double-quoted string: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// Guard the guard: a REAL missing space must still be reported, so the
+    /// quote-skip cannot be widened into "never fire".
+    #[test]
+    fn test_real_missing_space_still_detected_alongside_quotes() {
+        let code = r#"if [ "$var" = "value"]; then"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            1,
+            "the genuine SC2104 must still fire: {:?}",
+            result.diagnostics
+        );
     }
 }
