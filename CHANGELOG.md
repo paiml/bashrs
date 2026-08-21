@@ -5,6 +5,82 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.68.0] - 2026-08-21
+
+False-positive removal in three **gating** rules, all sharing one root cause: a
+rule that scanned a line as raw bytes and treated characters inside a quoted
+string as if they were syntax. Measured on the infra fleet's machine scripts,
+gating errors only:
+
+```
+rag              7 -> 0
+nas-sweep.sh     8 -> 1   (remaining DET002 is genuine)
+nas-move.sh      5 -> 1   (remaining SEC010 is genuine)
+rag-reindex.sh   0 -> 0
+```
+
+and SC1078 across 60 machine scripts: 0. All three rules are `Severity::Error`,
+so this noise was gating — the kind of unpassable check that trains people to
+reach for `--no-verify` and lets real findings through behind it. `sc2188.rs`
+already reasons about that consequence for a different rule: a false positive at
+error severity aborts `forjar apply`, which treats a bashrs error as a fatal I8
+violation.
+
+### Fixed
+
+- **SC2104 fired inside string literals** ([GH-244](https://github.com/paiml/bashrs/issues/244)).
+  `echo "usage: rag [--source|--videos]"` was read as a test missing its space
+  before `]`. SC2104 now joins `linter::quoting`'s allowlist, so it receives the
+  masked source in which literal text is inert filler.
+
+- **SC1028 fired inside string literals, and mis-tracked arithmetic**
+  ([GH-243](https://github.com/paiml/bashrs/issues/243)). `log "waiting
+  (${n}s elapsed)"` was read as unbalanced test grouping. Two further bugs found
+  alongside: arithmetic `$(( ))` was tracked against *command-substitution*
+  depth, so `"$(find … "+$((H * 60))" …)"` produced three findings telling the
+  author to write `\(` — which would break the script, since those parens are
+  required syntax and shellcheck accepts them; and an empty `()` pair (a POSIX
+  function definition) counted as grouping, so any function defined on a line
+  containing a test was flagged at its own definition parens.
+
+- **SC1078 flagged valid multi-line strings and apostrophes**
+  ([GH-245](https://github.com/paiml/bashrs/issues/245)). It counted unescaped
+  double quotes *per line*, so a multi-line string — valid bash — was flagged
+  twice: once on the line that opens it, once on the line that closes it. A
+  string can only be opened once, and that double report is the tell that the
+  metric was wrong rather than the script. Separately, the counter tracked
+  single-quote state but not double-quote state, so the apostrophe in
+  `echo "intel's timer runs daily."` opened a phantom single-quoted span that
+  swallowed the closing double quote.
+
+  SC1078 is now one stateful pass over the whole source, reporting only a string
+  still open at EOF, at the line where it **opens** — the line the author has to
+  edit. Heredoc bodies are skipped between marker and terminator so prose cannot
+  poison the quote state for the rest of the file, and `<<<` is excluded since a
+  herestring has no terminator to find. It deliberately does **not** join the
+  quoting allowlist: `quoting.rs` names it among the rules that are *about*
+  quoting and must keep seeing literals or they go blind.
+
+- **The quoting allowlist did nothing on one of two dispatch paths.**
+  `mod_lint_2.rs` derives masked-vs-unmasked from `is_quote_sensitive`, but
+  `mod_lint.rs` hardcodes the choice at each call site — `sc1014::check(&masked)`
+  sits three lines from `sc1017::check(source)`. So adding a code to the
+  allowlist silently had no effect there, and nothing failed: the existing guard
+  test only checked that an allowlisted code names a real rule module. Both call
+  sites are fixed, and a new test makes the invariant behavioural — *no
+  allowlisted rule may report a position that lies inside a literal, through
+  `lint_shell`* — general over the whole allowlist and verified by injection.
+
+### Internal
+
+- `sc1028::has_single_bracket_test` cognitive complexity 39 → 3. Its inner "skip
+  if the next byte is another `[`" branch was **unreachable**: that byte had
+  already been required to be a space.
+- `sc2104::check` cognitive complexity 42 → under threshold, by splitting out the
+  "is this `]` real test syntax" predicate and the fix builder.
+  Both were already over the gate on `main`, so it had been blocking any edit to
+  those files.
+
 ## [6.67.0] - 2026-08-18
 
 This release is almost entirely **false-positive removal in the linter**, from six
