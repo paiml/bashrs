@@ -103,6 +103,7 @@ pub mod posix;
 mod posix_emit_ir;
 mod posix_emit_value;
 mod posix_runtime;
+mod posix_verify;
 pub mod trace;
 
 #[cfg(test)]

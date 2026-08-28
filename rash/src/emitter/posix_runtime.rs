@@ -1,6 +1,150 @@
 //! Stdlib runtime writers + selective dispatch. Extracted from posix.rs.
 use crate::models::Result;
 use std::fmt::Write;
+
+/// Signature of a runtime-helper writer.
+type RuntimeWriter = fn(&super::posix::PosixEmitter, &mut String) -> Result<()>;
+
+/// Helper name, whether it is a stdlib function (for the banner), and its writer.
+///
+/// ONE LIST. This replaced a hand-maintained chain of
+/// `if used_functions.contains("rash_x") { self.write_x_function(output)?; }`,
+/// which was the mechanism behind bashrs#266: `stdlib::is_stdlib_function()`
+/// carried the whitelist and this function carried the emitters, and GH-148
+/// added seven names to the first and none to the second. Two lists that must
+/// agree, with nothing making them.
+///
+/// A table does not by itself force agreement — but it makes the omission
+/// visible in one place, and `emitter::posix_verify` now fails the build if a
+/// script calls a helper that never got written, so the drift cannot reach a
+/// user as an exit 127.
+const RUNTIME_WRITERS: &[(&str, bool, RuntimeWriter)] = &[
+    // Core runtime
+    (
+        "rash_println",
+        false,
+        super::posix::PosixEmitter::write_println_function,
+    ),
+    (
+        "rash_print",
+        false,
+        super::posix::PosixEmitter::write_print_function,
+    ),
+    (
+        "rash_eprintln",
+        false,
+        super::posix::PosixEmitter::write_eprintln_function,
+    ),
+    (
+        "rash_require",
+        false,
+        super::posix::PosixEmitter::write_require_function,
+    ),
+    (
+        "rash_download_verified",
+        false,
+        super::posix::PosixEmitter::write_download_function,
+    ),
+    // String stdlib
+    (
+        "rash_string_trim",
+        true,
+        super::posix::PosixEmitter::write_string_trim_function,
+    ),
+    (
+        "rash_string_contains",
+        true,
+        super::posix::PosixEmitter::write_string_contains_function,
+    ),
+    (
+        "rash_string_len",
+        true,
+        super::posix::PosixEmitter::write_string_len_function,
+    ),
+    (
+        "rash_string_replace",
+        true,
+        super::posix::PosixEmitter::write_string_replace_function,
+    ),
+    (
+        "rash_string_to_upper",
+        true,
+        super::posix::PosixEmitter::write_string_to_upper_function,
+    ),
+    (
+        "rash_string_to_lower",
+        true,
+        super::posix::PosixEmitter::write_string_to_lower_function,
+    ),
+    (
+        "rash_string_starts_with",
+        true,
+        super::posix::PosixEmitter::write_string_starts_with_function,
+    ),
+    (
+        "rash_string_ends_with",
+        true,
+        super::posix::PosixEmitter::write_string_ends_with_function,
+    ),
+    // Filesystem stdlib
+    (
+        "rash_fs_exists",
+        true,
+        super::posix::PosixEmitter::write_fs_exists_function,
+    ),
+    (
+        "rash_fs_read_file",
+        true,
+        super::posix::PosixEmitter::write_fs_read_file_function,
+    ),
+    (
+        "rash_fs_write_file",
+        true,
+        super::posix::PosixEmitter::write_fs_write_file_function,
+    ),
+    (
+        "rash_fs_copy",
+        true,
+        super::posix::PosixEmitter::write_fs_copy_function,
+    ),
+    (
+        "rash_fs_remove",
+        true,
+        super::posix::PosixEmitter::write_fs_remove_function,
+    ),
+    (
+        "rash_fs_is_file",
+        true,
+        super::posix::PosixEmitter::write_fs_is_file_function,
+    ),
+    (
+        "rash_fs_is_dir",
+        true,
+        super::posix::PosixEmitter::write_fs_is_dir_function,
+    ),
+    // Array stdlib
+    (
+        "rash_string_split",
+        true,
+        super::posix::PosixEmitter::write_string_split_function,
+    ),
+    (
+        "rash_array_len",
+        true,
+        super::posix::PosixEmitter::write_array_len_function,
+    ),
+    (
+        "rash_array_join",
+        true,
+        super::posix::PosixEmitter::write_array_join_function,
+    ),
+    // Command execution (GH-148, wired in bashrs#266)
+    (
+        "rash_exec",
+        true,
+        super::posix::PosixEmitter::write_exec_function,
+    ),
+];
 impl super::posix::PosixEmitter {
     pub(crate) fn write_println_function(&self, output: &mut String) -> Result<()> {
         let lines = ["rash_println() {", "    printf '%s\\n' \"$1\"", "}", ""];
@@ -305,6 +449,20 @@ impl super::posix::PosixEmitter {
         self.write_shell_lines(output, &lines)
     }
 
+    /// bashrs#266: `exec` in EXPRESSION position.
+    ///
+    /// As a statement `exec("cmd")` lowers to `eval 'cmd'` directly, but
+    /// `let out = exec("cmd")` takes the generic path and emits
+    /// a command substitution around `rash_exec 'cmd'`. That helper never
+    /// existed, so the script died at exit 127 while the build reported success.
+    ///
+    /// `eval "$1"` is deliberately the same lowering the statement form uses, so
+    /// the two positions cannot drift apart in semantics; command substitution
+    /// around the call is what turns it into a capture.
+    pub(crate) fn write_exec_function(&self, output: &mut String) -> Result<()> {
+        let lines = ["rash_exec() {", "    eval \"$1\"", "}", ""];
+        self.write_shell_lines(output, &lines)
+    }
     pub(crate) fn write_array_join_function(&self, output: &mut String) -> Result<()> {
         let lines = [
             "rash_array_join() {",
@@ -343,90 +501,18 @@ impl super::posix::PosixEmitter {
     ) -> Result<()> {
         writeln!(output, "# Rash runtime functions")?;
 
-        // Core runtime functions
-        if used_functions.contains("rash_println") {
-            self.write_println_function(output)?;
-        }
-        if used_functions.contains("rash_print") {
-            self.write_print_function(output)?;
-        }
-        if used_functions.contains("rash_eprintln") {
-            self.write_eprintln_function(output)?;
-        }
-        if used_functions.contains("rash_require") {
-            self.write_require_function(output)?;
-        }
-        if used_functions.contains("rash_download_verified") {
-            self.write_download_function(output)?;
-        }
-
-        // String stdlib functions
-        let has_string_funcs = used_functions.iter().any(|f| f.starts_with("rash_string_"));
-        let has_fs_funcs = used_functions.iter().any(|f| f.starts_with("rash_fs_"));
-        let has_array_funcs = used_functions.iter().any(|f| f.starts_with("rash_array_"));
-
-        if has_string_funcs || has_fs_funcs || has_array_funcs {
-            writeln!(output, "# Rash stdlib functions")?;
-        }
-
-        if used_functions.contains("rash_string_trim") {
-            self.write_string_trim_function(output)?;
-        }
-        if used_functions.contains("rash_string_contains") {
-            self.write_string_contains_function(output)?;
-        }
-        if used_functions.contains("rash_string_len") {
-            self.write_string_len_function(output)?;
-        }
-        if used_functions.contains("rash_string_replace") {
-            self.write_string_replace_function(output)?;
-        }
-        if used_functions.contains("rash_string_to_upper") {
-            self.write_string_to_upper_function(output)?;
-        }
-        if used_functions.contains("rash_string_to_lower") {
-            self.write_string_to_lower_function(output)?;
-        }
-
-        if used_functions.contains("rash_string_starts_with") {
-            self.write_string_starts_with_function(output)?;
-        }
-        if used_functions.contains("rash_string_ends_with") {
-            self.write_string_ends_with_function(output)?;
-        }
-
-        // FS stdlib functions
-        if used_functions.contains("rash_fs_exists") {
-            self.write_fs_exists_function(output)?;
-        }
-        if used_functions.contains("rash_fs_read_file") {
-            self.write_fs_read_file_function(output)?;
-        }
-        if used_functions.contains("rash_fs_write_file") {
-            self.write_fs_write_file_function(output)?;
-        }
-        if used_functions.contains("rash_fs_copy") {
-            self.write_fs_copy_function(output)?;
-        }
-        if used_functions.contains("rash_fs_remove") {
-            self.write_fs_remove_function(output)?;
-        }
-        if used_functions.contains("rash_fs_is_file") {
-            self.write_fs_is_file_function(output)?;
-        }
-        if used_functions.contains("rash_fs_is_dir") {
-            self.write_fs_is_dir_function(output)?;
-        }
-
-        // Array stdlib functions
-        if used_functions.contains("rash_string_split") {
-            self.write_string_split_function(output)?;
-        }
-        if used_functions.contains("rash_array_len") {
-            self.write_array_len_function(output)?;
-        }
-        if used_functions.contains("rash_array_join") {
-            self.write_array_join_function(output)?;
+        // The stdlib banner is emitted before the first stdlib helper rather
+        // than being computed from three separate `any()` scans.
+        let mut banner_written = false;
+        for (name, is_stdlib, write) in RUNTIME_WRITERS {
+            if !used_functions.contains(name) {
+                continue;
+            }
+            if *is_stdlib && !banner_written {
+                writeln!(output, "# Rash stdlib functions")?;
+                banner_written = true;
+            }
+            write(self, output)?;
         }
 
         Ok(())
