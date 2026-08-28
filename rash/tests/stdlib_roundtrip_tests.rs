@@ -182,3 +182,69 @@ fn bashrs_266_emitted_scripts_never_call_an_undefined_helper() {
         }
     }
 }
+
+/// bashrs#268: a command string is not an argument list.
+///
+/// `capture`/`exec` sent anything without `|`, `&&`, `||` or `;` down a path
+/// that split on whitespace and re-quoted each token as a literal, which
+/// destroys every other piece of shell syntax. Measured:
+///
+///     capture("grep -c 'runs-on' ci.yml")
+///       -> grep '-c' ''"'"'runs-on'"'"'' ci.yml
+///
+/// The single quotes became part of the ARGUMENT, so grep searched for
+/// `'runs-on'` — quotes included — matched nothing, and returned 0. Silently
+/// the wrong command rather than a failure, which is the worst shape a bug can
+/// take in a transpiler.
+#[test]
+fn bashrs_268_single_quotes_in_a_command_survive() {
+    let (stdout, code) = transpile_and_run(
+        "quotes",
+        r#"fn main() { let v = capture("printf '%s' 'hello world'"); println!("{}", v); }"#,
+    );
+    assert_eq!(code, 0);
+    assert_eq!(
+        stdout, "hello world",
+        "the quoted argument was re-quoted into a literal instead of being \
+         passed through"
+    );
+}
+
+#[test]
+fn bashrs_268_a_glob_is_expanded_not_quoted() {
+    // `ls *.txt` previously emitted `ls '*.txt'`, asking for a file literally
+    // named `*.txt`.
+    let (stdout, code) = transpile_and_run(
+        "glob",
+        r#"fn main() { exec("printf 'x' > a.txt"); let v = capture("ls *.txt"); println!("{}", v); }"#,
+    );
+    assert_eq!(code, 0, "stdout: {stdout}");
+    assert_eq!(stdout, "a.txt");
+}
+
+#[test]
+fn bashrs_268_a_redirection_still_redirects() {
+    let (stdout, code) = transpile_and_run(
+        "redirect",
+        r#"fn main() { exec("printf 'written' > out.txt"); let v = capture("cat out.txt"); println!("{}", v); }"#,
+    );
+    assert_eq!(code, 0);
+    assert_eq!(stdout, "written");
+}
+
+/// The fast path must survive: a bare argv has no shell syntax and should NOT
+/// pay for an `sh -c`. If this regresses, every command in every generated
+/// script gains a subshell.
+#[test]
+fn bashrs_268_a_bare_argv_does_not_get_wrapped_in_sh_c() {
+    let script = bashrs::transpile(
+        r#"fn main() { let v = capture("uname -s"); println!("{}", v); }"#,
+        &bashrs::Config::default(),
+    )
+    .expect("must transpile");
+    assert!(
+        !script.contains("sh '-c'"),
+        "a command with no shell syntax must not be wrapped:\n{script}"
+    );
+    assert!(script.contains("uname"), "{script}");
+}

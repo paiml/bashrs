@@ -9,89 +9,75 @@ use super::shell_ir;
 use super::{IrConverter, ShellValue};
 use crate::models::Result;
 
+/// Is this command string anything more than a bare argv?
+///
+/// bashrs#268. `capture`/`exec` used to ask only whether the string contained
+/// `|`, `&&`, `||` or `;`. Everything else was split on whitespace and each
+/// token re-quoted as a literal, which destroys every other piece of shell
+/// syntax:
+///
+///   capture("grep -c 'runs-on' ci.yml")  ->  grep '-c' ''"'"'runs-on'"'"'' ci.yml
+///
+/// The quotes became part of the argument, so grep matched nothing and returned
+/// 0 instead of 3 — silently the wrong command, not a failure.
+///
+/// So the question is not "does this contain an operator" but "does this contain
+/// anything a shell would interpret". If it does, it goes to `sh -c` intact. A
+/// bare argv keeps the fast path and does not gain a subshell.
+fn needs_shell_interpretation(command: &str) -> bool {
+    command.contains(|c: char| {
+        matches!(
+            c,
+            '\'' | '"'
+                | '$'
+                | '`'
+                | '*'
+                | '?'
+                | '['
+                | ']'
+                | '<'
+                | '>'
+                | '|'
+                | '&'
+                | ';'
+                | '('
+                | ')'
+                | '\\'
+                | '\n'
+                | '~'
+                | '{'
+                | '}'
+                | '!'
+                | '#'
+        )
+    })
+}
+
 impl IrConverter {
     pub(super) fn convert_fn_call_to_value(
         &self,
         name: &str,
         args: &[crate::ast::Expr],
     ) -> Result<ShellValue> {
-        if name == "env" || name == "env_var_or" {
-            return self.convert_env_call_to_value(name, args);
+        // A dispatch table, not a chain of early returns. Same behaviour, and it
+        // reads as the one-of-N choice it actually is — the `if name == …` chain
+        // it replaced scored cognitive 29 against this repo's own limit of 25.
+        match name {
+            "env" | "env_var_or" => self.convert_env_call_to_value(name, args),
+            "arg" => Self::convert_arg_call(args),
+            "args" => Ok(ShellValue::Arg { position: None }),
+            "arg_count" => Ok(ShellValue::ArgCount),
+            "exit_code" => Ok(ShellValue::ExitCode),
+            // GH-148: capture("cmd arg1 arg2") → $(cmd arg1 arg2);
+            // capture("cmd | filter") → $(sh -c 'cmd | filter')
+            "capture" => self.convert_capture_call(name, args),
+            // GH-148: glob("*.txt") → an unquoted glob, so shell expansion works
+            // in for-in loops.
+            "glob" => self.convert_glob_call(args),
+            "__format_concat" => self.convert_format_concat(args),
+            "__if_expr" if args.len() == 3 => self.convert_expr_to_value(&args[1]),
+            _ => self.convert_regular_fn_call(name, args),
         }
-        if name == "arg" {
-            return Self::convert_arg_call(args);
-        }
-        if name == "args" {
-            return Ok(ShellValue::Arg { position: None });
-        }
-        if name == "arg_count" {
-            return Ok(ShellValue::ArgCount);
-        }
-        if name == "exit_code" {
-            return Ok(ShellValue::ExitCode);
-        }
-        // GH-148: capture("cmd arg1 arg2") → $(cmd arg1 arg2)
-        // capture("cmd | filter") → $(sh -c 'cmd | filter')  (pipe-safe)
-        if name == "capture" {
-            if let Some(arg) = args.first() {
-                let cmd_value = self.convert_expr_to_value(arg)?;
-                match &cmd_value {
-                    ShellValue::String(s) => {
-                        // If the command contains shell operators (pipes, &&, ||, ;),
-                        // wrap in sh -c to preserve operator semantics
-                        let has_shell_operators = s.contains(" | ")
-                            || s.contains(" && ")
-                            || s.contains(" || ")
-                            || s.contains(';');
-                        if has_shell_operators {
-                            return Ok(ShellValue::CommandSubst(shell_ir::Command {
-                                program: "sh".to_string(),
-                                args: vec![
-                                    ShellValue::String("-c".to_string()),
-                                    ShellValue::String(s.clone()),
-                                ],
-                            }));
-                        }
-                        // Simple command: split into program + args
-                        let mut parts = s.split_whitespace();
-                        let program = parts.next().unwrap_or("").to_string();
-                        let cmd_args: Vec<ShellValue> =
-                            parts.map(|p| ShellValue::String(p.to_string())).collect();
-                        return Ok(ShellValue::CommandSubst(shell_ir::Command {
-                            program,
-                            args: cmd_args,
-                        }));
-                    }
-                    ShellValue::Concat(_) => {
-                        // For interpolated strings, fall through to regular handling
-                        return self.convert_regular_fn_call(name, args);
-                    }
-                    _ => return self.convert_regular_fn_call(name, args),
-                }
-            }
-            return self.convert_regular_fn_call(name, args);
-        }
-        // GH-148: glob("*.txt") → ShellValue::Glob("*.txt")
-        // Emitted unquoted so shell expansion works in for-in loops
-        if name == "glob" {
-            if let Some(arg) = args.first() {
-                let val = self.convert_expr_to_value(arg)?;
-                if let ShellValue::String(pattern) = val {
-                    return Ok(ShellValue::Glob(pattern));
-                }
-            }
-            return Err(crate::models::Error::Validation(
-                "glob() requires a string literal pattern argument".to_string(),
-            ));
-        }
-        if name == "__format_concat" {
-            return self.convert_format_concat(args);
-        }
-        if name == "__if_expr" && args.len() == 3 {
-            return self.convert_expr_to_value(&args[1]);
-        }
-
-        self.convert_regular_fn_call(name, args)
     }
 
     /// Convert `arg(N)` → positional parameter
@@ -312,5 +298,59 @@ impl IrConverter {
             }
         }
         None
+    }
+}
+
+impl super::IrConverter {
+    /// GH-148 / bashrs#268: `capture("cmd")` → a command substitution.
+    ///
+    /// Extracted from `convert_fn_call_to_value`, which was already at cognitive
+    /// 76 on main — over this repo's own threshold — before the #268 fix touched
+    /// it. The pre-commit gate refused the commit and was right to.
+    fn convert_capture_call(&self, name: &str, args: &[crate::ast::Expr]) -> Result<ShellValue> {
+        let Some(arg) = args.first() else {
+            return self.convert_regular_fn_call(name, args);
+        };
+        // An interpolated string is not a literal command — regular handling
+        // builds it at runtime.
+        let ShellValue::String(command) = self.convert_expr_to_value(arg)? else {
+            return self.convert_regular_fn_call(name, args);
+        };
+        Ok(ShellValue::CommandSubst(lower_command(&command)))
+    }
+}
+
+/// Lower a command STRING to a `Command`, preserving shell syntax.
+fn lower_command(command: &str) -> shell_ir::Command {
+    if needs_shell_interpretation(command) {
+        return shell_ir::Command {
+            program: "sh".to_string(),
+            args: vec![
+                ShellValue::String("-c".to_string()),
+                ShellValue::String(command.to_string()),
+            ],
+        };
+    }
+    // A bare argv: split into program + args, so an ordinary command keeps the
+    // fast path and does not gain a subshell.
+    let mut parts = command.split_whitespace();
+    shell_ir::Command {
+        program: parts.next().unwrap_or("").to_string(),
+        args: parts.map(|p| ShellValue::String(p.to_string())).collect(),
+    }
+}
+
+impl super::IrConverter {
+    /// GH-148: `glob("*.txt")` → an unquoted glob, so shell expansion works in
+    /// for-in loops.
+    fn convert_glob_call(&self, args: &[crate::ast::Expr]) -> Result<ShellValue> {
+        if let Some(arg) = args.first() {
+            if let ShellValue::String(pattern) = self.convert_expr_to_value(arg)? {
+                return Ok(ShellValue::Glob(pattern));
+            }
+        }
+        Err(crate::models::Error::Validation(
+            "glob() requires a string literal pattern argument".to_string(),
+        ))
     }
 }
