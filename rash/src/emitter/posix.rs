@@ -189,6 +189,12 @@ impl PosixEmitter {
         }
         // Write the footer (closes main and adds execution)
         self.write_footer(&mut output)?;
+
+        // bashrs#266: a script that calls a helper it does not define is not a
+        // successful transpile. "Successfully transpiled" is a claim about the
+        // ARTIFACT; this is what makes it one. Checked here because emit() is
+        // the single exit point, so every route to a missing helper converges.
+        super::posix_verify::verify_calls_are_defined(&output)?;
         Ok(output)
     }
     /// KAIZEN-076: return references instead of cloning IR items.
