@@ -56,6 +56,9 @@ enum Ctx {
     Arith,
     /// Inside `$'...'` — literal, but `\'` is an escape, unlike `'...'`.
     Ansi,
+    /// Between `case … in` and `esac` — code. Tracked only so a pattern's `)`
+    /// is not mistaken for the close of an enclosing `$( … )`.
+    Case,
 }
 
 /// A pending or in-progress heredoc body.
@@ -84,6 +87,8 @@ pub struct QuotedRegions {
     /// are literal text by definition, so every rule is dropped there — see
     /// [`quoted_heredoc_lines`].
     quoted_heredoc: std::collections::HashSet<usize>,
+    /// 1-indexed lines inside ANY heredoc body, quoted delimiter or not.
+    heredoc_body: std::collections::HashSet<usize>,
 }
 
 impl QuotedRegions {
@@ -114,6 +119,7 @@ impl QuotedRegions {
             scanner
                 .quoted_heredoc
                 .retain(|line| *line < open.body_start);
+            scanner.heredoc_body.retain(|line| *line < open.body_start);
         }
         if let Some((line, col)) = discard_at {
             discard_from(&mut per_line, line, col);
@@ -124,6 +130,7 @@ impl QuotedRegions {
             per_line,
             any,
             quoted_heredoc: scanner.quoted_heredoc,
+            heredoc_body: scanner.heredoc_body,
         }
     }
 
@@ -176,6 +183,21 @@ pub fn quoted_heredoc_lines(source: &str) -> std::collections::HashSet<usize> {
     QuotedRegions::analyze(source).quoted_heredoc
 }
 
+/// 1-indexed lines inside ANY heredoc body, whether or not its delimiter was
+/// quoted.
+///
+/// For rules whose subject is a property of *the file being linted* rather than
+/// of the text — a shebang's position, say. A heredoc that writes a script is
+/// the ordinary way to emit one, and the emitted `#!` is on line 1 of the file
+/// being written, not a misplaced shebang in the writer.
+///
+/// Distinct from masking: a shebang lives in a comment, and comments are masked
+/// as literal text, so running such a rule on the masked source would blind it
+/// to genuinely misplaced shebangs too.
+pub fn heredoc_body_lines(source: &str) -> std::collections::HashSet<usize> {
+    QuotedRegions::analyze(source).heredoc_body
+}
+
 /// Rules whose subject is shell *syntax*, and which are therefore meaningless
 /// inside a string literal.
 ///
@@ -195,6 +217,8 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // Function/parameter syntax — `function(a, b)` inside an awk or SQL program.
     "SC1065", // Function parameters in shell
     // Redirection/operator syntax appearing as text.
+    "SC2188", // Redirection without command — `<key>` in an embedded XML/plist
+    // fragment is data, not a redirection.
     "SC1007", // Remove space after = — `skip = 0` inside an awk program is awk
     "SC1014", // Use `if cmd; then`
     "SC1036", // ( is invalid here
@@ -346,6 +370,8 @@ struct Scanner {
     stack: Vec<Ctx>,
     /// 1-indexed lines inside a quoted-delimiter heredoc body.
     quoted_heredoc: std::collections::HashSet<usize>,
+    /// 1-indexed lines inside ANY heredoc body, quoted delimiter or not.
+    heredoc_body: std::collections::HashSet<usize>,
     /// 1-indexed line currently being scanned.
     line_no: usize,
     /// Where the outermost currently-open quote started, for the EOF fail-safe.
@@ -402,6 +428,7 @@ impl Scanner {
         if doc.quoted {
             self.quoted_heredoc.insert(self.line_no);
         }
+        self.heredoc_body.insert(self.line_no);
         marks.iter_mut().for_each(|m| *m = true);
         true
     }
@@ -494,6 +521,17 @@ impl Scanner {
 
     /// Any code context: top level, `$( )`, `${ }`, backticks, `$(( ))`.
     fn step_code(&mut self, bytes: &[u8], i: usize, marks: &mut [bool]) -> usize {
+        // `case … esac` is tracked so a pattern's `)` is not read as the close
+        // of a command substitution. Neither context is literal, so this only
+        // affects paren balance, never the mask.
+        if bytes[i] == b'c' && Self::keyword_at(bytes, i, b"case") {
+            self.stack.push(Ctx::Case);
+            return i + 4;
+        }
+        if bytes[i] == b'e' && Self::keyword_at(bytes, i, b"esac") {
+            self.pop_if(Ctx::Case);
+            return i + 4;
+        }
         match bytes[i] {
             b'\\' => i + 2,
             b'\'' => {
@@ -593,8 +631,37 @@ impl Scanner {
             }
             return i + 1;
         }
+        // Inside a `case`, this `)` terminates a pattern (`*.gz)`), it does not
+        // close a command substitution. Popping here made the scanner think it
+        // had left the `$(` and returned to the enclosing `"…"`.
+        if self.stack.last() == Some(&Ctx::Case) {
+            return i + 1;
+        }
         self.pop_if(Ctx::Paren);
         i + 1
+    }
+
+    /// Is the word at `i` a shell keyword in *command* position?
+    ///
+    /// Deliberately strict: only after a newline, `;`, `|`, `&` or `(`. That
+    /// keeps `echo case` — where `case` is an ordinary argument — from opening
+    /// a construct that never closes.
+    fn keyword_at(bytes: &[u8], i: usize, word: &[u8]) -> bool {
+        if !bytes[i..].starts_with(word) {
+            return false;
+        }
+        // Followed by a word boundary.
+        match bytes.get(i + word.len()) {
+            None => {}
+            Some(b) if b.is_ascii_whitespace() || matches!(b, b';' | b'&' | b'|') => {}
+            _ => return false,
+        }
+        // Preceded only by whitespace since a command separator.
+        let mut j = i;
+        while j > 0 && bytes[j - 1].is_ascii_whitespace() {
+            j -= 1;
+        }
+        j == 0 || matches!(bytes[j - 1], b';' | b'&' | b'|' | b'(')
     }
 
     fn pop_if(&mut self, ctx: Ctx) {
@@ -940,6 +1007,7 @@ mod tests {
             ("SC1140", sc1140::check),
             ("SC1028", sc1028::check),
             ("SC2104", sc2104::check),
+            ("SC2188", sc2188::check),
         ]
     }
 
@@ -1118,5 +1186,128 @@ mod tests {
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests_case_pattern_paren {
+    use super::*;
+
+    /// A `case` pattern's `)` must not close an enclosing `$( … )`.
+    ///
+    /// Found in infra's `ci-blackbox.sh`. The `)` of `*.gz)` popped the
+    /// `Ctx::Paren` that `$(` had pushed, so the scanner believed it was back
+    /// inside the outer `"…"`. The `'` opening the embedded awk program then
+    /// read as literal text, the awk body was never masked, and every
+    /// quote-sensitive rule fired on awk syntax (SC1007 on `ts = 1`, SC1065 on
+    /// `function f(a, b)`). `bash -n` and `shellcheck` both accept the script.
+    const CASE_IN_SUBSHELL: &str = r#"raw="$(
+    case "$f" in
+        *.gz) echo a ;;
+    esac
+    awk '
+        match($0, /"a":"[^"]+"/) {
+            ts = 1
+        }'
+)"
+"#;
+
+    #[test]
+    fn case_pattern_paren_does_not_close_command_substitution() {
+        let masked = mask_literals(CASE_IN_SUBSHELL);
+        // The awk body is a single-quoted literal, so `ts = 1` must be masked.
+        let body = masked.lines().nth(6).unwrap_or_default();
+        assert!(
+            !body.contains("ts = 1"),
+            "awk body left unmasked: {body:?}\nfull:\n{masked}"
+        );
+    }
+
+    /// The leading-paren spelling `(*.gz)` is the same pattern, balanced.
+    #[test]
+    fn leading_paren_case_pattern_also_balances() {
+        let src = "x=\"$(\n    case \"$f\" in\n        (*.gz) echo a ;;\n    esac\n    awk '\n        ts = 1\n    '\n)\"\n";
+        let masked = mask_literals(src);
+        let body = masked.lines().nth(5).unwrap_or_default();
+        assert!(!body.contains("ts = 1"), "unmasked: {body:?}");
+    }
+
+    /// MUST STILL WORK: a real `$( … )` still closes, so text after it is code
+    /// again and is NOT masked.
+    #[test]
+    fn command_substitution_still_closes_without_a_case() {
+        let src = "x=\"$(echo hi)\"\nts = 1\n";
+        let masked = mask_literals(src);
+        assert!(
+            masked.lines().nth(1).unwrap_or_default().contains("ts = 1"),
+            "code after the substitution was masked: {masked:?}"
+        );
+    }
+
+    /// MUST STILL WORK: a genuine single-quoted literal is still masked, so
+    /// quote-sensitive rules stay blind to its contents.
+    #[test]
+    fn plain_single_quoted_literal_is_still_masked() {
+        let masked = mask_literals("echo 'ts = 1'\n");
+        assert!(!masked.contains("ts = 1"), "literal not masked: {masked:?}");
+    }
+
+    /// MUST STILL WORK: `esac` ends the case, so a later `)` closes its `$(`
+    /// normally and the following line is code.
+    #[test]
+    fn paren_after_esac_still_closes_the_substitution() {
+        let src = "x=\"$(\n    case \"$f\" in\n        a) echo a ;;\n    esac\n)\"\nts = 1\n";
+        let masked = mask_literals(src);
+        assert!(
+            masked.lines().nth(5).unwrap_or_default().contains("ts = 1"),
+            "code after esac+) was masked:\n{masked}"
+        );
+    }
+}
+
+#[cfg(test)]
+mod tests_allowlist_is_wired {
+    use super::QUOTE_SENSITIVE_RULES;
+
+    /// Every rule named in [`QUOTE_SENSITIVE_RULES`] must actually be invoked
+    /// with the masked source in `mod_lint.rs`.
+    ///
+    /// The allowlist and that dispatch are two hand-maintained lists with
+    /// nothing tying them together — the shape of bashrs#266, where the stdlib
+    /// whitelist and the emitter dispatch disagreed and the suite asserted the
+    /// wrong thing. Adding `SC2188` to the allowlist changed nothing at the CLI
+    /// because line 315 still passed `source`, while a rule-level unit test
+    /// passed. This test is the coupling: it reads the dispatch and fails if a
+    /// listed rule is wired to the raw source.
+    #[test]
+    fn every_quote_sensitive_rule_receives_the_masked_source() {
+        let dispatch = include_str!("rules/mod_lint.rs");
+        let mut wrong = Vec::new();
+        let mut missing = Vec::new();
+
+        for code in QUOTE_SENSITIVE_RULES {
+            let module = code.to_ascii_lowercase();
+            let masked = format!("{module}::check(&masked)");
+            let raw = format!("{module}::check(source)");
+            if dispatch.contains(&masked) {
+                continue;
+            }
+            if dispatch.contains(&raw) {
+                wrong.push(*code);
+            } else {
+                missing.push(*code);
+            }
+        }
+
+        assert!(
+            wrong.is_empty(),
+            "quote-sensitive rules wired to the RAW source (they will still \
+             fire inside string literals): {wrong:?}"
+        );
+        assert!(
+            missing.is_empty(),
+            "quote-sensitive rules not dispatched from mod_lint.rs at all: \
+             {missing:?}"
+        );
     }
 }
