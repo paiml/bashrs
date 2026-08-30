@@ -124,6 +124,14 @@ fn is_rule_code(s: &str) -> bool {
         return true;
     }
 
+    // BRS followed by digits — the namespace the bashrs-original checks moved
+    // to when they stopped squatting on ShellCheck numbers (T6). Without this
+    // arm a `.bashrsignore` cannot name them at all, so the migration would
+    // have left those checks un-ignorable.
+    if s.starts_with("BRS") && s.len() >= 4 && s[3..].chars().all(|c| c.is_ascii_digit()) {
+        return true;
+    }
+
     false
 }
 
@@ -132,6 +140,21 @@ fn is_rule_code(s: &str) -> bool {
 /// Format: RULE_CODE or RULE_CODE:path or RULE_CODE:path:line
 ///
 /// Returns: Some((rule_code, file_path, line_num)) if valid, None otherwise
+/// A `.bashrsignore` written before the T6 code migration names the OLD code —
+/// `SC2081` for what is now `BRS0006`. Those files are a bashrs artifact, not a
+/// ShellCheck one, so honour both spellings: a rename must not silently
+/// un-suppress a project's existing baseline. Same reasoning, and the same
+/// bashrs-only scope, as `expand_legacy_aliases` in `suppression.rs`.
+fn keys_for(rule_code: &str) -> Vec<String> {
+    let upper = rule_code.to_uppercase();
+    let mut keys = Vec::with_capacity(2);
+    if let Some(legacy) = crate::linter::code_namespace::legacy_alias(&upper) {
+        keys.push(legacy.to_string());
+    }
+    keys.push(upper);
+    keys
+}
+
 fn parse_rule_specifier(s: &str) -> Option<(String, Option<String>, Option<usize>)> {
     let trimmed = s.trim();
 
@@ -397,7 +420,9 @@ impl IgnoreFile {
     /// assert!(!ignore.should_ignore_rule("SEC001")); // Not in file
     /// ```
     pub fn should_ignore_rule(&self, rule_code: &str) -> bool {
-        self.ignored_rule_codes.contains(&rule_code.to_uppercase())
+        keys_for(rule_code)
+            .iter()
+            .any(|k| self.ignored_rule_codes.contains(k))
     }
 
     /// Issue #109: Check if a rule should be ignored at a specific location
@@ -432,26 +457,26 @@ impl IgnoreFile {
     /// assert!(!ignore.should_ignore_rule_at("DET001", Path::new("scripts/metrics.sh"), 43));
     /// ```
     pub fn should_ignore_rule_at(&self, rule_code: &str, file_path: &Path, line: usize) -> bool {
-        let rule_upper = rule_code.to_uppercase();
+        let keys = keys_for(rule_code);
         let path_str = normalize_path(&file_path.to_string_lossy());
 
         // Check line-specific ignore first
         let line_key = (path_str.clone(), line);
         if let Some(rules) = self.line_specific_ignores.get(&line_key) {
-            if rules.contains(&rule_upper) {
+            if keys.iter().any(|k| rules.contains(k)) {
                 return true;
             }
         }
 
         // Check file-specific ignore
         if let Some(rules) = self.file_specific_ignores.get(&path_str) {
-            if rules.contains(&rule_upper) {
+            if keys.iter().any(|k| rules.contains(k)) {
                 return true;
             }
         }
 
         // Check global ignore
-        self.ignored_rule_codes.contains(&rule_upper)
+        keys.iter().any(|k| self.ignored_rule_codes.contains(k))
     }
 
     /// Get all ignored rule codes (Issue #85)

@@ -1,0 +1,219 @@
+# ShellCheck's SCxxxx registry — MEASURED, not transcribed.
+#
+# ShellCheck owns the SCxxxx namespace. This file is the oracle the
+# `no_bashrs_check_squats_on_a_shellcheck_code` guard tests against: it records
+# the message ShellCheck itself printed for each code.
+#
+# How it was produced (shellcheck 0.8.0, 2026-08-30):
+#
+#   1. Corpus harvest — 4000 real shell scripts under ~/src, run once per
+#      dialect so shell-gated checks fire:
+#        for s in sh bash dash ksh busybox; do
+#          shellcheck -s $s -f gcc -S style --enable=all -e SC1091 <files>
+#        done
+#      For each code, the message kept is the one ShellCheck emitted most often
+#      (variable-substituted text differs per site; the mode is the stable form).
+#
+#   2. Targeted probes — a minimal snippet per code for checks a real corpus
+#      does not contain (e.g. `sudo somefunction` for SC2032). Only codes
+#      ShellCheck actually emitted are recorded; a probe that failed to trigger
+#      produced no row, so absence here means "not measured", NOT "unassigned".
+#
+# That last point is load-bearing: a code missing from this file is not proof
+# that ShellCheck leaves the number free. Re-measure before claiming one.
+#
+# Each shellcheck invocation writes to its own file: a shared stdout across 16
+# parallel children interleaves partial lines and silently corrupts the oracle
+# (it did, on the first pass — SC2248 came back as "acters.").
+#
+# Format: <code>\t<message>
+SC1001	This \u will be a regular 'u' in this context.
+SC1003	Want to escape a single quote? echo 'This is how it'\''s done'.
+SC1007	Remove space after = if trying to assign a value (for empty string, use var='' ... ).
+SC1009	The mentioned syntax error was in this simple command.
+SC1010	Use semicolon or linefeed before 'done' (or quote to make it literal).
+SC1014	Use 'if cmd; then ..' to check exit code, or 'if [[ $(cmd) == .. ]]' to check output.
+SC1020	You need a space before the ].
+SC1028	In [..] you have to escape \( \) or preferably combine [..] expressions.
+SC1035	You are missing a required space after the !.
+SC1072	Fix any mentioned problems and try again.
+SC1073	Couldn't parse this shellcheck directive. Fix to allow more checks.
+SC1078	Did you forget to close this double quoted string?
+SC1079	This is actually an end quote, but due to next char it looks suspect.
+SC1083	This } is literal. Check expression (missing ;/\n?) or quote it.
+SC1087	Use braces when expanding arrays, e.g. ${array[idx]} (or ${var}[.. to quiet).
+SC1090	ShellCheck can't follow non-constant source. Use a directive to specify location.
+SC1091	Not following: ./missing-file-xyz.sh was not specified as input (see shellcheck -x).
+SC2000	See if you can use ${#variable} instead.
+SC2001	See if you can use ${variable//search/replace} instead.
+SC2002	Useless cat. Consider 'cmd < file | ..' or 'cmd file | ..' instead.
+SC2003	expr is antiquated. Consider rewriting this using $((..)), ${} or [[ ]].
+SC2004	$/${} is unnecessary on arithmetic variables.
+SC2005	Useless echo? Instead of 'echo $(cmd)', just use 'cmd'.
+SC2006	Use $(...) notation instead of legacy backticks `...`.
+SC2007	Use $((..)) instead of deprecated $[..]
+SC2010	Don't use ls | grep. Use a glob or a for loop with a condition to allow non-alphanumeric filenames.
+SC2012	Use find instead of ls to better handle non-alphanumeric filenames.
+SC2015	Note that A && B || C is not if-then-else. C may run when A is true.
+SC2016	Expressions don't expand in single quotes, use double quotes for that.
+SC2018	Use '[:lower:]' to support accents and foreign alphabets.
+SC2019	Use '[:upper:]' to support accents and foreign alphabets.
+SC2021	Don't use [] around classes in tr, it replaces literal square brackets.
+SC2024	sudo doesn't affect redirects. Use .. | sudo tee -a file
+SC2025	Make sure all escape sequences are enclosed in \[..\] to prevent line wrapping issues
+SC2028	echo may not expand escape sequences. Use printf.
+SC2029	Note that, unescaped, this expands on the client side.
+SC2030	Modification of CXX is local (to subshell caused by (..) group).
+SC2031	CXX was modified in a subshell. That change might be lost.
+SC2032	Use own script or sh -c '..' to run this from sudo.
+SC2034	YES appears unused. Verify use (or export if used externally).
+SC2035	Use ./*glob* or -- *glob* so names with dashes won't become options.
+SC2036	If you wanted to assign the output of the pipeline, use a=$(b | c) .
+SC2037	To assign the output of a command, use var=$(cmd) .
+SC2038	Use -print0/-0 or -exec + to allow for non-alphanumeric filenames.
+SC2043	This loop will only ever run once. Bad quoting or missing glob/expansion?
+SC2044	For loops over find output are fragile. Use find -exec or a while read loop.
+SC2046	Quote this to prevent word splitting.
+SC2048	Use "$@" (with quotes) to prevent whitespace problems.
+SC2050	This expression is constant. Did you forget the $ on a variable?
+SC2053	Quote the right-hand side of != in [[ ]] to prevent glob matching.
+SC2054	Use spaces, not commas, to separate array elements.
+SC2059	Don't use variables in the printf format string. Use printf '..%s..' "$foo".
+SC2060	Quote parameters to tr to prevent glob expansion.
+SC2061	Quote the parameter to -name so the shell won't interpret it.
+SC2062	Quote the grep pattern so the shell won't interpret it.
+SC2063	Grep uses regex, but this looks like a glob.
+SC2064	Use single quotes, otherwise this expands now rather than when signalled.
+SC2066	Since you double quoted this, it will not word split, and the loop will only run once.
+SC2068	Double quote array expansions to avoid re-splitting elements.
+SC2069	To redirect stdout+stderr, 2>&1 must be last (or use '{ cmd > file; } 2>&1' to clarify).
+SC2076	Remove quotes from right-hand side of =~ to match as a regex rather than literally.
+SC2077	You need spaces around the comparison operator.
+SC2081	[ .. ] can't match globs. Use a case statement.
+SC2086	Double quote to prevent globbing and word splitting.
+SC2087	Quote 'REMOTE_PREFLIGHT' to make here document expansions happen on the server side rather than on the client.
+SC2088	Tilde does not expand in quotes. Use $HOME.
+SC2089	Quotes/backslashes will be treated literally. Rewrite using set/"$@" or functions.
+SC2090	Quotes/backslashes in this variable will not be respected.
+SC2091	Remove surrounding $() to avoid executing output (or use eval if intentional).
+SC2094	Make sure not to read and write the same file in the same pipeline.
+SC2095	ssh may swallow stdin, preventing this loop from working properly.
+SC2096	On most OS, shebangs can only specify a single parameter.
+SC2097	This assignment is only seen by the forked process.
+SC2098	This expansion will not see the mentioned assignment.
+SC2102	Ranges can only match single chars (mentioned due to duplicates).
+SC2103	Use a ( subshell ) to avoid having to cd back.
+SC2104	In functions, use return instead of break.
+SC2105	break is only valid in loops.
+SC2111	ksh does not allow 'function' keyword and '()' at the same time.
+SC2112	'function' keyword is non-standard. Delete it.
+SC2113	'function' keyword is non-standard. Use 'foo()' instead of 'function foo'.
+SC2114	Warning: deletes a system directory.
+SC2115	Use "${var:?}" to ensure this never expands to /* .
+SC2116	Useless echo? Instead of 'cmd $(echo foo)', just use 'cmd foo'.
+SC2117	To run commands as another user, use su -c or sudo.
+SC2119	Use run_realizar_bench "$@" if function's $1 should mean script's $1.
+SC2120	run_realizar_bench references arguments, but none are ever passed.
+SC2122	>= is not a valid operator. Use '! a \< b' instead.
+SC2124	Assigning an array to a string! Assign as array, or use * instead of @ to concatenate.
+SC2125	Brace expansions and globs are literal in assignments. Quote it or use an array.
+SC2126	Consider using grep -c instead of grep|wc -l.
+SC2128	Expanding an array without an index only gives the first element.
+SC2129	Consider using { cmd1; cmd2; } >> file instead of individual redirects.
+SC2140	Word is of the form "A"B"C" (B indicated). Did you mean "ABC" or "A\"B\"C"?
+SC2141	This backslash is literal. Did you mean IFS=$'
+SC2143	Use grep -q instead of comparing output with [ -n .. ].
+SC2145	Argument mixes string and array. Use * or separate argument.
+SC2148	Tips depend on target shell and yours is unknown. Add a shebang or a 'shell' directive.
+SC2153	Possible misspelling: VERSION_ID may not be assigned. Did you mean VERSION_SP?
+SC2154	APR is referenced but not assigned.
+SC2155	Declare and assign separately to avoid masking return values.
+SC2156	Injecting filenames is fragile and insecure. Use parameters.
+SC2157	Argument to implicit -n is always true due to literal strings.
+SC2162	read without -r will mangle backslashes.
+SC2164	Use 'cd ... || exit' or 'cd ... || return' in case cd fails.
+SC2165	This nested loop overrides the index variable of its parent.
+SC2166	Prefer [ p ] || [ q ] as [ p -o q ] is not well defined.
+SC2168	'local' is only valid in functions.
+SC2178	Variable was used as an array but is now assigned a string.
+SC2181	Check exit code directly with e.g. 'if mycmd;', not indirectly with $?.
+SC2182	This printf format string has no variables. Other arguments are ignored.
+SC2183	This format string has 4 variables, but is passed 1 arguments.
+SC2188	This redirection doesn't have a command. Move to its command (or use 'true' as no-op).
+SC2198	Arrays don't work as operands in [ ]. Use a loop (or concatenate with * instead of @).
+SC2202	Globs don't work as operands in [ ]. Use a loop.
+SC2204	(..) is a subshell. Did you mean [ .. ], a test expression?
+SC2206	Quote to prevent word splitting/globbing, or split robustly with mapfile or read -a.
+SC2207	Prefer mapfile or read -a to split command output (or quote to avoid splitting).
+SC2209	Use var=$(command) to assign output (or quote to assign string).
+SC2214	This case is not specified by getopts.
+SC2215	This flag is used as a command name. Bad line break or missing [ .. ]?
+SC2223	This default assignment may cause DoS due to globbing. Quote it.
+SC2224	This mv has no destination. Check the arguments.
+SC2226	This ln has no destination. Check the arguments, or specify '.' explicitly.
+SC2227	Redirection applies to the find command itself. Rewrite to work per action (or move to end).
+SC2230	'which' is non-standard. Use builtin 'command -v' instead.
+SC2231	Quote expansions in this for loop glob to prevent wordsplitting, e.g. "$dir"/*.txt .
+SC2233	Remove superfluous (..) around condition to avoid subshell overhead.
+SC2235	Use { ..; } instead of (..) to avoid subshell overhead.
+SC2236	Use -n instead of ! -z.
+SC2237	Use [ -n .. ] instead of ! [ -z .. ].
+SC2243	Prefer explicit -n to check for output (or run command without [/[[ to check for success).
+SC2244	Prefer explicit -n to check non-empty string (or use =/-ne to check boolean/integer).
+SC2248	Prefer double quoting even when variables don't contain special characters.
+SC2249	Consider adding a default *) case, even if it just exits with error.
+SC2250	Prefer putting braces around variable references even when not strictly required.
+SC2266	Use || for logical OR. Single | will pipe.
+SC2267	GNU xargs -i is deprecated in favor of -I{}
+SC2268	Avoid x-prefix in comparisons as it no longer serves a purpose.
+SC2269	This variable is assigned to itself, so the assignment does nothing.
+SC2282	Variable names can't start with numbers, so this is interpreted as a command.
+SC2283	Remove spaces around = to assign (or use [ ] to compare, or quote '=' if literal).
+SC2286	This empty string is interpreted as a command name. Double check syntax (or use 'true' as a no-op).
+SC2287	This is interpreted as a command name ending with '/'. Double check syntax.
+SC2289	This is interpreted as a command name containing a linefeed. Double check syntax.
+SC2291	Quote repeated spaces to avoid them collapsing into one.
+SC2292	Prefer [[ ]] over [ ] for tests in Bash/Ksh.
+SC2294	eval negates the benefit of arrays. Drop eval to preserve whitespace/symbols (or eval as string).
+SC2295	Expansions inside ${..} need to be quoted separately, otherwise they match as patterns.
+SC2310	This function is invoked in an || condition so set -e will be disabled. Invoke separately if failures should cause the script to exit.
+SC2311	Bash implicitly disabled set -e for this function invocation because it's inside a command substitution. Add set -e; before it or enable inherit_errexit.
+SC2312	Consider invoking this command separately to avoid masking its return value (or use '|| true' to ignore).
+SC3001	In POSIX sh, process substitution is undefined.
+SC3002	In POSIX sh, extglob is undefined.
+SC3003	In POSIX sh, $'..' is undefined.
+SC3005	In POSIX sh, arithmetic for loops are undefined.
+SC3006	In POSIX sh, standalone ((..)) is undefined.
+SC3007	In POSIX sh, $[..] in place of $((..)) is undefined.
+SC3009	In POSIX sh, brace expansion is undefined.
+SC3010	In POSIX sh, [[ ]] is undefined.
+SC3011	In POSIX sh, here-strings are undefined.
+SC3013	In POSIX sh, -ot is undefined.
+SC3014	In POSIX sh, == in place of = is undefined.
+SC3016	In POSIX sh, unary -v (in place of [ -n "${var+x}" ]) is undefined.
+SC3018	In POSIX sh, ++ is undefined.
+SC3019	In POSIX sh, exponentials are undefined.
+SC3020	In POSIX sh, &> is undefined.
+SC3022	In POSIX sh, named file descriptors are undefined.
+SC3024	In POSIX sh, += is undefined.
+SC3028	In POSIX sh, BASH_SOURCE is undefined.
+SC3030	In POSIX sh, arrays are undefined.
+SC3033	In POSIX sh, naming functions outside [a-zA-Z_][a-zA-Z0-9_]* is undefined.
+SC3034	In POSIX sh, $(<file) to read files is undefined.
+SC3036	In dash, echo flags besides -n not supported.
+SC3037	In POSIX sh, echo flags are undefined.
+SC3040	In POSIX sh, set option pipefail is undefined.
+SC3043	In POSIX sh, 'local' is undefined.
+SC3044	In POSIX sh, 'declare' is undefined.
+SC3045	In POSIX sh, read -a is undefined.
+SC3046	In POSIX sh, 'source' in place of '.' is undefined.
+SC3047	In POSIX sh, trapping RETURN is undefined.
+SC3048	In POSIX sh, prefixing signal names with 'SIG' is undefined.
+SC3050	In POSIX sh, printf %q is undefined.
+SC3051	In POSIX sh, 'source' in place of '.' is undefined.
+SC3053	In POSIX sh, indirect expansion is undefined.
+SC3054	In POSIX sh, array references are undefined.
+SC3055	In POSIX sh, array key expansion is undefined.
+SC3057	In POSIX sh, string indexing is undefined.
+SC3059	In POSIX sh, case modification is undefined.
+SC3060	In POSIX sh, string replacement is undefined.

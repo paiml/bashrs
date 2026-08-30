@@ -5,12 +5,25 @@ pub(crate) fn build_ignored_rules(
     ignore_file_data: Option<&crate::linter::ignore_file::IgnoreFile>,
 ) -> HashSet<String> {
     let mut rules = HashSet::new();
+    // T6: `--ignore`, `-e` and `.bashrsignore` are all bashrs' OWN surfaces, so
+    // one written before the code migration names the old code — `SC2081` for
+    // what is now `BRS0006`. Honour both spellings, or a rename silently
+    // un-suppresses a project's existing baseline. (Found by the corpus
+    // differential: 19 findings re-appeared in depyler, whose .bashrsignore
+    // lists SC2081.) Same bashrs-only scope as `suppression::expand_legacy_aliases`.
+    let insert = |code: String, rules: &mut HashSet<String>| {
+        if let Some(legacy) = crate::linter::code_namespace::legacy_alias(&code) {
+            rules.insert(legacy.to_string());
+        }
+        rules.insert(crate::linter::code_namespace::canonical(&code).to_string());
+        rules.insert(code);
+    };
     // Add from --ignore (comma-separated)
     if let Some(ignore_str) = ignore_rules {
         for code in ignore_str.split(',') {
             let code = code.trim().to_uppercase();
             if !code.is_empty() {
-                rules.insert(code);
+                insert(code, &mut rules);
             }
         }
     }
@@ -19,14 +32,14 @@ pub(crate) fn build_ignored_rules(
         for code in excludes {
             let code = code.trim().to_uppercase();
             if !code.is_empty() {
-                rules.insert(code);
+                insert(code, &mut rules);
             }
         }
     }
     // Issue #85: Add rule codes from .bashrsignore file
     if let Some(ignore) = ignore_file_data {
         for code in ignore.ignored_rules() {
-            rules.insert(code);
+            insert(code, &mut rules);
         }
     }
     rules

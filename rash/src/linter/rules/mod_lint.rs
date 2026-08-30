@@ -155,7 +155,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2029::check(source));
     result.merge(sc2030::check(source));
     result.merge(sc2031::check(source));
-    result.merge(sc2032::check(source));
+    // SC2032 RETIRED — see linter::code_namespace::RETIRED.
     result.merge(sc2028::check(source));
     result.merge(sc2033::check(source));
     result.merge(sc2036::check(source));
