@@ -220,7 +220,11 @@ pub mod sc2151;
 pub mod sc2152;
 pub mod sc2153;
 pub mod sc2154;
+pub mod sc2154_assign;
 pub mod sc2154_logic;
+#[cfg(test)]
+#[path = "sc2154_tests_command_lists.rs"]
+mod sc2154_tests_command_lists;
 pub mod sc2155;
 pub mod sc2156;
 pub mod sc2157;

@@ -160,27 +160,23 @@ pub fn is_special_or_builtin(var_name: &str, builtins: &HashSet<&str>) -> bool {
 /// Check if script sources external files
 /// If source/. commands are found, we're more lenient with undefined variables
 pub fn has_source_commands(source: &str) -> bool {
-    for line in source.lines() {
-        let trimmed = line.trim();
-        if trimmed.starts_with('#') {
-            continue;
-        }
-        // Match: source file, . file, source "file", . "file"
-        if trimmed.starts_with("source ") || trimmed.starts_with(". ") {
-            return true;
-        }
-        // Also check for source/. after semicolon or &&/||
-        if trimmed.contains("; source ")
-            || trimmed.contains("; . ")
-            || trimmed.contains("&& source ")
-            || trimmed.contains("&& . ")
-            || trimmed.contains("|| source ")
-            || trimmed.contains("|| . ")
-        {
-            return true;
-        }
-    }
-    false
+    /// `source`/`.` reached after a command separator on the same line.
+    const AFTER_SEPARATOR: &[&str] = &[
+        "; source ",
+        "; . ",
+        "&& source ",
+        "&& . ",
+        "|| source ",
+        "|| . ",
+    ];
+
+    source.lines().map(str::trim).any(|trimmed| {
+        !trimmed.starts_with('#')
+            // Match: source file, . file, source "file", . "file"
+            && (trimmed.starts_with("source ")
+                || trimmed.starts_with(". ")
+                || AFTER_SEPARATOR.iter().any(|s| trimmed.contains(s)))
+    })
 }
 
 /// Check if line is a comment
@@ -317,42 +313,37 @@ pub fn is_case_pattern_line(line: &str) -> bool {
     t.ends_with(')') && !t.contains('=')
 }
 
+/// Index of the first word after `read`'s option run.
+fn skip_read_flags(parts: &[&str]) -> usize {
+    let mut i = 0;
+    while parts.get(i).is_some_and(|p| p.starts_with('-')) {
+        // These options take a value, which is not a variable name.
+        let takes_arg = matches!(parts[i], "-p" | "-a" | "-d" | "-n" | "-t" | "-u");
+        i += if takes_arg { 2 } else { 1 };
+    }
+    i
+}
+
+/// Is `word` a bare, valid variable name?
+fn is_plain_name(word: &str) -> bool {
+    word.chars()
+        .next()
+        .is_some_and(|c| c.is_alphabetic() || c == '_')
+        && word.chars().all(|c| c.is_alphanumeric() || c == '_')
+}
+
 /// Extract variable names from read command in a line
 pub fn extract_read_variables(line: &str) -> Vec<String> {
-    let mut vars = Vec::new();
-    if let Some(read_pos) = line.find("read ") {
-        let after_read = &line[read_pos + 5..];
-        let parts: Vec<&str> = after_read.split_whitespace().collect();
-        let mut i = 0;
-        // Skip flags
-        while i < parts.len() {
-            let part = parts[i];
-            if part.starts_with('-') {
-                i += 1;
-                if matches!(part, "-p" | "-a" | "-d" | "-n" | "-t" | "-u") {
-                    i += 1;
-                }
-            } else {
-                break;
-            }
-        }
-        // Remaining parts are variable names
-        while i < parts.len() {
-            let var_name = parts[i].trim_end_matches(';');
-            if var_name
-                .chars()
-                .next()
-                .is_some_and(|c| c.is_alphabetic() || c == '_')
-                && var_name.chars().all(|c| c.is_alphanumeric() || c == '_')
-            {
-                vars.push(var_name.to_string());
-                i += 1;
-            } else {
-                break;
-            }
-        }
-    }
-    vars
+    let Some(read_pos) = line.find("read ") else {
+        return Vec::new();
+    };
+    let parts: Vec<&str> = line[read_pos + 5..].split_whitespace().collect();
+    parts[skip_read_flags(&parts).min(parts.len())..]
+        .iter()
+        .map(|p| p.trim_end_matches(';'))
+        .take_while(|p| is_plain_name(p))
+        .map(str::to_string)
+        .collect()
 }
 
 /// Patterns for variable detection
@@ -394,39 +385,61 @@ pub fn collect_variable_info(
             continue;
         }
 
-        for cap in patterns.assign.captures_iter(line) {
-            assigned.insert(cap.get(1).unwrap().as_str().to_string());
+        for name in collect_line_assignments(line, patterns) {
+            assigned.insert(name);
         }
-        for cap in patterns.for_loop.captures_iter(line) {
-            assigned.insert(cap.get(1).unwrap().as_str().to_string());
-        }
-        for cap in patterns.c_style_for.captures_iter(line) {
-            assigned.insert(cap.get(1).unwrap().as_str().to_string());
-        }
-        for cap in patterns.case_expr.captures_iter(line) {
-            assigned.insert(cap.get(1).unwrap().as_str().to_string());
-        }
-        for var in extract_read_variables(line) {
-            assigned.insert(var);
-        }
-        for cap in patterns.use_.captures_iter(line) {
-            let var_name = cap.get(1).unwrap().as_str();
-            let full_match = cap.get(0).unwrap();
-            let col = full_match.start() + 1;
-
-            // Issue #132: Skip variables with parameter expansion operators
-            // ${VAR:-}, ${VAR:=}, ${VAR:+}, ${VAR:?} are intentional default/check patterns
-            if is_parameter_expansion_with_operator(line, full_match.end()) {
-                continue;
-            }
-
-            if has_sources && is_uppercase_var(var_name) {
-                continue;
-            }
-            used_vars.push((var_name.to_string(), line_num, col));
-        }
+        collect_line_uses(line, line_num, patterns, has_sources, &mut used_vars);
     }
     (assigned, used_vars)
+}
+
+/// Every name assigned on one line, by any recognised form.
+#[allow(clippy::unwrap_used)] // Regex captures in known patterns
+fn collect_line_assignments(line: &str, patterns: &Patterns) -> Vec<String> {
+    // GH-275: not `patterns.assign`. That regex is anchored at `^\s*`, so it
+    // could only ever see the first assignment on a line — everything after a
+    // `;`, `&&` or `||`, and every extra name on a `local a=1 b=2`, was reported
+    // as unassigned. See `sc2154_assign` for why an unanchored regex is not the
+    // fix either.
+    let mut names = crate::linter::rules::sc2154_assign::line_assignments(line);
+    for pattern in [
+        &patterns.for_loop,
+        &patterns.c_style_for,
+        &patterns.case_expr,
+    ] {
+        for cap in pattern.captures_iter(line) {
+            names.push(cap.get(1).unwrap().as_str().to_string());
+        }
+    }
+    names.extend(extract_read_variables(line));
+    names
+}
+
+/// Every variable REFERENCE on one line, appended to `used_vars`.
+#[allow(clippy::unwrap_used)] // Regex captures in known patterns
+fn collect_line_uses(
+    line: &str,
+    line_num: usize,
+    patterns: &Patterns,
+    has_sources: bool,
+    used_vars: &mut Vec<(String, usize, usize)>,
+) {
+    for cap in patterns.use_.captures_iter(line) {
+        let var_name = cap.get(1).unwrap().as_str();
+        let full_match = cap.get(0).unwrap();
+        let col = full_match.start() + 1;
+
+        // Issue #132: Skip variables with parameter expansion operators
+        // ${VAR:-}, ${VAR:=}, ${VAR:+}, ${VAR:?} are intentional default/check patterns
+        if is_parameter_expansion_with_operator(line, full_match.end()) {
+            continue;
+        }
+
+        if has_sources && is_uppercase_var(var_name) {
+            continue;
+        }
+        used_vars.push((var_name.to_string(), line_num, col));
+    }
 }
 
 /// Validate undefined variables and return diagnostics info
