@@ -23,11 +23,22 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
+    // A heredoc that writes a script is the ordinary way to emit one, and the
+    // emitted `#!` is line 1 of the file being written — not a misplaced
+    // shebang in the writer. Masking cannot do this job: a shebang lives in a
+    // comment, comments mask as literal text, and the rule would then miss a
+    // genuinely misplaced shebang too.
+    let heredoc = crate::linter::quoting::heredoc_body_lines(source);
+
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed
 
         // Skip the first line
         if line_num == 1 {
+            continue;
+        }
+
+        if heredoc.contains(&line_num) {
             continue;
         }
 
@@ -146,5 +157,55 @@ mod tests {
         let result = check(code);
         // The second one on line 2 should be flagged
         assert_eq!(result.diagnostics.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod tests_heredoc_body {
+    use super::*;
+
+    /// A heredoc that writes a script: the emitted shebang is line 1 of the
+    /// file being written, so it is not misplaced. `bash -n` and `shellcheck`
+    /// both accept. Found in infra's `test-disk-watch.sh`.
+    #[test]
+    fn shebang_in_a_heredoc_body_is_not_misplaced() {
+        let result = check("cat > /tmp/x <<SH\n#!/bin/sh\necho hi\nSH\necho done\n");
+        assert_eq!(result.diagnostics.len(), 0, "got {:?}", result.diagnostics);
+    }
+
+    /// The same for a quoted delimiter.
+    #[test]
+    fn shebang_in_a_quoted_heredoc_body_is_not_misplaced() {
+        let result = check("cat > /tmp/x <<'SH'\n#!/usr/bin/env bash\necho hi\nSH\n");
+        assert_eq!(result.diagnostics.len(), 0, "got {:?}", result.diagnostics);
+    }
+
+    /// MUST STILL FIRE: a stray shebang in the script's own code is still
+    /// misplaced. This is the test that rejected the masking approach, which
+    /// silenced this case along with the false positive.
+    #[test]
+    fn still_fires_on_a_genuinely_misplaced_shebang() {
+        let result = check("echo hello\n#!/bin/bash\necho bye\n");
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC1128");
+        assert_eq!(result.diagnostics[0].severity, Severity::Error);
+        assert_eq!(result.diagnostics[0].span.start_line, 2);
+    }
+
+    /// MUST STILL FIRE: the exemption stops at the terminator.
+    #[test]
+    fn still_fires_after_the_heredoc_terminator() {
+        let result = check("cat > /tmp/x <<SH\n#!/bin/sh\nSH\n#!/bin/bash\n");
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].span.start_line, 4);
+    }
+
+    /// MUST STILL FIRE: an UNTERMINATED heredoc is a guess, so its "body" must
+    /// not silence the rule — mirroring the fail-safe in `QuotedRegions`.
+    #[test]
+    fn still_fires_when_the_heredoc_never_terminates() {
+        let result = check("cat > /tmp/x <<SH\n#!/bin/bash\n");
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].span.start_line, 2);
     }
 }

@@ -312,7 +312,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     result.merge(sc2185::check(source));
     result.merge(sc2186::check(source));
     result.merge(sc2187::check(source));
-    result.merge(sc2188::check(source));
+    result.merge(sc2188::check(&masked));
     result.merge(sc2189::check(source));
     result.merge(sc2190::check(source));
     result.merge(sc2191::check(source));

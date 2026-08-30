@@ -42,6 +42,11 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let mut open: Option<OpenQuote> = None;
     let mut heredoc_end: Option<String> = None;
+    // Single-quote state spans lines exactly as double-quote state does. It
+    // used to be a local reset on every line, so the second line of a
+    // multi-line `'...'` was scanned as code and a `"` in an embedded awk or
+    // sed program opened a phantom double-quoted string that ran to EOF.
+    let mut in_single = false;
 
     for (idx, line) in source.lines().enumerate() {
         let line_num = idx + 1;
@@ -56,14 +61,15 @@ pub fn check(source: &str) -> LintResult {
 
         // A whole-line comment cannot open a string — but only when we are not
         // already inside one, where `#` is an ordinary character.
-        if open.is_none() && line.trim_start().starts_with('#') {
+        if open.is_none() && !in_single && line.trim_start().starts_with('#') {
             continue;
         }
 
-        if open.is_none() {
+        // `<<` inside a string literal is text, not a redirection.
+        if open.is_none() && !in_single {
             heredoc_end = heredoc_terminator(line);
         }
-        scan_line(line, line_num, &mut open);
+        scan_line(line, line_num, &mut open, &mut in_single);
     }
 
     if let Some(q) = open {
@@ -83,19 +89,18 @@ pub fn check(source: &str) -> LintResult {
 /// Three states, one step function each: inside `'...'` nothing is special but
 /// the closing quote; inside `"..."` a backslash escapes and only `"` closes;
 /// otherwise quotes open and an unquoted `#` ends the line.
-fn scan_line(line: &str, line_num: usize, open: &mut Option<OpenQuote>) {
+fn scan_line(line: &str, line_num: usize, open: &mut Option<OpenQuote>, in_single: &mut bool) {
     let bytes = line.as_bytes();
     let mut i = 0;
-    let mut in_single = false;
 
     while i < bytes.len() {
-        if in_single {
-            in_single = bytes[i] != b'\'';
+        if *in_single {
+            *in_single = bytes[i] != b'\'';
             i += 1;
         } else if open.is_some() {
             i = step_in_double(bytes, i, open);
         } else {
-            match step_neutral(bytes, i, line_num, open, &mut in_single) {
+            match step_neutral(bytes, i, line_num, open, in_single) {
                 Some(next) => i = next,
                 None => return, // a comment began; the rest is prose
             }
@@ -291,5 +296,79 @@ mod tests {
         // `<<<` must not swallow the rest of the file looking for a terminator.
         let script = "grep x <<< \"$var\"\necho \"unclosed";
         assert_eq!(check(script).diagnostics.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod tests_multiline_single_quote {
+    use super::*;
+
+    /// A single-quoted string that spans lines keeps its literal state across
+    /// the newline. A `"` on a continuation line is an ordinary character, so
+    /// it must not open a phantom double-quoted string.
+    ///
+    /// Found in infra's `ci-blackbox.sh`: an embedded awk program whose regex
+    /// `/"ts":"[^"]+"/` holds an odd number of `"`. `bash -n` and `shellcheck`
+    /// both accept it.
+    #[test]
+    fn multiline_single_quote_carries_across_lines() {
+        let script = "echo x | awk '\n    match($0, /\"ts\":\"[^\"]+\"/) {\n        ts = 1\n    }'\necho done\n";
+        let result = check(script);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "awk body inside '...' is literal; got {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// The smallest form of the same defect.
+    #[test]
+    fn double_quote_inside_multiline_single_quote_is_literal() {
+        let result = check("echo '\na\"b\n'\n");
+        assert_eq!(result.diagnostics.len(), 0, "got {:?}", result.diagnostics);
+    }
+
+    /// MUST STILL FIRE: carrying single-quote state must not blind the rule to
+    /// a genuinely unterminated double-quoted string.
+    #[test]
+    fn still_fires_on_genuine_unterminated_double_quote_after_single_quoted_block() {
+        let script = "echo 'literal\ntext'\necho \"unterminated\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC1078");
+        assert_eq!(result.diagnostics[0].span.start_line, 3);
+    }
+
+    /// MUST STILL FIRE: an unterminated double quote opened *before* a
+    /// single-quoted line is still reported at the line where it opened.
+    #[test]
+    fn still_fires_when_unterminated_quote_precedes_single_quoted_block() {
+        let script = "echo \"oops\necho 'plain'\necho tail\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC1078");
+        assert_eq!(result.diagnostics[0].span.start_line, 1);
+    }
+
+    /// MUST STILL FIRE: a multi-line double-quoted string that never closes is
+    /// still reported, even when a single-quoted region precedes it.
+    #[test]
+    fn still_fires_on_unterminated_double_quote_spanning_lines() {
+        let script = "awk 'BEGIN{print 1}'\nDIRS=\"one two\nthree four\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].span.start_line, 2);
+    }
+
+    /// `echo "oops` followed by `echo 'a"b'` is NOT an unterminated *double*
+    /// quote: the `"` in `a"b` closes it. bash reports the unmatched `'`
+    /// instead ("unexpected EOF while looking for matching `''"), and
+    /// shellcheck reports SC1073 on the single quote. SC1078's subject is the
+    /// double quote, so it correctly stays silent here.
+    #[test]
+    fn unmatched_single_quote_is_not_sc1078s_finding() {
+        let result = check("echo \"oops\necho 'a\"b'\n");
+        assert_eq!(result.diagnostics.len(), 0, "got {:?}", result.diagnostics);
     }
 }

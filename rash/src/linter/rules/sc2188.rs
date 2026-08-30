@@ -365,3 +365,42 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod tests_literal_content {
+    use super::*;
+
+    /// XML, HTML or a diff inside a multi-line single-quoted string is data.
+    /// Its `<` and `>` are not redirections. Reaches this rule already masked:
+    /// SC2188 is in `quoting::QUOTE_SENSITIVE_RULES`.
+    ///
+    /// Found in llama.cpp's `build-xcframework.sh`, where a plist fragment is
+    /// assigned with `local device_family='…'`. `bash -n` accepts and
+    /// shellcheck reports nothing at any severity.
+    #[test]
+    fn angle_brackets_in_a_single_quoted_literal_are_not_redirections() {
+        let masked = crate::linter::quoting::mask_literals(
+            "f(){\n    local xml='    <key>K</key>\n    <array>\n        <integer>1</integer>\n    </array>'\n}\n",
+        );
+        let result = check(&masked);
+        assert_eq!(result.diagnostics.len(), 0, "got {:?}", result.diagnostics);
+    }
+
+    /// MUST STILL FIRE: a genuine redirection with no command is still a bug.
+    #[test]
+    fn still_fires_on_a_real_bare_redirection() {
+        let masked = crate::linter::quoting::mask_literals("echo start\n> out.txt\necho done\n");
+        let result = check(&masked);
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC2188");
+    }
+
+    /// MUST STILL FIRE: the redirection operator itself is outside the quotes,
+    /// so a quoted *target* does not hide it.
+    #[test]
+    fn still_fires_when_only_the_target_is_quoted() {
+        let masked = crate::linter::quoting::mask_literals("echo start\n> \"$out\"\n");
+        let result = check(&masked);
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+    }
+}
