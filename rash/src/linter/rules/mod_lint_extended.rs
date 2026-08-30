@@ -81,6 +81,9 @@ fn apply_extended_lint_rules(source: &str, result: &mut LintResult) {
         });
     }
 
+    // T6: see the note in mod_lint_2.rs — SCxxxx is ShellCheck's namespace.
+    crate::linter::code_namespace::apply(result);
+
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);
     result

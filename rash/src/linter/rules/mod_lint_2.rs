@@ -188,7 +188,11 @@ fn lint_shell_filtered(
     apply_rule!("SC2029", sc2029::check);
     apply_rule!("SC2030", sc2030::check);
     apply_rule!("SC2031", sc2031::check); // Universal - subshell scope
-    apply_rule!("SC2032", sc2032::check); // Universal - variable in shebang script
+    // SC2032 RETIRED — see linter::code_namespace::RETIRED. The check fired on
+    // every plain `VAR=value` in every shebang-carrying script: 0 true
+    // positives in 13404 firings across 4000 scripts. Retiring also releases
+    // the number, which ShellCheck assigns to "Use own script or sh -c '..' to
+    // run this from sudo."
 
     // Add classified rules (SC2039 and SC2198-2201)
     apply_rule!("SC2039", sc2039::check); // NotSh - bash/zsh features
@@ -406,6 +410,13 @@ fn lint_shell_filtered(
 
     // Messages from masked rules must quote the user's text, not the filler.
     crate::linter::quoting::restore_masked_messages(source, &masked, &mut result);
+
+    // T6: a SCxxxx code must mean what ShellCheck says it means. Rename the
+    // bashrs-original checks that were filed under an already-assigned
+    // ShellCheck number onto BRS####. Runs BEFORE suppression so a pragma
+    // naming the new code works; SuppressionManager expands bashrs-syntax
+    // pragmas naming the old one, so existing baselines keep suppressing.
+    crate::linter::code_namespace::apply(&mut result);
 
     // Apply inline suppression filtering
     let suppression_manager = SuppressionManager::from_source(source);

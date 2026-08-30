@@ -218,7 +218,7 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
 
     if let Some(pos) = trimmed.find("# bashrs disable-file=") {
         let rules_str = &trimmed[pos + "# bashrs disable-file=".len()..];
-        let rules = parse_rule_list(rules_str);
+        let rules = expand_legacy_aliases(parse_rule_list(rules_str));
         return Some(Suppression {
             suppression_type: SuppressionType::File,
             line: line_num,
@@ -228,7 +228,7 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
 
     if let Some(pos) = trimmed.find("# bashrs disable-next-line=") {
         let rules_str = &trimmed[pos + "# bashrs disable-next-line=".len()..];
-        let rules = parse_rule_list(rules_str);
+        let rules = expand_legacy_aliases(parse_rule_list(rules_str));
         return Some(Suppression {
             suppression_type: SuppressionType::NextLine,
             line: line_num,
@@ -238,7 +238,7 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
 
     if let Some(pos) = line.find("# bashrs disable-line=") {
         let rules_str = &line[pos + "# bashrs disable-line=".len()..];
-        let rules = parse_rule_list(rules_str);
+        let rules = expand_legacy_aliases(parse_rule_list(rules_str));
         return Some(Suppression {
             suppression_type: SuppressionType::Line,
             line: line_num,
@@ -255,7 +255,7 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
             && !trimmed.contains("disable-line=")
         {
             let rules_str = &trimmed[pos + "# bashrs disable=".len()..];
-            let rules = parse_rule_list(rules_str);
+            let rules = expand_legacy_aliases(parse_rule_list(rules_str));
             return Some(Suppression {
                 suppression_type: SuppressionType::NextLine,
                 line: line_num,
@@ -284,6 +284,27 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
     // # shellcheck source=./lib.sh - we don't need to handle this
 
     None
+}
+
+/// A `# bashrs disable=` pragma written before the T6 code migration names
+/// the OLD code. Keep it working by also suppressing the code that check is
+/// reported under now.
+///
+/// Deliberately NOT applied to `# shellcheck disable=`: that pragma names a
+/// ShellCheck check, and the whole point of the migration is that
+/// `# shellcheck disable=SC2311` must silence ShellCheck's SC2311 and nothing
+/// of ours. Expanding it here would re-create the interop bug one level down.
+fn expand_legacy_aliases(rules: HashSet<String>) -> HashSet<String> {
+    use crate::linter::code_namespace::canonical;
+    let mut out = HashSet::with_capacity(rules.len());
+    for rule in rules {
+        let canon = canonical(&rule);
+        if canon != rule {
+            out.insert(canon.to_string());
+        }
+        out.insert(rule);
+    }
+    out
 }
 
 /// Parse comma-separated rule list
