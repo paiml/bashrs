@@ -1,7 +1,7 @@
-//! SC1078: Did you forget to close this double-quoted string?
+//! SC1078: Did you forget to close this quoted string?
 //!
-//! Reports a double-quoted string that is opened and never closed **in the
-//! whole file**.
+//! Reports a quoted string that is opened and never closed **in the whole
+//! file**.
 //!
 //! ## Why this is a whole-source scan and not a per-line quote count
 //!
@@ -16,195 +16,60 @@
 //! echo "intel's timer runs daily."   # the apostrophe is LITERAL inside "..."
 //! ```
 //!
-//! The second case was a state bug: the counter tracked single-quote state but
-//! not double-quote state, so an apostrophe inside a double-quoted string
-//! opened a phantom single-quoted region that swallowed the closing quote.
-//!
 //! The tell for the multi-line case was that the old rule flagged BOTH the
 //! opening and the closing line — a genuinely unterminated string can only be
 //! opened once. Scanning the source as one stream reports it once, at the line
 //! where the string actually opens, which is the line the author must edit.
 //!
-//! Heredoc bodies are skipped between their start marker and terminator:
-//! their contents are data, and an apostrophe in prose would otherwise poison
-//! the quote state for the rest of the file.
+//! ## One scanner, not two (GH-272)
+//!
+//! The whole-source scan was a second, weaker lexer living inside this rule:
+//! three states — neutral, in `'`, in `"` — with `in_single` reset at every
+//! newline and no notion of `$( )`, `${ }`, backticks, `$'…'` or `(( ))`. It
+//! produced 73 of the 150 errors bashrs 6.67.0 reported on the rmedia script
+//! corpus, and those 73 are what buried the corpus's real SEC011 findings.
+//! Two shapes did it:
+//!
+//! ```sh
+//! awk '                                   # a program spanning lines...
+//!     while (match(line, /"[^"]+"/)) { }  # ...with an ODD number of " in it
+//! ' "$file"
+//!
+//! echo "legs [$(printf '%s' "$f" | tr '\n' ' ')] over $scope"   # $( ) nesting
+//! ```
+//!
+//! `linter::quoting` already carries all of that state — it is what the
+//! literal mask every other syntax rule reads is built from. The rule now asks
+//! it instead of guessing, so a file cannot be masked as well-quoted and
+//! reported as unterminated at the same time.
 
+use crate::linter::quoting::{unterminated_quote, QuoteKind};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
-/// Where an unterminated double-quoted string was opened.
-struct OpenQuote {
-    line: usize,
-    col: usize,
-}
-
-/// Check for unclosed double-quoted strings.
+/// Check for unclosed quoted strings.
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-    let mut open: Option<OpenQuote> = None;
-    let mut heredoc_end: Option<String> = None;
-    // Single-quote state spans lines exactly as double-quote state does. It
-    // used to be a local reset on every line, so the second line of a
-    // multi-line `'...'` was scanned as code and a `"` in an embedded awk or
-    // sed program opened a phantom double-quoted string that ran to EOF.
-    let mut in_single = false;
 
-    for (idx, line) in source.lines().enumerate() {
-        let line_num = idx + 1;
-
-        // Inside a heredoc: the body is data until the terminator.
-        if let Some(term) = &heredoc_end {
-            if line.trim() == term.as_str() {
-                heredoc_end = None;
-            }
-            continue;
-        }
-
-        // A whole-line comment cannot open a string — but only when we are not
-        // already inside one, where `#` is an ordinary character.
-        if open.is_none() && !in_single && line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        // `<<` inside a string literal is text, not a redirection.
-        if open.is_none() && !in_single {
-            heredoc_end = heredoc_terminator(line);
-        }
-        scan_line(line, line_num, &mut open, &mut in_single);
-    }
-
-    if let Some(q) = open {
+    if let Some(q) = unterminated_quote(source) {
+        // A `'` that never closes runs to EOF — that is what bash does, and
+        // `bash -n` fails with "unexpected EOF". shellcheck reports it as the
+        // parse errors SC1072/SC1073, neither of which bashrs implements, so
+        // it is reported here rather than dropped. The message names the kind
+        // so the diagnosis is not the wrong one the old scanner gave, which
+        // blamed whichever `"` it happened to meet first inside the `'...'`.
+        let message = match q.kind {
+            QuoteKind::Double => "Did you forget to close this double-quoted string?",
+            QuoteKind::Single => "Did you forget to close this single-quoted string?",
+        };
         result.add(Diagnostic::new(
             "SC1078",
             Severity::Error,
-            "Did you forget to close this double-quoted string?",
-            Span::new(q.line, q.col + 1, q.line, q.col + 2),
+            message,
+            Span::new(q.line, q.col, q.line, q.col + 1),
         ));
     }
 
     result
-}
-
-/// Advance the double-quote state across one line.
-///
-/// Three states, one step function each: inside `'...'` nothing is special but
-/// the closing quote; inside `"..."` a backslash escapes and only `"` closes;
-/// otherwise quotes open and an unquoted `#` ends the line.
-fn scan_line(line: &str, line_num: usize, open: &mut Option<OpenQuote>, in_single: &mut bool) {
-    let bytes = line.as_bytes();
-    let mut i = 0;
-
-    while i < bytes.len() {
-        if *in_single {
-            *in_single = bytes[i] != b'\'';
-            i += 1;
-        } else if open.is_some() {
-            i = step_in_double(bytes, i, open);
-        } else {
-            match step_neutral(bytes, i, line_num, open, in_single) {
-                Some(next) => i = next,
-                None => return, // a comment began; the rest is prose
-            }
-        }
-    }
-}
-
-/// One byte inside a double-quoted string. Returns the next index.
-fn step_in_double(bytes: &[u8], i: usize, open: &mut Option<OpenQuote>) -> usize {
-    match bytes[i] {
-        b'\\' => i + 2, // escapes the next byte, whatever it is
-        b'"' => {
-            *open = None;
-            i + 1
-        }
-        _ => i + 1,
-    }
-}
-
-/// One byte outside any string. Returns the next index, or `None` if a comment
-/// started and the remainder of the line must not be scanned.
-fn step_neutral(
-    bytes: &[u8],
-    i: usize,
-    line_num: usize,
-    open: &mut Option<OpenQuote>,
-    in_single: &mut bool,
-) -> Option<usize> {
-    match bytes[i] {
-        b'\\' => return Some(i + 2),
-        b'\'' => *in_single = true,
-        b'"' => {
-            *open = Some(OpenQuote {
-                line: line_num,
-                col: i,
-            })
-        }
-        // An unquoted `#` at the start of a word begins a comment.
-        b'#' if i == 0 || bytes[i - 1].is_ascii_whitespace() => return None,
-        _ => {}
-    }
-    Some(i + 1)
-}
-
-/// What follows a `<<` on the line.
-enum Redirect {
-    /// A heredoc whose body ends at this terminator word.
-    Heredoc(String),
-    /// `<<<` is a herestring: no body, no terminator. Resume scanning here.
-    Herestring(usize),
-    /// `<<` not followed by a word (e.g. a left-shift in arithmetic).
-    Neither,
-}
-
-/// If `line` starts a heredoc, return the terminator word to watch for.
-fn heredoc_terminator(line: &str) -> Option<String> {
-    let bytes = line.as_bytes();
-    let mut i = 0;
-    while i + 1 < bytes.len() {
-        if bytes[i] == b'<' && bytes[i + 1] == b'<' {
-            match classify_redirect(line, i + 2) {
-                Redirect::Heredoc(word) => return Some(word),
-                Redirect::Herestring(next) => {
-                    i = next;
-                    continue;
-                }
-                Redirect::Neither => {}
-            }
-        }
-        i += 1;
-    }
-    None
-}
-
-/// Classify what follows a `<<` that starts at `start`.
-///
-/// Accepts the optional `-` of `<<-`, surrounding spaces, and a quoted
-/// terminator (`<<'EOF'`), since all four spellings delimit the same body.
-fn classify_redirect(line: &str, start: usize) -> Redirect {
-    let bytes = line.as_bytes();
-    let mut j = start;
-
-    if bytes.get(j) == Some(&b'<') {
-        return Redirect::Herestring(j + 1);
-    }
-    if bytes.get(j) == Some(&b'-') {
-        j += 1;
-    }
-    while bytes.get(j) == Some(&b' ') {
-        j += 1;
-    }
-    if matches!(bytes.get(j), Some(b'\'') | Some(b'"')) {
-        j += 1;
-    }
-
-    let word_start = j;
-    while j < bytes.len() && (bytes[j].is_ascii_alphanumeric() || bytes[j] == b'_') {
-        j += 1;
-    }
-    if j > word_start {
-        Redirect::Heredoc(line[word_start..j].to_string())
-    } else {
-        Redirect::Neither
-    }
 }
 
 #[cfg(test)]
@@ -297,6 +162,79 @@ mod tests {
         let script = "grep x <<< \"$var\"\necho \"unclosed";
         assert_eq!(check(script).diagnostics.len(), 1);
     }
+
+    // ── GH-272: single-quote state must survive the newline ────────────────
+
+    #[test]
+    fn test_sc1078_multiline_single_quoted_program_is_not_shell() {
+        // rmedia/scripts/lint-verb-coverage.sh:58-69. An awk program passed as
+        // one single-quoted argument. The regex `/"[^"]+"/` holds an ODD number
+        // of double quotes, which is fine — inside '...' they are text.
+        //
+        // `in_single` used to be a local of `scan_line`, reset at every
+        // newline, so the second line of the program was scanned as code and
+        // the first `"` opened a string that nothing ever closed.
+        let script = "awk '\n    while (match(line, /\"[^\"]+\"/)) {\n        print \"x\"\n    }\n' file\necho \"tail\"\n";
+        assert_eq!(check(script).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc1078_multiline_single_quoted_heredocish_text_is_not_a_heredoc() {
+        // A `<<EOF` inside a single-quoted program is text, not a redirection.
+        let script = "awk '\n  print \"a <<EOF b\"\n' file\necho \"tail\"\n";
+        assert_eq!(check(script).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc1078_hash_inside_multiline_single_quotes_is_not_a_comment() {
+        // An awk comment line inside '...' must not be skipped as a shell
+        // comment, and must not end the single-quoted region.
+        let script = "awk '\n  # counts \" marks\n  { n++ }\n' file\necho \"tail\"\n";
+        assert_eq!(check(script).diagnostics.len(), 0);
+    }
+
+    // ── must still fire ────────────────────────────────────────────────────
+
+    #[test]
+    fn must_still_fire_unterminated_double_quote_after_a_closed_awk_program() {
+        // The state fix must not blind the rule: once the '...' closes, a
+        // genuinely unterminated " is still SC1078.
+        let script = "awk '\n  print \"x\"\n' file\necho \"unclosed\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC1078");
+        assert_eq!(result.diagnostics[0].span.start_line, 4);
+    }
+
+    #[test]
+    fn must_still_fire_unterminated_double_quote_opened_inside_a_multiline_command() {
+        // Carrying state across lines must not swallow a real defect that
+        // opens on a later line.
+        let script = "x=1\ny=2\necho \"still open at EOF\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].span.start_line, 3);
+    }
+
+    #[test]
+    fn must_still_fire_unterminated_single_quote_is_reported_not_dropped() {
+        // Carrying single-quote state means a stray ' now runs to EOF. That is
+        // what bash does (`bash -n` fails with "unexpected EOF"), and
+        // shellcheck calls it out as SC1072 "Expected end of single quoted
+        // string". bashrs implements neither SC1072 nor SC1073, so the finding
+        // is reported here rather than dropped — with a message that names the
+        // quote kind, so the diagnosis is not the wrong one it used to give.
+        let script = "echo don't\necho \"ok\"\n";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC1078");
+        assert_eq!(result.diagnostics[0].span.start_line, 1);
+        assert!(
+            result.diagnostics[0].message.contains("single"),
+            "message must name the quote kind, got: {}",
+            result.diagnostics[0].message
+        );
+    }
 }
 
 #[cfg(test)]
@@ -361,14 +299,37 @@ mod tests_multiline_single_quote {
         assert_eq!(result.diagnostics[0].span.start_line, 2);
     }
 
-    /// `echo "oops` followed by `echo 'a"b'` is NOT an unterminated *double*
-    /// quote: the `"` in `a"b` closes it. bash reports the unmatched `'`
-    /// instead ("unexpected EOF while looking for matching `''"), and
-    /// shellcheck reports SC1073 on the single quote. SC1078's subject is the
-    /// double quote, so it correctly stays silent here.
+    /// `echo "oops` followed by `echo 'a"b'`: the `"` in `a"b` closes the
+    /// double quote opened on line 1, and the trailing `'` then opens a single
+    /// quote that runs to EOF.
+    ///
+    /// This test arrived from #278 asserting SILENCE, on the reasoning that
+    /// "SC1078's subject is the double quote". MEASURED, and that reasoning
+    /// does not survive the measurement:
+    ///
+    /// ```text
+    /// $ bash -n t.sh
+    /// t.sh: line 2: unexpected EOF while looking for matching `''
+    /// $ shellcheck t.sh
+    /// line 1: SC1078 (warning): Did you forget to close this double quoted string?
+    /// line 2: SC1073 (error): Couldn't parse this single quoted string.
+    /// line 3: SC1072 (error): Expected end of single quoted string.
+    /// ```
+    ///
+    /// The file is genuinely broken shell, and shellcheck itself emits SC1078
+    /// on it. Staying silent would be a FALSE NEGATIVE on a file `bash -n`
+    /// rejects — exactly the trade this PR's gate exists to refuse. bashrs
+    /// implements neither SC1072 nor SC1073, so the unterminated quote is
+    /// reported here, naming the kind that is actually open at EOF.
     #[test]
-    fn unmatched_single_quote_is_not_sc1078s_finding() {
+    fn unmatched_single_quote_is_still_reported_not_silently_accepted() {
         let result = check("echo \"oops\necho 'a\"b'\n");
-        assert_eq!(result.diagnostics.len(), 0, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC1078");
+        assert!(
+            result.diagnostics[0].message.contains("single"),
+            "the quote open at EOF is the single one, got: {}",
+            result.diagnostics[0].message
+        );
     }
 }

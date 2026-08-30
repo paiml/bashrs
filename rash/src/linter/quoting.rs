@@ -61,6 +61,25 @@ enum Ctx {
     Case,
 }
 
+/// Which kind of quote was left open (GH-272).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QuoteKind {
+    /// `'...'` or `$'...'`.
+    Single,
+    /// `"..."` or `$"..."`.
+    Double,
+}
+
+/// A quote opened somewhere in the file and never closed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UnterminatedQuote {
+    pub kind: QuoteKind,
+    /// 1-indexed line the quote character is on.
+    pub line: usize,
+    /// 1-indexed column of the quote character.
+    pub col: usize,
+}
+
 /// A pending or in-progress heredoc body.
 #[derive(Debug, Clone)]
 struct Heredoc {
@@ -88,7 +107,13 @@ pub struct QuotedRegions {
     /// [`quoted_heredoc_lines`].
     quoted_heredoc: std::collections::HashSet<usize>,
     /// 1-indexed lines inside ANY heredoc body, quoted delimiter or not.
+    ///
+    /// An unquoted body still undergoes expansion, so it is not wholly literal
+    /// — but it is never shell SYNTAX, and it is not a comment of *this*
+    /// script either. See [`heredoc_body_lines`].
     heredoc_body: std::collections::HashSet<usize>,
+    /// A quote opened and never closed. See [`unterminated_quote`].
+    unterminated: Option<UnterminatedQuote>,
 }
 
 impl QuotedRegions {
@@ -131,6 +156,13 @@ impl QuotedRegions {
             any,
             quoted_heredoc: scanner.quoted_heredoc,
             heredoc_body: scanner.heredoc_body,
+            // A quote still on the stack at EOF was never closed. Read off the
+            // same state the fail-safe above uses, so the mask and the finding
+            // can never disagree about whether the file is well-quoted.
+            unterminated: scanner
+                .quote_open_at
+                .zip(scanner.quote_open_kind)
+                .map(|((line, col), kind)| UnterminatedQuote { kind, line, col }),
         }
     }
 
@@ -183,19 +215,45 @@ pub fn quoted_heredoc_lines(source: &str) -> std::collections::HashSet<usize> {
     QuotedRegions::analyze(source).quoted_heredoc
 }
 
-/// 1-indexed lines inside ANY heredoc body, whether or not its delimiter was
-/// quoted.
+/// 1-indexed lines inside ANY heredoc body — quoted delimiter or not
+/// (GH-268, GH-272).
 ///
 /// For rules whose subject is a property of *the file being linted* rather than
 /// of the text — a shebang's position, say. A heredoc that writes a script is
 /// the ordinary way to emit one, and the emitted `#!` is on line 1 of the file
 /// being written, not a misplaced shebang in the writer.
 ///
-/// Distinct from masking: a shebang lives in a comment, and comments are masked
-/// as literal text, so running such a rule on the masked source would blind it
-/// to genuinely misplaced shebangs too.
+/// For a rule whose subject is a COMMENT, `mask_literals` is the wrong tool:
+/// it masks comments too, so masking blinds the rule to the very defect it
+/// exists for. SC1128 is the case — a `#!` on line 3 of a script IS a misplaced
+/// shebang, but a `#!` on line 3 that happens to be inside
+/// `cat > f <<EOF … EOF` is a shebang being WRITTEN INTO ANOTHER FILE, which is
+/// the whole point of the heredoc.
+///
+/// The unterminated-heredoc fail-safe in [`QuotedRegions::analyze`] applies
+/// here as well: a body with no terminator was a guess, and a guess must not
+/// silence a rule for the rest of the file.
 pub fn heredoc_body_lines(source: &str) -> std::collections::HashSet<usize> {
     QuotedRegions::analyze(source).heredoc_body
+}
+
+/// The quote that opens somewhere in `source` and never closes, if any.
+///
+/// GH-272. SC1078 used to carry its own three-state scanner — neutral, in a
+/// `'`, in a `"` — which knew nothing of `$( )`, `${ }`, backticks, `$'…'` or
+/// `(( ))`. So a perfectly ordinary line like
+///
+/// ```sh
+/// echo "leg(s) [$(printf '%s' "$features" | tr '\n' ' ')] over $scope"
+/// ```
+///
+/// left it convinced a quote was open, and it reported an unterminated string
+/// hundreds of lines away from anything wrong. Two scanners answering the same
+/// question is one scanner too many; this is the one that already carries the
+/// state, and it is the one the mask is built from, so a file cannot now be
+/// masked as well-quoted and reported as unterminated at the same time.
+pub fn unterminated_quote(source: &str) -> Option<UnterminatedQuote> {
+    QuotedRegions::analyze(source).unterminated
 }
 
 /// Rules whose subject is shell *syntax*, and which are therefore meaningless
@@ -217,8 +275,6 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // Function/parameter syntax — `function(a, b)` inside an awk or SQL program.
     "SC1065", // Function parameters in shell
     // Redirection/operator syntax appearing as text.
-    "SC2188", // Redirection without command — `<key>` in an embedded XML/plist
-    // fragment is data, not a redirection.
     "SC1007", // Remove space after = — `skip = 0` inside an awk program is awk
     "SC1014", // Use `if cmd; then`
     "SC1036", // ( is invalid here
@@ -229,11 +285,40 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // Paren and bracket syntax that is ordinary punctuation in a message.
     "SC1028", // Bare ( ) in a test — `log "waiting (${n}s elapsed)"` is prose
     "SC2104", // Missing space before ] — `"usage: rag [--source|--videos]"` is prose
+    // GH-272. Five more found reacting to literal text on the rmedia script
+    // corpus; each is guarded, with the construct it misfired on and the
+    // must-still-fire case, by `tests/quoting_literal_payload_guard.rs`.
+    // NOT SC1128. Its subject is a COMMENT, and `mask_literals` masks comments
+    // too, so masking blinds it to the real defect — a genuinely misplaced
+    // shebang. `tests/quoting_literal_payload_guard.rs` caught exactly that
+    // when SC1128 was put here. It uses [`heredoc_body_lines`] instead.
+    // SC2188 arrives here from BOTH GH-268 and GH-272: `<key>` in an embedded
+    // XML/plist fragment and `</svg>` in a heredoc are data, not redirections.
+    "SC2188", // Redirection without command
+    "SC2105", // `break` outside a loop — "could not break the matcher" is prose
+    "SC2111", // ksh `function` keyword — awk has one too, in a '...' program
+    "SC2122", // `>=` in [ ] — `"int($cov >= 85)"` is a program for another parser
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
 pub fn is_quote_sensitive(code: &str) -> bool {
     QUOTE_SENSITIVE_RULES.contains(&code)
+}
+
+/// The same question, asked with the rule's MODULE name (`sc1078`) instead of
+/// its id (`SC1078`).
+///
+/// GH-272: `lint_shell` used to choose `&masked` or `source` by hand at each of
+/// its 378 call sites, so [`QUOTE_SENSITIVE_RULES`] and that dispatch were two
+/// hand-maintained lists that had to agree and nothing checked that they did.
+/// Adding a rule to the allowlist changed the behaviour of `lint_shell_filtered`
+/// and silently did nothing for the CLI, which reaches `lint_shell`. Same shape
+/// as bashrs#266. Letting the call site name only the module and deriving the
+/// input from this makes the two impossible to diverge.
+pub fn is_quote_sensitive_module(module: &str) -> bool {
+    QUOTE_SENSITIVE_RULES
+        .iter()
+        .any(|rule| rule.eq_ignore_ascii_case(module))
 }
 
 /// Rewrite `source` so every string literal becomes inert filler, preserving
@@ -370,12 +455,14 @@ struct Scanner {
     stack: Vec<Ctx>,
     /// 1-indexed lines inside a quoted-delimiter heredoc body.
     quoted_heredoc: std::collections::HashSet<usize>,
-    /// 1-indexed lines inside ANY heredoc body, quoted delimiter or not.
+    /// 1-indexed lines inside any heredoc body, quoted delimiter or not.
     heredoc_body: std::collections::HashSet<usize>,
     /// 1-indexed line currently being scanned.
     line_no: usize,
     /// Where the outermost currently-open quote started, for the EOF fail-safe.
     quote_open_at: Option<(usize, usize)>,
+    /// Which kind of quote that was, so SC1078 can say which one to close.
+    quote_open_kind: Option<QuoteKind>,
     /// Heredocs opened on this line, awaiting their bodies, in POSIX order.
     pending: std::collections::VecDeque<Heredoc>,
     /// The body currently being consumed.
@@ -473,11 +560,16 @@ impl Scanner {
         }
     }
 
-    /// Remember where the OUTERMOST open quote began, so the EOF fail-safe can
-    /// discard a mask built on an unterminated one.
+    /// Remember where the OUTERMOST open quote began, and of which kind, so the
+    /// EOF fail-safe can discard a mask built on an unterminated one and SC1078
+    /// can say which quote to close.
     fn push_quote(&mut self, ctx: Ctx, i: usize) {
         if self.quote_open_at.is_none() {
             self.quote_open_at = Some((self.line_no, i + 1));
+            self.quote_open_kind = Some(match ctx {
+                Ctx::Double => QuoteKind::Double,
+                _ => QuoteKind::Single,
+            });
         }
         self.stack.push(ctx);
     }
@@ -490,6 +582,7 @@ impl Scanner {
             .any(|c| matches!(c, Ctx::Single | Ctx::Double | Ctx::Ansi))
         {
             self.quote_open_at = None;
+            self.quote_open_kind = None;
         }
     }
 
@@ -680,7 +773,13 @@ impl Scanner {
         if !starts_word {
             return i + 1;
         }
-        marks[i..].iter_mut().for_each(|m| *m = true);
+        // GH-272: from `i + 1`, NOT `i`. The `#` is the boundary that says a
+        // comment starts here — masking it turned `> log  # note` into
+        // `> log  xxxxxx`, and SC2188, which strips the comment before asking
+        // whether a redirection has a command, then saw a command that was not
+        // there. Same rule the quote characters already follow: the delimiter
+        // is a boundary, not content.
+        marks[i + 1..].iter_mut().for_each(|m| *m = true);
         bytes.len()
     }
 
@@ -878,8 +977,27 @@ mod tests {
 
     #[test]
     fn test_GH226_quoting_trailing_comment_is_literal() {
+        // GH-272: the `#` itself stays CODE. It is the boundary that says a
+        // comment starts here, exactly as the quote characters are boundaries
+        // rather than content. Masking it away turned `> log  # note` into
+        // `> log  xxxxxx`, and SC2188 — which strips the comment before
+        // deciding whether a redirection has a command — then saw a command
+        // that was not there and stopped reporting a real defect.
         let m = mask("cmd arg  # [0-9]");
-        assert_eq!(m[0], ".........# [0-9]");
+        assert_eq!(m[0], ".......... [0-9]");
+    }
+
+    #[test]
+    fn test_GH272_quoting_a_masked_comment_is_still_recognisably_a_comment() {
+        let masked = mask_literals("> deploy.log  # ERROR (SC2188: no command)");
+        assert!(
+            masked.contains('#'),
+            "the comment marker must survive masking, got: {masked}"
+        );
+        assert!(
+            masked.starts_with("> deploy.log"),
+            "code before the comment must be untouched, got: {masked}"
+        );
     }
 
     #[test]
@@ -1007,6 +1125,10 @@ mod tests {
             ("SC1140", sc1140::check),
             ("SC1028", sc1028::check),
             ("SC2104", sc2104::check),
+            // GH-272
+            ("SC2105", sc2105::check),
+            ("SC2111", sc2111::check),
+            ("SC2122", sc2122::check),
             ("SC2188", sc2188::check),
         ]
     }
@@ -1267,47 +1389,77 @@ mod tests_case_pattern_paren {
 
 #[cfg(test)]
 mod tests_allowlist_is_wired {
-    use super::QUOTE_SENSITIVE_RULES;
+    use super::{is_quote_sensitive, is_quote_sensitive_module, QUOTE_SENSITIVE_RULES};
 
     /// Every rule named in [`QUOTE_SENSITIVE_RULES`] must actually be invoked
-    /// with the masked source in `mod_lint.rs`.
+    /// by `lint_shell`, and no call site may choose its input by hand.
     ///
-    /// The allowlist and that dispatch are two hand-maintained lists with
-    /// nothing tying them together — the shape of bashrs#266, where the stdlib
-    /// whitelist and the emitter dispatch disagreed and the suite asserted the
-    /// wrong thing. Adding `SC2188` to the allowlist changed nothing at the CLI
-    /// because line 315 still passed `source`, while a rule-level unit test
-    /// passed. This test is the coupling: it reads the dispatch and fails if a
-    /// listed rule is wired to the raw source.
+    /// The allowlist and that dispatch used to be two hand-maintained lists
+    /// with nothing tying them together — the shape of bashrs#266, where the
+    /// stdlib whitelist and the emitter dispatch disagreed and the suite
+    /// asserted the wrong thing. Adding `SC2188` to the allowlist changed
+    /// nothing at the CLI because the call site still passed `source`, while a
+    /// rule-level unit test passed.
+    ///
+    /// GH-272 removed the second list: `lint_shell` now writes `apply!(scNNNN)`
+    /// and the macro asks [`is_quote_sensitive_module`] which input to hand
+    /// over, so a call site can no longer disagree with the allowlist. This
+    /// test kept the guarantee the textual check gave, in the two ways it can
+    /// still be broken:
+    ///
+    /// 1. a rule named in the allowlist that `lint_shell` never invokes at all
+    ///    (the allowlist entry then does nothing, and nobody finds out);
+    /// 2. a call site that goes back to naming its own input, which puts the
+    ///    hand-maintained second list straight back.
     #[test]
     fn every_quote_sensitive_rule_receives_the_masked_source() {
         let dispatch = include_str!("rules/mod_lint.rs");
-        let mut wrong = Vec::new();
+        let mut hand_wired = Vec::new();
         let mut missing = Vec::new();
 
         for code in QUOTE_SENSITIVE_RULES {
             let module = code.to_ascii_lowercase();
-            let masked = format!("{module}::check(&masked)");
-            let raw = format!("{module}::check(source)");
-            if dispatch.contains(&masked) {
+            // A hand-written input choice is exactly what `apply!` exists to
+            // remove; catching either spelling catches a partial revert too.
+            if dispatch.contains(&format!("{module}::check(source)"))
+                || dispatch.contains(&format!("{module}::check(&masked)"))
+            {
+                hand_wired.push(*code);
                 continue;
             }
-            if dispatch.contains(&raw) {
-                wrong.push(*code);
-            } else {
+            if !dispatch.contains(&format!("apply!({module});")) {
                 missing.push(*code);
             }
         }
 
         assert!(
-            wrong.is_empty(),
-            "quote-sensitive rules wired to the RAW source (they will still \
-             fire inside string literals): {wrong:?}"
+            hand_wired.is_empty(),
+            "quote-sensitive rules whose input is chosen BY HAND in \
+             mod_lint.rs — that is the second list GH-272 deleted, and it can \
+             drift from the allowlist again: {hand_wired:?}"
         );
         assert!(
             missing.is_empty(),
             "quote-sensitive rules not dispatched from mod_lint.rs at all: \
              {missing:?}"
         );
+    }
+
+    /// The macro asks by MODULE name (`sc2188`); the suppression paths ask by
+    /// CODE (`SC2188`). Both must answer from the one allowlist, or the CLI and
+    /// `lint_shell_filtered` diverge again by a different route.
+    #[test]
+    fn the_module_spelling_and_the_code_spelling_agree() {
+        for code in QUOTE_SENSITIVE_RULES {
+            assert!(is_quote_sensitive(code), "{code} not sensitive by code");
+            assert!(
+                is_quote_sensitive_module(&code.to_ascii_lowercase()),
+                "{code} not sensitive by module name"
+            );
+        }
+        // ...and a rule that is NOT in the allowlist must answer no to both,
+        // so this test cannot be passed by a function that returns `true`.
+        assert!(!is_quote_sensitive("SC2086"));
+        assert!(!is_quote_sensitive_module("sc2086"));
     }
 }
