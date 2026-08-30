@@ -285,3 +285,23 @@ fn a_shellcheck_pragma_does_not_suppress_the_bashrs_check_that_squatted_on_it() 
          nothing to do with ShellCheck's SC2081"
     );
 }
+
+/// `.bashrsignore` and `--ignore`/`-e` are keyed on codes too, and the CLI
+/// assembles that set on a path of its own — `should_ignore_rule` never sees it.
+/// The corpus differential is what caught this: 19 findings re-appeared in a
+/// project whose `.bashrsignore` lists `SC2081`. A test, so it cannot come back.
+#[test]
+fn a_bashrsignore_naming_the_legacy_code_still_ignores() {
+    use bashrs::linter::IgnoreFile;
+
+    let ignore = IgnoreFile::parse("SC2081\n").expect("valid ignore file");
+    assert!(
+        ignore.should_ignore_rule("BRS0006"),
+        "a pre-migration `.bashrsignore` naming SC2081 stopped ignoring BRS0006"
+    );
+    // The new spelling works, and unrelated codes are still reported.
+    assert!(IgnoreFile::parse("BRS0006\n")
+        .unwrap()
+        .should_ignore_rule("BRS0006"));
+    assert!(!ignore.should_ignore_rule("SEC011"));
+}

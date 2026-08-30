@@ -125,10 +125,10 @@ pub const RETIRED: &[(&str, &str)] = &[(
     // executed script (no defect) from one meant to be sourced (the only case
     // where it would matter), because it keys on the shebang alone and stays
     // SILENT on shebang-less files, which is exactly what a sourced file is.
-    // Measured precision on the 45-script rmedia corpus: 0 of 461; across 4000
-    // scripts under ~/src: 0 of 13404. ShellCheck uses SC2032 for "Use own
+    // Measured precision on the 45-script rmedia corpus: 0 of 461; across 1200
+    // scripts under ~/src: 0 of 9253. ShellCheck uses SC2032 for "Use own
     // script or sh -c '..' to run this from sudo.", now released.
-    "unfalsifiable: fires on correct code by construction (0/13404 true positives measured)",
+    "unfalsifiable: fires on correct code by construction (0/9253 true positives measured)",
 )];
 
 /// Codes bashrs shares with ShellCheck where the two checks were compared and

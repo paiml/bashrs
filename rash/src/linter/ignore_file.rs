@@ -124,6 +124,14 @@ fn is_rule_code(s: &str) -> bool {
         return true;
     }
 
+    // BRS followed by digits — the namespace the bashrs-original checks moved
+    // to when they stopped squatting on ShellCheck numbers (T6). Without this
+    // arm a `.bashrsignore` cannot name them at all, so the migration would
+    // have left those checks un-ignorable.
+    if s.starts_with("BRS") && s.len() >= 4 && s[3..].chars().all(|c| c.is_ascii_digit()) {
+        return true;
+    }
+
     false
 }
 
