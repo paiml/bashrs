@@ -51,6 +51,28 @@ fn is_bare_redirect_operator(tok: &str) -> bool {
     i == b.len()
 }
 
+/// Drop a trailing comment, so it is not counted as the command (GH-272).
+///
+/// `#211`/`#239` taught this rule to consume leading redirections and report
+/// only if no word was left. `split_whitespace` makes `#` a word, so
+/// `> deploy.log  # note` read as "redirect, then a command" and the rule went
+/// silent on a genuine lone redirect — a FALSE NEGATIVE, which is the worse
+/// half of the trade this rule exists to make.
+///
+/// A `#` opens a comment only at the start of a word, which is what keeps the
+/// `#` of `${#arr}` and `$#` out of it. This rule is now fed the source with
+/// string literals masked (`quoting::QUOTE_SENSITIVE_RULES`), so a `#` inside
+/// `"…"` or `'…'` has already become filler and cannot reach here at all.
+fn strip_trailing_comment(line: &str) -> &str {
+    let bytes = line.as_bytes();
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b'#' && (i == 0 || bytes[i - 1].is_ascii_whitespace()) {
+            return &line[..i];
+        }
+    }
+    line
+}
+
 /// Does a COMMAND follow the leading redirections on this line?
 ///
 /// Issue #239: POSIX permits redirections anywhere in a simple command,
@@ -61,7 +83,7 @@ fn is_bare_redirect_operator(tok: &str) -> bool {
 /// Consume leading redirections — with attached targets, or bare operators that
 /// take the next word — and report only if nothing is left.
 fn command_follows_redirections(line: &str) -> bool {
-    let mut toks = line.split_whitespace().peekable();
+    let mut toks = strip_trailing_comment(line).split_whitespace().peekable();
     while let Some(tok) = toks.peek().copied() {
         if redirect_has_attached_target(tok) {
             toks.next();
@@ -363,6 +385,55 @@ mod tests {
                 src.trim()
             );
         }
+    }
+
+    // ── GH-272: a trailing comment is not a command ────────────────────────
+
+    #[test]
+    fn must_still_fire_with_a_trailing_comment() {
+        // Regression, pre-existing on main: #250 taught this rule that a
+        // redirection may PRECEDE its command, by consuming leading redirects
+        // and reporting only if no word is left. A trailing comment is a word
+        // to `split_whitespace`, so `> deploy.log  # note` looked like a
+        // redirect followed by a command and the rule went quiet on a genuine
+        // lone redirect. A false negative is the worse half of the trade.
+        let result = check("> deploy.log  # ERROR (SC2188: Redirection without command)\n");
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC2188");
+    }
+
+    #[test]
+    fn known_gap_a_numbered_fd_never_reaches_this_rule_at_all() {
+        // NOT a claim that silence is right here — `2> err.log` IS a
+        // redirection without a command. `LONE_REDIRECT` is `^\s*[<>]`, so a
+        // leading file descriptor number is never matched, while the rest of
+        // the rule (`redirect_has_attached_target`, `is_bare_redirect_operator`)
+        // handles numbered fds perfectly well. The entry test and the body
+        // disagree.
+        //
+        // Left alone deliberately: widening the reach of a Severity::Error rule
+        // belongs in a change that has corpus evidence for it, not in one whose
+        // subject is removing false positives. Recorded so it is not lost.
+        assert_eq!(check("2> err.log # no command\n").diagnostics.len(), 0);
+        assert_eq!(check("> err.log # no command\n").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2188_a_command_after_the_redirect_still_silences_it() {
+        // The #239 behaviour must survive: a real command after a leading
+        // redirection means there is nothing to report.
+        assert_eq!(check("> out.txt cat in.txt\n").diagnostics.len(), 0);
+        assert_eq!(check("> out.txt cat in.txt  # note\n").diagnostics.len(), 0);
+        assert_eq!(check(">&2 echo oops\n").diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2188_a_hash_that_is_not_a_comment_is_not_a_comment() {
+        // `${#arr}` and `$#` contain a `#` that starts no comment: it does not
+        // begin a word. Whatever the verdict, it must not come from mistaking
+        // these for a comment marker.
+        assert_eq!(check("> out.txt echo ${#arr}\n").diagnostics.len(), 0);
+        assert_eq!(check("> out.txt echo $#\n").diagnostics.len(), 0);
     }
 }
 

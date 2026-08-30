@@ -17,18 +17,30 @@
 //   #!/bin/bash
 //   # Config script
 //   echo hello
+//
+// GH-272: a heredoc body is skipped. Writing a script with a heredoc is the
+// commonest thing in the corpus —
+//
+//   cat > "$dir/cmd.sh" <<EOF
+//   #!/usr/bin/env bash
+//   EOF
+//
+// — and there the shebang is on line 1 of the file being CREATED, which is
+// exactly right. Note this rule cannot use `quoting::mask_literals` like the
+// other syntax rules: its subject is a comment, and the mask masks comments,
+// so it would go blind to the real defect. It asks for the heredoc bodies
+// instead.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
     // A heredoc that writes a script is the ordinary way to emit one, and the
     // emitted `#!` is line 1 of the file being written — not a misplaced
     // shebang in the writer. Masking cannot do this job: a shebang lives in a
     // comment, comments mask as literal text, and the rule would then miss a
     // genuinely misplaced shebang too.
-    let heredoc = crate::linter::quoting::heredoc_body_lines(source);
+    let heredoc_body = crate::linter::quoting::heredoc_body_lines(source);
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1; // 1-indexed
@@ -38,7 +50,8 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        if heredoc.contains(&line_num) {
+        // A shebang inside a heredoc belongs to the file being written.
+        if heredoc_body.contains(&line_num) {
             continue;
         }
 
@@ -157,6 +170,52 @@ mod tests {
         let result = check(code);
         // The second one on line 2 should be flagged
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // ── GH-272 ─────────────────────────────────────────────────────────────
+
+    #[test]
+    fn test_sc1128_shebang_written_by_a_heredoc_is_not_this_script_s() {
+        // rmedia/scripts/falsify-ci-retry-classifier.sh:23.
+        let code = "#!/bin/bash\ncat > \"$dir/cmd.sh\" <<EOF\n#!/usr/bin/env bash\necho x\nEOF\n";
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc1128_shebang_in_a_quoted_delimiter_heredoc_is_not_this_script_s() {
+        let code = "#!/bin/bash\ncat > f <<'EOF'\n#!/bin/sh\nEOF\n";
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    // ── must still fire ────────────────────────────────────────────────────
+
+    #[test]
+    fn must_still_fire_after_the_heredoc_closes() {
+        // The skip must end at the terminator, not run to EOF.
+        let code = "#!/bin/bash\ncat > f <<EOF\nbody\nEOF\n#!/bin/sh\n";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].code, "SC1128");
+        assert_eq!(result.diagnostics[0].span.start_line, 5);
+    }
+
+    #[test]
+    fn must_still_fire_when_a_heredoc_is_never_terminated() {
+        // An unterminated body was a guess. A guess must not silence the rule
+        // for the rest of the file — same fail-safe as `QuotedRegions`.
+        let code = "#!/bin/bash\ncat > f <<EOF\nbody\n#!/bin/sh\n";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].span.start_line, 4);
+    }
+
+    #[test]
+    fn must_still_fire_on_a_word_that_merely_mentions_a_heredoc() {
+        // A comment mentioning `<<EOF` opens nothing.
+        let code = "#!/bin/bash\n# we used to write <<EOF here\n#!/bin/sh\n";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].span.start_line, 3);
     }
 }
 
