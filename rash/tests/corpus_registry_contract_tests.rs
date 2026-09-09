@@ -12,7 +12,8 @@
 
 use std::collections::HashSet;
 
-use bashrs::corpus::{CorpusFormat, CorpusRegistry};
+use bashrs::corpus::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusRunner, CorpusTier};
+use bashrs::Config;
 
 /// The data file the registry is compiled from, read here independently of
 /// the loader so a truncated parse cannot agree with itself.
@@ -217,4 +218,148 @@ fn F_CORPUS_008_tier_loads_are_subsets_of_full() {
         chain[3].1.len() < full.len(),
         "load_full() must be strictly larger than the adversarial subset, else the bitmask is unused"
     );
+}
+
+// ============================================================================
+// F-CORPUS-009: a deterministic sample transpiles to its pinned output
+//
+// Review quorum on PR #285 (3/3 lanes): F-CORPUS-007 parses the same
+// include_str! the loader parses, so 17,942 unique synthetic entries plus
+// B-001 would satisfy F-001..F-008. This test is the independent check: the
+// entries must actually transpile, through the same runner that produces the
+// V2 score, to the output they claim.
+// ============================================================================
+
+#[test]
+fn F_CORPUS_009_sampled_entries_transpile_to_their_pinned_output() {
+    let registry = CorpusRegistry::load_full();
+    let runner = CorpusRunner::new(Config::default());
+    let sample: Vec<&CorpusEntry> = registry.entries.iter().step_by(50).collect();
+    assert!(
+        sample.len() >= 300,
+        "sample of every 50th entry is {} entries",
+        sample.len()
+    );
+
+    let mut not_transpiled = Vec::new();
+    let mut not_contained = Vec::new();
+    for entry in &sample {
+        let result = runner.run_entry_with_trace(entry);
+        if !result.transpiled {
+            not_transpiled.push(entry.id.clone());
+        } else if !result.output_contains {
+            not_contained.push(entry.id.clone());
+        }
+    }
+    // Dimension A (transpilation) measured 17942/17942 at the restore.
+    assert!(
+        not_transpiled.is_empty(),
+        "{} of {} sampled entries do not transpile — the registry holds inputs that are not \
+         corpus entries; first: {:?}",
+        not_transpiled.len(),
+        sample.len(),
+        not_transpiled.first()
+    );
+    // Dimension B1 (containment) measured 17919/17942 = 99.87%; allow 2% in a sample.
+    let max_miss = sample.len() / 50;
+    assert!(
+        not_contained.len() <= max_miss,
+        "{} of {} sampled entries transpile to something that does not contain their \
+         expected_output (allowed {max_miss}) — the outputs are not the corpus's; first: {:?}",
+        not_contained.len(),
+        sample.len(),
+        not_contained.first()
+    );
+}
+
+// ============================================================================
+// F-CORPUS-010: pinned entries per format, and the corpus has mass
+// ============================================================================
+
+#[test]
+fn F_CORPUS_010_pinned_entries_per_format_and_corpus_mass() {
+    let registry = CorpusRegistry::load_full();
+    // Written here by hand from the restored blob cf5b6e8dd8 — not read from the data file.
+    let pins = [
+        ("B-001", CorpusFormat::Bash, "greeting='hello'"),
+        ("M-001", CorpusFormat::Makefile, "CC := gcc"),
+        ("D-001", CorpusFormat::Dockerfile, "FROM alpine:3.18"),
+    ];
+    for (id, format, expected) in pins {
+        let entry = registry
+            .entries
+            .iter()
+            .find(|e| e.id == id)
+            .unwrap_or_else(|| panic!("pinned entry {id} is missing"));
+        assert_eq!(entry.format, format, "{id} has the wrong format");
+        assert_eq!(
+            entry.expected_output, expected,
+            "{id} expected_output has changed"
+        );
+    }
+    // Measured at the restore: 2,908,886 bytes of Rust input, 352,929 bytes of expected output.
+    // Filler with minimal inputs cannot reach these floors.
+    let input_bytes: usize = registry.entries.iter().map(|e| e.input.len()).sum();
+    let output_bytes: usize = registry
+        .entries
+        .iter()
+        .map(|e| e.expected_output.len())
+        .sum();
+    assert!(
+        input_bytes >= 2_500_000,
+        "corpus input mass is {input_bytes} bytes, expected >= 2.5 MB"
+    );
+    assert!(
+        output_bytes >= 300_000,
+        "corpus expected-output mass is {output_bytes} bytes, expected >= 300 KB"
+    );
+}
+
+/// Negative control for F-CORPUS-009: the instrument must fire on filler.
+/// Three structurally valid entries (unique ids, non-empty fields) whose
+/// inputs are not corpus entries must be reported as not transpiled or not
+/// containing their expected output. If this test ever passes vacuously,
+/// F-CORPUS-009 has stopped measuring anything.
+#[test]
+fn F_CORPUS_009_negative_control_filler_is_rejected() {
+    let runner = CorpusRunner::new(Config::default());
+    let filler = [
+        CorpusEntry::new(
+            "X-001",
+            "filler-whitespace",
+            "not a corpus entry",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            "            ",
+            "echo filler",
+        ),
+        CorpusEntry::new(
+            "X-002",
+            "filler-wrong-output",
+            "valid input, wrong expected output",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            "fn main() { let greeting = \"hello\"; }",
+            "greeting='goodbye'",
+        ),
+        CorpusEntry::new(
+            "X-003",
+            "filler-not-rust",
+            "shell where Rust should be",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "CC := gcc",
+            "CC := gcc",
+        ),
+    ];
+    for entry in &filler {
+        let result = runner.run_entry_with_trace(entry);
+        assert!(
+            !result.transpiled || !result.output_contains,
+            "filler entry {} was accepted (transpiled={}, output_contains={}) — F-CORPUS-009 cannot fire",
+            entry.id,
+            result.transpiled,
+            result.output_contains
+        );
+    }
 }

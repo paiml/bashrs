@@ -86,6 +86,8 @@ invariants:
 - 'Bash >= 16000, Makefile >= 800, Dockerfile >= 700 entries'
 - 'load_full() is deterministic across calls'
 - 'every tier loader returns a non-empty subset of load_full()'
+- 'a deterministic 1-in-50 sample transpiles (100%) and contains its expected_output (>= 98%) through CorpusRunner'
+- 'B-001, M-001, D-001 carry their pinned expected_output; input mass >= 2.5 MB, expected-output mass >= 300 KB'
 
 kani_harnesses:
 - id: KANI-CORPUS_REGISTRY-001
@@ -142,3 +144,13 @@ falsification_tests:
   prediction: 'ids(load_tier1) subset ids(load_tier1_and_tier2) subset ids(load_all) subset ids(load_full), each non-empty'
   test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_008
   if_fails: 'Contract violation: a tier loader selects entries the full corpus does not contain, or nothing at all'
+- id: F-CORPUS-009
+  rule: a deterministic sample transpiles to its pinned output through the scoring runner
+  prediction: 'every 50th entry: transpiled for 100%, output_contains for >= 98%'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_009
+  if_fails: 'Contract violation: the registry holds entries that are not the corpus - structurally valid filler would pass F-001..F-008 (review quorum on PR #285, 3/3 lanes)'
+- id: F-CORPUS-010
+  rule: pinned entries per format and corpus mass
+  prediction: 'B-001/M-001/D-001 expected_output as pinned in the test source; sum(input) >= 2.5 MB; sum(expected_output) >= 300 KB'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_010
+  if_fails: 'Contract violation: a format has been swapped for filler, or the corpus has been thinned to minimal inputs'
