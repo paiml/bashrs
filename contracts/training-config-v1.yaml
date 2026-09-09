@@ -1,0 +1,150 @@
+metadata:
+  version: 1.0.0
+  verification_level: L2
+  description: >-
+    Provable contract for the SSC training-config generator (PMAT-245 follow-on, GH-284
+    release drive). `generate_training_config()` derives class weights and data counts
+    from the live corpus by transpiling and linting every entry (17,942 entries, 8-11
+    minutes per call in CI). Three unit tests called it only to assert constants
+    (architecture, class count, hidden size, epochs, metric) and to check that YAML/JSON
+    formatting works - none of which depends on the corpus. Each of those tests cost
+    477-660 s in CI, and one of them is scheduled last, so it ran alone for the final
+    4-9 minutes of the 60-minute test job. CI run 34368312280 timed out twice with
+    10,791/15,202 and then 15,201/15,202 tests done; the unfinished test both times was
+    `test_generate_training_config_structure`. This contract separates the pure part
+    (config from counts) from the corpus walk so the structural tests are instantaneous,
+    and pins the corpus-backed path on the 30-entry tier-1 set instead of leaving it
+    behind `#[ignore]` where it has sat since the corpus was stubbed out in April.
+  verification_command: cargo test -p bashrs --lib corpus::training_config
+  depends_on:
+  - corpus-registry-v1
+  references:
+  - 'GH-284: P0 CorpusRegistry::load_full() loads 0 entries'
+  - 'PR #285: restore the 17,942-entry corpus'
+  - 'CI run 34368312280 attempts 1-2: ci / test cancelled at the 60-minute limit'
+  - 'CHANGELOG 7.0.2 Measured non-effect: full-corpus tests take minutes because the corpus has 17,942 entries'
+
+kernel_structure:
+  phases:
+  - name: count
+    description: >-
+      `generate_training_config_from(&registry)` walks the registry through
+      `corpus_baseline_entries_from`, labelling each entry safe (0) or unsafe (1).
+    invariant: total = safe + unsafe = registry.len()
+  - name: derive
+    description: >-
+      `training_config_from_counts(total, safe, unsafe)` is a pure function of three
+      integers: it fixes the model and evaluation constants and computes the two
+      sqrt-inverse class weights.
+    invariant: The same three counts always give the same config; no I/O, no corpus access.
+  - name: emit
+    description: '`format_yaml` and `format_json` serialise a config; they never touch the corpus.'
+    invariant: Output is a function of the config alone.
+
+equations:
+  counts:
+    formula: 'forall R: c = generate_training_config_from(R) -> c.data.total_entries = |R| and c.data.safe_count + c.data.unsafe_count = |R|'
+    domain: 'R: any CorpusRegistry'
+    codomain: bool
+    invariants:
+    - Every entry is labelled exactly once, so the counts cannot drift from the registry
+  weights:
+    formula: 'training_config_from_counts(t, s, u).training.class_weights = [w(s, t), w(u, t)] where w(k, t) = sqrt(t / k) if k > 0 and t > 0 else 1.0'
+    domain: 't, s, u: usize'
+    codomain: '[f64; 2]'
+    invariants:
+    - The minority class carries the larger weight
+    - An empty class or an empty corpus degrades to weight 1.0 instead of dividing by zero
+  constants:
+    formula: 'forall t1 s1 u1 t2 s2 u2: model(from_counts(t1, s1, u1)) = model(from_counts(t2, s2, u2)) and evaluation(...) likewise'
+    domain: 'any two count triples'
+    codomain: bool
+    invariants:
+    - Model architecture, class count, hidden size, epochs and the primary metric do not depend on the corpus
+  composition:
+    formula: 'generate_training_config() = generate_training_config_from(&CorpusRegistry::load_full())'
+    domain: 'the compiled-in corpus'
+    codomain: TrainingConfig
+    invariants:
+    - The public entry point is the corpus-backed path applied to the full registry; callers see no behaviour change
+
+proof_obligations:
+- type: invariant
+  property: the corpus-backed path counts every entry of its registry exactly once
+  formal: 'forall R: c = generate_training_config_from(R) -> c.data.total_entries = |R| and c.data.safe_count + c.data.unsafe_count = |R|'
+  applies_to: all
+- type: invariant
+  property: class weights are sqrt-inverse of class frequency with a zero guard
+  formal: 'w(k, t) = if k = 0 or t = 0 then 1.0 else sqrt(t / k); class_weights = [w(safe, total), w(unsafe, total)]'
+  applies_to: all
+- type: invariant
+  property: model and evaluation constants are independent of the counts
+  formal: 'forall t1 s1 u1 t2 s2 u2: model(from_counts(t1, s1, u1)) = model(from_counts(t2, s2, u2)) and evaluation(from_counts(t1, s1, u1)) = evaluation(from_counts(t2, s2, u2))'
+  applies_to: all
+- type: invariant
+  property: the public entry point composes the corpus walk with the pure derivation
+  formal: 'generate_training_config() = generate_training_config_from(&CorpusRegistry::load_full())'
+  applies_to: all
+
+invariants:
+- 'total_entries == registry.len() == safe_count + unsafe_count for any registry'
+- 'class_weights == [w(safe, total), w(unsafe, total)], w(k, t) = sqrt(t / k), 1.0 when k == 0 or t == 0'
+- 'model and evaluation sections are constant across count triples'
+- 'generate_training_config() == generate_training_config_from(&load_full())'
+- 'format_yaml / format_json depend on the config alone'
+- 'the corpus::training_config test module never calls generate_training_config(); it completes in < 60 s'
+
+kani_harnesses:
+- id: KANI-TRAINING_CONFIG-001
+  obligation: the class-weight guard returns exactly 1.0 for an empty class or an empty corpus
+  property: 'forall k, t in 0..1024: k = 0 or t = 0 -> w(k, t) = 1.0'
+  bound: 1024
+  strategy: bounded_int
+  harness: verify_weight_guard
+- id: KANI-TRAINING_CONFIG-002
+  obligation: the minority class never carries the smaller weight
+  property: 'forall t in 1..1024, s + u = t, s > 0, u > 0: u <= s -> w(u, t) >= w(s, t)'
+  bound: 1024
+  strategy: bounded_int
+  harness: verify_minority_weight_dominates
+falsification_tests:
+- id: F-TC-001
+  rule: the corpus-backed path counts every entry of the registry it is given
+  prediction: 'generate_training_config_from(&CorpusRegistry::load_tier1()) reports total_entries = 30 = safe_count + unsafe_count with preamble_stripped = true'
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_001
+  if_fails: 'Contract violation: an entry was dropped, double-counted or left unlabelled between the registry and the training counts'
+- id: F-TC-002
+  rule: class weights are sqrt-inverse of class frequency, unsafe second
+  prediction: 'training_config_from_counts(17942, 17794, 148).training.class_weights = [sqrt(17942/17794), sqrt(17942/148)] within 1e-9, and the unsafe weight is the larger'
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_002
+  if_fails: 'Contract violation: the weight formula or the class order changed; a trained classifier would be mis-weighted'
+- id: F-TC-003
+  rule: an empty class or an empty corpus degrades to weight 1.0
+  prediction: 'training_config_from_counts(0, 0, 0) and (10, 10, 0) give finite weights with 1.0 for every empty class'
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_003
+  if_fails: 'Contract violation: the zero guard was removed; weights become NaN or infinite'
+- id: F-TC-004
+  rule: model and evaluation constants do not depend on the counts
+  prediction: 'two unrelated count triples give identical model and evaluation sections, equal to (encoder, 2 classes, 768 hidden, 3 epochs, MCC)'
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_generate_training_config_structure
+  if_fails: 'Contract violation: a constant now depends on the corpus, or the SSC spec constants changed without a version bump'
+- id: F-TC-005
+  rule: YAML formatting is a function of the config alone
+  prediction: 'format_yaml(from_counts(...)) contains "architecture: encoder", "codebert" and "class_weights:" and completes without loading the corpus'
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_format_yaml_produces_yaml
+  if_fails: 'Contract violation: the formatter reads the registry or dropped a section'
+- id: F-TC-006
+  rule: JSON formatting is valid JSON
+  prediction: 'format_json(from_counts(...)) parses with serde_json and contains "architecture"'
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_format_json_produces_json
+  if_fails: 'Contract violation: the serialiser produces invalid JSON'
+- id: F-TC-007
+  rule: the public entry point is the corpus-backed path over the full registry
+  prediction: 'the source of generate_training_config() calls generate_training_config_from(&CorpusRegistry::load_full()) and nothing else; checked by source inspection because executing it costs 8 minutes'
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_007
+  if_fails: 'Contract violation: the public entry point no longer composes the two halves; callers (corpus training-config CLI, ssc-report) would see different numbers from the tested path'
+- id: F-TC-008
+  rule: the module tests do not walk the full corpus
+  prediction: 'the whole corpus::training_config test module completes in under 60 s wall-clock (previously 477-660 s per test for three tests)'
+  test: cargo test -p bashrs --lib corpus::training_config
+  if_fails: 'Contract violation: a test regressed to calling generate_training_config(); the CI test job loses its margin against the 60-minute limit (run 34368312280)'

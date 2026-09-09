@@ -18,6 +18,7 @@ that are tested by the corresponding `*_contract_tests.rs` file.
 | transpiler-stdlib-v1.yaml | transpile_stdlib_tests.rs | Stdlib function emission |
 | linter-coverage-v1.yaml | linter_coverage_contract_tests.rs | Rule coverage per format (GAP-4) |
 | corpus-registry-v1.yaml | corpus_registry_contract_tests.rs | Corpus is present, whole, and not filler (PMAT-245, #284) |
+| training-config-v1.yaml | `corpus::training_config` lib tests (F-TC-001..008) | Training config derives from counts; tests no longer walk the corpus (PMAT-245, CI run 34368312280) |
 
 ## Running
 
