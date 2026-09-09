@@ -757,36 +757,31 @@ All outputs must meet:
 
 **CRITICAL**: Every release MUST be published to both GitHub AND crates.io. Following Toyota Way principles, releasing is NOT complete until both distribution channels are updated.
 
-### 📅 Release Schedule (Friday-Only Policy)
+### 📅 Release Schedule (Any Day — Gate-Driven)
 
-**MANDATORY**: crates.io releases MUST happen on **Fridays ONLY**.
+**Releases ship on ANY day, as soon as the quality gates are green.** There is no
+day-of-week restriction on crates.io publishes.
 
-**Why Friday releases?**
-1. **Weekend buffer**: Issues can be addressed over the weekend if needed
-2. **User flexibility**: Users have time to upgrade without weekday pressure
-3. **Team availability**: Full team available early in week to handle feedback
-4. **Predictable cadence**: Users know when to expect updates
-5. **Quality assurance**: Allows full week of testing before release
+**Why gate-driven rather than calendar-driven?**
+1. **The gate is the signal, not the calendar.** A release is safe when the checks
+   that prove it safe are green — Friday adds nothing a passing gate does not.
+2. **Fixes reach users when they are ready.** Holding a verified P0 fix for a
+   calendar slot leaves users on the defect for up to six days.
+3. **Batching is a risk multiplier.** A weekly window encourages several changes
+   per release; smaller, more frequent releases are easier to bisect and revert.
+4. **Revert is cheap and always available.** `cargo yank` plus a patch release is
+   the real safety net, and it works on any day.
 
-**Release Preparation Schedule**:
-- **Monday-Thursday**: Development, testing, documentation updates
-- **Thursday EOD**: All quality gates must pass, documentation complete
-- **Friday morning**: Final verification, create tags, publish to crates.io
-- **Friday afternoon**: Post-release verification, monitor for issues
+**The bar for any release, any day** — all of these, no exceptions:
+- Every item in the Release Checklist below passes.
+- `required_check` (`gate`) is green on the merge commit, not just on the branch.
+- `bashrs corpus run` reports **>= 17,942 entries** and its score is recorded in
+  the CHANGELOG. A corpus that loads nothing scores 0 failures out of 0 entries
+  and reads as a clean run — see #284, which shipped through v7.0.1 that way.
+- The release notes state what was measured, not what was assumed.
 
-**Exceptions** (Require explicit approval):
-- **CRITICAL security fixes**: May be released any day with documented justification
-- **Zero-day vulnerabilities**: Immediate release with STOP THE LINE protocol
-- **User-blocking bugs**: P0 issues affecting production deployments
-
-**If today is NOT Friday**:
-```bash
-# Prepare but DO NOT publish to crates.io
-git tag -a v<version> -m "Release notes..."
-git push && git push --tags  # ✅ OK: Push to GitHub
-cargo publish --dry-run      # ✅ OK: Verify package
-# ❌ DO NOT RUN: cargo publish (wait until Friday!)
-```
+**Rollback**: `cargo yank --vers <version>` immediately, then fix forward with a
+patch release. Yanking does not break existing lockfiles.
 
 ### Release Checklist
 
@@ -840,9 +835,9 @@ cargo publish --dry-run      # ✅ OK: Verify package
 
 #### Phase 4: crates.io Release (MANDATORY - DO NOT SKIP)
 
-**⚠️ FRIDAY-ONLY**: crates.io releases MUST happen on **Fridays ONLY** (see Release Schedule above).
+**Any day, gate-driven** (see Release Schedule above): publish as soon as Phase 1-3 are green.
 
-- [ ] ✅ **Verify it's Friday**: Check current day of week before proceeding
+- [ ] ✅ **Verify the gates, not the calendar**: `gate` green on the merge commit
 - [ ] ✅ **Dry run verification**: Test the publish process
   ```bash
   cargo publish --dry-run
@@ -851,9 +846,8 @@ cargo publish --dry-run      # ✅ OK: Verify package
   ```bash
   cargo package --list
   ```
-- [ ] ✅ **Publish to crates.io**: Actually publish the release (**Friday morning only**)
+- [ ] ✅ **Publish to crates.io**: Actually publish the release
   ```bash
-  # ⚠️ ONLY RUN ON FRIDAY ⚠️
   cargo publish
   cargo publish -p bashrs-runtime  # If multi-crate workspace
   ```
