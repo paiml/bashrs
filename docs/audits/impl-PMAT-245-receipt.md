@@ -131,3 +131,15 @@
 ## Verdict
 
 **PARTIAL(andon), pending the gate.** Everything on the branch is measured. Promotion to DONE is recorded in a follow-up docs commit once PR #285's `gate` is green on the merge commit, `v7.0.2` is tagged and released, and crates.io lists 7.0.2 with `cargo install bashrs --version 7.0.2` verified.
+
+## Resume — session 3 (after host reboot; CI timeout)
+
+| item | value |
+|---|---|
+| resumed | 2026-09-09 16:39 UTC via `claude --continue` (host `noah-Lambda-Vector` rebooted 16:26 UTC) |
+| finding | CI run 34368312280 `ci / test` cancelled at the 60-minute job limit — attempt 1: 10,791/15,202 lib tests; attempt 2 (`gh run rerun --failed`, 16:45–17:46 UTC): 15,201/15,202. Same unfinished test both times: `corpus::training_config::tests::test_generate_training_config_structure`. Coverage passed on attempt 2 (48 min). |
+| cause | three `training_config` tests each walk all 17,942 corpus entries (477–660 s in CI) to assert constants; one starts late and runs alone at the end. Fixed 60-min `timeout-minutes` lives in paiml/.github `sovereign-ci.yml` (no caller input). Runner pool: 18 org runners, all 15 `clean-room` busy for the whole window; throughput 3.27 tests/s vs 5.25 on the green main run. |
+| countermeasure | side branch `PMAT-245-ci-tail` (2 commits, unpushed while attempt 3 runs): `contracts/training-config-v1.yaml` (pv validate 0 errors / 1 shared warning; F-TC-001..008) then `training_config_from_counts` + `generate_training_config_from` split; module 9 passed / 1 ignored in 0.80 s; RED observed by swapping class-weight order (F-TC-002 fails alone). clippy at CI flags: 0 diagnostics in the changed file. CHANGELOG 7.0.2 bullet added; contracts/README row added. |
+| not done | not pushed to the PR branch: attempt 3 (`gh run rerun --failed`, test job alone, started 17:49 UTC, deadline 18:49 UTC) is live. If it passes, PR #285 merges as-is and the side branch becomes a follow-up PR; if it times out, the PR branch fast-forwards onto the side branch and CI re-runs with the fix. |
+| jidoka | row appended to `.pmat/jidoka.jsonl` (5 whys). PMAT-247 to file: lib-test job 48–55 min vs fixed 60-min limit; and CI runs `--workspace --lib`, so `rash/tests/corpus_registry_contract_tests.rs` executes only via `make test-contracts`. |
+| k | turn count continues under the K=120 declared in session 2 |
