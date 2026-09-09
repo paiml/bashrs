@@ -1,6 +1,6 @@
 {
   "version": "3.39.0",
-  "created_at": "2026-09-09T10:08:17.523673177Z",
+  "created_at": "2026-09-09T12:07:15.155140859Z",
   "git_context": null,
   "files": {
     "./bashrs-oracle/src/categories.rs": {
@@ -19426,84 +19426,60 @@
     },
     "./rash/src/corpus/registry/corpus_data.rs": {
       "content_hash": [
-        216,
-        69,
-        111,
-        72,
-        120,
-        46,
-        227,
-        46,
-        144,
-        235,
-        45,
-        24,
-        159,
-        205,
-        49,
-        41,
-        45,
-        39,
-        254,
-        119,
-        119,
-        118,
-        73,
-        28,
+        43,
+        58,
+        252,
+        74,
+        81,
         10,
-        94,
-        9,
-        2,
-        67,
-        55,
+        152,
+        72,
         6,
-        163
+        200,
+        12,
+        210,
+        55,
+        211,
+        38,
+        248,
+        19,
+        92,
+        155,
+        96,
+        225,
+        126,
+        204,
+        23,
+        160,
+        229,
+        76,
+        7,
+        215,
+        108,
+        138,
+        144
       ],
       "score": {
-        "structural_complexity": 0.0,
+        "structural_complexity": 25.0,
         "semantic_complexity": 20.0,
-        "duplication_ratio": 13.455806,
+        "duplication_ratio": 20.0,
         "coupling_score": 15.0,
         "doc_coverage": 10.0,
         "consistency_score": 10.0,
-        "entropy_score": 5.0,
-        "total": 73.45581,
-        "grade": "B-",
+        "entropy_score": 9.0,
+        "total": 99.09091,
+        "grade": "A+",
         "confidence": 1.0,
         "language": "Rust",
         "file_path": "./rash/src/corpus/registry/corpus_data.rs",
         "penalties_applied": [
           {
             "source_metric": "Duplication",
-            "amount": 5.0,
+            "amount": 1.0,
             "applied_to": [
               "Duplication"
             ],
-            "issue": "Found 3777 duplicate code patterns"
-          },
-          {
-            "source_metric": "Duplication",
-            "amount": 6.544194,
-            "applied_to": [
-              "Duplication"
-            ],
-            "issue": "Code duplication: 32.7%"
-          },
-          {
-            "source_metric": "StructuralComplexity",
-            "amount": 10.0,
-            "applied_to": [
-              "StructuralComplexity"
-            ],
-            "issue": "High cognitive complexity: 7075"
-          },
-          {
-            "source_metric": "StructuralComplexity",
-            "amount": 15.0,
-            "applied_to": [
-              "StructuralComplexity"
-            ],
-            "issue": "High cyclomatic complexity: 7076"
+            "issue": "Found 2 duplicate code patterns"
           }
         ],
         "critical_defects_count": 0,
@@ -84382,14 +84358,13 @@
   },
   "summary": {
     "total_files": 1036,
-    "avg_score": 82.81641,
+    "avg_score": 82.84115,
     "grade_distribution": {
-      "A+": 386,
+      "A+": 387,
       "A": 260,
       "A-": 44,
       "B+": 43,
       "B": 11,
-      "B-": 1,
       "C+": 183,
       "C": 1,
       "F": 107
