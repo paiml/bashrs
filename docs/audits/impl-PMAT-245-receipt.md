@@ -154,7 +154,7 @@
 | tag | annotated `v7.0.2` on `f700599b14`, message = CHANGELOG 7.0.2 entry + Cargo.lock fix + corpus-registry contract; pushed 20:46 UTC. |
 | GitHub Release | release.yml run 34403020285 success; https://github.com/paiml/bashrs/releases/tag/v7.0.2 published 20:47:31 UTC by github-actions[bot] (tag == `cargo metadata` version 7.0.2; `cargo package --locked` verified in CI). |
 | crates.io | `cargo publish -p bashrs --locked` from the tag checkout: 1975 files, 3.7 MiB compressed, "Published bashrs v7.0.2 at registry crates-io" 20:47:26 UTC. crates.io API: `max_version=7.0.2 newest=7.0.2 updated=2026-09-09T20:47:23Z`. |
-| install | `cargo install bashrs --version 7.0.2 --locked --root <tmp>` from the registry → `bashrs 7.0.2`. Installed-binary `bashrs corpus summary` result recorded below when it finishes. |
+| install | `cargo install bashrs --version 7.0.2 --locked --root <tmp>` from the registry → `bashrs 7.0.2`. The installed binary's `bashrs corpus summary`: **17942 entries, 84.4/100 B, 333 failure(s)** — identical to the CHANGELOG; the published artifact meets the >= 17,942 bar itself. |
 | corpus bar | CHANGELOG 7.0.2 records 17,942 entries, 84.4/100 (B), measured on the 7.0.2 release binary (session 2); the release commits after that measurement change tests, docs and one pure refactor of a non-scoring path (`training_config`), not transpiler output. |
 | follow-up | PMAT-247 filed and PR #288 opened (`PMAT-247-corpus-test-cost`, 3 commits, contract `corpus-derived-generators-v1`): the remaining ten full-corpus unit tests (567–2,243 s each) drop to 11 s for their four modules. The 60-minute job timeout itself is paiml/.github's, an org decision. |
 | ticket | `pmat work complete PMAT-245` refused at first: LadderShortfall — the work contract claimed L3, evidence supports L1 (falsification tests executed; kani harnesses are specified, not run). Claim lowered to what the evidence supports; completion result recorded in the commit that carries this section. |
@@ -166,3 +166,18 @@ Estimates: `docs/audits/impl-estimates.jsonl` rows filled — `all` actual=194 t
          red=- filed=PMAT-246,PMAT-247 blocker=- next=none — v7.0.2 is on GitHub and crates.io; PR #288 (PMAT-247) awaits its gate and review
 
 **Verdict: DONE.** v7.0.2 is released on both channels, the gate was green on the merge commit, and every claim above was re-run or read from the run/API that produced it.
+
+### pmat work complete — left `inprogress`, not overridden
+
+`pmat work complete PMAT-245` (after lowering the work contract's claim to L1) reports 6 falsifications and offers `--override-claims --ticket`. I did not use it. The work contract at `.pmat-work/PMAT-245/contract.json` (untracked, local) carries a baseline of commit `c3e08ec8b2` from **2026-04-07**, so its "still exists / no new" checks compare against a tree five months old:
+
+| check | finding | attributable to PMAT-245? |
+|---|---|---|
+| All baseline files still exist | `rash/tests/falsification_probar_testing_tests_falsification.rs` missing | no — deleted 2026-08-18 in `391c25713a` ("145 integration targets did not compile, 37 dead") |
+| No new dead code introduced | dead code in "changed file" `rash/src/linter/mod.rs` | no — PR #285 does not touch that file (`git diff --stat 443bd7ba78..f700599b14 -- rash/src/linter/mod.rs` is empty: 0 lines) |
+| No function exceeds complexity 20 | repo-wide | no — pre-existing; the pre-commit hook enforces 30/25 |
+| No file exceeds 500 lines | 1,822 files, including `.claude/worktrees/**` | no — repo-wide, pre-existing |
+| All match arm variants have test coverage | 204 untested variants, e.g. `rash/src/ast/visitor_tests.rs` | no — repo-wide, pre-existing |
+| Total / per-file coverage | NOT MEASURED (no lcov in this session) | n/a |
+
+Everything the user asked for is shipped; closing the pmat ticket needs either a recorded override (`--override-claims` with a ticket) or a refreshed baseline plus repo-wide fixes. That is the user's call — noted, not laundered.
