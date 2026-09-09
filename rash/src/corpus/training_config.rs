@@ -4,7 +4,6 @@
 //! corpus statistics. Includes model architecture, LoRA parameters,
 //! optimizer settings, and computed class weights.
 
-use crate::corpus::baselines::corpus_baseline_entries;
 use serde::Serialize;
 
 /// Entrenar training configuration for SSC classifier.
@@ -72,12 +71,39 @@ pub struct EvalConfig {
 }
 
 /// Generate a training configuration from live corpus data.
+///
+/// Walks the full compiled-in corpus (17,942 entries; transpile + lint each),
+/// which costs minutes. Contract `training-config-v1` equation `composition`:
+/// this is exactly [`generate_training_config_from`] over
+/// `CorpusRegistry::load_full()`, so tests exercise the halves separately.
 pub fn generate_training_config() -> TrainingConfig {
-    let owned = corpus_baseline_entries();
+    generate_training_config_from(&crate::corpus::registry::CorpusRegistry::load_full())
+}
+
+/// Generate a training configuration from a specific registry.
+///
+/// Contract `training-config-v1` equation `counts`: `total_entries` equals
+/// `registry.len()` and `safe_count + unsafe_count == total_entries`.
+pub fn generate_training_config_from(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> TrainingConfig {
+    let owned = crate::corpus::baselines::corpus_baseline_entries_from(registry);
     let total = owned.len();
     let safe_count = owned.iter().filter(|(_, l)| *l == 0).count();
     let unsafe_count = owned.iter().filter(|(_, l)| *l == 1).count();
+    training_config_from_counts(total, safe_count, unsafe_count)
+}
 
+/// Build the training configuration from class counts alone.
+///
+/// Pure: no I/O and no corpus access. Contract `training-config-v1` equations
+/// `weights` (sqrt-inverse class weights, unsafe second, zero guard) and
+/// `constants` (model and evaluation sections do not depend on the counts).
+pub fn training_config_from_counts(
+    total: usize,
+    safe_count: usize,
+    unsafe_count: usize,
+) -> TrainingConfig {
     let w_safe = compute_sqrt_inverse_weight(safe_count, total);
     let w_unsafe = compute_sqrt_inverse_weight(unsafe_count, total);
 
@@ -230,55 +256,165 @@ pub fn format_json(config: &TrainingConfig) -> String {
 mod tests {
     use super::*;
 
+    use crate::corpus::registry::CorpusRegistry;
+
+    // Contract: contracts/training-config-v1.yaml. None of these tests call
+    // `generate_training_config()`: it walks all 17,942 corpus entries and cost
+    // 477-660 s per test in CI, which is what pushed the 60-minute test job over
+    // its limit (run 34368312280). The pure half is tested on fixed counts and
+    // the corpus-backed half on the 30-entry tier-1 set.
+
+    /// Counts measured on the full corpus (CHANGELOG 7.0.2 / SSC #172).
+    const FULL: (usize, usize, usize) = (17_942, 17_794, 148);
+
+    /// F-TC-004: model and evaluation constants do not depend on the counts.
     #[test]
     fn test_generate_training_config_structure() {
-        let config = generate_training_config();
-        assert_eq!(config.model.architecture, "encoder");
-        assert_eq!(config.model.num_classes, 2);
-        assert_eq!(config.model.hidden_size, 768);
-        assert_eq!(config.training.epochs, 3);
-        assert_eq!(config.evaluation.primary_metric, "MCC");
+        let a = training_config_from_counts(FULL.0, FULL.1, FULL.2);
+        let b = training_config_from_counts(7, 3, 4);
+
+        assert_eq!(a.model.architecture, "encoder");
+        assert_eq!(a.model.num_classes, 2);
+        assert_eq!(a.model.hidden_size, 768);
+        assert_eq!(a.training.epochs, 3);
+        assert_eq!(a.evaluation.primary_metric, "MCC");
+
+        assert_eq!(a.model.architecture, b.model.architecture);
+        assert_eq!(a.model.base_model, b.model.base_model);
+        assert_eq!(a.model.num_classes, b.model.num_classes);
+        assert_eq!(a.model.hidden_size, b.model.hidden_size);
+        assert_eq!(a.model.num_layers, b.model.num_layers);
+        assert_eq!(a.training.epochs, b.training.epochs);
+        assert_eq!(a.training.max_seq_length, b.training.max_seq_length);
+        assert_eq!(a.evaluation.primary_metric, b.evaluation.primary_metric);
+        assert_eq!(a.evaluation.accuracy_target, b.evaluation.accuracy_target);
+        // The counts, by contrast, must flow through.
+        assert_eq!(a.data.total_entries, FULL.0);
+        assert_eq!(b.data.total_entries, 7);
     }
 
+    /// F-TC-001: the corpus-backed path counts every entry of its registry.
     #[test]
-    #[ignore = "requires runtime corpus data (externalized from builtin)"]
-    fn test_training_config_has_class_weights() {
-        let config = generate_training_config();
-        assert_eq!(config.training.class_weights.len(), 2);
-        // Unsafe is minority → higher weight
-        assert!(
-            config.training.class_weights[1] > config.training.class_weights[0],
-            "Unsafe weight should be higher than safe weight"
+    fn test_F_TC_001_counts_match_tier1_registry() {
+        let registry = CorpusRegistry::load_tier1();
+        assert_eq!(
+            registry.len(),
+            30,
+            "tier-1 set size (corpus_data.jsonl sets bit 4)"
         );
-    }
 
-    #[test]
-    #[ignore = "requires runtime corpus data (externalized from builtin)"]
-    fn test_training_config_corpus_data() {
-        let config = generate_training_config();
-        assert!(config.data.total_entries > 100, "Must have corpus data");
-        assert!(config.data.safe_count > 0);
-        assert!(config.data.unsafe_count > 0);
+        let config = generate_training_config_from(&registry);
+        assert_eq!(config.data.total_entries, registry.len());
+        assert_eq!(
+            config.data.safe_count + config.data.unsafe_count,
+            config.data.total_entries,
+            "every entry is labelled exactly once"
+        );
         assert!(config.data.preamble_stripped);
+        assert_eq!(config.training.class_weights.len(), 2);
+        assert!(config.training.class_weights.iter().all(|w| w.is_finite()));
     }
 
+    /// F-TC-002: class weights are sqrt-inverse of class frequency, unsafe second.
+    #[test]
+    fn test_F_TC_002_weights_are_sqrt_inverse() {
+        let (total, safe, unsafe_) = FULL;
+        let config = training_config_from_counts(total, safe, unsafe_);
+        let w = &config.training.class_weights;
+        assert_eq!(w.len(), 2);
+        let expect_safe = (total as f64 / safe as f64).sqrt();
+        let expect_unsafe = (total as f64 / unsafe_ as f64).sqrt();
+        assert!((w[0] - expect_safe).abs() < 1e-9, "safe weight {}", w[0]);
+        assert!(
+            (w[1] - expect_unsafe).abs() < 1e-9,
+            "unsafe weight {}",
+            w[1]
+        );
+        assert!(
+            w[1] > w[0],
+            "the minority (unsafe) class carries the larger weight"
+        );
+        assert_eq!(config.data.safe_count, safe);
+        assert_eq!(config.data.unsafe_count, unsafe_);
+    }
+
+    /// F-TC-003: an empty class or an empty corpus degrades to weight 1.0.
+    #[test]
+    fn test_F_TC_003_weights_guard_empty_classes() {
+        let empty = training_config_from_counts(0, 0, 0);
+        assert_eq!(empty.training.class_weights, vec![1.0, 1.0]);
+
+        let one_sided = training_config_from_counts(10, 10, 0);
+        assert!((one_sided.training.class_weights[0] - 1.0).abs() < 1e-9);
+        assert!((one_sided.training.class_weights[1] - 1.0).abs() < 1e-9);
+        assert!(one_sided
+            .training
+            .class_weights
+            .iter()
+            .all(|w| w.is_finite()));
+    }
+
+    /// F-TC-005: YAML formatting is a function of the config alone.
     #[test]
     fn test_format_yaml_produces_yaml() {
-        let config = generate_training_config();
+        let config = training_config_from_counts(FULL.0, FULL.1, FULL.2);
         let yaml = format_yaml(&config);
         assert!(yaml.contains("architecture: encoder"), "Must produce YAML");
         assert!(yaml.contains("codebert"), "Must reference CodeBERT");
         assert!(yaml.contains("class_weights:"), "Must have class weights");
     }
 
+    /// F-TC-006: JSON formatting is valid JSON.
     #[test]
     fn test_format_json_produces_json() {
-        let config = generate_training_config();
+        let config = training_config_from_counts(FULL.0, FULL.1, FULL.2);
         let json = format_json(&config);
         assert!(json.contains("\"architecture\""), "Must produce JSON");
-        // Should be valid JSON
         let parsed: Result<serde_json::Value, _> = serde_json::from_str(&json);
         assert!(parsed.is_ok(), "Must produce valid JSON");
+    }
+
+    /// F-TC-007: the public entry point is the corpus-backed path over the full
+    /// registry. Checked on the source text because executing it costs ~8 min.
+    #[test]
+    fn test_F_TC_007_public_entry_point_is_full_registry_path() {
+        let src = include_str!("training_config.rs");
+        let head = "pub fn generate_training_config() -> TrainingConfig {";
+        let Some(start) = src.find(head) else {
+            panic!("generate_training_config() not found in source");
+        };
+        let body: Vec<&str> = src[start + head.len()..]
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .take(2)
+            .collect();
+        assert_eq!(
+            body,
+            vec![
+                "generate_training_config_from(&crate::corpus::registry::CorpusRegistry::load_full())",
+                "}",
+            ],
+            "generate_training_config() must be exactly the _from path over load_full()"
+        );
+    }
+
+    /// Full-corpus data properties (unsafe entries exist, corpus is large).
+    /// Walks all 17,942 entries: ~8 minutes. Run with `cargo test -- --ignored`.
+    #[test]
+    #[ignore = "walks the full corpus (~8 min); the tier-1 path is covered by F-TC-001"]
+    fn test_full_corpus_training_config_data() {
+        let config = generate_training_config();
+        assert!(
+            config.data.total_entries >= 17_942,
+            "Must have the whole corpus"
+        );
+        assert!(config.data.safe_count > 0);
+        assert!(config.data.unsafe_count > 0);
+        assert!(
+            config.training.class_weights[1] > config.training.class_weights[0],
+            "Unsafe weight should be higher than safe weight"
+        );
     }
 
     #[test]

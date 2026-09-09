@@ -84,3 +84,41 @@ CorpusEntry::new(
 | Bash | 97.0/100 | A+ | 16,411 |
 | Makefile | 94.3/100 | A | 784 |
 | Dockerfile | 99.3/100 | A+ | 687 |
+
+## The corpus must not be empty (v7.0.2)
+
+A corpus that loads nothing scores **0 failures out of 0 entries**, and that reads
+as a clean run to every consumer of the score. Between 2026-03-25 and v7.0.1 the
+corpus was exactly that: `rash/src/corpus/registry/corpus_data.rs` had been
+replaced by no-op stub loaders, `CorpusRegistry::load_full()` returned an empty
+registry, and `bashrs corpus run` reported:
+
+```text
+V2 Corpus Score: 0.0/100 (F)
+Entries: 0 total, 0 passed, 0 failed (0.0%)
+```
+
+v7.0.1 shipped under the headline *"zero false positives on the corpus"*. The
+statement was true and meant nothing.
+
+Two things changed in v7.0.2 so this cannot recur silently.
+
+**A gate that fails on an empty corpus.** `test_PMAT245_corpus_registry_not_empty`
+asserts the registry loads at least 17,000 entries, and pins entry `B-001` with a
+non-empty input and expected output so synthetic filler cannot satisfy the count
+either. It runs inside the required CI check.
+
+**The corpus ships as data.** It used to be 9,406 generated `load_*` functions
+across 277,890 lines of Rust — a shape that tanks every file-level quality metric
+the project tracks, which is precisely why someone was tempted to stub it out
+rather than re-encode it. It is now `corpus_data.jsonl`, compiled in with
+`include_str!` and parsed once on first use.
+
+To check the corpus yourself:
+
+```bash
+bashrs corpus run       # full V2 score across all nine dimensions
+bashrs corpus summary   # one line, for CI and scripts
+```
+
+If either reports 0 entries, the corpus is broken — not clean.

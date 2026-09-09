@@ -1,322 +1,73 @@
-// Auto-generated corpus data loading methods (no-op stubs).
-// This file is included into registry/mod.rs via include!().
+// Corpus data, shipped as data rather than as generated Rust.
 //
-// The actual corpus data is loaded at runtime via `rash corpus load`.
-// These methods exist to satisfy the call sites in mod.rs::load_builtin().
-// Each method is a no-op that adds zero entries to the registry.
-
-impl CorpusRegistry {
-    #[inline]
-    pub fn load_expansion100_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion101_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion102_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion103_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion104_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion105_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion106_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion107_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion108_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion109_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion10_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion10_dockerfile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion10_makefile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion110_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion111_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion112_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion113_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion114_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion115_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion116_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion117_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion118_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion119_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion11_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion11_dockerfile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion11_makefile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion120_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion121_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion122_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion123_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion124_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion125_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion126_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion127_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion128_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion129_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion12_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion12_dockerfile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion12_makefile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion130_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion131_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion132_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion133_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion134_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion135_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion136_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion137_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion138_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion139_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion13_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion13_dockerfile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion13_makefile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion140_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion141_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion142_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion143_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion144_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion145_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion146_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion147_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion148_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion149_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion14_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion14_dockerfile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion14_makefile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion150_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion151_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion152_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion153_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion154_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion155_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion156_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion157_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion158_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion159_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion15_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion15_dockerfile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion15_makefile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion160_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion161_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion162_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion163_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion164_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion165_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion166_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion167_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion168_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion169_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion16_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion16_dockerfile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion16_makefile_ext(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion170_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion171_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion172_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion173_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion174_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion175_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion176_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion177_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion178_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion179_bash(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion179_dockerfile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion179_makefile(&mut self) {}
-
-    #[inline]
-    pub fn load_expansion17_bash(&mut self) {}
+// # Why this is a `.jsonl` file and not Rust source
+//
+// The 17,942-entry corpus used to live here as **9,406 generated `load_*`
+// functions across 277,890 lines (9.7 MB) of Rust**. That shape cost 7.3 GB
+// peak RSS to compile and, linked into 113 workspace test binaries, blew the
+// CI test job's 60-minute timeout (#284, PR #285). It is also what made the
+// corpus tempting to stub out in the first place — a 9.7 MB source file tanks
+// every file-level quality metric the repo tracks, and the "fix" for that was
+// to replace the loaders with no-op stubs, which silently emptied the corpus
+// for five months.
+//
+// Encoded as data, `rustc` sees one string literal instead of 9,406 functions.
+// The entries are parsed once on first use and cached.
+//
+// To regenerate after adding entries, see `docs/audits/impl-PMAT-245-receipt.md`.
+
+/// Membership in [`CorpusRegistry::load_all`].
+const SET_ALL: u8 = 1;
+/// Membership in [`CorpusRegistry::load_all_with_adversarial`].
+const SET_ALL_WITH_ADVERSARIAL: u8 = 2;
+/// Membership in [`CorpusRegistry::load_tier1`].
+const SET_TIER1: u8 = 4;
+/// Membership in [`CorpusRegistry::load_tier1_and_tier2`].
+const SET_TIER1_AND_TIER2: u8 = 8;
+
+/// Every corpus entry, one JSON object per line, compiled into the binary.
+const CORPUS_JSONL: &str = include_str!("corpus_data.jsonl");
+
+/// A corpus entry plus the bitmask of which named loads include it.
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(crate) struct StoredEntry {
+    #[serde(flatten)]
+    pub(crate) entry: CorpusEntry,
+    pub(crate) sets: u8,
 }
 
-include!("corpus_data_expansion.rs");
+/// Parse the corpus once, then hand out references to it.
+///
+/// # Panics
+///
+/// Panics if `corpus_data.jsonl` does not parse. That file is compiled in, so a
+/// failure here is a build-time defect in the data, not a runtime condition —
+/// failing loudly is correct, and is what #284 did not do.
+pub(crate) fn corpus_entries() -> &'static [StoredEntry] {
+    static ENTRIES: std::sync::OnceLock<Vec<StoredEntry>> = std::sync::OnceLock::new();
+    ENTRIES.get_or_init(|| {
+        CORPUS_JSONL
+            .lines()
+            .filter(|l| !l.trim().is_empty())
+            .enumerate()
+            .map(|(i, line)| {
+                serde_json::from_str(line).unwrap_or_else(|e| {
+                    panic!("corpus_data.jsonl line {} is not a valid entry: {e}", i + 1)
+                })
+            })
+            .collect()
+    })
+}
+
+impl CorpusRegistry {
+    /// Load every entry whose membership bitmask includes `set`.
+    pub(crate) fn load_set(set: u8) -> Self {
+        Self {
+            entries: corpus_entries()
+                .iter()
+                .filter(|e| e.sets & set != 0)
+                .map(|e| e.entry.clone())
+                .collect(),
+        }
+    }
+}

@@ -396,7 +396,8 @@ test-contracts: ## Run all provable contract falsification tests
 		--test linter_det_idem_contract_tests \
 		--test linter_docker_make_contract_tests \
 		--test purification_contract_tests \
-		--test property_falsification_tests
+		--test property_falsification_tests \
+		--test corpus_registry_contract_tests
 	@echo "✅ All provable contracts passed falsification!"
 
 validate-contracts: test-contracts ## Validate contracts: run tests + count coverage

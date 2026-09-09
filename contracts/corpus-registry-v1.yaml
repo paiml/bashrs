@@ -1,0 +1,156 @@
+metadata:
+  version: 1.0.0
+  verification_level: L3
+  description: >-
+    Provable contract for the corpus registry (PMAT-245, GH-284). The corpus is the
+    project's regression corpus: 17,942 entries across Bash, Makefile and Dockerfile
+    that `bashrs corpus run` transpiles, lints and executes to produce the V2 score.
+    From 2026-03-25 through v7.0.1 the registry silently held ZERO entries - the data
+    file had been replaced by no-op stubs with the right name and the right module
+    wiring - and `bashrs corpus run` reported 0 failures / 0 entries, which every
+    consumer of the score read as a clean run. v7.0.1 shipped under the headline
+    "zero false positives on the corpus"; the statement was vacuously true. This
+    contract makes an empty, truncated, or filler-populated registry FAIL loudly. It
+    encodes the release bar from CLAUDE.md (Release Schedule): a release may ship only
+    when `bashrs corpus run` reports >= 17,942 entries.
+  verification_command: cargo test -p bashrs --test corpus_registry_contract_tests
+  depends_on:
+  - transpiler-core-v1
+  references:
+  - 'GH-284: P0 CorpusRegistry::load_full() loads 0 entries - the corpus gate has been unable to fail since 2026-04-05'
+  - 'PR #285: restore the 17,942-entry corpus and make an empty one fail CI'
+  - 'docs/audit/quality-report09-2026.md section 2: the P0 is not on the issue tracker - the corpus is empty'
+  - 'CLAUDE.md Release Schedule: bashrs corpus run must report >= 17,942 entries'
+
+kernel_structure:
+  phases:
+  - name: parse_data
+    description: >-
+      `corpus_data.jsonl` (one JSON object per line) is compiled in with `include_str!`
+      and parsed once behind a `OnceLock` into a static entry table.
+    invariant: Every non-empty line of the data file becomes exactly one entry.
+  - name: filter_set
+    description: >-
+      Each entry carries a membership bitmask `sets`; `load_tier1`, `load_tier1_and_tier2`,
+      `load_all` and `load_all_with_adversarial` select by bit, `load_full` takes every entry.
+    invariant: Every subset load is a subset of `load_full`, and `load_full` is the whole table.
+  - name: expose
+    description: '`CorpusRegistry::load_full()` clones the table into a registry for the runner.'
+    invariant: The registry the runner scores is the corpus, not a stub with the corpus's name.
+
+equations:
+  entry_count:
+    formula: 'len(load_full()) = lines(corpus_data.jsonl) and len(load_full()) >= 17942'
+    domain: 'corpus_data.jsonl: the compiled-in data file'
+    codomain: usize
+    invariants:
+    - The registry and the data file agree on the count, so a truncated parse cannot self-certify
+    - The count meets the release bar, so a stubbed registry fails the gate instead of scoring 0/0 as clean
+  identity:
+    formula: 'forall e1, e2 in load_full(): e1.id = e2.id -> e1 = e2'
+    domain: 'entries of the loaded registry'
+    codomain: bool
+    invariants:
+    - Entry ids are unique, so a duplicated block cannot inflate the count
+  substance:
+    formula: 'forall e in load_full(): e.id, e.name, e.input, e.expected_output are all non-empty'
+    domain: 'entries of the loaded registry'
+    codomain: bool
+    invariants:
+    - No entry is filler - every entry has something to transpile and something to compare against
+
+proof_obligations:
+- type: invariant
+  property: load_full() returns at least 17,942 entries
+  formal: 'len(load_full()) >= 17942'
+  applies_to: all
+- type: invariant
+  property: the registry count equals the data-file line count
+  formal: 'len(load_full()) = |{ l in lines(corpus_data.jsonl) : l != "" }|'
+  applies_to: all
+- type: invariant
+  property: entry ids are unique
+  formal: 'forall e1 != e2 in load_full(): e1.id != e2.id'
+  applies_to: all
+- type: invariant
+  property: subset loaders return subsets of load_full
+  formal: 'ids(load_tier1()) subset ids(load_tier1_and_tier2()) subset ids(load_all()) subset ids(load_full())'
+  applies_to: all
+
+invariants:
+- 'len(load_full()) >= 17942 (release bar)'
+- 'len(load_full()) == non-empty lines of corpus_data.jsonl'
+- 'B-001 exists with non-empty input and expected_output'
+- 'all entry ids unique'
+- 'no entry has an empty id, name, input or expected_output'
+- 'Bash >= 16000, Makefile >= 800, Dockerfile >= 700 entries'
+- 'load_full() is deterministic across calls'
+- 'every tier loader returns a non-empty subset of load_full()'
+- 'a deterministic 1-in-50 sample transpiles (100%) and contains its expected_output (>= 98%) through CorpusRunner'
+- 'B-001, M-001, D-001 carry their pinned expected_output; input mass >= 2.5 MB, expected-output mass >= 300 KB'
+
+kani_harnesses:
+- id: KANI-CORPUS_REGISTRY-001
+  obligation: the registry count equals the data-file line count
+  property: 'len(parse(lines)) = |{ l in lines : l != "" }|'
+  bound: 8
+  strategy: bounded_int
+  harness: verify_line_count_parity
+- id: KANI-CORPUS_REGISTRY-002
+  obligation: subset loaders return subsets of load_full
+  property: 'forall set in 0..16: ids(load_set(set)) subset ids(load_full())'
+  bound: 16
+  strategy: bounded_int
+  harness: verify_set_filter_is_subset
+
+falsification_tests:
+- id: F-CORPUS-001
+  rule: load_full() meets the release bar
+  prediction: 'CorpusRegistry::load_full().len() >= 17_942'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_001
+  if_fails: 'Contract violation: the corpus has been stubbed or truncated again; bashrs corpus run would score a fraction of the corpus as if it were the whole (GH-284)'
+- id: F-CORPUS-002
+  rule: a known entry is present and is not filler
+  prediction: 'entry B-001 exists with non-empty input and expected_output'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_002
+  if_fails: 'Contract violation: the registry is populated but not with the corpus - a count alone is satisfiable by synthetic filler'
+- id: F-CORPUS-003
+  rule: entry ids are unique
+  prediction: 'no two entries share an id'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_003
+  if_fails: 'Contract violation: a duplicated block inflates the count without adding coverage'
+- id: F-CORPUS-004
+  rule: no entry is empty
+  prediction: 'every entry has non-empty id, name, input and expected_output'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_004
+  if_fails: 'Contract violation: an entry with nothing to transpile or compare passes every dimension vacuously'
+- id: F-CORPUS-005
+  rule: all three formats are represented at their measured scale
+  prediction: 'Bash >= 16_000, Makefile >= 800, Dockerfile >= 700'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_005
+  if_fails: 'Contract violation: a format has silently dropped out of the corpus; its FormatScore would read as clean on nothing'
+- id: F-CORPUS-006
+  rule: load_full() is deterministic
+  prediction: 'two calls return the same ids in the same order'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_006
+  if_fails: 'Contract violation: the V2 score is not reproducible between runs'
+- id: F-CORPUS-007
+  rule: the registry agrees with the data file
+  prediction: 'load_full().len() == number of non-empty lines in corpus_data.jsonl'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_007
+  if_fails: 'Contract violation: the parser dropped lines; the count the runner reports is not the corpus that ships'
+- id: F-CORPUS-008
+  rule: tier loaders are non-empty subsets of load_full()
+  prediction: 'ids(load_tier1) subset ids(load_tier1_and_tier2) subset ids(load_all) subset ids(load_full), each non-empty'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_008
+  if_fails: 'Contract violation: a tier loader selects entries the full corpus does not contain, or nothing at all'
+- id: F-CORPUS-009
+  rule: a deterministic sample transpiles to its pinned output through the scoring runner
+  prediction: 'every 50th entry: transpiled for 100%, output_contains for >= 98%'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_009
+  if_fails: 'Contract violation: the registry holds entries that are not the corpus - structurally valid filler would pass F-001..F-008 (review quorum on PR #285, 3/3 lanes)'
+- id: F-CORPUS-010
+  rule: pinned entries per format and corpus mass
+  prediction: 'B-001/M-001/D-001 expected_output as pinned in the test source; sum(input) >= 2.5 MB; sum(expected_output) >= 300 KB'
+  test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_010
+  if_fails: 'Contract violation: a format has been swapped for filler, or the corpus has been thinned to minimal inputs'
