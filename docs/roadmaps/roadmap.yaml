@@ -2088,3 +2088,19 @@ roadmap:
   - kind:code
   - orch:fable
   notes: 'orch-basis:release — user launched this session with the words "pmat-implement docs/audit/quality-report09-2026.md-Issue #284 autonomously until new release". PR #285 carries the fix; this run drives it through gate, merge, tag and crates.io publish.'
+- id: PMAT-246
+  github_issue: null
+  item_type: task
+  title: 'PV-GATE-RED: 89 tracked contracts/work/*.yaml fail pv validate (PV-VAL-001 verification_summary missing total_obligations) — pv-gate.sh reports RED at baseline while every top-level contracts/*.yaml validates'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-09T14:46:03Z
+  updated: 2026-09-09T14:46:03Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
