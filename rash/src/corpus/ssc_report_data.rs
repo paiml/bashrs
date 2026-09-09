@@ -1,9 +1,14 @@
-fn data_pipeline_section() -> SscSection {
-    use crate::corpus::model_card::generate_model_card;
-    use crate::corpus::training_config::generate_training_config;
+/// Data-pipeline section from a specific registry.
+///
+/// Contract `corpus-derived-generators-v1` equations `injection` and `share`:
+/// the SSC report loads the corpus once and passes it here instead of walking
+/// all 17,942 entries twice more through the no-arg generators.
+fn data_pipeline_section_from(registry: &crate::corpus::registry::CorpusRegistry) -> SscSection {
+    use crate::corpus::model_card::generate_model_card_from;
+    use crate::corpus::training_config::generate_training_config_from;
 
-    let card = generate_model_card();
-    let config = generate_training_config();
+    let card = generate_model_card_from(registry);
+    let config = generate_training_config_from(registry);
 
     let card_has_honesty = card.contains("synthetic data derived from rule-based linter");
     let card_has_yaml = card.starts_with("---");
@@ -135,56 +140,11 @@ fn shellsafetybench_section() -> SscSection {
                 target: "sum=1.000".to_string(),
                 passed: weights_valid,
             },
-            SscMetric {
-                name: "Benchmark JSONL".to_string(),
-                value: if benchmark_exists {
-                    "present".to_string()
-                } else {
-                    "missing".to_string()
-                },
-                target: "present".to_string(),
-                passed: benchmark_exists,
-            },
-            SscMetric {
-                name: "Conversations JSONL".to_string(),
-                value: if conversations_exists {
-                    "present".to_string()
-                } else {
-                    "missing".to_string()
-                },
-                target: "present".to_string(),
-                passed: conversations_exists,
-            },
-            SscMetric {
-                name: "Pipeline manifest".to_string(),
-                value: if pipeline_exists {
-                    "present".to_string()
-                } else {
-                    "missing".to_string()
-                },
-                target: "present".to_string(),
-                passed: pipeline_exists,
-            },
-            SscMetric {
-                name: "QA gate config".to_string(),
-                value: if qa_exists {
-                    "present".to_string()
-                } else {
-                    "missing".to_string()
-                },
-                target: "present".to_string(),
-                passed: qa_exists,
-            },
-            SscMetric {
-                name: "Training config".to_string(),
-                value: if train_config_exists {
-                    "present".to_string()
-                } else {
-                    "missing".to_string()
-                },
-                target: "present".to_string(),
-                passed: train_config_exists,
-            },
+            presence_metric("Benchmark JSONL", benchmark_exists),
+            presence_metric("Conversations JSONL", conversations_exists),
+            presence_metric("Pipeline manifest", pipeline_exists),
+            presence_metric("QA gate config", qa_exists),
+            presence_metric("Training config", train_config_exists),
             SscMetric {
                 name: "Verificar mutations".to_string(),
                 value: if verificar_exists {
@@ -203,45 +163,48 @@ fn shellsafetybench_section() -> SscSection {
                 target: ">20000".to_string(),
                 passed: total_entries > 20000,
             },
-            SscMetric {
-                name: "Provable contract".to_string(),
-                value: if contract_exists {
-                    "present".to_string()
-                } else {
-                    "missing".to_string()
-                },
-                target: "present".to_string(),
-                passed: contract_exists,
-            },
-            {
-                // Check merged splits exist and have balanced class distribution
-                let train_path = "training/shellsafetybench/splits/train.jsonl";
-                let splits_exist = std::path::Path::new(train_path).exists();
-                let (train_total, train_unsafe) = if splits_exist {
-                    let content = std::fs::read_to_string(train_path).unwrap_or_default();
-                    let total = content.lines().filter(|l| !l.trim().is_empty()).count();
-                    let unsafe_count = content
-                        .lines()
-                        .filter(|l| l.contains("\"label\":1") || l.contains("\"label\": 1"))
-                        .count();
-                    (total, unsafe_count)
-                } else {
-                    (0, 0)
-                };
-                let unsafe_pct = if train_total > 0 {
-                    100.0 * train_unsafe as f64 / train_total as f64
-                } else {
-                    0.0
-                };
-                let balanced = unsafe_pct > 5.0; // >5% unsafe = balanced enough
-                SscMetric {
-                    name: "Merged splits".to_string(),
-                    value: format!("{train_total} train ({unsafe_pct:.1}% unsafe)"),
-                    target: ">5% unsafe".to_string(),
-                    passed: splits_exist && balanced,
-                }
-            },
+            presence_metric("Provable contract", contract_exists),
+            merged_splits_metric(),
         ],
+    }
+}
+
+/// A present/missing metric for a file the S14 pipeline expects.
+fn presence_metric(name: &str, exists: bool) -> SscMetric {
+    SscMetric {
+        name: name.to_string(),
+        value: if exists { "present" } else { "missing" }.to_string(),
+        target: "present".to_string(),
+        passed: exists,
+    }
+}
+
+/// Merged splits exist and have a balanced class distribution (>5% unsafe).
+fn merged_splits_metric() -> SscMetric {
+    let train_path = "training/shellsafetybench/splits/train.jsonl";
+    let splits_exist = std::path::Path::new(train_path).exists();
+    let (train_total, train_unsafe) = if splits_exist {
+        let content = std::fs::read_to_string(train_path).unwrap_or_default();
+        let total = content.lines().filter(|l| !l.trim().is_empty()).count();
+        let unsafe_count = content
+            .lines()
+            .filter(|l| l.contains("\"label\":1") || l.contains("\"label\": 1"))
+            .count();
+        (total, unsafe_count)
+    } else {
+        (0, 0)
+    };
+    let unsafe_pct = if train_total > 0 {
+        100.0 * train_unsafe as f64 / train_total as f64
+    } else {
+        0.0
+    };
+    let balanced = unsafe_pct > 5.0; // >5% unsafe = balanced enough
+    SscMetric {
+        name: "Merged splits".to_string(),
+        value: format!("{train_total} train ({unsafe_pct:.1}% unsafe)"),
+        target: ">5% unsafe".to_string(),
+        passed: splits_exist && balanced,
     }
 }
 

@@ -80,9 +80,17 @@ pub fn check_c_label_001(limit: usize) -> ContractResult {
 
 /// Run C-CLF-001 baselines: majority, keyword regex, linter.
 pub fn check_c_clf_001_baselines() -> Vec<ContractResult> {
-    use crate::corpus::baselines::{corpus_baseline_entries, run_all_baselines};
+    check_c_clf_001_baselines_from(&crate::corpus::registry::CorpusRegistry::load_full())
+}
 
-    let owned = corpus_baseline_entries();
+/// C-CLF-001 baselines computed over a specific registry (contract
+/// `corpus-derived-generators-v1`, equation `injection`).
+pub fn check_c_clf_001_baselines_from(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Vec<ContractResult> {
+    use crate::corpus::baselines::{corpus_baseline_entries_from, run_all_baselines};
+
+    let owned = corpus_baseline_entries_from(registry);
     let entries: Vec<(&str, u8)> = owned.iter().map(|(s, l)| (s.as_str(), *l)).collect();
     let reports = run_all_baselines(&entries);
 
@@ -133,10 +141,18 @@ pub fn check_generalization() -> ContractResult {
 
 /// Run dataset split validation.
 pub fn check_dataset_split() -> ContractResult {
-    use crate::corpus::baselines::corpus_baseline_entries;
+    check_dataset_split_from(&crate::corpus::registry::CorpusRegistry::load_full())
+}
+
+/// C-DATA-001 dataset split computed over a specific registry (contract
+/// `corpus-derived-generators-v1`, equation `injection`).
+pub fn check_dataset_split_from(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> ContractResult {
+    use crate::corpus::baselines::corpus_baseline_entries_from;
     use crate::corpus::dataset::{split_and_validate, ClassificationRow};
 
-    let owned = corpus_baseline_entries();
+    let owned = corpus_baseline_entries_from(registry);
     let rows: Vec<ClassificationRow> = owned
         .into_iter()
         .map(|(input, label)| ClassificationRow { input, label })
@@ -181,7 +197,19 @@ pub fn check_dataset_split() -> ContractResult {
 }
 
 /// Run all contracts and produce an aggregate report.
+///
+/// Walks the full corpus (17,942 entries; minutes). Contract
+/// `corpus-derived-generators-v1` equation `composition`: this is exactly
+/// [`run_all_contracts_from`] over `CorpusRegistry::load_full()`.
 pub fn run_all_contracts() -> ContractValidationReport {
+    run_all_contracts_from(&crate::corpus::registry::CorpusRegistry::load_full())
+}
+
+/// Run all contracts over a specific registry (contract
+/// `corpus-derived-generators-v1`, equation `injection`).
+pub fn run_all_contracts_from(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> ContractValidationReport {
     let mut contracts = Vec::new();
 
     // C-TOK-001
@@ -191,13 +219,13 @@ pub fn run_all_contracts() -> ContractValidationReport {
     contracts.push(check_c_label_001(100));
 
     // C-CLF-001 baselines
-    contracts.extend(check_c_clf_001_baselines());
+    contracts.extend(check_c_clf_001_baselines_from(registry));
 
     // Generalization
     contracts.push(check_generalization());
 
     // Dataset split
-    contracts.push(check_dataset_split());
+    contracts.push(check_dataset_split_from(registry));
 
     let passed_count = contracts.iter().filter(|c| c.passed).count();
     let failed_count = contracts.len() - passed_count;
@@ -251,12 +279,38 @@ mod tests {
 
     #[test]
     fn test_all_contracts_report() {
-        let report = run_all_contracts();
+        // F-CDG-004 (corpus-derived-generators-v1): tier-1 (30 entries), never
+        // the full corpus - run_all_contracts() cost 1,857-2,243 s per CI run.
+        let report = run_all_contracts_from(&crate::corpus::registry::CorpusRegistry::load_tier1());
         assert!(
             report.contracts.len() >= 6,
             "Should have at least 6 contract checks"
         );
         assert!(report.passed_count > 0);
+    }
+
+    /// F-CDG-006: the public entry point is exactly the _from form over load_full().
+    #[test]
+    fn test_F_CDG_006_run_all_contracts_entry_point_is_full_registry_path() {
+        let src = include_str!("contract_validation.rs");
+        let head = "pub fn run_all_contracts() -> ContractValidationReport {";
+        let Some(start) = src.find(head) else {
+            panic!("run_all_contracts() not found in source");
+        };
+        let body: Vec<&str> = src[start + head.len()..]
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .take(2)
+            .collect();
+        assert_eq!(
+            body,
+            vec![
+                "run_all_contracts_from(&crate::corpus::registry::CorpusRegistry::load_full())",
+                "}"
+            ],
+            "run_all_contracts() must be exactly the _from path over load_full()"
+        );
     }
 
     #[test]
