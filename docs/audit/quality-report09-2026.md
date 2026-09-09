@@ -35,9 +35,10 @@ Reproduced on **two independently built binaries**, from two working directories
 
 1. *Why 0 entries?* — `CorpusRegistry::load_full()` (`rash/src/corpus/registry/mod_corpusentry.rs:132`) calls 355+ `load_expansion*()` loaders.
 2. *Why do the loaders add nothing?* — `rash/src/corpus/registry/corpus_data_load.rs` holds **139 loader functions, 139 of which have an empty body `{}`; zero have a body.**
-3. *Why are they empty?* — `a98f6a89d0` "refactor: split corpus_data.rs (1107→322) — PMAT-229" **created** the split file with stub bodies (4 files, +1664 lines, **0 deletions** — the split never applied). `ee8c6a2d04` "fix: actually apply … splits" then **deleted the real bodies**: `corpus_data.rs` 787 lines → 2.
-4. *Why did nothing catch it?* — the corpus gate is not a required CI check, and a 0-entry corpus **cannot fail**: 0 failures / 0 entries reads as a clean run to every consumer of the score.
-5. *Why is the blast radius wider?* — the same PMAT-229 pass (`1468c41499`, "include!() split 254 files", 447 files, 134,737+/134,575−) left **720 zero-byte `*_incl*.rs` files** in the tree, several of them still `include!`d (e.g. `adversarial_templates_adversarialtemplate.rs:486` includes a 0-byte file). Repo-wide `CorpusEntry::new` is now **76 occurrences across 18 files**.
+3. *Why are they empty?* — **[corrected 2026-09-09]** the intact corpus still exists in git: blob `cf5b6e8dd8afea49f25238c5d9531a803c4b8fd4`, at exactly this path, **9,673,004 bytes / 277,890 lines / exactly 17,942 `CorpusEntry::new`**. It is reachable **only from branches that are not ancestors of `main`** — every stale dependabot branch (forked 2026-02-26) and `ci/deploy-workflows` (#156). On `main`, this path has only ever had two commits, and the first says so in its own subject: `5fed9fe857` (2026-03-25) *"fix: add corpus_data.rs **stubs** and tests for F-grade files"* created it at 23,878 B, and `ee8c6a2d04` (2026-04-05) shrank that stub to 7,016 B. At the merge-base of `main` and #156 (`ce72b90590`, 2026-03-03), **no file under `rash/src/corpus/` exceeds 100 KB**.
+4. *So what actually happened?* — `main`'s lineage lost the 9.7 MB file in a path/lineage break in **2026-02-26 … 2026-03-25**, and on 2026-03-25 it was recreated **as stubs**: a file with the right name, the right module wiring, and no entries. Every later PMAT-229 "split" commit then operated on the stub, which is why the loss reads as a tidy refactor in `git log`. *(An earlier draft of this report attributed the loss to `a98f6a89d0`/`ee8c6a2d04`; re-executing the history falsified that — those commits are a consequence. #284 carries the same correction.)*
+5. *Why did nothing catch it?* — the corpus gate is not a required CI check, and **a 0-entry corpus cannot fail**: 0 failures / 0 entries reads as a clean run to every consumer of the score. A stub with the correct name and wiring passed every check the project has, for five months, through a major release. The v7.0.1 headline *"zero false positives on the corpus, with every SEC finding intact"* is **vacuously true**.
+6. *Why is the blast radius wider?* — the same PMAT-229 pass (`1468c41499`, "include!() split 254 files", 447 files, 134,737+/134,575−) left **720 zero-byte `*_incl*.rs` files** in the tree, several of them still `include!`d (e.g. `adversarial_templates_adversarialtemplate.rs:486` includes a 0-byte file). Repo-wide `CorpusEntry::new` is now **76 occurrences across 18 files**.
 
 ### Impact
 
@@ -50,7 +51,8 @@ P0: CorpusRegistry::load_full() loads 0 entries — corpus gate cannot fail
 Severity: P0 — STOP THE LINE      Category: Corpus/Registry
 Regression: a98f6a89d0 + ee8c6a2d04 (PMAT-229 split), 2026-04-05
 RED:   assert!(CorpusRegistry::load_full().entries().len() >= 17_000)
-GREEN: restore loader bodies from ee8c6a2d04^:rash/src/corpus/registry/corpus_data.rs
+GREEN: git cat-file -p cf5b6e8dd8afea49f25238c5d9531a803c4b8fd4 > rash/src/corpus/registry/corpus_data.rs
+       then reconcile 277,890 lines of March-vintage generated Rust with the split registry module
 GATE:  make the entry-count assertion a required CI check, so an empty corpus fails loudly
 ```
 
@@ -164,7 +166,7 @@ The lanes converged on "the corpus metric is overfitted to internal tests." The 
 
 The A- (85.6%) does not survive contact with §2. `rust-project-score` awards **Known Defects 20/20** while the project's own regression corpus has silently scored nothing for five months and 13 false-positive reports have arrived from real use in three weeks. The grade measures the presence of quality machinery, not its output.
 
-1. **P0 — restore the corpus** and make a minimum entry count a required CI check (§2). Nothing else is measurable until this is true.
+1. **P0 — restore the corpus** from blob `cf5b6e8dd8` (17,942 entries, recoverable today) and make a minimum entry count a **required** CI check (§2). Nothing else is measurable until this is true. Open design question for the owner: 9.7 MB of generated Rust vs. a data file loaded at build/run time — Build Performance is already 11/15.
 2. **Re-run the corpus against the 13 open FP issues.** They are the acceptance test for the restore: a corpus that passes while #235/#237/#241/#242/#252 reproduce is still not measuring anything.
 3. **Fix the lexer-context bug class** behind 8 of the 13 FPs — string bodies, heredoc bodies and `$(( ))` are one defect wearing three codes, not eight bugs.
 4. **Reconcile the unwrap policy** (§3 U-2): either restore `deny` with a documented allow-list, or amend CLAUDE.md and the README to state the real posture. The current gap is a documentation defect regardless of which way it is closed.
