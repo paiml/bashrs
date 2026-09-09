@@ -2066,3 +2066,25 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-245
+  github_issue: 284
+  item_type: task
+  title: 'RESTORE-CORPUS: restore the 17,942-entry corpus, make an empty corpus fail CI, release 7.0.2 (#284)'
+  status: inprogress
+  priority: critical
+  assigned_to: null
+  created: 2026-09-09 14:31:25+00:00
+  updated: 2026-09-09 14:31:25+00:00
+  spec: docs/audit/quality-report09-2026.md
+  acceptance_criteria:
+  - cargo test -p bashrs --lib test_PMAT245_corpus_registry_not_empty passes (>= 17,000 entries, B-001 pinned)
+  - bashrs corpus run reports >= 17,942 entries and the score is recorded in CHANGELOG.md
+  - PR #285 merged with the required gate check green on the merge commit
+  - tag v7.0.2 pushed; bashrs 7.0.2 visible on crates.io and installable
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - orch:fable
+  notes: 'orch-basis:release — user launched this session with the words "pmat-implement docs/audit/quality-report09-2026.md-Issue #284 autonomously until new release". PR #285 carries the fix; this run drives it through gate, merge, tag and crates.io publish.'
