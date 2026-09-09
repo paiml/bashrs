@@ -35,6 +35,13 @@ corpus"*; the statement was vacuously true.
   entry per line), compiled in with `include_str!`, parsed once behind a `OnceLock`, and
   filtered by a membership bitmask into the five loads that are actually called. That
   source shape is what made the corpus tempting to stub out in the first place.
+- **Three `corpus::training_config` tests no longer walk the corpus.** Each called
+  `generate_training_config()` - transpile and lint all 17,942 entries, 477-660 s per test in
+  CI - to assert constants. The generator is now split into a pure `training_config_from_counts`
+  and a registry-backed `generate_training_config_from`; the module runs in 0.8 s, and the
+  corpus-backed path is pinned on the 30-entry tier-1 set (`contracts/training-config-v1.yaml`).
+  Measured cause: CI run 34368312280 hit the 60-minute test-job limit twice, the second time
+  with 15,201 of 15,202 tests done and this module's last test still running.
 - **Releases are gate-driven, any day** (#286), replacing the Friday-only crates.io policy.
   The bar moves onto the checks, and gains one clause this release paid for: `bashrs corpus run`
   must report >= 17,942 entries and its score goes in the CHANGELOG.
