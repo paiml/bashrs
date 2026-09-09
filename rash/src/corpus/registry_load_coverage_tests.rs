@@ -97,4 +97,15 @@ fn test_PMAT245_corpus_registry_not_empty() {
         "corpus registry loaded {n} entries, expected >= 17000 — \
          corpus_data.rs has been stubbed out again (see #284)"
     );
+
+    // A count alone is satisfiable by synthetic filler, so pin a known entry:
+    // B-001 is the first corpus entry and has been stable since the corpus existed.
+    let b001 =
+        registry.entries.iter().find(|e| e.id == "B-001").expect(
+            "corpus entry B-001 missing — the registry is populated but not with the corpus",
+        );
+    assert!(
+        !b001.input.is_empty() && !b001.expected_output.is_empty(),
+        "corpus entry B-001 has empty input or expected_output — filler, not corpus data"
+    );
 }
