@@ -5,6 +5,93 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.2] - 2026-09-09
+
+**The corpus had been empty since April.** `bashrs corpus run` reported
+`0 entries, 0 passed, 0 failed — V2 Corpus Score: 0.0/100 (F)` on every release
+from 2026-03-25 through v7.0.1, and that read as a clean run to everything
+downstream. v7.0.1 shipped under the headline *"zero false positives on the
+corpus"*; the statement was vacuously true.
+
+### Fixed
+
+- **The corpus is back: 17,942 entries** (#284, #285). `rash/src/corpus/registry/corpus_data.rs`
+  held 139 no-op stub loaders whose header comment claimed *"the actual corpus data is
+  loaded at runtime via `rash corpus load`"*. There is no such subcommand and no corpus
+  data file shipped, so `CorpusRegistry::load_full()` returned an empty registry.
+- **A 0-entry corpus can no longer pass.** `test_PMAT245_corpus_registry_not_empty`
+  asserts `load_full().len() >= 17_000` and pins entry `B-001` with non-empty input and
+  expected output, so synthetic filler cannot satisfy it either. The test sits inside the
+  org-required `gate` check, which needed no workflow change.
+- Removed four unreferenced split fragments left by the PMAT-229 include-split
+  (`corpus_data_expansion.rs`, `corpus_data_load.rs`, `corpus_data_corpusregistry.rs`,
+  `corpus_data_part2_incl2.rs`); one of them defined 157 loader names duplicating the
+  restored file.
+
+### Changed
+
+- **The corpus ships as data, not as generated Rust.** It was 9,406 generated `load_*`
+  functions across 277,890 lines (9.7 MB); it is now `corpus_data.jsonl` (7.2 MB, one
+  entry per line), compiled in with `include_str!`, parsed once behind a `OnceLock`, and
+  filtered by a membership bitmask into the five loads that are actually called. That
+  source shape is what made the corpus tempting to stub out in the first place.
+- **Releases are gate-driven, any day** (#286), replacing the Friday-only crates.io policy.
+  The bar moves onto the checks, and gains one clause this release paid for: `bashrs corpus run`
+  must report >= 17,942 entries and its score goes in the CHANGELOG.
+
+### Measured
+
+```
+bashrs bin build     29.2s / 2.6 GB  ->  11.9s / 2.0 GB
+first load_full      139 ms (parse, once)   subsequent  3 ms   load_tier1  0.06 ms
+
+bashrs corpus run — 17,942 entries, V2 Corpus Score 84.4/100 (B)
+  A  Transpilation 100.0%  30.0/30      D  Lint clean    100.0%  10.0/10
+  B1 Containment    99.9%  10.0/10      E  Deterministic 100.0%  10.0/10
+  B2 Exact match    99.9%   8.0/8       F  Metamorphic    99.6%   5.0/5
+  B3 Behavioural    98.7%   6.9/7       G  Cross-shell    99.7%   5.0/5
+  C  Coverage        0.0%   0.0/15   <- no coverage cache for this commit
+```
+
+84.4 of the 85 points available from the eight dimensions that can be measured here. No
+claim is made about equivalence to the historical 99.1 baseline. Dimension C reads zero
+because `.pmat/coverage-cache.json` is empty, not because anything regressed.
+
+**Measured non-effect, recorded so it is not assumed:** re-encoding the corpus does *not*
+speed the test suite up. `corpus::contract_validation::test_all_contracts_report` takes
+456.2s against the Rust encoding and 451.7s against the data encoding. Those tests are slow
+because the corpus has 17,942 entries, not because of how it is spelled.
+
+### Known issues
+
+- Dimension C (Coverage, 15 points) is unscored until a coverage cache exists for the commit.
+- Several full-corpus tests take minutes each; `bashrs corpus validate-contracts` is a
+  production path with the same cost.
+
+## [7.0.1] - 2026-08-30
+
+### Fixed
+
+- Five false-positive sources in the linter, none of them a single lexer bug (#279).
+
+> **Retroactive note (2026-09-09):** this release was published under the headline
+> "zero false positives on the corpus". That claim was **vacuous** — the corpus had
+> been empty since 2026-03-25 and `bashrs corpus run` was scoring 0 entries. See
+> #284 and the 7.0.2 entry above. The SEC findings referenced in the release notes
+> were real; the corpus evidence for them was not.
+
+## [7.0.0] - 2026-08-30
+
+### Changed
+
+- **BREAKING:** `SCxxxx` is ShellCheck's namespace — 36 bashrs checks were squatting
+  in it and have been renamed (#277, #280).
+
+### Fixed
+
+- Five lexer false positives: string literals, heredoc bodies and case patterns were
+  being read as shell code (#278).
+
 ## [6.68.0] - 2026-08-21
 
 False-positive removal in three **gating** rules, all sharing one root cause: a

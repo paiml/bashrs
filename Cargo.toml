@@ -77,7 +77,7 @@ regex-automata = "0.5"
 regex-syntax = "0.9"
 
 [workspace.package]
-version = "7.0.1"
+version = "7.0.2"
 edition = "2021"
 rust-version = "1.82"
 authors = ["Pragmatic AI Labs"]
