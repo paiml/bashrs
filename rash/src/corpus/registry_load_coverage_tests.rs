@@ -79,3 +79,22 @@ fn test_coverage_load_full_by_format() {
         registry.entries.len()
     );
 }
+
+/// PMAT-245 / #284: the corpus registry must actually contain the corpus.
+///
+/// `corpus_data.rs` was replaced by no-op stubs whose header claimed "the actual
+/// corpus data is loaded at runtime via `rash corpus load`". No such subcommand
+/// exists and no corpus data file ships, so `load_full()` silently returned an
+/// empty registry and `bashrs corpus run` scored 0 entries as a clean run for
+/// five months. A 0-entry corpus cannot fail; this test is the gate that makes
+/// it fail.
+#[test]
+fn test_PMAT245_corpus_registry_not_empty() {
+    let registry = CorpusRegistry::load_full();
+    let n = registry.len();
+    assert!(
+        n >= 17_000,
+        "corpus registry loaded {n} entries, expected >= 17000 — \
+         corpus_data.rs has been stubbed out again (see #284)"
+    );
+}
