@@ -213,3 +213,13 @@ falsification_tests:
   prediction: 'lint_shell reports no SC2046 on `x=$(date)`, on `echo "$(date)"` or on `case $(uname) in`; it still reports `echo $(date)` and `$(get_command)` in command position'
   test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh262_sc2046_only_where_the_shell_splits
   if_fails: 'Contract violation: SC2046 decides by regex again instead of by the word role shell_words assigns (GH-262)'
+- id: F-SC1009-GH238-COMMENT-LED-BODY-NOT-REPORTED
+  rule: A comment that merely leads a non-empty block body is not a defect (GH-238)
+  prediction: 'lint_shell on `if true; then\n  # just a comment\n  echo hi\nfi` reports no BRS0001 (measured on 7.0.3: SC1009 is renamed BRS0001 by code_namespace::MIGRATIONS)'
+  test: cargo test -p bashrs --lib linter::rules::sc1009::tests_gh238::test_PMAT251_gh238_comment_led_nonempty_block_is_not_reported
+  if_fails: 'Contract violation: SC1009 still reports on the first non-empty line after a control keyword being a comment, without checking whether a command follows before the block closes'
+- id: F-SC1009-GH238-COMMENT-ONLY-BODY-STILL-REPORTED
+  rule: A block whose body is only comments (no command at all) is still reported (GH-238)
+  prediction: 'lint_shell on `if true; then\n  # just a comment\nfi` still reports BRS0001'
+  test: cargo test -p bashrs --lib linter::rules::sc1009::tests_gh238::test_PMAT251_gh238_comment_only_block_is_still_reported
+  if_fails: 'Contract violation: the GH-238 fix traded the false positive for a false negative by disabling the rule instead of checking for an actual command in the body'
