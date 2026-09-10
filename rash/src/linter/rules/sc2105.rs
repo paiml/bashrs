@@ -208,3 +208,65 @@ function process() {
         assert_eq!(result.diagnostics.len(), 1);
     }
 }
+
+/// PMAT-244 (contracts/linter-lexer-context-v1.yaml F-SC2105-PMAT244-*):
+/// a one-line loop must be read as a loop, not as three independent
+/// keyword-counts computed for the whole physical line.
+#[cfg(test)]
+mod tests_pmat244 {
+    use super::*;
+
+    #[test]
+    fn test_PMAT255_pmat244_v1_inline_andand_break_is_clean() {
+        let code = "for m in a b; do [[ $m == b ]] && { x=1; break; }; done\n";
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "break is inside the one-line for-loop, got {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_PMAT255_pmat244_v2_inline_if_break_is_clean() {
+        let code = "for m in a b; do if [[ $m == b ]]; then x=1; break; fi; done\n";
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "break is inside the one-line for-loop, got {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_PMAT255_pmat244_v3_multiline_still_clean() {
+        let code = r#"
+for m in a b; do
+    if [[ $m == b ]]; then
+        x=1
+        break
+    fi
+done
+"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+
+        let while_code = "while true; do\n    break\ndone\n";
+        let while_result = check(while_code);
+        assert_eq!(while_result.diagnostics.len(), 0);
+
+        let while_inline = "while true; do break; done\n";
+        let while_inline_result = check(while_inline);
+        assert_eq!(while_inline_result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_PMAT255_pmat244_v5_toplevel_break_still_fires() {
+        let code = "break\n";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2105");
+    }
+}

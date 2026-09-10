@@ -137,6 +137,8 @@ invariants:
 - 'SC1012 never reports an escape inside single quotes (printf, awk, sed interpret it; echo''s case is SC2028/SC2271); it reports an unquoted `\t` `\n` `\r` that the shell would drop, `echo a\tb` (GH-261)'
 - 'SC1078 never reports an apostrophe inside "..." (GH-235); SC1140 never reports a trailing # comment after ] (GH-258)'
 - 'bashrs corpus run over the full 17,942-entry corpus scores no worse than the 7.0.2 baseline (84.4/100 B, 333 failures)'
+- 'SC2105 processes loop-start keywords, done and break/continue in the byte order they occur on a physical line, not by summing a whole line''s keyword counts before checking break/continue (PMAT-244); a bare break/continue outside any loop still fires'
+- 'shell_words::Expansion covers command substitutions ($( ), nested $( $( ) ), and backticks, including inside double quotes) as well as $NAME/${NAME}; SC2046 has no private quote-aware scanner of its own (PMAT-250)'
 
 kani_harnesses:
 - id: KANI-LEXER_CONTEXT-001
@@ -223,3 +225,33 @@ falsification_tests:
   prediction: 'lint_shell on `if true; then\n  # just a comment\nfi` still reports BRS0001'
   test: cargo test -p bashrs --lib linter::rules::sc1009::tests_gh238::test_PMAT251_gh238_comment_only_block_is_still_reported
   if_fails: 'Contract violation: the GH-238 fix traded the false positive for a false negative by disabling the rule instead of checking for an actual command in the body'
+- id: F-SC2105-PMAT244-SAME-LINE-INLINE-ANDAND-CLEAN
+  rule: 'A break inside a one-line `for ... do ... && { ...; break; }; done` is inside the loop, not after it (PMAT-244)'
+  prediction: 'lint_shell of `for m in a b; do [[ $m == b ]] && { x=1; break; }; done` reports NO SC2105'
+  test: cargo test -p bashrs --lib linter::rules::sc2105::tests_pmat244::test_PMAT255_pmat244_v1_inline_andand_break_is_clean
+  if_fails: 'Contract violation: SC2105 counts loop-start and loop-end keywords for a whole physical line before checking break/continue, instead of processing the three in the byte order they appear on the line'
+- id: F-SC2105-PMAT244-SAME-LINE-IF-CLEAN
+  rule: 'A break inside a one-line `for ... do if ...; then ...; break; fi; done` is inside the loop (PMAT-244)'
+  prediction: 'lint_shell of `for m in a b; do if [[ $m == b ]]; then x=1; break; fi; done` reports NO SC2105'
+  test: cargo test -p bashrs --lib linter::rules::sc2105::tests_pmat244::test_PMAT255_pmat244_v2_inline_if_break_is_clean
+  if_fails: 'Contract violation: same as F-SC2105-PMAT244-SAME-LINE-INLINE-ANDAND-CLEAN, for the if/then/fi shape'
+- id: F-SC2105-PMAT244-MULTILINE-STILL-CLEAN
+  rule: 'The same loop written across several physical lines is still clean (PMAT-244 regression guard)'
+  prediction: 'lint_shell of the multi-line form of the v1/v2 reproducers, and of `while true; do\n  break\ndone`, reports NO SC2105'
+  test: cargo test -p bashrs --lib linter::rules::sc2105::tests_pmat244::test_PMAT255_pmat244_v3_multiline_still_clean
+  if_fails: 'Contract violation: the PMAT-244 fix regressed the pre-existing multi-line loop-depth tracking'
+- id: F-SC2105-PMAT244-TOPLEVEL-STILL-FIRES
+  rule: 'A bare break outside any loop is still reported (PMAT-244 true positive)'
+  prediction: 'lint_shell of a bare top-level `break` (no enclosing loop) still reports SC2105'
+  test: cargo test -p bashrs --lib linter::rules::sc2105::tests_pmat244::test_PMAT255_pmat244_v5_toplevel_break_still_fires
+  if_fails: 'Contract violation: the PMAT-244 fix traded the false positive for a false negative and stopped detecting a genuine break-outside-loop'
+- id: F-SW-PMAT250-COMMAND-SUBST-IS-AN-EXPANSION
+  rule: 'shell_words::Expansion gains a command-substitution kind covering $( ), nested $( $( ) ) and backticks, including inside double quotes (PMAT-250)'
+  prediction: 'shell_words::simple_commands over `echo $(date)`, `echo $(echo $(date))`, `` echo `date` `` and `echo "$(date)"` reports a command-substitution Expansion for each `$(`/backtick marker, with the same quoted-status shell_words already computes for $NAME expansions'
+  test: cargo test -p bashrs --lib linter::shell_words::tests_pmat250::test_PMAT255_pmat250_command_substitution_is_an_expansion
+  if_fails: 'Contract violation: shell_words::Expansion still only tracks $NAME/${NAME} and a rule needing command-substitution position must keep its own private scanner'
+- id: F-SW-PMAT250-SC2046-NO-VERDICT-CHANGE
+  rule: 'SC2046 consumes the new shell_words expansion kind instead of its private scan_word/find_close/read_backtick/skip_quoted scanner, with no change to any verdict (PMAT-250, pure refactor)'
+  prediction: 'For every case already pinned by F-LCX-002, F-LCX-006 and F-LCX-011 (GH-237 arithmetic exclusion, GH-252 escaped backtick, GH-262 field-splitting contexts), SC2046 fires or is absent exactly as before; `rash/src/linter/rules/sc2046.rs` contains no scan_word, find_close, read_backtick, skip_quoted or find_matching_paren function'
+  test: cargo test -p bashrs --lib linter::rules::sc2046::tests_pmat250::test_PMAT255_pmat250_no_verdict_change
+  if_fails: 'Contract violation: the shell_words refactor changed an SC2046 verdict, or the private scanner was not deleted'
