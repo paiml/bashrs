@@ -34,28 +34,32 @@
 // every rule that needs it. `shell_words::simple_commands` recurses into
 // `$( … )` (and `` ` … ` ``) as *independent* command contexts, so the
 // resulting flat list of [`SimpleCommand`]s already contains, at whatever
-// depth they occur:
+// depth they occur, a `[ … ]` / `test …` command nested inside a
+// substitution — it matches [`is_test_command`] directly, exactly like a
+// top-level one.
 //
-// * a `[ … ]` / `test …` command nested inside a substitution — it matches
-//   [`is_test_command`] directly, exactly like a top-level one; and
-// * a substitution nested inside a `[ … ]` operand — its expansions are
-//   found by the byte-column containment check in [`offences`], because a
-//   nested command's byte range can only fall inside the enclosing test's
-//   span if it is physically written between the test's own first and last
-//   word.
+// ## PMAT-248 phase 7 (review finding): only the test's OWN operands
 //
-// Neither case needs special-casing or a second pass over the raw text.
+// A `$( … )` command substitution never contributes an [`Expansion`] to the
+// *word that contains it* — `read_dollar` in `shell_words` records its body
+// as a byte range in the private `RawWord.subs` field and recurses into it
+// as a brand-new [`SimpleCommand`] (see `shell_words::collect`); it never
+// pushes an expansion for that word. So a word like `"$(echo $x)"` on a
+// `[ … ]` command's own word list carries **zero** direct expansions — `$x`
+// only shows up as an expansion of the *separate*, auto-generated `echo`
+// command that `simple_commands` also returns.
+//
+// That means [`offences`] does not need any byte-span containment check at
+// all: filtering to commands where [`is_test_command`] holds and reading
+// only *their own* `cmd.words` already excludes every expansion that
+// belongs to a nested substitution, because that expansion lives on a
+// different `SimpleCommand`'s word, not on the test's. It also still finds
+// a `[ … ]` / `test …` nested *inside* a substitution, because that nested
+// test is itself one of the `SimpleCommand`s `is_test_command` filters
+// over, with its own operand words intact.
 
 use crate::linter::shell_words::{self, Expansion, SimpleCommand};
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
-
-/// The byte-column span (1-indexed, end-exclusive) covered by a `[ … ]` /
-/// `test …` command's own words on its physical line.
-#[derive(Clone, Copy)]
-struct TestSpan {
-    start: usize,
-    end: usize,
-}
 
 /// `true` for the command whose name shell_words resolved to `[` or `test`.
 ///
@@ -67,43 +71,22 @@ fn is_test_command(cmd: &SimpleCommand) -> bool {
     matches!(cmd.name.as_deref(), Some("[") | Some("test"))
 }
 
-/// The column span from a test command's first word to the end of its last.
-fn command_span(cmd: &SimpleCommand) -> Option<TestSpan> {
-    let start = cmd.words.first()?.col;
-    let last = cmd.words.last()?;
-    Some(TestSpan {
-        start,
-        end: last.col + last.raw.len(),
-    })
-}
-
-/// True when byte column `col` falls inside at least one `[ … ]` / `test …` span.
-fn inside_any(col: usize, spans: &[TestSpan]) -> bool {
-    spans.iter().any(|s| col >= s.start && col < s.end)
-}
-
-/// Every unquoted `$name` / `${name}` expansion, anywhere in `line`, whose
-/// column falls inside at least one `[ … ]` / `test …` span — deduplicated
-/// and returned in ascending column order.
+/// Every unquoted `$name` / `${name}` expansion that is a direct operand of
+/// a `[ … ]` / `test …` command on `line` — deduplicated and returned in
+/// ascending column order. Expansions belonging to a nested `$( … )` /
+/// `` ` … ` `` are never direct operands of the enclosing test (see the
+/// module-level note above), so they are excluded without any extra
+/// filtering.
 fn offences(line: &str) -> Vec<Expansion> {
     let cmds = shell_words::simple_commands(line);
-
-    let spans: Vec<TestSpan> = cmds
-        .iter()
-        .filter(|c| is_test_command(c))
-        .filter_map(command_span)
-        .collect();
-
-    if spans.is_empty() {
-        return Vec::new();
-    }
 
     let mut found: std::collections::BTreeMap<usize, Expansion> = std::collections::BTreeMap::new();
     let candidates = cmds
         .iter()
+        .filter(|cmd| is_test_command(cmd))
         .flat_map(|cmd| cmd.words.iter())
         .flat_map(|word| word.expansions.iter())
-        .filter(|exp| !exp.quoted && inside_any(exp.col, &spans));
+        .filter(|exp| !exp.quoted);
     for exp in candidates {
         found.entry(exp.col).or_insert_with(|| exp.clone());
     }
@@ -258,15 +241,17 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 0);
     }
 
-    /// A substitution nested inside a `[ … ]` operand: `$y` is unquoted in
-    /// the substitution's own fresh quoting context, so it is still a real
-    /// SC2047 offence even though it is not a direct operand of `[`.
+    /// A substitution nested inside a `[ … ]` operand: `$y` is an operand of
+    /// `cmd`, not of `[` — the outer word `"$(cmd $y)"` is itself
+    /// double-quoted, and word splitting of `$y` happens inside the
+    /// substitution (SC2086's subject), where it cannot break the test. Not
+    /// this rule's subject; shellcheck does not report SC2047 here either
+    /// (PMAT-248 phase 7 review finding).
     #[test]
-    fn test_PMAT248_unquoted_var_inside_substitution_in_test() {
+    fn test_PMAT248_var_inside_nested_substitution_is_not_this_rules_subject() {
         let code = r#"[ "$(cmd $y)" = a ]"#;
         let result = check(code);
-        assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
-        assert!(result.diagnostics[0].message.contains("$y"));
+        assert_eq!(result.diagnostics.len(), 0, "got {:?}", result.diagnostics);
     }
 
     /// `[[ … ]]` is never scanned, even with an otherwise-reportable shape.
