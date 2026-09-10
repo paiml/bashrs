@@ -1,0 +1,5 @@
+{
+  "source": "gh issue list --repo paiml/bashrs --state open --limit 500 --json number,title,body",
+  "sha256": "808720e9fea9f6afa02928def2f7af8dc0e18b833a2a145131ab18650d17a5b9",
+  "count": 13
+}

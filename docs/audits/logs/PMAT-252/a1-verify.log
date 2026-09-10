@@ -1,0 +1,3 @@
+batch: A_i PASS — batch 1: 7 issue(s), 7 row(s), 0 null verdicts, 7 mutation(s) read-back verified by this script
+✓ triage recorded: paiml-impl-worker examined 7, acted on 7, deferred 0
+batch: coverage recorded by pmat (examined=7 acted=7 deferred=0)
