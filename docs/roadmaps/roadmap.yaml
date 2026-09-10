@@ -2205,11 +2205,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'TRIAGE after 7.0.3: classify the 13 open issues, tag each to a release (7.0.4 / 7.1.0 / backlog) and assign an owner'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-09-10T10:07:35Z
-  updated: 2026-09-10T10:07:35.791845448+00:00
+  updated: 2026-09-10T12:56:56.477614674+00:00
   spec: null
   acceptance_criteria:
   - 'Classify + link, no diff (the ticket kind is triage). Universe: gh issue list --state open (13 issues, snapshot sha 808720e9). Labels class:* and release:* via mutate.sh; milestones and assignee applied by the orchestrator after batch.sh verify; closes only with a quorum PASS or the operator''s words.'
