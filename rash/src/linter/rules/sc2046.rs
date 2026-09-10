@@ -33,20 +33,57 @@
 //! paren/backtick matching mirrors `shell_words`'s private `find_close` /
 //! `read_backtick` byte-for-byte, so spans stay byte-accurate.
 //!
+//! ## Phase 7 review finding (PMAT-248): `CommandName` is reportable too
+//!
+//! Phase 2 gated on `[Argument, RedirectTarget]` only, which under-reported:
+//! a *bare* `$(get_command)` (or `$(get_command) arg`) sits in `CommandName`
+//! position (`shell_words::CmdState::role_for`'s fallthrough - the word
+//! resolves to no literal name, exactly like the `case` operand), and the
+//! shell still word-splits that substitution's output before exec'ing it
+//! (`get_command` returning `ls -la` runs `ls` with arg `-la`). 7.0.2 and
+//! shellcheck both report this. Measured against `shell_words`:
+//!
+//! - `if $(cmd); then :; fi` - `$(cmd)` is `CommandName` (same fallthrough as
+//!   plain command position) - reportable, and shellcheck agrees.
+//! - `eval $(get_command)` - `eval` resolves through `WRAPPER_COMMANDS` to
+//!   `Reserved`, so `$(get_command)` is `CommandName` - reportable, and
+//!   shellcheck agrees.
+//! - `case $(uname) in` - `$(uname)` is *also* `CommandName` (it immediately
+//!   follows the `Reserved` word `case`), but the shell never runs or
+//!   word-splits a `case` operand, so this one case must stay excluded: skip
+//!   a `CommandName` word whose immediately preceding word in the same
+//!   `SimpleCommand` is the reserved word `case`.
+//! - `for i in $(ls)` is unaffected - that word is `Argument` already.
+//!
 //! References:
 //! - <https://www.shellcheck.net/wiki/SC2046>
 
-use crate::linter::shell_words::{self, WordRole};
+use crate::linter::shell_words::{self, ShellWord, WordRole};
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
 /// Roles in which an unquoted command substitution is reportable: the shell
-/// word-splits an unquoted expansion in argument or redirect-target
-/// position. It never splits an `AssignPrefix` (`x=$(date)` runs `date` and
-/// assigns its output verbatim - no splitting occurs), a `Reserved` word, or
-/// the `CommandName` position occupied by a bare `case $(uname) in` operand
-/// (that word never resolves to a literal name, so `shell_words` already
-/// gives it `CommandName`, not `Argument` - see `shell_words::CmdState::role_for`).
-const REPORTABLE_ROLES: &[WordRole] = &[WordRole::Argument, WordRole::RedirectTarget];
+/// word-splits an unquoted expansion in argument, redirect-target, or
+/// command-name position (see the module-level "Phase 7 review finding" doc
+/// for the `CommandName` measurements). It never splits an `AssignPrefix`
+/// (`x=$(date)` runs `date` and assigns its output verbatim - no splitting
+/// occurs) or a `Reserved` word. The one `CommandName` exception - the
+/// operand of a `case … in` - is excluded separately by [`is_case_operand`],
+/// since it depends on the *previous* word, not the word's own role.
+const REPORTABLE_ROLES: &[WordRole] = &[
+    WordRole::Argument,
+    WordRole::RedirectTarget,
+    WordRole::CommandName,
+];
+
+/// True when `words[idx]` is the operand of a `case … in`: a `CommandName`
+/// word immediately preceded, in the same `SimpleCommand`, by the reserved
+/// word `case`. `shell_words` gives that operand `CommandName` because it
+/// never resolves to a literal command name (`shell_words::CmdState::role_for`),
+/// but the shell never runs or word-splits it, so it must stay unreported
+/// even though `CommandName` is otherwise reportable.
+fn is_case_operand(words: &[ShellWord], idx: usize) -> bool {
+    idx > 0 && words[idx - 1].role == WordRole::Reserved && words[idx - 1].literal == "case"
+}
 
 /// One reportable command substitution found inside a word's raw text.
 struct Offence {
@@ -277,6 +314,30 @@ fn make_diagnostic(o: &Offence, line: usize) -> Diagnostic {
     }
 }
 
+/// True when `words[idx]` should be scanned for unquoted command
+/// substitutions: its role is reportable, unless it is the `case … in`
+/// exception carved out of `CommandName` by [`is_case_operand`].
+fn is_reportable(words: &[ShellWord], idx: usize) -> bool {
+    let word = &words[idx];
+    REPORTABLE_ROLES.contains(&word.role)
+        && !(word.role == WordRole::CommandName && is_case_operand(words, idx))
+}
+
+/// Collect every reportable command-substitution offence on one physical
+/// line, in ascending column order.
+fn scan_line(line: &str) -> Vec<Offence> {
+    let mut offences: Vec<Offence> = Vec::new();
+    for cmd in shell_words::simple_commands(line) {
+        for (idx, word) in cmd.words.iter().enumerate() {
+            if is_reportable(&cmd.words, idx) {
+                scan_word(&word.raw, word.col, &mut offences);
+            }
+        }
+    }
+    offences.sort_by_key(|o| o.col);
+    offences
+}
+
 /// Check for unquoted command substitutions (SC2046).
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -289,18 +350,7 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        let mut offences: Vec<Offence> = Vec::new();
-        for cmd in shell_words::simple_commands(line) {
-            for word in &cmd.words {
-                if !REPORTABLE_ROLES.contains(&word.role) {
-                    continue;
-                }
-                scan_word(&word.raw, word.col, &mut offences);
-            }
-        }
-        offences.sort_by_key(|o| o.col);
-
-        for o in &offences {
+        for o in &scan_line(line) {
             result.add(make_diagnostic(o, line_num));
         }
     }
@@ -456,5 +506,71 @@ mod tests {
         // `$(date)` starts right after "echo " (1-indexed byte column 6) and
         // is 7 bytes long, so the span covers exactly `$(date)`.
         assert_eq!(&src[span.start_col - 1..span.end_col - 1], "$(date)");
+    }
+
+    // -----------------------------------------------------------------
+    // PMAT-248 Phase 7 review finding: a bare `$(get_command)` sits in
+    // `CommandName` position and the shell still word-splits it before
+    // exec'ing, so it must be reported too (7.0.2 and shellcheck agree).
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn test_PMAT248_review_sc2046_command_position_is_still_reported() {
+        let src = "$(get_command)";
+        let result = check(src);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2046");
+
+        // Span covers exactly the substitution: the whole line here.
+        let span = result.diagnostics[0].span;
+        assert_eq!(&src[span.start_col - 1..span.end_col - 1], "$(get_command)");
+    }
+
+    #[test]
+    fn test_PMAT248_review_sc2046_command_position_with_arg_reports_once() {
+        let result = check("$(get_command) arg");
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2046");
+    }
+
+    #[test]
+    fn test_PMAT248_review_sc2046_case_operand_still_not_reported() {
+        // The `CommandName` exception must survive: the operand of a `case
+        // … in` never resolves to a literal name (same shell_words
+        // fallthrough as a bare command substitution) but is never run or
+        // word-split, so it stays unreported even now that `CommandName` is
+        // otherwise reportable.
+        let result = check("case $(uname) in");
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_PMAT248_review_sc2046_if_condition_command_is_reported() {
+        // Measured: `$(cmd)` in `if $(cmd); then` is `CommandName` (the same
+        // fallthrough as plain command position, not a `case`-style
+        // exclusion), and the shell splits its output before exec'ing it.
+        // shellcheck reports this too.
+        let result = check("if $(cmd); then :; fi");
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2046");
+    }
+
+    #[test]
+    fn test_PMAT248_review_sc2046_eval_command_is_reported() {
+        // Measured: `eval` resolves through `WRAPPER_COMMANDS` to `Reserved`,
+        // so `$(get_command)` is `CommandName`, not the `case` exception.
+        // shellcheck reports this too.
+        let result = check("eval $(get_command)");
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2046");
+    }
+
+    #[test]
+    fn test_PMAT248_review_sc2046_for_in_argument_still_reported() {
+        // Unaffected by this change: `$(ls)` here is `Argument`, not
+        // `CommandName`, already reportable before Phase 7.
+        let result = check("for i in $(ls); do echo $i; done");
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2046");
     }
 }
