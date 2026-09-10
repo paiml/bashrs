@@ -2240,3 +2240,39 @@ roadmap:
   - kind:code
   - orch:fable
   notes: 'orch-basis:operator — user wrote, verbatim: "in parallel ensure we are using a PR style and dogfood style like ../forjar (i.e. CRUX, quorum).  file ticket and research and then have "agy /teamwork review"". Filed during the PMAT-251 session (v7.0.4); research and the teamwork review are this session''s deliverable, implementation is scheduled with 7.1.0.'
+- id: PMAT-254
+  github_issue: null
+  item_type: task
+  title: 'Triage for v7.1.0: tag every open roadmap entry and issue to a release (release-lint R1-R4), write docs/roadmaps/releases.md as the release goal, resolve the seven stale April entries with evidence, assign'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-10T19:56:59Z
+  updated: 2026-09-10T19:56:59Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:triage
+  - release:v7.1.0
+  notes: null
+- id: PMAT-255
+  github_issue: null
+  item_type: task
+  title: 'v7.1.0: transpiler defects #293 #294, build #295, shellcheck-directive interop #265, DET005 #232, SC2105 PMAT-244, shell_words PMAT-250, contracts PMAT-246, dependency refresh, pmat comply, corpus growth through agy, forjar-parity phases 3a and 5 from PMAT-253'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-10T19:57:00Z
+  updated: 2026-09-10T19:57:00Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.1.0
+  notes: null
