@@ -74,7 +74,7 @@ notify-debouncer-mini = { version = "0.7", optional = true }  # Debounced file e
 tower-lsp = { version = "0.20", optional = true }  # LSP server framework
 
 # Compile mode dependencies (optional - not needed for WASM)
-zstd = { version = "0.13", optional = true }
+zstd = { version = "0.14", optional = true }
 tar = { version = "0.4", optional = true }
 flate2 = { version = "1.1", optional = true }
 base64 = { version = "0.22", optional = true }
