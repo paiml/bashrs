@@ -122,7 +122,10 @@ impl App {
     }
 
     /// Run the application main loop
-    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> anyhow::Result<()> {
+    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> anyhow::Result<()>
+    where
+        <B as Backend>::Error: std::error::Error + Send + Sync + 'static,
+    {
         while !self.should_quit {
             terminal.draw(|frame| super::ui::render(frame, self))?;
             self.handle_events()?;

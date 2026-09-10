@@ -154,6 +154,26 @@ falsification_tests:
   prediction: lint result does NOT contain SEC008 diagnostic
   test: 'Given input, verify: lint result does NOT contain SEC008 diagnostic'
   if_fails: 'Contract violation: SEC008 does NOT flag curl to file'
+- id: F-SEC011-GH264-GUARD-OR-EXIT
+  rule: SEC011 recognises an early-return guard (`<test> || exit`/`return`/`die`,
+    and its negated `&& exit` twin) as establishing the same precondition the
+    accepted `if` form does (GH-264) - reachability, not syntax, is what SEC011
+    checks.
+  prediction: lint result does NOT contain SEC011 for `[ -n "$WORK" ] || exit 1`,
+    `test -n "$WORK" || exit 1`, `[ -d "$WORK" ] || exit 1`, or
+    `[[ -z "$WORK" ]] && exit 1` immediately above `rm -rf "$WORK"`
+  test: 'test_PMAT251_gh264_or_exit_guard_is_recognised, test_PMAT251_gh264_test_n_or_exit_guard_is_recognised,
+    test_PMAT251_gh264_dash_d_or_exit_and_negated_and_exit_are_recognised'
+  if_fails: 'Contract violation: SEC011 flags a guarded `rm -rf` whose guard is
+    written as an early-return `|| exit`/`&& exit` instead of an `if` (GH-264)'
+- id: F-SEC011-GH264-UNGUARDED-STILL-REPORTED
+  rule: SEC011 still reports `rm -rf "$VAR"` with no guard at all - the GH-264
+    fix must not widen guard recognition into a false negative
+  prediction: lint result contains exactly one SEC011 diagnostic for an
+    unguarded `rm -rf "$WORK"`
+  test: test_PMAT251_gh264_unguarded_rm_rf_is_still_reported
+  if_fails: 'Contract violation: SEC011 no longer flags an unguarded `rm -rf`
+    after the GH-264 guard-recognition change'
 kani_harnesses:
 - id: KANI-LINTER_SECURITY_RULES-001
   obligation: SEC rules detect all OWASP-class vulnerabilities

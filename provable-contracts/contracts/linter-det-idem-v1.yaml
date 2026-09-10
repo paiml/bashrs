@@ -81,6 +81,24 @@ falsification_tests:
   prediction: lint result does NOT contain DET002
   test: 'Given input, verify: lint result does NOT contain DET002'
   if_fails: 'Contract violation: DET002 must not fire on its own remedy (GH-230)'
+- id: F-DET002-GH263-BARE-DATE-SINK
+  rule: DET002 detects a bare `date` command word - not only `date` inside
+    `$( )`/backticks - when its value reaches a reproducible sink (a
+    truncating/appending redirect, or a pipe into `tee`) (GH-263)
+  prediction: lint result contains DET002 for `date > VERSION`, `date -u +%Y >
+    VERSION`, `date >> VERSION`, and `date | tee VERSION`
+  test: 'test_PMAT251_gh263_bare_date_redirected_to_file_is_detected, test_PMAT251_gh263_bare_date_appended_or_teed_is_detected'
+  if_fails: 'Contract violation: DET002 misses a bare `date` command word
+    redirected or piped into a reproducible sink (GH-263)'
+- id: F-DET002-GH263-DATE-TO-TERMINAL-NOT-REPORTED
+  rule: DET002 does NOT flag a bare `date` with no redirect or pipe - printing
+    to the terminal is `#232`/DET005 territory (time-dependent control flow),
+    not a reproducible-output defect
+  prediction: lint result does NOT contain DET002 for a bare `date` with no
+    sink
+  test: test_PMAT251_gh263_date_to_terminal_is_not_reported
+  if_fails: 'Contract violation: DET002 flags a bare `date` that has no
+    possible reproducible sink'
 - id: F-DET003-SOUND
   rule: DET003 detects unordered glob in for-loop
   prediction: lint result contains DET003

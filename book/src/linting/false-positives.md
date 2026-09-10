@@ -118,6 +118,36 @@ Two older fixes are pinned as regressions in the same test module: an apostrophe
 a double-quoted string (#235) and a trailing `#` comment after `]` (#258). The contract
 is `contracts/linter-lexer-context-v1.yaml`.
 
+## What 7.0.4 stopped guessing
+
+Five rules changed in 7.0.4, each on an issue filed from real use and each
+measured on the released 7.0.3 binary before the fix:
+
+- **MAKE010** (#256, #257) now reads the *command word* of each simple command
+  in a recipe — never a word inside a quoted string, never a subcommand such
+  as the `install` of `cargo install`, and never a plain recipe line where
+  make itself stops on failure. A command that already carries a tolerant
+  flag (`rm -f`, `rm -rf`, `mkdir -p`, `ln -sf`, `cp -f`) is not "missing
+  error handling"; a bare `cp b a` inside an `if` body still is.
+- **SEC011** (#264) recognises the early-return guard `[ -n "$WORK" ] || exit 1`
+  and `test -n "$WORK" || exit 1` above `rm -rf "$WORK"/…`, exactly as it
+  already recognised the `if` and `&&` spellings. An unguarded `rm -rf "$X"/…`
+  is still an error.
+- **DET002** (#263) detects a *bare* `date` whose stdout reaches a reproducible
+  sink — `date > VERSION`, `date >> log`, `date | tee file` — not only the
+  `$(date)` substitution form. `date` printed to the terminal is still not a
+  determinism finding (a compared timestamp is #232's DET005, a later release).
+- **SC2188** (#249) reports a redirection with no command when the line starts
+  with a file-descriptor digit: a lone `2>&1` is now reported like a lone `>&2`.
+  `cmd 2>&1`, `exec 2>&1`, heredoc bodies and comments are untouched.
+- **SC1009 / BRS0001** (#238) no longer reports a comment that merely *leads*
+  a non-empty block; a block whose body is only comments is still reported.
+
+The regression tests are `test_PMAT251_gh25{6,7}_*`, `test_PMAT251_gh26{3,4}_*`,
+`test_PMAT251_gh249_*` and `test_PMAT251_gh238_*`; the contracts are the
+`F-MAKE010-GH25*`, `F-SEC011-GH264-*`, `F-DET002-GH263-*`, `F-SC2188-GH249-*`
+and `F-SC1009-GH238-*` falsification entries under `contracts/`.
+
 ## Overview
 
 bashrs uses a **Popper Falsification** methodology - every valid bash pattern must pass the linter without triggering false positives. The test suite currently covers **230 structured tests** across two categories:

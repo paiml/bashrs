@@ -51,6 +51,7 @@ fn process_item(
                     let item_fn = ItemFn {
                         attrs: method.attrs,
                         vis: method.vis,
+                        modifiers: method.modifiers,
                         sig: method.sig,
                         block: Box::new(method.block),
                     };

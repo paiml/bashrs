@@ -158,3 +158,13 @@ falsification_tests:
   prediction: 'cargo test -p bashrs --lib linter reports 0 failures'
   test: cargo test -p bashrs --lib linter
   if_fails: 'Contract violation: logical-line folding regressed another rule'
+- id: F-SC2188-GH249-FD-PREFIXED-LONE
+  rule: A lone redirection prefixed by a file-descriptor digit is reported (GH-249)
+  prediction: 'lint_shell of "2>&1" alone (also "1>&2") contains SC2188, exactly as a lone ">&2" already did'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests_gh249::test_PMAT251_gh249_lone_fd_redirect_is_reported
+  if_fails: 'Contract violation: LONE_REDIRECT was not widened to match a leading fd digit, or the widening was reverted'
+- id: F-SC2188-GH249-ATTACHED-NOT-REPORTED
+  rule: A fd-prefixed redirection attached to a real command is never reported (GH-249)
+  prediction: 'lint_shell of "cmd 2>&1", "exec 2>&1", "2>&1 cmd", "1>&2 echo hi" and "3<file cat" (all accepted by dash -n) contains NO SC2188; a redirection inside a heredoc body or a comment is text and is also never reported'
+  test: cargo test -p bashrs --lib linter::rules::sc2188::tests_gh249::test_PMAT251_gh249_redirect_attached_to_a_command_is_not_reported
+  if_fails: 'Contract violation: widening LONE_REDIRECT to fd-prefixed lines traded the #249 false negative for a new false positive on a real command, or on masked heredoc/comment text'

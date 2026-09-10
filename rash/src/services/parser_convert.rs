@@ -283,12 +283,13 @@ fn convert_match_stmt(expr_match: &syn::ExprMatch) -> Result<Stmt> {
     // Convert each match arm
     let mut arms = Vec::new();
     for arm in &expr_match.arms {
-        let pattern = convert_pattern(&arm.pat)?;
-        let guard = if let Some((_, guard_expr)) = &arm.guard {
-            Some(convert_expr(guard_expr)?)
-        } else {
-            None
+        // syn 3.0 moved the match guard out of `Arm::guard` and into the pattern
+        // itself as `Pat::Guard(PatGuard { pat, guard, .. })`.
+        let (arm_pat, guard) = match &arm.pat {
+            syn::Pat::Guard(pat_guard) => (&*pat_guard.pat, Some(convert_expr(&pat_guard.guard)?)),
+            other => (other, None),
         };
+        let pattern = convert_pattern(arm_pat)?;
 
         // Convert the arm body (use convert_expr_stmt for statement-like expressions
         // like nested match, if, while, loop, and macros like println!)
