@@ -60,7 +60,7 @@ rayon = "1.10"  # Parallel file linting (Sprint 14)
 regex = "1.10"  # For linter pattern matching
 glob = "0.3"    # For .bashrsignore pattern matching (Issue #58)
 rustyline = { workspace = true, optional = true }  # REPL terminal line editing
-sysinfo = { version = "0.31", optional = true }  # For bench command - CPU/RAM/OS detection
+sysinfo = { version = "0.38", optional = true }  # For bench command - CPU/RAM/OS detection
 schemars = "1.2"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "7.0", path = "../bashrs-oracle", optional = true }  # ML-powered error classification
 aprender = { version = "0.27", optional = true }  # BPE tokenizer for SSC C-TOK-001
@@ -132,7 +132,7 @@ jugar-probar = "1.0"  # TUI/GUI testing framework with coverage tracking
 
 # Linux-only dev-dependencies (ptrace/syscall tracing)
 [target.'cfg(target_os = "linux")'.dev-dependencies]
-renacer = "0.7"  # Golden trace integration - syscall tracing for regression detection
+renacer = "0.9"  # Golden trace integration - syscall tracing for regression detection
 
 [[bench]]
 name = "transpilation"
