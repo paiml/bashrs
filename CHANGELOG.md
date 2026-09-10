@@ -28,9 +28,7 @@ bashrs corpus run — 17,942 entries, V2 Corpus Score 84.4/100 (B)
   B3 Behavioural    98.7%   6.9/7       G  Cross-shell    99.7%   5.0/5
   C  Coverage        0.0%   0.0/15   <- no coverage cache for this commit
 ```
-
-D (lint clean) is 17,940/17,942 before and after: none of the six fixes changed a
-transpiled-output lint result. `cargo test --workspace --lib`: 15,191 passed, 0 failed.
+D (lint clean) is 17,940/17,942 (7.0.2: 17,940/17,942). `cargo test --workspace --lib`: 15,207 passed, 0 failed.
 
 ### Fixed
 
@@ -38,15 +36,18 @@ transpiled-output lint result. `cargo test --workspace --lib`: 15,191 passed, 0 
   `$((n % i))` as a command substitution `$(`, reporting an unbalanced span
   `$((n % i)`. It now walks `shell_words::simple_commands`, which already knows that
   arithmetic expansion is one word that never splits, and reports an unquoted `$( … )`
-  or backtick substitution only in argument position with a balanced span and a
-  byte-accurate fix. Nested substitutions report once each.
+  or backtick substitution where the shell field-splits — argument, redirect target or
+  command position — with a balanced span and a byte-accurate fix. Nested substitutions
+  report once each.
 - **SC2046 reports only where the shell would field-split** (#262): an assignment RHS
   `x=$(date)`, a word inside double quotes and a `case $(uname) in` word are no longer
   reported.
 - **SC2047 asks `shell_words` whether a test operand is quoted** (#241). On
   `[ "$(echo "$coverage >= 80" | bc -l)" -eq 1 ]` the line-local quote count read
   `$coverage` as unquoted; it is quoted twice over. A `$(` opens a fresh quoting context
-  (POSIX 2.6.3) and the shared analysis already resolves it.
+  (POSIX 2.6.3) and the shared analysis already resolves it. The rule now looks only at
+  the operands of `[` itself: a variable inside a nested `$( … )` is SC2086's subject,
+  so `[ -n "$(echo $x)" ]` no longer draws SC2047 either.
 - **An escaped backtick inside double quotes is text** (#252). `"… \`[text](url)\` …"`
   opened a backtick context in the quote scanner and drew SC2006, SC2046 and SC2099.
   Inside `"…"` a backslash escapes exactly `$`, backtick, `"` and `\` (POSIX 2.2.3);
@@ -59,7 +60,8 @@ transpiled-output lint result. `cargo test --workspace --lib`: 15,191 passed, 0 
   preprocessor copied target lines through, so `dev-setup: ## Set up local dev
   environment` reached SC2168, which reported the English word `local` as a shell
   declaration at error severity. Non-recipe lines are now blank lines for the three shell
-  rules that run on Makefiles; MAKE001–MAKE020 read the original source as before.
+  rules that run on Makefiles; a backslash-continued recipe line stays a recipe line even
+  without a leading tab; MAKE001–MAKE020 read the original source as before.
 - Pinned as regressions, already clean since 6.68.0: an apostrophe inside a double-quoted
   string (#235) and a trailing `#` comment after `]` (#258).
 
@@ -76,7 +78,9 @@ transpiled-output lint result. `cargo test --workspace --lib`: 15,191 passed, 0 
 ` (`echo a\tb` prints `atb`). That is what the rule reports now; nothing inside
   single quotes. The single-quoted `echo` case was already SC2028/SC2271's.
 - **SC2276 reports a cat with a heredoc only when its output feeds a pipe.** `cat <<EOF`
-  to stdout or to a redirect is the ordinary way to emit text, not a useless cat.
+  to stdout or to a redirect is the ordinary way to emit text, not a useless cat. The rule
+  reads the masked copy, so a `|` inside quotes (`> "file|name"`) is not a pipe. A pipe on
+  a backslash-continued next line is not detected (known limitation, info severity).
 - **Self-admitted-debt markers restated** (PMAT-249). Eighteen `TODO` comments became
   documented limitations citing PMAT-249 or were dropped as stale, so the strict pre-commit
   SATD gate (threshold 5) can run; count after: 5.

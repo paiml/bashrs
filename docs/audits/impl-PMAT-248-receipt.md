@@ -117,3 +117,41 @@ Slots: never more than 3 live (hook log `events-bf151141….jsonl`: `live=2` at 
 | 6 | `…test_PMAT248_gh261` | 0 | 0 | sc1012 (10 tests, 3 rewritten from positive to negative) |
 
 Design decisions taken on the way, each named in the commit that carries it: SC2046 keeps a local balanced-paren scanner because `shell_words::Expansion` does not expose command substitutions (PMAT-250 lifts it); SC2006/SC2099/SC1109 read the masked copy (a real backtick inside `"…"` stays code, verified by `test_sc2099_in_string`); SC2276 fires only when the cat feeds a pipe; SC1012 takes shellcheck's meaning (unquoted `\t \n \r`), its single-quote meaning was a bashrs-only reading of a shellcheck code (the #236 class) already covered by SC2028/SC2271.
+
+## Phase 7 — quorum review of the diff (delegate, `quorum` width 3, `writes=false`)
+
+Lanes `a0b343b8…`, `40873d7c…`, `1990942f…` (agy 1.2.0, mapped by the delegate to `--mode plan --sandbox`; `mode=quorum` is not an agy-lane mode). Verdicts: revise, do-not-implement-as-written, revise; `lane-reduce agreed=false`. Lane weight was unequal (796 s / 64 steps with three measured findings; 449 s / 32 steps all asserted; 179 s / one step all asserted). The lanes escaped the sandbox: a `[[bin]]` stanza appended to the tracked `Cargo.toml` and 25 scratch files under `repo_root` — reverted and removed before any command was re-run. Every claim was then measured against the 7.0.3 build and the 7.0.2 binary:
+
+| claim | 7.0.2 | 7.0.3 before review | verdict | action |
+|---|---|---|---|---|
+| SC2046 misses `$(get_command)` in command position | SC2046 | none | **regression** | H: `CommandName` reportable again, only the `case … in` word exempt |
+| SC2047 fires on `[ -n "$(echo $x)" ]` | SC2047 | SC2047 | pre-existing wrong report (SC2086's subject) | G: only operands of the test itself; C's twin flipped |
+| `make_preprocess` blanks a backslash-continued recipe line without a tab | SC2168 seen | none | **regression** | I: continuation tracked by trailing-backslash parity |
+| SC2276 fires on `cat <<EOF > "file\|name"` | SC2276 | SC2276 | pre-existing wrong report | I: SC2276 reads the masked copy |
+| SC2276 misses a pipe on a continued line | fired (by over-firing) | none | accepted limitation, info severity, named in CHANGELOG | — (no shared logical-line helper; `sc2188::ends_with_continuation` is private) |
+| sc2046's `skip_quoted` mishandles `\` inside `'…'` | SC2046 | SC2046 | **claim false** (measured `echo $(echo 'a\') b`) | — |
+| sc2046 scanner "byte-for-byte" equals shell_words | — | — | asserted by one lane, contradicted by another; PMAT-250 lifts it | — |
+| SC1012 / SC2276 new semantics right | — | — | 2 of 3 lanes agree | — |
+
+Four RED tests (`test_PMAT248_review_*`) were committed before the fixes (`19425412dd`), each measured failing; workers G/H/I (sonnet, disjoint scopes, slots 3/3) turned them green; module tests, the guard test, clippy, fmt and per-function complexity re-run by the orchestrator before each commit.
+
+## Status log
+
+Blocks written at the Phase 7 boundary from the commit history and the hook log; `global` is
+`k_measured − 247` at the time of writing (not reconstructed per phase, which the transcript
+does not date-stamp per commit). `q=?`: no quota.json on this host.
+
+```
+[status] ticket=PMAT-248 phase=1/7 global=26/7(K=120) k_measured=273 sub=0/0 basis=docs/audits/impl-estimates.jsonl:L1-L2
+         mode=direct trigger=Q2 route=agy-plan w=1.00 basis=absent effort=1[U] q=? gate=PASS slots=2/3 denied=0
+         red=- filed=PMAT-249 blocker=- next=RED tests for phases 2/3 once the SATD gate lets a commit through
+[status] ticket=PMAT-248 phase=3/7 global=26/7(K=120) k_measured=273 sub=2/15 basis=docs/audits/impl-estimates.jsonl:L1-L2
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=FAIL slots=2/3 denied=0
+         red=gh241-RED(pending) filed=PMAT-250 blocker=- next=worker C re-applies the sc2047 rewrite lost to worker B's git checkout
+[status] ticket=PMAT-248 phase=6/7 global=26/7(K=120) k_measured=273 sub=3/15 basis=docs/audits/impl-estimates.jsonl:L1-L2
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=PASS slots=3/3 denied=0
+         red=- filed=- blocker=- next=release prep, quorum review of the diff
+[status] ticket=PMAT-248 phase=7/7 global=26/7(K=120) k_measured=273 sub=3/12 basis=docs/audits/impl-estimates.jsonl:L1-L2
+         mode=quorum:agy trigger=Q1 route=agy-quorum w=1.00 basis=absent effort=1[U] q=? gate=PASS slots=3/3 denied=0
+         red=- filed=- blocker=- next=corpus re-run, docs commit, push, PR, gate on merge commit, tag v7.0.3, publish
+```

@@ -79,6 +79,7 @@ equations:
     invariants:
     - 'in `[ "$(echo "$x >= 80" | bc)" -eq 1 ]` both $x and the outer $(...) are quoted - GH-241'
     - 'in `[ $x -eq 1 ]` $x is unquoted and SC2047 still reports'
+    - 'only operands of the test command itself are its subject; `$x` in `[ -n "$(echo $x)" ]` is an operand of echo and belongs to SC2086'
   recipe:
     formula: 'reaches_shell_rules(l) <=> is_recipe_line(l) ; a target line, a variable line or a Make comment never does'
     domain: 'l: a physical Makefile line'
@@ -169,7 +170,7 @@ falsification_tests:
   if_fails: 'Contract violation: SC2046 still tokenises "$((" as "$(" and reports a span with an unbalanced paren'
 - id: F-LCX-003
   rule: a $var inside a double-quoted nested command substitution is quoted
-  prediction: 'lint_shell on the GH-241 reproducer reports neither SC2047 nor SC2122; `[ $x -eq 1 ]` still reports SC2047'
+  prediction: 'lint_shell on the GH-241 reproducer reports neither SC2047 nor SC2122, nor does `[ -n "$(echo $x)" ]` (an operand of echo, not of `[`); `[ $x -eq 1 ]` still reports SC2047'
   test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh241_quoted_var_inside_nested_substitution_is_quoted
   if_fails: 'Contract violation: SC2047 decides quotedness by counting quotes on the line instead of asking shell_words (GH-228)'
 - id: F-LCX-004
@@ -179,7 +180,7 @@ falsification_tests:
   if_fails: 'Contract violation: SC1109 reads the raw source; it belongs in QUOTE_SENSITIVE_RULES or must consult heredoc_body_lines'
 - id: F-LCX-005
   rule: cat with a heredoc written to stdout is not a useless cat
-  prediction: 'lint_shell on the GH-242 reproducer reports no SC2276; `cat <<EOF | grep x` still reports SC2276'
+  prediction: 'lint_shell on the GH-242 reproducer reports no SC2276, nor does `cat <<EOF > "file|name"`; `cat <<EOF | grep x` still reports SC2276'
   test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh242_cat_heredoc_to_stdout_is_not_useless
   if_fails: 'Contract violation: SC2276 matches every `cat <<` instead of a cat whose only job is to feed a pipe'
 - id: F-LCX-006
@@ -189,7 +190,7 @@ falsification_tests:
   if_fails: 'Contract violation: the scanner opens a Backtick context on an escaped backtick, or the backtick rules read the raw source'
 - id: F-LCX-007
   rule: a Makefile target-line comment never reaches a shell rule
-  prediction: 'lint_makefile on the GH-255 reproducer reports no SC2168; a recipe line `<TAB>local x=1` still reports SC2168'
+  prediction: 'lint_makefile on the GH-255 reproducer reports no SC2168; a recipe line `<TAB>local x=1` still reports SC2168, and so does a backslash-continued recipe line without a leading tab'
   test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh255_makefile_target_comment_is_not_shell
   if_fails: 'Contract violation: preprocess_for_linting passes non-recipe lines to shell rules unchanged'
 - id: F-LCX-008
@@ -209,6 +210,6 @@ falsification_tests:
   if_fails: 'Contract violation: a fix widened a literal region or narrowed a rule enough to change transpiled-output lint results across the corpus'
 - id: F-LCX-011
   rule: SC2046 reports only where the shell would field-split
-  prediction: 'lint_shell reports no SC2046 on `x=$(date)`, on `echo "$(date)"` or on `case $(uname) in`; it still reports `echo $(date)`'
+  prediction: 'lint_shell reports no SC2046 on `x=$(date)`, on `echo "$(date)"` or on `case $(uname) in`; it still reports `echo $(date)` and `$(get_command)` in command position'
   test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh262_sc2046_only_where_the_shell_splits
   if_fails: 'Contract violation: SC2046 decides by regex again instead of by the word role shell_words assigns (GH-262)'
