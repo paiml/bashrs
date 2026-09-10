@@ -624,7 +624,7 @@ dependencies = [
  "aprender 0.27.8",
  "assert_cmd",
  "base64 0.23.1",
- "bashrs-oracle 6.65.0",
+ "bashrs-oracle",
  "batuta-common",
  "blake3",
  "chrono",
@@ -669,21 +669,6 @@ dependencies = [
  "tracing-subscriber",
  "verificar",
  "zstd 0.14.0",
-]
-
-[[package]]
-name = "bashrs-oracle"
-version = "6.65.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e146f9bc8339f3f25d8872af2eaf4e4acaf8a3ca941f62fbb8d27cea6af9abe3"
-dependencies = [
- "anyhow",
- "aprender 0.26.3",
- "regex",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tracing",
 ]
 
 [[package]]
