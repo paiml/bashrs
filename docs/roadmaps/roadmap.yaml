@@ -2108,11 +2108,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'CI lib-test job runs 48-57 min against a fixed 60-min limit: corpus-derived generators walk all 17,942 entries inside unit tests'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-09-09T19:57:32Z
-  updated: 2026-09-10T06:13:53.483852514+00:00
+  updated: 2026-09-10T06:23:24.789621308+00:00
   spec: null
   acceptance_criteria:
   - 'Run 34368312280 timed out 3x (10,791/15,201/15,201 of 15,202). After the training_config fix (PR #285) the remaining full-corpus walks in lib tests are: contract_validation::test_all_contracts_report 1,857-2,243 s; ssc_report::tests_extracted x2 1,035-1,326 s each (finish last); model_card::tests_extracted x6 567-825 s each; baselines::test_corpus_baseline_entries_from_matches_standalone 577-825 s. Same pattern: inject the registry (_from), test on the 30-entry tier-1 set, keep the public entry points = _from(&load_full()). Also: CI runs --workspace --lib so rash/tests/*_contract_tests.rs only run via make test-contracts; the 60-min timeout itself is paiml/.github sovereign-ci.yml (org decision).'
