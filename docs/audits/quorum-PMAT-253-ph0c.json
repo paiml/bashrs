@@ -1,0 +1,1267 @@
+{
+ "ticket": "PMAT-253",
+ "phase": "0c",
+ "lane": "quorum",
+ "width": 3,
+ "mode": "plan",
+ "dispatch": "PMAT-253/ph0.quorum3 quorum width 3 blind lanes on the uncovered spec scope",
+ "route": "route=agy-quorum w=1.00 basis=absent effort=1[U]",
+ "delegate_receipt": {
+  "ticket": "PMAT-253",
+  "phase": "ph0c",
+  "lane": "quorum",
+  "mode": "plan",
+  "mode_note": "agy-lane.sh --mode plan --timeout 25m --schema ~/.claude/skills/paiml-implement/agy/quorum-schema.json (no --writes, so sandboxed); dry-run calling form: lane-guard.sh --exec -- agy --sandbox --dangerously-skip-permissions --print-timeout 25m --output-format json --json-schema <quorum-schema.json> --mode plan -p=<prompt>. No --model and no --effort: the brief named neither.",
+  "width": 3,
+  "executor": "agy",
+  "agy_version": "1.2.0",
+  "writes": false,
+  "route": "route=agy-quorum w=1.00 basis=absent effort=1[U]",
+  "launch_epoch": 1789059463,
+  "not_before": 1789058840,
+  "conversations": [
+   "146cc8ab-fcb1-44db-ab50-efa216dfc3d4",
+   "3205cfe3-c581-4b18-8094-ada6f9870934",
+   "07e6d5ff-489c-4805-904a-c2f61e939e95"
+  ],
+  "child_conversations": 3,
+  "fanout": {
+   "printed": "children=4 method=lane-files label=consensus",
+   "children": 4,
+   "method": "lane-files",
+   "label": "consensus",
+   "children_corrected": 3,
+   "correction": "fanout.sh:100 counts find <out_dir> -maxdepth 1 -name lane-*.json, which also matches lane-reduce.json (written by the brief-specified -o before fanout ran). The lane files are lane-1.json, lane-2.json and lane-3.json, holding three distinct conversation_ids. label=consensus measures width (>=2 lane files), not agreement."
+  },
+  "results": [
+   {
+    "lane": 1,
+    "scope": "L1 quorum machinery transfer: phase 1, phase 2, section 1 row 2, ruleset required check",
+    "exit": 0,
+    "file": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-1.json",
+    "err_bytes": 0,
+    "status": "SUCCESS",
+    "conversation_id": "146cc8ab-fcb1-44db-ab50-efa216dfc3d4",
+    "duration_seconds": 208.611103466,
+    "num_turns": 1,
+    "verdict": "FAIL",
+    "review_verdict": "implement-with-changes",
+    "summary": "implement-with-changes. Phase 1 is too large and its acceptance command passes vacuously for un-enforced AI workers. Phase 2's acceptance command contains an escape hatch that makes it unfalsifiable. The claim that an empty diff is exempt in forjar is false, as the script explicitly rejects it. The quorum CI job must check out the base branch's script to prevent PR authors from bypassing the required check, and it must not use `if` or `paths` filters to skip runs for bots since skipped required checks block PRs.",
+    "findings": 4,
+    "by_kind": {
+     "KILL": 3,
+     "MISSING": 0,
+     "ACCEPT": 1
+    },
+    "grounding": {
+     "cited": 3,
+     "measured": 1
+    },
+    "brain": {
+     "tool_calls": {
+      "view_file": 9,
+      "list_dir": 2,
+      "grep_search": 0,
+      "run_command": 0,
+      "finish": 1
+     },
+     "checkpoint": null,
+     "fork_exec_failures": 0,
+     "unread_listed_sources": [
+      "/mnt/nvme-raid0/wt/bashrs-forjar-parity/.github/dependabot.yml (in its own .github list_dir at 447 bytes, never opened)",
+      "/mnt/nvme-raid0/wt/bashrs-forjar-parity/.github/required-status-checks.txt (listed at 5 bytes, never opened)",
+      "/mnt/nvme-raid0/wt/bashrs-forjar-parity/.pmat.yaml"
+     ]
+    }
+   },
+   {
+    "lane": 2,
+    "scope": "L2 dogfood and release transfer: phase 4, phase 7, ordering 3b, section 1 rows 6-10, R release-check, row 11 count 294",
+    "exit": 0,
+    "file": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-2.json",
+    "err_bytes": 0,
+    "status": "SUCCESS",
+    "conversation_id": "3205cfe3-c581-4b18-8094-ada6f9870934",
+    "duration_seconds": 205.869551198,
+    "num_turns": 1,
+    "verdict": "do-not-implement-as-written",
+    "review_verdict": "do-not-implement-as-written",
+    "summary": "do-not-implement-as-written. Phase 4 lacks a red run and cannot pass vacuously. Phase 7 reshaping old receipts is dead work because Gate A won't scan them. Ordering 3b's dependency on Phase 7 is thus flawed. Harness.sh correctly requires the IMPL marker and exactly one verdict line. Gate T correctly re-derives next.due and tracks release goals. Release-audit correctly asserts each release describes itself. Publish-from-tag correctly enforces a clean detached worktree. The dogfood skill name check prevents user-scope shadowing. Release-check correctly reports PENDING pre-tag. The falsification test count is 293 files and 1 directory, not 294 files.",
+    "findings": 10,
+    "by_kind": {
+     "KILL": 3,
+     "MISSING": 1,
+     "ACCEPT": 6
+    },
+    "grounding": {
+     "cited": 3,
+     "measured": 7
+    },
+    "brain": {
+     "tool_calls": {
+      "view_file": 18,
+      "list_dir": 2,
+      "grep_search": 2,
+      "run_command": 3,
+      "finish": 1
+     },
+     "checkpoint": "{{ CHECKPOINT 0 }} at step_index 17, before its run_command/list_dir/grep_search steps (19-31) and its last three view_file calls",
+     "fork_exec_failures": 0,
+     "run_command_note": "All 3 run_command calls executed (no fork/exec) with Cwd /home/noah/.gemini/antigravity-cli/scratch and failed with 'No such file or directory' on /mnt/nvme-raid0/... plus a sandbox-error notice",
+     "unread_listed_sources": []
+    }
+   },
+   {
+    "lane": 3,
+    "scope": "L3 CRUX transfer: phase 6, section 1 row 4, floor per format, four revised rosters, example row MAKE010",
+    "exit": 0,
+    "file": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-3.json",
+    "err_bytes": 0,
+    "status": "SUCCESS",
+    "conversation_id": "07e6d5ff-489c-4805-904a-c2f61e939e95",
+    "duration_seconds": 167.452630164,
+    "num_turns": 1,
+    "verdict": "FAIL",
+    "review_verdict": "implement-with-changes",
+    "summary": "implement-with-changes. Phase 6 exceeds single-worker limits and A_6 reads the active section, not just Unreleased. Row 4 misstates that the script reads any system (it uses a hard-coded list) and only Unreleased. bashrs must enforce the floor per format, which requires rewriting the script. The four rosters (shell, Makefile, Dockerfile, SEC) are world-class and have >=3 systems. The example MAKE010 row would fail the script as written because it lacks the hard-coded systems and has only 1 system in the row.",
+    "findings": 8,
+    "by_kind": {
+     "KILL": 3,
+     "MISSING": 0,
+     "ACCEPT": 5
+    },
+    "grounding": {
+     "cited": 6,
+     "measured": 2
+    },
+    "brain": {
+     "tool_calls": {
+      "view_file": 4,
+      "list_dir": 0,
+      "grep_search": 0,
+      "run_command": 0,
+      "finish": 1
+     },
+     "checkpoint": "{{ CHECKPOINT 0 }} at step_index 9, after all four reads and before finish: the verdict was composed from agy's summary of what it read",
+     "fork_exec_failures": 0,
+     "unread_listed_sources": [
+      "/mnt/nvme-raid0/wt/bashrs-forjar-parity/.claude/skills/adversarial-crux-pr/SKILL.md"
+     ]
+    }
+   }
+  ],
+  "verdict_tally": {
+   "implement-as-written": 0,
+   "implement-with-changes": 2,
+   "do-not-implement-as-written": 1,
+   "findings": 22,
+   "KILL": 9,
+   "MISSING": 1,
+   "ACCEPT": 12
+  },
+  "consensus": "None. All 18 dedup[] rows have exactly one lane in lanes_agreeing, because the three blind lanes had disjoint scopes, so no claim was made by more than one lane. fanout's label=consensus counts lane files (width) and says nothing about agreement.",
+  "dissent": [
+   {
+    "lane": 1,
+    "verdict": "FAIL",
+    "summary": "implement-with-changes. Phase 1 is too large and its acceptance command passes vacuously for un-enforced AI workers. Phase 2's acceptance command contains an escape hatch that makes it unfalsifiable. The claim that an empty diff is exempt in forjar is false, as the script explicitly rejects it. The quorum CI job must check out the base branch's script to prevent PR authors from bypassing the required check, and it must not use `if` or `paths` filters to skip runs for bots since skipped required checks block PRs.",
+    "findings": [
+     {
+      "claim": "KILL: [phase 1] A_1 is not properly falsifiable because the AI worker running the acceptance command is not in the enforced list; the gate will fall back to advisory mode and exit 0 even if diff_sha256 is altered, resulting in a vacuous pass. Also, Phase 1 is too large (porting 3 scripts, the spec, tests, and hooks) and exceeds 35 tool calls.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Split phase 1 into 1a (scripts/hooks) and 1b (tests/spec). In A_1, explicitly set QUORUM_ACTOR=noah@paiml.com in the environment so the gate runs in blocking mode and legitimately fails with exit 1 on a bad receipt.",
+      "grounding": "cited",
+      "line": 42
+     },
+     {
+      "claim": "KILL: [phase 2] A_2 is unfalsifiable because \"or the receipt records the refusal\" is an escape hatch allowing the worker to pass vacuously without the operator adding the check. Additionally, \"workflow green on this PR\" will pass vacuously for the AI worker since it is an advisory actor.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Remove the \"or the receipt records the refusal\" escape hatch from A_2. Require the workflow to be tested in blocking mode (e.g., by spoofing QUORUM_ACTOR) to prove it goes red on a bad receipt before passing on a good one.",
+      "grounding": "cited",
+      "line": 43
+     },
+     {
+      "claim": "KILL: [section 1 row 2 pre-push + quorum.yml] The claim \"empty diff exempt\" is false for forjar. quorum-gate.sh explicitly dies with exit 1 when the diff is empty but HEAD is ahead of the merge-base (a deletion is exempt, but an empty diff is rejected).",
+      "file": "/home/noah/src/forjar/scripts/quorum-gate.sh",
+      "fix": "Change \"empty diff exempt\" to \"empty diff rejected\" or \"deletion exempt\".",
+      "grounding": "measured",
+      "line": 258
+     },
+     {
+      "claim": "ACCEPT: [ruleset required check] (i) dependabot PRs: passed vacuously (actor dependabot[bot] is not in enforced_for, gate falls to advisory and exits 0). (ii) operator docs PRs: blocked (unless a receipt is provided, as the operator is enforced). (iii) release PRs: blocked. [X] Workflows triggered by GITHUB_TOKEN do not trigger other workflows; since the workflow never runs, the required check stays pending and blocks the PR. (iv) kind: triage PRs: blocked (without receipt) or passed (with receipt). (v) PRs from forks: passed vacuously (advisory exits 0), UNLESS [X] it's a first-time contributor requiring maintainer approval, where the workflow never runs until approved, blocking the PR.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Because [X] a skipped required status check remains Pending and blocks the PR, bashrs's quorum.yml MUST NOT attempt to optimize by adding 'if: github.actor != dependabot[bot]' or 'paths:' filters; it must always run and exit 0 for exempt actors. To prevent an enforced author from bypassing the required check by simply altering scripts/quorum-gate.sh in their PR, bashrs's quorum.yml MUST check out and run the gate script from the trusted base branch (e.g., github.base_ref), rather than executing the PR's version. enforce.json must remain identical to forjar's.",
+      "grounding": "cited",
+      "line": 57
+     }
+    ]
+   },
+   {
+    "lane": 2,
+    "verdict": "do-not-implement-as-written",
+    "summary": "do-not-implement-as-written. Phase 4 lacks a red run and cannot pass vacuously. Phase 7 reshaping old receipts is dead work because Gate A won't scan them. Ordering 3b's dependency on Phase 7 is thus flawed. Harness.sh correctly requires the IMPL marker and exactly one verdict line. Gate T correctly re-derives next.due and tracks release goals. Release-audit correctly asserts each release describes itself. Publish-from-tag correctly enforces a clean detached worktree. The dogfood skill name check prevents user-scope shadowing. Release-check correctly reports PENDING pre-tag. The falsification test count is 293 files and 1 directory, not 294 files.",
+    "findings": [
+     {
+      "claim": "KILL: [phase 4] A_4 is not falsifiable because it lacks a red run to prove it can fail (unlike 3a/3b/5), and it cannot pass vacuously because tagged.sh requires at least one tag; forjar's releases.yaml records dogfood and crux which bashrs 7.0.x lacks; the phase is sized at >= 36 turns, not <= 35.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Add a red run against a missing tag or unmapped ticket to A_4 to prove it can fail. Acknowledge that the phase requires >= 36 turns.",
+      "grounding": "cited",
+      "line": 46
+     },
+     {
+      "claim": "KILL: [phase 7] Reshaping old receipts is dead work. Since the orchestrator placed the harness floor at the first tag after the gates land (no backfill), Gate A will never scan old PRs. Also, impl-PMAT-252-receipt.md has 0 verdict: lines and no END marker, and impl-PMAT-251-receipt.md does not even exist.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Remove the requirement in Phase 7 to reshape old paiml-implement receipts, as Gate A will never evaluate them.",
+      "grounding": "measured",
+      "line": 49
+     },
+     {
+      "claim": "KILL: [ordering 3b] The doc claims 3b is last because gate A needs the receipt convention (7), but since floors apply after gates land with no backfill, Gate A on new PRs does not depend on reshaping old receipts. The dependency is flawed.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Correct the ordering rationale; Gate A's execution on new PRs does not depend on the retroactive receipt reshaping of Phase 7.",
+      "grounding": "cited",
+      "line": 51
+     },
+     {
+      "claim": "ACCEPT: [section 1 row 6 harness.sh gate A] The description correctly reflects that forjar's harness.sh requires the receipt to end with IMPL-<ticket>-RECEIPT-END and have exactly one line starting with verdict:.",
+      "file": "/home/noah/src/forjar/scripts/dogfood/harness.sh",
+      "fix": "None.",
+      "grounding": "measured",
+      "line": 98
+     },
+     {
+      "claim": "ACCEPT: [section 1 row 7 releases.yaml gate T] tagged.sh re-derives next.due from the previous tag's own creation instant (newest_cut + CADENCE_DAYS * 86400) and fails if it disagrees with releases.yaml; release-goal.yml opens and closes a release-goal issue.",
+      "file": "/home/noah/src/forjar/scripts/dogfood/tagged.sh",
+      "fix": "None.",
+      "grounding": "measured",
+      "line": 277
+     },
+     {
+      "claim": "ACCEPT: [section 1 row 8 release-audit] release-audit.yml correctly loops over published GitHub releases and runs release-object-audit.sh to ensure each release describes itself.",
+      "file": "/home/noah/src/forjar/.github/workflows/release-audit.yml",
+      "fix": "None.",
+      "grounding": "measured",
+      "line": 65
+     },
+     {
+      "claim": "ACCEPT: [section 1 row 9 publish-from-tag] publish-from-tag.sh correctly checks out a detached worktree, asserts it is pristine, refuses missing/bad tags, and publishes in dependency order (bashrs-oracle then bashrs).",
+      "file": "/home/noah/src/forjar/scripts/publish-from-tag.sh",
+      "fix": "None.",
+      "grounding": "measured",
+      "line": 114
+     },
+     {
+      "claim": "ACCEPT: [section 1 row 10 forjar-dogfood skill name] falsification_dogfood_skill_is_named.rs asserts that the first line of the frontmatter must be name: forjar-dogfood to prevent shadowing by user-scope skills.",
+      "file": "/home/noah/src/forjar/tests/falsification_dogfood_skill_is_named.rs",
+      "fix": "None.",
+      "grounding": "measured",
+      "line": 92
+     },
+     {
+      "claim": "ACCEPT: [R release-check] release-check.sh correctly reports PENDING pre-tag and checks the existence of release artifacts, complementing the internal integrity checks of release-audit.",
+      "file": "/home/noah/src/forjar/scripts/dogfood/release-check.sh",
+      "fix": "None.",
+      "grounding": "measured",
+      "line": 12
+     },
+     {
+      "claim": "MISSING: [section 1 row 11 count 294] The document claims 294 tests/falsification_*.rs files, but there are 293 files and 1 directory (falsification_*).",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Update the count to 293 files.",
+      "grounding": "cited",
+      "line": 25
+     }
+    ]
+   },
+   {
+    "lane": 3,
+    "verdict": "FAIL",
+    "summary": "implement-with-changes. Phase 6 exceeds single-worker limits and A_6 reads the active section, not just Unreleased. Row 4 misstates that the script reads any system (it uses a hard-coded list) and only Unreleased. bashrs must enforce the floor per format, which requires rewriting the script. The four rosters (shell, Makefile, Dockerfile, SEC) are world-class and have >=3 systems. The example MAKE010 row would fail the script as written because it lacks the hard-coded systems and has only 1 system in the row.",
+    "findings": [
+     {
+      "claim": "KILL: [phase 6] A_6 cannot pass vacuously (it explicitly fails on 0 bullets or thin rows), but it reads the active section (Unreleased or version) dynamically, not strictly [Unreleased]. Additionally, 3 blind agy lanes require 3 workers, which exceeds the ~35 tool calls limit for one worker.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Update phase 6 to acknowledge it is a multi-worker task, and clarify that A_6 reads the active CHANGELOG section dynamically.",
+      "grounding": "cited",
+      "line": 48
+     },
+     {
+      "claim": "KILL: [section 1 row 4 crux-reconcile gate H] The script counts >=3 systems strictly from its own hard-coded SYSTEMS array (line 44). It reads [Unreleased] but falls back to [<version>] if empty. It identifies bullets via ** at col 0 after a blank line. Row 4's wording is inaccurate because it omits the fallback and the hard-coded list constraint.",
+      "file": "/home/noah/src/forjar/scripts/dogfood/crux-reconcile.sh",
+      "fix": "Change row 4 to state the script counts systems against its hard-coded roster, falls back to [<version>] if [Unreleased] lacks bullets, and identifies bullets via ** at column 0.",
+      "grounding": "measured",
+      "line": 44
+     },
+     {
+      "claim": "KILL: [floor per format] forjar's script enforces >=3 systems globally. bashrs MUST enforce >=3 from the bullet's own format, but the script has no mechanism to know a bullet's format from the text. The plan misses that the script must be rewritten to infer format.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "Add to phase 3b or 6: \"rewrite crux-reconcile.sh to parse rule format prefixes (e.g. MAKE*) and enforce the >=3 floor against a format-specific roster.\"",
+      "grounding": "cited",
+      "line": 33
+     },
+     {
+      "claim": "ACCEPT: [roster shell incl. busybox ash] The revised shell roster is world-class and has >=3 systems (shellcheck, mvdan/sh, tree-sitter-bash, and reference shells).",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "none",
+      "grounding": "cited",
+      "line": 33
+     },
+     {
+      "claim": "ACCEPT: [roster Makefile] The revised Makefile roster is world-class and has >=3 systems (GNU make, BSD bmake, checkmake, unmake).",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "none",
+      "grounding": "cited",
+      "line": 33
+     },
+     {
+      "claim": "ACCEPT: [roster Dockerfile] The revised Dockerfile roster is world-class and has >=3 systems (hadolint, BuildKit, trivy/checkov, dockerfilelint).",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "none",
+      "grounding": "cited",
+      "line": 33
+     },
+     {
+      "claim": "ACCEPT: [roster SEC family incl. semgrep] The revised SEC roster is world-class and has >=3 systems. Dropping python-only bandit is correct.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+      "fix": "none",
+      "grounding": "cited",
+      "line": 33
+     },
+     {
+      "claim": "ACCEPT: [example row MAKE010] Example detail row provided. This row would FAIL crux-reconcile.sh as written because the script's hard-coded SYSTEMS array knows nothing of Make linters, and the script requires the matched row to contain >=3 systems (which forjar achieves via a separate summary table).",
+      "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/rash/src/linter/rules/make010.rs",
+      "fix": "| MAKE010 | GNU make | GNU make executes recipes without shell linting [X] | `should_flag` skips tolerant flags and last commands [V /mnt/nvme-raid0/wt/bashrs-forjar-parity/rash/src/linter/rules/make010.rs:218] | bashrs statically lints recipe shell logic | reject(bashrs provides static linting of recipe shell code which make tools do not) |",
+      "grounding": "measured",
+      "line": 218
+     }
+    ]
+   }
+  ],
+  "dedup": [
+   {
+    "file": "/home/noah/src/forjar/.github/workflows/release-audit.yml",
+    "line": 65,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "ACCEPT: [section 1 row 8 release-audit] release-audit.yml correctly loops over published GitHub releases and runs release-object-audit.sh to ensure each release describes itself."
+    ]
+   },
+   {
+    "file": "/home/noah/src/forjar/scripts/dogfood/crux-reconcile.sh",
+    "line": 44,
+    "lanes_agreeing": [
+     3
+    ],
+    "claims": [
+     "KILL: [section 1 row 4 crux-reconcile gate H] The script counts >=3 systems strictly from its own hard-coded SYSTEMS array (line 44). It reads [Unreleased] but falls back to [<version>] if empty. It identifies bullets via ** at col 0 after a blank line. Row 4's wording is inaccurate because it omits the fallback and the hard-coded list constraint."
+    ]
+   },
+   {
+    "file": "/home/noah/src/forjar/scripts/dogfood/harness.sh",
+    "line": 98,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "ACCEPT: [section 1 row 6 harness.sh gate A] The description correctly reflects that forjar's harness.sh requires the receipt to end with IMPL-<ticket>-RECEIPT-END and have exactly one line starting with verdict:."
+    ]
+   },
+   {
+    "file": "/home/noah/src/forjar/scripts/dogfood/release-check.sh",
+    "line": 12,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "ACCEPT: [R release-check] release-check.sh correctly reports PENDING pre-tag and checks the existence of release artifacts, complementing the internal integrity checks of release-audit."
+    ]
+   },
+   {
+    "file": "/home/noah/src/forjar/scripts/dogfood/tagged.sh",
+    "line": 277,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "ACCEPT: [section 1 row 7 releases.yaml gate T] tagged.sh re-derives next.due from the previous tag's own creation instant (newest_cut + CADENCE_DAYS * 86400) and fails if it disagrees with releases.yaml; release-goal.yml opens and closes a release-goal issue."
+    ]
+   },
+   {
+    "file": "/home/noah/src/forjar/scripts/publish-from-tag.sh",
+    "line": 114,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "ACCEPT: [section 1 row 9 publish-from-tag] publish-from-tag.sh correctly checks out a detached worktree, asserts it is pristine, refuses missing/bad tags, and publishes in dependency order (bashrs-oracle then bashrs)."
+    ]
+   },
+   {
+    "file": "/home/noah/src/forjar/scripts/quorum-gate.sh",
+    "line": 258,
+    "lanes_agreeing": [
+     1
+    ],
+    "claims": [
+     "KILL: [section 1 row 2 pre-push + quorum.yml] The claim \"empty diff exempt\" is false for forjar. quorum-gate.sh explicitly dies with exit 1 when the diff is empty but HEAD is ahead of the merge-base (a deletion is exempt, but an empty diff is rejected)."
+    ]
+   },
+   {
+    "file": "/home/noah/src/forjar/tests/falsification_dogfood_skill_is_named.rs",
+    "line": 92,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "ACCEPT: [section 1 row 10 forjar-dogfood skill name] falsification_dogfood_skill_is_named.rs asserts that the first line of the frontmatter must be name: forjar-dogfood to prevent shadowing by user-scope skills."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 25,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "MISSING: [section 1 row 11 count 294] The document claims 294 tests/falsification_*.rs files, but there are 293 files and 1 directory (falsification_*)."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 33,
+    "lanes_agreeing": [
+     3
+    ],
+    "claims": [
+     "ACCEPT: [roster Dockerfile] The revised Dockerfile roster is world-class and has >=3 systems (hadolint, BuildKit, trivy/checkov, dockerfilelint).",
+     "ACCEPT: [roster Makefile] The revised Makefile roster is world-class and has >=3 systems (GNU make, BSD bmake, checkmake, unmake).",
+     "ACCEPT: [roster SEC family incl. semgrep] The revised SEC roster is world-class and has >=3 systems. Dropping python-only bandit is correct.",
+     "ACCEPT: [roster shell incl. busybox ash] The revised shell roster is world-class and has >=3 systems (shellcheck, mvdan/sh, tree-sitter-bash, and reference shells).",
+     "KILL: [floor per format] forjar's script enforces >=3 systems globally. bashrs MUST enforce >=3 from the bullet's own format, but the script has no mechanism to know a bullet's format from the text. The plan misses that the script must be rewritten to infer format."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 42,
+    "lanes_agreeing": [
+     1
+    ],
+    "claims": [
+     "KILL: [phase 1] A_1 is not properly falsifiable because the AI worker running the acceptance command is not in the enforced list; the gate will fall back to advisory mode and exit 0 even if diff_sha256 is altered, resulting in a vacuous pass. Also, Phase 1 is too large (porting 3 scripts, the spec, tests, and hooks) and exceeds 35 tool calls."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 43,
+    "lanes_agreeing": [
+     1
+    ],
+    "claims": [
+     "KILL: [phase 2] A_2 is unfalsifiable because \"or the receipt records the refusal\" is an escape hatch allowing the worker to pass vacuously without the operator adding the check. Additionally, \"workflow green on this PR\" will pass vacuously for the AI worker since it is an advisory actor."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 46,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "KILL: [phase 4] A_4 is not falsifiable because it lacks a red run to prove it can fail (unlike 3a/3b/5), and it cannot pass vacuously because tagged.sh requires at least one tag; forjar's releases.yaml records dogfood and crux which bashrs 7.0.x lacks; the phase is sized at >= 36 turns, not <= 35."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 48,
+    "lanes_agreeing": [
+     3
+    ],
+    "claims": [
+     "KILL: [phase 6] A_6 cannot pass vacuously (it explicitly fails on 0 bullets or thin rows), but it reads the active section (Unreleased or version) dynamically, not strictly [Unreleased]. Additionally, 3 blind agy lanes require 3 workers, which exceeds the ~35 tool calls limit for one worker."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 49,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "KILL: [phase 7] Reshaping old receipts is dead work. Since the orchestrator placed the harness floor at the first tag after the gates land (no backfill), Gate A will never scan old PRs. Also, impl-PMAT-252-receipt.md has 0 verdict: lines and no END marker, and impl-PMAT-251-receipt.md does not even exist."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 51,
+    "lanes_agreeing": [
+     2
+    ],
+    "claims": [
+     "KILL: [ordering 3b] The doc claims 3b is last because gate A needs the receipt convention (7), but since floors apply after gates land with no backfill, Gate A on new PRs does not depend on reshaping old receipts. The dependency is flawed."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+    "line": 57,
+    "lanes_agreeing": [
+     1
+    ],
+    "claims": [
+     "ACCEPT: [ruleset required check] (i) dependabot PRs: passed vacuously (actor dependabot[bot] is not in enforced_for, gate falls to advisory and exits 0). (ii) operator docs PRs: blocked (unless a receipt is provided, as the operator is enforced). (iii) release PRs: blocked. [X] Workflows triggered by GITHUB_TOKEN do not trigger other workflows; since the workflow never runs, the required check stays pending and blocks the PR. (iv) kind: triage PRs: blocked (without receipt) or passed (with receipt). (v) PRs from forks: passed vacuously (advisory exits 0), UNLESS [X] it's a first-time contributor requiring maintainer approval, where the workflow never runs until approved, blocking the PR."
+    ]
+   },
+   {
+    "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/rash/src/linter/rules/make010.rs",
+    "line": 218,
+    "lanes_agreeing": [
+     3
+    ],
+    "claims": [
+     "ACCEPT: [example row MAKE010] Example detail row provided. This row would FAIL crux-reconcile.sh as written because the script's hard-coded SYSTEMS array knows nothing of Make linters, and the script requires the matched row to contain >=3 systems (which forjar achieves via a separate summary table)."
+    ]
+   }
+  ],
+  "uncovered": [],
+  "partial_reasons": [],
+  "coverage_source": "lanes",
+  "lane_reduce": {
+   "artifact": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-reduce.json",
+   "cmd": "lane-reduce.sh <out_dir> --width 3 --not-before 1789058840 --brief <out_dir>/coverage-items.json -o <out_dir>/lane-reduce.json",
+   "exit": 1,
+   "exit_meaning": "1 = agreed:false because no lane returned PASS; partial:false and nothing malfunctioned",
+   "agreed": false,
+   "partial": false,
+   "dedup": [
+    {
+     "file": "/home/noah/src/forjar/.github/workflows/release-audit.yml",
+     "line": 65,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "ACCEPT: [section 1 row 8 release-audit] release-audit.yml correctly loops over published GitHub releases and runs release-object-audit.sh to ensure each release describes itself."
+     ]
+    },
+    {
+     "file": "/home/noah/src/forjar/scripts/dogfood/crux-reconcile.sh",
+     "line": 44,
+     "lanes_agreeing": [
+      3
+     ],
+     "claims": [
+      "KILL: [section 1 row 4 crux-reconcile gate H] The script counts >=3 systems strictly from its own hard-coded SYSTEMS array (line 44). It reads [Unreleased] but falls back to [<version>] if empty. It identifies bullets via ** at col 0 after a blank line. Row 4's wording is inaccurate because it omits the fallback and the hard-coded list constraint."
+     ]
+    },
+    {
+     "file": "/home/noah/src/forjar/scripts/dogfood/harness.sh",
+     "line": 98,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "ACCEPT: [section 1 row 6 harness.sh gate A] The description correctly reflects that forjar's harness.sh requires the receipt to end with IMPL-<ticket>-RECEIPT-END and have exactly one line starting with verdict:."
+     ]
+    },
+    {
+     "file": "/home/noah/src/forjar/scripts/dogfood/release-check.sh",
+     "line": 12,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "ACCEPT: [R release-check] release-check.sh correctly reports PENDING pre-tag and checks the existence of release artifacts, complementing the internal integrity checks of release-audit."
+     ]
+    },
+    {
+     "file": "/home/noah/src/forjar/scripts/dogfood/tagged.sh",
+     "line": 277,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "ACCEPT: [section 1 row 7 releases.yaml gate T] tagged.sh re-derives next.due from the previous tag's own creation instant (newest_cut + CADENCE_DAYS * 86400) and fails if it disagrees with releases.yaml; release-goal.yml opens and closes a release-goal issue."
+     ]
+    },
+    {
+     "file": "/home/noah/src/forjar/scripts/publish-from-tag.sh",
+     "line": 114,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "ACCEPT: [section 1 row 9 publish-from-tag] publish-from-tag.sh correctly checks out a detached worktree, asserts it is pristine, refuses missing/bad tags, and publishes in dependency order (bashrs-oracle then bashrs)."
+     ]
+    },
+    {
+     "file": "/home/noah/src/forjar/scripts/quorum-gate.sh",
+     "line": 258,
+     "lanes_agreeing": [
+      1
+     ],
+     "claims": [
+      "KILL: [section 1 row 2 pre-push + quorum.yml] The claim \"empty diff exempt\" is false for forjar. quorum-gate.sh explicitly dies with exit 1 when the diff is empty but HEAD is ahead of the merge-base (a deletion is exempt, but an empty diff is rejected)."
+     ]
+    },
+    {
+     "file": "/home/noah/src/forjar/tests/falsification_dogfood_skill_is_named.rs",
+     "line": 92,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "ACCEPT: [section 1 row 10 forjar-dogfood skill name] falsification_dogfood_skill_is_named.rs asserts that the first line of the frontmatter must be name: forjar-dogfood to prevent shadowing by user-scope skills."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 25,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "MISSING: [section 1 row 11 count 294] The document claims 294 tests/falsification_*.rs files, but there are 293 files and 1 directory (falsification_*)."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 33,
+     "lanes_agreeing": [
+      3
+     ],
+     "claims": [
+      "ACCEPT: [roster Dockerfile] The revised Dockerfile roster is world-class and has >=3 systems (hadolint, BuildKit, trivy/checkov, dockerfilelint).",
+      "ACCEPT: [roster Makefile] The revised Makefile roster is world-class and has >=3 systems (GNU make, BSD bmake, checkmake, unmake).",
+      "ACCEPT: [roster SEC family incl. semgrep] The revised SEC roster is world-class and has >=3 systems. Dropping python-only bandit is correct.",
+      "ACCEPT: [roster shell incl. busybox ash] The revised shell roster is world-class and has >=3 systems (shellcheck, mvdan/sh, tree-sitter-bash, and reference shells).",
+      "KILL: [floor per format] forjar's script enforces >=3 systems globally. bashrs MUST enforce >=3 from the bullet's own format, but the script has no mechanism to know a bullet's format from the text. The plan misses that the script must be rewritten to infer format."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 42,
+     "lanes_agreeing": [
+      1
+     ],
+     "claims": [
+      "KILL: [phase 1] A_1 is not properly falsifiable because the AI worker running the acceptance command is not in the enforced list; the gate will fall back to advisory mode and exit 0 even if diff_sha256 is altered, resulting in a vacuous pass. Also, Phase 1 is too large (porting 3 scripts, the spec, tests, and hooks) and exceeds 35 tool calls."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 43,
+     "lanes_agreeing": [
+      1
+     ],
+     "claims": [
+      "KILL: [phase 2] A_2 is unfalsifiable because \"or the receipt records the refusal\" is an escape hatch allowing the worker to pass vacuously without the operator adding the check. Additionally, \"workflow green on this PR\" will pass vacuously for the AI worker since it is an advisory actor."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 46,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "KILL: [phase 4] A_4 is not falsifiable because it lacks a red run to prove it can fail (unlike 3a/3b/5), and it cannot pass vacuously because tagged.sh requires at least one tag; forjar's releases.yaml records dogfood and crux which bashrs 7.0.x lacks; the phase is sized at >= 36 turns, not <= 35."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 48,
+     "lanes_agreeing": [
+      3
+     ],
+     "claims": [
+      "KILL: [phase 6] A_6 cannot pass vacuously (it explicitly fails on 0 bullets or thin rows), but it reads the active section (Unreleased or version) dynamically, not strictly [Unreleased]. Additionally, 3 blind agy lanes require 3 workers, which exceeds the ~35 tool calls limit for one worker."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 49,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "KILL: [phase 7] Reshaping old receipts is dead work. Since the orchestrator placed the harness floor at the first tag after the gates land (no backfill), Gate A will never scan old PRs. Also, impl-PMAT-252-receipt.md has 0 verdict: lines and no END marker, and impl-PMAT-251-receipt.md does not even exist."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 51,
+     "lanes_agreeing": [
+      2
+     ],
+     "claims": [
+      "KILL: [ordering 3b] The doc claims 3b is last because gate A needs the receipt convention (7), but since floors apply after gates land with no backfill, Gate A on new PRs does not depend on reshaping old receipts. The dependency is flawed."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "line": 57,
+     "lanes_agreeing": [
+      1
+     ],
+     "claims": [
+      "ACCEPT: [ruleset required check] (i) dependabot PRs: passed vacuously (actor dependabot[bot] is not in enforced_for, gate falls to advisory and exits 0). (ii) operator docs PRs: blocked (unless a receipt is provided, as the operator is enforced). (iii) release PRs: blocked. [X] Workflows triggered by GITHUB_TOKEN do not trigger other workflows; since the workflow never runs, the required check stays pending and blocks the PR. (iv) kind: triage PRs: blocked (without receipt) or passed (with receipt). (v) PRs from forks: passed vacuously (advisory exits 0), UNLESS [X] it's a first-time contributor requiring maintainer approval, where the workflow never runs until approved, blocking the PR."
+     ]
+    },
+    {
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/rash/src/linter/rules/make010.rs",
+     "line": 218,
+     "lanes_agreeing": [
+      3
+     ],
+     "claims": [
+      "ACCEPT: [example row MAKE010] Example detail row provided. This row would FAIL crux-reconcile.sh as written because the script's hard-coded SYSTEMS array knows nothing of Make linters, and the script requires the matched row to contain >=3 systems (which forjar achieves via a separate summary table)."
+     ]
+    }
+   ],
+   "uncovered": [],
+   "dissent": [
+    {
+     "lane": 1,
+     "verdict": "FAIL",
+     "summary": "implement-with-changes. Phase 1 is too large and its acceptance command passes vacuously for un-enforced AI workers. Phase 2's acceptance command contains an escape hatch that makes it unfalsifiable. The claim that an empty diff is exempt in forjar is false, as the script explicitly rejects it. The quorum CI job must check out the base branch's script to prevent PR authors from bypassing the required check, and it must not use `if` or `paths` filters to skip runs for bots since skipped required checks block PRs.",
+     "findings": [
+      {
+       "claim": "KILL: [phase 1] A_1 is not properly falsifiable because the AI worker running the acceptance command is not in the enforced list; the gate will fall back to advisory mode and exit 0 even if diff_sha256 is altered, resulting in a vacuous pass. Also, Phase 1 is too large (porting 3 scripts, the spec, tests, and hooks) and exceeds 35 tool calls.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Split phase 1 into 1a (scripts/hooks) and 1b (tests/spec). In A_1, explicitly set QUORUM_ACTOR=noah@paiml.com in the environment so the gate runs in blocking mode and legitimately fails with exit 1 on a bad receipt.",
+       "grounding": "cited",
+       "line": 42
+      },
+      {
+       "claim": "KILL: [phase 2] A_2 is unfalsifiable because \"or the receipt records the refusal\" is an escape hatch allowing the worker to pass vacuously without the operator adding the check. Additionally, \"workflow green on this PR\" will pass vacuously for the AI worker since it is an advisory actor.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Remove the \"or the receipt records the refusal\" escape hatch from A_2. Require the workflow to be tested in blocking mode (e.g., by spoofing QUORUM_ACTOR) to prove it goes red on a bad receipt before passing on a good one.",
+       "grounding": "cited",
+       "line": 43
+      },
+      {
+       "claim": "KILL: [section 1 row 2 pre-push + quorum.yml] The claim \"empty diff exempt\" is false for forjar. quorum-gate.sh explicitly dies with exit 1 when the diff is empty but HEAD is ahead of the merge-base (a deletion is exempt, but an empty diff is rejected).",
+       "file": "/home/noah/src/forjar/scripts/quorum-gate.sh",
+       "fix": "Change \"empty diff exempt\" to \"empty diff rejected\" or \"deletion exempt\".",
+       "grounding": "measured",
+       "line": 258
+      },
+      {
+       "claim": "ACCEPT: [ruleset required check] (i) dependabot PRs: passed vacuously (actor dependabot[bot] is not in enforced_for, gate falls to advisory and exits 0). (ii) operator docs PRs: blocked (unless a receipt is provided, as the operator is enforced). (iii) release PRs: blocked. [X] Workflows triggered by GITHUB_TOKEN do not trigger other workflows; since the workflow never runs, the required check stays pending and blocks the PR. (iv) kind: triage PRs: blocked (without receipt) or passed (with receipt). (v) PRs from forks: passed vacuously (advisory exits 0), UNLESS [X] it's a first-time contributor requiring maintainer approval, where the workflow never runs until approved, blocking the PR.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Because [X] a skipped required status check remains Pending and blocks the PR, bashrs's quorum.yml MUST NOT attempt to optimize by adding 'if: github.actor != dependabot[bot]' or 'paths:' filters; it must always run and exit 0 for exempt actors. To prevent an enforced author from bypassing the required check by simply altering scripts/quorum-gate.sh in their PR, bashrs's quorum.yml MUST check out and run the gate script from the trusted base branch (e.g., github.base_ref), rather than executing the PR's version. enforce.json must remain identical to forjar's.",
+       "grounding": "cited",
+       "line": 57
+      }
+     ]
+    },
+    {
+     "lane": 2,
+     "verdict": "do-not-implement-as-written",
+     "summary": "do-not-implement-as-written. Phase 4 lacks a red run and cannot pass vacuously. Phase 7 reshaping old receipts is dead work because Gate A won't scan them. Ordering 3b's dependency on Phase 7 is thus flawed. Harness.sh correctly requires the IMPL marker and exactly one verdict line. Gate T correctly re-derives next.due and tracks release goals. Release-audit correctly asserts each release describes itself. Publish-from-tag correctly enforces a clean detached worktree. The dogfood skill name check prevents user-scope shadowing. Release-check correctly reports PENDING pre-tag. The falsification test count is 293 files and 1 directory, not 294 files.",
+     "findings": [
+      {
+       "claim": "KILL: [phase 4] A_4 is not falsifiable because it lacks a red run to prove it can fail (unlike 3a/3b/5), and it cannot pass vacuously because tagged.sh requires at least one tag; forjar's releases.yaml records dogfood and crux which bashrs 7.0.x lacks; the phase is sized at >= 36 turns, not <= 35.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Add a red run against a missing tag or unmapped ticket to A_4 to prove it can fail. Acknowledge that the phase requires >= 36 turns.",
+       "grounding": "cited",
+       "line": 46
+      },
+      {
+       "claim": "KILL: [phase 7] Reshaping old receipts is dead work. Since the orchestrator placed the harness floor at the first tag after the gates land (no backfill), Gate A will never scan old PRs. Also, impl-PMAT-252-receipt.md has 0 verdict: lines and no END marker, and impl-PMAT-251-receipt.md does not even exist.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Remove the requirement in Phase 7 to reshape old paiml-implement receipts, as Gate A will never evaluate them.",
+       "grounding": "measured",
+       "line": 49
+      },
+      {
+       "claim": "KILL: [ordering 3b] The doc claims 3b is last because gate A needs the receipt convention (7), but since floors apply after gates land with no backfill, Gate A on new PRs does not depend on reshaping old receipts. The dependency is flawed.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Correct the ordering rationale; Gate A's execution on new PRs does not depend on the retroactive receipt reshaping of Phase 7.",
+       "grounding": "cited",
+       "line": 51
+      },
+      {
+       "claim": "ACCEPT: [section 1 row 6 harness.sh gate A] The description correctly reflects that forjar's harness.sh requires the receipt to end with IMPL-<ticket>-RECEIPT-END and have exactly one line starting with verdict:.",
+       "file": "/home/noah/src/forjar/scripts/dogfood/harness.sh",
+       "fix": "None.",
+       "grounding": "measured",
+       "line": 98
+      },
+      {
+       "claim": "ACCEPT: [section 1 row 7 releases.yaml gate T] tagged.sh re-derives next.due from the previous tag's own creation instant (newest_cut + CADENCE_DAYS * 86400) and fails if it disagrees with releases.yaml; release-goal.yml opens and closes a release-goal issue.",
+       "file": "/home/noah/src/forjar/scripts/dogfood/tagged.sh",
+       "fix": "None.",
+       "grounding": "measured",
+       "line": 277
+      },
+      {
+       "claim": "ACCEPT: [section 1 row 8 release-audit] release-audit.yml correctly loops over published GitHub releases and runs release-object-audit.sh to ensure each release describes itself.",
+       "file": "/home/noah/src/forjar/.github/workflows/release-audit.yml",
+       "fix": "None.",
+       "grounding": "measured",
+       "line": 65
+      },
+      {
+       "claim": "ACCEPT: [section 1 row 9 publish-from-tag] publish-from-tag.sh correctly checks out a detached worktree, asserts it is pristine, refuses missing/bad tags, and publishes in dependency order (bashrs-oracle then bashrs).",
+       "file": "/home/noah/src/forjar/scripts/publish-from-tag.sh",
+       "fix": "None.",
+       "grounding": "measured",
+       "line": 114
+      },
+      {
+       "claim": "ACCEPT: [section 1 row 10 forjar-dogfood skill name] falsification_dogfood_skill_is_named.rs asserts that the first line of the frontmatter must be name: forjar-dogfood to prevent shadowing by user-scope skills.",
+       "file": "/home/noah/src/forjar/tests/falsification_dogfood_skill_is_named.rs",
+       "fix": "None.",
+       "grounding": "measured",
+       "line": 92
+      },
+      {
+       "claim": "ACCEPT: [R release-check] release-check.sh correctly reports PENDING pre-tag and checks the existence of release artifacts, complementing the internal integrity checks of release-audit.",
+       "file": "/home/noah/src/forjar/scripts/dogfood/release-check.sh",
+       "fix": "None.",
+       "grounding": "measured",
+       "line": 12
+      },
+      {
+       "claim": "MISSING: [section 1 row 11 count 294] The document claims 294 tests/falsification_*.rs files, but there are 293 files and 1 directory (falsification_*).",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Update the count to 293 files.",
+       "grounding": "cited",
+       "line": 25
+      }
+     ]
+    },
+    {
+     "lane": 3,
+     "verdict": "FAIL",
+     "summary": "implement-with-changes. Phase 6 exceeds single-worker limits and A_6 reads the active section, not just Unreleased. Row 4 misstates that the script reads any system (it uses a hard-coded list) and only Unreleased. bashrs must enforce the floor per format, which requires rewriting the script. The four rosters (shell, Makefile, Dockerfile, SEC) are world-class and have >=3 systems. The example MAKE010 row would fail the script as written because it lacks the hard-coded systems and has only 1 system in the row.",
+     "findings": [
+      {
+       "claim": "KILL: [phase 6] A_6 cannot pass vacuously (it explicitly fails on 0 bullets or thin rows), but it reads the active section (Unreleased or version) dynamically, not strictly [Unreleased]. Additionally, 3 blind agy lanes require 3 workers, which exceeds the ~35 tool calls limit for one worker.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Update phase 6 to acknowledge it is a multi-worker task, and clarify that A_6 reads the active CHANGELOG section dynamically.",
+       "grounding": "cited",
+       "line": 48
+      },
+      {
+       "claim": "KILL: [section 1 row 4 crux-reconcile gate H] The script counts >=3 systems strictly from its own hard-coded SYSTEMS array (line 44). It reads [Unreleased] but falls back to [<version>] if empty. It identifies bullets via ** at col 0 after a blank line. Row 4's wording is inaccurate because it omits the fallback and the hard-coded list constraint.",
+       "file": "/home/noah/src/forjar/scripts/dogfood/crux-reconcile.sh",
+       "fix": "Change row 4 to state the script counts systems against its hard-coded roster, falls back to [<version>] if [Unreleased] lacks bullets, and identifies bullets via ** at column 0.",
+       "grounding": "measured",
+       "line": 44
+      },
+      {
+       "claim": "KILL: [floor per format] forjar's script enforces >=3 systems globally. bashrs MUST enforce >=3 from the bullet's own format, but the script has no mechanism to know a bullet's format from the text. The plan misses that the script must be rewritten to infer format.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "Add to phase 3b or 6: \"rewrite crux-reconcile.sh to parse rule format prefixes (e.g. MAKE*) and enforce the >=3 floor against a format-specific roster.\"",
+       "grounding": "cited",
+       "line": 33
+      },
+      {
+       "claim": "ACCEPT: [roster shell incl. busybox ash] The revised shell roster is world-class and has >=3 systems (shellcheck, mvdan/sh, tree-sitter-bash, and reference shells).",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "none",
+       "grounding": "cited",
+       "line": 33
+      },
+      {
+       "claim": "ACCEPT: [roster Makefile] The revised Makefile roster is world-class and has >=3 systems (GNU make, BSD bmake, checkmake, unmake).",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "none",
+       "grounding": "cited",
+       "line": 33
+      },
+      {
+       "claim": "ACCEPT: [roster Dockerfile] The revised Dockerfile roster is world-class and has >=3 systems (hadolint, BuildKit, trivy/checkov, dockerfilelint).",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "none",
+       "grounding": "cited",
+       "line": 33
+      },
+      {
+       "claim": "ACCEPT: [roster SEC family incl. semgrep] The revised SEC roster is world-class and has >=3 systems. Dropping python-only bandit is correct.",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+       "fix": "none",
+       "grounding": "cited",
+       "line": 33
+      },
+      {
+       "claim": "ACCEPT: [example row MAKE010] Example detail row provided. This row would FAIL crux-reconcile.sh as written because the script's hard-coded SYSTEMS array knows nothing of Make linters, and the script requires the matched row to contain >=3 systems (which forjar achieves via a separate summary table).",
+       "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/rash/src/linter/rules/make010.rs",
+       "fix": "| MAKE010 | GNU make | GNU make executes recipes without shell linting [X] | `should_flag` skips tolerant flags and last commands [V /mnt/nvme-raid0/wt/bashrs-forjar-parity/rash/src/linter/rules/make010.rs:218] | bashrs statically lints recipe shell logic | reject(bashrs provides static linting of recipe shell code which make tools do not) |",
+       "grounding": "measured",
+       "line": 218
+      }
+     ]
+    }
+   ],
+   "partial_reasons": [],
+   "coverage_source": "lanes"
+  },
+  "coverage_note": "uncovered is [] (0 of the 18 ph0b items). Each prompt required every claim to open with KILL:/MISSING:/ACCEPT: plus the scope's item label in square brackets, and the labels carry the coverage tokens. So coverage here means that each item has a labelled finding. It does not measure depth: open_questions 5-6 name the items that were answered thinly.",
+  "item_assignment": "L1: phase 1, phase 2, section 1 row 2 (pre-push + quorum.yml), ruleset required check. L2: phase 4, phase 7, ordering 3b, rows 6 (harness.sh), 7 (releases.yaml), 8 (release-audit), 9 (publish-from-tag) and 10 (forjar-dogfood), plus R (release-check) and the row 11 count (294). None of the brief's three scopes named R or 294; the delegate put both in L2 because its reading list holds release-check.sh and the falsification tests. L3: phase 6, row 4 (crux-reconcile), the floor per format, the four revised rosters (busybox ash, semgrep), and the example row for MAKE010.",
+  "dispatch_form": "3 BLIND lanes, one scope each and no lane saw another's prompt scope or output. Each lane was launched detached (setsid nohup) from its own empty cwd (out_dir/cwd-lane-<i>) via out_dir/run-lane-<i>.sh. The orchestrator's re-measured facts were inlined in all three prompts and the revised CRUX roster in L3's only. Every claim had to open with KILL:/MISSING:/ACCEPT: and the scope's item label in square brackets, with absolute paths, and [X] on recalled third-party behaviour.",
+  "document": {
+   "path": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+   "commit": "bd0933a1e2",
+   "lines": 104,
+   "sha256": "72eae09a95a8aba78fea8c603d3b73869b3603566376ee67a18eaac290fbb531",
+   "inlined": "full text with cat -n line numbers at the end of every lane prompt"
+  },
+  "provenance": [
+   "L1 KILL [section 1 row 2] (an empty diff is not exempt in forjar) is supported by L1's own view_file of /home/noah/src/forjar/scripts/quorum-gate.sh lines 250-340. Its transcript shows :256-257: An empty diff with commits ahead of the base is not 'nothing to review' -- it is a doc-only or whitespace-only change, or a pathspec that ...",
+   "L3 KILL [section 1 row 4] (the floor counts against a hard-coded roster) is supported by L3's transcript. It shows /home/noah/src/forjar/scripts/dogfood/crux-reconcile.sh:44 SYSTEMS=( Ansible Salt Chef Puppet CFEngine pyinfra cdist Terraform OpenTofu Pulumi CDKTF Crossplane Nix Guix bootc OSTree ... and :53 MIN_SYSTEMS=3. The excerpt is an infrastructure-as-code roster and names none of the bashrs roster's systems.",
+   "L2 KILL [phase 7] (impl-PMAT-251-receipt.md does not exist) is supported by L2's list_dir of /mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/audits (brain step 25). It lists 13 files, and the only impl-*-receipt.md files are PMAT-245, PMAT-248 and PMAT-252. The same listing contradicts the document at bd0933a1e2 in this worktree: line 20 names receipts for PMAT-245/247/248/252/251 and line 27 says (5), but PMAT-247 is also absent. The lane did not flag 247 or the count.",
+   "L2's claim that impl-PMAT-252-receipt.md has 0 verdict: lines and no END marker rests on two grep_search calls that returned 'No results found' (brain steps 29 and 31). Its run_command grep (step 27) failed inside the sandbox with 'No such file or directory'. The claim agrees with the document's own row 6.",
+   "L2 ACCEPT [section 1 row 9] (measured at /home/noah/src/forjar/scripts/publish-from-tag.sh:114) is partly conflated. Line :114 is 'run git worktree add --detach $WT $TAG', and it is followed by the strict clean-tree check, which supports 'detached worktree, asserts clean'. But forjar's script has 0 mentions of oracle in its 260 lines (delegate grep -ci). The claim's '(bashrs-oracle then bashrs)' order comes from the document's line 47, which the lane viewed in the working-tree copy. The A_5 question (does forjar refuse version != tag, and before any cargo call?) went unanswered.",
+   "run_command on agy 1.2.0 under --sandbox: L2's three calls hit no fork/exec failure. They ran with Cwd /home/noah/.gemini/antigravity-cli/scratch, not the lane cwd, and could not see /mnt/nvme-raid0, while view_file, list_dir and grep_search read the same paths. No lane ran a successful shell command; every measured finding comes from view_file, list_dir or grep_search.",
+   "fork/exec: no failures in any lane. The only fork/exec string in each transcript is the prompt's own fallback instruction.",
+   "CHECKPOINT: L2 hit one at step_index 17 and L3 at step_index 9. L3's verdict and L2's early-read ACCEPTs (rows 6-10, R) were therefore written after agy summarised and discarded earlier context. L1 had no checkpoint.",
+   "Grounding: 10 of 22 findings are measured and 12 are cited; none are asserted. L3's four roster ACCEPTs are cited with no [X] marker in the claim text, although the prompt required [X] on recalled third-party behaviour."
+  ],
+  "containment": {
+   "bashrs_worktree": {
+    "path": "/mnt/nvme-raid0/wt/bashrs-forjar-parity",
+    "head_pre": "bd0933a1e2afeb2d9384659f62b2349de5e1dd75",
+    "head_post": "bd0933a1e2afeb2d9384659f62b2349de5e1dd75",
+    "status_porcelain_uall": "byte-identical pre/post (0 lines)",
+    "diff_stat": "byte-identical (empty)",
+    "newer_than_launch": "none (find -newermt @1789059463, pruning .git and target)"
+   },
+   "forjar": {
+    "path": "/home/noah/src/forjar",
+    "head_pre": "8cee99167135d37b4ec28360d24bac7b8e81aeb2",
+    "head_post": "8cee99167135d37b4ec28360d24bac7b8e81aeb2",
+    "status_porcelain_uall": "byte-identical pre/post (8 pre-existing lines)",
+    "diff_stat": "byte-identical (empty)",
+    "newer_than_launch": "none"
+   },
+   "lane_cwds": "cwd-lane-1, cwd-lane-2 and cwd-lane-3 all empty after the run",
+   "orchestrator_commits_during_run": "none observed: the worktree HEAD stayed at bd0933a1e2, so no change to the two orchestrator paths landed during the lane window",
+   "verdict": "contained"
+  },
+  "open_questions": [
+   "1. L1's quorum.yml fix ('must not use if: or paths: filters, because a skipped required check stays Pending') rests on [X] recall. [X] (delegate recall, unverified): GitHub treats a workflow that never triggers (paths or branches filters) differently from a job skipped by a job-level if:. The first leaves the required check 'Expected' and blocks the merge. The second reports as skipped, which satisfies the check. Verify this before adopting L1's blanket ban on if:.",
+   "2. L1 judged dependabot[bot] PRs 'passed vacuously' (advisory exit 0) without opening /mnt/nvme-raid0/wt/bashrs-forjar-parity/.github/dependabot.yml (447 bytes) or required-status-checks.txt (5 bytes), both of which appear in its own list_dir. It also did not examine whether the bashrs Quorum job needs a secret or a write token that a dependabot-triggered or fork-triggered run would not get [X].",
+   "3. forjar /home/noah/src/forjar/.quorum/enforce.json (read by the delegate) has enforced_for ['noah@paiml.com','noah.gift@gmail.com','noahgift'] and default 'advisory'. It matches case-insensitively against the author email, its local-part and QUORUM_ACTOR. L1's 'identical to forjar's' therefore means the same three operator identities, and its A_1 fix (QUORUM_ACTOR=noah@paiml.com) makes the gate enforce for the worker's run.",
+   "4. The document is internally inconsistent about gate A's window. Section 4 decision 2 (orchestrator) puts the floors at the first tag after the gates land, with no backfill, while A_7 says 'GATE A PASS over the window since v7.0.4'. L2's KILLs of phase 7 and the 3b ordering take the first reading. Fable adjudicates which one binds.",
+   "5. L3's example MAKE010 row names ONE system (GNU make) with disposition reject(...). By the lane's own account it would FAIL crux-reconcile.sh, which wants >=3 systems per row from a hard-coded roster. Do not paste it as a model row.",
+   "6. L3 accepted all four revised rosters (shell, Makefile, Dockerfile, SEC) as world-class and >=3 each, with no per-entry critique. It did not ask whether dockerfilelint and unmake are maintained, or whether tree-sitter-bash, a parser, is a behavioural comparator, and it never opened .claude/skills/adversarial-crux-pr/SKILL.md. Treat the roster verdict as unexamined recall rather than review.",
+   "7. fanout.sh:100 defect: find <out_dir> -maxdepth 1 -name 'lane-*.json' also counts lane-reduce.json, which the brief's own -o path writes into out_dir. It printed children=4 at width 3. Fix: match 'lane-[0-9]*.json'.",
+   "8. Re-measure which impl-*-receipt.md files exist on main versus this branch. L2's list_dir at bd0933a1e2 shows 245/248/252 only, against the document's 245/247/248/252/251 (5)."
+  ],
+  "partial": false,
+  "delegate_partial_reasons": [],
+  "files": {
+   "out_dir": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c",
+   "prompts": [
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/prompt-lane-1.txt",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/prompt-lane-2.txt",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/prompt-lane-3.txt"
+   ],
+   "runners": [
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/run-lane-1.sh",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/run-lane-2.sh",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/run-lane-3.sh"
+   ],
+   "lane_json": [
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-1.json",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-2.json",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-3.json"
+   ],
+   "lane_err": [
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-1.err",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-2.err",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-3.err"
+   ],
+   "lane_exit": [
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-1.exit",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-2.exit",
+    "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-3.exit"
+   ],
+   "lane_reduce": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/lane-reduce.json",
+   "coverage_items": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/coverage-items.json",
+   "fanout": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/fanout.txt",
+   "snapshots": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/{pre,post}-{head,status,diffstat}-{bashrs,forjar}.txt",
+   "launcher": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/build-and-launch.sh",
+   "brain_transcripts": [
+    "/home/noah/.gemini/antigravity-cli/brain/146cc8ab-fcb1-44db-ab50-efa216dfc3d4/.system_generated/logs/transcript_full.jsonl",
+    "/home/noah/.gemini/antigravity-cli/brain/3205cfe3-c581-4b18-8094-ada6f9870934/.system_generated/logs/transcript_full.jsonl",
+    "/home/noah/.gemini/antigravity-cli/brain/07e6d5ff-489c-4805-904a-c2f61e939e95/.system_generated/logs/transcript_full.jsonl"
+   ],
+   "receipt": "/run/user/1000/paiml-implement/agy/PMAT-253/bf151141-60ff-4e66-9794-31fe5c18982d/ph0c/receipt-final.json"
+  },
+  "receipt_lint": {
+   "cmd": "receipt-lint.sh <out_dir>/receipt-final.json --kind delegate",
+   "exit": 0,
+   "output": "receipt complete: kind=delegate dedup=18 uncovered=0 dissent=3 partial_reasons=0\n"
+  }
+ },
+ "lane_outputs": [
+  {
+   "findings": [
+    {
+     "claim": "KILL: [phase 1] A_1 is not properly falsifiable because the AI worker running the acceptance command is not in the enforced list; the gate will fall back to advisory mode and exit 0 even if diff_sha256 is altered, resulting in a vacuous pass. Also, Phase 1 is too large (porting 3 scripts, the spec, tests, and hooks) and exceeds 35 tool calls.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Split phase 1 into 1a (scripts/hooks) and 1b (tests/spec). In A_1, explicitly set QUORUM_ACTOR=noah@paiml.com in the environment so the gate runs in blocking mode and legitimately fails with exit 1 on a bad receipt.",
+     "grounding": "cited",
+     "line": 42
+    },
+    {
+     "claim": "KILL: [phase 2] A_2 is unfalsifiable because \"or the receipt records the refusal\" is an escape hatch allowing the worker to pass vacuously without the operator adding the check. Additionally, \"workflow green on this PR\" will pass vacuously for the AI worker since it is an advisory actor.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Remove the \"or the receipt records the refusal\" escape hatch from A_2. Require the workflow to be tested in blocking mode (e.g., by spoofing QUORUM_ACTOR) to prove it goes red on a bad receipt before passing on a good one.",
+     "grounding": "cited",
+     "line": 43
+    },
+    {
+     "claim": "KILL: [section 1 row 2 pre-push + quorum.yml] The claim \"empty diff exempt\" is false for forjar. quorum-gate.sh explicitly dies with exit 1 when the diff is empty but HEAD is ahead of the merge-base (a deletion is exempt, but an empty diff is rejected).",
+     "file": "/home/noah/src/forjar/scripts/quorum-gate.sh",
+     "fix": "Change \"empty diff exempt\" to \"empty diff rejected\" or \"deletion exempt\".",
+     "grounding": "measured",
+     "line": 258
+    },
+    {
+     "claim": "ACCEPT: [ruleset required check] (i) dependabot PRs: passed vacuously (actor dependabot[bot] is not in enforced_for, gate falls to advisory and exits 0). (ii) operator docs PRs: blocked (unless a receipt is provided, as the operator is enforced). (iii) release PRs: blocked. [X] Workflows triggered by GITHUB_TOKEN do not trigger other workflows; since the workflow never runs, the required check stays pending and blocks the PR. (iv) kind: triage PRs: blocked (without receipt) or passed (with receipt). (v) PRs from forks: passed vacuously (advisory exits 0), UNLESS [X] it's a first-time contributor requiring maintainer approval, where the workflow never runs until approved, blocking the PR.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Because [X] a skipped required status check remains Pending and blocks the PR, bashrs's quorum.yml MUST NOT attempt to optimize by adding 'if: github.actor != dependabot[bot]' or 'paths:' filters; it must always run and exit 0 for exempt actors. To prevent an enforced author from bypassing the required check by simply altering scripts/quorum-gate.sh in their PR, bashrs's quorum.yml MUST check out and run the gate script from the trusted base branch (e.g., github.base_ref), rather than executing the PR's version. enforce.json must remain identical to forjar's.",
+     "grounding": "cited",
+     "line": 57
+    }
+   ],
+   "summary": "implement-with-changes. Phase 1 is too large and its acceptance command passes vacuously for un-enforced AI workers. Phase 2's acceptance command contains an escape hatch that makes it unfalsifiable. The claim that an empty diff is exempt in forjar is false, as the script explicitly rejects it. The quorum CI job must check out the base branch's script to prevent PR authors from bypassing the required check, and it must not use `if` or `paths` filters to skip runs for bots since skipped required checks block PRs.",
+   "toolAction": "Finishing task",
+   "toolSummary": "Finish task",
+   "verdict": "FAIL"
+  },
+  {
+   "findings": [
+    {
+     "claim": "KILL: [phase 4] A_4 is not falsifiable because it lacks a red run to prove it can fail (unlike 3a/3b/5), and it cannot pass vacuously because tagged.sh requires at least one tag; forjar's releases.yaml records dogfood and crux which bashrs 7.0.x lacks; the phase is sized at >= 36 turns, not <= 35.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Add a red run against a missing tag or unmapped ticket to A_4 to prove it can fail. Acknowledge that the phase requires >= 36 turns.",
+     "grounding": "cited",
+     "line": 46
+    },
+    {
+     "claim": "KILL: [phase 7] Reshaping old receipts is dead work. Since the orchestrator placed the harness floor at the first tag after the gates land (no backfill), Gate A will never scan old PRs. Also, impl-PMAT-252-receipt.md has 0 verdict: lines and no END marker, and impl-PMAT-251-receipt.md does not even exist.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Remove the requirement in Phase 7 to reshape old paiml-implement receipts, as Gate A will never evaluate them.",
+     "grounding": "measured",
+     "line": 49
+    },
+    {
+     "claim": "KILL: [ordering 3b] The doc claims 3b is last because gate A needs the receipt convention (7), but since floors apply after gates land with no backfill, Gate A on new PRs does not depend on reshaping old receipts. The dependency is flawed.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Correct the ordering rationale; Gate A's execution on new PRs does not depend on the retroactive receipt reshaping of Phase 7.",
+     "grounding": "cited",
+     "line": 51
+    },
+    {
+     "claim": "ACCEPT: [section 1 row 6 harness.sh gate A] The description correctly reflects that forjar's harness.sh requires the receipt to end with IMPL-<ticket>-RECEIPT-END and have exactly one line starting with verdict:.",
+     "file": "/home/noah/src/forjar/scripts/dogfood/harness.sh",
+     "fix": "None.",
+     "grounding": "measured",
+     "line": 98
+    },
+    {
+     "claim": "ACCEPT: [section 1 row 7 releases.yaml gate T] tagged.sh re-derives next.due from the previous tag's own creation instant (newest_cut + CADENCE_DAYS * 86400) and fails if it disagrees with releases.yaml; release-goal.yml opens and closes a release-goal issue.",
+     "file": "/home/noah/src/forjar/scripts/dogfood/tagged.sh",
+     "fix": "None.",
+     "grounding": "measured",
+     "line": 277
+    },
+    {
+     "claim": "ACCEPT: [section 1 row 8 release-audit] release-audit.yml correctly loops over published GitHub releases and runs release-object-audit.sh to ensure each release describes itself.",
+     "file": "/home/noah/src/forjar/.github/workflows/release-audit.yml",
+     "fix": "None.",
+     "grounding": "measured",
+     "line": 65
+    },
+    {
+     "claim": "ACCEPT: [section 1 row 9 publish-from-tag] publish-from-tag.sh correctly checks out a detached worktree, asserts it is pristine, refuses missing/bad tags, and publishes in dependency order (bashrs-oracle then bashrs).",
+     "file": "/home/noah/src/forjar/scripts/publish-from-tag.sh",
+     "fix": "None.",
+     "grounding": "measured",
+     "line": 114
+    },
+    {
+     "claim": "ACCEPT: [section 1 row 10 forjar-dogfood skill name] falsification_dogfood_skill_is_named.rs asserts that the first line of the frontmatter must be name: forjar-dogfood to prevent shadowing by user-scope skills.",
+     "file": "/home/noah/src/forjar/tests/falsification_dogfood_skill_is_named.rs",
+     "fix": "None.",
+     "grounding": "measured",
+     "line": 92
+    },
+    {
+     "claim": "ACCEPT: [R release-check] release-check.sh correctly reports PENDING pre-tag and checks the existence of release artifacts, complementing the internal integrity checks of release-audit.",
+     "file": "/home/noah/src/forjar/scripts/dogfood/release-check.sh",
+     "fix": "None.",
+     "grounding": "measured",
+     "line": 12
+    },
+    {
+     "claim": "MISSING: [section 1 row 11 count 294] The document claims 294 tests/falsification_*.rs files, but there are 293 files and 1 directory (falsification_*).",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Update the count to 293 files.",
+     "grounding": "cited",
+     "line": 25
+    }
+   ],
+   "summary": "do-not-implement-as-written. Phase 4 lacks a red run and cannot pass vacuously. Phase 7 reshaping old receipts is dead work because Gate A won't scan them. Ordering 3b's dependency on Phase 7 is thus flawed. Harness.sh correctly requires the IMPL marker and exactly one verdict line. Gate T correctly re-derives next.due and tracks release goals. Release-audit correctly asserts each release describes itself. Publish-from-tag correctly enforces a clean detached worktree. The dogfood skill name check prevents user-scope shadowing. Release-check correctly reports PENDING pre-tag. The falsification test count is 293 files and 1 directory, not 294 files.",
+   "toolAction": "Submitting review",
+   "toolSummary": "Finish with JSON findings",
+   "verdict": "do-not-implement-as-written"
+  },
+  {
+   "findings": [
+    {
+     "claim": "KILL: [phase 6] A_6 cannot pass vacuously (it explicitly fails on 0 bullets or thin rows), but it reads the active section (Unreleased or version) dynamically, not strictly [Unreleased]. Additionally, 3 blind agy lanes require 3 workers, which exceeds the ~35 tool calls limit for one worker.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Update phase 6 to acknowledge it is a multi-worker task, and clarify that A_6 reads the active CHANGELOG section dynamically.",
+     "grounding": "cited",
+     "line": 48
+    },
+    {
+     "claim": "KILL: [section 1 row 4 crux-reconcile gate H] The script counts >=3 systems strictly from its own hard-coded SYSTEMS array (line 44). It reads [Unreleased] but falls back to [<version>] if empty. It identifies bullets via ** at col 0 after a blank line. Row 4's wording is inaccurate because it omits the fallback and the hard-coded list constraint.",
+     "file": "/home/noah/src/forjar/scripts/dogfood/crux-reconcile.sh",
+     "fix": "Change row 4 to state the script counts systems against its hard-coded roster, falls back to [<version>] if [Unreleased] lacks bullets, and identifies bullets via ** at column 0.",
+     "grounding": "measured",
+     "line": 44
+    },
+    {
+     "claim": "KILL: [floor per format] forjar's script enforces >=3 systems globally. bashrs MUST enforce >=3 from the bullet's own format, but the script has no mechanism to know a bullet's format from the text. The plan misses that the script must be rewritten to infer format.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "Add to phase 3b or 6: \"rewrite crux-reconcile.sh to parse rule format prefixes (e.g. MAKE*) and enforce the >=3 floor against a format-specific roster.\"",
+     "grounding": "cited",
+     "line": 33
+    },
+    {
+     "claim": "ACCEPT: [roster shell incl. busybox ash] The revised shell roster is world-class and has >=3 systems (shellcheck, mvdan/sh, tree-sitter-bash, and reference shells).",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "none",
+     "grounding": "cited",
+     "line": 33
+    },
+    {
+     "claim": "ACCEPT: [roster Makefile] The revised Makefile roster is world-class and has >=3 systems (GNU make, BSD bmake, checkmake, unmake).",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "none",
+     "grounding": "cited",
+     "line": 33
+    },
+    {
+     "claim": "ACCEPT: [roster Dockerfile] The revised Dockerfile roster is world-class and has >=3 systems (hadolint, BuildKit, trivy/checkov, dockerfilelint).",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "none",
+     "grounding": "cited",
+     "line": 33
+    },
+    {
+     "claim": "ACCEPT: [roster SEC family incl. semgrep] The revised SEC roster is world-class and has >=3 systems. Dropping python-only bandit is correct.",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/docs/specifications/pr-dogfood-parity-forjar.md",
+     "fix": "none",
+     "grounding": "cited",
+     "line": 33
+    },
+    {
+     "claim": "ACCEPT: [example row MAKE010] Example detail row provided. This row would FAIL crux-reconcile.sh as written because the script's hard-coded SYSTEMS array knows nothing of Make linters, and the script requires the matched row to contain >=3 systems (which forjar achieves via a separate summary table).",
+     "file": "/mnt/nvme-raid0/wt/bashrs-forjar-parity/rash/src/linter/rules/make010.rs",
+     "fix": "| MAKE010 | GNU make | GNU make executes recipes without shell linting [X] | `should_flag` skips tolerant flags and last commands [V /mnt/nvme-raid0/wt/bashrs-forjar-parity/rash/src/linter/rules/make010.rs:218] | bashrs statically lints recipe shell logic | reject(bashrs provides static linting of recipe shell code which make tools do not) |",
+     "grounding": "measured",
+     "line": 218
+    }
+   ],
+   "summary": "implement-with-changes. Phase 6 exceeds single-worker limits and A_6 reads the active section, not just Unreleased. Row 4 misstates that the script reads any system (it uses a hard-coded list) and only Unreleased. bashrs must enforce the floor per format, which requires rewriting the script. The four rosters (shell, Makefile, Dockerfile, SEC) are world-class and have >=3 systems. The example MAKE010 row would fail the script as written because it lacks the hard-coded systems and has only 1 system in the row.",
+   "toolAction": "Finishing review",
+   "toolSummary": "Submit CRUX transfer review",
+   "verdict": "FAIL"
+  }
+ ],
+ "orchestrator_remeasure": [
+  {
+   "finding": "L1 \u00b7 phase 1: A_1 passes vacuously for an actor outside `enforced_for`; the phase is too large",
+   "verdict": "ACCEPTED",
+   "how": "phase 1 split into 1a, 1b, 1c; A_1a pins `QUORUM_ACTOR` to an enforced identity and adds the dependabot advisory case"
+  },
+  {
+   "finding": "L1 \u00b7 phase 2: \"or the receipt records the refusal\" is an escape hatch",
+   "verdict": "ACCEPTED",
+   "how": "removed; until the operator adds the check, phase 2 is blocked, not passed"
+  },
+  {
+   "finding": "L1 \u00b7 row 2: \"empty diff exempt\" is false for forjar",
+   "verdict": "CONFIRMED",
+   "how": "`quorum-gate.sh:256-262` rejects commits ahead with an empty diff, while forjar's own spec says exempt (drift, \u00a75); row 2 corrected"
+  },
+  {
+   "finding": "L2 \u00b7 phase 4: A_4 has no red run",
+   "verdict": "ACCEPTED",
+   "how": "A_4a now removes one PR from a row and expects GATE T FAIL; phase 4 split into 4a and 4b"
+  },
+  {
+   "finding": "L2 \u00b7 phase 7: reshaping old receipts is dead work under decision 2",
+   "verdict": "ACCEPTED",
+   "how": "phase 7a changes the receipt shape going forward only; measured on main: 0 of the four receipts carries an END marker and 0 a `verdict:` line"
+  },
+  {
+   "finding": "L2 \u00b7 ordering: 3b's dependency on 7 was argued as a backfill",
+   "verdict": "ACCEPTED (rationale), order kept",
+   "how": "the post-floor window needs receipts already in the new shape; A_7a reads the post-floor window, which also removes the contradiction with decision 2 that the delegate raised"
+  },
+  {
+   "finding": "L2 \u00b7 row 11 count (missing)",
+   "verdict": "ALREADY FIXED",
+   "how": "corrected to 293 files plus one directory after the second review"
+  },
+  {
+   "finding": "L3 \u00b7 phase 6: three agy lanes exceed one worker; A_6 reads the active section",
+   "verdict": "PARTLY REFUTED",
+   "how": "CRUX lanes are agy lanes through the delegate, not workers; the section correction is accepted ([Unreleased], or [<version>] at the cut)"
+  },
+  {
+   "finding": "L3 \u00b7 row 4: gate H counts from a hard-coded roster",
+   "verdict": "CONFIRMED",
+   "how": "`crux-reconcile.sh:44-53` lists 28 infrastructure-as-code names with `MIN_SYSTEMS=3`; section fallback at `:109-117`; bullet detection at `:120-130`; row 4 corrected"
+  },
+  {
+   "finding": "L3 \u00b7 per-format floor: the script cannot know a bullet's format",
+   "verdict": "ACCEPTED, extended",
+   "how": "gate H moves into phase 6 as a rewrite with a per-format roster and the format taken from the rule code; measured on main, bashrs's 7.0.4 bullets are 9 `- **CODE**` list items and 0 paragraph-opening `**` spans, so forjar's parser would find none"
+  },
+  {
+   "finding": "L1 \u00b7 accept with fix: no `paths:` or `if:` skip; run the base branch's gate",
+   "verdict": "ADOPTED",
+   "how": "phase 2 runs on every PR without a path filter and reads the gate from the base branch; the base-branch rule is decision 6 with its counter"
+  }
+ ],
+ "measured": {
+  "changelog_7_0_4_list_item_bullets": 9,
+  "paragraph_bullets": 0,
+  "receipts_on_main": {
+   "PMAT-245": {
+    "verdict_lines": 0,
+    "end_markers": 0
+   },
+   "PMAT-248": {
+    "verdict_lines": 0,
+    "end_markers": 0
+   },
+   "PMAT-251": {
+    "verdict_lines": 0,
+    "end_markers": 0
+   },
+   "PMAT-252": {
+    "verdict_lines": 0,
+    "end_markers": 0
+   }
+  }
+ },
+ "skill_findings": [
+  "fanout.sh:100 globs lane-*.json and counts lane-reduce.json as a lane (children=4 at width 3)",
+  "receipt-lint.sh --kind delegate exists and passes all three delegate receipts when the receipt path comes first; the usage line at receipt-lint.sh:77 still lists only code|triage, and the ph0b delegate reported the kind missing"
+ ],
+ "agreed": false,
+ "note": "disjoint scopes, no consensus by construction; document corrected in the same commit"
+}
