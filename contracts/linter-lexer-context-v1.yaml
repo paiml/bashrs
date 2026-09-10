@@ -26,6 +26,7 @@ metadata:
   - 'GH-252: content inside a double-quoted string is parsed as shell syntax'
   - 'GH-255: SC2168 - the word local inside a Makefile ## help comment is lexed as a declaration'
   - 'GH-261: SC1012 - \n inside a printf format string is reported as literal'
+  - 'GH-262: SC2046 fires in three contexts where the shell performs no field splitting (assignment RHS, inside double quotes, case word)'
   - 'GH-235: SC1078 - an apostrophe inside a double-quoted string opens a single quote (fixed; pinned)'
   - 'GH-258: SC1140 - a trailing # comment after a [ ] test is an unexpected token (fixed; pinned)'
   - 'GH-226, GH-272: linter::quoting resolves quoting once and hands QUOTE_SENSITIVE_RULES a masked copy'
@@ -128,7 +129,7 @@ proof_obligations:
 invariants:
 - 'len(mask_literals(s)) == len(s); code bytes are unchanged'
 - 'the byte after a backslash inside "..." is literal when it is $ ` " or \ (GH-252)'
-- 'SC2046 never reports a span starting with "$((" (GH-237)'
+- 'SC2046 never reports a span starting with "$((" (GH-237); it never reports an assignment RHS, a word inside double quotes or a case word, where the shell performs no field splitting (GH-262)'
 - 'SC2047 and SC2122 never report a $var that is inside "$( ... "..." ... )" (GH-241)'
 - 'SC1109, SC2104 and SC2188 never report a heredoc body line; SC2276 never reports `cat <<EOF` whose output is not piped (GH-242)'
 - 'SC2168 never reports a Makefile target line or Make comment; it still reports a recipe line (GH-255)'
@@ -206,3 +207,8 @@ falsification_tests:
   prediction: 'bashrs corpus run reports >= 17,942 entries and <= 333 failures (7.0.2: 84.4/100 B, 333 failures)'
   test: bashrs corpus run
   if_fails: 'Contract violation: a fix widened a literal region or narrowed a rule enough to change transpiled-output lint results across the corpus'
+- id: F-LCX-011
+  rule: SC2046 reports only where the shell would field-split
+  prediction: 'lint_shell reports no SC2046 on `x=$(date)`, on `echo "$(date)"` or on `case $(uname) in`; it still reports `echo $(date)`'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh262_sc2046_only_where_the_shell_splits
+  if_fails: 'Contract violation: SC2046 decides by regex again instead of by the word role shell_words assigns (GH-262)'

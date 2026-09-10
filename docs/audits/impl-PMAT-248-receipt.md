@@ -91,3 +91,29 @@ Twins measured against the 7.0.2 binary (all fire today): SC2046 `echo $(date)`;
 ## Phase 1 — SATD lane (delegate, `goal`, width 1, `writes=true`) — PMAT-249
 
 Lane `a78fc54a-e681-4961-9d2b-69cf3476c1b0`: **exit 3, LANE ISOLATION VIOLATED** — it edited the shared checkout named in the prompt instead of its worktree (26 comment sites in 20 files). Kept: the ten listed items (rules a/b/c as briefed, three pairs byte-identical) and nine restatements the lane found on its own (`ast/restricted_expr.rs`, `ast/visitor.rs`, `rules/mod.rs` + `rules/mod_helpers.rs` pair, `rules/mod_lint_2.rs` ×2, `rules/sc2164.rs`). Reverted: `ir/mod.rs` (two `FIXME(PMAT-238)` on a live ticket), `cli/corpus_weight_commands.rs` (module doc made less accurate), `rules/sc1009.rs` (doc examples), `rules/sc1127.rs` (its own `//`-comment examples emptied — restored, then the example text reworded so it stays an example of a `//` line). Root cause named by the delegate: a `--writes` brief must not name the absolute repo path. Lesson applied to every later brief. Both delegate runs returned `partial=true`; under R-4 the implementation phases fall back to `paiml-impl-worker` (sonnet), named here as the reason.
+
+## Dispatch ledger (phases 2–6)
+
+| phase | executor | agent id | model | turns | maxTurns hit | resumed | outcome |
+|---|---|---|---|---|---|---|---|
+| 1 grill | paiml-agy-delegate → agy `teamwork` | a3114f0076fbc935b | opus | 33 tool uses | no | no | partial (lane had no shell); verdict re-checked above |
+| 1 SATD | paiml-agy-delegate → agy `goal` writes | ac75f6de648f8574d | opus | 20 tool uses | no | no | partial (isolation violated); diff curated above |
+| 2 | paiml-impl-worker (sonnet-worker: both agy lanes returned partial, R-4 fallback) | abd098adde344146d | sonnet | 42 → +resume | **yes** | once | receipt complete after resume; two clippy doc lines fixed by the worker |
+| 3 | paiml-impl-worker | adfebd1f12a89a805 | sonnet | 32 → +resume | no | once | first result LOST: worker B ran `git checkout -- sc2047.rs` (forbidden by its brief) after `cargo fmt --all` touched the file; C re-applied on resume |
+| 4 | paiml-impl-worker | a69c36b1abd5b1fbb | sonnet | 47 → +resume | **yes** | once (receipt only) | receipt complete |
+| 5 | paiml-impl-worker | afd792eb15d2dd7fb | sonnet | 22 | no | no | receipt complete |
+| 6 | paiml-impl-worker | ae8988704954678a5 | sonnet | 33 | no | no | receipt complete |
+
+Slots: never more than 3 live (hook log `events-bf151141….jsonl`: `live=2` at the ph2/ph3 dispatch, `live=3` at ph3-resume + ph4 + ph5). Denials: 0. Two process lessons recorded for the next briefs: (1) never `git add -u` while workers are active — my SATD staging raced with worker C's first edit; (2) a worker brief forbids `cargo fmt --all` and every tree-changing git command, and names the concurrent workers' files.
+
+## Verification (claimed vs re-run)
+
+| phase | A_i | worker exit | my exit | module tests (mine) |
+|---|---|---|---|---|
+| 2 | `…lexer_context_tests::test_PMAT248_gh237` + `gh262` | 0 | 0 | sc2046: 15 passed |
+| 3 | `…test_PMAT248_gh241` | 0 | 0 | sc2047: 16 passed |
+| 4 | `…test_PMAT248_gh242` ×2 + `gh252` | 0 | 0 | quoting 45, sc2276 16, sc1109 9, sc2006 21, sc2099 10; `--test quoting_literal_payload_guard` 4 passed |
+| 5 | `…test_PMAT248_gh255` | 0 | 0 | make_preprocess 15, sc2168 34, sc2133 10, sc2299 16 |
+| 6 | `…test_PMAT248_gh261` | 0 | 0 | sc1012 (10 tests, 3 rewritten from positive to negative) |
+
+Design decisions taken on the way, each named in the commit that carries it: SC2046 keeps a local balanced-paren scanner because `shell_words::Expansion` does not expose command substitutions (PMAT-250 lifts it); SC2006/SC2099/SC1109 read the masked copy (a real backtick inside `"…"` stays code, verified by `test_sc2099_in_string`); SC2276 fires only when the cat feeds a pipe; SC1012 takes shellcheck's meaning (unquoted `\t \n \r`), its single-quote meaning was a bashrs-only reading of a shellcheck code (the #236 class) already covered by SC2028/SC2271.

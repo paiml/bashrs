@@ -7,7 +7,81 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0.3] - 2026-09-10
+
+Six open false-positive issues, one defect class: a rule read bytes the shell
+never parses as shell, or read a real construct with the wrong grammar. Each fix
+lives in the layer that owns the context (`linter::quoting` for what is literal,
+`linter::shell_words` for what is quoted, `linter::make_preprocess` for what is
+a recipe line, the rule for its own grammar). Every fix ships with a regression
+test that also asserts the rule still fires on its true positive, so none of
+them was bought by blunting a rule. Contract:
+`contracts/linter-lexer-context-v1.yaml` (F-LCX-001..011).
+
+Measured on the full corpus, unchanged from 7.0.2 in every dimension:
+
+```text
+bashrs corpus run — 17,942 entries, V2 Corpus Score 84.4/100 (B)
+  A  Transpilation 100.0%  30.0/30      D  Lint clean    100.0%  10.0/10
+  B1 Containment    99.9%  10.0/10      E  Deterministic 100.0%  10.0/10
+  B2 Exact match    99.9%   8.0/8       F  Metamorphic    99.6%   5.0/5
+  B3 Behavioural    98.7%   6.9/7       G  Cross-shell    99.7%   5.0/5
+  C  Coverage        0.0%   0.0/15   <- no coverage cache for this commit
+```
+
+D (lint clean) is 17,940/17,942 before and after: none of the six fixes changed a
+transpiled-output lint result. `cargo test --workspace --lib`: 15,191 passed, 0 failed.
+
+### Fixed
+
+- **SC2046 no longer reports `$(( ))`** (#237). The rule decided by regex and tokenised
+  `$((n % i))` as a command substitution `$(`, reporting an unbalanced span
+  `$((n % i)`. It now walks `shell_words::simple_commands`, which already knows that
+  arithmetic expansion is one word that never splits, and reports an unquoted `$( … )`
+  or backtick substitution only in argument position with a balanced span and a
+  byte-accurate fix. Nested substitutions report once each.
+- **SC2046 reports only where the shell would field-split** (#262): an assignment RHS
+  `x=$(date)`, a word inside double quotes and a `case $(uname) in` word are no longer
+  reported.
+- **SC2047 asks `shell_words` whether a test operand is quoted** (#241). On
+  `[ "$(echo "$coverage >= 80" | bc -l)" -eq 1 ]` the line-local quote count read
+  `$coverage` as unquoted; it is quoted twice over. A `$(` opens a fresh quoting context
+  (POSIX 2.6.3) and the shared analysis already resolves it.
+- **An escaped backtick inside double quotes is text** (#252). `"… \`[text](url)\` …"`
+  opened a backtick context in the quote scanner and drew SC2006, SC2046 and SC2099.
+  Inside `"…"` a backslash escapes exactly `$`, backtick, `"` and `\` (POSIX 2.2.3);
+  the scanner now treats the escaped byte as literal, and SC2006/SC2099 read the masked
+  copy. A real backtick inside double quotes is still code and still reported.
+- **A here-document body is data for text-matching rules** (#242). SC1109 (HTML entity)
+  fired on `<li>x &lt; 10</li>` inside an unquoted heredoc at error severity; it now reads
+  the masked copy like SC2104 and SC2188. `echo a &lt; b` as bare code still reports.
+- **A Makefile line that is not a recipe never reaches a shell rule** (#255). The
+  preprocessor copied target lines through, so `dev-setup: ## Set up local dev
+  environment` reached SC2168, which reported the English word `local` as a shell
+  declaration at error severity. Non-recipe lines are now blank lines for the three shell
+  rules that run on Makefiles; MAKE001–MAKE020 read the original source as before.
+- Pinned as regressions, already clean since 6.68.0: an apostrophe inside a double-quoted
+  string (#235) and a trailing `#` comment after `]` (#258).
+
 ### Changed
+
+- **SC1012 means what shellcheck's SC1012 means** (#261). bashrs reported `	 
+ 
+`
+  inside single quotes ("is just literal in single quotes"), which made
+  `printf 'hello %s\n'` a finding — the escape reaches printf intact, which is the
+  point. shellcheck's SC1012 is about an escape the shell drops: an unquoted `	`, `
+`
+  or `
+` (`echo a\tb` prints `atb`). That is what the rule reports now; nothing inside
+  single quotes. The single-quoted `echo` case was already SC2028/SC2271's.
+- **SC2276 reports a cat with a heredoc only when its output feeds a pipe.** `cat <<EOF`
+  to stdout or to a redirect is the ordinary way to emit text, not a useless cat.
+- **Self-admitted-debt markers restated** (PMAT-249). Eighteen `TODO` comments became
+  documented limitations citing PMAT-249 or were dropped as stale, so the strict pre-commit
+  SATD gate (threshold 5) can run; count after: 5.
+
+### Changed (merged before this release, #288)
 
 - **Corpus-derived generators take an injected registry; their unit tests no longer walk the corpus** (PMAT-247).
   `generate_model_card`, the SSC report's data-pipeline section, `run_all_contracts`, `check_c_clf_001_baselines`

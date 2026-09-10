@@ -634,6 +634,12 @@ echo "$PATH"        # Quoted
 
 Similar to SC2086 but for command substitution.
 
+Since 7.0.3 the rule decides by word role: it reports an unquoted `$( … )` or backtick
+substitution only where the shell would field-split, an argument or a redirect target.
+An assignment RHS (`x=$(date)`), a word inside double quotes and a `case $(uname) in`
+word are not reported, and `$(( … ))` is arithmetic expansion, not a substitution
+(#237, #262).
+
 **Bad:**
 ```bash
 rm $(find . -name "*.tmp")  # Breaks with spaces

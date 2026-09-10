@@ -89,6 +89,35 @@ including for whatever the value then feeds. A timestamp landing in an artifact
 name, a hash input or a truncating redirect is still reported, and the message now
 names the sink line.
 
+## What 7.0.3 stopped guessing
+
+Six open issues turned out to be one defect wearing several codes: a rule read bytes the
+shell never parses as shell, or read a real construct with the wrong grammar. Each fix
+lives in the layer that owns the context, and each ships with a test that also asserts
+the rule still fires on its true positive.
+
+- `$(( ))` is arithmetic expansion, one word that never splits. SC2046 no longer reports
+  it, and no longer reports an assignment RHS, a word inside double quotes or a
+  `case $(uname) in` word, where the shell performs no field splitting (#237, #262).
+- A `$(` opens a fresh quoting context. In `[ "$(echo "$x >= 80" | bc)" -eq 1 ]` the
+  `$x` is quoted twice over; SC2047 now asks the shared word analysis instead of counting
+  quotes on the line (#241).
+- Inside `"…"` a backslash escapes exactly `$`, backtick, `"` and `\`. An escaped
+  backtick in a `--body "…"` argument is text, so SC2006, SC2046 and SC2099 stay quiet;
+  a real backtick inside double quotes is still code and still reported (#252).
+- A here-document body is data for text-matching rules: SC1109 joins SC2104 and SC2188
+  in reading the masked copy (#242). `cat <<EOF` to stdout or to a redirect is not a
+  useless cat; SC2276 reports only a cat whose heredoc feeds a pipe.
+- A Makefile line that is not a recipe never reaches a shell rule, so the word `local`
+  in a `## help` comment is no longer a shell declaration (#255).
+- SC1012 means what shellcheck's SC1012 means: an unquoted `\t`, `\n` or `\r` the shell
+  would drop. Nothing inside single quotes is reported, so `printf 'fmt\n'` is clean
+  (#261).
+
+Two older fixes are pinned as regressions in the same test module: an apostrophe inside
+a double-quoted string (#235) and a trailing `#` comment after `]` (#258). The contract
+is `contracts/linter-lexer-context-v1.yaml`.
+
 ## Overview
 
 bashrs uses a **Popper Falsification** methodology - every valid bash pattern must pass the linter without triggering false positives. The test suite currently covers **230 structured tests** across two categories:
