@@ -571,7 +571,7 @@ dependencies = [
  "anyhow",
  "aprender 0.27.8",
  "assert_cmd",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bashrs-oracle 6.65.0",
  "batuta-common",
  "blake3",
