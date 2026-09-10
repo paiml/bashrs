@@ -1,2 +1,3 @@
 {"repo":"bashrs","ticket":"PMAT-245","phase":"all","mode":"direct+quorum","est":4,"actual":194,"unit":"turn","basis":"first-run[U]"}
 {"repo":"bashrs","ticket":"PMAT-245","phase":"resume-release","mode":"direct+quorum","est":5,"actual":98,"unit":"turn","basis":"first-run[U]"}
+{"repo":"bashrs","ticket":"PMAT-248","phase":"all","mode":"direct+workers+quorum","est":7,"actual":36,"unit":"turn","basis":"docs/audits/impl-estimates.jsonl:L1-L2"}
