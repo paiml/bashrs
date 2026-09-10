@@ -37,7 +37,11 @@ fn test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002() {
     assert_eq!(det005.diagnostics[0].severity, Severity::Warning);
 
     let det002 = det002::check(script);
-    assert_eq!(det002.diagnostics.len(), 0, "DET002 must stay silent (#232)");
+    assert_eq!(
+        det002.diagnostics.len(),
+        0,
+        "DET002 must stay silent (#232)"
+    );
 }
 
 /// `case "$(date +%u)" in 6|7) echo weekend ;; esac` - #232 example 3.
@@ -50,7 +54,11 @@ fn test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002() {
     assert_eq!(det005.diagnostics[0].severity, Severity::Warning);
 
     let det002 = det002::check(script);
-    assert_eq!(det002.diagnostics.len(), 0, "DET002 must stay silent (#232)");
+    assert_eq!(
+        det002.diagnostics.len(),
+        0,
+        "DET002 must stay silent (#232)"
+    );
 }
 
 /// `[ "$(date +%s)" -gt "$expiry" ] && exit 1` - #232 example 4.
@@ -63,7 +71,11 @@ fn test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002() {
     assert_eq!(det005.diagnostics[0].severity, Severity::Warning);
 
     let det002 = det002::check(script);
-    assert_eq!(det002.diagnostics.len(), 0, "DET002 must stay silent (#232)");
+    assert_eq!(
+        det002.diagnostics.len(),
+        0,
+        "DET002 must stay silent (#232)"
+    );
 }
 
 /// A duration - the arithmetic difference of two timestamp captures - fires
