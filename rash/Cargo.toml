@@ -67,8 +67,8 @@ aprender = { version = "0.27", optional = true }  # BPE tokenizer for SSC C-TOK-
 entrenar = { version = "0.7", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
 
 # Watch mode dependencies (file system watching)
-notify = { version = "7.0", optional = true }  # Cross-platform filesystem notifications
-notify-debouncer-mini = { version = "0.5", optional = true }  # Debounced file events
+notify = { version = "8.2", optional = true }  # Cross-platform filesystem notifications
+notify-debouncer-mini = { version = "0.7", optional = true }  # Debounced file events
 
 # LSP dependencies (Language Server Protocol)
 tower-lsp = { version = "0.20", optional = true }  # LSP server framework
