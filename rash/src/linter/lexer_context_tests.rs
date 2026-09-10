@@ -116,3 +116,52 @@ fn test_PMAT248_gh262_sc2046_only_where_the_shell_splits() {
     // An unquoted command substitution in argument position still splits.
     shell_fires("#!/bin/sh\necho $(date)\n", "SC2046");
 }
+// ---------------------------------------------------------------------------
+// GH-242: a heredoc body is data.
+// ---------------------------------------------------------------------------
+
+const GH242_SRC: &str =
+    "#!/bin/sh\ncat <<MARKER\n- [ ] a markdown checkbox\n<li>x &lt; 10</li>\nMARKER\n";
+
+#[test]
+fn test_PMAT248_gh242_heredoc_body_is_data() {
+    shell_absent(GH242_SRC, "SC1109");
+    shell_absent(GH242_SRC, "SC2188");
+    shell_absent(GH242_SRC, "SC2104");
+    // An HTML entity in bare code is still reported.
+    shell_fires("#!/bin/sh\necho a &lt; b\n", "SC1109");
+}
+
+#[test]
+fn test_PMAT248_gh242_cat_heredoc_to_stdout_is_not_useless() {
+    shell_absent(GH242_SRC, "SC2276");
+    // A cat whose only job is to feed a pipe is still reported.
+    shell_fires("#!/bin/sh\ncat <<EOF | grep x\nfoo\nEOF\n", "SC2276");
+}
+
+// ---------------------------------------------------------------------------
+// GH-252: a backslash-escaped backtick inside "..." is text.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_PMAT248_gh252_escaped_backtick_inside_double_quotes_is_text() {
+    let src = "#!/usr/bin/env bash\ngh issue create --body \"Acceptance Criteria:\n- [ ] Parse markdown links: \\`[text](url)\\`\n- [ ] Handle edge cases (nested brackets, special characters)\n\"\n";
+    for code in ["SC2006", "SC2046", "SC2099", "SC1028", "SC1078"] {
+        shell_absent(src, code);
+    }
+    // A real backtick substitution is still reported.
+    shell_fires("#!/bin/bash\necho `date`\n", "SC2006");
+}
+
+// ---------------------------------------------------------------------------
+// GH-255: a Makefile target-line comment never reaches a shell rule.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_PMAT248_gh255_makefile_target_comment_is_not_shell() {
+    let src = "dev-setup: ## Set up local dev environment\n\t@echo hi\n";
+    assert_absent(&lint_makefile(src), "SC2168", src);
+    // `local` on a recipe line outside a function is still reported.
+    let bare = "build:\n\tlocal x=1\n";
+    assert_fires(&lint_makefile(bare), "SC2168", bare);
+}
