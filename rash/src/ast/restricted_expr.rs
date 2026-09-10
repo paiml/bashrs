@@ -105,7 +105,7 @@ impl Expr {
                 start.validate()?;
                 end.validate()
             }
-            // Placeholder for new expression types - TODO: implement properly
+            // Placeholder for new expression types - not implemented yet; PMAT-249 tracks the gap.
             _ => Ok(()), // Array, Index, Try, Block
         }
     }

@@ -307,13 +307,13 @@ fn lint_shell_filtered(
     apply_rule!("SC2116", sc2116::check); // Universal - useless echo $(cmd)
 
     // Batch 4: Bash-specific function analysis (NotSh - bash/zsh/ksh only)
-    // apply_rule!("SC2120", sc2120::check); // NotSh - function references $1 but none passed (TODO: has false positives)
+    // apply_rule!("SC2120", sc2120::check); // NotSh - function references $1 but none passed (has false positives; PMAT-249 tracks the gap.)
     apply_rule!("SC2128", sc2128::check); // NotSh - array expansion without index
 
     // Batch 5: CRITICAL word splitting (Universal - HIGHEST PRIORITY)
     apply_rule!("SC2086", sc2086::check); // Universal - CRITICAL: Quote to prevent word splitting and globbing
 
-    // TODO: Add remaining SC2xxx rules (~237 rules remaining, was ~257)
+    // Adding remaining SC2xxx rules (~237 rules remaining, was ~257) is not implemented yet; PMAT-249 tracks the gap.
     // For now, fall back to lint_shell() for unclassified rules
     // This ensures backward compatibility while we incrementally classify
 

@@ -1,0 +1,215 @@
+metadata:
+  version: 1.0.0
+  verification_level: L2
+  description: >-
+    Provable contract for the lexer-context layer of the shell linter (PMAT-248, audit
+    docs/audit/quality-report09-2026.md section 8 action 3). Eight open issues describe one
+    defect class: a rule reads bytes that the shell would never parse as shell - the inside
+    of a string literal, a heredoc body, a Makefile comment, a printf format - or it reads a
+    real shell construct with the wrong grammar - `$(( ))` as `$( )`, a `$var` inside a nested
+    `"$( ... "..." ... )"` as unquoted. Measured on 7.0.2 (main 8133676e24) with each issue's
+    own reproducer: #235 (apostrophe inside "...") and #258 (trailing comment after `]`) are
+    already clean and are pinned here so they stay clean; #237 SC2046, #241 SC2047, #242
+    SC1109 and SC2276, #252 SC2006/SC2046/SC2099, #255 SC2168 and #261 SC1012 still fire.
+    Every fix lives in the layer that owns the context - `linter::quoting` for what is
+    literal, `linter::shell_words` for what is quoted, `linter::make_preprocess` for what is a
+    recipe, the rule file for its own grammar - never a per-message special case. Each
+    falsification test asserts the false positive is gone AND that the same rule still fires
+    on its true positive, so a fix cannot be faked by deleting the rule.
+  verification_command: cargo test -p bashrs --lib linter::lexer_context_tests
+  depends_on:
+  - linter-logical-lines-v1
+  references:
+  - 'GH-237: SC1028/SC2046 - $(( )) arithmetic expansion is tokenised as $( )'
+  - 'GH-241: SC2122 - `>=` inside a double-quoted string passed to bc is read as a [ ] operator'
+  - 'GH-242: here-document bodies are linted as shell'
+  - 'GH-252: content inside a double-quoted string is parsed as shell syntax'
+  - 'GH-255: SC2168 - the word local inside a Makefile ## help comment is lexed as a declaration'
+  - 'GH-261: SC1012 - \n inside a printf format string is reported as literal'
+  - 'GH-262: SC2046 fires in three contexts where the shell performs no field splitting (assignment RHS, inside double quotes, case word)'
+  - 'GH-235: SC1078 - an apostrophe inside a double-quoted string opens a single quote (fixed; pinned)'
+  - 'GH-258: SC1140 - a trailing # comment after a [ ] test is an unexpected token (fixed; pinned)'
+  - 'GH-226, GH-272: linter::quoting resolves quoting once and hands QUOTE_SENSITIVE_RULES a masked copy'
+  - 'GH-228: linter::shell_words - a command substitution opens a fresh quoting context (POSIX 2.6.3); already treats $(( )) as no expansion (test_SW_020) and honours backslash escapes inside double quotes'
+  - 'docs/audit/quality-report09-2026.md section 4: the lexer reads non-shell text as shell'
+
+kernel_structure:
+  phases:
+  - name: classify
+    description: >-
+      `quoting::QuotedRegions::analyze` walks the file once with an explicit context stack
+      and marks every byte code or literal. Literal: the inside of '...', the inside of "..."
+      except `$(...)`, `${...}` and backticks, heredoc bodies, comments, and - this contract
+      adds - a backslash-escaped `$`, backtick, `"` or `\` inside "...".
+    invariant: The classification is a function of the bytes alone and never panics.
+  - name: mask
+    description: >-
+      `quoting::mask_literals` rewrites literal bytes to inert filler of identical length.
+      Rules named in `QUOTE_SENSITIVE_RULES` receive the masked copy; every other rule
+      receives the source.
+    invariant: len(mask_literals(s)) = len(s) and every code byte is unchanged.
+  - name: apply
+    description: >-
+      Each rule applies its own grammar to the copy it receives. `$((` opens an arithmetic
+      expansion closed by `))`; a `$var` is quoted iff the innermost enclosing context that
+      is not a fresh `$(` context is double-quoted; a Makefile line reaches a shell rule only
+      if it is a recipe line; a single-quoted `\n` is a format escape when the consuming
+      command interprets escapes.
+    invariant: A rule never reports a span whose bytes are literal in its own copy.
+
+equations:
+  literal:
+    formula: 'literal(b) <=> in_single(b) or (in_double(b) and not in_expansion(b)) or in_heredoc_body(b) or in_comment(b) or escaped_in_double(b)'
+    domain: 'b: a byte offset into the source'
+    codomain: bool
+    invariants:
+    - 'escaped_in_double(b): the byte after a backslash inside "..." when it is one of $ ` " \ (POSIX 2.2.3) - GH-252'
+    - 'a heredoc body is literal whether or not its delimiter was quoted; an unquoted body may still contain expansions, which stay code - GH-242'
+  arith:
+    formula: 'starts_arith(i) <=> src[i..i+3] = "$((" ; the expansion closes at the matching "))" and is one word that never splits'
+    domain: 'i: byte offset, code context'
+    codomain: bool
+    invariants:
+    - 'SC2046 (unquoted command substitution) never reports a span that begins with "$((" - GH-237'
+    - 'a real "$(" that is not "$((" is still a command substitution and still reports'
+  quoted:
+    formula: 'quoted(v) <=> in_double(ctx(v)) where ctx(v) is the innermost context of v after each "$(" restarts the context from unquoted (POSIX 2.6.3)'
+    domain: 'v: a $name or ${name} expansion'
+    codomain: bool
+    invariants:
+    - 'in `[ "$(echo "$x >= 80" | bc)" -eq 1 ]` both $x and the outer $(...) are quoted - GH-241'
+    - 'in `[ $x -eq 1 ]` $x is unquoted and SC2047 still reports'
+    - 'only operands of the test command itself are its subject; `$x` in `[ -n "$(echo $x)" ]` is an operand of echo and belongs to SC2086'
+  recipe:
+    formula: 'reaches_shell_rules(l) <=> is_recipe_line(l) ; a target line, a variable line or a Make comment never does'
+    domain: 'l: a physical Makefile line'
+    codomain: bool
+    invariants:
+    - 'the text after # on a target line is a Make comment, so `dev-setup: ## Set up local dev environment` reaches no shell rule - GH-255'
+    - 'a recipe line `<TAB>local x=1` still reaches SC2168 and still reports'
+  format_escape:
+    formula: 'reports_SC1012(e) <=> unquoted(e) ; an escape inside ''...'' reaches the command intact and is never SC1012'
+    domain: 'e: a backslash escape \t \n \r in a word'
+    codomain: bool
+    invariants:
+    - 'shellcheck semantics: SC1012 is about an escape the SHELL drops (`echo a\tb` prints atb), never about one inside single quotes - GH-261'
+    - 'printf, awk, sed interpret an escape handed to them inside ''...''; echo does not, and that case is SC2028/SC2271''s, which already fire on `echo ''a\nb''`'
+  guard:
+    formula: 'forall issue: absent(fp_code, reproducer) and fires(fp_code, true_positive_twin)'
+    domain: 'the eight issues of this contract'
+    codomain: bool
+    invariants:
+    - 'a fix that trades the false positive for a false negative fails the twin and is not a fix'
+
+proof_obligations:
+- type: invariant
+  property: masking preserves length and every code byte
+  formal: 'forall s: len(mask_literals(s)) = len(s) and forall b: not literal(b) -> mask_literals(s)[b] = s[b]'
+  applies_to: all
+- type: invariant
+  property: a backslash-escaped special inside double quotes is literal
+  formal: 'forall s, b: in_double(b) and s[b-1] = \ and s[b] in {$, `, ", \} -> literal(b)'
+  applies_to: all
+- type: invariant
+  property: arithmetic expansion is never reported as an unquoted command substitution
+  formal: 'forall s, d in SC2046(s): not s[d.start..].starts_with("$((")'
+  applies_to: all
+- type: invariant
+  property: a variable inside a double-quoted nested command substitution is quoted
+  formal: 'forall v: quoted(v) <=> in_double(innermost_context(v)) with each "$(" restarting the context'
+  applies_to: all
+- type: invariant
+  property: only recipe lines of a Makefile reach shell rules
+  formal: 'forall l: fires(shell_rule, l) -> is_recipe_line(l)'
+  applies_to: all
+- type: invariant
+  property: the true positive of every touched rule still fires
+  formal: 'forall issue: fires(fp_code, twin(issue))'
+  applies_to: all
+
+invariants:
+- 'len(mask_literals(s)) == len(s); code bytes are unchanged'
+- 'the byte after a backslash inside "..." is literal when it is $ ` " or \ (GH-252)'
+- 'SC2046 never reports a span starting with "$((" (GH-237); it never reports an assignment RHS, a word inside double quotes or a case word, where the shell performs no field splitting (GH-262)'
+- 'SC2047 and SC2122 never report a $var that is inside "$( ... "..." ... )" (GH-241)'
+- 'SC1109, SC2104 and SC2188 never report a heredoc body line; SC2276 never reports `cat <<EOF` whose output is not piped (GH-242)'
+- 'SC2168 never reports a Makefile target line or Make comment; it still reports a recipe line (GH-255)'
+- 'SC1012 never reports an escape inside single quotes (printf, awk, sed interpret it; echo''s case is SC2028/SC2271); it reports an unquoted `\t` `\n` `\r` that the shell would drop, `echo a\tb` (GH-261)'
+- 'SC1078 never reports an apostrophe inside "..." (GH-235); SC1140 never reports a trailing # comment after ] (GH-258)'
+- 'bashrs corpus run over the full 17,942-entry corpus scores no worse than the 7.0.2 baseline (84.4/100 B, 333 failures)'
+
+kani_harnesses:
+- id: KANI-LEXER_CONTEXT-001
+  obligation: masking preserves length for every byte string up to the bound
+  property: 'forall s with len(s) <= 64: len(mask_literals(s)) = len(s)'
+  bound: 64
+  strategy: bounded_int
+  harness: verify_mask_preserves_length
+- id: KANI-LEXER_CONTEXT-002
+  obligation: the quoting scanner is total - it never panics on arbitrary input up to the bound
+  property: 'forall s with len(s) <= 64: QuotedRegions::analyze(s) returns'
+  bound: 64
+  strategy: bounded_int
+  harness: verify_scanner_is_total
+- id: KANI-LEXER_CONTEXT-003
+  obligation: an escaped special inside double quotes is classified literal
+  property: 'forall prefix, c in {$, `, ", \}: literal(position of c in "\"" + prefix + "\\" + c + "\"") with len(prefix) <= 16'
+  bound: 16
+  strategy: bounded_int
+  harness: verify_escaped_special_is_literal
+falsification_tests:
+- id: F-LCX-001
+  rule: an apostrophe inside a double-quoted string is text (pinned; fixed before this contract)
+  prediction: 'lint_shell on the GH-235 reproducer reports no SC1078; `echo "oops` (unterminated) still reports SC1078'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh235_apostrophe_inside_double_quotes_is_text
+  if_fails: 'Contract violation: the scanner re-entered single-quote state inside "..." (GH-235 regressed), or SC1078 was deleted'
+- id: F-LCX-002
+  rule: $(( )) is arithmetic expansion, one word, never word-split
+  prediction: 'lint_shell on the GH-237 reproducer reports neither SC2046 nor SC1028; `echo $(date)` still reports SC2046'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh237_arith_expansion_is_not_command_substitution
+  if_fails: 'Contract violation: SC2046 still tokenises "$((" as "$(" and reports a span with an unbalanced paren'
+- id: F-LCX-003
+  rule: a $var inside a double-quoted nested command substitution is quoted
+  prediction: 'lint_shell on the GH-241 reproducer reports neither SC2047 nor SC2122, nor does `[ -n "$(echo $x)" ]` (an operand of echo, not of `[`); `[ $x -eq 1 ]` still reports SC2047'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh241_quoted_var_inside_nested_substitution_is_quoted
+  if_fails: 'Contract violation: SC2047 decides quotedness by counting quotes on the line instead of asking shell_words (GH-228)'
+- id: F-LCX-004
+  rule: a heredoc body is data for text-matching rules
+  prediction: 'lint_shell on the GH-242 reproducer reports none of SC1109, SC2188, SC2104; `echo a &lt; b` as bare code still reports SC1109'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh242_heredoc_body_is_data
+  if_fails: 'Contract violation: SC1109 reads the raw source; it belongs in QUOTE_SENSITIVE_RULES or must consult heredoc_body_lines'
+- id: F-LCX-005
+  rule: cat with a heredoc written to stdout is not a useless cat
+  prediction: 'lint_shell on the GH-242 reproducer reports no SC2276, nor does `cat <<EOF > "file|name"`; `cat <<EOF | grep x` still reports SC2276'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh242_cat_heredoc_to_stdout_is_not_useless
+  if_fails: 'Contract violation: SC2276 matches every `cat <<` instead of a cat whose only job is to feed a pipe'
+- id: F-LCX-006
+  rule: a backslash-escaped backtick inside double quotes is text
+  prediction: 'lint_shell on the GH-252 reproducer reports none of SC2006, SC2046, SC2099, SC1028, SC1078; echo `date` still reports SC2006'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh252_escaped_backtick_inside_double_quotes_is_text
+  if_fails: 'Contract violation: the scanner opens a Backtick context on an escaped backtick, or the backtick rules read the raw source'
+- id: F-LCX-007
+  rule: a Makefile target-line comment never reaches a shell rule
+  prediction: 'lint_makefile on the GH-255 reproducer reports no SC2168; a recipe line `<TAB>local x=1` still reports SC2168, and so does a backslash-continued recipe line without a leading tab'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh255_makefile_target_comment_is_not_shell
+  if_fails: 'Contract violation: preprocess_for_linting passes non-recipe lines to shell rules unchanged'
+- id: F-LCX-008
+  rule: a trailing # comment after ] is a comment (pinned; fixed before this contract)
+  prediction: 'lint_shell on the GH-258 reproducer reports no SC1140; `[ -f /etc/passwd ] echo hi` still reports SC1140'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh258_trailing_comment_after_test_is_a_comment
+  if_fails: 'Contract violation: SC1140 regressed to reading comment text (GH-258), or was deleted'
+- id: F-LCX-009
+  rule: SC1012 means what shellcheck's SC1012 means - an escape the shell drops
+  prediction: 'lint_shell on the GH-261 reproducer (printf ''hello %s\n'') reports no SC1012, nor does echo ''a\nb'' (that is SC2028/SC2271); unquoted `echo a\tb` reports SC1012'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh261_printf_format_escapes_are_interpreted
+  if_fails: 'Contract violation: SC1012 still reads inside single quotes (a bashrs-only meaning on a shellcheck code, the #236 defect class), or the unquoted case is not detected'
+- id: F-LCX-010
+  rule: the full corpus does not regress
+  prediction: 'bashrs corpus run reports >= 17,942 entries and <= 333 failures (7.0.2: 84.4/100 B, 333 failures)'
+  test: bashrs corpus run
+  if_fails: 'Contract violation: a fix widened a literal region or narrowed a rule enough to change transpiled-output lint results across the corpus'
+- id: F-LCX-011
+  rule: SC2046 reports only where the shell would field-split
+  prediction: 'lint_shell reports no SC2046 on `x=$(date)`, on `echo "$(date)"` or on `case $(uname) in`; it still reports `echo $(date)` and `$(get_command)` in command position'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh262_sc2046_only_where_the_shell_splits
+  if_fails: 'Contract violation: SC2046 decides by regex again instead of by the word role shell_words assigns (GH-262)'

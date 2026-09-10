@@ -79,6 +79,39 @@ const PAYLOADS: &[Payload] = &[
             "cov=90\nif [ \"$(printf '%s' \"int($cov >= 85)\")\" != \"1\" ]; then echo no; fi\n",
         found_at: "rmedia/scripts/prove-course-gates.sh:379",
     },
+    // PMAT-248
+    Payload {
+        code: "SC1109",
+        bare: "echo a &lt; b\n",
+        // An HTML entity inside an unquoted heredoc body is text being
+        // written out, not a typo in this script's own shell syntax.
+        quoted: "cat <<EOF\n<li>x &lt; 10</li>\nEOF\n",
+        found_at: "#242",
+    },
+    Payload {
+        code: "SC2006",
+        bare: "echo `date`\n",
+        // A backslash-escaped backtick inside "..." is literal text (POSIX
+        // 2.2.3 escapes $, `, " and \ in a double-quoted string); it is not a
+        // command substitution.
+        quoted: "echo \"Parse markdown links: \\`[text](url)\\`\"\n",
+        found_at: "#252",
+    },
+    Payload {
+        code: "SC2099",
+        bare: "id=`id -u`\n",
+        quoted: "echo \"Parse markdown links: \\`[text](url)\\`\"\n",
+        found_at: "#252",
+    },
+    Payload {
+        code: "SC2276",
+        // A pipe to another command — the heredoc really is useless here.
+        bare: "cat <<EOF | grep x\nfoo\nEOF\n",
+        // The `|` is a literal character inside a quoted redirect target,
+        // not a pipe: this cat's output goes to a file, not a command.
+        quoted: "cat <<EOF > \"file|name\"\nfoo\nEOF\n",
+        found_at: "#242 review",
+    },
 ];
 
 fn error_codes(source: &str) -> Vec<String> {
@@ -87,6 +120,18 @@ fn error_codes(source: &str) -> Vec<String> {
         .diagnostics
         .iter()
         .filter(|d| d.severity == Severity::Error)
+        .map(|d| d.code.clone())
+        .collect()
+}
+
+/// Every diagnostic code, regardless of severity — PMAT-248's SC2006 and
+/// SC2099 are `Severity::Info`, so `error_codes` alone would never see them
+/// fire and "must still fire on the bare payload" would pass vacuously.
+fn all_codes(source: &str) -> Vec<String> {
+    let script = format!("#!/usr/bin/env bash\n{source}");
+    lint_shell(&script)
+        .diagnostics
+        .iter()
         .map(|d| d.code.clone())
         .collect()
 }
@@ -120,13 +165,31 @@ fn the_payloads_together_produce_no_errors() {
 #[test]
 fn unquoted_payloads_still_fire() {
     for p in PAYLOADS {
-        let codes = error_codes(p.bare);
+        let codes = all_codes(p.bare);
         assert!(
             codes.iter().any(|c| c == p.code),
             "{} stopped firing on the real defect it exists for — a false \
              positive traded for a false negative. Got {codes:?}\n--- script ---\n{}",
             p.code,
             p.bare
+        );
+    }
+}
+
+/// Stronger than `quoted_payloads_produce_no_errors` for `Severity::Info`
+/// rules (SC2006, SC2099): checks the rule's OWN code is absent from the
+/// quoted fixture regardless of severity, rather than only that no
+/// `Severity::Error` diagnostic appears anywhere.
+#[test]
+fn quoted_payloads_produce_none_of_their_own_code() {
+    for p in PAYLOADS {
+        let codes = all_codes(p.quoted);
+        assert!(
+            !codes.iter().any(|c| c == p.code),
+            "{} ({}): fired on literal text — {codes:?}\n--- script ---\n{}",
+            p.code,
+            p.found_at,
+            p.quoted
         );
     }
 }

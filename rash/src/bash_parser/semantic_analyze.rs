@@ -277,7 +277,7 @@ impl SemanticAnalyzer {
             name.to_string(),
             FunctionInfo {
                 name: name.to_string(),
-                parameter_count: 0, // TODO: detect from $1, $2, etc.
+                parameter_count: 0, // parameter_count is not derived from $1, $2, etc. yet; PMAT-249 tracks the gap.
                 calls_detected: calls,
             },
         );

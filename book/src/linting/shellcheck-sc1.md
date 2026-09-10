@@ -126,19 +126,24 @@ echo "don't do this"
 
 In single quotes, `\n` is literal backslash-n, not a newline.
 
-### SC1012: `\t` is literal in single quotes
+### SC1012: `\t` is just literal `t` here
 
 **Severity:** Info
 
-In single quotes, `\t` is literal, not a tab. Use `$'\t'` or double quotes.
+Outside quotes the shell drops a lone backslash, so `\t`, `\n` and `\r` become the
+letters `t`, `n` and `r`: `echo a\tb` prints `atb`. That is what SC1012 reports, and
+only that. Since 7.0.3 it matches shellcheck's SC1012 (#261). Inside single quotes the
+two characters reach the command intact, which is exactly what `printf`, `awk` and
+`sed` want, so `printf 'line1\tline2\n'` is clean. An escape handed to `echo` inside
+quotes is SC2028/SC2271's subject, not this rule's.
 
 ```bash
 # Bad:
-echo 'line1\tline2'   # Prints literal \t
+echo a\tb              # the shell drops the backslash: prints atb
 
 # Good:
-echo "line1\tline2"   # Prints tab
-printf 'line1\tline2'  # printf interprets \t
+printf 'a\tb\n'        # printf interprets \t itself
+echo "$(printf '\t')"  # a real tab, portably
 ```
 
 ### SC1078: Unclosed double-quoted string
@@ -358,6 +363,8 @@ Detects en-dash (`\u2013`) or em-dash (`\u2014`) used where a minus/hyphen is ne
 **Severity:** Warning
 
 Detects `&amp;`, `&lt;`, etc. that suggest the script was copy-pasted from a web page.
+Text inside a string literal or a here-document body is data, not shell, and is not
+reported (7.0.3, #242): a script that emits HTML with `cat <<EOF` is clean.
 
 ## Bash-in-sh Portability Rules
 

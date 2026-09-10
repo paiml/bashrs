@@ -6,7 +6,6 @@
 // Allow indexing in test code - tests should panic on out-of-bounds
 #![cfg_attr(test, allow(clippy::indexing_slicing))]
 // Allow absurd extreme comparisons (defensive test assertions like usize >= 0)
-// TODO(v2.1.0): Clean up these assertions - Issue #TBD
 #![allow(clippy::absurd_extreme_comparisons)]
 // Rust 1.93: doc comments before dead-code-eliminated items trigger unused_doc_comments
 #![allow(unused_doc_comments)]

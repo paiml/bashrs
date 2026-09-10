@@ -364,7 +364,7 @@ impl EnhancedState {
                 mode,
                 uid: self.euid,
                 gid: self.egid,
-                mtime: Some(0), // TODO: Use actual timestamp when chrono is added
+                mtime: Some(0), // Using actual timestamp is blocked until chrono is added; PMAT-249 tracks the gap.
             },
         );
 

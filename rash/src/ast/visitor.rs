@@ -59,7 +59,7 @@ where
                 }
             }
         }
-        // Placeholder for new AST nodes - TODO: implement properly
+        // Placeholder for new AST nodes - not implemented yet; PMAT-249 tracks the gap.
         _ => {} // Match, For, While, Break, Continue
     }
 }

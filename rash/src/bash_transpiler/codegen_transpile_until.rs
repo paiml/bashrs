@@ -94,7 +94,7 @@ impl BashToRashTranspiler {
     }
 
     fn transpile_pipeline_stmt(&mut self, commands: &[BashStmt]) -> TranspileResult<String> {
-        // TODO: Full pipeline transpilation not implemented yet
+        // Full pipeline transpilation is not implemented yet; PMAT-249 tracks the gap.
         // For now, transpile each command separately
         let mut result = String::new();
         for cmd in commands {

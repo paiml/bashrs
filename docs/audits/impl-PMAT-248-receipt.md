@@ -1,0 +1,157 @@
+# impl receipt — PMAT-248
+
+## Identity
+
+| field | value |
+|---|---|
+| ticket | PMAT-248 (`kind:code`, `orch:fable`, `orch-basis:release`) |
+| spec | `docs/audit/quality-report09-2026.md` §8 action 3, §4 (the lexer reads non-shell text as shell) |
+| branch | `PMAT-248-lexer-context-fp` from `main` @ `8133676e24` |
+| orchestrator | Fable 5.1 (measured by `model-gate.sh`: `model=fable class=fable decision=admit basis=file`) |
+| session | `bf151141-60ff-4e66-9794-31fe5c18982d`; second ticket of this session — PMAT-245 shipped 7.0.2 here. The R-5 one-ticket file `goals-<sid>.jsonl` did not survive the host reboot between the two, so `goal.sh set` accepted PMAT-248; the user's instruction to continue in this session is quoted verbatim in the roadmap `notes`. |
+| discover.json | `default_branch=main required_check=gate gate_cmd="cargo test --workspace" gate_cmd_fallback=true quorum_tool=agy contracts_dir=contracts code_search="pmat query"` — `gate_cmd_fallback=true`: the repo declares no gate command, so `cargo test --workspace` is the fallback and the CI `gate` job is the authority |
+| slots | `slots=3 gh_calls_per_min=30 bank=3` (config-lint PASS) |
+
+## Kind and model gates (Phase 0)
+
+| gate | result |
+|---|---|
+| `kind-gate.sh PMAT-248 --base main` | `kind=code files=0` exit 0 |
+| `model-gate.sh PMAT-248` | `at-or-above-tier: measured tier=1 [A] meets required tier=1 [A]`; exit 0 |
+| `config-lint.sh` | PASS |
+| `target-guard.sh docs/audit/quality-report09-2026.md` | PASS (under `repo_root`) |
+
+## What was measured before planning
+
+`bashrs 7.0.2` built from `main @ 8133676e24`, each issue's own first reproducer, `bashrs lint` / `bashrs lint <Makefile>`:
+
+| issue | reproducer | 7.0.2 result | verdict |
+|---|---|---|---|
+| #235 | `echo "Make sure you've done this"` | no issues | already fixed — pin |
+| #237 | `if [ $((n % i)) -eq 0 ]` | `SC2046 … $((n % i)` (unbalanced span) | red |
+| #241 | `[ "$(echo "$coverage >= 80" \| bc -l)" -eq 1 ]` | SC2122 gone; **SC2047** on `$coverage` | red (new code, same defect) |
+| #242 | `cat <<MARKER` … `<li>x &lt; 10</li>` | **SC1109 error** on the body line; SC2276 info on `cat <<MARKER` | red |
+| #252 | `--body "… \`[text](url)\` …"` | SC1028/SC1078 gone; **SC2006/SC2046/SC2099** on the escaped backticks | red (new codes, same defect) |
+| #255 | `dev-setup: ## Set up local dev environment` | **SC2168 error** on the comment | red |
+| #258 | `[ -f /etc/passwd ] # check the file` | no issues | already fixed — pin |
+| #261 | `printf 'hello %s\n' "$1"` | SC1012 info | red |
+
+Owning modules (from `pmat query`): `rash/src/linter/quoting.rs` (GH-226/272 literal masking, `QUOTE_SENSITIVE_RULES`), `rash/src/linter/shell_words.rs` (GH-228 quotedness), `rash/src/linter/rules/{sc2046,sc2047,sc1012,sc2276,sc1109,sc2168}.rs`, `rash/src/linter/make_preprocess.rs`, dispatch in `rash/src/linter/rules/mod_lint_2.rs::lint_shell_filtered`. |M| = 6 ⇒ Q1.
+
+## Plan
+
+Contract first: `contracts/linter-lexer-context-v1.yaml` (L2; F-LCX-001..010). End-to-end tests: `rash/src/linter/lexer_context_tests.rs`, one per issue, each asserting the false-positive code is absent on the reproducer **and** still fires on a true-positive twin. Tests for red issues carry `#[ignore = "PMAT-248 phase N …"]` until their phase; the orchestrator removes the attribute after re-running the acceptance command, so worker scopes stay disjoint from the shared test module.
+
+| phase | what | scope_paths | A_i | route (`route.sh`, verbatim) | trigger |
+|---|---|---|---|---|---|
+| 1 | contract + test module + plan grill | `contracts/linter-lexer-context-v1.yaml`, `contracts/README.md`, `rash/src/linter/lexer_context_tests.rs`, `rash/src/linter/mod.rs` | `pv validate contracts/linter-lexer-context-v1.yaml && cargo test -p bashrs --lib linter::lexer_context_tests` | direct (orchestration: `route=self w=100.00 basis=absent`); grill: `route=agy-plan w=1.00 basis=absent effort=1[U]` | Q2 (plan artifact) |
+| 2 | #237 SC2046: `$((` is arithmetic expansion | `rash/src/linter/rules/sc2046.rs` | `cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh237 -- --include-ignored` | `route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U]` | — |
+| 3 | #241 SC2047: quotedness via `shell_words` | `rash/src/linter/rules/sc2047.rs` | `… ::test_PMAT248_gh241 -- --include-ignored` | impl (agy-goal first; sonnet-worker fallback under the one-writer rule) | — |
+| 4 | #242 + #252 in `quoting.rs`: escapes inside `"..."`; SC1109/backtick rules onto the masked copy; SC2276 only when piped | `rash/src/linter/quoting.rs`, `rash/src/linter/rules/sc2276.rs`, `rash/tests/quoting_literal_payload_guard.rs` | `… ::test_PMAT248_gh242 … ::test_PMAT248_gh252 -- --include-ignored` | impl | — |
+| 5 | #255 Makefile: non-recipe lines never reach shell rules | `rash/src/linter/make_preprocess.rs` | `… ::test_PMAT248_gh255 -- --include-ignored` | impl | — |
+| 6 | #261 SC1012: printf interprets its format | `rash/src/linter/rules/sc1012.rs` | `… ::test_PMAT248_gh261 -- --include-ignored` | impl | — |
+| 7 | release 7.0.3: version, CHANGELOG with the measured corpus score, book check, quorum review of the diff, PR, gate on merge commit, tag, publish, install check | `Cargo.toml`, `Cargo.lock`, `CHANGELOG.md`, this receipt | `bashrs corpus run` ≥ 17,942 entries, ≤ 333 failures; `gh run` gate green on merge commit; `cargo install bashrs --version 7.0.3` | `route=self`; review: `route=agy-quorum w=1.00 basis=absent effort=1[U]` width 3 | Q1 (|M|≥3), pre-PR review |
+
+Estimates: `estimate.sh bashrs 7` → `K_HAT=7 BASIS=first-run[U] ROWS=1` (one pooled row is below the script's pooling floor). K declared 120 with `basis=docs/audits/impl-estimates.jsonl:L1-L2` (PMAT-245: 194 turns for a five-phase release drive including three CI-timeout loops; 98 for the release half alone). `goal.sh set` recorded `k_measured_at_set=247`; `global=k` below is `k_measured − 247`.
+
+## Jidoka
+
+| when | defect | owner | whys | action |
+|---|---|---|---|---|
+| Phase 1, first commit | `pmat hooks install --strict --force` (required by the skill) makes the pre-commit SATD gate refuse: 17 SATD markers repo-wide against `PMAT_MAX_SATD_COMMENTS=5` | repo, pre-existing | (1) strict refuses over-threshold; (2) the count is repo-wide (`pmat analyze satd` without a path); (3) 17 markers predate the branch; (4) the previous non-strict hook only warned, so nothing forced them down; (5) no ticket owned them | see the SATD section below |
+
+## Status log
+
+(appended at each phase boundary)
+
+## Phase 1 — measured
+
+| check | result |
+|---|---|
+| `pv validate contracts/linter-lexer-context-v1.yaml` | `0 error(s), 1 warning(s). Contract is valid.` (the shared SCHEMA-013 qa_gate warning) |
+| `cargo test -p bashrs --lib linter::lexer_context_tests -- --include-ignored` | **2 passed, 7 failed** — the two pins (#235, #258) green; all seven red tests fail exactly where the contract predicts (`assert_absent`, `lexer_context_tests.rs:27`). RED observed before any fix. |
+| `cargo test -p bashrs --lib linter::lexer_context_tests` (as CI runs it) | 2 passed, 7 ignored — the gate stays green between phases |
+| `cargo fmt --all -- --check` | clean |
+| `pmat comply check` | 166 checks · 69 pass · 15 warn · 10 fail · 72 skip (baseline before this ticket; the failing ids are listed under Universe) |
+
+## Phase 1 — plan grill (delegate, `teamwork`, width 1) and what I re-checked
+
+Lane `6d48c711-9c91-40ad-ba37-91e16048e7b9` (agy 1.2.0), verdict **do-not-implement-as-written**, four claims, all `grounding=asserted`: every `run_command` in the lane failed (`fork/exec /usr/bin/bash: no such file or directory` in agy's remote exec), so it ran no test and read three of the named files not at all. Each claim re-checked here:
+
+| lane claim | my check | outcome |
+|---|---|---|
+| Phase 2: SC2046's regex is brittle; build it on `shell_words` | `shell_words.rs:368` already treats `$(( … ))` as no expansion (`test_SW_020`); SC2046 today fires on `echo $(date)` and on `$((n % i))` | **accepted** — Phase 2 rewrites SC2046 on `shell_words::simple_commands`, which fixes #237 in the owning layer |
+| Phase 4: allowlisting SC2046/SC2006/SC2099 breaks quotedness because masking replaces the `"` delimiters | `shell_words.rs:351` already honours `\$ \` \" \\` inside `"…"`; SC2046 will no longer read the masked copy at all (Phase 2) | **accepted in effect** — backtick rules move to `shell_words` or the allowlist, the worker decides against the twin; SC1109 (text match on heredoc bodies) goes on the allowlist |
+| Phase 5: blanking non-recipe lines blinds MAKE rules | `mod_std.rs::lint_makefile` feeds MAKE001–020 the original `source`; only SC2133/SC2168/SC2299 see the preprocessed text | **claim does not hold** — Phase 5 as written, plus a test that a MAKE rule on a non-recipe line still fires |
+| Phase 6: SC1012's safe set must include awk, sed, perl, jq, ruby | measured: `echo 'a\nb'` already draws SC2028 and SC2271; shellcheck's SC1012 never fires inside single quotes (#261); bashrs's single-quote meaning is the #236 defect class | **revised further** — SC1012 takes shellcheck's meaning: an unquoted `\t \n \r` the shell drops (`echo a\tb`, today SC2025/SC2042 only); nothing inside `'…'` |
+| `#[ignore]` scaffolding "unacceptable" | — | **accepted** — each phase adds its test in its RED commit; the module now holds only the two pins; the six stashed tests live in the scratchpad until their phase |
+
+Twins measured against the 7.0.2 binary (all fire today): SC2046 `echo $(date)`; SC2047 `[ $x -eq 1 ]`; SC1109 `echo a &lt; b`; SC2276 `cat <<EOF | grep x` (and, the defect, plain `cat <<EOF`); SC2006 `` echo `date` ``; SC2168 `<TAB>local x=1` and also `x := 1 # local note`; SC1012 `echo 'a\nb'` (to become SC2028/SC2271 only).
+
+## Phase 1 — SATD lane (delegate, `goal`, width 1, `writes=true`) — PMAT-249
+
+Lane `a78fc54a-e681-4961-9d2b-69cf3476c1b0`: **exit 3, LANE ISOLATION VIOLATED** — it edited the shared checkout named in the prompt instead of its worktree (26 comment sites in 20 files). Kept: the ten listed items (rules a/b/c as briefed, three pairs byte-identical) and nine restatements the lane found on its own (`ast/restricted_expr.rs`, `ast/visitor.rs`, `rules/mod.rs` + `rules/mod_helpers.rs` pair, `rules/mod_lint_2.rs` ×2, `rules/sc2164.rs`). Reverted: `ir/mod.rs` (two `FIXME(PMAT-238)` on a live ticket), `cli/corpus_weight_commands.rs` (module doc made less accurate), `rules/sc1009.rs` (doc examples), `rules/sc1127.rs` (its own `//`-comment examples emptied — restored, then the example text reworded so it stays an example of a `//` line). Root cause named by the delegate: a `--writes` brief must not name the absolute repo path. Lesson applied to every later brief. Both delegate runs returned `partial=true`; under R-4 the implementation phases fall back to `paiml-impl-worker` (sonnet), named here as the reason.
+
+## Dispatch ledger (phases 2–6)
+
+| phase | executor | agent id | model | turns | maxTurns hit | resumed | outcome |
+|---|---|---|---|---|---|---|---|
+| 1 grill | paiml-agy-delegate → agy `teamwork` | a3114f0076fbc935b | opus | 33 tool uses | no | no | partial (lane had no shell); verdict re-checked above |
+| 1 SATD | paiml-agy-delegate → agy `goal` writes | ac75f6de648f8574d | opus | 20 tool uses | no | no | partial (isolation violated); diff curated above |
+| 2 | paiml-impl-worker (sonnet-worker: both agy lanes returned partial, R-4 fallback) | abd098adde344146d | sonnet | 42 → +resume | **yes** | once | receipt complete after resume; two clippy doc lines fixed by the worker |
+| 3 | paiml-impl-worker | adfebd1f12a89a805 | sonnet | 32 → +resume | no | once | first result LOST: worker B ran `git checkout -- sc2047.rs` (forbidden by its brief) after `cargo fmt --all` touched the file; C re-applied on resume |
+| 4 | paiml-impl-worker | a69c36b1abd5b1fbb | sonnet | 47 → +resume | **yes** | once (receipt only) | receipt complete |
+| 5 | paiml-impl-worker | afd792eb15d2dd7fb | sonnet | 22 | no | no | receipt complete |
+| 6 | paiml-impl-worker | ae8988704954678a5 | sonnet | 33 | no | no | receipt complete |
+
+Slots: never more than 3 live (hook log `events-bf151141….jsonl`: `live=2` at the ph2/ph3 dispatch, `live=3` at ph3-resume + ph4 + ph5). Denials: 0. Two process lessons recorded for the next briefs: (1) never `git add -u` while workers are active — my SATD staging raced with worker C's first edit; (2) a worker brief forbids `cargo fmt --all` and every tree-changing git command, and names the concurrent workers' files.
+
+## Verification (claimed vs re-run)
+
+| phase | A_i | worker exit | my exit | module tests (mine) |
+|---|---|---|---|---|
+| 2 | `…lexer_context_tests::test_PMAT248_gh237` + `gh262` | 0 | 0 | sc2046: 15 passed |
+| 3 | `…test_PMAT248_gh241` | 0 | 0 | sc2047: 16 passed |
+| 4 | `…test_PMAT248_gh242` ×2 + `gh252` | 0 | 0 | quoting 45, sc2276 16, sc1109 9, sc2006 21, sc2099 10; `--test quoting_literal_payload_guard` 4 passed |
+| 5 | `…test_PMAT248_gh255` | 0 | 0 | make_preprocess 15, sc2168 34, sc2133 10, sc2299 16 |
+| 6 | `…test_PMAT248_gh261` | 0 | 0 | sc1012 (10 tests, 3 rewritten from positive to negative) |
+
+Design decisions taken on the way, each named in the commit that carries it: SC2046 keeps a local balanced-paren scanner because `shell_words::Expansion` does not expose command substitutions (PMAT-250 lifts it); SC2006/SC2099/SC1109 read the masked copy (a real backtick inside `"…"` stays code, verified by `test_sc2099_in_string`); SC2276 fires only when the cat feeds a pipe; SC1012 takes shellcheck's meaning (unquoted `\t \n \r`), its single-quote meaning was a bashrs-only reading of a shellcheck code (the #236 class) already covered by SC2028/SC2271.
+
+## Phase 7 — quorum review of the diff (delegate, `quorum` width 3, `writes=false`)
+
+Lanes `a0b343b8…`, `40873d7c…`, `1990942f…` (agy 1.2.0, mapped by the delegate to `--mode plan --sandbox`; `mode=quorum` is not an agy-lane mode). Verdicts: revise, do-not-implement-as-written, revise; `lane-reduce agreed=false`. Lane weight was unequal (796 s / 64 steps with three measured findings; 449 s / 32 steps all asserted; 179 s / one step all asserted). The lanes escaped the sandbox: a `[[bin]]` stanza appended to the tracked `Cargo.toml` and 25 scratch files under `repo_root` — reverted and removed before any command was re-run. Every claim was then measured against the 7.0.3 build and the 7.0.2 binary:
+
+| claim | 7.0.2 | 7.0.3 before review | verdict | action |
+|---|---|---|---|---|
+| SC2046 misses `$(get_command)` in command position | SC2046 | none | **regression** | H: `CommandName` reportable again, only the `case … in` word exempt |
+| SC2047 fires on `[ -n "$(echo $x)" ]` | SC2047 | SC2047 | pre-existing wrong report (SC2086's subject) | G: only operands of the test itself; C's twin flipped |
+| `make_preprocess` blanks a backslash-continued recipe line without a tab | SC2168 seen | none | **regression** | I: continuation tracked by trailing-backslash parity |
+| SC2276 fires on `cat <<EOF > "file\|name"` | SC2276 | SC2276 | pre-existing wrong report | I: SC2276 reads the masked copy |
+| SC2276 misses a pipe on a continued line | fired (by over-firing) | none | accepted limitation, info severity, named in CHANGELOG | — (no shared logical-line helper; `sc2188::ends_with_continuation` is private) |
+| sc2046's `skip_quoted` mishandles `\` inside `'…'` | SC2046 | SC2046 | **claim false** (measured `echo $(echo 'a\') b`) | — |
+| sc2046 scanner "byte-for-byte" equals shell_words | — | — | asserted by one lane, contradicted by another; PMAT-250 lifts it | — |
+| SC1012 / SC2276 new semantics right | — | — | 2 of 3 lanes agree | — |
+
+Four RED tests (`test_PMAT248_review_*`) were committed before the fixes (`19425412dd`), each measured failing; workers G/H/I (sonnet, disjoint scopes, slots 3/3) turned them green; module tests, the guard test, clippy, fmt and per-function complexity re-run by the orchestrator before each commit.
+
+## Status log
+
+Blocks written at the Phase 7 boundary from the commit history and the hook log; `global` is
+`k_measured − 247` at the time of writing (not reconstructed per phase, which the transcript
+does not date-stamp per commit). `q=?`: no quota.json on this host.
+
+```
+[status] ticket=PMAT-248 phase=1/7 global=26/7(K=120) k_measured=273 sub=0/0 basis=docs/audits/impl-estimates.jsonl:L1-L2
+         mode=direct trigger=Q2 route=agy-plan w=1.00 basis=absent effort=1[U] q=? gate=PASS slots=2/3 denied=0
+         red=- filed=PMAT-249 blocker=- next=RED tests for phases 2/3 once the SATD gate lets a commit through
+[status] ticket=PMAT-248 phase=3/7 global=26/7(K=120) k_measured=273 sub=2/15 basis=docs/audits/impl-estimates.jsonl:L1-L2
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=FAIL slots=2/3 denied=0
+         red=gh241-RED(pending) filed=PMAT-250 blocker=- next=worker C re-applies the sc2047 rewrite lost to worker B's git checkout
+[status] ticket=PMAT-248 phase=6/7 global=26/7(K=120) k_measured=273 sub=3/15 basis=docs/audits/impl-estimates.jsonl:L1-L2
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=PASS slots=3/3 denied=0
+         red=- filed=- blocker=- next=release prep, quorum review of the diff
+[status] ticket=PMAT-248 phase=7/7 global=26/7(K=120) k_measured=273 sub=3/12 basis=docs/audits/impl-estimates.jsonl:L1-L2
+         mode=quorum:agy trigger=Q1 route=agy-quorum w=1.00 basis=absent effort=1[U] q=? gate=PASS slots=3/3 denied=0
+         red=- filed=- blocker=- next=corpus re-run, docs commit, push, PR, gate on merge commit, tag v7.0.3, publish
+```
