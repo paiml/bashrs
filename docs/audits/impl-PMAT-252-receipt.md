@@ -134,6 +134,7 @@ No red gate. Findings against the skill bundle, for its owner:
 3. `lane-reduce.sh --brief` expects `{item, token}` elements; a triage ledger needs a shaping step (the delegate did it by hand).
 4. `snapshot.sh check` cannot distinguish an external drift from the run's own gated close; the T-6 close will always trip it when it is the last action.
 5. `model-gate.sh` admits `orch:fable`+basis for `kind:code` only; a Fable session cannot run a triage ticket under the current rule.
+6. `pmat work add/start/complete` and `pmat work triage record` write `.pmat-work/ledger.jsonl` (tracked) and `.pmat-work/triage.jsonl`; the DoD `kind-gate.sh` then refuses the triage branch (`Files outside docs/audits/: .pmat-work/ledger.jsonl`) for a file the skill's own Phase 1/4 steps require pmat to write. Measured at the DoD rerun after `pmat work complete PMAT-252`; the ledger row is committed (`chore(pmat): ledger row for PMAT-252 completion`) because pmat's ledger must agree with the roadmap.
 Orchestrator errors, not the skill's: (a) after the quorum moved #287 to D, I rewrote only the merged `ledger.json`; the first logged rerun of A_1 exited 1 against the stale per-batch `ledger-1.json` (`#287(label 'release:backlog': labels are [...])`) — corrected in `ledger-1.json`, rerun exit 0 (log above). (b) the zsh shell does not word-split `$cmd`, so my first two milestone/assignee loops silently ran nothing (26 `FAILED` lines); fixed with `eval`, then read back.
 
 ## Gaps
