@@ -66,6 +66,10 @@ mod tests;
 #[path = "lint_shell_coverage_tests.rs"]
 mod lint_shell_coverage_tests;
 
+#[cfg(test)]
+#[path = "lexer_context_tests.rs"]
+mod lexer_context_tests;
+
 pub(crate) mod rule_registry_data_11;
 pub(crate) mod rule_registry_data_12;
 pub(crate) mod rule_registry_data_1_more;
