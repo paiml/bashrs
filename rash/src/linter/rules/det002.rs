@@ -258,3 +258,7 @@ send_metric "$TIMESTAMP"
         );
     }
 }
+
+#[cfg(test)]
+#[path = "det002_tests_gh263.rs"]
+mod tests_gh263;

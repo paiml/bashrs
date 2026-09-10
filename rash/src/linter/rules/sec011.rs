@@ -135,6 +135,93 @@ fn check_dangerous_op(
     }
 }
 
+/// Pattern: `rm -rf "$VAR"`
+fn check_rm_pattern(
+    code_only: &str,
+    validated_vars: &std::collections::HashSet<String>,
+    inline_validated: &std::collections::HashSet<String>,
+    line_num: usize,
+    line_len: usize,
+    result: &mut LintResult,
+) {
+    if !(code_only.contains("rm") && code_only.contains("-rf")) {
+        return;
+    }
+    let Some(var_name) = extract_variable_from_rm(code_only) else {
+        return;
+    };
+    if is_safe_env_var(&var_name) {
+        return;
+    }
+    check_dangerous_op(
+        &var_name,
+        "rm -rf",
+        validated_vars,
+        inline_validated,
+        line_num,
+        line_len,
+        result,
+    );
+}
+
+/// Pattern: `chmod -R 777 "$VAR"`
+fn check_chmod_pattern(
+    code_only: &str,
+    validated_vars: &std::collections::HashSet<String>,
+    inline_validated: &std::collections::HashSet<String>,
+    line_num: usize,
+    line_len: usize,
+    result: &mut LintResult,
+) {
+    if !(code_only.contains("chmod") && code_only.contains("-R") && code_only.contains("777")) {
+        return;
+    }
+    let Some(var_name) = extract_variable_from_chmod(code_only) else {
+        return;
+    };
+    if is_safe_env_var(&var_name) {
+        return;
+    }
+    check_dangerous_op(
+        &var_name,
+        "chmod -R 777",
+        validated_vars,
+        inline_validated,
+        line_num,
+        line_len,
+        result,
+    );
+}
+
+/// Pattern: `chown -R user:group "$VAR"`
+fn check_chown_pattern(
+    code_only: &str,
+    validated_vars: &std::collections::HashSet<String>,
+    inline_validated: &std::collections::HashSet<String>,
+    line_num: usize,
+    line_len: usize,
+    result: &mut LintResult,
+) {
+    if !(code_only.contains("chown") && code_only.contains("-R")) {
+        return;
+    }
+    let Some(var_name) = extract_variable_from_chown(code_only) else {
+        return;
+    };
+    if is_safe_env_var(&var_name) {
+        return;
+    }
+    check_dangerous_op(
+        &var_name,
+        "chown -R",
+        validated_vars,
+        inline_validated,
+        line_num,
+        line_len,
+        result,
+    );
+}
+
 /// Check for missing input validation before dangerous operations
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -147,60 +234,32 @@ pub fn check(source: &str) -> LintResult {
         track_validation(trimmed, &mut validated_vars);
 
         let inline_validated = extract_inline_validated_vars(code_only);
+        let line_len = line.len();
 
-        // Pattern: rm -rf "$VAR"
-        if code_only.contains("rm") && code_only.contains("-rf") {
-            if let Some(ref var_name) = extract_variable_from_rm(code_only) {
-                if is_safe_env_var(var_name) {
-                    continue;
-                }
-                check_dangerous_op(
-                    var_name,
-                    "rm -rf",
-                    &validated_vars,
-                    &inline_validated,
-                    line_num,
-                    line.len(),
-                    &mut result,
-                );
-            }
-        }
-
-        // Pattern: chmod -R 777 "$VAR"
-        if code_only.contains("chmod") && code_only.contains("-R") && code_only.contains("777") {
-            if let Some(ref var_name) = extract_variable_from_chmod(code_only) {
-                if is_safe_env_var(var_name) {
-                    continue;
-                }
-                check_dangerous_op(
-                    var_name,
-                    "chmod -R 777",
-                    &validated_vars,
-                    &inline_validated,
-                    line_num,
-                    line.len(),
-                    &mut result,
-                );
-            }
-        }
-
-        // Pattern: chown -R user:group "$VAR"
-        if code_only.contains("chown") && code_only.contains("-R") {
-            if let Some(ref var_name) = extract_variable_from_chown(code_only) {
-                if is_safe_env_var(var_name) {
-                    continue;
-                }
-                check_dangerous_op(
-                    var_name,
-                    "chown -R",
-                    &validated_vars,
-                    &inline_validated,
-                    line_num,
-                    line.len(),
-                    &mut result,
-                );
-            }
-        }
+        check_rm_pattern(
+            code_only,
+            &validated_vars,
+            &inline_validated,
+            line_num,
+            line_len,
+            &mut result,
+        );
+        check_chmod_pattern(
+            code_only,
+            &validated_vars,
+            &inline_validated,
+            line_num,
+            line_len,
+            &mut result,
+        );
+        check_chown_pattern(
+            code_only,
+            &validated_vars,
+            &inline_validated,
+            line_num,
+            line_len,
+            &mut result,
+        );
     }
 
     result
@@ -329,3 +388,7 @@ fn extract_variable_from_chown(line: &str) -> Option<String> {
 #[cfg(test)]
 #[path = "sec011_tests_sec011_detec.rs"]
 mod tests_extracted;
+
+#[cfg(test)]
+#[path = "sec011_tests_gh264.rs"]
+mod tests_gh264;
