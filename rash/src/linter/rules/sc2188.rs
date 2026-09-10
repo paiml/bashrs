@@ -2,8 +2,18 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
+// GH-249: a line beginning with a file-descriptor digit (`2>&1` alone) is a
+// redirection without a command exactly as much as `>&2` alone is - both are
+// this rule's subject. The original `^\s*[<>]` never matched the fd-digit
+// case, so it never reached `command_follows_redirections` at all. Widening
+// to `^\s*\d*[<>]` puts fd-prefixed lines in scope; the existing
+// `redirect_has_attached_target` / `is_bare_redirect_operator` helpers
+// already understand a leading fd digit, so a real command attached to one
+// (`cmd 2>&1`, `exec 2>&1`, `2>&1 cmd`) is still silenced by
+// `command_follows_redirections` below, and a heredoc body or comment never
+// reaches this rule (SC2188 is quote-sensitive: it sees the masked source).
 static LONE_REDIRECT: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"^\s*[<>]").unwrap());
+    std::sync::LazyLock::new(|| Regex::new(r"^\s*\d*[<>]").unwrap());
 
 /// Does this physical line end in a backslash that continues the logical line?
 ///
@@ -371,12 +381,9 @@ mod tests {
     /// the fix has simply switched the rule off.
     #[test]
     fn test_sc2188_a_truly_lone_redirection_still_fires() {
-        // `2>&1` alone is NOT here: `LONE_REDIRECT` is `^\s*[<>]`, so a line
-        // starting with an fd digit was never in this rule's scope. That is a
-        // pre-existing gap (paiml/bashrs#249), not a regression from this fix —
-        // and widening a Severity::Error rule to report MORE does not belong in
-        // a release whose purpose is removing false positives.
-        for src in ["> file\n", ">> file\n", "< input\n", ">&2\n"] {
+        // `2>&1` alone is included: #249 widened `LONE_REDIRECT` to
+        // `^\s*\d*[<>]`, so an fd-prefixed lone redirect is in scope too.
+        for src in ["> file\n", ">> file\n", "< input\n", ">&2\n", "2>&1\n"] {
             let r = check(src);
             assert_eq!(
                 r.diagnostics.len(),
@@ -403,18 +410,13 @@ mod tests {
     }
 
     #[test]
-    fn known_gap_a_numbered_fd_never_reaches_this_rule_at_all() {
-        // NOT a claim that silence is right here — `2> err.log` IS a
-        // redirection without a command. `LONE_REDIRECT` is `^\s*[<>]`, so a
-        // leading file descriptor number is never matched, while the rest of
-        // the rule (`redirect_has_attached_target`, `is_bare_redirect_operator`)
-        // handles numbered fds perfectly well. The entry test and the body
-        // disagree.
-        //
-        // Left alone deliberately: widening the reach of a Severity::Error rule
-        // belongs in a change that has corpus evidence for it, not in one whose
-        // subject is removing false positives. Recorded so it is not lost.
-        assert_eq!(check("2> err.log # no command\n").diagnostics.len(), 0);
+    fn gh249_numbered_fd_now_reaches_this_rule_and_still_honours_trailing_comments() {
+        // #249: `2> err.log` IS a redirection without a command, exactly like
+        // `> err.log`. `LONE_REDIRECT` now matches a leading file descriptor
+        // number, and the rest of the rule (`redirect_has_attached_target`,
+        // `is_bare_redirect_operator`, `strip_trailing_comment`) already
+        // handled numbered fds correctly, so both report here.
+        assert_eq!(check("2> err.log # no command\n").diagnostics.len(), 1);
         assert_eq!(check("> err.log # no command\n").diagnostics.len(), 1);
     }
 
