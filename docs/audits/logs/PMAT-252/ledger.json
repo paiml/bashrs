@@ -1,0 +1,345 @@
+[
+  {
+    "issue": 287,
+    "verdict": "D",
+    "reason": "the issue asked for headroom against the 60-minute CI timeout (53m46s measured at filing); the same job took 13m37s on the latest main run 34459917312 — the ask is satisfied by measurement; the deeper load_full() cost is tracked by PMAT-247 (merged) and stays out of this issue",
+    "class": "ci",
+    "release": "7.0.4",
+    "evidence": "measured latest main CI run 34459917312 (commit a359431e): ci/test 13m37s (09:18:38-09:32:15), ~46min headroom vs 60m timeout; better than the 53m46s cited but cache/runner-dependent, does not address the load_full()-in-structural-tests root cause",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.0.4"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:ci"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      },
+      {
+        "type": "label",
+        "label": "verdict:close-with-evidence"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 287 --repo paiml/bashrs --json labels",
+      "ok": true
+    },
+    "quorum": "ph3 lanes 1,2,3 agreed C->D (docs/audits/quorum-PMAT-252-ledger.json)"
+  },
+  {
+    "issue": 265,
+    "verdict": "B",
+    "reason": "bashrs honours non-SC codes in shellcheck disable= directives, causing shellcheck to abort the whole file; fix requires new directive-namespace validation and placement semantics users must learn",
+    "class": "interop",
+    "release": "7.1.0",
+    "evidence": "measured on 7.0.3: shellcheck exits SC1073/SC1072 on # shellcheck disable=DET002 and reports nothing else, confirming the parse-abort exactly as reported",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.1.0"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:interop"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 265 --repo paiml/bashrs --json labels",
+      "ok": true
+    }
+  },
+  {
+    "issue": 264,
+    "verdict": "A",
+    "reason": "SEC011 recognises if-guard but not equivalent test||exit early-return guard for the same reachability property",
+    "class": "fp",
+    "release": "7.0.4",
+    "evidence": "measured on 7.0.3: if form clears SEC011; [ -n \"$WORK\" ] || exit 1 and test -n \"$WORK\" || exit 1 both still flag error 4:1-14, exactly as reported",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.0.4"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:fp"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 264 --repo paiml/bashrs --json labels",
+      "ok": true
+    }
+  },
+  {
+    "issue": 263,
+    "verdict": "A",
+    "reason": "DET002 only detects timestamp inside command substitution; bare command-word form (date > VERSION) is a silent false negative with identical non-reproducible behaviour",
+    "class": "fn",
+    "release": "7.0.4",
+    "evidence": "measured on 7.0.3: date > VERSION -> No issues found; echo \"$(date)\" > VERSION -> DET002 error, exactly as reported",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.0.4"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:fn"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 263 --repo paiml/bashrs --json labels",
+      "ok": true
+    }
+  },
+  {
+    "issue": 257,
+    "verdict": "A",
+    "reason": "MAKE010 flags rm -f as missing error handling though -f already expresses the tolerance the rule asks for",
+    "class": "fp",
+    "release": "7.0.4",
+    "evidence": "measured on 7.0.3: restore recipe still emits MAKE010 for both cp (true positive) and rm -f (false positive) at 4:3-5, matching the report",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.0.4"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:fp"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 257 --repo paiml/bashrs --json labels",
+      "ok": true
+    }
+  },
+  {
+    "issue": 256,
+    "verdict": "A",
+    "reason": "MAKE010 matches a command-shaped word inside a quoted string and matches cargo's subcommand token instead of the actual command word",
+    "class": "fp",
+    "release": "7.0.4",
+    "evidence": "measured on 7.0.3: both repros still flag MAKE010 'install' at 2:58-65 (inside echo string) and 2:9-16 (cargo install subcommand); plain-line premise case correctly emits none",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.0.4"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:fp"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 256 --repo paiml/bashrs --json labels",
+      "ok": true
+    }
+  },
+  {
+    "issue": 254,
+    "verdict": "A",
+    "reason": "7 git-tracked .rs files (file-splitter residue) are unreferenced by any mod/include!/#[path] and never compiled",
+    "class": "debt",
+    "release": "7.0.4",
+    "evidence": "re-ran read-only on current tree: all 7 files still git-tracked and UNREFERENCED via git ls-files + git grep, matching the report exactly",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.0.4"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:debt"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 254 --repo paiml/bashrs --json labels",
+      "ok": true
+    }
+  },
+  {
+    "issue": 249,
+    "verdict": "A",
+    "reason": "Lone 2>&1 still not reported; SC2188's ^\\s*[<>] pattern requires the line to start with < or >, so a leading fd digit is skipped (issue text + measured on 7.0.3).",
+    "class": "fn",
+    "release": "7.0.4",
+    "evidence": "measured on 7.0.3: repro/249-sc2188.sh line 2 '2>&1' -> no finding; line 3 '>&2' -> SC2188 error. Confirms the scope gap as filed.",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.0.4"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:fn"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 249 --repo paiml/bashrs --json labels,comments",
+      "ok": true
+    }
+  },
+  {
+    "issue": 238,
+    "verdict": "A",
+    "reason": "A comment leading a non-empty block still trips the emptiness check (now code BRS0001); the fire is on the comment line itself, not the block contents.",
+    "class": "fp",
+    "release": "7.0.4",
+    "evidence": "measured on 7.0.3: repro/238-sc1009.sh ('if true; then # just a comment; echo hi; fi') --format json still reports BRS0001 'Comment here is not a command' at line 3 despite echo hi on line 4.",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.0.4"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:fp"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 238 --repo paiml/bashrs --json labels,comments",
+      "ok": true
+    }
+  },
+  {
+    "issue": 236,
+    "verdict": "C",
+    "reason": "The 200:1 volume claim cannot be re-measured here (external corpus); part of the SC2046/SC2047 volume is already addressed by dedicated 7.0.3 fixes, but the remaining ask (align SC numbering with shellcheck, or move to a bashrs-native namespace) is a repo-wide semantics decision.",
+    "class": "interop",
+    "release": "backlog",
+    "evidence": "CHANGELOG.md [7.0.3]: 'SC2046 no longer reports $(( ))' (#237), 'SC2046 reports only where the shell would field-split' (#262), 'SC2047 asks shell_words whether a test operand is quoted' (#241) — all shipped in 7.0.3, reducing the reported ratio, but SC2183/SC2047 numbering alignment is not addressed.",
+    "mutation": {
+      "type": "label",
+      "label": "release:backlog"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:interop"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 236 --repo paiml/bashrs --json labels,comments",
+      "ok": true
+    }
+  },
+  {
+    "issue": 234,
+    "verdict": "C",
+    "reason": "CB-200 is repository-wide accumulated complexity debt with no CI gate; scope has grown since filing, not shrunk. The pv-lint half belongs to a sibling repository.",
+    "class": "debt",
+    "release": "backlog",
+    "evidence": "docs/roadmaps/roadmap.yaml PMAT-251 acceptance_criteria: pmat comply check on 7.0.3 records CB-200 = 777 functions below grade A (was 120 at filing on v6.67.0). pv lint contracts/ failures are all in symlinks to paiml/provable-contracts, not fixable by a bashrs commit.",
+    "mutation": {
+      "type": "label",
+      "label": "release:backlog"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:debt"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 234 --repo paiml/bashrs --json labels,comments",
+      "ok": true
+    }
+  },
+  {
+    "issue": 233,
+    "verdict": "C",
+    "reason": "CI clippy still lints only the bashrs-specs stub because clippy_args is unset in ci.yml; fixing it safely requires first repairing 37 non-compiling test targets per the issue's own suggested order — multi-file, sequenced work.",
+    "class": "ci",
+    "release": "backlog",
+    "evidence": "read .github/workflows/ci.yml (current main): no clippy_args input set. paiml/.github sovereign-ci.yml Clippy step runs 'cargo clippy $CLIPPY_ARGS -- -D warnings -A unused-variables' with CLIPPY_ARGS empty, resolving to the root bashrs-specs package only, matching the issue's own measurement. test_workspace:true already fixes the analogous test-scope gap (GH-214); no equivalent exists for clippy.",
+    "mutation": {
+      "type": "label",
+      "label": "release:backlog"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:ci"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 233 --repo paiml/bashrs --json labels,comments",
+      "ok": true
+    }
+  },
+  {
+    "issue": 232,
+    "verdict": "B",
+    "reason": "Proposes a new rule id (DET005) split from DET002, with its own severity and docs — a new directive surface, so it is a minor release, not a patch.",
+    "class": "enhancement",
+    "release": "7.1.0",
+    "evidence": "Issue text: DET005 is a new rule consuming existing linter::timestamp_flow/SinkClass machinery from #230 (shipped 7.0.3) with the opposite polarity; acceptance criteria list four new examples, non-firing cases, and a book update — new surface, not a bugfix.",
+    "mutation": {
+      "type": "label",
+      "label": "release:7.1.0"
+    },
+    "extra_mutations": [
+      {
+        "type": "label",
+        "label": "class:enhancement"
+      },
+      {
+        "type": "comment",
+        "marker": "PMAT-252-triage"
+      }
+    ],
+    "read_back": {
+      "cmd": "gh issue view 232 --repo paiml/bashrs --json labels,comments",
+      "ok": true
+    }
+  }
+]

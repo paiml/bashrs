@@ -1,0 +1,9 @@
+gh issue view 287 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue edit 287 --repo paiml/bashrs --add-label release:7.0.4
+gh issue view 287 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 287 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue edit 287 --repo paiml/bashrs --add-label verdict:close-with-evidence
+gh issue view 287 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 287 --repo paiml/bashrs --json state --jq .state
+gh issue close 287 --repo paiml/bashrs --comment Closed by paiml-implement — docs/audits/impl-PMAT-252-receipt.md — ci/test 13m37s on run 34459917312 (v7.0.3 merge a359431e8f) vs 53m46s at filing; structural fix PR #288 (PMAT-247); quorum docs/audits/quorum-PMAT-252-close-287.json agreed=true (3/3)
+gh issue view 287 --repo paiml/bashrs --json state --jq .state

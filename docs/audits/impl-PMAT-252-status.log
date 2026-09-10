@@ -1,0 +1,15 @@
+[status] ticket=PMAT-252 phase=0/5 global=296/3(K=24) k_measured=296 sub=0/0 basis=first-run[U]
+         mode=direct trigger=- route=self w=0 q=? gate=NOT-RUN slots=0/3 denied=0
+         red=- filed=- blocker=- next=snapshot taken (13 issues, sha 808720e9), two batches of 7+6, goal.sh set refused (R-5), model-gate refused (fable on kind:triage) — proceeding on the operator's verbatim instruction quoted in the roadmap notes
+[status] ticket=PMAT-252 phase=2/5 global=302/3(K=24) k_measured=302 sub=42/25 basis=first-run[U]
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=NOT-RUN slots=3/3 denied=0
+         red=- filed=- blocker=- next=both batches returned 7/7 and 6/6 rows, 0 null verdicts; orchestrator re-ran A_1 and A_2 (exit 0, 0) and read back 13 labels + 13 comments
+[status] ticket=PMAT-252 phase=3/5 global=304/3(K=24) k_measured=304 sub=20/20 basis=first-run[U]
+         mode=quorum:agy-plan trigger=T-triage(every batch) route=agy-quorum w=1.00 basis=absent effort=1[U] q=? gate=NOT-RUN slots=3/3 denied=0
+         red=- filed=- blocker=- next=ledger quorum 3/3 lanes: 12 rows defensible, #287 C->D; milestones + assignee applied and read back 13/13
+[status] ticket=PMAT-252 phase=4/5 global=307/3(K=24) k_measured=307 sub=18/20 basis=first-run[U]
+         mode=quorum:agy-plan trigger=T-6(close) route=agy-quorum w=1.00 basis=absent effort=1[U] q=? gate=NOT-RUN slots=1/3 denied=0
+         red=- filed=- blocker=- next=close quorum agreed=true 3/3 (docs/audits/quorum-PMAT-252-close-287.json); mutate.sh close #287 with citation; snapshot check now reports the resulting 13->12 drift
+[status] ticket=PMAT-252 phase=5/5 global=310/3(K=24) k_measured=310 sub=0/0 basis=first-run[U]
+         mode=direct trigger=- route=self w=0 q=? gate=PASS slots=0/3 denied=0
+         red=- filed=- blocker=- next=receipt, pmat work complete, push, PR

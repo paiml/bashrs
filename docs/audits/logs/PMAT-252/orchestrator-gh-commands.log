@@ -1,0 +1,67 @@
+gh issue edit 287 --repo paiml/bashrs --milestone Backlog --add-assignee noahgift
+gh issue edit 265 --repo paiml/bashrs --milestone v7.1.0 --add-assignee noahgift
+gh issue edit 264 --repo paiml/bashrs --milestone v7.0.4 --add-assignee noahgift
+gh issue edit 263 --repo paiml/bashrs --milestone v7.0.4 --add-assignee noahgift
+gh issue edit 257 --repo paiml/bashrs --milestone v7.0.4 --add-assignee noahgift
+gh issue edit 256 --repo paiml/bashrs --milestone v7.0.4 --add-assignee noahgift
+gh issue edit 254 --repo paiml/bashrs --milestone v7.0.4 --add-assignee noahgift
+gh issue edit 249 --repo paiml/bashrs --milestone v7.0.4 --add-assignee noahgift
+gh issue edit 238 --repo paiml/bashrs --milestone v7.0.4 --add-assignee noahgift
+gh issue edit 236 --repo paiml/bashrs --milestone Backlog --add-assignee noahgift
+gh issue edit 234 --repo paiml/bashrs --milestone Backlog --add-assignee noahgift
+gh issue edit 233 --repo paiml/bashrs --milestone Backlog --add-assignee noahgift
+gh issue edit 232 --repo paiml/bashrs --milestone v7.1.0 --add-assignee noahgift
+gh issue edit 287 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 287 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 265 --repo paiml/bashrs --milestone v7.1.0
+gh issue edit 265 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 264 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 264 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 263 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 263 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 257 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 257 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 256 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 256 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 254 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 254 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 249 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 249 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 238 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 238 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 236 --repo paiml/bashrs --milestone Backlog
+gh issue edit 236 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 234 --repo paiml/bashrs --milestone Backlog
+gh issue edit 234 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 233 --repo paiml/bashrs --milestone Backlog
+gh issue edit 233 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 232 --repo paiml/bashrs --milestone v7.1.0
+gh issue edit 232 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 287 --repo paiml/bashrs --remove-label release:backlog
+gh issue edit 287 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 287 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 265 --repo paiml/bashrs --milestone v7.1.0
+gh issue edit 265 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 264 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 264 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 263 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 263 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 257 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 257 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 256 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 256 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 254 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 254 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 249 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 249 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 238 --repo paiml/bashrs --milestone v7.0.4
+gh issue edit 238 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 236 --repo paiml/bashrs --milestone Backlog
+gh issue edit 236 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 234 --repo paiml/bashrs --milestone Backlog
+gh issue edit 234 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 233 --repo paiml/bashrs --milestone Backlog
+gh issue edit 233 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 232 --repo paiml/bashrs --milestone v7.1.0
+gh issue edit 232 --repo paiml/bashrs --add-assignee noahgift
+gh issue edit 287 --repo paiml/bashrs --remove-label release:backlog
