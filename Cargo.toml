@@ -73,8 +73,10 @@ bitflags = "2.10"
 hashbrown = "0.17"
 indexmap = "2.7"
 itertools = "0.15"
-regex-automata = "0.5"
-regex-syntax = "0.9"
+# regex-automata / regex-syntax pins removed (PMAT-251): "0.5"/"0.9" matched no published
+# release (latest are 0.4.x / 0.8.x) and no workspace member declares either crate directly —
+# both arrive only transitively (bstr -> assert_cmd, arrow-string -> trueno-db), so the pin
+# unified nothing.
 
 [workspace.package]
 version = "7.0.3"
