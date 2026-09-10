@@ -52,8 +52,8 @@ once_cell.workspace = true
 lazy_static.workspace = true
 phf.workspace = true
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
-rand = { version = "0.9", optional = true }
-rand_chacha = { version = "0.9", optional = true }
+rand = { version = "0.10", optional = true }
+rand_chacha = { version = "0.10", optional = true }
 batuta-common = "0.1"
 static_assertions = "1.1"
 rayon = "1.10"  # Parallel file linting (Sprint 14)

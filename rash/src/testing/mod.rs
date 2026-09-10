@@ -320,7 +320,7 @@ impl ExhaustiveTestHarness {
 
     // Helper methods for test implementation
     fn generate_random_input(&self) -> Result<String> {
-        use rand::Rng;
+        use rand::RngExt;
         let mut rng = rand::rng();
 
         // Generate random but somewhat valid Rust-like input
@@ -336,7 +336,7 @@ impl ExhaustiveTestHarness {
         Ok(self.fill_template(template, &random_values))
     }
 
-    fn generate_random_values(&self, rng: &mut impl rand::Rng) -> Vec<String> {
+    fn generate_random_values(&self, rng: &mut impl rand::RngExt) -> Vec<String> {
         vec![
             rng.random::<u32>().to_string(),
             format!("\"{}\"", self.generate_random_string(rng, 100)),
@@ -349,7 +349,7 @@ impl ExhaustiveTestHarness {
         ]
     }
 
-    fn generate_random_string(&self, rng: &mut impl rand::Rng, max_len: usize) -> String {
+    fn generate_random_string(&self, rng: &mut impl rand::RngExt, max_len: usize) -> String {
         let len = rng.random_range(0..max_len);
         (0..len)
             .map(|_| (rng.random::<u8>() % 26 + b'a') as char)

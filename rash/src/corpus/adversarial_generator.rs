@@ -11,7 +11,7 @@ use crate::corpus::adversarial_templates::{
 };
 use crate::corpus::dataset::{ClassificationRow, SAFETY_LABELS};
 use rand::prelude::IndexedRandom;
-use rand::Rng;
+use rand::RngExt;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
