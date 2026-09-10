@@ -214,6 +214,11 @@ fn is_code_line(line: &str) -> bool {
         && !trimmed.starts_with("shopt ")
 }
 
+/// GH-265: keep only codes shellcheck itself owns (`SC` followed by digits).
+fn only_shellcheck_codes(rules: HashSet<String>) -> HashSet<String> {
+    rules.into_iter().filter(|r| r.starts_with("SC")).collect()
+}
+
 /// Parse a suppression directive from a line
 /// Supports BOTH bashrs-native syntax AND shellcheck syntax
 fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
@@ -282,7 +287,14 @@ fn parse_suppression(line: &str, line_num: usize) -> Option<Suppression> {
 
     if let Some(pos) = trimmed.find("# shellcheck disable=") {
         let rules_str = &trimmed[pos + "# shellcheck disable=".len()..];
-        let rules = parse_rule_list(rules_str);
+        // GH-265: shellcheck's namespace is SC<digits>. A bashrs-native code
+        // (DET*, SEC*, IDEM*, REL*, ...) in this directive is not a code
+        // shellcheck understands; shellcheck aborts parsing the whole file on
+        // it (SC1073/SC1072), so honouring it here would silently disable
+        // shellcheck for the rest of the file while bashrs stays quiet. Only
+        // SC-numbered codes are honoured; non-SC codes are reported instead
+        // (see `native_codes_in_shellcheck_directives` / `report_unrecognised_directives`).
+        let rules = only_shellcheck_codes(parse_rule_list(rules_str));
         return Some(Suppression {
             suppression_type: SuppressionType::NextLine,
             line: line_num,
@@ -410,6 +422,62 @@ fn looks_like_attempted_directive(line: &str) -> bool {
     parse_suppression(line, 1).is_none()
 }
 
+/// GH-265: a bashrs-native code (`DET*`, `SEC*`, `IDEM*`, `REL*`, ...) named
+/// inside a `# shellcheck disable=` directive. shellcheck cannot parse that
+/// code, aborts checking the rest of the file, and bashrs must not honour it
+/// either — see `only_shellcheck_codes`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NativeCodeInShellcheckDirective {
+    /// 1-indexed line the `# shellcheck disable=` directive appears on.
+    pub line: usize,
+    /// The bashrs-native codes named in the directive (SC-numbered codes are
+    /// dropped — those are the ones shellcheck understands and keeps working).
+    pub codes: Vec<String>,
+}
+
+/// Find `# shellcheck disable=` directives that name a bashrs-native code.
+fn native_codes_in_shellcheck_directives(source: &str) -> Vec<NativeCodeInShellcheckDirective> {
+    let mut out = Vec::new();
+    for (idx, line) in source.lines().enumerate() {
+        let trimmed = line.trim();
+        let Some(pos) = trimmed.find("# shellcheck disable=") else {
+            continue;
+        };
+        let rules_str = &trimmed[pos + "# shellcheck disable=".len()..];
+        let mut non_sc: Vec<String> = parse_rule_list(rules_str)
+            .into_iter()
+            .filter(|r| !r.starts_with("SC"))
+            .collect();
+        if non_sc.is_empty() {
+            continue;
+        }
+        non_sc.sort();
+        out.push(NativeCodeInShellcheckDirective {
+            line: idx + 1,
+            codes: non_sc,
+        });
+    }
+    out
+}
+
+/// GH-265: `# bashrs disable-line=RULE` written on a comment-only line, with
+/// no code before the `#`. Unlike `disable-next-line`, `disable-line` only
+/// ever suppresses the line it is written on — on a comment-only line there is
+/// no code there to suppress, so the directive silently does nothing. Same
+/// failure mode as #240: a suppression comment sits right next to the finding
+/// it was meant to silence, and nothing says why it didn't work.
+fn disable_line_directives_with_no_code(source: &str) -> Vec<UnrecognisedDirective> {
+    source
+        .lines()
+        .enumerate()
+        .filter(|(_, l)| l.contains("# bashrs disable-line=") && l.trim_start().starts_with('#'))
+        .map(|(i, l)| UnrecognisedDirective {
+            line: i + 1,
+            text: l.trim().to_string(),
+        })
+        .collect()
+}
+
 /// Find comments that were probably meant as suppressions but are inert.
 ///
 /// Returned rather than reported here, so the caller decides the severity and
@@ -514,6 +582,48 @@ pub fn report_unrecognised_directives(
                 "`{}` is not a recognised bashrs directive and does nothing. Supported: {}",
                 d.text,
                 SUPPORTED_DIRECTIVES.join(", ")
+            ),
+            crate::linter::Span::new(d.line, 1, d.line, d.text.len() + 1),
+        ));
+    }
+
+    // GH-265: a bashrs-native code named in a `# shellcheck disable=`
+    // directive is never honoured (see `only_shellcheck_codes`), and the
+    // reason must be as visible as the finding it failed to silence.
+    for d in native_codes_in_shellcheck_directives(source) {
+        if manager.is_suppressed("BASHRS001", d.line) {
+            continue;
+        }
+        for code in &d.codes {
+            result.add(crate::linter::Diagnostic::new(
+                "BASHRS001",
+                crate::linter::Severity::Warning,
+                format!(
+                    "{code} is a bashrs rule; use `# bashrs disable-line={code}` or \
+                     `# bashrs disable-file={code}` — a non-SC code in a `# shellcheck` \
+                     directive makes shellcheck abandon the file."
+                ),
+                crate::linter::Span::new(d.line, 1, d.line, 1),
+            ));
+        }
+    }
+
+    // GH-265: `# bashrs disable-line=` on a comment-only line has no code on
+    // that line to suppress, so it silently does nothing (same shape as
+    // #240's inert directives).
+    for d in disable_line_directives_with_no_code(source) {
+        if manager.is_suppressed("BASHRS001", d.line) {
+            continue;
+        }
+        result.add(crate::linter::Diagnostic::new(
+            "BASHRS001",
+            crate::linter::Severity::Warning,
+            format!(
+                "`{}` has no code on its line to suppress — `disable-line` only applies to \
+                 the line it is written on, not the line below it. Move it to the end of the \
+                 target line, or use `# bashrs disable-file=` / `# bashrs disable-next-line=` \
+                 instead.",
+                d.text
             ),
             crate::linter::Span::new(d.line, 1, d.line, d.text.len() + 1),
         ));

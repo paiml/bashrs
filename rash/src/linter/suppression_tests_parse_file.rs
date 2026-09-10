@@ -101,14 +101,16 @@ fn test_shellcheck_disable_next_line() {
 
 #[test]
 fn test_shellcheck_disable_multiple_rules() {
-    // Issue #130: Directives at top of file (before any code) are file-level
+    // Issue #130: Directives at top of file (before any code) are file-level.
+    // GH-265: a bashrs-native code (DET002) inside a `# shellcheck disable=`
+    // directive is NOT honoured — only SC-numbered codes are.
     let source = "# shellcheck disable=SC2086,SC2046,DET002\necho $var\n";
     let manager = SuppressionManager::from_source(source);
 
-    // File-level suppression applies to all lines
+    // File-level suppression applies to all lines, but only for SC codes
     assert!(manager.is_suppressed("SC2086", 2));
     assert!(manager.is_suppressed("SC2046", 2));
-    assert!(manager.is_suppressed("DET002", 2));
+    assert!(!manager.is_suppressed("DET002", 2));
 }
 
 #[test]
@@ -143,7 +145,8 @@ echo $(cat file)
 #[test]
 fn test_shellcheck_file_level_suppression_at_top() {
     // Issue #130: Shellcheck directives at top of file (before any code)
-    // should apply to the entire file
+    // should apply to the entire file — but GH-265: only for SC-numbered
+    // codes. SEC010 is a bashrs-native code and is not honoured here.
     let source = r#"#!/bin/bash
 # shellcheck disable=SC2086
 # shellcheck disable=SEC010
@@ -153,10 +156,10 @@ mkdir -p "$PATH/dir"
 "#;
     let manager = SuppressionManager::from_source(source);
 
-    // Directives at top should apply to all lines
+    // Directives at top should apply to all lines, for SC codes only
     assert!(manager.is_suppressed("SC2086", 5)); // echo $var
     assert!(manager.is_suppressed("SC2086", 6)); // mkdir
-    assert!(manager.is_suppressed("SEC010", 6)); // mkdir
+    assert!(!manager.is_suppressed("SEC010", 6)); // mkdir — GH-265
 }
 
 #[test]
@@ -193,8 +196,10 @@ ln -sfn "$target" "$link"
 "#;
     let manager = SuppressionManager::from_source(source);
 
-    // All directives should be file-level since they appear before any code
+    // All directives are file-level since they appear before any code, but
+    // GH-265: only the SC-numbered one is honoured via `# shellcheck disable=`.
+    // SEC010/IDEM003 are bashrs-native codes and are not suppressed this way.
     assert!(manager.is_suppressed("SC2145", 10)); // log_info
-    assert!(manager.is_suppressed("SEC010", 11)); // mkdir
-    assert!(manager.is_suppressed("IDEM003", 12)); // ln
+    assert!(!manager.is_suppressed("SEC010", 11)); // mkdir — GH-265
+    assert!(!manager.is_suppressed("IDEM003", 12)); // ln — GH-265
 }
