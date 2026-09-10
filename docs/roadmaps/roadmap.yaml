@@ -2150,11 +2150,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SATD: 17 self-admitted-debt markers exceed the strict pre-commit threshold of 5 — resolve or ticket each (blocks every commit; found on PMAT-248)'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-09-10T07:01:10Z
-  updated: 2026-09-10T08:58:08.522068327+00:00
+  updated: 2026-09-10T09:44:04.397106108+00:00
   spec: null
   acceptance_criteria:
   - 'Linked to PMAT-248 (jidoka, same repo, blocking): pmat hooks install --strict makes the pre-commit SATD gate refuse every commit while pmat analyze satd reports 17 markers against PMAT_MAX_SATD_COMMENTS=5. Items (file:line): rash/src/linter/rules/sc2141.rs:17 — // Impact: Performance issue, confusing code;bashrs-oracle/src/lib_oracle.rs:157 — confidence: 0.85, // TODO: Extract from tree probabilities;rash/src/bash_parser/semantic.rs:280 — parameter_count: 0, // TODO: detect from $1, $2, etc.;rash/src/bash_parser/semantic_analyze.rs:280 — parameter_count: 0, // TODO: detect from $1, $2, etc.;rash/src/bash_transpiler/codegen_transpile_until.rs:97 — // TODO: Full pipeline transpilation not implemented yet;rash/src/bash_transpiler/codegen_transpileoptions.rs:297 — // TODO: Full pipeline transpilation not implemented yet;rash/src/emitter/posix_emit_ir_methods.rs:163 — // TODO: Restore readonly once proper variable shadowing is implemented;rash/src/formal/enhanced_state.rs:367 — mtime: Some(0), // TODO: Use actual timestamp when chrono is added;rash/src/formal/enhanced_state_enhancedfilesystementry.rs:367 — mtime: Some(0), // TODO: Use actual timestamp when chrono is added;rash/src/lib.rs:9 — // TODO(v2.1.0): Clean up these assertions - Issue #TBD;. Resolution per item: delete a stale marker, apply the same edit to both copies of an include-split pair, or restate a real gap as a documented limitation that cites this ticket; no TODO/FIXME/HACK/XXX token may remain in those lines. Acceptance: pmat analyze satd Total violations <= 5; cargo check -p bashrs; cargo fmt --check.'
