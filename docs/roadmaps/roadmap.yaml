@@ -2070,11 +2070,11 @@ roadmap:
   github_issue: 284
   item_type: task
   title: 'RESTORE-CORPUS: restore the 17,942-entry corpus, make an empty corpus fail CI, release 7.0.2 (#284)'
-  status: inprogress
+  status: completed
   priority: critical
   assigned_to: null
   created: 2026-09-09 14:31:25+00:00
-  updated: 2026-09-09 14:31:25+00:00
+  updated: 2026-09-10T06:21:14.618972640+00:00
   spec: docs/audit/quality-report09-2026.md
   acceptance_criteria:
   - cargo test -p bashrs --lib test_PMAT245_corpus_registry_not_empty passes (>= 17,000 entries, B-001 pinned)
