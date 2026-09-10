@@ -637,8 +637,10 @@ rust_2018_idioms = "warn"
 
 [workspace.lints.clippy]
 # Cloudflare-class defect prevention (2025-11-18 outage)
-unwrap_used = { level = "deny", priority = 1 }
-expect_used = { level = "warn", priority = 1 }
+# Measured posture (Cargo.toml, 7.0.4): both are `allow` — CI runs -D warnings and the
+# pre-existing calls are tracked as long-term remediation; `deny` is the target, not the gate.
+unwrap_used = { level = "allow", priority = 1 }
+expect_used = { level = "allow", priority = 1 }
 checked_conversions = "warn"
 dbg_macro = "warn"
 todo = "warn"
@@ -648,8 +650,8 @@ unimplemented = "warn"
 ### Known Issues (Tracked)
 
 **CRITICAL** (Cloudflare-class defect):
-- 289 unwrap() calls in production code (detected by rust-project-score)
-- Workspace lints now enforce `unwrap_used = "deny"`
+- unwrap() calls in production code are pre-existing debt (rust-project-score counted 289; the Cargo.toml comment says 649; the September 2026 quality report counted 998 in non-test `.rs`) — the figures disagree and none is a gate
+- Workspace lints are `allow` for `unwrap_used`/`expect_used` (see above); `deny` is the target once the debt is paid
 - Long-term remediation tracked in separate issue
 - See Cloudflare outage 2025-11-18: unwrap() panic caused 3+ hour outage
 
@@ -730,7 +732,7 @@ All outputs must meet:
 - ✅ Zero defects policy
 - ✅ **NEW**: All CLI tests use `assert_cmd`
 - ✅ **NEW**: All tests follow `test_<TASK_ID>_<feature>_<scenario>` naming
-- ✅ **NEW**: Zero unwrap() in production code (Cloudflare-class defect prevention)
+- ⏳ **TARGET**: Zero unwrap() in production code (Cloudflare-class defect prevention) — not yet enforced; see the unwrap() Policy below
 
 ### unwrap() Policy (Cloudflare-Class Defect Prevention)
 
@@ -741,10 +743,10 @@ All outputs must meet:
 2. **Tests**: ALLOWED - use `#![allow(clippy::unwrap_used)]` at module level
 3. **Examples**: ALLOWED - for brevity in educational code
 
-**Enforcement**:
-- Workspace lint: `unwrap_used = { level = "deny", priority = 1 }`
-- Makefile `lint-check`: Explicitly denies `clippy::unwrap_used`
-- Pre-commit: Verified by clippy
+**Enforcement** (measured, 7.0.4):
+- Workspace lint: `unwrap_used = { level = "allow", priority = 1 }` — NOT enforced today; flipping it to `deny` reds CI until the pre-existing calls are removed
+- Makefile `lint-check`: denies `clippy::unwrap_used` explicitly (the only place the rule is enforced; run it before adding new calls)
+- Pre-commit: clippy runs, but with the workspace `allow`
 
 **Rationale**:
 - unwrap() panics on None/Err → production crashes
