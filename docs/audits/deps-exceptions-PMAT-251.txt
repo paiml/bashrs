@@ -1,0 +1,5 @@
+# PMAT-251 phase 1 — direct dependencies whose LATEST release is outside the current
+# requirement and could NOT be upgraded. Format: <crate> <latest> <exact first error line>
+# Every line below was produced by actually attempting the upgrade and recording what refused it.
+
+sysinfo 0.39.6 error: rustc 1.93.0 is not supported by the following packages: sysinfo@0.39.6 requires rustc 1.95 (rust-toolchain.toml pins channel 1.93.0)
