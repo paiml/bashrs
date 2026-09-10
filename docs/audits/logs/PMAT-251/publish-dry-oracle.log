@@ -1,0 +1,59 @@
+    Updating crates.io index
+   Packaging bashrs-oracle v7.0.4 (/mnt/nvme-raid0/wt/bashrs-PMAT-251/bashrs-oracle)
+    Updating crates.io index
+    Packaged 15 files, 138.3KiB (33.5KiB compressed)
+   Verifying bashrs-oracle v7.0.4 (/mnt/nvme-raid0/wt/bashrs-PMAT-251/bashrs-oracle)
+    Blocking waiting for file lock on artifact directory
+   Compiling quote v1.0.47
+   Compiling libc v0.2.189
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling num-traits v0.2.19
+   Compiling twox-hash v2.1.4
+   Compiling regex-automata v0.4.18
+   Compiling tracing-core v0.1.36
+   Compiling lz4_flex v0.11.6
+   Compiling syn v3.0.5
+   Compiling syn v2.0.119
+   Compiling tracing v0.1.44
+   Compiling chrono v0.4.45
+   Compiling rmp v0.8.15
+   Compiling jobserver v0.1.35
+   Compiling getrandom v0.3.4
+   Compiling cc v1.4.5
+   Compiling rand_core v0.9.5
+   Compiling hostname v0.4.2
+   Compiling num_cpus v1.17.0
+   Compiling memmap2 v0.9.11
+   Compiling regex v1.13.1
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling serde_json v1.0.151
+   Compiling zstd-sys v2.1.0+zstd.1.5.7
+   Compiling thiserror v2.0.20
+   Compiling zerocopy-derive v0.8.57
+   Compiling provable-contracts-macros v0.1.1
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling serde_yaml_ng v0.10.0
+   Compiling bincode v1.3.3
+   Compiling rmp-serde v1.3.1
+   Compiling toml_edit v0.22.27
+   Compiling minijinja v2.24.0
+   Compiling zerocopy v0.8.57
+   Compiling aprender v0.26.3
+   Compiling toml v0.8.23
+   Compiling zstd-safe v7.3.0
+   Compiling zstd v0.13.3
+   Compiling batuta-common v0.1.0
+   Compiling half v2.7.1
+   Compiling ppv-lite86 v0.2.21
+   Compiling trueno-quant v0.1.0
+   Compiling rand_chacha v0.9.0
+   Compiling trueno v0.15.0
+   Compiling rand v0.9.5
+   Compiling bashrs-oracle v7.0.4 (/mnt/nvme-raid0/targets/bashrs-251/package/bashrs-oracle-7.0.4)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 14s
+   Uploading bashrs-oracle v7.0.4 (/mnt/nvme-raid0/wt/bashrs-PMAT-251/bashrs-oracle)
+warning: aborting upload due to dry run
+EXIT=0

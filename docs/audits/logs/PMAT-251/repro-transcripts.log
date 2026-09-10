@@ -1,0 +1,40 @@
+# issue reproducers: released 7.0.3 vs the 7.0.4 release binary (PMAT-251-release @ 67a2946ce2)
+--- 256a.mk
+7.0.3: MAKE010: Command 'install' missing error handling - consi|
+7.0.4: 
+--- 256b.mk
+7.0.3: MAKE010: Command 'install' missing error handling - consi|
+7.0.4: 
+--- 257.mk
+7.0.3: MAKE010: Command 'cp' missing error handling - consider a|MAKE010: Command 'rm' missing error handling - consider a|
+7.0.4: MAKE010: Command 'cp' missing error handling - consider a|
+--- 264a.sh
+7.0.3:       1 SEC011 
+7.0.4: 
+--- 264b.sh
+7.0.3:       1 SEC011 
+7.0.4:       1 SEC011 
+--- 263a.sh
+7.0.3: 
+7.0.4:       3 DET002 
+--- 263b.sh
+7.0.3:       3 DET002 
+7.0.4:       3 DET002 
+--- 263c.sh
+7.0.3: 
+7.0.4: 
+--- 249a.sh
+7.0.3: 
+7.0.4:       1 SC2188 
+--- 249b.sh
+7.0.3:       1 SC2188 
+7.0.4:       1 SC2188 
+--- 249c.sh
+7.0.3: 
+7.0.4: 
+--- 238a.sh
+7.0.3:       1 BRS0001 
+7.0.4: 
+--- 238b.sh
+7.0.3:       1 BRS0001 
+7.0.4:       1 BRS0001 

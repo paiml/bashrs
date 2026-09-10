@@ -1,0 +1,4 @@
+# condensed from scratchpad/bench-tests.log (full sha256=fb35a2e925f2549f9aaa3e7dc122a5e13a1a7fddc986e24db2262b801cddc7a2)
+     Running unittests src/lib.rs (/mnt/nvme-raid0/targets/bashrs-251/debug/deps/bashrs-f0e523ad3c47d67e)
+test result: ok. 140 passed; 0 failed; 6 ignored; 0 measured; 15148 filtered out; finished in 1.77s
+BENCH_EXIT=0

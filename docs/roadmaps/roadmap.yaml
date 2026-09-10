@@ -2103,7 +2103,7 @@ roadmap:
   subtasks: []
   estimated_effort: null
   labels: []
-  notes: null
+  notes: 'PMAT-251 (v7.0.4, 2026-09-10): `pmat comply refresh-bindings` regenerated the binding index (0 bindings) and left contracts/work/*.yaml unchanged; a sample of 8 still fails `pv validate` (PV-VAL-001). Now also visible as comply CB-1305 (89/104 unclassified). Stays planned for 7.1.0.'
 - id: PMAT-247
   github_issue: null
   item_type: task
@@ -2181,16 +2181,16 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  notes: null
+  notes: 'Not touched by PMAT-251 (v7.0.4, 2026-09-10); scheduled with the 7.1.0 items (#265, #232, #293, #294, #295).'
 - id: PMAT-251
   github_issue: null
   item_type: task
   title: 'NEXT-RELEASE after 7.0.3: remaining open defects — #236 SC2046/SC2086 volume vs shellcheck, #265 shellcheck-disable with bashrs codes, #264 SEC011 || exit 1 guard, #263 DET002 bare date, #256/#257 MAKE010, #238 SC1009, #249 SC2188 lone 2>&1, #232 DET005 split, #254 dead files, #287 CI headroom (close with evidence); pmat comply CB-400/CB-200/CB-1351/CB-1650; PMAT-246, PMAT-250'
-  status: planned
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-09-10T09:48:51Z
-  updated: 2026-09-10T09:48:51Z
+  updated: 2026-09-10T15:30:07.689514072+00:00
   spec: docs/audit/quality-report09-2026.md
   acceptance_criteria:
   - 'Universe left after PMAT-248 shipped 7.0.3 (2026-09-10). Open issues: 13 (list in title). pmat comply check (7.0.3 on PATH): 166 checks, 10 fail — CB-400 bashrs on the repo''s own scripts 1,253 errors / 5,584 warnings (was 5,849 before 7.0.3), CB-200 777 functions below grade A, CB-1308 ladder, CB-1351 binding index 157 days old, CB-1650 skill effort pin, CB-1700/1701/2100 branch protection unreadable via classic API (rulesets), CB-081-F sibling from crates.io, Version Currency. Roadmap: PMAT-246 (89 contracts/work/*.yaml fail pv validate), PMAT-250 (lift command substitutions into shell_words). Suggested order: #236 + #265 (shellcheck parity, the second story of the audit), then #264/#263 (FN class), then MAKE010 pair, then DET005 split; close #287 with the 13-minute test job measured on run 34459917312.'

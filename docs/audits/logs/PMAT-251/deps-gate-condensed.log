@@ -1,0 +1,12 @@
+# condensed from scratchpad/deps-gate.log (full sha256=f4f8029624e001baf892889889afa4d0a65832d266b7cc331082fa3d1ae5f8dd)
+     Running unittests src/lib.rs (/mnt/nvme-raid0/targets/bashrs-251/debug/deps/bashrs-859f245e7689bc67)
+test result: ok. 15207 passed; 0 failed; 68 ignored; 0 measured; 0 filtered out; finished in 35.08s
+     Running unittests src/lib.rs (/mnt/nvme-raid0/targets/bashrs-251/debug/deps/bashrs_oracle-c84b3679edc76332)
+test result: ok. 48 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.79s
+     Running unittests src/lib.rs (/mnt/nvme-raid0/targets/bashrs-251/debug/deps/bashrs_runtime-ea1d687cd732c416)
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src/lib.rs (/mnt/nvme-raid0/targets/bashrs-251/debug/deps/bashrs_specs-73e4fe1daf271a57)
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src/lib.rs (/mnt/nvme-raid0/targets/bashrs-251/debug/deps/bashrs_wasm-542bd33793c649a2)
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+GATE_EXIT=0
