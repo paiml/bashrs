@@ -76,6 +76,10 @@ impl IrConverter {
             "glob" => self.convert_glob_call(args),
             "__format_concat" => self.convert_format_concat(args),
             "__if_expr" if args.len() == 3 => self.convert_expr_to_value(&args[1]),
+            // GH-293: array_len/array_join operate on the *elements* of a
+            // local array literal, not on a scalar "$name" that is never
+            // assigned for an array.
+            "array_len" | "array_join" => self.convert_array_stdlib_call(name, args),
             _ => self.convert_regular_fn_call(name, args),
         }
     }
@@ -132,6 +136,76 @@ impl IrConverter {
             program,
             args: cmd_args,
         }))
+    }
+
+    /// GH-293: `array_join`/`array_len`'s first argument names an array, but a
+    /// bare `Expr::Variable(name)` lowers to `ShellValue::Variable(name)`
+    /// unconditionally — the same `"$name"` a scalar would use. No such
+    /// variable is ever assigned for an array (the literal lowers to
+    /// `name_0`, `name_1`, ... — see `convert_for_iterable`), so the stdlib
+    /// call read an unset variable and the script aborted under `set -u`.
+    ///
+    /// Fix: reconstruct the newline-joined element list the runtime helpers
+    /// (`rash_array_len`/`rash_array_join`) already expect in `$1`, via
+    /// `$(printf '%s\n' "$name_0" "$name_1" ...)`.
+    fn convert_array_stdlib_call(
+        &self,
+        name: &str,
+        args: &[crate::ast::Expr],
+    ) -> Result<ShellValue> {
+        let mut cmd_args = Vec::new();
+        for (idx, arg) in args.iter().enumerate() {
+            if idx == 0 {
+                cmd_args.push(self.convert_array_first_arg(arg)?);
+            } else {
+                cmd_args.push(self.convert_expr_to_value(arg)?);
+            }
+        }
+        let program = crate::stdlib::get_shell_function_name(name);
+        Ok(ShellValue::CommandSubst(shell_ir::Command {
+            program,
+            args: cmd_args,
+        }))
+    }
+
+    /// Resolve the array-naming first argument of `array_len`/`array_join` to
+    /// the element list, falling back to plain conversion for anything that
+    /// isn't a known local array (e.g. a scalar passed by mistake, which the
+    /// runtime helper will still handle as a single-element "array").
+    fn convert_array_first_arg(&self, arg: &crate::ast::Expr) -> Result<ShellValue> {
+        use crate::ast::Expr;
+        match arg {
+            Expr::Variable(name) => match self.arrays.borrow().get(name).copied() {
+                Some(len) => Ok(Self::array_elements_as_command_subst(name, len)),
+                None => self.convert_expr_to_value(arg),
+            },
+            Expr::Array(elements) => {
+                let items: Vec<ShellValue> = elements
+                    .iter()
+                    .map(|e| self.convert_expr_to_value(e))
+                    .collect::<Result<_>>()?;
+                Ok(Self::items_as_printf_command_subst(items))
+            }
+            _ => self.convert_expr_to_value(arg),
+        }
+    }
+
+    fn array_elements_as_command_subst(name: &str, len: usize) -> ShellValue {
+        let items: Vec<ShellValue> = (0..len)
+            .map(|i| ShellValue::Variable(format!("{name}_{i}")))
+            .collect();
+        Self::items_as_printf_command_subst(items)
+    }
+
+    /// `$(printf '%s\n' item1 item2 ...)` — the newline-joined element string
+    /// `rash_array_len`/`rash_array_join` read as `$1`.
+    fn items_as_printf_command_subst(items: Vec<ShellValue>) -> ShellValue {
+        let mut printf_args = vec![ShellValue::String("%s\n".to_string())];
+        printf_args.extend(items);
+        ShellValue::CommandSubst(shell_ir::Command {
+            program: "printf".to_string(),
+            args: printf_args,
+        })
     }
 
     fn convert_env_call_to_value(

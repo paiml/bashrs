@@ -90,3 +90,24 @@ fn test_PMAT255_gh294_exec_dollar_paren_still_refused() {
         "exec(\"echo $(date)\") must still be refused, got: {result:?}"
     );
 }
+
+#[test]
+fn test_PMAT255_gh294_validate_backticks_is_quote_aware() {
+    use super::rules::validate_backticks;
+    assert!(
+        validate_backticks("s='a `b` c'").is_ok(),
+        "inert inside single quotes"
+    );
+    assert!(
+        validate_backticks("echo \"a \\`b\\` c\"").is_ok(),
+        "escaped inside double quotes"
+    );
+    assert!(
+        validate_backticks("echo `date`").is_err(),
+        "a live backtick is still reported"
+    );
+    assert!(
+        validate_backticks("echo \"a `b` c\"").is_err(),
+        "live inside double quotes"
+    );
+}
