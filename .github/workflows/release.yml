@@ -116,19 +116,18 @@ jobs:
         # never a single fixed sleep.
         run: |
           VERSION="${{ steps.verify.outputs.version }}"
-          NAME="bashrs-oracle"
           for i in $(seq 1 10); do
             CODE=$(curl -fsS -o /dev/null -w '%{http_code}' \
               -A "bashrs-release-workflow (https://github.com/paiml/bashrs)" \
-              "https://crates.io/api/v1/crates/$NAME/$VERSION" || true)
+              "https://crates.io/api/v1/crates/bashrs-oracle/$VERSION" || true)
             if [ "$CODE" = "200" ]; then
-              echo "$NAME $VERSION is on the crates.io index"
+              echo "bashrs-oracle $VERSION is on the crates.io index"
               exit 0
             fi
-            echo "waiting for $NAME $VERSION on the crates.io index (attempt $i/10, http $CODE)"
+            echo "waiting for bashrs-oracle $VERSION on the crates.io index (attempt $i/10, http $CODE)"
             sleep 30
           done
-          echo "::error::$NAME $VERSION never appeared on the crates.io index after bounded poll"
+          echo "::error::bashrs-oracle $VERSION never appeared on the crates.io index after bounded poll"
           exit 1
 
       - name: Verify bashrs package tarball
