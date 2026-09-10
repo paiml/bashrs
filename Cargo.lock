@@ -722,7 +722,7 @@ dependencies = [
  "serde_json",
  "serde_yaml_ng",
  "static_assertions",
- "syn 2.0.119",
+ "syn 3.0.5",
  "sysinfo",
  "tar",
  "tempfile",

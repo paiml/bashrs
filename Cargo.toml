@@ -46,7 +46,7 @@ workspace = true
 default = []
 
 [workspace.dependencies]
-syn = { version = "2.0", features = ["full", "extra-traits"] }
+syn = { version = "3.0", features = ["full", "extra-traits"] }
 quote = "1.0.40"
 proc-macro2 = { version = "1.0.95", features = ["span-locations"] }
 serde = { version = "1.0", default-features = false, features = ["derive", "std"] }
