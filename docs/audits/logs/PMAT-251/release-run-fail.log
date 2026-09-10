@@ -1,0 +1,19 @@
+release	Verify bashrs package tarball	﻿2026-09-10T15:22:24.6201184Z ##[group]Run cargo package -p bashrs --locked
+release	Verify bashrs package tarball	2026-09-10T15:22:24.6201606Z [36;1mcargo package -p bashrs --locked[0m
+release	Verify bashrs package tarball	2026-09-10T15:22:24.6223766Z shell: /usr/bin/bash -e {0}
+release	Verify bashrs package tarball	2026-09-10T15:22:24.6224106Z env:
+release	Verify bashrs package tarball	2026-09-10T15:22:24.6224391Z   CARGO_HOME: /home/runner/.cargo
+release	Verify bashrs package tarball	2026-09-10T15:22:24.6224708Z   CARGO_INCREMENTAL: 0
+release	Verify bashrs package tarball	2026-09-10T15:22:24.6224987Z   CARGO_TERM_COLOR: always
+release	Verify bashrs package tarball	2026-09-10T15:22:24.6225456Z ##[endgroup]
+release	Verify bashrs package tarball	2026-09-10T15:22:24.6618229Z [1m[92m    Updating[0m crates.io index
+release	Verify bashrs package tarball	2026-09-10T15:22:26.7552018Z [1m[92m   Packaging[0m bashrs v7.0.4 (/home/runner/work/bashrs/bashrs/rash)
+release	Verify bashrs package tarball	2026-09-10T15:22:26.7779778Z [1m[92m    Updating[0m crates.io index
+release	Verify bashrs package tarball	2026-09-10T15:22:27.0538564Z [1m[91merror[0m: failed to prepare local package for uploading
+release	Verify bashrs package tarball	2026-09-10T15:22:27.0539186Z 
+release	Verify bashrs package tarball	2026-09-10T15:22:27.0539368Z Caused by:
+release	Verify bashrs package tarball	2026-09-10T15:22:27.0539889Z   failed to select a version for the requirement `bashrs-oracle = "^7.0"`
+release	Verify bashrs package tarball	2026-09-10T15:22:27.0540631Z   candidate versions found which didn't match: 6.65.0, 6.60.0, 6.58.0, ...
+release	Verify bashrs package tarball	2026-09-10T15:22:27.0541168Z   location searched: crates.io index
+release	Verify bashrs package tarball	2026-09-10T15:22:27.0541587Z   required by package `bashrs v7.0.4 (/home/runner/work/bashrs/bashrs/rash)`
+release	Verify bashrs package tarball	2026-09-10T15:22:27.0609202Z ##[error]Process completed with exit code 101.

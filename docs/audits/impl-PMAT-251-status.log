@@ -1,0 +1,29 @@
+[status] ticket=PMAT-251 phase=0/8 global=324/12(K=48) k_measured=324 sub=0/0 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=direct trigger=- route=self w=0 q=? gate=NOT-RUN slots=0/3 denied=0
+         red=- filed=- blocker=- next=goal.sh set refused (R-5: PMAT-248 set here); worktrees PMAT-251-release/-fix/-corpus; blocks below emitted retrospectively at receipt time — k is the receipt-time measurement, not a per-phase reading
+[status] ticket=PMAT-251 phase=1/8 global=324/12(K=48) k_measured=324 sub=81/35 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=subagent:opus trigger=- route=agy-goal w=1.00 basis=absent effort=1[U] q=? gate=PASS slots=3/3 denied=0
+         red=- filed=#295 blocker=- next=deps: 18 worker commits + orchestrator direct finish (lockfile, sysinfo 0.38, renacer 0.9); a-deps.sh PASS; lib gate 15,269 passed; cargo deny ok
+[status] ticket=PMAT-251 phase=2/8 global=324/12(K=48) k_measured=324 sub=26/30 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=quorum:agy-plan trigger=operator(agy corpus growth) route=agy-grillme w=1.00 basis=absent effort=1[U] q=? gate=NOT-RUN slots=3/3 denied=0
+         red=- filed=- blocker=- next=six generation lanes, 240 entries, 0 parse failures; all entries are claims for phase 3
+[status] ticket=PMAT-251 phase=3/8 global=324/12(K=48) k_measured=324 sub=80/35 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=PASS slots=3/3 denied=0
+         red=- filed=#293,#294 blocker=- next=corpus 18,178 passed 0 failed; 236 added, 3 pending (orchestrator moved B-16699); contract tests 11/11; a-corpus.sh PASS
+[status] ticket=PMAT-251 phase=4/8 global=324/12(K=48) k_measured=324 sub=85/35 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=PASS slots=3/3 denied=0
+         red=- filed=- blocker=- next=MAKE010 #256 #257 RED->GREEN; 7.0.3 vs fixed transcripts measured by the orchestrator
+[status] ticket=PMAT-251 phase=5/8 global=324/12(K=48) k_measured=324 sub=85/35 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=PASS slots=3/3 denied=0
+         red=- filed=- blocker=- next=SEC011 #264, DET002 #263 RED->GREEN (timestamp_flow.rs touched, named)
+[status] ticket=PMAT-251 phase=6/8 global=324/12(K=48) k_measured=324 sub=87/35 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=subagent:sonnet trigger=- route=agy-goal w=1.00 basis=absent note=fable-binding effort=1[U] q=? gate=PASS slots=1/3 denied=0
+         red=- filed=- blocker=- next=SC2188 #249, SC1009 #238 RED->GREEN; 48 tests green; contracts valid
+[status] ticket=PMAT-251 phase=7/8 global=324/12(K=48) k_measured=324 sub=0/0 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=direct trigger=- route=self w=0 q=? gate=PASS slots=0/3 denied=0
+         red=- filed=- blocker=- next=merge fix+corpus into release; #254 deletions; comply files; CHANGELOG/book/CLAUDE.md; v7.0.4 bump; corpus 18,178 (B 84.4); lib gate 15,288; PR #297
+[status] ticket=PMAT-251 phase=8/8 global=324/12(K=48) k_measured=324 sub=0/0 basis=docs/audits/impl-estimates.jsonl:L3
+         mode=direct trigger=- route=self w=0 q=? gate=NOT-RUN slots=0/3 denied=0
+         red=- filed=- blocker=- next=CI gate on PR #297, merge, tag v7.0.4, publish bashrs-oracle then bashrs, install check, receipt PR
+
+[status] ticket=PMAT-251 phase=8/8 global=374/48(K=48) k_measured=374 sub=0/3 basis=docs/audits/impl-estimates.jsonl:L3 route=self q=?/? gate=PASS denied=0 filed=#293,#294,#295 blocker=none note="gate green on merge 5ce6bfe4f7 (run 34488622059); tag v7.0.4 pushed; bashrs-oracle 7.0.4 and bashrs 7.0.4 published; release.yml attempt 1 raced the oracle publish, attempt 2 success; cargo install 7.0.4 OK; dependabot #138-#147 closed as superseded"

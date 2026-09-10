@@ -1,0 +1,16 @@
+  Installing bashrs v7.0.4
+    Finished `release` profile [optimized] target(s) in 36.30s
+  Installing /tmp/claude-1000/-home-noah-src-bashrs/bf151141-60ff-4e66-9794-31fe5c18982d/scratchpad/install-704/bin/bashrs
+  Installing /tmp/claude-1000/-home-noah-src-bashrs/bf151141-60ff-4e66-9794-31fe5c18982d/scratchpad/install-704/bin/quality-dashboard
+  Installing /tmp/claude-1000/-home-noah-src-bashrs/bf151141-60ff-4e66-9794-31fe5c18982d/scratchpad/install-704/bin/quality-gate
+  Installing /tmp/claude-1000/-home-noah-src-bashrs/bf151141-60ff-4e66-9794-31fe5c18982d/scratchpad/install-704/bin/rash-metrics
+   Installed package `bashrs v7.0.4` (executables `bashrs`, `quality-dashboard`, `quality-gate`, `rash-metrics`)
+warning: be sure to add `/tmp/claude-1000/-home-noah-src-bashrs/bf151141-60ff-4e66-9794-31fe5c18982d/scratchpad/install-704/bin` to your PATH to be able to run the installed binaries
+INSTALL_EXIT=0
+bashrs 7.0.4
+  Fix: $(mktemp)
+
+⚠ 3:4-10 3:4-10 [warning] REL005: Predictable temp file `/tmp/x`. Use `mktemp` for unique, secure temp files.
+  Fix: $(mktemp)
+
+Summary: 0 error(s), 4 warning(s), 0 info(s)

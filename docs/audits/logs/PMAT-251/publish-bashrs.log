@@ -1,0 +1,76 @@
+    Updating crates.io index
+   Packaging bashrs v7.0.4 (/mnt/nvme-raid0/wt/bashrs-PMAT-251/rash)
+    Updating crates.io index
+    Packaged 1975 files, 22.7MiB (3.7MiB compressed)
+   Verifying bashrs v7.0.4 (/mnt/nvme-raid0/wt/bashrs-PMAT-251/rash)
+   Compiling rand_core v0.10.1
+   Compiling smallvec v1.16.0
+   Compiling phf_shared v0.14.0
+   Compiling zerocopy v0.8.57
+   Compiling notify-types v2.1.0
+   Compiling winnow v1.0.4
+   Compiling simd-adler32 v0.3.10
+   Compiling endian-type v0.2.0
+   Compiling regex-automata v0.4.18
+   Compiling nix v0.31.3
+   Compiling crc32fast v1.5.1
+   Compiling num-traits v0.2.19
+   Compiling serde_json v1.0.151
+   Compiling toml_datetime v1.1.1+spec-1.1.0
+   Compiling serde_spanned v1.1.1
+   Compiling clap_builder v4.6.6
+   Compiling syn v3.0.5
+   Compiling syn v2.0.119
+   Compiling inotify v0.11.5
+   Compiling unicode-width v0.2.2
+   Compiling toml_writer v1.1.2+spec-1.1.0
+   Compiling sysinfo v0.38.4
+   Compiling base64 v0.23.1
+   Compiling getrandom v0.4.3
+   Compiling chacha20 v0.10.2
+   Compiling zstd-safe v7.3.0
+   Compiling miniz_oxide v0.9.1
+   Compiling zstd-safe v8.0.0
+   Compiling nibble_vec v0.1.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling phf_generator v0.14.0
+   Compiling radix_trie v0.3.0
+   Compiling tempfile v3.27.0
+   Compiling zstd v0.13.3
+   Compiling toml_parser v1.1.3+spec-1.1.0
+   Compiling rand v0.10.2
+   Compiling zstd v0.14.0
+   Compiling notify v8.2.0
+   Compiling batuta-common v0.1.0
+   Compiling flate2 v1.1.10
+   Compiling toml v1.1.5+spec-1.1.0
+   Compiling notify-debouncer-mini v0.7.0
+   Compiling rustyline v18.0.1
+   Compiling regex v1.13.1
+   Compiling serde_derive_internals v0.30.0
+   Compiling serde_derive v1.0.229
+   Compiling ref-cast-impl v1.0.27
+   Compiling thiserror-impl v2.0.20
+   Compiling tokio-macros v2.7.2
+   Compiling clap_derive v4.6.4
+   Compiling phf_macros v0.14.0
+   Compiling schemars_derive v1.2.2
+   Compiling ref-cast v1.0.27
+   Compiling tokio v1.53.1
+   Compiling phf v0.14.0
+   Compiling thiserror v2.0.20
+   Compiling ppv-lite86 v0.2.21
+   Compiling clap v4.6.6
+   Compiling rand_chacha v0.10.0
+   Compiling serde v1.0.229
+   Compiling chrono v0.4.45
+   Compiling schemars v1.2.2
+   Compiling serde_yaml_ng v0.10.0
+   Compiling bashrs v7.0.4 (/mnt/nvme-raid0/targets/bashrs/package/bashrs-7.0.4)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 30.36s
+   Uploading bashrs v7.0.4 (/mnt/nvme-raid0/wt/bashrs-PMAT-251/rash)
+    Uploaded bashrs v7.0.4 to registry `crates-io`
+note: waiting for bashrs v7.0.4 to be available at registry `crates-io`
+help: you may press ctrl-c to skip waiting; the crate should be available shortly
+   Published bashrs v7.0.4 at registry `crates-io`
+BASHRS_PUBLISH_EXIT=0
