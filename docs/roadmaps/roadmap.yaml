@@ -2128,11 +2128,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'LEXER-CONTEXT-FP: six open lexer-context false positives — $(( )) as $( ) (#237), quoted var inside "$(…)" (#241), heredoc body text (#242), escaped backtick in a string (#252), Makefile ## comment (#255), printf format (#261); pin #235/#258 as regressions; release 7.0.3'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-09-10T06:36:11Z
-  updated: 2026-09-10T06:38:38.564732058+00:00
+  updated: 2026-09-10T09:45:45.884833043+00:00
   spec: docs/audit/quality-report09-2026.md
   acceptance_criteria:
   - 'cargo test -p bashrs --lib lexer_context passes: one regression test per issue (#235 #237 #241 #242 #252 #255 #258 #261), each running the issue reproducer through lint_shell/lint_makefile and asserting the false-positive code is absent'
