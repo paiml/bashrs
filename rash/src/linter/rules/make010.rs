@@ -27,6 +27,10 @@
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
+#[cfg(test)]
+#[path = "make010_tests_gh256_gh257.rs"]
+mod tests_gh256_gh257;
+
 /// Commands that should have error handling
 const CRITICAL_COMMANDS: &[&str] = &[
     "cp", "mv", "rm", "install", "chmod", "chown", "ln", "mkdir", "curl", "wget", "git",
