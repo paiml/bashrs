@@ -11,7 +11,7 @@ counter, in `entries-all.jsonl` file order) and measured with `bashrs corpus run
 on the 7.0.3 debug binary built into the private target dir
 (`/mnt/nvme-raid0/targets/bashrs-251c`). Two failed a hard gate (transpile/output-contains/lint/
 determinism) and were moved to `docs/audits/corpus-pending-PMAT-251.jsonl`; the ids were then
-renumbered contiguous from 16697 in file order so no id is skipped. **237 entries added.**
+renumbered contiguous from 16697 in file order so no id is skipped. **236 entries added** (237 measured, then B-16699 moved to pending by the orchestrator: its exec string runs cargo under B3 — see Pending).
 
 ## Corpus run headline
 
@@ -40,24 +40,24 @@ entries identically. Comparing dimensions that ARE meaningful on this binary, ne
 One new entry, `B-16699` (bash), has `output_behavioral=false` / `cross_shell_agree=false` while
 still transpiling, matching, linting and determinism-passing — the same class of pre-existing,
 accepted softness as `B-143` (a known, unfixable shell-semantics B3 case per corpus history).
-It is **kept**: `bashrs corpus run`'s pass/fail gate (and this ticket's acceptance bar) is driven
+It was kept by the worker; the orchestrator moved it to pending: the brief classes a B3 failure as pending, and this exec string compiles code (cargo) when cargo exists, so it is also unsafe as a corpus input.
 by the hard dimensions (transpile / contains / lint / deterministic), which `B-16699` passes.
 
 ## Added vs pending, by lane / format / tier
 
 | lane | theme | generated | added | pending |
 |---|---|---|---|---|
-| 1 | bash-agentic-tooling | 40 | 40 | 0 |
+| 1 | bash-agentic-tooling | 40 | 39 | 1 (B-16699, unsafe-input, moved by the orchestrator) |
 | 2 | bash-polyglot | 40 | 39 | 1 |
 | 3 | bash-idioms-adversarial | 40 | 39 | 1 |
 | 4 | make-agentic-ops | 40 | 39 | 0 (dup, dropped pre-run) |
 | 5 | make-polyglot-cron | 40 | 40 | 0 |
 | 6 | dockerfile-agentic | 40 | 40 | 0 |
-| **total** | | **240** | **237** | **2** (+1 cross-lane dup dropped before measurement) |
+| **total** | | **240** | **236** | **3** (+1 cross-lane dup dropped before measurement) |
 
 | format | added | pending |
 |---|---|---|
-| Bash | 83 | 1 |
+| Bash | 82 | 2 |
 | Makefile | 96 | 1 |
 | Dockerfile | 58 | 0 |
 
