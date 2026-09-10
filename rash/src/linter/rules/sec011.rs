@@ -104,6 +104,72 @@ fn track_validation(trimmed: &str, validated_vars: &mut std::collections::HashSe
     }
 }
 
+/// Issue #264: keywords that terminate control flow before reaching later lines.
+const EARLY_EXIT_KEYWORDS: &[&str] = &["exit", "return", "die"];
+
+/// Issue #264: does `after` begin with an early-exit keyword as a whole word?
+fn starts_with_exit_keyword(after: &str) -> bool {
+    EARLY_EXIT_KEYWORDS.iter().any(|kw| {
+        after == *kw
+            || after
+                .strip_prefix(kw)
+                .is_some_and(|rest| rest.starts_with([' ', '(', ';']))
+    })
+}
+
+/// Issue #264: split a guard line into `(test_expr, is_or_exit)` when it ends in
+/// `|| exit`/`|| return`/`|| die` (`is_or_exit = true`) or
+/// `&& exit`/`&& return`/`&& die` (`is_or_exit = false`). `None` otherwise.
+fn split_early_exit_guard(line: &str) -> Option<(&str, bool)> {
+    for (op, is_or_exit) in [("||", true), ("&&", false)] {
+        if let Some(pos) = line.find(op) {
+            let after = line[pos + op.len()..].trim_start();
+            if starts_with_exit_keyword(after) {
+                return Some((line[..pos].trim(), is_or_exit));
+            }
+        }
+    }
+    None
+}
+
+/// Issue #264: `[ -n "$VAR" ] || exit`, `test -d "$VAR" || exit`, ... - the test
+/// must hold to continue, so its positive property is established afterward.
+fn is_positive_validation_test(test_expr: &str) -> bool {
+    [
+        "[ -n", "test -n", "[ -d", "test -d", "[ -e", "test -e", "[ -f", "test -f",
+    ]
+    .iter()
+    .any(|pat| test_expr.contains(pat))
+}
+
+/// Issue #264: `[ -z "$VAR" ] && exit`, `[[ -z "$VAR" ]] && exit` - the negated
+/// test must NOT hold to continue, so the variable is non-empty afterward.
+fn is_negative_validation_test(test_expr: &str) -> bool {
+    ["[ -z", "test -z"]
+        .iter()
+        .any(|pat| test_expr.contains(pat))
+}
+
+/// Issue #264: recognise an early-return guard as establishing the same
+/// precondition the equivalent `if` form does (#89's `if`/`&&`-chain forms).
+/// `<test> || exit` and `<negated-test> && exit` both leave the tested
+/// variable validated on every line reached afterward.
+fn track_early_exit_guard(line: &str, validated_vars: &mut std::collections::HashSet<String>) {
+    let Some((test_expr, is_or_exit)) = split_early_exit_guard(line) else {
+        return;
+    };
+    let validates = if is_or_exit {
+        is_positive_validation_test(test_expr)
+    } else {
+        is_negative_validation_test(test_expr)
+    };
+    if validates {
+        if let Some(var_name) = extract_validated_variable(test_expr) {
+            validated_vars.insert(var_name);
+        }
+    }
+}
+
 /// Check a dangerous operation and emit diagnostic if variable is unvalidated
 fn check_dangerous_op(
     var_name: &str,
@@ -232,6 +298,7 @@ pub fn check(source: &str) -> LintResult {
         let code_only = strip_comments(trimmed);
 
         track_validation(trimmed, &mut validated_vars);
+        track_early_exit_guard(code_only, &mut validated_vars);
 
         let inline_validated = extract_inline_validated_vars(code_only);
         let line_len = line.len();

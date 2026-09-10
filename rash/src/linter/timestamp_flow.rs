@@ -497,15 +497,22 @@ fn split_name_eq(s: &str) -> Option<(&str, usize)> {
     Some((&s[..i], j + 1))
 }
 
-/// The command name of a segment, with env prefixes, keywords and flags skipped.
-fn command_word(seg: &str) -> Option<String> {
+/// The command name of a segment, with env prefixes, keywords and flags skipped,
+/// together with the byte offset of that word within `seg`.
+fn command_word_at(seg: &str) -> Option<(usize, String)> {
     for w in split_words(seg) {
         if is_skippable_prefix(w) {
             continue;
         }
-        return Some(basename(w).to_string());
+        let off = w.as_ptr() as usize - seg.as_ptr() as usize;
+        return Some((off, basename(w).to_string()));
     }
     None
+}
+
+/// The command name of a segment, with env prefixes, keywords and flags skipped.
+fn command_word(seg: &str) -> Option<String> {
+    command_word_at(seg).map(|(_, w)| w)
 }
 
 /// Words that come *before* the command name.
@@ -915,7 +922,45 @@ fn find_date(line: &str, mask: &LineMask) -> Option<(usize, &'static str, usize)
             from = col + 1;
         }
     }
-    None
+    find_bare_date(line, mask).map(|(col, len)| (col, "date", len))
+}
+
+/// GH-263: a bare `date` command word - not wrapped in `$( )` or backticks -
+/// is also a timestamp source, but only when its value can reach a sink: an
+/// output redirect on its own segment, or a pipeline consumer. Without either
+/// there is nothing new to report here - a bare `date` printed to the
+/// terminal is `#232`/DET005 territory (time-dependent control flow), not a
+/// reproducible-output defect.
+fn find_bare_date(line: &str, mask: &LineMask) -> Option<(usize, usize)> {
+    let code = mask.code_of(line);
+    command_parts(code)
+        .into_iter()
+        .find_map(|part| find_bare_date_in_command(line, mask, part))
+}
+
+/// Look for a bare `date` command word in one `;`-delimited command.
+fn find_bare_date_in_command(line: &str, mask: &LineMask, part: &str) -> Option<(usize, usize)> {
+    let segs = pipeline_segments(part);
+    let has_pipe = segs.len() > 1;
+    segs.iter()
+        .find_map(|seg| find_bare_date_in_segment(line, mask, seg, has_pipe))
+}
+
+/// Is `seg`'s command word a bare `date` with a possible sink (its own
+/// redirect, or a downstream pipeline consumer)? If so, the byte offset of
+/// the word within `line`, and its length.
+fn find_bare_date_in_segment(
+    line: &str,
+    mask: &LineMask,
+    seg: &str,
+    has_pipe: bool,
+) -> Option<(usize, usize)> {
+    let (word_off, cw) = command_word_at(seg)?;
+    if cw != "date" || (redirect_of(seg).is_none() && !has_pipe) {
+        return None;
+    }
+    let col = seg.as_ptr() as usize - line.as_ptr() as usize + word_off;
+    (!mask.is_literal(col)).then_some((col, 4))
 }
 
 // ---------------------------------------------------------------------------
