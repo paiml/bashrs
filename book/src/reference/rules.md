@@ -884,9 +884,39 @@ Disable specific rules on specific lines:
 # shellcheck disable=SC2086
 rm $FILES  # Intentional word splitting
 
-# bashrs-disable-next-line DET002
+# bashrs disable-next-line=DET002
 RELEASE="release-$(date +%s)"  # Timestamp needed here
 ```
+
+### `# shellcheck disable=` only understands SC-numbered codes
+
+`# shellcheck disable=` is shellcheck's own directive, and shellcheck only
+ever parses `SC<digits>` codes out of it. A bashrs-native code placed there
+(`DET002`, `SEC010`, `IDEM003`, `REL001`, ...) is not something shellcheck can
+parse — shellcheck reports `SC1073`/`SC1072` and **stops checking the rest of
+the file**, so writing `# shellcheck disable=DET002` silently turns off
+shellcheck for everything below it while looking like a working suppression.
+bashrs does not honour bashrs-native codes in a `# shellcheck` directive
+either, and reports `BASHRS001` naming the fix. In a mixed list only the
+SC-numbered codes are honoured:
+
+```bash
+# shellcheck disable=SC2086,DET002
+#            ^^^^^^^^        ^^^^^^ not honoured — reported as BASHRS001:
+#                                   "DET002 is a bashrs rule; use
+#                                   `# bashrs disable-line=DET002` or
+#                                   `# bashrs disable-file=DET002` — a non-SC
+#                                   code in a `# shellcheck` directive makes
+#                                   shellcheck abandon the file."
+ls $FILES
+```
+
+Use `# bashrs disable-line=DET002` (same line) or `# bashrs
+disable-file=DET002` for bashrs-native codes instead. Also note that
+`disable-line` only ever suppresses the line it is written on — placed alone
+on the line *above* the code it means to suppress, it does nothing, and
+bashrs now reports that placement too (`BASHRS001`) rather than staying
+silent about it.
 
 ### Configuration File
 
