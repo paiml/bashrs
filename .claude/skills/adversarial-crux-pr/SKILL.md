@@ -1,5 +1,6 @@
 ---
 name: adversarial-crux-pr
+effort: high
 description: The gate every bashrs lint-rule change passes before a PR is opened. Two halves — an ADVERSARIAL review that tries to break the fix by hunting the false negative it may have introduced, and a CRUX competitive analysis that checks the fix against how shellcheck, mvdan/sh and tree-sitter-bash solve the same problem. Invoke it when the user says "adversarial-crux", "harden this fix", "gate this PR", "crux this lint change", or before opening ANY PR that touches a lint rule, the lexer, or a diagnostic code. NOT a code formatter and NOT a general reviewer — it asks two questions and refuses to pass a fix that cannot answer them.
 ---
 
