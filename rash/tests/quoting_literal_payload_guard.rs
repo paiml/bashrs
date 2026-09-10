@@ -103,6 +103,15 @@ const PAYLOADS: &[Payload] = &[
         quoted: "echo \"Parse markdown links: \\`[text](url)\\`\"\n",
         found_at: "#252",
     },
+    Payload {
+        code: "SC2276",
+        // A pipe to another command — the heredoc really is useless here.
+        bare: "cat <<EOF | grep x\nfoo\nEOF\n",
+        // The `|` is a literal character inside a quoted redirect target,
+        // not a pipe: this cat's output goes to a file, not a command.
+        quoted: "cat <<EOF > \"file|name\"\nfoo\nEOF\n",
+        found_at: "#242 review",
+    },
 ];
 
 fn error_codes(source: &str) -> Vec<String> {

@@ -309,6 +309,12 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // PMAT-248 (#242): an HTML entity inside an unquoted heredoc body is data
     // being emitted, not a typo in this script's own shell code.
     "SC1109", // Unquoted HTML entity
+    // PMAT-248 (phase 7 review, #242): a `|` inside a quoted redirect target
+    // (`cat <<EOF > "file|name"`) is a literal character in a filename, not
+    // a pipe to another command. The heredoc BODY is masked too, but that
+    // never hides the operator line itself — only text inside a quote or a
+    // heredoc body is filler, and the `cat <<EOF | grep x` line is neither.
+    "SC2276", // Useless cat with heredoc
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
@@ -1199,6 +1205,7 @@ mod tests {
             ("SC2006", sc2006::check),
             ("SC2099", sc2099::check),
             ("SC1109", sc1109::check),
+            ("SC2276", sc2276::check),
         ]
     }
 

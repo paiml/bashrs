@@ -35,6 +35,12 @@ static TARGET_DECL: std::sync::LazyLock<Regex> =
 ///    that is shell, so no shell rule may read it; blanking (rather than
 ///    dropping) keeps the line count and every remaining line's number
 ///    identical to the input, which is what diagnostics report against.
+/// 3. PMAT-248 (phase 7 review): a recipe line ending in an odd number of
+///    trailing backslashes continues onto the next physical line, and GNU
+///    make does not require a leading tab on that continued line. The
+///    continued line is part of the recipe whatever its indentation, so it
+///    gets the same `$$` → `$` treatment as any other recipe line — 7.0.2
+///    let shell rules see it, and blanking it here would be a regression.
 pub fn preprocess_for_linting(source: &str) -> String {
     if source.is_empty() {
         return String::new();
@@ -42,8 +48,21 @@ pub fn preprocess_for_linting(source: &str) -> String {
 
     let mut result = String::new();
     let mut in_recipe = false;
+    let mut continues_recipe = false;
 
     for line in source.lines() {
+        if continues_recipe {
+            // A backslash-continued recipe line: part of the recipe
+            // regardless of its own leading whitespace (GNU make does not
+            // require a tab here). Keep `in_recipe` as it stood — the
+            // continuation cannot itself be a target declaration or a
+            // recipe-ending blank line.
+            continues_recipe = ends_with_odd_backslashes(line);
+            result.push_str(&preprocess_recipe_line(line));
+            result.push('\n');
+            continue;
+        }
+
         // Check if we're entering or leaving a recipe context
         if TARGET_DECL.is_match(line) {
             // Target declaration - recipes start on next line.
@@ -64,12 +83,21 @@ pub fn preprocess_for_linting(source: &str) -> String {
         if in_recipe && RECIPE_LINE.is_match(line) {
             let processed = preprocess_recipe_line(line);
             result.push_str(&processed);
+            continues_recipe = ends_with_odd_backslashes(line);
         }
 
         result.push('\n');
     }
 
     result
+}
+
+/// Does this physical line end in a backslash that continues the logical
+/// (recipe) line? Only an ODD number of trailing backslashes continues:
+/// `foo \` continues, while `foo \\` ends in an escaped literal backslash
+/// and does not.
+fn ends_with_odd_backslashes(line: &str) -> bool {
+    line.chars().rev().take_while(|&c| c == '\\').count() % 2 == 1
 }
 
 /// Preprocess a single recipe line
@@ -287,5 +315,92 @@ clean:
         assert_eq!(lines[1], ""); // include common.mk
         assert_eq!(lines[2], ""); // build:
         assert_eq!(lines[3], "\t@echo hi");
+    }
+
+    // -----------------------------------------------------------------
+    // PMAT-248 phase 7 review: a backslash-newline continues a recipe
+    // line, and GNU make does not require a leading tab on the continued
+    // line. 7.0.2 let shell rules see the continued line; blanking it is
+    // a regression this branch introduced.
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn test_pmat248_review_recipe_continuation_preserved_without_tab() {
+        // The exact case from the review: `local x=1` has no leading tab
+        // (or space run recognised as a recipe line) but is still part of
+        // the recipe because the previous line ends in a single backslash.
+        let makefile = "build:\n\t@true \\\n  local x=1\n";
+        let result = preprocess_for_linting(makefile);
+        let lines: Vec<&str> = result.lines().collect();
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[0], ""); // build:
+        assert_eq!(lines[1], "\t@true \\");
+        assert_eq!(lines[2], "  local x=1");
+    }
+
+    #[test]
+    fn test_pmat248_review_recipe_continuation_dollar_dollar_processed() {
+        // The continued line gets the same $$ -> $ treatment as any other
+        // recipe line.
+        let makefile = "build:\n\t@true \\\n  echo $$HOME\n";
+        let result = preprocess_for_linting(makefile);
+        let lines: Vec<&str> = result.lines().collect();
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[2], "  echo $HOME");
+    }
+
+    #[test]
+    fn test_pmat248_review_recipe_continuation_chains_three_lines() {
+        // A continued line that itself continues: three physical lines make
+        // one logical recipe line, and all three must survive.
+        let makefile = "build:\n\t@true \\\n\tfoo \\\n\tlocal x=1\n";
+        let result = preprocess_for_linting(makefile);
+        let lines: Vec<&str> = result.lines().collect();
+        assert_eq!(lines.len(), 4);
+        assert_eq!(lines[0], ""); // build:
+        assert_eq!(lines[1], "\t@true \\");
+        assert_eq!(lines[2], "\tfoo \\");
+        assert_eq!(lines[3], "\tlocal x=1");
+    }
+
+    #[test]
+    fn test_pmat248_review_recipe_continuation_next_line_has_a_tab() {
+        // A continued line that happens to start with a tab is still
+        // processed as a recipe continuation, not re-matched as an
+        // ordinary recipe line.
+        let makefile = "build:\n\t@true \\\n\tlocal x=1\n";
+        let result = preprocess_for_linting(makefile);
+        let lines: Vec<&str> = result.lines().collect();
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[2], "\tlocal x=1");
+    }
+
+    #[test]
+    fn test_pmat248_review_even_backslash_count_does_not_continue() {
+        // Two trailing backslashes is an escaped literal backslash, not a
+        // continuation; the next line is ordinary Make text (no tab), so it
+        // ends the recipe and is blanked exactly as before.
+        let makefile = "build:\n\t@true \\\\\nlocal x=1\n";
+        let result = preprocess_for_linting(makefile);
+        let lines: Vec<&str> = result.lines().collect();
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[0], ""); // build:
+        assert_eq!(lines[1], "\t@true \\\\");
+        assert_eq!(lines[2], ""); // not a continuation and not a recipe line
+    }
+
+    #[test]
+    fn test_pmat248_review_blanking_after_recipe_ends_is_unaffected() {
+        // Existing behaviour: once a recipe ends (blank line), the next
+        // target declaration is still blanked, continuation or not.
+        let makefile = "build:\n\t@true\n\nclean:\n\trm -f x\n";
+        let result = preprocess_for_linting(makefile);
+        let lines: Vec<&str> = result.lines().collect();
+        assert_eq!(lines.len(), 5);
+        assert_eq!(lines[0], ""); // build:
+        assert_eq!(lines[1], "\t@true");
+        assert_eq!(lines[2], ""); // blank line ends the recipe
+        assert_eq!(lines[3], ""); // clean:
+        assert_eq!(lines[4], "\trm -f x");
     }
 }
