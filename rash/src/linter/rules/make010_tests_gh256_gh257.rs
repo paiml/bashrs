@@ -31,7 +31,8 @@ fn make010_diagnostics(source: &str) -> Vec<crate::linter::Diagnostic> {
 /// command invocation and must not be flagged.
 #[test]
 fn test_PMAT251_gh256_command_word_inside_string_is_not_a_command() {
-    let makefile = "check:\n\t@tool --version || echo \"not found. Install with: cargo install tool\"\n";
+    let makefile =
+        "check:\n\t@tool --version || echo \"not found. Install with: cargo install tool\"\n";
     let diags = make010_diagnostics(makefile);
     assert!(
         diags.is_empty(),
