@@ -1,0 +1,137 @@
+metadata:
+  version: 1.0.0
+  verification_level: L2
+  description: >-
+    Provable contract for the corpus-derived generators (PMAT-247; follow-on to PMAT-245 /
+    GH-284). Four production generators derive their numbers from the live corpus by
+    transpiling and linting every entry (17,942 entries, 8-12 minutes per walk in CI):
+    the model card, the SSC status report's data-pipeline section, the SSC contract
+    validation report, and the baseline label table. Their unit tests called the no-arg
+    entry points and therefore walked the full corpus to assert section headings and
+    string constants: 1,857-2,243 s (test_all_contracts_report), 1,035-1,326 s each for
+    two ssc_report tests that finished LAST in every CI run, 567-825 s each for six
+    model_card tests, 577-825 s for one baselines test. Together with the training_config
+    tests fixed in PR #285 they are why the 60-minute CI test job timed out three times
+    on run 34368312280. This contract requires every corpus-derived generator to have a
+    registry-injected form, requires the public entry point to be exactly that form over
+    `CorpusRegistry::load_full()`, and pins the unit tests on the 30-entry tier-1 set.
+  verification_command: cargo test -p bashrs --lib corpus::model_card corpus::ssc_report corpus::contract_validation corpus::baselines
+  depends_on:
+  - corpus-registry-v1
+  - training-config-v1
+  references:
+  - 'CI run 34368312280 attempts 1-3: ci / test cancelled at the 60-minute limit; run 34391566581 passed at 57 min with two 1,250 s tests finishing last'
+  - 'PR #285: restore the 17,942-entry corpus; training_config tail fix'
+  - 'PMAT-247: CI lib-test job runs 48-57 min against a fixed 60-min limit'
+
+kernel_structure:
+  phases:
+  - name: inject
+    description: >-
+      `generate_model_card_from(&registry)`, `data_pipeline_section_from(&registry)`,
+      `run_all_contracts_from(&registry)`, `check_c_clf_001_baselines_from(&registry)` and
+      `check_dataset_split_from(&registry)` take the registry as a parameter and walk only it.
+    invariant: The generator's output is a function of the registry it is given.
+  - name: compose
+    description: >-
+      Each no-arg public entry point is exactly its `_from` form applied to
+      `CorpusRegistry::load_full()`; callers (CLI model-card, ssc-report, validate-contracts,
+      examples) see no behaviour change.
+    invariant: entry_point() = entry_point_from(&load_full())
+  - name: share
+    description: >-
+      `generate_ssc_report` loads the registry once and passes it to every section,
+      including the data-pipeline section, instead of re-walking the corpus twice more.
+    invariant: One SSC report walks the corpus once.
+
+equations:
+  injection:
+    formula: 'forall R: output(gen_from(R)) depends on R only; |R| = 30 for load_tier1()'
+    domain: 'R: any CorpusRegistry'
+    codomain: 'generator output'
+    invariants:
+    - A generator given the tier-1 registry reports tier-1 counts, not full-corpus counts
+  composition:
+    formula: 'generate_model_card() = generate_model_card_from(&load_full()); run_all_contracts() = run_all_contracts_from(&load_full())'
+    domain: 'the compiled-in corpus'
+    codomain: bool
+    invariants:
+    - The public entry points are thin wrappers; the tested path is the production path
+  structure:
+    formula: 'forall R with |R| > 0: sections(gen_from(R)) = sections(gen_from(load_full()))'
+    domain: 'R: any non-empty CorpusRegistry'
+    codomain: bool
+    invariants:
+    - Section headings, YAML front matter, honesty text and metric names do not depend on which entries are present
+  cost:
+    formula: 'wall(unit tests of model_card, ssc_report, contract_validation, baselines) < 120 s'
+    domain: 'the lib test binary'
+    codomain: seconds
+    invariants:
+    - No unit test in these modules walks the full corpus
+
+proof_obligations:
+- type: invariant
+  property: a generator given a registry reports that registry's counts
+  formal: 'generate_model_card_from(&R) contains "Total entries" with |R|; data_pipeline_section_from(&R).metrics has 4 entries'
+  applies_to: all
+- type: invariant
+  property: the public entry points compose the injected forms with load_full
+  formal: 'generate_model_card() = generate_model_card_from(&load_full()) and run_all_contracts() = run_all_contracts_from(&load_full())'
+  applies_to: all
+- type: invariant
+  property: report structure is independent of the registry contents
+  formal: 'forall R != {}: headings(generate_model_card_from(&R)) = headings(generate_model_card_from(&load_full()))'
+  applies_to: all
+
+invariants:
+- 'every corpus-derived generator has a _from(&CorpusRegistry) form'
+- 'each no-arg entry point is exactly _from(&CorpusRegistry::load_full())'
+- 'generate_ssc_report walks the corpus once and shares the registry with data_pipeline_section_from'
+- 'unit tests in model_card, ssc_report, contract_validation and baselines use load_tier1() (30 entries)'
+- 'those four modules'' unit tests complete in < 120 s wall-clock'
+
+kani_harnesses:
+- id: KANI-CORPUS_DERIVED_GENERATORS-001
+  obligation: the model-card class-weight guard returns exactly 1.0 for an empty class or an empty corpus
+  property: 'forall k, t in 0..1024: k = 0 or t = 0 -> compute_class_weight(k, t) = 1.0'
+  bound: 1024
+  strategy: bounded_int
+  harness: verify_model_card_weight_guard
+
+falsification_tests:
+- id: F-CDG-001
+  rule: model card from tier-1 reports tier-1 counts and the full structure
+  prediction: 'generate_model_card_from(&load_tier1()) starts with YAML front matter, contains every required section, and reports Total entries for 30 entries'
+  test: cargo test -p bashrs --lib corpus::model_card
+  if_fails: 'Contract violation: the model card reads something other than the injected registry, or lost a section'
+- id: F-CDG-002
+  rule: data-pipeline section from tier-1 has its four metrics
+  prediction: 'data_pipeline_section_from(&load_tier1()).metrics.len() = 4 with the four named metrics'
+  test: cargo test -p bashrs --lib corpus::ssc_report::tests_extracted::test_data_pipeline_section_structure
+  if_fails: 'Contract violation: the section shape depends on corpus contents, or the injected registry is ignored'
+- id: F-CDG-003
+  rule: baselines section from tier-1 entries has its metrics
+  prediction: 'baselines_section_from(&corpus_baseline_entries_from(&load_tier1())) has >= 5 metrics'
+  test: cargo test -p bashrs --lib corpus::ssc_report::tests_extracted::test_baselines_section_has_evaluation_metrics
+  if_fails: 'Contract violation: baseline metrics are not produced for a small registry'
+- id: F-CDG-004
+  rule: the contract report from tier-1 has >= 6 checks and at least one pass
+  prediction: 'run_all_contracts_from(&load_tier1()).contracts.len() >= 6 and passed_count > 0'
+  test: cargo test -p bashrs --lib corpus::contract_validation::tests::test_all_contracts_report
+  if_fails: 'Contract violation: contract checks depend on the full corpus being present to run at all'
+- id: F-CDG-005
+  rule: the _from baseline table covers every entry of its registry
+  prediction: 'corpus_baseline_entries_from(&load_tier1()).len() = 30 and every label is 0 or 1'
+  test: cargo test -p bashrs --lib corpus::baselines::tests::test_corpus_baseline_entries_from_matches_standalone
+  if_fails: 'Contract violation: an entry is dropped or mislabelled between the registry and the baseline table'
+- id: F-CDG-006
+  rule: the public entry points are exactly the _from forms over load_full
+  prediction: 'the source of generate_model_card() and run_all_contracts() is a single call to the _from form over CorpusRegistry::load_full()'
+  test: cargo test -p bashrs --lib F_CDG_006
+  if_fails: 'Contract violation: an entry point diverged from the tested path; callers would see numbers the tests never exercised'
+- id: F-CDG-007
+  rule: the four modules' unit tests do not walk the full corpus
+  prediction: 'cargo test -p bashrs --lib corpus::model_card corpus::ssc_report corpus::contract_validation corpus::baselines completes in < 120 s (previously 567-2,243 s per test)'
+  test: cargo test -p bashrs --lib corpus::model_card corpus::ssc_report corpus::contract_validation corpus::baselines
+  if_fails: 'Contract violation: a test regressed to a no-arg entry point; the CI test job loses its margin against the 60-minute limit'

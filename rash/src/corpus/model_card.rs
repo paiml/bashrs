@@ -9,17 +9,28 @@
 //! - SSC v11 spec Section 5.5 (Evaluation)
 //! - SSC v11 spec Section 9 (Implementation Plan)
 
-use crate::corpus::baselines::corpus_baseline_entries;
+use crate::corpus::baselines::corpus_baseline_entries_from;
 use crate::corpus::dataset::{split_and_validate, ClassificationRow};
+use crate::corpus::registry::CorpusRegistry;
 use std::fmt::Write as _;
 
 /// Generate a HuggingFace model card as markdown with YAML front matter.
 ///
 /// Pulls live data from the corpus: entry counts, class distribution,
 /// split sizes, and baseline performance. All numbers are computed,
-/// not hardcoded.
+/// not hardcoded. Walks the full corpus (17,942 entries; minutes).
+/// Contract `corpus-derived-generators-v1` equation `composition`: this is
+/// exactly [`generate_model_card_from`] over `CorpusRegistry::load_full()`.
 pub fn generate_model_card() -> String {
-    let owned = corpus_baseline_entries();
+    generate_model_card_from(&CorpusRegistry::load_full())
+}
+
+/// Generate the model card from a specific registry.
+///
+/// Contract `corpus-derived-generators-v1` equation `injection`: the card is
+/// a function of the registry it is given, so tests use the tier-1 set.
+pub fn generate_model_card_from(registry: &CorpusRegistry) -> String {
+    let owned = corpus_baseline_entries_from(registry);
     let total = owned.len();
     let safe_count = owned.iter().filter(|(_, l)| *l == 0).count();
     let unsafe_count = owned.iter().filter(|(_, l)| *l == 1).count();

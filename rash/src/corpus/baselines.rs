@@ -190,7 +190,7 @@ mod tests {
         // Verify _from variant produces identical results to standalone.
         // Use a small registry subset to keep the test fast.
         use crate::corpus::registry::CorpusRegistry;
-        let registry = CorpusRegistry::load_full();
+        let registry = CorpusRegistry::load_tier1();
         let from_result = corpus_baseline_entries_from(&registry);
         // Sanity: same count as full corpus
         assert_eq!(from_result.len(), registry.entries.len());

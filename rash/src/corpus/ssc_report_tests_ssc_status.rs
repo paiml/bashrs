@@ -45,8 +45,10 @@ fn test_report_serializable() {
 
 #[test]
 fn test_baselines_section_has_evaluation_metrics() {
-    use crate::corpus::baselines::corpus_baseline_entries;
-    let entries = corpus_baseline_entries();
+    // F-CDG-003 (corpus-derived-generators-v1): tier-1 (30 entries), never the full corpus.
+    use crate::corpus::baselines::corpus_baseline_entries_from;
+    use crate::corpus::registry::CorpusRegistry;
+    let entries = corpus_baseline_entries_from(&CorpusRegistry::load_tier1());
     let section = baselines_section_from(&entries);
     assert_eq!(section.name, "Baselines (C-CLF-001)");
     // Should have 3 baseline reports + 2 target metrics = 5
@@ -405,7 +407,8 @@ fn test_has_unsafe_keyword_false_negative_safe_code() {
 
 #[test]
 fn test_data_pipeline_section_structure() {
-    let section = data_pipeline_section();
+    // F-CDG-002 (corpus-derived-generators-v1): tier-1, never the full corpus.
+    let section = data_pipeline_section_from(&crate::corpus::registry::CorpusRegistry::load_tier1());
     assert_eq!(section.name, "Data Pipeline (S9)");
     assert_eq!(section.spec_ref, "S9");
     // Should have 4 metrics: model card YAML, honesty, class weights, training entries

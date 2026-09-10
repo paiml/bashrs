@@ -63,7 +63,7 @@ pub fn generate_ssc_report() -> SscStatusReport {
         generalization_section(),
         dataset_section_from(baseline_entries),
         conversation_section_from(&registry),
-        data_pipeline_section(),
+        data_pipeline_section_from(&registry),
         shellsafetybench_section(),
         wasm_section(),
     ];

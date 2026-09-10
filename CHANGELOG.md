@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **Corpus-derived generators take an injected registry; their unit tests no longer walk the corpus** (PMAT-247).
+  `generate_model_card`, the SSC report's data-pipeline section, `run_all_contracts`, `check_c_clf_001_baselines`
+  and `check_dataset_split` gain `_from(&CorpusRegistry)` forms; each no-arg entry point is exactly the `_from`
+  form over `load_full()` (checked on the source by F-CDG-006), and `generate_ssc_report` now shares its one loaded
+  registry with the data-pipeline section instead of walking the corpus twice more. Ten unit tests that cost
+  567–2,243 s each in CI (run 34368312280; two of them finished last in every run) now run against the 30-entry
+  tier-1 set: the four modules' 62 tests complete in 11 s. Contract: `contracts/corpus-derived-generators-v1.yaml`.
+
 ## [7.0.2] - 2026-09-09
 
 **The corpus had been empty since April.** `bashrs corpus run` reported
