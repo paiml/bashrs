@@ -298,6 +298,17 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     "SC2105", // `break` outside a loop — "could not break the matcher" is prose
     "SC2111", // ksh `function` keyword — awk has one too, in a '...' program
     "SC2122", // `>=` in [ ] — `"int($cov >= 85)"` is a program for another parser
+    // PMAT-248 (#252): backtick *syntax* is meaningless once the backtick is
+    // an escaped `\`` inside "...", which is literal text, not a
+    // substitution. A REAL backtick inside "..." is still code and stays
+    // visible — `mask_literals` only masks the escaped ones, so these two
+    // keep firing on genuine backtick substitutions. See
+    // `tests/quoting_literal_payload_guard.rs`.
+    "SC2006", // Use $(...) instead of legacy backticks
+    "SC2099", // Use $(...) instead of deprecated backtick command substitution
+    // PMAT-248 (#242): an HTML entity inside an unquoted heredoc body is data
+    // being emitted, not a typo in this script's own shell code.
+    "SC1109", // Unquoted HTML entity
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
@@ -969,6 +980,60 @@ mod tests {
     }
 
     #[test]
+    fn test_PMAT248_gh252_escaped_backtick_inside_double_quotes_opens_no_code_region() {
+        // POSIX 2.2.3: inside "..." a backslash escapes exactly $, `, " and \.
+        // The escaped backtick is literal text, not the start of a Backtick
+        // context.
+        let src = r#"echo "a \`b\` c""#;
+        let regions = QuotedRegions::analyze(src);
+        let backtick_col = src.find('`').expect("fixture has a backtick") + 1;
+        assert!(
+            regions.is_literal(1, backtick_col),
+            "an escaped backtick inside \"...\" must be literal text"
+        );
+        let masked = mask_literals(src);
+        assert!(
+            !masked.contains('`') || masked == src.replace('`', "x"),
+            "the escaped backticks must be masked as filler, got: {masked}"
+        );
+    }
+
+    #[test]
+    fn test_PMAT248_gh252_escaped_dollar_inside_double_quotes_opens_no_expansion() {
+        let src = r#"echo "cost: \$5""#;
+        let regions = QuotedRegions::analyze(src);
+        let dollar_col = src.find('$').expect("fixture has a dollar sign") + 1;
+        assert!(
+            regions.is_literal(1, dollar_col),
+            "an escaped $ inside \"...\" must be literal text, not an expansion"
+        );
+    }
+
+    #[test]
+    fn test_PMAT248_gh252_real_command_substitution_inside_double_quotes_still_code() {
+        let src = r#"echo "x $(date) y""#;
+        let regions = QuotedRegions::analyze(src);
+        let paren_col = src.find('(').expect("fixture has $(") + 1;
+        assert!(
+            !regions.is_literal(1, paren_col),
+            "a real $(...) inside \"...\" must stay a code region"
+        );
+    }
+
+    #[test]
+    fn test_PMAT248_gh252_escaped_backslash_then_real_backtick_is_substitution() {
+        // `\\` is itself the escaped-backslash pair; the backtick that follows
+        // is NOT escaped and opens a real command substitution.
+        let src = r#"x="\\`date`""#;
+        let regions = QuotedRegions::analyze(src);
+        let d_col = src.find('d').expect("fixture has `date`") + 1;
+        assert!(
+            !regions.is_literal(1, d_col),
+            "`date` after an escaped backslash must be a real substitution"
+        );
+    }
+
+    #[test]
     fn test_GH226_quoting_multiline_single_quote() {
         let m = mask("echo 'a\nb' done");
         assert_eq!(m[0], "......a");
@@ -1130,6 +1195,10 @@ mod tests {
             ("SC2111", sc2111::check),
             ("SC2122", sc2122::check),
             ("SC2188", sc2188::check),
+            // PMAT-248
+            ("SC2006", sc2006::check),
+            ("SC2099", sc2099::check),
+            ("SC1109", sc1109::check),
         ]
     }
 
