@@ -165,3 +165,17 @@ fn test_PMAT248_gh255_makefile_target_comment_is_not_shell() {
     let bare = "build:\n\tlocal x=1\n";
     assert_fires(&lint_makefile(bare), "SC2168", bare);
 }
+// ---------------------------------------------------------------------------
+// GH-261: SC1012 means what shellcheck's SC1012 means - an escape the shell drops.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_PMAT248_gh261_printf_format_escapes_are_interpreted() {
+    let src = "#!/bin/bash\nprintf 'hello %s\\n' \"$1\"\n";
+    shell_absent(src, "SC1012");
+    // Inside single quotes the escape reaches the command intact; echo's case
+    // belongs to SC2028/SC2271, not SC1012.
+    shell_absent("#!/bin/bash\necho 'a\\nb'\n", "SC1012");
+    // Unquoted, the shell drops the backslash: `echo a\tb` prints "atb".
+    shell_fires("#!/bin/bash\necho a\\tb\n", "SC1012");
+}

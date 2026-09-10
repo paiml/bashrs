@@ -2164,3 +2164,21 @@ roadmap:
   labels:
   - kind:code
   notes: null
+- id: PMAT-250
+  github_issue: null
+  item_type: task
+  title: 'shell_words: expose command-substitution expansions ($( … ) and backticks) so SC2046 can drop its local balanced-paren scanner'
+  status: planned
+  priority: low
+  assigned_to: null
+  created: 2026-09-10T07:39:07Z
+  updated: 2026-09-10T07:39:07Z
+  spec: null
+  acceptance_criteria:
+  - 'Follow-up from PMAT-248 phase 2: shell_words::Expansion tracks only $NAME/${NAME}, so the SC2046 rewrite (fix for #237/#262) carries a private scanner mirroring shell_words'' find_close/read_backtick/skip_quoted. Lift command substitutions into the shared analysis and delete the duplicate; SC2006/SC2099 (backtick style rules) can then use it too.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
