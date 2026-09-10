@@ -39,7 +39,7 @@ proptest = { workspace = true }
 tempfile = { workspace = true }
 
 # Synthetic data factory for corpus generation
-verificar = "0.3"
+verificar = "0.6"
 
 [dev-dependencies.criterion]
 workspace = true

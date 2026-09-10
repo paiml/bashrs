@@ -3,3 +3,4 @@
 # Every line below was produced by actually attempting the upgrade and recording what refused it.
 
 sysinfo 0.39.6 error: rustc 1.93.0 is not supported by the following packages: sysinfo@0.39.6 requires rustc 1.95 (rust-toolchain.toml pins channel 1.93.0)
+renacer 0.11.0 error: failed to select a version for `unicode-width`. renacer 0.11 -> aprender-profile 0.29 -> ratatui 0.29 requires `unicode-width = "=0.2.0"`, which conflicts with rustyline 18.0's `^0.2.2` (rustyline is a default feature of bashrs; renacer is a Linux-only dev-dependency)
