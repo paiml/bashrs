@@ -179,3 +179,45 @@ fn test_PMAT248_gh261_printf_format_escapes_are_interpreted() {
     // Unquoted, the shell drops the backslash: `echo a\tb` prints "atb".
     shell_fires("#!/bin/bash\necho a\\tb\n", "SC1012");
 }
+
+// ---------------------------------------------------------------------------
+// Phase 7 review findings, each measured against the 7.0.2 binary before the
+// fix: two regressions of this branch and two pre-existing wrong reports.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_PMAT248_review_sc2046_command_position_is_still_reported() {
+    // 7.0.2 reported both; the word-role rewrite had silenced CommandName.
+    shell_fires("#!/bin/sh\n$(get_command)\n", "SC2046");
+    shell_fires("#!/bin/sh\n$(get_command) arg\n", "SC2046");
+    // The word of `case … in` is still not split and still not reported.
+    shell_absent(
+        "#!/bin/sh\ncase $(uname) in\n  Linux) echo l ;;\n  *) echo o ;;\nesac\n",
+        "SC2046",
+    );
+}
+
+#[test]
+fn test_PMAT248_review_sc2047_considers_only_operands_of_the_test() {
+    // `$x` is an operand of echo, not of `[`, and the outer word is quoted;
+    // an unquoted variable inside a substitution is SC2086's subject.
+    shell_absent(
+        "#!/bin/sh\nx=1\nif [ -n \"$(echo $x)\" ]; then :; fi\n",
+        "SC2047",
+    );
+    shell_fires("#!/bin/sh\nx=1\nif [ $x -eq 1 ]; then :; fi\n", "SC2047");
+}
+
+#[test]
+fn test_PMAT248_review_make_recipe_continuation_reaches_shell_rules() {
+    // A backslash-newline continues the recipe line; GNU make does not require
+    // a leading tab on the continued line. 7.0.2 reported this line.
+    let src = "build:\n\t@true \\\n  local x=1\n";
+    assert_fires(&lint_makefile(src), "SC2168", src);
+}
+
+#[test]
+fn test_PMAT248_review_sc2276_ignores_a_pipe_inside_quotes() {
+    shell_absent("#!/bin/sh\ncat <<EOF > \"file|name\"\nfoo\nEOF\n", "SC2276");
+    shell_fires("#!/bin/sh\ncat <<EOF | grep x\nfoo\nEOF\n", "SC2276");
+}
