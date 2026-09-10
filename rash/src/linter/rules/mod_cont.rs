@@ -3,6 +3,7 @@ pub mod det001;
 pub mod det002;
 pub mod det003;
 pub mod det004;
+pub mod det005;
 
 // Idempotency rules (bashrs-specific)
 pub mod idem001;
