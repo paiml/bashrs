@@ -160,7 +160,7 @@ impl super::posix::PosixEmitter {
         for (i, param) in params.iter().enumerate() {
             let pos = i + 1;
             let param_name = escape_variable_name(param);
-            // TODO: Restore readonly once proper variable shadowing is implemented
+            // Restoring readonly is blocked until proper variable shadowing is implemented; PMAT-249 tracks the gap.
             writeln!(output, "{body_indent_str}{param_name}=\"${pos}\"")?;
         }
 

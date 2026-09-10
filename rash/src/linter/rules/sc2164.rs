@@ -38,7 +38,7 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     // Pattern: cd path (simple detection - enhancement needed)
-    // TODO: Improve negative lookahead for better detection
+    // Improving negative lookahead for better detection is not implemented yet; PMAT-249 tracks the gap.
     let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {

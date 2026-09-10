@@ -183,8 +183,8 @@ pub mod sc2115;
 pub mod sc2116;
 pub mod sc2117;
 pub mod sc2118;
-// pub mod sc2119;  // TODO: Requires AST parsing for proper function analysis (has false positives)
-// pub mod sc2120;  // TODO: Requires AST parsing for proper function analysis (has false positives)
+// pub mod sc2119;  // Requires AST parsing for proper function analysis (has false positives); PMAT-249 tracks the gap.
+// pub mod sc2120;  // Requires AST parsing for proper function analysis (has false positives); PMAT-249 tracks the gap.
 pub mod sc2121;
 pub mod sc2122;
 pub mod sc2123;

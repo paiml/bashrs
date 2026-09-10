@@ -14,7 +14,7 @@
 //   find . -name "*.txt"                   // No stdin needed
 //   sudo command < input.txt               // Or explicitly redirect
 //
-// Impact: Performance issue, confusing code
+// Effect: slower and harder to read
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;

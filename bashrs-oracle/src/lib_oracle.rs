@@ -154,7 +154,7 @@ impl Oracle {
 
         Ok(ClassificationResult {
             category,
-            confidence: 0.85, // TODO: Extract from tree probabilities
+            confidence: 0.85, // Extracting from tree probabilities is not implemented yet; PMAT-249 tracks the gap.
             suggested_fix,
             related_patterns: related,
         })
