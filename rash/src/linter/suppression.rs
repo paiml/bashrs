@@ -131,54 +131,55 @@ impl SuppressionManager {
         let mut seen_code = false;
 
         for (line_idx, line) in lines.iter().enumerate() {
-            let line_num = line_idx + 1;
-            let trimmed = line.trim();
+            seen_code = seen_code || is_code_line(line);
 
-            // Check if this line is code (not a comment, shebang, or empty)
-            if !trimmed.is_empty()
-                && !trimmed.starts_with('#')
-                && !trimmed.starts_with("set ")
-                && !trimmed.starts_with("shopt ")
-            {
-                seen_code = true;
-            }
-
-            // Check for suppression directives
-            if let Some(suppression) = parse_suppression(line, line_num) {
-                match suppression.suppression_type {
-                    SuppressionType::File => {
-                        // File-level suppression applies to all lines
-                        manager.file_suppressions.extend(suppression.rules);
-                    }
-                    SuppressionType::NextLine => {
-                        // Issue #130: Shellcheck directives at top of file are file-level
-                        // Check if we've seen code yet - if not, treat as file-level
-                        if !seen_code && is_shellcheck_directive(line) {
-                            manager.file_suppressions.extend(suppression.rules);
-                        } else {
-                            // Next-line suppression applies to line_num + 1
-                            if line_idx + 1 < lines.len() {
-                                manager
-                                    .line_suppressions
-                                    .entry(line_num + 1)
-                                    .or_default()
-                                    .extend(suppression.rules);
-                            }
-                        }
-                    }
-                    SuppressionType::Line => {
-                        // Inline suppression applies to current line
-                        manager
-                            .line_suppressions
-                            .entry(line_num)
-                            .or_default()
-                            .extend(suppression.rules);
-                    }
-                }
+            if let Some(suppression) = parse_suppression(line, line_idx + 1) {
+                manager.apply_suppression(suppression, line, line_idx, lines.len(), seen_code);
             }
         }
 
         manager
+    }
+
+    /// Fold one parsed directive into the manager's suppression maps.
+    ///
+    /// Split out of `from_source` to keep that loop's cognitive complexity
+    /// under the pre-commit gate (CB-1400) — the branch-per-suppression-type
+    /// logic lives here instead.
+    fn apply_suppression(
+        &mut self,
+        suppression: Suppression,
+        line: &str,
+        line_idx: usize,
+        total_lines: usize,
+        seen_code: bool,
+    ) {
+        match suppression.suppression_type {
+            SuppressionType::File => {
+                // File-level suppression applies to all lines
+                self.file_suppressions.extend(suppression.rules);
+            }
+            SuppressionType::NextLine => {
+                // Issue #130: Shellcheck directives at top of file are file-level.
+                // Check if we've seen code yet - if not, treat as file-level.
+                if !seen_code && is_shellcheck_directive(line) {
+                    self.file_suppressions.extend(suppression.rules);
+                } else if line_idx + 1 < total_lines {
+                    // Next-line suppression applies to line_idx + 2 (1-indexed next line)
+                    self.line_suppressions
+                        .entry(line_idx + 2)
+                        .or_default()
+                        .extend(suppression.rules);
+                }
+            }
+            SuppressionType::Line => {
+                // Inline suppression applies to current line
+                self.line_suppressions
+                    .entry(line_idx + 1)
+                    .or_default()
+                    .extend(suppression.rules);
+            }
+        }
     }
 
     /// Check if a rule is suppressed at a given line
@@ -202,6 +203,15 @@ impl SuppressionManager {
 /// Issue #130: Check if line contains a shellcheck directive
 fn is_shellcheck_directive(line: &str) -> bool {
     line.contains("# shellcheck disable=")
+}
+
+/// Is this line code (not a comment, shebang, blank line, `set`, or `shopt`)?
+fn is_code_line(line: &str) -> bool {
+    let trimmed = line.trim();
+    !trimmed.is_empty()
+        && !trimmed.starts_with('#')
+        && !trimmed.starts_with("set ")
+        && !trimmed.starts_with("shopt ")
 }
 
 /// Parse a suppression directive from a line
@@ -351,6 +361,10 @@ fn is_valid_rule_code(code: &str) -> bool {
 #[cfg(test)]
 #[path = "suppression_tests_parse_file.rs"]
 mod tests_extracted;
+
+#[cfg(test)]
+#[path = "suppression_gh265_tests.rs"]
+mod tests_gh265;
 
 /// A comment that looks like a bashrs suppression directive but is not one.
 ///

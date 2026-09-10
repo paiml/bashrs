@@ -99,6 +99,31 @@ falsification_tests:
   test: test_PMAT251_gh263_date_to_terminal_is_not_reported
   if_fails: 'Contract violation: DET002 flags a bare `date` that has no
     possible reproducible sink'
+- id: F-DET002-GH265-SHELLCHECK-NAMESPACE-REJECTED
+  rule: A bashrs-native code (e.g. DET002) inside a `# shellcheck disable=`
+    directive is NOT honoured - shellcheck cannot parse a non-SC code there
+    and aborts checking the rest of the file, so bashrs must not honour it
+    either. bashrs reports it (BASHRS001) naming the working `# bashrs
+    disable-line=`/`disable-file=` form (GH-265)
+  prediction: lint result contains DET002 and a BASHRS001 diagnostic naming
+    the bashrs directive form when the only suppression present is `#
+    shellcheck disable=DET002`; a mixed `# shellcheck disable=SC2086,DET002`
+    still suppresses SC2086
+  test: 'test_PMAT255_gh265_shellcheck_directive_does_not_honour_bashrs_code, test_PMAT255_gh265_mixed_shellcheck_directive_splits_codes'
+  if_fails: 'Contract violation: bashrs honours its own codes inside a #
+    shellcheck directive, silently disabling shellcheck for the rest of the
+    file (GH-265)'
+- id: F-DET002-GH265-DISABLE-LINE-PLACEMENT-REPORTED
+  rule: '`# bashrs disable-line=DET002` written on a comment-only line (the
+    line ABOVE the code, not the same line) suppresses nothing - placement
+    semantics are unchanged - and must be reported instead of silently
+    ignored, the same failure mode as #240 (GH-265)'
+  prediction: lint result contains DET002 AND a BASHRS001 diagnostic naming
+    `disable-line` when the directive sits alone on the line above; same-line
+    `disable-line=` and `disable-file=` are unaffected
+  test: 'test_PMAT255_gh265_disable_line_on_preceding_line_is_reported, test_PMAT255_gh265_disable_line_same_line_unaffected, test_PMAT255_gh265_disable_file_unaffected'
+  if_fails: 'Contract violation: a disable-line directive on the wrong line
+    silently does nothing and nothing says why (GH-265)'
 - id: F-DET003-SOUND
   rule: DET003 detects unordered glob in for-loop
   prediction: lint result contains DET003
