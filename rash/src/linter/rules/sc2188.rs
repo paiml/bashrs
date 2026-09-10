@@ -475,3 +475,10 @@ mod tests_literal_content {
         assert_eq!(result.diagnostics.len(), 1, "got {:?}", result.diagnostics);
     }
 }
+
+/// PMAT-251: end-to-end reproducers for GH-249, run through the public
+/// `lint_shell` entry point (masking, code-namespace, suppression) rather
+/// than calling `check` directly.
+#[cfg(test)]
+#[path = "sc2188_tests_gh249.rs"]
+mod tests_gh249;

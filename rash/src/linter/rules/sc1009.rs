@@ -124,3 +124,10 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 1);
     }
 }
+
+/// PMAT-251: end-to-end reproducers for GH-238, run through the public
+/// `lint_shell` entry point (the diagnostic is renamed SC1009 -> BRS0001 by
+/// `code_namespace`, which only `lint_shell`/`lint_shell_filtered` apply).
+#[cfg(test)]
+#[path = "sc1009_tests_gh238.rs"]
+mod tests_gh238;
