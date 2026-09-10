@@ -1,0 +1,45 @@
+# PMAT Legacy Debt Ticket
+# Created by hand in the format `pmat comply upgrade` generates
+# DO NOT DELETE - Required for Popperian falsification override
+
+ticket_id: "DEBT-GATES-20260910"
+category: "falsification-gates"
+created_at: "2026-09-10T06:19:42+00:00"
+status: "open"
+
+description: |
+  Repo-wide falsification gates that are red at baseline, independent of any
+  single ticket. Recorded so that PMAT-245 (v7.0.2 release, #284) and
+  PMAT-247 (corpus-derived generators take an injected registry, #288) can be
+  completed with --override-claims against this ticket. Every number below is
+  copied from the pmat receipts in .pmat-work/PMAT-245/falsification/ and
+  .pmat-work/PMAT-247/falsification/ dated 2026-09-10.
+
+  Overridden for both tickets (absolute thresholds, pre-existing):
+    complexity  - 316 functions exceed cyclomatic 20. The pre-commit hook
+                  enforces 30/25 on touched files; both tickets passed it.
+    file-size   - 1,822 files exceed 500 lines, including .claude/worktrees/**.
+
+  Overridden for PMAT-245 only (its work contract baseline is commit
+  c3e08ec8b2 from 2026-04-07, five months before the work):
+    manifest         - 64 baseline files no longer exist; deleted by earlier
+                       commits such as 391c25713a (2026-08-18), not by #285.
+    dead-code        - flagged in rash/src/linter/mod.rs, which #285 did not
+                       touch (git diff 443bd7ba78..f700599b14 -- that path is empty).
+    variant-coverage - 204 untested match variants repo-wide, e.g. in
+                       rash/src/ast/visitor_tests.rs; PMAT-247's fresh
+                       baseline passes this claim, so none are new.
+
+  Not overridden: coverage claims were NOT MEASURED (no lcov in session) and
+  remain unclaimed; github-sync is satisfied by committing and pushing.
+
+metrics:
+  current: 316
+  required: 0
+  gap: 316
+
+resolution:
+  # Update this section when addressing the debt
+  plan: "Refresh the repo-wide baseline (pmat comply upgrade --target popperian) or reduce the 316 functions over complexity 20 and split files over 500 lines; the stale-baseline items clear on their own with a fresh baseline."
+  target_date: null
+  completed_at: null
