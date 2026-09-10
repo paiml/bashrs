@@ -1,0 +1,11 @@
+# pmat comply configuration — suppressions require a reason for the audit trail (COMPLY-044).
+comply:
+  checks:
+    # CB-1700 and CB-1701 read `gh api repos/paiml/bashrs/branches/main/protection`, the classic
+    # branch-protection API, which answers 404 here because main is protected by a repository
+    # RULESET (id 13878864, "Green Main — unified gate enforcement active", enforcement active,
+    # required status check context `gate`). The protection exists and is enforced by GitHub;
+    # the check's access path does not see it. `.github/required-status-checks.txt` declares
+    # the same context for CB-2100. Re-enable when pmat reads `gh api repos/{o}/{r}/rulesets`.
+    cb-1700: { enabled: false }
+    cb-1701: { enabled: false }
