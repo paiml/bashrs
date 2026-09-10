@@ -2220,3 +2220,23 @@ roadmap:
   - kind:triage
   - orch:fable
   notes: 'orch-basis:release — user wrote, verbatim: "using pmat-implement continue autonomously to next release (all open tickets (triage and tag to releases/assign), update crates.io dependencies to latest working version,defects, pmat comply, pmat goal, roadmap items etc).  Also use "agy" when needed to increase the corpus with examples and manage process via dedicated worker:  opus max --- watching agy. [ensure corpus variety, and especially patterns we use in work like "crontabs", makefiles, [perl, bash, python] mixed with bash.  all common patterns for agentic work and across sovereign repo. you can query via pmat query RAG if needed]"'
+- id: PMAT-253
+  github_issue: null
+  item_type: task
+  title: 'PR and dogfood parity with ../forjar: quorum receipts bound to the diff (.quorum/<branch>.json, quorum-gate.sh on pre-push mirrored by a Quorum CI job), CRUX per release (docs/audits/crux-<ver>.md reconciled against CHANGELOG by a gate), mechanical dogfood-release gates A-H/T/R with one GATE line each, releases.yaml + release goal, publish-from-tag, agy /teamwork as a mandatory lane'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-10T15:33:45Z
+  updated: 2026-09-10T15:33:45Z
+  spec: docs/specifications/pr-dogfood-parity-forjar.md
+  acceptance_criteria:
+  - 'Research (this session): docs/specifications/pr-dogfood-parity-forjar.md — eleven measured gaps against ../forjar (quorum receipt + gate + CI mirror, evidence rules, CRUX per release + gate H, ten mechanical dogfood gates, harness gate A, releases.yaml + gate T + release-goal.yml, release-audit.yml, publish-from-tag, repo-named skill, falsification tests for the gates), a four-lane mapping, a seven-phase plan with an acceptance command per phase, and the agy /teamwork review of the document recorded in docs/audits/quorum-PMAT-253-teamwork.json.'
+  - 'Implementation (7.1.0 cycle, later sessions): phases 1-7 of the spec, each gated by its A_i; the Quorum CI job as a required check and the retroactive floor are operator decisions recorded in the spec §4.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - orch:fable
+  notes: 'orch-basis:operator — user wrote, verbatim: "in parallel ensure we are using a PR style and dogfood style like ../forjar (i.e. CRUX, quorum).  file ticket and research and then have "agy /teamwork review"". Filed during the PMAT-251 session (v7.0.4); research and the teamwork review are this session''s deliverable, implementation is scheduled with 7.1.0.'
