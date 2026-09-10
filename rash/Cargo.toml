@@ -64,7 +64,7 @@ sysinfo = { version = "0.31", optional = true }  # For bench command - CPU/RAM/O
 schemars = "1.2"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "7.0", path = "../bashrs-oracle", optional = true }  # ML-powered error classification
 aprender = { version = "0.27", optional = true }  # BPE tokenizer for SSC C-TOK-001
-entrenar = { version = "0.7", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
+entrenar = { version = "0.8", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
 
 # Watch mode dependencies (file system watching)
 notify = { version = "8.2", optional = true }  # Cross-platform filesystem notifications
