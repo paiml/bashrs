@@ -298,5 +298,5 @@ falsification_tests:
 - id: F-LCX-020
   rule: 'SC2106 reports what shellcheck reports: a break or continue inside a subshell leaves only the subshell'
   prediction: 'a break inside parentheses in a for loop reports SC2106, while a plain break in a loop body does not'
-  test: cargo test -p bashrs --lib linter::rules::sc2106::tests_pmat258::test_PMAT258_sc2106_break_in_subshell_inside_for_loop_fires
+  test: cargo test -p bashrs --lib linter::rules::sc2106::tests::test_PMAT258_sc2106_break_in_subshell_inside_for_loop_fires
   if_fails: 'Contract violation: SC2106 carries a non-shellcheck meaning again, so a suppression written against shellcheck silences the wrong rule, as in GH-303'

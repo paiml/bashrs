@@ -61,3 +61,10 @@ Three lanes, three different models, none in the author's family (`gemini-3.1-pr
 | `push_str`, `push`, `insert`, `rev` | still fail the transpile naming the method; no POSIX spelling that is both honest and deterministic |
 | #236, #234, #233 | backlog |
 | release-lint treats cancelled entries as open | filed upstream, paiml/paiml-mcp-agent-toolkit#1326 |
+
+## Quorum review, rounds 2 and 3
+
+- **Round 2** (same three models): lane 3's objection was gone once the bwrap probe landed, lane 1 passed, and lane 2 returned NO-VERDICT, which is not a refusal. Its raw output says verdict PASS, but the model emitted two JSON objects inside a markdown fence, so agy marked the envelope status ERROR. A malformed envelope is not a vote, and the artifact was not edited to make it one.
+- **Round 3** (gemini-3.1-pro-high, gemini-3.7-flash-high, gemini-3.8-flash-high): 2 PASS, 1 FAIL, and the FAIL was right. Contract F-LCX-020 named the module `tests_pmat258` in sc2106.rs, but that test sits in the file's existing `tests` module. pv gate 4 still passed, because it matches only the text after the last colon pair against bare test names, so the gate was green while the command written in the contract found nothing. Corrected, and every other test path in contracts/ was re-run individually to confirm it resolves to at least one test.
+
+That is the second time this release that a green gate hid a wrong claim, and both were caught by a reviewer rather than by the gate.
