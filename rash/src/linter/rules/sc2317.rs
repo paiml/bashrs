@@ -1,28 +1,39 @@
 // SC2317: Command appears to be unreachable (dead code)
+use crate::linter::shell_words::{self, WordRole};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
 
-static EXIT_OR_RETURN: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"(?:exit|return)\s+\d+").unwrap());
+/// ## Lexer-context history (PMAT-257, GH-312)
+///
+/// The original implementation matched `exit`/`return` (followed by a
+/// number) anywhere in the line's raw text via regex. That reads the word
+/// `exit` as an exit statement even when it is text inside a quoted argument
+/// (`echo "exit the loop"`), and — because a single hit sets `found_exit` and
+/// the very next non-reset line reports and `break`s the whole scan — a false
+/// hit like that can also swallow a genuinely unreachable line that follows a
+/// *real* `exit`/`return` later in the same file. `exit`/`return` are only a
+/// statement when they are in command position; this now goes through
+/// [`crate::linter::shell_words`], the same word/role analysis SC2046, SEC002
+/// and IDEM002 use, so quoted text is never mistaken for the command.
+fn is_bare_exit(cmd: &shell_words::SimpleCommand) -> bool {
+    matches!(cmd.name.as_deref(), Some("exit") | Some("return"))
+        && cmd.words.iter().any(|w| {
+            w.role == WordRole::Argument
+                && !w.literal.is_empty()
+                && w.literal.bytes().all(|b| b.is_ascii_digit())
+        })
+}
 
-/// Issue #93: Check if exit/return is conditional (part of || or && chain)
-/// `cmd || exit 1` - exit only runs if cmd fails, code after IS reachable
-/// `cmd && exit 1` - exit only runs if cmd succeeds, code after IS reachable
-fn is_conditional_exit(line: &str) -> bool {
-    // Check if exit/return is preceded by || or &&
-    if let Some(pos) = line.find("exit") {
-        let before = &line[..pos];
-        if before.contains("||") || before.contains("&&") {
-            return true;
-        }
-    }
-    if let Some(pos) = line.find("return") {
-        let before = &line[..pos];
-        if before.contains("||") || before.contains("&&") {
-            return true;
-        }
-    }
-    false
+/// Issue #93: an `exit`/`return` at byte column `col` (1-indexed, into
+/// `trimmed`) is conditional when it is immediately preceded by `||` or
+/// `&&` (ignoring blanks): `cmd || exit 1` only runs `exit` if `cmd` fails,
+/// `cmd && exit 1` only if `cmd` succeeds - either way the code after IS
+/// reachable.
+fn is_conditional_at(trimmed: &str, col: usize) -> bool {
+    let before = trimmed
+        .get(..col.saturating_sub(1))
+        .unwrap_or("")
+        .trim_end();
+    before.ends_with("||") || before.ends_with("&&")
 }
 
 /// Issue #108: `;;`, `;&` and `;;&` are case-terminator syntax, not code.
@@ -44,9 +55,19 @@ fn resets_reachability(trimmed: &str) -> bool {
     is_block_closer || is_case_clause
 }
 
-/// Issue #93: a real, unconditional `exit N` / `return N`.
+/// Issue #93 / GH-312: `trimmed` contains a real, unconditional `exit N` /
+/// `return N` in command position.
 fn starts_unreachable_run(trimmed: &str) -> bool {
-    EXIT_OR_RETURN.is_match(trimmed) && !is_conditional_exit(trimmed)
+    shell_words::simple_commands(trimmed)
+        .into_iter()
+        .any(|cmd| {
+            is_bare_exit(&cmd)
+                && cmd
+                    .words
+                    .iter()
+                    .find(|w| w.role == WordRole::CommandName)
+                    .is_some_and(|w| !is_conditional_at(trimmed, w.col))
+        })
 }
 
 fn unreachable_diagnostic(line_num_1indexed: usize, line: &str, exit_line: usize) -> Diagnostic {

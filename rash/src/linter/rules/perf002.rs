@@ -27,6 +27,7 @@
 //! done
 //! ```
 
+use crate::linter::shell_words;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 fn is_loop_header(trimmed: &str) -> bool {
@@ -41,31 +42,39 @@ fn is_loop_exit(trimmed: &str) -> bool {
     trimmed == "done" || trimmed.starts_with("done ") || trimmed.starts_with("done;")
 }
 
-/// True when the `$(` at byte offset `col` in `line` sits inside a trailing
-/// `#` comment (quote-parity heuristic: an odd count of `'`/`"` before the
-/// `#` means it's still inside a string, not a real comment).
-fn dollar_paren_is_commented(line: &str, col: usize) -> bool {
-    let before = &line[..col];
-    let Some(hash_pos) = before.rfind('#') else {
-        return false;
-    };
-    let pre_hash = &before[..hash_pos];
-    let singles = pre_hash.matches('\'').count();
-    let doubles = pre_hash.matches('"').count();
-    singles.is_multiple_of(2) && doubles.is_multiple_of(2)
+/// 1-indexed byte column of the first real `$( … )` / `` ` … ` `` command
+/// substitution marker on `line`, or `None` when there isn't one.
+///
+/// ## Lexer-context history (PMAT-257, GH-313)
+///
+/// The original implementation matched the raw substring `"$("` anywhere on
+/// the line. `$((...))` arithmetic expansion *starts with* `$(`, so `line.find
+/// ("$(")` also matched it — but arithmetic expansion forks no subshell; the
+/// shell evaluates it in-process. This now goes through
+/// [`crate::linter::shell_words`], the same word/role analysis SC2046,
+/// SEC002 and IDEM002 use: `ShellWord::substitutions` never contains an entry
+/// for `$((...))` (the lexer special-cases and skips the whole balanced span
+/// without recording it), so only a genuine command substitution is found.
+/// The lexer also stops at an unquoted `#`, so a substitution written inside
+/// a trailing comment is never picked up either — the old manual
+/// quote-parity scan for that case is no longer needed.
+fn first_command_substitution_col(line: &str) -> Option<usize> {
+    shell_words::simple_commands(line)
+        .into_iter()
+        .flat_map(|c| c.words.into_iter().flat_map(|w| w.substitutions))
+        .map(|e| e.col)
+        .min()
 }
 
-/// Look for a `$(...)` command substitution on `line` and, if found and not
-/// commented out, add a PERF002 diagnostic to `result`.
+/// Look for a real `$(...)` / `` `...` `` command substitution on `line`
+/// (never `$((...))` arithmetic) and, if found, add a PERF002 diagnostic to
+/// `result`.
 fn check_line_for_subst(result: &mut LintResult, line_num: usize, line: &str) {
-    let Some(col) = line.find("$(") else {
+    let Some(col) = first_command_substitution_col(line) else {
         return;
     };
-    if dollar_paren_is_commented(line, col) {
-        return;
-    }
 
-    let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 3);
+    let span = Span::new(line_num + 1, col, line_num + 1, col + 2);
     let diagnostic = Diagnostic::new(
         "PERF002",
         Severity::Warning,
