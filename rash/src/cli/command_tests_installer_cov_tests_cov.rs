@@ -344,9 +344,17 @@ mod corpus_core_smoke {
 
     #[test]
     fn test_cov_corpus_converged_no_log() {
-        // No convergence log → should fail (fast: no corpus load)
-        let res = super::super::corpus_ops_commands::corpus_converged(99.0, 0.5, 3);
-        assert!(res.is_err());
+        // PMAT-258: point it at a directory that has no log, rather than at
+        // whatever `.quality/convergence.log` the repository happens to carry.
+        // This assertion used to pass only because the checkout had no log yet.
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let res = super::super::corpus_ops_commands::corpus_converged_with_log(
+            99.0,
+            0.5,
+            3,
+            &dir.path().join("convergence.log"),
+        );
+        assert!(res.is_err(), "a missing convergence log is an error");
     }
 
     #[test]
