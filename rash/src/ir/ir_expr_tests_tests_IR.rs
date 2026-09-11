@@ -229,8 +229,9 @@ fn test_IR_EXPR_035_exec_effects_curl() {
 
 #[test]
 fn test_IR_EXPR_036_method_call_expr() {
-    // Method calls on variables produce "unknown" in value context,
-    // but the transpiler should not fail
+    // PMAT-257/GH-306: `.len()` on a string (not a local array literal) has
+    // no statically-known length, so this must now be a transpile error
+    // rather than silently lowering to the placeholder "unknown".
     let result = crate::transpile(
         r#"
 fn main() {
@@ -240,10 +241,9 @@ fn main() {
 "#,
         &Config::default(),
     );
-    // The transpiler should handle this without error
     assert!(
-        result.is_ok(),
-        "Method call should not cause transpile failure"
+        result.is_err(),
+        "len() on a non-array-literal has no lowering and must error"
     );
 }
 

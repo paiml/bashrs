@@ -130,11 +130,13 @@ fn test_EXPR_VAL_042_func_call_with_args_becomes_command_subst() {
     }
 }
 
-// ===== MethodCall: env::args().nth() with non-U32 falls through =====
+// ===== MethodCall: env::args().nth() with non-U32 has no lowering =====
 
 #[test]
 fn test_EXPR_VAL_043_method_env_args_nth_non_u32_falls_through() {
     // std::env::args().nth("abc").unwrap() - nth arg is not U32
+    // PMAT-257/GH-305: no lowering exists for this shape, so it must error
+    // rather than silently produce the placeholder "unknown".
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::MethodCall {
             receiver: Box::new(Expr::FunctionCall {
@@ -147,16 +149,17 @@ fn test_EXPR_VAL_043_method_env_args_nth_non_u32_falls_through() {
         method: "unwrap".to_string(),
         args: vec![],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap"));
 }
 
-// ===== MethodCall: unwrap_or with non-string default falls through =====
+// ===== MethodCall: unwrap_or with non-string default has no lowering =====
 
 #[test]
 fn test_EXPR_VAL_044_method_get_unwrap_or_non_string_default() {
     // args.get(1).unwrap_or(42) - default is not Str
+    // PMAT-257/GH-305: no lowering exists for this shape, so it must error
+    // rather than silently produce the placeholder "unknown".
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::MethodCall {
             receiver: Box::new(Expr::Variable("args".to_string())),
@@ -166,24 +169,24 @@ fn test_EXPR_VAL_044_method_get_unwrap_or_non_string_default() {
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::U32(42))],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap_or"));
 }
 
-// ===== MethodCall: unwrap on non-MethodCall receiver =====
+// ===== MethodCall: unwrap on non-MethodCall receiver has no lowering =====
 
 #[test]
 fn test_EXPR_VAL_045_method_unwrap_on_non_method_receiver() {
     // variable.unwrap() - receiver is Variable, not MethodCall
+    // PMAT-257/GH-305: no lowering exists for this shape, so it must error
+    // rather than silently produce the placeholder "unknown".
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::Variable("option_val".to_string())),
         method: "unwrap".to_string(),
         args: vec![],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap"));
 }
 
 // ===== Binary::Sub (missed in EXPR_VAL_025) =====
@@ -253,22 +256,23 @@ fn test_EXPR_VAL_048_func_stdlib_becomes_rash_prefixed_command_subst() {
 
 #[test]
 fn test_EXPR_VAL_049_method_unwrap_or_on_variable_receiver() {
-    // variable.unwrap_or("default") - receiver is Variable, not MethodCall
+    // variable.unwrap_or("default") - receiver is Variable, not MethodCall.
+    // PMAT-257/GH-305: no lowering exists, so this must error.
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::Variable("maybe_val".to_string())),
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::Str("fallback".to_string()))],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap_or"));
 }
 
 // ===== MethodCall: unwrap_or + args.get(N) where N is not U32 =====
 
 #[test]
 fn test_EXPR_VAL_050_method_get_unwrap_or_non_u32_position() {
-    // args.get("abc").unwrap_or("default") - position is Str, not U32
+    // args.get("abc").unwrap_or("default") - position is Str, not U32.
+    // PMAT-257/GH-305: no lowering exists, so this must error.
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::MethodCall {
             receiver: Box::new(Expr::Variable("args".to_string())),
@@ -278,16 +282,16 @@ fn test_EXPR_VAL_050_method_get_unwrap_or_non_u32_position() {
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::Str("default".to_string()))],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap_or"));
 }
 
 // ===== MethodCall: env::args().nth(N).unwrap_or() where N is not U32 =====
 
 #[test]
 fn test_EXPR_VAL_051_method_env_args_nth_unwrap_or_non_u32_position() {
-    // std::env::args().nth("x").unwrap_or("default") - nth arg is Str
+    // std::env::args().nth("x").unwrap_or("default") - nth arg is Str.
+    // PMAT-257/GH-305: no lowering exists, so this must error.
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::MethodCall {
             receiver: Box::new(Expr::FunctionCall {
@@ -300,16 +304,16 @@ fn test_EXPR_VAL_051_method_env_args_nth_unwrap_or_non_u32_position() {
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::Str("default".to_string()))],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap_or"));
 }
 
 // ===== MethodCall: env::args().nth(N).unwrap_or() where default is not Str =====
 
 #[test]
 fn test_EXPR_VAL_052_method_env_args_nth_unwrap_or_non_str_default() {
-    // std::env::args().nth(0).unwrap_or(42) - default is U32, not Str
+    // std::env::args().nth(0).unwrap_or(42) - default is U32, not Str.
+    // PMAT-257/GH-305: no lowering exists, so this must error.
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::MethodCall {
             receiver: Box::new(Expr::FunctionCall {
@@ -322,14 +326,14 @@ fn test_EXPR_VAL_052_method_env_args_nth_unwrap_or_non_str_default() {
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::U32(42))],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap_or"));
 }
 
 // ===== MethodCall: non-env::args().nth().unwrap_or() =====
 
 #[test]
+// PMAT-257/GH-305: no lowering exists, so this must error.
 fn test_EXPR_VAL_053_method_nth_unwrap_or_non_env_args_receiver() {
     // other_func().nth(0).unwrap_or("default") - receiver is not std::env::args
     let expr = Expr::MethodCall {
@@ -344,14 +348,14 @@ fn test_EXPR_VAL_053_method_nth_unwrap_or_non_env_args_receiver() {
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::Str("default".to_string()))],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap_or"));
 }
 
 // ===== MethodCall: env::args().nth().unwrap() where env::args has args =====
 
 #[test]
+// PMAT-257/GH-305: no lowering exists, so this must error.
 fn test_EXPR_VAL_054_method_env_args_with_args_nth_unwrap() {
     // std::env::args(42).nth(0).unwrap() - fn_args is not empty
     let expr = Expr::MethodCall {
@@ -366,14 +370,14 @@ fn test_EXPR_VAL_054_method_env_args_with_args_nth_unwrap() {
         method: "unwrap".to_string(),
         args: vec![],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap"));
 }
 
 // ===== MethodCall: nth().unwrap() where receiver is not FunctionCall =====
 
 #[test]
+// PMAT-257/GH-305: no lowering exists, so this must error.
 fn test_EXPR_VAL_055_method_nth_unwrap_variable_receiver() {
     // iter.nth(0).unwrap() - inner receiver of nth is Variable, not FunctionCall
     let expr = Expr::MethodCall {
@@ -385,14 +389,14 @@ fn test_EXPR_VAL_055_method_nth_unwrap_variable_receiver() {
         method: "unwrap".to_string(),
         args: vec![],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap"));
 }
 
 // ===== MethodCall: nth().unwrap_or() where inner receiver is Variable =====
 
 #[test]
+// PMAT-257/GH-305: no lowering exists, so this must error.
 fn test_EXPR_VAL_056_method_nth_unwrap_or_variable_inner_receiver() {
     // iter.nth(0).unwrap_or("default") - inner receiver of nth is Variable
     let expr = Expr::MethodCall {
@@ -404,7 +408,6 @@ fn test_EXPR_VAL_056_method_nth_unwrap_or_variable_inner_receiver() {
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::Str("default".to_string()))],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap_or"));
 }

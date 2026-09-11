@@ -265,6 +265,14 @@ impl IrConverter {
         })
     }
 
+    /// GH-305: an unlowerable method call used to fall through to the
+    /// placeholder `ShellValue::String("unknown")`. In statement position
+    /// (`convert_expr`'s catch-all) that value is then discarded entirely
+    /// and the whole call lowers to `ShellIR::Noop` -> `:` — the program
+    /// silently does nothing instead of failing to transpile. Every method
+    /// call must either have a real lowering or fail loudly, naming the
+    /// method, so callers see a transpile error instead of a shell script
+    /// that runs and does the wrong thing.
     pub(super) fn convert_method_call_to_value(
         &self,
         receiver: &crate::ast::Expr,
@@ -283,7 +291,22 @@ impl IrConverter {
             }
         }
 
-        Ok(ShellValue::String("unknown".to_string()))
+        // GH-306: `items.len()` on a local array literal has an exact
+        // element count known here — the same literal `known_array_items`
+        // already extracts for `array_len(items)` (GH-293). A receiver that
+        // is not a known array literal (or whose length is otherwise not
+        // statically known) falls through to the error below rather than
+        // the old "unknown" placeholder.
+        if method == "len" && args.is_empty() {
+            if let Some(items) = self.known_array_items(Some(receiver))? {
+                return Ok(ShellValue::String(items.len().to_string()));
+            }
+        }
+
+        Err(crate::models::Error::Validation(format!(
+            "cannot transpile `.{method}()`: no lowering exists for this method call. \
+             See bashrs#305."
+        )))
     }
 
     /// Match `std::env::args().nth(N).unwrap()` → `Arg { position: Some(N) }`

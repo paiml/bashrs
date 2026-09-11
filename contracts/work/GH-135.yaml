@@ -1,6 +1,31 @@
 # Auto-generated from .pmat-work/GH-135/contract.json
 name: "GH-135"
+metadata:
+  version: "1.0.0"
+  kind: schema
+  description: "Auto-generated work-contract for GH-135"
+  references:
+    - ".pmat-work/GH-135/contract.json"
 surface: work-contract
 verification_summary:
   target_level: L1
   current_level: L1
+  total_obligations: 17
+falsifiable_claims:
+  - id: "All baseline files still exist"
+  - id: "The falsifier is active and detecting (Meta-Check)"
+  - id: "No coverage exclusion gaming"
+  - id: "All changed lines are covered"
+  - id: "Total coverage >= 95%"
+  - id: "TDG score >= baseline"
+  - id: "No function exceeds complexity 20"
+  - id: "No vulnerable dependencies added"
+  - id: "No file exceeds 500 lines"
+  - id: "Spec & Roadmap Quality"
+  - id: "All changes pushed"
+  - id: "All examples compile and run"
+  - id: "pmat-book validation passes"
+  - id: "No new SATD markers (TODO/FIXME/HACK)"
+  - id: "No new dead code introduced"
+  - id: "All files have >= 95% coverage"
+  - id: "make lint passes"

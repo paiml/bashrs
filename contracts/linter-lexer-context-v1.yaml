@@ -255,3 +255,38 @@ falsification_tests:
   prediction: 'For every case already pinned by F-LCX-002, F-LCX-006 and F-LCX-011 (GH-237 arithmetic exclusion, GH-252 escaped backtick, GH-262 field-splitting contexts), SC2046 fires or is absent exactly as before; `rash/src/linter/rules/sc2046.rs` contains no scan_word, find_close, read_backtick, skip_quoted or find_matching_paren function'
   test: cargo test -p bashrs --lib linter::rules::sc2046::tests_pmat250::test_PMAT255_pmat250_no_verdict_change
   if_fails: 'Contract violation: the shell_words refactor changed an SC2046 verdict, or the private scanner was not deleted'
+- id: F-LCX-012
+  rule: SC2046 does not fire on a command substitution in an assignment right-hand side, on one line or many
+  prediction: 'a multi-line assignment from a command substitution reports no SC2046'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT257_gh309_sc2046_multiline_substitution_in_assignment_rhs
+  if_fails: 'Contract violation: the assignment-RHS context was lost again for the multi-line spelling, as in GH-309'
+- id: F-LCX-013
+  rule: IDEM002 treats rm as a command only in command position, never as letters inside a quoted word
+  prediction: 'a quoted sentence containing the letters rm reports no IDEM002'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT257_gh314_idem002_rm_inside_a_quoted_word_is_text
+  if_fails: 'Contract violation: IDEM002 reads a substring of a quoted word as a command again, as in GH-314'
+- id: F-LCX-014
+  rule: PERF002 distinguishes arithmetic expansion from command substitution, because arithmetic forks nothing
+  prediction: 'a loop containing an arithmetic expansion reports no PERF002 while a loop containing a real command substitution still does'
+  test: cargo test -p bashrs --lib linter::rules::perf002::tests::test_PMAT257_gh313_perf002_arithmetic_expansion_is_not_a_subshell
+  if_fails: 'Contract violation: PERF002 charges arithmetic for a subshell it never forks, as in GH-313'
+- id: F-LCX-015
+  rule: SC2317 reads exit only in command position, and still reports genuinely unreachable code
+  prediction: 'the word exit inside a quoted argument reports no SC2317 while code after a bare exit is still reported'
+  test: cargo test -p bashrs --lib linter::rules::sc2317::tests::test_PMAT257_gh312_sc2317_exit_inside_a_quoted_word_is_text
+  if_fails: 'Contract violation: SC2317 matches the token anywhere in the line again, reporting quoted text and missing the real exit, as in GH-312'
+- id: F-LCX-016
+  rule: SC2041 fires only for a read with no input redirection of its own
+  prediction: 'a read with its own redirection inside a for loop reports no SC2041 while a bare read in a loop over a pipeline still does'
+  test: cargo test -p bashrs --lib linter::rules::sc2041::tests::test_PMAT257_gh310_sc2041_read_with_its_own_redirection_is_not_stdin
+  if_fails: 'Contract violation: SC2041 treats a redirected read as consuming the loop stdin again, as in GH-310'
+- id: F-LCX-017
+  rule: SC2035 fires only on a word the shell would actually glob, so a quoted pathspec is exempt
+  prediction: 'a quoted glob passed to git ls-files reports no SC2035 while an unquoted glob still does'
+  test: cargo test -p bashrs --lib linter::rules::sc2035::pmat257_gh311_tests::test_PMAT257_gh311_sc2035_quoted_pathspec_is_not_a_shell_glob
+  if_fails: 'Contract violation: SC2035 treats a quoted pathspec as a shell glob again, as in GH-311'
+- id: F-LCX-018
+  rule: a suppression directive is file-scoped only before the first command, and line-scoped after any command including set -e
+  prediction: 'with set -e then a directive, the next line is suppressed and the line after it is still reported'
+  test: cargo test -p bashrs --lib linter::suppression::tests::test_PMAT257_gh302_directive_after_set_e_is_line_scoped
+  if_fails: 'Contract violation: a directive placed after set -e silences the whole file again, as in GH-302'

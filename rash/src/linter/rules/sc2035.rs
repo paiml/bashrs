@@ -63,6 +63,15 @@ fn is_glob_safe(line: &str, glob_start: usize) -> bool {
     before.ends_with("./") || before.ends_with('/') || before.ends_with('$')
 }
 
+/// GH-311: A glob character sequence inside a quoted word is never expanded
+/// by the shell — it reaches the command as a literal string (e.g. a git
+/// pathspec that git itself expands). SC2035 must not fire on it.
+fn is_inside_quotes(line: &str, pos: usize) -> bool {
+    let before = &line[..pos];
+    let quote_count = before.matches('"').count() + before.matches('\'').count();
+    quote_count % 2 == 1
+}
+
 /// Issue #96: Check if glob position is inside a quoted find -name/-iname/-path argument
 /// These patterns are for find, not shell expansion, so they're safe when quoted
 fn is_inside_find_pattern(line: &str, glob_start: usize, glob_end: usize) -> bool {
@@ -121,6 +130,46 @@ fn should_check_line(line: &str) -> bool {
     !line.trim_start().starts_with('#') && UNSAFE_COMMAND.is_match(line)
 }
 
+/// Decide whether a bare-glob match at `[glob_start, glob_end)` on `line`
+/// should be skipped (i.e. it is not actually a shell glob that will be
+/// expanded unquoted).
+fn should_skip_glob(line: &str, glob_start: usize, glob_end: usize) -> bool {
+    // Skip if glob is safe (prefixed with ./ or / or $)
+    if is_glob_safe(line, glob_start) {
+        return true;
+    }
+
+    // GH-311: Skip if the glob is inside a quoted word — the shell never
+    // globs quoted text, regardless of which command receives it.
+    if is_inside_quotes(line, glob_start) {
+        return true;
+    }
+
+    // Issue #96: Skip if glob is inside a quoted find -name/-iname/-path argument
+    if is_inside_find_pattern(line, glob_start, glob_end) {
+        return true;
+    }
+
+    // Issue #104: Skip if glob is inside a quoted grep pattern argument
+    is_inside_grep_pattern(line, glob_start, glob_end)
+}
+
+/// Find all bare globs on `line` and add a diagnostic for each unsafe one.
+fn check_globs_on_line(line: &str, line_num: usize, result: &mut LintResult) {
+    for mat in BARE_GLOB.find_iter(line) {
+        let glob_start = mat.start();
+        let glob_end = mat.end();
+
+        if should_skip_glob(line, glob_start, glob_end) {
+            continue;
+        }
+
+        result.add(create_unsafe_glob_diagnostic(
+            glob_start, glob_end, line_num,
+        ));
+    }
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -137,29 +186,7 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Find all bare globs on this line
-        for mat in BARE_GLOB.find_iter(line) {
-            let glob_start = mat.start();
-            let glob_end = mat.end();
-
-            // Skip if glob is safe (prefixed with ./ or / or $)
-            if is_glob_safe(line, glob_start) {
-                continue;
-            }
-
-            // Issue #96: Skip if glob is inside a quoted find -name/-iname/-path argument
-            if is_inside_find_pattern(line, glob_start, glob_end) {
-                continue;
-            }
-
-            // Issue #104: Skip if glob is inside a quoted grep pattern argument
-            if is_inside_grep_pattern(line, glob_start, glob_end) {
-                continue;
-            }
-
-            let diagnostic = create_unsafe_glob_diagnostic(glob_start, glob_end, line_num);
-            result.add(diagnostic);
-        }
+        check_globs_on_line(line, line_num, &mut result);
     }
 
     result
@@ -168,3 +195,33 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 #[path = "sc2035_tests_sc2035_rm.rs"]
 mod tests_extracted;
+
+#[cfg(test)]
+mod pmat257_gh311_tests {
+    use super::*;
+
+    /// GH-311: `git ls-files '*.sh'` — the glob is single-quoted, so the shell
+    /// never expands it; it reaches git as a literal pathspec that git itself
+    /// expands. SC2035 must not fire on a quoted word.
+    #[test]
+    fn test_PMAT257_gh311_sc2035_quoted_pathspec_is_not_a_shell_glob() {
+        let code = r#"git ls-files '*.sh'"#;
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2035 must NOT flag a quoted pathspec passed to git ls-files: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// Companion: a genuinely unquoted glob is still a real shell glob and
+    /// dash-prone filenames can still be misread as options.
+    #[test]
+    fn test_PMAT257_gh311_sc2035_unquoted_glob_still_fires() {
+        let code = r#"rm *.txt"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2035");
+    }
+}

@@ -1,92 +1,117 @@
 // SC2317: Command appears to be unreachable (dead code)
+use crate::linter::shell_words::{self, WordRole};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
 
-static EXIT_OR_RETURN: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"(?:exit|return)\s+\d+").unwrap());
+/// ## Lexer-context history (PMAT-257, GH-312)
+///
+/// The original implementation matched `exit`/`return` (followed by a
+/// number) anywhere in the line's raw text via regex. That reads the word
+/// `exit` as an exit statement even when it is text inside a quoted argument
+/// (`echo "exit the loop"`), and — because a single hit sets `found_exit` and
+/// the very next non-reset line reports and `break`s the whole scan — a false
+/// hit like that can also swallow a genuinely unreachable line that follows a
+/// *real* `exit`/`return` later in the same file. `exit`/`return` are only a
+/// statement when they are in command position; this now goes through
+/// [`crate::linter::shell_words`], the same word/role analysis SC2046, SEC002
+/// and IDEM002 use, so quoted text is never mistaken for the command.
+fn is_bare_exit(cmd: &shell_words::SimpleCommand) -> bool {
+    matches!(cmd.name.as_deref(), Some("exit") | Some("return"))
+        && cmd.words.iter().any(|w| {
+            w.role == WordRole::Argument
+                && !w.literal.is_empty()
+                && w.literal.bytes().all(|b| b.is_ascii_digit())
+        })
+}
 
-/// Issue #93: Check if exit/return is conditional (part of || or && chain)
-/// `cmd || exit 1` - exit only runs if cmd fails, code after IS reachable
-/// `cmd && exit 1` - exit only runs if cmd succeeds, code after IS reachable
-fn is_conditional_exit(line: &str) -> bool {
-    // Check if exit/return is preceded by || or &&
-    if let Some(pos) = line.find("exit") {
-        let before = &line[..pos];
-        if before.contains("||") || before.contains("&&") {
-            return true;
-        }
-    }
-    if let Some(pos) = line.find("return") {
-        let before = &line[..pos];
-        if before.contains("||") || before.contains("&&") {
-            return true;
-        }
-    }
-    false
+/// Issue #93: an `exit`/`return` at byte column `col` (1-indexed, into
+/// `trimmed`) is conditional when it is immediately preceded by `||` or
+/// `&&` (ignoring blanks): `cmd || exit 1` only runs `exit` if `cmd` fails,
+/// `cmd && exit 1` only if `cmd` succeeds - either way the code after IS
+/// reachable.
+fn is_conditional_at(trimmed: &str, col: usize) -> bool {
+    let before = trimmed
+        .get(..col.saturating_sub(1))
+        .unwrap_or("")
+        .trim_end();
+    before.ends_with("||") || before.ends_with("&&")
+}
+
+/// Issue #108: `;;`, `;&` and `;;&` are case-terminator syntax, not code.
+fn is_case_terminator(trimmed: &str) -> bool {
+    trimmed == ";;" || trimmed == ";&" || trimmed == ";;&"
+}
+
+/// Reset points: a block closer (`}`, `fi`, `done`, `esac`) or a case clause
+/// pattern (`--help|-h)`, `*)`, `a)`) each start a fresh reachability
+/// context. `$(...)`/`(...)` are excluded so a real subshell isn't mistaken
+/// for a clause pattern (Issue #108).
+fn resets_reachability(trimmed: &str) -> bool {
+    let is_block_closer = trimmed.starts_with('}')
+        || trimmed.starts_with("fi")
+        || trimmed.starts_with("done")
+        || trimmed.starts_with("esac");
+    let is_case_clause =
+        trimmed.ends_with(')') && !trimmed.contains("$(") && !trimmed.starts_with('(');
+    is_block_closer || is_case_clause
+}
+
+/// Issue #93 / GH-312: `trimmed` contains a real, unconditional `exit N` /
+/// `return N` in command position.
+fn starts_unreachable_run(trimmed: &str) -> bool {
+    shell_words::simple_commands(trimmed)
+        .into_iter()
+        .any(|cmd| {
+            is_bare_exit(&cmd)
+                && cmd
+                    .words
+                    .iter()
+                    .find(|w| w.role == WordRole::CommandName)
+                    .is_some_and(|w| !is_conditional_at(trimmed, w.col))
+        })
+}
+
+fn unreachable_diagnostic(line_num_1indexed: usize, line: &str, exit_line: usize) -> Diagnostic {
+    Diagnostic::new(
+        "SC2317",
+        Severity::Warning,
+        format!(
+            "Command appears to be unreachable (code after exit/return on line {})",
+            exit_line + 1
+        ),
+        Span::new(line_num_1indexed, 1, line_num_1indexed, line.len() + 1),
+    )
 }
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-    let lines: Vec<&str> = source.lines().collect();
 
     let mut found_exit = false;
     let mut exit_line = 0;
 
-    for (line_num, line) in lines.iter().enumerate() {
+    for (line_num, line) in source.lines().enumerate() {
         let line_num_1indexed = line_num + 1;
         let trimmed = line.trim();
 
-        if trimmed.starts_with('#') || trimmed.is_empty() {
+        if trimmed.starts_with('#') || trimmed.is_empty() || is_case_terminator(trimmed) {
             continue;
         }
 
-        // Issue #108: Skip case statement terminators - ;; is syntax, not code
-        // Also skip ;& and ;;& (fall-through terminators)
-        if trimmed == ";;" || trimmed == ";&" || trimmed == ";;&" {
-            continue;
-        }
-
-        // Reset found_exit when encountering block closers
-        // Also reset on esac (end of case statement)
-        if trimmed.starts_with('}')
-            || trimmed.starts_with("fi")
-            || trimmed.starts_with("done")
-            || trimmed.starts_with("esac")
-        {
+        if resets_reachability(trimmed) {
             found_exit = false;
             continue;
         }
 
-        // Issue #108: Reset on case clause patterns (lines ending with ))
-        // e.g., --help|-h) or *) or a) patterns start new reachability context
-        // Exclude subshell syntax: $(...) or standalone (...)
-        if trimmed.ends_with(')') && !trimmed.contains("$(") && !trimmed.starts_with('(') {
-            found_exit = false;
-            continue;
-        }
-
-        // Issue #93: Check for exit/return
-        if !found_exit && EXIT_OR_RETURN.is_match(trimmed) {
-            // Skip if exit/return is conditional (part of || or && chain)
-            if is_conditional_exit(trimmed) {
-                continue;
+        if !found_exit {
+            if starts_unreachable_run(trimmed) {
+                found_exit = true;
+                exit_line = line_num;
             }
-            found_exit = true;
-            exit_line = line_num;
-        } else if found_exit {
-            // Found code after exit/return
-            let diagnostic = Diagnostic::new(
-                "SC2317",
-                Severity::Warning,
-                format!(
-                    "Command appears to be unreachable (code after exit/return on line {})",
-                    exit_line + 1
-                ),
-                Span::new(line_num_1indexed, 1, line_num_1indexed, line.len() + 1),
-            );
-            result.add(diagnostic);
-            break; // Only warn once per function/block
+            continue;
         }
+
+        // Found code after exit/return.
+        result.add(unreachable_diagnostic(line_num_1indexed, line, exit_line));
+        break; // Only warn once per function/block
     }
 
     result
@@ -296,5 +321,35 @@ case "$1" in
 esac
 "#;
         assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    // GH-312: the word `exit` inside a quoted argument is text, not a
+    // command.
+    #[test]
+    fn test_PMAT257_gh312_sc2317_exit_inside_a_quoted_word_is_text() {
+        let code = r#"
+echo "exit 0 to stop the script early"
+echo "reachable"
+"#;
+        assert_eq!(
+            check(code).diagnostics.len(),
+            0,
+            "SC2317 must not flag a quoted mention of exit as a command"
+        );
+    }
+
+    // GH-312: the companion half of the same defect - a real, unconditional
+    // `exit 0` still makes the following code unreachable.
+    #[test]
+    fn test_PMAT257_gh312_sc2317_real_unreachable_code_after_exit_is_reported() {
+        let code = r#"
+exit 0
+echo "really unreachable"
+"#;
+        assert_eq!(
+            check(code).diagnostics.len(),
+            1,
+            "SC2317 must still fire on code after a real exit 0"
+        );
     }
 }

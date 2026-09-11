@@ -207,7 +207,10 @@ fn test_config_purify_with_fix() {
         .success()
         .stdout(predicate::str::contains("Applying"))
         .stdout(predicate::str::contains("fixes"))
-        .stdout(predicate::str::contains("Backup:"));
+        // PMAT-257: the backup path is a tracing INFO record, and v7.1.0 moved
+        // tracing to stderr so machine-readable stdout stays parseable (#301).
+        // Asserting it on stdout has failed since that change; assert where it is.
+        .stderr(predicate::str::contains("Backup:"));
 
     // ASSERT: File should be modified
     let content = fs::read_to_string(&bashrc).unwrap();

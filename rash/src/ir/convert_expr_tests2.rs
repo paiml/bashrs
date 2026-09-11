@@ -27,6 +27,24 @@ fn convert_let_stmt(name: &str, value: Expr) -> ShellIR {
     from_ast(&ast).expect("IR conversion should succeed")
 }
 
+/// Helper: wrap a single let statement and expect conversion to fail
+fn convert_let_stmt_err(name: &str, value: Expr) -> crate::models::Error {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Void,
+            body: vec![Stmt::Let {
+                name: name.to_string(),
+                value,
+                declaration: true,
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+    from_ast(&ast).expect_err("IR conversion should fail")
+}
+
 /// Helper: extract the ShellValue from a single Let in a Sequence
 fn extract_let_value(ir: &ShellIR) -> &ShellValue {
     match ir {
@@ -117,18 +135,16 @@ fn test_EXPR_VAL_030_method_call_env_args_nth_unwrap_or() {
 
 #[test]
 fn test_EXPR_VAL_031_method_call_unrecognized_falls_to_unknown() {
-    // A method call that doesn't match any recognized pattern
+    // PMAT-257/GH-306: `.len()` on a `Variable` that is not a known local
+    // array literal has no statically-known length, so it must error
+    // rather than silently produce the placeholder "unknown".
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::Variable("vec".to_string())),
         method: "len".to_string(),
         args: vec![],
     };
-    let ir = convert_let_stmt("length", expr);
-    let val = extract_let_value(&ir);
-    match val {
-        ShellValue::String(s) => assert_eq!(s, "unknown"),
-        other => panic!("Expected String(\"unknown\"), got {:?}", other),
-    }
+    let err = convert_let_stmt_err("length", expr);
+    assert!(err.to_string().contains("len"));
 }
 
 // ===== PositionalArgs =====
@@ -198,7 +214,8 @@ fn test_EXPR_VAL_035_fallback_range_expr() {
 
 #[test]
 fn test_EXPR_VAL_036_method_unwrap_non_nth_receiver() {
-    // .unwrap() on something that is NOT .nth() -> falls to "unknown"
+    // .unwrap() on something that is NOT .nth() has no lowering
+    // (PMAT-257/GH-305): must error, not fall to "unknown".
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::MethodCall {
             receiver: Box::new(Expr::Variable("x".to_string())),
@@ -208,14 +225,14 @@ fn test_EXPR_VAL_036_method_unwrap_non_nth_receiver() {
         method: "unwrap".to_string(),
         args: vec![],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap"));
 }
 
 #[test]
 fn test_EXPR_VAL_037_method_unwrap_or_non_get_non_nth() {
-    // .unwrap_or(default) on something that is NOT .get() or .nth() -> falls to "unknown"
+    // .unwrap_or(default) on something that is NOT .get() or .nth() has no
+    // lowering (PMAT-257/GH-305): must error, not fall to "unknown".
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::MethodCall {
             receiver: Box::new(Expr::Variable("x".to_string())),
@@ -225,20 +242,19 @@ fn test_EXPR_VAL_037_method_unwrap_or_non_get_non_nth() {
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::Str("default".to_string()))],
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap_or"));
 }
 
 #[test]
 fn test_EXPR_VAL_038_method_unwrap_with_args_not_recognized() {
-    // .unwrap() with non-empty args -> not the recognized pattern -> falls through
+    // .unwrap() with non-empty args is not the recognized pattern
+    // (PMAT-257/GH-305): must error, not fall through to "unknown".
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::Variable("x".to_string())),
         method: "unwrap".to_string(),
         args: vec![Expr::Literal(Literal::U32(42))], // unwrap doesn't take args normally
     };
-    let ir = convert_let_stmt("val", expr);
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    let err = convert_let_stmt_err("val", expr);
+    assert!(err.to_string().contains("unwrap"));
 }

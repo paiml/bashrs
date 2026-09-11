@@ -10,8 +10,11 @@
 //!
 //! **Split (#232)**: a timestamp that reaches only a branch condition
 //! (`SinkClass::Conditional`) is time-dependent control flow, not a
-//! reproducibility defect - see `DET005` instead. The two never fire on the
-//! same line.
+//! reproducibility defect - see `DET005` instead. DET002 still fires here
+//! independent of whether that same value also reaches a branch condition
+//! elsewhere: a value that reaches both a build artifact and a branch
+//! condition is genuinely both defects, and #304 fixed DET005 so it reports
+//! its half too instead of being masked by the stronger DET002 sink.
 //!
 //! **Auto-fix**: UNSAFE - the remedy needs human judgement, so suggestions only.
 //!

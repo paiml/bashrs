@@ -301,6 +301,36 @@ test-fast:
 		PROPTEST_CASES=25 cargo test --workspace; \
 	fi
 
+pr-gate: ## Pareto PR gate — 97.7 percent of the tests in a fraction of the pre-release time
+	@echo "⚡ PR gate (Pareto 80/20): format, lint, library tests, contracts"
+	@cargo fmt --all -- --check
+	@cargo clippy -p bashrs --lib -- -D warnings
+	@cargo test -p bashrs --lib
+	@pv lint contracts
+	@echo "✅ PR gate green. Run 'make release-gate' before cutting a tag."
+
+release-gate: ## Full pre-release gate — every test target, the corpus and the book
+	@echo "🔒 Release gate: everything the PR gate skips"
+	@cargo fmt --all -- --check
+	@cargo clippy --all-targets --all-features -- -D warnings
+	@cargo test --workspace
+	@pv lint contracts
+	@$(MAKE) corpus-score
+	@./scripts/check-book-updated.sh
+	@echo "✅ Release gate green."
+
+corpus-score: ## Score the whole corpus, sandboxed where the sandbox exists
+	@echo "📊 Scoring the corpus..."
+	@cargo build -p bashrs --bin bashrs
+	@if command -v bwrap >/dev/null 2>&1; then \
+		E=$$(mktemp -d); \
+		bwrap --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp --bind $$E $$E --chdir $$E \
+			--unshare-net --die-with-parent $(PWD)/target/debug/bashrs corpus run; \
+	else \
+		echo "⚠️  bwrap not found: the runner executes every Bash entry with THIS shell'"'"'s cwd, HOME and PATH (PMAT-256)"; \
+		cd $$(mktemp -d) && $(PWD)/target/debug/bashrs corpus run; \
+	fi
+
 test-quick: test-fast ## Alias for test-fast (ruchy pattern)
 	@echo "✅ Quick tests completed!"
 
