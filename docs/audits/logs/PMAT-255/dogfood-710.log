@@ -1,0 +1,14 @@
+   Compiling toml v1.1.6+spec-1.1.0
+   Compiling bashrs v7.1.0 (/mnt/nvme-raid0/wt/bashrs-PMAT-255/rash)
+    Finished `release` profile [optimized] target(s) in 25.37s
+  README:121: RUN `bashrs build install.rs -o install.sh`
+  README:146: RUN `bashrs build input.rs -o output.sh`
+  README:149: RUN `bashrs purify messy.sh -o clean.sh`
+  README:152: RUN `bashrs lint script.sh`
+  README:155: RUN `bashrs score script.sh`
+  README:158: RUN `bashrs repl`
+  README:161: RUN `bashrs mutate script.sh --count 10`
+GATE D PASS 7 documented bashrs invocation(s) from README.md run against /mnt/nvme-raid0/targets/bashrs-251/release/bashrs (0 pinned known-broken); scripts/check-book-updated.sh passes (checks 1-3; check 4 is release-only, see comment above)
+GATE G PASS 15 contract(s) under contracts/*.yaml validate via pv (contracts/work/ excluded — PMAT-246)
+GATE K PASS 18403/18403 corpus entries pass inside bwrap (release bar 17942, 0 failed)
+DOGFOOD_EXIT=0

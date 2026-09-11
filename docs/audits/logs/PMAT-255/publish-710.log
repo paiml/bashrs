@@ -1,0 +1,24 @@
++ git worktree add --detach /tmp/bashrs-publish-5bWFA5 v7.1.0
+Preparing worktree (detached HEAD 02b6bed455)
+HEAD is now at 02b6bed455 Merge pull request #307 from paiml/PMAT-255-release
+
+=== bashrs-oracle 7.1.0 ===
++ env -u CARGO_REGISTRY_TOKEN cargo publish --locked -p bashrs-oracle
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.13s
+   Uploading bashrs-oracle v7.1.0 (/tmp/bashrs-publish-5bWFA5/bashrs-oracle)
+    Uploaded bashrs-oracle v7.1.0 to registry `crates-io`
+note: waiting for bashrs-oracle v7.1.0 to be available at registry `crates-io`
+help: you may press ctrl-c to skip waiting; the crate should be available shortly
+   Published bashrs-oracle v7.1.0 at registry `crates-io`
+
+=== bashrs 7.1.0 ===
+waiting for the index: bashrs-oracle 7.1.0 is already on crates.io
++ env -u CARGO_REGISTRY_TOKEN cargo publish --locked -p bashrs
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 28.22s
+   Uploading bashrs v7.1.0 (/tmp/bashrs-publish-5bWFA5/rash)
+    Uploaded bashrs v7.1.0 to registry `crates-io`
+note: waiting for bashrs v7.1.0 to be available at registry `crates-io`
+help: you may press ctrl-c to skip waiting; the crate should be available shortly
+   Published bashrs v7.1.0 at registry `crates-io`
++ git worktree remove --force /tmp/bashrs-publish-5bWFA5
+PUBLISH_EXIT=0

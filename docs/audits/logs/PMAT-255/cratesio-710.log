@@ -1,0 +1,6 @@
+bashrs max_version=7.1.0 updated=2026-09-11T02:26:48.589489Z
+bashrs 7.1.0 yanked=false created=2026-09-11T02:26:48.589489Z size=3926900
+bashrs-oracle max_version=7.1.0 updated=2026-09-11T02:26:17.045279Z
+bashrs-oracle 7.1.0 yanked=false created=2026-09-11T02:26:17.045279Z size=34270
+sparse ba/sh/bashrs: 1
+sparse ba/sh/bashrs-oracle: 1

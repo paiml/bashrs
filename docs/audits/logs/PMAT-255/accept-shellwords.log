@@ -1,0 +1,20 @@
+PASS: p1 echo $(date) (SC2046 x1, as expected)
+PASS: p2 assignment RHS (SC2046 x0, as expected)
+PASS: p3 double-quoted (SC2046 x0, as expected)
+PASS: p4 case operand (SC2046 x0, as expected)
+PASS: p5 nested (SC2046 x2, as expected)
+PASS: p6 backtick (SC2046 x1, as expected)
+PASS: fn scan_word absent from sc2046.rs
+PASS: fn find_close absent from sc2046.rs
+PASS: fn read_backtick absent from sc2046.rs
+PASS: fn skip_quoted absent from sc2046.rs
+PASS: fn find_matching_paren absent from sc2046.rs
+test linter::lexer_context_tests::test_PMAT248_gh242_heredoc_body_is_data ... ok
+test linter::lexer_context_tests::test_PMAT248_gh262_sc2046_only_where_the_shell_splits ... ok
+test linter::lexer_context_tests::test_PMAT248_gh252_escaped_backtick_inside_double_quotes_is_text ... ok
+
+test result: ok. 42 passed; 0 failed; 0 ignored; 0 measured; 15275 filtered out; finished in 0.56s
+PASS: 7 test_PMAT255_pmat250_* tests passed (>= 4)
+PASS: sc2046, shell_words and lexer_context suites all green
+ALL PMAT-250 PROBES PASSED
+EXIT=0

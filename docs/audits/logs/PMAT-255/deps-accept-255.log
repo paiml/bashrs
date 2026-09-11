@@ -1,0 +1,2 @@
+A: PASS — lockfile current, every outside-requirement dependency upgraded or excused with an error, workspace builds
+A_EXIT=0

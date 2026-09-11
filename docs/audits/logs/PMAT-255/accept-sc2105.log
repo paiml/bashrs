@@ -1,0 +1,7 @@
+PASS: v1 inline &&-break (clean, as expected)
+PASS: v2 inline if-break (clean, as expected)
+PASS: v3 multiline (clean, as expected)
+PASS: v4 while-true inline break (clean, as expected)
+PASS: v5 bare top-level break (fires, as expected)
+ALL PMAT-244 PROBES PASSED
+EXIT=0

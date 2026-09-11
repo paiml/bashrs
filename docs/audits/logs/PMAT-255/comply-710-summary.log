@@ -1,0 +1,6 @@
+  ✗ CB-400: Shell & Makefile Quality: bashrs: 1253 errors, 5626 warnings:
+  ✗ CB-200: TDG Grade Gate: 774 function(s) below minimum grade A
+  ✗ CB-1305: Contract Surface Classification: 91/106 (86%) contracts unclassified — leak has outpaced specification [PMAT-164.yaml, PMAT-213.yaml, PMAT-224.yaml, PMAT-191.yaml, PMAT-234.yaml]
+  ✓ CB-1351: Binding Index Freshness: binding-index.json fresh (0 day(s) old)
+  ✗ CB-2100: Comply Gate Effect: 9 severity=error rule(s) unreachable from required check(s) [gate] | required check `gate`: **no** — this required check was read in full and gates nothing in the CB roster | unreachable: CB-050, CB-060,
+COMPLY_EXIT=1

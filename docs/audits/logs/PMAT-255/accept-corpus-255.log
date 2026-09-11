@@ -1,0 +1,4 @@
+A: generated=240 added=225 pending=15
+A: sandboxed corpus run passed=18403 failed=0 total=18403 score=99.3657555833288 (base: see corpus-run-base-255.json)
+A3: PASS
+EXIT=0
