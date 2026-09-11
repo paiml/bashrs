@@ -25,7 +25,7 @@ export RUST_TEST_THREADS=$(TEST_THREADS)
 .PHONY: update-deps update-deps-aggressive update-deps-check update-deps-workspace
 .PHONY: coverage coverage-ci coverage-clean
 .PHONY: kaizen demo-mode
-.PHONY: lint-scripts lint-makefile dogfood dogfood-quick
+.PHONY: lint-scripts lint-makefile dogfood dogfood-selflint dogfood-quick
 .PHONY: golden-capture golden-compare golden-list golden-clean golden-help
 
 # Kaizen - Continuous Improvement Protocol
@@ -1011,7 +1011,8 @@ help:
 	@echo "  make golden-clean - Remove all golden traces"
 	@echo ""
 	@echo "Dogfooding (Self-Validation):"
-	@echo "  make dogfood      - Full self-validation (all scripts + Makefile)"
+	@echo "  make dogfood      - Hermetic dogfood gates D (docs) G (contracts) K (corpus)"
+	@echo "  make dogfood-selflint - bashrs lints its own scripts + Makefile (report, not a gate)"
 	@echo "  make dogfood-quick - Quick check (Makefile + key scripts only)"
 	@echo "  make lint-scripts - Lint all shell scripts with bashrs"
 	@echo "  make lint-makefile - Lint Makefile with bashrs"
@@ -1249,7 +1250,27 @@ lint-makefile: ## Lint Makefile with bashrs
 	@echo "✅ Makefile linted!"
 
 # Dogfooding (Self-Validation)
-dogfood: ## Run comprehensive self-validation (bashrs on bashrs)
+#
+# `dogfood` (PMAT-255 / PMAT-253 phase 3a): the hermetic gates — D (README
+# invocations + book check), G (contract corpus), K (transpiler corpus in
+# bwrap). Each prints exactly one `GATE <letter> PASS|FAIL <detail>` line;
+# the first red gate stops the run (no `|| true` here — a self-lint report
+# is allowed to keep going after a warning, a gate is not). Gate B (comply)
+# is not built yet — it waits on the operator's decision 4 in
+# docs/specifications/pr-dogfood-parity-forjar.md.
+#
+# The former `dogfood` (bashrs linting its own scripts/Makefile, a report
+# rather than a gate — every step tolerates failure with `|| true`) is
+# renamed `dogfood-selflint` below; nothing about it changed.
+dogfood-build: ## Build the release binary the dogfood gates measure
+	@cargo build --release -p bashrs --bin bashrs
+
+dogfood: dogfood-build ## Hermetic dogfood gates: D (docs), G (contracts), K (corpus)
+	@bash scripts/dogfood/docs.sh
+	@bash scripts/dogfood/contracts.sh
+	@bash scripts/dogfood/corpus.sh
+
+dogfood-selflint: ## Run comprehensive self-validation (bashrs on bashrs)
 	@echo "🐕 bashrs Dogfooding - Self-Validation"
 	@echo "======================================="
 	@echo ""
