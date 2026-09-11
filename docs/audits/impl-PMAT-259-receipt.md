@@ -4,7 +4,7 @@
 
 `test_cov_corpus_converged_no_log` asserts that `corpus_converged` errors when there is no convergence log. The function read `.quality/convergence.log` from the process working directory, so the assertion held only in a checkout that happened not to carry that file. This one carries it, dated 2026-02-09, and the test failed in the v7.3.0 release gate.
 
-`corpus_converged_with_log` takes the path; `corpus_converged` passes the default. No caller changes and no behaviour changes. The test points at a `tempfile::TempDir`.
+`corpus_converged_with_log` takes the path; `corpus_converged` keeps its signature and passes the default. Quorum round 1 read the original ticket title as promising that `corpus_converged` itself would take a path, which would change the CLI entry point for no gain; the title now says what the diff does. No caller changes and no behaviour changes. The test points at a `tempfile::TempDir`.
 
 ## Why it is its own ticket
 

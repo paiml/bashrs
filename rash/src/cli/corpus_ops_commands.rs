@@ -72,7 +72,7 @@ pub(crate) fn corpus_converged(min_rate: f64, max_delta: f64, min_stable: usize)
     )
 }
 
-/// PMAT-258: body of `corpus_converged`, split so the convergence log comes
+/// PMAT-259: body of `corpus_converged`, split so the convergence log comes
 /// from the caller. Without this the verdict depends on whichever log happens
 /// to sit in the process's working directory, and a test asserting "no log"
 /// passes or fails according to the repository's own state rather than the

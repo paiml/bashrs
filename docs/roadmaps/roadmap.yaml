@@ -2345,7 +2345,7 @@ roadmap:
 - id: PMAT-259
   github_issue: null
   item_type: task
-  title: corpus_converged reads its convergence log from the caller, not the working directory
+  title: 'corpus_converged gains a _with_log twin, so a test does not depend on the checkout'
   status: planned
   priority: high
   assigned_to: null
