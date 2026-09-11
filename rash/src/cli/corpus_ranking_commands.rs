@@ -6,11 +6,17 @@ use crate::models::{Config, Error, Result};
 use std::path::PathBuf;
 
 pub(crate) fn corpus_sparkline() -> Result<()> {
+    let log_path = PathBuf::from(".quality/convergence.log");
+    corpus_sparkline_with(&log_path)
+}
+
+/// PMAT-257: body of `corpus_sparkline`, split so a test can pass a
+/// temp-file convergence log instead of the hardcoded relative path.
+pub(crate) fn corpus_sparkline_with(log_path: &std::path::Path) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
     if entries.is_empty() {
         println!("No convergence history. Run `bashrs corpus run --log` first.");
@@ -74,17 +80,31 @@ pub(crate) fn corpus_top(
     worst: bool,
     filter: Option<&CorpusFormatArg>,
 ) -> Result<()> {
-    use crate::cli::color::*;
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
-    use crate::corpus::runner::CorpusRunner;
+    use crate::corpus::registry::CorpusRegistry;
 
     let registry = CorpusRegistry::load_full();
+    corpus_top_with(&registry, limit, worst, filter)
+}
+
+/// PMAT-257: body of `corpus_top`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_top_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    limit: usize,
+    worst: bool,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusFormat;
+    use crate::corpus::runner::CorpusRunner;
+
     let runner = CorpusRunner::new(Config::default());
     let score = match filter {
-        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
-        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
-        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
-        None => runner.run(&registry),
+        Some(CorpusFormatArg::Bash) => runner.run_format(registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(registry, CorpusFormat::Dockerfile),
+        None => runner.run(registry),
     };
 
     let mut ranked: Vec<_> = score
@@ -162,6 +182,15 @@ pub(crate) fn corpus_categories(format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
 
     let registry = CorpusRegistry::load_full();
+    corpus_categories_with(&registry, format)
+}
+
+/// PMAT-257: body of `corpus_categories`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus.
+pub(crate) fn corpus_categories_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &CorpusOutputFormat,
+) -> Result<()> {
     let mut cats: std::collections::BTreeMap<&str, Vec<&str>> = std::collections::BTreeMap::new();
     for e in &registry.entries {
         let cat = classify_category(&e.name);
@@ -227,16 +256,29 @@ pub(crate) fn corpus_dimensions(
     format: &CorpusOutputFormat,
     filter: Option<&CorpusFormatArg>,
 ) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
-    use crate::corpus::runner::CorpusRunner;
+    use crate::corpus::registry::CorpusRegistry;
 
     let registry = CorpusRegistry::load_full();
+    corpus_dimensions_with(&registry, format, filter)
+}
+
+/// PMAT-257: body of `corpus_dimensions`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_dimensions_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::corpus::registry::CorpusFormat;
+    use crate::corpus::runner::CorpusRunner;
+
     let runner = CorpusRunner::new(Config::default());
     let score = match filter {
-        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
-        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
-        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
-        None => runner.run(&registry),
+        Some(CorpusFormatArg::Bash) => runner.run_format(registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(registry, CorpusFormat::Dockerfile),
+        None => runner.run(registry),
     };
 
     let total = score.results.len();
@@ -345,4 +387,170 @@ pub(crate) fn compute_dimension_stats(
         ),
         dim("G", "Cross-shell", count(&|r| r.cross_shell_agree), 5.0),
     ]
+}
+
+// PMAT-257: coverage for the corpus ranking handlers. These live inside the
+// library, because the coverage gate measures `cargo llvm-cov --lib -p
+// bashrs` and a test under rash/tests/ does not move that number at all.
+// `corpus_top`, `corpus_categories`, and `corpus_dimensions` all build a
+// `CorpusRunner` and score entries out of the real `CorpusRegistry::
+// load_full()` (18,000+ entries) -- too slow for a unit test as written.
+// Each was split into a `*_with(registry, ...)` twin that takes the
+// registry as a parameter, matching `corpus_diag_commands.rs`.
+// `corpus_sparkline` reads a hardcoded relative convergence log path, so it
+// was split into `corpus_sparkline_with(log_path)`.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+    use crate::corpus::runner::{ConvergenceEntry, CorpusRunner};
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    fn entry(iteration: u32, score: f64) -> ConvergenceEntry {
+        ConvergenceEntry {
+            iteration,
+            date: format!("2026-01-{:02}", iteration.min(28)),
+            total: 100,
+            passed: 100,
+            failed: 0,
+            rate: score / 100.0,
+            delta: 0.0,
+            notes: "PMAT-257 fixture".to_string(),
+            bash_passed: 100,
+            bash_total: 100,
+            makefile_passed: 0,
+            makefile_total: 0,
+            dockerfile_passed: 0,
+            dockerfile_total: 0,
+            score,
+            grade: "A+".to_string(),
+            bash_score: score,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sparkline_with_no_log_prints_message() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let log = dir.path().join("convergence.log");
+        corpus_sparkline_with(&log).expect("missing log must not be an error");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sparkline_with_entries_renders_trend() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let log = dir.path().join("convergence.log");
+        CorpusRunner::append_convergence_log(&entry(1, 80.0), &log).expect("write first entry");
+        CorpusRunner::append_convergence_log(&entry(2, 90.0), &log).expect("write second entry");
+        corpus_sparkline_with(&log).expect("two entries must render a trend");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sparkline_str_empty_is_empty_string() {
+        assert_eq!(sparkline_str(&[]), "");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sparkline_str_constant_series_uses_full_block() {
+        let s = sparkline_str(&[5.0, 5.0, 5.0]);
+        assert_eq!(s.chars().count(), 3);
+        assert!(s.chars().all(|c| c == '\u{2588}'));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sparkline_str_varying_series_has_expected_length() {
+        let s = sparkline_str(&[0.0, 50.0, 100.0]);
+        assert_eq!(s.chars().count(), 3);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_top_with_best_and_worst() {
+        let registry = tiny_registry();
+        corpus_top_with(&registry, 2, false, None).expect("top entries must render");
+        corpus_top_with(&registry, 2, true, None).expect("worst entries must render");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_top_with_filters_by_format() {
+        let registry = tiny_registry();
+        let filter = CorpusFormatArg::Bash;
+        corpus_top_with(&registry, 5, false, Some(&filter))
+            .expect("filtering to bash must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_classify_category_each_rule() {
+        assert_eq!(classify_category("my-bashrc-alias"), "Config (A)");
+        assert_eq!(classify_category("cool-oneliner"), "One-liner (B)");
+        assert_eq!(classify_category("coreutil-reimpl-cat"), "Coreutils (G)");
+        assert_eq!(classify_category("regex-pattern-match"), "Regex (H)");
+        assert_eq!(classify_category("cron-daemon-startup"), "System (F)");
+        assert_eq!(classify_category("milestone-1000"), "Milestone");
+        assert_eq!(classify_category("injection-fuzz-test"), "Adversarial");
+        assert_eq!(classify_category("nothing-special"), "General");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_categories_with_human_and_json() {
+        let registry = tiny_registry();
+        corpus_categories_with(&registry, &CorpusOutputFormat::Human)
+            .expect("human categories must render");
+        corpus_categories_with(&registry, &CorpusOutputFormat::Json)
+            .expect("json categories must render");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_dimensions_with_human_and_json() {
+        let registry = tiny_registry();
+        corpus_dimensions_with(&registry, &CorpusOutputFormat::Human, None)
+            .expect("human dimensions must render");
+        corpus_dimensions_with(&registry, &CorpusOutputFormat::Json, None)
+            .expect("json dimensions must render");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_dimensions_with_filters_by_format() {
+        let registry = tiny_registry();
+        let filter = CorpusFormatArg::Makefile;
+        corpus_dimensions_with(&registry, &CorpusOutputFormat::Human, Some(&filter))
+            .expect("filtering to makefile must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_compute_dimension_stats_zero_total() {
+        let stats = compute_dimension_stats(&[], 0);
+        assert_eq!(stats.len(), 9);
+        assert!(stats.iter().all(|d| d.rate == 0.0));
+    }
 }
