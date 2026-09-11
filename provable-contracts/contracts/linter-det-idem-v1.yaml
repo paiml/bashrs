@@ -84,15 +84,24 @@ falsification_tests:
   prediction: lint result does NOT contain DET002
   test: 'Given input, verify: lint result does NOT contain DET002'
   if_fails: 'Contract violation: DET002 must not fire on its own remedy (GH-230)'
-- id: F-DET002-GH263-BARE-DATE-SINK
+- id: F-DET002-GH263-BARE-DATE-SINKa
   rule: DET002 detects a bare `date` command word - not only `date` inside
-    `$( )`/backticks - when its value reaches a reproducible sink (a
-    truncating/appending redirect, or a pipe into `tee`) (GH-263)
-  prediction: lint result contains DET002 for `date > VERSION`, `date -u +%Y >
-    VERSION`, `date >> VERSION`, and `date | tee VERSION`
-  test: 'test_PMAT251_gh263_bare_date_redirected_to_file_is_detected, test_PMAT251_gh263_bare_date_appended_or_teed_is_detected'
+    `$( )`/backticks - when its value is redirected into a file with `>`
+    (GH-263)
+  prediction: lint result contains DET002 for `date > VERSION` and `date -u
+    +%Y > VERSION`
+  test: cargo test -p bashrs --lib linter::rules::det002::tests_gh263::test_PMAT251_gh263_bare_date_redirected_to_file_is_detected
   if_fails: 'Contract violation: DET002 misses a bare `date` command word
-    redirected or piped into a reproducible sink (GH-263)'
+    redirected into a file with `>` (GH-263)'
+- id: F-DET002-GH263-BARE-DATE-SINKb
+  rule: DET002 detects a bare `date` command word - not only `date` inside
+    `$( )`/backticks - when its value is appended with `>>` or piped into
+    `tee` (GH-263)
+  prediction: lint result contains DET002 for `date >> VERSION` and `date |
+    tee VERSION`
+  test: cargo test -p bashrs --lib linter::rules::det002::tests_gh263::test_PMAT251_gh263_bare_date_appended_or_teed_is_detected
+  if_fails: 'Contract violation: DET002 misses a bare `date` command word
+    appended or piped into `tee` (GH-263)'
 - id: F-DET002-GH263-DATE-TO-TERMINAL-NOT-REPORTED
   rule: DET002 does NOT flag a bare `date` with no redirect or pipe - printing
     to the terminal is `#232`/DET005 territory (time-dependent control flow),
@@ -111,44 +120,121 @@ falsification_tests:
   test: test_PMAT255_gh232_d5_duration_neither_rule
   if_fails: 'Contract violation: DET002 flags a duration computed from two
     timestamp captures (#232)'
-- id: F-DET005-SOUND
-  rule: DET005 detects a wall-clock value reaching a branch condition (`if`,
-    `elif`, `while`, `until`, a `case` selector, or a `[ ]`/`[[ ]]` test)
+- id: F-DET005-SOUNDa
+  rule: DET005 detects a wall-clock value reaching an `if` branch condition
     rather than a build artifact - time-dependent control flow, split out of
     DET002 (#232)
   prediction: lint result contains DET005 for `if [ "$(date +%H)" -lt 6 ];
-    then ... fi`, `while [ "$(date +%s)" -lt "$deadline" ]; do ... done`,
-    `case "$(date +%u)" in 6|7) ... esac`, and `[ "$(date +%s)" -gt "$expiry"
+    then ... fi`
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET005 misses a wall-clock value reaching an
+    `if` branch condition (#232)'
+- id: F-DET005-SOUNDb
+  rule: DET005 detects a wall-clock value reaching a `while` branch condition
+    rather than a build artifact - time-dependent control flow, split out of
+    DET002 (#232)
+  prediction: lint result contains DET005 for `while [ "$(date +%s)" -lt
+    "$deadline" ]; do ... done`
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET005 misses a wall-clock value reaching a
+    `while` branch condition (#232)'
+- id: F-DET005-SOUNDc
+  rule: DET005 detects a wall-clock value reaching a `case` selector rather
+    than a build artifact - time-dependent control flow, split out of DET002
+    (#232)
+  prediction: lint result contains DET005 for `case "$(date +%u)" in 6|7)
+    ... esac`
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET005 misses a wall-clock value reaching a
+    `case` selector (#232)'
+- id: F-DET005-SOUNDd
+  rule: DET005 detects a wall-clock value reaching a `[ ]`/`[[ ]]` test used
+    as a branch condition rather than a build artifact - time-dependent
+    control flow, split out of DET002 (#232)
+  prediction: lint result contains DET005 for `[ "$(date +%s)" -gt "$expiry"
     ] && exit 1`
-  test: 'test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002'
-  if_fails: 'Contract violation: DET005 misses time-dependent control flow (#232)'
-- id: F-DET005-WARNING-SEVERITY
-  rule: DET005 reports at Warning, not Error - unlike a timestamp in an
-    artifact name this is often deliberate (cron-style scripts, backoff
-    loops), and an unactionable Error gets the rule disabled rather than the
-    code fixed (#232)
-  prediction: every DET005 diagnostic has severity warning
-  test: 'test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002'
-  if_fails: 'Contract violation: DET005 fires at a severity other than warning (#232)'
-- id: F-DET005-NO-DOUBLE-REPORT
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET005 misses a wall-clock value reaching a
+    `[ ]`/`[[ ]]` test guard (#232)'
+- id: F-DET005-WARNING-SEVERITYa
+  rule: DET005 reports at Warning, not Error, for the `if` hour-check example
+    - unlike a timestamp in an artifact name this is often deliberate
+    (cron-style scripts, backoff loops), and an unactionable Error gets the
+    rule disabled rather than the code fixed (#232)
+  prediction: the DET005 diagnostic for `if [ "$(date +%H)" -lt 6 ]; then
+    ... fi` has severity warning
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET005 fires at a severity other than
+    warning for the `if` example (#232)'
+- id: F-DET005-WARNING-SEVERITYb
+  rule: DET005 reports at Warning, not Error, for the `while` deadline-loop
+    example (#232)
+  prediction: the DET005 diagnostic for `while [ "$(date +%s)" -lt
+    "$deadline" ]; do ... done` has severity warning
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET005 fires at a severity other than
+    warning for the `while` example (#232)'
+- id: F-DET005-WARNING-SEVERITYc
+  rule: DET005 reports at Warning, not Error, for the `case` weekday example
+    (#232)
+  prediction: the DET005 diagnostic for `case "$(date +%u)" in 6|7) ... esac`
+    has severity warning
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET005 fires at a severity other than
+    warning for the `case` example (#232)'
+- id: F-DET005-WARNING-SEVERITYd
+  rule: DET005 reports at Warning, not Error, for the expiry-guard example
+    (#232)
+  prediction: the DET005 diagnostic for `[ "$(date +%s)" -gt "$expiry" ] &&
+    exit 1` has severity warning
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET005 fires at a severity other than
+    warning for the expiry-guard example (#232)'
+- id: F-DET005-NO-DOUBLE-REPORTa
+  rule: DET005 and DET002 never both fire on the same line - for the `if`
+    hour-check example, a value that reaches a branch condition and nothing
+    else is Conditional (DET005 only) (#232)
+  prediction: for `if [ "$(date +%H)" -lt 6 ]; then ... fi`, lint result does
+    NOT also contain DET002
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET002 double-reports the `if` example
+    alongside DET005 (#232)'
+- id: F-DET005-NO-DOUBLE-REPORTb
+  rule: DET005 and DET002 never both fire on the same line - for the `while`
+    deadline-loop example, a value that reaches a branch condition and
+    nothing else is Conditional (DET005 only) (#232)
+  prediction: for `while [ "$(date +%s)" -lt "$deadline" ]; do ... done`,
+    lint result does NOT also contain DET002
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET002 double-reports the `while` example
+    alongside DET005 (#232)'
+- id: F-DET005-NO-DOUBLE-REPORTc
+  rule: DET005 and DET002 never both fire on the same line - for the `case`
+    weekday example, a value that reaches a branch condition and nothing
+    else is Conditional (DET005 only) (#232)
+  prediction: for `case "$(date +%u)" in 6|7) ... esac`, lint result does NOT
+    also contain DET002
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET002 double-reports the `case` example
+    alongside DET005 (#232)'
+- id: F-DET005-NO-DOUBLE-REPORTd
+  rule: DET005 and DET002 never both fire on the same line - for the
+    expiry-guard example, a value that reaches a branch condition and
+    nothing else is Conditional (DET005 only) (#232)
+  prediction: for `[ "$(date +%s)" -gt "$expiry" ] && exit 1`, lint result
+    does NOT also contain DET002
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002
+  if_fails: 'Contract violation: DET002 double-reports the expiry-guard
+    example alongside DET005 (#232)'
+- id: F-DET005-NO-DOUBLE-REPORTe
   rule: DET005 and DET002 never both fire on the same line - a value that
-    reaches a branch condition and nothing else is Conditional (DET005 only);
-    a value that also reaches an artifact is Reproducible (DET002 only) (#232)
-  prediction: for each of the four DET005 examples, lint result does NOT also
-    contain DET002; for the DET002 artifact example (`echo "$(date)" >
-    VERSION`), lint result does NOT also contain DET005
-  test: 'test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002,
-    test_PMAT255_gh232_d6_det002_still_fires_on_artifact_write'
-  if_fails: 'Contract violation: DET002 and DET005 double-report the same line (#232)'
+    reaches an artifact is Reproducible (DET002 only), not also Conditional
+    (#232)
+  prediction: for the DET002 artifact example (`echo "$(date)" > VERSION`),
+    lint result does NOT also contain DET005
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT255_gh232_d6_det002_still_fires_on_artifact_write
+  if_fails: 'Contract violation: DET005 double-reports the DET002 artifact
+    example (#232)'
 - id: F-DET005-PRECISE-DURATION
   rule: DET005 does NOT flag a duration - the same arithmetic-difference
     exemption that applies to DET002 applies here too, since a duration never
@@ -158,7 +244,7 @@ falsification_tests:
   test: test_PMAT255_gh232_d5_duration_neither_rule
   if_fails: 'Contract violation: DET005 flags a duration computed from two
     timestamp captures (#232)'
-- id: F-DET002-GH265-SHELLCHECK-NAMESPACE-REJECTED
+- id: F-DET002-GH265-SHELLCHECK-NAMESPACE-REJECTEDa
   rule: A bashrs-native code (e.g. DET002) inside a `# shellcheck disable=`
     directive is NOT honoured - shellcheck cannot parse a non-SC code there
     and aborts checking the rest of the file, so bashrs must not honour it
@@ -166,23 +252,49 @@ falsification_tests:
     disable-line=`/`disable-file=` form (GH-265)
   prediction: lint result contains DET002 and a BASHRS001 diagnostic naming
     the bashrs directive form when the only suppression present is `#
-    shellcheck disable=DET002`; a mixed `# shellcheck disable=SC2086,DET002`
-    still suppresses SC2086
-  test: 'test_PMAT255_gh265_shellcheck_directive_does_not_honour_bashrs_code, test_PMAT255_gh265_mixed_shellcheck_directive_splits_codes'
+    shellcheck disable=DET002`
+  test: cargo test -p bashrs --lib linter::suppression::tests_gh265::test_PMAT255_gh265_shellcheck_directive_does_not_honour_bashrs_code
   if_fails: 'Contract violation: bashrs honours its own codes inside a #
     shellcheck directive, silently disabling shellcheck for the rest of the
     file (GH-265)'
-- id: F-DET002-GH265-DISABLE-LINE-PLACEMENT-REPORTED
+- id: F-DET002-GH265-SHELLCHECK-NAMESPACE-REJECTEDb
+  rule: A mixed `# shellcheck disable=SC2086,DET002` directive still
+    suppresses the real shellcheck code (SC2086) while not honouring the
+    bashrs-native code (DET002) (GH-265)
+  prediction: lint result does NOT contain SC2086 but DOES still contain
+    DET002 when the directive is `# shellcheck disable=SC2086,DET002`
+  test: cargo test -p bashrs --lib linter::suppression::tests_gh265::test_PMAT255_gh265_mixed_shellcheck_directive_splits_codes
+  if_fails: 'Contract violation: a mixed shellcheck directive either stops
+    suppressing SC2086 or wrongly honours the bashrs-native code (GH-265)'
+- id: F-DET002-GH265-DISABLE-LINE-PLACEMENT-REPORTEDa
   rule: '`# bashrs disable-line=DET002` written on a comment-only line (the
     line ABOVE the code, not the same line) suppresses nothing - placement
     semantics are unchanged - and must be reported instead of silently
     ignored, the same failure mode as #240 (GH-265)'
   prediction: lint result contains DET002 AND a BASHRS001 diagnostic naming
-    `disable-line` when the directive sits alone on the line above; same-line
-    `disable-line=` and `disable-file=` are unaffected
-  test: 'test_PMAT255_gh265_disable_line_on_preceding_line_is_reported, test_PMAT255_gh265_disable_line_same_line_unaffected, test_PMAT255_gh265_disable_file_unaffected'
+    `disable-line` when the directive sits alone on the line above
+  test: cargo test -p bashrs --lib linter::suppression::tests_gh265::test_PMAT255_gh265_disable_line_on_preceding_line_is_reported
   if_fails: 'Contract violation: a disable-line directive on the wrong line
     silently does nothing and nothing says why (GH-265)'
+- id: F-DET002-GH265-DISABLE-LINE-PLACEMENT-REPORTEDb
+  rule: A same-line `# bashrs disable-line=DET002` keeps suppressing and must
+    NOT be reported as inert - the GH-265 fix only targets the wrong-line
+    placement, not the working form (GH-265)
+  prediction: lint result does NOT contain DET002 and does NOT contain
+    BASHRS001 when `# bashrs disable-line=DET002` sits on the same line as
+    the code
+  test: cargo test -p bashrs --lib linter::suppression::tests_gh265::test_PMAT255_gh265_disable_line_same_line_unaffected
+  if_fails: 'Contract violation: a working same-line disable-line directive
+    stops suppressing, or gets wrongly reported as inert (GH-265)'
+- id: F-DET002-GH265-DISABLE-LINE-PLACEMENT-REPORTEDc
+  rule: '`# bashrs disable-file=DET002` is unaffected by the GH-265
+    disable-line placement fix and keeps suppressing for the whole file
+    (GH-265)'
+  prediction: lint result does NOT contain DET002 when `# bashrs
+    disable-file=DET002` is present
+  test: cargo test -p bashrs --lib linter::suppression::tests_gh265::test_PMAT255_gh265_disable_file_unaffected
+  if_fails: 'Contract violation: the GH-265 disable-line fix regresses
+    disable-file suppression (GH-265)'
 - id: F-DET003-SOUND
   rule: DET003 detects unordered glob in for-loop
   prediction: lint result contains DET003
