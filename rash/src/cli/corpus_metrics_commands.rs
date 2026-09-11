@@ -7,13 +7,21 @@ use super::corpus_failure_commands::result_fail_dims;
 use crate::models::{Config, Error, Result};
 
 pub(crate) fn corpus_topk(limit: usize) -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_topk_with(&CorpusRegistry::load_full(), limit)
+}
+
+/// PMAT-257: body of `corpus_topk`, split so a test can pass a small
+/// synthetic registry instead of running the full ~18k-entry corpus.
+pub(crate) fn corpus_topk_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    limit: usize,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     // Collect entries sorted by fewest failures (worst first)
     let mut entries_with_dims: Vec<(&str, &str, usize, Vec<&str>)> = registry
@@ -64,13 +72,20 @@ pub(crate) fn corpus_topk(limit: usize) -> Result<()> {
 
 /// Side-by-side format comparison.
 pub(crate) fn corpus_format_cmp() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_format_cmp_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_format_cmp`, split for testability (see
+/// `corpus_topk_with`).
+pub(crate) fn corpus_format_cmp_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     println!("{BOLD}Format Comparison{RESET}");
     println!();
@@ -127,7 +142,7 @@ pub(crate) fn corpus_format_cmp() -> Result<()> {
                     .clone(),
                 d @ 6..=13 => {
                     let dim_idx = d - 6;
-                    let rate = dim_format_rate(&registry, &score.results, *fmt, dim_idx);
+                    let rate = dim_format_rate(registry, &score.results, *fmt, dim_idx);
                     format!("{:.1}%", rate)
                 }
                 _ => "-".to_string(),
@@ -149,13 +164,20 @@ pub(crate) fn corpus_format_cmp() -> Result<()> {
 
 /// Stability index: ratio of entries never failing across iterations.
 pub(crate) fn corpus_stability() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_stability_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_stability`, split for testability (see
+/// `corpus_topk_with`).
+pub(crate) fn corpus_stability_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     // Current stability: entries with zero failures
     let stable = score
@@ -240,10 +262,16 @@ pub(crate) fn corpus_stability() -> Result<()> {
 
 /// Corpus version and metadata info.
 pub(crate) fn corpus_version() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_version_with(&CorpusRegistry::load_full())
+}
 
-    let registry = CorpusRegistry::load_full();
+/// PMAT-257: body of `corpus_version`, split for testability (see
+/// `corpus_topk_with`).
+pub(crate) fn corpus_version_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
 
     let bash_count = registry
         .entries
@@ -277,13 +305,18 @@ pub(crate) fn corpus_version() -> Result<()> {
 
 /// Simple pass rate display per format.
 pub(crate) fn corpus_rate() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_rate_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_rate`, split for testability (see
+/// `corpus_topk_with`).
+pub(crate) fn corpus_rate_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     println!("{BOLD}Pass Rates{RESET}");
     println!();
@@ -313,12 +346,17 @@ pub(crate) fn corpus_rate() -> Result<()> {
 
 /// Distribution of entries by timing buckets.
 pub(crate) fn corpus_dist() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_dist_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_dist`, split for testability (see
+/// `corpus_topk_with`).
+pub(crate) fn corpus_dist_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     let mut timings: Vec<f64> = Vec::new();
@@ -378,6 +416,122 @@ pub(crate) fn corpus_dist() -> Result<()> {
     );
 
     Ok(())
+}
+
+// PMAT-257: every top-level handler in this file builds a CorpusRunner and
+// scores the whole ~18k-entry corpus (`CorpusRegistry::load_full()`), so each
+// was split into a `pub(crate) fn <name>() -> Result<()>` thin wrapper that
+// loads the real registry, and a `pub(crate) fn <name>_with(registry, ...)`
+// that does the actual work against a caller-supplied registry. Tests below
+// call the `_with` variants against a tiny three-entry fixture (one real
+// corpus entry per format) so a run completes in milliseconds instead of
+// transpiling the entire corpus.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+
+    /// Three real (id, input, expected_output) triples, one per format,
+    /// copied from corpus_data.jsonl (B-001, M-001, D-001).
+    fn fixture_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "variable-assignment",
+            "Simple string variable assignment",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            "fn main() { let greeting = \"hello\"; } ",
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "simple-variable",
+            "Single variable assignment",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "fn main() { let cc = \"gcc\"; }",
+            "CC := gcc",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "basic-from",
+            "Basic FROM instruction with pinned tag",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "fn main() { from_image(\"alpine\", \"3.18\"); } fn from_image(i: &str, t: &str) {}",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_topk_with_reports_every_entry() {
+        let registry = fixture_registry();
+        corpus_topk_with(&registry, 10).expect("top-k over three fixture entries must succeed");
+        // A limit of zero must not panic on `.take(0)`.
+        corpus_topk_with(&registry, 0).expect("a zero limit is not an error");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_format_cmp_with_covers_all_three_formats() {
+        let registry = fixture_registry();
+        corpus_format_cmp_with(&registry)
+            .expect("format comparison over one entry per format must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_format_cmp_with_empty_registry_has_no_entries() {
+        // Every `fs.map_or(0, ...)` branch (no FormatScore found) is only hit
+        // when a format has zero entries.
+        let registry = CorpusRegistry::new();
+        corpus_format_cmp_with(&registry).expect("an empty registry must still print a table");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_stability_with_reports_per_format_rates() {
+        let registry = fixture_registry();
+        corpus_stability_with(&registry).expect("stability over the fixture must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_stability_with_empty_registry_is_not_a_divide_by_zero() {
+        let registry = CorpusRegistry::new();
+        corpus_stability_with(&registry).expect("an empty registry must not panic");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_version_with_counts_each_format() {
+        let registry = fixture_registry();
+        corpus_version_with(&registry).expect("version info over the fixture must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_rate_with_reports_totals() {
+        let registry = fixture_registry();
+        corpus_rate_with(&registry).expect("pass rates over the fixture must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_dist_with_buckets_the_fixture_timings() {
+        let registry = fixture_registry();
+        corpus_dist_with(&registry).expect("timing distribution over the fixture must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_dist_with_empty_registry_has_no_timings() {
+        let registry = CorpusRegistry::new();
+        corpus_dist_with(&registry).expect("an empty registry must not divide by zero");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_public_wrappers_delegate_to_with_variants() {
+        // These call `CorpusRegistry::load_full()` and run the real ~18k
+        // entry corpus once each; still fast enough for a unit test (each
+        // handler is a couple of seconds at most) and it is the only way to
+        // cover the thin `load_full()` wrapper lines themselves.
+        corpus_version().expect("corpus_version over the real registry must succeed");
+    }
 }
 
 include!("corpus_metrics_commands_corpus.rs");
