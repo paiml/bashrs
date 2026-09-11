@@ -336,7 +336,7 @@ corpus-score: ## Score the whole corpus, sandboxed where the sandbox exists
 		bwrap --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp --bind $$E $$E --chdir $$E \
 			--unshare-net --die-with-parent $(PWD)/target/debug/bashrs corpus run; \
 	else \
-		echo "⚠️  bwrap not found: the runner executes every Bash entry with THIS shell'"'"'s cwd, HOME and PATH (PMAT-256)"; \
+		echo "WARNING: bwrap not found, so the runner executes every Bash entry with this shell cwd, HOME and PATH (PMAT-256)"; \
 		cd $$(mktemp -d) && $(PWD)/target/debug/bashrs corpus run; \
 	fi
 

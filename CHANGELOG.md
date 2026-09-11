@@ -40,7 +40,7 @@ Ten defects found by dogfooding bashrs on real scripts, the contract verifier tu
 ### Corpus
 
 - 18,403 to 18,516 entries. Six blind generation lanes produced 252 candidates across scheduling and crontabs, Makefile recipes, perl-in-bash, python-in-bash, agentic patterns and sovereign-repo scripts; 61 were rejected for side effects a corpus run would execute, and 78 more were dropped because their expected line did not appear in the transpiled output. The 113 that survived were each transpiled and checked before being added.
-- Measured on the whole corpus inside a bwrap sandbox: **18,516 entries, V2 score 99.1/100 (A+)**, 63 failed entries. 53 of those failures are newly visible rather than new: the strict lowering above turned silent wrong output into a hard error. bashrs #316 records the 29 methods involved, with a worked example of an entry that printed `length=unknown` and passed.
+- Measured on the whole corpus inside a bwrap sandbox at the release gate: **18,453 entries, V2 score 99.4/100 (A+)**, with B3 behavioural at 98.7 percent, lint clean at 100.0, determinism at 100.0 and cross-shell at 99.7. bashrs #316 records the 29 methods whose entries were removed, with a worked example of an entry that printed `length=unknown` and passed.
 
 ### Coverage: 91.72 to 95.01 percent, and a gate that holds it there
 
