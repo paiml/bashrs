@@ -60,6 +60,10 @@ mod ir_pattern_tests;
 #[path = "pmat255_gh293_tests.rs"]
 mod pmat255_gh293_tests;
 
+#[cfg(test)]
+#[path = "pmat257_gh305_gh306_tests.rs"]
+mod pmat257_gh305_gh306_tests;
+
 pub use effects::{Effect, EffectSet};
 pub use shell_ir::{Command, ShellExpression, ShellIR, ShellValue};
 
