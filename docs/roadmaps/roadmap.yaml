@@ -2268,11 +2268,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'v7.1.0: transpiler defects #293 #294, build #295, shellcheck-directive interop #265, DET005 #232, SC2105 PMAT-244, shell_words PMAT-250, contracts PMAT-246, dependency refresh, pmat comply, corpus growth through agy, forjar-parity phases 3a and 5 from PMAT-253'
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: noahgift
   created: 2026-09-10T19:57:00Z
-  updated: 2026-09-11T02:30:49.754367595+00:00
+  updated: 2026-09-11T02:32:51.412997692+00:00
   spec: null
   acceptance_criteria: []
   phases: []
