@@ -125,6 +125,16 @@ falsification_tests:
   test: 'Given input, verify: transpile returns Err for both exec() strings'
   if_fails: 'Contract violation: GH-294 fix over-corrected and stopped blocking
     live command substitution inside exec()/capture() arguments'
+- id: F-TCORE-020
+  rule: a method call with no lowering fails the transpile naming the method, and is never emitted as the shell no-op colon
+  prediction: 'transpiling an unlowerable method call returns an error whose message names the method'
+  test: cargo test -p bashrs --lib ir::pmat257_gh305_gh306_tests::test_PMAT257_gh305_unlowerable_method_call_is_an_error
+  if_fails: 'Contract violation: an unlowerable call is emitted as a no-op again and the program silently does nothing, as in GH-305'
+- id: F-TCORE-021
+  rule: len on a local array literal lowers to the real element count, never to the placeholder string
+  prediction: 'the transpiled output of a len call on a literal array carries the count'
+  test: cargo test -p bashrs --lib ir::pmat257_gh305_gh306_tests::test_PMAT257_gh306_len_on_local_array_literal_is_the_count
+  if_fails: 'Contract violation: array length falls back to the placeholder again, as in GH-306'
 kani_harnesses:
 - id: KANI-TRANSPILER_CORE-001
   obligation: Output passes shellcheck -s sh

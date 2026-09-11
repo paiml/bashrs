@@ -345,6 +345,11 @@ falsification_tests:
   prediction: lint result does NOT contain IDEM003
   test: 'Given input, verify: lint result does NOT contain IDEM003'
   if_fails: 'Contract violation: IDEM003 does NOT flag ln -sf'
+- id: F-DET-011
+  rule: one non-deterministic value reaching two sinks produces both diagnostics, DET002 for the artifact sink and DET005 for the condition sink
+  prediction: 'a timestamp captured once, written to a file and compared in a condition, reports exactly one DET002 and exactly one DET005'
+  test: cargo test -p bashrs --lib linter::rules::det005::det005_tests::test_PMAT257_gh304_det005_still_reported_when_a_det002_sink_shares_the_value
+  if_fails: 'Contract violation: the flow analysis keeps only the strongest sink per value again, so one rule silently masks the other, as in GH-304'
 kani_harnesses:
 - id: KANI-LINTER_DET_IDEM-001
   obligation: DET rules detect all non-deterministic constructs
