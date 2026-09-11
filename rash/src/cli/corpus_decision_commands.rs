@@ -299,3 +299,143 @@ pub(crate) fn corpus_fix_suggest_with(
     println!();
     Ok(())
 }
+
+// PMAT-257: coverage for the corpus decision-analysis handlers. `corpus_decisions`,
+// `corpus_patterns`, `corpus_pattern_query`, and `corpus_fix_suggest` each build a
+// `CorpusRunner` and score entries out of the real `CorpusRegistry::load_full()`
+// (18,000+ entries) -- too slow for a unit test. Each was already split into a
+// `*_with(registry, ...)` twin that takes the registry as a parameter, matching
+// `corpus_compare_commands.rs`. `score_impact_color` and `accumulate_decision_stats`
+// never touch the registry or a runner, so they're covered directly.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_score_impact_color_high() {
+        let (label, color) = score_impact_color(0.9);
+        assert!(label.contains("HIGH"));
+        assert_eq!(color, crate::cli::color::RED);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_score_impact_color_medium() {
+        let (label, color) = score_impact_color(0.6);
+        assert!(label.contains("MEDIUM"));
+        assert_eq!(color, crate::cli::color::YELLOW);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_score_impact_color_low() {
+        let (label, color) = score_impact_color(0.1);
+        assert!(label.contains("LOW"));
+        assert_eq!(color, crate::cli::color::DIM);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_accumulate_decision_stats_no_trace() {
+        let result = crate::corpus::runner::CorpusResult {
+            decision_trace: None,
+            ..Default::default()
+        };
+        let mut stats = std::collections::HashMap::new();
+        assert!(!accumulate_decision_stats(&result, &mut stats));
+        assert!(stats.is_empty());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_accumulate_decision_stats_with_trace() {
+        use crate::emitter::trace::TranspilerDecision;
+
+        let trace = vec![TranspilerDecision {
+            decision_type: "ir_dispatch".to_string(),
+            choice: "Let".to_string(),
+            ir_node: "Let".to_string(),
+        }];
+
+        let passing = crate::corpus::runner::CorpusResult {
+            transpiled: true,
+            output_contains: true,
+            schema_valid: true,
+            lint_clean: true,
+            deterministic: true,
+            decision_trace: Some(trace.clone()),
+            ..Default::default()
+        };
+        let mut stats = std::collections::HashMap::new();
+        assert!(accumulate_decision_stats(&passing, &mut stats));
+        let entry = stats.get("ir_dispatch:Let").expect("stat recorded");
+        assert_eq!(*entry, (1, 1, 0));
+
+        let failing = crate::corpus::runner::CorpusResult {
+            transpiled: true,
+            output_contains: false,
+            decision_trace: Some(trace),
+            ..Default::default()
+        };
+        assert!(accumulate_decision_stats(&failing, &mut stats));
+        let entry = stats.get("ir_dispatch:Let").expect("stat recorded");
+        assert_eq!(*entry, (2, 1, 1));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_decisions_with_tiny_registry() {
+        corpus_decisions_with(&tiny_registry()).expect("decisions run over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_patterns_with_tiny_registry() {
+        corpus_patterns_with(&tiny_registry()).expect("patterns run over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_pattern_query_with_no_match() {
+        corpus_pattern_query_with(&tiny_registry(), "PMAT257_no_such_signal")
+            .expect("pattern query runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_fix_suggest_with_known_id() {
+        corpus_fix_suggest_with(&tiny_registry(), "B-001")
+            .expect("fix suggest runs for a known entry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_fix_suggest_with_unknown_id() {
+        let err = corpus_fix_suggest_with(&tiny_registry(), "NOPE-999");
+        assert!(err.is_err());
+    }
+}
