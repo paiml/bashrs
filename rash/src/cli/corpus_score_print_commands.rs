@@ -128,15 +128,25 @@ pub(crate) fn corpus_write_convergence_log(
     runner: &crate::corpus::runner::CorpusRunner,
     score: &crate::corpus::runner::CorpusScore,
 ) -> Result<()> {
+    let log_path = PathBuf::from(".quality/convergence.log");
+    corpus_write_convergence_log_at(runner, score, &log_path)
+}
+
+/// PMAT-257: body of `corpus_write_convergence_log`, split so a test can pass a
+/// tempdir path instead of writing into the real `.quality/convergence.log`.
+pub(crate) fn corpus_write_convergence_log_at(
+    runner: &crate::corpus::runner::CorpusRunner,
+    score: &crate::corpus::runner::CorpusScore,
+    log_path: &std::path::Path,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let previous = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
+    let previous = CorpusRunner::load_convergence_log(log_path).unwrap_or_default();
     let iteration = previous.len() as u32 + 1;
     let prev_rate = previous.last().map_or(0.0, |e| e.rate);
     let date = super::corpus_diff_commands::chrono_free_date();
     let entry = runner.convergence_entry(score, iteration, &date, prev_rate, "CLI corpus run");
-    CorpusRunner::append_convergence_log(&entry, &log_path)
+    CorpusRunner::append_convergence_log(&entry, log_path)
         .map_err(|e| Error::Internal(format!("Failed to write convergence log: {e}")))?;
     use crate::cli::color::*;
     println!();
@@ -207,12 +217,21 @@ pub(crate) fn stats_bar(pct: f64, width: usize) -> String {
 /// Show per-format statistics and convergence trends (spec §11.10).
 pub(crate) fn corpus_show_stats(format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
+    corpus_show_stats_with(&CorpusRegistry::load_full(), format)
+}
+
+/// PMAT-257: body of `corpus_show_stats`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_show_stats_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &CorpusOutputFormat,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
     let config = Config::default();
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(config);
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     match format {
         CorpusOutputFormat::Human => {
@@ -384,4 +403,255 @@ pub(crate) fn corpus_save_last_run(score: &crate::corpus::runner::CorpusScore) {
 pub(crate) fn corpus_load_last_run() -> Option<crate::corpus::runner::CorpusScore> {
     let data = std::fs::read_to_string(CORPUS_CACHE_PATH).ok()?;
     serde_json::from_str(&data).ok()
+}
+
+// PMAT-257: coverage for score printing, convergence logging, and stats display.
+// `corpus_print_score`, `stats_bar`, and `corpus_stats_sparkline` take a
+// `CorpusScore`/entries directly, so they're covered without ever touching a
+// `CorpusRegistry`. `corpus_show_stats` and `corpus_write_convergence_log` each
+// build a `CorpusRunner` over `CorpusRegistry::load_full()` (18,000+ entries) or
+// write to the real `.quality/*` files -- too slow / unsafe for a unit test, so
+// each was split into a `*_with`/`*_at` twin that takes a small registry or a
+// tempdir path, matching `corpus_decision_commands.rs`.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+    use crate::corpus::runner::{CorpusResult, CorpusRunner, CorpusScore};
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    fn sample_score(results: Vec<CorpusResult>) -> CorpusScore {
+        use crate::corpus::registry::Grade;
+        let total = results.len();
+        let passed = results.iter().filter(|r| r.transpiled).count();
+        let failed = total - passed;
+        let rate = if total > 0 {
+            passed as f64 / total as f64
+        } else {
+            0.0
+        };
+        let score_val = rate * 100.0;
+        CorpusScore {
+            total,
+            passed,
+            failed,
+            rate,
+            score: score_val,
+            grade: Grade::from_score(score_val),
+            format_scores: vec![crate::corpus::runner::FormatScore {
+                format: CorpusFormat::Bash,
+                total,
+                passed,
+                rate,
+                score: score_val,
+                grade: Grade::from_score(score_val),
+            }],
+            results,
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_stats_bar_zero() {
+        assert_eq!(stats_bar(0.0, 10), "░".repeat(10));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_stats_bar_full() {
+        assert_eq!(stats_bar(100.0, 10), "█".repeat(10));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_stats_bar_half() {
+        let bar = stats_bar(50.0, 10);
+        assert_eq!(bar.chars().count(), 10);
+        assert!(bar.contains('█'));
+        assert!(bar.contains('░'));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_score_human_with_results_and_failures() {
+        let passing = CorpusResult {
+            id: "B-001".to_string(),
+            transpiled: true,
+            output_contains: true,
+            output_exact: true,
+            output_behavioral: true,
+            coverage_ratio: 1.0,
+            schema_valid: true,
+            lint_clean: true,
+            deterministic: true,
+            metamorphic_consistent: true,
+            cross_shell_agree: true,
+            ..Default::default()
+        };
+        let failing = CorpusResult {
+            id: "B-002".to_string(),
+            transpiled: false,
+            error: Some("boom".to_string()),
+            ..Default::default()
+        };
+        let score = sample_score(vec![passing, failing]);
+        corpus_print_score(&score, &CorpusOutputFormat::Human)
+            .expect("human score prints over a synthetic score");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_score_human_empty_results() {
+        let score = sample_score(vec![]);
+        corpus_print_score(&score, &CorpusOutputFormat::Human)
+            .expect("human score prints even with no per-entry results");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_score_json() {
+        let passing = CorpusResult {
+            id: "B-001".to_string(),
+            transpiled: true,
+            output_contains: true,
+            schema_valid: true,
+            lint_clean: true,
+            deterministic: true,
+            ..Default::default()
+        };
+        let score = sample_score(vec![passing]);
+        corpus_print_score(&score, &CorpusOutputFormat::Json)
+            .expect("json score serializes over a synthetic score");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sparkline_increasing() {
+        let entries = vec![
+            crate::corpus::runner::ConvergenceEntry {
+                score: 50.0,
+                ..Default::default()
+            },
+            crate::corpus::runner::ConvergenceEntry {
+                score: 90.0,
+                ..Default::default()
+            },
+        ];
+        corpus_stats_sparkline(&entries);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sparkline_decreasing() {
+        let entries = vec![
+            crate::corpus::runner::ConvergenceEntry {
+                score: 90.0,
+                ..Default::default()
+            },
+            crate::corpus::runner::ConvergenceEntry {
+                score: 50.0,
+                ..Default::default()
+            },
+        ];
+        corpus_stats_sparkline(&entries);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sparkline_flat() {
+        let entries = vec![
+            crate::corpus::runner::ConvergenceEntry {
+                score: 75.0,
+                ..Default::default()
+            },
+            crate::corpus::runner::ConvergenceEntry {
+                score: 75.0,
+                ..Default::default()
+            },
+        ];
+        corpus_stats_sparkline(&entries);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_write_convergence_log_first_run() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let log_path = dir.path().join("convergence.log");
+        let runner = CorpusRunner::new(Config::default());
+        let passing = CorpusResult {
+            id: "B-001".to_string(),
+            transpiled: true,
+            output_contains: true,
+            schema_valid: true,
+            lint_clean: true,
+            deterministic: true,
+            ..Default::default()
+        };
+        let score = sample_score(vec![passing]);
+        corpus_write_convergence_log_at(&runner, &score, &log_path)
+            .expect("first convergence log write succeeds");
+        assert!(log_path.exists());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_write_convergence_log_regression_detected() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let log_path = dir.path().join("convergence.log");
+        let runner = CorpusRunner::new(Config::default());
+
+        let good = CorpusResult {
+            id: "B-001".to_string(),
+            transpiled: true,
+            output_contains: true,
+            schema_valid: true,
+            lint_clean: true,
+            deterministic: true,
+            ..Default::default()
+        };
+        let good_score = sample_score(vec![good]);
+        corpus_write_convergence_log_at(&runner, &good_score, &log_path)
+            .expect("first convergence log write succeeds");
+
+        let bad = CorpusResult {
+            id: "B-001".to_string(),
+            transpiled: false,
+            ..Default::default()
+        };
+        let bad_score = sample_score(vec![bad]);
+        corpus_write_convergence_log_at(&runner, &bad_score, &log_path)
+            .expect("second convergence log write detects a regression");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_show_stats_with_tiny_registry_human() {
+        corpus_show_stats_with(&tiny_registry(), &CorpusOutputFormat::Human)
+            .expect("stats display runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_show_stats_with_tiny_registry_json() {
+        corpus_show_stats_with(&tiny_registry(), &CorpusOutputFormat::Json)
+            .expect("stats display serializes over a tiny registry");
+    }
 }

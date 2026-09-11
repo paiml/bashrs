@@ -8,9 +8,19 @@ use std::path::PathBuf;
 
 pub(crate) fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
+    corpus_show_entry_with(&CorpusRegistry::load_full(), id, format)
+}
+
+/// PMAT-257: body of `corpus_show_entry`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_show_entry_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    id: &str,
+    format: &CorpusOutputFormat,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let entry = registry
         .entries
         .iter()
@@ -104,18 +114,29 @@ pub(crate) fn corpus_show_entry(id: &str, format: &CorpusOutputFormat) -> Result
 
 /// Export per-entry corpus results as structured JSON (spec §10.3).
 pub(crate) fn corpus_export(output: Option<&str>, filter: Option<&CorpusFormatArg>) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_export_with(&CorpusRegistry::load_full(), output, filter)
+}
+
+/// PMAT-257: body of `corpus_export`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_export_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    output: Option<&str>,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
 
     let config = Config::default();
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(config);
 
     let score = match filter {
-        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
-        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
-        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
-        None => runner.run(&registry),
+        Some(CorpusFormatArg::Bash) => runner.run_format(registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(registry, CorpusFormat::Dockerfile),
+        None => runner.run(registry),
     };
 
     // Build export entries by joining registry metadata with results
@@ -264,10 +285,20 @@ pub(crate) fn corpus_print_history_row(
 }
 
 pub(crate) fn corpus_show_history(format: &CorpusOutputFormat, last: Option<usize>) -> Result<()> {
+    let log_path = PathBuf::from(".quality/convergence.log");
+    corpus_show_history_with(&log_path, format, last)
+}
+
+/// PMAT-257: body of `corpus_show_history`, split so a test can point it at
+/// a temp-file convergence log instead of the real `.quality/` path.
+pub(crate) fn corpus_show_history_with(
+    log_path: &std::path::Path,
+    format: &CorpusOutputFormat,
+    last: Option<usize>,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
 
     if entries.is_empty() {
@@ -326,16 +357,28 @@ pub(crate) fn corpus_show_failures(
     filter: Option<&CorpusFormatArg>,
     dimension: Option<&str>,
 ) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_show_failures_with(&CorpusRegistry::load_full(), format, filter, dimension)
+}
+
+/// PMAT-257: body of `corpus_show_failures`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_show_failures_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+    dimension: Option<&str>,
+) -> Result<()> {
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
     let score = match filter {
-        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
-        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
-        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
-        None => runner.run(&registry),
+        Some(CorpusFormatArg::Bash) => runner.run_format(registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(registry, CorpusFormat::Dockerfile),
+        None => runner.run(registry),
     };
 
     let failures: Vec<_> = score

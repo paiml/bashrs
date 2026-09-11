@@ -196,6 +196,8 @@ pub(super) mod corpus_pipeline_commands;
 pub(super) mod corpus_ranking_commands;
 #[path = "corpus_report_commands.rs"]
 pub(super) mod corpus_report_commands;
+#[path = "corpus_report_commands_cov_tests.rs"]
+mod corpus_report_commands_cov_tests;
 #[path = "corpus_score_print_commands.rs"]
 pub(super) mod corpus_score_print_commands;
 #[path = "corpus_ssb_commands.rs"]

@@ -10,10 +10,21 @@ pub(crate) fn corpus_show_diff(
     from: Option<u32>,
     to: Option<u32>,
 ) -> Result<()> {
+    let log_path = PathBuf::from(".quality/convergence.log");
+    corpus_show_diff_with(&log_path, format, from, to)
+}
+
+/// PMAT-257: body of `corpus_show_diff`, split so a test can point it at a
+/// temp-file convergence log instead of the real `.quality/` path.
+pub(crate) fn corpus_show_diff_with(
+    log_path: &std::path::Path,
+    format: &CorpusOutputFormat,
+    from: Option<u32>,
+    to: Option<u32>,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
 
     if entries.len() < 2 {
@@ -106,11 +117,22 @@ pub(crate) fn corpus_show_diff(
 
 pub(crate) fn corpus_generate_report(output: Option<&str>) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
+    let log_path = PathBuf::from(".quality/convergence.log");
+    corpus_generate_report_with(&CorpusRegistry::load_full(), output, &log_path)
+}
+
+/// PMAT-257: body of `corpus_generate_report`, split so a test can pass a
+/// small synthetic registry and a temp-file convergence log instead of the
+/// real corpus and the real `.quality/` path.
+pub(crate) fn corpus_generate_report_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    output: Option<&str>,
+    log_path: &std::path::Path,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let date = chrono_free_date();
     let mut report = String::new();
@@ -169,8 +191,7 @@ pub(crate) fn corpus_generate_report(output: Option<&str>) -> Result<()> {
     }
 
     // Convergence history
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let history = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
+    let history = CorpusRunner::load_convergence_log(log_path).unwrap_or_default();
     if !history.is_empty() {
         report.push_str("## Convergence History\n\n");
         report.push_str("| Iter | Date | Pass/Total | Rate | Delta |\n");
