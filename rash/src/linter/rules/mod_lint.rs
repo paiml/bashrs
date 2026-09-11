@@ -158,6 +158,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     apply!(sc2004);
     apply!(sc2005);
     apply!(sc2006);
+    apply!(sc2009);
     apply!(sc2007);
     apply!(sc2015);
     apply!(sc2016);

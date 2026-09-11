@@ -54,6 +54,7 @@ pub mod registry;
 pub mod runner;
 pub mod runner_checks;
 pub mod runner_helpers;
+pub(crate) mod runner_sandbox;
 pub mod runner_types;
 pub mod schema_enforcement;
 #[allow(clippy::expect_used)] // Report generation uses expect() for internal formatting

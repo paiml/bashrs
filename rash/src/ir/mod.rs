@@ -64,6 +64,10 @@ mod pmat255_gh293_tests;
 #[path = "pmat257_gh305_gh306_tests.rs"]
 mod pmat257_gh305_gh306_tests;
 
+#[cfg(test)]
+#[path = "pmat258_gh316_tests.rs"]
+mod pmat258_gh316_tests;
+
 pub use effects::{Effect, EffectSet};
 pub use shell_ir::{Command, ShellExpression, ShellIR, ShellValue};
 

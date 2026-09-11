@@ -241,9 +241,14 @@ fn main() {
 "#,
         &Config::default(),
     );
+    // PMAT-258/GH-316: `.len()` on a string now has an honest POSIX spelling,
+    // the runtime expansion `${#s}`. It used to error, which is why this test
+    // asserted a failure; a string length is exactly the case that lowering
+    // was added for.
+    let shell = result.expect("len() on a string lowers to ${#s}");
     assert!(
-        result.is_err(),
-        "len() on a non-array-literal has no lowering and must error"
+        shell.contains("${#s}"),
+        "expected the length expansion in:\n{shell}"
     );
 }
 

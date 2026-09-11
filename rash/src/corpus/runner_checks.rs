@@ -8,6 +8,7 @@ use crate::models::Config;
 
 use super::runner::CorpusRunner;
 use super::runner_helpers::DOCKERFILE_INSTRUCTIONS;
+use super::runner_sandbox;
 
 // ---------------------------------------------------------------------------
 // impl CorpusRunner: metamorphic relation checks (MR-2 through MR-7)
@@ -251,14 +252,9 @@ impl CorpusRunner {
     /// Returns true if both shells execute without timeout.
     /// Gracefully skips dash if not installed.
     pub(crate) fn check_shell_execution(&self, output: &str) -> bool {
-        // Execute in sh (must pass)
-        let sh_ok = match std::process::Command::new("timeout")
-            .args(["2", "sh", "-c", output])
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .output()
-        {
+        // Execute in sh (must pass), sandboxed: private tempdir cwd/$HOME,
+        // minimal PATH (PMAT-256 / #318 -- see runner_sandbox.rs).
+        let sh_ok = match runner_sandbox::shared().run("2", "sh", output) {
             Ok(result) => result.status.code().unwrap_or(128) != 124,
             Err(_) => return false,
         };
@@ -268,13 +264,7 @@ impl CorpusRunner {
         }
 
         // Execute in dash (graceful: skip if not found)
-        match std::process::Command::new("timeout")
-            .args(["2", "dash", "-c", output])
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .output()
-        {
+        match runner_sandbox::shared().run("2", "dash", output) {
             Ok(result) => result.status.code().unwrap_or(128) != 124,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => true, // dash not installed
             Err(_) => true, // other error, graceful skip
@@ -284,13 +274,7 @@ impl CorpusRunner {
     /// KAIZEN-074: Execute only in dash (sh already verified by check_behavioral).
     /// Gracefully skips if dash is not installed.
     pub(crate) fn check_dash_execution(&self, output: &str) -> bool {
-        match std::process::Command::new("timeout")
-            .args(["2", "dash", "-c", output])
-            .stdin(std::process::Stdio::null())
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .output()
-        {
+        match runner_sandbox::shared().run("2", "dash", output) {
             Ok(result) => result.status.code().unwrap_or(128) != 124,
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => true,
             Err(_) => true,
@@ -406,21 +390,13 @@ impl CorpusRunner {
     /// it terminates within 2 seconds.
     pub(crate) fn check_behavioral(&self, output: &str, format: CorpusFormat) -> bool {
         match format {
-            CorpusFormat::Bash => {
-                match std::process::Command::new("timeout")
-                    .args(["2", "sh", "-c", output])
-                    .stdin(std::process::Stdio::null())
-                    .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .output()
-                {
-                    Ok(result) => {
-                        let code = result.status.code().unwrap_or(128);
-                        code != 124
-                    }
-                    Err(_) => false,
+            CorpusFormat::Bash => match runner_sandbox::shared().run("2", "sh", output) {
+                Ok(result) => {
+                    let code = result.status.code().unwrap_or(128);
+                    code != 124
                 }
-            }
+                Err(_) => false,
+            },
             CorpusFormat::Makefile => self.check_makefile_dry_run(output),
             CorpusFormat::Dockerfile => true,
         }
@@ -493,5 +469,76 @@ impl CorpusRunner {
             Ok(b) => first_output == b,
             Err(_) => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod pmat258_sandbox_tests {
+    #![allow(clippy::unwrap_used)]
+
+    use super::CorpusFormat;
+    use super::CorpusRunner;
+    use crate::corpus::runner_sandbox;
+    use crate::models::Config;
+
+    fn runner() -> CorpusRunner {
+        CorpusRunner::new(Config::default())
+    }
+
+    /// A corpus entry that writes into "its" working directory must leave
+    /// the real repository/test-process cwd untouched -- the write is
+    /// confined to the sandbox's private tempdir (PMAT-256 / #318).
+    #[test]
+    fn test_PMAT258_sandbox_writes_confined_to_tempdir() {
+        let before = std::env::current_dir().unwrap();
+        let marker = "pmat258_write_confined_marker.txt";
+        let script = format!("touch {marker}");
+
+        let _ = runner().check_behavioral(&script, CorpusFormat::Bash);
+
+        assert_eq!(
+            std::env::current_dir().unwrap(),
+            before,
+            "the test process's cwd must never change"
+        );
+        assert!(
+            !before.join(marker).exists(),
+            "marker must not land in the real cwd"
+        );
+        assert!(
+            runner_sandbox::shared().dir().join(marker).exists(),
+            "marker must land under the sandbox tempdir"
+        );
+    }
+
+    /// A corpus entry that writes to `$HOME` must not touch the real home
+    /// directory -- `$HOME` inside the sandbox points at the tempdir.
+    #[test]
+    fn test_PMAT258_sandbox_home_writes_confined_to_tempdir() {
+        let marker = "pmat258_home_write_confined_marker.txt";
+        let script = format!(r#"touch "$HOME/{marker}""#);
+
+        let _ = runner().check_behavioral(&script, CorpusFormat::Bash);
+
+        if let Some(real_home) = std::env::var_os("HOME") {
+            assert!(
+                !std::path::Path::new(&real_home).join(marker).exists(),
+                "marker must not land in the real $HOME"
+            );
+        }
+        assert!(
+            runner_sandbox::shared().dir().join(marker).exists(),
+            "marker must land under the sandboxed $HOME"
+        );
+    }
+
+    /// The 2-second timeout must still fire and be reported as a failure,
+    /// not a pass, once execution is sandboxed.
+    #[test]
+    fn test_PMAT258_sandbox_timeout_still_reported_as_failure() {
+        assert!(
+            !runner().check_behavioral("sleep 5", CorpusFormat::Bash),
+            "a sleeping entry must be reported as a timeout, not a pass"
+        );
     }
 }

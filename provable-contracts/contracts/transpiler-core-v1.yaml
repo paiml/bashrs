@@ -135,6 +135,21 @@ falsification_tests:
   prediction: 'the transpiled output of a len call on a literal array carries the count'
   test: cargo test -p bashrs --lib ir::pmat257_gh305_gh306_tests::test_PMAT257_gh306_len_on_local_array_literal_is_the_count
   if_fails: 'Contract violation: array length falls back to the placeholder again, as in GH-306'
+- id: F-TCORE-022
+  rule: len on a string lowers to the POSIX length expansion, and a variable known to be an array never takes that path
+  prediction: 'the transpiled output of a len call on a string carries the length expansion, and an array takes the count path instead'
+  test: cargo test -p bashrs --lib ir::pmat258_gh316_tests::test_PMAT258_gh316_len_uses_shell_length_expansion_not_a_command
+  if_fails: 'Contract violation: len falls back to a placeholder again, or reports the joined texts length as an element count, as in GH-306'
+- id: F-TCORE-023
+  rule: unwrap_or lowers to the unset-only default, so a variable that is set and empty keeps its value
+  prediction: 'a variable set to the empty string keeps the empty value rather than taking the default'
+  test: cargo test -p bashrs --lib ir::pmat258_gh316_tests::test_PMAT258_unwrap_or_on_set_but_empty_variable_keeps_empty_value
+  if_fails: 'Contract violation: the lowering moved to the empty-or-unset spelling, so a present empty value is silently replaced, contradicting the quorum decision of 2026-09-11'
+- id: F-TCORE-024
+  rule: a method with no honest POSIX spelling still fails the transpile naming the method
+  prediction: 'push_str, push, insert and rev each return an error naming the method rather than a value'
+  test: cargo test -p bashrs --lib ir::pmat258_gh316_tests::test_PMAT258_gh316_push_str_has_no_lowering_is_an_error
+  if_fails: 'Contract violation: an unlowerable method produces a value again instead of failing, the silent-wrong-output class of GH-305'
 kani_harnesses:
 - id: KANI-TRANSPILER_CORE-001
   obligation: Output passes shellcheck -s sh

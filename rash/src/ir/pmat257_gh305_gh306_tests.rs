@@ -81,26 +81,27 @@ fn test_PMAT257_gh306_len_on_local_array_literal_is_the_count() {
 }
 
 #[test]
-fn test_PMAT257_gh306_len_on_non_literal_array_is_an_error() {
-    // `items` here is a scalar assigned from a stdlib call, never inserted
-    // into the known-array-literal table -- its length is not known at
-    // transpile time, so `.len()` must fail rather than silently emit the
-    // string "unknown".
+fn test_PMAT257_gh306_len_on_a_runtime_string_uses_the_shell_expansion() {
+    // PMAT-258/GH-316 supersedes the original assertion here. `items` holds a
+    // string produced at runtime, and a string length does NOT have to be
+    // known at transpile time: the shell computes `${#items}` itself. What
+    // GH-306 actually forbids is a placeholder standing in for a value, and
+    // that is still forbidden — see the `unknown` assertion below and the
+    // unlowerable-method test above.
     let src = r#"
         fn main() {
             let items = env("PATH");
             let n = items.len();
         }
     "#;
-    let err = transpile_err(src);
-    let msg = err.to_string();
+    let shell = transpile_ok(src);
     assert!(
-        msg.contains("len"),
-        "error should name the unlowerable method `len`, got: {msg}"
+        shell.contains("${#items}"),
+        "expected the runtime length expansion in:\n{shell}"
     );
     assert!(
-        !msg.contains("unknown"),
-        "error must not just restate the old \"unknown\" placeholder: {msg}"
+        !shell.contains("unknown"),
+        "no placeholder may stand in for a value:\n{shell}"
     );
 }
 

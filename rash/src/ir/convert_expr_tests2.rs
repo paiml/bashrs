@@ -135,16 +135,22 @@ fn test_EXPR_VAL_030_method_call_env_args_nth_unwrap_or() {
 
 #[test]
 fn test_EXPR_VAL_031_method_call_unrecognized_falls_to_unknown() {
-    // PMAT-257/GH-306: `.len()` on a `Variable` that is not a known local
-    // array literal has no statically-known length, so it must error
-    // rather than silently produce the placeholder "unknown".
+    // PMAT-258/GH-316: `.len()` on a variable the converter does not know to
+    // be an array now lowers to the POSIX string length `${#var}`, computed at
+    // runtime. A variable it DOES know to be an array takes the count path
+    // instead and never reaches this one, so the joined text's length can
+    // never be reported as an element count.
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::Variable("vec".to_string())),
         method: "len".to_string(),
         args: vec![],
     };
-    let err = convert_let_stmt_err("length", expr);
-    assert!(err.to_string().contains("len"));
+    let ir = convert_let_stmt("length", expr);
+    let val = extract_let_value(&ir);
+    assert!(
+        matches!(val, ShellValue::Glob(ref g) if g == "${#vec}"),
+        "a variable of unknown type takes the string-length spelling, got {val:?}"
+    );
 }
 
 // ===== PositionalArgs =====
