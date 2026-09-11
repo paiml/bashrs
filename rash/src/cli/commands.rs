@@ -147,6 +147,9 @@ pub(super) mod corpus_config_commands;
 #[path = "corpus_config_commands_corpus_2_cov_tests.rs"]
 mod corpus_config_commands_corpus_2_cov_tests;
 #[cfg(test)]
+#[path = "corpus_config_commands_corpus_3_cov_tests.rs"]
+mod corpus_config_commands_corpus_3_cov_tests;
+#[cfg(test)]
 #[path = "corpus_config_commands_cov_tests.rs"]
 mod corpus_config_commands_cov_tests;
 #[path = "corpus_convergence_commands.rs"]
@@ -185,6 +188,9 @@ pub(super) mod corpus_report_commands;
 pub(super) mod corpus_score_print_commands;
 #[path = "corpus_ssb_commands.rs"]
 pub(super) mod corpus_ssb_commands;
+#[cfg(test)]
+#[path = "corpus_ssb_commands_corpus_2_cov_tests.rs"]
+mod corpus_ssb_commands_corpus_2_cov_tests;
 #[cfg(test)]
 #[path = "corpus_ssb_commands_cov_tests.rs"]
 mod corpus_ssb_commands_cov_tests;
