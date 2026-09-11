@@ -1,0 +1,6 @@
+# Dependencies whose latest release is outside the requirement, re-measured for v7.1.0 on 2026-09-11
+# (cargo upgrade -p <crate>@<latest> --incompatible, then cargo check --workspace --all-targets --exclude bashrs-wasm, on the
+#  release worktree; log: docs/audits/logs/PMAT-255/deps-recheck-255.log). Each stays at the newest compatible release.
+sysinfo 0.39.6  stays 0.38.4  error: rustc 1.93.0 is not supported by the following packages: sysinfo@0.39.6 requires rustc 1.95
+renacer 0.11.0  stays 0.9.10  error: failed to select a version for `unicode-width` — all possible versions conflict with previously selected packages
+aprender 0.66.0 stays 0.27.8  error: failed to select a version for `aprender` which could resolve this conflict

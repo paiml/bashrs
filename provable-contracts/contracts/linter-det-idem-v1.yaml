@@ -2,8 +2,11 @@ metadata:
   version: 1.0.0
   verification_level: L5
   description: Provable determinism and idempotency linter contracts (GH-183). DET rules detect non-deterministic constructs
-    ($RANDOM, timestamps, unordered globs, system state). IDEM rules detect non-idempotent operations (mkdir without -p, rm
-    without -f, ln without -sf). Each rule must detect known-bad and not false-positive on known-safe.
+    ($RANDOM, timestamps, unordered globs, system state). DET005 (#232) is split from DET002 - it detects time-dependent
+    control flow (a wall-clock value reaching a branch condition) rather than reproducibility (a wall-clock value reaching
+    a build artifact); the two never fire on the same line, and a duration (elapsed = end - start) fires neither. IDEM
+    rules detect non-idempotent operations (mkdir without -p, rm without -f, ln without -sf). Each rule must detect
+    known-bad and not false-positive on known-safe.
   verification_command: cargo test -p bashrs --lib -- det
   depends_on:
   - parser-soundness-v1
@@ -99,6 +102,87 @@ falsification_tests:
   test: test_PMAT251_gh263_date_to_terminal_is_not_reported
   if_fails: 'Contract violation: DET002 flags a bare `date` that has no
     possible reproducible sink'
+- id: F-DET002-GH232-DURATION-NOT-FLAGGED
+  rule: DET002 does NOT flag a duration - the arithmetic difference of two
+    timestamp captures assigned to a variable that is only printed. Measuring
+    elapsed time is the point of measuring elapsed time (#232)
+  prediction: lint result does NOT contain DET002 for `start=$(date +%s);
+    end=$(date +%s); elapsed=$(( end - start )); echo "$elapsed"`
+  test: test_PMAT255_gh232_d5_duration_neither_rule
+  if_fails: 'Contract violation: DET002 flags a duration computed from two
+    timestamp captures (#232)'
+- id: F-DET005-SOUND
+  rule: DET005 detects a wall-clock value reaching a branch condition (`if`,
+    `elif`, `while`, `until`, a `case` selector, or a `[ ]`/`[[ ]]` test)
+    rather than a build artifact - time-dependent control flow, split out of
+    DET002 (#232)
+  prediction: lint result contains DET005 for `if [ "$(date +%H)" -lt 6 ];
+    then ... fi`, `while [ "$(date +%s)" -lt "$deadline" ]; do ... done`,
+    `case "$(date +%u)" in 6|7) ... esac`, and `[ "$(date +%s)" -gt "$expiry"
+    ] && exit 1`
+  test: 'test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002'
+  if_fails: 'Contract violation: DET005 misses time-dependent control flow (#232)'
+- id: F-DET005-WARNING-SEVERITY
+  rule: DET005 reports at Warning, not Error - unlike a timestamp in an
+    artifact name this is often deliberate (cron-style scripts, backoff
+    loops), and an unactionable Error gets the rule disabled rather than the
+    code fixed (#232)
+  prediction: every DET005 diagnostic has severity warning
+  test: 'test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002'
+  if_fails: 'Contract violation: DET005 fires at a severity other than warning (#232)'
+- id: F-DET005-NO-DOUBLE-REPORT
+  rule: DET005 and DET002 never both fire on the same line - a value that
+    reaches a branch condition and nothing else is Conditional (DET005 only);
+    a value that also reaches an artifact is Reproducible (DET002 only) (#232)
+  prediction: for each of the four DET005 examples, lint result does NOT also
+    contain DET002; for the DET002 artifact example (`echo "$(date)" >
+    VERSION`), lint result does NOT also contain DET005
+  test: 'test_PMAT255_gh232_d1_if_hour_check_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d2_while_deadline_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d3_case_weekday_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d4_expiry_guard_is_det005_warning_not_det002,
+    test_PMAT255_gh232_d6_det002_still_fires_on_artifact_write'
+  if_fails: 'Contract violation: DET002 and DET005 double-report the same line (#232)'
+- id: F-DET005-PRECISE-DURATION
+  rule: DET005 does NOT flag a duration - the same arithmetic-difference
+    exemption that applies to DET002 applies here too, since a duration never
+    reaches a branch condition (#232)
+  prediction: lint result does NOT contain DET005 for `start=$(date +%s);
+    end=$(date +%s); elapsed=$(( end - start )); echo "$elapsed"`
+  test: test_PMAT255_gh232_d5_duration_neither_rule
+  if_fails: 'Contract violation: DET005 flags a duration computed from two
+    timestamp captures (#232)'
+- id: F-DET002-GH265-SHELLCHECK-NAMESPACE-REJECTED
+  rule: A bashrs-native code (e.g. DET002) inside a `# shellcheck disable=`
+    directive is NOT honoured - shellcheck cannot parse a non-SC code there
+    and aborts checking the rest of the file, so bashrs must not honour it
+    either. bashrs reports it (BASHRS001) naming the working `# bashrs
+    disable-line=`/`disable-file=` form (GH-265)
+  prediction: lint result contains DET002 and a BASHRS001 diagnostic naming
+    the bashrs directive form when the only suppression present is `#
+    shellcheck disable=DET002`; a mixed `# shellcheck disable=SC2086,DET002`
+    still suppresses SC2086
+  test: 'test_PMAT255_gh265_shellcheck_directive_does_not_honour_bashrs_code, test_PMAT255_gh265_mixed_shellcheck_directive_splits_codes'
+  if_fails: 'Contract violation: bashrs honours its own codes inside a #
+    shellcheck directive, silently disabling shellcheck for the rest of the
+    file (GH-265)'
+- id: F-DET002-GH265-DISABLE-LINE-PLACEMENT-REPORTED
+  rule: '`# bashrs disable-line=DET002` written on a comment-only line (the
+    line ABOVE the code, not the same line) suppresses nothing - placement
+    semantics are unchanged - and must be reported instead of silently
+    ignored, the same failure mode as #240 (GH-265)'
+  prediction: lint result contains DET002 AND a BASHRS001 diagnostic naming
+    `disable-line` when the directive sits alone on the line above; same-line
+    `disable-line=` and `disable-file=` are unaffected
+  test: 'test_PMAT255_gh265_disable_line_on_preceding_line_is_reported, test_PMAT255_gh265_disable_line_same_line_unaffected, test_PMAT255_gh265_disable_file_unaffected'
+  if_fails: 'Contract violation: a disable-line directive on the wrong line
+    silently does nothing and nothing says why (GH-265)'
 - id: F-DET003-SOUND
   rule: DET003 detects unordered glob in for-loop
   prediction: lint result contains DET003

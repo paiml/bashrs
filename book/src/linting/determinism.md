@@ -6,11 +6,11 @@ Rash includes determinism rules designed to detect non-deterministic patterns in
 
 Determinism linting in Rash focuses on patterns that break reproducibility:
 - Random number generation (`$RANDOM`)
-- Timestamp dependencies (`date`, `$(date)`)
-- Unordered file glob operations (wildcards without sorting)
-- Process ID usage (`$$`, `$PPID`)
-- Hostname dependencies (`hostname`)
-- Network queries for dynamic data
+- Timestamp dependencies reaching a build artifact (`date`, `$(date)`) - DET002
+- Unordered file glob operations (wildcards without sorting) - DET003
+- System-state commands (`df`, `free`, `ps`, ...) - DET004
+- Timestamp dependencies reaching a branch condition (time-dependent control flow) - DET005
+- Network queries for dynamic data (planned) - DET006
 
 All DET rules are **Error or Warning severity** and should be addressed for production scripts.
 
@@ -25,9 +25,11 @@ Non-deterministic scripts cause:
 
 **Deterministic = Testable = Reliable**
 
-## Implemented Rules (DET001-DET003)
+## Implemented Rules (DET001-DET005)
 
-bashrs currently implements 3 determinism rules with comprehensive testing. The remaining rules (DET004-DET006) are planned for future releases.
+bashrs currently implements DET001, DET002, DET003 and DET005 with comprehensive testing. DET004 covers system-state
+commands (`df`, `free`, `ps`, ...) - see `bashrs explain DET004`. DET006 (network queries for dynamic data) is planned
+for a future release.
 
 ## DET001: Non-deterministic $RANDOM Usage
 
@@ -190,7 +192,20 @@ echo "now: $(date +%s)"
 echo "[$(date +%s)] warn" >&2
 echo "$(date +%s)" > /dev/null
 
-# 3. Comparisons and arithmetic - no artifact is produced
+# 3a. A duration - the arithmetic difference of two captures - is not a
+# reproducibility defect OR a scheduling hazard (DET005 doesn't flag it
+# either, see below). Measuring elapsed time is the point of measuring
+# elapsed time.
+START=$(date +%s)
+sleep 1
+END=$(date +%s)
+ELAPSED=$(( END - START ))
+echo "$ELAPSED"
+
+# 3b. A comparison used to be silently allowed here too. Since #232 it is
+# DET005's territory instead (time-dependent control flow), not DET002's -
+# see the DET005 section below. DET002 still stays silent on it, so the two
+# rules never double-report the same line.
 NOW=$(date +%s)
 if [ "$NOW" -gt 100 ]; then echo yes; fi
 
@@ -548,34 +563,66 @@ Replace with deterministic alternatives:
 LOCKFILE="/tmp/myapp-${USER}-${VERSION}.lock"
 ```
 
-## DET005: Hostname Dependencies (Planned)
+## DET005: Time-dependent Control Flow
 
-**Status**: Not yet implemented
+**Severity**: Warning
 
-### What it Will Detect
+**Split from DET002 - [GH-232](https://github.com/paiml/bashrs/issues/232).**
 
-Scripts that depend on `hostname` command:
+### What it Detects
+
+A wall-clock value (`date`) that reaches a **branch condition** - `if`/`elif`/`while`/`until`, a `case` selector, or a
+bare `[ ]`/`[[ ]]`/`((` test - rather than a build artifact:
+
 ```bash
-# Non-deterministic across hosts
-SERVER_ID=$(hostname)
-LOG_FILE="/var/log/app-${SERVER_ID}.log"
+if [ "$(date +%H)" -lt 6 ]; then echo early; fi          # DET005
+while [ "$(date +%s)" -lt "$deadline" ]; do sleep 1; done  # DET005
+case "$(date +%u)" in 6|7) echo weekend ;; esac            # DET005
+[ "$(date +%s)" -gt "$expiry" ] && exit 1                  # DET005
 ```
 
-### Why This Will Matter
+### Why DET005 is a Different Rule From DET002
 
-Scripts that depend on hostname break when:
-- Moving between environments (dev, staging, prod)
-- Running in containers with random hostnames
-- Hostname changes during system reconfiguration
+GH-230 correctly stopped DET002 from firing on a timestamp that is only ever *compared* - nothing there reaches a build
+artifact, so it is not a reproducibility defect. But a script that branches on the wall clock is a different problem:
 
-### Planned Fix
+- it behaves differently depending on **when** it runs, so it is not testable by replay;
+- it is a classic source of "works on my machine, fails at 00:00 UTC" and of tests that pass for eleven months;
+- the DET002 remedy (`SOURCE_DATE_EPOCH`) does not apply - there is no artifact to make reproducible, and injecting a
+  fixed clock value would just replace one hazard with a hidden one.
 
-Use explicit configuration:
+DET002 and DET005 consume the same sink analysis (`linter::timestamp_flow`) with different, mutually exclusive
+polarities: a timestamp reaching a branch condition and nothing stronger is `SinkClass::Conditional` (DET005 only); a
+timestamp reaching an artifact is `SinkClass::Reproducible` (DET002 only, even if it was also compared earlier in the
+script). **The two rules never fire on the same line.**
+
+### What it does NOT flag
+
 ```bash
-# Deterministic - passed as parameter
-SERVER_ID="${1:?Error: SERVER_ID required}"
-LOG_FILE="/var/log/app-${SERVER_ID}.log"
+# A duration - the point of measuring elapsed time is measuring elapsed time.
+# Neither DET002 nor DET005 flags this, in either the `$(( ))` or `bc` form.
+START=$(date +%s)
+END=$(date +%s)
+ELAPSED=$(( END - START ))
+echo "$ELAPSED"
 ```
+
+### Decision: relative-deadline timeout loops
+
+#232 left one case explicitly debatable: a timeout/backoff loop whose condition compares against a deadline computed
+earlier in the *same* script, e.g. `deadline=$(( $(date +%s) + 30 )); while [ "$(date +%s)" -lt "$deadline" ]; do ...;
+done`. **bashrs reports DET005 on this case, same as any other wall-clock branch condition.** The loop's *termination*
+still depends on wall-clock time - that dependency is exactly the hazard DET005 names, and a hung or racing test because
+a bounded retry loop ran long is a real, observed failure mode. This is different from a duration computation, which
+never branches on the clock at all and so is never a DET005 candidate in the first place. If the timeout is deliberate
+(a genuine backoff/retry policy), suppress with `# bashrs disable-line=DET005` and say so - Warning severity exists
+precisely so that decision stays with the author instead of being forced by an unactionable Error (#227/#230's lesson).
+
+### Auto-fix
+
+**Not auto-fixable** - the remedy is design-level: inject the deadline as an explicit parameter (so it is an input, not
+a hidden dependency on `date`), or accept the non-determinism deliberately (cron-style scheduling, backoff loops) and
+suppress with `# bashrs disable-line=DET005`.
 
 ## DET006: Network Queries for Dynamic Data (Planned)
 

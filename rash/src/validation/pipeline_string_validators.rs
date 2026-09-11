@@ -4,11 +4,6 @@ use crate::models::error::{RashError, RashResult};
 impl super::pipeline::ValidationPipeline {
     pub(crate) fn check_dangerous_patterns(s: &str) -> RashResult<()> {
         let dangerous_patterns = [
-            ("$(", "Command substitution detected in string literal"),
-            (
-                "`",
-                "Backtick command substitution detected in string literal (SC2006)",
-            ),
             ("&& ", "AND operator detected in string literal"),
             ("|| ", "OR operator detected in string literal"),
             (
@@ -25,6 +20,44 @@ impl super::pipeline::ValidationPipeline {
         ];
 
         for (pattern, message) in &dangerous_patterns {
+            if s.contains(pattern) {
+                return Err(RashError::ValidationError(format!(
+                    "{}: '{}'",
+                    message,
+                    s.chars().take(50).collect::<String>()
+                )));
+            }
+        }
+        Ok(())
+    }
+
+    /// GH-294: `$(` and a backtick are only *live* shell metacharacters when
+    /// the literal is emitted somewhere other than a lone single-quoted word
+    /// — e.g. raw-concatenated inside a double-quoted `__format_concat`
+    /// string, or as an `exec()`/`capture()` argument (checked separately by
+    /// [`Self::validate_string_literal_in_exec`]).
+    ///
+    /// A standalone Rust string literal (`let s = "...";`, a bare
+    /// `println!("{}", "...")` argument, an array element, ...) always
+    /// lowers to `ShellValue::String` and is emitted by
+    /// `escape_shell_string` (`rash/src/emitter/escape.rs`): any byte outside
+    /// its small "safe unquoted" set — which does not include `$` or `` ` ``
+    /// — forces the whole word into single quotes, where both are inert.
+    /// Rejecting it before emission on content alone was a false positive
+    /// (GH-294); this check exists for the one caller — `__format_concat`
+    /// literal parts — where the emitter genuinely embeds the text raw
+    /// inside a double-quoted word (`append_concat_part`,
+    /// `rash/src/emitter/posix_emit_value.rs`).
+    pub(crate) fn check_substitution_patterns(s: &str) -> RashResult<()> {
+        let patterns = [
+            ("$(", "Command substitution detected in string literal"),
+            (
+                "`",
+                "Backtick command substitution detected in string literal (SC2006)",
+            ),
+        ];
+
+        for (pattern, message) in &patterns {
             if s.contains(pattern) {
                 return Err(RashError::ValidationError(format!(
                     "{}: '{}'",
@@ -151,15 +184,45 @@ impl super::pipeline::ValidationPipeline {
         // GH-148: capture() arguments are also shell commands (may contain pipes)
         // Skip shell operator validation (|, &&, ||) for these but keep shellshock protection
         let is_exec_context = name == "exec" || name == "capture";
+        // GH-294: `__format_concat` parts are raw-concatenated inside one
+        // double-quoted word (see `check_substitution_patterns`), so a
+        // literal part there must still be checked for `$(`/backtick.
+        let is_concat_context = name == "__format_concat";
 
         for arg in args {
             if is_exec_context {
                 self.validate_expr_in_exec_context(arg)?;
+            } else if is_concat_context {
+                self.validate_expr_in_concat_context(arg)?;
             } else {
                 self.validate_expr(arg)?;
             }
         }
         Ok(())
+    }
+
+    /// GH-294: validate a `__format_concat` argument. A literal part is
+    /// checked with [`Self::check_substitution_patterns`] in addition to the
+    /// normal literal checks, because it is emitted raw inside a
+    /// double-quoted word. Anything else recurses normally — its own
+    /// emission already decides its quoting.
+    pub(crate) fn validate_expr_in_concat_context(
+        &self,
+        expr: &crate::ast::Expr,
+    ) -> RashResult<()> {
+        use crate::ast::{restricted::Literal, Expr};
+
+        match expr {
+            Expr::Literal(Literal::Str(s)) => self.validate_string_literal_concat(s),
+            _ => self.validate_expr(expr),
+        }
+    }
+
+    /// A `__format_concat` literal part: the normal standalone checks, plus
+    /// the `$(`/backtick check that a standalone literal is exempt from.
+    pub(crate) fn validate_string_literal_concat(&self, s: &str) -> RashResult<()> {
+        self.validate_string_literal(s)?;
+        Self::check_substitution_patterns(s)
     }
 
     /// Validate expression in exec() context - allows shell operators but blocks shellshock

@@ -46,6 +46,33 @@ pub enum WordRole {
     RedirectTarget,
 }
 
+/// What kind of `$`-construct an [`Expansion`] describes.
+///
+/// PMAT-250: command substitutions used to be invisible outside this module
+/// (only their body byte-range was tracked, in the private `RawWord::subs`,
+/// purely to drive [`collect`]'s recursion). A rule that needed the position
+/// of the `$(`/backtick *marker itself* had no choice but to reimplement its
+/// own quote-aware scan (see `rash/src/linter/rules/sc2046.rs`'s history).
+/// This variant lifts that marker into the same `Expansion` type so a rule
+/// can ask `shell_words` instead. It is carried on
+/// [`ShellWord::substitutions`], a field kept separate from
+/// [`ShellWord::expansions`] deliberately: `expansions` (variable
+/// expansions only) is read by [`CmdState::role_for`] and
+/// [`command_name_of`] to decide whether a word resolves to a literal name,
+/// and several other rules (SC2047, SEC002) filter `expansions` expecting
+/// only `$NAME`/`${NAME}` entries. Mixing command-substitution markers into
+/// that same list would silently change those decisions for any word that
+/// happens to contain both literal text and a substitution.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ExpansionKind {
+    /// A `$NAME` or `${NAME}` variable expansion.
+    Variable,
+    /// A `$( … )` (`false`) or `` ` … ` `` (`true`) command substitution
+    /// marker. Nested substitutions (`$(echo $(date))`) each get their own
+    /// entry, at their own nesting level's quoted status.
+    CommandSubstitution { backtick: bool },
+}
+
 /// One `$`-expansion inside a word.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Expansion {
@@ -54,17 +81,23 @@ pub struct Expansion {
     /// 1-indexed byte column one past the end of the expansion text.
     /// `$URL` in `curl $URL` gives `col = 6`, `end_col = 10`.
     pub end_col: usize,
-    /// The expansion exactly as written: `$URL`, `${URL}`, `${URL:-x}`.
+    /// The expansion exactly as written: `$URL`, `${URL}`, `${URL:-x}`,
+    /// `$(cmd)`, `` `cmd` ``.
     /// Quoting this text is always a semantics-preserving fix.
     pub text: String,
-    /// Variable name without `$`, braces or modifiers: `URL` for all three above.
+    /// Variable name without `$`, braces or modifiers: `URL` for all three
+    /// variable examples above. Empty for a `CommandSubstitution`.
     pub name: String,
-    /// True for the `${NAME…}` form.
+    /// True for the `${NAME…}` form. Always false for a `CommandSubstitution`.
     pub braced: bool,
-    /// True when the `$` sits inside `'…'` or `"…"` **at its own nesting level**.
-    /// A command substitution resets quoting (POSIX 2.6.3), so the `$url` in
-    /// `x="$(curl $url)"` is NOT quoted while the one in `x="$(curl "$url")"` is.
+    /// True when the `$`/backtick sits inside `'…'` or `"…"` **at its own
+    /// nesting level**. A command substitution resets quoting (POSIX 2.6.3),
+    /// so the `$url` in `x="$(curl $url)"` is NOT quoted while the one in
+    /// `x="$(curl "$url")"` is; likewise the `$(...)` in
+    /// `echo "$(date)"` is itself quoted.
     pub quoted: bool,
+    /// Which construct this entry describes.
+    pub kind: ExpansionKind,
 }
 
 /// One shell word: a maximal run of characters between unquoted blanks.
@@ -80,8 +113,15 @@ pub struct ShellWord {
     pub literal: String,
     /// The word's position within its simple command.
     pub role: WordRole,
-    /// Expansions in this word, in ascending column order.
+    /// Variable (`$NAME`/`${NAME}`) expansions in this word, in ascending
+    /// column order. Never contains a `CommandSubstitution` — see
+    /// [`ShellWord::substitutions`] for those (PMAT-250).
     pub expansions: Vec<Expansion>,
+    /// Command-substitution markers (`$( … )`, `` ` … ` ``) in this word, in
+    /// ascending column order. Kept separate from [`ShellWord::expansions`]
+    /// so existing consumers of that field (role resolution, SC2047, SEC002)
+    /// are unaffected by PMAT-250.
+    pub substitutions: Vec<Expansion>,
 }
 
 /// A simple command: the words between two control operators.
@@ -204,6 +244,9 @@ struct RawWord {
     end: usize,
     literal: Vec<u8>,
     expansions: Vec<Expansion>,
+    /// Command-substitution marker `Expansion`s (PMAT-250), kept separate
+    /// from `expansions` for the reasons on [`ExpansionKind`].
+    substitutions: Vec<Expansion>,
     /// Byte ranges (into the lexer's `text`) of command-substitution bodies.
     subs: Vec<(usize, usize)>,
 }
@@ -372,11 +415,13 @@ impl<'a> WordLexer<'a> {
             (Some(b'('), _) => {
                 let end = find_close(self.bytes, d + 1, b'(', b')');
                 self.push_sub(d + 2, end);
+                self.add_sub_expansion(d, end, false);
                 self.i = end + 1;
             }
             (Some(b'{'), _) => {
                 let end = find_close(self.bytes, d + 1, b'{', b'}');
                 self.push_brace(d, end);
+                self.scan_brace_substitutions(d + 2, end.min(self.bytes.len()));
                 self.i = end + 1;
             }
             (Some(&c), _) if is_name_byte(c) => self.read_name(d),
@@ -403,7 +448,59 @@ impl<'a> WordLexer<'a> {
         }
         let end = j.min(self.bytes.len());
         self.push_sub(start + 1, end);
+        self.add_sub_expansion(start, end, true);
         self.i = end + 1;
+    }
+
+    /// PMAT-250 review: a command substitution inside a `${ … }` body
+    /// (`${var:-$(date)}`) is expanded and word-split with the word, and the
+    /// scanner SC2046 used before this module owned substitutions saw it.
+    /// Record it, skipping any quoted part of the body, where it is not split.
+    fn scan_brace_substitutions(&mut self, from: usize, to: usize) {
+        let mut k = from;
+        let mut quote: Option<u8> = None;
+        while k < to {
+            let b = self.bytes[k];
+            if let Some(q) = quote {
+                k += if b == b'\\' && q == b'"' { 2 } else { 1 };
+                if b == q {
+                    quote = None;
+                }
+                continue;
+            }
+            k = match b {
+                b'\'' | b'"' => {
+                    quote = Some(b);
+                    k + 1
+                }
+                b'\\' => k + 2,
+                b'$' => self.brace_dollar(k, to),
+                b'`' => self.brace_backtick(k, to),
+                _ => k + 1,
+            };
+        }
+    }
+
+    /// A `$( … )` (not `$(( … ))`) at `k` inside a brace body: record it and return the index after it.
+    fn brace_dollar(&mut self, k: usize, to: usize) -> usize {
+        let is_sub = self.bytes.get(k + 1) == Some(&b'(') && self.bytes.get(k + 2) != Some(&b'(');
+        if !is_sub {
+            return k + 1;
+        }
+        let end = find_close(self.bytes, k + 1, b'(', b')').min(to);
+        self.add_sub_expansion(k, end, false);
+        end + 1
+    }
+
+    /// A backtick substitution at `k` inside a brace body: record it and return the index after it.
+    fn brace_backtick(&mut self, k: usize, to: usize) -> usize {
+        let mut j = k + 1;
+        while j < to && self.bytes[j] != b'`' {
+            j += if self.bytes[j] == b'\\' { 2 } else { 1 };
+        }
+        let end = j.min(to);
+        self.add_sub_expansion(k, end, true);
+        end + 1
     }
 
     fn read_name(&mut self, dollar: usize) {
@@ -442,6 +539,7 @@ impl<'a> WordLexer<'a> {
                 name,
                 braced,
                 quoted,
+                kind: ExpansionKind::Variable,
             });
         }
     }
@@ -452,6 +550,32 @@ impl<'a> WordLexer<'a> {
         }
         if let Some(w) = self.cur.as_mut() {
             w.subs.push((start, end));
+        }
+    }
+
+    /// Record a command-substitution *marker* as an `Expansion` (PMAT-250).
+    /// `marker_start` is the byte index of the opening `$`/backtick;
+    /// `close` is the index of the matching `)`/backtick, or `bytes.len()`
+    /// when unterminated (same convention as `push_brace`'s `close`).
+    fn add_sub_expansion(&mut self, marker_start: usize, close: usize, backtick: bool) {
+        let end = if close < self.bytes.len() {
+            close + 1
+        } else {
+            close
+        };
+        let quoted = self.quote == Quote::Double;
+        let text = self.text.get(marker_start..end).unwrap_or("").to_string();
+        let (col, end_col) = (self.base + marker_start + 1, self.base + end + 1);
+        if let Some(w) = self.cur.as_mut() {
+            w.substitutions.push(Expansion {
+                col,
+                end_col,
+                text,
+                name: String::new(),
+                braced: false,
+                quoted,
+                kind: ExpansionKind::CommandSubstitution { backtick },
+            });
         }
     }
 
@@ -696,6 +820,7 @@ fn to_shell_word(text: &str, base: usize, w: &RawWord) -> ShellWord {
         literal: String::from_utf8_lossy(&w.literal).into_owned(),
         role: WordRole::Argument,
         expansions: w.expansions.clone(),
+        substitutions: w.substitutions.clone(),
     }
 }
 
@@ -1090,5 +1215,86 @@ mod tests {
         for x in &e {
             assert_eq!((x.col, x.end_col), (14, 18));
         }
+    }
+}
+
+/// PMAT-250 (contracts/linter-lexer-context-v1.yaml F-SW-PMAT250-*): command
+/// substitutions ($( ), nested $( $( ) ), backticks, including inside double
+/// quotes) become their own `Expansion` kind on `ShellWord::substitutions`,
+/// so a rule needing their position no longer needs a private scanner.
+#[cfg(test)]
+mod tests_pmat250 {
+    use super::*;
+
+    fn subs(line: &str) -> Vec<Expansion> {
+        simple_commands(line)
+            .into_iter()
+            .flat_map(|c| c.words.into_iter().flat_map(|w| w.substitutions))
+            .collect()
+    }
+
+    #[test]
+    fn test_PMAT255_pmat250_command_substitution_is_an_expansion() {
+        // Plain `$(...)`.
+        let e = subs("echo $(date)");
+        assert_eq!(e.len(), 1);
+        assert_eq!(e[0].text, "$(date)");
+        assert!(!e[0].quoted);
+        assert_eq!(
+            e[0].kind,
+            ExpansionKind::CommandSubstitution { backtick: false }
+        );
+
+        // Backtick form.
+        let e = subs("echo `date`");
+        assert_eq!(e.len(), 1);
+        assert_eq!(e[0].text, "`date`");
+        assert_eq!(
+            e[0].kind,
+            ExpansionKind::CommandSubstitution { backtick: true }
+        );
+    }
+
+    #[test]
+    fn test_PMAT255_pmat250_nested_command_substitution_each_get_an_entry() {
+        // The outer word carries the outer marker; `simple_commands` also
+        // recurses into the body as its own command, whose own word carries
+        // the inner marker - so collecting over every command's words finds
+        // both, exactly mirroring how SC2046 already expected two offences.
+        let e = subs("echo $(echo $(date))");
+        assert_eq!(e.len(), 2);
+        assert!(e.iter().any(|x| x.text == "$(echo $(date))"));
+        assert!(e.iter().any(|x| x.text == "$(date)"));
+    }
+
+    #[test]
+    fn test_PMAT255_pmat250_quoted_inside_double_quotes() {
+        let e = subs(r#"echo "$(date)""#);
+        assert_eq!(e.len(), 1);
+        assert!(e[0].quoted, "a $(...) inside \"...\" is itself quoted");
+
+        // The unquoted twin stays unquoted.
+        let e = subs("echo $(date)");
+        assert!(!e[0].quoted);
+    }
+
+    #[test]
+    fn test_PMAT255_pmat250_arithmetic_expansion_is_not_a_substitution() {
+        // $(( ... )) must stay excluded, same as the pre-existing $NAME rule.
+        assert!(subs("echo $((x + 1))").is_empty());
+    }
+
+    #[test]
+    fn test_PMAT255_pmat250_variable_expansions_are_unaffected() {
+        // The pre-existing `expansions` field must still carry only $NAME /
+        // ${NAME}, never a command-substitution marker.
+        let cmds = simple_commands("echo $(date) $USER");
+        let word = &cmds[0].words[1];
+        assert_eq!(word.substitutions.len(), 1);
+        assert_eq!(word.expansions.len(), 0);
+        let user_word = &cmds[0].words[2];
+        assert_eq!(user_word.expansions.len(), 1);
+        assert_eq!(user_word.expansions[0].name, "USER");
+        assert_eq!(user_word.substitutions.len(), 0);
     }
 }

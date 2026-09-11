@@ -222,13 +222,20 @@ fn test_GH230_classify_pipeline_head_is_not_the_sink() {
     );
 }
 
+// #232: a comparison is a branch condition, not merely benign - it is
+// time-dependent control flow, DET005's territory. `SinkClass::Conditional`
+// is still excluded from DET002 (same as `Benign` was), so this is a
+// reclassification, not a behavioural regression for DET002.
 #[test]
-fn test_GH230_classify_comparisons_are_benign() {
+fn test_PMAT255_gh232_classify_comparisons_are_conditional() {
     assert_eq!(
         class_of("if [ \"$TS\" -gt 100 ]; then", "TS"),
-        SinkClass::Benign
+        SinkClass::Conditional
     );
-    assert_eq!(class_of("[ \"$TS\" -gt 100 ]", "TS"), SinkClass::Benign);
+    assert_eq!(
+        class_of("[ \"$TS\" -gt 100 ]", "TS"),
+        SinkClass::Conditional
+    );
 }
 
 // A condition is Benign for the *condition*. The body on the same physical
@@ -246,13 +253,18 @@ fn test_GH230_classify_oneline_condition_does_not_speak_for_the_body() {
         ),
         SinkClass::Reproducible
     );
+    // #232: the condition contributes Conditional; the print contributes
+    // Benign. The stronger of the two (Conditional, since the value does
+    // reach a branch condition here) wins.
     assert_eq!(
         class_of("if [ -n \"$TS\" ]; then echo \"$TS\"; fi", "TS"),
-        SinkClass::Benign
+        SinkClass::Conditional
     );
+    // #232: the condition alone (no artifact-writing body) is Conditional,
+    // the strongest verdict a pure comparison can reach.
     assert_eq!(
         class_of("while [ \"$TS\" -lt 5 ]; do sleep 1; done", "TS"),
-        SinkClass::Benign
+        SinkClass::Conditional
     );
 }
 

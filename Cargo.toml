@@ -79,7 +79,7 @@ itertools = "0.15"
 # unified nothing.
 
 [workspace.package]
-version = "7.0.4"
+version = "7.1.0"
 edition = "2021"
 rust-version = "1.82"
 authors = ["Pragmatic AI Labs"]
@@ -190,7 +190,9 @@ panic = "abort"           # Remove panic unwinding
 strip = true              # Strip all symbols
 
 [profile.dev]
-panic = "abort"
+# #295: no `panic = "abort"` here. Built in one invocation, `cargo build --workspace --all-targets`
+# unifies dev-dependencies (base64 via jugar-probar) across the lib, compiled with abort, and
+# bashrs-wasm's probar test harness, which needs unwind, and refuses to compile. Release keeps abort.
 debug = true
 opt-level = 0
 

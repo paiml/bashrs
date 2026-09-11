@@ -8,6 +8,11 @@
 //!
 //! The destination analysis lives in [`crate::linter::timestamp_flow`].
 //!
+//! **Split (#232)**: a timestamp that reaches only a branch condition
+//! (`SinkClass::Conditional`) is time-dependent control flow, not a
+//! reproducibility defect - see `DET005` instead. The two never fire on the
+//! same line.
+//!
 //! **Auto-fix**: UNSAFE - the remedy needs human judgement, so suggestions only.
 //!
 //! ## Examples
@@ -41,7 +46,7 @@ const LOG_ADVICE: &str = "If it is only for logging, send it to an append-only s
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     for u in analyze(source) {
-        if u.class != SinkClass::Benign {
+        if matches!(u.class, SinkClass::Unknown | SinkClass::Reproducible) {
             result.add(build_diagnostic(&u));
         }
     }
@@ -62,7 +67,12 @@ fn build_diagnostic(u: &TimestampUse) -> Diagnostic {
 
 /// Message text, naming the sink line when we proved one.
 fn message_for(u: &TimestampUse) -> String {
-    match (u.class, u.sink_line, u.sink_text.as_deref(), u.var.as_deref()) {
+    match (
+        u.class,
+        u.sink_line,
+        u.sink_text.as_deref(),
+        u.var.as_deref(),
+    ) {
         (SinkClass::Reproducible, Some(l), Some(t), _) => format!(
             "Timestamp reaches reproducible output at line {l}: `{}` - the artifact's name or \
              contents change on every run. {REMEDY}",

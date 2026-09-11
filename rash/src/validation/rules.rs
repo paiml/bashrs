@@ -193,9 +193,30 @@ impl Validate for ConditionalExpression {
     }
 }
 
+/// GH-294: a backtick is a command substitution only where the shell expands
+/// it — outside single quotes and not escaped with a backslash. Inside `'...'`
+/// it is inert text, and `\`` inside `"..."` is a literal backtick.
+fn has_live_backtick(command: &str) -> bool {
+    let (mut in_single, mut in_double, mut escaped) = (false, false, false);
+    for c in command.chars() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match c {
+            '\\' if !in_single => escaped = true,
+            '\'' if !in_double => in_single = !in_single,
+            '"' if !in_single => in_double = !in_double,
+            '`' if !in_single => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
 #[allow(clippy::result_large_err)]
 pub fn validate_backticks(command: &str) -> Result<(), ValidationError> {
-    if command.contains('`') {
+    if has_live_backtick(command) {
         Err(ValidationError {
             rule: "SC2006",
             severity: Severity::Style,

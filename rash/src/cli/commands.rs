@@ -223,6 +223,8 @@ pub fn execute_command(cli: Cli) -> Result<()> {
         } else {
             tracing::Level::INFO
         })
+        // GH-301: logs go to stderr; stdout carries only the requested output (--format json is one document).
+        .with_writer(std::io::stderr)
         .finish();
     tracing::subscriber::set_global_default(subscriber)
         .map_err(|e| Error::Internal(format!("Failed to initialize logging: {e}")))?;

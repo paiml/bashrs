@@ -56,6 +56,10 @@ mod binary_ops_coverage_tests;
 #[path = "ir_pattern_tests.rs"]
 mod ir_pattern_tests;
 
+#[cfg(test)]
+#[path = "pmat255_gh293_tests.rs"]
+mod pmat255_gh293_tests;
+
 pub use effects::{Effect, EffectSet};
 pub use shell_ir::{Command, ShellExpression, ShellIR, ShellValue};
 

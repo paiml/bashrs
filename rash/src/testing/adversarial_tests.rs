@@ -28,6 +28,38 @@ fn assert_transpiles_ok(source: &str, description: &str) {
     }
 }
 
+/// GH-294: the script with the contents of every single-quoted string removed —
+/// the only text the shell can still expand. Double-quoted text stays: `$( )`
+/// runs there.
+fn live_text(script: &str) -> String {
+    let mut out = String::with_capacity(script.len());
+    let (mut in_single, mut in_double, mut escaped) = (false, false, false);
+    for c in script.chars() {
+        if escaped {
+            escaped = false;
+            out.push(c);
+            continue;
+        }
+        match c {
+            '\\' if !in_single => {
+                escaped = true;
+                out.push(c);
+            }
+            '\'' if !in_double => {
+                in_single = !in_single;
+                out.push(' ');
+            }
+            '"' if !in_single => {
+                in_double = !in_double;
+                out.push(c);
+            }
+            _ if in_single => {}
+            _ => out.push(c),
+        }
+    }
+    out
+}
+
 /// Helper to test if transpilation correctly rejects malicious input
 fn assert_rejects_malicious(source: &str, attack_description: &str) {
     let config = Config::default();
@@ -48,9 +80,11 @@ fn assert_rejects_malicious(source: &str, attack_description: &str) {
                 "$(wget",
             ];
 
+            // GH-294: text inside single quotes is inert; an attack string there is printed, not run.
+            let live = live_text(&script);
             for pattern in dangerous_patterns {
                 assert!(
-                    !script.contains(pattern),
+                    !live.contains(pattern),
                     "{}: Dangerous pattern '{}' found in output:\n{}",
                     attack_description,
                     pattern,

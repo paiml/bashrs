@@ -105,6 +105,26 @@ falsification_tests:
   prediction: output contains $(whoami), no sh -c wrapper
   test: 'Given input, verify: output contains $(whoami), no sh -c wrapper'
   if_fails: 'Contract violation: capture() without pipes uses direct $(cmd) form'
+- id: F-CORE-012
+  rule: 'GH-294: a string literal that the emitter quotes single-quoted is not
+    refused for holding an inert backtick, $( ) or $VAR — those bytes never
+    expand inside single quotes in any POSIX shell'
+  prediction: 'let s = "a `b` c"; println!("{}", s) transpiles successfully and
+    the emitted script prints ''a `b` c'' verbatim under dash and sh'
+  test: 'Given input, verify: transpile succeeds and the script''s stdout under
+    dash equals the literal bytes'
+  if_fails: 'Contract violation: transpilation refuses a literal whose emitted
+    (single-quoted) form is inert, over-applying the SC2006/command-substitution
+    check pre-emission instead of at the quoted-output stage (GH-294)'
+- id: F-CORE-013
+  rule: 'GH-294: exec()/capture() string arguments hold live shell text, so a
+    backtick or $( ) there stays refused — this is the true-positive case that
+    the GH-294 fix must not weaken'
+  prediction: 'exec("echo `date`") and exec("echo $(date)") both still fail
+    transpile validation'
+  test: 'Given input, verify: transpile returns Err for both exec() strings'
+  if_fails: 'Contract violation: GH-294 fix over-corrected and stopped blocking
+    live command substitution inside exec()/capture() arguments'
 kani_harnesses:
 - id: KANI-TRANSPILER_CORE-001
   obligation: Output passes shellcheck -s sh

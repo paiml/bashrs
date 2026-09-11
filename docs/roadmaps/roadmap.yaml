@@ -2056,11 +2056,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'lint SC2105 false positive: break inside a single-line for/while loop reported as ''only valid in loops'''
-  status: planned
+  status: completed
   priority: medium
   assigned_to: noahgift
   created: 2026-09-02T16:21:38Z
-  updated: 2026-09-10T20:05:41Z
+  updated: 2026-09-11T01:31:58.221080888+00:00
   spec: null
   acceptance_criteria:
   - 'bashrs 7.0.1 `bashrs lint` reports SC2105 for a break that IS inside a loop when the whole loop is written on one line. Minimal repro, four variants: (v1) ''for m in a b; do [[ $m == b ]] && { x=1; break; }; done'' -> SC2105 error; (v2) ''for m in a b; do if [[ $m == b ]]; then x=1; break; fi; done'' -> SC2105 error (two errors); (v3) same as v2 split across lines -> clean; (v4) same as v1 split across lines -> clean. So the checker''s loop-nesting context is line-scoped, not AST-scoped. Found 2026-09-02 linting ~/.claude/hooks/xpile-stop-guard.sh (infra PMAT-225); worked around by reflowing the loop, which is exactly the routing-around the dogfood doctrine forbids — the fix belongs here, with v1..v4 as fixtures (per form VARIANT, not per form).'
@@ -2173,11 +2173,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'shell_words: expose command-substitution expansions ($( … ) and backticks) so SC2046 can drop its local balanced-paren scanner'
-  status: planned
+  status: completed
   priority: low
   assigned_to: noahgift
   created: 2026-09-10T07:39:07Z
-  updated: 2026-09-10T20:05:41Z
+  updated: 2026-09-11T01:35:04.997211955+00:00
   spec: null
   acceptance_criteria:
   - 'Follow-up from PMAT-248 phase 2: shell_words::Expansion tracks only $NAME/${NAME}, so the SC2046 rewrite (fix for #237/#262) carries a private scanner mirroring shell_words'' find_close/read_backtick/skip_quoted. Lift command substitutions into the shared analysis and delete the duplicate; SC2006/SC2099 (backtick style rules) can then use it too.'
@@ -2234,7 +2234,7 @@ roadmap:
   priority: medium
   assigned_to: noahgift
   created: 2026-09-10T15:33:45Z
-  updated: 2026-09-10T20:05:41Z
+  updated: 2026-09-11T01:29:39Z
   spec: docs/specifications/pr-dogfood-parity-forjar.md
   acceptance_criteria:
   - 'Research (this session): docs/specifications/pr-dogfood-parity-forjar.md — eleven measured gaps against ../forjar (quorum receipt + gate + CI mirror, evidence rules, CRUX per release + gate H, ten mechanical dogfood gates, harness gate A, releases.yaml + gate T + release-goal.yml, release-audit.yml, publish-from-tag, repo-named skill, falsification tests for the gates), a four-lane mapping, a seven-phase plan with an acceptance command per phase, and the agy /teamwork review of the document recorded in docs/audits/quorum-PMAT-253-teamwork.json.'
@@ -2245,7 +2245,7 @@ roadmap:
   labels:
   - kind:code
   - release:v7.2.0
-  notes: 'orch-basis:operator — user wrote, verbatim: "in parallel ensure we are using a PR style and dogfood style like ../forjar (i.e. CRUX, quorum).  file ticket and research and then have "agy /teamwork review"". Filed during the PMAT-251 session (v7.0.4); research and the teamwork review are this session''s deliverable, implementation is scheduled with 7.1.0. | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.2.0 for phases 1a-1c, 2, 3b, 4a, 4b, 6, 7a, 7b; phases 3a and 5 ship in v7.1.0 under PMAT-255. orch:fable removed: model-gate refuses the ticket for every model because its basis token `operator` is not in the skill''s vocabulary; the default orchestrator (opus) runs it.'
+  notes: 'orch-basis:operator — user wrote, verbatim: "in parallel ensure we are using a PR style and dogfood style like ../forjar (i.e. CRUX, quorum).  file ticket and research and then have "agy /teamwork review"". Filed during the PMAT-251 session (v7.0.4); research and the teamwork review are this session''s deliverable, implementation is scheduled with 7.1.0. | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.2.0 for phases 1a-1c, 2, 3b, 4a, 4b, 6, 7a, 7b; phases 3a and 5 ship in v7.1.0 under PMAT-255. orch:fable removed: model-gate refuses the ticket for every model because its basis token `operator` is not in the skill''s vocabulary; the default orchestrator (opus) runs it. | PMAT-255 (v7.1.0, 2026-09-11): shipped phase 3a''s gates D, G and K (gate B waits on the operator''s decision 4) and phase 5 (scripts/publish-from-tag.sh and the release.yml wait on the sparse index); the remaining phases stay release:v7.2.0.'
 - id: PMAT-254
   github_issue: null
   item_type: task

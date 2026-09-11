@@ -1,6 +1,7 @@
 use crate::models::error::RashResult;
 use std::fmt;
 
+pub(crate) mod exec_flow;
 pub mod pipeline;
 mod pipeline_string_validators;
 pub mod rules;
@@ -19,6 +20,10 @@ mod pipeline_coverage_tests;
 #[cfg(test)]
 #[path = "pipeline_coverage_tests2.rs"]
 mod pipeline_coverage_tests2;
+
+#[cfg(test)]
+#[path = "pmat255_gh294_tests.rs"]
+mod pmat255_gh294_tests;
 
 #[derive(
     Debug,
