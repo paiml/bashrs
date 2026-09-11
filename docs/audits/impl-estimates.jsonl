@@ -2,3 +2,4 @@
 {"repo":"bashrs","ticket":"PMAT-245","phase":"resume-release","mode":"direct+quorum","est":5,"actual":98,"unit":"turn","basis":"first-run[U]"}
 {"repo":"bashrs","ticket":"PMAT-248","phase":"all","mode":"direct+workers+quorum","est":7,"actual":36,"unit":"turn","basis":"docs/audits/impl-estimates.jsonl:L1-L2"}
 {"repo":"bashrs","ticket":"PMAT-251","phase":"all (interleaved with PMAT-252 triage)","mode":"direct+workers+delegate","est":12,"actual":64,"unit":"turn","basis":"docs/audits/impl-estimates.jsonl:L3"}
+{"repo":"bashrs","ticket":"PMAT-255","phase":"all (interleaved with PMAT-254)","mode":"direct+workers+delegates","est":48,"actual":51,"unit":"turn","basis":"docs/audits/impl-estimates.jsonl:L4"}

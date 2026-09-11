@@ -1,0 +1,9 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Finished `release` profile [optimized] target(s) in 50.04s
+warning: be sure to add `/tmp/claude-1000/-home-noah-src-bashrs/bf151141-60ff-4e66-9794-31fe5c18982d/scratchpad/install-710/bin` to your PATH to be able to run the installed binaries
+INSTALL_EXIT=0
+bashrs 7.1.0
+stdout is one JSON document: yes
+codes: DET002,DET005

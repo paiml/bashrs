@@ -1,0 +1,88 @@
+🔍 Checking book status before release...
+📚 Building book...
+ INFO Book building has started
+ INFO Running the html backend
+ INFO HTML book written to `/mnt/nvme-raid0/wt/bashrs-PMAT-255/book/book`
+-e [0;32m✅ Book builds successfully[0m
+🧪 Testing book examples...
+ INFO Testing chapter 'Introduction': "introduction.md"
+ INFO Testing chapter 'Installation': "getting-started/installation.md"
+ INFO Testing chapter 'Quick Start': "getting-started/quick-start.md"
+ INFO Testing chapter 'Your First Purification': "getting-started/first-purification.md"
+ INFO Testing chapter 'Interactive REPL': "getting-started/repl.md"
+ INFO Testing chapter 'Tutorial: Your First REPL Session': "repl/tutorial.md"
+ INFO Testing chapter 'REPL User Guide': "repl/user-guide.md"
+ INFO Testing chapter 'What is Purification?': "concepts/purification.md"
+ INFO Testing chapter 'Determinism': "concepts/determinism.md"
+ INFO Testing chapter 'Idempotency': "concepts/idempotency.md"
+ INFO Testing chapter 'POSIX Compliance': "concepts/posix.md"
+ INFO Testing chapter 'Shell Type Detection': "linting/shell-detection.md"
+ INFO Testing chapter 'ShellCheck SC1xxx Rules (Source Code Issues)': "linting/shellcheck-sc1.md"
+ INFO Testing chapter 'Security Rules (SEC001-SEC008)': "linting/security.md"
+ INFO Testing chapter 'Determinism Rules (DET001-DET003)': "linting/determinism.md"
+ INFO Testing chapter 'Idempotency Rules (IDEM001-IDEM003)': "linting/idempotency.md"
+ INFO Testing chapter 'False Positive Testing': "linting/false-positives.md"
+ INFO Testing chapter 'Writing Custom Rules': "linting/custom-rules.md"
+ INFO Testing chapter 'Transpiler Overview': "transpiler/overview.md"
+ INFO Testing chapter 'Corpus Testing': "transpiler/corpus.md"
+ INFO Testing chapter 'Overview': "config/overview.md"
+ INFO Testing chapter 'Analyzing Config Files': "config/analyzing.md"
+ INFO Testing chapter 'Purifying .bashrc and .zshrc': "config/purifying.md"
+ INFO Testing chapter 'CONFIG-001: PATH Deduplication': "config/rules/config-001.md"
+ INFO Testing chapter 'CONFIG-002: Quote Variables': "config/rules/config-002.md"
+ INFO Testing chapter 'CONFIG-003: Consolidate Aliases': "config/rules/config-003.md"
+ INFO Testing chapter 'Makefile Overview': "makefile/overview.md"
+ INFO Testing chapter 'Makefile Security': "makefile/security.md"
+ INFO Testing chapter 'Makefile Best Practices': "makefile/best-practices.md"
+ INFO Testing chapter 'Makefile Testing': "makefile/testing.md"
+ INFO Testing chapter 'Installer Overview': "installer/overview.md"
+ INFO Testing chapter 'Getting Started': "installer/getting-started.md"
+ INFO Testing chapter 'Step Types': "installer/step-types.md"
+ INFO Testing chapter 'Checkpointing': "installer/checkpointing.md"
+ INFO Testing chapter 'Container Testing': "installer/testing.md"
+ INFO Testing chapter 'Bootstrap Installer': "examples/bootstrap-installer.md"
+ INFO Testing chapter 'Deployment Script': "examples/deployment-script.md"
+ INFO Testing chapter 'Configuration Management': "examples/config-management.md"
+ INFO Testing chapter 'CI/CD Pipeline': "examples/cicd-pipeline.md"
+ INFO Testing chapter 'Complete Quality Workflow: Real .zshrc': "example_zshrc_workflow.md"
+ INFO Testing chapter 'AST-Level Transformation': "advanced/ast-transformation.md"
+ INFO Testing chapter 'Corpus Testing': "advanced/corpus-testing.md"
+ INFO Testing chapter 'Probar Testing (playbook/mutate/simulate)': "advanced/probar-testing.md"
+ INFO Testing chapter 'Property Testing': "advanced/property-testing.md"
+ INFO Testing chapter 'Mutation Testing': "advanced/mutation-testing.md"
+ INFO Testing chapter 'Performance Optimization': "advanced/performance.md"
+ INFO Testing chapter 'Shell Safety Classifier': "advanced/shell-safety-classifier.md"
+ INFO Testing chapter 'ShellSafetyBench Training Pipeline': "advanced/shellsafetybench.md"
+ INFO Testing chapter 'PMAT Integration': "advanced/pmat-integration.md"
+ INFO Testing chapter 'Dogfooding (Self-Validation)': "advanced/dogfooding.md"
+ INFO Testing chapter 'Quality Gates Overview': "quality/overview.md"
+ INFO Testing chapter 'SBFL Fault Localization': "quality/sbfl.md"
+ INFO Testing chapter 'ML Error Classification': "quality/ml-classification.md"
+ INFO Testing chapter 'Control Flow Analysis': "quality/cfg.md"
+ INFO Testing chapter 'Rich ASCII Reporting': "quality/rich-reporting.md"
+ INFO Testing chapter 'CLI Commands': "reference/cli.md"
+ INFO Testing chapter 'DSL Built-in Functions': "reference/dsl-builtins.md"
+ INFO Testing chapter 'REPL Commands': "reference/repl-commands.md"
+ INFO Testing chapter 'Configuration': "reference/configuration.md"
+ INFO Testing chapter '.bashrsignore File': "reference/ignore-file.md"
+ INFO Testing chapter 'Exit Codes': "reference/exit-codes.md"
+ INFO Testing chapter 'Linter Rules Reference': "reference/rules.md"
+ INFO Testing chapter 'Development Setup': "contributing/setup.md"
+ INFO Testing chapter 'EXTREME TDD': "contributing/extreme-tdd.md"
+ INFO Testing chapter 'Toyota Way Principles': "contributing/toyota-way.md"
+ INFO Testing chapter 'Release Process': "contributing/release.md"
+-e [0;32m✅ All book examples pass[0m
+📝 Checking if book was updated...
+-e [0;32m✅ Book updated since last release (v7.0.4)[0m
+🔄 Checking book/CHANGELOG sync...
+
+-e [0;32m✅ All book checks passed![0m
+
+Book is ready for release. Summary:
+  📦 Build: OK
+  🧪 Tests: OK
+  📝 Updates: OK
+  🔄 Sync: OK
+
+You can now proceed with release.
+BOOK_EXIT=0

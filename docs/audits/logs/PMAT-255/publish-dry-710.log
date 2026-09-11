@@ -1,0 +1,14 @@
++ git worktree add --detach /tmp/bashrs-publish-LoRw8N v7.1.0
+Preparing worktree (detached HEAD 02b6bed455)
+HEAD is now at 02b6bed455 Merge pull request #307 from paiml/PMAT-255-release
+
+=== bashrs-oracle 7.1.0 ===
++ env -u CARGO_REGISTRY_TOKEN cargo publish --dry-run --locked -p bashrs-oracle
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.06s
+   Uploading bashrs-oracle v7.1.0 (/tmp/bashrs-publish-LoRw8N/bashrs-oracle)
+warning: aborting upload due to dry run
+
+=== bashrs 7.1.0 ===
+DRY_RUN: skipping bashrs 7.1.0 — it resolves bashrs-oracle 7.1.0 from the registry, which a dry run never publishes
++ git worktree remove --force /tmp/bashrs-publish-LoRw8N
+DRY_RUN_EXIT=0

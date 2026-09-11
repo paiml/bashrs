@@ -1,0 +1,34 @@
+rustc 1.93.0 (254b59607 2026-01-19)
+channel = "1.93.0"
+Cargo.toml:84:rust-version = "1.82"
+=== sysinfo@0.39.6
+   Upgrading recursive dependencies
+note: Re-run with `--verbose` to show more dependencies
+  excluded: 57 packages
+check_exit=101
+error: rustc 1.93.0 is not supported by the following packages:
+  sysinfo@0.39.6 requires rustc 1.95
+  sysinfo@0.39.6 requires rustc 1.95
+ M Cargo.lock
+ M rash/Cargo.toml
+=== renacer@0.11.0
+   Upgrading recursive dependencies
+note: Re-run with `--verbose` to show more dependencies
+  excluded: 57 packages
+check_exit=101
+error: failed to select a version for `unicode-width`.
+all possible versions conflict with previously selected packages.
+failed to select a version for `unicode-width` which could resolve this conflict
+ M Cargo.lock
+ M rash/Cargo.toml
+=== aprender@0.66.0
+   Upgrading recursive dependencies
+note: Re-run with `--verbose` to show more dependencies
+  excluded: 57 packages
+check_exit=101
+error: failed to select a version for `aprender`.
+failed to select a version for `aprender` which could resolve this conflict
+ M Cargo.lock
+ M bashrs-oracle/Cargo.toml
+ M rash/Cargo.toml
+DEPS_RECHECK_DONE

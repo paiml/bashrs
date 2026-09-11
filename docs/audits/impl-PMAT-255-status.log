@@ -1,0 +1,4 @@
+[status] ticket=PMAT-255 phase=2/14 global=432/440(K=460) k_measured=432 sub=0/40 basis=docs/audits/impl-estimates.jsonl:L4
+         mode=quorum:agy+subagent:sonnet x2 trigger=Q1 route=agy-grillme w=1.00 q=? gate=NOT-RUN slots=3/3 denied=0
+         red=- filed=- blocker=- next=wave 1: corpus generation (delegate), #293+#294 (worker B), #265 (worker C)
+[status] ticket=PMAT-255 phase=13/13 global=476/48(K=96) k_measured=476 sub=0/0 basis=docs/audits/impl-estimates.jsonl:L4 route=self w=100.00 q=? gate=PASS slots=0/3 denied=0 red=- filed=#301,#302,#303,#304,#305,#306 blocker=PMAT-246(upstream) next=none
