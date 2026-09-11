@@ -155,3 +155,15 @@ pub(crate) fn corpus_history_chart_from(path: &std::path::Path) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod pmat257_timing_probe {
+    #[test]
+    fn test_timing() {
+        let start = std::time::Instant::now();
+        let registry = crate::corpus::registry::CorpusRegistry::load_full();
+        let runner = crate::corpus::runner::CorpusRunner::new(crate::models::Config::default());
+        let _score = runner.run(&registry);
+        eprintln!("PMAT257 TIMING: {:?} for {} entries", start.elapsed(), registry.entries.len());
+    }
+}

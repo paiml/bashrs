@@ -179,6 +179,9 @@ pub(super) mod corpus_report_commands;
 pub(super) mod corpus_score_print_commands;
 #[path = "corpus_ssb_commands.rs"]
 pub(super) mod corpus_ssb_commands;
+#[cfg(test)]
+#[path = "corpus_ssb_commands_cov_tests.rs"]
+mod corpus_ssb_commands_cov_tests;
 #[path = "corpus_tier_commands.rs"]
 pub(super) mod corpus_tier_commands;
 #[path = "corpus_time_commands.rs"]
