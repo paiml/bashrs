@@ -237,3 +237,35 @@ fn test_PMAT255_pmat250_sc2046_inside_brace_default_quoted() {
     shell_absent("#!/bin/sh\necho \"${var:-$(date)}\"\n", "SC2046");
     shell_absent("#!/bin/sh\necho ${var:-\"$(date)\"}\n", "SC2046");
 }
+
+// ---------------------------------------------------------------------------
+// PMAT-257 / GH-309: a regression introduced in 7.1.0 — SC2046 fired on a
+// command substitution in an assignment RHS when the substitution spanned
+// multiple physical lines. An assignment RHS is never word-split, single- or
+// multi-line alike (the single-line spelling was already fixed under
+// GH-262/#262 and must stay fixed).
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_PMAT257_gh309_sc2046_multiline_substitution_in_assignment_rhs() {
+    shell_absent("#!/bin/sh\nx=$(\n  cmd\n)\necho \"$x\"\n", "SC2046");
+    // A companion unquoted multi-line substitution in argument position must
+    // still be reported, so a fix that blunts the rule fails this too.
+    shell_fires("#!/bin/sh\necho $(\n  cmd\n)\n", "SC2046");
+}
+
+// ---------------------------------------------------------------------------
+// PMAT-257 / GH-314: IDEM002 read the letters `rm` inside a quoted sentence
+// as an `rm` command. `rm` is only a command when it is in command position,
+// not when it is a substring of a word or inside quotes.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_PMAT257_gh314_idem002_rm_inside_a_quoted_word_is_text() {
+    shell_absent(
+        "#!/bin/sh\necho \"the pipe form fails silently\"\n",
+        "IDEM002",
+    );
+    // A real bare `rm` command is still reported.
+    shell_fires("#!/bin/sh\nrm /app/current\n", "IDEM002");
+}
