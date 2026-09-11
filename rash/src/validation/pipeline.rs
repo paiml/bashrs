@@ -20,6 +20,9 @@ impl ValidationPipeline {
             return Ok(());
         }
 
+        // GH-294: literals are held to the substitution rule when a string built at run time reaches eval.
+        super::exec_flow::check(ast)?;
+
         // Validate all functions
         for function in &ast.functions {
             // Validate function name is not a shell builtin

@@ -111,3 +111,34 @@ fn test_PMAT255_gh294_validate_backticks_is_quote_aware() {
         "live inside double quotes"
     );
 }
+
+#[test]
+fn test_PMAT255_gh294_variable_reaching_exec_still_refused() {
+    let src = r#"fn main() { let m = "$(whoami)"; exec(m); }"#;
+    let err = transpile(src, &Config::default())
+        .expect_err("a literal that reaches eval through a variable must stay refused");
+    assert!(
+        err.to_string().contains("substitution"),
+        "refused for the wrong reason: {err}"
+    );
+}
+
+#[test]
+fn test_PMAT255_gh294_parameter_reaching_exec_still_refused() {
+    let src = r#"fn run(s: &str) { exec(s); } fn main() { run("a `whoami` b"); }"#;
+    let err = transpile(src, &Config::default())
+        .expect_err("a literal that reaches eval through a parameter must stay refused");
+    assert!(
+        err.to_string().contains("acktick"),
+        "refused for the wrong reason: {err}"
+    );
+}
+
+#[test]
+fn test_PMAT255_gh294_static_exec_keeps_printing_relaxed() {
+    let src = r#"fn main() { let s = "a `b` c"; println!("{}", s); exec("true"); }"#;
+    let script = transpile_ok(src);
+    let (out, code) = run_shell("dash", &script);
+    assert_eq!(code, 0, "script failed under dash:\n{script}");
+    assert_eq!(out, "a `b` c");
+}
