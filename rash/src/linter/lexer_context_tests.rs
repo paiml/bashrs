@@ -221,3 +221,19 @@ fn test_PMAT248_review_sc2276_ignores_a_pipe_inside_quotes() {
     shell_absent("#!/bin/sh\ncat <<EOF > \"file|name\"\nfoo\nEOF\n", "SC2276");
     shell_fires("#!/bin/sh\ncat <<EOF | grep x\nfoo\nEOF\n", "SC2276");
 }
+
+// ---------------------------------------------------------------------------
+// PMAT-250 review: a substitution inside a `${ … }` default keeps SC2046's
+// verdict from before shell_words owned substitutions.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_PMAT255_pmat250_sc2046_inside_brace_default_unquoted() {
+    shell_fires("#!/bin/sh\necho ${var:-$(date)}\n", "SC2046");
+}
+
+#[test]
+fn test_PMAT255_pmat250_sc2046_inside_brace_default_quoted() {
+    shell_absent("#!/bin/sh\necho \"${var:-$(date)}\"\n", "SC2046");
+    shell_absent("#!/bin/sh\necho ${var:-\"$(date)\"}\n", "SC2046");
+}

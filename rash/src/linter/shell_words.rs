@@ -421,6 +421,7 @@ impl<'a> WordLexer<'a> {
             (Some(b'{'), _) => {
                 let end = find_close(self.bytes, d + 1, b'{', b'}');
                 self.push_brace(d, end);
+                self.scan_brace_substitutions(d + 2, end.min(self.bytes.len()));
                 self.i = end + 1;
             }
             (Some(&c), _) if is_name_byte(c) => self.read_name(d),
@@ -449,6 +450,57 @@ impl<'a> WordLexer<'a> {
         self.push_sub(start + 1, end);
         self.add_sub_expansion(start, end, true);
         self.i = end + 1;
+    }
+
+    /// PMAT-250 review: a command substitution inside a `${ … }` body
+    /// (`${var:-$(date)}`) is expanded and word-split with the word, and the
+    /// scanner SC2046 used before this module owned substitutions saw it.
+    /// Record it, skipping any quoted part of the body, where it is not split.
+    fn scan_brace_substitutions(&mut self, from: usize, to: usize) {
+        let mut k = from;
+        let mut quote: Option<u8> = None;
+        while k < to {
+            let b = self.bytes[k];
+            if let Some(q) = quote {
+                k += if b == b'\\' && q == b'"' { 2 } else { 1 };
+                if b == q {
+                    quote = None;
+                }
+                continue;
+            }
+            k = match b {
+                b'\'' | b'"' => {
+                    quote = Some(b);
+                    k + 1
+                }
+                b'\\' => k + 2,
+                b'$' => self.brace_dollar(k, to),
+                b'`' => self.brace_backtick(k, to),
+                _ => k + 1,
+            };
+        }
+    }
+
+    /// A `$( … )` (not `$(( … ))`) at `k` inside a brace body: record it and return the index after it.
+    fn brace_dollar(&mut self, k: usize, to: usize) -> usize {
+        let is_sub = self.bytes.get(k + 1) == Some(&b'(') && self.bytes.get(k + 2) != Some(&b'(');
+        if !is_sub {
+            return k + 1;
+        }
+        let end = find_close(self.bytes, k + 1, b'(', b')').min(to);
+        self.add_sub_expansion(k, end, false);
+        end + 1
+    }
+
+    /// A backtick substitution at `k` inside a brace body: record it and return the index after it.
+    fn brace_backtick(&mut self, k: usize, to: usize) -> usize {
+        let mut j = k + 1;
+        while j < to && self.bytes[j] != b'`' {
+            j += if self.bytes[j] == b'\\' { 2 } else { 1 };
+        }
+        let end = j.min(to);
+        self.add_sub_expansion(k, end, true);
+        end + 1
     }
 
     fn read_name(&mut self, dollar: usize) {
