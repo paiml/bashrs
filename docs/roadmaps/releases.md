@@ -19,16 +19,14 @@ Issues on the GitHub milestone `v7.1.0`: #293, #294, #295, #265, #232.
 
 | entry | what |
 |---|---|
-| PMAT-253 | forjar parity, the phases not shipped in v7.1.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b (`docs/specifications/pr-dogfood-parity-forjar.md`) |
+| PMAT-253 | forjar parity, the phases not shipped in v7.1.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b (`docs/specifications/pr-dogfood-parity-forjar.md`), with §4 settled by quorum |
+| PMAT-243 | COV-MEASURE: measure line coverage, name the top ten gaps, record both |
+| PMAT-246 | work contracts regenerated so pv validates all 103; the CB-1305 half is upstream (paiml-mcp-agent-toolkit#1306) |
+| PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it |
 
 ## Unscheduled (blocked)
 
-| entry | blocked on |
-|---|---|
-| PMAT-241 | definition: no acceptance criteria since 2026-04-07 |
-| PMAT-242 | definition: no acceptance criteria since 2026-04-07 |
-| PMAT-243 | definition: no acceptance criteria since 2026-04-07 |
-| PMAT-246 | upstream: pmat writes work-contract stubs that pv 0.65 validates as kernel contracts (missing `metadata`, `verification_summary.total_obligations`) |
+Nothing. The four entries that sat here blocked on definition were decided by quorum on 2026-09-11: PMAT-241 and PMAT-242 closed as completed in v6.66.0, PMAT-243 redefined as a measurement in v7.2.0, PMAT-246 closed by regenerating the work contracts. See `docs/audits/quorum-decisions-v7.2.0.md`.
 
 ## Backlog issues
 

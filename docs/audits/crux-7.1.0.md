@@ -5,7 +5,7 @@ Status: rows written by three blind agy lanes (PMAT-255/ph12, group A: 3/3 PASS,
 ## Orchestrator's reading
 
 - **Provenance.** 58 of the 112 [V] citations point at the CHANGELOG bullet itself rather than at code, so those rows restate the claim they compare; 46 cite code, build or CI, and 8 docs or contracts (the delegate's resolution, repeated in Provenance below).
-- **Dispositions.** Every comparison row keeps bashrs's choice except two adopt rows in the lanes' dissent: AST-based loop containment for SC2105 (lane 1) and cargo-release for publishing (lane 2). Lane 3 weighed release-plz and native bash arrays and let bashrs's choice stand. Adopting either is the operator's decision; neither is taken here.
+- **Dispositions.** Every comparison row keeps bashrs's choice. The two adopt rows in the lanes' dissent went to a blind three-lane quorum on 2026-09-11 and both were rejected 3-0. AST-based loop containment for SC2105: rejected, because the forms that diverged from shellcheck were fixed in PMAT-244 and the one remaining divergence belongs to SC2106, which bashrs does not implement (#303); the lanes noted the counter, that SC2105 is still on the corpus scoring exclusion list. cargo-release and release-plz: rejected, because the script handles the sparse-index race that broke v7.0.4 and the release protocol requires measured corpus numbers in the changelog that a generated changelog cannot produce; the counter is that one maintainer carries a custom script. Record: `docs/audits/quorum-decisions-v7.2.0.md`.
 - **The same review's diff lanes** (group B: 3 lanes, all FAIL on different points, agreed=false; `docs/audits/quorum-PMAT-255-review.json`) were re-measured point by point before the release:
 
 | point | claim | orchestrator | evidence |
