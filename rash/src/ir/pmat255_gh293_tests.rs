@@ -87,3 +87,46 @@ fn test_PMAT255_gh293_for_in_still_prints_a_b() {
     assert_eq!(code, 0, "script aborted under dash:\n{script}");
     assert_eq!(stdout, "a\nb");
 }
+
+#[test]
+fn test_PMAT255_gh293_trailing_empty_element_keeps_its_count() {
+    let src =
+        r#"fn main() { let items = ["a", ""]; let n = array_len(items); println!("{}", n); }"#;
+    let script = crate::transpile(src, &crate::Config::default()).unwrap();
+    let out = std::process::Command::new("dash")
+        .arg("-c")
+        .arg(&script)
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout).trim_end(),
+        "2",
+        "script:\n{script}"
+    );
+}
+
+#[test]
+fn test_PMAT255_gh293_trailing_empty_element_keeps_its_separator() {
+    let src = r#"fn main() { let items = ["a", ""]; let j = array_join(items, ","); println!("[{}]", j); }"#;
+    let script = crate::transpile(src, &crate::Config::default()).unwrap();
+    let out = std::process::Command::new("dash")
+        .arg("-c")
+        .arg(&script)
+        .output()
+        .unwrap();
+    assert_eq!(
+        String::from_utf8_lossy(&out.stdout).trim_end(),
+        "[a,]",
+        "script:\n{script}"
+    );
+    // The runtime prelude uses printf itself; only main()'s body must be free of the `$( )` join.
+    let body = script
+        .split("main() {")
+        .nth(1)
+        .and_then(|s| s.split("\n}").next())
+        .unwrap_or("");
+    assert!(
+        !body.contains("printf"),
+        "a known array must not go through $( ):\n{body}"
+    );
+}

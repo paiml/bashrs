@@ -153,14 +153,19 @@ impl IrConverter {
         name: &str,
         args: &[crate::ast::Expr],
     ) -> Result<ShellValue> {
-        let mut cmd_args = Vec::new();
-        for (idx, arg) in args.iter().enumerate() {
-            if idx == 0 {
-                cmd_args.push(self.convert_array_first_arg(arg)?);
-            } else {
-                cmd_args.push(self.convert_expr_to_value(arg)?);
-            }
+        // GH-293: for a local array literal the element variables and the
+        // length are known here, so the call lowers exactly — no `$( )`,
+        // whose trailing-newline stripping would drop empty trailing elements.
+        if let Some(items) = self.known_array_items(args.first())? {
+            return match name {
+                "array_len" => Ok(ShellValue::String(items.len().to_string())),
+                _ => self.join_items(items, args.get(1)),
+            };
         }
+        let cmd_args = args
+            .iter()
+            .map(|arg| self.convert_expr_to_value(arg))
+            .collect::<Result<Vec<_>>>()?;
         let program = crate::stdlib::get_shell_function_name(name);
         Ok(ShellValue::CommandSubst(shell_ir::Command {
             program,
@@ -168,43 +173,46 @@ impl IrConverter {
         }))
     }
 
-    /// Resolve the array-naming first argument of `array_len`/`array_join` to
-    /// the element list, falling back to plain conversion for anything that
-    /// isn't a known local array (e.g. a scalar passed by mistake, which the
-    /// runtime helper will still handle as a single-element "array").
-    fn convert_array_first_arg(&self, arg: &crate::ast::Expr) -> Result<ShellValue> {
+    /// The element values of a local array literal (by name or inline), or
+    /// `None` when the argument is anything else.
+    fn known_array_items(&self, arg: Option<&crate::ast::Expr>) -> Result<Option<Vec<ShellValue>>> {
         use crate::ast::Expr;
         match arg {
-            Expr::Variable(name) => match self.arrays.borrow().get(name).copied() {
-                Some(len) => Ok(Self::array_elements_as_command_subst(name, len)),
-                None => self.convert_expr_to_value(arg),
-            },
-            Expr::Array(elements) => {
-                let items: Vec<ShellValue> = elements
-                    .iter()
-                    .map(|e| self.convert_expr_to_value(e))
-                    .collect::<Result<_>>()?;
-                Ok(Self::items_as_printf_command_subst(items))
-            }
-            _ => self.convert_expr_to_value(arg),
+            Some(Expr::Variable(name)) => Ok(self.arrays.borrow().get(name).copied().map(|len| {
+                (0..len)
+                    .map(|i| ShellValue::Variable(format!("{name}_{i}")))
+                    .collect()
+            })),
+            Some(Expr::Array(elements)) => elements
+                .iter()
+                .map(|e| self.convert_expr_to_value(e))
+                .collect::<Result<Vec<_>>>()
+                .map(Some),
+            _ => Ok(None),
         }
     }
 
-    fn array_elements_as_command_subst(name: &str, len: usize) -> ShellValue {
-        let items: Vec<ShellValue> = (0..len)
-            .map(|i| ShellValue::Variable(format!("{name}_{i}")))
-            .collect();
-        Self::items_as_printf_command_subst(items)
-    }
-
-    /// `$(printf '%s\n' item1 item2 ...)` — the newline-joined element string
-    /// `rash_array_len`/`rash_array_join` read as `$1`.
-    fn items_as_printf_command_subst(items: Vec<ShellValue>) -> ShellValue {
-        let mut printf_args = vec![ShellValue::String("%s\n".to_string())];
-        printf_args.extend(items);
-        ShellValue::CommandSubst(shell_ir::Command {
-            program: "printf".to_string(),
-            args: printf_args,
+    /// `item0 sep item1 sep …` as one concatenated value.
+    fn join_items(
+        &self,
+        items: Vec<ShellValue>,
+        sep: Option<&crate::ast::Expr>,
+    ) -> Result<ShellValue> {
+        let sep = match sep {
+            Some(expr) => self.convert_expr_to_value(expr)?,
+            None => ShellValue::String(String::new()),
+        };
+        let mut parts = Vec::with_capacity(items.len() * 2);
+        for (i, item) in items.into_iter().enumerate() {
+            if i > 0 {
+                parts.push(sep.clone());
+            }
+            parts.push(item);
+        }
+        Ok(match parts.len() {
+            0 => ShellValue::String(String::new()),
+            1 => parts.remove(0),
+            _ => ShellValue::Concat(parts),
         })
     }
 
