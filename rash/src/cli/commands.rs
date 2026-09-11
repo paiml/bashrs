@@ -182,6 +182,9 @@ pub(super) mod corpus_gate_commands;
 pub(super) mod corpus_metrics_commands;
 #[path = "corpus_ml_commands.rs"]
 pub(super) mod corpus_ml_commands;
+#[cfg(test)]
+#[path = "corpus_ml_commands_cov_tests.rs"]
+mod corpus_ml_commands_cov_tests;
 #[path = "corpus_ops_commands.rs"]
 pub(super) mod corpus_ops_commands;
 #[path = "corpus_pipeline_commands.rs"]
