@@ -56,6 +56,14 @@ fn is_while_read(line: &str, read_pos: usize) -> bool {
     line.contains("while") && line.find("while").unwrap_or(usize::MAX) < read_pos
 }
 
+/// GH-310: Check if this `read` carries its own input redirection
+/// (`read x < file` or `read x <<< "$s"`). When it does, `read` takes its
+/// input from the redirection, not from the loop's stdin, so SC2041 must
+/// not fire.
+fn read_has_own_redirect(line: &str, read_pos: usize) -> bool {
+    line[read_pos..].contains('<')
+}
+
 /// Check if read is between do and done in single-line for loop
 fn is_read_in_single_line_loop(line: &str) -> Option<usize> {
     if !line.contains("read ") {
@@ -94,6 +102,56 @@ fn create_read_in_for_diagnostic(
     )
 }
 
+/// Handle a single-line `for ... ; do ... done` loop: return a diagnostic if
+/// it contains a bare `read` with no redirection of its own.
+fn check_single_line_for(
+    line: &str,
+    line_num: usize,
+    for_loop_start_line: usize,
+) -> Option<Diagnostic> {
+    let read_pos = is_read_in_single_line_loop(line)?;
+    if read_has_own_redirect(line, read_pos) {
+        return None;
+    }
+    Some(create_read_in_for_diagnostic(
+        line_num,
+        read_pos,
+        5, // "read "
+        for_loop_start_line,
+    ))
+}
+
+/// Handle a `read` occurrence on a line inside a multi-line for loop body.
+fn check_read_in_for_body(
+    line: &str,
+    line_num: usize,
+    for_loop_start_line: usize,
+) -> Option<Diagnostic> {
+    let mat = READ_IN_FOR.find(line)?;
+    let pos = mat.start();
+
+    // Skip if inside quotes, part of `while read`, or the `read` carries its
+    // own input redirection (GH-310).
+    if is_inside_quotes(line, pos) || is_while_read(line, pos) || read_has_own_redirect(line, pos) {
+        return None;
+    }
+
+    Some(create_read_in_for_diagnostic(
+        line_num,
+        pos,
+        mat.as_str().len(),
+        for_loop_start_line,
+    ))
+}
+
+/// Add `diag` to `result` if it is `Some`. Keeps `check`'s control flow flat
+/// (no nested `if let` blocks) so its cognitive complexity stays readable.
+fn push_if_some(result: &mut LintResult, diag: Option<Diagnostic>) {
+    if let Some(diag) = diag {
+        result.add(diag);
+    }
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let mut in_for_loop = false;
@@ -113,15 +171,10 @@ pub fn check(source: &str) -> LintResult {
 
             // Handle single-line for loops
             if is_single_line_for_loop(line) {
-                if let Some(read_pos) = is_read_in_single_line_loop(line) {
-                    let diagnostic = create_read_in_for_diagnostic(
-                        line_num,
-                        read_pos,
-                        5, // "read "
-                        for_loop_start_line,
-                    );
-                    result.add(diagnostic);
-                }
+                push_if_some(
+                    &mut result,
+                    check_single_line_for(line, line_num, for_loop_start_line),
+                );
                 in_for_loop = false;
                 continue;
             }
@@ -134,22 +187,10 @@ pub fn check(source: &str) -> LintResult {
 
         // Check for `read` inside for loop
         if in_for_loop && line.contains("read ") {
-            if let Some(mat) = READ_IN_FOR.find(line) {
-                let pos = mat.start();
-
-                // Skip if inside quotes or part of while read
-                if is_inside_quotes(line, pos) || is_while_read(line, pos) {
-                    continue;
-                }
-
-                let diagnostic = create_read_in_for_diagnostic(
-                    line_num,
-                    pos,
-                    mat.as_str().len(),
-                    for_loop_start_line,
-                );
-                result.add(diagnostic);
-            }
+            push_if_some(
+                &mut result,
+                check_read_in_for_body(line, line_num, for_loop_start_line),
+            );
         }
     }
 
@@ -274,5 +315,50 @@ done
 "#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    /// GH-310: `read x < file` inside a for loop takes its input from the
+    /// redirection, not from the loop's stdin. SC2041 must not fire.
+    #[test]
+    fn test_PMAT257_gh310_sc2041_read_with_its_own_redirection_is_not_stdin() {
+        let redirect_from_file = r#"
+for i in 1 2 3; do
+  read -r data < input.txt
+done
+"#;
+        let result = check(redirect_from_file);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2041 must NOT flag 'read' with its own input redirection: {:?}",
+            result.diagnostics
+        );
+
+        let here_string = r#"
+for i in 1 2 3; do
+  read -r data <<< "$s"
+done
+"#;
+        let result = check(here_string);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "SC2041 must NOT flag 'read' with its own here-string redirection: {:?}",
+            result.diagnostics
+        );
+    }
+
+    /// Companion: a bare `read` (no redirection of its own) inside a for
+    /// loop over a pipeline still reads from stdin, not the loop's data.
+    #[test]
+    fn test_PMAT257_gh310_sc2041_bare_read_in_loop_over_pipeline_still_fires() {
+        let code = r#"
+for line in $(cat file.txt | grep foo); do
+  read -r data
+done
+"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2041");
     }
 }
