@@ -813,10 +813,25 @@ fn command_name_of(w: &ShellWord) -> Option<String> {
     }
 }
 
+/// PMAT-257 / GH-309: `w.end` can run one byte past `text.len()`. An
+/// unterminated `$( … )` / `${ … }` / `` ` … ` `` — which is exactly what a
+/// *physical line* sees when the construct continues onto the next line —
+/// makes `find_close` (or the backtick scanner) fall back to `bytes.len()`,
+/// and the lexer's `self.i = end + 1` then overruns by one. Before this fix
+/// `to_shell_word` sliced `text.get(w.start..w.end)` with that overrun
+/// `w.end`, which is out of bounds for a `str` and silently produced `""` via
+/// `unwrap_or("")` — so `raw` lost the `NAME=` prefix that
+/// `assignment_name` needs, and the word fell through to `CommandName`
+/// instead of `AssignPrefix`. Clamping to `text.len()` here (this module's
+/// stated invariant: "every slice through `str::get(..)`") is the single
+/// place that fixes every caller at once, without touching `find_close` or
+/// the three lexer call sites that each independently choose to fall back to
+/// `bytes.len()` on purpose (documented as total/panic-free above).
 fn to_shell_word(text: &str, base: usize, w: &RawWord) -> ShellWord {
+    let end = w.end.min(text.len());
     ShellWord {
         col: base + w.start + 1,
-        raw: text.get(w.start..w.end).unwrap_or("").to_string(),
+        raw: text.get(w.start..end).unwrap_or("").to_string(),
         literal: String::from_utf8_lossy(&w.literal).into_owned(),
         role: WordRole::Argument,
         expansions: w.expansions.clone(),
