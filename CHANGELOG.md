@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.2.0] - 2026-09-11
+
+Ten defects found by dogfooding bashrs on real scripts, the contract verifier turned from theatre into a gate, the stale work contracts regenerated, and corpus entries in the shapes this project actually writes. Every fix keeps a companion test proving its rule still fires on a true positive, and every fix is named by a falsification test the contract verifier checks exists.
+
+### Fixed
+
+- **#309** SC2046 fired on a command substitution in an assignment right-hand side when it spanned several lines. A regression introduced in 7.1.0: the context fix from #262 survived only for the single-line spelling.
+- **#314** IDEM002 read the letters `rm` inside a quoted sentence as an `rm` command.
+- **#313** PERF002 reported an arithmetic expansion inside a loop as a command substitution that forks a subshell. Arithmetic forks nothing.
+- **#312** SC2317 read the word `exit` inside a quoted argument as an exit statement, and missed a real `exit 0` in the same file. One mistake, both halves: the rule matched the token anywhere in the line rather than in command position.
+- **#311** SC2035 reported a quoted glob passed to `git ls-files` as a shell glob. Quoted, it is a pathspec git expands itself.
+- **#310** SC2041 reported a `read` with its own input redirection inside a loop as consuming the loop's stdin.
+- **#302** A `# shellcheck disable=` directive placed after `set -e` silenced the whole file. `set -e` is a command, so a directive after it is line-scoped.
+- **#304** DET005 was not reported when the same value also reached a DET002 sink. The flow analysis kept only the strongest sink per value, so one rule silently masked the other.
+- **#305** A method call the transpiler could not lower was emitted as the shell no-op `:`, so the program silently did nothing. It now fails the transpile naming the method.
+- **#306** `items.len()` on a local array literal lowered to the string `unknown`. It now lowers to the real count.
+
+### Changed
+
+- The conversation export skips entries that do not transpile instead of substituting their Rust source. The old fallback put `fn main` into a dataset conversation its own assertion forbids, and was invisible until a transpile started failing honestly.
+
+### Provable contracts
+
+- `pv lint` gate 4 (verify) went from 47 references, 31 found, 16 missing to **73 references, 73 found, 0 missing**; `pv-gate` from RED to GREEN. A missing reference means a contract claim named no real test, so it could not be falsified.
+- Sixteen unfalsifiable entries were repaired: entries that joined several test names with commas, entries that buried the name in prose, and entries naming a prefix rather than the function.
+- Ten new falsification entries, one per fix in this release.
+- The 89 committed work contracts were regenerated (PMAT-246): `pv validate` rejected all 89 and accepts all 103. They were written eleven days before the generator's own schema fix upstream. The remaining half is upstream, paiml/paiml-mcp-agent-toolkit#1306.
+
+### Corpus
+
+- 18,403 to 18,516 entries. Six blind generation lanes produced 252 candidates across scheduling and crontabs, Makefile recipes, perl-in-bash, python-in-bash, agentic patterns and sovereign-repo scripts; 61 were rejected for side effects a corpus run would execute, and 78 more were dropped because their expected line did not appear in the transpiled output. The 113 that survived were each transpiled and checked before being added.
+- Measured on the whole corpus inside a bwrap sandbox: **18,516 entries, V2 score 99.1/100 (A+)**, 63 failed entries. 53 of those failures are newly visible rather than new: the strict lowering above turned silent wrong output into a hard error. bashrs #316 records the 29 methods involved, with a worked example of an entry that printed `length=unknown` and passed.
+
+### Decisions
+
+- Twenty-four decisions that had been deferred to the maintainer were settled by blind three-lane quorum and recorded in `docs/audits/quorum-decisions-v7.2.0.md`, including the six PR-parity decisions in the forjar spec. Nine stale pull requests were closed, each with the fact that decided it.
+
 ## [7.1.0] - 2026-09-11
 
 Five issues from the v7.1.0 milestone, one defect found while measuring (#301), the two roadmap items scheduled for it (PMAT-244, PMAT-250), the first mechanical dogfood gates and a scripted publish from a tag (PMAT-253 phases 3a and 5), and 225 corpus entries chosen where the sovereign repositories are and the corpus was not. Every fix was measured against its issue's own reproducer, and every fix that could hide a true positive keeps a test for one.
