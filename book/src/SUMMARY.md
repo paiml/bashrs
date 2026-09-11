@@ -105,3 +105,4 @@
 - [EXTREME TDD](./contributing/extreme-tdd.md)
 - [Toyota Way Principles](./contributing/toyota-way.md)
 - [Release Process](./contributing/release.md)
+- [Quality Gates: PR and Release](./contributing/gates.md)

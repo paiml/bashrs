@@ -21,6 +21,9 @@ Every release (major, minor, or patch) MUST follow all 5 phases in order.
 
 **STOP THE LINE if ANY check fails**. Do not proceed to Phase 2 until all quality gates pass.
 
+Since v7.2.0 the gates are two `make` targets, described in [Quality Gates: PR and Release](./gates.md): `make pr-gate` on every pull request, `make release-gate` before every tag. The release gate adds the full workspace test run, the **95 percent line-coverage gate** (`make coverage-gate`), the corpus score under a sandbox, and the book check. The checklist below is what those targets run.
+
+
 - [ ] ✅ **All tests pass**: `cargo test --lib` (100% pass rate required)
 - [ ] ✅ **Integration tests pass**: All CLI and end-to-end tests
 - [ ] ✅ **Clippy clean**: `cargo clippy --all-targets -- -D warnings`
@@ -28,6 +31,8 @@ Every release (major, minor, or patch) MUST follow all 5 phases in order.
 - [ ] ✅ **No regressions**: All existing features still work
 - [ ] ✅ **Shellcheck**: All generated scripts pass `shellcheck -s sh`
 - [ ] ✅ **Book updated**: `./scripts/check-book-updated.sh` (enforces book examples pass)
+- [ ] ✅ **Coverage at least 95 percent**: `make coverage-gate` (`cargo llvm-cov --lib -p bashrs --fail-under-lines 95`)
+- [ ] ✅ **Contracts verified**: `pv lint contracts`, gate 4 with zero missing references
 
 **Example verification**:
 ```bash

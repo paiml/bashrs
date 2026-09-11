@@ -42,6 +42,12 @@ Ten defects found by dogfooding bashrs on real scripts, the contract verifier tu
 - 18,403 to 18,516 entries. Six blind generation lanes produced 252 candidates across scheduling and crontabs, Makefile recipes, perl-in-bash, python-in-bash, agentic patterns and sovereign-repo scripts; 61 were rejected for side effects a corpus run would execute, and 78 more were dropped because their expected line did not appear in the transpiled output. The 113 that survived were each transpiled and checked before being added.
 - Measured on the whole corpus inside a bwrap sandbox: **18,516 entries, V2 score 99.1/100 (A+)**, 63 failed entries. 53 of those failures are newly visible rather than new: the strict lowering above turned silent wrong output into a hard error. bashrs #316 records the 29 methods involved, with a worked example of an entry that printed `length=unknown` and passed.
 
+### Coverage: 91.72 to 95.01 percent, and a gate that holds it there
+
+Line coverage of the `bashrs` library is now **95.01 percent** (functions 95.60), measured with `cargo llvm-cov --lib -p bashrs`, from 91.72 at the start of the release. `make coverage-gate` fails a release below 95, and `make release-gate` runs it.
+
+The uncovered mass was concentrated: 29 corpus CLI command files held 6,188 uncovered lines, most at 0 percent. Thirty-four files were covered with unit tests inside the library, where the gate measures. Handlers that load the whole corpus were split into a `_with(registry, ...)` twin and tested with a three-entry registry, so one test covers a whole handler in milliseconds; the 363 new tests run in about two seconds. Four tests that quietly ran the real corpus, at 143 to 148 seconds each, were found by timing and removed.
+
 ### Process: a Pareto PR gate
 
 The pre-release gate spends almost all of its wall time compiling and linking test binaries, not running tests. Measured on this branch, warm:
@@ -51,9 +57,13 @@ The pre-release gate spends almost all of its wall time compiling and linking te
 | PR | `make pr-gate` | **111s** | 15,282 |
 | pre-release | `make release-gate` | **944s** | 15,721 across 30+ targets |
 
-The library target holds 97.2 percent of the tests that run and links once; the remaining 2.8 percent are spread across more than a hundred integration binaries that each need their own link. So `make pr-gate` (format, clippy on the library, library tests, `pv lint contracts`) is **88 percent faster** than the full gate while running 97 percent of the tests. `make release-gate` keeps everything, and adds the corpus score and the book check. `make corpus-score` runs the corpus inside bwrap where it exists, and says so plainly where it does not.
+The library target holds 97.2 percent of the tests that run and links once; the remaining 2.8 percent are spread across more than a hundred integration binaries that each need their own link. So `make pr-gate` (format, clippy on the library, library tests under nextest when it is installed, `pv lint contracts`) is **88 percent faster** than the full gate while running 97 percent of the tests. `make release-gate` keeps everything, and adds the corpus score and the book check. `make corpus-score` runs the corpus inside bwrap where it exists, and says so plainly where it does not.
 
 Two tests that had been red on `main` were found by running the full gate at all: the config backup assertion fixed above, and bashrs#317, where MAKE010 misses a real `cargo install` in a recipe. Both survived because the required check does not run these targets, which is #233.
+
+### Book
+
+- New chapter, Quality Gates: PR and Release, with the measured gate numbers, the 95 percent coverage rule and how coverage tests are written so they count, the pv gate 4 rule, and the sandboxed corpus score. The Release Process chapter runs through the two gates, and the False Positive Testing chapter lists the ten rules fixed here.
 
 ### Decisions
 

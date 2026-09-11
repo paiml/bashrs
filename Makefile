@@ -305,9 +305,17 @@ pr-gate: ## Pareto PR gate — 97.7 percent of the tests in a fraction of the pr
 	@echo "⚡ PR gate (Pareto 80/20): format, lint, library tests, contracts"
 	@cargo fmt --all -- --check
 	@cargo clippy -p bashrs --lib -- -D warnings
-	@cargo test -p bashrs --lib
+	@if command -v cargo-nextest >/dev/null 2>&1; then \
+		cargo nextest run -p bashrs --lib; \
+	else \
+		cargo test -p bashrs --lib; \
+	fi
 	@pv lint contracts
 	@echo "✅ PR gate green. Run 'make release-gate' before cutting a tag."
+
+coverage-gate: ## Line coverage of the library must be at least 95 percent (repository standard)
+	@echo "📈 Coverage gate: cargo llvm-cov --lib -p bashrs, fail under 95 percent lines"
+	@cargo llvm-cov --lib -p bashrs --summary-only --fail-under-lines 95
 
 release-gate: ## Full pre-release gate — every test target, the corpus and the book
 	@echo "🔒 Release gate: everything the PR gate skips"
@@ -315,6 +323,7 @@ release-gate: ## Full pre-release gate — every test target, the corpus and the
 	@cargo clippy --all-targets --all-features -- -D warnings
 	@cargo test --workspace
 	@pv lint contracts
+	@$(MAKE) coverage-gate
 	@$(MAKE) corpus-score
 	@./scripts/check-book-updated.sh
 	@echo "✅ Release gate green."

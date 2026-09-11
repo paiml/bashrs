@@ -488,3 +488,21 @@ All tests must pass before any release.
 - **One-line loops.** `for m in a b; do [[ $m == b ]] && { x=1; break; }; done` no longer reports SC2105; the rule follows the loop, not the line. A `break` outside any loop is still reported.
 - **Durations are not timestamps.** `elapsed=$(( end - start ))` no longer reports DET002. A wall-clock value in a branch condition is now DET005, a warning, never both.
 - **Directive namespaces.** `# shellcheck disable=DET002` is reported (BASHRS001) instead of silently honoured: shellcheck cannot parse a non-SC code and abandons the file. Use `# bashrs disable-line=DET002`.
+
+## Fixed in 7.2.0
+
+Ten false positives and misses found by running bashrs over real scripts, each fixed with a companion test that proves the rule still fires on a true positive, and each pinned by a falsification test the contract verifier checks exists:
+
+| rule | what was wrong |
+|---|---|
+| SC2046 | fired on a command substitution in an assignment right-hand side when it spanned several lines (a 7.1.0 regression) |
+| IDEM002 | read the letters `rm` inside a quoted sentence as an `rm` command |
+| PERF002 | reported an arithmetic expansion inside a loop as a command substitution that forks |
+| SC2317 | read the word `exit` inside a quoted argument as an exit statement, and missed a real `exit 0` |
+| SC2035 | reported a quoted glob passed to `git ls-files` as a shell glob |
+| SC2041 | reported a `read` with its own input redirection as consuming the loop's stdin |
+| suppression | a `# shellcheck disable=` placed after `set -e` silenced the whole file |
+| DET005 | not reported when the same value also reached a DET002 sink |
+
+The two transpiler defects in the same release, an unlowerable method call emitted as `:` and `items.len()` lowering to the string `unknown`, are the same shape: output that runs and is wrong. They now fail loudly.
+
