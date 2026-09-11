@@ -9,9 +9,8 @@ Goal: the five v7.1.0 issues fixed and measured against their own reproducers, t
 | entry | what |
 |---|---|
 | PMAT-254 | triage: release labels on every open entry, this plan |
-| PMAT-255 | the release: #293 #294 #295 #265 #232, PMAT-244, PMAT-246, PMAT-250, dependencies, comply, corpus growth, PMAT-253 phases 3a and 5 |
+| PMAT-255 | the release: #293 #294 #295 #265 #232, PMAT-244, PMAT-250, dependencies, comply, corpus growth, PMAT-253 phases 3a and 5 |
 | PMAT-244 | SC2105 reported for a `break` inside a one-line loop |
-| PMAT-246 | 89 `contracts/work/*.yaml` fail `pv validate` |
 | PMAT-250 | `shell_words` exposes command substitutions, so SC2046 drops its private scanner |
 
 Issues on the GitHub milestone `v7.1.0`: #293, #294, #295, #265, #232.
@@ -29,6 +28,7 @@ Issues on the GitHub milestone `v7.1.0`: #293, #294, #295, #265, #232.
 | PMAT-241 | definition: no acceptance criteria since 2026-04-07 |
 | PMAT-242 | definition: no acceptance criteria since 2026-04-07 |
 | PMAT-243 | definition: no acceptance criteria since 2026-04-07 |
+| PMAT-246 | upstream: pmat writes work-contract stubs that pv 0.65 validates as kernel contracts (missing `metadata`, `verification_summary.total_obligations`) |
 
 ## Backlog issues
 
