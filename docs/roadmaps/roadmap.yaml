@@ -2096,19 +2096,19 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'PV-GATE-RED: 89 tracked contracts/work/*.yaml fail pv validate (PV-VAL-001 verification_summary missing total_obligations) — pv-gate.sh reports RED at baseline while every top-level contracts/*.yaml validates'
-  status: planned
+  status: blocked
   priority: medium
   assigned_to: noahgift
   created: 2026-09-09T14:46:03Z
-  updated: 2026-09-10T20:05:41Z
+  updated: 2026-09-11T00:07:48Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
   labels:
-  - release:v7.1.0
-  notes: 'PMAT-251 (v7.0.4, 2026-09-10): `pmat comply refresh-bindings` regenerated the binding index (0 bindings) and left contracts/work/*.yaml unchanged; a sample of 8 still fails `pv validate` (PV-VAL-001). Now also visible as comply CB-1305 (89/104 unclassified). Stays planned for 7.1.0. | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.1.0, delivered under PMAT-255.'
+  - release:unscheduled
+  notes: 'PMAT-251 (v7.0.4, 2026-09-10): `pmat comply refresh-bindings` regenerated the binding index (0 bindings) and left contracts/work/*.yaml unchanged; a sample of 8 still fails `pv validate` (PV-VAL-001). Now also visible as comply CB-1305 (89/104 unclassified). Stays planned for 7.1.0. | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.1.0, delivered under PMAT-255. | PMAT-254 (2026-09-11, re-measured): blocked upstream — the 89 files are pmat''s own work-contract stubs (`# Auto-generated from .pmat-work/<ID>/contract.json`: name, surface, verification_summary{target_level, current_level}); pv 0.65.2 validates them as kernel contracts and needs `metadata` and `verification_summary.total_obligations` they never carry; `pmat comply refresh-bindings` (3.40.0) leaves them unchanged. The fix belongs to pmat''s writer or to pv-gate''s glob, not to bashrs.'
 - id: PMAT-247
   github_issue: null
   item_type: task

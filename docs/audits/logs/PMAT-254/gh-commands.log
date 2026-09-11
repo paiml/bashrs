@@ -1,0 +1,20 @@
+gh issue view 295 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 294 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 293 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 265 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 232 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 236 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 234 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 233 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh api repos/paiml/bashrs/issues/236/comments
+gh issue comment 236 --repo paiml/bashrs --body Triage (PMAT-254, bashrs 7.0.4): verdict C, still valid, backlog. Re-measured on paiml-mcp-agent-toolkit at df867892b (97 tracked *.sh, shellcheck 0.8.0): bashrs 5,019 diagnostics against shellcheck 130. SC2046 66 vs 5, SC2086 316 vs 7, SC2154 108 vs 0, SC1004 92 vs 0, SC2164 26 vs 0, SC2047 20 vs 0, SC2161 19 vs 0, SC2101 14 vs 0. On the 12 lines where shellcheck reports SC2046 or SC2086, bashrs reports the same code on 8 and misses 4: three `$(echo $VAR | cut ...)` assignments and one `printf %s $VAR` inside "$(...)". Closes are decided by the orchestrator after review; this comment is the classification only.
+
+<!-- paiml-implement:PMAT-254-triage -->
+gh issue view 295 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 294 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 293 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 265 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 232 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 236 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 234 --repo paiml/bashrs --json labels --jq [.labels[].name]
+gh issue view 233 --repo paiml/bashrs --json labels --jq [.labels[].name]
