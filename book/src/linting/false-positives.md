@@ -481,3 +481,10 @@ All tests must pass before any release.
 
 - [Linting Rules Reference](../reference/rules.md)
 - [Configuration Reference](../reference/configuration.md)
+
+
+## What 7.1.0 changed
+
+- **One-line loops.** `for m in a b; do [[ $m == b ]] && { x=1; break; }; done` no longer reports SC2105; the rule follows the loop, not the line. A `break` outside any loop is still reported.
+- **Durations are not timestamps.** `elapsed=$(( end - start ))` no longer reports DET002. A wall-clock value in a branch condition is now DET005, a warning, never both.
+- **Directive namespaces.** `# shellcheck disable=DET002` is reported (BASHRS001) instead of silently honoured: shellcheck cannot parse a non-SC code and abandons the file. Use `# bashrs disable-line=DET002`.

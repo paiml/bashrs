@@ -79,7 +79,7 @@ itertools = "0.15"
 # unified nothing.
 
 [workspace.package]
-version = "7.0.4"
+version = "7.1.0"
 edition = "2021"
 rust-version = "1.82"
 authors = ["Pragmatic AI Labs"]

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.1.0] - 2026-09-11
+
+Five issues from the v7.1.0 milestone, one defect found while measuring (#301), the two roadmap items scheduled for it (PMAT-244, PMAT-250), the first mechanical dogfood gates and a scripted publish from a tag (PMAT-253 phases 3a and 5), and 225 corpus entries chosen where the sovereign repositories are and the corpus was not. Every fix was measured against its issue's own reproducer, and every fix that could hide a true positive keeps a test for one.
+
+### Fixed
+
+- **Transpiler: an array literal reaches `array_join` and `array_len`** (#293). The literal lowers to `items_0`, `items_1`, …, but the call received `"$items"`, which is never assigned, so the script aborted under `set -u`. The first argument now expands to the element list the runtime helpers read.
+- **Transpiler: a string literal holding a backtick, `$( )` or `$VAR` is no longer refused when it is emitted single-quoted** (#294), where those bytes are inert. The check still applies where the text is embedded raw (a `format!` part) and to `exec`/`capture` strings; and when any string built at run time reaches `exec`/`capture` — which emit `eval` — every literal in the program is held to it, so a substitution cannot reach `eval` through a variable or a parameter. The post-emission SC2006 check now reports only a live backtick.
+- **SC2105 on a `break` inside a one-line loop** (PMAT-244). The rule counted loop keywords per line; it now follows the loop structure, and a `break` outside any loop is still reported.
+- **`--format json` prints exactly one JSON document on stdout** (#301). Tracing wrote an INFO line to stdout ahead of the JSON; it now writes to stderr.
+- **Build: every target builds in one invocation** (#295). The dev profile's `panic = "abort"` made `cargo build --workspace --all-targets` fail on bashrs-wasm's probar test target; the release profile keeps `abort`.
+- **Release: publishing no longer races the crates.io index** (PMAT-253 phase 5). The v7.0.4 release run failed once because the tag was pushed seconds before `bashrs-oracle` reached the index; `release.yml` now waits for it before packaging `bashrs`, and `scripts/publish-from-tag.sh` (`make publish-from-tag TAG=vX.Y.Z`) publishes from a clean detached worktree of the tag, `bashrs-oracle` first, waiting for the index before `bashrs`.
+
+### Changed
+
+- **`# shellcheck disable=` honours only SC-numbered codes** (#265). A bashrs code there (DET*, SEC*, IDEM*, …) made shellcheck abandon the whole file while bashrs went quiet; it is now reported as BASHRS001 with the fix and is not honoured. Use `# bashrs disable-line=` or `# bashrs disable-file=` for bashrs codes. A `# bashrs disable-line=` on a line that holds no code is reported instead of silently ignored.
+- **DET002 no longer reports a duration** (#232): `end=$(date +%s); elapsed=$(( end - start ))` measures elapsed time and reaches no artifact.
+- **SC2046 reads command substitutions from `shell_words`** (PMAT-250). The rule's private scanner is gone; no SC2046 verdict changes.
+- **`make dogfood` runs mechanical gates** (PMAT-253 phase 3a): D (the book check and every `bashrs` invocation in README.md), G (`pv validate` over `contracts/*.yaml`) and K (the corpus, run inside bwrap, at or above the release bar). Each prints one `GATE <L> PASS|FAIL` line and carries a mutation that turns it red. The previous self-lint is `make dogfood-selflint`.
+
+### Added
+
+- **DET005: time-dependent control flow** (#232). A wall-clock value in a branch condition — `if [ "$(date +%H)" -lt 6 ]`, a `while` against a deadline, `case "$(date +%u)"`, `[ "$(date +%s)" -gt "$expiry" ] && exit 1` — is reported at warning, and not also as DET002.
+- **Corpus: 225 entries** in six themes chosen by the measured gap between 2,890 scripts, Makefiles, Dockerfiles and workflow steps across 164 sovereign repositories and the existing corpus: cron and systemd scheduling, GNU make metaprogramming, polyglot heredocs (python, perl, awk, yq), agentic lock/retry/fan-out, CLI getopts and case dispatch, awk/sed/jq pipelines. Seven generated entries were excluded before any run because the behavioural check would execute their side effects (builds, `uv`, an agent CLI); eight more are pending with their measured failures (`docs/audits/corpus-pending-PMAT-255.jsonl`).
+
+### Measured
+
+@@MEASURED@@
+
 ## [7.0.4] - 2026-09-10
 
 Seven of the thirteen issues left open after 7.0.3, all `release:7.0.4` after a
