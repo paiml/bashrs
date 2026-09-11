@@ -403,23 +403,25 @@ mod tests {
             .entries
             .iter()
             .take(50)
-            .map(|e| {
+            // PMAT-257/GH-305: an entry that does not transpile is SKIPPED. The old
+            // fallback substituted the Rust input, which put `fn main` into a
+            // conversation the assertion below forbids: the test failed only once a
+            // transpile started failing honestly instead of emitting a silent no-op.
+            .filter_map(|e| {
                 let shell = match e.format {
                     crate::corpus::registry::CorpusFormat::Bash => {
                         crate::transpile(&e.input, &config)
                             .map(|s| strip_shell_preamble(&s))
-                            .unwrap_or_else(|_| e.input.clone())
+                            .ok()?
                     }
                     crate::corpus::registry::CorpusFormat::Makefile => {
-                        crate::transpile_makefile(&e.input, &config)
-                            .unwrap_or_else(|_| e.input.clone())
+                        crate::transpile_makefile(&e.input, &config).ok()?
                     }
                     crate::corpus::registry::CorpusFormat::Dockerfile => {
-                        crate::transpile_dockerfile(&e.input, &config)
-                            .unwrap_or_else(|_| e.input.clone())
+                        crate::transpile_dockerfile(&e.input, &config).ok()?
                     }
                 };
-                (e.id.clone(), shell)
+                Some((e.id.clone(), shell))
             })
             .collect();
 

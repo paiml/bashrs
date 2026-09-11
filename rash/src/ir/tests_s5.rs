@@ -20,6 +20,23 @@ fn convert_let_stmt(name: &str, value: Expr) -> ShellIR {
     from_ast(&ast).expect("IR conversion should succeed")
 }
 
+fn convert_let_stmt_err(name: &str, value: Expr) -> crate::models::Error {
+    let ast = RestrictedAst {
+        functions: vec![Function {
+            name: "main".to_string(),
+            params: vec![],
+            return_type: Type::Void,
+            body: vec![Stmt::Let {
+                name: name.to_string(),
+                value,
+                declaration: true,
+            }],
+        }],
+        entry_point: "main".to_string(),
+    };
+    from_ast(&ast).expect_err("IR conversion should fail")
+}
+
 fn extract_let_value(ir: &ShellIR) -> &ShellValue {
     match ir {
         ShellIR::Sequence(stmts) => match &stmts[0] {
@@ -120,8 +137,9 @@ fn test_IR_COV_031_binary_ne_numeric() {
 
 #[test]
 fn test_IR_COV_032_method_call_unknown_pattern() {
-    // MethodCall that doesn't match any recognized pattern → "unknown"
-    let ir = convert_let_stmt(
+    // MethodCall that doesn't match any recognized pattern must error
+    // (PMAT-257/GH-305) rather than silently produce "unknown".
+    let err = convert_let_stmt_err(
         "result",
         Expr::MethodCall {
             receiver: Box::new(Expr::Variable("foo".to_string())),
@@ -129,8 +147,7 @@ fn test_IR_COV_032_method_call_unknown_pattern() {
             args: vec![],
         },
     );
-    let val = extract_let_value(&ir);
-    assert!(matches!(val, ShellValue::String(s) if s == "unknown"));
+    assert!(err.to_string().contains("bar"));
 }
 
 #[test]
