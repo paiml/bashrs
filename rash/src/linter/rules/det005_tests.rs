@@ -122,3 +122,58 @@ fn test_PMAT255_gh232_d6_det002_still_fires_on_artifact_write() {
         "DET005 must not double-report a DET002 line (#232)"
     );
 }
+
+/// #304: one timestamp captured once, then flowing to TWO sinks - a
+/// reproducible artifact write AND a branch condition. Both are true,
+/// distinct defects of that value (reproducibility vs. time-dependent
+/// control flow) and must each be reported once. Before the fix,
+/// `timestamp_flow::record` tracked only the single *strongest* `SinkClass`
+/// per value (`Reproducible` outranks `Conditional`), so the artifact write
+/// on line 2 silently masked the branch condition on line 3-4 and DET005
+/// reported nothing at all.
+#[test]
+fn test_PMAT257_gh304_det005_still_reported_when_a_det002_sink_shares_the_value() {
+    let script = "#!/bin/sh\nTS=$(date +%s)\necho \"$TS\" > out.txt\nif [ \"$TS\" -gt 1000 ]; then\n    echo old\nfi\n";
+
+    let det002 = det002::check(script);
+    assert_eq!(
+        det002.diagnostics.len(),
+        1,
+        "DET002 must still catch the artifact write on line 3 (#304)"
+    );
+    assert_eq!(det002.diagnostics[0].code, "DET002");
+
+    let det005 = check(script);
+    assert_eq!(
+        det005.diagnostics.len(),
+        1,
+        "DET005 must not be masked by a DET002 sink reached by the same value (#304)"
+    );
+    assert_eq!(det005.diagnostics[0].code, "DET005");
+    assert_eq!(det005.diagnostics[0].severity, Severity::Warning);
+}
+
+/// Companion to the #304 fix above: a value that reaches ONLY a reproducible
+/// sink - no branch condition anywhere - must still fire DET002 alone, with
+/// DET005 silent. This guards against a fix that "solves" #304 by reporting
+/// DET005 unconditionally whenever DET002 also fires, rather than actually
+/// tracking whether a `Conditional` use was observed.
+#[test]
+fn test_PMAT257_gh304_det002_alone_still_fires_without_a_det005_condition() {
+    let script = "#!/bin/sh\nTS=$(date +%s)\necho \"$TS\" > out.txt\n";
+
+    let det002 = det002::check(script);
+    assert_eq!(
+        det002.diagnostics.len(),
+        1,
+        "DET002 must fire on the artifact write"
+    );
+    assert_eq!(det002.diagnostics[0].code, "DET002");
+
+    let det005 = check(script);
+    assert_eq!(
+        det005.diagnostics.len(),
+        0,
+        "DET005 must stay silent when the value never reaches a branch condition (#304)"
+    );
+}
