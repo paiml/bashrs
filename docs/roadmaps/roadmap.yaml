@@ -2039,7 +2039,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'COV-MEASURE: measure line coverage, name the top gaps with pmat query --coverage-gaps, record both'
-  status: planned
+  status: completed
   priority: critical
   assigned_to: noahgift
   created: 2026-04-07T16:46:30Z
@@ -2054,7 +2054,7 @@ roadmap:
   estimated_effort: null
   labels:
   - release:v7.2.0
-  notes: 'Redefined by quorum decision (2026-09-11, 2-1; the dissenting lane voted cancel): COV-95 named none of its eight files and its 90 to 95 percent target rested on an April baseline nothing has re-measured since. Record: docs/audits/quorum-decisions-v7.2.0.md'
+  notes: 'Measured 2026-09-11 in docs/audits/coverage-v7.2.0.md: 91.72 percent line, 93.89 percent function, up from 90.8 percent in April; the ten largest named gaps are all wasm_bindgen entry points in bashrs-wasm, which the measured command does not compile. The remaining decision, scheduling the 3.28 point gap or re-dating the standard, is recorded there. Redefined by quorum decision (2026-09-11, 2-1; the dissenting lane voted cancel): COV-95 named none of its eight files and its 90 to 95 percent target rested on an April baseline nothing has re-measured since. Record: docs/audits/quorum-decisions-v7.2.0.md'
 - id: PMAT-244
   github_issue: null
   item_type: task
