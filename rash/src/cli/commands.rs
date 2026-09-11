@@ -169,6 +169,9 @@ pub(super) mod corpus_diff_commands;
 pub(super) mod corpus_display_commands;
 #[path = "corpus_entry_commands.rs"]
 pub(super) mod corpus_entry_commands;
+#[cfg(test)]
+#[path = "corpus_entry_commands_cov_tests.rs"]
+mod corpus_entry_commands_cov_tests;
 #[path = "corpus_expansion_commands.rs"]
 pub(super) mod corpus_expansion_commands;
 #[path = "corpus_failure_commands.rs"]
