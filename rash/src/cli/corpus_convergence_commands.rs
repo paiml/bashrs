@@ -5,12 +5,18 @@ use crate::models::{Error, Result};
 use std::path::PathBuf;
 
 pub(crate) fn corpus_converge_table() -> Result<()> {
+    let log_path = PathBuf::from(".quality/convergence.log");
+    corpus_converge_table_with(&log_path)
+}
+
+/// PMAT-257: body of `corpus_converge_table()` split out so a test can point
+/// it at a temp-file convergence log instead of the real `.quality/` path.
+pub(crate) fn corpus_converge_table_with(log_path: &std::path::Path) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::convergence;
     use crate::corpus::runner::CorpusRunner;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
     if entries.is_empty() {
         println!("No convergence history. Run `bashrs corpus run --log` first.");
@@ -30,12 +36,22 @@ pub(crate) fn corpus_converge_table() -> Result<()> {
 
 /// Per-format delta between two iterations (§11.10.5).
 pub(crate) fn corpus_converge_diff(from: Option<u32>, to: Option<u32>) -> Result<()> {
+    let log_path = PathBuf::from(".quality/convergence.log");
+    corpus_converge_diff_with(&log_path, from, to)
+}
+
+/// PMAT-257: body of `corpus_converge_diff()` split out so a test can point
+/// it at a temp-file convergence log instead of the real `.quality/` path.
+pub(crate) fn corpus_converge_diff_with(
+    log_path: &std::path::Path,
+    from: Option<u32>,
+    to: Option<u32>,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::convergence;
     use crate::corpus::runner::CorpusRunner;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
     if entries.len() < 2 {
         println!("Need at least 2 iterations for diff. Run `bashrs corpus run --log` more.");
@@ -79,12 +95,18 @@ pub(crate) fn corpus_converge_diff(from: Option<u32>, to: Option<u32>) -> Result
 
 /// Per-format convergence status with trend (§11.10.5).
 pub(crate) fn corpus_converge_status() -> Result<()> {
+    let log_path = PathBuf::from(".quality/convergence.log");
+    corpus_converge_status_with(&log_path)
+}
+
+/// PMAT-257: body of `corpus_converge_status()` split out so a test can point
+/// it at a temp-file convergence log instead of the real `.quality/` path.
+pub(crate) fn corpus_converge_status_with(log_path: &std::path::Path) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::convergence;
     use crate::corpus::runner::CorpusRunner;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
     if entries.is_empty() {
         println!("No convergence history. Run `bashrs corpus run --log` first.");
@@ -420,4 +442,142 @@ pub(crate) fn corpus_format_grammar(format: CorpusFormatArg) -> Result<()> {
     }
 
     Ok(())
+}
+
+// PMAT-257: coverage for the convergence, mining, and schema handlers. These
+// live inside the library, because the coverage gate measures
+// `cargo llvm-cov --lib -p bashrs` and a test under rash/tests/ does not move
+// that number at all.
+//
+// None of these functions build a `CorpusRunner`, so most are cheap to call
+// directly against the real registry (structural checks or a bounded `git
+// log`, never a transpile of 18,000 entries). `corpus_converge_table`,
+// `corpus_converge_diff`, and `corpus_converge_status` each read a
+// hardcoded `.quality/convergence.log` path though, so those three were
+// split into `*_with(log_path, ...)` twins that take the path as a
+// parameter, letting a test point them at a tempfile instead.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::runner_types::ConvergenceEntry;
+
+    fn write_log(entries: &[ConvergenceEntry]) -> tempfile::TempDir {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let path = dir.path().join("convergence.log");
+        let mut body = String::new();
+        for e in entries {
+            body.push_str(&serde_json::to_string(e).expect("serialize convergence entry"));
+            body.push('\n');
+        }
+        std::fs::write(&path, body).expect("write convergence log");
+        dir
+    }
+
+    fn entry(iteration: u32, rate: f64) -> ConvergenceEntry {
+        ConvergenceEntry {
+            iteration,
+            date: "2026-01-01".to_string(),
+            total: 100,
+            passed: (rate * 100.0) as usize,
+            failed: 100 - (rate * 100.0) as usize,
+            rate,
+            delta: 0.0,
+            notes: "PMAT-257 fixture".to_string(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_converge_table_with_missing_log_is_not_an_error() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let missing = dir.path().join("nope.log");
+        corpus_converge_table_with(&missing).expect("a missing log is reported, not an error");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_converge_table_with_populated_log() {
+        let dir = write_log(&[entry(1, 0.9), entry(2, 0.95)]);
+        corpus_converge_table_with(&dir.path().join("convergence.log"))
+            .expect("a populated log prints a table");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_converge_diff_with_needs_two_iterations() {
+        let dir = write_log(&[entry(1, 0.9)]);
+        corpus_converge_diff_with(&dir.path().join("convergence.log"), None, None)
+            .expect("fewer than two iterations is reported, not an error");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_converge_diff_with_defaults_to_last_two() {
+        let dir = write_log(&[entry(1, 0.9), entry(2, 0.95), entry(3, 0.98)]);
+        corpus_converge_diff_with(&dir.path().join("convergence.log"), None, None)
+            .expect("defaulting to the last two iterations succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_converge_diff_with_explicit_iterations() {
+        let dir = write_log(&[entry(1, 0.9), entry(2, 0.95), entry(3, 0.98)]);
+        let path = dir.path().join("convergence.log");
+        corpus_converge_diff_with(&path, Some(1), Some(3))
+            .expect("explicit from/to that both exist succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_converge_diff_with_unknown_iteration_is_an_error() {
+        let dir = write_log(&[entry(1, 0.9), entry(2, 0.95)]);
+        let path = dir.path().join("convergence.log");
+        assert!(corpus_converge_diff_with(&path, Some(99), None).is_err());
+        assert!(corpus_converge_diff_with(&path, None, Some(99)).is_err());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_converge_status_with_missing_log_is_not_an_error() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let missing = dir.path().join("nope.log");
+        corpus_converge_status_with(&missing).expect("a missing log is reported, not an error");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_converge_status_with_populated_log() {
+        let dir = write_log(&[entry(1, 0.9), entry(2, 0.95), entry(3, 0.999)]);
+        corpus_converge_status_with(&dir.path().join("convergence.log"))
+            .expect("a populated log prints per-format status");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_mine_runs_over_a_small_git_log() {
+        corpus_mine(3).expect("mining a small number of fix commits succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_fix_gaps_runs_over_a_small_git_log() {
+        corpus_fix_gaps(3).expect("finding fix gaps over a small git log succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_org_patterns_prints_known_patterns() {
+        corpus_org_patterns().expect("org pattern report always succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_schema_validate_reads_the_real_registry() {
+        corpus_schema_validate().expect("schema validation over the real registry succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_grammar_errors_reads_the_real_registry() {
+        corpus_grammar_errors().expect("grammar error report over the real registry succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_format_grammar_every_format() {
+        for format in [
+            CorpusFormatArg::Bash,
+            CorpusFormatArg::Makefile,
+            CorpusFormatArg::Dockerfile,
+        ] {
+            corpus_format_grammar(format).expect("grammar spec prints for every format");
+        }
+    }
 }

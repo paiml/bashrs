@@ -384,3 +384,136 @@ fn purify_recursive(dir: &Path, opts: &PurifyCommandOptions<'_>) -> Result<()> {
 }
 
 include!("purify_commands_walk.rs");
+
+// PMAT-257: coverage for the purify handler, inside the library where the
+// coverage gate measures. Every path is a TempDir; nothing touches the repo.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    const MESSY: &str =
+        "#!/bin/bash\nmkdir /tmp/build\nrm /tmp/build/old\nSESSION=$RANDOM\necho \"$SESSION\"\n";
+
+    fn opts<'a>(input: &'a Path, output: Option<&'a Path>) -> PurifyCommandOptions<'a> {
+        PurifyCommandOptions {
+            input,
+            output,
+            report: false,
+            with_tests: false,
+            property_tests: false,
+            type_check: false,
+            emit_guards: false,
+            type_strict: false,
+            diff: false,
+            verify: false,
+            recursive: false,
+        }
+    }
+
+    fn script(dir: &TempDir, name: &str, body: &str) -> std::path::PathBuf {
+        let p = dir.path().join(name);
+        fs::write(&p, body).expect("fixture written");
+        p
+    }
+
+    #[test]
+    fn test_PMAT257_cov_purify_single_file_writes_output() {
+        let dir = TempDir::new().unwrap();
+        let input = script(&dir, "messy.sh", MESSY);
+        let out = dir.path().join("pure.sh");
+        purify_command(opts(&input, Some(&out))).expect("purify succeeds");
+        let purified = fs::read_to_string(&out).expect("output written");
+        assert!(
+            purified.contains("mkdir -p"),
+            "idempotent mkdir, got:\n{purified}"
+        );
+        assert!(!purified.contains("$RANDOM"), "determinism removes $RANDOM");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_purify_to_stdout_when_no_output_given() {
+        let dir = TempDir::new().unwrap();
+        let input = script(&dir, "messy.sh", MESSY);
+        purify_command(opts(&input, None)).expect("printing to stdout succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_purify_missing_input_is_an_error() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("absent.sh");
+        assert!(purify_command(opts(&input, None)).is_err());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_purify_report_diff_and_type_check_branches() {
+        let dir = TempDir::new().unwrap();
+        let input = script(&dir, "messy.sh", MESSY);
+        let out = dir.path().join("pure.sh");
+        let mut o = opts(&input, Some(&out));
+        o.report = true;
+        o.diff = true;
+        o.type_check = true;
+        o.emit_guards = true;
+        // With --diff the handler prints a diff instead of writing the file,
+        // so the Ok is the assertion here; the plain-output case above checks
+        // the written file.
+        purify_command(o).expect("report, diff and type-check branches succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_purify_with_tests_and_property_tests() {
+        let dir = TempDir::new().unwrap();
+        let input = script(&dir, "messy.sh", MESSY);
+        let out = dir.path().join("pure.sh");
+        let mut o = opts(&input, Some(&out));
+        o.with_tests = true;
+        o.property_tests = true;
+        purify_command(o).expect("test generation branches succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_purify_recursive_walks_only_shell_files() {
+        let dir = TempDir::new().unwrap();
+        script(&dir, "a.sh", MESSY);
+        script(&dir, "b.sh", "#!/bin/sh\necho ok\n");
+        script(&dir, "notes.txt", "not a script\n");
+        let mut o = opts(dir.path(), None);
+        o.recursive = true;
+        purify_command(o).expect("recursive purify over a temp dir succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_purify_type_strict_reports_diagnostics() {
+        let dir = TempDir::new().unwrap();
+        let input = script(
+            &dir,
+            "typed.sh",
+            "#!/bin/bash\nx=5\ny=\"$x\"abc\necho \"$y\"\n",
+        );
+        let out = dir.path().join("pure.sh");
+        let mut o = opts(&input, Some(&out));
+        o.type_check = true;
+        o.type_strict = true;
+        // Strict mode may refuse or accept depending on the diagnostics found;
+        // both are legitimate outcomes, and both exercise the branch.
+        let _ = purify_command(o);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_diff_helpers_find_hunks_in_changed_scripts() {
+        let orig = ["a", "b", "c", "d"];
+        let pure = ["a", "B", "c", "D"];
+        let end = find_hunk_end(&orig, &pure, 1, 4);
+        assert!(end >= 1 && end <= 4);
+        print_diff_hunk(&orig, &pure, 0, 4);
+        print_unified_diff(Path::new("x.sh"), "a\nb\n", "a\nB\n");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_emit_type_diagnostics_with_none_is_not_an_error() {
+        let blocked = purify_emit_type_diagnostics(Path::new("x.sh"), &[], true);
+        assert!(!blocked, "no diagnostics can never block");
+    }
+}

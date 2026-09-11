@@ -7,9 +7,21 @@ use crate::models::{Config, Error, Result};
 
 pub(crate) fn corpus_check_entry(id: &str, format: &CorpusOutputFormat) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
-    use crate::corpus::runner::CorpusRunner;
 
     let registry = CorpusRegistry::load_full();
+    corpus_check_entry_with(&registry, id, format)
+}
+
+/// PMAT-257: body of `corpus_check_entry`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_check_entry_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    id: &str,
+    format: &CorpusOutputFormat,
+) -> Result<()> {
+    use crate::corpus::runner::CorpusRunner;
+
     let entry = registry
         .entries
         .iter()

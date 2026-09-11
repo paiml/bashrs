@@ -16,12 +16,22 @@ pub(super) fn grade_from_fail_count(fail_count: usize) -> &'static str {
 }
 
 pub(crate) fn corpus_scatter() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    corpus_scatter_with(&registry)
+}
+
+/// PMAT-257: body of `corpus_scatter`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_scatter_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     // Collect timing and failure counts
@@ -88,14 +98,24 @@ pub(crate) fn corpus_scatter() -> Result<()> {
 
 /// Grade distribution histogram across all entries.
 pub(crate) fn corpus_grade_dist() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    corpus_grade_dist_with(&registry)
+}
+
+/// PMAT-257: body of `corpus_grade_dist`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_grade_dist_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::registry::Grade;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     // Count per-entry grades
     let mut counts: std::collections::BTreeMap<String, usize> = std::collections::BTreeMap::new();
@@ -151,13 +171,21 @@ pub(crate) fn corpus_grade_dist() -> Result<()> {
 
 /// Pivot table: tier × format cross-tabulation with pass rates.
 pub(crate) fn corpus_pivot() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
-    use crate::corpus::runner::CorpusRunner;
 
     let registry = CorpusRegistry::load_full();
+    corpus_pivot_with(&registry)
+}
+
+/// PMAT-257: body of `corpus_pivot`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_pivot_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::runner::CorpusRunner;
+
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     // Build tier × format grid
     let tiers = [
@@ -257,13 +285,21 @@ pub(crate) fn corpus_pivot() -> Result<()> {
 
 /// Dimension correlation matrix: which failures co-occur.
 pub(crate) fn corpus_corr() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
-    use crate::corpus::runner::CorpusRunner;
 
     let registry = CorpusRegistry::load_full();
+    corpus_corr_with(&registry)
+}
+
+/// PMAT-257: body of `corpus_corr`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_corr_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::runner::CorpusRunner;
+
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let dims = ["A", "B1", "B2", "B3", "D", "E", "F", "G"];
 
@@ -353,6 +389,133 @@ pub(crate) fn schema_layer_counts(
         }
     }
     (l1, l2, l3, l4)
+}
+
+// PMAT-257: coverage for the corpus visualization handlers. These live
+// inside the library, because the coverage gate measures `cargo llvm-cov
+// --lib -p bashrs` and a test under rash/tests/ does not move that number
+// at all. `corpus_scatter`, `corpus_grade_dist`, `corpus_pivot`, and
+// `corpus_corr` all build a `CorpusRunner` and score entries out of the
+// real `CorpusRegistry::load_full()` (18,000+ entries) -- too slow for a
+// unit test as written. Each was split into a `*_with(registry)` twin that
+// takes the registry as a parameter, matching `corpus_diag_commands.rs`.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Standard,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Production,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_grade_from_fail_count_every_bucket() {
+        assert_eq!(grade_from_fail_count(0), "A+");
+        assert_eq!(grade_from_fail_count(1), "A");
+        assert_eq!(grade_from_fail_count(2), "B");
+        assert_eq!(grade_from_fail_count(3), "C");
+        assert_eq!(grade_from_fail_count(4), "C");
+        assert_eq!(grade_from_fail_count(5), "D");
+        assert_eq!(grade_from_fail_count(6), "D");
+        assert_eq!(grade_from_fail_count(7), "F");
+        assert_eq!(grade_from_fail_count(100), "F");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_scatter_with_tiny_registry() {
+        corpus_scatter_with(&tiny_registry()).expect("scatter must render over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_scatter_with_empty_registry() {
+        corpus_scatter_with(&CorpusRegistry::new())
+            .expect("scatter must not fail on an empty registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_grade_dist_with_tiny_registry() {
+        corpus_grade_dist_with(&tiny_registry())
+            .expect("grade distribution must render over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_grade_dist_with_empty_registry() {
+        corpus_grade_dist_with(&CorpusRegistry::new())
+            .expect("grade distribution must not fail on an empty registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_pivot_with_tiny_registry() {
+        corpus_pivot_with(&tiny_registry()).expect("pivot table must render over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_pivot_with_empty_registry() {
+        corpus_pivot_with(&CorpusRegistry::new())
+            .expect("pivot table must not fail on an empty registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_corr_with_tiny_registry() {
+        corpus_corr_with(&tiny_registry())
+            .expect("correlation matrix must render over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_schema_layer_counts_all_layers_pass() {
+        use crate::corpus::runner::CorpusResult;
+        let entry = tiny_registry().entries[0].clone();
+        let result = CorpusResult {
+            transpiled: true,
+            lint_clean: true,
+            deterministic: true,
+            metamorphic_consistent: true,
+            output_behavioral: true,
+            cross_shell_agree: true,
+            ..Default::default()
+        };
+        let results = vec![result];
+        let indices = vec![(0usize, &entry)];
+        let (l1, l2, l3, l4) = schema_layer_counts(&results, &indices);
+        assert_eq!((l1, l2, l3, l4), (1, 1, 1, 1));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_schema_layer_counts_missing_index_is_skipped() {
+        let entry = tiny_registry().entries[0].clone();
+        let results: Vec<crate::corpus::runner::CorpusResult> = Vec::new();
+        let indices = vec![(0usize, &entry)];
+        let (l1, l2, l3, l4) = schema_layer_counts(&results, &indices);
+        assert_eq!((l1, l2, l3, l4), (0, 0, 0, 0));
+    }
 }
 
 include!("corpus_viz_commands_corpus.rs");

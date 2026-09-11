@@ -143,6 +143,18 @@ pub(super) mod corpus_b2_fix_commands;
 pub(super) mod corpus_compare_commands;
 #[path = "corpus_config_commands.rs"]
 pub(super) mod corpus_config_commands;
+#[cfg(test)]
+#[path = "corpus_config_commands_corpus_2_cov_tests.rs"]
+mod corpus_config_commands_corpus_2_cov_tests;
+#[cfg(test)]
+#[path = "corpus_config_commands_corpus_3_cov_tests.rs"]
+mod corpus_config_commands_corpus_3_cov_tests;
+#[cfg(test)]
+#[path = "corpus_config_commands_corpus_cov_tests.rs"]
+mod corpus_config_commands_corpus_cov_tests;
+#[cfg(test)]
+#[path = "corpus_config_commands_cov_tests.rs"]
+mod corpus_config_commands_cov_tests;
 #[path = "corpus_convergence_commands.rs"]
 pub(super) mod corpus_convergence_commands;
 #[path = "corpus_core_commands.rs"]
@@ -155,8 +167,14 @@ pub(super) mod corpus_diag_commands;
 pub(super) mod corpus_diff_commands;
 #[path = "corpus_display_commands.rs"]
 pub(super) mod corpus_display_commands;
+#[cfg(test)]
+#[path = "corpus_display_commands_cov_tests.rs"]
+mod corpus_display_commands_cov_tests;
 #[path = "corpus_entry_commands.rs"]
 pub(super) mod corpus_entry_commands;
+#[cfg(test)]
+#[path = "corpus_entry_commands_cov_tests.rs"]
+mod corpus_entry_commands_cov_tests;
 #[path = "corpus_expansion_commands.rs"]
 pub(super) mod corpus_expansion_commands;
 #[path = "corpus_failure_commands.rs"]
@@ -167,6 +185,9 @@ pub(super) mod corpus_gate_commands;
 pub(super) mod corpus_metrics_commands;
 #[path = "corpus_ml_commands.rs"]
 pub(super) mod corpus_ml_commands;
+#[cfg(test)]
+#[path = "corpus_ml_commands_cov_tests.rs"]
+mod corpus_ml_commands_cov_tests;
 #[path = "corpus_ops_commands.rs"]
 pub(super) mod corpus_ops_commands;
 #[path = "corpus_pipeline_commands.rs"]
@@ -175,10 +196,18 @@ pub(super) mod corpus_pipeline_commands;
 pub(super) mod corpus_ranking_commands;
 #[path = "corpus_report_commands.rs"]
 pub(super) mod corpus_report_commands;
+#[path = "corpus_report_commands_cov_tests.rs"]
+mod corpus_report_commands_cov_tests;
 #[path = "corpus_score_print_commands.rs"]
 pub(super) mod corpus_score_print_commands;
 #[path = "corpus_ssb_commands.rs"]
 pub(super) mod corpus_ssb_commands;
+#[cfg(test)]
+#[path = "corpus_ssb_commands_corpus_2_cov_tests.rs"]
+mod corpus_ssb_commands_corpus_2_cov_tests;
+#[cfg(test)]
+#[path = "corpus_ssb_commands_cov_tests.rs"]
+mod corpus_ssb_commands_cov_tests;
 #[path = "corpus_tier_commands.rs"]
 pub(super) mod corpus_tier_commands;
 #[path = "corpus_time_commands.rs"]

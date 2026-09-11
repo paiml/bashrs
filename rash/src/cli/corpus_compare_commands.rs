@@ -5,13 +5,21 @@ use crate::cli::args::CorpusFormatArg;
 use crate::models::{Config, Error, Result};
 
 pub(crate) fn corpus_health() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
-    use crate::corpus::runner::CorpusRunner;
 
     let registry = CorpusRegistry::load_full();
+    corpus_health_with(&registry)
+}
+
+/// PMAT-257: body of `corpus_health()` split out so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_health_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::runner::CorpusRunner;
+
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let grade_str = score.grade.to_string();
     let gc = grade_color(&grade_str);
@@ -37,12 +45,24 @@ pub(crate) fn corpus_health() -> Result<()> {
 
 /// Compare two corpus entries side-by-side.
 pub(crate) fn corpus_compare(id1: &str, id2: &str) -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    corpus_compare_with(&registry, id1, id2)
+}
+
+/// PMAT-257: body of `corpus_compare()` split out so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_compare_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    id1: &str,
+    id2: &str,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     let entry1 = registry
@@ -277,12 +297,24 @@ fn print_perf_row(label: &str, label_color: &str, timings: &[f64]) {
 }
 
 pub(crate) fn corpus_perf(filter: Option<&CorpusFormatArg>) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+
+    let registry = CorpusRegistry::load_full();
+    corpus_perf_with(&registry, filter)
+}
+
+/// PMAT-257: body of `corpus_perf()` split out so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_perf_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
     use crate::cli::color::*;
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     let entries: Vec<_> = registry
@@ -337,11 +369,23 @@ pub(crate) fn corpus_perf(filter: Option<&CorpusFormatArg>) -> Result<()> {
 
 /// CITL lint violation summary from transpiled output (spec §7.3).
 pub(crate) fn corpus_citl(filter: Option<&CorpusFormatArg>) -> Result<()> {
-    use crate::cli::color::*;
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
-    use crate::corpus::runner::CorpusRunner;
+    use crate::corpus::registry::CorpusRegistry;
 
     let registry = CorpusRegistry::load_full();
+    corpus_citl_with(&registry, filter)
+}
+
+/// PMAT-257: body of `corpus_citl()` split out so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_citl_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusFormat;
+    use crate::corpus::runner::CorpusRunner;
+
     let runner = CorpusRunner::new(Config::default());
 
     let entries: Vec<_> = registry
@@ -397,11 +441,20 @@ pub(crate) fn corpus_citl(filter: Option<&CorpusFormatArg>) -> Result<()> {
 
 /// Show longest streak of consecutive passing entries.
 pub(crate) fn corpus_streak() -> Result<()> {
-    use crate::cli::color::*;
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
-    use crate::corpus::runner::CorpusRunner;
+    use crate::corpus::registry::CorpusRegistry;
 
     let registry = CorpusRegistry::load_full();
+    corpus_streak_with(&registry)
+}
+
+/// PMAT-257: body of `corpus_streak()` split out so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_streak_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::registry::CorpusFormat;
+    use crate::corpus::runner::CorpusRunner;
+
     let runner = CorpusRunner::new(Config::default());
 
     let formats = [
@@ -457,4 +510,130 @@ pub(crate) fn corpus_streak() -> Result<()> {
         println!("  {CYAN}{name:<12}{RESET} {sc}{max_streak}{RESET}/{total} ({sc}{pct:.1}%{RESET})  {DIM}{max_start}..{max_end}{RESET}");
     }
     Ok(())
+}
+
+// PMAT-257: coverage for the corpus comparison handlers. These live inside
+// the library, because the coverage gate measures `cargo llvm-cov --lib -p
+// bashrs` and a test under rash/tests/ does not move that number at all.
+//
+// `corpus_health`, `corpus_compare`, `corpus_perf`, `corpus_citl`, and
+// `corpus_streak` all build a `CorpusRunner` and score entries out of the
+// real `CorpusRegistry::load_full()` (18,000+ entries) -- too slow for a unit
+// test as written. Each was split into a `*_with(registry, ...)` twin that
+// takes the registry as a parameter, so a test can build a three-entry
+// registry and exercise the whole handler (runner path included) in
+// milliseconds. `corpus_density`, `percentile`, `perf_ms_color`, and
+// `print_perf_row` never build a `CorpusRunner`, so they're covered directly.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_corpus_health_with_tiny_registry() {
+        corpus_health_with(&tiny_registry()).expect("health check runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_corpus_compare_with_finds_both_entries() {
+        corpus_compare_with(&tiny_registry(), "B-001", "M-001")
+            .expect("comparing two real ids succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_corpus_compare_with_missing_id_is_an_error() {
+        let registry = tiny_registry();
+        assert!(corpus_compare_with(&registry, "B-999", "M-001").is_err());
+        assert!(corpus_compare_with(&registry, "B-001", "M-999").is_err());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_corpus_perf_with_every_filter() {
+        let registry = tiny_registry();
+        for filter in [
+            None,
+            Some(&CorpusFormatArg::Bash),
+            Some(&CorpusFormatArg::Makefile),
+            Some(&CorpusFormatArg::Dockerfile),
+        ] {
+            corpus_perf_with(&registry, filter).expect("perf breakdown runs for every filter");
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_corpus_citl_with_every_filter() {
+        let registry = tiny_registry();
+        for filter in [
+            None,
+            Some(&CorpusFormatArg::Bash),
+            Some(&CorpusFormatArg::Makefile),
+            Some(&CorpusFormatArg::Dockerfile),
+        ] {
+            corpus_citl_with(&registry, filter).expect("citl summary runs for every filter");
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_corpus_streak_with_tiny_registry() {
+        corpus_streak_with(&tiny_registry()).expect("streak analysis runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_corpus_density_reads_the_real_registry() {
+        // No CorpusRunner anywhere in this function -- just registry id parsing.
+        corpus_density().expect("density over the real registry always succeeds");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_percentile_empty_and_populated() {
+        assert_eq!(percentile(&[], 50.0), 0.0);
+        let sorted = [1.0, 2.0, 3.0, 4.0, 5.0];
+        assert_eq!(percentile(&sorted, 0.0), 1.0);
+        assert_eq!(percentile(&sorted, 100.0), 5.0);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_perf_ms_color_all_bands() {
+        assert_eq!(perf_ms_color(1500.0), crate::cli::color::BRIGHT_RED);
+        assert_eq!(perf_ms_color(500.0), crate::cli::color::YELLOW);
+        assert_eq!(perf_ms_color(1.0), crate::cli::color::GREEN);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_perf_row_prints_without_panicking() {
+        print_perf_row("ALL", crate::cli::color::WHITE, &[1.0, 2.0, 3.0]);
+        print_perf_row("Empty", crate::cli::color::CYAN, &[]);
+    }
 }

@@ -85,3 +85,19 @@
 ## Verdict
 
 DONE for the ten defects, the pv gate and the corpus. PARTIAL(escalate) for the release itself: PMAT-253's remaining phases, PMAT-243 and PMAT-256 are still open on v7.2.0, and #303 and #317 are open defects on the same release.
+
+## Coverage push, measured
+
+| point | line coverage | files covered | PMAT257_cov tests |
+|---|---|---|---|
+| start | 91.72% | 0 | 0 |
+| 8 files | 92.64% | 8 | 44 |
+| 15 files | 93.53% | 15 | 129 |
+| 20 files | 93.98% | 20 | 205 |
+| 24 files | 94.18% | 24 | 236 |
+| 27 files | 94.51% | 27 | 285 |
+| 30 files | 94.66% | 30 | 314 |
+| 33 files | 94.94% | 33 | 354 |
+| 34 files | **95.01%** | 34 | 363 |
+
+Twenty-one worker dispatches over seven waves; every one stopped at its 40-turn limit, and the orchestrator committed what they left staged after re-running it. Four tests that ran the real corpus (143 to 148s each) were removed after timing; one dispatcher file's 19 tests (312s) were discarded. The functions gate refused two files for legacy complexity (corpus_b2_commands, cognitive 41) and one test helper (fixed).

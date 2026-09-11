@@ -3,16 +3,24 @@
 use crate::models::{Config, Result};
 
 pub(crate) fn corpus_lint_pipeline() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_lint_pipeline_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_lint_pipeline`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_lint_pipeline_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::citl;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
-    let suggestions = citl::lint_pipeline(&registry, &score);
+    let suggestions = citl::lint_pipeline(registry, &score);
 
     println!("{BOLD}CITL Lint Pipeline (\u{00a7}7.3){RESET}");
     println!();
@@ -44,14 +52,22 @@ pub(crate) fn corpus_lint_pipeline() -> Result<()> {
 }
 
 pub(crate) fn corpus_regression_check() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_regression_check_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_regression_check`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_regression_check_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::citl;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let log_path = std::path::Path::new(".quality/convergence.log");
     let history = CorpusRunner::load_convergence_log(log_path).unwrap_or_default();
@@ -78,14 +94,22 @@ pub(crate) fn corpus_regression_check() -> Result<()> {
 }
 
 pub(crate) fn corpus_convergence_check() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_convergence_check_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_convergence_check`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_convergence_check_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::citl;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let log_path = std::path::Path::new(".quality/convergence.log");
     let history = CorpusRunner::load_convergence_log(log_path).unwrap_or_default();
@@ -106,4 +130,71 @@ pub(crate) fn corpus_convergence_check() -> Result<()> {
     }
 
     Ok(())
+}
+
+// PMAT-257: coverage for the corpus pipeline handlers. All three build a
+// `CorpusRunner` over `CorpusRegistry::load_full()` (18,000+ entries), which
+// is too slow for a unit test as written. Each was split into a
+// `*_with(registry, ...)` twin that takes the registry as a parameter,
+// matching `corpus_compare_commands.rs`.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_lint_pipeline_with_tiny_registry() {
+        corpus_lint_pipeline_with(&tiny_registry())
+            .expect("lint pipeline runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_lint_pipeline_with_empty_registry() {
+        corpus_lint_pipeline_with(&CorpusRegistry::new())
+            .expect("lint pipeline runs over an empty registry (no suggestions)");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_regression_check_with_tiny_registry() {
+        corpus_regression_check_with(&tiny_registry())
+            .expect("regression check runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_convergence_check_with_tiny_registry() {
+        corpus_convergence_check_with(&tiny_registry())
+            .expect("convergence check runs over a tiny registry");
+    }
 }

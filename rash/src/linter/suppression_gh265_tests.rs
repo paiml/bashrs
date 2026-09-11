@@ -1,7 +1,6 @@
 //! GH-265: `# shellcheck disable=` must honour only SC-numbered codes, and a
 //! `# bashrs disable-line=` written on a comment-only line must be reported
 //! instead of silently doing nothing.
-use super::*;
 
 fn codes(source: &str) -> Vec<String> {
     crate::linter::lint_shell(source)

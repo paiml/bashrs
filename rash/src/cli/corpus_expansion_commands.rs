@@ -108,3 +108,69 @@ pub(crate) fn corpus_generate_expansion(
 
     Ok(())
 }
+
+// PMAT-257: neither function here ever touches CorpusRunner/CorpusRegistry --
+// generation and publishing both work from small on-disk fixtures, so the
+// whole file is safe to exercise directly with tempfile::TempDir.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+
+    #[test]
+    fn test_PMAT257_cov_generate_expansion_each_format() {
+        for fmt in ["bash", "makefile", "dockerfile"] {
+            let dir = tempfile::TempDir::new().expect("tempdir");
+            let out = dir.path().join("expansion.jsonl");
+            corpus_generate_expansion(fmt.to_string(), 4, out.clone(), 7)
+                .unwrap_or_else(|e| panic!("generating {fmt} entries must succeed: {e}"));
+            let content = std::fs::read_to_string(&out).expect("output file must exist");
+            assert!(
+                !content.trim().is_empty(),
+                "{fmt} expansion must write at least one JSONL row"
+            );
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_generate_expansion_rejects_unknown_format() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let out = dir.path().join("expansion.jsonl");
+        let err = corpus_generate_expansion("cobol".to_string(), 4, out, 1)
+            .expect_err("an unknown format string must be rejected");
+        assert!(format!("{err}").contains("Unknown format"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_publish_benchmark_round_trips_real_splits() {
+        let input_dir = tempfile::TempDir::new().expect("tempdir");
+        let output_dir = tempfile::TempDir::new().expect("tempdir");
+        for (name, label) in [("train", 0u8), ("val", 1u8), ("test", 0u8)] {
+            let path = input_dir.path().join(format!("{name}.jsonl"));
+            let row = serde_json::json!({"input": "echo hi", "label": label});
+            std::fs::write(&path, format!("{row}\n")).expect("write split fixture");
+        }
+        corpus_publish_benchmark(
+            input_dir.path().to_path_buf(),
+            output_dir.path().to_path_buf(),
+            "0.0.1-test".to_string(),
+        )
+        .expect("publishing a well-formed splits dir must succeed");
+        assert!(
+            output_dir.path().join("README.md").exists(),
+            "publish_benchmark must write a dataset card"
+        );
+    }
+
+    #[test]
+    fn test_PMAT257_cov_publish_benchmark_missing_input_is_an_error() {
+        let input_dir = tempfile::TempDir::new().expect("tempdir");
+        let output_dir = tempfile::TempDir::new().expect("tempdir");
+        let err = corpus_publish_benchmark(
+            input_dir.path().to_path_buf(),
+            output_dir.path().to_path_buf(),
+            "0.0.1-test".to_string(),
+        )
+        .expect_err("a splits dir missing train/val/test.jsonl must fail");
+        assert!(format!("{err}").contains("Cannot read"));
+    }
+}

@@ -6,17 +6,28 @@ use crate::models::{Config, Error, Result};
 use std::path::PathBuf;
 
 pub(crate) fn corpus_heatmap(limit: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_heatmap_with(&CorpusRegistry::load_full(), limit, filter)
+}
+
+/// PMAT-257: body of `corpus_heatmap`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_heatmap_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    limit: usize,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
     use crate::cli::color::*;
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
     let score = match filter {
-        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
-        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
-        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
-        None => runner.run(&registry),
+        Some(CorpusFormatArg::Bash) => runner.run_format(registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(registry, CorpusFormat::Dockerfile),
+        None => runner.run(registry),
     };
 
     // Sort: failures first (by # failing dims desc), then by ID
@@ -82,13 +93,21 @@ pub(crate) fn heatmap_print_row(r: &crate::corpus::runner::CorpusResult) {
 
 /// Compact multi-corpus convergence dashboard (spec §11.10.5).
 pub(crate) fn corpus_dashboard() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_dashboard_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_dashboard`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_dashboard_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     // Score box
     let gc = grade_color(&format!("{}", score.grade));
@@ -195,9 +214,20 @@ pub(crate) fn corpus_search(
     format: &CorpusOutputFormat,
     filter: Option<&CorpusFormatArg>,
 ) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_search_with(&CorpusRegistry::load_full(), pattern, format, filter)
+}
 
-    let registry = CorpusRegistry::load_full();
+/// PMAT-257: body of `corpus_search`, split so a test can pass a small
+/// synthetic registry instead of loading the full corpus.
+pub(crate) fn corpus_search_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    pattern: &str,
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::corpus::registry::CorpusFormat;
+
     let pat = pattern.to_lowercase();
 
     let matches: Vec<_> = registry

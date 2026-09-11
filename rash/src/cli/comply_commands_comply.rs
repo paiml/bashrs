@@ -184,7 +184,10 @@ fn comply_report_json(score: &crate::comply::scoring::ProjectScore) -> String {
 // ============================================================================
 
 fn comply_enforce_command(tier: u8, uninstall: bool) -> Result<()> {
-    let hooks_dir = Path::new(".git/hooks");
+    comply_enforce_command_with(Path::new(".git/hooks"), tier, uninstall)
+}
+
+fn comply_enforce_command_with(hooks_dir: &Path, tier: u8, uninstall: bool) -> Result<()> {
     if !hooks_dir.exists() {
         return Err(Error::Validation(
             "Not a git repository (no .git/hooks directory)".into(),
@@ -350,4 +353,320 @@ struct ComplyDiffArtifact {
     name: String,
     score: f64,
     violations: usize,
+}
+
+// PMAT-257: every function below either takes an explicit path/tempdir-scoped
+// hooks_dir or operates on plain in-memory structs (ProjectScore, ArtifactScore).
+// None of them touch CorpusRegistry/CorpusRunner, so all fixtures below are
+// tempfile::TempDir-scoped and never read/write the real repo or $HOME.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::comply::discovery::{Artifact, ArtifactKind};
+    use crate::comply::rules::{RuleId, RuleResult, Violation};
+    use crate::comply::scoring::{ArtifactScore, Grade, ProjectScore};
+
+    fn write_file(dir: &std::path::Path, name: &str, content: &str) -> std::path::PathBuf {
+        let path = dir.join(name);
+        std::fs::write(&path, content).expect("write fixture");
+        path
+    }
+
+    // ---- comply_track_list ----
+
+    #[test]
+    fn test_PMAT257_cov_track_list_project_scope_with_artifacts() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        write_file(dir.path(), "deploy.sh", "#!/bin/sh\necho hi\n");
+        write_file(dir.path(), "Makefile", "all:\n\techo hi\n");
+        comply_track_list(dir.path(), Some(ComplyScopeArg::Project))
+            .expect("tracking a project with artifacts must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_track_list_empty_project_scope() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        comply_track_list(dir.path(), Some(ComplyScopeArg::Project))
+            .expect("tracking an empty project must still succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_track_list_none_scope_covers_all_three() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        write_file(dir.path(), "run.sh", "#!/bin/sh\necho hi\n");
+        // scope=None takes the "all scopes" branch (project + user + system);
+        // user/system discovery is a read-only existence check of fixed paths.
+        comply_track_list(dir.path(), None).expect("tracking with no scope filter must succeed");
+    }
+
+    // ---- comply_scope_to_internal ----
+
+    #[test]
+    fn test_PMAT257_cov_scope_to_internal_all_variants() {
+        use crate::comply::config::Scope;
+        assert_eq!(
+            comply_scope_to_internal(ComplyScopeArg::Project),
+            Scope::Project
+        );
+        assert_eq!(comply_scope_to_internal(ComplyScopeArg::User), Scope::User);
+        assert_eq!(
+            comply_scope_to_internal(ComplyScopeArg::System),
+            Scope::System
+        );
+        // All has no direct internal scope; falls back to Project.
+        assert_eq!(
+            comply_scope_to_internal(ComplyScopeArg::All),
+            Scope::Project
+        );
+    }
+
+    // ---- comply_print_artifact_list ----
+
+    #[test]
+    fn test_PMAT257_cov_print_artifact_list_empty() {
+        use crate::comply::config::Scope;
+        comply_print_artifact_list(Scope::Project, &[]);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_artifact_list_with_entries() {
+        use crate::comply::config::Scope;
+        let artifacts = vec![Artifact::new(
+            std::path::PathBuf::from("build.sh"),
+            Scope::Project,
+            ArtifactKind::ShellScript,
+        )];
+        comply_print_artifact_list(Scope::Project, &artifacts);
+    }
+
+    // ---- comply_report_command ----
+
+    #[test]
+    fn test_PMAT257_cov_report_command_text_to_stdout() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        write_file(dir.path(), "ok.sh", "#!/bin/sh\necho hi\n");
+        comply_report_command(dir.path(), ComplyFormat::Text, None, None)
+            .expect("text report to stdout must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_report_command_json_to_file() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        write_file(dir.path(), "ok.sh", "#!/bin/sh\necho hi\n");
+        let out = dir.path().join("report.json");
+        comply_report_command(
+            dir.path(),
+            ComplyFormat::Json,
+            Some(out.as_path()),
+            Some(ComplyScopeArg::Project),
+        )
+        .expect("json report to a file must succeed");
+        let content = std::fs::read_to_string(&out).expect("report file must exist");
+        assert!(
+            content.contains("\"grade\""),
+            "json report must include a grade field"
+        );
+    }
+
+    #[test]
+    fn test_PMAT257_cov_report_command_markdown_to_file() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        write_file(dir.path(), "ok.sh", "#!/bin/sh\necho hi\n");
+        let out = dir.path().join("report.md");
+        comply_report_command(
+            dir.path(),
+            ComplyFormat::Markdown,
+            Some(out.as_path()),
+            None,
+        )
+        .expect("markdown report to a file must succeed");
+        let content = std::fs::read_to_string(&out).expect("report file must exist");
+        assert!(content.starts_with("# Compliance Report"));
+    }
+
+    // ---- comply_report_markdown / comply_report_json ----
+
+    fn sample_project_score(violations: usize) -> ProjectScore {
+        // One decision, made once: compliant or not.
+        let compliant = violations == 0;
+        let (score, grade, passed) = if compliant {
+            (100.0, Grade::APlus, 1)
+        } else {
+            (40.0, Grade::F, 0)
+        };
+        let results = if compliant {
+            vec![]
+        } else {
+            vec![RuleResult {
+                rule: RuleId::Determinism,
+                passed: false,
+                violations: vec![Violation {
+                    rule: RuleId::Determinism,
+                    line: Some(3),
+                    message: "uses $RANDOM".to_string(),
+                }],
+            }]
+        };
+        let artifact = ArtifactScore {
+            artifact_name: "deploy.sh".to_string(),
+            score,
+            grade,
+            rules_tested: 1,
+            rules_passed: passed,
+            violations,
+            results,
+        };
+        ProjectScore {
+            total_artifacts: 1,
+            compliant_artifacts: passed,
+            score,
+            grade,
+            total_falsification_attempts: 1,
+            successful_falsifications: violations,
+            artifact_scores: vec![artifact],
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_report_markdown_compliant_has_no_findings() {
+        let score = sample_project_score(0);
+        let md = comply_report_markdown(&score);
+        assert!(md.contains("COMPLIANT"));
+        assert!(!md.contains("## Findings"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_report_markdown_non_compliant_lists_findings() {
+        let score = sample_project_score(1);
+        let md = comply_report_markdown(&score);
+        assert!(md.contains("NON-COMPLIANT"));
+        assert!(md.contains("## Findings"));
+        assert!(md.contains("uses $RANDOM"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_report_json_includes_findings() {
+        let score = sample_project_score(1);
+        let json = comply_report_json(&score);
+        let parsed: serde_json::Value = serde_json::from_str(&json).expect("valid json");
+        assert_eq!(parsed["grade"], "F");
+        assert_eq!(
+            parsed["artifacts"][0]["findings"][0]["message"],
+            "uses $RANDOM"
+        );
+    }
+
+    // ---- comply_enforce_command_with ----
+
+    #[test]
+    fn test_PMAT257_cov_enforce_missing_hooks_dir_is_an_error() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let hooks_dir = dir.path().join("does-not-exist");
+        let err = comply_enforce_command_with(&hooks_dir, 1, false)
+            .expect_err("a missing hooks dir must be an error");
+        assert!(format!("{err}").contains("Not a git repository"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_enforce_installs_hook_each_tier() {
+        for tier in [1u8, 2, 3, 9] {
+            let dir = tempfile::TempDir::new().expect("tempdir");
+            let hooks_dir = dir.path().join(".git/hooks");
+            std::fs::create_dir_all(&hooks_dir).expect("mkdir hooks");
+            comply_enforce_command_with(&hooks_dir, tier, false)
+                .unwrap_or_else(|e| panic!("installing tier {tier} hook must succeed: {e}"));
+            let hook_path = hooks_dir.join("pre-commit");
+            let content = std::fs::read_to_string(&hook_path).expect("hook must exist");
+            assert!(content.contains("bashrs comply check"));
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_enforce_refuses_foreign_hook() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let hooks_dir = dir.path().join(".git/hooks");
+        std::fs::create_dir_all(&hooks_dir).expect("mkdir hooks");
+        write_file(&hooks_dir, "pre-commit", "#!/bin/sh\necho not-comply\n");
+        let err = comply_enforce_command_with(&hooks_dir, 1, false)
+            .expect_err("a foreign pre-commit hook must not be overwritten");
+        assert!(format!("{err}").contains("already exists"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_enforce_overwrites_existing_comply_hook() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let hooks_dir = dir.path().join(".git/hooks");
+        std::fs::create_dir_all(&hooks_dir).expect("mkdir hooks");
+        write_file(&hooks_dir, "pre-commit", "#!/bin/sh\nbashrs comply check\n");
+        comply_enforce_command_with(&hooks_dir, 2, false)
+            .expect("reinstalling over an existing comply hook must succeed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_enforce_uninstall_removes_comply_hook() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let hooks_dir = dir.path().join(".git/hooks");
+        std::fs::create_dir_all(&hooks_dir).expect("mkdir hooks");
+        let hook_path = write_file(&hooks_dir, "pre-commit", "#!/bin/sh\nbashrs comply check\n");
+        comply_enforce_command_with(&hooks_dir, 1, true)
+            .expect("uninstalling a comply hook must succeed");
+        assert!(!hook_path.exists(), "comply hook must be removed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_enforce_uninstall_leaves_foreign_hook() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let hooks_dir = dir.path().join(".git/hooks");
+        std::fs::create_dir_all(&hooks_dir).expect("mkdir hooks");
+        let hook_path = write_file(&hooks_dir, "pre-commit", "#!/bin/sh\necho not-comply\n");
+        comply_enforce_command_with(&hooks_dir, 1, true)
+            .expect("uninstall on a foreign hook must not error");
+        assert!(hook_path.exists(), "foreign hook must be left alone");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_enforce_uninstall_no_hook_present() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let hooks_dir = dir.path().join(".git/hooks");
+        std::fs::create_dir_all(&hooks_dir).expect("mkdir hooks");
+        comply_enforce_command_with(&hooks_dir, 1, true)
+            .expect("uninstall with no existing hook must succeed");
+    }
+
+    // ---- comply_diff_command ----
+
+    #[test]
+    fn test_PMAT257_cov_diff_command_first_run_has_no_previous_snapshot() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        write_file(dir.path(), "ok.sh", "#!/bin/sh\necho hi\n");
+        comply_diff_command(dir.path(), false)
+            .expect("first diff run must succeed and save a snapshot");
+        let snapshot_path = dir.path().join(".bashrs").join("comply-last.json");
+        assert!(
+            snapshot_path.exists(),
+            "diff must persist a snapshot for next run"
+        );
+    }
+
+    #[test]
+    fn test_PMAT257_cov_diff_command_second_run_reports_delta() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        write_file(dir.path(), "ok.sh", "#!/bin/sh\necho hi\n");
+        let bashrs_dir = dir.path().join(".bashrs");
+        std::fs::create_dir_all(&bashrs_dir).expect("mkdir .bashrs");
+        let snapshot = ComplyDiffSnapshot {
+            score: 10.0,
+            grade: "F".to_string(),
+            artifacts: vec![ComplyDiffArtifact {
+                name: "ok.sh".to_string(),
+                score: 10.0,
+                violations: 5,
+            }],
+        };
+        let json = serde_json::to_string_pretty(&snapshot).expect("serialize snapshot");
+        std::fs::write(bashrs_dir.join("comply-last.json"), json).expect("write snapshot");
+
+        comply_diff_command(dir.path(), false)
+            .expect("second diff run against a saved snapshot must succeed");
+    }
 }

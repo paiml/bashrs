@@ -301,11 +301,23 @@ pub(crate) fn corpus_risk_analysis(
     level_filter: Option<&str>,
 ) -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
-    use crate::corpus::runner::CorpusRunner;
 
     let registry = CorpusRegistry::load_full();
+    corpus_risk_analysis_with(&registry, format, level_filter)
+}
+
+/// PMAT-257: body of `corpus_risk_analysis()` split out so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_risk_analysis_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &CorpusOutputFormat,
+    level_filter: Option<&str>,
+) -> Result<()> {
+    use crate::corpus::runner::CorpusRunner;
+
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let classified = collect_risk_failures(&score.results, level_filter);
     let high = classified.iter().filter(|(_, _, r)| *r == "HIGH").count();
@@ -343,4 +355,204 @@ pub(crate) fn corpus_risk_analysis(
         }
     }
     Ok(())
+}
+
+// PMAT-257: coverage for the difficulty classification and risk-analysis
+// handlers. `corpus_classify_difficulty`/`corpus_classify_all` call
+// `CorpusRegistry::load_full()` but never build a `CorpusRunner` (no
+// transpilation), so they're cheap enough to exercise against the real
+// registry directly -- same approach as `corpus_density` in
+// corpus_compare_commands.rs. `corpus_risk_analysis` does build a
+// `CorpusRunner`, so it was split into `corpus_risk_analysis_with(registry,
+// ...)` and is tested against a tiny synthetic registry instead.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+    use crate::corpus::runner::CorpusResult;
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_classify_difficulty_every_tier_factor() {
+        // Tier 1: trivial, no loop/fn/nesting.
+        let (tier, factors) = classify_difficulty("echo hi");
+        assert_eq!(tier, 1);
+        assert!(!factors.is_empty());
+
+        // Tier bumped up by loops, multiple functions, pipes, conditionals,
+        // deep nesting, escapes, unicode, and unsafe/exec patterns.
+        let complex = r#"
+fn a() {}
+fn b() {}
+for i in 1 2 3; do
+    if [ "$i" = "1" ]; then
+        echo "\n\t special ☃" | eval "unsafe $i"
+    fi
+done
+{ { { { nested } } } }
+"#;
+        let (tier2, factors2) = classify_difficulty(complex);
+        assert!(tier2 >= 3, "complex input should score a higher tier");
+        assert!(factors2
+            .iter()
+            .any(|(label, present)| *label == "Has loops" && *present));
+        assert!(factors2
+            .iter()
+            .any(|(label, present)| *label == "Has multiple functions" && *present));
+        assert!(factors2
+            .iter()
+            .any(|(label, present)| *label == "Has unsafe/exec patterns" && *present));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_tier_label_all_branches() {
+        assert_eq!(tier_label(1), "Trivial");
+        assert_eq!(tier_label(2), "Standard");
+        assert_eq!(tier_label(3), "Complex");
+        assert_eq!(tier_label(4), "Adversarial");
+        assert_eq!(tier_label(5), "Production");
+        assert_eq!(tier_label(99), "Unknown");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_classify_difficulty_missing_id_is_an_error() {
+        assert!(corpus_classify_difficulty("does-not-exist", &CorpusOutputFormat::Human).is_err());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_classify_difficulty_all_both_formats() {
+        corpus_classify_difficulty("all", &CorpusOutputFormat::Human)
+            .expect("classify all (human) over the real registry");
+        corpus_classify_difficulty("all", &CorpusOutputFormat::Json)
+            .expect("classify all (json) over the real registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_classify_difficulty_single_entry_both_formats() {
+        let registry = crate::corpus::registry::CorpusRegistry::load_full();
+        let some_id = registry
+            .entries
+            .first()
+            .expect("registry has entries")
+            .id
+            .clone();
+        corpus_classify_difficulty(&some_id, &CorpusOutputFormat::Human)
+            .expect("classify a real entry id (human)");
+        corpus_classify_difficulty(&some_id, &CorpusOutputFormat::Json)
+            .expect("classify a real entry id (json)");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_classify_all_on_tiny_registry() {
+        let registry = tiny_registry();
+        corpus_classify_all(&registry, &CorpusOutputFormat::Human)
+            .expect("classify all over a tiny registry (human)");
+        corpus_classify_all(&registry, &CorpusOutputFormat::Json)
+            .expect("classify all over a tiny registry (json)");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_classify_all_empty_registry() {
+        let registry = CorpusRegistry::new();
+        corpus_classify_all(&registry, &CorpusOutputFormat::Human)
+            .expect("classify all must not divide by zero on an empty registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_dimension_risk_all_branches() {
+        assert_eq!(dimension_risk("A"), "HIGH");
+        assert_eq!(dimension_risk("B3"), "HIGH");
+        assert_eq!(dimension_risk("E"), "HIGH");
+        assert_eq!(dimension_risk("D"), "MEDIUM");
+        assert_eq!(dimension_risk("G"), "MEDIUM");
+        assert_eq!(dimension_risk("F"), "MEDIUM");
+        assert_eq!(dimension_risk("B1"), "LOW");
+        assert_eq!(dimension_risk("B2"), "LOW");
+        assert_eq!(dimension_risk("Z"), "LOW");
+    }
+
+    fn failing_result(id: &str) -> CorpusResult {
+        CorpusResult {
+            id: id.to_string(),
+            transpiled: true,
+            output_contains: true,
+            output_exact: true,
+            output_behavioral: true,
+            lint_clean: false,
+            deterministic: false,
+            metamorphic_consistent: true,
+            cross_shell_agree: true,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_collect_risk_failures_no_filter_and_filtered() {
+        let results = vec![failing_result("B-1"), failing_result("B-2")];
+        let all = collect_risk_failures(&results, None);
+        // Two failing dims (D, E) per result => 4 classified entries.
+        assert_eq!(all.len(), 4);
+
+        let medium_only = collect_risk_failures(&results, Some("medium"));
+        assert!(medium_only.iter().all(|(_, _, risk)| *risk == "MEDIUM"));
+        assert!(!medium_only.is_empty());
+
+        let high_only = collect_risk_failures(&results, Some("HIGH"));
+        assert!(!high_only.is_empty());
+        assert!(high_only.iter().all(|(_, _, risk)| *risk == "HIGH"));
+
+        let low_only = collect_risk_failures(&results, Some("LOW"));
+        assert!(low_only.is_empty());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_risk_print_group_zero_and_nonzero() {
+        let classified = vec![("B-1", "D", "MEDIUM"), ("B-2", "E", "HIGH")];
+        // count == 0 takes the early-return branch.
+        risk_print_group(&classified, "MEDIUM", crate::cli::color::YELLOW, 0);
+        // count > 0 walks the loop and prints matching rows.
+        risk_print_group(&classified, "HIGH", crate::cli::color::BRIGHT_RED, 1);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_risk_analysis_with_every_filter_and_format() {
+        let registry = tiny_registry();
+        for format in [CorpusOutputFormat::Human, CorpusOutputFormat::Json] {
+            for filter in [None, Some("HIGH"), Some("MEDIUM"), Some("LOW")] {
+                corpus_risk_analysis_with(&registry, &format, filter)
+                    .expect("risk analysis runs for every format/filter combination");
+            }
+        }
+    }
 }

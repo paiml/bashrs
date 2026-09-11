@@ -1,13 +1,21 @@
 pub(crate) fn corpus_tier_analysis() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_tier_analysis_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_tier_analysis`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_tier_analysis_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use crate::corpus::tier_analysis;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
-    let analysis = tier_analysis::analyze_tiers(&registry, &score);
+    let score = runner.run(registry);
+    let analysis = tier_analysis::analyze_tiers(registry, &score);
 
     println!("{BOLD}Tier Difficulty Analysis (\u{00a7}4.3){RESET}");
     println!();
@@ -29,15 +37,23 @@ pub(crate) fn corpus_tier_analysis() -> Result<()> {
 }
 
 pub(crate) fn corpus_tier_targets() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_tier_targets_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_tier_targets`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_tier_targets_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use crate::corpus::tier_analysis;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
-    let analysis = tier_analysis::analyze_tiers(&registry, &score);
+    let score = runner.run(registry);
+    let analysis = tier_analysis::analyze_tiers(registry, &score);
 
     println!("{BOLD}Tier Target Rate Comparison (\u{00a7}2.3/\u{00a7}4.3){RESET}");
     println!();
@@ -60,15 +76,23 @@ pub(crate) fn corpus_tier_targets() -> Result<()> {
 }
 
 pub(crate) fn corpus_quality_gates() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_quality_gates_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_quality_gates`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_quality_gates_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::quality_gates;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
     let log_path = PathBuf::from(".quality/convergence.log");
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
     let history = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
     let thresholds = quality_gates::QualityThresholds::default();
     let gates = quality_gates::check_quality_gates(&score, &history, &thresholds);
@@ -88,16 +112,24 @@ pub(crate) fn corpus_quality_gates() -> Result<()> {
 }
 
 pub(crate) fn corpus_metrics_check() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_metrics_check_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_metrics_check`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_metrics_check_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::quality_gates;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
     let log_path = PathBuf::from(".quality/convergence.log");
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
     let start = std::time::Instant::now();
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
     let duration = start.elapsed();
     let history = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
     let thresholds = quality_gates::PerformanceThresholds::default();
@@ -118,16 +150,24 @@ pub(crate) fn corpus_metrics_check() -> Result<()> {
 }
 
 pub(crate) fn corpus_gate_status_cmd() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_gate_status_cmd_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_gate_status_cmd`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_gate_status_cmd_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::quality_gates;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
     let log_path = PathBuf::from(".quality/convergence.log");
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
     let start = std::time::Instant::now();
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
     let duration = start.elapsed();
     let history = CorpusRunner::load_convergence_log(&log_path).unwrap_or_default();
     let status = quality_gates::build_gate_status(&score, duration, &history);
@@ -155,27 +195,48 @@ pub(crate) fn corpus_export_dataset(
     format: DatasetExportFormat,
     output: Option<std::path::PathBuf>,
 ) -> Result<()> {
-    use crate::cli::color::*;
-    use crate::corpus::dataset::{self, ExportFormat};
+    use crate::corpus::dataset;
 
-    let export_fmt = match format {
+    let export_fmt = corpus_export_dataset_format(format);
+    let (score, data) = dataset::run_and_export(export_fmt);
+    corpus_export_dataset_with(export_fmt, score.total, &data, output)
+}
+
+/// PMAT-257: pure mapping from the CLI-facing enum to the dataset export
+/// enum, split out so it can be covered without running the full corpus.
+pub(crate) fn corpus_export_dataset_format(
+    format: DatasetExportFormat,
+) -> crate::corpus::dataset::ExportFormat {
+    use crate::corpus::dataset::ExportFormat;
+    match format {
         DatasetExportFormat::Json => ExportFormat::Json,
         DatasetExportFormat::Jsonl => ExportFormat::JsonLines,
         DatasetExportFormat::Csv => ExportFormat::Csv,
         DatasetExportFormat::Classification => ExportFormat::Classification,
         DatasetExportFormat::MultiLabelClassification => ExportFormat::MultiLabelClassification,
-    };
+    }
+}
 
-    let (score, data) = dataset::run_and_export(export_fmt);
+/// PMAT-257: body of `corpus_export_dataset` that handles writing/printing
+/// already-exported data, split so a test can supply a tiny synthetic
+/// `data` string instead of running `dataset::run_and_export` (which scores
+/// the whole ~18k-entry corpus).
+pub(crate) fn corpus_export_dataset_with(
+    export_fmt: crate::corpus::dataset::ExportFormat,
+    total: usize,
+    data: &str,
+    output: Option<std::path::PathBuf>,
+) -> Result<()> {
+    use crate::cli::color::*;
 
     match output {
         Some(path) => {
-            std::fs::write(&path, &data).map_err(|e| {
+            std::fs::write(&path, data).map_err(|e| {
                 Error::Validation(format!("Failed to write {}: {e}", path.display()))
             })?;
             println!(
                 "{GREEN}\u{2713}{RESET} Exported {} entries to {} ({} format)",
-                score.total,
+                total,
                 path.display(),
                 export_fmt,
             );
@@ -189,12 +250,19 @@ pub(crate) fn corpus_export_dataset(
 }
 
 pub(crate) fn corpus_dataset_info() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_dataset_info_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_dataset_info`, split so a test can pass a
+/// small synthetic registry instead of the full corpus.
+pub(crate) fn corpus_dataset_info_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::dataset;
-    use crate::corpus::registry::CorpusRegistry;
 
-    let registry = CorpusRegistry::load_full();
-    let info = dataset::dataset_info(&registry);
+    let info = dataset::dataset_info(registry);
 
     println!("{BOLD}Corpus Dataset Info (\u{00a7}10.3){RESET}");
     println!();
@@ -216,14 +284,23 @@ pub(crate) fn corpus_dataset_info() -> Result<()> {
 }
 
 pub(crate) fn corpus_publish_check() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_publish_check_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_publish_check`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_publish_check_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::dataset;
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let checks = dataset::check_publish_readiness(&score);
 
@@ -287,11 +364,28 @@ pub(crate) fn corpus_generate_conversations(
     limit: Option<usize>,
     entrenar_format: bool,
 ) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_generate_conversations_with(
+        &CorpusRegistry::load_full(),
+        output,
+        seed,
+        limit,
+        entrenar_format,
+    )
+}
+
+/// PMAT-257: body of `corpus_generate_conversations`, split so a test can
+/// pass a small synthetic registry instead of transpiling the full corpus.
+pub(crate) fn corpus_generate_conversations_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    output: Option<PathBuf>,
+    seed: u64,
+    limit: Option<usize>,
+    entrenar_format: bool,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::conversations::{generate_batch, to_entrenar_jsonl, to_jsonl};
-    use crate::corpus::registry::CorpusRegistry;
 
-    let registry = CorpusRegistry::load_full();
     let max = limit.unwrap_or(registry.entries.len());
 
     // v12: Transpile each entry to shell/Makefile/Dockerfile output first.
@@ -386,6 +480,5 @@ pub(crate) fn corpus_generate_conversations(
 
     Ok(())
 }
-
 
 include!("corpus_config_commands_corpus_2.rs");
