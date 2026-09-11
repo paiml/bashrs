@@ -7,11 +7,19 @@ use std::path::PathBuf;
 
 pub(crate) fn corpus_summary() -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
+    corpus_summary_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_summary`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_summary_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let failures: Vec<_> = score
         .results
@@ -112,9 +120,17 @@ pub(crate) fn corpus_growth(format: &CorpusOutputFormat) -> Result<()> {
 
 /// Show tier × format coverage matrix (spec §2.3).
 pub(crate) fn corpus_coverage(format: &CorpusOutputFormat) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry, CorpusTier};
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_coverage_with(&CorpusRegistry::load_full(), format)
+}
 
-    let registry = CorpusRegistry::load_full();
+/// PMAT-257: body of `corpus_coverage`, split so a test can pass a small
+/// synthetic registry instead of loading the full ~18k-entry corpus.
+pub(crate) fn corpus_coverage_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &CorpusOutputFormat,
+) -> Result<()> {
+    use crate::corpus::registry::{CorpusFormat, CorpusTier};
 
     let tiers = [
         (CorpusTier::Trivial, "Trivial"),
@@ -156,9 +172,9 @@ pub(crate) fn corpus_coverage(format: &CorpusOutputFormat) -> Result<()> {
             println!(
                 "  {DIM}{:<14} {:>6} {:>9} {:>11}  {:>5}{RESET}",
                 "Total",
-                count_format(&registry, &CorpusFormat::Bash),
-                count_format(&registry, &CorpusFormat::Makefile),
-                count_format(&registry, &CorpusFormat::Dockerfile),
+                count_format(registry, &CorpusFormat::Bash),
+                count_format(registry, &CorpusFormat::Makefile),
+                count_format(registry, &CorpusFormat::Dockerfile),
                 grand_total
             );
         }
@@ -236,9 +252,18 @@ pub(crate) fn validate_corpus_entry(
 
 /// Validate all corpus entries for metadata correctness (spec §2.3).
 pub(crate) fn corpus_validate(format: &CorpusOutputFormat) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_validate_with(&CorpusRegistry::load_full(), format)
+}
 
-    let registry = CorpusRegistry::load_full();
+/// PMAT-257: body of `corpus_validate`, split so a test can pass a small
+/// synthetic registry instead of loading the full ~18k-entry corpus.
+pub(crate) fn corpus_validate_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &CorpusOutputFormat,
+) -> Result<()> {
+    use crate::corpus::registry::CorpusFormat;
+
     let mut seen_ids = std::collections::HashSet::new();
     let mut all_issues: Vec<(String, String)> = Vec::new();
 
@@ -295,4 +320,186 @@ pub(crate) fn corpus_validate(format: &CorpusOutputFormat) -> Result<()> {
         }
     }
     Ok(())
+}
+
+// PMAT-257: coverage for the corpus analysis handlers. These live inside the
+// library, because the coverage gate measures `cargo llvm-cov --lib -p
+// bashrs` and a test under rash/tests/ does not move that number at all.
+// `corpus_summary`, `corpus_coverage`, and `corpus_validate` all build (or
+// score) the real `CorpusRegistry::load_full()` (18,000+ entries) -- too
+// slow for a unit test as written. Each was split into a `*_with(registry,
+// ...)` twin that takes the registry as a parameter, matching
+// `corpus_compare_commands.rs`.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    /// A registry that also contains an entry whose `expected_contains`
+    /// never matches the transpiled output, forcing a B2/containment
+    /// failure so the failure-path branches of the handlers under test run.
+    fn failing_registry() -> CorpusRegistry {
+        let mut registry = tiny_registry();
+        registry.add(CorpusEntry::new(
+            "B-002",
+            "broken-bash",
+            "PMAT-257 fixture (forces a failure)",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "this_string_never_appears_in_output",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_summary_all_pass() {
+        corpus_summary_with(&tiny_registry()).expect("summary runs over a passing tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_summary_with_failures() {
+        corpus_summary_with(&failing_registry())
+            .expect("summary reports failures over a failing registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_growth_human() {
+        corpus_growth(&CorpusOutputFormat::Human).expect("growth reads the repo convergence log");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_growth_json() {
+        corpus_growth(&CorpusOutputFormat::Json)
+            .expect("growth reads the repo convergence log as JSON");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_coverage_human() {
+        corpus_coverage_with(&tiny_registry(), &CorpusOutputFormat::Human)
+            .expect("coverage prints the tier x format matrix");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_coverage_json() {
+        corpus_coverage_with(&tiny_registry(), &CorpusOutputFormat::Json)
+            .expect("coverage prints the tier x format matrix as JSON");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_count_format() {
+        let registry = tiny_registry();
+        assert_eq!(count_format(&registry, &CorpusFormat::Bash), 1);
+        assert_eq!(count_format(&registry, &CorpusFormat::Makefile), 1);
+        assert_eq!(count_format(&registry, &CorpusFormat::Dockerfile), 1);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_validate_entry_all_issues() {
+        let mut seen = std::collections::HashSet::new();
+        seen.insert("B-999".to_string());
+        let entry = CorpusEntry::new(
+            "B-999",
+            "",
+            "",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            "",
+            "",
+        );
+        let issues = validate_corpus_entry(&entry, &mut seen);
+        assert!(issues.contains(&"Duplicate ID".to_string()));
+        assert!(issues.contains(&"Empty name".to_string()));
+        assert!(issues.contains(&"Empty description".to_string()));
+        assert!(issues.contains(&"Empty input".to_string()));
+        assert!(issues.contains(&"Empty expected_output".to_string()));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_validate_entry_wrong_prefix_and_missing_main() {
+        let mut seen = std::collections::HashSet::new();
+        let entry = CorpusEntry::new(
+            "X-001",
+            "name",
+            "desc",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            "no fn here",
+            "expected",
+        );
+        let issues = validate_corpus_entry(&entry, &mut seen);
+        assert!(issues
+            .iter()
+            .any(|i| i.contains("ID prefix doesn't match format")));
+        assert!(issues.contains(&"Bash entry missing fn main()".to_string()));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_validate_entry_valid_has_no_issues() {
+        let mut seen = std::collections::HashSet::new();
+        let entry = CorpusEntry::new(
+            "B-001",
+            "name",
+            "desc",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        );
+        assert!(validate_corpus_entry(&entry, &mut seen).is_empty());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_validate_human_no_issues() {
+        corpus_validate_with(&tiny_registry(), &CorpusOutputFormat::Human)
+            .expect("validate prints a clean report for a well-formed registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_validate_json_with_issues() {
+        let mut registry = tiny_registry();
+        registry.add(CorpusEntry::new(
+            "X-002",
+            "",
+            "desc",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            "no fn here",
+            "expected",
+        ));
+        corpus_validate_with(&registry, &CorpusOutputFormat::Json)
+            .expect("validate reports issues as JSON");
+    }
 }
