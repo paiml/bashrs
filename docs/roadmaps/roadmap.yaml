@@ -2247,7 +2247,7 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  - release:v7.2.0
+  - release:v7.3.0
   notes: 'orch-basis:operator — user wrote, verbatim: "in parallel ensure we are using a PR style and dogfood style like ../forjar (i.e. CRUX, quorum).  file ticket and research and then have "agy /teamwork review"". Filed during the PMAT-251 session (v7.0.4); research and the teamwork review are this session''s deliverable, implementation is scheduled with 7.1.0. | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.2.0 for phases 1a-1c, 2, 3b, 4a, 4b, 6, 7a, 7b; phases 3a and 5 ship in v7.1.0 under PMAT-255. orch:fable removed: model-gate refuses the ticket for every model because its basis token `operator` is not in the skill''s vocabulary; the default orchestrator (opus) runs it. | PMAT-255 (v7.1.0, 2026-09-11): shipped phase 3a''s gates D, G and K (gate B waits on the operator''s decision 4) and phase 5 (scripts/publish-from-tag.sh and the release.yml wait on the sparse index); the remaining phases stay release:v7.2.0.'
 - id: PMAT-254
   github_issue: null
@@ -2304,7 +2304,7 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  - release:v7.2.0
+  - release:v7.3.0
   notes: 'Decided by quorum (2026-09-11, 2-1): the runner sandboxes itself and generation-time screening stays. Measured during the v7.1.0 cycle: 7 of 240 agent-generated candidate entries ran real commands, among them make builds, uv and agy, when executed with the callers environment. The dissenting lane warned that contributors without bwrap must still be able to run the corpus, which is why the cross-platform half of the decision is the temporary cwd, HOME and PATH. Record: docs/audits/quorum-decisions-v7.2.0.md'
 - id: PMAT-257
   github_issue: null
@@ -2324,3 +2324,21 @@ roadmap:
   - kind:code
   - release:v7.2.0
   notes: 'Shipped as v7.2.0 on 2026-09-11: ten dogfooding defects, pv gate 4 from 16 missing refs to zero, library coverage 91.72 to 95.01 percent behind make coverage-gate, a Pareto PR gate (111s against 944s), corpus 18,453 entries at 99.4/100, and the book updated. Receipt: docs/audits/impl-PMAT-257-receipt.md'
+- id: PMAT-258
+  github_issue: null
+  item_type: task
+  title: 'v7.3.0: SC2106, the std-method lowerings behind the corpus removals, the corpus runner sandbox, deps, comply'
+  status: planned
+  priority: critical
+  assigned_to: null
+  created: 2026-09-11T17:29:55Z
+  updated: 2026-09-11T17:29:55Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.3.0
+  notes: null

@@ -25,6 +25,18 @@ Issues on the GitHub milestone `v7.1.0`: #293, #294, #295, #265, #232.
 | PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it (make corpus-score sandboxes the release run; the runner itself is v7.3.0) |
 | PMAT-257 | the release itself: ten defects, pv gate 4 green, coverage 95.01 percent, the Pareto gates, the book |
 
+## v7.3.0
+
+Goal: the lowerings the v7.2.0 corpus removals exposed, the loop-containment rule that dogfooding keeps asking for, and the sandbox that stops a test writing into the repository. Coverage stays at or above 95 percent and every ticket carries a falsification test the contract verifier checks.
+
+| entry | what |
+|---|---|
+| PMAT-258 | the release: #303, #316, #318, deps, comply, corpus growth, the book |
+| PMAT-253 | forjar parity, the phases not shipped in v7.2.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b |
+| PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it |
+
+Issues on this release: #303 (SC2106 not implemented), #316 (53 corpus entries exercised std methods with no lowering), #318 (an untracked copy of the source tree written by a test).
+
 ## Unscheduled (blocked)
 
 Nothing. The four entries that sat here blocked on definition were decided by quorum on 2026-09-11: PMAT-241 and PMAT-242 closed as completed in v6.66.0, PMAT-243 redefined as a measurement in v7.2.0, PMAT-246 closed by regenerating the work contracts. See `docs/audits/quorum-decisions-v7.2.0.md`.
