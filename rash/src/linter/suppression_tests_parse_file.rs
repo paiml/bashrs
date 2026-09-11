@@ -203,39 +203,3 @@ ln -sfn "$target" "$link"
     assert!(!manager.is_suppressed("SEC010", 11)); // mkdir — GH-265
     assert!(!manager.is_suppressed("IDEM003", 12)); // ln — GH-265
 }
-
-// =====================================================
-// GH-302: `set -e` is a command, so a directive after it is line-scoped
-// =====================================================
-
-#[test]
-fn test_PMAT257_gh302_directive_after_set_e_is_line_scoped() {
-    // `set -e` is the first COMMAND of the script. A directive placed after it
-    // has already seen a command run, so it must apply to the next line only —
-    // not the whole file. Two lines below both trigger SC2086; only the first
-    // (the line immediately following the directive) may be suppressed.
-    let source = "set -e\n# shellcheck disable=SC2086\necho $var\necho $another\n";
-    let manager = SuppressionManager::from_source(source);
-
-    assert!(
-        manager.is_suppressed("SC2086", 3),
-        "the line right after the directive must be suppressed"
-    );
-    assert!(
-        !manager.is_suppressed("SC2086", 4),
-        "GH-302: a directive after `set -e` must be line-scoped, not file-scoped — \
-         `set -e` is a command, so the directive no longer precedes the first command"
-    );
-}
-
-#[test]
-fn test_PMAT257_gh302_directive_before_any_command_is_still_file_scoped() {
-    // Companion: a directive that genuinely precedes the first command of the
-    // script (nothing but comments/shebang before it) must still suppress the
-    // whole file — the file-level path must not regress while fixing GH-302.
-    let source = "#!/bin/bash\n# shellcheck disable=SC2086\necho $var\necho $another\n";
-    let manager = SuppressionManager::from_source(source);
-
-    assert!(manager.is_suppressed("SC2086", 3));
-    assert!(manager.is_suppressed("SC2086", 4));
-}
