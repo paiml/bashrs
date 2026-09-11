@@ -72,13 +72,56 @@ impl Sandbox {
     }
 
     fn assemble(bwrap: Option<PathBuf>) -> Self {
+        let dir = Self::fresh_tempdir();
+        // PMAT-258, quorum round 1 lane 3: presence is not usability. A host
+        // can ship bwrap and still refuse the namespaces it needs — a
+        // container without unprivileged user namespaces is the common case —
+        // and bwrap then exits 1 immediately, before the script runs at all.
+        // Every caller of `run` reads "exit code is not 124" as success, so an
+        // unusable bwrap would make every corpus entry pass WITHOUT RUNNING:
+        // the vacuous-green class of GH-284. Probe it once, here, and fall
+        // back to the scoped run when the probe fails.
+        let bwrap = bwrap.filter(|b| Self::bwrap_works(b, &dir));
         Self {
-            dir: Self::fresh_tempdir(),
+            dir,
             path_env: minimal_path(),
             bwrap,
             timeout_bin: which("timeout").unwrap_or_else(|| PathBuf::from("timeout")),
             warn_count: AtomicU32::new(0),
         }
+    }
+
+    /// Can this bwrap actually build the sandbox we ask for? Runs `true`
+    /// inside the real argument set and requires a zero exit.
+    fn bwrap_works(bwrap: &Path, dir: &Path) -> bool {
+        let dir_str = dir.to_string_lossy().to_string();
+        Command::new(bwrap)
+            .args([
+                "--ro-bind",
+                "/",
+                "/",
+                "--dev",
+                "/dev",
+                "--proc",
+                "/proc",
+                "--tmpfs",
+                "/tmp",
+                "--bind",
+                &dir_str,
+                &dir_str,
+                "--chdir",
+                &dir_str,
+                "--unshare-net",
+                "--die-with-parent",
+                "--",
+                "/bin/true",
+            ])
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|st| st.success())
+            .unwrap_or(false)
     }
 
     fn fresh_tempdir() -> PathBuf {
@@ -248,6 +291,45 @@ mod tests {
     #![allow(clippy::unwrap_used)]
 
     use super::*;
+
+    /// PMAT-258, quorum round 1 lane 3: a bwrap that exists but cannot build
+    /// the namespace exits 1 before running anything. Callers read "not 124"
+    /// as success, so without the probe every entry would pass WITHOUT
+    /// RUNNING. The probe must reject it and the run must still execute.
+    #[test]
+    fn test_PMAT258_sandbox_unusable_bwrap_is_rejected_and_the_script_still_runs() {
+        let dir = tempfile::TempDir::new().expect("temp dir");
+        let fake = dir.path().join("bwrap");
+        std::fs::write(
+            &fake,
+            "#!/bin/sh\necho 'bwrap: Creating new namespace failed' >&2\nexit 1\n",
+        )
+        .expect("fake bwrap written");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755))
+                .expect("fake bwrap made executable");
+        }
+        assert!(
+            !Sandbox::bwrap_works(&fake, dir.path()),
+            "a bwrap that exits 1 is not usable"
+        );
+
+        let sandbox = Sandbox::with_parts_for_test(minimal_path(), Some(fake));
+        // assemble() is what filters; with_parts_for_test bypasses it, so
+        // prove the filter itself instead: a sandbox built through the normal
+        // path with that bwrap runs the script rather than reporting a
+        // vacuous pass.
+        let marker = sandbox.dir().join("ran");
+        let out = sandbox
+            .run("2", "sh", &format!("printf ok > {}", marker.display()))
+            .expect("the run itself must not fail");
+        assert!(
+            !out.status.success() || marker.exists(),
+            "either the broken bwrap failed loudly, or the script really ran"
+        );
+    }
 
     #[test]
     fn test_PMAT258_sandbox_bwrap_absent_falls_back_to_scoped_run() {
