@@ -498,3 +498,89 @@ pub(crate) fn corpus_matrix() -> Result<()> {
     println!("  {DIM}Cells show pass rate per quality property within each category.{RESET}");
     Ok(())
 }
+
+// PMAT-257: coverage for the corpus gate handlers. These live inside the
+// library, because the coverage gate measures `cargo llvm-cov --lib -p bashrs`
+// and a test under rash/tests/ does not move that number at all.
+//
+// Handlers that build a CorpusRunner execute every corpus entry, so they are
+// exercised through their pure helpers rather than end to end: a unit test must
+// not run 18,000 shell snippets.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+
+    #[test]
+    fn test_PMAT257_cov_gate_print_check_both_branches() {
+        gate_print_check("a passing check", true);
+        gate_print_check("a failing check", false);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_find_zscore_outliers_needs_two_samples() {
+        assert!(find_zscore_outliers(&[], 2.0).is_none());
+        assert!(find_zscore_outliers(&[("only", 1.0)], 2.0).is_none());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_find_zscore_outliers_flags_the_far_sample() {
+        // Six samples, one of them twenty times the rest. With n = 6 the largest
+        // possible z is (n-1)/sqrt(n) ~ 2.04, so the threshold has to sit below
+        // that or nothing can ever be an outlier however extreme the sample is.
+        let timings = [
+            ("a", 1.0),
+            ("b", 1.0),
+            ("c", 1.0),
+            ("d", 1.0),
+            ("e", 1.0),
+            ("far", 20.0),
+        ];
+        let found = find_zscore_outliers(&timings, 1.0).expect("six samples yield a result");
+        assert!(
+            found.2.iter().any(|(id, _, _)| *id == "far"),
+            "the sample twenty times the rest must be an outlier, got {:?}",
+            found.2
+        );
+        // A threshold nothing can exceed leaves the list empty, which is the
+        // other branch of the same comparison.
+        let none = find_zscore_outliers(&timings, 50.0).expect("six samples yield a result");
+        assert!(none.2.is_empty(), "no sample can exceed a z of fifty");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_find_zscore_outliers_uniform_has_none() {
+        let timings = [("a", 1.0), ("b", 1.0), ("c", 1.0)];
+        match find_zscore_outliers(&timings, 2.0) {
+            Some(found) => assert!(found.2.is_empty()),
+            None => {}
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_display_outliers_prints_without_panicking() {
+        display_outliers(&[("slow-one", 9.0, 3.2)], 1.0, 2.5, 2.0, 42);
+        display_outliers(&[], 0.0, 0.0, 2.0, 0);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_completeness_reports_every_format() {
+        corpus_completeness().expect("completeness reads the registry and prints");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sample_honours_each_filter() {
+        for filter in [
+            None,
+            Some(&CorpusFormatArg::Bash),
+            Some(&CorpusFormatArg::Makefile),
+            Some(&CorpusFormatArg::Dockerfile),
+        ] {
+            corpus_sample(2, filter).expect("a sample of two prints for every filter");
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_sample_of_zero_is_not_an_error() {
+        corpus_sample(0, None).expect("asking for no entries is not a failure");
+    }
+}
