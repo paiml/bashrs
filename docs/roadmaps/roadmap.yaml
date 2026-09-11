@@ -2056,11 +2056,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'lint SC2105 false positive: break inside a single-line for/while loop reported as ''only valid in loops'''
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: noahgift
   created: 2026-09-02T16:21:38Z
-  updated: 2026-09-11T01:30:03.599749303+00:00
+  updated: 2026-09-11T01:31:58.221080888+00:00
   spec: null
   acceptance_criteria:
   - 'bashrs 7.0.1 `bashrs lint` reports SC2105 for a break that IS inside a loop when the whole loop is written on one line. Minimal repro, four variants: (v1) ''for m in a b; do [[ $m == b ]] && { x=1; break; }; done'' -> SC2105 error; (v2) ''for m in a b; do if [[ $m == b ]]; then x=1; break; fi; done'' -> SC2105 error (two errors); (v3) same as v2 split across lines -> clean; (v4) same as v1 split across lines -> clean. So the checker''s loop-nesting context is line-scoped, not AST-scoped. Found 2026-09-02 linting ~/.claude/hooks/xpile-stop-guard.sh (infra PMAT-225); worked around by reflowing the loop, which is exactly the routing-around the dogfood doctrine forbids — the fix belongs here, with v1..v4 as fixtures (per form VARIANT, not per form).'
