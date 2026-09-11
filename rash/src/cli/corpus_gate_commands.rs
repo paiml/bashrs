@@ -13,16 +13,27 @@ pub(crate) fn corpus_errors(
     format: &CorpusOutputFormat,
     filter: Option<&CorpusFormatArg>,
 ) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_errors_with(&CorpusRegistry::load_full(), format, filter)
+}
+
+/// PMAT-257: body of `corpus_errors`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_errors_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    format: &CorpusOutputFormat,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
     let score = match filter {
-        Some(CorpusFormatArg::Bash) => runner.run_format(&registry, CorpusFormat::Bash),
-        Some(CorpusFormatArg::Makefile) => runner.run_format(&registry, CorpusFormat::Makefile),
-        Some(CorpusFormatArg::Dockerfile) => runner.run_format(&registry, CorpusFormat::Dockerfile),
-        None => runner.run(&registry),
+        Some(CorpusFormatArg::Bash) => runner.run_format(registry, CorpusFormat::Bash),
+        Some(CorpusFormatArg::Makefile) => runner.run_format(registry, CorpusFormat::Makefile),
+        Some(CorpusFormatArg::Dockerfile) => runner.run_format(registry, CorpusFormat::Dockerfile),
+        None => runner.run(registry),
     };
 
     // Collect entries with errors or failures
@@ -216,19 +227,29 @@ pub(crate) fn corpus_completeness() -> Result<()> {
 
 /// CI quality gate: score + regressions + benchmark in one check.
 pub(crate) fn corpus_gate(min_score: f64, max_ms: u64) -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_gate_with(&CorpusRegistry::load_full(), min_score, max_ms)
+}
+
+/// PMAT-257: body of `corpus_gate`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_gate_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    min_score: f64,
+    max_ms: u64,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     println!("{BOLD}Corpus Quality Gate{RESET}");
     println!();
 
     // Gate 1: Run corpus and check score
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
     let score_pass = score.score >= min_score;
     gate_print_check(
         &format!("Score >= {min_score} (actual: {:.1})", score.score),
@@ -374,11 +395,22 @@ fn display_outliers(
 
 /// Find statistical outliers by transpilation timing (z-score detection).
 pub(crate) fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) -> Result<()> {
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_outliers_with(&CorpusRegistry::load_full(), threshold, filter)
+}
+
+/// PMAT-257: body of `corpus_outliers`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_outliers_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    threshold: f64,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     let entries: Vec<_> = registry
@@ -413,11 +445,17 @@ pub(crate) fn corpus_outliers(threshold: f64, filter: Option<&CorpusFormatArg>) 
 
 /// Cross-category × quality property matrix (spec §11.11.9).
 pub(crate) fn corpus_matrix() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_matrix_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_matrix`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_matrix_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     // Classify entries by category and collect results
@@ -582,5 +620,105 @@ mod pmat257_cov_tests {
     #[test]
     fn test_PMAT257_cov_sample_of_zero_is_not_an_error() {
         corpus_sample(0, None).expect("asking for no entries is not a failure");
+    }
+
+    fn tiny_registry() -> crate::corpus::registry::CorpusRegistry {
+        use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_errors_with_honours_every_filter_and_format() {
+        for filter in [
+            None,
+            Some(&CorpusFormatArg::Bash),
+            Some(&CorpusFormatArg::Makefile),
+            Some(&CorpusFormatArg::Dockerfile),
+        ] {
+            corpus_errors_with(&tiny_registry(), &CorpusOutputFormat::Human, filter)
+                .expect("human errors report runs over a tiny registry");
+            corpus_errors_with(&tiny_registry(), &CorpusOutputFormat::Json, filter)
+                .expect("json errors report runs over a tiny registry");
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_gate_with_all_gates_pass() {
+        use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+        // A single clean entry so the "failures <= 1" gate holds, combined with
+        // a min score of 0 and a generous timing budget, exercises the
+        // all-gates-pass branch.
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        corpus_gate_with(&registry, 0.0, 100_000)
+            .expect("an unattainably low bar and generous timing budget must pass");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_gate_with_score_gate_fails() {
+        let err = corpus_gate_with(&tiny_registry(), 100.0, 100_000)
+            .expect_err("an unattainable score threshold must fail the gate");
+        assert!(matches!(err, Error::Internal(_)));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_outliers_with_honours_every_filter() {
+        for filter in [
+            None,
+            Some(&CorpusFormatArg::Bash),
+            Some(&CorpusFormatArg::Makefile),
+            Some(&CorpusFormatArg::Dockerfile),
+        ] {
+            corpus_outliers_with(&tiny_registry(), 2.0, filter)
+                .expect("outlier detection runs over a tiny registry for every filter");
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_outliers_with_too_few_entries_reports_need_two() {
+        use crate::corpus::registry::CorpusRegistry;
+        corpus_outliers_with(&CorpusRegistry::new(), 2.0, None)
+            .expect("an empty registry still returns Ok, just with a message printed");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_matrix_with_tiny_registry() {
+        corpus_matrix_with(&tiny_registry()).expect("matrix runs over a tiny registry");
     }
 }
