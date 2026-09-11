@@ -1262,7 +1262,10 @@ lint-makefile: ## Lint Makefile with bashrs
 # The former `dogfood` (bashrs linting its own scripts/Makefile, a report
 # rather than a gate — every step tolerates failure with `|| true`) is
 # renamed `dogfood-selflint` below; nothing about it changed.
-dogfood: ## Hermetic dogfood gates: D (docs), G (contracts), K (corpus)
+dogfood-build: ## Build the release binary the dogfood gates measure
+	@cargo build --release -p bashrs --bin bashrs
+
+dogfood: dogfood-build ## Hermetic dogfood gates: D (docs), G (contracts), K (corpus)
 	@bash scripts/dogfood/docs.sh
 	@bash scripts/dogfood/contracts.sh
 	@bash scripts/dogfood/corpus.sh

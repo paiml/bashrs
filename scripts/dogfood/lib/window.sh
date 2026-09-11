@@ -15,14 +15,20 @@
 # install` or `cargo publish --dry-run` left lying around, not the tree under
 # test.
 #
-# CARGO_TARGET_DIR must already be set by the caller (the orchestrator sets
-# it; a gate that guessed a default here could grade a stale binary in a
-# different target dir without saying so). Its absence is UNMEASURED, not "."
+# The target directory is cargo's own answer for this workspace: CARGO_TARGET_DIR
+# when the caller sets it, otherwise `cargo metadata`'s target_directory (which
+# honours .cargo/config.toml as well). Neither is a guess; failing to get either
+# is UNMEASURED, never ".". `make dogfood` builds the release binary into that
+# directory first, so the binary graded is the tree under test.
 dogfood_binary() {
-  if [ -z "${CARGO_TARGET_DIR:-}" ]; then
-    fail "CARGO_TARGET_DIR is unset — the release binary this gate must run cannot be located, and guessing a default could silently grade a stale binary in a different target dir"
+  local dir="${CARGO_TARGET_DIR:-}"
+  if [ -z "$dir" ]; then
+    dir=$(cargo metadata --format-version 1 --no-deps 2>/dev/null | jq -r '.target_directory // empty' 2>/dev/null)
   fi
-  DOGFOOD_BIN="${CARGO_TARGET_DIR}/release/bashrs"
+  if [ -z "$dir" ]; then
+    fail "cannot resolve the cargo target directory (CARGO_TARGET_DIR unset and cargo metadata failed) — the release binary this gate must run is UNMEASURED"
+  fi
+  DOGFOOD_BIN="${dir}/release/bashrs"
   if [ ! -x "$DOGFOOD_BIN" ]; then
     fail "${DOGFOOD_BIN} is missing or not executable — build it first with: cargo build --release -p bashrs --bin bashrs"
   fi
