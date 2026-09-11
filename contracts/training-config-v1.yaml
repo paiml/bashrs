@@ -111,17 +111,17 @@ falsification_tests:
 - id: F-TC-001
   rule: the corpus-backed path counts every entry of the registry it is given
   prediction: 'generate_training_config_from(&CorpusRegistry::load_tier1()) reports total_entries = 30 = safe_count + unsafe_count with preamble_stripped = true'
-  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_001
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_001_counts_match_tier1_registry
   if_fails: 'Contract violation: an entry was dropped, double-counted or left unlabelled between the registry and the training counts'
 - id: F-TC-002
   rule: class weights are sqrt-inverse of class frequency, unsafe second
   prediction: 'training_config_from_counts(17942, 17794, 148).training.class_weights = [sqrt(17942/17794), sqrt(17942/148)] within 1e-9, and the unsafe weight is the larger'
-  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_002
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_002_weights_are_sqrt_inverse
   if_fails: 'Contract violation: the weight formula or the class order changed; a trained classifier would be mis-weighted'
 - id: F-TC-003
   rule: an empty class or an empty corpus degrades to weight 1.0
   prediction: 'training_config_from_counts(0, 0, 0) and (10, 10, 0) give finite weights with 1.0 for every empty class'
-  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_003
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_003_weights_guard_empty_classes
   if_fails: 'Contract violation: the zero guard was removed; weights become NaN or infinite'
 - id: F-TC-004
   rule: model and evaluation constants do not depend on the counts
@@ -141,7 +141,7 @@ falsification_tests:
 - id: F-TC-007
   rule: the public entry point is the corpus-backed path over the full registry
   prediction: 'the source of generate_training_config() calls generate_training_config_from(&CorpusRegistry::load_full()) and nothing else; checked by source inspection because executing it costs 8 minutes'
-  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_007
+  test: cargo test -p bashrs --lib corpus::training_config::tests::test_F_TC_007_public_entry_point_is_full_registry_path
   if_fails: 'Contract violation: the public entry point no longer composes the two halves; callers (corpus training-config CLI, ssc-report) would see different numbers from the tested path'
 - id: F-TC-008
   rule: the module tests do not walk the full corpus
