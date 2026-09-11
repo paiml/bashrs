@@ -5,13 +5,21 @@ use super::corpus_failure_commands::result_fail_dims;
 use crate::models::{Config, Result};
 
 pub(crate) fn corpus_tier_detail() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_tier_detail_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_tier_detail`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_tier_detail_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let tiers = [
         ("Trivial", crate::corpus::registry::CorpusTier::Trivial),
@@ -106,10 +114,16 @@ pub(crate) fn corpus_tier_detail() -> Result<()> {
 
 /// ID range info per format (first, last, count).
 pub(crate) fn corpus_id_range() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_id_range_with(&CorpusRegistry::load_full())
+}
 
-    let registry = CorpusRegistry::load_full();
+/// PMAT-257: body of `corpus_id_range`, split so a test can pass a small
+/// synthetic registry instead of the full corpus.
+pub(crate) fn corpus_id_range_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
 
     println!("{BOLD}ID Range by Format{RESET}");
     println!();
@@ -165,13 +179,19 @@ pub(crate) fn corpus_id_range() -> Result<()> {
 
 /// Compact tier summary table.
 pub(crate) fn corpus_tiers() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_tiers_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_tiers`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_tiers_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let tiers = [
         ("Trivial", crate::corpus::registry::CorpusTier::Trivial, 1.0),
@@ -234,13 +254,21 @@ pub(crate) fn corpus_tiers() -> Result<()> {
 
 /// Map of failing entries with dimension failures.
 pub(crate) fn corpus_fail_map() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_fail_map_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_fail_map`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_fail_map_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let failures: Vec<_> = registry
         .entries
@@ -296,13 +324,21 @@ pub(crate) fn corpus_fail_map() -> Result<()> {
 
 /// Score range analysis: min, max, median, IQR per format.
 pub(crate) fn corpus_score_range() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_score_range_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_score_range`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_score_range_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     println!("{BOLD}Score Range Analysis{RESET}");
     println!();
@@ -397,4 +433,88 @@ pub(crate) fn corpus_score_range() -> Result<()> {
     );
 
     Ok(())
+}
+
+// PMAT-257: coverage for the corpus tier handlers. These live inside the
+// library, because the coverage gate measures `cargo llvm-cov --lib -p
+// bashrs` and a test under rash/tests/ does not move that number at all.
+// Every handler here builds a `CorpusRunner` and scores entries out of the
+// real `CorpusRegistry::load_full()` (18,000+ entries) -- too slow for a unit
+// test as written. Each was split into a `*_with(registry)` twin that takes
+// the registry as a parameter, matching `corpus_compare_commands.rs`.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_tier_detail_with_tiny_registry() {
+        corpus_tier_detail_with(&tiny_registry()).expect("tier detail runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_id_range_with_tiny_registry() {
+        corpus_id_range_with(&tiny_registry()).expect("id range runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_id_range_with_empty_registry() {
+        corpus_id_range_with(&CorpusRegistry::new())
+            .expect("id range must handle an empty registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_tiers_with_tiny_registry() {
+        corpus_tiers_with(&tiny_registry()).expect("tier summary runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_fail_map_with_tiny_registry() {
+        corpus_fail_map_with(&tiny_registry()).expect("fail map runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_score_range_with_tiny_registry() {
+        corpus_score_range_with(&tiny_registry()).expect("score range runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_public_wrappers_delegate_to_with_variants() {
+        // These call `CorpusRegistry::load_full()` and run against the real
+        // ~18k entry corpus; still fast enough for a unit test and it is the
+        // only way to cover the thin `load_full()` wrapper lines themselves.
+        corpus_id_range().expect("corpus_id_range over the real registry must succeed");
+    }
 }
