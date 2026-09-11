@@ -2306,3 +2306,21 @@ roadmap:
   - kind:code
   - release:v7.2.0
   notes: 'Decided by quorum (2026-09-11, 2-1): the runner sandboxes itself and generation-time screening stays. Measured during the v7.1.0 cycle: 7 of 240 agent-generated candidate entries ran real commands, among them make builds, uv and agy, when executed with the callers environment. The dissenting lane warned that contributors without bwrap must still be able to run the corpus, which is why the cross-platform half of the decision is the temporary cwd, HOME and PATH. Record: docs/audits/quorum-decisions-v7.2.0.md'
+- id: PMAT-257
+  github_issue: null
+  item_type: task
+  title: 'v7.2.0: pv-enforced release — triage every open issue, the 7.1.0 lint regressions, deps, corpus growth, PMAT-243/253/256'
+  status: planned
+  priority: critical
+  assigned_to: null
+  created: 2026-09-11T06:34:09Z
+  updated: 2026-09-11T06:34:09Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.2.0
+  notes: null
