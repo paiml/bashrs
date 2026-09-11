@@ -44,7 +44,12 @@ Found by this release's review quorum and re-measured; none is new in 7.1.0 exce
 
 ### Measured
 
-@@MEASURED@@
+- **Lib gate** (`cargo test --workspace --lib`, what CI's `gate` runs), on the release tree: 15,327 passed, 0 failed.
+- **Corpus** (`bashrs corpus run`, inside bwrap: read-only root, private /tmp, no network, empty working directory): 18,403 entries (7.0.4: 18,178), 18,403 passed, 0 failed, 99.37/100 (A+). The run executes every Bash entry, so it is measured sandboxed.
+- **Dogfood gates** (`make dogfood`): D, G and K pass.
+- **Dependencies**: the lockfile is current and `cargo build --workspace --all-targets` succeeds. sysinfo 0.39 (needs rustc 1.95), renacer 0.11 and aprender 0.66 still fail to resolve and stay excused (`docs/audits/deps-exceptions-PMAT-255.txt`).
+- **pmat comply** (3.40.0): four checks fail. CB-400 (bashrs on this repository's own scripts: 1,253 errors, unchanged), CB-200 (774 functions below grade A), CB-1305 (91 of 106 contracts unclassified — pmat's work-contract stubs, PMAT-246, blocked upstream) and CB-2100 (the required `gate` check runs no comply rule). CB-1351 passes after `pmat comply refresh-bindings`.
+- **Book and format**: `./scripts/check-book-updated.sh` and `cargo fmt --all -- --check` pass.
 
 ## [7.0.4] - 2026-09-10
 
