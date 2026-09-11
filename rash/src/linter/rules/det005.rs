@@ -10,9 +10,15 @@
 //! my machine, fails at 00:00 UTC". That is a distinct defect from
 //! reproducibility, so it gets its own rule and its own remedy.
 //!
-//! The destination analysis lives in [`crate::linter::timestamp_flow`];
-//! DET005 fires on exactly `SinkClass::Conditional`, the polarity DET002
-//! excludes, so the two rules never double-report the same line.
+//! The destination analysis lives in [`crate::linter::timestamp_flow`].
+//! DET005 fires whenever ANY observed use of the value classifies as
+//! `SinkClass::Conditional` (`TimestampUse::saw_conditional`), independent of
+//! whether that same value also reaches a DET002 sink elsewhere (#304).
+//! Before #304 this gated on the value's single *strongest* sink, so a
+//! timestamp reaching both an artifact write and a branch condition only
+//! ever reported DET002 - the two name different defects (reproducibility
+//! vs. time-dependent control flow) and both are true of that value, so both
+//! are reported, once each.
 //!
 //! **Not flagged**: a duration - the arithmetic difference of two timestamp
 //! captures (`elapsed=$(( end - start ))`) - never reaches a branch
@@ -34,14 +40,19 @@
 //! **Auto-fix**: none - the remedy is design-level (inject the deadline as a
 //! parameter, or accept the non-determinism deliberately).
 
-use crate::linter::timestamp_flow::{analyze, SinkClass, TimestampUse};
+use crate::linter::timestamp_flow::{analyze, TimestampUse};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
 /// Check for a wall-clock value reaching a branch condition (#232).
+///
+/// Gates on `saw_conditional`, not on `class` (the value's single strongest
+/// sink): a value can reach both a branch condition and a build artifact
+/// (#304), and each is a distinct, true defect that must be reported by its
+/// own rule regardless of which sink happens to outrank the other.
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     for u in analyze(source) {
-        if u.class == SinkClass::Conditional {
+        if u.saw_conditional {
             result.add(build_diagnostic(&u));
         }
     }

@@ -45,11 +45,15 @@ use std::collections::HashSet;
 pub(crate) enum SinkClass {
     /// Every observed use is stdout/stderr, an append-only log, or a comparison.
     Benign,
-    /// Every observed use is a branch condition (`if`/`elif`/`while`/`until`, a
-    /// `case` selector, or a bare `[ ]`/`[[ ]]`/`((` test) - time-dependent
-    /// control flow (#232). Reported by DET005, not DET002: an `Unknown` or
-    /// `Reproducible` use elsewhere on the value still outranks this, so the
-    /// two rules never double-report the same finding.
+    /// The strongest use observed is a branch condition (`if`/`elif`/`while`/
+    /// `until`, a `case` selector, or a bare `[ ]`/`[[ ]]`/`((` test) -
+    /// time-dependent control flow (#232). This ranks below `Unknown`/
+    /// `Reproducible` so that THIS FIELD (the strongest sink, used for
+    /// DET002's message/sink_line) reflects the highest-value use. It does
+    /// NOT mean "no other sink was reached": a value can also reach a branch
+    /// condition on one line and a build artifact on another (#304). DET005
+    /// does not gate on this field - see `TimestampUse::saw_conditional`,
+    /// which is independent of whichever use happens to be strongest.
     Conditional,
     /// No use observed, or a use we cannot classify. Reported.
     Unknown,
@@ -74,6 +78,12 @@ pub(crate) struct TimestampUse {
     pub(crate) sink_line: Option<usize>,
     /// Trimmed text of that line, for the diagnostic message.
     pub(crate) sink_text: Option<String>,
+    /// Whether any observed use of the value classified as `Conditional`,
+    /// independent of `class` (#304). `class` keeps the single *strongest*
+    /// sink for DET002's message; a value that reaches a branch condition on
+    /// one line and a build artifact on another must still report DET005 for
+    /// the conditional use even though `class` ends up `Reproducible` there.
+    pub(crate) saw_conditional: bool,
     /// Whether any use of the value was seen at all.
     saw_use: bool,
 }
@@ -1086,6 +1096,7 @@ fn handle_source(st: &mut FlowState, ln: usize, code: &str, hit: (usize, &'stati
         class: SinkClass::Benign,
         sink_line: None,
         sink_text: None,
+        saw_conditional: false,
         saw_use: false,
     });
     match var {
@@ -1171,11 +1182,22 @@ fn handle_uses(st: &mut FlowState, ln: usize, code: &str) {
 }
 
 /// Fold one observed use into a timestamp's verdict.
+///
+/// `class` tracks only the single *strongest* sink (for DET002's message),
+/// so a later `Reproducible` use silently outranks an earlier `Conditional`
+/// one there. `saw_conditional` is recorded independently and unconditionally
+/// whenever ANY use classifies as `Conditional` (#304): DET002 and DET005
+/// name different problems with the same value, and a value that reaches
+/// both a build artifact and a branch condition is genuinely both defects,
+/// not whichever one happens to rank higher.
 fn record(st: &mut FlowState, idx: usize, class: SinkClass, ln: usize, code: &str) {
     let Some(u) = st.uses.get_mut(idx) else {
         return;
     };
     u.saw_use = true;
+    if class == SinkClass::Conditional {
+        u.saw_conditional = true;
+    }
     if class > u.class {
         u.class = class;
     }
