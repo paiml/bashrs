@@ -1,0 +1,56 @@
+# Auto-generated from .pmat-work/PMAT-241/contract.json
+name: "PMAT-241"
+metadata:
+  version: "1.0.0"
+  kind: schema
+  description: "Auto-generated work-contract for PMAT-241"
+  references:
+    - ".pmat-work/PMAT-241/contract.json"
+surface: work-contract
+verification_summary:
+  target_level: L3
+  current_level: L3
+  total_obligations: 47
+preconditions:
+  - "Project builds successfully"
+  - "At least one test exists"
+  - "FileManifest anti-gaming check"
+  - "Falsifier self-check active"
+postconditions:
+  - "All tests pass"
+  - "All changes pushed to remote"
+  - "No previously-passing test now fails"
+  - "Coverage >= 95%"
+  - "Changed lines must be covered"
+  - "No vulnerable dependencies"
+  - "All examples compile and run"
+  - "TDG score >= baseline"
+  - "No coverage exclusion gaming"
+  - "Spec score meets threshold"
+  - "pmat-book validation passes"
+  - "All files >= 95% coverage"
+  - "All match arm variants tested"
+  - "Cross-crate integration tests pass"
+falsifiable_claims:
+  - id: "All baseline files still exist"
+  - id: "The falsifier is active and detecting (Meta-Check)"
+  - id: "No coverage exclusion gaming"
+  - id: "All changed lines are covered"
+  - id: "Total coverage >= 95%"
+  - id: "TDG score >= baseline"
+  - id: "No function exceeds complexity 20"
+  - id: "No vulnerable dependencies added"
+  - id: "No file exceeds 500 lines"
+  - id: "Spec & Roadmap Quality"
+  - id: "All changes pushed"
+  - id: "All examples compile and run"
+  - id: "pmat-book validation passes"
+  - id: "No new SATD markers (TODO/FIXME/HACK)"
+  - id: "No new dead code introduced"
+  - id: "All files have >= 95% coverage"
+  - id: "make lint passes"
+  - id: "All match arm variants have test coverage"
+  - id: "No fix-after-fix chains exceed limit"
+  - id: "Cross-crate integration tests pass"
+  - id: "No performance regressions detected"
+  - id: "No incomplete proofs (sorry) introduced"
