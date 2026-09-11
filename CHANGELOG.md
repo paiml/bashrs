@@ -28,6 +28,8 @@ Ten defects found by dogfooding bashrs on real scripts, the contract verifier tu
 
 - The conversation export skips entries that do not transpile instead of substituting their Rust source. The old fallback put `fn main` into a dataset conversation its own assertion forbids, and was invisible until a transpile started failing honestly.
 
+- A CLI test asserted the config backup path on stdout. v7.1.0 moved log records to stderr so machine-readable stdout stays parseable (#301), so this test had been failing on main since that release; it now asserts stderr. It was invisible because the required check does not run the workspace integration tests.
+
 ### Provable contracts
 
 - `pv lint` gate 4 (verify) went from 47 references, 31 found, 16 missing to **73 references, 73 found, 0 missing**; `pv-gate` from RED to GREEN. A missing reference means a contract claim named no real test, so it could not be falsified.
