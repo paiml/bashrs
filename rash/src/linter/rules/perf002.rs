@@ -29,15 +29,72 @@
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
+fn is_loop_header(trimmed: &str) -> bool {
+    trimmed.starts_with("for ") || trimmed.starts_with("while ") || trimmed.starts_with("until ")
+}
+
+fn is_do_line(trimmed: &str) -> bool {
+    trimmed == "do" || trimmed.ends_with("; do") || trimmed.ends_with(";do")
+}
+
+fn is_loop_exit(trimmed: &str) -> bool {
+    trimmed == "done" || trimmed.starts_with("done ") || trimmed.starts_with("done;")
+}
+
+/// True when the `$(` at byte offset `col` in `line` sits inside a trailing
+/// `#` comment (quote-parity heuristic: an odd count of `'`/`"` before the
+/// `#` means it's still inside a string, not a real comment).
+fn dollar_paren_is_commented(line: &str, col: usize) -> bool {
+    let before = &line[..col];
+    let Some(hash_pos) = before.rfind('#') else {
+        return false;
+    };
+    let pre_hash = &before[..hash_pos];
+    let singles = pre_hash.matches('\'').count();
+    let doubles = pre_hash.matches('"').count();
+    singles.is_multiple_of(2) && doubles.is_multiple_of(2)
+}
+
+/// Look for a `$(...)` command substitution on `line` and, if found and not
+/// commented out, add a PERF002 diagnostic to `result`.
+fn check_line_for_subst(result: &mut LintResult, line_num: usize, line: &str) {
+    let Some(col) = line.find("$(") else {
+        return;
+    };
+    if dollar_paren_is_commented(line, col) {
+        return;
+    }
+
+    let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 3);
+    let diagnostic = Diagnostic::new(
+        "PERF002",
+        Severity::Warning,
+        "Command substitution inside loop body forks a subshell each iteration. Consider moving outside the loop.",
+        span,
+    );
+    result.add(diagnostic);
+}
+
+/// Update loop-tracking state for one line. Returns the (possibly updated)
+/// `(in_loop_body, loop_depth)` pair.
+fn track_loop_state(trimmed: &str, in_loop_body: bool, loop_depth: i32) -> (bool, i32) {
+    let mut in_loop_body = in_loop_body || is_loop_header(trimmed);
+    let mut loop_depth = loop_depth + i32::from(is_loop_header(trimmed));
+    if is_loop_exit(trimmed) {
+        loop_depth = (loop_depth - 1).max(0);
+        in_loop_body = loop_depth > 0;
+    }
+    (in_loop_body, loop_depth)
+}
+
 /// Check for command substitution inside loop bodies
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
-    let lines: Vec<&str> = source.lines().collect();
     let mut in_loop_body = false;
     let mut loop_depth: i32 = 0;
 
-    for (line_num, line) in lines.iter().enumerate() {
+    for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim();
 
         // Skip comments
@@ -45,68 +102,17 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Track loop entry
-        if trimmed.starts_with("for ")
-            || trimmed.starts_with("while ")
-            || trimmed.starts_with("until ")
-        {
-            loop_depth += 1;
-            in_loop_body = true;
+        (in_loop_body, loop_depth) = track_loop_state(trimmed, in_loop_body, loop_depth);
+
+        if !(in_loop_body && loop_depth > 0) {
+            continue;
+        }
+        // Skip the loop control line itself (for ... in $(cmd) is fine).
+        if is_loop_header(trimmed) || is_do_line(trimmed) {
+            continue;
         }
 
-        // Track 'do' keyword to confirm loop body start
-        if trimmed == "do" || trimmed.ends_with("; do") || trimmed.ends_with(";do") {
-            // Already set in_loop_body from the for/while line
-        }
-
-        // Track loop exit
-        if trimmed == "done" || trimmed.starts_with("done ") || trimmed.starts_with("done;") {
-            loop_depth -= 1;
-            if loop_depth <= 0 {
-                loop_depth = 0;
-                in_loop_body = false;
-            }
-        }
-
-        // Check for command substitution inside loop body
-        if in_loop_body && loop_depth > 0 {
-            // Skip the loop header line itself (for ... in $(cmd) is fine)
-            if trimmed.starts_with("for ")
-                || trimmed.starts_with("while ")
-                || trimmed.starts_with("until ")
-            {
-                continue;
-            }
-            if trimmed == "do" || trimmed.ends_with("; do") || trimmed.ends_with(";do") {
-                continue;
-            }
-
-            // Look for $(...) pattern - but not on the loop control line
-            if let Some(col) = line.find("$(") {
-                // Skip if inside a comment
-                let before = &line[..col];
-                if before.contains('#') {
-                    let hash_pos = before.rfind('#').unwrap_or(0);
-                    let pre_hash = &before[..hash_pos];
-                    let singles = pre_hash.matches('\'').count();
-                    let doubles = pre_hash.matches('"').count();
-                    if singles % 2 == 0 && doubles % 2 == 0 {
-                        continue;
-                    }
-                }
-
-                let span = Span::new(line_num + 1, col + 1, line_num + 1, col + 3);
-
-                let diagnostic = Diagnostic::new(
-                    "PERF002",
-                    Severity::Warning,
-                    "Command substitution inside loop body forks a subshell each iteration. Consider moving outside the loop.",
-                    span,
-                );
-
-                result.add(diagnostic);
-            }
-        }
+        check_line_for_subst(&mut result, line_num, line);
     }
 
     result
@@ -158,5 +164,19 @@ mod tests {
         let script = "for i in 1 2 3; do\n    # val=$(echo hello)\ndone";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // GH-313: `$((...))` arithmetic expansion is not a command substitution -
+    // the shell evaluates it in-process, forking no subshell.
+    #[test]
+    fn test_PMAT257_gh313_perf002_arithmetic_expansion_is_not_a_subshell() {
+        let script = "for i in 1 2 3; do\n    j=$(( i + 1 ))\n    echo $j\ndone";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 0);
+
+        // A real command substitution in a loop body must still be reported.
+        let real = "for i in 1 2 3; do\n    d=$(date)\ndone";
+        let result = check(real);
+        assert_eq!(result.diagnostics.len(), 1);
     }
 }
