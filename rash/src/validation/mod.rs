@@ -20,6 +20,10 @@ mod pipeline_coverage_tests;
 #[path = "pipeline_coverage_tests2.rs"]
 mod pipeline_coverage_tests2;
 
+#[cfg(test)]
+#[path = "pmat255_gh294_tests.rs"]
+mod pmat255_gh294_tests;
+
 #[derive(
     Debug,
     Clone,

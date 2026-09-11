@@ -136,6 +136,25 @@ falsification_tests:
   prediction: transpiled output wraps command in sh -c to preserve &&
   test: 'Given input, verify: transpiled output wraps command in sh -c to preserve &&'
   if_fails: 'Contract violation: capture() with && operator uses sh -c wrapper'
+- id: F-STDLIB-019
+  rule: 'GH-293: array_join(items, sep) over a local array literal receives the
+    literal''s elements, not the never-assigned "$items" scalar'
+  prediction: 'let items = ["a", "b"]; array_join(items, ",") transpiles to a
+    script that runs under dash/sh and prints ''a,b'' (not "items: parameter
+    not set")'
+  test: 'Given input, verify: transpiled script executes under dash with exit
+    0 and stdout ''a,b'''
+  if_fails: 'Contract violation: array_join over a local array literal reads
+    an unset scalar variable and aborts under set -u (GH-293)'
+- id: F-STDLIB-020
+  rule: 'GH-293: array_len(items) over a local array literal receives the
+    literal''s elements, not the never-assigned "$items" scalar'
+  prediction: 'let items = ["a", "b"]; array_len(items) transpiles to a script
+    that runs under dash/sh and prints ''2'''
+  test: 'Given input, verify: transpiled script executes under dash with exit
+    0 and stdout ''2'''
+  if_fails: 'Contract violation: array_len over a local array literal reads an
+    unset scalar variable and aborts under set -u (GH-293)'
 kani_harnesses:
 - id: KANI-TRANSPILER_STDLIB-001
   obligation: All mapped functions produce equivalent behavior
