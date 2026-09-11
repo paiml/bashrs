@@ -110,17 +110,14 @@ falsification_tests:
 - id: F-MAKE010-GH256-STRING
   rule: MAKE010 does NOT flag a command word that only appears inside a double-quoted string
   prediction: lint result does NOT contain MAKE010
-  test: 'test_PMAT251_gh256_command_word_inside_string_is_not_a_command: Given `@tool
-    --version || echo "not found. Install with: cargo install tool"`, verify: lint
-    result does NOT contain MAKE010'
+  test: cargo test -p bashrs --lib linter::rules::make010::tests_gh256_gh257::test_PMAT251_gh256_command_word_inside_string_is_not_a_command
   if_fails: 'Contract violation: MAKE010 does NOT flag a command word that only appears
     inside a double-quoted string (GH-256)'
 - id: F-MAKE010-GH256-SUBCOMMAND
   rule: MAKE010 does NOT flag a subcommand token as the command name (e.g. `install`
     in `cargo install`)
   prediction: lint result does NOT contain MAKE010
-  test: 'test_PMAT251_gh256_subcommand_token_is_not_the_command: Given `@cargo install
-    mycrate --force`, verify: lint result does NOT contain MAKE010'
+  test: cargo test -p bashrs --lib linter::rules::make010::tests_gh256_gh257::test_PMAT251_gh256_subcommand_token_is_not_the_command
   if_fails: 'Contract violation: MAKE010 does NOT flag a subcommand token as the command
     name (GH-256)'
 - id: F-MAKE010-GH256-PLAIN-LINE
@@ -128,18 +125,14 @@ falsification_tests:
     (non-continued) recipe line, because its exit status IS the recipe line's exit
     status and Make already aborts the target on failure there
   prediction: lint result does NOT contain MAKE010
-  test: 'test_PMAT251_gh256_plain_recipe_line_not_flagged: Given `install:\n\tcp app
-    /usr/bin/app` (single recipe line, single command, no continuation), verify:
-    lint result does NOT contain MAKE010'
+  test: cargo test -p bashrs --lib linter::rules::make010::tests_gh256_gh257::test_PMAT251_gh256_plain_recipe_line_not_flagged
   if_fails: 'Contract violation: MAKE010 does NOT flag a lone command on a plain
     recipe line (GH-256)'
 - id: F-MAKE010-GH257-TOLERANT-FLAG
   rule: MAKE010 does NOT flag a command whose flag already expresses the tolerance
     the rule asks for (rm -f, rm -rf, mkdir -p, ln -sf, cp -f)
   prediction: lint result does NOT contain MAKE010
-  test: 'test_PMAT251_gh257_tolerant_flags_are_not_missing_error_handling: Given
-    each of `rm -f`, `rm -rf`, `mkdir -p`, `ln -sf`, `cp -f` as a non-last command
-    in a compound recipe body, verify: lint result does NOT contain MAKE010'
+  test: cargo test -p bashrs --lib linter::rules::make010::tests_gh256_gh257::test_PMAT251_gh257_tolerant_flags_are_not_missing_error_handling
   if_fails: 'Contract violation: MAKE010 does NOT flag a command whose flag already
     declares the failure mode tolerated (GH-257)'
 - id: F-MAKE010-GH257-TRUE-POSITIVE
@@ -147,9 +140,7 @@ falsification_tests:
     `\`-continued, `;`-joined compound recipe body, even after the GH-256/GH-257
     precision fixes
   prediction: lint result contains MAKE010
-  test: 'test_PMAT251_gh257_intolerant_command_in_compound_body_is_still_reported:
-    Given `restore:\n\t@if [ -f b ]; then \\\n\t\tcp b a; \\\n\t\trm -f b; \\\n\tfi`,
-    verify: lint result contains MAKE010 for `cp` (and only `cp`)'
+  test: cargo test -p bashrs --lib linter::rules::make010::tests_gh256_gh257::test_PMAT251_gh257_intolerant_command_in_compound_body_is_still_reported
   if_fails: 'Contract violation: MAKE010 must still catch a genuinely unhandled
     intolerant command inside a compound recipe body (GH-257)'
 kani_harnesses:
