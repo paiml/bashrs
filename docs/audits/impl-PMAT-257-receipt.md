@@ -101,3 +101,18 @@ DONE for the ten defects, the pv gate and the corpus. PARTIAL(escalate) for the 
 | 34 files | **95.01%** | 34 | 363 |
 
 Twenty-one worker dispatches over seven waves; every one stopped at its 40-turn limit, and the orchestrator committed what they left staged after re-running it. Four tests that ran the real corpus (143 to 148s each) were removed after timing; one dispatcher file's 19 tests (312s) were discarded. The functions gate refused two files for legacy complexity (corpus_b2_commands, cognitive 41) and one test helper (fixed).
+
+## Released
+
+v7.2.0 shipped 2026-09-11 from merge commit f322f2a39f, required check `gate` green on it.
+
+| channel | verified |
+|---|---|
+| crates.io sparse index | `bashrs` and `bashrs-oracle` both at 7.2.0 |
+| GitHub release | v7.2.0 present, release workflow succeeded |
+| install | `cargo install bashrs --version 7.2.0` replaced 7.1.0, `bashrs --version` reports 7.2.0 |
+| binary check | MAKE010 fires once on a masked `cp`, matching the re-specified contract |
+
+Release gate, measured end to end before the tag: workspace tests pass, coverage 95.00 percent lines (gate fails under 95), `pv lint contracts` PASS with gate 4 at 73/73, corpus 18,453 entries at 99.4/100 (A+) under bwrap, book builds and its examples pass.
+
+Two gate defects were found by running the release gate at all, and both are fixed rather than worked around: three MAKE010 tests asserted a contract PMAT-251 had deliberately replaced (#317, closed with the measurements), and the corpus regression gate read its convergence log from the process working directory, so a unit test passed alone and failed in the workspace run.

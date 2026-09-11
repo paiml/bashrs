@@ -15,14 +15,15 @@ Goal: the five v7.1.0 issues fixed and measured against their own reproducers, t
 
 Issues on the GitHub milestone `v7.1.0`: #293, #294, #295, #265, #232.
 
-## v7.2.0
+## v7.2.0 (released 2026-09-11)
 
 | entry | what |
 |---|---|
 | PMAT-253 | forjar parity, the phases not shipped in v7.1.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b (`docs/specifications/pr-dogfood-parity-forjar.md`), with §4 settled by quorum |
 | PMAT-243 | COV-MEASURE: measure line coverage, name the top ten gaps, record both |
 | PMAT-246 | work contracts regenerated so pv validates all 103; the CB-1305 half is upstream (paiml-mcp-agent-toolkit#1306) |
-| PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it |
+| PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it (make corpus-score sandboxes the release run; the runner itself is v7.3.0) |
+| PMAT-257 | the release itself: ten defects, pv gate 4 green, coverage 95.01 percent, the Pareto gates, the book |
 
 ## Unscheduled (blocked)
 

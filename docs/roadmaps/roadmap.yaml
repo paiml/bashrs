@@ -2310,7 +2310,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'v7.2.0: pv-enforced release — triage every open issue, the 7.1.0 lint regressions, deps, corpus growth, PMAT-243/253/256'
-  status: planned
+  status: completed
   priority: critical
   assigned_to: null
   created: 2026-09-11T06:34:09Z
@@ -2323,4 +2323,4 @@ roadmap:
   labels:
   - kind:code
   - release:v7.2.0
-  notes: null
+  notes: 'Shipped as v7.2.0 on 2026-09-11: ten dogfooding defects, pv gate 4 from 16 missing refs to zero, library coverage 91.72 to 95.01 percent behind make coverage-gate, a Pareto PR gate (111s against 944s), corpus 18,453 entries at 99.4/100, and the book updated. Receipt: docs/audits/impl-PMAT-257-receipt.md'
