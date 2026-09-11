@@ -291,6 +291,18 @@ impl IrConverter {
             }
         }
 
+        // PMAT-258 / GH-316 (second half, #316 blind quorum, 3-0):
+        // `x.unwrap_or(d)` / `x.unwrap_or_else(|| d)` on a bare variable `x`
+        // -- the general case, distinct from the `args.get(N)` /
+        // `std::env::args().nth(N)` patterns just above (those keep their
+        // existing `${N:-d}` lowering: a missing positional argument can
+        // never be "set and empty" the way an arbitrary variable can).
+        if (method == "unwrap_or" || method == "unwrap_or_else") && args.len() == 1 {
+            if let Some(val) = self.try_unwrap_or_dash(receiver, &args[0]) {
+                return Ok(val);
+            }
+        }
+
         // GH-306 / PMAT-258 GH-316: `.len()` and `.to_string()` each have an
         // honest lowering for some receivers (array literal, string) —
         // extracted so this dispatcher's own branching stays under the
@@ -338,7 +350,7 @@ impl IrConverter {
             // string never gets the `name_0`, `name_1`, ... element table an
             // array literal does. Route it through `string_len_value`
             // instead of falling through to the error below.
-            if let Some(value) = Self::string_len_value(receiver) {
+            if let Some(value) = self.string_len_value(receiver) {
                 return Ok(Some(value));
             }
             return Ok(None);
@@ -366,11 +378,21 @@ impl IrConverter {
     /// unescaped" variant (GH-148), rather than adding a new `ShellValue`
     /// variant — that would require emitter changes outside this ticket's
     /// scope (`rash/src/ir/expr_calls.rs` only).
-    fn string_len_value(receiver: &crate::ast::Expr) -> Option<ShellValue> {
+    fn string_len_value(&self, receiver: &crate::ast::Expr) -> Option<ShellValue> {
         use crate::ast::{restricted::Literal, Expr};
         match receiver {
             Expr::Literal(Literal::Str(s)) => Some(ShellValue::String(s.len().to_string())),
-            Expr::Variable(name) => Some(ShellValue::Glob(format!("${{#{name}}}"))),
+            // PMAT-258: `${#var}` is the STRING length. bashrs flattens an
+            // array literal to scalars, so a variable the converter knows to be
+            // an array must never take this path: the count path above owns it,
+            // and falling through here would report the joined text's length —
+            // the wrong-value class GH-305 and GH-306 exist to prevent. A
+            // variable the converter knows nothing about is a string as far as
+            // this IR can tell; a collection built any other way is outside the
+            // supported subset (bashrs#323).
+            Expr::Variable(name) if !self.arrays.borrow().contains_key(name) => {
+                Some(ShellValue::Glob(format!("${{#{name}}}")))
+            }
             _ => None,
         }
     }
@@ -469,6 +491,75 @@ impl IrConverter {
             }
         }
         None
+    }
+
+    /// PMAT-258 / GH-316 (second half): the faithful lowering of
+    /// `x.unwrap_or(d)` / `x.unwrap_or_else(|| d)` on a bare variable `x` is
+    /// `${x-d}` -- the *unset-only* form -- not `${x:-d}`.
+    ///
+    /// POSIX shell has no Option type: a variable is unset, set-and-empty,
+    /// or set. `${x:-d}` substitutes `d` on either unset OR empty; `${x-d}`
+    /// substitutes only when unset. Rust's `unwrap_or`/`unwrap_or_else`
+    /// return the default only for `None` -- `Some("")` is a present value
+    /// and must not be replaced. Twelve corpus entries removed in v7.2.0
+    /// used one of these two methods, which had been silently lowering to a
+    /// no-op; a blind quorum decided 3-0 on `${x-d}` as the one honest
+    /// spelling (bashrs#316).
+    ///
+    /// `receiver` must be a bare variable: parameter expansion needs a name,
+    /// not an arbitrary subexpression. Anything else (or a `default` with no
+    /// honest no-side-effect spelling, see [`Self::unwrap_or_default_text`])
+    /// returns `None` and the caller falls through to the loud
+    /// "no lowering exists" error, naming the method.
+    fn try_unwrap_or_dash(
+        &self,
+        receiver: &crate::ast::Expr,
+        default: &crate::ast::Expr,
+    ) -> Option<ShellValue> {
+        use crate::ast::Expr;
+
+        let Expr::Variable(name) = receiver else {
+            return None;
+        };
+        let default_text = self.unwrap_or_default_text(default)?;
+        // Reuses `ShellValue::Glob`, the existing "emit this text unquoted
+        // and unescaped" variant (GH-148) that `string_len_value` already
+        // uses for `${#var}` -- adding a dedicated `ShellValue` variant would
+        // require emitter changes outside this ticket's scope
+        // (`rash/src/ir/expr_calls.rs` only). The double quotes are baked
+        // into the text itself so the emitted expansion is still quoted.
+        Some(ShellValue::Glob(format!("\"${{{name}-{default_text}}}\"")))
+    }
+
+    /// The literal text to splice into `${x-…}` for `default`, or `None`
+    /// when `default` has no honest, no-side-effect spelling.
+    ///
+    /// A string/integer literal is always safe. A variable is safe only if
+    /// this converter has actually seen it declared (`self.declared_vars`):
+    /// `syn`'s closure sugar is stripped before this AST layer even sees it
+    /// (`SynExpr::Closure(c) => convert_expr(&c.body)` in
+    /// `parser_convert_2.rs`), so `x.unwrap_or_else(|| literal)` and a bare
+    /// `x.unwrap_or_else(some_fn)` (passing a function *reference*, not
+    /// calling it) erase to the exact same `Expr::Variable` shape here.
+    /// Requiring the name to already be a known local -- not merely any
+    /// identifier -- is the only signal left to tell "a value" from "a
+    /// function name", and a closure that calls a function must not be
+    /// silently turned into a value. An actual function *call*
+    /// (`Expr::FunctionCall`) is unambiguous and always rejected.
+    fn unwrap_or_default_text(&self, default: &crate::ast::Expr) -> Option<String> {
+        use crate::ast::{restricted::Literal, Expr};
+
+        match default {
+            Expr::Literal(Literal::Str(s)) => Some(crate::emitter::escape::escape_shell_string(s)),
+            Expr::Literal(Literal::U32(n)) => Some(n.to_string()),
+            Expr::Literal(Literal::I32(n)) => Some(n.to_string()),
+            Expr::Literal(Literal::U16(n)) => Some(n.to_string()),
+            Expr::Literal(Literal::Bool(b)) => Some(b.to_string()),
+            Expr::Variable(name) if self.declared_vars.borrow().contains(name) => {
+                Some(format!("${name}"))
+            }
+            _ => None,
+        }
     }
 }
 

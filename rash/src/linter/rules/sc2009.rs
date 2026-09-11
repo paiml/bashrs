@@ -182,3 +182,46 @@ mod tests {
         assert_eq!(result.diagnostics[0].severity, Severity::Info);
     }
 }
+
+/// PMAT-258 (#303): SC2106 was misfiring the ps|grep check ("Consider using
+/// pgrep instead of grepping ps output" is ShellCheck's SC2009, not SC2106).
+/// This module is the real home for that check; these tests pin it in place
+/// through the full `lint_shell` pipeline so a future registration change
+/// can't silently move it back onto the wrong code.
+#[cfg(test)]
+mod tests_pmat258 {
+    use crate::linter::rules::lint_shell;
+
+    #[test]
+    fn test_PMAT258_sc2009_still_fires_through_lint_shell() {
+        let source = "ps aux | grep foo\n";
+        let result = lint_shell(source);
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "SC2009"),
+            "expected SC2009 in {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_PMAT258_sc2009_no_longer_reported_as_sc2106() {
+        let source = "ps aux | grep foo\n";
+        let result = lint_shell(source);
+        assert!(
+            !result.diagnostics.iter().any(|d| d.code == "SC2106"),
+            "ps|grep must not carry the SC2106 code anymore, got {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_PMAT258_sc2009_suppression_by_new_code() {
+        let source = "# shellcheck disable=SC2009\nps aux | grep foo\n";
+        let result = lint_shell(source);
+        assert!(
+            !result.diagnostics.iter().any(|d| d.code == "SC2009"),
+            "# shellcheck disable=SC2009 must silence the ps|grep rule, got {:?}",
+            result.diagnostics
+        );
+    }
+}

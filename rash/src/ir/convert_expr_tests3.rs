@@ -256,15 +256,21 @@ fn test_EXPR_VAL_048_func_stdlib_becomes_rash_prefixed_command_subst() {
 
 #[test]
 fn test_EXPR_VAL_049_method_unwrap_or_on_variable_receiver() {
-    // variable.unwrap_or("default") - receiver is Variable, not MethodCall.
-    // PMAT-257/GH-305: no lowering exists, so this must error.
+    // PMAT-258/GH-316: decided 3-0 by quorum — `unwrap_or` lowers to the
+    // UNSET-ONLY default `${var-d}`, never `${var:-d}`. Rust returns the
+    // default for None alone, and a variable that is set and empty is a
+    // present value that must survive.
     let expr = Expr::MethodCall {
         receiver: Box::new(Expr::Variable("maybe_val".to_string())),
         method: "unwrap_or".to_string(),
         args: vec![Expr::Literal(Literal::Str("fallback".to_string()))],
     };
-    let err = convert_let_stmt_err("val", expr);
-    assert!(err.to_string().contains("unwrap_or"));
+    let ir = convert_let_stmt("val", expr);
+    let val = extract_let_value(&ir);
+    assert!(
+        matches!(val, ShellValue::Glob(ref g) if g.contains("${maybe_val-fallback}")),
+        "the unset-only spelling, not the empty-or-unset one, got {val:?}"
+    );
 }
 
 // ===== MethodCall: unwrap_or + args.get(N) where N is not U32 =====

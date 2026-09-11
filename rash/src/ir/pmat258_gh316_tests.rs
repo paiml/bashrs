@@ -4,11 +4,13 @@
 //!
 //! v7.2.0 exposed a real gap: 63 corpus entries used stdlib methods with no
 //! lowering. This ticket implements the ones with an honest POSIX shell
-//! spelling (`len()` on a string, `to_string()`) and confirms the ones that
-//! stay unlowerable (`push_str()`, `push()`, `insert()`, `rev()`,
-//! `unwrap_or()`/`unwrap_or_else()` on an arbitrary receiver) still fail the
-//! transpile, naming the method, rather than emitting a no-op or a wrong
-//! value.
+//! spelling (`len()` on a string, `to_string()`, and -- second half, GH-316,
+//! decided 3-0 by blind quorum -- `unwrap_or()`/`unwrap_or_else()` on a bare
+//! variable, lowered to the *unset-only* `${x-d}`) and confirms the ones
+//! that stay unlowerable (`push_str()`, `push()`, `insert()`, `rev()`,
+//! `unwrap_or()`/`unwrap_or_else()` with a default that has no honest
+//! no-side-effect spelling) still fail the transpile, naming the method,
+//! rather than emitting a no-op or a wrong value.
 #![allow(clippy::unwrap_used)]
 
 use crate::{transpile, Config};
@@ -25,6 +27,25 @@ fn run_shell(shell: &str, script: &str) -> (String, i32) {
     let output = std::process::Command::new(shell)
         .arg("-c")
         .arg(script)
+        .output()
+        .unwrap_or_else(|e| panic!("failed to run {shell}: {e}"));
+    (
+        String::from_utf8_lossy(&output.stdout)
+            .trim_end()
+            .to_string(),
+        output.status.code().unwrap_or(-1),
+    )
+}
+
+/// Like `run_shell`, but writes `script` to a file inside a `TempDir` first
+/// and runs `<shell> <path>` -- exercising the script as a real file on
+/// disk, per PMAT-258's brief, rather than as inline `-c` text.
+fn run_shell_file(shell: &str, script: &str) -> (String, i32) {
+    let dir = tempfile::TempDir::new().unwrap_or_else(|e| panic!("failed to create tempdir: {e}"));
+    let script_path = dir.path().join("script.sh");
+    std::fs::write(&script_path, script).unwrap_or_else(|e| panic!("failed to write script: {e}"));
+    let output = std::process::Command::new(shell)
+        .arg(&script_path)
         .output()
         .unwrap_or_else(|e| panic!("failed to run {shell}: {e}"));
     (
@@ -226,6 +247,136 @@ fn test_PMAT258_gh316_unwrap_or_else_on_arbitrary_receiver_is_an_error() {
     assert!(
         msg.contains("unwrap_or_else"),
         "error should name the unlowerable method `unwrap_or_else`, got: {msg}"
+    );
+}
+
+// ===== unwrap_or / unwrap_or_else on a bare variable: `${x-d}`, not `${x:-d}` =====
+//
+// PMAT-258 / GH-316 second half, decided 3-0 by blind quorum: POSIX shell
+// has no Option type -- a variable is unset, set-and-empty, or set. Rust's
+// `unwrap_or`/`unwrap_or_else` substitute the default only for `None`;
+// `Some("")` is a present value. The faithful lowering is therefore the
+// *unset-only* `${x-d}`, never the set-or-empty `${x:-d}`.
+
+#[test]
+fn test_PMAT258_unwrap_or_on_unset_variable_yields_default() {
+    // `missing` is never declared anywhere -- the restricted AST does not
+    // distinguish "declared but unset at runtime" from "never declared" (a
+    // shell variable can be neither, since Rust requires every binding to
+    // be initialized), so an undeclared identifier is how this suite
+    // simulates a genuinely unset shell variable.
+    let src = r#"
+        fn main() {
+            let y = missing.unwrap_or("fallback");
+            println!("{}", y);
+        }
+    "#;
+    let script = transpile_ok(src);
+    assert!(
+        !script.contains("unknown"),
+        "unwrap_or must not fall back to \"unknown\":\n{script}"
+    );
+
+    let (stdout, code) = run_shell_file("dash", &script);
+    assert_eq!(code, 0, "script aborted under dash:\n{script}");
+    assert_eq!(
+        stdout, "fallback",
+        "an unset variable must take the unwrap_or default:\n{script}"
+    );
+}
+
+#[test]
+fn test_PMAT258_unwrap_or_on_set_but_empty_variable_keeps_empty_value() {
+    // THE distinguishing test: `x` is declared and set to the empty string
+    // -- a *present* value in Rust's Option model. `${x-fallback}` (unset
+    // only) must keep the empty value; `${x:-fallback}` (unset OR empty)
+    // would wrongly replace it. This must fail if the lowering is ever
+    // switched from `-` to `:-`.
+    let src = r#"
+        fn main() {
+            let x = "";
+            let y = x.unwrap_or("fallback");
+            println!("[{}]", y);
+        }
+    "#;
+    let script = transpile_ok(src);
+    assert!(
+        script.contains("${x-"),
+        "expected the unset-only `${{x-...}}` expansion, not `${{x:-...}}`:\n{script}"
+    );
+    assert!(
+        !script.contains("${x:-"),
+        "must not use the set-or-empty `${{x:-...}}` form -- Some(\"\") is a present value:\n{script}"
+    );
+
+    let (stdout, code) = run_shell_file("dash", &script);
+    assert_eq!(code, 0, "script aborted under dash:\n{script}");
+    assert_eq!(
+        stdout, "[]",
+        "a set-but-empty variable must keep its empty value, not take the default:\n{script}"
+    );
+}
+
+#[test]
+fn test_PMAT258_unwrap_or_else_with_simple_closure_body_lowers() {
+    let src = r#"
+        fn main() {
+            let y = missing.unwrap_or_else(|| "fallback");
+            println!("{}", y);
+        }
+    "#;
+    let script = transpile_ok(src);
+    assert!(
+        !script.contains("unknown"),
+        "unwrap_or_else with a simple closure body must not fall back to \"unknown\":\n{script}"
+    );
+
+    let (stdout, code) = run_shell_file("dash", &script);
+    assert_eq!(code, 0, "script aborted under dash:\n{script}");
+    assert_eq!(
+        stdout, "fallback",
+        "an unset variable must take the unwrap_or_else default:\n{script}"
+    );
+}
+
+#[test]
+fn test_PMAT258_unwrap_or_else_with_function_call_body_is_an_error() {
+    // A closure that CALLS a function has a side effect (or at least an
+    // effect this converter cannot inline) and must not be silently turned
+    // into a value -- keep erroring, naming the method.
+    let src = r#"
+        fn main() {
+            let s = "hello";
+            let r = s.unwrap_or_else(|| compute_fallback());
+            println!("{}", r);
+        }
+    "#;
+    let err = transpile_err(src);
+    let msg = err.to_string();
+    assert!(
+        msg.contains("unwrap_or_else"),
+        "error should name the unlowerable method `unwrap_or_else`, got: {msg}"
+    );
+}
+
+#[test]
+fn test_PMAT258_unwrap_on_arbitrary_receiver_still_errors() {
+    // A companion for an unrelated, still-unlowerable method: this ticket
+    // only implements `unwrap_or`/`unwrap_or_else` -- plain `.unwrap()` on a
+    // receiver that isn't the `std::env::args().nth(N)` special case must
+    // keep failing loudly rather than emitting a wrong value.
+    let src = r#"
+        fn main() {
+            let s = "hello";
+            let r = s.unwrap();
+            println!("{}", r);
+        }
+    "#;
+    let err = transpile_err(src);
+    let msg = err.to_string();
+    assert!(
+        msg.contains("unwrap"),
+        "error should name the unlowerable method `unwrap`, got: {msg}"
     );
 }
 
