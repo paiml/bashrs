@@ -423,3 +423,522 @@ pub(crate) fn make_lint_command(
 
     Ok(())
 }
+
+// PMAT-257: unit coverage for the `bashrs make` CLI handlers. These tests only
+// ever operate on files written under `tempfile::TempDir`, never on files in
+// the repository, and never touch `CorpusRegistry` / the corpus runner.
+//
+// `show_lint_results` calls `std::process::exit(1)`/`exit(2)` once the final
+// `LintResult` has warnings/errors -- calling it (directly or via
+// `make_lint_command`) with a source that actually produces diagnostics would
+// kill the test process. Every test that reaches `show_lint_results` below
+// therefore uses either a rule filter that matches nothing, or a Makefile
+// with zero lint findings.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::cli::args::MakeCommands;
+    use tempfile::TempDir;
+
+    const VALID_MAKEFILE: &str = ".PHONY: all\nall:\n\t@echo test\n";
+    const INVALID_MAKEFILE: &str = "this is not : : a valid makefile ][{{{";
+    const MKDIR_MAKEFILE: &str = ".PHONY: build\nbuild:\n\tmkdir build\n\t@echo done\n";
+    const DSL_SOURCE: &str = r#"
+fn main() {
+    let cc = "gcc";
+    target("build", &["main.c"], &["gcc -o build main.c"]);
+}
+"#;
+
+    // ---------------------------------------------------------------
+    // handle_make_command dispatch
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_PMAT257_cov_handle_make_command_build_dispatch() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("build.rs");
+        let output = dir.path().join("Makefile");
+        fs::write(&input, DSL_SOURCE).unwrap();
+
+        let result = handle_make_command(MakeCommands::Build {
+            input,
+            output: output.clone(),
+        });
+        assert!(result.is_ok(), "build dispatch failed: {result:?}");
+        let content = fs::read_to_string(&output).unwrap();
+        assert!(content.contains("CC := gcc"), "got: {content}");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_handle_make_command_parse_dispatch() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = handle_make_command(MakeCommands::Parse {
+            input,
+            format: MakeOutputFormat::Text,
+        });
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_handle_make_command_purify_dispatch() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = handle_make_command(MakeCommands::Purify {
+            input,
+            output: None,
+            fix: false,
+            report: false,
+            format: ReportFormat::Human,
+            with_tests: false,
+            property_tests: false,
+            preserve_formatting: false,
+            max_line_length: None,
+            skip_blank_line_removal: false,
+            skip_consolidation: false,
+        });
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_handle_make_command_lint_dispatch() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = handle_make_command(MakeCommands::Lint {
+            input,
+            format: LintFormat::Human,
+            fix: false,
+            output: None,
+            rules: Some("NONEXISTENT".to_string()),
+        });
+        assert!(result.is_ok());
+    }
+
+    // ---------------------------------------------------------------
+    // make_build_command
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_PMAT257_cov_make_build_command_success() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("build.rs");
+        let output = dir.path().join("Makefile");
+        fs::write(&input, DSL_SOURCE).unwrap();
+
+        let result = make_build_command(&input, &output);
+        assert!(result.is_ok(), "build failed: {result:?}");
+        let content = fs::read_to_string(&output).unwrap();
+        assert!(content.contains("CC := gcc"));
+        assert!(content.contains("build"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_build_command_missing_input() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("does-not-exist.rs");
+        let output = dir.path().join("Makefile");
+
+        let result = make_build_command(&input, &output);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_build_command_invalid_dsl() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("bad.rs");
+        let output = dir.path().join("Makefile");
+        fs::write(&input, "not valid rust syntax {{{").unwrap();
+
+        let result = make_build_command(&input, &output);
+        assert!(result.is_err());
+    }
+
+    // ---------------------------------------------------------------
+    // make_parse_command
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_PMAT257_cov_make_parse_command_text_format() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = make_parse_command(&input, MakeOutputFormat::Text);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_parse_command_json_format() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = make_parse_command(&input, MakeOutputFormat::Json);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_parse_command_debug_format() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = make_parse_command(&input, MakeOutputFormat::Debug);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_parse_command_missing_input() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("does-not-exist");
+
+        let result = make_parse_command(&input, MakeOutputFormat::Text);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_parse_command_lenient_makefile_still_parses() {
+        // The Makefile parser is lenient: a malformed recipe line is kept as
+        // text rather than refused, so this exercises the recovery path. The
+        // missing-file case above is the real error path.
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, INVALID_MAKEFILE).unwrap();
+
+        let result = make_parse_command(&input, MakeOutputFormat::Text);
+        assert!(result.is_ok(), "lenient parse must not fail: {result:?}");
+    }
+
+    // ---------------------------------------------------------------
+    // make_purify_command
+    // ---------------------------------------------------------------
+
+    #[allow(clippy::too_many_arguments)]
+    fn purify_opts(
+        input: &Path,
+        output: Option<&Path>,
+        fix: bool,
+        report: bool,
+        format: ReportFormat,
+        with_tests: bool,
+        property_tests: bool,
+    ) -> Result<()> {
+        make_purify_command(
+            input,
+            output,
+            fix,
+            report,
+            format,
+            with_tests,
+            property_tests,
+            false,
+            None,
+            false,
+            false,
+        )
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_with_tests_requires_output() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = purify_opts(&input, None, false, false, ReportFormat::Human, true, false);
+        assert!(result.is_err());
+        assert!(format!("{}", result.unwrap_err()).contains("--with-tests"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_prints_to_stdout() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = purify_opts(
+            &input,
+            None,
+            false,
+            false,
+            ReportFormat::Human,
+            false,
+            false,
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_writes_output_file() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        let output = dir.path().join("Makefile.purified");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = purify_opts(
+            &input,
+            Some(&output),
+            false,
+            false,
+            ReportFormat::Human,
+            false,
+            false,
+        );
+        assert!(result.is_ok());
+        assert!(output.exists());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_fix_creates_backup() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = purify_opts(&input, None, true, false, ReportFormat::Human, false, false);
+        assert!(result.is_ok());
+        let backup = input.with_extension("mk.bak");
+        assert!(backup.exists(), "expected backup at {backup:?}");
+        assert_eq!(fs::read_to_string(&backup).unwrap(), VALID_MAKEFILE);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_report_all_formats() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        for format in [
+            ReportFormat::Human,
+            ReportFormat::Json,
+            ReportFormat::Markdown,
+        ] {
+            let label = format!("{format:?}");
+            let result = purify_opts(&input, None, false, true, format, false, false);
+            assert!(result.is_ok(), "report format {label} failed");
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_generates_test_suite() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        let output = dir.path().join("Makefile.purified");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = purify_opts(
+            &input,
+            Some(&output),
+            false,
+            false,
+            ReportFormat::Human,
+            true,
+            false,
+        );
+        assert!(result.is_ok(), "{result:?}");
+        let test_file = dir.path().join("Makefile.purified.test.sh");
+        assert!(test_file.exists());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_generates_property_test_suite() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        let output = dir.path().join("Makefile.purified");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let result = purify_opts(
+            &input,
+            Some(&output),
+            false,
+            false,
+            ReportFormat::Human,
+            true,
+            true,
+        );
+        assert!(result.is_ok(), "{result:?}");
+        let test_file = dir.path().join("Makefile.purified.test.sh");
+        assert!(test_file.exists());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_missing_input() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("does-not-exist");
+
+        let result = purify_opts(
+            &input,
+            None,
+            false,
+            false,
+            ReportFormat::Human,
+            false,
+            false,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_purify_command_lenient_makefile_still_purifies() {
+        // Same leniency as the parser: purification of a malformed recipe
+        // line succeeds and reports what it kept.
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, INVALID_MAKEFILE).unwrap();
+
+        let result = purify_opts(
+            &input,
+            None,
+            false,
+            false,
+            ReportFormat::Human,
+            false,
+            false,
+        );
+        assert!(result.is_ok(), "lenient purify must not fail: {result:?}");
+    }
+
+    // ---------------------------------------------------------------
+    // convert_lint_format / run_filtered_lint
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_PMAT257_cov_convert_lint_format_all_branches() {
+        use crate::linter::output::OutputFormat;
+        assert!(matches!(
+            convert_lint_format(LintFormat::Human),
+            OutputFormat::Human
+        ));
+        assert!(matches!(
+            convert_lint_format(LintFormat::Json),
+            OutputFormat::Json
+        ));
+        assert!(matches!(
+            convert_lint_format(LintFormat::Sarif),
+            OutputFormat::Sarif
+        ));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_run_filtered_lint_no_filter_keeps_all() {
+        let result = run_filtered_lint(MKDIR_MAKEFILE, None);
+        assert!(
+            result.diagnostics.iter().any(|d| d.code == "MAKE002"),
+            "expected MAKE002 in {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_PMAT257_cov_run_filtered_lint_matching_filter_keeps_rule() {
+        let result = run_filtered_lint(MKDIR_MAKEFILE, Some("MAKE002"));
+        assert!(result.diagnostics.iter().any(|d| d.code == "MAKE002"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_run_filtered_lint_nonmatching_filter_drops_all() {
+        let result = run_filtered_lint(MKDIR_MAKEFILE, Some("ZZZDOESNOTEXIST"));
+        assert!(result.diagnostics.is_empty());
+    }
+
+    // ---------------------------------------------------------------
+    // show_lint_results (never with real diagnostics -- see module doc)
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_PMAT257_cov_show_lint_results_no_diagnostics_all_formats() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, VALID_MAKEFILE).unwrap();
+
+        let empty = crate::linter::LintResult::new();
+        for format in [LintFormat::Human, LintFormat::Json, LintFormat::Sarif] {
+            let result = show_lint_results(&empty, format, &input);
+            assert!(result.is_ok());
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // make_lint_command
+    // ---------------------------------------------------------------
+
+    #[test]
+    fn test_PMAT257_cov_make_lint_command_show_results_branch() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, MKDIR_MAKEFILE).unwrap();
+
+        // Rule filter matches nothing -> empty diagnostics -> show_lint_results
+        // takes the Ok() path without hitting warning/error exit codes.
+        let result = make_lint_command(
+            &input,
+            LintFormat::Human,
+            false,
+            None,
+            Some("ZZZDOESNOTEXIST"),
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_lint_command_missing_input() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("does-not-exist");
+
+        let result = make_lint_command(&input, LintFormat::Human, false, None, None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_lint_command_fix_to_output_file() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        let output = dir.path().join("Makefile.fixed");
+        fs::write(&input, MKDIR_MAKEFILE).unwrap();
+
+        let result = make_lint_command(&input, LintFormat::Human, true, Some(&output), None);
+        assert!(result.is_ok(), "{result:?}");
+        let fixed = fs::read_to_string(&output).unwrap();
+        assert!(fixed.contains("mkdir -p"), "got: {fixed}");
+        // Original is untouched when fixing to a separate output file.
+        assert_eq!(fs::read_to_string(&input).unwrap(), MKDIR_MAKEFILE);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_lint_command_fix_inplace_with_backup() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, MKDIR_MAKEFILE).unwrap();
+
+        let result = make_lint_command(&input, LintFormat::Human, true, None, None);
+        assert!(result.is_ok(), "{result:?}");
+        let fixed = fs::read_to_string(&input).unwrap();
+        assert!(fixed.contains("mkdir -p"), "got: {fixed}");
+        let backup = dir.path().join("Makefile.bak");
+        assert!(backup.exists());
+        assert_eq!(fs::read_to_string(&backup).unwrap(), MKDIR_MAKEFILE);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_make_lint_command_fix_but_nothing_fixable_falls_through() {
+        let dir = TempDir::new().unwrap();
+        let input = dir.path().join("Makefile");
+        fs::write(&input, MKDIR_MAKEFILE).unwrap();
+
+        // fix=true but the rule filter drops the only (fixable) diagnostic,
+        // so `make_lint_command` must fall through to `show_lint_results`.
+        let result = make_lint_command(
+            &input,
+            LintFormat::Human,
+            true,
+            None,
+            Some("ZZZDOESNOTEXIST"),
+        );
+        assert!(result.is_ok());
+    }
+}
