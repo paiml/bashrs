@@ -905,6 +905,20 @@ release: validate
 	@echo "🚀 Preparing release..."
 	@echo "Release build completed. Use GitHub Actions for full release process."
 
+# Publish a tagged release to crates.io: bashrs-oracle, then (once it is on
+# the index) bashrs. Never from the ambient working tree -- see
+# scripts/publish-from-tag.sh for the detached-worktree procedure and its
+# refusals (PMAT-255 / PMAT-253 phase 5).
+#   make publish-from-tag TAG=v7.0.4                # real publish
+#   make publish-from-tag TAG=v7.0.4 DRY_RUN=1      # dry run, publishes nothing
+.PHONY: publish-from-tag
+publish-from-tag:
+	@if [ -z "$(TAG)" ]; then \
+		echo "usage: make publish-from-tag TAG=vX.Y.Z [DRY_RUN=1]" >&2; \
+		exit 2; \
+	fi
+	DRY_RUN=$(DRY_RUN) ./scripts/publish-from-tag.sh $(TAG)
+
 # Memory profiling
 profile-memory:
 	@echo "🧠 Profiling memory usage..."

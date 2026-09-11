@@ -106,6 +106,30 @@ jobs:
           echo "version=$TAG_VER" >> "$GITHUB_OUTPUT"
           echo "Version verified: $TAG_VER"
 
+      - name: Wait for bashrs-oracle on the crates.io index
+        # PMAT-255 / PMAT-253 phase 5: v7.0.4 run 34495173909 failed here
+        # ("failed to select a version for the requirement bashrs-oracle =
+        # ^7.0") because the tag was pushed 16s before bashrs-oracle 7.0.4
+        # reached the crates.io index -- rash/Cargo.toml pins bashrs-oracle
+        # by path+version, and packaging bashrs resolves that dependency
+        # from the registry, not the path. Bounded poll (10 x 30s = 5m),
+        # never a single fixed sleep.
+        run: |
+          VERSION="${{ steps.verify.outputs.version }}"
+          for i in $(seq 1 10); do
+            CODE=$(curl -fsS -o /dev/null -w '%{http_code}' \
+              -A "bashrs-release-workflow (https://github.com/paiml/bashrs)" \
+              "https://crates.io/api/v1/crates/bashrs-oracle/$VERSION" || true)
+            if [ "$CODE" = "200" ]; then
+              echo "bashrs-oracle $VERSION is on the crates.io index"
+              exit 0
+            fi
+            echo "waiting for bashrs-oracle $VERSION on the crates.io index (attempt $i/10, http $CODE)"
+            sleep 30
+          done
+          echo "::error::bashrs-oracle $VERSION never appeared on the crates.io index after bounded poll"
+          exit 1
+
       - name: Verify bashrs package tarball
         run: cargo package -p bashrs --locked
 
