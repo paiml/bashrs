@@ -45,6 +45,12 @@ use std::collections::HashSet;
 pub(crate) enum SinkClass {
     /// Every observed use is stdout/stderr, an append-only log, or a comparison.
     Benign,
+    /// Every observed use is a branch condition (`if`/`elif`/`while`/`until`, a
+    /// `case` selector, or a bare `[ ]`/`[[ ]]`/`((` test) - time-dependent
+    /// control flow (#232). Reported by DET005, not DET002: an `Unknown` or
+    /// `Reproducible` use elsewhere on the value still outranks this, so the
+    /// two rules never double-report the same finding.
+    Conditional,
     /// No use observed, or a use we cannot classify. Reported.
     Unknown,
     /// Reaches an artifact name/content, a build id, or a checksum. Reported.
@@ -671,6 +677,14 @@ fn classify_sink(code: &str, n: &Needle<'_>) -> SinkClass {
 /// not mention it - `fi`, `done`, an `else` branch - cannot drag the verdict
 /// down.
 fn classify_part(part: &str, n: &Needle<'_>) -> Option<SinkClass> {
+    // A `case SUBJECT in PAT|PAT) ...` selector's `|` is pattern alternation,
+    // not a pipe, so it must be judged before `pipeline_segments` - which
+    // does not know the difference - misreads it as one.
+    if let Some(selector) = case_selector(part) {
+        if n.found_in(selector) {
+            return Some(SinkClass::Conditional);
+        }
+    }
     let segs = pipeline_segments(part);
     let last = segs.len().saturating_sub(1);
     let mut carries = false;
@@ -683,13 +697,25 @@ fn classify_part(part: &str, n: &Needle<'_>) -> Option<SinkClass> {
         if is_reproducible_segment(seg, n) {
             return Some(SinkClass::Reproducible);
         }
-        class = Some(if i == last && is_benign_segment(seg, n) {
-            SinkClass::Benign
-        } else {
-            SinkClass::Unknown
-        });
+        class = Some(classify_last_or_unknown(i == last, seg, n));
     }
     class
+}
+
+/// The verdict for the last segment of a carrying command; an earlier segment
+/// of a pipeline that merely carries the value without being the sink is
+/// always `Unknown` - only the pipeline's tail can be its destination.
+fn classify_last_or_unknown(is_last: bool, seg: &str, n: &Needle<'_>) -> SinkClass {
+    if !is_last {
+        return SinkClass::Unknown;
+    }
+    if is_test_context(seg, n) {
+        SinkClass::Conditional
+    } else if is_benign_segment(seg, n) {
+        SinkClass::Benign
+    } else {
+        SinkClass::Unknown
+    }
 }
 
 /// Split a line into commands at unquoted top-level `;`.
@@ -769,11 +795,9 @@ fn is_log_target(target: &str) -> bool {
             .any(|marker| t.contains(marker))
 }
 
-/// Does this segment merely print, log or compare the value?
+/// Does this segment merely print or log the value? (A comparison is
+/// [`is_test_context`], classified separately as `SinkClass::Conditional`.)
 fn is_benign_segment(seg: &str, n: &Needle<'_>) -> bool {
-    if is_test_context(seg, n) {
-        return true;
-    }
     if matches!(redirect_of(seg), Some(Redirect::Append(t)) if !n.found_in(t) && is_log_target(t)) {
         return true;
     }
@@ -804,13 +828,24 @@ fn redirect_is_benign(r: Option<Redirect<'_>>, n: &Needle<'_>) -> bool {
     }
 }
 
-/// Is the value only being compared or arithmetically tested?
+/// Is the value only being compared, arithmetically tested, or selected on
+/// (a `case` subject is a branch condition too, #232)?
 fn is_test_context(seg: &str, n: &Needle<'_>) -> bool {
     if let Some(cond) = condition_part(seg) {
         return n.found_in(cond);
     }
+    if let Some(selector) = case_selector(seg) {
+        return n.found_in(selector);
+    }
     let t = seg.trim_start();
     t.starts_with("[ ") || t.starts_with("[[ ") || t.starts_with("((") || t.starts_with("test ")
+}
+
+/// The subject of a `case SUBJECT in ...`, up to the first ` in`.
+fn case_selector(seg: &str) -> Option<&str> {
+    let rest = seg.trim_start().strip_prefix("case ")?;
+    let end = rest.find(" in").unwrap_or(rest.len());
+    Some(&rest[..end])
 }
 
 /// The condition of an `if`/`elif`/`while`/`until`, up to the first `;`.
@@ -1069,9 +1104,48 @@ fn start_taint(st: &mut FlowState, idx: usize, name: &str, ln: usize, code: &str
 
 /// A line that does not invoke `date`: it may propagate or consume a taint.
 fn handle_flow(st: &mut FlowState, ln: usize, code: &str) {
+    if let Some((a, b)) = duration_operands(code) {
+        mark_duration_operand(st, &a);
+        mark_duration_operand(st, &b);
+    }
     match assignment_target(code) {
         Some((name, _)) => handle_propagation(st, ln, code, &name),
         None => handle_uses(st, ln, code),
+    }
+}
+
+/// `NAME=$(( A - B ))` (or `$(( $A - $B ))`) - the arithmetic difference of
+/// two bare identifiers. Measuring elapsed time is the point of measuring
+/// elapsed time (#232), so when `A`/`B` are timestamp captures neither should
+/// be reported for reaching this line.
+fn duration_operands(code: &str) -> Option<(String, String)> {
+    let (_, rhs_off) = assignment_target(code)?;
+    let rhs = code[rhs_off..].trim();
+    let inner = rhs.strip_prefix("$((")?.strip_suffix("))")?.trim();
+    let (a, b) = inner.split_once('-')?;
+    let a = a.trim().trim_start_matches('$');
+    let b = b.trim().trim_start_matches('$');
+    (is_ident(a) && is_ident(b)).then(|| (a.to_string(), b.to_string()))
+}
+
+/// A bare shell identifier: `[A-Za-z_][A-Za-z0-9_]*`.
+fn is_ident(s: &str) -> bool {
+    let mut chars = s.chars();
+    chars
+        .next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// Record `name` as used (if it is currently a tainted timestamp) without
+/// raising its class - it stays at its default `Benign` unless some other use
+/// elsewhere proves otherwise.
+fn mark_duration_operand(st: &mut FlowState, name: &str) {
+    let Some(&(_, idx)) = st.tainted.iter().find(|(v, _)| v == name) else {
+        return;
+    };
+    if let Some(u) = st.uses.get_mut(idx) {
+        u.saw_use = true;
     }
 }
 

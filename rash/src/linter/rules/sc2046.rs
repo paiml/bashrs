@@ -22,16 +22,16 @@
 //! an independent command (so nested substitutions are visited on their own,
 //! with correct absolute columns, without this module recursing itself).
 //!
-//! What `shell_words` does *not* expose is the position of a command
-//! substitution *marker* itself (`Expansion` only tracks `$NAME` / `${NAME}`
-//! variable expansions and their `quoted` flag) - a `$( … )` never becomes an
-//! `Expansion`, only an internal, unexported byte range used purely for that
-//! recursion. So this module does its own small, local, quote-aware scan of
-//! each reportable word's `raw` text (which still has its original quote
-//! characters) to find `$( … )` / `` ` … ` `` markers and to decide, at each
-//! marker's own nesting level, whether it sits inside `'…'` / `"…"`. The
-//! paren/backtick matching mirrors `shell_words`'s private `find_close` /
-//! `read_backtick` byte-for-byte, so spans stay byte-accurate.
+//! PMAT-250 update: `shell_words::Expansion` now covers command-substitution
+//! markers too (`$( … )` / `` ` … ` ``, including nested and inside double
+//! quotes), exposed on `ShellWord::substitutions` with the same `quoted` flag
+//! variable expansions already carried. This module used to carry its own
+//! small, local, quote-aware scanner over each reportable word's `raw` text
+//! (mirroring `shell_words`'s private `find_close` / `read_backtick`
+//! byte-for-byte) to find those markers itself; that scanner is gone and this
+//! module now simply reads `word.substitutions`. This is a pure refactor: no
+//! verdict changes, since `shell_words` computed the identical positions and
+//! `quoted` status the private scanner used to compute for itself.
 //!
 //! ## Phase 7 review finding (PMAT-248): `CommandName` is reportable too
 //!
@@ -58,7 +58,7 @@
 //! References:
 //! - <https://www.shellcheck.net/wiki/SC2046>
 
-use crate::linter::shell_words::{self, ShellWord, WordRole};
+use crate::linter::shell_words::{self, ExpansionKind, ShellWord, WordRole};
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
 /// Roles in which an unquoted command substitution is reportable: the shell
@@ -85,7 +85,7 @@ fn is_case_operand(words: &[ShellWord], idx: usize) -> bool {
     idx > 0 && words[idx - 1].role == WordRole::Reserved && words[idx - 1].literal == "case"
 }
 
-/// One reportable command substitution found inside a word's raw text.
+/// One reportable command substitution found on a reportable word.
 struct Offence {
     /// 1-indexed byte column of the opening `$`/backtick, in the physical line.
     col: usize,
@@ -98,186 +98,31 @@ struct Offence {
     backtick: bool,
 }
 
-/// Local quoting state used only to decide whether a `$(`/backtick marker
-/// sits in an unquoted position. Mirrors `shell_words::WordLexer`'s `Quote`.
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum Quote {
-    Bare,
-    Single,
-    Double,
-}
-
-/// Scan a word's raw source text (quotes included) for command-substitution
-/// markers and append every one found in an *unquoted* position, at its own
-/// nesting level, to `out`. Does not recurse into a substitution's body:
-/// `shell_words::simple_commands` already recurses into every `$( … )` /
-/// `` ` … ` `` body as its own command, so a nested substitution is visited
-/// again, separately, as a word of that recursed command - recursing here
-/// too would double-report it.
-fn scan_word(raw: &str, word_col: usize, out: &mut Vec<Offence>) {
-    let bytes = raw.as_bytes();
-    let mut quote = Quote::Bare;
-    let mut i = 0;
-    while i < bytes.len() {
-        let b = bytes[i];
-        match quote {
-            Quote::Single => {
-                i += 1;
-                if b == b'\'' {
-                    quote = Quote::Bare;
-                }
-            }
-            Quote::Double => match b {
-                b'"' => {
-                    quote = Quote::Bare;
-                    i += 1;
-                }
-                // Inside `"…"` a backslash only escapes `$`, backtick, `"` and
-                // `\` - matches `shell_words::WordLexer::escape_double`.
-                b'\\' => {
-                    i += match bytes.get(i + 1) {
-                        Some(b'$' | b'`' | b'"' | b'\\') => 2,
-                        _ => 1,
-                    };
-                }
-                b'$' => i = handle_dollar(bytes, i, word_col, false, out),
-                b'`' => i = handle_backtick(bytes, i, word_col, false, out),
-                _ => i += 1,
-            },
-            Quote::Bare => match b {
-                b'\'' => {
-                    quote = Quote::Single;
-                    i += 1;
-                }
-                b'"' => {
-                    quote = Quote::Double;
-                    i += 1;
-                }
-                b'\\' => i += 2,
-                b'$' => i = handle_dollar(bytes, i, word_col, true, out),
-                b'`' => i = handle_backtick(bytes, i, word_col, true, out),
-                _ => i += 1,
-            },
-        }
-    }
-}
-
-/// Handle a `$` found at `i`. Returns the index to resume scanning from.
-///
-/// `$((...))` is arithmetic expansion (one word, never split - GH-237): its
-/// span is skipped without reporting. `$(...)` is a command substitution:
-/// reported when `reportable`, using the full balanced span (fixing GH-237's
-/// unbalanced-regex span) regardless of reportability, because the caller
-/// must always skip past it correctly to keep scanning the rest of the word.
-fn handle_dollar(
-    bytes: &[u8],
-    i: usize,
-    word_col: usize,
-    reportable: bool,
-    out: &mut Vec<Offence>,
-) -> usize {
-    if bytes.get(i + 1) != Some(&b'(') {
-        return i + 1;
-    }
-    let is_arith = bytes.get(i + 2) == Some(&b'(');
-    let close = find_paren_close(bytes, i + 1);
-    let end_excl = if close < bytes.len() {
-        close + 1
-    } else {
-        bytes.len()
-    };
-    if !is_arith && reportable {
-        let text = String::from_utf8_lossy(&bytes[i..end_excl]).into_owned();
-        out.push(Offence {
-            col: word_col + i,
-            end_col: word_col + end_excl,
-            text,
-            backtick: false,
-        });
-    }
-    end_excl
-}
-
-/// Handle a backtick found at `i`. Returns the index to resume scanning from.
-fn handle_backtick(
-    bytes: &[u8],
-    i: usize,
-    word_col: usize,
-    reportable: bool,
-    out: &mut Vec<Offence>,
-) -> usize {
-    let mut j = i + 1;
-    while let Some(&b) = bytes.get(j) {
-        if b == b'\\' {
-            j += 2;
+/// Command-substitution markers on a reportable word, filtered to the
+/// unquoted ones. `shell_words` (PMAT-250) already excludes `$((...))`
+/// arithmetic expansion from ever producing a marker, and already resets
+/// quoting at each `$( … )` nesting level (POSIX 2.6.3), so no local
+/// re-scan is needed here any more - not recursing into a substitution's
+/// body is likewise inherited for free: `shell_words::simple_commands`
+/// recurses into every `$( … )` / `` ` … ` `` body as its own command, so a
+/// nested substitution is visited again, separately, as a word of that
+/// recursed command.
+fn word_offences(word: &ShellWord, out: &mut Vec<Offence>) {
+    for sub in &word.substitutions {
+        if sub.quoted {
             continue;
         }
-        if b == b'`' {
-            break;
-        }
-        j += 1;
-    }
-    let end_excl = if j < bytes.len() { j + 1 } else { bytes.len() };
-    if reportable {
-        let text = String::from_utf8_lossy(&bytes[i..end_excl]).into_owned();
+        let backtick = matches!(
+            sub.kind,
+            ExpansionKind::CommandSubstitution { backtick: true }
+        );
         out.push(Offence {
-            col: word_col + i,
-            end_col: word_col + end_excl,
-            text,
-            backtick: true,
+            col: sub.col,
+            end_col: sub.end_col,
+            text: sub.text.clone(),
+            backtick,
         });
     }
-    end_excl
-}
-
-/// The 0-indexed byte position of the `)` matching the `(` at `open_idx`,
-/// honouring nested quotes, backslash escapes, and nested parens, so nesting
-/// such as `$(echo $(date))` balances correctly. Falls back to `bytes.len()`
-/// on unterminated input, exactly like `shell_words`'s private `find_close`,
-/// so malformed input never panics.
-fn find_paren_close(bytes: &[u8], open_idx: usize) -> usize {
-    let mut depth = 1usize;
-    let mut i = open_idx + 1;
-    while let Some(&b) = bytes.get(i) {
-        match b {
-            b'\'' | b'"' => {
-                i = skip_quoted(bytes, i, b);
-                continue;
-            }
-            b'\\' => {
-                i += 2;
-                continue;
-            }
-            b'(' => depth += 1,
-            b')' => {
-                depth -= 1;
-                if depth == 0 {
-                    return i;
-                }
-            }
-            _ => {}
-        }
-        i += 1;
-    }
-    bytes.len()
-}
-
-/// The byte index one past the closing `quote`, starting the scan at `start`
-/// (the index of the opening quote byte). `"` honours `\` escapes; `'` does
-/// not (POSIX). Falls back to `bytes.len()` when unterminated.
-fn skip_quoted(bytes: &[u8], start: usize, quote: u8) -> usize {
-    let mut i = start + 1;
-    while let Some(&b) = bytes.get(i) {
-        if quote == b'"' && b == b'\\' {
-            i += 2;
-            continue;
-        }
-        if b == quote {
-            return i + 1;
-        }
-        i += 1;
-    }
-    bytes.len()
 }
 
 /// Build the SC2046 diagnostic for one offence.
@@ -330,7 +175,7 @@ fn scan_line(line: &str) -> Vec<Offence> {
     for cmd in shell_words::simple_commands(line) {
         for (idx, word) in cmd.words.iter().enumerate() {
             if is_reportable(&cmd.words, idx) {
-                scan_word(&word.raw, word.col, &mut offences);
+                word_offences(word, &mut offences);
             }
         }
     }
@@ -572,5 +417,52 @@ mod tests {
         let result = check("for i in $(ls); do echo $i; done");
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2046");
+    }
+}
+
+/// PMAT-250 (contracts/linter-lexer-context-v1.yaml F-SW-PMAT250-*): SC2046
+/// now consumes `shell_words::ShellWord::substitutions` instead of its own
+/// private scanner. Every case below is a case the deleted scanner used to
+/// decide on its own; the verdict here must be byte-for-byte identical to
+/// before the refactor.
+#[cfg(test)]
+mod tests_pmat250 {
+    use super::*;
+
+    #[test]
+    fn test_PMAT255_pmat250_no_verdict_change() {
+        // GH-237: arithmetic expansion is never a command substitution.
+        assert_eq!(check("echo $((x+1))").diagnostics.len(), 0);
+
+        // GH-252: an escaped backtick inside "..." is text, not a marker.
+        assert_eq!(check(r#"echo "a \` b" $(date)"#).diagnostics.len(), 1);
+
+        // GH-262: SC2046 only where the shell field-splits.
+        assert_eq!(check("x=$(date)").diagnostics.len(), 0);
+        assert_eq!(check(r#"echo "$(date)""#).diagnostics.len(), 0);
+        assert_eq!(check("case $(uname) in").diagnostics.len(), 0);
+        assert_eq!(check("echo $(date)").diagnostics.len(), 1);
+        assert_eq!(check("$(get_command)").diagnostics.len(), 1);
+
+        // Nesting and backticks still balance and still report every level.
+        assert_eq!(check("echo $(echo $(date))").diagnostics.len(), 2);
+        assert_eq!(check("echo `date`").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_PMAT255_pmat250_uses_shell_words_substitutions_field() {
+        // Confirms the new field is actually what feeds SC2046's offences,
+        // not a coincidence of some other path.
+        let cmds = shell_words::simple_commands("echo $(date)");
+        let word = cmds[0]
+            .words
+            .iter()
+            .find(|w| !w.substitutions.is_empty())
+            .expect("shell_words must record the $(date) marker");
+        assert_eq!(word.substitutions[0].text, "$(date)");
+        assert_eq!(
+            check("echo $(date)").diagnostics[0].span.start_col,
+            word.substitutions[0].col
+        );
     }
 }

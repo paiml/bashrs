@@ -28,12 +28,88 @@ static LOOP_END: std::sync::LazyLock<Regex> =
 static BREAK_CONTINUE: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\b(break|continue)\b").unwrap());
 
+/// One occurrence of a loop-structure keyword on a physical line, tagged
+/// with its byte position so events on the same line can be replayed in the
+/// order the shell would actually encounter them (PMAT-244).
+enum LineEvent {
+    LoopStart,
+    LoopEnd,
+    BreakContinue {
+        keyword: &'static str,
+        start: usize,
+        end: usize,
+    },
+}
+
+/// Collect every loop-start, loop-end and break/continue occurrence on a
+/// single physical line, in left-to-right (byte) order.
+fn line_events(line: &str) -> Vec<(usize, LineEvent)> {
+    let mut events: Vec<(usize, LineEvent)> = Vec::new();
+
+    for m in LOOP_START.find_iter(line) {
+        events.push((m.start(), LineEvent::LoopStart));
+    }
+    for m in LOOP_END.find_iter(line) {
+        events.push((m.start(), LineEvent::LoopEnd));
+    }
+    for m in BREAK_CONTINUE.find_iter(line) {
+        let keyword = if m.as_str() == "break" {
+            "break"
+        } else {
+            "continue"
+        };
+        events.push((
+            m.start(),
+            LineEvent::BreakContinue {
+                keyword,
+                start: m.start(),
+                end: m.end(),
+            },
+        ));
+    }
+
+    events.sort_by_key(|(pos, _)| *pos);
+    events
+}
+
+/// Replay one physical line's loop-structure events in order, updating the
+/// running loop-depth and reporting any break/continue seen while the depth
+/// is zero. Returns the loop-depth carried forward to the next line.
+fn process_line(
+    line: &str,
+    line_num: usize,
+    mut loop_depth: usize,
+    result: &mut LintResult,
+) -> usize {
+    for (_, event) in line_events(line) {
+        match event {
+            LineEvent::LoopStart => loop_depth += 1,
+            LineEvent::LoopEnd => loop_depth = loop_depth.saturating_sub(1),
+            LineEvent::BreakContinue {
+                keyword,
+                start,
+                end,
+            } => {
+                if loop_depth == 0 {
+                    let diagnostic = Diagnostic::new(
+                        "SC2105",
+                        Severity::Error,
+                        format!("'{}' is only valid in loops", keyword),
+                        Span::new(line_num, start + 1, line_num, end + 1),
+                    );
+                    result.add(diagnostic);
+                }
+            }
+        }
+    }
+    loop_depth
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-    let lines: Vec<&str> = source.lines().collect();
     let mut loop_depth: usize = 0;
 
-    for (i, line) in lines.iter().enumerate() {
+    for (i, line) in source.lines().enumerate() {
         let line_num = i + 1;
         let trimmed = line.trim_start();
 
@@ -42,32 +118,7 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Track loop depth
-        if LOOP_START.is_match(line) {
-            loop_depth += 1;
-        }
-
-        if LOOP_END.is_match(line) {
-            loop_depth = loop_depth.saturating_sub(1);
-        }
-
-        // Check for break/continue
-        if let Some(cap) = BREAK_CONTINUE.find(line) {
-            if loop_depth == 0 {
-                let keyword = cap.as_str();
-                let start_col = cap.start() + 1;
-                let end_col = cap.end() + 1;
-
-                let diagnostic = Diagnostic::new(
-                    "SC2105",
-                    Severity::Error,
-                    format!("'{}' is only valid in loops", keyword),
-                    Span::new(line_num, start_col, line_num, end_col),
-                );
-
-                result.add(diagnostic);
-            }
-        }
+        loop_depth = process_line(line, line_num, loop_depth, &mut result);
     }
 
     result
@@ -206,5 +257,67 @@ function process() {
 "#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+}
+
+/// PMAT-244 (contracts/linter-lexer-context-v1.yaml F-SC2105-PMAT244-*):
+/// a one-line loop must be read as a loop, not as three independent
+/// keyword-counts computed for the whole physical line.
+#[cfg(test)]
+mod tests_pmat244 {
+    use super::*;
+
+    #[test]
+    fn test_PMAT255_pmat244_v1_inline_andand_break_is_clean() {
+        let code = "for m in a b; do [[ $m == b ]] && { x=1; break; }; done\n";
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "break is inside the one-line for-loop, got {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_PMAT255_pmat244_v2_inline_if_break_is_clean() {
+        let code = "for m in a b; do if [[ $m == b ]]; then x=1; break; fi; done\n";
+        let result = check(code);
+        assert_eq!(
+            result.diagnostics.len(),
+            0,
+            "break is inside the one-line for-loop, got {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn test_PMAT255_pmat244_v3_multiline_still_clean() {
+        let code = r#"
+for m in a b; do
+    if [[ $m == b ]]; then
+        x=1
+        break
+    fi
+done
+"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0);
+
+        let while_code = "while true; do\n    break\ndone\n";
+        let while_result = check(while_code);
+        assert_eq!(while_result.diagnostics.len(), 0);
+
+        let while_inline = "while true; do break; done\n";
+        let while_inline_result = check(while_inline);
+        assert_eq!(while_inline_result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_PMAT255_pmat244_v5_toplevel_break_still_fires() {
+        let code = "break\n";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2105");
     }
 }

@@ -322,6 +322,7 @@ fn lint_shell_filtered(
     result.merge(det002::check(source));
     result.merge(det003::check(source));
     result.merge(det004::check(source));
+    result.merge(det005::check(source));
 
     // Idempotency rules (Universal - always apply)
     result.merge(idem001::check(source));

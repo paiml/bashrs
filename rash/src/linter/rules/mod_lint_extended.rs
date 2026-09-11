@@ -8,6 +8,7 @@ fn apply_extended_lint_rules(source: &str, result: &mut LintResult) {
     result.merge(det002::check(source));
     result.merge(det003::check(source));
     result.merge(det004::check(source));
+    result.merge(det005::check(source));
 
     // Run idempotency rules
     result.merge(idem001::check(source));
