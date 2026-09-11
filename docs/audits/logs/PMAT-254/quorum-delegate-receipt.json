@@ -1,0 +1,1380 @@
+{
+  "ticket": "PMAT-254",
+  "lane": "quorum",
+  "mode": "plan",
+  "mode_note": "Brief mode=plan maps to agy-lane.sh --mode plan (agy --mode plan, plus --sandbox because writes=false). The route line's effort=1[U] was not passed: agy-lane.sh has no --effort flag, and the brief's calling form names none. Dry-run form: lane-guard.sh --exec -- agy --sandbox --dangerously-skip-permissions --print-timeout 25m --output-format json --json-schema quorum-schema.json --mode plan -p=<prompt>.",
+  "width": 3,
+  "executor": "agy",
+  "agy_version": "1.2.0",
+  "writes": false,
+  "schema": "/home/noah/.claude/skills/paiml-implement/agy/quorum-schema.json",
+  "timeout": "25m",
+  "prompt": {
+    "file": "/run/user/1000/paiml-implement/agy/PMAT-254/bf151141-60ff-4e66-9794-31fe5c18982d/ph3/prompt.txt",
+    "bytes": 25215,
+    "sha256": "a8543f5b95184fe33be54f63cb7d2fe7fcc807a89a7938ae836714432daaccf5",
+    "identical_across_lanes": true,
+    "inlined": [
+      "ledger-1.json (5154 B)",
+      "triage-policy.md (545 B)",
+      "git show 2aefddd1b7 -- docs/roadmaps/roadmap.yaml (13515 B)",
+      "measurements (1)-(12), QUESTIONS and the verdict line, verbatim from the brief"
+    ]
+  },
+  "launch": {
+    "not_before": 1789077179,
+    "attempt1_dispatch": 1789077541,
+    "attempt2_dispatch": 1789077961,
+    "form": "setsid nohup bash run-lane.sh <i> from an empty cwd <out_dir>/cwd-<i>; exit code written to lane-<i>.exit"
+  },
+  "conversations": [
+    "00fab1ba-2f8f-4560-b9c6-86bc633d9115",
+    "3048be40-aed6-4e76-b12e-91ef509c18c6",
+    "e5202fdc-88ba-4e60-ae8c-ee5064ed54f7"
+  ],
+  "child_conversations": 3,
+  "fanout": "children=3 method=lane-files label=consensus",
+  "fanout_note": "Measured by fanout.sh before lane-reduce.json existed (a later run would also count that artifact). It counts lane files, so it measures width, not agreement: 3 distinct conversation_ids, of which lane-reduce counts 2 verdicts (lane 3 is NO-VERDICT).",
+  "attempt1_killed_conversations": [
+    "6b20c093-2091-472c-90c1-86bc2d4d30d1",
+    "b1f41f14-e03d-4c3a-8375-bd589476f316",
+    "ce0c5490-dd90-4147-b77f-92ff34c6b677"
+  ],
+  "results": [
+    {
+      "lane": 1,
+      "exit": 0,
+      "file": "/run/user/1000/paiml-implement/agy/PMAT-254/bf151141-60ff-4e66-9794-31fe5c18982d/ph3/lane-1.json",
+      "err_bytes": 0,
+      "conversation_id": "00fab1ba-2f8f-4560-b9c6-86bc633d9115",
+      "status": "SUCCESS",
+      "verdict": "FAIL",
+      "carried_verdict": "FAIL",
+      "duration_seconds": 191,
+      "findings": 26,
+      "summary": "FAIL.\nRows changed: [#265], [#236], [GH-189].\n[Q-VERDICTS]: Yes, #265 is E, #236 is A, and GH-189 is unproven.\n[Q-CLOSE-NOW]: Yes, #265 (E), and #287 (D) which was omitted from the ledger.\n[Q-236-BACKLOG]: No, PMAT-251 explicitly prioritizes it.\n[Q-COMPLETIONS]: PMAT-238 and 239 are proven, GH-189 is unproven.\n[Q-BLOCK-VS-CANCEL]: Yes, blocking preserves intent while awaiting definition.\n[Q-UNIVERSE]: Yes, the ledger omitted 8 issues listed in PMAT-251.\n[Q-RELEASE-LINT]: Lint defect; cancelled entries do not require release tags."
+    },
+    {
+      "lane": 2,
+      "exit": 0,
+      "file": "/run/user/1000/paiml-implement/agy/PMAT-254/bf151141-60ff-4e66-9794-31fe5c18982d/ph3/lane-2.json",
+      "err_bytes": 0,
+      "conversation_id": "3048be40-aed6-4e76-b12e-91ef509c18c6",
+      "status": "SUCCESS",
+      "verdict": "FAIL",
+      "carried_verdict": "FAIL",
+      "duration_seconds": 177,
+      "findings": 26,
+      "summary": "FAIL. Change [#234] -> A.\n[Q-VERDICTS] Yes, #234 should be A as PMAT-255 schedules pmat comply.\n[Q-CLOSE-NOW] No issues should be closed now; measured issues still fail.\n[Q-236-BACKLOG] Yes, it stays backlog as PMAT-255 omits it.\n[Q-COMPLETIONS] Proven; verified test file inclusions in the lib tree.\n[Q-BLOCK-VS-CANCEL] Yes, blocking is correct due to lack of AC.\n[Q-UNIVERSE] Yes, the ledger is missing 8 issues listed as open in PMAT-251.\n[Q-RELEASE-LINT] Lint defect; cancelled entries shouldn't require release labels."
+    },
+    {
+      "lane": 3,
+      "exit": 0,
+      "file": "/run/user/1000/paiml-implement/agy/PMAT-254/bf151141-60ff-4e66-9794-31fe5c18982d/ph3/lane-3.json",
+      "err_bytes": 0,
+      "conversation_id": "e5202fdc-88ba-4e60-ae8c-ee5064ed54f7",
+      "status": "ERROR",
+      "verdict": "NO-VERDICT",
+      "carried_verdict": "FAIL",
+      "duration_seconds": 148,
+      "findings": 26,
+      "summary": "FAIL\nRows to change: #234, #233, PMAT-241, PMAT-242, PMAT-243.\nQ-VERDICTS: Verdicts for #234 and #233 are wrong given the evidence and policy.\nQ-CLOSE-NOW: No ledger issues can be closed now (none are clean/satisfied on 7.0.4).\nQ-236-BACKLOG: Yes, #236 is right to stay backlog because it's an interop gap not planned for 7.1.0.\nQ-COMPLETIONS: The three completions are proven by measurement and test inclusion paths.\nQ-BLOCK-VS-CANCEL: Blocking PMAT-241/242/243 is wrong; they should be cancelled for lacking acceptance criteria.\nQ-UNIVERSE: Yes, issue #284 is missing from the ledger, and roadmap entries PMAT-245/PMAT-247 were skipped.\nQ-RELEASE-LINT: It is a lint defect; cancelled items shouldn't require release labels."
+    }
+  ],
+  "uncounted_lane3_changes": [
+    {
+      "claim": "CHANGE [#234] -> A. The roadmap explicitly schedules \"pmat comply\" for the 7.1.0 release in PMAT-255, so this debt should not stay in backlog.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+      "fix": "A",
+      "grounding": "cited"
+    },
+    {
+      "claim": "CHANGE [#233] -> needs-measurement. The row states it was \"not re-measured this round\", violating the policy that \"a verdict stands only if its evidence proves it\".",
+      "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+      "fix": "needs-measurement",
+      "grounding": "cited"
+    },
+    {
+      "claim": "CHANGE [PMAT-241] -> cancelled. Blocking is incorrect because it \"has carried no acceptance criteria since 2026-04-07\", so it should be cancelled like PMAT-240.",
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+      "fix": "cancelled",
+      "grounding": "cited"
+    },
+    {
+      "claim": "CHANGE [PMAT-242] -> cancelled. Blocking is incorrect because it \"has carried no acceptance criteria since 2026-04-07\".",
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+      "fix": "cancelled",
+      "grounding": "cited"
+    },
+    {
+      "claim": "CHANGE [PMAT-243] -> cancelled. Blocking is incorrect because it \"has carried no acceptance criteria since 2026-04-07\".",
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+      "fix": "cancelled",
+      "grounding": "cited"
+    }
+  ],
+  "row_matrix": [
+    {
+      "row": "[#295]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[#294]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[#293]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[#265]",
+      "l1": "CHANGE -> E",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[#232]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[#236]",
+      "l1": "CHANGE -> A",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[#234]",
+      "l1": "AGREE",
+      "l2": "CHANGE -> A",
+      "l3_uncounted": "CHANGE -> A"
+    },
+    {
+      "row": "[#233]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "CHANGE -> needs-measurement"
+    },
+    {
+      "row": "[PMAT-238]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[PMAT-239]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[GH-189]",
+      "l1": "CHANGE -> status: blocked, labels: [release:unsche",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[PMAT-240]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[PMAT-241]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "CHANGE -> cancelled"
+    },
+    {
+      "row": "[PMAT-242]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "CHANGE -> cancelled"
+    },
+    {
+      "row": "[PMAT-243]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "CHANGE -> cancelled"
+    },
+    {
+      "row": "[PMAT-244]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[PMAT-246]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[PMAT-250]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[PMAT-253]",
+      "l1": "AGREE",
+      "l2": "AGREE",
+      "l3_uncounted": "AGREE"
+    },
+    {
+      "row": "[Q-VERDICTS]",
+      "l1": "ANSWER",
+      "l2": "ANSWER",
+      "l3_uncounted": "ANSWER"
+    },
+    {
+      "row": "[Q-CLOSE-NOW]",
+      "l1": "ANSWER",
+      "l2": "ANSWER",
+      "l3_uncounted": "ANSWER"
+    },
+    {
+      "row": "[Q-236-BACKLOG]",
+      "l1": "ANSWER",
+      "l2": "ANSWER",
+      "l3_uncounted": "ANSWER"
+    },
+    {
+      "row": "[Q-COMPLETIONS]",
+      "l1": "ANSWER",
+      "l2": "ANSWER",
+      "l3_uncounted": "ANSWER"
+    },
+    {
+      "row": "[Q-BLOCK-VS-CANCEL]",
+      "l1": "ANSWER",
+      "l2": "ANSWER",
+      "l3_uncounted": "ANSWER"
+    },
+    {
+      "row": "[Q-UNIVERSE]",
+      "l1": "ANSWER",
+      "l2": "ANSWER",
+      "l3_uncounted": "ANSWER"
+    },
+    {
+      "row": "[Q-RELEASE-LINT]",
+      "l1": "ANSWER",
+      "l2": "ANSWER",
+      "l3_uncounted": "ANSWER"
+    }
+  ],
+  "consensus": "Counted verdicts: 2 of 3 (lane 3 is NO-VERDICT, status=ERROR). Lanes 1 and 2 both return FAIL, but they fail the triage on DIFFERENT rows, so no change has two counted lanes behind it. Both counted lanes AGREE with 15 rows: #295 #294 #293 #232 (A), #233 (C), PMAT-238 and PMAT-239 completed, PMAT-240 cancelled, PMAT-241/242/243 blocked, PMAT-244/246/250 release:v7.1.0, PMAT-253 release:v7.2.0. Both answer Q-BLOCK-VS-CANCEL that blocking is correct and Q-RELEASE-LINT that it is a lint defect. On Q-UNIVERSE both say the ledger omits 8 issues that PMAT-251's roadmap text lists (#264 #263 #256 #257 #238 #249 #254 #287), a reading of the roadmap, not of GitHub (see universe_check). The split: lane 1 alone changes #265 -> E, #236 -> A and GH-189 -> blocked, and would close #265 and #287 now; lane 2 alone changes #234 -> A (PMAT-255's title names pmat comply) and closes nothing. On Q-COMPLETIONS, lane 2 checked the include!() at codegen_tests_ext_generate_generate_generate.rs:320 and calls all three completions proven; lane 1 calls GH-189 unproven.",
+  "dissent": [
+    {
+      "lane": 1,
+      "verdict": "FAIL",
+      "summary": "FAIL.\nRows changed: [#265], [#236], [GH-189].\n[Q-VERDICTS]: Yes, #265 is E, #236 is A, and GH-189 is unproven.\n[Q-CLOSE-NOW]: Yes, #265 (E), and #287 (D) which was omitted from the ledger.\n[Q-236-BACKLOG]: No, PMAT-251 explicitly prioritizes it.\n[Q-COMPLETIONS]: PMAT-238 and 239 are proven, GH-189 is unproven.\n[Q-BLOCK-VS-CANCEL]: Yes, blocking preserves intent while awaiting definition.\n[Q-UNIVERSE]: Yes, the ledger omitted 8 issues listed in PMAT-251.\n[Q-RELEASE-LINT]: Lint defect; cancelled entries do not require release tags.",
+      "findings": [
+        {
+          "claim": "AGREE [#295] verdict A. The evidence confirms 'cargo build --workspace --all-targets still fails' due to 'the root profile's panic=abort', justifying a fix in 7.1.0.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#294] verdict A. Evidence shows backtick/subshell literals 'are refused at validation', which is a defect that needs fixing in 7.1.0.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#293] verdict A. Evidence shows 'dash aborts' on local array literals, which is a defect for 7.1.0.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "CHANGE [#265] -> E. The measurement 'suppresses DET002 (3 findings to 0) with nothing reported' shows that `# shellcheck disable=DET002` ALREADY works, so the issue is fixed on 7.0.4.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "E",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#232] verdict A. Evidence 'the duration example raises DET002 x8' confirms the defect remains, so 7.1.0 is correct.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "CHANGE [#236] -> A. PMAT-251 explicitly lists this in 'Suggested order: #236 + #265 (shellcheck parity, the second story of the audit)', so moving it to backlog violates the audit plan.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "A",
+          "grounding": "measured",
+          "line": 2202
+        },
+        {
+          "claim": "AGREE [#234] verdict C. The evidence '771 functions below grade A' represents tech debt, appropriately scheduled for the backlog.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#233] verdict C. The evidence 'not re-measured this round' and that '#295 is the one all-targets failure measured' justifies keeping it in the backlog.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-238] status completed. The measurement 'lists 15,294 tests' proves that the compilation errors are fixed.",
+          "file": "C(1)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-239] status completed. The measurement shows the files 'compile inside the lib and contribute 24 and 33 tests', proving the title's claim.",
+          "file": "C(1)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "CHANGE [GH-189] -> status: blocked, labels: [release:unscheduled]. The evidence 'issue #189 closed' does not prove the codebase satisfies the work. Default to refutation.",
+          "file": "C(2)",
+          "fix": "status: blocked, labels: [release:unscheduled]",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-240] status cancelled. The task is an 'empty entry — title DONE' with no spec, so cancelling is correct.",
+          "file": "C(3)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-241] status blocked. The task describes valid work ('REWRITE-5') but has 'no acceptance criteria', making blocked the correct status.",
+          "file": "C(4)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-242] status blocked. The task ('DEEP-CONTRACTS') has 'no acceptance criteria', so it cannot proceed.",
+          "file": "C(4)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-243] status blocked. The task ('COV-95') lacks 'acceptance criteria', blocking its execution.",
+          "file": "C(4)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-244] status planned, release:v7.1.0. 'the fix belongs here' confirms this is an active defect scheduled for 7.1.0.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-246] status planned, release:v7.1.0. Evidence shows '89 tracked contracts/work/*.yaml fail pv validate', confirming it as 7.1.0 work.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-250] status planned, release:v7.1.0. Follow-up work 'Lift command substitutions into the shared analysis' is valid for 7.1.0.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-253] status planned, release:v7.2.0. The note confirms 'model-gate refuses the ticket' for fable, so 'orch:fable removed' and tagged 7.2.0 is correct.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-VERDICTS] Yes, #265 should be E because `# shellcheck disable=DET002` already works, and #236 should be A because PMAT-251 prioritizes it. GH-189 is unproven.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-CLOSE-NOW] Yes, #265 is already fixed (verdict E). Also, #287 should be closed (verdict D) as PMAT-251 explicitly directs 'close #287 with the 13-minute test job', but the ledger missed it.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "measured",
+          "line": 2202
+        },
+        {
+          "claim": "ANSWER [Q-236-BACKLOG] No, PMAT-251 mandates 'Suggested order: #236 + #265 (shellcheck parity)'. Relegating #236 to backlog violates this directive.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "measured",
+          "line": 2202
+        },
+        {
+          "claim": "ANSWER [Q-COMPLETIONS] PMAT-238 and PMAT-239 are proven by `cargo test --list` output. GH-189 is unproven because 'issue closed' without AC does not prove codebase satisfaction.",
+          "file": "C(1)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-BLOCK-VS-CANCEL] Yes, blocking is correct. PMAT-241/242/243 have explicit titles describing valid work (e.g. 'REWRITE-5'), unlike PMAT-240 which was empty. They should await AC definition.",
+          "file": "C(4)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-UNIVERSE] Yes, the ledger missed 8 open issues (#264, #263, #256, #257, #238, #249, #254, #287) explicitly listed in PMAT-251. The 15 roadmap entries are complete (9 open + 3 completed + 3 cancelled that lint treats as open).",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "measured",
+          "line": 2202
+        },
+        {
+          "claim": "ANSWER [Q-RELEASE-LINT] It is a lint defect. Cancelled entries are closed by definition and should not require release tags. The lint incorrectly 'judges every status except completed'.",
+          "file": "C(12)",
+          "fix": "none",
+          "grounding": "cited"
+        }
+      ]
+    },
+    {
+      "lane": 2,
+      "verdict": "FAIL",
+      "summary": "FAIL. Change [#234] -> A.\n[Q-VERDICTS] Yes, #234 should be A as PMAT-255 schedules pmat comply.\n[Q-CLOSE-NOW] No issues should be closed now; measured issues still fail.\n[Q-236-BACKLOG] Yes, it stays backlog as PMAT-255 omits it.\n[Q-COMPLETIONS] Proven; verified test file inclusions in the lib tree.\n[Q-BLOCK-VS-CANCEL] Yes, blocking is correct due to lack of AC.\n[Q-UNIVERSE] Yes, the ledger is missing 8 issues listed as open in PMAT-251.\n[Q-RELEASE-LINT] Lint defect; cancelled entries shouldn't require release labels.",
+      "findings": [
+        {
+          "claim": "AGREE [#295] The measurement confirms it \"still fails\" and it is \"scheduled in PMAT-255\".",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#294] The measurement confirms it was \"refused at validation\" on the 7.0.4 binary.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#293] The measurement confirms \"dash aborts `items: parameter not set` (rc 2)\".",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#265] The measurement confirms \"# bashrs disable-line=... is silently ignored\".",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#232] The measurement confirms \"the duration example raises DET002 x8, which #232 says it must not\".",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#236] The issue is \"the largest interop gap, not planned into v7.1.0\".",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "CHANGE [#234] -> A. The ledger claims \"debt, not planned into v7.1.0\", but PMAT-255 explicitly schedules \"pmat comply\" for v7.1.0.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "A",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [#233] The issue was \"not re-measured this round\" and remains backlog until #295 is fixed.",
+          "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-238] Verified that codegen_tests_cstyle_elif.rs is included via include!() on line 320.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_parser/codegen_tests_ext_generate_generate_generate.rs",
+          "fix": "none",
+          "grounding": "measured",
+          "line": 320
+        },
+        {
+          "claim": "AGREE [PMAT-239] Verified that purification_property_tests is included as a module in the transpile module.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_transpiler/mod.rs",
+          "fix": "none",
+          "grounding": "measured",
+          "line": 42
+        },
+        {
+          "claim": "AGREE [GH-189] The evidence confirms \"issue #189 closed 2026-04-07T04:48:43Z.\"",
+          "file": "C(2)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-240] The entry is an \"empty entry — title DONE, no acceptance criteria\".",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-241] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-242] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-243] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-244] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-246] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-250] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "AGREE [PMAT-253] It is correctly tagged \"release:v7.2.0\" except for phases 3a and 5 in v7.1.0.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-VERDICTS] Yes, verdict for #234 is wrong. PMAT-255 schedules \"pmat comply\" for v7.1.0, contradicting the ledger's claim that it is \"not planned into v7.1.0\".",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-CLOSE-NOW] No issues should be closed now. Every measured issue (C(5) through C(10)) still fails on 7.0.4, and #233 was not re-measured.",
+          "file": "C(5)",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-236-BACKLOG] Yes, it is right to stay backlog. PMAT-255 defines the v7.1.0 scope and explicitly omits #236 (\"the largest interop gap\").",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-COMPLETIONS] The completions are proven. The files codegen_tests_cstyle_elif.rs and purification_property_tests were verified to be included in the library source.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_parser/codegen_tests_ext_generate_generate_generate.rs",
+          "fix": "none",
+          "grounding": "measured",
+          "line": 320
+        },
+        {
+          "claim": "ANSWER [Q-BLOCK-VS-CANCEL] Yes, blocking is correct. They represent valid intent (\"Rewrite 5 remaining test files\") but lack acceptance criteria.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "cited"
+        },
+        {
+          "claim": "ANSWER [Q-UNIVERSE] Yes, the ledger only triages 8 issues, but PMAT-251 lists 13 open defects, meaning 8 issues (#264, #263, #256, #257, #238, #249, #254, #287) are missing from the ledger.",
+          "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+          "fix": "none",
+          "grounding": "measured",
+          "line": 2194
+        },
+        {
+          "claim": "ANSWER [Q-RELEASE-LINT] It is a lint defect. Cancelled entries will never be released, so requiring a release label on them (\"judges every status except completed\") is a flaw.",
+          "file": "C(12)",
+          "fix": "none",
+          "grounding": "cited"
+        }
+      ]
+    },
+    {
+      "lane": 3,
+      "verdict": "NO-VERDICT",
+      "summary": "",
+      "findings": []
+    }
+  ],
+  "lane_reduce": {
+    "artifact": "/run/user/1000/paiml-implement/agy/PMAT-254/bf151141-60ff-4e66-9794-31fe5c18982d/ph3/lane-reduce.json",
+    "exit": 1,
+    "agreed": false,
+    "partial": true,
+    "dedup": [
+      {
+        "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+        "line": null,
+        "lanes_agreeing": [
+          1,
+          2
+        ],
+        "claims": [
+          "AGREE [PMAT-240] The entry is an \"empty entry — title DONE, no acceptance criteria\".",
+          "AGREE [PMAT-241] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+          "AGREE [PMAT-242] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+          "AGREE [PMAT-243] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+          "AGREE [PMAT-244] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+          "AGREE [PMAT-244] status planned, release:v7.1.0. 'the fix belongs here' confirms this is an active defect scheduled for 7.1.0.",
+          "AGREE [PMAT-246] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+          "AGREE [PMAT-246] status planned, release:v7.1.0. Evidence shows '89 tracked contracts/work/*.yaml fail pv validate', confirming it as 7.1.0 work.",
+          "AGREE [PMAT-250] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+          "AGREE [PMAT-250] status planned, release:v7.1.0. Follow-up work 'Lift command substitutions into the shared analysis' is valid for 7.1.0.",
+          "AGREE [PMAT-253] It is correctly tagged \"release:v7.2.0\" except for phases 3a and 5 in v7.1.0.",
+          "AGREE [PMAT-253] status planned, release:v7.2.0. The note confirms 'model-gate refuses the ticket' for fable, so 'orch:fable removed' and tagged 7.2.0 is correct.",
+          "ANSWER [Q-236-BACKLOG] Yes, it is right to stay backlog. PMAT-255 defines the v7.1.0 scope and explicitly omits #236 (\"the largest interop gap\").",
+          "ANSWER [Q-BLOCK-VS-CANCEL] Yes, blocking is correct. They represent valid intent (\"Rewrite 5 remaining test files\") but lack acceptance criteria.",
+          "ANSWER [Q-VERDICTS] Yes, verdict for #234 is wrong. PMAT-255 schedules \"pmat comply\" for v7.1.0, contradicting the ledger's claim that it is \"not planned into v7.1.0\".",
+          "CHANGE [#234] -> A. The ledger claims \"debt, not planned into v7.1.0\", but PMAT-255 explicitly schedules \"pmat comply\" for v7.1.0."
+        ]
+      },
+      {
+        "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+        "line": 2194,
+        "lanes_agreeing": [
+          2
+        ],
+        "claims": [
+          "ANSWER [Q-UNIVERSE] Yes, the ledger only triages 8 issues, but PMAT-251 lists 13 open defects, meaning 8 issues (#264, #263, #256, #257, #238, #249, #254, #287) are missing from the ledger."
+        ]
+      },
+      {
+        "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+        "line": 2202,
+        "lanes_agreeing": [
+          1
+        ],
+        "claims": [
+          "ANSWER [Q-236-BACKLOG] No, PMAT-251 mandates 'Suggested order: #236 + #265 (shellcheck parity)'. Relegating #236 to backlog violates this directive.",
+          "ANSWER [Q-CLOSE-NOW] Yes, #265 is already fixed (verdict E). Also, #287 should be closed (verdict D) as PMAT-251 explicitly directs 'close #287 with the 13-minute test job', but the ledger missed it.",
+          "ANSWER [Q-UNIVERSE] Yes, the ledger missed 8 open issues (#264, #263, #256, #257, #238, #249, #254, #287) explicitly listed in PMAT-251. The 15 roadmap entries are complete (9 open + 3 completed + 3 cancelled that lint treats as open).",
+          "CHANGE [#236] -> A. PMAT-251 explicitly lists this in 'Suggested order: #236 + #265 (shellcheck parity, the second story of the audit)', so moving it to backlog violates the audit plan."
+        ]
+      },
+      {
+        "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_parser/codegen_tests_ext_generate_generate_generate.rs",
+        "line": 320,
+        "lanes_agreeing": [
+          2
+        ],
+        "claims": [
+          "AGREE [PMAT-238] Verified that codegen_tests_cstyle_elif.rs is included via include!() on line 320.",
+          "ANSWER [Q-COMPLETIONS] The completions are proven. The files codegen_tests_cstyle_elif.rs and purification_property_tests were verified to be included in the library source."
+        ]
+      },
+      {
+        "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_transpiler/mod.rs",
+        "line": 42,
+        "lanes_agreeing": [
+          2
+        ],
+        "claims": [
+          "AGREE [PMAT-239] Verified that purification_property_tests is included as a module in the transpile module."
+        ]
+      },
+      {
+        "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+        "line": null,
+        "lanes_agreeing": [
+          1,
+          2
+        ],
+        "claims": [
+          "AGREE [#232] The measurement confirms \"the duration example raises DET002 x8, which #232 says it must not\".",
+          "AGREE [#232] verdict A. Evidence 'the duration example raises DET002 x8' confirms the defect remains, so 7.1.0 is correct.",
+          "AGREE [#233] The issue was \"not re-measured this round\" and remains backlog until #295 is fixed.",
+          "AGREE [#233] verdict C. The evidence 'not re-measured this round' and that '#295 is the one all-targets failure measured' justifies keeping it in the backlog.",
+          "AGREE [#234] verdict C. The evidence '771 functions below grade A' represents tech debt, appropriately scheduled for the backlog.",
+          "AGREE [#236] The issue is \"the largest interop gap, not planned into v7.1.0\".",
+          "AGREE [#265] The measurement confirms \"# bashrs disable-line=... is silently ignored\".",
+          "AGREE [#293] The measurement confirms \"dash aborts `items: parameter not set` (rc 2)\".",
+          "AGREE [#293] verdict A. Evidence shows 'dash aborts' on local array literals, which is a defect for 7.1.0.",
+          "AGREE [#294] The measurement confirms it was \"refused at validation\" on the 7.0.4 binary.",
+          "AGREE [#294] verdict A. Evidence shows backtick/subshell literals 'are refused at validation', which is a defect that needs fixing in 7.1.0.",
+          "AGREE [#295] The measurement confirms it \"still fails\" and it is \"scheduled in PMAT-255\".",
+          "AGREE [#295] verdict A. The evidence confirms 'cargo build --workspace --all-targets still fails' due to 'the root profile's panic=abort', justifying a fix in 7.1.0.",
+          "ANSWER [Q-VERDICTS] Yes, #265 should be E because `# shellcheck disable=DET002` already works, and #236 should be A because PMAT-251 prioritizes it. GH-189 is unproven.",
+          "CHANGE [#265] -> E. The measurement 'suppresses DET002 (3 findings to 0) with nothing reported' shows that `# shellcheck disable=DET002` ALREADY works, so the issue is fixed on 7.0.4."
+        ]
+      },
+      {
+        "file": "C(1)",
+        "line": null,
+        "lanes_agreeing": [
+          1
+        ],
+        "claims": [
+          "AGREE [PMAT-238] status completed. The measurement 'lists 15,294 tests' proves that the compilation errors are fixed.",
+          "AGREE [PMAT-239] status completed. The measurement shows the files 'compile inside the lib and contribute 24 and 33 tests', proving the title's claim.",
+          "ANSWER [Q-COMPLETIONS] PMAT-238 and PMAT-239 are proven by `cargo test --list` output. GH-189 is unproven because 'issue closed' without AC does not prove codebase satisfaction."
+        ]
+      },
+      {
+        "file": "C(12)",
+        "line": null,
+        "lanes_agreeing": [
+          1,
+          2
+        ],
+        "claims": [
+          "ANSWER [Q-RELEASE-LINT] It is a lint defect. Cancelled entries are closed by definition and should not require release tags. The lint incorrectly 'judges every status except completed'.",
+          "ANSWER [Q-RELEASE-LINT] It is a lint defect. Cancelled entries will never be released, so requiring a release label on them (\"judges every status except completed\") is a flaw."
+        ]
+      },
+      {
+        "file": "C(2)",
+        "line": null,
+        "lanes_agreeing": [
+          1,
+          2
+        ],
+        "claims": [
+          "AGREE [GH-189] The evidence confirms \"issue #189 closed 2026-04-07T04:48:43Z.\"",
+          "CHANGE [GH-189] -> status: blocked, labels: [release:unscheduled]. The evidence 'issue #189 closed' does not prove the codebase satisfies the work. Default to refutation."
+        ]
+      },
+      {
+        "file": "C(3)",
+        "line": null,
+        "lanes_agreeing": [
+          1
+        ],
+        "claims": [
+          "AGREE [PMAT-240] status cancelled. The task is an 'empty entry — title DONE' with no spec, so cancelling is correct."
+        ]
+      },
+      {
+        "file": "C(4)",
+        "line": null,
+        "lanes_agreeing": [
+          1
+        ],
+        "claims": [
+          "AGREE [PMAT-241] status blocked. The task describes valid work ('REWRITE-5') but has 'no acceptance criteria', making blocked the correct status.",
+          "AGREE [PMAT-242] status blocked. The task ('DEEP-CONTRACTS') has 'no acceptance criteria', so it cannot proceed.",
+          "AGREE [PMAT-243] status blocked. The task ('COV-95') lacks 'acceptance criteria', blocking its execution.",
+          "ANSWER [Q-BLOCK-VS-CANCEL] Yes, blocking is correct. PMAT-241/242/243 have explicit titles describing valid work (e.g. 'REWRITE-5'), unlike PMAT-240 which was empty. They should await AC definition."
+        ]
+      },
+      {
+        "file": "C(5)",
+        "line": null,
+        "lanes_agreeing": [
+          2
+        ],
+        "claims": [
+          "ANSWER [Q-CLOSE-NOW] No issues should be closed now. Every measured issue (C(5) through C(10)) still fails on 7.0.4, and #233 was not re-measured."
+        ]
+      }
+    ],
+    "uncovered": [],
+    "dissent": [
+      {
+        "lane": 1,
+        "verdict": "FAIL",
+        "summary": "FAIL.\nRows changed: [#265], [#236], [GH-189].\n[Q-VERDICTS]: Yes, #265 is E, #236 is A, and GH-189 is unproven.\n[Q-CLOSE-NOW]: Yes, #265 (E), and #287 (D) which was omitted from the ledger.\n[Q-236-BACKLOG]: No, PMAT-251 explicitly prioritizes it.\n[Q-COMPLETIONS]: PMAT-238 and 239 are proven, GH-189 is unproven.\n[Q-BLOCK-VS-CANCEL]: Yes, blocking preserves intent while awaiting definition.\n[Q-UNIVERSE]: Yes, the ledger omitted 8 issues listed in PMAT-251.\n[Q-RELEASE-LINT]: Lint defect; cancelled entries do not require release tags.",
+        "findings": [
+          {
+            "claim": "AGREE [#295] verdict A. The evidence confirms 'cargo build --workspace --all-targets still fails' due to 'the root profile's panic=abort', justifying a fix in 7.1.0.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#294] verdict A. Evidence shows backtick/subshell literals 'are refused at validation', which is a defect that needs fixing in 7.1.0.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#293] verdict A. Evidence shows 'dash aborts' on local array literals, which is a defect for 7.1.0.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "CHANGE [#265] -> E. The measurement 'suppresses DET002 (3 findings to 0) with nothing reported' shows that `# shellcheck disable=DET002` ALREADY works, so the issue is fixed on 7.0.4.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "E",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#232] verdict A. Evidence 'the duration example raises DET002 x8' confirms the defect remains, so 7.1.0 is correct.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "CHANGE [#236] -> A. PMAT-251 explicitly lists this in 'Suggested order: #236 + #265 (shellcheck parity, the second story of the audit)', so moving it to backlog violates the audit plan.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "A",
+            "grounding": "measured",
+            "line": 2202
+          },
+          {
+            "claim": "AGREE [#234] verdict C. The evidence '771 functions below grade A' represents tech debt, appropriately scheduled for the backlog.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#233] verdict C. The evidence 'not re-measured this round' and that '#295 is the one all-targets failure measured' justifies keeping it in the backlog.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-238] status completed. The measurement 'lists 15,294 tests' proves that the compilation errors are fixed.",
+            "file": "C(1)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-239] status completed. The measurement shows the files 'compile inside the lib and contribute 24 and 33 tests', proving the title's claim.",
+            "file": "C(1)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "CHANGE [GH-189] -> status: blocked, labels: [release:unscheduled]. The evidence 'issue #189 closed' does not prove the codebase satisfies the work. Default to refutation.",
+            "file": "C(2)",
+            "fix": "status: blocked, labels: [release:unscheduled]",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-240] status cancelled. The task is an 'empty entry — title DONE' with no spec, so cancelling is correct.",
+            "file": "C(3)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-241] status blocked. The task describes valid work ('REWRITE-5') but has 'no acceptance criteria', making blocked the correct status.",
+            "file": "C(4)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-242] status blocked. The task ('DEEP-CONTRACTS') has 'no acceptance criteria', so it cannot proceed.",
+            "file": "C(4)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-243] status blocked. The task ('COV-95') lacks 'acceptance criteria', blocking its execution.",
+            "file": "C(4)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-244] status planned, release:v7.1.0. 'the fix belongs here' confirms this is an active defect scheduled for 7.1.0.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-246] status planned, release:v7.1.0. Evidence shows '89 tracked contracts/work/*.yaml fail pv validate', confirming it as 7.1.0 work.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-250] status planned, release:v7.1.0. Follow-up work 'Lift command substitutions into the shared analysis' is valid for 7.1.0.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-253] status planned, release:v7.2.0. The note confirms 'model-gate refuses the ticket' for fable, so 'orch:fable removed' and tagged 7.2.0 is correct.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-VERDICTS] Yes, #265 should be E because `# shellcheck disable=DET002` already works, and #236 should be A because PMAT-251 prioritizes it. GH-189 is unproven.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-CLOSE-NOW] Yes, #265 is already fixed (verdict E). Also, #287 should be closed (verdict D) as PMAT-251 explicitly directs 'close #287 with the 13-minute test job', but the ledger missed it.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "measured",
+            "line": 2202
+          },
+          {
+            "claim": "ANSWER [Q-236-BACKLOG] No, PMAT-251 mandates 'Suggested order: #236 + #265 (shellcheck parity)'. Relegating #236 to backlog violates this directive.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "measured",
+            "line": 2202
+          },
+          {
+            "claim": "ANSWER [Q-COMPLETIONS] PMAT-238 and PMAT-239 are proven by `cargo test --list` output. GH-189 is unproven because 'issue closed' without AC does not prove codebase satisfaction.",
+            "file": "C(1)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-BLOCK-VS-CANCEL] Yes, blocking is correct. PMAT-241/242/243 have explicit titles describing valid work (e.g. 'REWRITE-5'), unlike PMAT-240 which was empty. They should await AC definition.",
+            "file": "C(4)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-UNIVERSE] Yes, the ledger missed 8 open issues (#264, #263, #256, #257, #238, #249, #254, #287) explicitly listed in PMAT-251. The 15 roadmap entries are complete (9 open + 3 completed + 3 cancelled that lint treats as open).",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "measured",
+            "line": 2202
+          },
+          {
+            "claim": "ANSWER [Q-RELEASE-LINT] It is a lint defect. Cancelled entries are closed by definition and should not require release tags. The lint incorrectly 'judges every status except completed'.",
+            "file": "C(12)",
+            "fix": "none",
+            "grounding": "cited"
+          }
+        ]
+      },
+      {
+        "lane": 2,
+        "verdict": "FAIL",
+        "summary": "FAIL. Change [#234] -> A.\n[Q-VERDICTS] Yes, #234 should be A as PMAT-255 schedules pmat comply.\n[Q-CLOSE-NOW] No issues should be closed now; measured issues still fail.\n[Q-236-BACKLOG] Yes, it stays backlog as PMAT-255 omits it.\n[Q-COMPLETIONS] Proven; verified test file inclusions in the lib tree.\n[Q-BLOCK-VS-CANCEL] Yes, blocking is correct due to lack of AC.\n[Q-UNIVERSE] Yes, the ledger is missing 8 issues listed as open in PMAT-251.\n[Q-RELEASE-LINT] Lint defect; cancelled entries shouldn't require release labels.",
+        "findings": [
+          {
+            "claim": "AGREE [#295] The measurement confirms it \"still fails\" and it is \"scheduled in PMAT-255\".",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#294] The measurement confirms it was \"refused at validation\" on the 7.0.4 binary.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#293] The measurement confirms \"dash aborts `items: parameter not set` (rc 2)\".",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#265] The measurement confirms \"# bashrs disable-line=... is silently ignored\".",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#232] The measurement confirms \"the duration example raises DET002 x8, which #232 says it must not\".",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#236] The issue is \"the largest interop gap, not planned into v7.1.0\".",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "CHANGE [#234] -> A. The ledger claims \"debt, not planned into v7.1.0\", but PMAT-255 explicitly schedules \"pmat comply\" for v7.1.0.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "A",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [#233] The issue was \"not re-measured this round\" and remains backlog until #295 is fixed.",
+            "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-238] Verified that codegen_tests_cstyle_elif.rs is included via include!() on line 320.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_parser/codegen_tests_ext_generate_generate_generate.rs",
+            "fix": "none",
+            "grounding": "measured",
+            "line": 320
+          },
+          {
+            "claim": "AGREE [PMAT-239] Verified that purification_property_tests is included as a module in the transpile module.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_transpiler/mod.rs",
+            "fix": "none",
+            "grounding": "measured",
+            "line": 42
+          },
+          {
+            "claim": "AGREE [GH-189] The evidence confirms \"issue #189 closed 2026-04-07T04:48:43Z.\"",
+            "file": "C(2)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-240] The entry is an \"empty entry — title DONE, no acceptance criteria\".",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-241] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-242] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-243] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-244] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-246] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-250] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "AGREE [PMAT-253] It is correctly tagged \"release:v7.2.0\" except for phases 3a and 5 in v7.1.0.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-VERDICTS] Yes, verdict for #234 is wrong. PMAT-255 schedules \"pmat comply\" for v7.1.0, contradicting the ledger's claim that it is \"not planned into v7.1.0\".",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-CLOSE-NOW] No issues should be closed now. Every measured issue (C(5) through C(10)) still fails on 7.0.4, and #233 was not re-measured.",
+            "file": "C(5)",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-236-BACKLOG] Yes, it is right to stay backlog. PMAT-255 defines the v7.1.0 scope and explicitly omits #236 (\"the largest interop gap\").",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-COMPLETIONS] The completions are proven. The files codegen_tests_cstyle_elif.rs and purification_property_tests were verified to be included in the library source.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_parser/codegen_tests_ext_generate_generate_generate.rs",
+            "fix": "none",
+            "grounding": "measured",
+            "line": 320
+          },
+          {
+            "claim": "ANSWER [Q-BLOCK-VS-CANCEL] Yes, blocking is correct. They represent valid intent (\"Rewrite 5 remaining test files\") but lack acceptance criteria.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "cited"
+          },
+          {
+            "claim": "ANSWER [Q-UNIVERSE] Yes, the ledger only triages 8 issues, but PMAT-251 lists 13 open defects, meaning 8 issues (#264, #263, #256, #257, #238, #249, #254, #287) are missing from the ledger.",
+            "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+            "fix": "none",
+            "grounding": "measured",
+            "line": 2194
+          },
+          {
+            "claim": "ANSWER [Q-RELEASE-LINT] It is a lint defect. Cancelled entries will never be released, so requiring a release label on them (\"judges every status except completed\") is a flaw.",
+            "file": "C(12)",
+            "fix": "none",
+            "grounding": "cited"
+          }
+        ]
+      },
+      {
+        "lane": 3,
+        "verdict": "NO-VERDICT",
+        "summary": "",
+        "findings": []
+      }
+    ],
+    "partial_reasons": [
+      "lane 3: lane envelope status=ERROR transport_error=The stream was interrupted. Please continue the task you were working on. — it CARRIED a FAIL verdict, which is NOT counted [UNREVIEWED CLAIM MATERIAL]"
+    ],
+    "coverage_source": "lanes"
+  },
+  "dedup": [
+    {
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+      "line": null,
+      "lanes_agreeing": [
+        1,
+        2
+      ],
+      "claims": [
+        "AGREE [PMAT-240] The entry is an \"empty entry — title DONE, no acceptance criteria\".",
+        "AGREE [PMAT-241] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+        "AGREE [PMAT-242] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+        "AGREE [PMAT-243] The entry \"has carried no acceptance criteria since 2026-04-07\" and is correctly blocked.",
+        "AGREE [PMAT-244] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+        "AGREE [PMAT-244] status planned, release:v7.1.0. 'the fix belongs here' confirms this is an active defect scheduled for 7.1.0.",
+        "AGREE [PMAT-246] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+        "AGREE [PMAT-246] status planned, release:v7.1.0. Evidence shows '89 tracked contracts/work/*.yaml fail pv validate', confirming it as 7.1.0 work.",
+        "AGREE [PMAT-250] It is tagged \"release:v7.1.0\" and delivered under PMAT-255.",
+        "AGREE [PMAT-250] status planned, release:v7.1.0. Follow-up work 'Lift command substitutions into the shared analysis' is valid for 7.1.0.",
+        "AGREE [PMAT-253] It is correctly tagged \"release:v7.2.0\" except for phases 3a and 5 in v7.1.0.",
+        "AGREE [PMAT-253] status planned, release:v7.2.0. The note confirms 'model-gate refuses the ticket' for fable, so 'orch:fable removed' and tagged 7.2.0 is correct.",
+        "ANSWER [Q-236-BACKLOG] Yes, it is right to stay backlog. PMAT-255 defines the v7.1.0 scope and explicitly omits #236 (\"the largest interop gap\").",
+        "ANSWER [Q-BLOCK-VS-CANCEL] Yes, blocking is correct. They represent valid intent (\"Rewrite 5 remaining test files\") but lack acceptance criteria.",
+        "ANSWER [Q-VERDICTS] Yes, verdict for #234 is wrong. PMAT-255 schedules \"pmat comply\" for v7.1.0, contradicting the ledger's claim that it is \"not planned into v7.1.0\".",
+        "CHANGE [#234] -> A. The ledger claims \"debt, not planned into v7.1.0\", but PMAT-255 explicitly schedules \"pmat comply\" for v7.1.0."
+      ]
+    },
+    {
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+      "line": 2194,
+      "lanes_agreeing": [
+        2
+      ],
+      "claims": [
+        "ANSWER [Q-UNIVERSE] Yes, the ledger only triages 8 issues, but PMAT-251 lists 13 open defects, meaning 8 issues (#264, #263, #256, #257, #238, #249, #254, #287) are missing from the ledger."
+      ]
+    },
+    {
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/docs/roadmaps/roadmap.yaml",
+      "line": 2202,
+      "lanes_agreeing": [
+        1
+      ],
+      "claims": [
+        "ANSWER [Q-236-BACKLOG] No, PMAT-251 mandates 'Suggested order: #236 + #265 (shellcheck parity)'. Relegating #236 to backlog violates this directive.",
+        "ANSWER [Q-CLOSE-NOW] Yes, #265 is already fixed (verdict E). Also, #287 should be closed (verdict D) as PMAT-251 explicitly directs 'close #287 with the 13-minute test job', but the ledger missed it.",
+        "ANSWER [Q-UNIVERSE] Yes, the ledger missed 8 open issues (#264, #263, #256, #257, #238, #249, #254, #287) explicitly listed in PMAT-251. The 15 roadmap entries are complete (9 open + 3 completed + 3 cancelled that lint treats as open).",
+        "CHANGE [#236] -> A. PMAT-251 explicitly lists this in 'Suggested order: #236 + #265 (shellcheck parity, the second story of the audit)', so moving it to backlog violates the audit plan."
+      ]
+    },
+    {
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_parser/codegen_tests_ext_generate_generate_generate.rs",
+      "line": 320,
+      "lanes_agreeing": [
+        2
+      ],
+      "claims": [
+        "AGREE [PMAT-238] Verified that codegen_tests_cstyle_elif.rs is included via include!() on line 320.",
+        "ANSWER [Q-COMPLETIONS] The completions are proven. The files codegen_tests_cstyle_elif.rs and purification_property_tests were verified to be included in the library source."
+      ]
+    },
+    {
+      "file": "/mnt/nvme-raid0/wt/bashrs-PMAT-254/rash/src/bash_transpiler/mod.rs",
+      "line": 42,
+      "lanes_agreeing": [
+        2
+      ],
+      "claims": [
+        "AGREE [PMAT-239] Verified that purification_property_tests is included as a module in the transpile module."
+      ]
+    },
+    {
+      "file": "/run/user/1000/paiml-implement/triage-PMAT-254/ledger-1.json",
+      "line": null,
+      "lanes_agreeing": [
+        1,
+        2
+      ],
+      "claims": [
+        "AGREE [#232] The measurement confirms \"the duration example raises DET002 x8, which #232 says it must not\".",
+        "AGREE [#232] verdict A. Evidence 'the duration example raises DET002 x8' confirms the defect remains, so 7.1.0 is correct.",
+        "AGREE [#233] The issue was \"not re-measured this round\" and remains backlog until #295 is fixed.",
+        "AGREE [#233] verdict C. The evidence 'not re-measured this round' and that '#295 is the one all-targets failure measured' justifies keeping it in the backlog.",
+        "AGREE [#234] verdict C. The evidence '771 functions below grade A' represents tech debt, appropriately scheduled for the backlog.",
+        "AGREE [#236] The issue is \"the largest interop gap, not planned into v7.1.0\".",
+        "AGREE [#265] The measurement confirms \"# bashrs disable-line=... is silently ignored\".",
+        "AGREE [#293] The measurement confirms \"dash aborts `items: parameter not set` (rc 2)\".",
+        "AGREE [#293] verdict A. Evidence shows 'dash aborts' on local array literals, which is a defect for 7.1.0.",
+        "AGREE [#294] The measurement confirms it was \"refused at validation\" on the 7.0.4 binary.",
+        "AGREE [#294] verdict A. Evidence shows backtick/subshell literals 'are refused at validation', which is a defect that needs fixing in 7.1.0.",
+        "AGREE [#295] The measurement confirms it \"still fails\" and it is \"scheduled in PMAT-255\".",
+        "AGREE [#295] verdict A. The evidence confirms 'cargo build --workspace --all-targets still fails' due to 'the root profile's panic=abort', justifying a fix in 7.1.0.",
+        "ANSWER [Q-VERDICTS] Yes, #265 should be E because `# shellcheck disable=DET002` already works, and #236 should be A because PMAT-251 prioritizes it. GH-189 is unproven.",
+        "CHANGE [#265] -> E. The measurement 'suppresses DET002 (3 findings to 0) with nothing reported' shows that `# shellcheck disable=DET002` ALREADY works, so the issue is fixed on 7.0.4."
+      ]
+    },
+    {
+      "file": "C(1)",
+      "line": null,
+      "lanes_agreeing": [
+        1
+      ],
+      "claims": [
+        "AGREE [PMAT-238] status completed. The measurement 'lists 15,294 tests' proves that the compilation errors are fixed.",
+        "AGREE [PMAT-239] status completed. The measurement shows the files 'compile inside the lib and contribute 24 and 33 tests', proving the title's claim.",
+        "ANSWER [Q-COMPLETIONS] PMAT-238 and PMAT-239 are proven by `cargo test --list` output. GH-189 is unproven because 'issue closed' without AC does not prove codebase satisfaction."
+      ]
+    },
+    {
+      "file": "C(12)",
+      "line": null,
+      "lanes_agreeing": [
+        1,
+        2
+      ],
+      "claims": [
+        "ANSWER [Q-RELEASE-LINT] It is a lint defect. Cancelled entries are closed by definition and should not require release tags. The lint incorrectly 'judges every status except completed'.",
+        "ANSWER [Q-RELEASE-LINT] It is a lint defect. Cancelled entries will never be released, so requiring a release label on them (\"judges every status except completed\") is a flaw."
+      ]
+    },
+    {
+      "file": "C(2)",
+      "line": null,
+      "lanes_agreeing": [
+        1,
+        2
+      ],
+      "claims": [
+        "AGREE [GH-189] The evidence confirms \"issue #189 closed 2026-04-07T04:48:43Z.\"",
+        "CHANGE [GH-189] -> status: blocked, labels: [release:unscheduled]. The evidence 'issue #189 closed' does not prove the codebase satisfies the work. Default to refutation."
+      ]
+    },
+    {
+      "file": "C(3)",
+      "line": null,
+      "lanes_agreeing": [
+        1
+      ],
+      "claims": [
+        "AGREE [PMAT-240] status cancelled. The task is an 'empty entry — title DONE' with no spec, so cancelling is correct."
+      ]
+    },
+    {
+      "file": "C(4)",
+      "line": null,
+      "lanes_agreeing": [
+        1
+      ],
+      "claims": [
+        "AGREE [PMAT-241] status blocked. The task describes valid work ('REWRITE-5') but has 'no acceptance criteria', making blocked the correct status.",
+        "AGREE [PMAT-242] status blocked. The task ('DEEP-CONTRACTS') has 'no acceptance criteria', so it cannot proceed.",
+        "AGREE [PMAT-243] status blocked. The task ('COV-95') lacks 'acceptance criteria', blocking its execution.",
+        "ANSWER [Q-BLOCK-VS-CANCEL] Yes, blocking is correct. PMAT-241/242/243 have explicit titles describing valid work (e.g. 'REWRITE-5'), unlike PMAT-240 which was empty. They should await AC definition."
+      ]
+    },
+    {
+      "file": "C(5)",
+      "line": null,
+      "lanes_agreeing": [
+        2
+      ],
+      "claims": [
+        "ANSWER [Q-CLOSE-NOW] No issues should be closed now. Every measured issue (C(5) through C(10)) still fails on 7.0.4, and #233 was not re-measured."
+      ]
+    }
+  ],
+  "uncovered": [],
+  "partial_reasons": [
+    "lane 3: lane envelope status=ERROR transport_error=The stream was interrupted. Please continue the task you were working on. — it CARRIED a FAIL verdict, which is NOT counted [UNREVIEWED CLAIM MATERIAL]"
+  ],
+  "coverage_check": {
+    "artifact": "/run/user/1000/paiml-implement/agy/PMAT-254/bf151141-60ff-4e66-9794-31fe5c18982d/ph3/coverage-reduce.json",
+    "brief": "/run/user/1000/paiml-implement/agy/PMAT-254/bf151141-60ff-4e66-9794-31fe5c18982d/ph3/coverage-brief.json",
+    "exit": 1,
+    "items": 26,
+    "agreed": false,
+    "coverage_source": "lanes",
+    "uncovered": [],
+    "note": "Supplementary, not the brief's reduce: the 26 row labels as {item, token}, where the token is the bracketed label grepped with grep -qiF over the lane files. It ran over a scratch copy of lane-<i>.{json,err}, because the brief's -o <out_dir>/lane-reduce.json is itself a lane-*.json and made a second in-place pass fail vacuity (exit 2: holds 4 lane-*.json but --width is 3). row_matrix shows, per lane, which rows have a finding."
+  },
+  "universe_check": [
+    "#264 CLOSED closedAt=2026-09-10T14:22:26Z",
+    "#263 CLOSED closedAt=2026-09-10T14:22:25Z",
+    "#256 CLOSED closedAt=2026-09-10T14:22:24Z",
+    "#257 CLOSED closedAt=2026-09-10T14:22:24Z",
+    "#238 CLOSED closedAt=2026-09-10T14:22:27Z",
+    "#249 CLOSED closedAt=2026-09-10T14:22:26Z",
+    "#254 CLOSED closedAt=2026-09-10T14:22:27Z",
+    "#287 CLOSED closedAt=2026-09-10T11:13:11Z",
+    "#284 CLOSED closedAt=2026-09-09T19:53:48Z"
+  ],
+  "brain": [
+    "lane 1 00fab1ba (191 s): 8 steps, no CHECKPOINT; 4 view_file (all docs/roadmaps/roadmap.yaml), 4 grep_search over roadmap ids/statuses, 3 run_command (under --sandbox the shell cannot see /mnt), 1 finish. Its 4 measured findings cite roadmap.yaml:2202, a file it opened.",
+    "lane 2 3048be40 (177 s): 14 steps, no CHECKPOINT; 4 view_file over roadmap.yaml, codegen_tests_ext_generate_generate_generate.rs and lexer_read_operators.rs, 11 grep_search (including the four test-module names), 2 run_command, 1 finish. Its measured claims (:320 include!(), mod.rs:42) come from a file it opened and a grep_search it ran.",
+    "lane 3 e5202fdc (148 s, status ERROR): 7 steps, no CHECKPOINT; 3 view_file (the same three files), 2 grep_search, 2 find_by_name, 2 run_command, 1 finish; every finding grounding=cited.",
+    "attempt 1 (killed at 1789077675): 6b20c093 7 steps and ce0c5490 11 steps. b1f41f14 had 2 steps; its last call, a view_file of docs/roadmaps/releases.md (on branch PMAT-255-release, not this worktree), was never answered."
+  ],
+  "containment": "Both attempts: /mnt/nvme-raid0/wt/bashrs-PMAT-254 (HEAD 2aefddd1b7) and /home/noah/src/bashrs had byte-identical status --porcelain -uall and diff --stat before and after. The worktree gained 0 paths newer than the first dispatch, and all three lane cwds are empty. The only untracked path, .pmat-work/triage.jsonl, predates the launch.",
+  "lane_outputs": {
+    "dir": "/run/user/1000/paiml-implement/agy/PMAT-254/bf151141-60ff-4e66-9794-31fe5c18982d/ph3",
+    "files": [
+      "lane-1.json",
+      "lane-1.err",
+      "lane-1.exit",
+      "lane-2.json",
+      "lane-2.err",
+      "lane-2.exit",
+      "lane-3.json",
+      "lane-3.err",
+      "lane-3.exit",
+      "try1-lane-1.json",
+      "try1-lane-1.err",
+      "try1-lane-1.exit",
+      "try1-lane-2.json",
+      "try1-lane-2.err",
+      "try1-lane-2.exit",
+      "try1-lane-3.json",
+      "try1-lane-3.err",
+      "try1-lane-3.exit",
+      "lane-reduce.json",
+      "coverage-reduce.json",
+      "coverage-brief.json",
+      "prompt.txt",
+      "run-lane.sh",
+      "receipt-final.json"
+    ]
+  },
+  "open_questions": [
+    "Q-UNIVERSE is refuted by GitHub state: all 9 issues the lanes call missing (#264 #263 #256 #257 #238 #249 #254 #287 from lanes 1 and 2, #284 from lane 3) are CLOSED, #284 on 2026-09-09 and the rest on 2026-09-10 (universe_check, from a read-only gh issue view by the delegate). The lanes were reading PMAT-251 and PMAT-245 roadmap text. The snapshot of 8 open issues stands, and the lane 1 proposal to close #287 now is moot. For lane 3's claim that PMAT-245 and PMAT-247 were skipped, see roadmap_check.",
+    "#234: lane 2, and the uncounted lane 3, read PMAT-255's title (... dependency refresh, pmat comply, ...) as putting #234 in v7.1.0, against the ledger's debt, not planned into v7.1.0. The orchestrator decides which PMAT-255 means.",
+    "#265: only lane 1 proposes E (close). Lanes 2 and 3 keep A on the ledger's a # bashrs disable-line= on the line above is silently ignored. The policy's E needs the issue's own reproducer clean on 7.0.4, so any close waits on the orchestrator's re-run.",
+    "Delegate observation, not a lane finding: the ledger and policy label is release:7.1.0, but the roadmap entries use release:v7.1.0. No lane compared the two spellings.",
+    "Every issue row was judged on the ledger's evidence text alone: the lanes could not reach GitHub, and the issue bodies were not inlined."
+  ],
+  "delegate_partial_reasons": [
+    "Attempt 1 (dispatch 1789077541) produced nothing. All three lanes exited 137 in the same second (1789077675), 134 s in, with empty .json and .err. The cause: a concurrent PMAT-1098 goal lane (conversation 882c5b21, transcript mtime 1789077675) ran for pid in $(pgrep -f cargo); do kill -9 $pid; done. Every lane's argv carries the prompt, and the prompt quotes cargo test. The files are kept as try1-lane-<i>.*, and the lanes were relaunched once, unchanged, at 1789077961.",
+    "Lane 3 (e5202fdc) returned status=ERROR (The stream was interrupted. Please continue the task you were working on.) with a complete FAIL verdict and 26 findings. lane-reduce does not count it, so 2 of the 3 verdicts are counted; its CHANGE findings are in uncounted_lane3_changes, outside consensus.",
+    "The receipt sets partial=true: lane-reduce reports partial=true and agreed=false (exit 1)."
+  ],
+  "roadmap_check": [
+    "PMAT-245 status: completed",
+    "PMAT-247 status: completed"
+  ],
+  "partial": true
+}

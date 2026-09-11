@@ -1940,11 +1940,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'FIX-TESTS: Fix pre-existing test compilation errors blocking coverage measurement'
-  status: inprogress
+  status: completed
   priority: critical
   assigned_to: null
   created: 2026-04-06T07:32:07Z
-  updated: 2026-04-06T07:32:13.663911168+00:00
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria:
   - 'Two include!() chain errors block cargo test --lib and cargo llvm-cov: 1) lexer_tests_tokenize_sim.rs unclosed delimiter, 2) codegen_tests_cstyle_elif.rs extra closing brace. These block the ~91% → 95% coverage target measurement. Fix the include chains to restore lib test compilation.'
@@ -1952,120 +1952,124 @@ roadmap:
   subtasks: []
   estimated_effort: null
   labels: []
-  notes: null
+  notes: 'PMAT-254 (2026-09-10, v7.1.0 triage): measured complete — both files it names now compile inside the lib (codegen_tests_cstyle_elif.rs through include!() in codegen_tests_ext_generate_generate_generate.rs:320, lexer_tests_tokenize_sim.rs through #[path] in lexer_read_operators.rs:452): the v7.0.4 lib build lists 15,294 tests (cargo test -p bashrs --lib -- --list, exit 0).'
 - id: PMAT-239
   github_issue: null
   item_type: task
   title: 'FIX-PROPTEST: Fix proptest! macro spanning include!() in purification_property_tests + quickcheck_tests (15 errors)'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-04-06T10:59:04Z
-  updated: 2026-04-06T10:59:10.397085373+00:00
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
   labels: []
-  notes: null
+  notes: 'PMAT-254 (2026-09-10, v7.1.0 triage): measured complete — purification_property_tests and quickcheck_tests compile inside the lib and contribute 24 and 33 tests to the v7.0.4 lib list.'
 - id: GH-189
   github_issue: 189
   item_type: task
   title: 'Issue #189'
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-04-06T12:01:39.794322895+00:00
-  updated: 2026-04-06T12:01:39.794322895+00:00
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
   labels: []
-  notes: null
+  notes: 'PMAT-254 (2026-09-10, v7.1.0 triage): issue #189 closed 2026-04-07T04:48:43Z.'
 - id: PMAT-240
   github_issue: null
   item_type: task
   title: DONE
-  status: planned
+  status: cancelled
   priority: low
   assigned_to: null
   created: 2026-04-07T07:48:29Z
-  updated: 2026-04-07T07:48:29Z
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
   labels: []
-  notes: null
+  notes: 'PMAT-254 (2026-09-10, v7.1.0 triage): empty entry — title DONE, no acceptance criteria, no spec, filed 45 s before PMAT-241; nothing to do.'
 - id: PMAT-241
   github_issue: null
   item_type: task
   title: 'REWRITE-5: Rewrite 5 remaining test files + add provable contracts (93 tests)'
-  status: inprogress
+  status: blocked
   priority: high
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-04-07T07:49:14Z
-  updated: 2026-04-07T07:49:14.719510988+00:00
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
-  notes: null
+  labels:
+  - release:unscheduled
+  notes: 'PMAT-254 (2026-09-10, v7.1.0 triage): blocked on definition — REWRITE-5 has carried no acceptance criteria since 2026-04-07, so no release can take it; re-scope or cancel is the operator''s call.'
 - id: PMAT-242
   github_issue: null
   item_type: task
   title: 'DEEP-CONTRACTS: Enrich 8 bashrs contracts to Grade A — spec depth + bindings + Kani'
-  status: inprogress
+  status: blocked
   priority: critical
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-04-07T08:34:27Z
-  updated: 2026-04-07T08:34:27.506635740+00:00
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
-  notes: null
+  labels:
+  - release:unscheduled
+  notes: 'PMAT-254 (2026-09-10, v7.1.0 triage): blocked on definition — DEEP-CONTRACTS has carried no acceptance criteria since 2026-04-07, so no release can take it; re-scope or cancel is the operator''s call.'
 - id: PMAT-243
   github_issue: null
   item_type: task
   title: 'COV-95: Write tests for 8 uncovered production files — 90→95% coverage'
-  status: inprogress
+  status: blocked
   priority: critical
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-04-07T16:46:30Z
-  updated: 2026-04-07T16:46:30.963728557+00:00
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
-  notes: null
+  labels:
+  - release:unscheduled
+  notes: 'PMAT-254 (2026-09-10, v7.1.0 triage): blocked on definition — COV-95 has carried no acceptance criteria since 2026-04-07, so no release can take it; re-scope or cancel is the operator''s call.'
 - id: PMAT-244
   github_issue: null
   item_type: task
   title: 'lint SC2105 false positive: break inside a single-line for/while loop reported as ''only valid in loops'''
   status: planned
   priority: medium
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-09-02T16:21:38Z
-  updated: 2026-09-02T16:21:38Z
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria:
   - 'bashrs 7.0.1 `bashrs lint` reports SC2105 for a break that IS inside a loop when the whole loop is written on one line. Minimal repro, four variants: (v1) ''for m in a b; do [[ $m == b ]] && { x=1; break; }; done'' -> SC2105 error; (v2) ''for m in a b; do if [[ $m == b ]]; then x=1; break; fi; done'' -> SC2105 error (two errors); (v3) same as v2 split across lines -> clean; (v4) same as v1 split across lines -> clean. So the checker''s loop-nesting context is line-scoped, not AST-scoped. Found 2026-09-02 linting ~/.claude/hooks/xpile-stop-guard.sh (infra PMAT-225); worked around by reflowing the loop, which is exactly the routing-around the dogfood doctrine forbids — the fix belongs here, with v1..v4 as fixtures (per form VARIANT, not per form).'
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
-  notes: null
+  labels:
+  - release:v7.1.0
+  notes: 'PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.1.0, delivered under PMAT-255.'
 - id: PMAT-245
   github_issue: 284
   item_type: task
@@ -2092,18 +2096,19 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'PV-GATE-RED: 89 tracked contracts/work/*.yaml fail pv validate (PV-VAL-001 verification_summary missing total_obligations) — pv-gate.sh reports RED at baseline while every top-level contracts/*.yaml validates'
-  status: planned
+  status: blocked
   priority: medium
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-09-09T14:46:03Z
-  updated: 2026-09-09T14:46:03Z
+  updated: 2026-09-11T00:07:48Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
-  notes: 'PMAT-251 (v7.0.4, 2026-09-10): `pmat comply refresh-bindings` regenerated the binding index (0 bindings) and left contracts/work/*.yaml unchanged; a sample of 8 still fails `pv validate` (PV-VAL-001). Now also visible as comply CB-1305 (89/104 unclassified). Stays planned for 7.1.0.'
+  labels:
+  - release:unscheduled
+  notes: 'PMAT-251 (v7.0.4, 2026-09-10): `pmat comply refresh-bindings` regenerated the binding index (0 bindings) and left contracts/work/*.yaml unchanged; a sample of 8 still fails `pv validate` (PV-VAL-001). Now also visible as comply CB-1305 (89/104 unclassified). Stays planned for 7.1.0. | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.1.0, delivered under PMAT-255. | PMAT-254 (2026-09-11, re-measured): blocked upstream — the 89 files are pmat''s own work-contract stubs (`# Auto-generated from .pmat-work/<ID>/contract.json`: name, surface, verification_summary{target_level, current_level}); pv 0.65.2 validates them as kernel contracts and needs `metadata` and `verification_summary.total_obligations` they never carry; `pmat comply refresh-bindings` (3.40.0) leaves them unchanged. The fix belongs to pmat''s writer or to pv-gate''s glob, not to bashrs.'
 - id: PMAT-247
   github_issue: null
   item_type: task
@@ -2170,9 +2175,9 @@ roadmap:
   title: 'shell_words: expose command-substitution expansions ($( … ) and backticks) so SC2046 can drop its local balanced-paren scanner'
   status: planned
   priority: low
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-09-10T07:39:07Z
-  updated: 2026-09-10T07:39:07Z
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria:
   - 'Follow-up from PMAT-248 phase 2: shell_words::Expansion tracks only $NAME/${NAME}, so the SC2046 rewrite (fix for #237/#262) carries a private scanner mirroring shell_words'' find_close/read_backtick/skip_quoted. Lift command substitutions into the shared analysis and delete the duplicate; SC2006/SC2099 (backtick style rules) can then use it too.'
@@ -2181,7 +2186,8 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  notes: 'Not touched by PMAT-251 (v7.0.4, 2026-09-10); scheduled with the 7.1.0 items (#265, #232, #293, #294, #295).'
+  - release:v7.1.0
+  notes: 'Not touched by PMAT-251 (v7.0.4, 2026-09-10); scheduled with the 7.1.0 items (#265, #232, #293, #294, #295). | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.1.0, delivered under PMAT-255.'
 - id: PMAT-251
   github_issue: null
   item_type: task
@@ -2226,9 +2232,9 @@ roadmap:
   title: 'PR and dogfood parity with ../forjar: quorum receipts bound to the diff (.quorum/<branch>.json, quorum-gate.sh on pre-push mirrored by a Quorum CI job), CRUX per release (docs/audits/crux-<ver>.md reconciled against CHANGELOG by a gate), mechanical dogfood-release gates A-H/T/R with one GATE line each, releases.yaml + release goal, publish-from-tag, agy /teamwork as a mandatory lane'
   status: planned
   priority: medium
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-09-10T15:33:45Z
-  updated: 2026-09-10T15:33:45Z
+  updated: 2026-09-10T20:05:41Z
   spec: docs/specifications/pr-dogfood-parity-forjar.md
   acceptance_criteria:
   - 'Research (this session): docs/specifications/pr-dogfood-parity-forjar.md — eleven measured gaps against ../forjar (quorum receipt + gate + CI mirror, evidence rules, CRUX per release + gate H, ten mechanical dogfood gates, harness gate A, releases.yaml + gate T + release-goal.yml, release-audit.yml, publish-from-tag, repo-named skill, falsification tests for the gates), a four-lane mapping, a seven-phase plan with an acceptance command per phase, and the agy /teamwork review of the document recorded in docs/audits/quorum-PMAT-253-teamwork.json.'
@@ -2238,17 +2244,17 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  - orch:fable
-  notes: 'orch-basis:operator — user wrote, verbatim: "in parallel ensure we are using a PR style and dogfood style like ../forjar (i.e. CRUX, quorum).  file ticket and research and then have "agy /teamwork review"". Filed during the PMAT-251 session (v7.0.4); research and the teamwork review are this session''s deliverable, implementation is scheduled with 7.1.0.'
+  - release:v7.2.0
+  notes: 'orch-basis:operator — user wrote, verbatim: "in parallel ensure we are using a PR style and dogfood style like ../forjar (i.e. CRUX, quorum).  file ticket and research and then have "agy /teamwork review"". Filed during the PMAT-251 session (v7.0.4); research and the teamwork review are this session''s deliverable, implementation is scheduled with 7.1.0. | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.2.0 for phases 1a-1c, 2, 3b, 4a, 4b, 6, 7a, 7b; phases 3a and 5 ship in v7.1.0 under PMAT-255. orch:fable removed: model-gate refuses the ticket for every model because its basis token `operator` is not in the skill''s vocabulary; the default orchestrator (opus) runs it.'
 - id: PMAT-254
   github_issue: null
   item_type: task
   title: 'Triage for v7.1.0: tag every open roadmap entry and issue to a release (release-lint R1-R4), write docs/roadmaps/releases.md as the release goal, resolve the seven stale April entries with evidence, assign'
-  status: planned
+  status: completed
   priority: medium
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-09-10T19:56:59Z
-  updated: 2026-09-10T19:56:59Z
+  updated: 2026-09-11T00:18:17.074550237+00:00
   spec: null
   acceptance_criteria: []
   phases: []
@@ -2264,9 +2270,9 @@ roadmap:
   title: 'v7.1.0: transpiler defects #293 #294, build #295, shellcheck-directive interop #265, DET005 #232, SC2105 PMAT-244, shell_words PMAT-250, contracts PMAT-246, dependency refresh, pmat comply, corpus growth through agy, forjar-parity phases 3a and 5 from PMAT-253'
   status: planned
   priority: medium
-  assigned_to: null
+  assigned_to: noahgift
   created: 2026-09-10T19:57:00Z
-  updated: 2026-09-10T19:57:00Z
+  updated: 2026-09-10T20:05:41Z
   spec: null
   acceptance_criteria: []
   phases: []

@@ -1,0 +1,143 @@
+[
+ {
+  "issue": 295,
+  "verdict": "A",
+  "reason": "cargo build --workspace --all-targets still fails on bashrs-wasm's probar test target (PMAT-251 measurement on v7.0.3 and v7.0.4's branch)",
+  "class": "ci",
+  "release": "7.1.0",
+  "evidence": "cargo build --workspace --all-targets still fails on bashrs-wasm's probar test target (PMAT-251 measurement on v7.0.3 and v7.0.4's branch); the root profile's panic=abort is the cause; scheduled in PMAT-255",
+  "mutation": {
+   "type": "label",
+   "label": "release:7.1.0"
+  },
+  "extra_mutations": [],
+  "read_back": {
+   "cmd": "gh issue view 295 --repo paiml/bashrs --json labels",
+   "ok": null
+  }
+ },
+ {
+  "issue": 294,
+  "verdict": "A",
+  "reason": "measured on the installed 7.0.4 binary, 2026-09-10 (scratchpad probe-255): `let s = \"a `b` c\"",
+  "class": "transpiler",
+  "release": "7.1.0",
+  "evidence": "measured on the installed 7.0.4 binary, 2026-09-10 (scratchpad probe-255): `let s = \"a `b` c\"; println!` and `\"cost $(x) and $HOME\"` are refused at validation although emitted single-quoted; exec strings holding them are true positives",
+  "mutation": {
+   "type": "label",
+   "label": "release:7.1.0"
+  },
+  "extra_mutations": [],
+  "read_back": {
+   "cmd": "gh issue view 294 --repo paiml/bashrs --json labels",
+   "ok": null
+  }
+ },
+ {
+  "issue": 293,
+  "verdict": "A",
+  "reason": "measured on the installed 7.0.4 binary, 2026-09-10 (scratchpad probe-255): array_join and array_len over a local array literal build, then dash aborts `items: p",
+  "class": "transpiler",
+  "release": "7.1.0",
+  "evidence": "measured on the installed 7.0.4 binary, 2026-09-10 (scratchpad probe-255): array_join and array_len over a local array literal build, then dash aborts `items: parameter not set` (rc 2); for-in over the literal works",
+  "mutation": {
+   "type": "label",
+   "label": "release:7.1.0"
+  },
+  "extra_mutations": [],
+  "read_back": {
+   "cmd": "gh issue view 293 --repo paiml/bashrs --json labels",
+   "ok": null
+  }
+ },
+ {
+  "issue": 265,
+  "verdict": "A",
+  "reason": "measured on the installed 7.0.4 binary, 2026-09-10 (scratchpad probe-255): `# shellcheck disable=DET002` suppresses DET002 (3 findings to 0) with nothing report",
+  "class": "interop",
+  "release": "7.1.0",
+  "evidence": "measured on the installed 7.0.4 binary, 2026-09-10 (scratchpad probe-255): `# shellcheck disable=DET002` suppresses DET002 (3 findings to 0) with nothing reported; a `# bashrs disable-line=` on the line above is silently ignored",
+  "mutation": {
+   "type": "label",
+   "label": "release:7.1.0"
+  },
+  "extra_mutations": [],
+  "read_back": {
+   "cmd": "gh issue view 265 --repo paiml/bashrs --json labels",
+   "ok": null
+  }
+ },
+ {
+  "issue": 232,
+  "verdict": "A",
+  "reason": "measured on the installed 7.0.4 binary, 2026-09-10 (scratchpad probe-255): the four DET005 examples raise neither DET005 nor DET002 except the case form (DET002",
+  "class": "enhancement",
+  "release": "7.1.0",
+  "evidence": "measured on the installed 7.0.4 binary, 2026-09-10 (scratchpad probe-255): the four DET005 examples raise neither DET005 nor DET002 except the case form (DET002 x4); the duration example raises DET002 x8, which #232 says it must not",
+  "mutation": {
+   "type": "label",
+   "label": "release:7.1.0"
+  },
+  "extra_mutations": [],
+  "read_back": {
+   "cmd": "gh issue view 232 --repo paiml/bashrs --json labels",
+   "ok": null
+  }
+ },
+ {
+  "issue": 236,
+  "verdict": "C",
+  "reason": "re-measured on paiml-mcp-agent-toolkit df867892b, 97 files: bashrs 5,019 vs shellcheck 130 diagnostics (SC2046 66 vs 5, SC2086 316 vs 7)",
+  "class": "interop",
+  "release": "backlog",
+  "evidence": "re-measured on paiml-mcp-agent-toolkit df867892b, 97 files: bashrs 5,019 vs shellcheck 130 diagnostics (SC2046 66 vs 5, SC2086 316 vs 7); bashrs also misses 4 of shellcheck's 12 SC2046/SC2086 lines \u2014 the largest interop gap, not planned into v7.1.0",
+  "mutation": {
+   "type": "label",
+   "label": "release:backlog"
+  },
+  "extra_mutations": [
+   {
+    "type": "comment",
+    "marker": "PMAT-254-triage"
+   }
+  ],
+  "read_back": {
+   "cmd": "gh issue view 236 --repo paiml/bashrs --json labels",
+   "ok": null
+  }
+ },
+ {
+  "issue": 234,
+  "verdict": "C",
+  "reason": "pmat comply 3.40.0 on main 7fedbd212e: CB-200 771 functions below grade A",
+  "class": "debt",
+  "release": "backlog",
+  "evidence": "pmat comply 3.40.0 on main 7fedbd212e: CB-200 771 functions below grade A; debt, not planned into v7.1.0",
+  "mutation": {
+   "type": "label",
+   "label": "release:backlog"
+  },
+  "extra_mutations": [],
+  "read_back": {
+   "cmd": "gh issue view 234 --repo paiml/bashrs --json labels",
+   "ok": null
+  }
+ },
+ {
+  "issue": 233,
+  "verdict": "C",
+  "reason": "not re-measured this round",
+  "class": "ci",
+  "release": "backlog",
+  "evidence": "not re-measured this round; ci.yml still runs `cargo test --workspace --lib` only, and #295 is the one all-targets failure measured; stays backlog",
+  "mutation": {
+   "type": "label",
+   "label": "release:backlog"
+  },
+  "extra_mutations": [],
+  "read_back": {
+   "cmd": "gh issue view 233 --repo paiml/bashrs --json labels",
+   "ok": null
+  }
+ }
+]
