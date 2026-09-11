@@ -134,7 +134,18 @@ pub(crate) fn corpus_pareto_analysis(
         None => runner.run(&registry),
     };
 
-    let sorted = count_dimension_failures(&score.results);
+    print_pareto_analysis(&score.results, format, top)
+}
+
+/// Pure rendering of a Pareto analysis over an already-computed result set.
+/// Split out of `corpus_pareto_analysis` so the analysis itself is testable
+/// without executing the corpus through a `CorpusRunner`.
+pub(crate) fn print_pareto_analysis(
+    results: &[crate::corpus::runner::CorpusResult],
+    format: &CorpusOutputFormat,
+    top: Option<usize>,
+) -> Result<()> {
+    let sorted = count_dimension_failures(results);
     let total_failures: usize = sorted.iter().map(|(_, c)| c).sum();
     let limit = top.unwrap_or(sorted.len());
 
@@ -144,7 +155,7 @@ pub(crate) fn corpus_pareto_analysis(
             println!("{BOLD}Pareto Analysis: Corpus Failures by Dimension{RESET}");
             println!(
                 "{DIM}Total entries: {}, Total dimension-failures: {}{RESET}",
-                score.results.len(),
+                results.len(),
                 total_failures
             );
             println!();
@@ -176,7 +187,7 @@ pub(crate) fn corpus_pareto_analysis(
             }
 
             println!();
-            pareto_print_affected(&score.results);
+            pareto_print_affected(results);
         }
         CorpusOutputFormat::Json => {
             let json_dims: Vec<_> = sorted
@@ -193,7 +204,7 @@ pub(crate) fn corpus_pareto_analysis(
                 })
                 .collect();
             let result = serde_json::json!({
-                "total_entries": score.results.len(),
+                "total_entries": results.len(),
                 "total_failures": total_failures,
                 "dimensions": json_dims,
             });
@@ -221,6 +232,18 @@ pub(crate) fn corpus_why_failed(id: &str, format: &CorpusOutputFormat) -> Result
     let runner = CorpusRunner::new(config);
     let result = runner.run_single(entry);
 
+    print_why_failed(id, entry, &result, format)
+}
+
+/// Pure rendering of the Five Whys report for one already-computed result.
+/// Split out of `corpus_why_failed` so it is testable without running the
+/// corpus through a `CorpusRunner`.
+pub(crate) fn print_why_failed(
+    id: &str,
+    entry: &crate::corpus::registry::CorpusEntry,
+    result: &crate::corpus::runner::CorpusResult,
+    format: &CorpusOutputFormat,
+) -> Result<()> {
     // Collect failing dimensions
     let failures: Vec<(&str, &str)> = [
         (
@@ -358,6 +381,16 @@ pub(crate) fn corpus_regressions(format: &CorpusOutputFormat) -> Result<()> {
         return Ok(());
     }
 
+    print_regressions(&entries, format)
+}
+
+/// Pure rendering of regression detection over an already-loaded convergence
+/// log. Split out of `corpus_regressions` so it is testable with hand-built
+/// `ConvergenceEntry` fixtures instead of the real `.quality/convergence.log`.
+pub(crate) fn print_regressions(
+    entries: &[crate::corpus::runner::ConvergenceEntry],
+    format: &CorpusOutputFormat,
+) -> Result<()> {
     let mut all_regressions = Vec::new();
     for pair in entries.windows(2) {
         let report = pair[1].detect_regressions(&pair[0]);
@@ -426,4 +459,190 @@ pub(crate) fn corpus_regressions(format: &CorpusOutputFormat) -> Result<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::CorpusEntry;
+    use crate::corpus::runner::{ConvergenceEntry, CorpusResult};
+
+    fn fake_result(id: &str, all_pass: bool) -> CorpusResult {
+        CorpusResult {
+            id: id.to_string(),
+            transpiled: all_pass,
+            output_contains: all_pass,
+            output_exact: all_pass,
+            output_behavioral: all_pass,
+            lint_clean: all_pass,
+            deterministic: all_pass,
+            metamorphic_consistent: all_pass,
+            cross_shell_agree: all_pass,
+            schema_valid: true,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_result_fail_dims_all_pass_is_empty() {
+        let r = fake_result("B-001", true);
+        assert!(result_fail_dims(&r).is_empty());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_result_fail_dims_all_fail_lists_every_dim() {
+        let r = fake_result("B-002", false);
+        let dims = result_fail_dims(&r);
+        assert_eq!(dims, vec!["A", "B1", "B2", "B3", "D", "E", "F", "G"]);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_count_dimension_failures_sorted_and_filtered() {
+        let mut r1 = fake_result("B-001", true);
+        r1.transpiled = false;
+        let mut r2 = fake_result("B-002", true);
+        r2.transpiled = false;
+        r2.lint_clean = false;
+        let results = vec![r1, r2, fake_result("B-003", true)];
+        let sorted = count_dimension_failures(&results);
+        // Transpilation fails twice, lint fails once -- transpilation must sort first.
+        assert_eq!(sorted[0].0, "A  Transpilation");
+        assert_eq!(sorted[0].1, 2);
+        assert!(sorted.iter().all(|(_, c)| *c > 0));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_count_dimension_failures_empty_when_all_pass() {
+        let results = vec![fake_result("B-001", true), fake_result("B-002", true)];
+        assert!(count_dimension_failures(&results).is_empty());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_pareto_print_table_renders_rows_and_marks_vital_few() {
+        let sorted = vec![("A  Transpilation", 5usize), ("D  Lint clean", 1usize)];
+        pareto_print_table(&sorted, 6, 2);
+        // limit smaller than rows exercises the `.take(limit)` branch too.
+        pareto_print_table(&sorted, 6, 1);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_pareto_print_affected_handles_mixed_and_empty() {
+        let results = vec![fake_result("B-001", false), fake_result("B-002", true)];
+        pareto_print_affected(&results);
+        pareto_print_affected(&[]);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_pareto_print_affected_truncates_past_twenty() {
+        let results: Vec<CorpusResult> = (0..25)
+            .map(|i| fake_result(&format!("B-{i:03}"), false))
+            .collect();
+        pareto_print_affected(&results);
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_pareto_analysis_human_no_failures() {
+        let results = vec![fake_result("B-001", true)];
+        print_pareto_analysis(&results, &CorpusOutputFormat::Human, None)
+            .expect("an all-passing set prints the perfect-corpus branch");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_pareto_analysis_human_with_failures_and_top() {
+        let results = vec![fake_result("B-001", false), fake_result("B-002", true)];
+        print_pareto_analysis(&results, &CorpusOutputFormat::Human, Some(1))
+            .expect("a failing set prints the vital-few and affected-entries sections");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_pareto_analysis_json_branch() {
+        let results = vec![fake_result("B-001", false), fake_result("B-002", true)];
+        print_pareto_analysis(&results, &CorpusOutputFormat::Json, None)
+            .expect("the json branch always succeeds given valid results");
+    }
+
+    fn fake_entry(id: &str) -> CorpusEntry {
+        CorpusEntry::new(
+            id,
+            "fixture",
+            "PMAT-257 fixture entry",
+            crate::corpus::registry::CorpusFormat::Bash,
+            crate::corpus::registry::CorpusTier::Standard,
+            "fn main() {}",
+            "#!/bin/sh",
+        )
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_why_failed_human_all_pass() {
+        let entry = fake_entry("B-001");
+        let result = fake_result("B-001", true);
+        print_why_failed("B-001", &entry, &result, &CorpusOutputFormat::Human)
+            .expect("an all-passing result prints the no-failures branch");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_why_failed_human_with_error_and_output() {
+        let entry = fake_entry("B-002");
+        let mut result = fake_result("B-002", false);
+        result.error = Some("parse error: unexpected token".to_string());
+        result.actual_output = Some("line one\nline two\nline three".to_string());
+        print_why_failed("B-002", &entry, &result, &CorpusOutputFormat::Human)
+            .expect("a failing result with error/output prints every optional section");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_why_failed_json_branch() {
+        let entry = fake_entry("B-003");
+        let result = fake_result("B-003", false);
+        print_why_failed("B-003", &entry, &result, &CorpusOutputFormat::Json)
+            .expect("the json branch always succeeds given a valid entry/result");
+    }
+
+    fn fake_convergence(iteration: u32, passed: usize, score: f64) -> ConvergenceEntry {
+        ConvergenceEntry {
+            iteration,
+            date: "2026-01-01".to_string(),
+            total: 100,
+            passed,
+            failed: 100 - passed,
+            rate: passed as f64 / 100.0,
+            delta: 0.0,
+            notes: "fixture".to_string(),
+            score,
+            grade: "A".to_string(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_regressions_human_no_regressions() {
+        let entries = vec![fake_convergence(1, 90, 90.0), fake_convergence(2, 95, 95.0)];
+        print_regressions(&entries, &CorpusOutputFormat::Human)
+            .expect("an improving log has no regressions");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_regressions_human_detects_a_drop() {
+        let entries = vec![fake_convergence(1, 95, 95.0), fake_convergence(2, 90, 90.0)];
+        print_regressions(&entries, &CorpusOutputFormat::Human)
+            .expect("a dropping log reports the regression");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_regressions_json_branch() {
+        let entries = vec![fake_convergence(1, 95, 95.0), fake_convergence(2, 90, 90.0)];
+        print_regressions(&entries, &CorpusOutputFormat::Json)
+            .expect("the json branch always succeeds given a valid log");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_print_regressions_single_entry_is_a_no_op_windows() {
+        // `entries.windows(2)` over a single element yields nothing, so no
+        // regressions can be found -- exercises the guard indirectly via the
+        // pure function rather than the real convergence log on disk.
+        let entries = vec![fake_convergence(1, 90, 90.0)];
+        print_regressions(&entries, &CorpusOutputFormat::Human)
+            .expect("a single-entry log prints the no-regressions branch");
+    }
 }
