@@ -2360,3 +2360,21 @@ roadmap:
   - kind:code
   - release:v7.3.0
   notes: null
+- id: PMAT-260
+  github_issue: null
+  item_type: task
+  title: regenerate Cargo.lock for 7.3.0 so --locked builds and the publish script work
+  status: planned
+  priority: critical
+  assigned_to: null
+  created: 2026-09-11T23:32:17Z
+  updated: 2026-09-11T23:32:17Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.3.0
+  notes: null
