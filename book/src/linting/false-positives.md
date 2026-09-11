@@ -506,3 +506,23 @@ Ten false positives and misses found by running bashrs over real scripts, each f
 
 The two transpiler defects in the same release, an unlowerable method call emitted as `:` and `items.len()` lowering to the string `unknown`, are the same shape: output that runs and is wrong. They now fail loudly.
 
+## A code that meant the wrong thing (7.3.0)
+
+bashrs shipped a rule under the code `SC2106` whose message was "Consider using pgrep instead of grepping ps output". That check is shellcheck's `SC2009`. Shellcheck's `SC2106` is a different rule entirely: a `break` or `continue` inside a subshell leaves only the subshell, so the enclosing loop keeps going.
+
+The consequence was worse than a wrong label. A script carrying `# shellcheck disable=SC2106`, written against shellcheck, silenced bashrs's ps-grep rule instead, and the case shellcheck actually warns about was not implemented at all.
+
+In 7.3.0 the ps-grep check moved to `SC2009` and `SC2106` reports what shellcheck reports. **This is breaking for suppressions**: change `SC2106` to `SC2009` where you meant the ps-grep check.
+
+```sh
+# fires SC2009, not SC2106
+ps aux | grep my-process
+
+# fires SC2106: the break leaves the subshell, not the loop
+for f in *; do
+  ( break )
+done
+```
+
+A rule code is part of a user's committed scripts, so a rename is a real cost. It was weighed against keeping a code that means two different things depending on which tool reads it, and the rename won.
+

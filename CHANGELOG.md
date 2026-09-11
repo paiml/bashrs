@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.3.0] - 2026-09-11
+
+Three decisions the maintainer had deferred, taken by blind quorum and implemented; a lint code that meant the wrong thing; the lowerings whose absence removed 63 corpus entries in v7.2.0; and the sandbox that stops a corpus run writing into the repository.
+
+### Changed, and this one is breaking
+
+- **`SC2106` now means what shellcheck means by it.** bashrs shipped a rule under the code `SC2106` whose message was "Consider using pgrep instead of grepping ps output". That check is shellcheck's **`SC2009`**, and it has moved there. `SC2106` now reports what shellcheck reports: a `break` or `continue` inside a subshell leaves only the subshell, so the enclosing loop keeps going. **If your scripts carry `# shellcheck disable=SC2106` for the ps-grep check, change it to `SC2009`.** A blind three-lane quorum decided this unanimously and rejected aliasing both codes: a code that means two things is worse than a rename. Reported as #303.
+- The renamed rule was also absent from the linter's apply list, so for one commit it fired under no code at all. It is registered and pinned by a test that runs through the full lint pipeline.
+
+### Added
+
+- **`len()` on a string** lowers to the POSIX length expansion `${#var}`, computed at runtime. A variable the converter knows to be an array can never take that path: the array count path owns it, because the joined text's length is not an element count.
+- **`to_string()`** on a string is the value itself.
+- **`unwrap_or(default)` and `unwrap_or_else(|| simple)`** lower to the **unset-only** default `${var-default}`, never `${var:-default}`. Rust returns the default for `None` alone, so a variable that is set and empty keeps its empty value. The quorum chose this unanimously, and all three lanes wrote the same flip condition: it reverses only if bashrs decides internally that `None` is an empty string, which it does not. A test pins the set-but-empty case, because that is the claim worth falsifying.
+- `push_str`, `push`, `insert` and `rev` still **fail the transpile naming the method**. An honest failure beats a wrong value, which is what #305 established; these have no spelling that is both POSIX and deterministic.
+
+### Fixed
+
+- **The corpus runner sandboxes itself** (#318, PMAT-256). Every entry now runs with a fresh temporary directory as its working directory and `HOME`, a minimal `PATH`, and, on Linux where `bwrap` exists, inside a namespace with no network. Where bwrap is absent the run proceeds with the scoped environment and says so once, which the quorum chose unanimously over refusing: refusing would make the corpus unscoreable for every macOS contributor. This is the hardening for the untracked copy of the source tree that a corpus-running test wrote into the repository during v7.2.0.
+
+### Provable contracts
+
+- Seven new falsification entries, one per fix. `pv lint` gate 4 (verify): **80 references, 80 found, 0 missing**; `pv-gate` GREEN.
+
+### Corpus
+
+- 18,453 to 18,592 entries. Six blind generation lanes produced 252 candidates; 27 were rejected for side effects a corpus run would execute and 86 for not matching their expected line. The 139 that survived were each transpiled against a binary built from this branch, so they exercise the new lowerings rather than asserting around them.
+
+### Quality
+
+- Line coverage **95.01 percent**, above the 95 percent gate.
+- `release-lint` rule R5 needed `docs/release-notes.md`, which did not exist, so the rule could not be judged at all. It is now generated from the tag log: one section per cut tag, 121 of them.
+
+
 ## [7.2.0] - 2026-09-11
 
 Ten defects found by dogfooding bashrs on real scripts, the contract verifier turned from theatre into a gate, the stale work contracts regenerated, and corpus entries in the shapes this project actually writes. Every fix keeps a companion test proving its rule still fires on a true positive, and every fix is named by a falsification test the contract verifier checks exists.

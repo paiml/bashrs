@@ -189,3 +189,26 @@ cargo run --example transpiler_demo
 ```
 
 This runs 7 demonstrations covering basic functions, nested calls, match expressions, loops with return, match inside loops, recursion, and multi-function programs.
+
+## What a method call lowers to
+
+bashrs transpiles a method call only when POSIX shell has an honest spelling for it. Where it does not, the transpile **fails and names the method**: an unlowerable call is never emitted as a no-op, because a script that runs and does nothing is worse than one that does not build.
+
+| Rust | Shell | Note |
+|---|---|---|
+| `s.len()` | `${#s}` | computed at runtime; a variable known to be an array takes the element-count path instead |
+| `s.to_string()` | the value | identity on a string |
+| `x.unwrap_or(d)` | `${x-d}` | **unset only**, not `${x:-d}` |
+| `x.unwrap_or_else(\|\| d)` | `${x-d}` | only when the closure body has no side effects |
+| `s.push_str(t)`, `s.push(c)`, `v.insert(..)`, `s.rev()` | none | the transpile fails naming the method |
+
+The `unwrap_or` spelling is the one worth understanding. Rust returns the default for `None` alone, so a value that is present but empty must survive:
+
+```sh
+name=          # set, empty
+echo "${name-fallback}"    # prints nothing: the value is present
+echo "${name:-fallback}"   # prints fallback: wrong for unwrap_or
+```
+
+That distinction is pinned by a test and by a falsification entry in `contracts/transpiler-core-v1.yaml`, so a future change to the spelling fails the contract gate rather than silently changing what programs mean.
+

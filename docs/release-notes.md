@@ -6,7 +6,15 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 ## v7.3.0
 
-In progress. Planned: SC2106 (#303), the standard-library lowerings whose absence removed 63 corpus entries in v7.2.0 (#316), the corpus runner sandbox (PMAT-256, #318), the remaining forjar-parity phases (PMAT-253), dependency currency and `pmat comply`. Coverage stays at or above 95 percent and every ticket carries a falsification test the contract verifier checks.
+Tagged 2026-09-11.
+
+Three deferred decisions taken by blind quorum and implemented. **Breaking:** the rule bashrs called `SC2106` was shellcheck's `SC2009` and has moved there; `SC2106` now reports a `break` or `continue` inside a subshell. Change `# shellcheck disable=SC2106` to `SC2009` if you suppressed the ps-grep check.
+
+Added: `len()` on a string lowers to `${#var}`, `to_string()` is the value, and `unwrap_or` lowers to the unset-only default `${var-d}` so a set-but-empty value survives. Methods with no honest POSIX spelling still fail the transpile naming the method.
+
+Fixed: the corpus runner sandboxes itself, so a corpus run cannot write into the repository or the real home directory.
+
+Full notes: the `[7.3.0]` section of `CHANGELOG.md`.
 
 ## v7.2.0
 
