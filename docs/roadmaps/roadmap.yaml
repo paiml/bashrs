@@ -2250,11 +2250,11 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'Triage for v7.1.0: tag every open roadmap entry and issue to a release (release-lint R1-R4), write docs/roadmaps/releases.md as the release goal, resolve the seven stale April entries with evidence, assign'
-  status: planned
+  status: inprogress
   priority: medium
   assigned_to: noahgift
   created: 2026-09-10T19:56:59Z
-  updated: 2026-09-10T20:05:41Z
+  updated: 2026-09-11T00:16:22.870001334+00:00
   spec: null
   acceptance_criteria: []
   phases: []
