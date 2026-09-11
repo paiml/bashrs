@@ -5,14 +5,20 @@ use super::corpus_metrics_commands::collect_trace_coverage;
 use crate::models::{Config, Result};
 
 pub(crate) fn corpus_graph() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_graph_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_graph`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_graph_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::graph_priority::{build_connectivity, connectivity_table};
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let coverage_data = collect_trace_coverage(&registry, &runner);
+    let coverage_data = collect_trace_coverage(registry, &runner);
     let total_entries = coverage_data.len();
     let conn = build_connectivity(&coverage_data);
     let table = connectivity_table(&conn);
@@ -65,15 +71,24 @@ pub(crate) fn corpus_graph() -> Result<()> {
 
 /// Impact-weighted decision priority combining suspiciousness × connectivity (§11.10.3).
 pub(crate) fn corpus_impact(limit: usize) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_impact_with(&CorpusRegistry::load_full(), limit)
+}
+
+/// PMAT-257: body of `corpus_impact`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_impact_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    limit: usize,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::graph_priority::{build_connectivity, compute_graph_priorities};
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
     use crate::quality::sbfl::{localize_faults, SbflFormula};
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let coverage_data = collect_trace_coverage(&registry, &runner);
+    let coverage_data = collect_trace_coverage(registry, &runner);
 
     let total = coverage_data.len();
     let passed = coverage_data.iter().filter(|(_, p, _)| *p).count();
@@ -128,14 +143,23 @@ pub(crate) fn corpus_impact(limit: usize) -> Result<()> {
 
 /// Show blast radius of fixing a specific decision (§11.10.3).
 pub(crate) fn corpus_blast_radius(decision: &str) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_blast_radius_with(&CorpusRegistry::load_full(), decision)
+}
+
+/// PMAT-257: body of `corpus_blast_radius`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_blast_radius_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    decision: &str,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::graph_priority::build_connectivity;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let coverage_data = collect_trace_coverage(&registry, &runner);
+    let coverage_data = collect_trace_coverage(registry, &runner);
     let total_entries = coverage_data.len();
     let conn = build_connectivity(&coverage_data);
 
@@ -207,14 +231,20 @@ pub(crate) fn corpus_blast_radius(decision: &str) -> Result<()> {
 
 /// Deduplicated error view with counts and risk classification (§11.10.4).
 pub(crate) fn corpus_dedup() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_dedup_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_dedup`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_dedup_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::error_dedup::deduplicate_errors;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let triage = deduplicate_errors(&registry, &runner);
+    let triage = deduplicate_errors(registry, &runner);
 
     println!(
         "\n  {BOLD}Deduplicated Errors{RESET}  ({DIM}{} raw → {} unique{RESET})",
@@ -271,14 +301,20 @@ pub(crate) fn corpus_dedup() -> Result<()> {
 
 /// Risk-prioritized fix backlog with weak supervision labels (§11.10.4).
 pub(crate) fn corpus_triage() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_triage_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_triage`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_triage_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::error_dedup::deduplicate_errors;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let triage = deduplicate_errors(&registry, &runner);
+    let triage = deduplicate_errors(registry, &runner);
 
     println!(
         "\n  {BOLD}Risk-Prioritized Fix Backlog{RESET}  ({DIM}{} unique errors{RESET})",
@@ -328,14 +364,22 @@ pub(crate) fn corpus_triage() -> Result<()> {
 
 /// Show programmatic labeling rules and match counts (§11.10.4).
 pub(crate) fn corpus_label_rules() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_label_rules_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_label_rules`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_label_rules_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::error_dedup::count_rule_matches;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let rule_matches = count_rule_matches(&registry, &runner);
+    let rule_matches = count_rule_matches(registry, &runner);
 
     println!("\n  {BOLD}Programmatic Labeling Rules (Weak Supervision){RESET}");
     println!("  {DIM}{}{RESET}", "─".repeat(72));
@@ -367,4 +411,133 @@ pub(crate) fn corpus_label_rules() -> Result<()> {
 
     println!();
     Ok(())
+}
+
+// PMAT-257: coverage for the advanced corpus handlers. These live inside the
+// library, because the coverage gate measures `cargo llvm-cov --lib -p
+// bashrs` and a test under rash/tests/ does not move that number at all.
+// `corpus_graph`, `corpus_impact`, `corpus_blast_radius`, `corpus_dedup`,
+// `corpus_triage`, and `corpus_label_rules` all build a `CorpusRunner` and
+// score entries out of the real `CorpusRegistry::load_full()` (18,000+
+// entries) -- too slow for a unit test as written. Each was split into a
+// `*_with(registry, ...)` twin that takes the registry as a parameter,
+// matching `corpus_compare_commands.rs`.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+    use crate::corpus::runner::CorpusRunner;
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    /// A registry that also contains an entry whose `expected_contains`
+    /// never matches the transpiled output, forcing a B2/containment
+    /// failure so the failure-path branches of the handlers under test run.
+    fn failing_registry() -> CorpusRegistry {
+        let mut registry = tiny_registry();
+        registry.add(CorpusEntry::new(
+            "B-002",
+            "broken-bash",
+            "PMAT-257 fixture (forces a failure)",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "this_string_never_appears_in_output",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_graph_with_tiny_registry() {
+        corpus_graph_with(&tiny_registry()).expect("graph runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_impact_all_pass_early_return() {
+        corpus_impact_with(&tiny_registry(), 5)
+            .expect("impact early-returns when all traced entries pass");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_impact_with_failures() {
+        corpus_impact_with(&failing_registry(), 5)
+            .expect("impact prints the priority table when entries fail");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_blast_radius_unknown_decision() {
+        corpus_blast_radius_with(&tiny_registry(), "no-such-decision")
+            .expect("blast radius handles an unknown decision gracefully");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_blast_radius_known_decision() {
+        let registry = failing_registry();
+        let runner = CorpusRunner::new(Config::default());
+        let coverage_data = collect_trace_coverage(&registry, &runner);
+        let (_, _, locations) = coverage_data
+            .first()
+            .expect("at least one traced entry with decision locations");
+        let decision = locations
+            .first()
+            .expect("at least one decision location")
+            .clone();
+        corpus_blast_radius_with(&registry, &decision)
+            .expect("blast radius runs over a known decision");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_dedup_no_errors() {
+        corpus_dedup_with(&tiny_registry()).expect("dedup runs when there are no errors");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_dedup_with_errors() {
+        corpus_dedup_with(&failing_registry()).expect("dedup prints deduplicated error rows");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_triage_no_errors() {
+        corpus_triage_with(&tiny_registry()).expect("triage runs when there are no errors");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_triage_with_errors() {
+        corpus_triage_with(&failing_registry()).expect("triage prints the fix backlog");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_label_rules_with_tiny_registry() {
+        corpus_label_rules_with(&tiny_registry()).expect("label rules run over a tiny registry");
+    }
 }
