@@ -4,12 +4,17 @@ use crate::cli::args::CorpusFormatArg;
 use crate::models::{Config, Error, Result};
 
 pub(crate) fn corpus_timeline() -> Result<()> {
+    use std::path::PathBuf;
+    corpus_timeline_with(&PathBuf::from(".quality/convergence.log"))
+}
+
+/// PMAT-257: body of `corpus_timeline`, split so a test can pass a
+/// caller-supplied log path instead of the repository's own convergence log.
+pub(crate) fn corpus_timeline_with(log_path: &std::path::Path) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
-    use std::path::PathBuf;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to load convergence log: {e}")))?;
 
     if entries.is_empty() {
@@ -130,12 +135,17 @@ pub(crate) fn drift_print_format(
 
 /// Detect per-dimension score drift across convergence iterations.
 pub(crate) fn corpus_drift() -> Result<()> {
+    use std::path::PathBuf;
+    corpus_drift_with(&PathBuf::from(".quality/convergence.log"))
+}
+
+/// PMAT-257: body of `corpus_drift`, split so a test can pass a
+/// caller-supplied log path instead of the repository's own convergence log.
+pub(crate) fn corpus_drift_with(log_path: &std::path::Path) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
-    use std::path::PathBuf;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to load convergence log: {e}")))?;
 
     if entries.len() < 2 {
@@ -233,12 +243,22 @@ pub(crate) fn corpus_drift() -> Result<()> {
 
 /// Show entries sorted by transpilation time (slowest first).
 pub(crate) fn corpus_slow(limit: usize, filter: Option<&CorpusFormatArg>) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_slow_with(&CorpusRegistry::load_full(), limit, filter)
+}
+
+/// PMAT-257: body of `corpus_slow`, split so a test can pass a small
+/// synthetic registry instead of timing the full ~18k-entry corpus.
+pub(crate) fn corpus_slow_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    limit: usize,
+    filter: Option<&CorpusFormatArg>,
+) -> Result<()> {
     use crate::cli::color::*;
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     let entries: Vec<_> = registry
@@ -304,10 +324,14 @@ pub(crate) fn corpus_slow(limit: usize, filter: Option<&CorpusFormatArg>) -> Res
 
 /// Show entries grouped by shell construct type.
 pub(crate) fn corpus_tags() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_tags_with(&CorpusRegistry::load_full())
+}
 
-    let registry = CorpusRegistry::load_full();
+/// PMAT-257: body of `corpus_tags`, split so a test can pass a small
+/// synthetic registry instead of tagging the full ~18k-entry corpus.
+pub(crate) fn corpus_tags_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
 
     // Tag classification based on entry name/description keywords
     let tag_rules: &[(&str, &[&str])] = &[
@@ -434,3 +458,5 @@ pub(crate) fn corpus_tags() -> Result<()> {
     );
     Ok(())
 }
+
+include!("corpus_time_commands_cov_tests.rs");
