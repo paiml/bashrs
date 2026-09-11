@@ -16,6 +16,13 @@ pub(crate) fn handle_gate_command(tier: u8, report: ReportFormat) -> Result<()> 
     // Load gate configuration
     let config = GateConfig::load()?;
 
+    handle_gate_command_with(tier, &config)
+}
+
+/// PMAT-257: body of `handle_gate_command`, split so a test can pass a
+/// caller-supplied `GateConfig` instead of loading `.pmat-gates.toml` from
+/// the repository (which `GateConfig::load()` searches for from `cwd`).
+pub(crate) fn handle_gate_command_with(tier: u8, config: &crate::gates::GateConfig) -> Result<()> {
     // Determine which gates to run based on tier
     let gates_to_run = match tier {
         1 => &config.tiers.tier1_gates,
@@ -43,13 +50,13 @@ pub(crate) fn handle_gate_command(tier: u8, report: ReportFormat) -> Result<()> 
         let _ = std::io::stderr().flush();
 
         let success = match gate.as_str() {
-            "clippy" => run_clippy_gate(&config),
-            "tests" => run_tests_gate(&config),
-            "coverage" => run_coverage_gate(&config),
-            "complexity" => run_complexity_gate(&config),
-            "security" => run_security_gate(&config),
-            "satd" => run_satd_gate(&config),
-            "mutation" => run_mutation_gate(&config),
+            "clippy" => run_clippy_gate(config),
+            "tests" => run_tests_gate(config),
+            "coverage" => run_coverage_gate(config),
+            "complexity" => run_complexity_gate(config),
+            "security" => run_security_gate(config),
+            "satd" => run_satd_gate(config),
+            "mutation" => run_mutation_gate(config),
             _ => {
                 eprintln!("⚠️  Unknown gate");
                 continue;
@@ -233,5 +240,163 @@ fn run_mutation_gate(config: &crate::gates::GateConfig) -> bool {
         }
     } else {
         true
+    }
+}
+
+// PMAT-257: coverage for `bashrs gate`. `handle_gate_command` always shells
+// out to `GateConfig::load()`, which walks up from `cwd` looking for
+// `.pmat-gates.toml` -- not injectable and dependent on the repository's own
+// config. It was split into `handle_gate_command_with(tier, &config)`, which
+// takes a caller-built `GateConfig` directly.
+//
+// `run_clippy_gate` and `run_tests_gate` always spawn a real `cargo clippy`
+// / `cargo test` subprocess (no "disabled" branch to short-circuit them), so
+// they are intentionally NOT exercised here -- doing so would shell out to
+// cargo from within a unit test. Likewise the "enabled" branches of
+// `run_coverage_gate`, `run_complexity_gate`, `run_security_gate`, and
+// `run_mutation_gate` spawn `cargo llvm-cov` / `pmat` / `cargo deny` /
+// `cargo mutants` respectively and are left uncovered; only their
+// config-disabled early-return branches are exercised. `run_satd_gate` never
+// spawns a subprocess in any branch, so all of its branches are covered.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::gates::{GateConfig, Gates, MutationGate, SatdGate, SecurityGate, Tiers};
+
+    fn disabled_gates() -> Gates {
+        Gates {
+            run_clippy: false,
+            clippy_strict: false,
+            run_tests: false,
+            test_timeout: 1,
+            check_coverage: false,
+            min_coverage: 80.0,
+            check_complexity: false,
+            max_complexity: 10,
+            satd: None,
+            mutation: None,
+            security: None,
+        }
+    }
+
+    fn config_with_tiers(tiers: Tiers) -> GateConfig {
+        GateConfig {
+            metadata: None,
+            gates: disabled_gates(),
+            tiers,
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_handle_gate_command_with_invalid_tier_is_an_error() {
+        let config = config_with_tiers(Tiers::default());
+        let err = handle_gate_command_with(0, &config).unwrap_err();
+        assert!(format!("{err:?}").contains("Invalid tier"));
+
+        let err = handle_gate_command_with(4, &config).unwrap_err();
+        assert!(format!("{err:?}").contains("Invalid tier"));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_handle_gate_command_with_empty_tier_passes() {
+        let config = config_with_tiers(Tiers::default());
+        assert!(handle_gate_command_with(1, &config).is_ok());
+        assert!(handle_gate_command_with(2, &config).is_ok());
+        assert!(handle_gate_command_with(3, &config).is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_handle_gate_command_with_unknown_gate_is_skipped() {
+        let tiers = Tiers {
+            tier1_gates: vec!["frobnicate".to_string()],
+            ..Default::default()
+        };
+        let config = config_with_tiers(tiers);
+        assert!(handle_gate_command_with(1, &config).is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_handle_gate_command_with_disabled_gates_all_pass() {
+        // Every disabled-config branch of coverage/complexity/security/satd/
+        // mutation returns true without spawning a subprocess.
+        let tiers = Tiers {
+            tier1_gates: vec![
+                "coverage".to_string(),
+                "complexity".to_string(),
+                "security".to_string(),
+                "satd".to_string(),
+                "mutation".to_string(),
+            ],
+            ..Default::default()
+        };
+        let config = config_with_tiers(tiers);
+        assert!(handle_gate_command_with(1, &config).is_ok());
+    }
+
+    #[test]
+    fn test_PMAT257_cov_run_coverage_gate_disabled_short_circuits() {
+        let config = config_with_tiers(Tiers::default());
+        assert!(run_coverage_gate(&config));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_run_complexity_gate_disabled_short_circuits() {
+        let config = config_with_tiers(Tiers::default());
+        assert!(run_complexity_gate(&config));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_run_security_gate_none_and_disabled() {
+        let mut config = config_with_tiers(Tiers::default());
+        assert!(run_security_gate(&config));
+
+        config.gates.security = Some(SecurityGate {
+            enabled: false,
+            max_unsafe_blocks: 0,
+        });
+        assert!(run_security_gate(&config));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_run_satd_gate_all_branches() {
+        let mut config = config_with_tiers(Tiers::default());
+        // No satd config at all.
+        assert!(run_satd_gate(&config));
+
+        // Present but disabled.
+        config.gates.satd = Some(SatdGate {
+            enabled: false,
+            max_count: 5,
+            patterns: vec![],
+        });
+        assert!(run_satd_gate(&config));
+
+        // Enabled with no patterns.
+        config.gates.satd = Some(SatdGate {
+            enabled: true,
+            max_count: 5,
+            patterns: vec![],
+        });
+        assert!(run_satd_gate(&config));
+
+        // Enabled with patterns (naive implementation still returns true).
+        config.gates.satd = Some(SatdGate {
+            enabled: true,
+            max_count: 5,
+            patterns: vec!["TODO".to_string()],
+        });
+        assert!(run_satd_gate(&config));
+    }
+
+    #[test]
+    fn test_PMAT257_cov_run_mutation_gate_none_and_disabled() {
+        let mut config = config_with_tiers(Tiers::default());
+        assert!(run_mutation_gate(&config));
+
+        config.gates.mutation = Some(MutationGate {
+            enabled: false,
+            min_score: 90.0,
+        });
+        assert!(run_mutation_gate(&config));
     }
 }
