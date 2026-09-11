@@ -117,14 +117,13 @@ jobs:
         run: |
           VERSION="${{ steps.verify.outputs.version }}"
           for i in $(seq 1 10); do
-            CODE=$(curl -fsS -o /dev/null -w '%{http_code}' \
-              -A "bashrs-release-workflow (https://github.com/paiml/bashrs)" \
-              "https://crates.io/api/v1/crates/bashrs-oracle/$VERSION" || true)
-            if [ "$CODE" = "200" ]; then
+            # The sparse index cargo resolves against, not the web API (which answers first).
+            if curl -fsS -A "bashrs-release-workflow (https://github.com/paiml/bashrs)" \
+              "https://index.crates.io/ba/sh/bashrs-oracle" | grep -q "\"vers\":\"$VERSION\""; then
               echo "bashrs-oracle $VERSION is on the crates.io index"
               exit 0
             fi
-            echo "waiting for bashrs-oracle $VERSION on the crates.io index (attempt $i/10, http $CODE)"
+            echo "waiting for bashrs-oracle $VERSION on the crates.io index (attempt $i/10)"
             sleep 30
           done
           echo "::error::bashrs-oracle $VERSION never appeared on the crates.io index after bounded poll"

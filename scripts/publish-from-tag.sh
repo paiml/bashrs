@@ -36,7 +36,9 @@
 # `--allow-dirty`, the one flag this script exists to avoid).
 set -uo pipefail
 
-CRATES_INDEX_URL="${CRATES_INDEX_URL:-https://crates.io/api/v1/crates}"
+# The sparse index cargo itself resolves against (not the web API, which answers
+# before the index has caught up): https://index.crates.io/<a>/<b>/<name>.
+CRATES_SPARSE_INDEX="${CRATES_SPARSE_INDEX:-https://index.crates.io}"
 USER_AGENT="bashrs-publish-from-tag (https://github.com/paiml/bashrs)"
 
 # Dependency order: bashrs-oracle before bashrs. Both share the workspace
@@ -172,6 +174,13 @@ assert_worktree_clean() {
 
 assert_worktree_clean
 
+# A caller-supplied worktree must BE the tag: otherwise whatever it has checked
+# out would be published under the tag's version.
+tag_commit="$(git rev-parse "$TAG^{commit}")"
+wt_commit="$(git -C "$WT" rev-parse HEAD 2>/dev/null || true)"
+[ "$wt_commit" = "$tag_commit" ] ||
+  die "refusing: the worktree at $WT is at ${wt_commit:-no commit}, not $TAG ($tag_commit)"
+
 # ---------------------------------------------------------- crates.io poll --
 
 # Bounded backoff over a delay sequence, never a single fixed sleep: the
@@ -180,11 +189,22 @@ assert_worktree_clean
 # exists to prevent. When the bound is exhausted the run refuses (exit 2)
 # naming the crate and version, rather than proceeding against a stale
 # index.
+# Sparse-index path of a crate name, per the cargo registry layout.
+index_path() {
+  local n
+  n="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
+  case ${#n} in
+    1) printf '1/%s' "$n" ;;
+    2) printf '2/%s' "$n" ;;
+    3) printf '3/%s/%s' "${n:0:1}" "$n" ;;
+    *) printf '%s/%s/%s' "${n:0:2}" "${n:2:2}" "$n" ;;
+  esac
+}
+
 already_on_index() {
-  local name="$1" version="$2" code
-  code="$(curl -fsS -o /dev/null -w '%{http_code}' -A "$USER_AGENT" \
-    --max-time 10 "$CRATES_INDEX_URL/$name/$version" 2>/dev/null || true)"
-  [ "$code" = "200" ]
+  local name="$1" version="$2"
+  curl -fsS -A "$USER_AGENT" --max-time 10 "$CRATES_SPARSE_INDEX/$(index_path "$name")" 2>/dev/null |
+    grep -q "\"vers\":\"$version\""
 }
 
 poll_index() {
@@ -217,6 +237,13 @@ for crate in "${CRATES[@]}"; do
   # bashrs depends on bashrs-oracle by path+version; publishing (or
   # dry-run publishing) bashrs resolves that dependency from the registry,
   # so bashrs-oracle must already be indexed first.
+  if [ -n "$prev" ] && [ "${DRY_RUN:-0}" = "1" ] && ! already_on_index "$prev" "$version"; then
+    # A dry run publishes nothing, so $prev $version cannot appear on the index,
+    # and $crate's dry run resolves it from the registry. Say so; do not poll.
+    printf 'DRY_RUN: skipping %s %s — it resolves %s %s from the registry, which a dry run never publishes\n' \
+      "$crate" "$version" "$prev" "$version" >&2
+    continue
+  fi
   if [ -n "$prev" ]; then
     poll_index "$prev" "$version"
   fi
