@@ -239,6 +239,25 @@ pub(crate) fn corpus_gate_with(
     min_score: f64,
     max_ms: u64,
 ) -> Result<()> {
+    corpus_gate_with_log(
+        registry,
+        min_score,
+        max_ms,
+        &PathBuf::from(".quality/convergence.log"),
+    )
+}
+
+/// PMAT-257: body of `corpus_gate_with`, split so the regression gate reads a
+/// caller-supplied convergence log. Without this the gate's verdict depends on
+/// whatever `.quality/convergence.log` happens to sit in the process's working
+/// directory, which made a unit test pass alone and fail inside the full
+/// workspace run.
+pub(crate) fn corpus_gate_with_log(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    min_score: f64,
+    max_ms: u64,
+    log_path: &std::path::Path,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
@@ -269,8 +288,7 @@ pub(crate) fn corpus_gate_with(
     );
 
     // Gate 3: Check for regressions
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let regression_pass = if let Ok(entries) = CorpusRunner::load_convergence_log(&log_path) {
+    let regression_pass = if let Ok(entries) = CorpusRunner::load_convergence_log(log_path) {
         if entries.len() >= 2 {
             let last = &entries[entries.len() - 1];
             let prev = &entries[entries.len() - 2];
@@ -686,14 +704,24 @@ mod pmat257_cov_tests {
             r#"fn main() { let greeting = "hello"; }"#,
             "greeting='hello'",
         ));
-        corpus_gate_with(&registry, 0.0, 100_000)
+        // The regression gate reads a convergence log from disk, so point it at
+        // an empty temp directory: otherwise this test's verdict depends on
+        // whatever log the repository happens to carry.
+        let dir = tempfile::TempDir::new().unwrap();
+        corpus_gate_with_log(&registry, 0.0, 100_000, &dir.path().join("convergence.log"))
             .expect("an unattainably low bar and generous timing budget must pass");
     }
 
     #[test]
     fn test_PMAT257_cov_gate_with_score_gate_fails() {
-        let err = corpus_gate_with(&tiny_registry(), 100.0, 100_000)
-            .expect_err("an unattainable score threshold must fail the gate");
+        let dir = tempfile::TempDir::new().unwrap();
+        let err = corpus_gate_with_log(
+            &tiny_registry(),
+            100.0,
+            100_000,
+            &dir.path().join("convergence.log"),
+        )
+        .expect_err("an unattainable score threshold must fail the gate");
         assert!(matches!(err, Error::Internal(_)));
     }
 
