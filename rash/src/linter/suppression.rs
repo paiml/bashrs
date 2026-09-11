@@ -205,13 +205,21 @@ fn is_shellcheck_directive(line: &str) -> bool {
     line.contains("# shellcheck disable=")
 }
 
-/// Is this line code (not a comment, shebang, blank line, `set`, or `shopt`)?
+/// Is this line code (not a comment, shebang, or blank line)?
+///
+/// GH-302: `set -e`, `set -euo pipefail`, `shopt -s ...` etc. ARE commands —
+/// they run in the shell just like any other statement. A directive is
+/// file-level only when it precedes the FIRST command of the script; once
+/// `set -e` (or any other command) has executed, a later directive scopes to
+/// the next line only. `set`/`shopt` used to be excluded here so that a
+/// directive written between `set -euo pipefail` and the first "real"
+/// command still counted as file-level — but that treated `set -e` as if it
+/// were a no-op, which is exactly the bug: a disable comment placed AFTER
+/// `set -e` silently suppressed the rule for the rest of the file instead of
+/// just the next line.
 fn is_code_line(line: &str) -> bool {
     let trimmed = line.trim();
-    !trimmed.is_empty()
-        && !trimmed.starts_with('#')
-        && !trimmed.starts_with("set ")
-        && !trimmed.starts_with("shopt ")
+    !trimmed.is_empty() && !trimmed.starts_with('#')
 }
 
 /// GH-265: keep only codes shellcheck itself owns (`SC` followed by digits).
@@ -492,6 +500,45 @@ pub fn unrecognised_directives(source: &str) -> Vec<UnrecognisedDirective> {
             text: l.trim().to_string(),
         })
         .collect()
+}
+
+#[cfg(test)]
+mod gh302_tests {
+    use super::*;
+
+    /// GH-302: `set -e` is the first COMMAND of the script. A directive placed
+    /// after it has already seen a command run, so it must apply to the next
+    /// line only — not the whole file. Two lines below both trigger SC2086;
+    /// only the first (the line immediately following the directive) may be
+    /// suppressed.
+    #[test]
+    fn test_PMAT257_gh302_directive_after_set_e_is_line_scoped() {
+        let source = "set -e\n# shellcheck disable=SC2086\necho $var\necho $another\n";
+        let manager = SuppressionManager::from_source(source);
+
+        assert!(
+            manager.is_suppressed("SC2086", 3),
+            "the line right after the directive must be suppressed"
+        );
+        assert!(
+            !manager.is_suppressed("SC2086", 4),
+            "GH-302: a directive after `set -e` must be line-scoped, not \
+             file-scoped — `set -e` is a command, so the directive no longer \
+             precedes the first command"
+        );
+    }
+
+    /// Companion: a directive that genuinely precedes the first command of the
+    /// script (nothing but comments/shebang before it) must still suppress the
+    /// whole file — the file-level path must not regress while fixing GH-302.
+    #[test]
+    fn test_PMAT257_gh302_directive_before_any_command_is_still_file_scoped() {
+        let source = "#!/bin/bash\n# shellcheck disable=SC2086\necho $var\necho $another\n";
+        let manager = SuppressionManager::from_source(source);
+
+        assert!(manager.is_suppressed("SC2086", 3));
+        assert!(manager.is_suppressed("SC2086", 4));
+    }
 }
 
 #[cfg(test)]
