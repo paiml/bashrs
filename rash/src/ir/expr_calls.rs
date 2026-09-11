@@ -291,6 +291,38 @@ impl IrConverter {
             }
         }
 
+        // GH-306 / PMAT-258 GH-316: `.len()` and `.to_string()` each have an
+        // honest lowering for some receivers (array literal, string) —
+        // extracted so this dispatcher's own branching stays under the
+        // per-function cognitive-complexity limit.
+        if let Some(value) = self.try_len_or_to_string(receiver, method, args)? {
+            return Ok(value);
+        }
+
+        // PMAT-258 / GH-316: `push_str`/`push` (mutate a local string),
+        // `insert` and `rev` do not have a lowering here on purpose. Making
+        // `push_str`/`push` observable would require the *statement*-level
+        // caller (`convert_expr` in expr.rs) to emit an assignment instead
+        // of discarding this value as `ShellIR::Noop` — out of scope for
+        // this ticket (PMAT-258 scope is `expr_calls.rs` only). `insert` has
+        // no generally-correct POSIX spelling, and `rev()` on a string has
+        // no POSIX builtin at all. All four fall through to the error below,
+        // naming the method, rather than silently emitting a wrong value.
+        Err(crate::models::Error::Validation(format!(
+            "cannot transpile `.{method}()`: no lowering exists for this method call. \
+             See bashrs#305."
+        )))
+    }
+
+    /// PMAT-258 / GH-316: `.len()` (array literal or string) and
+    /// `.to_string()` (identity), or `None` when `method`/`args` don't match
+    /// either — in which case the caller falls through to the error.
+    fn try_len_or_to_string(
+        &self,
+        receiver: &crate::ast::Expr,
+        method: &str,
+        args: &[crate::ast::Expr],
+    ) -> Result<Option<ShellValue>> {
         // GH-306: `items.len()` on a local array literal has an exact
         // element count known here — the same literal `known_array_items`
         // already extracts for `array_len(items)` (GH-293). A receiver that
@@ -299,14 +331,48 @@ impl IrConverter {
         // the old "unknown" placeholder.
         if method == "len" && args.is_empty() {
             if let Some(items) = self.known_array_items(Some(receiver))? {
-                return Ok(ShellValue::String(items.len().to_string()));
+                return Ok(Some(ShellValue::String(items.len().to_string())));
             }
+            // PMAT-258 / GH-316: `.len()` on a *string* has an honest POSIX
+            // spelling that `known_array_items` cannot give us, because a
+            // string never gets the `name_0`, `name_1`, ... element table an
+            // array literal does. Route it through `string_len_value`
+            // instead of falling through to the error below.
+            if let Some(value) = Self::string_len_value(receiver) {
+                return Ok(Some(value));
+            }
+            return Ok(None);
         }
 
-        Err(crate::models::Error::Validation(format!(
-            "cannot transpile `.{method}()`: no lowering exists for this method call. \
-             See bashrs#305."
-        )))
+        // PMAT-258 / GH-316: `.to_string()` is the identity in shell — every
+        // value is already a string, so there is nothing to lower beyond
+        // whatever the receiver itself evaluates to.
+        if method == "to_string" && args.is_empty() {
+            return Ok(Some(self.convert_expr_to_value(receiver)?));
+        }
+
+        Ok(None)
+    }
+
+    /// PMAT-258 / GH-316: the honest POSIX spelling of `.len()` on a string.
+    ///
+    /// A variable receiver becomes `${#var}` — computed at *runtime*, so it
+    /// is correct no matter what the variable holds (there is no way to know
+    /// a variable's compile-time value here; `known_array_items` is the only
+    /// existing compile-time table and it tracks array literals, not
+    /// strings). A string-literal receiver is measured directly.
+    ///
+    /// Reuses `ShellValue::Glob`, the existing "emit this text unquoted and
+    /// unescaped" variant (GH-148), rather than adding a new `ShellValue`
+    /// variant — that would require emitter changes outside this ticket's
+    /// scope (`rash/src/ir/expr_calls.rs` only).
+    fn string_len_value(receiver: &crate::ast::Expr) -> Option<ShellValue> {
+        use crate::ast::{restricted::Literal, Expr};
+        match receiver {
+            Expr::Literal(Literal::Str(s)) => Some(ShellValue::String(s.len().to_string())),
+            Expr::Variable(name) => Some(ShellValue::Glob(format!("${{#{name}}}"))),
+            _ => None,
+        }
     }
 
     /// Match `std::env::args().nth(N).unwrap()` → `Arg { position: Some(N) }`
