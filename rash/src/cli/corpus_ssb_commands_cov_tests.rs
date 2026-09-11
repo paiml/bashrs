@@ -15,7 +15,6 @@
 #[cfg(test)]
 mod pmat257_cov_tests {
     use super::super::corpus_ssb_commands::*;
-    use crate::models::Result;
 
     #[test]
     fn test_PMAT257_cov_eval_benchmark_reads_predictions_and_prints_text() {

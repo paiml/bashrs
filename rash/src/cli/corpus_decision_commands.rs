@@ -45,12 +45,20 @@ pub(crate) fn accumulate_decision_stats(
 
 /// Decision frequency and pass/fail correlation summary.
 pub(crate) fn corpus_decisions() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_decisions_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_decisions`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_decisions_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use std::collections::HashMap;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     let mut stats: HashMap<String, (usize, usize, usize)> = HashMap::new();
@@ -105,14 +113,22 @@ pub(crate) fn corpus_decisions() -> Result<()> {
 
 /// Mine and display CITL fix patterns (§11.10.2).
 pub(crate) fn corpus_patterns() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_patterns_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_patterns`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_patterns_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::pattern_store::mine_patterns;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let store = mine_patterns(&registry, &runner);
+    let store = mine_patterns(registry, &runner);
 
     println!(
         "\n  {BOLD}CITL Pattern Store{RESET}  ({} traced, {} failures)",
@@ -160,14 +176,23 @@ pub(crate) fn corpus_patterns() -> Result<()> {
 
 /// Query CITL patterns for a specific error signal (§11.10.2).
 pub(crate) fn corpus_pattern_query(signal: &str) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_pattern_query_with(&CorpusRegistry::load_full(), signal)
+}
+
+/// PMAT-257: body of `corpus_pattern_query`, split so a test can pass a
+/// small synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_pattern_query_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    signal: &str,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::pattern_store::mine_patterns;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let store = mine_patterns(&registry, &runner);
+    let store = mine_patterns(registry, &runner);
 
     let matching: Vec<_> = store
         .patterns
@@ -207,12 +232,21 @@ pub(crate) fn corpus_pattern_query(signal: &str) -> Result<()> {
 
 /// Suggest fixes for a failing corpus entry (§11.10.2).
 pub(crate) fn corpus_fix_suggest(id: &str) -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_fix_suggest_with(&CorpusRegistry::load_full(), id)
+}
+
+/// PMAT-257: body of `corpus_fix_suggest`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_fix_suggest_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    id: &str,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::pattern_store::{classify_failure_signals, mine_patterns, suggest_fixes};
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     // Verify entry exists
@@ -235,8 +269,8 @@ pub(crate) fn corpus_fix_suggest(id: &str) -> Result<()> {
     println!("\n  {BOLD}Fix Suggestions for {CYAN}{id}{RESET} ({BRIGHT_RED}{signal_list}{RESET})");
     println!("  {DIM}{}{RESET}", "─".repeat(72));
 
-    let store = mine_patterns(&registry, &runner);
-    let suggestions = suggest_fixes(id, &registry, &runner, &store);
+    let store = mine_patterns(registry, &runner);
+    let suggestions = suggest_fixes(id, registry, &runner, &store);
 
     if suggestions.is_empty() {
         println!("  {DIM}No pattern-based suggestions available for this entry{RESET}");
