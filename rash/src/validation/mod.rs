@@ -1,6 +1,7 @@
 use crate::models::error::RashResult;
 use std::fmt;
 
+pub(crate) mod exec_flow;
 pub mod pipeline;
 mod pipeline_string_validators;
 pub mod rules;

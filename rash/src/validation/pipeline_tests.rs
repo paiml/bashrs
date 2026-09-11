@@ -69,8 +69,18 @@ fn test_issue_94_quote_escape_semicolon_flagged() {
 fn test_issue_94_command_substitution_still_flagged() {
     let pipeline = create_test_pipeline();
     // Command substitution should still be flagged
-    let result = pipeline.validate_string_literal("$(dangerous_command)");
-    assert!(result.is_err(), "Command substitution should be flagged");
+    // GH-294: a standalone literal is emitted single-quoted, where `$( )` is inert, so it is no longer
+    // refused on content alone; embedded raw in a double-quoted word (a __format_concat part) it still is,
+    // and when a string built at run time reaches eval every literal is held to it (validation::exec_flow).
+    assert!(pipeline
+        .validate_string_literal("$(dangerous_command)")
+        .is_ok());
+    assert!(
+        pipeline
+            .validate_string_literal_concat("$(dangerous_command)")
+            .is_err(),
+        "Command substitution in a concatenated literal should be flagged"
+    );
 }
 
 // Issue #95: exec() arguments should allow shell operators
