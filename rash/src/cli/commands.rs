@@ -143,6 +143,9 @@ pub(super) mod corpus_b2_fix_commands;
 pub(super) mod corpus_compare_commands;
 #[path = "corpus_config_commands.rs"]
 pub(super) mod corpus_config_commands;
+#[cfg(test)]
+#[path = "corpus_config_commands_cov_tests.rs"]
+mod corpus_config_commands_cov_tests;
 #[path = "corpus_convergence_commands.rs"]
 pub(super) mod corpus_convergence_commands;
 #[path = "corpus_core_commands.rs"]

@@ -257,15 +257,20 @@ pub(crate) fn corpus_export_benchmark(output: Option<PathBuf>, limit: Option<usi
 }
 
 pub(crate) fn corpus_domain_categories() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_domain_categories_with(&CorpusRegistry::load_full())
+}
+
+pub(crate) fn corpus_domain_categories_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::domain_categories;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
-    let stats = domain_categories::categorize_corpus(&registry, &score.results);
+    let score = runner.run(registry);
+    let stats = domain_categories::categorize_corpus(registry, &score.results);
 
     println!("{BOLD}Domain-Specific Corpus Categories (\u{00a7}11.11){RESET}");
     println!();
@@ -284,15 +289,20 @@ pub(crate) fn corpus_domain_categories() -> Result<()> {
 }
 
 pub(crate) fn corpus_domain_coverage() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_domain_coverage_with(&CorpusRegistry::load_full())
+}
+
+pub(crate) fn corpus_domain_coverage_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::domain_categories;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
-    let stats = domain_categories::categorize_corpus(&registry, &score.results);
+    let score = runner.run(registry);
+    let stats = domain_categories::categorize_corpus(registry, &score.results);
 
     println!("{BOLD}Domain Coverage Analysis (\u{00a7}11.11){RESET}");
     println!();
@@ -312,15 +322,20 @@ pub(crate) fn corpus_domain_coverage() -> Result<()> {
 }
 
 pub(crate) fn corpus_domain_matrix() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_domain_matrix_with(&CorpusRegistry::load_full())
+}
+
+pub(crate) fn corpus_domain_matrix_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::domain_categories;
-    use crate::corpus::registry::CorpusRegistry;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
-    let stats = domain_categories::categorize_corpus(&registry, &score.results);
+    let score = runner.run(registry);
+    let stats = domain_categories::categorize_corpus(registry, &score.results);
 
     println!("{BOLD}Cross-Category Quality Matrix (\u{00a7}11.11.9){RESET}");
     println!();
@@ -337,15 +352,20 @@ pub(crate) fn corpus_domain_matrix() -> Result<()> {
 }
 
 pub(crate) fn corpus_tier_weights() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_tier_weights_with(&CorpusRegistry::load_full())
+}
+
+pub(crate) fn corpus_tier_weights_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use crate::corpus::tier_analysis;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
-    let analysis = tier_analysis::analyze_tiers(&registry, &score);
+    let score = runner.run(registry);
+    let analysis = tier_analysis::analyze_tiers(registry, &score);
 
     println!("{BOLD}Tier-Weighted Corpus Scoring (\u{00a7}4.3){RESET}");
     println!();
