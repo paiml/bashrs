@@ -1,13 +1,22 @@
 /// Run all three baseline classifiers (SSC v11 S5.5).
 pub(crate) fn corpus_baselines() -> Result<()> {
     use crate::cli::color::*;
-    use crate::corpus::baselines::{corpus_baseline_entries, run_all_baselines};
-    use crate::corpus::evaluation::{format_comparison, format_report};
+    use crate::corpus::baselines::corpus_baseline_entries;
 
     eprintln!("{BOLD}Building baseline entries from corpus...{RESET}");
 
     let owned = corpus_baseline_entries();
     let entries: Vec<(&str, u8)> = owned.iter().map(|(s, l)| (s.as_str(), *l)).collect();
+    corpus_baselines_with(&entries)
+}
+
+/// PMAT-257: body of `corpus_baselines()` split out so a test can pass a
+/// small synthetic `(script, label)` slice instead of transpiling and
+/// linting the full ~18k-entry corpus via `corpus_baseline_entries()`.
+pub(crate) fn corpus_baselines_with(entries: &[(&str, u8)]) -> Result<()> {
+    use crate::cli::color::*;
+    use crate::corpus::baselines::run_all_baselines;
+    use crate::corpus::evaluation::{format_comparison, format_report};
 
     let safe_count = entries.iter().filter(|(_, l)| *l == 0).count();
     let unsafe_count = entries.iter().filter(|(_, l)| *l == 1).count();
@@ -19,7 +28,7 @@ pub(crate) fn corpus_baselines() -> Result<()> {
     );
     eprintln!();
 
-    let reports = run_all_baselines(&entries);
+    let reports = run_all_baselines(entries);
 
     // Side-by-side comparison
     println!("{BOLD}=== SSC v11 Baseline Comparison (Section 5.5) ==={RESET}\n");
@@ -52,6 +61,17 @@ pub(crate) fn corpus_label_audit(limit: usize) -> Result<()> {
     eprintln!("{BOLD}Running label audit (C-LABEL-001, limit={limit})...{RESET}");
 
     let report = run_corpus_label_audit(limit);
+    corpus_label_audit_with(&report)
+}
+
+/// PMAT-257: body of `corpus_label_audit()` split out so a test can pass a
+/// small synthetic `LabelAuditReport` (built via the pure, corpus-free
+/// `run_label_audit`) instead of walking the real ~18k-entry registry via
+/// `run_corpus_label_audit()`.
+pub(crate) fn corpus_label_audit_with(
+    report: &crate::corpus::label_audit::LabelAuditReport,
+) -> Result<()> {
+    use crate::cli::color::*;
 
     println!("{BOLD}=== SSC v11 Label Audit (Section 5.3, C-LABEL-001) ==={RESET}\n");
     println!("Audited {} unsafe labels:", report.total_audited);
@@ -235,6 +255,16 @@ pub(crate) fn corpus_validate_contracts() -> Result<()> {
     eprintln!("{BOLD}Running SSC v11 contract validation (pre-training gate)...{RESET}\n");
 
     let report = run_all_contracts();
+    corpus_validate_contracts_with(&report)
+}
+
+/// PMAT-257: body of `corpus_validate_contracts()` split out so a test can
+/// pass a small synthetic `ContractValidationReport` instead of running
+/// `run_all_contracts()`, which walks the real ~18k-entry corpus (minutes).
+pub(crate) fn corpus_validate_contracts_with(
+    report: &crate::corpus::contract_validation::ContractValidationReport,
+) -> Result<()> {
+    use crate::cli::color::*;
 
     println!("{BOLD}=== SSC v11 Contract Validation ==={RESET}\n");
 
@@ -416,6 +446,5 @@ pub(crate) fn corpus_export_splits(output: Option<PathBuf>, input: Option<PathBu
 
     Ok(())
 }
-
 
 include!("corpus_config_commands_corpus.rs");

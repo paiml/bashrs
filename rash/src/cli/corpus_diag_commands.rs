@@ -5,12 +5,21 @@ use super::corpus_ranking_commands::classify_category;
 use crate::models::{Config, Result};
 
 pub(crate) fn corpus_flaky(threshold: f64) -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_flaky_with(&CorpusRegistry::load_full(), threshold)
+}
+
+/// PMAT-257: body of `corpus_flaky`, split so a test can pass a small
+/// synthetic registry instead of timing the full ~18k-entry corpus three
+/// times over.
+pub(crate) fn corpus_flaky_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+    threshold: f64,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
 
     let num_runs = 3;
@@ -82,13 +91,21 @@ pub(crate) fn corpus_flaky(threshold: f64) -> Result<()> {
 
 /// Corpus composition profile: tier, format, category breakdown.
 pub(crate) fn corpus_profile() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_profile_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_profile`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_profile_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     println!("{BOLD}Corpus Profile{RESET}");
     println!();
@@ -186,13 +203,20 @@ pub(crate) fn dim_format_rate(
 
 /// Find quality gaps: dimensions where specific formats underperform.
 pub(crate) fn corpus_gaps() -> Result<()> {
+    use crate::corpus::registry::CorpusRegistry;
+    corpus_gaps_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_gaps`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_gaps_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
     use crate::cli::color::*;
-    use crate::corpus::registry::{CorpusFormat, CorpusRegistry};
+    use crate::corpus::registry::CorpusFormat;
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let formats = [
         ("Bash", CorpusFormat::Bash),
@@ -215,7 +239,7 @@ pub(crate) fn corpus_gaps() -> Result<()> {
 
         let mut rates: Vec<f64> = Vec::new();
         for (_, fmt) in &formats {
-            let rate = dim_format_rate(&registry, &score.results, *fmt, d_idx);
+            let rate = dim_format_rate(registry, &score.results, *fmt, d_idx);
             rates.push(rate);
             let color = pct_color(rate);
             print!("{color}{:>11.1}%{RESET}", rate);
@@ -237,11 +261,19 @@ pub(crate) fn corpus_gaps() -> Result<()> {
 /// Compact JSON summary for CI/script consumption.
 pub(crate) fn corpus_summary_json() -> Result<()> {
     use crate::corpus::registry::CorpusRegistry;
+    corpus_summary_json_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_summary_json`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_summary_json_with(
+    registry: &crate::corpus::registry::CorpusRegistry,
+) -> Result<()> {
     use crate::corpus::runner::CorpusRunner;
 
-    let registry = CorpusRegistry::load_full();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
 
     let json = serde_json::json!({
         "total": score.total,
@@ -271,15 +303,21 @@ pub(crate) fn corpus_summary_json() -> Result<()> {
 
 /// Full audit trail: entries, tests, build, lint status.
 pub(crate) fn corpus_audit() -> Result<()> {
-    use crate::cli::color::*;
     use crate::corpus::registry::CorpusRegistry;
+    corpus_audit_with(&CorpusRegistry::load_full())
+}
+
+/// PMAT-257: body of `corpus_audit`, split so a test can pass a small
+/// synthetic registry instead of running the full corpus through a
+/// `CorpusRunner`.
+pub(crate) fn corpus_audit_with(registry: &crate::corpus::registry::CorpusRegistry) -> Result<()> {
+    use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
     use std::time::Instant;
 
-    let registry = CorpusRegistry::load_full();
     let start = Instant::now();
     let runner = CorpusRunner::new(Config::default());
-    let score = runner.run(&registry);
+    let score = runner.run(registry);
     let elapsed = start.elapsed();
 
     println!("{BOLD}Corpus Audit{RESET}");
@@ -362,4 +400,104 @@ pub(crate) fn corpus_audit() -> Result<()> {
     );
 
     Ok(())
+}
+
+// PMAT-257: coverage for the corpus diagnostics handlers. These live inside
+// the library, because the coverage gate measures `cargo llvm-cov --lib -p
+// bashrs` and a test under rash/tests/ does not move that number at all.
+// `corpus_flaky`, `corpus_profile`, `corpus_gaps`, `corpus_summary_json`, and
+// `corpus_audit` all build a `CorpusRunner` and score entries out of the real
+// `CorpusRegistry::load_full()` (18,000+ entries) -- too slow for a unit
+// test as written. Each was split into a `*_with(registry, ...)` twin that
+// takes the registry as a parameter, matching `corpus_compare_commands.rs`.
+// `result_dim_pass` and `dim_format_rate` never build a `CorpusRunner`, so
+// they're covered directly.
+#[cfg(test)]
+mod pmat257_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+    use crate::corpus::runner::CorpusRunner;
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut registry = CorpusRegistry::new();
+        registry.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-257 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        registry.add(CorpusEntry::new(
+            "M-001",
+            "hello-makefile",
+            "PMAT-257 fixture",
+            CorpusFormat::Makefile,
+            CorpusTier::Trivial,
+            "all:\n\techo hello\n",
+            "all:",
+        ));
+        registry.add(CorpusEntry::new(
+            "D-001",
+            "hello-dockerfile",
+            "PMAT-257 fixture",
+            CorpusFormat::Dockerfile,
+            CorpusTier::Trivial,
+            "FROM alpine:3.18\nWORKDIR /app\n",
+            "FROM alpine:3.18",
+        ));
+        registry
+    }
+
+    #[test]
+    fn test_PMAT257_cov_flaky_with_tiny_registry() {
+        corpus_flaky_with(&tiny_registry(), 0.5)
+            .expect("flaky detection runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_profile_with_tiny_registry() {
+        corpus_profile_with(&tiny_registry()).expect("profile runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_gaps_with_tiny_registry() {
+        corpus_gaps_with(&tiny_registry()).expect("gaps analysis runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_summary_json_with_tiny_registry() {
+        corpus_summary_json_with(&tiny_registry()).expect("summary json runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_audit_with_tiny_registry() {
+        corpus_audit_with(&tiny_registry()).expect("audit runs over a tiny registry");
+    }
+
+    #[test]
+    fn test_PMAT257_cov_result_dim_pass_all_indices() {
+        let registry = tiny_registry();
+        let runner = CorpusRunner::new(Config::default());
+        let score = runner.run(&registry);
+        let r = score.results.first().expect("at least one result");
+        for idx in 0..8 {
+            // Must not panic for any dimension index, including the `_` arm.
+            let _ = result_dim_pass(r, idx);
+        }
+    }
+
+    #[test]
+    fn test_PMAT257_cov_dim_format_rate_known_and_unknown_format() {
+        let registry = tiny_registry();
+        let runner = CorpusRunner::new(Config::default());
+        let score = runner.run(&registry);
+        let rate = dim_format_rate(&registry, &score.results, CorpusFormat::Bash, 0);
+        assert!((0.0..=100.0).contains(&rate));
+        // No entries of this format present at all -> default 100.0 branch.
+        let empty = CorpusRegistry::new();
+        let rate_empty = dim_format_rate(&empty, &score.results, CorpusFormat::Dockerfile, 0);
+        assert_eq!(rate_empty, 100.0);
+    }
 }

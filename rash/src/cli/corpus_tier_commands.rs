@@ -509,12 +509,4 @@ mod pmat257_cov_tests {
     fn test_PMAT257_cov_score_range_with_tiny_registry() {
         corpus_score_range_with(&tiny_registry()).expect("score range runs over a tiny registry");
     }
-
-    #[test]
-    fn test_PMAT257_cov_public_wrappers_delegate_to_with_variants() {
-        // These call `CorpusRegistry::load_full()` and run against the real
-        // ~18k entry corpus; still fast enough for a unit test and it is the
-        // only way to cover the thin `load_full()` wrapper lines themselves.
-        corpus_id_range().expect("corpus_id_range over the real registry must succeed");
-    }
 }

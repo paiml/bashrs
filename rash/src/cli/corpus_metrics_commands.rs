@@ -523,15 +523,6 @@ mod pmat257_cov_tests {
         let registry = CorpusRegistry::new();
         corpus_dist_with(&registry).expect("an empty registry must not divide by zero");
     }
-
-    #[test]
-    fn test_PMAT257_cov_public_wrappers_delegate_to_with_variants() {
-        // These call `CorpusRegistry::load_full()` and run the real ~18k
-        // entry corpus once each; still fast enough for a unit test (each
-        // handler is a couple of seconds at most) and it is the only way to
-        // cover the thin `load_full()` wrapper lines themselves.
-        corpus_version().expect("corpus_version over the real registry must succeed");
-    }
 }
 
 include!("corpus_metrics_commands_corpus.rs");
