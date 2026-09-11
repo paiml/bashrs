@@ -1,0 +1,5 @@
+  ✗ R1 PMAT-168 (cancelled) names no release — add exactly one release:<vX.Y.Z|unscheduled> label
+  ✗ R1 PMAT-169 (cancelled) names no release — add exactly one release:<vX.Y.Z|unscheduled> label
+  ✗ R1 PMAT-240 (cancelled) names no release — add exactly one release:<vX.Y.Z|unscheduled> label
+release-lint: open=12 releases=v7.1.0(4) v7.2.0(1) unscheduled(4) highest_tag=v7.0.4 plan=/mnt/nvme-raid0/wt/bashrs-PMAT-255/docs/roadmaps/releases.md
+RELEASE_LINT_EXIT=1

@@ -1,0 +1,4 @@
+[status] ticket=PMAT-254 phase=0/4 global=425/12(K=40) k_measured=425 sub=0/0 basis=first-run[U] mode=direct trigger=- route=self w=100.00 q=? gate=NOT-RUN slots=0/3 denied=0 red=- filed=- blocker=- next=snapshot, batch, roadmap
+[status] ticket=PMAT-254 phase=1/4 global=438/12(K=40) k_measured=438 sub=0/0 basis=first-run[U] mode=direct trigger=- route=agy-goal w=1.00 q=? gate=PASS slots=0/3 denied=0 red=- filed=- blocker=- next=roadmap decisions
+[status] ticket=PMAT-254 phase=3/4 global=445/12(K=40) k_measured=445 sub=0/0 basis=first-run[U] mode=quorum:agy trigger=T-triage route=agy-quorum w=1.00 q=? gate=PASS slots=3/3 denied=0 red=- filed=- blocker=- next=re-measure the dissent
+[status] ticket=PMAT-254 phase=4/4 global=450/12(K=40) k_measured=450 sub=0/0 basis=first-run[U] route=self w=100.00 q=? gate=PASS slots=0/3 denied=0 red=- filed=- blocker=- next=merge the triage PR, then file the stdout log-line defect

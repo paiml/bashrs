@@ -1,0 +1,3 @@
+batch: A_i PASS — batch 1: 8 issue(s), 8 row(s), 0 null verdicts, 8 mutation(s) read-back verified by this script
+✓ triage recorded: orchestrator examined 8, acted on 8, deferred 0
+batch: coverage recorded by pmat (examined=8 acted=8 deferred=0)
