@@ -2342,3 +2342,21 @@ roadmap:
   - kind:code
   - release:v7.3.0
   notes: null
+- id: PMAT-259
+  github_issue: null
+  item_type: task
+  title: 'corpus_converged gains a _with_log twin, so a test does not depend on the checkout'
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-09-11T21:01:12Z
+  updated: 2026-09-11T21:01:12Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.3.0
+  notes: null

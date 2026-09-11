@@ -34,6 +34,7 @@ Goal: the lowerings the v7.2.0 corpus removals exposed, the loop-containment rul
 | PMAT-258 | the release: #303, #316, #318, deps, comply, corpus growth, the book |
 | PMAT-253 | forjar parity, the phases not shipped in v7.2.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b |
 | PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it |
+| PMAT-259 | corpus_converged gains a _with_log twin, so a test does not depend on the checkout |
 
 Issues on this release: #303 (SC2106 not implemented), #316 (53 corpus entries exercised std methods with no lowering), #318 (an untracked copy of the source tree written by a test).
 

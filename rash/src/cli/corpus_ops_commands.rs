@@ -64,11 +64,29 @@ pub(crate) fn names_similar(a: &str, b: &str) -> bool {
 /// Check convergence criteria from spec §5.2.
 /// Returns exit code 0 if converged, 1 if not.
 pub(crate) fn corpus_converged(min_rate: f64, max_delta: f64, min_stable: usize) -> Result<()> {
+    corpus_converged_with_log(
+        min_rate,
+        max_delta,
+        min_stable,
+        &PathBuf::from(".quality/convergence.log"),
+    )
+}
+
+/// PMAT-259: body of `corpus_converged`, split so the convergence log comes
+/// from the caller. Without this the verdict depends on whichever log happens
+/// to sit in the process's working directory, and a test asserting "no log"
+/// passes or fails according to the repository's own state rather than the
+/// code's behaviour.
+pub(crate) fn corpus_converged_with_log(
+    min_rate: f64,
+    max_delta: f64,
+    min_stable: usize,
+    log_path: &std::path::Path,
+) -> Result<()> {
     use crate::cli::color::*;
     use crate::corpus::runner::CorpusRunner;
 
-    let log_path = PathBuf::from(".quality/convergence.log");
-    let entries = CorpusRunner::load_convergence_log(&log_path)
+    let entries = CorpusRunner::load_convergence_log(log_path)
         .map_err(|e| Error::Internal(format!("Failed to read convergence log: {e}")))?;
 
     if entries.len() < min_stable {
