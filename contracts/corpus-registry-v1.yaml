@@ -154,3 +154,13 @@ falsification_tests:
   prediction: 'B-001/M-001/D-001 expected_output as pinned in the test source; sum(input) >= 2.5 MB; sum(expected_output) >= 300 KB'
   test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_010
   if_fails: 'Contract violation: a format has been swapped for filler, or the corpus has been thinned to minimal inputs'
+- id: F-CORPUS-011
+  rule: a corpus run writes nothing outside its own temporary directory, whatever an entry does
+  prediction: 'an entry that writes into its working directory leaves the file under the temporary root and nothing in the repository'
+  test: cargo test -p bashrs --lib corpus::runner_checks::pmat258_sandbox_tests::test_PMAT258_sandbox_writes_confined_to_tempdir
+  if_fails: 'Contract violation: the runner executes entries with the callers cwd again, which is how an untracked copy of the source tree was written into the repository (GH-318)'
+- id: F-CORPUS-012
+  rule: a corpus run writes nothing into the real home directory
+  prediction: 'an entry that writes to HOME leaves the callers home untouched'
+  test: cargo test -p bashrs --lib corpus::runner_checks::pmat258_sandbox_tests::test_PMAT258_sandbox_home_writes_confined_to_tempdir
+  if_fails: 'Contract violation: HOME is inherited from the caller again'
