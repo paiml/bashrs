@@ -23,7 +23,6 @@ Issues on the GitHub milestone `v7.1.0`: #293, #294, #295, #265, #232.
 | PMAT-243 | COV-MEASURE: measure line coverage, name the top ten gaps, record both |
 | PMAT-246 | work contracts regenerated so pv validates all 103; the CB-1305 half is upstream (paiml-mcp-agent-toolkit#1306) |
 | PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it (make corpus-score sandboxes the release run; the runner itself is v7.3.0) |
-| PMAT-262 | the close-out: statuses, the verified release record, the v7.4.0 plan |
 | PMAT-257 | the release itself: ten defects, pv gate 4 green, coverage 95.01 percent, the Pareto gates, the book |
 
 ## v7.3.0 (released 2026-09-12)
@@ -33,11 +32,10 @@ Goal: the lowerings the v7.2.0 corpus removals exposed, the loop-containment rul
 | entry | what |
 |---|---|
 | PMAT-258 | the release: #303, #316, #318, deps, comply, corpus growth, the book |
-| PMAT-253 | forjar parity, the phases not shipped in v7.2.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b |
-| PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it |
 | PMAT-259 | corpus_converged gains a _with_log twin, so a test does not depend on the checkout |
 | PMAT-260 | regenerate Cargo.lock for 7.3.0, without which --locked builds and the publish script fail |
 | PMAT-261 | cover the convergence check, restoring coverage above the 95 percent gate |
+| PMAT-262 | the close-out: statuses, the verified release record, the v7.4.0 plan |
 
 Issues on this release: #303 (SC2106 not implemented), #316 (53 corpus entries exercised std methods with no lowering), #318 (an untracked copy of the source tree written by a test).
 
