@@ -284,6 +284,26 @@ impl super::pipeline::ValidationPipeline {
         }
     }
 
+    /// True when `s` contains a `$(` that opens command substitution. A `$((`
+    /// opens arithmetic expansion instead, which the shell resolves first;
+    /// the scan steps past it and keeps looking, so `$(( $(cmd) ))` is still
+    /// reported.
+    pub(crate) fn has_command_substitution(s: &str) -> bool {
+        let b = s.as_bytes();
+        let mut i = 0;
+        while i + 1 < b.len() {
+            if b[i] == b'$' && b[i + 1] == b'(' {
+                if b.get(i + 2) == Some(&b'(') {
+                    i += 3;
+                    continue;
+                }
+                return true;
+            }
+            i += 1;
+        }
+        false
+    }
+
     /// Validate string literal in exec() context - only check for shellshock, allow pipes/operators
     pub(crate) fn validate_string_literal_in_exec(&self, s: &str) -> RashResult<()> {
         if self.level == ValidationLevel::None {
@@ -297,8 +317,11 @@ impl super::pipeline::ValidationPipeline {
             ));
         }
 
-        // Block command substitution in exec strings (could be injection vector)
-        if s.contains("$(") {
+        // Block command substitution in exec strings (could be injection vector).
+        // PMAT-265: `$((…))` is arithmetic expansion, not a command; the scan
+        // continues inside it so a `$(cmd)` nested in the arithmetic is still
+        // refused (F-TCORE-030).
+        if Self::has_command_substitution(s) {
             return Err(RashError::ValidationError(format!(
                 "Command substitution detected in exec command: '{}'",
                 s.chars().take(50).collect::<String>()

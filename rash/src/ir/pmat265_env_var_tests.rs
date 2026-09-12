@@ -15,9 +15,9 @@
 //!
 //! | Rust | shell |
 //! |---|---|
-//! | `std::env::var("X")` | `"${X}"` |
+//! | `std::env::var("X")` | `"${X}"`, exactly as `env("X")` (the script runs under `set -u`, so unset aborts) |
 //! | `.unwrap_or(d)`, `.unwrap_or_else(\|_\| d)` | `"${X-d}"` (unset only) |
-//! | `.unwrap_or_default()` | `"${X}"` |
+//! | `.unwrap_or_default()` | `"${X-}"` |
 //! | `.unwrap()` | `"${X?}"` (aborts when unset, like the panic) |
 //! | `.expect("m")` | `"${X?m}"` |
 //!
@@ -82,7 +82,22 @@ fn test_PMAT265_bare_env_var_is_a_parameter_expansion_not_a_command() {
         "expected the parameter expansion of X:\n{script}"
     );
     assert_eq!(stdout_of("dash", &script, &[("X", "hello")]), "[hello]");
-    assert_eq!(stdout_of("dash", &script, &[]), "[]");
+    // Byte-identical to the DSL's own `env("X")`: it is the same read.
+    let via_env = transpile_ok(r#"fn main() { let v = env("X"); println!("[{}]", v); }"#);
+    assert_eq!(script, via_env);
+    // The generated script runs under `set -u`, so like `env("X")` an unset
+    // name aborts rather than reading as empty; the read is never silently
+    // a command that fails and continues.
+    let (stdout, stderr, code) = run_with_env("dash", &script, &[]);
+    assert_ne!(code, 0, "{script}");
+    assert!(
+        stdout.is_empty(),
+        "nothing printed after the abort: {stdout}"
+    );
+    assert!(
+        !stderr.contains("not found"),
+        "no missing-command error: {stderr}"
+    );
 }
 
 // ===== F-TCORE-026: unwrap_or / unwrap_or_else on the env name itself =====
@@ -127,7 +142,10 @@ fn test_PMAT265_env_var_unwrap_expect_and_unwrap_or_default_have_exact_spellings
     let defaulted = transpile_ok(
         r#"fn main() { let v = std::env::var("X").unwrap_or_default(); println!("[{}]", v); }"#,
     );
-    assert!(defaulted.contains("${X}"), "{defaulted}");
+    assert!(
+        defaulted.contains("${X-}"),
+        "unset reads as the empty default under set -u:\n{defaulted}"
+    );
     assert_eq!(stdout_of("dash", &defaulted, &[]), "[]");
     assert_eq!(stdout_of("dash", &defaulted, &[("X", "v")]), "[v]");
 
@@ -151,7 +169,10 @@ fn test_PMAT265_env_var_unwrap_expect_and_unwrap_or_default_have_exact_spellings
     let expected = transpile_ok(
         r#"fn main() { let v = std::env::var("X").expect("X must be set"); println!("[{}]", v); }"#,
     );
-    assert!(expected.contains("${X?X must be set}"), "{expected}");
+    // The message has spaces, so it takes the nested double-quoted spelling
+    // `"${X?"X must be set"}"`; what is pinned is the `?` form and the
+    // message reaching stderr.
+    assert!(expected.contains("${X?"), "{expected}");
     let (_stdout, stderr, code) = run_with_env("dash", &expected, &[]);
     assert_ne!(code, 0);
     assert!(

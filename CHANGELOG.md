@@ -13,6 +13,9 @@ The required check lints what it claims to lint; the self-lint becomes a gate wi
 
 ### Fixed
 
+- **`std::env::var` is an environment read** (PMAT-265). `std::env::var("X")` used to lower to `$(std::env::var X)` — a command substitution of a command that does not exist, so the script ran, printed an error and continued with an empty value. It now lowers exactly as `env("X")` does. Its `Result` methods have exact POSIX spellings on the env name itself: `.unwrap_or(d)` and `.unwrap_or_else(|_| d)` to the unset-only `"${X-d}"` (a set-but-empty `X` keeps its value; `"d".to_string()` and `String::from("d")` are accepted as the default), `.unwrap_or_default()` to `"${X-}"`, `.unwrap()` to `"${X?}"` and `.expect("m")` to `"${X?m}"`, which abort the script when `X` is unset as the panic would. A name that is not a shell identifier is refused at build time, naming it. Found by 20 of the release's corpus candidates.
+- **The `unwrap_or` default is spelled for the expansion it sits in** (PMAT-265). v7.3.0 rendered the default through the single-quoting escaper, so `x.unwrap_or("{brace}")` became `"${x-'{brace}'}"`: bash printed the quotes literally and expanded any `$` inside, and dash reported a syntax error. A plain word now goes in bare and anything else becomes a nested double-quoted word with backslash escapes, `"${x-"{brace}"}"`, which bash, dash and busybox all print byte-for-byte. Pinned by `F-TCORE-028`, which runs six such defaults under both shells.
+- **`$((…))` inside a `capture()` string is arithmetic, not command substitution** (PMAT-265). The exec-string validator refused it; it now steps past `$((` and keeps scanning, so `capture("echo $(( $(date) ))")`, a real `$(cmd)` and a backtick are still refused. The transpiler-side twin of #237.
 - **#233** `ci / lint` ran a bare `cargo clippy --all-targets`, which at this workspace root resolves to the `bashrs-specs` stub, so `rash/`, `bashrs-oracle`, `bashrs-runtime` and `bashrs-wasm` were never linted by the required check. The same hole was in `make release-gate`. Both now name the workspace. Making the tree clean under `cargo clippy --workspace --all-targets --all-features -- -D warnings` took six kinds of fix, all measured before enabling: two `include!` lines after a test module, one orphan test fragment in `bashrs-wasm` whose `use super::*` pointed at itself (so the `codebert` feature's tests never compiled), 90 dead `let config` bindings and the 22 imports they kept alive, three REPL tests that built a completer and never installed it, one single-arm `match`, one manual range check, one doc-list indent and one test name allowed at file level. The issue's other half, 37 integration targets not compiling, was fixed in v6.67.0 and re-measured at 0 errors; what remained was that CI never ran them.
 
 ### Added
@@ -23,9 +26,9 @@ The required check lints what it claims to lint; the self-lint becomes a gate wi
 
 ### Corpus
 
-- 18,592 to 18,795 entries. Six blind generation lanes wrote 240 candidates; each was transpiled through the library and its expected line matched against the output (216 passed), every Bash survivor was run under bwrap with a two-second timeout (143 ran, none timed out), and 13 duplicated an existing name. The 203 added cover cron-field parsing and validation in shell text, Makefile recipes, retry loops, env defaults and text pipelines: 143 Bash, 60 Makefile; 77 Adversarial, 63 Production, 54 Standard, 6 Complex, 3 Trivial.
+- 18,592 to 18,814 entries. Six blind generation lanes wrote 240 candidates; each was transpiled through the library and its expected line matched against the output (216 passed), every Bash survivor was run under bwrap with a two-second timeout (143 ran, none timed out), and 13 duplicated an existing name. The 203 added cover cron-field parsing and validation in shell text, Makefile recipes, retry loops, env defaults and text pipelines: 143 Bash, 60 Makefile; 77 Adversarial, 63 Production, 54 Standard, 6 Complex, 3 Trivial.
 - The screen changed in two measured places: `crontab` is denied only in command position (forty candidates that parse cron syntax, the pattern that was asked for, were being dropped for the word alone), and `$$` is denied only in Bash entries, because in a Makefile recipe `$$FOO` is make's escape for a shell `$`.
-- **Two transpiler defects the failed candidates exposed**, filed as PMAT-265 for the next diff, not fixed here: `std::env::var("X")` alone lowers to the nonsense command `$(std::env::var X)` and `std::env::var("X").unwrap_or(d)` fails the transpile although the 7.3.0 `unwrap_or` lowering accepts a bare variable (20 candidates); and `$((…))` inside a `capture()` string is refused by the exec-string validator as command substitution (3 candidates).
+- 19 of the 24 candidates that failed the first validation pass now transpile after PMAT-265 and were added (ids 17704..17722): env defaults with braces, quotes, dollars and a literal `$(pwd)` in the default, and arithmetic inside `capture()`. The five that remain out are `.len()` on a defaulted env read and `push_str`, both honest transpile errors.
 
 ### Dependencies
 
@@ -33,7 +36,7 @@ The required check lints what it claims to lint; the self-lint becomes a gate wi
 
 ### Provable contracts
 
-- One new contract (dogfood-selflint-v1, five entries) and the corpus bar. `pv lint contracts`: PASS, 0 errors.
+- One new contract (dogfood-selflint-v1, five entries), six new entries in transpiler-core-v1 (F-TCORE-025..030, PMAT-265) and the corpus bar. `pv lint contracts`: PASS, 0 errors.
 
 ### Quality
 
