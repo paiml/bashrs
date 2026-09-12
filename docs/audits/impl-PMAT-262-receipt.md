@@ -4,7 +4,11 @@
 
 Ticket statuses for PMAT-258, 259, 260 and 261; the verified release record appended to the PMAT-258 receipt; the v7.3.0 sections dated in the plan and the notes; PMAT-253 and PMAT-256 moved to v7.4.0, because `release-lint` R3 refuses open work that names a release already cut; and the v7.4.0 sections opened in both documents.
 
-No code changes. `release-lint` is green: `open=2 releases=v7.4.0(2) highest_tag=v7.3.0`.
+No code changes. `release-lint` is green, measured after this ticket was itself added to the roadmap, which is what makes the count three rather than two:
+
+```
+release-lint: open=3 releases=v7.4.0(3) highest_tag=v7.3.0 plan=docs/roadmaps/releases.md notes=/home/noah/src/bashrs/docs/release-notes.md
+```
 
 ## Why it is its own ticket
 
