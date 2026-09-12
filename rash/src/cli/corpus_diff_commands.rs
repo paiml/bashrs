@@ -250,3 +250,125 @@ pub(crate) fn chrono_free_date() -> String {
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .map_or_else(|| "unknown".to_string(), |s| s.trim().to_string())
 }
+
+// PMAT-261: coverage for the diff and report handlers, through their `_with`
+// twins so no test reads the repository's own convergence log or runs the
+// full corpus: a three-entry registry and a TempDir log are enough.
+#[cfg(test)]
+mod pmat261_cov_tests {
+    use super::*;
+    use crate::corpus::registry::{CorpusEntry, CorpusFormat, CorpusRegistry, CorpusTier};
+    use std::io::Write;
+    use tempfile::TempDir;
+
+    fn line(iteration: u32, rate: f64, delta: f64, passed: usize, total: usize) -> String {
+        format!(
+            r#"{{"iteration":{iteration},"date":"2026-09-12","total":{total},"passed":{passed},"failed":{},"rate":{rate},"delta":{delta},"notes":"fixture"}}"#,
+            total - passed
+        )
+    }
+
+    fn log_with(dir: &TempDir, lines: &[String]) -> std::path::PathBuf {
+        let p = dir.path().join("convergence.log");
+        let mut f = std::fs::File::create(&p).expect("log created");
+        for l in lines {
+            writeln!(f, "{l}").expect("line written");
+        }
+        p
+    }
+
+    fn tiny_registry() -> CorpusRegistry {
+        let mut r = CorpusRegistry::new();
+        r.add(CorpusEntry::new(
+            "B-001",
+            "hello-bash",
+            "PMAT-261 fixture",
+            CorpusFormat::Bash,
+            CorpusTier::Trivial,
+            r#"fn main() { let greeting = "hello"; }"#,
+            "greeting='hello'",
+        ));
+        r
+    }
+
+    #[test]
+    fn test_PMAT261_cov_show_diff_needs_two_entries() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(&dir, &[line(1, 0.99, 0.0, 99, 100)]);
+        corpus_show_diff_with(&p, &CorpusOutputFormat::Human, None, None)
+            .expect_err("one entry cannot be diffed against anything");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_show_diff_human_and_json() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(
+            &dir,
+            &[line(1, 0.90, 0.0, 90, 100), line(2, 0.99, 0.09, 99, 100)],
+        );
+        corpus_show_diff_with(&p, &CorpusOutputFormat::Human, None, None)
+            .expect("two entries diff in human form");
+        corpus_show_diff_with(&p, &CorpusOutputFormat::Json, None, None).expect("and in json form");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_show_diff_explicit_iterations() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(
+            &dir,
+            &[
+                line(1, 0.90, 0.0, 90, 100),
+                line(2, 0.95, 0.05, 95, 100),
+                line(3, 0.99, 0.04, 99, 100),
+            ],
+        );
+        corpus_show_diff_with(&p, &CorpusOutputFormat::Human, Some(1), Some(3))
+            .expect("an explicit pair of iterations diffs");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_show_diff_unknown_iteration_is_an_error() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(
+            &dir,
+            &[line(1, 0.90, 0.0, 90, 100), line(2, 0.99, 0.09, 99, 100)],
+        );
+        corpus_show_diff_with(&p, &CorpusOutputFormat::Human, Some(1), Some(99))
+            .expect_err("an iteration that is not in the log cannot be diffed");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_generate_report_writes_to_a_temp_path() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(&dir, &[line(1, 0.99, 0.0, 99, 100)]);
+        let out = dir.path().join("report.md");
+        corpus_generate_report_with(
+            &tiny_registry(),
+            Some(out.to_str().expect("utf-8 path")),
+            &p,
+        )
+        .expect("a report over a one-entry registry writes");
+        let text = std::fs::read_to_string(&out).expect("report written");
+        assert!(
+            text.contains("V2 Corpus Quality Report"),
+            "the report carries its heading:\n{text}"
+        );
+    }
+
+    #[test]
+    fn test_PMAT261_cov_generate_report_to_stdout() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(&dir, &[line(1, 0.99, 0.0, 99, 100)]);
+        corpus_generate_report_with(&tiny_registry(), None, &p)
+            .expect("with no path the report prints");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_chrono_free_date_is_a_date_or_unknown() {
+        let d = chrono_free_date();
+        assert!(
+            d == "unknown" || (d.len() == 10 && d.matches('-').count() == 2),
+            "expected YYYY-MM-DD or unknown, got {d}"
+        );
+    }
+}
