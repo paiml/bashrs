@@ -39,7 +39,17 @@ Goal: the lowerings the v7.2.0 corpus removals exposed, the loop-containment rul
 
 Issues on this release: #303 (SC2106 not implemented), #316 (53 corpus entries exercised std methods with no lowering), #318 (an untracked copy of the source tree written by a test).
 
-## v7.4.0
+## v7.5.0
+
+Goal: the forjar-parity phases that have been carried since v7.1.0, and the shellcheck-parity gaps #236 still names after v7.4.0 re-measured it. Coverage stays at or above 95 percent, every ticket carries a falsification test, and every pull request carries three independent quorum verdicts.
+
+| entry | what |
+|---|---|
+| PMAT-253 | forjar parity, the phases not shipped in v7.1.0 through v7.4.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b (decision D4, gate S, shipped in v7.4.0) |
+
+Issues on this release: #236 (SC2086 in a heredoc body, SC2154 on a sourced variable, SC1004 across a multi-line quoted argument — measured in `docs/audits/sc-vs-shellcheck-v7.4.0.md`), #331 (SC2242 reads nested loops through three booleans and never closes a one-line `case … esac`), #234 (the TDG grade gate: 120 functions below grade A). Backlog: none — every open issue names a release.
+
+## v7.4.0 (released 2026-09-12)
 
 Goal: the forjar-parity phases that keep being carried, and the corpus runner's own sandbox rather than the release target's. Coverage stays at or above 95 percent, every ticket carries a falsification test, and every pull request carries three independent quorum verdicts.
 
@@ -51,7 +61,9 @@ Goal: the forjar-parity phases that keep being carried, and the corpus runner's 
 | PMAT-265 | `std::env::var` is an environment read; its Result methods, a default spelled for the expansion it sits in, arithmetic in `capture()` — found by validating the release's own corpus candidates |
 | PMAT-264 | the close-out: statuses, the verified release record, the v7.5.0 plan |
 
-Issues on this release: #233 (CI lints only the bashrs-specs stub). Backlog: #234, #236.
+Issues on this release: #233 (CI lints only the bashrs-specs stub) — the clippy-scoping half closed here; the integration-target half was closed in v6.67.0 and re-measured at 0 errors. Backlog: #234.
+
+Released: tag `v7.4.0` on 4aa24ca271, `bashrs 7.4.0` on crates.io, `cargo install bashrs --version 7.4.0` verified (reports `bashrs 7.4.0`, corpus 18,814 entries at 99.4/100 A+).
 
 ## Unscheduled (blocked)
 
