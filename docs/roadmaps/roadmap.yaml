@@ -2378,3 +2378,21 @@ roadmap:
   - kind:code
   - release:v7.3.0
   notes: null
+- id: PMAT-261
+  github_issue: null
+  item_type: task
+  title: cover the convergence check, restoring the 95 percent coverage gate
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-09-12T00:24:58Z
+  updated: 2026-09-12T00:24:58Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.3.0
+  notes: null

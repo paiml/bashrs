@@ -244,3 +244,119 @@ pub(crate) fn corpus_benchmark(max_ms: u64, filter: Option<&CorpusFormatArg>) ->
     }
     Ok(())
 }
+
+// PMAT-261: coverage for the convergence check. Every path is a log written
+// into a TempDir, so no test depends on whichever `.quality/convergence.log`
+// the checkout happens to carry -- the defect PMAT-259 fixed.
+#[cfg(test)]
+mod pmat261_cov_tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::TempDir;
+
+    /// One convergence-log line. `rate` and `delta` are fractions, as the
+    /// checks divide their percentage thresholds by 100.
+    fn line(iteration: u32, rate: f64, delta: f64, passed: usize, total: usize) -> String {
+        format!(
+            r#"{{"iteration":{iteration},"date":"2026-09-12","total":{total},"passed":{passed},"failed":{},"rate":{rate},"delta":{delta},"notes":"fixture"}}"#,
+            total - passed
+        )
+    }
+
+    fn log_with(dir: &TempDir, lines: &[String]) -> std::path::PathBuf {
+        let p = dir.path().join("convergence.log");
+        let mut f = std::fs::File::create(&p).expect("log created");
+        for l in lines {
+            writeln!(f, "{l}").expect("line written");
+        }
+        p
+    }
+
+    #[test]
+    fn test_PMAT261_cov_converged_missing_log_is_an_error() {
+        let dir = TempDir::new().unwrap();
+        let err = corpus_converged_with_log(99.0, 0.5, 3, &dir.path().join("absent.log"))
+            .expect_err("a missing log cannot be converged");
+        assert!(matches!(err, Error::Internal(_)));
+    }
+
+    #[test]
+    fn test_PMAT261_cov_converged_too_few_iterations_is_an_error() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(&dir, &[line(1, 0.99, 0.001, 99, 100)]);
+        corpus_converged_with_log(90.0, 1.0, 3, &p)
+            .expect_err("one iteration cannot satisfy a three-iteration window");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_converged_all_checks_pass() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(
+            &dir,
+            &[
+                line(1, 0.99, 0.000, 99, 100),
+                line(2, 0.99, 0.001, 99, 100),
+                line(3, 0.99, 0.001, 99, 100),
+            ],
+        );
+        corpus_converged_with_log(90.0, 1.0, 3, &p)
+            .expect("a steady rate above the bar with no regression is converged");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_converged_rate_below_threshold_fails() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(
+            &dir,
+            &[
+                line(1, 0.50, 0.000, 50, 100),
+                line(2, 0.50, 0.001, 50, 100),
+                line(3, 0.50, 0.001, 50, 100),
+            ],
+        );
+        corpus_converged_with_log(90.0, 1.0, 3, &p)
+            .expect_err("a rate under the threshold is not converged");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_converged_large_delta_fails() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(
+            &dir,
+            &[
+                line(1, 0.99, 0.20, 99, 100),
+                line(2, 0.99, 0.20, 99, 100),
+                line(3, 0.99, 0.20, 99, 100),
+            ],
+        );
+        corpus_converged_with_log(90.0, 1.0, 3, &p)
+            .expect_err("a delta far above the bar is not stable");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_converged_regression_between_iterations_fails() {
+        let dir = TempDir::new().unwrap();
+        let p = log_with(
+            &dir,
+            &[
+                line(1, 0.99, 0.000, 99, 100),
+                line(2, 0.99, 0.001, 99, 100),
+                line(3, 0.91, 0.001, 91, 100),
+            ],
+        );
+        corpus_converged_with_log(90.0, 1.0, 3, &p)
+            .expect_err("a drop in passing entries is a regression");
+    }
+
+    #[test]
+    fn test_PMAT261_cov_converged_print_check_both_branches() {
+        converged_print_check("a passing check", true);
+        converged_print_check("a failing check", false);
+    }
+
+    #[test]
+    fn test_PMAT261_cov_names_similar_matches_and_rejects() {
+        assert!(names_similar("cron-install-job", "cron-install-job"));
+        assert!(!names_similar("cron-install-job", "perl-extract-ip"));
+    }
+}
