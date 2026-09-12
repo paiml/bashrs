@@ -25,7 +25,7 @@ Issues on the GitHub milestone `v7.1.0`: #293, #294, #295, #265, #232.
 | PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it (make corpus-score sandboxes the release run; the runner itself is v7.3.0) |
 | PMAT-257 | the release itself: ten defects, pv gate 4 green, coverage 95.01 percent, the Pareto gates, the book |
 
-## v7.3.0
+## v7.3.0 (released 2026-09-12)
 
 Goal: the lowerings the v7.2.0 corpus removals exposed, the loop-containment rule that dogfooding keeps asking for, and the sandbox that stops a test writing into the repository. Coverage stays at or above 95 percent and every ticket carries a falsification test the contract verifier checks.
 
@@ -39,6 +39,17 @@ Goal: the lowerings the v7.2.0 corpus removals exposed, the loop-containment rul
 | PMAT-261 | cover the convergence check, restoring coverage above the 95 percent gate |
 
 Issues on this release: #303 (SC2106 not implemented), #316 (53 corpus entries exercised std methods with no lowering), #318 (an untracked copy of the source tree written by a test).
+
+## v7.4.0
+
+Goal: the forjar-parity phases that keep being carried, and the corpus runner's own sandbox rather than the release target's. Coverage stays at or above 95 percent, every ticket carries a falsification test, and every pull request carries three independent quorum verdicts.
+
+| entry | what |
+|---|---|
+| PMAT-253 | forjar parity, the phases not shipped in v7.1.0 through v7.3.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b |
+| PMAT-256 | corpus runner sandbox: the runner itself, not only `make corpus-score` |
+
+Issues on this release: none yet. Backlog: #233, #234, #236.
 
 ## Unscheduled (blocked)
 

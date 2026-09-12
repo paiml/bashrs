@@ -68,3 +68,36 @@ Three lanes, three different models, none in the author's family (`gemini-3.1-pr
 - **Round 3** (gemini-3.1-pro-high, gemini-3.7-flash-high, gemini-3.8-flash-high): 2 PASS, 1 FAIL, and the FAIL was right. Contract F-LCX-020 named the module `tests_pmat258` in sc2106.rs, but that test sits in the file's existing `tests` module. pv gate 4 still passed, because it matches only the text after the last colon pair against bare test names, so the gate was green while the command written in the contract found nothing. Corrected, and every other test path in contracts/ was re-run individually to confirm it resolves to at least one test.
 
 That is the second time this release that a green gate hid a wrong claim, and both were caught by a reviewer rather than by the gate.
+
+## Released
+
+v7.3.0 shipped 2026-09-12 from merge commit 2312330960, with the required check green on it.
+
+| channel | verified |
+|---|---|
+| crates.io sparse index | `bashrs` and `bashrs-oracle` both at 7.3.0 |
+| GitHub release | v7.3.0 present, release workflow succeeded |
+| install | `cargo install bashrs --version 7.3.0` replaced 7.2.0 |
+| the breaking rename | `ps aux \| grep foo` reports SC2009, and not SC2106 |
+| the new rule | `( break )` inside a `for` loop reports SC2106 |
+| the new lowering | `s.len()` emits `n=${#s}` and the script prints 5 |
+
+Release gate before the tag: workspace tests pass, coverage **95.07 percent**, `pv lint contracts` PASS with gate 4 at 80 of 80, corpus **18,592 entries at 99.4/100 (A+)** under bwrap, book builds and its examples pass.
+
+## What the quorum caught, across four pull requests
+
+Every pull request in this release was reviewed by three lanes, each a named non-Claude model, before merge. Eleven rounds in total, and the refusals were worth their cost:
+
+| round | refusal | outcome |
+|---|---|---|
+| 1 | `Sandbox::new()` trusted bwrap's presence; an unusable bwrap exits 1 and every caller reads "not 124" as success, so every entry would pass without running | confirmed and fixed with a probe |
+| 3 | contract `F-LCX-020` named a module that does not exist; pv's gate matches only the final path segment, so the gate was green while the command found nothing | confirmed and fixed |
+| 5, 7 | a diff judged against the release ticket it was cut from | two tickets minted, PMAT-259 and PMAT-260 |
+| 9 | an unrelated lock bump in a scoped diff | the bump was out of scope there, and exposed that `main` could not publish at all |
+| 10 | `.pmat/baseline.json`, re-staged by the pre-commit hook, rode along in a commit | removed |
+
+Two of those are gates that were green while hiding a wrong claim. Both were caught by a reviewer, not by a gate.
+
+## Gaps carried to v7.4.0
+
+PMAT-253's remaining forjar-parity phases and PMAT-256, the runner's own sandbox rather than the release target's. Backlog: #233, #234, #236. `release-lint`'s treatment of cancelled entries is filed upstream as paiml/paiml-mcp-agent-toolkit#1326; the skill bundle was upgraded twice during this release and discarded the local patch each time.

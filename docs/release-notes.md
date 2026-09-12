@@ -4,9 +4,13 @@ One section per release. `release-lint` rule R5 reads the headings: every tag th
 
 Sections for releases before v7.1.0 carry the tag's own annotated message, which is the record that exists for them. From v7.1.0 the full notes live in `CHANGELOG.md` and the section here points at it.
 
+## v7.4.0
+
+In progress. Planned: the remaining forjar-parity phases (PMAT-253) and the corpus runner's own sandbox (PMAT-256).
+
 ## v7.3.0
 
-Tagged 2026-09-11.
+Tagged 2026-09-12.
 
 Three deferred decisions taken by blind quorum and implemented. **Breaking:** the rule bashrs called `SC2106` was shellcheck's `SC2009` and has moved there; `SC2106` now reports a `break` or `continue` inside a subshell. Change `# shellcheck disable=SC2106` to `SC2009` if you suppressed the ps-grep check.
 

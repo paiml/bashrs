@@ -2247,7 +2247,7 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  - release:v7.3.0
+  - release:v7.4.0
   notes: 'orch-basis:operator — user wrote, verbatim: "in parallel ensure we are using a PR style and dogfood style like ../forjar (i.e. CRUX, quorum).  file ticket and research and then have "agy /teamwork review"". Filed during the PMAT-251 session (v7.0.4); research and the teamwork review are this session''s deliverable, implementation is scheduled with 7.1.0. | PMAT-254 (2026-09-10, v7.1.0 triage): release:v7.2.0 for phases 1a-1c, 2, 3b, 4a, 4b, 6, 7a, 7b; phases 3a and 5 ship in v7.1.0 under PMAT-255. orch:fable removed: model-gate refuses the ticket for every model because its basis token `operator` is not in the skill''s vocabulary; the default orchestrator (opus) runs it. | PMAT-255 (v7.1.0, 2026-09-11): shipped phase 3a''s gates D, G and K (gate B waits on the operator''s decision 4) and phase 5 (scripts/publish-from-tag.sh and the release.yml wait on the sparse index); the remaining phases stay release:v7.2.0.'
 - id: PMAT-254
   github_issue: null
@@ -2304,7 +2304,7 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  - release:v7.3.0
+  - release:v7.4.0
   notes: 'Decided by quorum (2026-09-11, 2-1): the runner sandboxes itself and generation-time screening stays. Measured during the v7.1.0 cycle: 7 of 240 agent-generated candidate entries ran real commands, among them make builds, uv and agy, when executed with the callers environment. The dissenting lane warned that contributors without bwrap must still be able to run the corpus, which is why the cross-platform half of the decision is the temporary cwd, HOME and PATH. Record: docs/audits/quorum-decisions-v7.2.0.md'
 - id: PMAT-257
   github_issue: null
@@ -2328,7 +2328,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'v7.3.0: SC2106, the std-method lowerings behind the corpus removals, the corpus runner sandbox, deps, comply'
-  status: planned
+  status: completed
   priority: critical
   assigned_to: null
   created: 2026-09-11T17:29:55Z
@@ -2341,12 +2341,12 @@ roadmap:
   labels:
   - kind:code
   - release:v7.3.0
-  notes: null
+  notes: 'Shipped as v7.3.0 on 2026-09-12: SC2009 and the real SC2106, the len/to_string/unwrap_or lowerings, the corpus runner sandbox with a bwrap probe, 139 corpus entries, deps, and the book. Four pull requests each reviewed by three non-Claude quorum lanes before merge. Receipt: docs/audits/impl-PMAT-258-receipt.md'
 - id: PMAT-259
   github_issue: null
   item_type: task
   title: 'corpus_converged gains a _with_log twin, so a test does not depend on the checkout'
-  status: planned
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-09-11T21:01:12Z
@@ -2359,12 +2359,12 @@ roadmap:
   labels:
   - kind:code
   - release:v7.3.0
-  notes: null
+  notes: 'Shipped in v7.3.0: corpus_converged gained a _with_log twin so no test depends on the checkout. Receipt: docs/audits/impl-PMAT-259-receipt.md'
 - id: PMAT-260
   github_issue: null
   item_type: task
   title: regenerate Cargo.lock for 7.3.0 so --locked builds and the publish script work
-  status: planned
+  status: completed
   priority: critical
   assigned_to: null
   created: 2026-09-11T23:32:17Z
@@ -2377,12 +2377,12 @@ roadmap:
   labels:
   - kind:code
   - release:v7.3.0
-  notes: null
+  notes: 'Shipped in v7.3.0: the lockfile matched 7.2.0 while the manifest said 7.3.0, so cargo --locked failed and the publish script could not run. Receipt: docs/audits/impl-PMAT-260-receipt.md'
 - id: PMAT-261
   github_issue: null
   item_type: task
   title: cover the convergence check, restoring the 95 percent coverage gate
-  status: planned
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-09-12T00:24:58Z
@@ -2395,4 +2395,4 @@ roadmap:
   labels:
   - kind:code
   - release:v7.3.0
-  notes: null
+  notes: 'Shipped in v7.3.0: coverage 94.98 to 95.07 percent, back above the gate. Receipt: docs/audits/impl-PMAT-261-receipt.md'
