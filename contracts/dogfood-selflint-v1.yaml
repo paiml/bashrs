@@ -1,0 +1,142 @@
+metadata:
+  version: 1.0.0
+  verification_level: L3
+  description: >-
+    Provable contract for dogfood gate S: bashrs lints its own tracked shell
+    scripts and the result is a GATE with a PER-FILE RATCHET (PMAT-263,
+    PMAT-253 phase 4, decided 3-0 by blind quorum on 2026-09-11, decision D4).
+    The subject is scripts/dogfood/selflint.sh and the ratchet file
+    scripts/dogfood/selflint-ratchet.tsv. The gate's verdict is a function of
+    two numbers per file - the ERROR-severity diagnostic count bashrs reports
+    today and the count the ratchet recorded - and of whether the count could
+    be measured at all. A file over its row is a regression and fails; a file
+    under its row is an improvement and passes; a file with errors and no row
+    fails rather than silently passing; a file the linter could not measure
+    fails as UNMEASURED, never as clean. The linter is the binary built from
+    this tree (BASHRS_BIN), not whatever release is on PATH.
+  verification_command: cargo test -p bashrs --test dogfood_selflint_gate
+  depends_on:
+  - linter-lexer-context-v1
+  references:
+  - 'PMAT-263: v7.4.0 - gate S, selflint ratchet, CI nightly, corpus growth'
+  - 'PMAT-253 phase 4: dogfood parity with forjar (docs/specifications/pr-dogfood-parity-forjar.md)'
+  - 'Quorum decision D4 (2026-09-11): promote the advisory self-lint to a gate with a per-file ratchet'
+  - 'forjar legacy bashrs errors N <= N: the ratchet shape this gate copies'
+
+kernel_structure:
+  phases:
+  - name: enumerate
+    description: >-
+      List every tracked *.sh file under the root (git ls-files in a work tree,
+      a recursive find in a hermetic fixture copy), minus the named EXCLUDE
+      list, each exclusion carrying its reason beside it.
+    invariant: The set of files judged is the set of files enumerated minus the exclusions, nothing else.
+  - name: measure
+    description: >-
+      For each file, count the diagnostics of severity "error" in
+      `bashrs lint --format json` output. No parseable output at all is
+      UNMEASURED, a distinct outcome from zero.
+    invariant: A count is a non-negative integer or UNMEASURED; UNMEASURED is never coerced to 0.
+  - name: judge
+    description: >-
+      Compare the measured count to the ratchet row. over -> regression;
+      equal -> at ratchet; under -> improved; no row and count > 0 -> new
+      debt; no row and count = 0 -> clean.
+    invariant: The verdict depends only on (count, row) per file; no file's verdict depends on another file.
+  - name: report
+    description: >-
+      Print one line per improvement and per failure naming the file and both
+      numbers, then exactly one final `GATE S PASS|FAIL <detail>` line; the exit
+      code is 0 iff there are no failures.
+    invariant: The final line and the exit code agree.
+
+equations:
+  verdict:
+    formula: >-
+      verdict(f) = UNMEASURED            if count(f) is undefined
+                 = REGRESSION            if row(f) defined and count(f) > row(f)
+                 = IMPROVED              if row(f) defined and count(f) < row(f)
+                 = AT_RATCHET            if row(f) defined and count(f) = row(f)
+                 = NEW_DEBT              if row(f) undefined and count(f) > 0
+                 = CLEAN                 if row(f) undefined and count(f) = 0
+    domain: 'f: a tracked *.sh file not in EXCLUDE; count: error-severity diagnostics; row: the ratchet entry'
+    codomain: '{UNMEASURED, REGRESSION, IMPROVED, AT_RATCHET, NEW_DEBT, CLEAN}'
+    invariants:
+    - 'fails(f) <=> verdict(f) in {UNMEASURED, REGRESSION, NEW_DEBT}'
+    - 'exit = 0 <=> forall f: not fails(f)'
+  ratchet_monotone:
+    formula: 'write_ratchet() records count(f) for every f with count(f) > 0, and only those'
+    domain: 'the --write-ratchet mode'
+    codomain: 'scripts/dogfood/selflint-ratchet.tsv, sorted by path'
+    invariants:
+    - 'A regenerated ratchet is a diff a reviewer reads; the gate itself never rewrites it'
+
+proof_obligations:
+- type: invariant
+  property: a file at its ratchet row passes
+  formal: 'count(f) = row(f) => not fails(f)'
+  applies_to: all
+- type: invariant
+  property: a file over its ratchet row fails and is named with both numbers
+  formal: 'count(f) > row(f) => fails(f) and report contains (f, count(f), row(f))'
+  applies_to: all
+- type: invariant
+  property: a file under its ratchet row passes and is reported as improved
+  formal: 'count(f) < row(f) => not fails(f) and report contains IMPROVED f'
+  applies_to: all
+- type: invariant
+  property: a file with errors and no row fails
+  formal: 'row(f) undefined and count(f) > 0 => fails(f)'
+  applies_to: all
+- type: invariant
+  property: an unmeasurable file is a failure, never a pass
+  formal: 'count(f) undefined => fails(f) and exit != 0'
+  applies_to: all
+
+invariants:
+- 'the final GATE S line and the exit code agree'
+- 'no file verdict depends on another file'
+- 'UNMEASURED is never reported as 0 errors'
+- 'the linter is the binary named by BASHRS_BIN when set'
+- 'the three bench fixtures (rash/benches/fixtures/{large,medium,small}.sh) are excluded by name, with the reason in the script'
+
+kani_harnesses:
+- id: KANI-DOGFOOD_SELFLINT-001
+  obligation: the per-file verdict is total and exclusive over (count, row) up to the bound
+  property: 'forall count in 0..64, row in {undefined} + 0..64: exactly one of {REGRESSION, IMPROVED, AT_RATCHET, NEW_DEBT, CLEAN} holds'
+  bound: 64
+  strategy: bounded_int
+  harness: verify_selflint_verdict_is_total
+- id: KANI-DOGFOOD_SELFLINT-002
+  obligation: the exit code is 0 iff no file fails, for every multiset of verdicts up to the bound
+  property: 'forall verdicts with len <= 8: exit(verdicts) = 0 <=> forall v in verdicts: v not in {UNMEASURED, REGRESSION, NEW_DEBT}'
+  bound: 8
+  strategy: bounded_int
+  harness: verify_selflint_exit_matches_failures
+
+falsification_tests:
+- id: F-DOG-001
+  rule: A file whose error count equals its ratchet row passes
+  prediction: 'fixture ok.sh with 2 errors and row "2\tok.sh" -> exit 0 and stdout contains "GATE S PASS"'
+  test: cargo test -p bashrs --test dogfood_selflint_gate test_PMAT263_selflint_at_ratchet_passes
+  if_fails: 'Contract violation: the gate fails files that carry exactly their recorded debt, so every release fails on day one'
+- id: F-DOG-002
+  rule: A file over its ratchet row fails, naming the file and both numbers
+  prediction: 'fixture bad.sh with 3 errors and row "2\tbad.sh" -> exit 1 and stdout contains "GATE S FAIL", "bad.sh", "3" and "2"'
+  test: cargo test -p bashrs --test dogfood_selflint_gate test_PMAT263_selflint_over_ratchet_fails
+  if_fails: 'Contract violation: new debt passes the gate - the ratchet does not ratchet'
+- id: F-DOG-003
+  rule: A file under its ratchet row passes and is reported as improved
+  prediction: 'fixture better.sh with 1 error and row "2\tbetter.sh" -> exit 0 and stdout contains "GATE S PASS", "improved" and "better.sh"'
+  test: cargo test -p bashrs --test dogfood_selflint_gate test_PMAT263_selflint_under_ratchet_passes
+  if_fails: 'Contract violation: paying down debt is punished, or the improvement is invisible to the reviewer who must lower the row'
+- id: F-DOG-004
+  rule: A file with errors and no ratchet row fails
+  prediction: 'fixture new.sh with 1 error and an empty ratchet -> exit 1 and stdout contains "GATE S FAIL", "new.sh" and "new file"'
+  test: cargo test -p bashrs --test dogfood_selflint_gate test_PMAT263_selflint_new_file_fails
+  if_fails: 'Contract violation: a new script with errors passes silently because nobody wrote it a row'
+- id: F-DOG-005
+  rule: A linter that cannot run is UNMEASURED, and unmeasured is a failure, not a pass
+  prediction: 'a clean fixture with BASHRS_BIN pointing at a path that does not exist -> exit 1, stdout contains "GATE S FAIL" and "UNMEASURED" and never "GATE S PASS"'
+  test: cargo test -p bashrs --test dogfood_selflint_gate test_PMAT263_selflint_missing_linter_is_unmeasured_not_a_pass
+  if_fails: 'Contract violation: a broken or absent linter reads as a clean tree - the vacuous-pass failure mode of #284, in the dogfood gate'

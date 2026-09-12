@@ -329,9 +329,6 @@ release-gate: ## Full pre-release gate — every test target, the corpus and the
 	@./scripts/check-book-updated.sh
 	@echo "✅ Release gate green."
 
-dogfood-selflint: ## Gate S — bashrs on its own scripts, per-file ratchet (PMAT-253 phase 4, quorum D4)
-	@bash scripts/dogfood/selflint.sh
-
 corpus-score: ## Score the whole corpus, sandboxed where the sandbox exists
 	@echo "📊 Scoring the corpus..."
 	@cargo build -p bashrs --bin bashrs
@@ -1069,7 +1066,7 @@ help:
 	@echo ""
 	@echo "Dogfooding (Self-Validation):"
 	@echo "  make dogfood      - Hermetic dogfood gates D (docs) G (contracts) K (corpus)"
-	@echo "  make dogfood-selflint - bashrs lints its own scripts + Makefile (report, not a gate)"
+	@echo "  make dogfood-selflint - gate S: bashrs lints its own scripts against a per-file ratchet"
 	@echo "  make dogfood-quick - Quick check (Makefile + key scripts only)"
 	@echo "  make lint-scripts - Lint all shell scripts with bashrs"
 	@echo "  make lint-makefile - Lint Makefile with bashrs"
@@ -1317,8 +1314,11 @@ lint-makefile: ## Lint Makefile with bashrs
 # docs/specifications/pr-dogfood-parity-forjar.md.
 #
 # The former `dogfood` (bashrs linting its own scripts/Makefile, a report
-# rather than a gate — every step tolerates failure with `|| true`) is
-# renamed `dogfood-selflint` below; nothing about it changed.
+# rather than a gate — every step tolerated failure with `|| true`) became
+# `dogfood-selflint`, and in 7.4.0 (PMAT-263, quorum decision D4 of
+# 2026-09-11) that report became gate S: scripts/dogfood/selflint.sh with a
+# per-file ratchet in scripts/dogfood/selflint-ratchet.tsv. The old summary
+# numbers are what the ratchet now enforces.
 dogfood-build: ## Build the release binary the dogfood gates measure
 	@cargo build --release -p bashrs --bin bashrs
 
@@ -1327,41 +1327,8 @@ dogfood: dogfood-build ## Hermetic dogfood gates: D (docs), G (contracts), K (co
 	@bash scripts/dogfood/contracts.sh
 	@bash scripts/dogfood/corpus.sh
 
-dogfood-selflint: ## Run comprehensive self-validation (bashrs on bashrs)
-	@echo "🐕 bashrs Dogfooding - Self-Validation"
-	@echo "======================================="
-	@echo ""
-	@echo "=== Phase 1: Makefile Validation ==="
-	@./target/release/bashrs make lint Makefile --format human 2>&1 | tee /tmp/dogfood-makefile.txt || true
-	@echo ""
-	@echo "=== Phase 2: Shell Script Validation ==="
-	@TOTAL=0; ERRORS=0; WARNINGS=0; INFOS=0; \
-	for script in $$(find . -name "*.sh" -type f ! -path "*/node_modules/*" ! -path "*/target/*"); do \
-		TOTAL=$$((TOTAL + 1)); \
-		RESULT=$$(./target/release/bashrs lint "$$script" --format human 2>&1 | grep "^Summary:" | tail -1); \
-		if echo "$$RESULT" | grep -qE "([0-9]+) error"; then \
-			E=$$(echo "$$RESULT" | grep -oE "([0-9]+) error" | grep -oE "[0-9]+"); \
-			ERRORS=$$((ERRORS + E)); \
-		fi; \
-		if echo "$$RESULT" | grep -qE "([0-9]+) warning"; then \
-			W=$$(echo "$$RESULT" | grep -oE "([0-9]+) warning" | grep -oE "[0-9]+"); \
-			WARNINGS=$$((WARNINGS + W)); \
-		fi; \
-		if echo "$$RESULT" | grep -qE "([0-9]+) info"; then \
-			I=$$(echo "$$RESULT" | grep -oE "([0-9]+) info" | grep -oE "[0-9]+"); \
-			INFOS=$$((INFOS + I)); \
-		fi; \
-	done; \
-	echo ""; \
-	echo "=== Dogfooding Summary ==="; \
-	echo "Shell scripts scanned: $$TOTAL"; \
-	echo "Total errors: $$ERRORS"; \
-	echo "Total warnings: $$WARNINGS"; \
-	echo "Total infos: $$INFOS"; \
-	echo ""; \
-	echo "✅ Dogfooding complete - bashrs validated its own codebase!"
-	@echo ""
-	@echo "📊 Full report: docs/dogfooding/BASHRS_DOGFOODING.md"
+dogfood-selflint: dogfood-build ## Gate S: bashrs on its own scripts, per-file ratchet (PMAT-253 phase 4, quorum D4)
+	@BASHRS_BIN=$(PWD)/target/release/bashrs bash scripts/dogfood/selflint.sh
 
 dogfood-quick: ## Quick dogfood check (Makefile + key scripts only)
 	@echo "🐕 Quick Dogfood Check"

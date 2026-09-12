@@ -21,6 +21,7 @@ that are tested by the corresponding `*_contract_tests.rs` file.
 | corpus-registry-v1.yaml | corpus_registry_contract_tests.rs | Corpus is present, whole, and not filler (PMAT-245, #284) |
 | training-config-v1.yaml | `corpus::training_config` lib tests (F-TC-001..008) | Training config derives from counts; tests no longer walk the corpus (PMAT-245, CI run 34368312280) |
 | corpus-derived-generators-v1.yaml | `corpus::{model_card,ssc_report,contract_validation,baselines}` lib tests (F-CDG-001..007) | Corpus-derived generators take an injected registry; unit tests use tier-1, never the full corpus (PMAT-247) |
+| dogfood-selflint-v1.yaml | rash/tests/dogfood_selflint_gate.rs (F-DOG-001..005) | Gate S: bashrs on its own tracked scripts with a per-file error ratchet; unmeasured is a failure (PMAT-263, quorum D4) |
 
 ## Running
 

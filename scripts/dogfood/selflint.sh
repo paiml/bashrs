@@ -41,8 +41,14 @@ fail() {
   exit 1
 }
 
-if ! command -v bashrs >/dev/null 2>&1; then
-  fail "bashrs is not on PATH — this gate lints every tracked *.sh file with it, and that is UNMEASURED, never a pass"
+# The linter under test. BASHRS_BIN names the binary the caller built from
+# this tree (make dogfood-selflint passes it; the integration tests pass
+# CARGO_BIN_EXE_bashrs); without it the gate falls back to whatever `bashrs`
+# is on PATH, which may be an older release, so the Makefile never relies on
+# that fallback.
+BASHRS="${BASHRS_BIN:-bashrs}"
+if ! command -v "$BASHRS" >/dev/null 2>&1; then
+  fail "${BASHRS} is not an executable — this gate lints every tracked *.sh file with it, and that is UNMEASURED, never a pass"
 fi
 
 RATCHET="scripts/dogfood/selflint-ratchet.tsv"
@@ -83,7 +89,7 @@ list_sh_files() {
 # UNMEASURED is the caller's problem to report, never silently 0.
 count_errors() {
   local file="$1" json n
-  json="$(bashrs lint --format json "$file" 2>/dev/null || true)"
+  json="$("$BASHRS" lint --format json "$file" 2>/dev/null || true)"
   n="$(printf '%s' "$json" | jq '[.diagnostics[]? | select(.severity == "error")] | length' 2>/dev/null || true)"
   case "$n" in
     ''|*[!0-9]*) return 1 ;;

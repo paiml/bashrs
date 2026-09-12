@@ -3,9 +3,11 @@
 //! quorum 2026-09-11, decision D4).
 //!
 //! These tests run the SCRIPT, not the `bashrs` binary directly — the
-//! subject under test is the ratchet comparison logic, and the installed
-//! `bashrs` on PATH is a fixed oracle for "how many ERROR-severity
-//! diagnostics does this file have", not something these tests re-implement.
+//! subject under test is the ratchet comparison logic; the `bashrs` built
+//! from this tree (`CARGO_BIN_EXE_bashrs`, passed as `BASHRS_BIN`) is the
+//! oracle for "how many ERROR-severity diagnostics does this file have",
+//! not something these tests re-implement, and not whatever older release
+//! happens to be on PATH.
 //!
 //! Every scenario runs in its own `tempfile::TempDir`, pointed at through
 //! `SELFLINT_ROOT`, holding exactly the files that scenario needs — the
@@ -82,6 +84,7 @@ fn test_PMAT263_selflint_at_ratchet_passes() {
     Command::new("bash")
         .arg(selflint_script())
         .env("SELFLINT_ROOT", tmp.path())
+        .env("BASHRS_BIN", env!("CARGO_BIN_EXE_bashrs"))
         .assert()
         .success()
         .stdout(predicates::str::contains("GATE S PASS"));
@@ -95,6 +98,7 @@ fn test_PMAT263_selflint_over_ratchet_fails() {
     Command::new("bash")
         .arg(selflint_script())
         .env("SELFLINT_ROOT", tmp.path())
+        .env("BASHRS_BIN", env!("CARGO_BIN_EXE_bashrs"))
         .assert()
         .failure()
         .stdout(
@@ -113,6 +117,7 @@ fn test_PMAT263_selflint_under_ratchet_passes() {
     Command::new("bash")
         .arg(selflint_script())
         .env("SELFLINT_ROOT", tmp.path())
+        .env("BASHRS_BIN", env!("CARGO_BIN_EXE_bashrs"))
         .assert()
         .success()
         .stdout(
@@ -130,11 +135,32 @@ fn test_PMAT263_selflint_new_file_fails() {
     Command::new("bash")
         .arg(selflint_script())
         .env("SELFLINT_ROOT", tmp.path())
+        .env("BASHRS_BIN", env!("CARGO_BIN_EXE_bashrs"))
         .assert()
         .failure()
         .stdout(
             predicates::str::contains("GATE S FAIL")
                 .and(predicates::str::contains("new.sh"))
                 .and(predicates::str::contains("new file")),
+        );
+}
+
+#[test]
+fn test_PMAT263_selflint_missing_linter_is_unmeasured_not_a_pass() {
+    // A clean fixture that would PASS — but the linter named by BASHRS_BIN
+    // does not exist, so the gate must FAIL and say so, never report PASS
+    // for files it could not measure.
+    let tmp = fixture_root(&[(2, "ok.sh")], &[("ok.sh", 2)]);
+
+    Command::new("bash")
+        .arg(selflint_script())
+        .env("SELFLINT_ROOT", tmp.path())
+        .env("BASHRS_BIN", tmp.path().join("no-such-bashrs"))
+        .assert()
+        .failure()
+        .stdout(
+            predicates::str::contains("GATE S FAIL")
+                .and(predicates::str::contains("UNMEASURED"))
+                .and(predicates::str::contains("GATE S PASS").not()),
         );
 }
