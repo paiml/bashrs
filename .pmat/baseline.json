@@ -1,6 +1,6 @@
 {
   "version": "3.40.0",
-  "created_at": "2026-09-12T08:06:02.727090572Z",
+  "created_at": "2026-09-12T08:06:12.635978573Z",
   "git_context": null,
   "files": {
     "./bashrs-oracle/src/categories.rs": {
@@ -25947,48 +25947,48 @@
     },
     "./rash/src/ir/expr_calls.rs": {
       "content_hash": [
-        235,
-        204,
-        196,
-        75,
-        94,
-        10,
-        50,
-        125,
-        155,
-        135,
-        126,
-        68,
-        88,
-        158,
-        232,
+        116,
+        242,
         57,
-        9,
-        88,
-        23,
-        94,
-        211,
-        214,
-        240,
-        187,
-        197,
-        198,
+        91,
+        133,
+        29,
+        121,
+        97,
+        8,
+        171,
         6,
-        160,
-        153,
-        122,
-        160,
-        35
+        131,
+        34,
+        226,
+        1,
+        81,
+        147,
+        177,
+        99,
+        77,
+        58,
+        66,
+        83,
+        125,
+        218,
+        172,
+        59,
+        196,
+        36,
+        175,
+        131,
+        247
       ],
       "score": {
         "structural_complexity": 0.0,
         "semantic_complexity": 20.0,
-        "duplication_ratio": 17.205883,
+        "duplication_ratio": 16.916666,
         "coupling_score": 15.0,
         "doc_coverage": 10.0,
         "consistency_score": 10.0,
         "entropy_score": 5.0,
-        "total": 77.20589,
+        "total": 76.916664,
         "grade": "B",
         "confidence": 1.0,
         "language": "Rust",
@@ -26000,15 +26000,15 @@
             "applied_to": [
               "Duplication"
             ],
-            "issue": "Found 48 duplicate code patterns"
+            "issue": "Found 53 duplicate code patterns"
           },
           {
             "source_metric": "Duplication",
-            "amount": 2.7941177,
+            "amount": 3.0833335,
             "applied_to": [
               "Duplication"
             ],
-            "issue": "Code duplication: 14.0%"
+            "issue": "Code duplication: 15.4%"
           },
           {
             "source_metric": "StructuralComplexity",
@@ -26016,7 +26016,7 @@
             "applied_to": [
               "StructuralComplexity"
             ],
-            "issue": "High cognitive complexity: 56"
+            "issue": "High cognitive complexity: 65"
           },
           {
             "source_metric": "StructuralComplexity",
@@ -26024,7 +26024,7 @@
             "applied_to": [
               "StructuralComplexity"
             ],
-            "issue": "High cyclomatic complexity: 72"
+            "issue": "High cyclomatic complexity: 90"
           }
         ],
         "critical_defects_count": 0,
@@ -79031,49 +79031,49 @@
     },
     "./rash/src/validation/pipeline_string_validators.rs": {
       "content_hash": [
-        146,
-        175,
-        157,
-        163,
-        235,
-        5,
-        49,
-        206,
-        195,
-        86,
-        66,
+        240,
         95,
-        197,
-        126,
-        190,
-        5,
-        36,
-        7,
-        15,
-        115,
+        235,
         35,
-        26,
-        155,
-        229,
-        160,
-        7,
-        64,
-        171,
-        156,
-        223,
-        97,
-        76
+        131,
+        230,
+        117,
+        11,
+        249,
+        139,
+        102,
+        244,
+        89,
+        112,
+        0,
+        84,
+        67,
+        0,
+        110,
+        227,
+        249,
+        247,
+        205,
+        128,
+        52,
+        238,
+        221,
+        55,
+        68,
+        255,
+        176,
+        204
       ],
       "score": {
-        "structural_complexity": 9.9,
+        "structural_complexity": 6.5999994,
         "semantic_complexity": 20.0,
-        "duplication_ratio": 17.723577,
+        "duplication_ratio": 17.854406,
         "coupling_score": 15.0,
         "doc_coverage": 10.0,
         "consistency_score": 10.0,
         "entropy_score": 5.0,
-        "total": 87.62358,
-        "grade": "A-",
+        "total": 84.45441,
+        "grade": "B+",
         "confidence": 1.0,
         "language": "Rust",
         "file_path": "./rash/src/validation/pipeline_string_validators.rs",
@@ -79088,27 +79088,27 @@
           },
           {
             "source_metric": "Duplication",
-            "amount": 2.2764227,
+            "amount": 2.145594,
             "applied_to": [
               "Duplication"
             ],
-            "issue": "Code duplication: 11.4%"
+            "issue": "Code duplication: 10.7%"
           },
           {
             "source_metric": "StructuralComplexity",
-            "amount": 8.1,
+            "amount": 9.900001,
             "applied_to": [
               "StructuralComplexity"
             ],
-            "issue": "High cognitive complexity: 42"
+            "issue": "High cognitive complexity: 48"
           },
           {
             "source_metric": "StructuralComplexity",
-            "amount": 7.0,
+            "amount": 8.5,
             "applied_to": [
               "StructuralComplexity"
             ],
-            "issue": "High cyclomatic complexity: 44"
+            "issue": "High cyclomatic complexity: 47"
           }
         ],
         "critical_defects_count": 0,
@@ -80876,12 +80876,12 @@
   },
   "summary": {
     "total_files": 991,
-    "avg_score": 82.50559,
+    "avg_score": 82.5021,
     "grade_distribution": {
       "A+": 370,
       "A": 253,
-      "A-": 35,
-      "B+": 32,
+      "A-": 34,
+      "B+": 33,
       "B": 14,
       "C+": 181,
       "F": 106
