@@ -324,9 +324,13 @@ release-gate: ## Full pre-release gate — every test target, the corpus and the
 	@cargo test --workspace
 	@pv lint contracts
 	@$(MAKE) coverage-gate
+	@$(MAKE) dogfood-selflint
 	@$(MAKE) corpus-score
 	@./scripts/check-book-updated.sh
 	@echo "✅ Release gate green."
+
+dogfood-selflint: ## Gate S — bashrs on its own scripts, per-file ratchet (PMAT-253 phase 4, quorum D4)
+	@bash scripts/dogfood/selflint.sh
 
 corpus-score: ## Score the whole corpus, sandboxed where the sandbox exists
 	@echo "📊 Scoring the corpus..."
