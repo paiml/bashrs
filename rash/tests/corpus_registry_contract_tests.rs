@@ -20,8 +20,11 @@ use bashrs::Config;
 const CORPUS_DATA: &str = include_str!("../src/corpus/registry/corpus_data.jsonl");
 
 /// Release bar (CLAUDE.md, Release Schedule): `bashrs corpus run` must report
-/// at least this many entries before a release may ship.
-const RELEASE_BAR: usize = 17_942;
+/// at least this many entries before a release may ship. The bar is the
+/// count the previous release shipped with, so it ratchets: 17,942 at the
+/// #284 restore, 18,592 at v7.3.0 (PMAT-263 raised it when v7.4.0 grew the
+/// corpus to 18,795).
+const RELEASE_BAR: usize = 18_592;
 
 fn ids(registry: &CorpusRegistry) -> Vec<&str> {
     registry.entries.iter().map(|e| e.id.as_str()).collect()

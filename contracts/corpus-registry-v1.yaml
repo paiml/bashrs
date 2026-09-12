@@ -40,7 +40,7 @@ kernel_structure:
 
 equations:
   entry_count:
-    formula: 'len(load_full()) = lines(corpus_data.jsonl) and len(load_full()) >= 17942'
+    formula: 'len(load_full()) = lines(corpus_data.jsonl) and len(load_full()) >= 18592'
     domain: 'corpus_data.jsonl: the compiled-in data file'
     codomain: usize
     invariants:
@@ -61,8 +61,8 @@ equations:
 
 proof_obligations:
 - type: invariant
-  property: load_full() returns at least 17,942 entries
-  formal: 'len(load_full()) >= 17942'
+  property: load_full() returns at least 18,592 entries
+  formal: 'len(load_full()) >= 18592'
   applies_to: all
 - type: invariant
   property: the registry count equals the data-file line count
@@ -78,7 +78,7 @@ proof_obligations:
   applies_to: all
 
 invariants:
-- 'len(load_full()) >= 17942 (release bar)'
+- 'len(load_full()) >= 18592 (release bar: the count the previous release shipped, ratcheted each release)'
 - 'len(load_full()) == non-empty lines of corpus_data.jsonl'
 - 'B-001 exists with non-empty input and expected_output'
 - 'all entry ids unique'
@@ -106,7 +106,7 @@ kani_harnesses:
 falsification_tests:
 - id: F-CORPUS-001
   rule: load_full() meets the release bar
-  prediction: 'CorpusRegistry::load_full().len() >= 17_942'
+  prediction: 'CorpusRegistry::load_full().len() >= 18_592'
   test: cargo test -p bashrs --test corpus_registry_contract_tests F_CORPUS_001
   if_fails: 'Contract violation: the corpus has been stubbed or truncated again; bashrs corpus run would score a fraction of the corpus as if it were the whole (GH-284)'
 - id: F-CORPUS-002
