@@ -2475,3 +2475,22 @@ roadmap:
   - kind:code
   - release:v7.4.0
   notes: null
+- id: PMAT-266
+  github_issue: null
+  item_type: task
+  title: the security gate reads a missing cargo-deny as a violation; the nightly gate does not install it
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-09-12T11:14:21Z
+  updated: 2026-09-12T11:14:21Z
+  spec: null
+  acceptance_criteria:
+  - 'Caught by the nightly full gate the same release added (run 34689967236). run_security_gate spawns cargo deny check and treats any non-zero exit as a gate failure; its Err arm only catches a missing cargo binary, so on a runner without cargo-deny the subcommand exits 101 with no such command: deny and the gate reports a security violation that was never measured. Its own message says (cargo-deny not found, skipping), so the intent is to skip; the code cannot tell absent from failing. Probe cargo deny --version first and report the three outcomes apart: absent (say so, skip, as the stated contract does), ran and clean (pass), ran and found violations (fail). Then install cargo-deny in nightly-full-gate.yml so the gate is measured there rather than skipped. Falsifier: with a cargo on PATH whose deny subcommand exits 101, the gate returns true and says the tool is absent; with a stub that runs and exits 1, the gate returns false.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.5.0
+  notes: null
