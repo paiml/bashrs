@@ -6,7 +6,7 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 ## v7.4.0
 
-In progress. Planned: the remaining forjar-parity phases (PMAT-253), the corpus runner's own sandbox (PMAT-256), and the v7.3.0 close-out (PMAT-262).
+In progress. Planned: the remaining forjar-parity phases (PMAT-253) and the corpus runner's own sandbox (PMAT-256).
 
 ## v7.3.0
 
