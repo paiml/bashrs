@@ -2450,3 +2450,22 @@ roadmap:
   - kind:code
   - release:v7.4.0
   notes: null
+- id: PMAT-265
+  github_issue: null
+  item_type: task
+  title: 'std::env::var lowering: bare read, unwrap_or, unwrap_or_else, unwrap_or_default, unwrap, expect; a quoted default that survives every shell; arithmetic in capture() strings'
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-09-12T07:43:36Z
+  updated: 2026-09-12T07:43:36Z
+  spec: null
+  acceptance_criteria:
+  - 'Found by validating the v7.4.0 corpus candidates. (1) std::env::var("X") lowers to the nonsense command substitution $(std::env::var X); it is an environment read and lowers as env("X") does. (2) std::env::var("X").unwrap_or(d) / unwrap_or_else(|_| d) / unwrap_or_default() / unwrap() / expect(msg) have exact POSIX spellings: ${X-d}, ${X-d}, ${X}, ${X?}, ${X?msg}. (3) The 7.3.0 unwrap_or lowering renders a default through escape_shell_string, so any default that gets single-quoted ({brace}, a space, a dollar) prints its quotes literally in bash and is a syntax error in dash; the default must be spelled for the double-quoted ${x-...} context: a safe word bare, anything else as a nested double-quoted word with backslash escapes, which bash, dash and busybox agree on. (4) validate_string_literal_in_exec refuses $((...)) as command substitution; arithmetic expansion is not a command. Every fix carries a falsification test in transpiler-core-v1.yaml and the corpus entries that found it.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.4.0
+  notes: null
