@@ -4,11 +4,17 @@ One section per release. `release-lint` rule R5 reads the headings: every tag th
 
 Sections for releases before v7.1.0 carry the tag's own annotated message, which is the record that exists for them. From v7.1.0 the full notes live in `CHANGELOG.md` and the section here points at it.
 
+## v7.5.0
+
+Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b) and issue #236, re-measured at the v7.4.0 close-out: SC2046 is now 14:1 against shellcheck rather than 210:1, and the three largest remaining gaps are SC2086 inside a heredoc body, SC2154 on a variable a sourced file defines, and SC1004 across a multi-line quoted argument (`docs/audits/sc-vs-shellcheck-v7.4.0.md`).
+
 ## v7.4.0
 
-In progress; the release ticket is PMAT-263, the close-out PMAT-264.
+Tagged 2026-09-12, published to crates.io, verified with `cargo install bashrs --version 7.4.0`.
 
-The required check lints the whole workspace (#233): `ci / lint` and `make release-gate` both ran a clippy scoped to the root stub package, and now name the workspace. The self-lint is gate S, with a per-file ratchet (`make dogfood-selflint`, PMAT-253 decision D4). A nightly workflow runs `cargo test --workspace`, the targets the required check skips. 203 corpus entries (18,592 to 18,795) and a corpus release bar that ratchets to the last shipped count. Two transpiler defects the new entries exposed are filed as PMAT-265.
+The required check lints the whole workspace (#233): `ci / lint` and `make release-gate` both ran a clippy scoped to the root stub package, and now name the workspace; making the tree clean under it took six kinds of fix, including an orphan test fragment in bashrs-wasm whose tests had never compiled. A nightly workflow runs `cargo test --workspace` — the integration targets, doctests and examples the required check skips. The self-lint is gate S, with a per-file ratchet (`make dogfood-selflint`, PMAT-253 decision D4). `std::env::var` is an environment read again rather than a command substitution of a command that does not exist, its Result methods have exact POSIX spellings, an `unwrap_or` default is spelled for the expansion it sits in, and arithmetic inside a `capture()` string is no longer read as command substitution (PMAT-265). 222 corpus entries (18,592 to 18,814) and a release bar that ratchets to the last shipped count.
+
+Measured at the gate: 15,693 library tests, coverage 95.08 percent, corpus 18,814 entries at 99.4/100 (A+) with 0 failures, GATE S PASS, `pv lint contracts` gate 4 at 86 of 86.
 
 Full notes: the `[7.4.0]` section of `CHANGELOG.md`.
 
