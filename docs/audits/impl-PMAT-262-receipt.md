@@ -4,11 +4,14 @@
 
 Ticket statuses for PMAT-258, 259, 260 and 261; the verified release record appended to the PMAT-258 receipt; the v7.3.0 sections dated in the plan and the notes; PMAT-253 and PMAT-256 moved to v7.4.0, because `release-lint` R3 refuses open work that names a release already cut; and the v7.4.0 sections opened in both documents.
 
-No code changes. `release-lint` is green, measured after this ticket was itself added to the roadmap, which is what makes the count three rather than two:
+No code changes. `release-lint` reports, with this ticket itself counted, which is what makes the number three rather than two:
 
 ```
-release-lint: open=3 releases=v7.4.0(3) highest_tag=v7.3.0 plan=docs/roadmaps/releases.md notes=/home/noah/src/bashrs/docs/release-notes.md
+release-lint: open=3 releases=v7.4.0(3) highest_tag=v7.3.0
 ```
+
+**That green depends on a local patch.** The upstream `release-lint.sh` skips only `completed`, so it counts the three long-cancelled entries (PMAT-168, PMAT-169, PMAT-240) as open work that must each name a release, exits 1, and reports `open=6`. A blind quorum decided on 2026-09-11 that cancelled is closed, and the one-line change is filed upstream as paiml/paiml-mcp-agent-toolkit#1326; the skill bundle has been upgraded twice since and discarded the patch each time. A quorum lane measured exactly this difference from an unpatched environment, which is why it is written down here rather than left as an unqualified "green".
+
 
 ## Why it is its own ticket
 
