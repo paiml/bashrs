@@ -1,7 +1,6 @@
 
 #[test]
 fn test_emit_public_api() {
-    let config = Config::default();
 
     let ir = ShellIR::Let {
         name: "test".to_string(),
@@ -34,7 +33,6 @@ fn test_different_shell_dialects() {
 
 #[test]
 fn test_indentation_consistency() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
@@ -82,7 +80,6 @@ fn test_indentation_consistency() {
 /// Tests that ShellValue::EnvVar without default generates "${VAR}" in shell
 #[test]
 fn test_env_emits_dollar_brace_syntax() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "home".to_string(),
@@ -93,7 +90,6 @@ fn test_env_emits_dollar_brace_syntax() {
         effects: crate::ir::effects::EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement EnvVar emission
@@ -113,7 +109,6 @@ fn test_env_emits_dollar_brace_syntax() {
 /// Tests that ShellValue::EnvVar with default generates "${VAR:-default}"
 #[test]
 fn test_env_var_or_emits_with_default() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "prefix".to_string(),
@@ -124,7 +119,6 @@ fn test_env_var_or_emits_with_default() {
         effects: crate::ir::effects::EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement EnvVar with default emission
@@ -144,7 +138,6 @@ fn test_env_var_or_emits_with_default() {
 /// Tests that all env var expansions include proper quoting
 #[test]
 fn test_env_var_quoted_for_safety() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
         crate::ir::shell_ir::ShellIR::Let {
@@ -165,7 +158,6 @@ fn test_env_var_quoted_for_safety() {
         },
     ]);
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: Must have quotes around ${{VAR}} for safety
@@ -197,7 +189,6 @@ fn test_env_var_quoted_for_safety() {
 /// Tests that default values with special characters are handled safely
 #[test]
 fn test_env_complex_default_value() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "message".to_string(),
@@ -208,7 +199,6 @@ fn test_env_complex_default_value() {
         effects: crate::ir::effects::EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: Default values with spaces must work correctly
@@ -226,7 +216,6 @@ fn test_env_complex_default_value() {
 /// Tests that ShellValue::Arg { position: Some(1) } generates "$1" in shell
 #[test]
 fn test_arg_emits_positional_syntax() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "first".to_string(),
@@ -234,7 +223,6 @@ fn test_arg_emits_positional_syntax() {
         effects: crate::ir::effects::EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement Arg emission

@@ -606,9 +606,8 @@ mod pmat257_cov_tests {
     #[test]
     fn test_PMAT257_cov_find_zscore_outliers_uniform_has_none() {
         let timings = [("a", 1.0), ("b", 1.0), ("c", 1.0)];
-        match find_zscore_outliers(&timings, 2.0) {
-            Some(found) => assert!(found.2.is_empty()),
-            None => {}
+        if let Some(found) = find_zscore_outliers(&timings, 2.0) {
+            assert!(found.2.is_empty());
         }
     }
 

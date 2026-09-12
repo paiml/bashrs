@@ -1,6 +1,5 @@
 #[test]
 fn test_header_and_footer_structure() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Noop;
@@ -25,7 +24,6 @@ fn test_header_and_footer_structure() {
 
 #[test]
 fn test_runtime_functions_included() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     // Use an IR that references rash_require and rash_download_verified
@@ -56,7 +54,6 @@ fn test_runtime_functions_included() {
 
 #[test]
 fn test_test_expression_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     // Boolean true
@@ -176,7 +173,6 @@ proptest! {
         b in prop::bool::ANY,
         var_name in "[a-zA-Z_][a-zA-Z0-9_]{0,20}"
     ) {
-        let config = Config::default();
         let emitter = PosixEmitter::new();
 
         let test_values = vec![
@@ -206,7 +202,6 @@ proptest! {
         cmd_name in "[a-zA-Z][a-zA-Z0-9_-]{0,20}",
         arg_count in 0usize..5usize
     ) {
-        let config = Config::default();
         let emitter = PosixEmitter::new();
 
         let args: Vec<ShellValue> = (0..arg_count)
@@ -246,7 +241,6 @@ proptest! {
         var_name in "[a-zA-Z_][a-zA-Z0-9_]{0,30}",
         value in "[a-zA-Z0-9 _.-]{0,100}"
     ) {
-        let config = Config::default();
         let emitter = PosixEmitter::new();
 
         let ir = ShellIR::Let {
@@ -274,7 +268,6 @@ proptest! {
     /// Property: If statements should have balanced if/fi
     #[test]
     fn prop_if_statements_balanced(condition in prop::bool::ANY) {
-        let config = Config::default();
         let emitter = PosixEmitter::new();
 
         let ir = ShellIR::If {
@@ -308,7 +301,6 @@ proptest! {
     fn prop_concatenation_preserves_order(
         parts in prop::collection::vec("[a-zA-Z0-9]{1,10}", 1..5)
     ) {
-        let config = Config::default();
         let emitter = PosixEmitter::new();
 
         let shell_values: Vec<ShellValue> = parts.iter()
@@ -336,7 +328,6 @@ proptest! {
     /// Property: Generated shell should be deterministic
     #[test]
     fn prop_emission_deterministic(var_name in "[a-zA-Z_][a-zA-Z0-9_]{0,20}") {
-        let config = Config::default();
         let emitter1 = PosixEmitter::new();
         let emitter2 = PosixEmitter::new();
 
@@ -375,7 +366,6 @@ proptest! {
     /// Property: Exit codes should be valid
     #[test]
     fn prop_exit_codes_valid(code in 0i32..256i32) {
-        let config = Config::default();
         let emitter = PosixEmitter::new();
 
         let ir = ShellIR::Exit {
@@ -399,7 +389,6 @@ proptest! {
 #[case(ShellValue::Bool(false), "false")]
 #[case(ShellValue::Variable("var".to_string()), "\"$var\"")]
 fn test_shell_value_emission_cases(#[case] value: ShellValue, #[case] expected: &str) {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let result = emitter.emit_shell_value(&value).unwrap();
@@ -408,7 +397,6 @@ fn test_shell_value_emission_cases(#[case] value: ShellValue, #[case] expected: 
 
 #[test]
 fn test_complex_nested_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Sequence(vec![

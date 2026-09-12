@@ -16,11 +16,14 @@ This practice ensures bashrs can handle real-world complexity and catches regres
 ## Quick Start
 
 ```bash
-# Quick dogfood check (Makefile + key scripts)
-make dogfood-quick
+# Gate S: bashrs on its own tracked scripts, against a per-file ratchet (v7.4.0)
+make dogfood-selflint
 
-# Full self-validation (all 75+ scripts)
+# The hermetic dogfood gates: docs (D), contracts (G), corpus (K)
 make dogfood
+
+# Quick check (Makefile + key scripts)
+make dogfood-quick
 
 # Lint just the Makefile
 make lint-makefile
@@ -29,13 +32,23 @@ make lint-makefile
 make lint-scripts
 ```
 
-## Dogfooding Results
+## Gate S: the self-lint is a gate, not a report
 
-bashrs self-validation produces comprehensive metrics:
+Until v7.4.0 `make dogfood-selflint` printed the totals below and always exited 0; the numbers were interesting and enforced nothing. It is now a gate with a per-file ratchet (`scripts/dogfood/selflint.sh`, ratchet in `scripts/dogfood/selflint-ratchet.tsv`; PMAT-253, quorum decision D4):
 
 ```bash
-$ make dogfood
+$ make dogfood-selflint
+checked 89 file(s); 89 at ratchet; 0 improved; 94 error(s) total
+GATE S PASS 89 file(s) checked, 89 at ratchet, 0 improved, 94 error(s) total
+```
 
+A file with more error-severity diagnostics than its ratchet row fails the gate naming the file and both numbers; a file with fewer passes and is reported as improved so the row can be lowered; a file with errors and no row fails rather than passing silently; and a linter that cannot run is `UNMEASURED`, which is a failure, never a clean tree. The gate runs in `make release-gate`. Its rules are pinned by `contracts/dogfood-selflint-v1.yaml` and five tests that build their own fixture trees, and the full description is in [Quality Gates: PR and Release](../contributing/gates.md).
+
+## Dogfooding Results (the historical report)
+
+The report the old target printed, kept here because the ratchet's starting rows come from a measurement of the same kind:
+
+```bash
 🐕 bashrs Dogfooding - Self-Validation
 =======================================
 
@@ -50,10 +63,10 @@ Total errors: 2515
 Total warnings: 5914
 Total infos: 1963
 
-✅ Dogfooding complete - bashrs validated its own codebase!
-
 📊 Full report: docs/dogfooding/BASHRS_DOGFOODING.md
 ```
+
+Of the 1,252 errors measured across 91 tracked scripts when the gate was written, 1,158 sat in the three benchmark fixtures under `rash/benches/fixtures/`, which the gate excludes by name; the ratchet started at 94 errors across 32 files.
 
 ### Metrics Breakdown
 
@@ -79,22 +92,15 @@ SC2086 (Unquoted variable):       2,199  # warning
 
 ## Make Targets
 
+### `make dogfood-selflint`
+
+Gate S, described above: builds the release binary, lints every tracked `*.sh` file with it, and compares each file's error count with its ratchet row. Exit code is the verdict; the last line is `GATE S PASS|FAIL <detail>`.
+
+**Runtime:** about 20 seconds with a warm release build.
+
 ### `make dogfood`
 
-Full self-validation of all scripts:
-
-```bash
-make dogfood
-```
-
-**What it does:**
-1. Builds bashrs in release mode
-2. Lints the Makefile with `bashrs make lint`
-3. Scans all `.sh` files (excluding node_modules, target)
-4. Aggregates error/warning/info counts
-5. Reports summary statistics
-
-**Runtime:** ~2 minutes (depends on script count)
+The hermetic dogfood gates: builds the release binary, then runs `scripts/dogfood/docs.sh` (D), `contracts.sh` (G) and `corpus.sh` (K).
 
 ### `make dogfood-quick`
 

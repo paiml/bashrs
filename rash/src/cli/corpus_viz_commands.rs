@@ -391,6 +391,8 @@ pub(crate) fn schema_layer_counts(
     (l1, l2, l3, l4)
 }
 
+include!("corpus_viz_commands_corpus.rs");
+
 // PMAT-257: coverage for the corpus visualization handlers. These live
 // inside the library, because the coverage gate measures `cargo llvm-cov
 // --lib -p bashrs` and a test under rash/tests/ does not move that number
@@ -517,5 +519,3 @@ mod pmat257_cov_tests {
         assert_eq!((l1, l2, l3, l4), (0, 0, 0, 0));
     }
 }
-
-include!("corpus_viz_commands_corpus.rs");

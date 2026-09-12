@@ -2,6 +2,7 @@
 //! stdout. Tracing output belongs on stderr, where it cannot corrupt the
 //! document every machine consumer parses.
 #![allow(clippy::unwrap_used)]
+#![allow(non_snake_case)] // ticket-mandated test name: test_<TICKET>_<scenario>
 
 use assert_cmd::Command;
 

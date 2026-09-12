@@ -45,6 +45,23 @@ jobs:
       # failure mode this repo keeps getting bitten by. infra's clean-room gate
       # already installs shellcheck for bashrs for the same reason.
       extra_pkgs: shellcheck
+      # #233 (PMAT-263): the default `--all-targets` has the same root-package
+      # scoping as the pre-GH-214 test step — a bare `cargo clippy` at this
+      # workspace root resolves to the `bashrs-specs` stub, so rash/,
+      # bashrs-oracle, bashrs-runtime and bashrs-wasm were never linted by the
+      # gate. `--workspace` is the fix, and `--all-targets` keeps tests, benches
+      # and examples in scope. Measured clean locally before enabling:
+      # `cargo clippy --workspace --all-targets --all-features -- -D warnings`
+      # exits 0 on this tree (it needed 6 fixes in the diff that adds this
+      # line: two `include!` placed after a test module, one orphan test
+      # fragment in bashrs-wasm, 90 dead `let config` bindings, one snake-case
+      # test name, one doc-list indent).
+      #
+      # Note the reusable workflow's fallback: if this command fails it retries
+      # `cargo clippy -p bashrs`, which passes with a narrower scope. Keep this
+      # tree clean under the full command so that fallback never decides the
+      # gate; `make release-gate` runs the same full command locally.
+      clippy_args: --workspace --all-targets
     secrets: inherit
 
   # Top-level gate: org ruleset requires status check named "gate" (exact match).

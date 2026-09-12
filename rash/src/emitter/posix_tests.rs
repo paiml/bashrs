@@ -1,10 +1,8 @@
 use super::*;
 use crate::ir::{Command, ShellIR, ShellValue};
-use crate::models::Config;
 
 #[test]
 fn test_emit_simple_let() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
@@ -21,7 +19,6 @@ fn test_emit_simple_let() {
 
 #[test]
 fn test_emit_command() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let cmd = Command {
@@ -40,7 +37,6 @@ fn test_emit_command() {
 
 #[test]
 fn test_emit_if_statement() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
@@ -64,7 +60,6 @@ fn test_emit_if_statement() {
 #[test]
 fn test_POSIX_COV_001_write_footer() {
     // write_footer produces closing brace, cleanup trap, and main call
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::Noop;
     let result = emitter.emit(&ir).expect("emit should succeed");
@@ -77,7 +72,6 @@ fn test_POSIX_COV_001_write_footer() {
 #[test]
 fn test_POSIX_COV_002_write_println_function() {
     // rash_println used in IR triggers runtime function emission
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::Exec {
         cmd: Command {
@@ -93,7 +87,6 @@ fn test_POSIX_COV_002_write_println_function() {
 
 #[test]
 fn test_POSIX_COV_003_write_eprintln_function() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::Exec {
         cmd: Command {
@@ -109,7 +102,6 @@ fn test_POSIX_COV_003_write_eprintln_function() {
 
 #[test]
 fn test_POSIX_COV_004_write_fs_read_file_function() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::Exec {
         cmd: Command {
@@ -125,7 +117,6 @@ fn test_POSIX_COV_004_write_fs_read_file_function() {
 
 #[test]
 fn test_POSIX_COV_005_write_fs_exists_function() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::Exec {
         cmd: Command {
@@ -141,7 +132,6 @@ fn test_POSIX_COV_005_write_fs_exists_function() {
 #[test]
 fn test_POSIX_COV_006_emit_comparison() {
     use crate::ir::shell_ir::ComparisonOp;
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     // Comparison in an if test
     let ir = ShellIR::If {
@@ -160,7 +150,6 @@ fn test_POSIX_COV_006_emit_comparison() {
 #[test]
 fn test_POSIX_COV_007_emit_arithmetic() {
     use crate::ir::shell_ir::ArithmeticOp;
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::Let {
         name: "result".to_string(),
@@ -179,7 +168,6 @@ fn test_POSIX_COV_007_emit_arithmetic() {
 #[test]
 fn test_POSIX_COV_008_emit_arithmetic_all_ops() {
     use crate::ir::shell_ir::ArithmeticOp;
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     for (op, sym) in [
         (ArithmeticOp::Sub, "-"),
@@ -204,7 +192,6 @@ fn test_POSIX_COV_008_emit_arithmetic_all_ops() {
 #[test]
 fn test_POSIX_COV_009_emit_arithmetic_operand_nested() {
     use crate::ir::shell_ir::ArithmeticOp;
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     // Nested arithmetic: (a + 1) * 2
     let ir = ShellIR::Let {
@@ -230,7 +217,6 @@ fn test_POSIX_COV_009_emit_arithmetic_operand_nested() {
 #[test]
 fn test_POSIX_COV_010_emit_arithmetic_operand_command_subst() {
     use crate::ir::shell_ir::ArithmeticOp;
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     // Arithmetic with command substitution: $(wc -l) + 1
     let ir = ShellIR::Let {
@@ -252,7 +238,6 @@ fn test_POSIX_COV_010_emit_arithmetic_operand_command_subst() {
 #[test]
 fn test_POSIX_COV_011_emit_arithmetic_operand_unsupported() {
     use crate::ir::shell_ir::ArithmeticOp;
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     // Bool in arithmetic context should error
     let ir = ShellIR::Let {
@@ -270,7 +255,6 @@ fn test_POSIX_COV_011_emit_arithmetic_operand_unsupported() {
 
 #[test]
 fn test_POSIX_COV_012_emit_shell_value_arg_with_default() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::Exec {
         cmd: Command {
@@ -289,7 +273,6 @@ fn test_POSIX_COV_012_emit_shell_value_arg_with_default() {
 #[test]
 fn test_POSIX_COV_013_while_logical_and_condition() {
     use crate::ir::shell_ir::ComparisonOp;
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::While {
         condition: ShellValue::LogicalAnd {
@@ -310,7 +293,6 @@ fn test_POSIX_COV_013_while_logical_and_condition() {
 
 #[test]
 fn test_POSIX_COV_014_while_logical_or_condition() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::While {
         condition: ShellValue::LogicalOr {
@@ -325,7 +307,6 @@ fn test_POSIX_COV_014_while_logical_or_condition() {
 
 #[test]
 fn test_POSIX_COV_015_while_logical_not_condition() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::While {
         condition: ShellValue::LogicalNot {
@@ -339,7 +320,6 @@ fn test_POSIX_COV_015_while_logical_not_condition() {
 
 #[test]
 fn test_POSIX_COV_016_while_general_expression() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let ir = ShellIR::While {
         condition: ShellValue::Variable("running".to_string()),

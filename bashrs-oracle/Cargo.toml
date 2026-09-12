@@ -32,7 +32,7 @@ anyhow = "1.0"
 tracing = { workspace = true }
 
 # Regex for pattern matching
-regex = "1.11"
+regex = "1.13"
 
 [dev-dependencies]
 proptest = { workspace = true }

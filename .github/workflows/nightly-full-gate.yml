@@ -1,0 +1,108 @@
+# Nightly full gate — every test target, not only `--lib` (#233, PMAT-263).
+#
+# The required check (`ci / gate`) runs `cargo nextest run --workspace --lib`
+# through paiml/.github's sovereign-ci.yml: fast, and the Pareto slice that
+# covers most of the code on every pull request. It does not build or run the
+# 105 integration targets under rash/tests/, the doctests, or the examples.
+# Those ran nowhere in CI: `make release-gate` runs them on a developer
+# machine before a tag, and nothing else did. This workflow runs them on
+# main once a day, so a broken integration target is reported within 24 h of
+# the merge that broke it instead of at the next release.
+#
+# Schedule: daily 05:00 UTC, one hour after nightly.yml; manual trigger via
+# workflow_dispatch. Skips when main has no commits in the last 24 hours.
+
+name: Nightly Full Gate
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-full-gate
+  cancel-in-progress: false
+
+jobs:
+  check-activity:
+    runs-on: ubuntu-latest
+    outputs:
+      has_commits: ${{ steps.check.outputs.has_commits }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Check for commits in last 24h
+        id: check
+        run: |
+          RECENT=$(git log --oneline --since="24 hours ago" | wc -l)
+          if [ "$RECENT" -gt 0 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "has_commits=true" >> "$GITHUB_OUTPUT"
+            echo "Found $RECENT commit(s) in last 24h (or manual trigger)"
+          else
+            echo "has_commits=false" >> "$GITHUB_OUTPUT"
+            echo "No commits in last 24h — skipping the full gate"
+          fi
+
+  full-gate:
+    needs: check-activity
+    if: needs.check-activity.outputs.has_commits == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Checkout provable-contracts (path dep)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          repository: paiml/provable-contracts
+          path: provable-contracts
+
+      - name: Symlink provable-contracts for Cargo path deps
+        run: ln -sf "$GITHUB_WORKSPACE/provable-contracts" "$GITHUB_WORKSPACE/../provable-contracts"
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Install shellcheck
+        # rash/src/testing/shellcheck_validation_tests.rs `.expect()`s it; the
+        # required check installs it for the same reason (ci.yml, extra_pkgs).
+        run: sudo apt-get update -q && sudo apt-get install -y -q shellcheck
+
+      - name: Cache cargo
+        uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-nightly-full-gate-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-nightly-full-gate-
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy, every target, every feature
+        # The same command `make release-gate` runs; the required check runs
+        # it without --all-features and with -A unused-variables.
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Test, every target
+        # Integration targets, doctests and examples — the part `--lib` skips.
+        run: cargo test --workspace
+
+      - name: Integration test targets compiled
+        # #233 measured 37 of 145 integration targets not compiling while CI
+        # stayed green. A target that fails to compile fails `cargo test`
+        # above; this step records the count so the log states what was run.
+        run: |
+          n=$(find rash/tests -maxdepth 1 -name '*.rs' | wc -l)
+          echo "rash/tests/*.rs targets: $n (all compiled and ran in the step above)"

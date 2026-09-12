@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.4.0] - 2026-09-12
+
+The required check lints what it claims to lint; the self-lint becomes a gate with a per-file ratchet; a nightly runs every test target; 203 corpus entries in the shapes this project writes; and two transpiler defects the new entries found, filed for the next diff.
+
+### Fixed
+
+- **#233** `ci / lint` ran a bare `cargo clippy --all-targets`, which at this workspace root resolves to the `bashrs-specs` stub, so `rash/`, `bashrs-oracle`, `bashrs-runtime` and `bashrs-wasm` were never linted by the required check. The same hole was in `make release-gate`. Both now name the workspace. Making the tree clean under `cargo clippy --workspace --all-targets --all-features -- -D warnings` took six kinds of fix, all measured before enabling: two `include!` lines after a test module, one orphan test fragment in `bashrs-wasm` whose `use super::*` pointed at itself (so the `codebert` feature's tests never compiled), 90 dead `let config` bindings and the 22 imports they kept alive, three REPL tests that built a completer and never installed it, one single-arm `match`, one manual range check, one doc-list indent and one test name allowed at file level. The issue's other half, 37 integration targets not compiling, was fixed in v6.67.0 and re-measured at 0 errors; what remained was that CI never ran them.
+
+### Added
+
+- **Gate S: the self-lint is a gate** (PMAT-253, quorum decision D4, 3-0). `make dogfood-selflint` used to print totals and exit 0. It now runs `scripts/dogfood/selflint.sh` with the release binary built from the tree: every tracked `*.sh` file's error-severity diagnostic count is compared with its row in `scripts/dogfood/selflint-ratchet.tsv`. Over the row fails naming the file and both numbers; under it passes and reports the improvement; errors with no row fail rather than pass silently; a linter that cannot run is `UNMEASURED`, which fails. A pull request pays only for the files it touches. Measured when the gate landed: 89 files, 94 errors across 32 rows; 1,158 further errors sit in the three benchmark fixtures, excluded by name with the reason beside them. `make release-gate` runs it. Contract `contracts/dogfood-selflint-v1.yaml`, F-DOG-001..005.
+- **A nightly full gate** (`.github/workflows/nightly-full-gate.yml`). The required check runs `cargo nextest run --workspace --lib`, the Pareto slice; the 105 integration targets under `rash/tests/`, the doctests and the examples ran nowhere in CI. The nightly runs `cargo test --workspace` and the full clippy on `main` once a day, skipped when `main` is idle, dispatchable by hand. The required check stays `--lib`.
+- The corpus release bar ratchets: `contracts/corpus-registry-v1.yaml` now requires at least 18,592 entries, the count v7.3.0 shipped, instead of the 17,942 of the #284 restore.
+
+### Corpus
+
+- 18,592 to 18,795 entries. Six blind generation lanes wrote 240 candidates; each was transpiled through the library and its expected line matched against the output (216 passed), every Bash survivor was run under bwrap with a two-second timeout (143 ran, none timed out), and 13 duplicated an existing name. The 203 added cover cron-field parsing and validation in shell text, Makefile recipes, retry loops, env defaults and text pipelines: 143 Bash, 60 Makefile; 77 Adversarial, 63 Production, 54 Standard, 6 Complex, 3 Trivial.
+- The screen changed in two measured places: `crontab` is denied only in command position (forty candidates that parse cron syntax, the pattern that was asked for, were being dropped for the word alone), and `$$` is denied only in Bash entries, because in a Makefile recipe `$$FOO` is make's escape for a shell `$`.
+- **Two transpiler defects the failed candidates exposed**, filed as PMAT-265 for the next diff, not fixed here: `std::env::var("X")` alone lowers to the nonsense command `$(std::env::var X)` and `std::env::var("X").unwrap_or(d)` fails the transpile although the 7.3.0 `unwrap_or` lowering accepts a bare variable (20 candidates); and `$((…))` inside a `capture()` string is refused by the exec-string validator as command substitution (3 candidates).
+
+### Dependencies
+
+- `cargo update`: bytemuck_derive 1.12.1, libredox 0.1.24. regex and rayon requirements raised to the versions already locked (1.13, 1.12). Not taken, with the measurement: sysinfo 0.39 requires Rust 1.95 against a 1.93 toolchain and a declared 1.82 floor; renacer 0.10 and 0.11 pull a `ratatui` that pins `unicode-width =0.2.0` against rustyline 18; aprender 0.27 to 0.66 is an optional-feature jump left for its own ticket.
+
+### Provable contracts
+
+- One new contract (dogfood-selflint-v1, five entries) and the corpus bar. `pv lint contracts`: PASS, 0 errors.
+
+### Quality
+
+- Line coverage **95.08 percent** (`cargo llvm-cov --lib -p bashrs`, gate at 95).
+- `bashrs corpus run` with the release binary: **18,795 entries, 18,795 passed, 0 failed, V2 score 99.4/100 (A+)** — A 100.0, B1 99.9, B2 99.9, B3 98.7, D 100.0, F 99.6, G 99.7. Run twice, inside bwrap and plain in a temporary directory: the two outputs are byte-identical, which closes PMAT-256's last open criterion (the sandbox fails no entry the plain run passes).
+- `make pr-gate`: 15,687 library tests, green in 61 seconds.
+
 ## [7.3.0] - 2026-09-11
 
 Three decisions the maintainer had deferred, taken by blind quorum and implemented; a lint code that meant the wrong thing; the lowerings whose absence removed 63 corpus entries in v7.2.0; and the sandbox that stops a corpus run writing into the repository.

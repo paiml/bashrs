@@ -506,7 +506,7 @@ mod pmat257_cov_tests {
         let orig = ["a", "b", "c", "d"];
         let pure = ["a", "B", "c", "D"];
         let end = find_hunk_end(&orig, &pure, 1, 4);
-        assert!(end >= 1 && end <= 4);
+        assert!((1..=4).contains(&end));
         print_diff_hunk(&orig, &pure, 0, 4);
         print_unified_diff(Path::new("x.sh"), "a\nb\n", "a\nB\n");
     }
