@@ -6,7 +6,11 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 ## v7.4.0
 
-In progress. Planned: the remaining forjar-parity phases (PMAT-253) and the corpus runner's own sandbox (PMAT-256).
+In progress; the release ticket is PMAT-263, the close-out PMAT-264.
+
+The required check lints the whole workspace (#233): `ci / lint` and `make release-gate` both ran a clippy scoped to the root stub package, and now name the workspace. The self-lint is gate S, with a per-file ratchet (`make dogfood-selflint`, PMAT-253 decision D4). A nightly workflow runs `cargo test --workspace`, the targets the required check skips. 203 corpus entries (18,592 to 18,795) and a corpus release bar that ratchets to the last shipped count. Two transpiler defects the new entries exposed are filed as PMAT-265.
+
+Full notes: the `[7.4.0]` section of `CHANGELOG.md`.
 
 ## v7.3.0
 

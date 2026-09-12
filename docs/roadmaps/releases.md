@@ -45,10 +45,12 @@ Goal: the forjar-parity phases that keep being carried, and the corpus runner's 
 
 | entry | what |
 |---|---|
-| PMAT-253 | forjar parity, the phases not shipped in v7.1.0 through v7.3.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b |
-| PMAT-256 | corpus runner sandbox: the runner itself, not only `make corpus-score` |
+| PMAT-263 | the release: #233 (the required check lints the workspace, a nightly runs every test target), gate S with the per-file self-lint ratchet (PMAT-253 decision D4), deps, 203 corpus entries, the book |
+| PMAT-253 | forjar parity, the phases not shipped in v7.1.0 through v7.3.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b; decision D4 (gate S) shipped here under PMAT-263 |
+| PMAT-256 | corpus runner sandbox: the runner itself, not only `make corpus-score` — shipped in v7.3.0 under PMAT-258 (#318); the close-out records the measurement of its third criterion |
+| PMAT-264 | the close-out: statuses, the verified release record, the v7.5.0 plan |
 
-Issues on this release: none yet. Backlog: #233, #234, #236.
+Issues on this release: #233 (CI lints only the bashrs-specs stub). Backlog: #234, #236.
 
 ## Unscheduled (blocked)
 
