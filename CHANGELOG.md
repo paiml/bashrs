@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The security gate read a missing `cargo-deny` as a security violation** (PMAT-266). `run_security_gate` spawned `cargo deny check` and treated any non-zero exit as a failure; its error arm caught only a missing `cargo` binary, so on a machine with cargo and without cargo-deny the subcommand exits 101 with ``error: no such command: `deny` `` and the gate reported a violation for a check that never ran. It now probes `cargo deny --version` first and reports three outcomes apart: absent (say so and skip, which is what the code's own message always claimed), clean, and violations. The nightly full gate installs cargo-deny so the check is measured there rather than skipped. Found by that nightly on its first run (34689967236), one day after v7.4.0 added it.
+
 ## [7.4.0] - 2026-09-12
 
 The required check lints what it claims to lint; the self-lint becomes a gate with a per-file ratchet; a nightly runs every test target; 203 corpus entries in the shapes this project writes; and two transpiler defects the new entries found, filed for the next diff.

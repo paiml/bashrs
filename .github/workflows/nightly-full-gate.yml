@@ -77,6 +77,15 @@ jobs:
         # required check installs it for the same reason (ci.yml, extra_pkgs).
         run: sudo apt-get update -q && sudo apt-get install -y -q shellcheck
 
+      - name: Install cargo-deny
+        # PMAT-266: the security gate runs `cargo deny check`. Without
+        # cargo-deny it reports itself absent and skips, which is honest but
+        # measures nothing — and the sovereign CI container has it, so a
+        # nightly without it would not be running the same gate.
+        uses: taiki-e/install-action@9534c84618278caac52cb373bb164ed464dbd8af # v2.87.11
+        with:
+          tool: cargo-deny
+
       - name: Cache cargo
         uses: actions/cache@5a3ec84eff668545956fd18022155c47e93e2684  # v4.2.3
         with:
