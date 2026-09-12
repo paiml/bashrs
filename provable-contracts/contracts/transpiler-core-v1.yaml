@@ -150,6 +150,36 @@ falsification_tests:
   prediction: 'push_str, push, insert and rev each return an error naming the method rather than a value'
   test: cargo test -p bashrs --lib ir::pmat258_gh316_tests::test_PMAT258_gh316_push_str_has_no_lowering_is_an_error
   if_fails: 'Contract violation: an unlowerable method produces a value again instead of failing, the silent-wrong-output class of GH-305'
+- id: F-TCORE-025
+  rule: a bare std::env::var("X") is the same environment read as env("X") and lowers to the parameter expansion, never to a command named std::env::var
+  prediction: 'the transpiled output is byte-identical to that of env("X"), carries "${X}", and contains no command substitution of std::env::var; under dash an unset X aborts (set -u) rather than running a missing command'
+  test: cargo test -p bashrs --lib ir::pmat265_env_var_tests::test_PMAT265_bare_env_var_is_a_parameter_expansion_not_a_command
+  if_fails: 'Contract violation: an environment read is emitted as a command that does not exist, so the script runs, prints an error to stderr and continues with an empty value'
+- id: F-TCORE-026
+  rule: std::env::var("X").unwrap_or(d) and unwrap_or_else(|_| d) lower to the unset-only default on X itself, so a set-but-empty X keeps its value and an unset X takes the default
+  prediction: 'under dash, unset X prints the default and X= prints the empty string, for both spellings and for a default written as "d".to_string()'
+  test: cargo test -p bashrs --lib ir::pmat265_env_var_tests::test_PMAT265_env_var_unwrap_or_is_unset_only_default_on_the_env_name
+  if_fails: 'Contract violation: the commonest Rust spelling of an env default fails the transpile or lowers through an intermediate variable that is always set, so the default can never apply'
+- id: F-TCORE-027
+  rule: std::env::var("X").unwrap_or_default() lowers to "${X-}" (the script runs under set -u); unwrap() to "${X?}", which aborts when X is unset; expect(msg) to "${X?msg}"
+  prediction: 'unwrap_or_default prints empty for unset X; unwrap exits non-zero under dash when X is unset and prints the value when set; expect names its message on stderr'
+  test: cargo test -p bashrs --lib ir::pmat265_env_var_tests::test_PMAT265_env_var_unwrap_expect_and_unwrap_or_default_have_exact_spellings
+  if_fails: 'Contract violation: a panicking read is lowered to a silent empty string, or a defaulting read to an abort'
+- id: F-TCORE-028
+  rule: the default of unwrap_or is spelled for the double-quoted ${x-...} context, so a brace, a space, a dollar, a quote or a backslash in the default prints literally under bash, dash and busybox
+  prediction: 'for the defaults {brace}, "a b", $HOME, it''s and a\b the transpiled script prints each default byte-for-byte under dash and bash when the variable is unset'
+  test: cargo test -p bashrs --lib ir::pmat265_env_var_tests::test_PMAT265_unwrap_or_default_text_survives_braces_spaces_dollars_and_quotes
+  if_fails: 'Contract violation: the 7.3.0 rendering through escape_shell_string returns, printing literal single quotes under bash and a syntax error under dash for any default that is not a plain word'
+- id: F-TCORE-029
+  rule: an environment name that is not a shell identifier is refused with an error naming it, never spliced into an expansion
+  prediction: 'std::env::var("my-var").unwrap_or("d") fails the transpile and the error names my-var'
+  test: cargo test -p bashrs --lib ir::pmat265_env_var_tests::test_PMAT265_env_var_non_identifier_name_is_refused
+  if_fails: 'Contract violation: an invalid name is emitted inside ${...} and the shell reports a bad substitution at run time instead of the transpiler at build time'
+- id: F-TCORE-030
+  rule: arithmetic expansion inside a capture() or exec string is not command substitution; a real $(cmd), including one nested inside $((...)), and a backtick are still refused
+  prediction: 'capture("echo $((1 + 2))") transpiles and prints 3 under dash; capture("echo $(date)"), capture("echo $(( $(date) ))") and a backtick each fail the transpile'
+  test: cargo test -p bashrs --lib ir::pmat265_env_var_tests::test_PMAT265_arithmetic_in_capture_string_is_not_command_substitution
+  if_fails: 'Contract violation: either arithmetic is refused again (the GH-237 class, in the transpiler) or a nested command substitution slips through the exec-string validator'
 kani_harnesses:
 - id: KANI-TRANSPILER_CORE-001
   obligation: Output passes shellcheck -s sh

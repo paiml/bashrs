@@ -63,7 +63,10 @@ impl IrConverter {
         // reads as the one-of-N choice it actually is — the `if name == …` chain
         // it replaced scored cognitive 29 against this repo's own limit of 25.
         match name {
-            "env" | "env_var_or" => self.convert_env_call_to_value(name, args),
+            // PMAT-265: `std::env::var("X")` is the same read as `env("X")`.
+            // Before this it fell through to `convert_regular_fn_call` and
+            // became `$(std::env::var X)`, a command that does not exist.
+            "env" | "env_var_or" | "std::env::var" => self.convert_env_call_to_value(name, args),
             "arg" => Self::convert_arg_call(args),
             "args" => Ok(ShellValue::Arg { position: None }),
             "arg_count" => Ok(ShellValue::ArgCount),
@@ -279,16 +282,15 @@ impl IrConverter {
         method: &str,
         args: &[crate::ast::Expr],
     ) -> Result<ShellValue> {
-        if method == "unwrap" && args.is_empty() {
-            if let Some(val) = Self::try_unwrap_env_args_nth(receiver) {
-                return Ok(val);
-            }
+        if let Some(val) = Self::try_positional_unwrap(receiver, method, args) {
+            return Ok(val);
         }
 
-        if method == "unwrap_or" && args.len() == 1 {
-            if let Some(val) = Self::try_unwrap_or_pattern(receiver, args) {
-                return Ok(val);
-            }
+        // PMAT-265: `std::env::var("X").<method>(…)` / `env("X").<method>(…)`
+        // — the Result/Option methods of an environment read, each with an
+        // exact parameter-expansion spelling on the env name itself.
+        if let Some(val) = self.try_env_read_method(receiver, method, args)? {
+            return Ok(val);
         }
 
         // PMAT-258 / GH-316 (second half, #316 blind quorum, 3-0):
@@ -324,6 +326,22 @@ impl IrConverter {
             "cannot transpile `.{method}()`: no lowering exists for this method call. \
              See bashrs#305."
         )))
+    }
+
+    /// The positional-argument patterns: `std::env::args().nth(N).unwrap()`
+    /// and `args.get(N).unwrap_or(d)` / `std::env::args().nth(N).unwrap_or(d)`.
+    /// Extracted from the dispatcher (PMAT-265) to keep it under the
+    /// per-function cognitive limit; behaviour unchanged.
+    fn try_positional_unwrap(
+        receiver: &crate::ast::Expr,
+        method: &str,
+        args: &[crate::ast::Expr],
+    ) -> Option<ShellValue> {
+        match (method, args.len()) {
+            ("unwrap", 0) => Self::try_unwrap_env_args_nth(receiver),
+            ("unwrap_or", 1) => Self::try_unwrap_or_pattern(receiver, args),
+            _ => None,
+        }
     }
 
     /// PMAT-258 / GH-316: `.len()` (array literal or string) and
@@ -531,6 +549,94 @@ impl IrConverter {
         Some(ShellValue::Glob(format!("\"${{{name}-{default_text}}}\"")))
     }
 
+    /// PMAT-265: the Result/Option methods of an environment read.
+    ///
+    /// `receiver` must be `std::env::var("X")` or `env("X")` with a string
+    /// literal name; anything else is `Ok(None)` and the caller continues
+    /// down the dispatcher. The name must be a shell identifier, or the
+    /// error names it (F-TCORE-029) — it is spliced into `${…}` verbatim.
+    ///
+    /// | Rust | shell | why |
+    /// |---|---|---|
+    /// | `.unwrap_or(d)`, `.unwrap_or_else(\|_\| d)` | `"${X-d}"` | `Err` only for an unset name; set-and-empty is a value |
+    /// | `.unwrap_or_default()` | `"${X-}"` | the empty string is `String::default()`; under `set -u` a bare `${X}` would abort |
+    /// | `.unwrap()` | `"${X?}"` | aborts the script when unset, as the panic would |
+    /// | `.expect("m")` | `"${X?m}"` | the same, with the message on stderr |
+    ///
+    /// Lowering directly on the env name is what makes `unwrap_or` honest
+    /// here: a `let v = env("X")` intermediate is always *set* in shell, so
+    /// `${v-d}` could never substitute (see F-TCORE-026).
+    fn try_env_read_method(
+        &self,
+        receiver: &crate::ast::Expr,
+        method: &str,
+        args: &[crate::ast::Expr],
+    ) -> Result<Option<ShellValue>> {
+        use crate::ast::{restricted::Literal, Expr};
+
+        let Expr::FunctionCall {
+            name: fn_name,
+            args: fn_args,
+        } = receiver
+        else {
+            return Ok(None);
+        };
+        if fn_name != "std::env::var" && fn_name != "env" {
+            return Ok(None);
+        }
+        // Reuse the read's own validation: literal name, identifier characters.
+        let ShellValue::EnvVar { name, .. } = self.convert_env_call_to_value(fn_name, fn_args)?
+        else {
+            return Ok(None);
+        };
+        let text = match (method, args) {
+            ("unwrap_or" | "unwrap_or_else", [default]) => {
+                match self.unwrap_or_default_text(default) {
+                    Some(d) => format!("\"${{{name}-{d}}}\""),
+                    None => return Ok(None),
+                }
+            }
+            // `${X-}`: unset is the empty default, and the generated script
+            // runs under `set -u`, so a bare `${X}` would abort instead.
+            ("unwrap_or_default", []) => format!("\"${{{name}-}}\""),
+            ("unwrap", []) => format!("\"${{{name}?}}\""),
+            ("expect", [Expr::Literal(Literal::Str(msg))]) => {
+                format!("\"${{{name}?{}}}\"", Self::quote_expansion_word(msg))
+            }
+            _ => return Ok(None),
+        };
+        Ok(Some(ShellValue::Glob(text)))
+    }
+
+    /// PMAT-265: spell `word` for use inside a double-quoted parameter
+    /// expansion, `"${x-…}"` / `"${x?…}"`.
+    ///
+    /// A plain word (letters, digits, `_ . / : @ % + , = -`) goes in bare.
+    /// Anything else becomes a nested double-quoted word with `\`, `"`, `$`
+    /// and `` ` `` backslash-escaped: `"${x-"{brace}"}"`. Inside `${…}` the
+    /// shell skips over an enclosed quoted string when it looks for the
+    /// closing brace, and bash, dash and busybox all print `{brace}` for it
+    /// (measured 2026-09-12). The 7.3.0 rendering used
+    /// `escape_shell_string`, whose single quotes are literal characters in
+    /// this context under bash (`'{brace}'` printed) and unbalanced under
+    /// dash (a syntax error) — F-TCORE-028.
+    fn quote_expansion_word(word: &str) -> String {
+        let plain = |c: char| c.is_ascii_alphanumeric() || "_./:@%+,=-".contains(c);
+        if !word.is_empty() && word.chars().all(plain) {
+            return word.to_string();
+        }
+        let mut out = String::with_capacity(word.len() + 2);
+        out.push('"');
+        for c in word.chars() {
+            if matches!(c, '\\' | '"' | '$' | '`') {
+                out.push('\\');
+            }
+            out.push(c);
+        }
+        out.push('"');
+        out
+    }
+
     /// The literal text to splice into `${x-…}` for `default`, or `None`
     /// when `default` has no honest, no-side-effect spelling.
     ///
@@ -550,7 +656,22 @@ impl IrConverter {
         use crate::ast::{restricted::Literal, Expr};
 
         match default {
-            Expr::Literal(Literal::Str(s)) => Some(crate::emitter::escape::escape_shell_string(s)),
+            Expr::Literal(Literal::Str(s)) => Some(Self::quote_expansion_word(s)),
+            // PMAT-265: `"d".to_string()` and `String::from("d")` are the
+            // literal `"d"` — the spellings Rust needs when the receiver is
+            // a `Result<String, _>`.
+            Expr::MethodCall {
+                receiver,
+                method,
+                args,
+            } if method == "to_string" && args.is_empty() => match &**receiver {
+                Expr::Literal(Literal::Str(s)) => Some(Self::quote_expansion_word(s)),
+                _ => None,
+            },
+            Expr::FunctionCall { name, args } if name == "String::from" => match args.as_slice() {
+                [Expr::Literal(Literal::Str(s))] => Some(Self::quote_expansion_word(s)),
+                _ => None,
+            },
             Expr::Literal(Literal::U32(n)) => Some(n.to_string()),
             Expr::Literal(Literal::I32(n)) => Some(n.to_string()),
             Expr::Literal(Literal::U16(n)) => Some(n.to_string()),

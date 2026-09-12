@@ -200,7 +200,13 @@ bashrs transpiles a method call only when POSIX shell has an honest spelling for
 | `s.to_string()` | the value | identity on a string |
 | `x.unwrap_or(d)` | `${x-d}` | **unset only**, not `${x:-d}` |
 | `x.unwrap_or_else(\|\| d)` | `${x-d}` | only when the closure body has no side effects |
+| `std::env::var("X")` | `"${X}"` | the same read as `env("X")`; under the script's `set -u` an unset name aborts |
+| `std::env::var("X").unwrap_or(d)`, `.unwrap_or_else(\|_\| d)` | `"${X-d}"` | on the env name itself, so the default really applies when `X` is unset (v7.4.0) |
+| `std::env::var("X").unwrap_or_default()` | `"${X-}"` | unset reads as empty |
+| `std::env::var("X").unwrap()`, `.expect("m")` | `"${X?}"`, `"${X?m}"` | the script aborts when `X` is unset, as the panic would |
 | `s.push_str(t)`, `s.push(c)`, `v.insert(..)`, `s.rev()` | none | the transpile fails naming the method |
+
+The default `d` is spelled for the double-quoted expansion it sits in: a plain word goes in bare (`"${PORT-8080}"`); anything with a brace, a space, a quote, a dollar or a backslash becomes a nested double-quoted word with backslash escapes (`"${X-"{brace}"}"`), which bash, dash and busybox all read the same way. v7.3.0 rendered such defaults through the single-quoting escaper, which printed the quotes literally under bash and was a syntax error under dash; v7.4.0 fixed it and pinned it (`F-TCORE-028`).
 
 The `unwrap_or` spelling is the one worth understanding. Rust returns the default for `None` alone, so a value that is present but empty must survive:
 
