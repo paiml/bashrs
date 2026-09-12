@@ -2400,7 +2400,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'v7.3.0 close-out: ticket statuses, the verified release record, and the v7.4.0 plan'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-12T01:31:20Z
@@ -2412,5 +2412,5 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  - release:v7.4.0
+  - release:v7.3.0
   notes: null

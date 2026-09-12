@@ -23,6 +23,7 @@ Issues on the GitHub milestone `v7.1.0`: #293, #294, #295, #265, #232.
 | PMAT-243 | COV-MEASURE: measure line coverage, name the top ten gaps, record both |
 | PMAT-246 | work contracts regenerated so pv validates all 103; the CB-1305 half is upstream (paiml-mcp-agent-toolkit#1306) |
 | PMAT-256 | corpus runner sandbox: temporary cwd, HOME and PATH everywhere, bwrap where Linux has it (make corpus-score sandboxes the release run; the runner itself is v7.3.0) |
+| PMAT-262 | the close-out: statuses, the verified release record, the v7.4.0 plan |
 | PMAT-257 | the release itself: ten defects, pv gate 4 green, coverage 95.01 percent, the Pareto gates, the book |
 
 ## v7.3.0 (released 2026-09-12)
@@ -48,7 +49,6 @@ Goal: the forjar-parity phases that keep being carried, and the corpus runner's 
 |---|---|
 | PMAT-253 | forjar parity, the phases not shipped in v7.1.0 through v7.3.0: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b |
 | PMAT-256 | corpus runner sandbox: the runner itself, not only `make corpus-score` |
-| PMAT-262 | the v7.3.0 close-out: statuses, the verified release record, this plan |
 
 Issues on this release: none yet. Backlog: #233, #234, #236.
 
