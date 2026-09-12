@@ -2414,3 +2414,39 @@ roadmap:
   - kind:code
   - release:v7.3.0
   notes: null
+- id: PMAT-263
+  github_issue: null
+  item_type: task
+  title: 'v7.4.0: the required check runs what it claims (#233), the per-file self-lint ratchet, deps, corpus growth'
+  status: planned
+  priority: critical
+  assigned_to: null
+  created: 2026-09-12T06:21:46Z
+  updated: 2026-09-12T06:21:46Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.4.0
+  notes: null
+- id: PMAT-264
+  github_issue: null
+  item_type: task
+  title: 'v7.4.0 close-out: statuses, the verified release record, the v7.5.0 plan'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-12T06:21:46Z
+  updated: 2026-09-12T06:21:46Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.4.0
+  notes: null
