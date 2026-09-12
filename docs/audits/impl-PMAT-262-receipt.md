@@ -20,3 +20,14 @@ Three quorum rounds refused close-out and follow-up diffs in this release becaus
 ## Release verification, recorded here rather than claimed
 
 The measurements behind the record are in `docs/audits/impl-PMAT-258-receipt.md` under "Released": the sparse index, the GitHub release, the install, and three behaviours checked against the installed 7.3.0 binary — SC2009 firing where SC2106 used to, SC2106 firing on a subshell break, and `s.len()` emitting `${#s}` and printing 5.
+
+## Landed in
+
+This ticket spans two pull requests, and a reviewer judging either one alone should know which:
+
+| pull request | what it carried |
+|---|---|
+| #327 | the close-out itself: statuses for PMAT-258, 259, 260 and 261; the verified release record appended to `docs/audits/impl-PMAT-258-receipt.md`; the v7.3.0 sections dated in the plan and the notes; PMAT-253 and PMAT-256 moved to v7.4.0; the v7.4.0 sections opened |
+| #328 | the correction: PMAT-262 itself moved from v7.4.0 to v7.3.0 and marked completed, since a close-out ships with the release it closes, and the v7.4.0 plan and notes returned to the two entries actually open there |
+
+Three lanes refused #328 on the first round because the claims above read as if this diff performed all of them. They did not; #327 did. The table is the fix, and it is the same lesson as the three refusals earlier in the release: a reviewer reads a diff against what the ticket says, so the ticket has to say which diff.
