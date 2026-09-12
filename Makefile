@@ -320,7 +320,7 @@ coverage-gate: ## Line coverage of the library must be at least 95 percent (repo
 release-gate: ## Full pre-release gate — every test target, the corpus and the book
 	@echo "🔒 Release gate: everything the PR gate skips"
 	@cargo fmt --all -- --check
-	@cargo clippy --all-targets --all-features -- -D warnings
+	@cargo clippy --workspace --all-targets --all-features -- -D warnings
 	@cargo test --workspace
 	@pv lint contracts
 	@$(MAKE) coverage-gate

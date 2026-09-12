@@ -602,6 +602,7 @@ fn test_process_repl_line_variable_assignment() {
         .auto_add_history(true)
         .build();
     let mut editor = Editor::with_config(config).expect("editor");
+    editor.set_helper(Some(completer));
     let action = process_repl_line("x=42", &mut buffer, &mut state, &mut editor);
     assert!(matches!(action, LineAction::Continue));
 }
@@ -616,6 +617,7 @@ fn test_process_repl_line_regular_command() {
         .auto_add_history(true)
         .build();
     let mut editor = Editor::with_config(config).expect("editor");
+    editor.set_helper(Some(completer));
     let action = process_repl_line("echo hello", &mut buffer, &mut state, &mut editor);
     // Regular commands that don't quit return Next
     assert!(matches!(action, LineAction::Next));
@@ -631,6 +633,7 @@ fn test_process_repl_line_colon_command() {
         .auto_add_history(true)
         .build();
     let mut editor = Editor::with_config(config).expect("editor");
+    editor.set_helper(Some(completer));
     let action = process_repl_line(":mode purify", &mut buffer, &mut state, &mut editor);
     assert!(matches!(action, LineAction::Next));
     assert_eq!(state.mode(), ReplMode::Purify);

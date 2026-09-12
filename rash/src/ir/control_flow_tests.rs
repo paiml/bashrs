@@ -6,7 +6,6 @@
 use crate::ast::restricted::*;
 use crate::emitter::PosixEmitter;
 use crate::ir::from_ast;
-use crate::models::Config;
 
 #[test]
 fn test_string_comparison_equality() {
@@ -44,7 +43,6 @@ fn test_string_comparison_equality() {
     let ir = from_ast(&ast).expect("Should convert to IR");
 
     // Emit the shell code
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
@@ -95,7 +93,6 @@ fn test_integer_comparison_equality() {
     let ir = from_ast(&ast).expect("Should convert to IR");
 
     // Emit and verify it uses -eq for integer comparison
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
@@ -154,7 +151,6 @@ fn test_logical_and_operator() {
     let ir = from_ast(&ast).expect("Should convert to IR");
 
     // Emit and verify it generates correct logical AND
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
@@ -210,7 +206,6 @@ fn test_logical_or_operator() {
     let ir = from_ast(&ast).expect("Should convert to IR");
 
     // Emit and verify it generates correct logical OR
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
@@ -258,7 +253,6 @@ fn test_not_operator() {
     let ir = from_ast(&ast).expect("Should convert to IR");
 
     // Emit and verify it generates correct NOT
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
@@ -307,7 +301,6 @@ fn test_string_inequality() {
     let ir = from_ast(&ast).expect("Should convert to IR");
 
     // Emit and verify it uses != for string inequality
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 

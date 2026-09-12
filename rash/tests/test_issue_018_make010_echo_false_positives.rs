@@ -260,12 +260,14 @@ config:
 ///
 /// Under the PMAT-251 contract every candidate here is exempt, and for a
 /// stated reason rather than by accident:
-///   - `cargo install bashrs` and `cargo install cargo-llvm-cov` are each the
-///     only command in their own physical recipe line, so Make already sees
-///     their status;
-///   - `docker rm -f test-container` and `rm -rf target/` declare the
-///     tolerance MAKE010 would ask for, in the `-f` and `-rf` flags;
-///   - the two `echo` lines are text, which is what issue #18 was about.
+///
+/// - `cargo install bashrs` and `cargo install cargo-llvm-cov` are each the
+///   only command in their own physical recipe line, so Make already sees
+///   their status;
+/// - `docker rm -f test-container` and `rm -rf target/` declare the
+///   tolerance MAKE010 would ask for, in the `-f` and `-rf` flags;
+/// - the two `echo` lines are text, which is what issue #18 was about.
+///
 /// So the whole file is clean, and no echo is ever the subject of a report.
 #[test]
 fn test_issue_018_make010_comprehensive_ruchy_docker_example() {

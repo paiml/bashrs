@@ -1,12 +1,10 @@
 use super::*;
 use crate::ir::{Command, EffectSet, ShellIR, ShellValue};
-use crate::models::Config;
 use proptest::prelude::*;
 use rstest::*;
 
 #[test]
 fn test_simple_let_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Let {
@@ -25,7 +23,6 @@ fn test_simple_let_emission() {
 
 #[test]
 fn test_command_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let cmd = Command {
@@ -44,7 +41,6 @@ fn test_command_emission() {
 
 #[test]
 fn test_if_statement_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::If {
@@ -75,7 +71,6 @@ fn test_if_statement_emission() {
 
 #[test]
 fn test_sequence_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Sequence(vec![
@@ -102,7 +97,6 @@ fn test_sequence_emission() {
 
 #[test]
 fn test_exit_statement_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Exit {
@@ -117,7 +111,6 @@ fn test_exit_statement_emission() {
 
 #[test]
 fn test_shell_value_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     // String value
@@ -142,7 +135,6 @@ fn test_shell_value_emission() {
 
 #[test]
 fn test_concatenation_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let concat_val = ShellValue::Concat(vec![
@@ -157,7 +149,6 @@ fn test_concatenation_emission() {
 
 #[test]
 fn test_command_substitution_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let cmd_subst = ShellValue::CommandSubst(Command {
@@ -171,7 +162,6 @@ fn test_command_substitution_emission() {
 
 #[test]
 fn test_noop_emission() {
-    let config = Config::default();
     let emitter = PosixEmitter::new();
 
     let ir = ShellIR::Noop;

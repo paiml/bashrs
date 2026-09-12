@@ -2,7 +2,6 @@
 /// Tests that ShellValue::Arg { position: None } generates "$@" in shell
 #[test]
 fn test_args_emits_all_args_syntax() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "all".to_string(),
@@ -10,7 +9,6 @@ fn test_args_emits_all_args_syntax() {
         effects: crate::ir::effects::EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement args() emission
@@ -30,7 +28,6 @@ fn test_args_emits_all_args_syntax() {
 /// Tests that ShellValue::ArgCount generates "$#" in shell
 #[test]
 fn test_arg_count_emits_count_syntax() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "count".to_string(),
@@ -38,7 +35,6 @@ fn test_arg_count_emits_count_syntax() {
         effects: crate::ir::effects::EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement ArgCount emission
@@ -58,7 +54,6 @@ fn test_arg_count_emits_count_syntax() {
 /// Tests that all argument accesses include proper quoting
 #[test]
 fn test_args_quoted_for_safety() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
         crate::ir::shell_ir::ShellIR::Let {
@@ -73,7 +68,6 @@ fn test_args_quoted_for_safety() {
         },
     ]);
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: Must have quotes around $1 and $@ for safety
@@ -97,7 +91,6 @@ fn test_args_quoted_for_safety() {
 /// Tests that multiple positional arguments can be accessed together
 #[test]
 fn test_multiple_args_in_sequence() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
         crate::ir::shell_ir::ShellIR::Let {
@@ -117,7 +110,6 @@ fn test_multiple_args_in_sequence() {
         },
     ]);
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: All three should be emitted correctly
@@ -144,7 +136,6 @@ fn test_multiple_args_in_sequence() {
 /// Tests that ShellValue::ExitCode generates "$?" in shell
 #[test]
 fn test_exit_code_emits_question_mark_syntax() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "status".to_string(),
@@ -152,7 +143,6 @@ fn test_exit_code_emits_question_mark_syntax() {
         effects: crate::ir::effects::EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until we implement ExitCode emission
@@ -173,7 +163,6 @@ fn test_exit_code_emits_question_mark_syntax() {
 #[test]
 fn test_exit_code_in_comparison() {
     use crate::ir::shell_ir::ComparisonOp;
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::If {
         test: ShellValue::Comparison {
@@ -187,7 +176,6 @@ fn test_exit_code_in_comparison() {
         else_branch: None,
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until ExitCode is implemented in comparison
@@ -207,7 +195,6 @@ fn test_exit_code_in_comparison() {
 /// Tests that exit code accesses include proper quoting
 #[test]
 fn test_exit_code_quoted_for_safety() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Sequence(vec![
         crate::ir::shell_ir::ShellIR::Let {
@@ -222,7 +209,6 @@ fn test_exit_code_quoted_for_safety() {
         },
     ]);
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: Must have quotes around $? for safety and consistency
@@ -246,7 +232,6 @@ fn test_exit_code_quoted_for_safety() {
 /// Tests that exit_code() can be used in string concatenation
 #[test]
 fn test_exit_code_in_concatenation() {
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Let {
         name: "msg".to_string(),
@@ -257,7 +242,6 @@ fn test_exit_code_in_concatenation() {
         effects: crate::ir::effects::EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     // RED: This will fail until ExitCode works in concatenation
@@ -275,7 +259,6 @@ fn test_exit_code_in_concatenation() {
 #[test]
 fn test_string_split_in_runtime() {
     use crate::ir::{Command, EffectSet};
-    use crate::models::Config;
 
     // Use IR that references rash_string_split to trigger selective emission
     let ir = crate::ir::shell_ir::ShellIR::Exec {
@@ -287,7 +270,6 @@ fn test_string_split_in_runtime() {
         effects: EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     assert!(
@@ -301,7 +283,6 @@ fn test_string_split_in_runtime() {
 #[test]
 fn test_string_split_basic() {
     use crate::ir::{Command, EffectSet};
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
         cmd: Command::new("rash_string_split")
@@ -310,7 +291,6 @@ fn test_string_split_basic() {
         effects: EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     assert!(
@@ -330,7 +310,6 @@ fn test_string_split_basic() {
 #[test]
 fn test_array_len_in_runtime() {
     use crate::ir::{Command, EffectSet};
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
         cmd: Command::new("rash_array_len").arg(crate::ir::shell_ir::ShellValue::String(
@@ -339,7 +318,6 @@ fn test_array_len_in_runtime() {
         effects: EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     assert!(
@@ -353,7 +331,6 @@ fn test_array_len_in_runtime() {
 #[test]
 fn test_array_len_basic() {
     use crate::ir::{Command, EffectSet};
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
         cmd: Command::new("rash_array_len").arg(crate::ir::shell_ir::ShellValue::String(
@@ -362,7 +339,6 @@ fn test_array_len_basic() {
         effects: EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     assert!(
@@ -382,7 +358,6 @@ fn test_array_len_basic() {
 #[test]
 fn test_array_join_in_runtime() {
     use crate::ir::{Command, EffectSet};
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
         cmd: Command::new("rash_array_join")
@@ -393,7 +368,6 @@ fn test_array_join_in_runtime() {
         effects: EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     assert!(
@@ -407,7 +381,6 @@ fn test_array_join_in_runtime() {
 #[test]
 fn test_array_join_basic() {
     use crate::ir::{Command, EffectSet};
-    use crate::models::Config;
 
     let ir = crate::ir::shell_ir::ShellIR::Exec {
         cmd: Command::new("rash_array_join")
@@ -418,7 +391,6 @@ fn test_array_join_basic() {
         effects: EffectSet::pure(),
     };
 
-    let config = Config::default();
     let output = super::emit(&ir).unwrap();
 
     assert!(

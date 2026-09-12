@@ -418,6 +418,8 @@ pub(crate) fn corpus_dist_with(registry: &crate::corpus::registry::CorpusRegistr
     Ok(())
 }
 
+include!("corpus_metrics_commands_corpus.rs");
+
 // PMAT-257: every top-level handler in this file builds a CorpusRunner and
 // scores the whole ~18k-entry corpus (`CorpusRegistry::load_full()`), so each
 // was split into a `pub(crate) fn <name>() -> Result<()>` thin wrapper that
@@ -524,5 +526,3 @@ mod pmat257_cov_tests {
         corpus_dist_with(&registry).expect("an empty registry must not divide by zero");
     }
 }
-
-include!("corpus_metrics_commands_corpus.rs");

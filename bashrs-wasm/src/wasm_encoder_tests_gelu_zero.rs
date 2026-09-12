@@ -1,7 +1,7 @@
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
-    use super::*;
+    use super::super::*; // the file is `mod tests_ext` inside wasm_encoder.rs (#233 orphan-fragment class)
 
     #[test]
     fn test_gelu_zero() {

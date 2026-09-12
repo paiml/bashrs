@@ -167,7 +167,6 @@ fn test_exclusive_range_adjustment() {
     let ir = from_ast(&ast).expect("Should convert exclusive range");
 
     // Emit to shell code
-    let config = Config::default();
     let emitter = PosixEmitter::new();
     let shell_code = emitter.emit(&ir).expect("Should emit shell code");
 
