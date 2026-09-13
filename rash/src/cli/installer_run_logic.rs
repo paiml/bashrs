@@ -163,13 +163,10 @@ fn installer_setup_signature_keyring(
         return Ok(None);
     }
 
-    let keyring_dir = std::env::var("XDG_CONFIG_HOME")
-        .map(std::path::PathBuf::from)
-        .or_else(|_| std::env::var("HOME").map(|h| std::path::PathBuf::from(h).join(".config")))
-        .unwrap_or_else(|_| std::path::PathBuf::from("."))
-        .join("bashrs")
-        .join("installer");
-    let keyring_path = keyring_dir.join("keyring.json");
+    // One resolver, shared with the keyring commands (#339). The second copy of this path was free to
+    // drift from the first, and a keyring the installer cannot find is a signature check that quietly
+    // is not one.
+    let keyring_path = crate::cli::installer_commands::keyring_default_path();
 
     if !keyring_path.exists() {
         return Err(Error::Validation(
