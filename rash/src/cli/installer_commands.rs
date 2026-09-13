@@ -152,21 +152,44 @@ pub(crate) fn handle_installer_command(command: InstallerCommands) -> Result<()>
 }
 
 fn handle_keyring_command(command: KeyringCommands) -> Result<()> {
-    let keyring_path = keyring_default_path();
+    handle_keyring_command_at(command, &keyring_default_path())
+}
 
+/// [`handle_keyring_command`] with the keyring's path passed IN.
+///
+/// The path used to be read from the process environment inside the command itself, which made
+/// `XDG_CONFIG_HOME` a shared mutable global that a test had to write in order to redirect it — and the
+/// harness runs tests on parallel threads, so a test resolved whichever directory another had set last
+/// (#339). Handing the path in is what lets a test own its own directory.
+pub(crate) fn handle_keyring_command_at(
+    command: KeyringCommands,
+    keyring_path: &Path,
+) -> Result<()> {
     match command {
-        KeyringCommands::Init { import } => keyring_init_command(&keyring_path, import),
-        KeyringCommands::Add { key, id } => keyring_add_command(&keyring_path, &key, &id),
-        KeyringCommands::List => keyring_list_command(&keyring_path),
-        KeyringCommands::Remove { id } => keyring_remove_command(&keyring_path, &id),
+        KeyringCommands::Init { import } => keyring_init_command(keyring_path, import),
+        KeyringCommands::Add { key, id } => keyring_add_command(keyring_path, &key, &id),
+        KeyringCommands::List => keyring_list_command(keyring_path),
+        KeyringCommands::Remove { id } => keyring_remove_command(keyring_path, &id),
     }
 }
 
-fn keyring_default_path() -> PathBuf {
-    std::env::var("XDG_CONFIG_HOME")
+/// Where the installer keyring lives, for this process's environment.
+pub(crate) fn keyring_default_path() -> PathBuf {
+    keyring_path_from(
+        std::env::var("XDG_CONFIG_HOME").ok(),
+        std::env::var("HOME").ok(),
+    )
+}
+
+/// The resolution itself, with the environment passed in: `$XDG_CONFIG_HOME`, else `$HOME/.config`, else
+/// the working directory. Pure, so a test can check every branch without writing the process environment
+/// every other test thread shares (#339). `installer_run_logic` calls this too, which is how the second
+/// copy of this path — free to drift from the first — was removed.
+pub(crate) fn keyring_path_from(xdg_config_home: Option<String>, home: Option<String>) -> PathBuf {
+    xdg_config_home
         .map(PathBuf::from)
-        .or_else(|_| std::env::var("HOME").map(|h| PathBuf::from(h).join(".config")))
-        .unwrap_or_else(|_| PathBuf::from("."))
+        .or_else(|| home.map(|h| PathBuf::from(h).join(".config")))
+        .unwrap_or_else(|| PathBuf::from("."))
         .join("bashrs")
         .join("installer")
         .join("keyring.json")
@@ -197,6 +220,10 @@ fn keyring_init_command(keyring_path: &Path, import: Vec<PathBuf>) -> Result<()>
 
     let mut keyring = Keyring::with_storage(keyring_path)?;
     keyring.enable_tofu();
+    // Persist before announcing it (#341). `init` used to build the keyring in memory, print
+    // "Initialized keyring at …", and return: the file existed only when --import was given, so every
+    // later command answered "Keyring not initialized" to a user who had just run init.
+    keyring.save()?;
 
     println!("\u{2713} Initialized keyring at {}", keyring_path.display());
     println!("  TOFU mode: enabled");
