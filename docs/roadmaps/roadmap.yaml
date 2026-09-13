@@ -2512,3 +2512,58 @@ roadmap:
   labels:
   - kind:code
   notes: null
+- id: PMAT-339
+  github_issue: 339
+  item_type: task
+  title: 'keyring tests race on the process-wide XDG_CONFIG_HOME: 61 of 150 runs fail, and the Clean-Room lane for bashrs is red on it'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-13T16:53:45Z
+  updated: 2026-09-13T16:53:45Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: >-
+    Includes the fix for #341 (keyring init persisting the keyring), because this row's own tests are
+    its falsifiers and cannot pass without it: removing the XDG_CONFIG_HOME race turns three `let _ =`
+    calls into assertions, and two of them go red against init as it stands. The third defect found in
+    the same session, #340, has no such coupling and is a separate PR (paiml/bashrs#343).
+- id: PMAT-340
+  github_issue: 340
+  item_type: task
+  title: corpus-score's bwrap masks /tmp, so the release gate cannot run from a worktree under /tmp
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-13T16:53:46Z
+  updated: 2026-09-13T16:53:46Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+- id: PMAT-341
+  github_issue: 341
+  item_type: task
+  title: 'keyring init reports success and writes nothing: the next command says the keyring is not initialized'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-13T16:53:46Z
+  updated: 2026-09-13T16:53:46Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null

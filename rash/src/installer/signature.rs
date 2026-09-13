@@ -222,8 +222,11 @@ impl Keyring {
         Ok(TrustDecision::NewlyTrusted)
     }
 
-    /// Save keyring to storage
-    fn save(&self) -> Result<()> {
+    /// Save the keyring to its storage path, if it has one.
+    ///
+    /// Public since #341: `keyring init` has to persist an EMPTY keyring — the file (and the TOFU flag
+    /// it just announced) is what every later command looks for.
+    pub fn save(&self) -> Result<()> {
         if let Some(ref path) = self.storage_path {
             let data = KeyringData {
                 keys: self.keys.values().cloned().collect(),
