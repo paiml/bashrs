@@ -206,10 +206,12 @@ pub fn apply_fixes_to_file(
 /// different program? (bashrs#335)
 ///
 /// Two properties, whichever rule emitted the fix:
-/// 1. the TOP-LEVEL commands keep the same number of words each -- 7.4.0 rewrote
-///    `assert_row 'a' PASS "$f" 'b'` into two words. Only top-level commands are
-///    compared: a fix that removes a command substitution (SC2116,
-///    `$(echo $x)` -> `$x`) legitimately removes the command nested inside it;
+/// 1. no two words of a TOP-LEVEL command become one, and no command appears
+///    or disappears -- 7.4.0 rewrote `assert_row 'a' PASS "$f" 'b'` into two
+///    words. A command may GAIN a word: the idempotency fixes turn `mkdir d`
+///    into `mkdir -p d`. Only top-level commands are compared: a fix that
+///    removes a command substitution (SC2116, `$(echo $x)` -> `$x`)
+///    legitimately removes the command nested inside it;
 /// 2. the line gains no UNQUOTED expansion -- 7.4.0 rewrote
 ///    `trap 'rm -rf -- "${TD:?}"' EXIT` into `trap "rm -rf -- "${TD:?}"" EXIT`,
 ///    still three words, so (1) cannot see it, but literal `${TD:?}` became an
@@ -228,8 +230,9 @@ fn rewrite_changes_program(before: &str, after: &str, line_num: usize) -> bool {
     let (b, a) = (nth(before), nth(after));
     let bc = crate::linter::shell_words::simple_commands(&b);
     let ac = crate::linter::shell_words::simple_commands(&a);
-    top_level_shape(&bc) != top_level_shape(&ac)
-        || unquoted_expansions(&ac) > unquoted_expansions(&bc)
+    let (was, now) = (top_level_shape(&bc), top_level_shape(&ac));
+    let words_merged = was.len() != now.len() || was.iter().zip(&now).any(|(w, n)| n < w);
+    words_merged || unquoted_expansions(&ac) > unquoted_expansions(&bc)
 }
 
 /// Word count of each command not nested inside another command's word (a

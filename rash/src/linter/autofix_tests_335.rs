@@ -4,8 +4,10 @@
 //! one and merged four arguments into one, and `bash -n` accepted both.
 //!
 //! Two properties a fix may not break, whichever rule emitted it:
-//!   1. the words of each simple command stay the same in number, and
+//!   1. no two words of a top-level command become one (a fix may add a
+//!      word, as `mkdir d` -> `mkdir -p d` does, but never merge two), and
 //!   2. no expansion that was literal text becomes an UNQUOTED expansion.
+//!
 //! The trap rewrite keeps ONE word, so (1) alone cannot see it; (2) can.
 
 use super::*;
@@ -87,4 +89,14 @@ fn test_335_net_refuses_a_span_that_swallows_the_next_separator() {
         fixed.modified_source.as_deref(),
         Some("cp \"$(cat file.txt)\"est\n")
     );
+}
+
+/// The idempotency fixes ADD a word (`mkdir d` -> `mkdir -p d`). The net refuses
+/// merges, not growth: its first cut demanded equal counts and refused this,
+/// breaking `bashrs fix` and `bashrs make lint --fix` on every `mkdir`.
+#[test]
+fn test_335_net_still_applies_a_fix_that_inserts_a_flag() {
+    let fixed = one_fix("mkdir build\n", Span::new(1, 1, 1, 6), "mkdir -p");
+    assert_eq!(fixed.fixes_applied, 1);
+    assert_eq!(fixed.modified_source.as_deref(), Some("mkdir -p build\n"));
 }
