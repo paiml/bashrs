@@ -58,8 +58,14 @@ pub fn apply_fixes(
                 continue;
             }
 
-            // Apply the fix
-            modified = apply_single_fix(&modified, &diagnostic.span, &fix.replacement)?;
+            // Apply the fix -- unless the rewrite would make a different program.
+            // bashrs#335: nothing checked this, and 7.4.0 shipped a trap that
+            // expanded at definition time and an argument list merged into one.
+            let candidate = apply_single_fix(&modified, &diagnostic.span, &fix.replacement)?;
+            if rewrite_changes_program(&modified, &candidate, diagnostic.span.start_line) {
+                continue;
+            }
+            modified = candidate;
             fixes_applied += 1;
             applied_spans.push(diagnostic.span);
         }
@@ -196,6 +202,72 @@ pub fn apply_fixes_to_file(
     Ok(fix_result)
 }
 
+/// Would replacing line `line_num` of `before` with that line of `after` make a
+/// different program? (bashrs#335)
+///
+/// Two properties, whichever rule emitted the fix:
+/// 1. no two words of a TOP-LEVEL command become one, and no command appears
+///    or disappears -- 7.4.0 rewrote `assert_row 'a' PASS "$f" 'b'` into two
+///    words. A command may GAIN a word: the idempotency fixes turn `mkdir d`
+///    into `mkdir -p d`. Only top-level commands are compared: a fix that
+///    removes a command substitution (SC2116, `$(echo $x)` -> `$x`)
+///    legitimately removes the command nested inside it;
+/// 2. the line gains no UNQUOTED expansion -- 7.4.0 rewrote
+///    `trap 'rm -rf -- "${TD:?}"' EXIT` into `trap "rm -rf -- "${TD:?}"" EXIT`,
+///    still three words, so (1) cannot see it, but literal `${TD:?}` became an
+///    unquoted expansion evaluated at definition time. Counted over the whole
+///    line, so an expansion that moves out of a removed substitution is not new.
+///
+/// Quoting an expansion (`$DIR` -> `"$DIR"`) or a substitution
+/// (`$(cmd)` -> `"$(cmd)"`) passes both, which is what most fixes do.
+fn rewrite_changes_program(before: &str, after: &str, line_num: usize) -> bool {
+    let nth = |s: &str| {
+        s.lines()
+            .nth(line_num.saturating_sub(1))
+            .unwrap_or_default()
+            .to_string()
+    };
+    let (b, a) = (nth(before), nth(after));
+    let bc = crate::linter::shell_words::simple_commands(&b);
+    let ac = crate::linter::shell_words::simple_commands(&a);
+    let (was, now) = (top_level_shape(&bc), top_level_shape(&ac));
+    let words_merged = was.len() != now.len() || was.iter().zip(&now).any(|(w, n)| n < w);
+    words_merged || unquoted_expansions(&ac) > unquoted_expansions(&bc)
+}
+
+/// Word count of each command not nested inside another command's word (a
+/// `$( … )` body or a `sh -c` operand), in source order.
+fn top_level_shape(cmds: &[crate::linter::shell_words::SimpleCommand]) -> Vec<usize> {
+    cmds.iter()
+        .filter(|c| !is_nested(c, cmds))
+        .map(|c| c.words.len())
+        .collect()
+}
+
+/// Does `c` start inside a word of some other command?
+fn is_nested(
+    c: &crate::linter::shell_words::SimpleCommand,
+    all: &[crate::linter::shell_words::SimpleCommand],
+) -> bool {
+    let Some(first) = c.words.first() else {
+        return false;
+    };
+    all.iter().filter(|d| !std::ptr::eq(*d, c)).any(|d| {
+        d.words
+            .iter()
+            .any(|w| first.col > w.col && first.col < w.col + w.raw.len())
+    })
+}
+
+/// Unquoted `$NAME` / `${NAME}` expansions anywhere on the line.
+fn unquoted_expansions(cmds: &[crate::linter::shell_words::SimpleCommand]) -> usize {
+    cmds.iter()
+        .flat_map(|c| c.words.iter())
+        .flat_map(|w| w.expansions.iter())
+        .filter(|e| !e.quoted)
+        .count()
+}
+
 /// Apply a single fix to source code
 ///
 /// # Arguments
@@ -257,3 +329,7 @@ fn apply_single_fix(source: &str, span: &Span, replacement: &str) -> io::Result<
 #[cfg(test)]
 #[path = "autofix_tests_apply_single.rs"]
 mod tests_extracted;
+
+#[cfg(test)]
+#[path = "autofix_tests_335.rs"]
+mod tests_335;

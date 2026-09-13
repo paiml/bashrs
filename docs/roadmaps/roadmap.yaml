@@ -2494,3 +2494,21 @@ roadmap:
   - kind:code
   - release:v7.5.0
   notes: null
+- id: PMAT-335
+  github_issue: 335
+  item_type: task
+  title: 'bashrs fix swaps quotes across string boundaries: SC2016/BRS0006 pairs the wrong quote characters and rewrites without re-parsing'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-13T07:00:59Z
+  updated: 2026-09-13T07:00:59Z
+  spec: null
+  acceptance_criteria:
+  - bashrs#335. fix turns trap '..."${TD:?}"' into trap "..."${TD:?}"" and collapses four arguments into one. bash -n passes; the program is different. Reproduces on published 7.4.0.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null

@@ -17,14 +17,19 @@
 //
 // Note: This rule detects likely mistakes where users expect expansion
 // but use single quotes. Intentional literals with $ are acceptable.
+//
+// bashrs#335: quotes are paired inside each word a quote-aware lexer delimited
+// (`quoted_segments`), never across the raw line. The regex this replaced
+// reported ` $x ` in `f 'a' $x 'b'` as single-quoted text.
 
+use crate::linter::quoted_segments::single_quoted_segments;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
 #[allow(clippy::unwrap_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static SINGLE_QUOTE_WITH_VAR: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    // Match: '...$var...' or '...${var}...' or '...$(cmd)...'
-    Regex::new(r"'[^']*(\$[a-zA-Z_][a-zA-Z0-9_]*|\$\{[^}]+\}|\$\([^)]+\))[^']*'").unwrap()
+static EXPANSION_IN_CONTENT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    // Match: $var or ${var} or $(cmd), in the text between single quotes
+    Regex::new(r"\$[a-zA-Z_][a-zA-Z0-9_]*|\$\{[^}]+\}|\$\([^)]+\)").unwrap()
 });
 
 /// F025: Check if the variable in single quotes is wrapped in double quotes
@@ -44,6 +49,26 @@ fn is_documentation_pattern(matched: &str) -> bool {
     false
 }
 
+/// Is this single-quoted text likely an expansion its author expected to run?
+fn expects_expansion(content: &str) -> bool {
+    if !EXPANSION_IN_CONTENT.is_match(content) {
+        return false;
+    }
+    // The filters below were written against the quoted match, so they are
+    // handed the quoted text they were written for.
+    let matched = format!("'{content}'");
+
+    // Skip some common false positives
+    // Skip if it's clearly a price/money (like '$50')
+    if matched.contains("$0") || matched.contains("$1") && matched.len() < 10 {
+        return false;
+    }
+
+    // F025: Skip if variable is in double quotes (documentation pattern)
+    // e.g., 'Value: "$var"' or 'Use "$(cmd)"' are intentional literals
+    !is_documentation_pattern(&matched)
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -55,31 +80,16 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Look for single-quoted strings with $ expressions
-        for m in SINGLE_QUOTE_WITH_VAR.find_iter(line) {
-            let matched = m.as_str();
-            let start_col = m.start() + 1;
-            let end_col = m.end() + 1;
-
-            // Skip some common false positives
-            // Skip if it's clearly a price/money (like '$50')
-            if matched.contains("$0") || matched.contains("$1") && matched.len() < 10 {
-                continue;
-            }
-
-            // F025: Skip if variable is in double quotes (documentation pattern)
-            // e.g., 'Value: "$var"' or 'Use "$(cmd)"' are intentional literals
-            if is_documentation_pattern(matched) {
-                continue;
-            }
-
-            let diagnostic = Diagnostic::new(
+        for seg in single_quoted_segments(line)
+            .into_iter()
+            .filter(|seg| expects_expansion(&seg.content))
+        {
+            result.add(Diagnostic::new(
                 "SC2016",
                 Severity::Info,
                 "Expressions don't expand in single quotes, use double quotes for that".to_string(),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
-            result.add(diagnostic);
+                Span::new(line_num, seg.start_col, line_num, seg.end_col),
+            ));
         }
     }
 
@@ -230,5 +240,15 @@ msg2='Today is $(date)'
             0,
             "SC2016 must NOT flag quoted command substitution in docs"
         );
+    }
+
+    #[test]
+    fn test_sc2016_335_no_match_across_string_boundaries() {
+        // bashrs#335: `'[^']*\$…[^']*'` against the raw line pairs the closing
+        // quote of one string with the opening quote of the next. `$x` here is
+        // unquoted, not single-quoted.
+        let code = r#"f 'a' $x 'b'"#;
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0, "{:?}", result.diagnostics);
     }
 }
