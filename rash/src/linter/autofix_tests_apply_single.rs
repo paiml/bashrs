@@ -295,7 +295,7 @@ fn test_fix_priority_sc2046_coverage() {
             "SC2046",
             Severity::Warning,
             "Unquoted command substitution".to_string(),
-            Span::new(1, 4, 1, 22),
+            Span::new(1, 4, 1, 19),
         )
         .with_fix(Fix::new("\"$(cat file.txt)\"".to_string())),
     );
@@ -306,10 +306,16 @@ fn test_fix_priority_sc2046_coverage() {
     // Verify SC2046 fix is applied
     assert_eq!(fix_result.fixes_applied, 1);
     assert!(fix_result.modified_source.is_some());
-    assert!(fix_result
-        .modified_source
-        .unwrap()
-        .contains("\"$(cat file.txt)\""));
+    // bashrs#335: this asserted `.contains("\"$(cat file.txt)\"")`, which also
+    // holds for `cp "$(cat file.txt)"est`. The span above was hand-written as end
+    // 22 -- three bytes past the substitution -- so the fix swallowed the space
+    // before `/dest`, merged two words, and this test called it a pass. The span
+    // is now the one the SC2046 rule emits (end 19, measured with
+    // `bashrs lint --format json`), and the whole program is asserted.
+    assert_eq!(
+        fix_result.modified_source.as_deref(),
+        Some("cp \"$(cat file.txt)\" /dest\n")
+    );
 }
 
 #[test]
