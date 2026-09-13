@@ -56,11 +56,18 @@ post-commit hook, so it lands in the NEXT commit on the branch without anyone
 touching it. The first version of this branch carried 89,008 lines of it, which
 is not review material and was correctly refused by both failing lanes. The
 branch was rebuilt from `main` and the baseline restored after each commit;
-`git diff origin/main...HEAD --numstat` names two files, this receipt aside.
+`git diff origin/main...HEAD --numstat` names the Makefile line and this receipt,
+and nothing else.
 
 ## Scope
 
-One line of `Makefile`, plus the roadmap entry and this receipt. The `else`
+One line of `Makefile`, plus this receipt. The roadmap row for PMAT-340 is NOT
+in this diff and does not need to be: it reached `main` on the PMAT-339 branch
+(#342, merged), byte-identical to the copy this branch had added but for its two
+timestamps, so the base merge resolved the roadmap to main's copy whole and this
+branch's roadmap contribution is a no-op. Three review lanes refused an earlier
+version of this receipt for claiming a roadmap entry the diff no longer carried,
+which is the claim this paragraph replaces. The `else`
 branch — no `bwrap` on the box — is untouched and still carries its PMAT-256
 warning that the runner then executes every Bash entry with the caller's cwd,
 HOME and PATH.
