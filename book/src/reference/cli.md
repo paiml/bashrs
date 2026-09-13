@@ -1780,6 +1780,16 @@ bashrs fix [OPTIONS] <FILE>
 - `--assumptions` - Include SAFE-WITH-ASSUMPTIONS fixes (e.g., `mkdir -p`)
 - `--output <FILE>` - Write fixed output to a different file
 
+### What a fix may not change
+
+A fix must leave the script the same program. `bashrs fix` skips any fix, from any rule, whose result would:
+
+- merge two words of a top-level command into one,
+- add or remove a command, or
+- add an unquoted expansion to the line.
+
+A fix may still add a word: the idempotency fixes turn `mkdir d` into `mkdir -p d`. Rewriting `'…$x…'` as `"…$x…"` (SC2081) changes what runs, so that fix is SAFE-WITH-ASSUMPTIONS and is applied only with `--assumptions` (#335).
+
 ### Examples
 
 ```bash

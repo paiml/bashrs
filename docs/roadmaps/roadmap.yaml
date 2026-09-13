@@ -2479,7 +2479,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: the security gate reads a missing cargo-deny as a violation; the nightly gate does not install it
-  status: planned
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-09-12T11:14:21Z
@@ -2492,13 +2492,13 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  - release:v7.5.0
+  - release:v7.4.1
   notes: null
 - id: PMAT-335
   github_issue: 335
   item_type: task
   title: 'bashrs fix swaps quotes across string boundaries: SC2016/BRS0006 pairs the wrong quote characters and rewrites without re-parsing'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-13T07:00:59Z
@@ -2511,6 +2511,25 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.1
+  notes: null
+- id: PMAT-338
+  github_issue: 338
+  item_type: task
+  title: 'release: v7.4.1 — bashrs fix keeps the program it was given (#335), cargo-deny absent is not a violation'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-13T09:51:40Z
+  updated: 2026-09-13T09:51:40Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.4.1
   notes: null
 - id: PMAT-339
   github_issue: 339
