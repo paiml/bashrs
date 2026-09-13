@@ -334,7 +334,7 @@ corpus-score: ## Score the whole corpus, sandboxed where the sandbox exists
 	@cargo build -p bashrs --bin bashrs
 	@if command -v bwrap >/dev/null 2>&1; then \
 		E=$$(mktemp -d); \
-		bwrap --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp --bind $$E $$E --chdir $$E \
+		bwrap --ro-bind / / --dev /dev --proc /proc --tmpfs /tmp --ro-bind $(PWD) $(PWD) --bind $$E $$E --chdir $$E \
 			--unshare-net --die-with-parent $(PWD)/target/debug/bashrs corpus run; \
 	else \
 		echo "WARNING: bwrap not found, so the runner executes every Bash entry with this shell cwd, HOME and PATH (PMAT-256)"; \
