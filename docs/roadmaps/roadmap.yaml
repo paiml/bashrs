@@ -2528,7 +2528,11 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
-  notes: null
+  notes: >-
+    Includes the fix for #341 (keyring init persisting the keyring), because this row's own tests are
+    its falsifiers and cannot pass without it: removing the XDG_CONFIG_HOME race turns three `let _ =`
+    calls into assertions, and two of them go red against init as it stands. The third defect found in
+    the same session, #340, has no such coupling and is a separate PR (paiml/bashrs#343).
 - id: PMAT-340
   github_issue: 340
   item_type: task
