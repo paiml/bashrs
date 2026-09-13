@@ -65,6 +65,20 @@ Issues on this release: #233 (CI lints only the bashrs-specs stub) — the clipp
 
 Released: tag `v7.4.0` on 4aa24ca271, `bashrs 7.4.0` on crates.io, `cargo install bashrs --version 7.4.0` verified (reports `bashrs 7.4.0`, corpus 18,814 entries at 99.4/100 A+).
 
+## v7.4.1
+
+Goal: the four defects found after v7.4.0, each fixed with a test that fails without the fix, released as a patch.
+
+| entry | what |
+|---|---|
+| PMAT-338 | the release: version, changelog, book, release gate, clean-room, `cargo install` dogfood of the packaged crate, publish |
+| PMAT-335 | #335: `bashrs fix` rewrote a working script into a different program; quote segments are paired inside words, SC2081's fix needs `--assumptions`, and `apply_fixes` refuses a fix that changes the program (#337) |
+| PMAT-266 | the security gate read a missing `cargo-deny` as a violation; the nightly installs it (#334) |
+| PMAT-339 + PMAT-341 | #339, #341: the keyring tests wrote the process environment and raced (61/150 -> 0/150); `keyring init` built a keyring and dropped it (#342) |
+| PMAT-340 | #340: `corpus-score`'s bwrap masked /tmp, so the release gate could not run from a worktree under it (#343) |
+
+Issues on this release: #335, #338, #339, #340, #341.
+
 ## Unscheduled (blocked)
 
 Nothing. The four entries that sat here blocked on definition were decided by quorum on 2026-09-11: PMAT-241 and PMAT-242 closed as completed in v6.66.0, PMAT-243 redefined as a measurement in v7.2.0, PMAT-246 closed by regenerating the work contracts. See `docs/audits/quorum-decisions-v7.2.0.md`.
