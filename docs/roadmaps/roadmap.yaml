@@ -2512,3 +2512,20 @@ roadmap:
   labels:
   - kind:code
   notes: null
+- id: PMAT-340
+  github_issue: 340
+  item_type: task
+  title: corpus-score's bwrap masks /tmp, so the release gate cannot run from a worktree under /tmp
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-13T17:42:23Z
+  updated: 2026-09-13T17:42:23Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
