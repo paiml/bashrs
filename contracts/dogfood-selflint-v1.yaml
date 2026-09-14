@@ -14,7 +14,12 @@ metadata:
     fails rather than silently passing; a file the linter could not measure
     fails as UNMEASURED, never as clean. The linter is the binary built from
     this tree (BASHRS_BIN), not whatever release is on PATH.
-  verification_command: cargo test -p bashrs --test dogfood_selflint_gate
+
+    PMAT-266 extends the same rule to the security gate: `cargo deny check`
+    on a machine without cargo-deny exits 101 with "no such command", which
+    the old two-arm match read as violations. A tool that is not installed is
+    ABSENT and says so; a tool that ran is judged on its result.
+  verification_command: cargo test -p bashrs --test dogfood_selflint_gate && cargo test -p bashrs --lib PMAT266
   depends_on:
   - linter-lexer-context-v1
   references:
@@ -135,6 +140,16 @@ falsification_tests:
   prediction: 'fixture new.sh with 1 error and an empty ratchet -> exit 1 and stdout contains "GATE S FAIL", "new.sh" and "new file"'
   test: cargo test -p bashrs --test dogfood_selflint_gate test_PMAT263_selflint_new_file_fails
   if_fails: 'Contract violation: a new script with errors passes silently because nobody wrote it a row'
+- id: F-DOG-006
+  rule: a security gate whose tool is not installed reports the tool absent, never a violation
+  prediction: 'cargo_deny_outcome against a cargo whose deny subcommand exits 101 with "no such command" returns Absent'
+  test: cargo test -p bashrs --lib cli::commands::gate_cmds::pmat257_cov_tests::test_PMAT266_cargo_deny_absent_is_not_a_violation
+  if_fails: 'Contract violation: a check that never ran is reported as a security violation, so the gate is red for a reason nobody can act on (nightly run 34689967236)'
+- id: F-DOG-007
+  rule: a security check that ran is judged on its own result - clean passes, violations fail, and neither is softened into a skip
+  prediction: 'cargo_deny_outcome returns Clean for a stub that exits 0 and Violations for one whose --version succeeds and whose check exits 1'
+  test: cargo test -p bashrs --lib cli::commands::gate_cmds::pmat257_cov_tests::test_PMAT266_cargo_deny_clean_and_violations_are_told_apart
+  if_fails: 'Contract violation: a real advisory is skipped as if the tool were missing, the vacuous-pass class this contract exists to prevent'
 - id: F-DOG-005
   rule: A linter that cannot run is UNMEASURED, and unmeasured is a failure, not a pass
   prediction: 'a clean fixture with BASHRS_BIN pointing at a path that does not exist -> exit 1, stdout contains "GATE S FAIL" and "UNMEASURED" and never "GATE S PASS"'

@@ -180,6 +180,53 @@ fn run_complexity_gate(config: &crate::gates::GateConfig) -> bool {
     }
 }
 
+/// What `cargo deny check` did, as three outcomes rather than two
+/// (PMAT-266). The old code had `Ok(status)` and `Err(_)`, and `Err` is
+/// returned only when the `cargo` BINARY cannot be spawned. A runner with
+/// cargo but without cargo-deny takes the `Ok` arm with exit 101 and
+/// `error: no such command: `deny``, which read as "the security gate found
+/// violations" -- a gate failure reported for a check that never ran. The
+/// nightly full gate added in v7.4.0 hit exactly that (run 34689967236).
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum DenyOutcome {
+    /// cargo-deny is not installed (or cargo itself is missing): nothing was
+    /// measured, and the caller says so rather than passing or failing silently.
+    Absent,
+    /// cargo deny ran and reported no violations.
+    Clean,
+    /// cargo deny ran and reported violations.
+    Violations,
+}
+
+/// Run `cargo deny check` and classify the result.
+///
+/// `probe` runs `cargo deny --version`, whose only job is to tell an absent
+/// subcommand from a failing check: it exits 0 when cargo-deny is installed
+/// and non-zero (or fails to spawn) when it is not. Separate from the check
+/// itself so the absence is decided before any policy result is read.
+pub(crate) fn cargo_deny_outcome(cargo: &str) -> DenyOutcome {
+    let probe = std::process::Command::new(cargo)
+        .args(["deny", "--version"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status();
+    match probe {
+        Ok(s) if s.success() => {}
+        _ => return DenyOutcome::Absent,
+    }
+
+    match std::process::Command::new(cargo)
+        .args(["deny", "check"])
+        .status()
+    {
+        Ok(s) if s.success() => DenyOutcome::Clean,
+        Ok(_) => DenyOutcome::Violations,
+        // The probe succeeded a moment ago, so a spawn failure here is not
+        // "not installed"; it is unmeasured, and unmeasured is not a pass.
+        Err(_) => DenyOutcome::Violations,
+    }
+}
+
 fn run_security_gate(config: &crate::gates::GateConfig) -> bool {
     // GH-181: Respect security gate config (enabled flag, max_unsafe_blocks)
     if let Some(ref security) = config.gates.security {
@@ -188,13 +235,10 @@ fn run_security_gate(config: &crate::gates::GateConfig) -> bool {
         }
     }
 
-    let status = std::process::Command::new("cargo")
-        .args(["deny", "check"])
-        .status();
-
-    match status {
-        Ok(s) => s.success(),
-        Err(_) => {
+    match cargo_deny_outcome("cargo") {
+        DenyOutcome::Clean => true,
+        DenyOutcome::Violations => false,
+        DenyOutcome::Absent => {
             eprintln!("(cargo-deny not found, skipping) ");
             true
         }
@@ -343,6 +387,74 @@ mod pmat257_cov_tests {
     fn test_PMAT257_cov_run_complexity_gate_disabled_short_circuits() {
         let config = config_with_tiers(Tiers::default());
         assert!(run_complexity_gate(&config));
+    }
+
+    /// PMAT-266: a `cargo` on PATH whose `deny` subcommand does not exist
+    /// is ABSENT, not a violation. Writes a stub `cargo` into a TempDir and
+    /// names it directly, so the test never depends on what this machine has
+    /// installed (the defect only showed on a runner without cargo-deny).
+    fn stub_cargo(dir: &std::path::Path, body: &str) -> std::path::PathBuf {
+        let path = dir.join("cargo");
+        std::fs::write(&path, body).expect("write stub cargo");
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
+                .expect("chmod stub cargo");
+        }
+        path
+    }
+
+    #[test]
+    fn test_PMAT266_cargo_deny_absent_is_not_a_violation() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        // A cargo that exists but has no `deny` subcommand, byte for byte
+        // what a runner without cargo-deny prints (exit 101).
+        let cargo = stub_cargo(
+            dir.path(),
+            "#!/bin/sh\ncase \"$1\" in deny) echo 'error: no such command: `deny`' >&2; exit 101 ;; esac\nexit 0\n",
+        );
+        assert_eq!(
+            cargo_deny_outcome(&cargo.to_string_lossy()),
+            DenyOutcome::Absent,
+            "a missing subcommand must read as absent, never as violations"
+        );
+    }
+
+    #[test]
+    fn test_PMAT266_cargo_deny_clean_and_violations_are_told_apart() {
+        let clean_dir = tempfile::TempDir::new().expect("tempdir");
+        let clean = stub_cargo(
+            clean_dir.path(),
+            "#!/bin/sh\ncase \"$2\" in --version) echo 'cargo-deny 0.19.0'; exit 0 ;; esac\nexit 0\n",
+        );
+        assert_eq!(
+            cargo_deny_outcome(&clean.to_string_lossy()),
+            DenyOutcome::Clean
+        );
+
+        let bad_dir = tempfile::TempDir::new().expect("tempdir");
+        // Installed (the --version probe succeeds) and the check fails: a
+        // real advisory. This must NOT be softened into a skip.
+        let bad = stub_cargo(
+            bad_dir.path(),
+            "#!/bin/sh\ncase \"$2\" in --version) echo 'cargo-deny 0.19.0'; exit 0 ;; esac\necho 'error[vulnerability]: RUSTSEC-0000-0000' >&2\nexit 1\n",
+        );
+        assert_eq!(
+            cargo_deny_outcome(&bad.to_string_lossy()),
+            DenyOutcome::Violations,
+            "a check that ran and failed must fail the gate"
+        );
+    }
+
+    #[test]
+    fn test_PMAT266_cargo_that_cannot_be_spawned_is_absent() {
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let missing = dir.path().join("no-such-cargo");
+        assert_eq!(
+            cargo_deny_outcome(&missing.to_string_lossy()),
+            DenyOutcome::Absent
+        );
     }
 
     #[test]

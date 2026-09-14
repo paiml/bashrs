@@ -4,11 +4,31 @@ One section per release. `release-lint` rule R5 reads the headings: every tag th
 
 Sections for releases before v7.1.0 carry the tag's own annotated message, which is the record that exists for them. From v7.1.0 the full notes live in `CHANGELOG.md` and the section here points at it.
 
+## v7.5.0
+
+Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b) and issue #236, re-measured at the v7.4.0 close-out: SC2046 is now 14:1 against shellcheck rather than 210:1, and the three largest remaining gaps are SC2086 inside a heredoc body, SC2154 on a variable a sourced file defines, and SC1004 across a multi-line quoted argument (`docs/audits/sc-vs-shellcheck-v7.4.0.md`).
+
+## v7.4.1
+
+A patch release with four fixes.
+
+`bashrs fix` rewrote working scripts into different programs (#335). SC2081 and SC2016 paired single quotes across the whole line, so `' PASS "$TD/append.yaml" '` read as one string, and SC2081's fix, marked safe, rewrote it in double quotes without escaping. Five arguments became two, and a `trap` body began expanding when the trap was set. Quotes are now paired inside the words the shell lexer delimits. SC2081's fix is safe-with-assumptions, applied only with `--assumptions`. `apply_fixes` also refuses any fix, from any rule, whose result merges two words of a command, adds or removes a command, or adds an unquoted expansion.
+
+The security gate read a missing `cargo-deny` as a security violation (PMAT-266). It now tells an absent tool, a clean run and real violations apart.
+
+The keyring tests raced on the process environment, and `keyring init` wrote nothing (#339, #341). Path resolution read `$BASHRS_KEYRING` and `$HOME` from the process while the tests set them per-PROCESS, so the module passed alone and 61 of the binary's 150 tests failed together, differently each run. Resolution is a pure function of its two arguments now, and `keyring init` saves the file it reports creating. 61/150 failures before, 0/150 after.
+
+`corpus-score`'s sandbox masked the repository it was told to run from (#340). `bwrap` mounted a tmpfs over `/tmp` and then executed `$(PWD)/target/debug/bashrs`, so from any checkout under `/tmp` the release gate could not start. `$(PWD)` is re-exposed READ-ONLY, which is what `--ro-bind / /` already granted outside `/tmp`.
+
+Full notes: the `[7.4.1]` section of `CHANGELOG.md`.
+
 ## v7.4.0
 
-In progress; the release ticket is PMAT-263, the close-out PMAT-264.
+Tagged 2026-09-12, published to crates.io, verified with `cargo install bashrs --version 7.4.0`.
 
-The required check lints the whole workspace (#233): `ci / lint` and `make release-gate` both ran a clippy scoped to the root stub package, and now name the workspace. The self-lint is gate S, with a per-file ratchet (`make dogfood-selflint`, PMAT-253 decision D4). A nightly workflow runs `cargo test --workspace`, the targets the required check skips. 203 corpus entries (18,592 to 18,795) and a corpus release bar that ratchets to the last shipped count. Two transpiler defects the new entries exposed are filed as PMAT-265.
+The required check lints the whole workspace (#233): `ci / lint` and `make release-gate` both ran a clippy scoped to the root stub package, and now name the workspace; making the tree clean under it took six kinds of fix, including an orphan test fragment in bashrs-wasm whose tests had never compiled. A nightly workflow runs `cargo test --workspace` — the integration targets, doctests and examples the required check skips. The self-lint is gate S, with a per-file ratchet (`make dogfood-selflint`, PMAT-253 decision D4). `std::env::var` is an environment read again rather than a command substitution of a command that does not exist, its Result methods have exact POSIX spellings, an `unwrap_or` default is spelled for the expansion it sits in, and arithmetic inside a `capture()` string is no longer read as command substitution (PMAT-265). 222 corpus entries (18,592 to 18,814) and a release bar that ratchets to the last shipped count.
+
+Measured at the gate: 15,693 library tests, coverage 95.08 percent, corpus 18,814 entries at 99.4/100 (A+) with 0 failures, GATE S PASS, `pv lint contracts` gate 4 at 86 of 86.
 
 Full notes: the `[7.4.0]` section of `CHANGELOG.md`.
 
