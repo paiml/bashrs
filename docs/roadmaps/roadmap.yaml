@@ -2475,3 +2475,20 @@ roadmap:
   - kind:code
   - release:v7.4.0
   notes: null
+- id: PMAT-343
+  github_issue: null
+  item_type: task
+  title: 'SC2242: in_case/in_loop/in_function are depth counters, and a one-line case ends where it ends'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-14T12:37:25Z
+  updated: 2026-09-14T12:37:25Z
+  spec: null
+  acceptance_criteria:
+  - 'PR #332, closes #331. bashrs lint reported SC2242 (break/continue outside a loop) on two continues plainly inside a while loop. Two defects of one shape — a detector reporting a result it did not measure: (1) in_case/in_loop/in_function were booleans, so an inner done cleared in_loop while the outer while was still open; (2) is_case_end demanded the line BE esac, so a one-line case ... esac never cleared in_case. Together they make in_case && !in_loop true INSIDE a loop. Fixed with keyword-token depth counters; openers count before the check and closers after.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
