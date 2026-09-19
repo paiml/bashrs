@@ -125,14 +125,14 @@ proptest.workspace = true
 rstest.workspace = true
 assert_cmd = "2.2"
 predicates = "3.1"
-# renacer is Linux-only (uses ptrace syscalls); gracefully excluded on macOS/Windows
-# renacer = "0.7"  # Golden trace integration - syscall tracing for regression detection
+# The golden-trace tests (rash/tests/golden_trace.rs, --ignored) run the `renacer` BINARY from PATH;
+# nothing in this crate uses the renacer CRATE. It used to be a `cfg(target_os = "linux")`
+# dev-dependency anyway, and renacer 0.9.3 reads x86_64 ptrace registers by name
+# (`user_regs_struct.rip`), so every aarch64 clean-room host failed `cargo test` for the whole
+# workspace on a crate no test linked (bashrs#352, measured 2026-09-19 on gx10-pool3, bashrs#351 CI
+# runs 35452452790 and 35452984904). Do not add it back.
 verificar = "0.6"  # Synthetic bash program generation for comprehensive testing
 jugar-probar = "1.0"  # TUI/GUI testing framework with coverage tracking
-
-# Linux-only dev-dependencies (ptrace/syscall tracing)
-[target.'cfg(target_os = "linux")'.dev-dependencies]
-renacer = "0.9"  # Golden trace integration - syscall tracing for regression detection
 
 [[bench]]
 name = "transpilation"
