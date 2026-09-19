@@ -29,7 +29,8 @@
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 
-/// Patterns that indicate hardcoded secrets
+/// Patterns that indicate hardcoded secrets: the NAME side of an assignment. `API_KEY=` inside
+/// `MY_API_KEY=` is still an API key being assigned, so these match as plain substrings.
 const SECRET_PATTERNS: &[(&str, &str)] = &[
     ("API_KEY=", "API key assignment"),
     ("SECRET=", "Secret assignment"),
@@ -38,6 +39,14 @@ const SECRET_PATTERNS: &[(&str, &str)] = &[
     ("AWS_SECRET", "AWS secret"),
     ("GITHUB_TOKEN=", "GitHub token"),
     ("PRIVATE_KEY=", "Private key"),
+];
+
+/// Token PREFIXES of well-known secret formats: the VALUE side. A prefix is only a prefix at the
+/// start of a token — `sk-` inside `disk-watch` is not an OpenAI key and `ghp_` inside `highp_x`
+/// is not a GitHub token. bashrs#350 (2026-09-19): forjar's I8 gate refused a script holding
+/// `systemctl show ci-disk-watch.timer` with "OpenAI API key pattern" twice, on a line with no
+/// secret in it. These match only where the preceding character is not part of an identifier.
+const TOKEN_PREFIX_PATTERNS: &[(&str, &str)] = &[
     ("sk-", "OpenAI API key pattern"),
     ("ghp_", "GitHub personal access token"),
     ("gho_", "GitHub OAuth token"),
@@ -59,9 +68,32 @@ fn is_literal_assignment(after_eq: &str) -> bool {
     (trimmed.starts_with('"') && !trimmed.starts_with("\"$")) || trimmed.starts_with('\'')
 }
 
-/// Find pattern position in line
-fn find_pattern_position(line: &str, pattern: &str) -> Option<usize> {
-    line.find(pattern)
+/// True when `byte_pos` begins a token: start of line, or preceded by a character that cannot
+/// continue an identifier. `i` before `sk-watch` is an identifier character, so that is not a
+/// token start; `"` or `=` or a space before `sk-…` is.
+///
+/// A hyphen is a boundary too, so `foo-sk-abc` still diagnoses. That is the conservative side
+/// for a secret scanner and it is deliberate: the false positive this closes is a prefix INSIDE
+/// an identifier (`disk-`), not a key glued to a word by punctuation. Do not "fix" it.
+fn is_token_start(line: &str, byte_pos: usize) -> bool {
+    match line[..byte_pos].chars().next_back() {
+        None => true,
+        Some(c) => !(c.is_ascii_alphanumeric() || c == '_'),
+    }
+}
+
+/// Find the first occurrence of `pattern` in `line` — any occurrence for an assignment pattern,
+/// only one that begins a token when `token_prefix` is set.
+fn find_pattern_position(line: &str, pattern: &str, token_prefix: bool) -> Option<usize> {
+    let mut from = 0;
+    while let Some(rel) = line[from..].find(pattern) {
+        let pos = from + rel;
+        if !token_prefix || is_token_start(line, pos) {
+            return Some(pos);
+        }
+        from = pos + pattern.len();
+    }
+    None
 }
 
 /// Calculate span for diagnostic
@@ -99,26 +131,33 @@ pub fn check(source: &str) -> LintResult {
         if is_comment_line(line) {
             continue;
         }
-
-        // Check each secret pattern
-        for (pattern, description) in SECRET_PATTERNS {
-            if line.contains(pattern) {
-                if let Some(after_eq) = extract_after_equals(line) {
-                    if is_literal_assignment(after_eq) {
-                        // This looks like a hardcoded secret
-                        if let Some(col) = find_pattern_position(line, pattern) {
-                            let span = calculate_span(line_num, col, line.len(), pattern.len());
-                            let diag = create_hardcoded_secret_diagnostic(description, span);
-                            result.add(diag);
-                            break; // Only report once per line
-                        }
-                    }
-                }
-            }
+        // Only report once per line: the first table hit wins
+        if let Some(diag) = diagnose_line(line_num, line) {
+            result.add(diag);
         }
     }
 
     result
+}
+
+/// The first secret pattern a line carries beside a literal assignment, if any: assignment names
+/// as substrings, value prefixes only at a token start.
+fn diagnose_line(line_num: usize, line: &str) -> Option<Diagnostic> {
+    let after_eq = extract_after_equals(line)?;
+    if !is_literal_assignment(after_eq) {
+        return None;
+    }
+    let patterns = SECRET_PATTERNS
+        .iter()
+        .map(|(p, d)| (*p, *d, false))
+        .chain(TOKEN_PREFIX_PATTERNS.iter().map(|(p, d)| (*p, *d, true)));
+    for (pattern, description, token_prefix) in patterns {
+        if let Some(col) = find_pattern_position(line, pattern, token_prefix) {
+            let span = calculate_span(line_num, col, line.len(), pattern.len());
+            return Some(create_hardcoded_secret_diagnostic(description, span));
+        }
+    }
+    None
 }
 
 #[cfg(test)]
@@ -190,6 +229,64 @@ mod tests {
             assert_eq!(result.diagnostics.len(), 1, "Should diagnose: {}", code);
             assert!(result.diagnostics[0].message.contains("Hardcoded secret"));
         }
+    }
+
+    #[test]
+    fn prop_sec005_token_prefix_inside_a_word_is_not_a_secret() {
+        // bashrs#350. One row per in-word form, not one per rule: `sk-` inside disk-/task-/risk-,
+        // `ghp_` inside graphp_, `gho_` inside a longer identifier. Every line also carries a literal
+        // after an `=`, which is what let the old substring match through.
+        let test_cases = vec![
+            "[ \"$(systemctl show ci-disk-watch.timer -p NeedDaemonReload --value 2>/dev/null)\" = \"no\" ]",
+            "TIMER=\"ci-disk-watch.timer\"",
+            "NAME='task-runner'",
+            "MODE=\"risk-averse\"",
+            "LEVEL=\"highp_x\"",
+            "ALGO='bigho_x'",
+        ];
+
+        for code in test_cases {
+            let result = check(code);
+            assert!(
+                result.diagnostics.is_empty(),
+                "a prefix inside a word is not a secret: {} -> {:?}",
+                code,
+                result.diagnostics.iter().map(|d| &d.message).collect::<Vec<_>>()
+            );
+        }
+    }
+
+    #[test]
+    fn prop_sec005_token_prefix_at_a_token_start_is_still_diagnosed() {
+        // The same prefixes where they DO begin a token: after a quote, after a space. The variable
+        // names here are NOT in the assignment table (API_KEY=, TOKEN=, …), so the diagnostic can
+        // only come from the value's prefix — one diagnostic per line, first table hit wins.
+        let test_cases = vec![
+            ("OPENAI=\"sk-1234567890abcdef\"", "OpenAI API key pattern"),
+            ("KEY='sk-abc'", "OpenAI API key pattern"),
+            ("GH=\"ghp_xxxxxxxxxxxxxxxxxxxx\"", "GitHub personal access token"),
+            ("X=\"y\" ; T=\"gho_zzzz\"", "GitHub OAuth token"),
+        ];
+
+        for (code, description) in test_cases {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 1, "Should diagnose: {}", code);
+            assert!(
+                result.diagnostics[0].message.contains(description),
+                "{}: {}",
+                code,
+                result.diagnostics[0].message
+            );
+        }
+    }
+
+    #[test]
+    fn test_sec005_first_token_start_occurrence_is_the_span() {
+        // `disk-` first, a real key second: the span points at the key, not the disk.
+        let result = check("DISK=\"disk-a\" KEY=\"sk-real\"");
+        assert_eq!(result.diagnostics.len(), 1);
+        let span = &result.diagnostics[0].span;
+        assert_eq!(span.start_col, 20, "the span starts at the token-start match, not the in-word one");
     }
 
     #[test]
