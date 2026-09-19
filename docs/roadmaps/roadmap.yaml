@@ -2622,3 +2622,21 @@ roadmap:
   labels:
   - kind:code
   notes: null
+- id: PMAT-350
+  github_issue: 350
+  item_type: task
+  title: 'SEC005: prefix secret patterns (sk-, ghp_, gho_) match inside words — disk-watch reads as an OpenAI key; a token boundary before every value prefix, one must-not-match fixture per in-word form (Refs bashrs#350)'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-19T17:07:39Z
+  updated: 2026-09-19T17:07:39Z
+  spec: null
+  acceptance_criteria:
+  - forjar I8 refused intel/ci-disk-watch-timer-enable on paiml/infra 2026-09-19 with SEC005 x2 on 'systemctl show ci-disk-watch.timer'. TOKEN_PREFIX_PATTERNS match only at a token start; in-word rows disk-watch, task-runner, risk-averse, highp_x, bigho_x; mutation proves discrimination; contract row F-SEC005-BOUNDARY in the vendored provable-contracts copy.
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
