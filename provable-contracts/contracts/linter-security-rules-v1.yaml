@@ -124,6 +124,11 @@ falsification_tests:
   prediction: lint result does NOT contain SEC005 diagnostic
   test: 'Given input, verify: lint result does NOT contain SEC005 diagnostic'
   if_fails: 'Contract violation: SEC005 does NOT flag normal variable assignment'
+- id: F-SEC005-BOUNDARY
+  rule: SEC005 does NOT flag a secret-format prefix inside a word — one fixture per in-word form for each of the three prefixes (sk- in disk-watch, task-runner, risk-averse; ghp_ in highp_x; gho_ in bigho_x); it still flags each prefix at a token start
+  prediction: lint result does NOT contain SEC005 for the six in-word inputs exactly as the test carries them — `[ "$(systemctl show ci-disk-watch.timer -p NeedDaemonReload --value 2>/dev/null)" = "no" ]` (the infra line), TIMER="ci-disk-watch.timer", NAME='task-runner', MODE="risk-averse", LEVEL="highp_x", ALGO='bigho_x'; it DOES, once per line, for the four token-start inputs — OPENAI="sk-1234567890abcdef", KEY='sk-abc', GH="ghp_xxxxxxxxxxxxxxxxxxxx", X="y" ; T="gho_zzzz"
+  test: 'Given the six in-word inputs and the four token-start inputs, verify: zero SEC005 for every in-word form, exactly one SEC005 naming the prefix for every token-start form (bashrs#350; rash/src/linter/rules/sec005.rs prop_sec005_token_prefix_inside_a_word_is_not_a_secret and prop_sec005_token_prefix_at_a_token_start_is_still_diagnosed)'
+  if_fails: 'Contract violation: SEC005 fires on a prefix inside a word, or misses one at a token start'
 - id: F-SEC006-SOUND
   rule: SEC006 detects predictable quoted temp file path
   prediction: lint result contains SEC006 diagnostic
