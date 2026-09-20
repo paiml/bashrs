@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.4.2] - 2026-09-20
+
+A patch release with one security-rule fix that was refusing this fleet's own scripts, one dependency removal that unbroke every aarch64 build, and one linter fix.
+
+### Fixed
+
+- **SEC005 read `sk-` inside a word as a hardcoded OpenAI key** (PMAT-350, #351). `SECRET_PATTERNS` matched the provider prefixes as bare substrings, so `TIMER="ci-disk-watch.timer"` — `di<sk->watch` — was reported as a hardcoded secret, and forjar's `ci-disk-watch-timer-enable` resource failed its I8 apply-gate on every intel and gx10 converge: the tool refusing its own script. A prefix is now a prefix only at a TOKEN START, where a token begins at the start of the value or after a character that cannot appear in a key. Property tests run both ways — a key at a token start is always found, an embedded run never is — and `F-SEC005-BOUNDARY` is a contract row, so the boundary is an assertion and not a comment.
+
+- **The unused `renacer` dev-dependency broke every aarch64 build** (PMAT-352, #353). It is x86_64-only and nothing linked it, so an ARM clean-room build failed resolving a crate the workspace did not use. Dropped.
+
+- **SC2242 flagged case/loop nesting instead of counting it** (#332, closes #331).
+
+### Changed
+
+- CI action bumps: `actions/checkout` 4 → 7 (#347), `actions/cache` 4.2.3 → 6.1.0 (#345), `softprops/action-gh-release` 2.2.2 → 3.0.3 (#346).
+
 ## [7.4.1] - 2026-09-13
 
 Four fixes. `bashrs fix` no longer rewrites a working script into a different program (#335); the security gate no longer reads a missing `cargo-deny` as a security violation (PMAT-266); the keyring tests no longer race on the process environment and `keyring init` writes the file it reports (#339, #341); and `corpus-score`'s sandbox no longer masks a repository checked out under `/tmp` (#340), which is what kept the release gate from running from a worktree at all.

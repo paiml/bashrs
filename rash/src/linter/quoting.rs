@@ -296,6 +296,15 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // XML/plist fragment and `</svg>` in a heredoc are data, not redirections.
     "SC2188", // Redirection without command
     "SC2105", // `break` outside a loop — "could not break the matcher" is prose
+    // SC2242 arrives with #332, which made the rule COUNT case/loop nesting
+    // instead of flagging it. Counting is right for code and made the literal
+    // case worse: `echo "could not break the matcher — this case discriminates
+    // nothing"` now opens a case depth on the word "case" and finds `break` in
+    // "break the matcher", so a sentence is reported as an error. The rule's
+    // own comment says a keyword inside a quoted string "needs the parser";
+    // this is the parser-free answer the module already has, and the guard
+    // test is what found it.
+    "SC2242", // break/continue in a case — prose about a "case" is not one
     "SC2111", // ksh `function` keyword — awk has one too, in a '...' program
     "SC2122", // `>=` in [ ] — `"int($cov >= 85)"` is a program for another parser
     // PMAT-248 (#252): backtick *syntax* is meaningless once the backtick is

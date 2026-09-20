@@ -2517,7 +2517,7 @@ roadmap:
   github_issue: 338
   item_type: task
   title: 'release: v7.4.1 — bashrs fix keeps the program it was given (#335), cargo-deny absent is not a violation'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-13T09:51:40Z
@@ -2535,7 +2535,7 @@ roadmap:
   github_issue: 339
   item_type: task
   title: 'keyring tests race on the process-wide XDG_CONFIG_HOME: 61 of 150 runs fail, and the Clean-Room lane for bashrs is red on it'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-13T16:53:45Z
@@ -2556,7 +2556,7 @@ roadmap:
   github_issue: 340
   item_type: task
   title: corpus-score's bwrap masks /tmp, so the release gate cannot run from a worktree under /tmp
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-13T16:53:46Z
@@ -2573,7 +2573,7 @@ roadmap:
   github_issue: 341
   item_type: task
   title: 'keyring init reports success and writes nothing: the next command says the keyring is not initialized'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-13T16:53:46Z
@@ -2590,7 +2590,7 @@ roadmap:
   github_issue: null
   item_type: task
   title: 'SC2242: in_case/in_loop/in_function are depth counters, and a one-line case ends where it ends'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-14T12:37:25Z
@@ -2621,6 +2621,7 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-350
   github_issue: 350
@@ -2639,4 +2640,43 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.2
+  notes: null
+- id: PMAT-354
+  github_issue: 354
+  item_type: task
+  title: 'release: bashrs v7.4.2 — SEC005 token-boundary fix and the aarch64 dev-dep removal'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-20T09:06:30Z
+  updated: 2026-09-20T09:06:30Z
+  spec: null
+  acceptance_criteria:
+  - 'Cut v7.4.2 from main at 94497c22b2. Carries PMAT-350 (SEC005 prefix only at a token start), PMAT-352 (drop the x86_64-only renacer dev-dep), #332 (SC2242 nesting) and three CI bumps. Unblocks forjar''s bashrs pin: ci-disk-watch-timer-enable fails I8 on intel and gx10 until it publishes.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.4.2
+  notes: null
+- id: PMAT-355
+  github_issue: 355
+  item_type: task
+  title: 'SC2242 reports an English sentence as an error: #332 made it count case depth and it reads raw source'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-20T10:19:59Z
+  updated: 2026-09-20T10:19:59Z
+  spec: null
+  acceptance_criteria:
+  - 'SC2242 joins QUOTE_SENSITIVE_RULES so it receives the masked copy, with a Payload pair in quoting_literal_payload_guard.rs: the bare case-with-break must still fire. Found by make release-gate on the v7.4.2 cut; blocks bashrs#354.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null

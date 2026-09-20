@@ -64,6 +64,16 @@ const PAYLOADS: &[Payload] = &[
         found_at: "rmedia/scripts/falsify-complexity-count-single-sourced.sh:180",
     },
     Payload {
+        code: "SC2242",
+        // `break` inside a `case` that is not inside a loop — the real defect.
+        bare: "case \"$x\" in\n    a) break ;;\nesac\n",
+        // The same two keywords as English. #332 made SC2242 count case depth
+        // per line, so "this case" opens one and "break the matcher" is read
+        // as the break inside it.
+        quoted: "echo \"could not break the matcher — this case discriminates nothing\"\n",
+        found_at: "rmedia/scripts/falsify-complexity-count-single-sourced.sh:180",
+    },
+    Payload {
         code: "SC2111",
         bare: "function greet() { echo hi; }\ngreet\n",
         // awk has a `function` keyword too, and the program is one

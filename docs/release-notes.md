@@ -8,6 +8,16 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b) and issue #236, re-measured at the v7.4.0 close-out: SC2046 is now 14:1 against shellcheck rather than 210:1, and the three largest remaining gaps are SC2086 inside a heredoc body, SC2154 on a variable a sourced file defines, and SC1004 across a multi-line quoted argument (`docs/audits/sc-vs-shellcheck-v7.4.0.md`).
 
+## v7.4.2
+
+A patch release with three fixes.
+
+SEC005 read `sk-` inside a word as a hardcoded OpenAI key (#351). The provider prefixes were matched as bare substrings, so `TIMER="ci-disk-watch.timer"` was reported as a secret and forjar's `ci-disk-watch-timer-enable` failed its apply-gate on every intel and gx10 converge — bashrs refusing a script bashrs ships. A prefix now counts only at a token start; property tests assert both directions and `F-SEC005-BOUNDARY` makes the boundary a contract row.
+
+The unused `renacer` dev-dependency broke every aarch64 build (#353). It is x86_64-only and nothing linked it. Dropped.
+
+SC2242 counted case/loop nesting instead of flagging it (#332, closes #331).
+
 ## v7.4.1
 
 A patch release with four fixes.
