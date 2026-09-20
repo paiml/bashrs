@@ -2602,11 +2602,11 @@ roadmap:
   github_issue: 352
   item_type: task
   title: Drop the unused renacer dev-dependency — x86_64-only (reads user_regs_struct.rip), it broke every aarch64 clean-room build of a crate nothing links; the golden-trace tests run the renacer BINARY, not the crate (bashrs#352)
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-19T15:58:59Z
-  updated: 2026-09-20T12:40:16.235860718+00:00
+  updated: 2026-09-20T12:44:17.045799552+00:00
   spec: null
   acceptance_criteria:
   - 'rash/Cargo.toml no longer declares renacer under any target: the only references in the tree were a doc comment and Command::new("renacer") in the --ignored golden-trace tests, which invoke the binary from PATH. The comment left in its place says why it is not added back (x86_64 ptrace registers by name; gx10-pool3 measured 2026-09-19 on #351 runs 35452452790 and 35452984904).'
