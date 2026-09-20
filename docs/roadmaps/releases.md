@@ -67,7 +67,7 @@ Released: tag `v7.4.0` on 4aa24ca271, `bashrs 7.4.0` on crates.io, `cargo instal
 
 ## v7.4.2
 
-Goal: the three defects found after v7.4.1 released as a patch, so forjar's bashrs pin can move off 6.68.0 and `ci-disk-watch-timer-enable` converges.
+Goal: the four defects found after v7.4.1 released as a patch, so forjar's bashrs pin can move off 6.68.0 and `ci-disk-watch-timer-enable` converges.
 
 | entry | what |
 |---|---|
@@ -75,8 +75,9 @@ Goal: the three defects found after v7.4.1 released as a patch, so forjar's bash
 | PMAT-350 | #351: SEC005 matched `sk-` as a bare substring, so `ci-disk-watch` read as an OpenAI key; a prefix counts only at a token start |
 | PMAT-352 | #353: the x86_64-only `renacer` dev-dependency broke every aarch64 build of a crate nothing links |
 | PMAT-343 | #332: SC2242's `in_case`/`in_loop`/`in_function` are depth counters, so a one-line case ends where it ends (closes #331) |
+| PMAT-355 | #355: counting then made the LITERAL case worse — SC2242 read raw source, so `echo "could not break the matcher — this case discriminates nothing"` opened a case depth on the word "case" and found `break` in "break the matcher". It joins `QUOTE_SENSITIVE_RULES` and is wired into the allowlist's `(code, check_fn)` list, without which nothing ever ran it over a literal. Found by `make release-gate` ON this cut, so it ships in the release rather than after it |
 
-Issues on this release: #331, #351, #353, #354.
+Issues on this release: #331, #351, #353, #354, #355.
 
 ## v7.4.1
 

@@ -39,13 +39,23 @@ Until 7.4.2 is on crates.io, forjar's pin stays at 6.68.0 and `ci-disk-watch-tim
 
 R4 is the reason this is in scope rather than a follow-up: *a tag is cut only when its release has no open entry*. A plan that still lists v7.4.1's work as open cannot say whether v7.4.2 is cuttable.
 
-After: R1–R5 clean. The three remaining R6 lines name pre-release tags from 2025 (`v1.0.0-rc2`, `v1.0.0-rc3`, `v6.28.0-dev-snapshot`) that exist in the repo's history and cannot be renamed; they are pre-existing and neither R3 nor R5 reads them.
+After: R1–R5 clean. **`release-lint` still exits 1**, and an earlier version of this receipt claimed
+`rerun_exit=0` — a claim a reader could refute by running the command, which is the one thing a
+verification line must never be. It exits 1 on **four** R6 lines naming pre-release tags from 2025
+(`v1.0.0-rc1`, `v1.0.0-rc2`, `v1.0.0-rc3`, `v6.28.0-dev-snapshot`) that exist in the repo's history
+and cannot be renamed. A previous count of "three" here omitted `v1.0.0-rc1`. They are pre-existing
+and neither R3 nor R5 reads them, which is why they do not block the cut — but "does not block the
+cut" is not "exits 0", and the receipt now says which one it means.
+
+Both errors were found by a three-engine quorum lane re-running the command against this line
+(`[measured]`, not `[cited]`), and both had become false through this branch's own work: completing
+PMAT-350/PMAT-352 moved the open counts the line quotes.
 
 ## Verification
 
 verification:
   cmd=cargo check --workspace  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # regenerates Cargo.lock at 7.4.2
-  cmd=release-lint.sh docs/roadmaps/roadmap.yaml --repo . --plan docs/roadmaps/releases.md --notes docs/release-notes.md  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # R1-R5 clean; open=4 releases=v7.4.2(3) v7.5.0(1)
+  cmd=release-lint.sh docs/roadmaps/roadmap.yaml --repo . --plan docs/roadmaps/releases.md --notes docs/release-notes.md  claimed_exit=1  rerun_exit=1  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # R1-R5 clean; exits 1 on 4 historical R6 tags; open=4 releases=v7.4.2(2) v7.5.0(1) unscheduled(1)
   cmd=make release-gate  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # fmt, clippy, workspace tests, pv lint contracts, coverage-gate, dogfood-selflint, corpus-score, book
   cmd=make -f machines/clean-room/Makefile clean-room-bashrs  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # in paiml/infra: the published crate builds from crates.io deps alone
 
