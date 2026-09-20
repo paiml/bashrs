@@ -8,6 +8,18 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b) and issue #236, re-measured at the v7.4.0 close-out: SC2046 is now 14:1 against shellcheck rather than 210:1, and the three largest remaining gaps are SC2086 inside a heredoc body, SC2154 on a variable a sourced file defines, and SC1004 across a multi-line quoted argument (`docs/audits/sc-vs-shellcheck-v7.4.0.md`).
 
+## v7.4.2
+
+A patch release with four fixes.
+
+SEC005 read `sk-` inside a word as a hardcoded OpenAI key (#351). The provider prefixes were matched as bare substrings, so `TIMER="ci-disk-watch.timer"` was reported as a secret and forjar's `ci-disk-watch-timer-enable` failed its apply-gate on every intel and gx10 converge — bashrs refusing a script bashrs ships. A prefix now counts only at a token start; property tests assert both directions and `F-SEC005-BOUNDARY` makes the boundary a contract row.
+
+The unused `renacer` dev-dependency broke every aarch64 build (#353). It is x86_64-only and nothing linked it. Dropped.
+
+SC2242 counted case/loop nesting instead of flagging it (#332, closes #331).
+
+SC2242 then reported an English sentence as an error (#355). Counting was right for code and made the literal case worse: `echo "could not break the matcher — this case discriminates nothing"` opens a case depth on the word "case" and finds `break` in "break the matcher", so prose became a diagnostic. The rule joins `QUOTE_SENSITIVE_RULES`, which hands it the masked copy — the parser-free answer the module's own comment asked for. It is also wired into the allowlist's `(code, check_fn)` pair list: without that the rule was declared quote-sensitive and the property test never ran it, which is bashrs#266's root cause again (two hand-maintained lists with nothing tying them together) and is what bashrs's own `test_GH226_quoting_allowlist_names_only_rules_that_exist` caught. `test_PMAT355_sc2242_fires_on_the_unmasked_sentence` is the negative control: the rule must report the raw sentence and be silent once masked, so the silence is the masking working and not a rule that fires on nothing.
+
 ## v7.4.1
 
 A patch release with four fixes.

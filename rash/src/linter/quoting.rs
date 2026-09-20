@@ -296,6 +296,15 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // XML/plist fragment and `</svg>` in a heredoc are data, not redirections.
     "SC2188", // Redirection without command
     "SC2105", // `break` outside a loop — "could not break the matcher" is prose
+    // SC2242 arrives with #332, which made the rule COUNT case/loop nesting
+    // instead of flagging it. Counting is right for code and made the literal
+    // case worse: `echo "could not break the matcher — this case discriminates
+    // nothing"` now opens a case depth on the word "case" and finds `break` in
+    // "break the matcher", so a sentence is reported as an error. The rule's
+    // own comment says a keyword inside a quoted string "needs the parser";
+    // this is the parser-free answer the module already has, and the guard
+    // test is what found it.
+    "SC2242", // break/continue in a case — prose about a "case" is not one
     "SC2111", // ksh `function` keyword — awk has one too, in a '...' program
     "SC2122", // `>=` in [ ] — `"int($cov >= 85)"` is a program for another parser
     // PMAT-248 (#252): backtick *syntax* is meaningless once the backtick is
@@ -1198,6 +1207,7 @@ mod tests {
             ("SC2104", sc2104::check),
             // GH-272
             ("SC2105", sc2105::check),
+            ("SC2242", sc2242::check),
             ("SC2111", sc2111::check),
             ("SC2122", sc2122::check),
             ("SC2188", sc2188::check),
@@ -1225,6 +1235,26 @@ mod tests {
         );
     }
 
+    /// The negative control for #332's row of the test above. That row proves
+    /// SC2242 is SILENT on the masked sentence — which a rule that never fires
+    /// at all also satisfies. This asserts the rule fires on the sentence
+    /// UNMASKED, so the silence above is the masking working and not the rule
+    /// being inert. Without it the row is a test that cannot fail.
+    #[test]
+    fn test_PMAT355_sc2242_fires_on_the_unmasked_sentence() {
+        use crate::linter::rules::sc2242;
+        let src = r#"echo "could not break the matcher — this case discriminates nothing""#;
+        assert!(
+            !sc2242::check(src).diagnostics.is_empty(),
+            "SC2242 must report the RAW sentence — otherwise the masked row \
+             below passes for a rule that fires on nothing"
+        );
+        assert!(
+            sc2242::check(&mask_literals(src)).diagnostics.is_empty(),
+            "and must be silent once the literal is masked"
+        );
+    }
+
     #[test]
     fn test_GH226_quoting_allowlisted_rules_find_nothing_in_a_pure_literal() {
         // The property the allowlist exists for: given a line that is entirely
@@ -1237,6 +1267,10 @@ mod tests {
             r#"echo 'case x in [0-9]) do done esac ] { } function f(a) [[ ]] $10'"#,
             r#"printf '  x Found [[ ]] (bash-specific) and function keyword
 '"#,
+            // #332's own sentence. `case` opens a depth and `break` is found
+            // inside `break the matcher`, so SC2242 reported prose as a
+            // break outside a case. Masked, there is no keyword to count.
+            r#"echo "could not break the matcher — this case discriminates nothing""#,
         ];
         for src in sources {
             let masked = mask_literals(src);
