@@ -2661,11 +2661,11 @@ roadmap:
   github_issue: 355
   item_type: task
   title: 'SC2242 reports an English sentence as an error: #332 made it count case depth and it reads raw source'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-20T10:19:59Z
-  updated: 2026-09-20T10:19:59Z
+  updated: 2026-09-20T13:45:33.709254172+00:00
   spec: null
   acceptance_criteria:
   - 'SC2242 joins QUOTE_SENSITIVE_RULES so it receives the masked copy, with a Payload pair in quoting_literal_payload_guard.rs: the bare case-with-break must still fire. Found by make release-gate on the v7.4.2 cut; blocks bashrs#354.'
