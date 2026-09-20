@@ -2680,16 +2680,18 @@ roadmap:
   github_issue: 357
   item_type: task
   title: 'DEBT: repo-wide complexity and file-size claims block every pmat work complete'
-  status: planned
+  status: blocked
   priority: medium
   assigned_to: null
   created: 2026-09-20T12:42:33Z
-  updated: 2026-09-20T12:42:33Z
+  updated: 2026-09-20T12:45:42Z
   spec: null
   acceptance_criteria:
   - 308 functions over complexity 20 and 45 files over 500 lines fail the falsification suite repo-wide, so no ticket can be completed. Named accountability for --override-claims on entries whose work is demonstrably merged. Measured 2026-09-20.
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:unscheduled
   notes: null
