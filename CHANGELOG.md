@@ -19,6 +19,8 @@ A patch release with one security-rule fix that was refusing this fleet's own sc
 
 - **SC2242 flagged case/loop nesting instead of counting it** (#332, closes #331).
 
+- **SC2242 then reported an English sentence as an error** (PMAT-355, #355). Counting was right for code and made the literal case worse: `echo "could not break the matcher — this case discriminates nothing"` opens a case depth on the word "case" and finds `break` in "break the matcher". The rule joins `QUOTE_SENSITIVE_RULES` so it receives the masked copy, and is wired into the allowlist's `(code, check_fn)` pair list — without that it was declared quote-sensitive while nothing ever ran it over a literal, which is bashrs#266's root cause again and is what `test_GH226_quoting_allowlist_names_only_rules_that_exist` caught. Found by `make release-gate` on this cut, so it is in the release rather than after it.
+
 ### Changed
 
 - CI action bumps: `actions/checkout` 4 → 7 (#347), `actions/cache` 4.2.3 → 6.1.0 (#345), `softprops/action-gh-release` 2.2.2 → 3.0.3 (#346).

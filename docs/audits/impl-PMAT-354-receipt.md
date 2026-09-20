@@ -6,7 +6,21 @@
 
 ## Where this cut's claims are backed
 
-A release cut describes what already merged, so its own diff contains no Rust. PMAT-338's receipt established the rule that the cut must name WHERE each claim lives; these are the commits on `main` between `v7.4.1` and `94497c22b2`:
+**This cut contains Rust, and an earlier version of this line said it did not.** The rule it stated —
+*"a release cut describes what already merged, so its own diff contains no Rust"* — is the right rule
+and this cut is a genuine exception, which is exactly the shape that has to be written down rather
+than left for a reader to notice. A three-engine quorum refused the PR over it (2/3 lanes, both
+citing this line against `rash/src/linter/quoting.rs` in the same diff), and the lanes were right:
+the claim had become false while the sentence stayed.
+
+The exception is PMAT-355 (#355), and it is in the cut because **the release gate is red without
+it**. `make release-gate` on this cut failed on bashrs's own guard —
+`test_GH226_quoting_allowlist_names_only_rules_that_exist`, *"SC2242 is allowlisted but names no rule
+module"* — so v7.4.2 could not have been cut at all. A fix the gate demands is part of the release,
+not a follow-up to it; what was wrong was the paperwork claiming otherwise.
+
+Everything else here is what already merged. PMAT-338's receipt established the rule that the cut
+must name WHERE each claim lives; these are the commits on `main` between `v7.4.1` and `94497c22b2`:
 
 | Claim in the CHANGELOG | Commit | What it touched |
 |---|---|---|
