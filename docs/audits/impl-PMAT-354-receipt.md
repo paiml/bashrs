@@ -55,7 +55,7 @@ PMAT-350/PMAT-352 moved the open counts the line quotes.
 
 verification:
   cmd=cargo check --workspace  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # regenerates Cargo.lock at 7.4.2
-  cmd=release-lint.sh docs/roadmaps/roadmap.yaml --repo . --plan docs/roadmaps/releases.md --notes docs/release-notes.md  claimed_exit=1  rerun_exit=1  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # R1-R5 clean; exits 1 on 4 historical R6 tags; open=4 releases=v7.4.2(2) v7.5.0(1) unscheduled(1)
+  cmd=release-lint.sh docs/roadmaps/roadmap.yaml --repo . --plan docs/roadmaps/releases.md --notes docs/release-notes.md  claimed_exit=1  rerun_exit=1  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # R1-R5 clean; exits 1 on 4 historical R6 tags. The INVARIANT, not a count: v7.4.2 has no open entry but PMAT-354 itself, which cannot close before the cut. A snapshot count belongs in no receipt on a branch that closes entries — this line quoted v7.4.2(3), then (2), then (1) as its own PRs landed, and a quorum lane refuted it by re-running the command each time
   cmd=make release-gate  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # fmt, clippy, workspace tests, pv lint contracts, coverage-gate, dogfood-selflint, corpus-score, book
   cmd=make -f machines/clean-room/Makefile clean-room-bashrs  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # in paiml/infra: the published crate builds from crates.io deps alone
 
