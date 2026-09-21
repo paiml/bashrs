@@ -155,6 +155,44 @@ const PAYLOADS: &[Payload] = &[
         quoted: "f() { # $1 is the file, written to $t/w.yml\n    :\n}\nf\n",
         found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
     },
+    // bashrs#364. A POSIX awk program in '...' is another language's grammar:
+    // `if (…)`, `else if`, `a || b <= c`, a regex `[ \t]+` and a `#` inside a
+    // regex are awk, not shell. 77 of 129 warnings on one infra guard were
+    // these five rules reading its 100-line awk program. The construct sits on
+    // a CONTINUATION line of the string, as in the census — a line rule sees no
+    // quote there at all, which is why a one-line `awk '…'` does not reproduce
+    // it. Each bare case is the finding the rule's own tests assert.
+    Payload {
+        code: "SC2204",
+        bare: "if ( true ); then\n    :\nfi\n",
+        quoted: "f=x\nawk '\n    { if (s ~ /^y/ || s ~ /z$/) s = substr(s, 2) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:60 (bashrs#364)",
+    },
+    Payload {
+        code: "SC1075",
+        bare:
+            "x=1\nif [ \"$x\" -eq 1 ]; then\n    :\nelse if [ \"$x\" -eq 2 ]; then\n    :\nfi\nfi\n",
+        quoted: "f=x\nawk '\n    { if (a) b++\n    else if (c != \"\") { d++ } }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:69 (bashrs#364)",
+    },
+    Payload {
+        code: "SC2297",
+        bare: "cat file | sort > output\n",
+        quoted: "f=x\nawk '\n    { if (oi < 0 || n <= oi) next }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:93 (bashrs#364)",
+    },
+    Payload {
+        code: "SC2102",
+        bare: "v=1\n[[ $v = [0-9]+ ]] && echo n\n",
+        quoted: "f=x\nawk '\n    { sub(/^[ \\t]+/, \"\", s) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
+    },
+    Payload {
+        code: "SC1099",
+        bare: "echo hello#world\n",
+        quoted: "f=x\nawk '\n    { sub(/[ \\t]+#.*$/, \"\", s) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:59 (bashrs#364)",
+    },
 ];
 
 fn error_codes(source: &str) -> Vec<String> {
