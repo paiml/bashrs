@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Eight rules read a single-quoted awk program as shell** (PMAT-364, #364). `if (…)` was a subshell test (SC2204), `else if` wanted `elif` (SC1075), `a || b <= c` was a redirect after a pipe (SC2297), a regex `[ \t]+` was a glob range (SC2102), a `#` inside a regex wanted a space (SC1099), and `\t` and awk's `function` keyword drew SC1012, SC2025 and SC2112. They all react on the continuation lines of a multi-line `'...'`, where a line rule sees no quote at all, so a one-line `awk '…'` never showed it. All eight now join `QUOTE_SENSITIVE_RULES`. On one infra guard with a 100-line awk program, warnings go from 129 to 42 and infos from 93 to 58, with none left inside the program.
 
+- **SC2107 read `[ "$(a || b)" = x ]` as `[ a || b ]`** (PMAT-366, #366). The regex matched `||`/`&&` anywhere between `[` and `]`, including inside a command substitution, backticks or `$(( ))`, where the operator belongs to the substituted program. At Severity::Error it made forjar's I8 gate refuse a correct generated check (`[ "$(stat -c %a "$p" || stat -f %Lp "$p")" = 644 ]`, the GNU-then-BSD idiom). The rule now blanks the inside of those constructs before matching, preserving byte offsets, and `[ "$(a)" = x || "$b" = y ]` still fires.
+
 ## [7.4.2] - 2026-09-20
 
 A patch release with one security-rule fix that was refusing this fleet's own scripts, one dependency removal that unbroke every aarch64 build, and one linter fix.
