@@ -2676,6 +2676,25 @@ roadmap:
   - kind:code
   - release:v7.4.2
   notes: null
+- id: PMAT-362
+  github_issue: 362
+  item_type: task
+  title: 'SC2086/SC2154 fire on $name inside ''...'' and after a trailing #: both are linted against mask_inert, which masks only text that cannot expand'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-21T09:11:19Z
+  updated: 2026-09-21T09:11:19Z
+  spec: null
+  acceptance_criteria:
+  - 'bashrs lint on the #362 repro reports no SC2086 and no SC2154 (0 warnings, was 4); on infra machines/clean-room/coverage-on-tag-census.sh SC2086 goes 12 -> 0 and SC2154 8 -> 0'
+  - 'rash/tests/quoting_literal_payload_guard.rs carries four #362 payloads; bare `echo $x` still fires SC2086, and bare `echo "$org"` and an unquoted-heredoc `$t` still fire SC2154; emptying EXPANSION_RULES turns quoted_payloads_produce_none_of_their_own_code red, and routing SC2154 through mask_literals turns unquoted_payloads_still_fire red'
+  - 'quoting::RuleInputs decides each rule''s view (source, mask_literals, mask_inert) from QUOTE_SENSITIVE_RULES and EXPANSION_RULES by code and by module name; lint_shell and lint_shell_filtered both ask it; cargo test -p bashrs --lib linter:: passes 6093 tests including the five new tests_expansion_rules'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
 - id: PMAT-357
   github_issue: 357
   item_type: task

@@ -122,6 +122,39 @@ const PAYLOADS: &[Payload] = &[
         quoted: "cat <<EOF > \"file|name\"\nfoo\nEOF\n",
         found_at: "#242 review",
     },
+    // bashrs#362. SC2086 and SC2154 are line rules keyed on `$name`; neither
+    // knew it was inside `'...'` or after a trailing `#`, so a GraphQL query, a
+    // jq filter or an awk program in single quotes, and a comment naming a
+    // variable, each read as an unquoted expansion of an unset variable.
+    Payload {
+        code: "SC2086",
+        bare: "echo $x\n",
+        quoted: "g() {\n    local q='query($org:String!){ x }'\n    printf '%s\\n' \"$q\"\n}\ng\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
+    },
+    Payload {
+        code: "SC2086",
+        bare: "echo $x\n",
+        quoted: "f() { # $1 is the file, written to $t/w.yml\n    :\n}\nf\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
+    },
+    // SC2154 must still see a reference wherever one EXPANDS. `"$org"` is one
+    // (the literal mask keeps `$name` visible inside "..." as well), and an
+    // UNQUOTED heredoc body is the case that tells the two masks apart:
+    // `mask_literals` blanks every heredoc body whole, so routing SC2154
+    // through it would lose `$t` below — a real read of an unset variable.
+    Payload {
+        code: "SC2154",
+        bare: "echo \"$org\"\n",
+        quoted: "g() {\n    local q='query($org:String!){ x }'\n    printf '%s\\n' \"$q\"\n}\ng\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
+    },
+    Payload {
+        code: "SC2154",
+        bare: "cat <<EOF\n$t\nEOF\n",
+        quoted: "f() { # $1 is the file, written to $t/w.yml\n    :\n}\nf\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
+    },
 ];
 
 fn error_codes(source: &str) -> Vec<String> {
