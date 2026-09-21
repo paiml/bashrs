@@ -343,6 +343,20 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // never hides the operator line itself — only text inside a quote or a
     // heredoc body is filler, and the `cat <<EOF | grep x` line is neither.
     "SC2276", // Useless cat with heredoc
+    // bashrs#364. A POSIX awk program in '...' is another language's grammar,
+    // and these five read it as shell: `if (…)`, `else if`, `a || b <= c`, a
+    // regex `[ \t]+` and a `#` inside a regex. 77 of 129 warnings on one infra
+    // guard were its 100-line awk program. None of the five is ABOUT a literal
+    // or a comment (the SC1128 caveat above): each bare defect in
+    // `tests/quoting_literal_payload_guard.rs` still fires.
+    "SC2204", // (..) is a subshell — `if (s ~ /re/)` in awk
+    "SC1075", // Use elif — `else if` in awk
+    "SC2297", // Redirect after a pipe — `a || b <= c` in awk
+    "SC2102", // Ranges match single chars — `/[ \t]+/` in awk
+    "SC1099", // Space before # — `/[ \t]+#.*$/` in awk
+    "SC1012", // \t is a literal t — a `\t` in an awk regex (info)
+    "SC2025", // escape sequences — the same `\t` (info)
+    "SC2112", // `function` is non-standard — awk has one too (info)
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
@@ -1358,6 +1372,15 @@ mod tests {
             ("SC2099", sc2099::check),
             ("SC1109", sc1109::check),
             ("SC2276", sc2276::check),
+            // bashrs#364
+            ("SC2204", sc2204::check),
+            ("SC1075", sc1075::check),
+            ("SC2297", sc2297::check),
+            ("SC2102", sc2102::check),
+            ("SC1099", sc1099::check),
+            ("SC1012", sc1012::check),
+            ("SC2025", sc2025::check),
+            ("SC2112", sc2112::check),
         ]
     }
 

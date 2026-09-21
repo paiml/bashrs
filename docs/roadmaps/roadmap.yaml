@@ -2695,6 +2695,19 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-364
+  github_issue: 364
+  item_type: task
+  title: 'SC2204/SC1075/SC2297/SC2102/SC1099 (and SC1012/SC2025/SC2112, info) read a single-quoted awk program as shell: QUOTE_SENSITIVE_RULES'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-21T10:20:24Z
+  updated: 2026-09-21T10:20:24Z
+  spec: null
+  acceptance_criteria:
+  - 'eight codes join QUOTE_SENSITIVE_RULES with an allowlisted_checks row each; quoting_literal_payload_guard.rs carries eight payloads whose quoted case is an awk construct on a CONTINUATION line of a multi-line single-quoted string, and whose bare case fires; removing any one code from the list turns quoted_payloads_produce_none_of_their_own_code red naming that code'
+  - 'bashrs lint on infra machines/clean-room/coverage-on-tag-census.sh: 129 warnings -> 42 (none left inside its awk program), infos 93 -> 58; cargo test -p bashrs --lib linter:: passes 6093'
 - id: PMAT-366
   github_issue: 366
   item_type: task
