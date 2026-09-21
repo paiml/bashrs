@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **SC2086 and SC2154 fired on `$name` inside `'...'` and after a trailing `#`** (PMAT-362, #362). Both are line scanners keyed on `$name` that knew neither single quotes nor a trailing comment, so a GraphQL query, a jq filter or an awk program in single quotes, and a comment naming a variable, each read as an unquoted expansion of an unset variable — 12 SC2086 and 8 SC2154 on one infra guard, none real. They are now linted against `mask_inert`, which masks only text that can never expand (`'...'`, `$'...'`, comments, quoted-delimiter heredoc bodies) and leaves `"..."` and unquoted heredoc bodies visible, so `echo $x` still fires SC2086 and `echo "$org"` and an unquoted-heredoc `$t` still fire SC2154. `quoting::RuleInputs` now chooses every rule's view from `QUOTE_SENSITIVE_RULES` and the new `EXPANSION_RULES`, for both `lint_shell` and `lint_shell_filtered`.
+
 ## [7.4.2] - 2026-09-20
 
 A patch release with one security-rule fix that was refusing this fleet's own scripts, one dependency removal that unbroke every aarch64 build, and one linter fix.
