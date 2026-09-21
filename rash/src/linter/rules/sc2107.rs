@@ -66,6 +66,34 @@ pub fn check(source: &str) -> LintResult {
 mod tests {
     use super::*;
 
+    // bashrs#366: a `||`/`&&` inside a command substitution, backticks or
+    // arithmetic is that sub-program's operator, not a test operator. forjar's
+    // I8 gate refused a correct generated check on exactly these two lines.
+    #[test]
+    fn test_sc2107_or_inside_command_substitution_is_not_a_test_operator() {
+        for code in [
+            r#"if [ "$(sha256sum "$p" 2>/dev/null || shasum -a 256 "$p" 2>/dev/null)" = x ]; then echo same; fi"#,
+            r#"if [ "$(stat -c %a "$p" || stat -f %Lp "$p")" = 644 ]; then echo m; fi"#,
+            r#"if [ "$(a && b)" = x ]; then :; fi"#,
+            r#"if [ "`a || b`" = x ]; then :; fi"#,
+            r#"if [ $(( a || b )) -eq 1 ]; then :; fi"#,
+            r#"if [ "$(echo "$(a || b)")" = x ]; then :; fi"#,
+        ] {
+            assert!(check(code).diagnostics.is_empty(), "fired on: {code}");
+        }
+    }
+
+    /// The operator OUTSIDE the substitution is still the defect.
+    #[test]
+    fn test_sc2107_or_beside_a_substitution_still_fires() {
+        for code in [
+            r#"if [ "$(a)" = x || "$b" = y ]; then :; fi"#,
+            r#"if [ "`a`" = x && "$b" = y ]; then :; fi"#,
+        ] {
+            assert_eq!(check(code).diagnostics.len(), 1, "silent on: {code}");
+        }
+    }
+
     #[test]
     fn test_sc2107_and_in_single_bracket() {
         let code = r#"if [ "$a" = "1" && "$b" = "2" ]; then"#;
