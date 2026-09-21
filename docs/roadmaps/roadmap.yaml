@@ -2695,6 +2695,24 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-366
+  github_issue: 366
+  item_type: task
+  title: 'SC2107 reads [ "$(a || b)" = x ] as [ a || b ] (Error): blank the inside of $( ), $(( )) and backticks before matching'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-21T11:18:41Z
+  updated: 2026-09-21T11:18:41Z
+  spec: null
+  acceptance_criteria:
+  - 'sc2107 tests: the two #366 lines, $(a && b), backticks, $(( a || b )) and a nested $( ) do not fire; [ "$(a)" = x || "$b" = y ] and the backtick variant still fire; blanking the whole line turns four existing must-fire tests red'
+  - 'bashrs lint on the #366 repro reports 0 errors (was 2 SC2107); cargo test -p bashrs --lib linter:: passes 6095'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
 - id: PMAT-357
   github_issue: 357
   item_type: task
