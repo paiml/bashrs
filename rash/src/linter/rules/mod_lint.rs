@@ -61,7 +61,9 @@ pub fn lint_shell(source: &str) -> LintResult {
     // GH-226: shell-SYNTAX rules must not see the contents of string literals
     // (a regex character class is not a test expression). Same allowlist and
     // same mechanism as `lint_shell_filtered`.
-    let masked = crate::linter::quoting::mask_literals(source);
+    // bashrs#362: a third view (EXPANSION_RULES see only non-expanding text
+    // masked). `RuleInputs` makes the choice from the lists, in one place.
+    let inputs = crate::linter::quoting::RuleInputs::new(source);
 
     // GH-272: the choice between `&masked` and `source` used to be written out
     // by hand at each of the 378 call sites below, which made
@@ -73,13 +75,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     // disagree with it.
     macro_rules! apply {
         ($rule:ident) => {
-            result.merge($rule::check(
-                if crate::linter::quoting::is_quote_sensitive_module(stringify!($rule)) {
-                    masked.as_str()
-                } else {
-                    source
-                },
-            ));
+            result.merge($rule::check(inputs.for_module(stringify!($rule))));
         };
     }
 
@@ -473,7 +469,7 @@ pub fn lint_shell(source: &str) -> LintResult {
     apply!(sc2325);
 
     // Messages from masked rules must quote the user's text, not the filler.
-    crate::linter::quoting::restore_masked_messages(source, &masked, &mut result);
+    crate::linter::quoting::restore_masked_messages(source, inputs.literal(), &mut result);
 
     // Extended rules: determinism, idempotency, security, performance, portability, reliability
     // Plus inline suppression filtering and embedded program exclusion

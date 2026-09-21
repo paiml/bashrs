@@ -138,9 +138,11 @@ const PAYLOADS: &[Payload] = &[
         quoted: "f() { # $1 is the file, written to $t/w.yml\n    :\n}\nf\n",
         found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
     },
-    // SC2154's must-still-fire case is a DOUBLE-quoted reference on purpose:
-    // `"$org"` is a real read of an unset variable. Routing SC2154 through
-    // `mask_literals` (which masks "..." too) would blind it to exactly this.
+    // SC2154 must still see a reference wherever one EXPANDS. `"$org"` is one
+    // (the literal mask keeps `$name` visible inside "..." as well), and an
+    // UNQUOTED heredoc body is the case that tells the two masks apart:
+    // `mask_literals` blanks every heredoc body whole, so routing SC2154
+    // through it would lose `$t` below — a real read of an unset variable.
     Payload {
         code: "SC2154",
         bare: "echo \"$org\"\n",
@@ -149,7 +151,7 @@ const PAYLOADS: &[Payload] = &[
     },
     Payload {
         code: "SC2154",
-        bare: "echo \"$t\"\n",
+        bare: "cat <<EOF\n$t\nEOF\n",
         quoted: "f() { # $1 is the file, written to $t/w.yml\n    :\n}\nf\n",
         found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
     },
