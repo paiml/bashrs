@@ -193,6 +193,28 @@ const PAYLOADS: &[Payload] = &[
         quoted: "f=x\nawk '\n    { sub(/[ \\t]+#.*$/, \"\", s) }\n' \"$f\"\n",
         found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:59 (bashrs#364)",
     },
+    // Three info-level rules in the same program, same cause: a `\t` in an awk
+    // regex is not a shell escape the shell drops (SC1012, SC2025), and awk
+    // has a `function` keyword too (SC2112 — SC2111, its ksh twin, is already
+    // listed for exactly that).
+    Payload {
+        code: "SC1012",
+        bare: "echo hello\\tworld\n",
+        quoted: "f=x\nawk '\n    { sub(/^[ \\t]+/, \"\", s) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
+    },
+    Payload {
+        code: "SC2025",
+        bare: "echo Hello\\nWorld\n",
+        quoted: "f=x\nawk '\n    { sub(/^[ \\t]+/, \"\", s) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
+    },
+    Payload {
+        code: "SC2112",
+        bare: "function foo { echo \"bar\"; }\nfoo\n",
+        quoted: "f=x\nawk '\n    function trim(s) { return s }\n    { print trim($0) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
+    },
 ];
 
 fn error_codes(source: &str) -> Vec<String> {
