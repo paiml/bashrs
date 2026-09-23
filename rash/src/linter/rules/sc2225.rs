@@ -93,3 +93,34 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 0);
     }
 }
+
+/// GH-370: same class as SC2210 — `\b\w+\s*=\s*\`` let `=` and the backtick
+/// sit in different words, so `ps -o pid= \`...\`` read as an assignment.
+#[cfg(test)]
+mod gh370_tests {
+    use super::*;
+
+    fn count(code: &str) -> usize {
+        check(code).diagnostics.len()
+    }
+
+    #[test]
+    fn test_gh370_sc2225_ps_format_then_backtick_is_not_an_assignment() {
+        assert_eq!(count("ps -o pid= `echo 1`"), 0);
+    }
+
+    #[test]
+    fn test_gh370_sc2225_option_value_is_not_an_assignment() {
+        assert_eq!(count("cmd --out=`pwd`"), 0);
+    }
+
+    #[test]
+    fn test_gh370_sc2225_control_local_still_fires() {
+        assert_eq!(count("local v=`date`"), 1);
+    }
+
+    #[test]
+    fn test_gh370_sc2225_control_prefix_before_command_still_fires() {
+        assert_eq!(count("v=`date` cmd"), 1);
+    }
+}

@@ -220,3 +220,77 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 0);
     }
 }
+
+/// GH-371: `test` and `[` are builtins only in COMMAND position. In
+/// `cargo test -q` and `"$wrapper" test -q` the word `test` is an argument.
+#[cfg(test)]
+mod gh371_tests {
+    use super::*;
+
+    fn count(code: &str) -> usize {
+        check(code).diagnostics.len()
+    }
+
+    #[test]
+    fn test_gh371_wrapper_test_q_with_env_prefix_and_redirects() {
+        let code =
+            r#"if MEMCAP_PROBE_MIB=1024 "$wrapper" test -q >"$work/l1" 2>&1; then echo ok; fi"#;
+        assert_eq!(count(code), 0);
+    }
+
+    #[test]
+    fn test_gh371_quoted_variable_command_test_q() {
+        assert_eq!(count(r#""$wrapper" test -q --lib"#), 0);
+    }
+
+    #[test]
+    fn test_gh371_cargo_test_q() {
+        assert_eq!(count("cargo test -q --lib"), 0);
+    }
+
+    #[test]
+    fn test_gh371_env_prefix_variable_command_test_q() {
+        assert_eq!(count(r#"FOO=1 "$w" test -q --lib"#), 0);
+    }
+
+    #[test]
+    fn test_gh371_echo_bracket_is_an_argument() {
+        assert_eq!(count("echo [ -q x ]"), 0);
+    }
+
+    // Negative controls: the builtin in command position still fires.
+    #[test]
+    fn test_gh371_control_if_bracket_still_fires() {
+        assert_eq!(count("if [ -q x ]; then :; fi"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_if_test_still_fires() {
+        assert_eq!(count("if test -q x; then :; fi"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_after_and_still_fires() {
+        assert_eq!(count("true && test -q x"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_env_prefix_test_still_fires() {
+        assert_eq!(count("FOO=1 test -q x"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_through_wrapper_still_fires() {
+        assert_eq!(count("sudo test -q x"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_double_bracket_still_fires() {
+        assert_eq!(count("[[ -q x ]]"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_inside_command_substitution_still_fires() {
+        assert_eq!(count(r#"out="$(test -q x)""#), 1);
+    }
+}
