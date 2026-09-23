@@ -1,11 +1,20 @@
 // SC2210: Don't use arithmetic shortcuts like x=++y
+//
+// GH-370: assignments are found by word POSITION (`shell_assignments::assignments`),
+// not by the line regex `\w+\s*=\s*(\+\+|--)\w+`, which let `=` and the
+// operator sit in different words and so read `ps -o pid= --ppid` as
+// `pid=--ppid`.
+use crate::linter::shell_assignments::assignments;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
 
-static ARITHMETIC_SHORTCUT: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    // Match x=++y or x=--y (C-style prefix operators in assignment)
-    Regex::new(r"\w+\s*=\s*(\+\+|--)\w+").unwrap()
-});
+/// `++y` / `--y`: a C-style prefix operator applied to a word.
+fn is_prefix_operator(value: &str) -> bool {
+    let bytes = value.as_bytes();
+    matches!(bytes.get(..2), Some(b"++" | b"--"))
+        && bytes
+            .get(2)
+            .is_some_and(|b| b.is_ascii_alphanumeric() || *b == b'_')
+}
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -20,7 +29,10 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        if ARITHMETIC_SHORTCUT.is_match(line) {
+        if assignments(line)
+            .iter()
+            .any(|a| is_prefix_operator(&a.value))
+        {
             let diagnostic = Diagnostic::new(
                 "SC2210",
                 Severity::Error,

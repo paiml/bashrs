@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **SC2107 read `[ "$(a || b)" = x ]` as `[ a || b ]`** (PMAT-366, #366). The regex matched `||`/`&&` anywhere between `[` and `]`, including inside a command substitution, backticks or `$(( ))`, where the operator belongs to the substituted program. At Severity::Error it made forjar's I8 gate refuse a correct generated check (`[ "$(stat -c %a "$p" || stat -f %Lp "$p")" = 644 ]`, the GNU-then-BSD idiom). The rule now blanks the inside of those constructs before matching, preserving byte offsets, and `[ "$(a)" = x || "$b" = y ]` still fires.
 
+- **SC2210 read `ps -o pid= --ppid` as `pid=--ppid`, and SC2225 read `ps -o pid= \`…\`` as an assignment** (PMAT-370, #370). Both found assignments with `\w+\s*=\s*…`, which let `=` and the value sit in different shell words. A shared `shell_assignments::assignments` now finds them by word position — assignment prefixes, `declare`/`local`/`export`/`readonly`/`typeset` operands, and the spaced `x = v` / `x= v` attempts the rules already caught.
+
+- **SC2058 read `cargo test -q` and `"$wrapper" test -q` as the `test` builtin** (PMAT-371, #371). `test`/`[` are now recognised only as the command name of a simple command (through assignment prefixes, reserved words and wrappers such as `sudo`), and `[[` as a reserved word.
+
 ## [7.4.2] - 2026-09-20
 
 A patch release with one security-rule fix that was refusing this fleet's own scripts, one dependency removal that unbroke every aarch64 build, and one linter fix.

@@ -37,9 +37,10 @@ pub(crate) mod rule_registry_data_2;
 pub(crate) mod rule_registry_data_3;
 pub(crate) mod rule_registry_data_4;
 pub mod rules;
+/// Word / command-position analysis shared by lint rules (GH-228, GH-229)
+pub mod shell_assignments;
 pub mod shell_compatibility;
 pub mod shell_type;
-/// Word / command-position analysis shared by lint rules (GH-228, GH-229)
 pub mod shell_words;
 pub mod suppression;
 /// Intra-file taint analysis shared by the path-safety rules (GH-227)
