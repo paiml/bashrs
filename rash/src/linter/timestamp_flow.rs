@@ -93,13 +93,75 @@ pub(crate) struct TimestampUse {
 pub(crate) fn analyze(source: &str) -> Vec<TimestampUse> {
     let skip = quoted_heredoc_lines(source);
     let mut st = FlowState::default();
-    for (idx, line) in source.lines().enumerate() {
-        let ln = idx + 1;
-        if !skip.contains(&ln) {
-            scan_line(&mut st, ln, line);
+    for logical in logical_lines(source, &skip) {
+        let first = st.uses.len();
+        scan_line(&mut st, logical.line, &logical.text);
+        for u in &mut st.uses[first..] {
+            logical.remap(u);
         }
     }
     finalize(st.uses)
+}
+
+/// One shell command after its `\`-newline continuations are removed (#376).
+///
+/// A timestamp's sink is usually on the LAST physical line of a continued
+/// command (`jq … \` / `  >> "$log"`), so resolving it one physical line at a
+/// time judged the `date` with its redirect out of sight.
+struct LogicalLine {
+    /// 1-indexed physical line the command starts on.
+    line: usize,
+    /// The joined text, as the shell reads it.
+    text: String,
+    /// `(offset in text, physical line)` where each physical line begins.
+    starts: Vec<(usize, usize)>,
+}
+
+impl LogicalLine {
+    /// Move a use found in `text` back to its physical line and column, which
+    /// `# bashrs disable-line=DET002` and `.bashrsignore` are keyed on.
+    fn remap(&self, u: &mut TimestampUse) {
+        let off = u.col - 1;
+        if let Some(&(start, ln)) = self.starts.iter().rev().find(|(s, _)| *s <= off) {
+            u.line = ln;
+            u.col = off - start + 1;
+        }
+    }
+}
+
+/// Group physical lines into logical ones. A line continues when it ends in
+/// an odd run of `\` that is shell code, not comment or quoted text. A quoted
+/// heredoc body line is never scanned, and ends any pending command.
+fn logical_lines(source: &str, skip: &HashSet<usize>) -> Vec<LogicalLine> {
+    let mut out = Vec::new();
+    let mut cur: Option<LogicalLine> = None;
+    for (idx, line) in source.lines().enumerate() {
+        let ln = idx + 1;
+        if skip.contains(&ln) {
+            out.extend(cur.take());
+            continue;
+        }
+        let cont = continues(line);
+        let body = if cont { &line[..line.len() - 1] } else { line };
+        let l = cur.get_or_insert_with(|| LogicalLine {
+            line: ln,
+            text: String::new(),
+            starts: Vec::new(),
+        });
+        l.starts.push((l.text.len(), ln));
+        l.text.push_str(body);
+        if !cont {
+            out.extend(cur.take());
+        }
+    }
+    out.extend(cur);
+    out
+}
+
+/// Does this physical line end in a `\`-newline continuation?
+fn continues(line: &str) -> bool {
+    let run = line.bytes().rev().take_while(|&b| b == b'\\').count();
+    run % 2 == 1 && !Scanner::scan(line).is_literal(line.len() - 1)
 }
 
 /// A quoted heredoc body is literal text by definition, so no rule should read
