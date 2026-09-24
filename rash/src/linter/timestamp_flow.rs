@@ -961,13 +961,42 @@ fn find_date(line: &str, mask: &LineMask) -> Option<(usize, &'static str, usize)
     for (pat, len) in DATE_PATTERNS {
         let mut from = 0;
         while let Some(col) = find_from(b, pat.as_bytes(), from) {
-            if !mask.is_literal(col) {
+            let word = col + pat.find("date").unwrap_or(0);
+            if !mask.is_literal(col) && !is_date_conversion(&line[word + 4..]) {
                 return Some((col, pat, len));
             }
             from = col + 1;
         }
     }
     find_bare_date(line, mask).map(|(col, len)| (col, "date", len))
+}
+
+/// GH-386: are these the arguments of a `date` that converts a time it is
+/// given (`-d`/`--date`), prints a file's mtime (`-r`/`--reference`) or reads
+/// dates from a file (`-f`/`--file`)? Such a `date` reads no clock: its output
+/// is a pure function of its input, so it is not a timestamp source.
+/// `args` is everything after the `date` word; it ends at the first command
+/// terminator, so an operand flag of a later command (`| cut -d' '`) does not
+/// count.
+fn is_date_conversion(args: &str) -> bool {
+    let end = args
+        .find([')', '|', ';', '&', '`', '<', '>'])
+        .unwrap_or(args.len());
+    args[..end].split_whitespace().any(|t| {
+        if let Some(long) = t.strip_prefix("--") {
+            let name = long.split('=').next().unwrap_or(long);
+            return matches!(name, "date" | "reference" | "file");
+        }
+        // A short cluster: flags that take no operand, then one that does
+        // (`-ud X`, `-dX`). The operand flag ends the cluster.
+        t.strip_prefix('-').is_some_and(|short| {
+            short
+                .chars()
+                .take_while(|c| !matches!(c, 'd' | 'r' | 'f'))
+                .all(|c| matches!(c, 'u' | 'R'))
+                && short.contains(['d', 'r', 'f'])
+        })
+    })
 }
 
 /// GH-263: a bare `date` command word - not wrapped in `$( )` or backticks -
@@ -1002,6 +1031,9 @@ fn find_bare_date_in_segment(
 ) -> Option<(usize, usize)> {
     let (word_off, cw) = command_word_at(seg)?;
     if cw != "date" || (redirect_of(seg).is_none() && !has_pipe) {
+        return None;
+    }
+    if is_date_conversion(&seg[word_off + 4..]) {
         return None;
     }
     let col = seg.as_ptr() as usize - line.as_ptr() as usize + word_off;
