@@ -2784,3 +2784,20 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-388
+  github_issue: 388
+  item_type: task
+  title: SC1066 reports $h= inside a double-quoted string as an assignment
+  status: inprogress
+  priority: medium
+  kind: code
+  assigned_to: null
+  created: 2026-09-24T18:43:10Z
+  updated: 2026-09-24T18:43:10Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
