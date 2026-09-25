@@ -2815,6 +2815,7 @@ roadmap:
   acceptance_criteria:
   - '`date -d X`, `date -r FILE`, `date -f FILE` and their long forms report no DET002 when they read no clock'
   - A plain `date +%s` written to an artifact still reports DET002
+  - An operand flag inside quoted text or a trailing comment does not exempt `date`
   - cargo test -p bashrs --lib GH386 passes
   phases: []
   subtasks: []

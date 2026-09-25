@@ -57,3 +57,15 @@ fn test_GH386_an_operand_flag_on_another_command_does_not_exempt_date() {
     let script = "#!/bin/bash\nTS=$(date +%s | cut -d' ' -f1)\ncp build.log \"out/report_$TS.log\"\n";
     assert_eq!(check(script).diagnostics.len(), 1);
 }
+
+#[test]
+fn test_GH386_operand_flag_in_quoted_text_or_comment_does_not_exempt_date() {
+    // Only a flag `date` itself receives counts. A `-f` inside a quoted
+    // argument, or `--date` in a trailing comment, is text.
+    for cmd in ["date +%s \"use -f flag\"", "date '+%s -r'"] {
+        let n = check(&artifact(cmd)).diagnostics.len();
+        assert_eq!(n, 1, "`{cmd}` still reads the clock");
+    }
+    let script = "#!/bin/bash\ndate -u > VERSION # not --date\n";
+    assert_eq!(check(script).diagnostics.len(), 1);
+}

@@ -1030,7 +1030,7 @@ fn find_date(line: &str, mask: &LineMask) -> Option<(usize, &'static str, usize)
         let mut from = 0;
         while let Some(col) = find_from(b, pat.as_bytes(), from) {
             let word = col + pat.find("date").unwrap_or(0);
-            if !mask.is_literal(col) && !is_date_conversion(&line[word + 4..]) {
+            if !mask.is_literal(col) && !is_date_conversion(&code_from(line, mask, word + 4)) {
                 return Some((col, pat, len));
             }
             from = col + 1;
@@ -1067,6 +1067,16 @@ fn is_date_conversion(args: &str) -> bool {
     })
 }
 
+/// The shell code of `line` from byte `start`: quoted text becomes spaces
+/// and a trailing comment is dropped, so only flags the shell passes count.
+fn code_from(line: &str, mask: &LineMask, start: usize) -> String {
+    mask.code_of(line)
+        .char_indices()
+        .skip_while(|&(i, _)| i < start)
+        .map(|(i, c)| if mask.is_literal(i) { ' ' } else { c })
+        .collect()
+}
+
 /// GH-263: a bare `date` command word - not wrapped in `$( )` or backticks -
 /// is also a timestamp source, but only when its value can reach a sink: an
 /// output redirect on its own segment, or a pipeline consumer. Without either
@@ -1101,10 +1111,10 @@ fn find_bare_date_in_segment(
     if cw != "date" || (redirect_of(seg).is_none() && !has_pipe) {
         return None;
     }
-    if is_date_conversion(&seg[word_off + 4..]) {
+    let col = seg.as_ptr() as usize - line.as_ptr() as usize + word_off;
+    if is_date_conversion(&code_from(line, mask, col + 4)) {
         return None;
     }
-    let col = seg.as_ptr() as usize - line.as_ptr() as usize + word_off;
     (!mask.is_literal(col)).then_some((col, 4))
 }
 
