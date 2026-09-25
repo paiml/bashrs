@@ -50,27 +50,20 @@
 use crate::linter::LintResult;
 use crate::linter::{Diagnostic, Severity, Span};
 
-/// Words after which a new command starts (`command eval`, `builtin eval` and
-/// `time eval` still run the builtin).
-const COMMAND_PREFIX_KEYWORDS: &[&str] = &[
-    "if", "then", "do", "else", "elif", "while", "until", "command", "builtin", "time",
-];
-
-/// Does `code` invoke the `eval` builtin: the word `eval` where a command can
-/// start (line start, after `;` `|` `&` `(` `` ` `` `{` `!`, or after a keyword
-/// like `if`), followed by a blank or the end of the line? A substring test
-/// read `.eval_count` in a jq program as the builtin (bashrs#375).
+/// Does `code` hold `eval` as a whole shell word: preceded by the line start, a
+/// blank or a command separator (`;` `|` `&` `(` `` ` `` `{` `!`), and followed by
+/// a blank or the line end? That covers every wrapper (`if`, `command`,
+/// `builtin`, `sudo`, `env`, `nice`, `timeout`, ...) without a list to fall out of
+/// date. A substring test read `.eval_count` in a jq program as the builtin
+/// (bashrs#375); a word test does not, because `eval` there is part of a word.
 fn has_eval_command(code: &str) -> bool {
     code.match_indices("eval").any(|(i, _)| {
+        let starts_word = code[..i]
+            .chars()
+            .next_back()
+            .is_none_or(|c| c.is_whitespace() || ";|&(`{!".contains(c));
         let ends_word = code[i + 4..].chars().next().is_none_or(char::is_whitespace);
-        let before = code[..i].trim_end();
-        let starts_command = before.is_empty()
-            || before.ends_with([';', '|', '&', '(', '`', '{', '!'])
-            || (before.len() < i
-                && COMMAND_PREFIX_KEYWORDS
-                    .iter()
-                    .any(|k| before.rsplit(|c: char| !c.is_alphanumeric()).next() == Some(*k)));
-        ends_word && starts_command
+        starts_word && ends_word
     })
 }
 
@@ -259,6 +252,11 @@ source ./config.sh
             r#"command eval "$(jq -r .a f)""#,
             r#"builtin eval "$(jq -r .a f)""#,
             r#"time eval "$(jq -r .a f)""#,
+            r#"sudo eval "$(jq -r .a f)""#,
+            r#"env X=1 eval "$(jq -r .a f)""#,
+            r#"nice -n19 eval "$(jq -r .a f)""#,
+            r#"timeout 5 eval "$(jq -r .a f)""#,
+            "eval\t\"$(jq -r .a f)\"",
         ] {
             let result = check(script);
             assert_eq!(result.diagnostics.len(), 1, "{script}");
