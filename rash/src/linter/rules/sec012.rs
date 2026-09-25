@@ -50,8 +50,11 @@
 use crate::linter::LintResult;
 use crate::linter::{Diagnostic, Severity, Span};
 
-/// Words after which a new command starts.
-const COMMAND_PREFIX_KEYWORDS: &[&str] = &["if", "then", "do", "else", "elif", "while", "until"];
+/// Words after which a new command starts (`command eval`, `builtin eval` and
+/// `time eval` still run the builtin).
+const COMMAND_PREFIX_KEYWORDS: &[&str] = &[
+    "if", "then", "do", "else", "elif", "while", "until", "command", "builtin", "time",
+];
 
 /// Does `code` invoke the `eval` builtin: the word `eval` where a command can
 /// start (line start, after `;` `|` `&` `(` `` ` `` `{` `!`, or after a keyword
@@ -253,6 +256,9 @@ source ./config.sh
             r#"true && eval "$(jq -r .a f)""#,
             r#"if eval "$(jq -r .a f)"; then :; fi"#,
             r#"out=$(eval "$(jq -r .a f)")"#,
+            r#"command eval "$(jq -r .a f)""#,
+            r#"builtin eval "$(jq -r .a f)""#,
+            r#"time eval "$(jq -r .a f)""#,
         ] {
             let result = check(script);
             assert_eq!(result.diagnostics.len(), 1, "{script}");
