@@ -86,17 +86,13 @@ fn lint_shell_filtered(
     // literals are inert filler of identical length, so spans still line up.
     // Rules that are *about* quoting are excluded by the allowlist in
     // `quoting::QUOTE_SENSITIVE_RULES` so they keep seeing the real text.
-    let masked = crate::linter::quoting::mask_literals(source);
+    // bashrs#362: see `quoting::RuleInputs` — one place decides the view.
+    let inputs = crate::linter::quoting::RuleInputs::new(source);
 
     macro_rules! apply_rule {
         ($rule_id:expr, $check_fn:expr) => {
             if should_apply_rule($rule_id, shell_type) {
-                let input = if crate::linter::quoting::is_quote_sensitive($rule_id) {
-                    masked.as_str()
-                } else {
-                    source
-                };
-                result.merge($check_fn(input));
+                result.merge($check_fn(inputs.for_code($rule_id)));
             }
         };
     }
@@ -410,7 +406,7 @@ fn lint_shell_filtered(
     }
 
     // Messages from masked rules must quote the user's text, not the filler.
-    crate::linter::quoting::restore_masked_messages(source, &masked, &mut result);
+    crate::linter::quoting::restore_masked_messages(source, inputs.literal(), &mut result);
 
     // T6: a SCxxxx code must mean what ShellCheck says it means. Rename the
     // bashrs-original checks that were filed under an already-assigned

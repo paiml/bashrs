@@ -122,6 +122,117 @@ const PAYLOADS: &[Payload] = &[
         quoted: "cat <<EOF > \"file|name\"\nfoo\nEOF\n",
         found_at: "#242 review",
     },
+    // bashrs#362. SC2086 and SC2154 are line rules keyed on `$name`; neither
+    // knew it was inside `'...'` or after a trailing `#`, so a GraphQL query, a
+    // jq filter or an awk program in single quotes, and a comment naming a
+    // variable, each read as an unquoted expansion of an unset variable.
+    Payload {
+        code: "SC2086",
+        bare: "echo $x\n",
+        quoted: "g() {\n    local q='query($org:String!){ x }'\n    printf '%s\\n' \"$q\"\n}\ng\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
+    },
+    Payload {
+        code: "SC2086",
+        bare: "echo $x\n",
+        quoted: "f() { # $1 is the file, written to $t/w.yml\n    :\n}\nf\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
+    },
+    // SC2154 must still see a reference wherever one EXPANDS. `"$org"` is one
+    // (the literal mask keeps `$name` visible inside "..." as well), and an
+    // UNQUOTED heredoc body is the case that tells the two masks apart:
+    // `mask_literals` blanks every heredoc body whole, so routing SC2154
+    // through it would lose `$t` below — a real read of an unset variable.
+    Payload {
+        code: "SC2154",
+        bare: "echo \"$org\"\n",
+        quoted: "g() {\n    local q='query($org:String!){ x }'\n    printf '%s\\n' \"$q\"\n}\ng\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
+    },
+    Payload {
+        code: "SC2154",
+        bare: "cat <<EOF\n$t\nEOF\n",
+        quoted: "f() { # $1 is the file, written to $t/w.yml\n    :\n}\nf\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
+    },
+    // bashrs#375. SC1087 read `$s[0]` inside a multi-line single-quoted jq
+    // program as an unbraced array expansion, and SEC012 read the substring
+    // `eval` in the jq field `.eval_count` as the eval builtin. The bare cases
+    // keep each rule honest: `"$arr[0]"` in DOUBLE quotes does expand (so
+    // SC1087 must not be routed through the literal mask), and a real
+    // `eval "$(jq ...)"` must still fire SEC012.
+    Payload {
+        code: "SC1087",
+        bare: "arr=(a b)\necho \"$arr[0]\"\n",
+        quoted: "S=x\njq -nc --argjson s \"$S\" '{\n  min:($s[0]), max:($s[-1])}'\n",
+        found_at: "infra/machines/lambda-labs/lqw/lqw-bench.sh:42 (bashrs#375)",
+    },
+    Payload {
+        code: "SEC012",
+        bare: "f=x\neval \"$(jq -r '.a' \"$f\")\"\n",
+        quoted: "line=x\nct=$(jq -r '.eval_count // 0' <<<\"$line\"); pt=$(jq -r '.prompt_eval_count // 0' <<<\"$line\")\necho \"$ct $pt\"\n",
+        found_at: "infra/machines/lambda-labs/lqw/lqw-bench.sh:73 (bashrs#375)",
+    },
+    // bashrs#364. A POSIX awk program in '...' is another language's grammar:
+    // `if (…)`, `else if`, `a || b <= c`, a regex `[ \t]+` and a `#` inside a
+    // regex are awk, not shell. 77 of 129 warnings on one infra guard were
+    // these five rules reading its 100-line awk program. The construct sits on
+    // a CONTINUATION line of the string, as in the census — a line rule sees no
+    // quote there at all, which is why a one-line `awk '…'` does not reproduce
+    // it. Each bare case is the finding the rule's own tests assert.
+    Payload {
+        code: "SC2204",
+        bare: "if ( true ); then\n    :\nfi\n",
+        quoted: "f=x\nawk '\n    { if (s ~ /^y/ || s ~ /z$/) s = substr(s, 2) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:60 (bashrs#364)",
+    },
+    Payload {
+        code: "SC1075",
+        bare:
+            "x=1\nif [ \"$x\" -eq 1 ]; then\n    :\nelse if [ \"$x\" -eq 2 ]; then\n    :\nfi\nfi\n",
+        quoted: "f=x\nawk '\n    { if (a) b++\n    else if (c != \"\") { d++ } }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:69 (bashrs#364)",
+    },
+    Payload {
+        code: "SC2297",
+        bare: "cat file | sort > output\n",
+        quoted: "f=x\nawk '\n    { if (oi < 0 || n <= oi) next }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:93 (bashrs#364)",
+    },
+    Payload {
+        code: "SC2102",
+        bare: "v=1\n[[ $v = [0-9]+ ]] && echo n\n",
+        quoted: "f=x\nawk '\n    { sub(/^[ \\t]+/, \"\", s) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
+    },
+    Payload {
+        code: "SC1099",
+        bare: "echo hello#world\n",
+        quoted: "f=x\nawk '\n    { sub(/[ \\t]+#.*$/, \"\", s) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:59 (bashrs#364)",
+    },
+    // Three info-level rules in the same program, same cause: a `\t` in an awk
+    // regex is not a shell escape the shell drops (SC1012, SC2025), and awk
+    // has a `function` keyword too (SC2112 — SC2111, its ksh twin, is already
+    // listed for exactly that).
+    Payload {
+        code: "SC1012",
+        bare: "echo hello\\tworld\n",
+        quoted: "f=x\nawk '\n    { sub(/^[ \\t]+/, \"\", s) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
+    },
+    Payload {
+        code: "SC2025",
+        bare: "echo Hello\\nWorld\n",
+        quoted: "f=x\nawk '\n    { sub(/^[ \\t]+/, \"\", s) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
+    },
+    Payload {
+        code: "SC2112",
+        bare: "function foo { echo \"bar\"; }\nfoo\n",
+        quoted: "f=x\nawk '\n    function trim(s) { return s }\n    { print trim($0) }\n' \"$f\"\n",
+        found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
+    },
 ];
 
 fn error_codes(source: &str) -> Vec<String> {

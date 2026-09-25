@@ -102,6 +102,9 @@ pub struct QuotedRegions {
     /// `(start_col, end_col)` ranges.
     per_line: Vec<Vec<(usize, usize)>>,
     any: bool,
+    /// The same shape for text that can never expand (bashrs#362) — see
+    /// [`mask_inert`]. Always a subset of `per_line`.
+    inert_per_line: Vec<Vec<(usize, usize)>>,
     /// 1-indexed lines inside a body whose delimiter was quoted. Those bodies
     /// are literal text by definition, so every rule is dropped there — see
     /// [`quoted_heredoc_lines`].
@@ -121,6 +124,7 @@ impl QuotedRegions {
     pub fn analyze(source: &str) -> Self {
         let mut scanner = Scanner::default();
         let mut per_line = Vec::new();
+        let mut inert_per_line = Vec::new();
         let mut any = false;
 
         for (idx, line) in source.lines().enumerate() {
@@ -128,6 +132,7 @@ impl QuotedRegions {
             let ranges = coalesce(&scanner.scan_line(line));
             any |= !ranges.is_empty();
             per_line.push(ranges);
+            inert_per_line.push(coalesce(&scanner.inert));
         }
 
         // Fail-safe: a region that never closes means everything after it was
@@ -148,12 +153,14 @@ impl QuotedRegions {
         }
         if let Some((line, col)) = discard_at {
             discard_from(&mut per_line, line, col);
+            discard_from(&mut inert_per_line, line, col);
             any = per_line.iter().any(|ranges| !ranges.is_empty());
         }
 
         Self {
             per_line,
             any,
+            inert_per_line,
             quoted_heredoc: scanner.quoted_heredoc,
             heredoc_body: scanner.heredoc_body,
             // A quote still on the stack at EOF was never closed. Read off the
@@ -190,6 +197,18 @@ impl QuotedRegions {
         line.checked_sub(1)
             .and_then(|i| self.per_line.get(i))
             .map_or(&[], Vec::as_slice)
+    }
+
+    /// The inert ranges on a 1-indexed line — see [`mask_inert`].
+    fn inert_ranges_for(&self, line: usize) -> &[(usize, usize)] {
+        line.checked_sub(1)
+            .and_then(|i| self.inert_per_line.get(i))
+            .map_or(&[], Vec::as_slice)
+    }
+
+    /// True when nothing in the source is inert.
+    fn inert_is_empty(&self) -> bool {
+        self.inert_per_line.iter().all(Vec::is_empty)
     }
 }
 
@@ -324,11 +343,120 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // never hides the operator line itself — only text inside a quote or a
     // heredoc body is filler, and the `cat <<EOF | grep x` line is neither.
     "SC2276", // Useless cat with heredoc
+    // bashrs#364. A POSIX awk program in '...' is another language's grammar,
+    // and these five read it as shell: `if (…)`, `else if`, `a || b <= c`, a
+    // regex `[ \t]+` and a `#` inside a regex. 77 of 129 warnings on one infra
+    // guard were its 100-line awk program. None of the five is ABOUT a literal
+    // or a comment (the SC1128 caveat above): each bare defect in
+    // `tests/quoting_literal_payload_guard.rs` still fires.
+    "SC2204", // (..) is a subshell — `if (s ~ /re/)` in awk
+    "SC1075", // Use elif — `else if` in awk
+    "SC2297", // Redirect after a pipe — `a || b <= c` in awk
+    "SC2102", // Ranges match single chars — `/[ \t]+/` in awk
+    "SC1099", // Space before # — `/[ \t]+#.*$/` in awk
+    "SC1012", // \t is a literal t — a `\t` in an awk regex (info)
+    "SC2025", // escape sequences — the same `\t` (info)
+    "SC2112", // `function` is non-standard — awk has one too (info)
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
 pub fn is_quote_sensitive(code: &str) -> bool {
     QUOTE_SENSITIVE_RULES.contains(&code)
+}
+
+/// Rules whose subject is a `$name` EXPANSION (bashrs#362): they must see
+/// every place one can occur — `"..."` and an unquoted heredoc body included —
+/// and nothing where one cannot. Both are line scanners keyed on `$name` that
+/// knew neither `'...'` nor a trailing `#`, so a GraphQL query, a jq filter or
+/// an awk program in single quotes, and a comment naming a variable, each read
+/// as an unquoted expansion of an unset variable.
+///
+/// They must NOT be in [`QUOTE_SENSITIVE_RULES`]. [`mask_literals`] blanks
+/// every heredoc body whole, and an UNQUOTED body expands `$name`: SC2154
+/// would lose `cat <<EOF` / `$undefined` / `EOF`, a real reference (it keeps
+/// `$name` inside `"..."` visible, so that case alone does not tell the masks
+/// apart). SC2086 inspects quoting and is pinned out of that list by
+/// `test_GH226_quoting_allowlist_excludes_quote_rules`. They see [`mask_inert`]
+/// instead: only text that can never expand is filler.
+pub const EXPANSION_RULES: &[&str] = &[
+    "SC2086", // Double quote to prevent globbing and word splitting
+    "SC2154", // Variable is referenced but not assigned
+    "SC1087", // Use braces when expanding arrays (bashrs#375: `$s[0]` in a jq program)
+];
+
+/// Is `code` one of [`EXPANSION_RULES`]?
+pub fn is_expansion_rule(code: &str) -> bool {
+    EXPANSION_RULES.contains(&code)
+}
+
+/// [`is_expansion_rule`], asked with the MODULE name, for the same reason as
+/// [`is_quote_sensitive_module`].
+pub fn is_expansion_module(module: &str) -> bool {
+    EXPANSION_RULES
+        .iter()
+        .any(|rule| rule.eq_ignore_ascii_case(module))
+}
+
+/// The views a rule can be linted against, resolved once per file.
+///
+/// GH-272 made the choice between masked and raw source a function of the
+/// rule's NAME, so a call site could not disagree with the allowlist. With a
+/// third view (bashrs#362) the choice lives here, in one place, and both
+/// dispatchers ask it — two `if`s at two call sites would be the two
+/// hand-maintained lists again.
+pub struct RuleInputs<'a> {
+    source: &'a str,
+    literal: String,
+    inert: String,
+}
+
+impl<'a> RuleInputs<'a> {
+    /// Analyse `source` once and render both masks from the same regions.
+    pub fn new(source: &'a str) -> Self {
+        let regions = QuotedRegions::analyze(source);
+        let literal = if regions.is_empty() {
+            source.to_string()
+        } else {
+            render_masked(source, |n| regions.ranges_for(n))
+        };
+        let inert = if regions.inert_is_empty() {
+            source.to_string()
+        } else {
+            render_masked(source, |n| regions.inert_ranges_for(n))
+        };
+        Self {
+            source,
+            literal,
+            inert,
+        }
+    }
+
+    /// The source with every literal masked — what [`mask_literals`] returns.
+    pub fn literal(&self) -> &str {
+        &self.literal
+    }
+
+    /// What the rule with id `code` (`SC2086`) is linted against.
+    pub fn for_code(&self, code: &str) -> &str {
+        if is_quote_sensitive(code) {
+            &self.literal
+        } else if is_expansion_rule(code) {
+            &self.inert
+        } else {
+            self.source
+        }
+    }
+
+    /// What the rule in module `module` (`sc2086`) is linted against.
+    pub fn for_module(&self, module: &str) -> &str {
+        if is_quote_sensitive_module(module) {
+            &self.literal
+        } else if is_expansion_module(module) {
+            &self.inert
+        } else {
+            self.source
+        }
+    }
 }
 
 /// The same question, asked with the rule's MODULE name (`sc1078`) instead of
@@ -360,13 +488,29 @@ pub fn mask_literals(source: &str) -> String {
     if regions.is_empty() {
         return source.to_string();
     }
+    render_masked(source, |n| regions.ranges_for(n))
+}
 
+/// Rewrite `source` so only text that can never EXPAND becomes filler:
+/// `'...'`, `$'...'`, comments and quoted-delimiter heredoc bodies (bashrs#362).
+/// `"..."` and unquoted heredoc bodies are left as they are, because `$name`
+/// inside them is a real expansion. [`EXPANSION_RULES`] are run against this.
+pub fn mask_inert(source: &str) -> String {
+    let regions = QuotedRegions::analyze(source);
+    if regions.inert_is_empty() {
+        return source.to_string();
+    }
+    render_masked(source, |n| regions.inert_ranges_for(n))
+}
+
+/// Replace every byte inside `ranges_for(line)` with filler.
+fn render_masked<'r>(source: &str, ranges_for: impl Fn(usize) -> &'r [(usize, usize)]) -> String {
     let mut out: Vec<u8> = Vec::with_capacity(source.len());
     for (idx, line) in source.split('\n').enumerate() {
         if idx > 0 {
             out.push(b'\n');
         }
-        mask_line(line, idx + 1, &regions, &mut out);
+        mask_line(line, ranges_for(idx + 1), &mut out);
     }
     // A literal region always begins and ends on an ASCII delimiter, so a
     // multi-byte character is masked whole; the result stays valid UTF-8 and
@@ -374,12 +518,11 @@ pub fn mask_literals(source: &str) -> String {
     String::from_utf8(out).unwrap_or_else(|_| source.to_string())
 }
 
-fn mask_line(line: &str, line_no: usize, regions: &QuotedRegions, out: &mut Vec<u8>) {
+fn mask_line(line: &str, ranges: &[(usize, usize)], out: &mut Vec<u8>) {
     // Walk the line's ranges with a cursor rather than calling `is_literal` per
     // byte: that was a linear scan of the range list for every byte, so a long
     // single line with many literals went quadratic (a 400 KB one-line script
     // took 15s).
-    let ranges = regions.ranges_for(line_no);
     let mut next = 0;
 
     for (col, byte) in line.bytes().enumerate() {
@@ -493,6 +636,11 @@ struct Scanner {
     pending: std::collections::VecDeque<Heredoc>,
     /// The body currently being consumed.
     body: Option<Heredoc>,
+    /// Per-byte mask for the line being scanned: text that can never EXPAND —
+    /// `'...'`, `$'...'`, a comment, a quoted-delimiter heredoc body. A strict
+    /// subset of the literal mask: `"..."` and an unquoted heredoc body are
+    /// literal but still expand `$name`, so they are not inert (bashrs#362).
+    inert: Vec<bool>,
 }
 
 impl Scanner {
@@ -500,6 +648,7 @@ impl Scanner {
     fn scan_line(&mut self, line: &str) -> Vec<bool> {
         let bytes = line.as_bytes();
         let mut marks = vec![false; bytes.len()];
+        self.inert = vec![false; bytes.len()];
 
         if self.consume_heredoc_body(line, &mut marks) {
             return marks;
@@ -540,6 +689,7 @@ impl Scanner {
 
         if doc.quoted {
             self.quoted_heredoc.insert(self.line_no);
+            self.inert.iter_mut().for_each(|m| *m = true);
         }
         self.heredoc_body.insert(self.line_no);
         marks.iter_mut().for_each(|m| *m = true);
@@ -559,6 +709,7 @@ impl Scanner {
             self.pop_quote();
         } else {
             marks[i] = true;
+            self.inert[i] = true;
         }
         i + 1
     }
@@ -570,7 +721,11 @@ impl Scanner {
         match bytes[i] {
             b'\\' => {
                 marks[i] = true;
+                self.inert[i] = true;
                 if let Some(m) = marks.get_mut(i + 1) {
+                    *m = true;
+                }
+                if let Some(m) = self.inert.get_mut(i + 1) {
                     *m = true;
                 }
                 i + 2
@@ -581,6 +736,7 @@ impl Scanner {
             }
             _ => {
                 marks[i] = true;
+                self.inert[i] = true;
                 i + 1
             }
         }
@@ -806,6 +962,7 @@ impl Scanner {
         // there. Same rule the quote characters already follow: the delimiter
         // is a boundary, not content.
         marks[i + 1..].iter_mut().for_each(|m| *m = true);
+        self.inert[i + 1..].iter_mut().for_each(|m| *m = true);
         bytes.len()
     }
 
@@ -1216,6 +1373,15 @@ mod tests {
             ("SC2099", sc2099::check),
             ("SC1109", sc1109::check),
             ("SC2276", sc2276::check),
+            // bashrs#364
+            ("SC2204", sc2204::check),
+            ("SC1075", sc1075::check),
+            ("SC2297", sc2297::check),
+            ("SC2102", sc2102::check),
+            ("SC1099", sc1099::check),
+            ("SC1012", sc1012::check),
+            ("SC2025", sc2025::check),
+            ("SC2112", sc2112::check),
         ]
     }
 
@@ -1571,5 +1737,93 @@ mod tests_allowlist_is_wired {
         // so this test cannot be passed by a function that returns `true`.
         assert!(!is_quote_sensitive("SC2086"));
         assert!(!is_quote_sensitive_module("sc2086"));
+    }
+}
+
+/// bashrs#362: the inert mask, and the list that routes rules to it.
+#[cfg(test)]
+mod tests_expansion_rules {
+    use super::*;
+
+    /// One of each: `'...'`, `"..."`, `$'...'`, a trailing comment, a
+    /// quoted-delimiter heredoc and an unquoted one.
+    const MIXED: &str = "a='$x' b=\"$y\" c=$'\\$z' # $w\ncat <<'Q'\n$v\nQ\ncat <<U\n$u\nU\n";
+
+    #[test]
+    fn inert_masks_only_text_that_cannot_expand() {
+        let m = mask_inert(MIXED);
+        assert_eq!(m.len(), MIXED.len(), "masking must preserve byte offsets");
+        for gone in ["$x", "$z", "$w", "$v"] {
+            assert!(
+                !m.contains(gone),
+                "{gone} cannot expand and must be masked: {m}"
+            );
+        }
+        for kept in ["\"$y\"", "$u"] {
+            assert!(
+                m.contains(kept),
+                "{kept} expands and must stay visible: {m}"
+            );
+        }
+        assert!(
+            m.contains(" #"),
+            "the comment marker survives, as in mask_literals: {m}"
+        );
+    }
+
+    /// Everything inert is literal; the reverse is what the inert mask is for.
+    #[test]
+    fn inert_is_a_subset_of_literal() {
+        let (lit, inert) = (mask_literals(MIXED), mask_inert(MIXED));
+        for ((s, l), i) in MIXED.bytes().zip(lit.bytes()).zip(inert.bytes()) {
+            assert!(
+                i == s || l != s,
+                "a byte masked as inert was left alone by mask_literals:\n{lit}\n{inert}"
+            );
+        }
+        // The literal mask keeps `$y` inside "..." visible too; what separates
+        // the two is the unquoted heredoc body, blanked by one and not the other.
+        assert_ne!(lit, inert, "the unquoted heredoc body must differ");
+        assert!(!lit.contains("$u") && inert.contains("$u"));
+    }
+
+    /// The EOF fail-safe covers the inert mask too: an unterminated quote must
+    /// not blind the expansion rules for the rest of the file.
+    #[test]
+    fn an_unterminated_quote_does_not_blind_the_expansion_rules() {
+        let src = "echo ok\necho 'never closed $x\necho $y\n";
+        assert_eq!(mask_inert(src), src);
+    }
+
+    #[test]
+    fn expansion_rules_are_disjoint_from_quote_sensitive_rules() {
+        for code in EXPANSION_RULES {
+            assert!(
+                !is_quote_sensitive(code),
+                "{code} is in both lists; mask_literals would hide \"$x\" from it"
+            );
+        }
+    }
+
+    #[test]
+    fn rule_inputs_route_each_list_to_its_own_view() {
+        let inputs = RuleInputs::new(MIXED);
+        let (lit, inert) = (mask_literals(MIXED), mask_inert(MIXED));
+        for code in EXPANSION_RULES {
+            assert_eq!(inputs.for_code(code), inert, "{code} by code");
+            assert_eq!(
+                inputs.for_module(&code.to_ascii_lowercase()),
+                inert,
+                "{code} by module name"
+            );
+        }
+        assert_eq!(inputs.for_code("SC1020"), lit, "a quote-sensitive rule");
+        assert_eq!(inputs.for_module("sc1020"), lit);
+        // A rule on neither list sees the source, so this cannot be passed by
+        // routing everything to one view.
+        assert_eq!(inputs.for_code("SC2034"), MIXED);
+        assert_eq!(inputs.for_module("sc2034"), MIXED);
+        assert!(!is_expansion_rule("SC2034") && !is_expansion_module("sc2034"));
+        assert_eq!(inputs.literal(), lit);
     }
 }

@@ -2677,6 +2677,56 @@ roadmap:
   - kind:code
   - release:v7.4.2
   notes: null
+- id: PMAT-362
+  github_issue: 362
+  item_type: task
+  title: 'SC2086/SC2154 fire on $name inside ''...'' and after a trailing #: both are linted against mask_inert, which masks only text that cannot expand'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-21T09:11:19Z
+  updated: 2026-09-21T09:11:19Z
+  spec: null
+  acceptance_criteria:
+  - 'bashrs lint on the #362 repro reports no SC2086 and no SC2154 (0 warnings, was 4); on infra machines/clean-room/coverage-on-tag-census.sh SC2086 goes 12 -> 0 and SC2154 8 -> 0'
+  - 'rash/tests/quoting_literal_payload_guard.rs carries four #362 payloads; bare `echo $x` still fires SC2086, and bare `echo "$org"` and an unquoted-heredoc `$t` still fire SC2154; emptying EXPANSION_RULES turns quoted_payloads_produce_none_of_their_own_code red, and routing SC2154 through mask_literals turns unquoted_payloads_still_fire red'
+  - 'quoting::RuleInputs decides each rule''s view (source, mask_literals, mask_inert) from QUOTE_SENSITIVE_RULES and EXPANSION_RULES by code and by module name; lint_shell and lint_shell_filtered both ask it; cargo test -p bashrs --lib linter:: passes 6093 tests including the five new tests_expansion_rules'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-364
+  github_issue: 364
+  item_type: task
+  title: 'SC2204/SC1075/SC2297/SC2102/SC1099 (and SC1012/SC2025/SC2112, info) read a single-quoted awk program as shell: QUOTE_SENSITIVE_RULES'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-21T10:20:24Z
+  updated: 2026-09-21T10:20:24Z
+  spec: null
+  acceptance_criteria:
+  - 'eight codes join QUOTE_SENSITIVE_RULES with an allowlisted_checks row each; quoting_literal_payload_guard.rs carries eight payloads whose quoted case is an awk construct on a CONTINUATION line of a multi-line single-quoted string, and whose bare case fires; removing any one code from the list turns quoted_payloads_produce_none_of_their_own_code red naming that code'
+  - 'bashrs lint on infra machines/clean-room/coverage-on-tag-census.sh: 129 warnings -> 42 (none left inside its awk program), infos 93 -> 58; cargo test -p bashrs --lib linter:: passes 6093'
+- id: PMAT-366
+  github_issue: 366
+  item_type: task
+  title: 'SC2107 reads [ "$(a || b)" = x ] as [ a || b ] (Error): blank the inside of $( ), $(( )) and backticks before matching'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-21T11:18:41Z
+  updated: 2026-09-21T11:18:41Z
+  spec: null
+  acceptance_criteria:
+  - 'sc2107 tests: the two #366 lines, $(a && b), backticks, $(( a || b )) and a nested $( ) do not fire; [ "$(a)" = x || "$b" = y ] and the backtick variant still fire; blanking the whole line turns four existing must-fire tests red'
+  - 'bashrs lint on the #366 repro reports 0 errors (was 2 SC2107); cargo test -p bashrs --lib linter:: passes 6095'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
 - id: PMAT-357
   github_issue: 357
   item_type: task
@@ -2695,4 +2745,21 @@ roadmap:
   labels:
   - kind:code
   - release:unscheduled
+  notes: null
+- id: PMAT-380
+  github_issue: 380
+  item_type: task
+  title: 'nightly: Linux assets run on glibc 2.35 and aarch64-linux ships (#380, #385)'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-24T21:48:38Z
+  updated: 2026-09-24T21:48:38Z
+  spec: null
+  acceptance_criteria:
+  - 'fleet-bins (infra PMAT-1055) cannot install the bashrs nightly: the x86_64-linux asset needs GLIBC_2.39 (lambda/intel run 2.35) and there is no aarch64-linux asset (gx10). Build Linux legs in rust:1.93.0-bullseye, add the aarch64 leg, check the artifact''s glibc floor and run it in ubuntu:22.04. PR #394.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
   notes: null

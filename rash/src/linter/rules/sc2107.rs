@@ -18,6 +18,70 @@ static LOGICAL_IN_SINGLE_BRACKET: std::sync::LazyLock<Regex> = std::sync::LazyLo
     Regex::new(r"\[\s+[^\]]*(?:&&|\|\|)[^\]]*\]").unwrap()
 });
 
+/// bashrs#366: blank the INSIDE of `$( … )`, `$(( … ))` and backticks, byte for
+/// byte, so the test-operator regex sees only the `[ … ]` word level. The `||`
+/// in `[ "$(sha256sum p || shasum -a 256 p)" = x ]` belongs to the substituted
+/// program; the regex read it as `[ a || b ]`, an Error, and forjar's I8 gate
+/// refused a correct generated check. Every blanked byte becomes `x`, so the
+/// line keeps its length and a span still points at the original columns.
+/// Where a byte sits relative to the substitutions that enclose it.
+struct Blanker {
+    depth: usize,
+    in_tick: bool,
+}
+
+impl Blanker {
+    fn inside(&self) -> bool {
+        self.depth > 0 || self.in_tick
+    }
+
+    /// Consume the construct at `i`: how many bytes it spans, and whether they
+    /// are substitution interior (to be blanked).
+    fn step(&mut self, b: &[u8], i: usize) -> (usize, bool) {
+        match b[i] {
+            b'\\' => (2, self.inside()),
+            b'`' if self.depth == 0 => {
+                self.in_tick = !self.in_tick;
+                (1, false)
+            }
+            b'$' if b.get(i + 1) == Some(&b'(') => {
+                let blank = self.inside();
+                self.depth += 1;
+                (2, blank)
+            }
+            b'(' if self.depth > 0 => {
+                self.depth += 1;
+                (1, true)
+            }
+            b')' if self.depth > 0 => {
+                self.depth -= 1;
+                (1, self.inside())
+            }
+            _ => (1, self.inside()),
+        }
+    }
+}
+
+fn blank_substitutions(line: &str) -> String {
+    let b = line.as_bytes();
+    let mut out = b.to_vec();
+    let mut state = Blanker {
+        depth: 0,
+        in_tick: false,
+    };
+    let mut i = 0;
+    while i < b.len() {
+        let (n, blank) = state.step(b, i);
+        if blank {
+            for o in out.iter_mut().skip(i).take(n) {
+                *o = b'x';
+            }
+        }
+        i += n;
+    }
+    String::from_utf8(out).unwrap_or_else(|_| line.to_string())
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -35,7 +99,8 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Detect && or || inside single brackets
-        if let Some(mat) = LOGICAL_IN_SINGLE_BRACKET.find(line) {
+        let scan = blank_substitutions(line);
+        if let Some(mat) = LOGICAL_IN_SINGLE_BRACKET.find(&scan) {
             let start_col = mat.start() + 1;
             let end_col = mat.end() + 1;
 
@@ -65,6 +130,34 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // bashrs#366: a `||`/`&&` inside a command substitution, backticks or
+    // arithmetic is that sub-program's operator, not a test operator. forjar's
+    // I8 gate refused a correct generated check on exactly these two lines.
+    #[test]
+    fn test_sc2107_or_inside_command_substitution_is_not_a_test_operator() {
+        for code in [
+            r#"if [ "$(sha256sum "$p" 2>/dev/null || shasum -a 256 "$p" 2>/dev/null)" = x ]; then echo same; fi"#,
+            r#"if [ "$(stat -c %a "$p" || stat -f %Lp "$p")" = 644 ]; then echo m; fi"#,
+            r#"if [ "$(a && b)" = x ]; then :; fi"#,
+            r#"if [ "`a || b`" = x ]; then :; fi"#,
+            r#"if [ $(( a || b )) -eq 1 ]; then :; fi"#,
+            r#"if [ "$(echo "$(a || b)")" = x ]; then :; fi"#,
+        ] {
+            assert!(check(code).diagnostics.is_empty(), "fired on: {code}");
+        }
+    }
+
+    /// The operator OUTSIDE the substitution is still the defect.
+    #[test]
+    fn test_sc2107_or_beside_a_substitution_still_fires() {
+        for code in [
+            r#"if [ "$(a)" = x || "$b" = y ]; then :; fi"#,
+            r#"if [ "`a`" = x && "$b" = y ]; then :; fi"#,
+        ] {
+            assert_eq!(check(code).diagnostics.len(), 1, "silent on: {code}");
+        }
+    }
 
     #[test]
     fn test_sc2107_and_in_single_bracket() {
