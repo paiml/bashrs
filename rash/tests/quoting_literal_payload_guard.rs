@@ -39,6 +39,15 @@ struct Payload {
 }
 
 const PAYLOADS: &[Payload] = &[
+    // bashrs#388. `$h=` inside a double-quoted word is text being built, not
+    // the left side of an assignment; SC1066 is a line regex and reported it at
+    // Severity::Error, failing a correct fleet watch script at the lint gate.
+    Payload {
+        code: "SC1066",
+        bare: "$VAR=hello\n",
+        quoted: "h=x\ns=\"\"\ns=\"$s $h=UP\"\necho \"$s\"\n",
+        found_at: "infra/machines/lambda-labs/fleet-resource-watch.sh:106 (bashrs#388)",
+    },
     Payload {
         code: "SC1128",
         // A shebang genuinely not on line 1.

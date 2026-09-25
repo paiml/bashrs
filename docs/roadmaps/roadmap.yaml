@@ -2706,8 +2706,13 @@ roadmap:
   updated: 2026-09-21T10:20:24Z
   spec: null
   acceptance_criteria:
-  - 'eight codes join QUOTE_SENSITIVE_RULES with an allowlisted_checks row each; quoting_literal_payload_guard.rs carries eight payloads whose quoted case is an awk construct on a CONTINUATION line of a multi-line single-quoted string, and whose bare case fires; removing any one code from the list turns quoted_payloads_produce_none_of_their_own_code red naming that code'
+  - eight codes join QUOTE_SENSITIVE_RULES with an allowlisted_checks row each; quoting_literal_payload_guard.rs carries eight payloads whose quoted case is an awk construct on a CONTINUATION line of a multi-line single-quoted string, and whose bare case fires; removing any one code from the list turns quoted_payloads_produce_none_of_their_own_code red naming that code
   - 'bashrs lint on infra machines/clean-room/coverage-on-tag-census.sh: 129 warnings -> 42 (none left inside its awk program), infos 93 -> 58; cargo test -p bashrs --lib linter:: passes 6093'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
 - id: PMAT-366
   github_issue: 366
   item_type: task
@@ -2757,6 +2762,57 @@ roadmap:
   spec: null
   acceptance_criteria:
   - 'fleet-bins (infra PMAT-1055) cannot install the bashrs nightly: the x86_64-linux asset needs GLIBC_2.39 (lambda/intel run 2.35) and there is no aarch64-linux asset (gx10). Build Linux legs in rust:1.93.0-bullseye, add the aarch64 leg, check the artifact''s glibc floor and run it in ubuntu:22.04. PR #394.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-370
+  github_issue: 370
+  item_type: task
+  title: SC2210/SC2225 assignment regex crosses word boundaries (pid= --ppid)
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-09-23T14:45:16Z
+  updated: 2026-09-23T14:45:19.966199552+00:00
+  spec: null
+  acceptance_criteria:
+  - "shell_assignments::assignments finds assignments by word position; SC2210 and SC2225 use it. gh370 tests: 6 false-positive shapes (ps -o pid= --ppid, --format=--x, echo \"x=--y\", let x=++y, ps -o pid= `...`, --out=`pwd`) fail on main and pass; 8 controls (x=--y, x=++y cmd, local n=--total, x= --y, inside $( ), local v=`date`) pass on both and go red when assignments() returns nothing"
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-371
+  github_issue: 371
+  item_type: task
+  title: SC2058 matches test/[ outside command position (cargo test -q)
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-09-23T14:45:16Z
+  updated: 2026-09-23T14:45:20.370772911+00:00
+  spec: null
+  acceptance_criteria:
+  - "SC2058 finds test/[ only as a simple command name and [[ as a reserved word. gh371 tests: 5 false-positive shapes (cargo test -q, \"$w\" test -q with env prefix and redirects, echo [ -q x ]) fail on main and pass; 7 controls (if [ -q x ], if test -q x, && test -q x, FOO=1 test -q x, sudo test -q x, [[ -q x ]], inside $( )) pass on both and go red when the detector returns nothing"
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-388
+  github_issue: 388
+  item_type: task
+  title: SC1066 reports $h= inside a double-quoted string as an assignment
+  status: inprogress
+  priority: medium
+  kind: code
+  assigned_to: null
+  created: 2026-09-24T18:43:10Z
+  updated: 2026-09-24T18:43:10Z
+  spec: null
+  acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null

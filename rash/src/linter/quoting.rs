@@ -293,6 +293,9 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     "SC1045", // Missing ;; in case
     // Function/parameter syntax — `function(a, b)` inside an awk or SQL program.
     "SC1065", // Function parameters in shell
+    // Assignment syntax — `"$acc $h=UP"` is a word being built, not `$h=` on
+    // the left of an assignment (a `$` there is only an error at command position).
+    "SC1066", // Don't use $ on the left side of assignments
     // Redirection/operator syntax appearing as text.
     "SC1007", // Remove space after = — `skip = 0` inside an awk program is awk
     "SC1014", // Use `if cmd; then`
@@ -1359,6 +1362,7 @@ mod tests {
             ("SC1044", sc1044::check),
             ("SC1045", sc1045::check),
             ("SC1065", sc1065::check),
+            ("SC1066", sc1066::check),
             ("SC1140", sc1140::check),
             ("SC1028", sc1028::check),
             ("SC2104", sc2104::check),

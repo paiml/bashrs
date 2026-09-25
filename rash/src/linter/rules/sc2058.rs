@@ -20,9 +20,14 @@
 // Valid unary operators:
 //   File: -e, -f, -d, -r, -w, -x, -s, -h, -L, -p, -b, -c, -t, -S, -g, -u, -k, -O, -G, -N, -a
 //   String: -z, -n
+//
+// GH-371: `test` and `[` are builtins only in COMMAND position, so both are
+// located through `shell_words::simple_commands`. The old line regexes
+// `\btest\s+-X` and `\[\s+-X` also matched `cargo test -q` and
+// `"$wrapper" test -q`, where `test` is an argument.
 
+use crate::linter::shell_words::{simple_commands, ShellWord, SimpleCommand, WordRole};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
 
 /// Valid unary test operators in POSIX and bash test expressions.
 const VALID_UNARY_OPS: &[&str] = &[
@@ -30,18 +35,46 @@ const VALID_UNARY_OPS: &[&str] = &[
     "O", "G", "N", "a",
 ];
 
-static BRACKET_UNARY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    // Match [ -X ... ] where X is one or more letters
-    Regex::new(r"\[\s+-([a-zA-Z]+)\s+").expect("SC2058 bracket regex must compile")
-});
-
-static TEST_UNARY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    // Match test -X ... (the test builtin form)
-    Regex::new(r"\btest\s+-([a-zA-Z]+)\s+").expect("SC2058 test regex must compile")
-});
-
 fn is_valid_unary_op(op: &str) -> bool {
     VALID_UNARY_OPS.contains(&op)
+}
+
+/// Does `w` open a test expression: `test` or `[` as the command name, or the
+/// reserved word `[[`?
+fn opens_test(cmd: &SimpleCommand, w: &ShellWord) -> bool {
+    match w.role {
+        WordRole::CommandName => matches!(cmd.name.as_deref(), Some("test" | "[")),
+        WordRole::Reserved => w.expansions.is_empty() && w.literal == "[[",
+        _ => false,
+    }
+}
+
+/// The unknown unary operator in `op`, if `op` is a fully literal `-X` word.
+fn unknown_operator(op: &ShellWord) -> Option<&str> {
+    let letters = op.literal.strip_prefix('-')?;
+    let literal_word = op.expansions.is_empty() && op.substitutions.is_empty();
+    let is_op = !letters.is_empty() && letters.bytes().all(|b| b.is_ascii_alphabetic());
+    (literal_word && is_op && !is_valid_unary_op(letters)).then_some(letters)
+}
+
+/// `(start_col, end_col, operator)` for every test expression on `line` whose first
+/// operand is an unknown unary operator followed by another word.
+fn unknown_unary_tests(line: &str) -> Vec<(usize, usize, String)> {
+    let mut out = Vec::new();
+    for cmd in simple_commands(line) {
+        for (i, w) in cmd.words.iter().enumerate() {
+            if !opens_test(&cmd, w) || cmd.words.get(i + 2).is_none() {
+                continue;
+            }
+            let Some(op) = cmd.words.get(i + 1) else {
+                continue;
+            };
+            if let Some(letters) = unknown_operator(op) {
+                out.push((w.col, op.col + op.raw.len(), letters.to_string()));
+            }
+        }
+    }
+    out
 }
 
 pub fn check(source: &str) -> LintResult {
@@ -54,58 +87,16 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        // Check [ -X ... ] form
-        for cap in BRACKET_UNARY.captures_iter(line) {
-            let operator = cap
-                .get(1)
-                .expect("SC2058 capture group 1 must exist")
-                .as_str();
-            if !is_valid_unary_op(operator) {
-                let full_match = cap
-                    .get(0)
-                    .expect("SC2058 capture group 0 must exist")
-                    .as_str();
-                let pos = line.find(full_match).unwrap_or(0);
-                let start_col = pos + 1;
-                let end_col = start_col + full_match.len();
-
-                result.add(Diagnostic::new(
-                    "SC2058",
-                    Severity::Error,
-                    format!(
-                        "Unknown unary operator '-{}' in test expression. Use a valid operator like -f, -d, -e, -z, -n, etc.",
-                        operator
-                    ),
-                    Span::new(line_num, start_col, line_num, end_col),
-                ));
-            }
-        }
-
-        // Check test -X ... form
-        for cap in TEST_UNARY.captures_iter(line) {
-            let operator = cap
-                .get(1)
-                .expect("SC2058 capture group 1 must exist")
-                .as_str();
-            if !is_valid_unary_op(operator) {
-                let full_match = cap
-                    .get(0)
-                    .expect("SC2058 capture group 0 must exist")
-                    .as_str();
-                let pos = line.find(full_match).unwrap_or(0);
-                let start_col = pos + 1;
-                let end_col = start_col + full_match.len();
-
-                result.add(Diagnostic::new(
-                    "SC2058",
-                    Severity::Error,
-                    format!(
-                        "Unknown unary operator '-{}' in test expression. Use a valid operator like -f, -d, -e, -z, -n, etc.",
-                        operator
-                    ),
-                    Span::new(line_num, start_col, line_num, end_col),
-                ));
-            }
+        for (start_col, end_col, operator) in unknown_unary_tests(line) {
+            result.add(Diagnostic::new(
+                "SC2058",
+                Severity::Error,
+                format!(
+                    "Unknown unary operator '-{}' in test expression. Use a valid operator like -f, -d, -e, -z, -n, etc.",
+                    operator
+                ),
+                Span::new(line_num, start_col, line_num, end_col),
+            ));
         }
     }
 
@@ -218,5 +209,79 @@ mod tests {
         let code = "[ -S /path/to/socket ]";
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+}
+
+/// GH-371: `test` and `[` are builtins only in COMMAND position. In
+/// `cargo test -q` and `"$wrapper" test -q` the word `test` is an argument.
+#[cfg(test)]
+mod gh371_tests {
+    use super::*;
+
+    fn count(code: &str) -> usize {
+        check(code).diagnostics.len()
+    }
+
+    #[test]
+    fn test_gh371_wrapper_test_q_with_env_prefix_and_redirects() {
+        let code =
+            r#"if MEMCAP_PROBE_MIB=1024 "$wrapper" test -q >"$work/l1" 2>&1; then echo ok; fi"#;
+        assert_eq!(count(code), 0);
+    }
+
+    #[test]
+    fn test_gh371_quoted_variable_command_test_q() {
+        assert_eq!(count(r#""$wrapper" test -q --lib"#), 0);
+    }
+
+    #[test]
+    fn test_gh371_cargo_test_q() {
+        assert_eq!(count("cargo test -q --lib"), 0);
+    }
+
+    #[test]
+    fn test_gh371_env_prefix_variable_command_test_q() {
+        assert_eq!(count(r#"FOO=1 "$w" test -q --lib"#), 0);
+    }
+
+    #[test]
+    fn test_gh371_echo_bracket_is_an_argument() {
+        assert_eq!(count("echo [ -q x ]"), 0);
+    }
+
+    // Negative controls: the builtin in command position still fires.
+    #[test]
+    fn test_gh371_control_if_bracket_still_fires() {
+        assert_eq!(count("if [ -q x ]; then :; fi"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_if_test_still_fires() {
+        assert_eq!(count("if test -q x; then :; fi"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_after_and_still_fires() {
+        assert_eq!(count("true && test -q x"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_env_prefix_test_still_fires() {
+        assert_eq!(count("FOO=1 test -q x"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_through_wrapper_still_fires() {
+        assert_eq!(count("sudo test -q x"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_double_bracket_still_fires() {
+        assert_eq!(count("[[ -q x ]]"), 1);
+    }
+
+    #[test]
+    fn test_gh371_control_inside_command_substitution_still_fires() {
+        assert_eq!(count(r#"out="$(test -q x)""#), 1);
     }
 }
