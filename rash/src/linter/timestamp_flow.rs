@@ -93,13 +93,77 @@ pub(crate) struct TimestampUse {
 pub(crate) fn analyze(source: &str) -> Vec<TimestampUse> {
     let skip = quoted_heredoc_lines(source);
     let mut st = FlowState::default();
-    for (idx, line) in source.lines().enumerate() {
-        let ln = idx + 1;
-        if !skip.contains(&ln) {
-            scan_line(&mut st, ln, line);
+    for logical in logical_lines(source, &skip) {
+        let first = st.uses.len();
+        scan_line(&mut st, logical.line, &logical.text);
+        for u in &mut st.uses[first..] {
+            logical.remap(u);
         }
     }
     finalize(st.uses)
+}
+
+/// One shell command after its `\`-newline continuations are removed (#376).
+///
+/// A timestamp's sink is usually on the LAST physical line of a continued
+/// command (`jq … \` / `  >> "$log"`), so resolving it one physical line at a
+/// time judged the `date` with its redirect out of sight.
+struct LogicalLine {
+    /// 1-indexed physical line the command starts on.
+    line: usize,
+    /// The joined text, as the shell reads it.
+    text: String,
+    /// `(offset in text, physical line)` where each physical line begins.
+    starts: Vec<(usize, usize)>,
+}
+
+impl LogicalLine {
+    /// Move a use found in `text` back to its physical line and column, which
+    /// `# bashrs disable-line=DET002` and `.bashrsignore` are keyed on.
+    fn remap(&self, u: &mut TimestampUse) {
+        let off = u.col - 1;
+        if let Some(&(start, ln)) = self.starts.iter().rev().find(|(s, _)| *s <= off) {
+            u.line = ln;
+            u.col = off - start + 1;
+        }
+    }
+}
+
+/// Group physical lines into logical ones. A line continues when it ends in
+/// an odd run of `\` that is shell code, not comment or quoted text. A quoted
+/// heredoc body line is never scanned, and ends any pending command.
+fn logical_lines(source: &str, skip: &HashSet<usize>) -> Vec<LogicalLine> {
+    let mut out = Vec::new();
+    let mut cur: Option<LogicalLine> = None;
+    for (idx, line) in source.lines().enumerate() {
+        let ln = idx + 1;
+        if skip.contains(&ln) {
+            out.extend(cur.take());
+            continue;
+        }
+        let cont = continues(line);
+        let body = if cont { &line[..line.len() - 1] } else { line };
+        let l = cur.get_or_insert_with(|| LogicalLine {
+            line: ln,
+            text: String::new(),
+            starts: Vec::new(),
+        });
+        l.starts.push((l.text.len(), ln));
+        l.text.push_str(body);
+        if !cont {
+            out.extend(cur.take());
+        }
+    }
+    out.extend(cur);
+    out
+}
+
+/// Does this physical line end in a `\`-newline continuation?
+/// Inside `"..."` it still does (the shell drops both bytes); inside `'...'`
+/// or a comment it is text.
+fn continues(line: &str) -> bool {
+    let run = line.bytes().rev().take_while(|&b| b == b'\\').count();
+    run % 2 == 1 && !matches!(Scanner::scan(line).end, Ctx::Single | Ctx::Comment)
 }
 
 /// A quoted heredoc body is literal text by definition, so no rule should read
@@ -234,6 +298,8 @@ struct LineMask {
     depth: Vec<usize>,
     /// Byte offset of the `#` that starts a trailing comment.
     comment: Option<usize>,
+    /// Lexical context after the last byte.
+    end: Ctx,
 }
 
 impl LineMask {
@@ -281,12 +347,14 @@ impl<'a> Scanner<'a> {
                 literal: vec![false; line.len()],
                 depth: vec![0; line.len()],
                 comment: None,
+                end: Ctx::Code,
             },
             stack: vec![Ctx::Code],
         };
         while s.i < s.b.len() {
             s.step();
         }
+        s.mask.end = s.top();
         s.mask
     }
 
@@ -961,13 +1029,52 @@ fn find_date(line: &str, mask: &LineMask) -> Option<(usize, &'static str, usize)
     for (pat, len) in DATE_PATTERNS {
         let mut from = 0;
         while let Some(col) = find_from(b, pat.as_bytes(), from) {
-            if !mask.is_literal(col) {
+            let word = col + pat.find("date").unwrap_or(0);
+            if !mask.is_literal(col) && !is_date_conversion(&code_from(line, mask, word + 4)) {
                 return Some((col, pat, len));
             }
             from = col + 1;
         }
     }
     find_bare_date(line, mask).map(|(col, len)| (col, "date", len))
+}
+
+/// GH-386: are these the arguments of a `date` that converts a time it is
+/// given (`-d`/`--date`), prints a file's mtime (`-r`/`--reference`) or reads
+/// dates from a file (`-f`/`--file`)? Such a `date` reads no clock: its output
+/// is a pure function of its input, so it is not a timestamp source.
+/// `args` is everything after the `date` word; it ends at the first command
+/// terminator, so an operand flag of a later command (`| cut -d' '`) does not
+/// count.
+fn is_date_conversion(args: &str) -> bool {
+    let end = args
+        .find([')', '|', ';', '&', '`', '<', '>'])
+        .unwrap_or(args.len());
+    args[..end].split_whitespace().any(|t| {
+        if let Some(long) = t.strip_prefix("--") {
+            let name = long.split('=').next().unwrap_or(long);
+            return matches!(name, "date" | "reference" | "file");
+        }
+        // A short cluster: flags that take no operand, then one that does
+        // (`-ud X`, `-dX`). The operand flag ends the cluster.
+        t.strip_prefix('-').is_some_and(|short| {
+            short
+                .chars()
+                .take_while(|c| !matches!(c, 'd' | 'r' | 'f'))
+                .all(|c| matches!(c, 'u' | 'R'))
+                && short.contains(['d', 'r', 'f'])
+        })
+    })
+}
+
+/// The shell code of `line` from byte `start`: quoted text becomes spaces
+/// and a trailing comment is dropped, so only flags the shell passes count.
+fn code_from(line: &str, mask: &LineMask, start: usize) -> String {
+    mask.code_of(line)
+        .char_indices()
+        .skip_while(|&(i, _)| i < start)
+        .map(|(i, c)| if mask.is_literal(i) { ' ' } else { c })
+        .collect()
 }
 
 /// GH-263: a bare `date` command word - not wrapped in `$( )` or backticks -
@@ -1005,6 +1112,9 @@ fn find_bare_date_in_segment(
         return None;
     }
     let col = seg.as_ptr() as usize - line.as_ptr() as usize + word_off;
+    if is_date_conversion(&code_from(line, mask, col + 4)) {
+        return None;
+    }
     (!mask.is_literal(col)).then_some((col, 4))
 }
 
