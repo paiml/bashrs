@@ -155,6 +155,24 @@ const PAYLOADS: &[Payload] = &[
         quoted: "f() { # $1 is the file, written to $t/w.yml\n    :\n}\nf\n",
         found_at: "infra/machines/clean-room/coverage-on-tag-census.sh (bashrs#362)",
     },
+    // bashrs#375. SC1087 read `$s[0]` inside a multi-line single-quoted jq
+    // program as an unbraced array expansion, and SEC012 read the substring
+    // `eval` in the jq field `.eval_count` as the eval builtin. The bare cases
+    // keep each rule honest: `"$arr[0]"` in DOUBLE quotes does expand (so
+    // SC1087 must not be routed through the literal mask), and a real
+    // `eval "$(jq ...)"` must still fire SEC012.
+    Payload {
+        code: "SC1087",
+        bare: "arr=(a b)\necho \"$arr[0]\"\n",
+        quoted: "S=x\njq -nc --argjson s \"$S\" '{\n  min:($s[0]), max:($s[-1])}'\n",
+        found_at: "infra/machines/lambda-labs/lqw/lqw-bench.sh:42 (bashrs#375)",
+    },
+    Payload {
+        code: "SEC012",
+        bare: "f=x\neval \"$(jq -r '.a' \"$f\")\"\n",
+        quoted: "line=x\nct=$(jq -r '.eval_count // 0' <<<\"$line\"); pt=$(jq -r '.prompt_eval_count // 0' <<<\"$line\")\necho \"$ct $pt\"\n",
+        found_at: "infra/machines/lambda-labs/lqw/lqw-bench.sh:73 (bashrs#375)",
+    },
     // bashrs#364. A POSIX awk program in '...' is another language's grammar:
     // `if (…)`, `else if`, `a || b <= c`, a regex `[ \t]+` and a `#` inside a
     // regex are awk, not shell. 77 of 129 warnings on one infra guard were
