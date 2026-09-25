@@ -34,9 +34,10 @@ jobs:
       - name: Is the published nightly behind HEAD?
         id: check
         run: |
-          # Build when the `nightly` tag is not HEAD. The old gate, "any commit in
-          # the last 24h", never rebuilt a commit that landed after the day's run
-          # and was followed by a quiet day, nor retried a nightly that failed:
+          # Build when the `nightly` tag is not HEAD. The old gate asked "any commit
+          # in the last 24h?" -- a wall-clock window, not "was HEAD built?". A failed
+          # nightly was never retried on a quiet day, and a scheduled run that was
+          # dropped, queued or fired late left commits outside every window:
           # copia's nightly sat 33 days behind main, forjar's 12 (infra PMAT-1055).
           # The release job tags `nightly` at github.sha, so tag == HEAD means built.
           HEAD_SHA=$(git rev-parse HEAD)
