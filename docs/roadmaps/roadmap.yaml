@@ -2750,6 +2750,23 @@ roadmap:
   - kind:code
   - release:unscheduled
   notes: null
+- id: PMAT-380
+  github_issue: 380
+  item_type: task
+  title: 'nightly: Linux assets run on glibc 2.35 and aarch64-linux ships (#380, #385)'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-09-24T21:48:38Z
+  updated: 2026-09-24T21:48:38Z
+  spec: null
+  acceptance_criteria:
+  - 'fleet-bins (infra PMAT-1055) cannot install the bashrs nightly: the x86_64-linux asset needs GLIBC_2.39 (lambda/intel run 2.35) and there is no aarch64-linux asset (gx10). Build Linux legs in rust:1.93.0-bullseye, add the aarch64 leg, check the artifact''s glibc floor and run it in ubuntu:22.04. PR #394.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
 - id: PMAT-376
   github_issue: 376
   item_type: task

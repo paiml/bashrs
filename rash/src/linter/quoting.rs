@@ -384,6 +384,7 @@ pub fn is_quote_sensitive(code: &str) -> bool {
 pub const EXPANSION_RULES: &[&str] = &[
     "SC2086", // Double quote to prevent globbing and word splitting
     "SC2154", // Variable is referenced but not assigned
+    "SC1087", // Use braces when expanding arrays (bashrs#375: `$s[0]` in a jq program)
 ];
 
 /// Is `code` one of [`EXPANSION_RULES`]?
