@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **DET002 lost the sink of a `\`-continued command** (PMAT-376, #376). The rule resolved a timestamp's destination one physical line at a time, so `jq … \` / `>> "$audit_log"` passed on one line and failed on four. Continued lines are now joined into one logical line before the sink is resolved, including a split inside `"..."`; a `\` ending a comment or single-quoted text, or an escaped `\\`, does not continue. The diagnostic still points at the physical line and column of the `date`.
+
+- **DET002 reported `date -d X`, `date -r FILE` and `date -f FILE`** (#386). These forms convert a time they are given and read no clock, so they are not a timestamp source.
+
 - **SC1066 reported `$h=` inside a double-quoted string as an assignment** (PMAT-388, #388). `s="$s $h=UP"` builds a word; the rule is a line regex that cannot see quotes, so the space inside the string passed for a token boundary and a correct script failed the lint gate at `Severity::Error`. SC1066 joins `QUOTE_SENSITIVE_RULES` with an `allowlisted_checks` row and a guard payload; a bare `$VAR=hello` still fires.
 
 - **SC2086 and SC2154 fired on `$name` inside `'...'` and after a trailing `#`** (PMAT-362, #362). Both are line scanners keyed on `$name` that knew neither single quotes nor a trailing comment, so a GraphQL query, a jq filter or an awk program in single quotes, and a comment naming a variable, each read as an unquoted expansion of an unset variable — 12 SC2086 and 8 SC2154 on one infra guard, none real. They are now linted against `mask_inert`, which masks only text that can never expand (`'...'`, `$'...'`, comments, quoted-delimiter heredoc bodies) and leaves `"..."` and unquoted heredoc bodies visible, so `echo $x` still fires SC2086 and `echo "$org"` and an unquoted-heredoc `$t` still fire SC2154. `quoting::RuleInputs` now chooses every rule's view from `QUOTE_SENSITIVE_RULES` and the new `EXPANSION_RULES`, for both `lint_shell` and `lint_shell_filtered`.

@@ -2775,9 +2775,13 @@ roadmap:
   priority: medium
   assigned_to: null
   created: 2026-09-24T09:50:25Z
-  updated: 2026-09-24T09:50:25.575193221+00:00
+  updated: 2026-09-25T15:40:00Z
   spec: null
-  acceptance_criteria: []
+  acceptance_criteria:
+  - 'The #376 reproducer (`jq … \` continued onto a `>> "$audit_log"` line) reports no DET002, the same as its one-line form'
+  - A continued command ending in a truncating write to an artifact still reports DET002 at the physical line and column of the `date`
+  - A `\` inside double quotes continues; a `\` ending a comment, and an escaped `\\`, do not
+  - cargo test -p bashrs --lib GH376 passes
   phases: []
   subtasks: []
   estimated_effort: null

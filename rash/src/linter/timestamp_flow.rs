@@ -159,9 +159,11 @@ fn logical_lines(source: &str, skip: &HashSet<usize>) -> Vec<LogicalLine> {
 }
 
 /// Does this physical line end in a `\`-newline continuation?
+/// Inside `"..."` it still does (the shell drops both bytes); inside `'...'`
+/// or a comment it is text.
 fn continues(line: &str) -> bool {
     let run = line.bytes().rev().take_while(|&b| b == b'\\').count();
-    run % 2 == 1 && !Scanner::scan(line).is_literal(line.len() - 1)
+    run % 2 == 1 && !matches!(Scanner::scan(line).end, Ctx::Single | Ctx::Comment)
 }
 
 /// A quoted heredoc body is literal text by definition, so no rule should read
@@ -296,6 +298,8 @@ struct LineMask {
     depth: Vec<usize>,
     /// Byte offset of the `#` that starts a trailing comment.
     comment: Option<usize>,
+    /// Lexical context after the last byte.
+    end: Ctx,
 }
 
 impl LineMask {
@@ -343,12 +347,14 @@ impl<'a> Scanner<'a> {
                 literal: vec![false; line.len()],
                 depth: vec![0; line.len()],
                 comment: None,
+                end: Ctx::Code,
             },
             stack: vec![Ctx::Code],
         };
         while s.i < s.b.len() {
             s.step();
         }
+        s.mask.end = s.top();
         s.mask
     }
 

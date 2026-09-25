@@ -77,3 +77,16 @@ fn test_GH376_escaped_backslash_does_not_continue() {
     assert_eq!(d.len(), 1, "{d:?}");
     assert_eq!(d[0].span.start_line, 3);
 }
+
+#[test]
+fn test_GH376_continuation_inside_double_quotes_is_joined() {
+    // Inside "...", `\`-newline is still a continuation: the shell drops both
+    // bytes. The split point here sits inside the quoted `--arg` value, so the
+    // redirect on the next line must still be read as this command's sink.
+    let src = "#!/bin/sh\n\
+audit_log=\"/x/gguf-stage.audit.jsonl\"\n\
+jq -cn --arg at \"$(date -u +%Y-%m-%dT%H:%M:%SZ) \\\n\
+z\" '{at:$at}' >> \"$audit_log\"\n";
+    let d = check(src).diagnostics;
+    assert_eq!(d.len(), 0, "a `\\` inside double quotes continues: {d:?}");
+}
