@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **DET002 lost the sink of a `\`-continued command** (PMAT-376, #376). The rule resolved a timestamp's destination one physical line at a time, so `jq … \` / `>> "$audit_log"` passed on one line and failed on four. Continued lines are now joined into one logical line before the sink is resolved, including a split inside `"..."`; a `\` ending a comment or single-quoted text, or an escaped `\\`, does not continue. The diagnostic still points at the physical line and column of the `date`.
 
-- **DET002 reported `date -d X`, `date -r FILE` and `date -f FILE`** (#386). These forms convert a time they are given and read no clock, so they are not a timestamp source.
+- **DET002 reported `date -d X`, `date -r FILE` and `date -f FILE`** (PMAT-386, #386). These forms convert a time they are given and read no clock, so they are not a timestamp source.
 
 - **SC1066 reported `$h=` inside a double-quoted string as an assignment** (PMAT-388, #388). `s="$s $h=UP"` builds a word; the rule is a line regex that cannot see quotes, so the space inside the string passed for a token boundary and a correct script failed the lint gate at `Severity::Error`. SC1066 joins `QUOTE_SENSITIVE_RULES` with an `allowlisted_checks` row and a guard payload; a bare `$VAR=hello` still fires.
 
@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Eight rules read a single-quoted awk program as shell** (PMAT-364, #364). `if (…)` was a subshell test (SC2204), `else if` wanted `elif` (SC1075), `a || b <= c` was a redirect after a pipe (SC2297), a regex `[ \t]+` was a glob range (SC2102), a `#` inside a regex wanted a space (SC1099), and `\t` and awk's `function` keyword drew SC1012, SC2025 and SC2112. They all react on the continuation lines of a multi-line `'...'`, where a line rule sees no quote at all, so a one-line `awk '…'` never showed it. All eight now join `QUOTE_SENSITIVE_RULES`. On one infra guard with a 100-line awk program, warnings go from 129 to 42 and infos from 93 to 58, with none left inside the program.
 
 - **SC2107 read `[ "$(a || b)" = x ]` as `[ a || b ]`** (PMAT-366, #366). The regex matched `||`/`&&` anywhere between `[` and `]`, including inside a command substitution, backticks or `$(( ))`, where the operator belongs to the substituted program. At Severity::Error it made forjar's I8 gate refuse a correct generated check (`[ "$(stat -c %a "$p" || stat -f %Lp "$p")" = 644 ]`, the GNU-then-BSD idiom). The rule now blanks the inside of those constructs before matching, preserving byte offsets, and `[ "$(a)" = x || "$b" = y ]` still fires.
+
+- **SC2210 read `ps -o pid= --ppid` as `pid=--ppid`, and SC2225 read `ps -o pid= \`…\`` as an assignment** (PMAT-370, #370). Both found assignments with `\w+\s*=\s*…`, which let `=` and the value sit in different shell words. A shared `shell_assignments::assignments` now finds them by word position — assignment prefixes, `declare`/`local`/`export`/`readonly`/`typeset` operands, and the spaced `x = v` / `x= v` attempts the rules already caught.
+
+- **SC2058 read `cargo test -q` and `"$wrapper" test -q` as the `test` builtin** (PMAT-371, #371). `test`/`[` are now recognised only as the command name of a simple command (through assignment prefixes, reserved words and wrappers such as `sudo`), and `[[` as a reserved word.
 
 ## [7.4.2] - 2026-09-20
 
