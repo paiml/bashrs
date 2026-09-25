@@ -4,7 +4,7 @@
 # Spec: docs/specifications/release-system.md
 #
 # Schedule: daily 4am UTC. Manual trigger via workflow_dispatch.
-# Skips build if no commits in the last 24 hours.
+# Skips the build when the `nightly` tag already points at HEAD.
 #
 # Produces: bashrs-{target}.tar.gz (linux/mac) or .zip (windows)
 # Published as GitHub prerelease under the "nightly" tag.
@@ -31,16 +31,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Check for commits in last 24h
+      - name: Is the published nightly behind HEAD?
         id: check
         run: |
-          RECENT=$(git log --oneline --since="24 hours ago" | wc -l)
-          if [ "$RECENT" -gt 0 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          # Build when the `nightly` tag is not HEAD. The old gate asked "any commit
+          # in the last 24h?" -- a wall-clock window, not "was HEAD built?". A failed
+          # nightly was never retried on a quiet day, and a scheduled run that was
+          # dropped, queued or fired late left commits outside every window:
+          # copia's nightly sat 33 days behind main, forjar's 12 (infra PMAT-1055).
+          # The release job tags `nightly` at github.sha, so tag == HEAD means built.
+          HEAD_SHA=$(git rev-parse HEAD)
+          NIGHTLY_SHA=$(git rev-parse -q --verify 'refs/tags/nightly^{commit}' || echo none)
+          if [ "$NIGHTLY_SHA" != "$HEAD_SHA" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             echo "has_commits=true" >> "$GITHUB_OUTPUT"
-            echo "Found $RECENT commit(s) in last 24h (or manual trigger)"
+            echo "nightly $NIGHTLY_SHA is not HEAD $HEAD_SHA (or manual trigger)"
           else
             echo "has_commits=false" >> "$GITHUB_OUTPUT"
-            echo "No commits in last 24h — skipping nightly build"
+            echo "nightly is HEAD $HEAD_SHA — skipping nightly build"
           fi
 
   # ── Build binaries (5 targets) ───────────────────────────
@@ -215,6 +222,10 @@ jobs:
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64  # v3.0.3
         with:
           tag_name: nightly
+          # Pin the tag to the commit this run BUILT. Unset, GitHub tags the default
+          # branch tip at API-call time, and a commit landing mid-build would read as
+          # built to the tag-vs-HEAD gate above and never be built.
+          target_commitish: ${{ github.sha }}
           name: Nightly Build
           prerelease: true
           make_latest: false
