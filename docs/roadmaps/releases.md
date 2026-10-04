@@ -67,7 +67,7 @@ Released: tag `v7.4.0` on 4aa24ca271, `bashrs 7.4.0` on crates.io, `cargo instal
 
 ## v7.4.2
 
-Goal: the four defects found after v7.4.1 released as a patch, so forjar's bashrs pin can move off 6.68.0 and `ci-disk-watch-timer-enable` converges.
+Goal: the defects found after v7.4.1 released as a patch, so forjar's bashrs pin can move off 6.68.0 and `ci-disk-watch-timer-enable` converges. The first cut (2026-09-20, #356) carried four fixes and was not tagged; nine more merged to main before the tag, so the release carries thirteen fixes and two changes to the nightly build.
 
 | entry | what |
 |---|---|
@@ -76,8 +76,19 @@ Goal: the four defects found after v7.4.1 released as a patch, so forjar's bashr
 | PMAT-352 | #353: the x86_64-only `renacer` dev-dependency broke every aarch64 build of a crate nothing links |
 | PMAT-343 | #332: SC2242's `in_case`/`in_loop`/`in_function` are depth counters, so a one-line case ends where it ends (closes #331) |
 | PMAT-355 | #355: counting then made the LITERAL case worse — SC2242 read raw source, so `echo "could not break the matcher — this case discriminates nothing"` opened a case depth on the word "case" and found `break` in "break the matcher". It joins `QUOTE_SENSITIVE_RULES` and is wired into the allowlist's `(code, check_fn)` list, without which nothing ever ran it over a literal. Found by `make release-gate` ON this cut, so it ships in the release rather than after it |
+| PMAT-362 | #362: SC2086/SC2154 fired on `$name` inside `'...'` and after a trailing `#`; both are linted against `mask_inert` |
+| PMAT-364 | #364: eight rules (SC2204, SC1075, SC2297, SC2102, SC1099, and SC1012/SC2025/SC2112 at info) read a single-quoted awk program as shell; they join `QUOTE_SENSITIVE_RULES` |
+| PMAT-366 | #366: SC2107 read `[ "$(a \|\| b)" = x ]` as `[ a \|\| b ]`; the inside of `$( )`, `$(( ))` and backticks is blanked before matching |
+| PMAT-370 | #370: the SC2210/SC2225 assignment regex crossed word boundaries (`pid= --ppid`); assignments are found by word position |
+| PMAT-371 | #371: SC2058 matched `test`/`[` outside command position (`cargo test -q`); only the command name of a simple command counts |
+| PMAT-376 | #376: DET002 lost the sink of a `\`-continued command; continued lines are joined before the destination is resolved |
+| PMAT-380 | #380, #385: the nightly's Linux assets needed glibc 2.39 and there was no aarch64-linux leg; both legs build on glibc 2.31 and are checked to run on 2.35 |
+| PMAT-386 | #386: DET002 reported `date -d`/`-r`/`-f`, which convert a time they are given and read no clock |
+| PMAT-388 | #388: SC1066 read `$h=` inside a double-quoted string as an assignment; it joins `QUOTE_SENSITIVE_RULES` |
 
-Issues on this release: #331, #351, #353, #354, #355.
+Also on this release, with no roadmap entry: #375 (#399), where SC1087 read `$s[0]` in a single-quoted jq program as an array expansion and SEC012 read `.eval_count` as `eval`; and #397, which builds the nightly whenever the `nightly` tag is not at HEAD.
+
+Issues on this release: #331, #350, #352, #354, #355, #362, #364, #366, #370, #371, #375, #376, #380, #385, #386, #388.
 
 ## v7.4.1
 

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.4.2] - 2026-10-04
+
+A patch release with thirteen fixes. Twelve of them fix linter rules that reported correct scripts: most read text the shell never runs as shell (a single-quoted awk or jq program, a comment, an English sentence), or found a word by substring or line regex instead of by its place in the command. The thirteenth drops a dependency that broke every aarch64 build. The release was first cut on 2026-09-20 with four of these fixes and was not tagged before the other nine merged, so the tag carries all thirteen. The nightly build changed too: its Linux assets run on glibc 2.35, an aarch64-linux asset ships, and it builds whenever the `nightly` tag is not at HEAD.
+
 ### Fixed
 
 - **DET002 lost the sink of a `\`-continued command** (PMAT-376, #376). The rule resolved a timestamp's destination one physical line at a time, so `jq … \` / `>> "$audit_log"` passed on one line and failed on four. Continued lines are now joined into one logical line before the sink is resolved, including a split inside `"..."`; a `\` ending a comment or single-quoted text, or an escaped `\\`, does not continue. The diagnostic still points at the physical line and column of the `date`.
@@ -17,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **SC2086 and SC2154 fired on `$name` inside `'...'` and after a trailing `#`** (PMAT-362, #362). Both are line scanners keyed on `$name` that knew neither single quotes nor a trailing comment, so a GraphQL query, a jq filter or an awk program in single quotes, and a comment naming a variable, each read as an unquoted expansion of an unset variable — 12 SC2086 and 8 SC2154 on one infra guard, none real. They are now linted against `mask_inert`, which masks only text that can never expand (`'...'`, `$'...'`, comments, quoted-delimiter heredoc bodies) and leaves `"..."` and unquoted heredoc bodies visible, so `echo $x` still fires SC2086 and `echo "$org"` and an unquoted-heredoc `$t` still fire SC2154. `quoting::RuleInputs` now chooses every rule's view from `QUOTE_SENSITIVE_RULES` and the new `EXPANSION_RULES`, for both `lint_shell` and `lint_shell_filtered`.
 
+- **SC1087 read `$s[0]` in a single-quoted jq program as an array expansion, and SEC012 read `.eval_count` as `eval`** (#375, #399). SC1087 was a line scanner that knew nothing about quotes, the class of #362, and it joins `EXPANSION_RULES`, so it sees the inert mask: `'...'` and comments are blanked, while `"$arr[0]"`, which does expand, still fires. SEC012 matched the substring `eval`, so `.eval_count` and `.prompt_eval_count` in a jq filter read as the builtin. It now needs `eval` as a whole shell word, preceded by the start of the line, a blank or a command separator and followed by a blank or the end of the line, so `sudo eval`, `env X=1 eval`, `command eval` and `timeout eval` still fire.
+
 - **Eight rules read a single-quoted awk program as shell** (PMAT-364, #364). `if (…)` was a subshell test (SC2204), `else if` wanted `elif` (SC1075), `a || b <= c` was a redirect after a pipe (SC2297), a regex `[ \t]+` was a glob range (SC2102), a `#` inside a regex wanted a space (SC1099), and `\t` and awk's `function` keyword drew SC1012, SC2025 and SC2112. They all react on the continuation lines of a multi-line `'...'`, where a line rule sees no quote at all, so a one-line `awk '…'` never showed it. All eight now join `QUOTE_SENSITIVE_RULES`. On one infra guard with a 100-line awk program, warnings go from 129 to 42 and infos from 93 to 58, with none left inside the program.
 
 - **SC2107 read `[ "$(a || b)" = x ]` as `[ a || b ]`** (PMAT-366, #366). The regex matched `||`/`&&` anywhere between `[` and `]`, including inside a command substitution, backticks or `$(( ))`, where the operator belongs to the substituted program. At Severity::Error it made forjar's I8 gate refuse a correct generated check (`[ "$(stat -c %a "$p" || stat -f %Lp "$p")" = 644 ]`, the GNU-then-BSD idiom). The rule now blanks the inside of those constructs before matching, preserving byte offsets, and `[ "$(a)" = x || "$b" = y ]` still fires.
@@ -24,12 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SC2210 read `ps -o pid= --ppid` as `pid=--ppid`, and SC2225 read `ps -o pid= \`…\`` as an assignment** (PMAT-370, #370). Both found assignments with `\w+\s*=\s*…`, which let `=` and the value sit in different shell words. A shared `shell_assignments::assignments` now finds them by word position — assignment prefixes, `declare`/`local`/`export`/`readonly`/`typeset` operands, and the spaced `x = v` / `x= v` attempts the rules already caught.
 
 - **SC2058 read `cargo test -q` and `"$wrapper" test -q` as the `test` builtin** (PMAT-371, #371). `test`/`[` are now recognised only as the command name of a simple command (through assignment prefixes, reserved words and wrappers such as `sudo`), and `[[` as a reserved word.
-
-## [7.4.2] - 2026-09-20
-
-A patch release with one security-rule fix that was refusing this fleet's own scripts, one dependency removal that unbroke every aarch64 build, and one linter fix.
-
-### Fixed
 
 - **SEC005 read `sk-` inside a word as a hardcoded OpenAI key** (PMAT-350, #351). `SECRET_PATTERNS` matched the provider prefixes as bare substrings, so `TIMER="ci-disk-watch.timer"` — `di<sk->watch` — was reported as a hardcoded secret, and forjar's `ci-disk-watch-timer-enable` resource failed its I8 apply-gate on every intel and gx10 converge: the tool refusing its own script. A prefix is now a prefix only at a TOKEN START, where a token begins at the start of the value or after a character that cannot appear in a key. Property tests run both ways — a key at a token start is always found, an embedded run never is — and `F-SEC005-BOUNDARY` is a contract row, so the boundary is an assertion and not a comment.
 
@@ -40,6 +40,10 @@ A patch release with one security-rule fix that was refusing this fleet's own sc
 - **SC2242 then reported an English sentence as an error** (PMAT-355, #355). Counting was right for code and made the literal case worse: `echo "could not break the matcher — this case discriminates nothing"` opens a case depth on the word "case" and finds `break` in "break the matcher". The rule joins `QUOTE_SENSITIVE_RULES` so it receives the masked copy, and is wired into the allowlist's `(code, check_fn)` pair list — without that it was declared quote-sensitive while nothing ever ran it over a literal, which is bashrs#266's root cause again and is what `test_GH226_quoting_allowlist_names_only_rules_that_exist` caught. Found by `make release-gate` on this cut, so it is in the release rather than after it.
 
 ### Changed
+
+- **The nightly's Linux assets run on glibc 2.35, and an aarch64-linux asset ships** (PMAT-380, #380, #385). The x86_64-linux nightly was built on `ubuntu-latest` (24.04) and needed `GLIBC_2.39`, so it did not start on a glibc 2.35 host, and there was no aarch64-linux leg at all. Both Linux legs now build inside `rust:1.93.0-bullseye` (glibc 2.31), and two steps check the artifact itself: its highest `GLIBC_` symbol must be at most 2.35, and it must run `--version` inside `ubuntu:22.04`.
+
+- **The nightly builds when the `nightly` tag is not at HEAD** (#397), not when a commit landed in the last 24 hours. A wall-clock window never retried a failed build on a quiet day, and a dropped or late scheduled run left commits outside every window. The release step pins the tag with `target_commitish`, so a commit that lands mid-build is not read as built.
 
 - CI action bumps: `actions/checkout` 4 → 7 (#347), `actions/cache` 4.2.3 → 6.1.0 (#345), `softprops/action-gh-release` 2.2.2 → 3.0.3 (#346).
 
