@@ -3,7 +3,7 @@
 **Ticket:** PMAT-354 (bashrs#354) — release: v7.4.2. **Kind:** code.
 **Branch:** `PMAT-354-release-v7.4.2` from `origin/main` at `94497c22b2`, in a detached worktree; `~/src/bashrs` (12 behind, 1 ahead, dirty) was not used for the cut.
 **Authorized:** by the operator, 2026-09-20, in session. Relayed to this session once beforehand by another agent and REFUSED on that relay — a peer cannot carry a publish authorization, and the repo's own gate is independent of who asks.
-**Second cut:** 2026-10-04, the same branch name re-created from `origin/main` at `8f870b2cde` (the gate tree `1241570740` plus #358, a paperwork-only closeout) in a fresh worktree. The authorization above was given for the first cut, and this commit claims none of its own. It does not tag or publish: those are steps 4 and 5 of the gate order below, and each is its own act.
+**Second cut:** 2026-10-04, the same branch name re-created from `origin/main` at `8f870b2cde` (the gate tree `1241570740` plus #358, a paperwork-only closeout) in a fresh worktree. The authorization above was given for the first cut, and the second cut (#416, squash commit `0802053dc` on `main`) claims none of its own. It does not tag or publish: those are steps 4 and 5 of the gate order below, and each is its own act.
 
 ## Where this cut's claims are backed
 
@@ -44,6 +44,11 @@ marked completed with `release:v7.4.2`, and the book carries the release, which
 The rows are the eight squash commits in `git log 33c923bc01..1241570740`: everything that merged to
 `main` after #356 (`33c923bc01`) up to the gate tree, read from the log rather than from the roadmap.
 The third column leaves out each commit's CHANGELOG, roadmap and `.pmat/baseline.json` lines.
+The CHANGELOG and this table number the same fixes differently, by design: where a CHANGELOG entry
+for a row here cites `PMAT-N, #N`, `#N` is the issue (ticket `PMAT-N` is issue `#N`), while the
+Commit column cites the pull request that fixed it and that PR's squash commit. So issue #362 is
+fixed by PR #363, #364 by #365, #366 by #367, #371 by #372 and #376 by #392, and likewise #370 and
+#388 by #372, #386 by #392, and #380 and #385 by #394; the #375 entry names its PR #399 as well.
 
 | Change | Commit | What it touched |
 |---|---|---|
@@ -52,7 +57,7 @@ The third column leaves out each commit's CHANGELOG, roadmap and `.pmat/baseline
 | SC2107 blanks `$( )`, `$(( ))` and backticks before it looks for `\|\|` and `&&` (PMAT-366) | `3b8232c0e8` (#367) | `sc2107.rs` |
 | The nightly's Linux legs build on glibc 2.31 and are checked on 2.35; an aarch64-linux asset ships (PMAT-380, #385) | `ec19571390` (#394) | `nightly.yml` |
 | The nightly builds whenever the `nightly` tag is not at HEAD | `19b2a1249b` (#397) | `nightly.yml` |
-| SC1087 and SEC012 inside a single-quoted jq program (#375) | `ee4548b994` (#399) | `quoting.rs`, `sec012.rs`, the payload guard; it added no CHANGELOG entry, and this commit adds one |
+| SC1087 and SEC012 inside a single-quoted jq program (#375) | `ee4548b994` (#399) | `quoting.rs`, `sec012.rs`, the payload guard; it added no CHANGELOG entry, and the second cut adds one |
 | SC2210 and SC2225 find an assignment by word position, and SC2058 takes `test` only as a command name (PMAT-370, PMAT-371); SC1066 joins `QUOTE_SENSITIVE_RULES` (PMAT-388) | `119ab4b35a` (#372) | `shell_assignments.rs`, `sc2058.rs`, `sc2210.rs`, `sc2225.rs`, `linter/mod.rs`, `quoting.rs`, the payload guard |
 | DET002 joins `\`-continued lines and exempts `date -d`, `-r` and `-f` (PMAT-376, PMAT-386) | `1241570740` (#392) | `det002.rs`, `timestamp_flow.rs`, `det002_tests_gh376.rs`, `det002_tests_gh386.rs` |
 
@@ -60,10 +65,12 @@ The third column leaves out each commit's CHANGELOG, roadmap and `.pmat/baseline
 files in its row. The SC1066 change is in `119ab4b35a`: `git log -S'SC1066' v7.4.1..1241570740`
 lists no other commit, which is why the table puts PMAT-388 there.
 
-**This commit is docs-only.** Nine paths change between the gate tree `1241570740` and this commit:
-#358 added one line to `.pmat-work/ledger.jsonl` and edited `docs/roadmaps/roadmap.yaml` and this
-receipt, and this commit edits those two again and changes `CHANGELOG.md`, three pages under
-`book/src/linting/`, `docs/release-notes.md` and `docs/roadmaps/releases.md`. None of the nine is a
+**The second cut is docs-only.** Nine paths change between the gate tree `1241570740` and
+`0802053dc`: #358 added one line to `.pmat-work/ledger.jsonl` and edited `docs/roadmaps/roadmap.yaml`
+and this receipt; the second cut edited `docs/roadmaps/roadmap.yaml` and this receipt again, did not
+touch `.pmat-work/ledger.jsonl`, and changed `CHANGELOG.md`, three pages under `book/src/linting/`,
+`docs/release-notes.md` and `docs/roadmaps/releases.md`. The later commit that only clarifies this
+receipt adds no path, so the count stays nine. None of the nine is a
 path a cargo build reads. None is a `.rs` file, a `Cargo.toml`, `Cargo.lock` or `build.rs`, or a file
 a macro includes: resolved against the file that names it, each of the seventeen `include_str!` paths
 is under `rash/` or `tests/`, 438 of the 439 `include!` paths are `.rs` files under `rash/`, `tests/`,
@@ -74,7 +81,7 @@ published crates package files under `rash/` and `bashrs-oracle/` and the README
 of those changed. One test reads `CHANGELOG.md` at run time and asserts that it mentions complexity,
 which it still does. So the gates measured on `1241570740` measured the code this tag ships.
 
-The PR's CI checks this commit again only in part. `.github/workflows/ci.yml` runs clippy with
+The CI of #416 checked the second cut again only in part. `.github/workflows/ci.yml` runs clippy with
 `--workspace --all-targets` and the workspace's library tests (`test_workspace: true`, which is
 `--workspace --lib`). It does not run the integration tests (the keyring test in the table below is
 one), the corpus score or the clean room, so those results stand on `1241570740` alone.
@@ -90,7 +97,7 @@ The release gate's steps, run one at a time on `1241570740` on 2026-10-04:
 | `make coverage-gate` | exit 0: regions 94.74%, functions 95.69%, lines 95.11% |
 | `make dogfood-selflint` | GATE S PASS: 89 files at the ratchet, 0 improved, 94 errors in total |
 | `make corpus-score` | 99.4/100 (A+), 18814/18814 passed; B3 behavioral 18570/18814, G cross-shell 18756/18814 |
-| `./scripts/check-book-updated.sh` | the book builds and its tests pass; exit 1 only on "Book not updated since last release (v7.4.1)", which this commit answers |
+| `./scripts/check-book-updated.sh` | the book builds and its tests pass; exit 1 only on "Book not updated since last release (v7.4.1)", which the second cut answers |
 | `clean-room-bashrs` (paiml/infra) | complete, exit 0 |
 
 The corpus row is a second measurement. The first ran with `TMPDIR` set to a directory that the
@@ -137,7 +144,7 @@ verification:
   cmd=cargo check --workspace  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # regenerates Cargo.lock at 7.4.2
   cmd=release-lint.sh docs/roadmaps/roadmap.yaml --repo . --plan docs/roadmaps/releases.md --notes docs/release-notes.md  claimed_exit=1  rerun_exit=1  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # R1-R5 clean; exits 1 only on the 4 historical R6 tags. Re-measured 2026-10-04 on the second cut, after the nine entries that merged after the first cut were marked completed with release:v7.4.2. The INVARIANT, not a count: v7.4.2 has no open entry but PMAT-354 itself, which cannot close before the cut. A snapshot count belongs in no receipt on a branch that closes entries — this line quoted v7.4.2(3), then (2), then (1) as its own PRs landed, and a quorum lane refuted it by re-running the command each time
   cmd=make release-gate  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # the first cut: fmt, clippy, workspace tests, pv lint contracts, coverage-gate, dogfood-selflint, corpus-score, book. The second cut ran these steps one at a time on 1241570740, and their results, including the two that did not exit 0, are the table under "The second cut"
-  cmd=./scripts/check-book-updated.sh  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # the second cut, on this commit: the book builds, its tests pass, and book/ has changed since v7.4.1. On 1241570740 it exited 1 only because book/ had not
+  cmd=./scripts/check-book-updated.sh  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # the second cut, on its own tree (0802053dc's): the book builds, its tests pass, and book/ has changed since v7.4.1. On 1241570740 it exited 1 only because book/ had not
   cmd=make -f machines/clean-room/Makefile clean-room-bashrs  claimed_exit=0  rerun_exit=0  log_path=docs/audits/impl-PMAT-354-receipt.md  sha256=0   # in paiml/infra: the published crate builds from crates.io deps alone
 
 ## Gate order
