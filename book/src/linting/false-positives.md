@@ -148,6 +148,64 @@ The regression tests are `test_PMAT251_gh25{6,7}_*`, `test_PMAT251_gh26{3,4}_*`,
 `F-MAKE010-GH25*`, `F-SEC011-GH264-*`, `F-DET002-GH263-*`, `F-SC2188-GH249-*`
 and `F-SC1009-GH238-*` falsification entries under `contracts/`.
 
+## What 7.4.2 stopped guessing
+
+7.4.2 carries thirteen fixes, and twelve of them are linter rules that reported
+correct scripts. They fall into three groups, and each group also tells you what
+the linter will now *not* report. Every fix keeps its true positive firing.
+
+**Quoted and commented text is not code.** A single-quoted awk or jq program, a
+comment and an English sentence are text the shell never runs as shell.
+
+- SC2086 and SC2154 no longer report `$name` inside `'...'` or after a trailing
+  `#`: both are linted against the copy with inert text masked (#362). A bare
+  `echo $x` is still SC2086.
+- Eight rules read a single-quoted awk program as shell: SC2204, SC1075, SC2297,
+  SC2102 and SC1099, and SC1012, SC2025 and SC2112 at info level. They join
+  `QUOTE_SENSITIVE_RULES`, the rules that read the masked copy (#364).
+- SC1087 no longer reads `$s[0]` in a single-quoted jq program as an array
+  expansion (#375). `echo "$arr[0]"` is still reported.
+- SC1066 no longer reads `$h=` inside a double-quoted string such as
+  `s="$s $h=UP"` as an assignment (#388), and SC2242 no longer reads the words
+  "case" and "break" in a quoted sentence as a `case` and a `break` (#355). Both
+  join `QUOTE_SENSITIVE_RULES`. `$VAR=hello` as a command is still SC1066.
+
+**A word is found by its place in the command, not by a substring or a line
+regex.**
+
+- SEC005 counts a provider prefix such as `sk-`, `ghp_` or `gho_` only at the
+  start of a token, so `ci-disk-watch.timer` is not an OpenAI key (#351). A real
+  `sk-proj-…` key is still reported; the boundary is the `F-SEC005-BOUNDARY`
+  row in `provable-contracts/contracts/linter-security-rules-v1.yaml`.
+- SEC012, which reports `eval` of jq output, needs `eval` as a whole shell word,
+  so `.eval_count` in a jq filter is not `eval` (#375). `eval "$(jq …)"` behind
+  `sudo`, `env X=1`, `command` or `timeout` still fires.
+- SC2210 and SC2225 find an assignment by word position, so the `pid=` of
+  `ps -o pid= --ppid "$$"` is not an assignment (#370). SC2058 takes `test` or
+  `[` only as the name of a simple command, so `cargo test -q` is not the `test`
+  builtin (#371).
+- SC2107 blanks the inside of `$( )`, `$(( ))` and backticks before it looks
+  for `||` and `&&`, so `[ "$(stat -c %a "$f" || stat -f %Lp "$f")" = 644 ]`
+  is clean (#366). `[ "$a" = x || "$b" = y ]` is still reported.
+
+**DET002 reads the command, not the physical line.**
+
+- A `\`-continued command is one logical line. DET002 resolves the sink across
+  the continuation, so a command is judged exactly like its one-line form: a
+  timestamp appended to `"$audit_log"` over two lines is clean, as it is on
+  one, and a continued command that truncates a file still fires at the
+  `date`'s own line (#376).
+- `date -d`, `date -r` and `date -f` convert a time they are given (a date
+  string, a file's modification time, each line of a file) and read no clock,
+  so they are not reported (#386). `date -u +%s > epoch.txt` still is.
+
+Two fixes outside these groups: SC2242 counts `case` and loop nesting instead of
+flagging it (#332, closes #331), and the unused x86_64-only `renacer`
+dev-dependency is gone, so the crate builds on aarch64 again (#353).
+
+The quoted payloads are pinned in `rash/tests/quoting_literal_payload_guard.rs`,
+and the DET002 fixtures are `det002_tests_gh376.rs` and `det002_tests_gh386.rs`.
+
 ## Overview
 
 bashrs uses a **Popper Falsification** methodology - every valid bash pattern must pass the linter without triggering false positives. The test suite currently covers **230 structured tests** across two categories:

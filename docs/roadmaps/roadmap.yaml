@@ -2645,12 +2645,13 @@ roadmap:
   priority: medium
   assigned_to: null
   created: 2026-09-20T09:06:30Z
-  updated: 2026-09-20T09:06:30Z
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - 'Cut v7.4.2 from main at 94497c22b2. Carries PMAT-350 (SEC005 prefix only at a token start), PMAT-352 (drop the x86_64-only renacer dev-dep), #332 (SC2242 nesting) and three CI bumps. Unblocks forjar''s bashrs pin: ci-disk-watch-timer-enable fails I8 on intel and gx10 until it publishes.'
   - 'AND PMAT-355 (#355), which is IN this cut rather than a follow-up because the release gate is red without it: #332 made SC2242 count case depth in RAW source, so `echo "could not break the matcher — this case discriminates nothing"` is reported as a break outside a case. The rule joins QUOTE_SENSITIVE_RULES and is wired into the allowlist''s (code, check_fn) pair list, which is what makes the property test actually run it. This criterion was widened from the diff after a three-engine quorum refused the PR for carrying work the criterion did not name — the criterion was wrong, not the diff, but a release whose paperwork does not describe it cannot be audited.'
   - 'AND the R4 CLOSEOUT, which is the release ticket''s tail and lands in a SECOND PR (#358) after the cut PR (#356) merges. R4 reads "a tag is cut only when its release has no open entry", and CB-2113 leaves a ticket open in its own PR for the next PR to complete — so PMAT-355 is necessarily still open at the moment #356 merges, and closing it is work only this ticket can own. Done when release-lint reports v7.4.2 with ONE open entry, PMAT-354 itself, which cannot close before the release is cut. Criterion added from the diff after a three-engine quorum refused #358 3/3 for not performing the release cut: the lanes were right that the diff did not match the ticket text, and the ticket text was what was incomplete — a release ticket that does not own its own closeout leaves the closeout ownerless.'
+  - 'AND the SECOND CUT, because the first was not tagged: nine entries merged to main after #356 and before any v7.4.2 tag existed (PMAT-362, PMAT-364, PMAT-366, PMAT-370, PMAT-371, PMAT-376, PMAT-380, PMAT-386, PMAT-388), plus #375 (SC1087 and SEC012, fixed by #399) and #397 (the nightly builds whenever the `nightly` tag is not at HEAD), neither of which has a roadmap entry. A tag cut from main carries all of them whether the paperwork names them or not, so the paperwork moves to the tree: the CHANGELOG''s `[Unreleased]` section becomes `[7.4.2] - 2026-10-04` with the #375 entry it was missing, `docs/release-notes.md` and `docs/roadmaps/releases.md` describe thirteen fixes and two nightly changes instead of four fixes, the nine entries are marked completed with `release:v7.4.2`, and the book carries the release, which `check-book-updated.sh` requires of a release commit. Docs-only: no path a cargo build reads changes after the gate tree 1241570740. Done when release-lint reports v7.4.2 with ONE open entry, PMAT-354 itself.'
   phases: []
   subtasks: []
   estimated_effort: null
@@ -2681,11 +2682,11 @@ roadmap:
   github_issue: 362
   item_type: task
   title: 'SC2086/SC2154 fire on $name inside ''...'' and after a trailing #: both are linted against mask_inert, which masks only text that cannot expand'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-21T09:11:19Z
-  updated: 2026-09-21T09:11:19Z
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - 'bashrs lint on the #362 repro reports no SC2086 and no SC2154 (0 warnings, was 4); on infra machines/clean-room/coverage-on-tag-census.sh SC2086 goes 12 -> 0 and SC2154 8 -> 0'
@@ -2694,17 +2695,19 @@ roadmap:
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-364
   github_issue: 364
   item_type: task
   title: 'SC2204/SC1075/SC2297/SC2102/SC1099 (and SC1012/SC2025/SC2112, info) read a single-quoted awk program as shell: QUOTE_SENSITIVE_RULES'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-21T10:20:24Z
-  updated: 2026-09-21T10:20:24Z
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - eight codes join QUOTE_SENSITIVE_RULES with an allowlisted_checks row each; quoting_literal_payload_guard.rs carries eight payloads whose quoted case is an awk construct on a CONTINUATION line of a multi-line single-quoted string, and whose bare case fires; removing any one code from the list turns quoted_payloads_produce_none_of_their_own_code red naming that code
@@ -2712,17 +2715,19 @@ roadmap:
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-366
   github_issue: 366
   item_type: task
   title: 'SC2107 reads [ "$(a || b)" = x ] as [ a || b ] (Error): blank the inside of $( ), $(( )) and backticks before matching'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-21T11:18:41Z
-  updated: 2026-09-21T11:18:41Z
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - 'sc2107 tests: the two #366 lines, $(a && b), backticks, $(( a || b )) and a nested $( ) do not fire; [ "$(a)" = x || "$b" = y ] and the backtick variant still fire; blanking the whole line turns four existing must-fire tests red'
@@ -2730,7 +2735,9 @@ roadmap:
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-357
   github_issue: 357
@@ -2755,63 +2762,69 @@ roadmap:
   github_issue: 380
   item_type: task
   title: 'nightly: Linux assets run on glibc 2.35 and aarch64-linux ships (#380, #385)'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-24T21:48:38Z
-  updated: 2026-09-24T21:48:38Z
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - 'fleet-bins (infra PMAT-1055) cannot install the bashrs nightly: the x86_64-linux asset needs GLIBC_2.39 (lambda/intel run 2.35) and there is no aarch64-linux asset (gx10). Build Linux legs in rust:1.93.0-bullseye, add the aarch64 leg, check the artifact''s glibc floor and run it in ubuntu:22.04. PR #394.'
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-370
   github_issue: 370
   item_type: task
   title: SC2210/SC2225 assignment regex crosses word boundaries (pid= --ppid)
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-23T14:45:16Z
-  updated: 2026-09-23T14:45:19.966199552+00:00
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - "shell_assignments::assignments finds assignments by word position; SC2210 and SC2225 use it. gh370 tests: 6 false-positive shapes (ps -o pid= --ppid, --format=--x, echo \"x=--y\", let x=++y, ps -o pid= `...`, --out=`pwd`) fail on main and pass; 8 controls (x=--y, x=++y cmd, local n=--total, x= --y, inside $( ), local v=`date`) pass on both and go red when assignments() returns nothing"
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-371
   github_issue: 371
   item_type: task
   title: SC2058 matches test/[ outside command position (cargo test -q)
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-23T14:45:16Z
-  updated: 2026-09-23T14:45:20.370772911+00:00
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - "SC2058 finds test/[ only as a simple command name and [[ as a reserved word. gh371 tests: 5 false-positive shapes (cargo test -q, \"$w\" test -q with env prefix and redirects, echo [ -q x ]) fail on main and pass; 7 controls (if [ -q x ], if test -q x, && test -q x, FOO=1 test -q x, sudo test -q x, [[ -q x ]], inside $( )) pass on both and go red when the detector returns nothing"
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-386
   github_issue: 386
   item_type: task
   title: DET002 flags date -d <input>, a pure conversion that reads no clock
-  status: inprogress
+  status: completed
   priority: medium
   kind: code
   assigned_to: null
   created: 2026-09-24T17:00:52Z
-  updated: 2026-09-25T16:00:00Z
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - '`date -d X`, `date -r FILE`, `date -f FILE` and their long forms report no DET002 when they read no clock'
@@ -2821,34 +2834,38 @@ roadmap:
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-388
   github_issue: 388
   item_type: task
   title: SC1066 reports $h= inside a double-quoted string as an assignment
-  status: inprogress
+  status: completed
   priority: medium
   kind: code
   assigned_to: null
   created: 2026-09-24T18:43:10Z
-  updated: 2026-09-24T18:43:10Z
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria: []
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null
 - id: PMAT-376
   github_issue: 376
   item_type: task
   title: DET002 joins backslash-continued lines before resolving the destination
-  status: inprogress
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-24T09:50:25Z
-  updated: 2026-09-25T15:40:00Z
+  updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
   - 'The #376 reproducer (`jq … \` continued onto a `>> "$audit_log"` line) reports no DET002, the same as its one-line form'
@@ -2858,5 +2875,7 @@ roadmap:
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - kind:code
+  - release:v7.4.2
   notes: null

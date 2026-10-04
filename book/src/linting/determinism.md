@@ -179,7 +179,7 @@ single-quoted string, or a quoted heredoc body.
 
 ### What it does NOT flag
 
-These were false positives before GH-230:
+These were false positives before GH-230, and items 6 and 7 before 7.4.2:
 
 ```bash
 # 1. Logs. A timestamp on a log line is the point of a log line.
@@ -216,6 +216,17 @@ cp build.log "out/report_$BUILD_DATE.log"   # also clean: the value is reproduci
 # 5. Text, not code
 # never use $(date +%s) in a build
 echo 'literal $(date +%s) not executed'
+
+# 6. A conversion, not a clock read (#386). -d, -r and -f print a time
+# they are given: a date string, a file's mtime, or each line of a file.
+date -u -d "2026-01-01" +%s > epoch.txt
+date -r Cargo.toml +%F > mtime.txt
+
+# 7. A `\`-continued command is one logical line (#376). The sink is
+# resolved across the continuation, so this is the same log append as
+# its one-line form.
+jq -n --arg ts "$(date -u +%FT%TZ)" '{ts: $ts}' \
+  >> "$audit_log"
 ```
 
 An intentional-timestamp marker still suppresses the rule, but it must now be in
