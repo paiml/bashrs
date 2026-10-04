@@ -2860,3 +2860,23 @@ roadmap:
   estimated_effort: null
   labels: []
   notes: null
+- id: PMAT-421
+  github_issue: 421
+  item_type: task
+  title: 'nightly: build the darwin legs on the self-hosted mac'
+  status: inprogress
+  priority: medium
+  kind: code
+  assigned_to: null
+  created: 2026-10-04T14:41:22Z
+  updated: 2026-10-04T14:41:22Z
+  spec: null
+  acceptance_criteria:
+  - 'nightly.yml x86_64-apple-darwin and aarch64-apple-darwin legs run on [self-hosted, macOS, ARM64, mini]; every other leg keeps its runner, and nightly.yml still triggers only on schedule and workflow_dispatch.'
+  - 'A step guarded by endsWith(matrix.target, ''-apple-darwin'') sets RUSTUP_HOME and CARGO_HOME under the runner tool cache and CARGO_TARGET_DIR to the workspace target dir; no non-darwin leg gets a new variable.'
+  - 'A workflow_dispatch of nightly.yml builds and uploads both bashrs-*-apple-darwin.tar.gz assets on mini-m4.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null

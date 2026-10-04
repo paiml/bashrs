@@ -75,10 +75,13 @@ jobs:
             runner: ubuntu-latest
           - target: aarch64-unknown-linux-gnu
             runner: ubuntu-24.04-arm  # native ARM64, free for public repos
+          # The darwin legs build on the fleet's self-hosted mac (mini). This
+          # workflow runs only on schedule and workflow_dispatch, never on a pull
+          # request, so no fork code reaches that host.
           - target: x86_64-apple-darwin
-            runner: macos-latest
+            runner: [self-hosted, macOS, ARM64, mini]
           - target: aarch64-apple-darwin
-            runner: macos-latest
+            runner: [self-hosted, macOS, ARM64, mini]
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
     runs-on: ${{ matrix.runner }}
@@ -100,6 +103,20 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: New-Item -ItemType Junction -Path "$env:GITHUB_WORKSPACE\..\provable-contracts" -Target "$env:GITHUB_WORKSPACE\provable-contracts" -Force
+
+      # The mac is a persistent host whose ~/.rustup and ~/.cargo also serve other
+      # work, and its runner environment points CARGO_TARGET_DIR at a shared
+      # directory. Give the darwin legs their own toolchain and cargo homes under
+      # the runner's tool cache, and put the build back in ./target, which the
+      # Package step copies from.
+      - name: Isolate the toolchain (darwin legs only)
+        if: endsWith(matrix.target, '-apple-darwin')
+        run: |
+          {
+            echo "RUSTUP_HOME=${{ runner.tool_cache }}/rustup"
+            echo "CARGO_HOME=${{ runner.tool_cache }}/cargo"
+            echo "CARGO_TARGET_DIR=${{ github.workspace }}/target"
+          } >> "$GITHUB_ENV"
 
       - name: Install Rust toolchain (macOS / Windows)
         if: runner.os != 'Linux'
