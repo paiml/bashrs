@@ -2650,6 +2650,7 @@ roadmap:
   acceptance_criteria:
   - 'Cut v7.4.2 from main at 94497c22b2. Carries PMAT-350 (SEC005 prefix only at a token start), PMAT-352 (drop the x86_64-only renacer dev-dep), #332 (SC2242 nesting) and three CI bumps. Unblocks forjar''s bashrs pin: ci-disk-watch-timer-enable fails I8 on intel and gx10 until it publishes.'
   - 'AND PMAT-355 (#355), which is IN this cut rather than a follow-up because the release gate is red without it: #332 made SC2242 count case depth in RAW source, so `echo "could not break the matcher — this case discriminates nothing"` is reported as a break outside a case. The rule joins QUOTE_SENSITIVE_RULES and is wired into the allowlist''s (code, check_fn) pair list, which is what makes the property test actually run it. This criterion was widened from the diff after a three-engine quorum refused the PR for carrying work the criterion did not name — the criterion was wrong, not the diff, but a release whose paperwork does not describe it cannot be audited.'
+  - 'AND the R4 CLOSEOUT, which is the release ticket''s tail and lands in a SECOND PR (#358) after the cut PR (#356) merges. R4 reads "a tag is cut only when its release has no open entry", and CB-2113 leaves a ticket open in its own PR for the next PR to complete — so PMAT-355 is necessarily still open at the moment #356 merges, and closing it is work only this ticket can own. Done when release-lint reports v7.4.2 with ONE open entry, PMAT-354 itself, which cannot close before the release is cut. Criterion added from the diff after a three-engine quorum refused #358 3/3 for not performing the release cut: the lanes were right that the diff did not match the ticket text, and the ticket text was what was incomplete — a release ticket that does not own its own closeout leaves the closeout ownerless.'
   phases: []
   subtasks: []
   estimated_effort: null
@@ -2661,11 +2662,11 @@ roadmap:
   github_issue: 355
   item_type: task
   title: 'SC2242 reports an English sentence as an error: #332 made it count case depth and it reads raw source'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-09-20T10:19:59Z
-  updated: 2026-09-20T10:19:59Z
+  updated: 2026-09-20T13:45:33.709254172+00:00
   spec: null
   acceptance_criteria:
   - 'SC2242 joins QUOTE_SENSITIVE_RULES so it receives the masked copy, with a Payload pair in quoting_literal_payload_guard.rs: the bare case-with-break must still fire. Found by make release-gate on the v7.4.2 cut; blocks bashrs#354.'
