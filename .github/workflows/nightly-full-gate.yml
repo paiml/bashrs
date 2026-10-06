@@ -113,10 +113,8 @@ jobs:
         # `mod performance` tests in bashrs-wasm are ignored under
         # debug_assertions, so the step above lists them as ignored. This
         # step runs them with --release and fails unless all five passed.
-        run: |
-          set -o pipefail
-          cargo test --release -p bashrs-wasm --test probar_shell_safety performance:: 2>&1 | tee latency.log
-          grep -qE '^test result: ok\. 5 passed' latency.log
+        # `make release-gate` runs the same target.
+        run: make latency-gate
 
       - name: Integration test targets compiled
         # #233 measured 37 of 145 integration targets not compiling while CI
