@@ -393,3 +393,158 @@ proptest! {
         prop_assert_eq!(result.diagnostics.len(), 0);
     }
 }
+
+// ===== bashrs#431: count redirection OPERATORS, not `>` characters =====
+//
+// These tests use only `check`, the quoting API and `lint_shell`, so they
+// compile against the rule before the fix as well. That is how they were
+// shown to go red without it.
+
+/// BRS0009 findings through the real entry point, which masks literals for
+/// the rules that ask for it and migrates SC2096 to BRS0009.
+fn brs0009(src: &str) -> usize {
+    let script = format!("#!/bin/bash\n{src}\n");
+    crate::linter::lint_shell(&script)
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "BRS0009")
+        .count()
+}
+
+/// SC2096 findings on the input the dispatcher hands this rule.
+fn dispatched(src: &str) -> usize {
+    let inputs = crate::linter::quoting::RuleInputs::new(src);
+    check(inputs.for_code("SC2096")).diagnostics.len()
+}
+
+/// One fixture per FORM a `>` can take inside literal text. Each holds a
+/// single real redirection, or none.
+const PMAT431_QUOTED_FORMS: &[(&str, &str)] = &[
+    // The line from bashrs#431, verbatim.
+    ("issue", "printf '%s\\n' \"a <N>m b N>0\" >&2"),
+    ("single_quoted", "printf '%s\\n' 'a <N>m b N>0' >&2"),
+    ("double_quoted", "echo \"a > b\" > out"),
+    ("ansi_c_quoted", "echo $'a > b' > out"),
+    ("heredoc_body", "cat <<EOF\na > b > c\nEOF"),
+];
+
+#[test]
+fn test_PMAT431_brs0009_gt_inside_a_literal_is_not_a_redirection() {
+    for (form, src) in PMAT431_QUOTED_FORMS {
+        assert_eq!(
+            dispatched(src),
+            0,
+            "{form}: SC2096 counted a `>` inside a literal: {src}"
+        );
+        assert_eq!(
+            brs0009(src),
+            0,
+            "{form}: lint_shell reported BRS0009: {src}"
+        );
+    }
+}
+
+/// The negative control for the test above. The same fixtures UNMASKED do read
+/// as two redirections, so the silence above is the masking reaching this
+/// rule, not a rule that has stopped counting.
+#[test]
+fn test_PMAT431_brs0009_quoted_forms_fire_on_the_raw_source() {
+    for (form, src) in PMAT431_QUOTED_FORMS {
+        assert!(
+            !check(src).diagnostics.is_empty(),
+            "{form}: unmasked, this must read as a double redirection: {src}"
+        );
+    }
+}
+
+#[test]
+fn test_PMAT431_brs0009_quoted_stream_operators_are_text() {
+    // `2>` and `>>` inside a literal are text too, for the stderr and append
+    // checks as much as for the stdout one.
+    for src in ["echo \"2>a\" 2>b", "echo \"a >> b\" >> log"] {
+        assert_eq!(dispatched(src), 0, "{src}");
+        assert_eq!(brs0009(src), 0, "{src}");
+    }
+}
+
+#[test]
+fn test_PMAT431_brs0009_gt_that_is_not_an_operator_in_code() {
+    // Code, not literals: each has one redirection of a stream, or none.
+    let forms = [
+        ("arith_expansion", "echo $(( a > b )) > out"),
+        ("arith_command", "(( a > b )) > out"),
+        ("double_bracket", "[[ $a > $b ]] > out"),
+        ("escaped", "echo a \\> b > out"),
+        ("param_pattern", "echo ${x//>/y} > out"),
+        ("other_fds", "exec 3>a 4>b"),
+        ("process_substitution", "tee >(grep x) >(grep y) >/dev/null"),
+        ("background", "foo >a & bar >b"),
+        ("append_two_streams", "cmd >> a 2>> b"),
+        ("read_write", "cmd <> f > a"),
+    ];
+    for (form, src) in forms {
+        let masked = crate::linter::quoting::mask_literals(src);
+        assert!(
+            check(&masked).diagnostics.is_empty(),
+            "{form}: reported a double redirection: {src}"
+        );
+        assert_eq!(
+            brs0009(src),
+            0,
+            "{form}: lint_shell reported BRS0009: {src}"
+        );
+    }
+}
+
+#[test]
+fn test_PMAT431_brs0009_true_positives_still_fire() {
+    let forms = [
+        ("stdout", "echo a >x >y", "stdout"),
+        ("in_substitution", "x=$(cmd >a >b)", "stdout"),
+        ("stderr", "cmd 2>e1 2>e2", "stderr"),
+        ("append", "echo a >>f1 >>f2", "append"),
+        ("across_stderr", "cmd > a 2> e > b", "stdout"),
+    ];
+    for (form, src, stream) in forms {
+        let result = check(src);
+        assert_eq!(result.diagnostics.len(), 1, "{form}: {src}");
+        assert!(
+            result.diagnostics[0].message.contains(stream),
+            "{form}: {src} -> {}",
+            result.diagnostics[0].message
+        );
+        assert_eq!(dispatched(src), 1, "{form}: masking hid it: {src}");
+        assert_eq!(brs0009(src), 1, "{form}: lint_shell lost it: {src}");
+    }
+}
+
+#[test]
+fn test_PMAT431_brs0009_descriptor_copy_ends_the_run() {
+    // `2>&1` reads stdout's target at that point, so `a` receives stderr and
+    // the first redirection is used.
+    for src in [
+        "cmd > a 2>&1 > b",
+        "cmd > a >&2 > b",
+        "cmd > /dev/null 2>&1",
+    ] {
+        assert!(check(src).diagnostics.is_empty(), "{src}");
+    }
+    assert_eq!(check("cmd 2>&1 > a > b").diagnostics.len(), 1);
+}
+
+#[test]
+fn test_PMAT431_brs0009_double_redirections_the_character_scan_missed() {
+    // Real overrides the old scan skipped: a whole line skipped for `<<`, `>|`
+    // split as a pipe, a `2` ending an argument read as a descriptor, and the
+    // stdout check skipped whenever `>>` appeared anywhere on the line.
+    for src in [
+        "cat <<EOF > a > b",
+        "cmd >| a > b",
+        "echo file2>out > out2",
+        "cmd > a >> b > c",
+    ] {
+        let result = check(src);
+        assert_eq!(result.diagnostics.len(), 1, "{src}");
+        assert!(result.diagnostics[0].message.contains("stdout"), "{src}");
+    }
+}
