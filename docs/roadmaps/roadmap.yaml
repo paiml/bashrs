@@ -2917,3 +2917,22 @@ roadmap:
   - kind:code
   notes: null
   epic: 426
+- id: PMAT-432
+  github_issue: 432
+  item_type: task
+  title: 'book: gates.md lists make latency-gate'
+  status: planned
+  priority: low
+  assigned_to: null
+  created: 2026-10-06T09:07:51Z
+  updated: 2026-10-06T09:07:51Z
+  spec: null
+  acceptance_criteria:
+  - 'bashrs#432: follow-up of #425/#427'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:docs
+  notes: null
+  epic: 426
