@@ -2917,3 +2917,22 @@ roadmap:
   - kind:code
   notes: null
   epic: 426
+- id: PMAT-431
+  github_issue: 431
+  item_type: task
+  title: 'BRS0009 (SC2096): count redirection operators from tokens, not ''>'' characters (bashrs#431)'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-10-06T07:23:43Z
+  updated: 2026-10-06T07:26:01.042756079+00:00
+  spec: null
+  acceptance_criteria:
+  - 'SC2096 (BRS0009) counts redirection operators read by a lexer over the masked line, and is in QUOTE_SENSITIVE_RULES and allowlisted_checks. In the test_PMAT431_* tests, the bashrs#431 line and its single-quoted, double-quoted, $''...'' and heredoc-body variants give zero SC2096 on the dispatched input and zero BRS0009 from lint_shell, and fire on the raw source; $(( a > b )), (( a > b )), [[ $a > $b ]], \>, ${x//>/y}, exec 3>a 4>b, process substitution, a background &, >> a 2>> b and <> are silent; echo a >x >y, x=$(cmd >a >b), cmd 2>e1 2>e2 and echo a >>f1 >>f2 still fire. The BRS0009 payload in quoting_literal_payload_guard.rs passes. The new tests fail with sc2096.rs and quoting.rs reverted.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
