@@ -120,10 +120,27 @@ fn assignments(code: &str) -> impl Iterator<Item = (&str, &str)> {
     })
 }
 
-/// Is `value` a command substitution: `$(..)`, `"$(..)"` or backticks?
-fn is_substitution(value: &str) -> bool {
+/// The command substitution `value` starts with (`$(..)`, `"$(..)"` or
+/// backticks), opener to its own close: `A=$(date); echo "$(jq ..)"` holds
+/// `date`, not the rest of the line. `None` for anything else.
+fn substitution(value: &str) -> Option<&str> {
     let value = value.strip_prefix('"').unwrap_or(value);
-    value.starts_with("$(") || value.starts_with('`')
+    if let Some(body) = value.strip_prefix('`') {
+        return Some(body.find('`').map_or(body, |end| &body[..end]));
+    }
+    let body = value.strip_prefix("$(")?;
+    let mut depth = 1;
+    for (i, c) in body.char_indices() {
+        depth += match c {
+            '(' => 1,
+            ')' => -1,
+            _ => 0,
+        };
+        if depth == 0 {
+            return Some(&value[..i + 3]);
+        }
+    }
+    Some(value)
 }
 
 /// Does `code` expand `$name` or `${name...}`, and not a longer name?
@@ -173,7 +190,7 @@ pub fn check(source: &str) -> LintResult {
 
         for (name, value) in assignments(code_only) {
             tainted.retain(|(n, ..)| n != name);
-            if let Some(message) = eval_payload(value).filter(|_| is_substitution(value)) {
+            if let Some(message) = substitution(value).and_then(eval_payload) {
                 tainted.push((name.to_string(), line_num + 1, message));
             }
         }
@@ -352,6 +369,7 @@ source ./config.sh
                 "R=$(wget -qO- https://x/y)\nif eval \"$R\"; then :; fi",
                 "remote",
             ),
+            ("N=$(echo \"$(yq -r .a f)\")\neval \"$N\"", "yq"),
         ] {
             let result = check(script);
             assert_eq!(result.diagnostics.len(), 1, "{script}");
@@ -381,6 +399,9 @@ source ./config.sh
             "YQ=$(yq -r .a f.yaml)\neval \"$YQX\"",
             "YQ=$(yq -r .a f.yaml)\necho \"$YQ\"",
             "N=$(date +%s)\neval \"$N\"",
+            "A=$(date); echo \"$(jq -r .a f)\"\neval \"$A\"",
+            "A=$(date) && B=$(curl -s https://x)\neval \"$A\"",
+            "A=`date`; B=`yq .a f`\neval \"$A\"",
         ] {
             let result = check(script);
             assert_eq!(
