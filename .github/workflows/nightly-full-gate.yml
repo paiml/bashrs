@@ -108,6 +108,14 @@ jobs:
         # Integration targets, doctests and examples — the part `--lib` skips.
         run: cargo test --workspace
 
+      - name: Latency budgets, on the build they describe (#425)
+        # C-WASM-002 is a claim about the optimized linter. The five
+        # `mod performance` tests in bashrs-wasm are ignored under
+        # debug_assertions, so the step above lists them as ignored. This
+        # step runs them with --release and fails unless all five passed.
+        # `make release-gate` runs the same target.
+        run: make latency-gate
+
       - name: Integration test targets compiled
         # #233 measured 37 of 145 integration targets not compiling while CI
         # stayed green. A target that fails to compile fails `cargo test`
