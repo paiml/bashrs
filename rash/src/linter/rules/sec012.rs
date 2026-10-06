@@ -78,29 +78,103 @@ fn is_source(code: &str) -> bool {
 
 /// Each pattern: (is the line an eval, else a source; the payload it needs; the message).
 const PATTERNS: &[(bool, &str, &str)] = &[
-    (true, "jq", EVAL_JQ),                // eval $(... jq ...) - JSON deserialization
-    (false, "<(curl", SOURCE_REMOTE),     // source <(curl ...) - remote code execution
-    (false, "<(wget", SOURCE_REMOTE),     // source <(wget ...)
-    (true, "$(curl", EVAL_REMOTE),        // eval $(curl ...) - direct eval of remote content
-    (true, "$(wget", EVAL_REMOTE),        // eval $(wget ...)
-    (true, "yq", EVAL_YQ),                // eval with yq (YAML deserialization)
+    (true, "jq", EVAL_JQ),            // eval $(... jq ...) - JSON deserialization
+    (false, "<(curl", SOURCE_REMOTE), // source <(curl ...) - remote code execution
+    (false, "<(wget", SOURCE_REMOTE), // source <(wget ...)
+    (true, "$(curl", EVAL_REMOTE),    // eval $(curl ...) - direct eval of remote content
+    (true, "$(wget", EVAL_REMOTE),    // eval $(wget ...)
+    (true, "yq", EVAL_YQ),            // eval with yq (YAML deserialization)
 ];
+
+/// The eval message for a payload in `text`, if any: the eval patterns of
+/// [`PATTERNS`], in order.
+fn eval_payload(text: &str) -> Option<&'static str> {
+    PATTERNS
+        .iter()
+        .find(|&&(needs_eval, payload, _)| needs_eval && text.contains(payload))
+        .map(|&(_, _, message)| message)
+}
+
+fn is_name_char(c: char) -> bool {
+    c.is_ascii_alphanumeric() || c == '_'
+}
+
+/// Every `NAME=value` in `code`, the value running to the end of the code.
+/// `NAME` must start a word, so `local`/`export`/`readonly`/`declare` forms are
+/// found and `[[ $a == b ]]` is not.
+fn assignments(code: &str) -> impl Iterator<Item = (&str, &str)> {
+    code.match_indices('=').filter_map(move |(eq, _)| {
+        // Step past the boundary char by its width: it may be multi-byte.
+        let start = code[..eq]
+            .char_indices()
+            .rev()
+            .find(|&(_, c)| !is_name_char(c))
+            .map_or(0, |(i, c)| i + c.len_utf8());
+        let name = &code[start..eq];
+        let starts_word = code[..start]
+            .chars()
+            .next_back()
+            .is_none_or(|c| c.is_whitespace() || ";|&(".contains(c));
+        let valid = name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_');
+        (starts_word && valid).then(|| (name, &code[eq + 1..]))
+    })
+}
+
+/// Is `value` a command substitution: `$(..)`, `"$(..)"` or backticks?
+fn is_substitution(value: &str) -> bool {
+    let value = value.strip_prefix('"').unwrap_or(value);
+    value.starts_with("$(") || value.starts_with('`')
+}
+
+/// Does `code` expand `$name` or `${name...}`, and not a longer name?
+fn expands(code: &str, name: &str) -> bool {
+    [format!("${{{name}"), format!("${name}")]
+        .iter()
+        .any(|form| {
+            code.match_indices(form.as_str())
+                .any(|(i, _)| !code[i + form.len()..].starts_with(is_name_char))
+        })
+}
 
 /// Check for unsafe deserialization patterns
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    // bashrs#428: variables holding a payload substitution, with the line
+    // (1-based) that assigned them and the message an eval of them earns.
+    let mut tainted: Vec<(String, usize, &'static str)> = Vec::new();
 
     for (line_num, line) in source.lines().enumerate() {
         // Strip comments
         let trimmed = line.trim();
-        let code_only = trimmed.find('#').map_or(trimmed, |pos| &trimmed[..pos]).trim();
+        let code_only = trimmed
+            .find('#')
+            .map_or(trimmed, |pos| &trimmed[..pos])
+            .trim();
         let (eval, source) = (has_eval_command(code_only), is_source(code_only));
+        let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
+        let mut fired = false;
 
         for &(needs_eval, payload, message) in PATTERNS {
             let command = if needs_eval { eval } else { source };
             if command && code_only.contains(payload) {
-                let span = Span::new(line_num + 1, 1, line_num + 1, line.len());
                 result.add(Diagnostic::new("SEC012", Severity::Error, message, span));
+                fired = true;
+            }
+        }
+
+        // bashrs#428: `X=$(yq ..)` then `eval "$X"` is `eval "$(yq ..)"`.
+        if eval && !fired {
+            if let Some((name, at, message)) = tainted.iter().find(|(n, ..)| expands(code_only, n))
+            {
+                let message = format!("{message} (${name} assigned on line {at})");
+                result.add(Diagnostic::new("SEC012", Severity::Error, message, span));
+            }
+        }
+
+        for (name, value) in assignments(code_only) {
+            tainted.retain(|(n, ..)| n != name);
+            if let Some(message) = eval_payload(value).filter(|_| is_substitution(value)) {
+                tainted.push((name.to_string(), line_num + 1, message));
             }
         }
     }
@@ -261,6 +335,68 @@ source ./config.sh
             let result = check(script);
             assert_eq!(result.diagnostics.len(), 1, "{script}");
         }
+    }
+
+    /// bashrs#428: the substitution reaches eval through a variable. Each of
+    /// these is the same deserialization as `eval "$(yq ...)"`, one line apart.
+    #[test]
+    fn test_SEC012_eval_of_a_var_assigned_from_a_payload_fires() {
+        for (script, word) in [
+            ("YQ=$(yq -r .env f.yaml)\neval \"$YQ\"", "yq"),
+            ("YQ=\"$(yq -r .env f.yaml)\"\neval \"$YQ\"", "yq"),
+            ("YQ=`yq -r .env f.yaml`\neval $YQ", "yq"),
+            ("J=$(jq -r .a f.json)\neval \"${J}\"", "jq"),
+            ("local J=\"$(jq -r .a f.json)\"\neval \"$J\"", "jq"),
+            ("export R=$(curl -s https://x/y)\neval \"$R\"", "remote"),
+            (
+                "R=$(wget -qO- https://x/y)\nif eval \"$R\"; then :; fi",
+                "remote",
+            ),
+        ] {
+            let result = check(script);
+            assert_eq!(result.diagnostics.len(), 1, "{script}");
+            let diag = &result.diagnostics[0];
+            assert_eq!(diag.code, "SEC012");
+            assert_eq!(diag.span.start_line, 2, "{script}");
+            assert!(diag.message.contains(word), "{script}: {}", diag.message);
+            assert!(
+                diag.message.contains("line 1"),
+                "{script}: {}",
+                diag.message
+            );
+        }
+    }
+
+    /// bashrs#428: what must stay silent — a literal string is not
+    /// deserialized output, a reassignment drops the taint, a different
+    /// variable or a longer name sharing the prefix is not the tainted one,
+    /// and the direct form still fires exactly once.
+    #[test]
+    fn test_SEC012_eval_of_an_untainted_var_stays_silent() {
+        for script in [
+            "YQ=\"yq -r .a f.yaml\"\neval \"$YQ\"",
+            "YQ=\"yq -r .a f.yaml\"\neval $YQ",
+            "YQ=$(yq -r .a f.yaml)\nYQ=\"echo hi\"\neval \"$YQ\"",
+            "YQ=$(yq -r .a f.yaml)\neval \"$OTHER\"",
+            "YQ=$(yq -r .a f.yaml)\neval \"$YQX\"",
+            "YQ=$(yq -r .a f.yaml)\necho \"$YQ\"",
+            "N=$(date +%s)\neval \"$N\"",
+        ] {
+            let result = check(script);
+            assert_eq!(
+                result.diagnostics.len(),
+                0,
+                "{script}: {:?}",
+                result.diagnostics
+            );
+        }
+        // A multi-byte char just before `NAME=` (found by prop_sec012_never_panics).
+        assert_eq!(
+            check("¥YQ=$(yq .a f)\n€=1\neval \"$YQ\"").diagnostics.len(),
+            0
+        );
+        let direct = check("YQ=$(yq -r .a f.yaml)\neval \"$(yq -r .b f.yaml) $YQ\"");
+        assert_eq!(direct.diagnostics.len(), 1, "{:?}", direct.diagnostics);
     }
 }
 
