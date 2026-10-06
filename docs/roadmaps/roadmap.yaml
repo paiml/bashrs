@@ -2879,3 +2879,22 @@ roadmap:
   - kind:code
   - release:v7.4.2
   notes: null
+- id: PMAT-425
+  github_issue: 425
+  item_type: task
+  title: 'Nightly Full Gate: wasm latency budgets measured on --release, not opt-level 0'
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-10-06T00:13:16Z
+  updated: 2026-10-06T00:13:16Z
+  spec: null
+  acceptance_criteria:
+  - Ignore the five mod performance tests under debug_assertions and run them with --release in nightly-full-gate.yml, failing unless all five passed (#425).
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426

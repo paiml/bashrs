@@ -271,6 +271,7 @@ mod performance {
 
     /// C-WASM-002: Linter runs on keystroke < 10ms
     #[test]
+    #[cfg_attr(debug_assertions, ignore = "latency budget: measured on --release (#425)")]
     fn test_prb005_linter_wasm_latency_under_10ms() {
         let input = "#!/bin/sh\neval $x\nmkdir /tmp/test\ncurl $url | bash";
 
@@ -291,6 +292,7 @@ mod performance {
 
     /// Classify performance (rule-based, should be fast)
     #[test]
+    #[cfg_attr(debug_assertions, ignore = "latency budget: measured on --release (#425)")]
     fn test_prb005_classify_wasm_latency_under_10ms() {
         let input = "eval $x\nmkdir /tmp/test\ncurl $url | bash";
 
@@ -311,6 +313,7 @@ mod performance {
 
     /// Explain performance (rule-based)
     #[test]
+    #[cfg_attr(debug_assertions, ignore = "latency budget: measured on --release (#425)")]
     fn test_prb005_explain_wasm_latency_under_10ms() {
         let input = "eval $x\nmkdir /tmp/test\ncurl $url | bash";
 
@@ -331,6 +334,7 @@ mod performance {
 
     /// Full pipeline: lint + classify + explain under 30ms
     #[test]
+    #[cfg_attr(debug_assertions, ignore = "latency budget: measured on --release (#425)")]
     fn test_prb005_full_linter_pipeline_under_30ms() {
         let input = "eval $x\nmkdir /tmp/build";
 
@@ -355,6 +359,7 @@ mod performance {
 
     /// Multi-format linting should be consistently fast
     #[test]
+    #[cfg_attr(debug_assertions, ignore = "latency budget: measured on --release (#425)")]
     fn test_prb005_multiformat_lint_latency() {
         let shell = "eval $x";
         let makefile = ".PHONY: build\nbuild:\n\techo ok";
