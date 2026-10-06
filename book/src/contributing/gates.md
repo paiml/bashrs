@@ -23,13 +23,23 @@ make pr-gate
 
 ## `make release-gate`
 
-Everything the PR gate runs, plus the full workspace test run, the coverage gate, the self-lint gate, the corpus score and the book check. Run it before cutting a tag, never instead of the PR gate.
+Everything the PR gate runs, plus the full workspace test run, the latency gate, the coverage gate, the self-lint gate, the corpus score and the book check. Run it before cutting a tag, never instead of the PR gate.
 
 ```bash
 make release-gate
 ```
 
 Its clippy line is `cargo clippy --workspace --all-targets --all-features -- -D warnings`. The `--workspace` matters: this repository's root is both a workspace and a stub package, so a bare `cargo clippy --all-targets` lints the stub and nothing else. That was the shape of the release gate's clippy line, and of CI's, until v7.4.0 (#233); both now name the workspace, and the required check's `clippy_args` is `--workspace --all-targets`.
+
+## `make latency-gate`
+
+The five C-WASM-002 latency tests in `bashrs-wasm` (`probar_shell_safety`, module `performance`) measure the linter against a time budget. A debug build at opt-level 0 measures how loaded the runner is, not the linter, so under `debug_assertions` the tests are `#[ignore]`d. `cargo test --workspace` therefore lists them as ignored, and that is expected. They run here instead, on the `--release` build the budgets describe (#425):
+
+```bash
+make latency-gate
+```
+
+It fails unless all five tests ran and passed, so a filter that matches nothing cannot pass it. `make release-gate` calls it after the workspace test run, and the nightly full gate runs it as its own step.
 
 ## What runs where
 
@@ -39,6 +49,7 @@ Its clippy line is `cargo clippy --workspace --all-targets --all-features -- -D 
 | clippy | workspace, all targets | workspace, all targets, all features | workspace, all targets, all features |
 | library tests | yes (`--workspace --lib`, nextest) | yes | yes |
 | integration targets under `rash/tests/`, doctests, examples | no | yes (`cargo test --workspace`) | yes |
+| latency budgets (C-WASM-002, `--release`) | no | yes (`make latency-gate`) | yes (`make latency-gate`) |
 | pv, coverage, self-lint, corpus score, book | no | yes | no |
 
 The required check runs the library tests only, on purpose: that is the Pareto slice, and a pull request should not wait for fifteen minutes of linking. Until v7.4.0 nothing in CI ran the other targets at all; `.github/workflows/nightly-full-gate.yml` now runs `cargo test --workspace` on `main` once a day (05:00 UTC, skipped when `main` is idle, `workflow_dispatch` to run it now), so an integration target that stops compiling is reported within a day of the merge that broke it rather than at the next release.
