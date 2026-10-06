@@ -334,7 +334,10 @@ release-gate: ## Full pre-release gate — every test target, the corpus and the
 latency-gate: ## C-WASM-002 latency budgets, on the --release build they describe (#425)
 	@# `cargo test --workspace` lists these five as ignored: under
 	@# debug_assertions an opt-level 0 build measures runner load, not the
-	@# linter. Fails unless all five ran and passed.
+	@# linter. Fails unless all five ran and passed. Cargo ignores
+	@# [profile.release] panic = 'abort' for test targets, so the probar
+	@# harness builds unwind here (#295 is `cargo build --all-targets` under
+	@# the dev profile). Measured 2026-10-06 on x86_64: 5 passed.
 	@echo "⏱  Latency gate: bashrs-wasm mod performance, --release"
 	@set -o pipefail; cargo test --release -p bashrs-wasm --test probar_shell_safety performance:: 2>&1 | tee "$${TMPDIR:-/tmp}/bashrs-latency.log"
 	@grep -qE '^test result: ok\. 5 passed' "$${TMPDIR:-/tmp}/bashrs-latency.log"
