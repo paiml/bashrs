@@ -48,6 +48,21 @@ const PAYLOADS: &[Payload] = &[
         quoted: "h=x\ns=\"\"\ns=\"$s $h=UP\"\necho \"$s\"\n",
         found_at: "infra/machines/lambda-labs/fleet-resource-watch.sh:106 (bashrs#388)",
     },
+    // bashrs#437. The line that refused a forjar apply on 7.4.1: `$p=$v` is
+    // the argument of `echo`, and the single-quoted word before it on the same
+    // line holds a `"`, so a quote tracker that loses parity there reads the
+    // message as code.
+    Payload {
+        code: "SC1066",
+        bare: "p=x\n$p=v\n",
+        quoted: concat!(
+            "for p in HandleLidSwitch HandleLidSwitchExternalPower HandleLidSwitchDocked; do\n",
+            "  v=\"$(busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager \"$p\")\"\n",
+            "  [ \"$v\" = 's \"ignore\"' ] || { echo \"lid-switch-effective: logind says $p=$v after HUP\" >&2; exit 1; }\n",
+            "done\n",
+        ),
+        found_at: "bashrs#437",
+    },
     Payload {
         code: "SC1128",
         // A shebang genuinely not on line 1.

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Tests
+
+- **SC1066 fixture for the line that refused a forjar apply on 7.4.1** (PMAT-437, #437). `[ "$v" = 's "ignore"' ] || { echo "... $p=$v after HUP" >&2; exit 1; }` is clean on main since #388. It is now a guard payload, because the `"` inside the single-quoted word before it is where a quote tracker that loses parity would read the message as code. A bare `$p=v` still fires.
+
 ## [7.4.2] - 2026-10-04
 
 A patch release with thirteen fixes. Twelve of them fix linter rules that reported correct scripts: most read text the shell never runs as shell (a single-quoted awk or jq program, a comment, an English sentence), or found a word by substring or line regex instead of by its place in the command. The thirteenth drops a dependency that broke every aarch64 build. The release was first cut on 2026-09-20 with four of these fixes and was not tagged before the other nine merged, so the tag carries all thirteen. The nightly build changed too: its Linux assets run on glibc 2.35, an aarch64-linux asset ships, and it builds whenever the `nightly` tag is not at HEAD.
