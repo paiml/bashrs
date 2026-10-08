@@ -2788,7 +2788,7 @@ roadmap:
   updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
-  - 'shell_assignments::assignments finds assignments by word position; SC2210 and SC2225 use it. gh370 tests: 6 false-positive shapes (ps -o pid= --ppid, --format=--x, echo "x=--y", let x=++y, ps -o pid= `...`, --out=`pwd`) fail on main and pass; 8 controls (x=--y, x=++y cmd, local n=--total, x= --y, inside $( ), local v=`date`) pass on both and go red when assignments() returns nothing'
+  - "shell_assignments::assignments finds assignments by word position; SC2210 and SC2225 use it. gh370 tests: 6 false-positive shapes (ps -o pid= --ppid, --format=--x, echo \"x=--y\", let x=++y, ps -o pid= `...`, --out=`pwd`) fail on main and pass; 8 controls (x=--y, x=++y cmd, local n=--total, x= --y, inside $( ), local v=`date`) pass on both and go red when assignments() returns nothing"
   phases: []
   subtasks: []
   estimated_effort: null
@@ -2807,7 +2807,7 @@ roadmap:
   updated: 2026-10-04T11:11:53Z
   spec: null
   acceptance_criteria:
-  - 'SC2058 finds test/[ only as a simple command name and [[ as a reserved word. gh371 tests: 5 false-positive shapes (cargo test -q, "$w" test -q with env prefix and redirects, echo [ -q x ]) fail on main and pass; 7 controls (if [ -q x ], if test -q x, && test -q x, FOO=1 test -q x, sudo test -q x, [[ -q x ]], inside $( )) pass on both and go red when the detector returns nothing'
+  - "SC2058 finds test/[ only as a simple command name and [[ as a reserved word. gh371 tests: 5 false-positive shapes (cargo test -q, \"$w\" test -q with env prefix and redirects, echo [ -q x ]) fail on main and pass; 7 controls (if [ -q x ], if test -q x, && test -q x, FOO=1 test -q x, sudo test -q x, [[ -q x ]], inside $( )) pass on both and go red when the detector returns nothing"
   phases: []
   subtasks: []
   estimated_effort: null
@@ -2821,6 +2821,7 @@ roadmap:
   title: DET002 flags date -d <input>, a pure conversion that reads no clock
   status: completed
   priority: medium
+  kind: code
   assigned_to: null
   created: 2026-09-24T17:00:52Z
   updated: 2026-10-04T11:11:53Z
@@ -2843,6 +2844,7 @@ roadmap:
   title: SC1066 reports $h= inside a double-quoted string as an assignment
   status: completed
   priority: medium
+  kind: code
   assigned_to: null
   created: 2026-09-24T18:43:10Z
   updated: 2026-10-04T11:11:53Z
