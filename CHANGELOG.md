@@ -7,9 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [7.4.2] - 2026-10-04
+## [7.4.2] - 2026-10-10
 
-A patch release with thirteen fixes. Twelve of them fix linter rules that reported correct scripts: most read text the shell never runs as shell (a single-quoted awk or jq program, a comment, an English sentence), or found a word by substring or line regex instead of by its place in the command. The thirteenth drops a dependency that broke every aarch64 build. The release was first cut on 2026-09-20 with four of these fixes and was not tagged before the other nine merged, so the tag carries all thirteen. The nightly build changed too: its Linux assets run on glibc 2.35, an aarch64-linux asset ships, and it builds whenever the `nightly` tag is not at HEAD.
+A patch release with fifteen fixes. Thirteen of them fix linter rules that reported correct scripts: most read text the shell never runs as shell (a single-quoted awk or jq program, a comment, an English sentence), or found a word by substring or line regex instead of by its place in the command. One fixes a rule that missed a real `eval` of downloaded text when the payload sat one line above the `eval`. The fifteenth drops a dependency that broke every aarch64 build. The release was first cut on 2026-09-20 with four of these fixes and was not tagged before the other eleven merged, so the tag carries all fifteen. The nightly build changed too: its Linux assets run on glibc 2.35, an aarch64-linux asset ships, and it builds whenever the `nightly` tag is not at HEAD.
 
 ### Fixed
 
@@ -38,6 +38,10 @@ A patch release with thirteen fixes. Twelve of them fix linter rules that report
 - **SC2242 flagged case/loop nesting instead of counting it** (#332, closes #331).
 
 - **SC2242 then reported an English sentence as an error** (PMAT-355, #355). Counting was right for code and made the literal case worse: `echo "could not break the matcher — this case discriminates nothing"` opens a case depth on the word "case" and finds `break` in "break the matcher". The rule joins `QUOTE_SENSITIVE_RULES` so it receives the masked copy, and is wired into the allowlist's `(code, check_fn)` pair list — without that it was declared quote-sensitive while nothing ever ran it over a literal, which is bashrs#266's root cause again and is what `test_GH226_quoting_allowlist_names_only_rules_that_exist` caught. Found by `make release-gate` on this cut, so it is in the release rather than after it.
+
+- **SC2075 read `'\\'` followed by another quoted string as one escaped string** (#439, #441). Inside `'...'` a backslash is literal and the next quote closes the string, but the rule matched `'[^']*\\'[^']*'` on the raw line, so `tr -d '\\' | grep -x 'ab'` paired the quote after `\\` with the next quoted word and reported an Error on a script bash runs correctly. At Severity::Error it made forjar's I8 gate refuse a correct completion check. A backslash string followed by a space, `;`, `]`, `"`, `$`, another quote or a comment is now silent, and `echo 'don\'t'` still fires.
+
+- **SEC012 missed `eval "$X"` when `X` was assigned from `$(yq ...)`, `$(jq ...)` or `$(curl ...)` on an earlier line** (PMAT-428, #430). The rule is line-based, so `eval "$(yq -r .env f.yaml)"` fired and the same payload moved into a variable one line up did not. It now remembers variables assigned from a command substitution carrying a payload (`$(..)`, `"$(..)"`, backticks, `local`/`export` forms) and fires on a later `eval` of `$NAME` or `${NAME}`, naming the assignment line. Any other assignment clears the name, a literal string is not a substitution, and an `eval` that already fired directly is not reported twice.
 
 ### Changed
 

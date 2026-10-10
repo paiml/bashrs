@@ -67,7 +67,7 @@ Released: tag `v7.4.0` on 4aa24ca271, `bashrs 7.4.0` on crates.io, `cargo instal
 
 ## v7.4.2
 
-Goal: the defects found after v7.4.1 released as a patch, so forjar's bashrs pin can move off 6.68.0 and `ci-disk-watch-timer-enable` converges. The first cut (2026-09-20, #356) carried four fixes and was not tagged; nine more merged to main before the tag, so the release carries thirteen fixes and two changes to the nightly build.
+Goal: the defects found after v7.4.1 released as a patch, so forjar's bashrs pin can move off 6.68.0 and `ci-disk-watch-timer-enable` converges. The first cut (2026-09-20, #356) carried four fixes and was not tagged; nine more merged before the second cut (2026-10-04) and two after it, so the release carries fifteen fixes and two changes to the nightly build.
 
 | entry | what |
 |---|---|
@@ -85,10 +85,12 @@ Goal: the defects found after v7.4.1 released as a patch, so forjar's bashrs pin
 | PMAT-380 | #380, #385: the nightly's Linux assets needed glibc 2.39 and there was no aarch64-linux leg; both legs build on glibc 2.31 and are checked to run on 2.35 |
 | PMAT-386 | #386: DET002 reported `date -d`/`-r`/`-f`, which convert a time they are given and read no clock |
 | PMAT-388 | #388: SC1066 read `$h=` inside a double-quoted string as an assignment; it joins `QUOTE_SENSITIVE_RULES` |
+| PMAT-428 | #430: SEC012 missed `eval "$X"` when `X` was assigned from `$(yq ...)`/`$(jq ...)`/`$(curl ...)` on an earlier line; the assignment is remembered and the later `eval` fires, naming its line |
+| PMAT-439 | #441: SC2075 read `'\\'` followed by another single-quoted string as an escaped quote and reported an Error on a correct script, which made forjar's I8 gate refuse fw16's `fw16-wired-10g-nm-owner` completion check; `echo 'don\'t'` still fires |
 
 Also on this release, with no roadmap entry: #375 (#399), where SC1087 read `$s[0]` in a single-quoted jq program as an array expansion and SEC012 read `.eval_count` as `eval`; and #397, which builds the nightly whenever the `nightly` tag is not at HEAD.
 
-Issues on this release: #331, #350, #352, #354, #355, #362, #364, #366, #370, #371, #375, #376, #380, #385, #386, #388.
+Issues on this release: #331, #350, #352, #354, #355, #362, #364, #366, #370, #371, #375, #376, #380, #385, #386, #388, #428, #439.
 
 ## v7.4.1
 
