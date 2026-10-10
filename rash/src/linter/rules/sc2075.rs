@@ -319,6 +319,7 @@ mod tests {
             r#"sed 's/\\/\//g' '\' > out"#,
             r#"a='\';b='x'"#,
             r#"[ "$c" = '\' ] && echo 'x'"#,
+            r#"awk -F'\' '{print $2}' file"#,
             r#"echo 'a\'"b""#,
             r#"echo 'a\'$x"#,
             r#"echo 'a\''b'"#,

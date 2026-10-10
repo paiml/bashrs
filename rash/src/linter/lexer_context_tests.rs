@@ -298,4 +298,7 @@ fn test_PMAT439_gh439_backslash_before_a_closing_single_quote_is_literal() {
         );
     }
     shell_fires("#!/bin/bash\necho 'it\\'s'\n", "SC2075");
+    // An attempt followed by a space leaves no word to glue, so SC2075 stays
+    // silent; the quote it leaves open is still an error.
+    shell_fires("#!/bin/bash\necho 'can\\' t'\necho done\n", "SC1078");
 }
