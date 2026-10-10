@@ -140,7 +140,7 @@ invariants:
 - 'bashrs corpus run over the full 17,942-entry corpus scores no worse than the 7.0.2 baseline (84.4/100 B, 333 failures)'
 - 'SC2105 processes loop-start keywords, done and break/continue in the byte order they occur on a physical line, not by summing a whole line''s keyword counts before checking break/continue (PMAT-244); a bare break/continue outside any loop still fires'
 - 'shell_words::Expansion covers command substitutions ($( ), nested $( $( ) ), and backticks, including inside double quotes) as well as $NAME/${NAME}; SC2046 has no private quote-aware scanner of its own (PMAT-250)'
-- 'SC2075 never reports a single-quoted string whose content ends in a backslash when the closing quote is followed by a space, a shell operator, another quote or the end of the line - inside ''...'' a backslash is literal and the next quote closes (GH-439); it still reports `echo ''it\''s''`, where the closing quote runs into a word'
+- 'SC2075 never reports a single-quoted string whose content ends in a backslash when the closing quote is followed by a space, a shell operator, another quote or the end of the line - inside ''...'' a backslash is literal and the next quote closes (GH-439); it still reports `echo ''it\''s''`, where the closing quote runs into a word and a later quote closes the string its author meant, and not `echo ''a\''b` with no later quote, the valid word a\b'
 
 kani_harnesses:
 - id: KANI-LEXER_CONTEXT-001

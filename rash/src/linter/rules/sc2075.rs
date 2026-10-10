@@ -19,9 +19,11 @@
 // Not an escape attempt (GH-439): `tr -d '\\'` and `tr -d '\'` are complete
 // strings, because inside '...' a backslash is literal and the next quote
 // closes. The attempt is a `\'` that runs straight into a word, as in
-// 'it\'s'. Each line is scanned with its quoting context, so a `\'` inside
-// "...", $'...', a comment or unquoted code is not read as one, and a string
-// is never paired with the next quoted string on the line.
+// 'it\'s', and it is reported only when a later quote closes the string its
+// author meant: with none, `echo 'a\'b` is the valid word a\b. Each line is
+// scanned with its quoting context, so a `\'` inside "...", $'...', a comment
+// or unquoted code is not read as one, and a string is never paired with the
+// next quoted string on the line.
 //
 // The scan reads an attempt the way its author meant it, as an escaped quote
 // that does not close the string, so a second attempt later on the line is
@@ -98,6 +100,8 @@ fn step_code(
         b'\\' => Some(i + 2),
         b'#' if starts_word(line, i) => None,
         b'\'' => Some(single_quoted(line, i, found)),
+        // `$$` is the pid; a quote after it opens a plain '...'.
+        b'$' if line.get(i + 1) == Some(&b'$') => Some(i + 2),
         b'$' if line.get(i + 1) == Some(&b'\'') => Some(skip_ansi_c(line, i + 2)),
         _ => Some(step_nesting(line, i, ctx, stack)),
     }
@@ -153,15 +157,19 @@ fn step_double(line: &[u8], i: usize, stack: &mut Vec<Ctx>) -> usize {
 /// Scans the single-quoted string whose opening quote is at `open` and
 /// returns the index after the quote that closes it. A backslash is literal
 /// and the next quote closes, except a `\'` followed by a word character:
-/// that was meant as an escaped quote, so it is recorded and scanning goes
-/// on the way the author meant it.
+/// that was meant as an escaped quote, so scanning goes on the way the author
+/// meant it, and the string is recorded when a later quote closes it. With no
+/// such quote the shell's reading is the only one, and it is valid:
+/// `echo 'a\'b` prints a\b.
 fn single_quoted(line: &[u8], open: usize, found: &mut Vec<(usize, usize)>) -> usize {
     let mut attempt = false;
     let mut j = open + 1;
     while j < line.len() {
         if line[j] == b'\'' {
-            j += 1;
-            break;
+            if attempt {
+                found.push((open, j + 1));
+            }
+            return j + 1;
         }
         if line[j] == b'\\' && line.get(j + 1) == Some(&b'\'') && is_word_byte(line.get(j + 2)) {
             attempt = true;
@@ -169,9 +177,6 @@ fn single_quoted(line: &[u8], open: usize, found: &mut Vec<(usize, usize)>) -> u
         } else {
             j += 1;
         }
-    }
-    if attempt {
-        found.push((open, j));
     }
     j
 }
@@ -324,6 +329,10 @@ mod tests {
             r#"echo 'a\'$x"#,
             r#"echo 'a\''b'"#,
             r#"echo '\' # 'x'"#,
+            // No later quote closes the string, so the shell's reading, the
+            // word a\b, is the only one and it is valid.
+            r#"echo 'a\'b"#,
+            r#"echo 'C:\'dir"#,
         ] {
             assert_eq!(check(code).diagnostics.len(), 0, "{code}");
         }
@@ -349,6 +358,9 @@ mod tests {
         // A backslash string that closes and runs into a word is the same
         // attempt even after an earlier, valid backslash string.
         assert_eq!(check(r#"tr -d '\\' && echo 'it\'s'"#).diagnostics.len(), 1);
-        assert_eq!(check(r#"echo 'a\'1"#).diagnostics.len(), 1);
+        assert_eq!(check(r#"echo 'a\'1'"#).diagnostics.len(), 1);
+        // `$$` is the shell's pid, so the quote after it opens a plain
+        // single-quoted string, not $'...'.
+        assert_eq!(check(r#"echo $$'a\'b'"#).diagnostics.len(), 1);
     }
 }
