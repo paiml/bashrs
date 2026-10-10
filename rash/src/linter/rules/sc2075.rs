@@ -131,4 +131,72 @@ mod tests {
         // Backslash not escaping a quote
         assert_eq!(result.diagnostics.len(), 0);
     }
+
+    // GH-439: inside '...' a backslash is literal and the next quote closes
+    // the string, so `'\\'` and `'\'` are complete strings. Another quoted
+    // string later on the line is a separate word, not the rest of this one.
+
+    #[test]
+    fn test_PMAT439_sc2075_backslashes_then_another_quoted_string() {
+        let code = r#"echo 'a\b' | tr -d '\\' | grep -x 'ab'"#;
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_PMAT439_sc2075_lone_backslash_then_another_quoted_string() {
+        let code = r#"echo a | tr -d '\' | grep -x 'a'"#;
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_PMAT439_sc2075_same_pipeline_inside_quoted_substitution() {
+        let code = r#"x="$(echo 'a\b' | tr -d '\\' | grep -x 'ab')""#;
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_PMAT439_sc2075_issue_controls_stay_clean() {
+        for code in [r#"echo a | tr -d '\\'"#, r#"x='\\'"#, r#"x='\'"#] {
+            assert_eq!(check(code).diagnostics.len(), 0, "{code}");
+        }
+    }
+
+    #[test]
+    fn test_PMAT439_sc2075_backslash_string_then_a_separate_word() {
+        for code in [
+            r#"printf '%s\n' '\' 'x'"#,
+            r#"sed 's/\\/\//g' '\' > out"#,
+            r#"a='\';b='x'"#,
+            r#"[ "$c" = '\' ] && echo 'x'"#,
+            r#"echo 'a\'"b""#,
+            r#"echo 'a\'$x"#,
+            r#"echo 'a\''b'"#,
+            r#"echo '\' # 'x'"#,
+        ] {
+            assert_eq!(check(code).diagnostics.len(), 0, "{code}");
+        }
+    }
+
+    #[test]
+    fn test_PMAT439_sc2075_not_single_quoted_context() {
+        for code in [
+            r#"echo "it\'s""#,
+            r#"echo $'it\'s'"#,
+            r#"echo it\'s"#,
+            r#"echo "a 'b\' c' d""#,
+        ] {
+            assert_eq!(check(code).diagnostics.len(), 0, "{code}");
+        }
+    }
+
+    #[test]
+    fn test_PMAT439_sc2075_true_positive_still_fires() {
+        let result = check(r#"echo 'it\'s'"#);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].severity, Severity::Error);
+        // A backslash string that closes and runs into a word is the same
+        // attempt even after an earlier, valid backslash string.
+        assert_eq!(check(r#"tr -d '\\' && echo 'it\'s'"#).diagnostics.len(), 1);
+        assert_eq!(check(r#"echo 'a\'1"#).diagnostics.len(), 1);
+    }
 }

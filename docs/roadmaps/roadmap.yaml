@@ -2936,3 +2936,24 @@ roadmap:
   - kind:docs
   notes: null
   epic: 426
+- id: PMAT-439
+  github_issue: 439
+  item_type: task
+  title: 'SC2075: a single-quoted backslash followed by another single-quoted string is not an escaped quote (bashrs#439)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-10-10T07:13:54Z
+  updated: 2026-10-10T07:14:06.957847620+00:00
+  spec: null
+  acceptance_criteria:
+  - 'bashrs lint on `echo ''a\b'' | tr -d ''\\'' | grep -x ''ab''` reports 0 errors: inside single quotes a backslash is literal and the next quote closes the string'
+  - 'a regression test holds the reproducer (clean) and the true positive `echo ''it\''s''` (SC2075 still fires); reverting the fix turns the reproducer test red'
+  - 'shapes covered: ''\\'' followed by ''x'' on the same line; the same inside "$( ... )"; a lone ''\'' followed by ''x'''
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
