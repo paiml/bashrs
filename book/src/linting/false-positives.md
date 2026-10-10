@@ -150,7 +150,7 @@ and `F-SC1009-GH238-*` falsification entries under `contracts/`.
 
 ## What 7.4.2 stopped guessing
 
-7.4.2 carries thirteen fixes, and twelve of them are linter rules that reported
+7.4.2 carries fifteen fixes, and thirteen of them are linter rules that reported
 correct scripts. They fall into three groups, and each group also tells you what
 the linter will now *not* report. Every fix keeps its true positive firing.
 
@@ -169,6 +169,10 @@ comment and an English sentence are text the shell never runs as shell.
   `s="$s $h=UP"` as an assignment (#388), and SC2242 no longer reads the words
   "case" and "break" in a quoted sentence as a `case` and a `break` (#355). Both
   join `QUOTE_SENSITIVE_RULES`. `$VAR=hello` as a command is still SC1066.
+- SC2075 no longer reads `'\\'` followed by another single-quoted string as
+  one string with an escaped quote: inside `'...'` a backslash is literal and
+  the next quote closes the string, so `tr -d '\\' | grep -ix '…'` is clean
+  (#441). `echo 'don\'t'` is still reported.
 
 **A word is found by its place in the command, not by a substring or a line
 regex.**
@@ -180,6 +184,9 @@ regex.**
 - SEC012, which reports `eval` of jq output, needs `eval` as a whole shell word,
   so `.eval_count` in a jq filter is not `eval` (#375). `eval "$(jq …)"` behind
   `sudo`, `env X=1`, `command` or `timeout` still fires.
+- SEC012 also follows the payload through a variable: `X=$(yq …)` on one line
+  and `eval "$X"` on a later one fires, naming the assignment line (#430). A
+  literal string or a reassignment clears the name.
 - SC2210 and SC2225 find an assignment by word position, so the `pid=` of
   `ps -o pid= --ppid "$$"` is not an assignment (#370). SC2058 takes `test` or
   `[` only as the name of a simple command, so `cargo test -q` is not the `test`

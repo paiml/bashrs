@@ -2652,6 +2652,7 @@ roadmap:
   - 'AND PMAT-355 (#355), which is IN this cut rather than a follow-up because the release gate is red without it: #332 made SC2242 count case depth in RAW source, so `echo "could not break the matcher — this case discriminates nothing"` is reported as a break outside a case. The rule joins QUOTE_SENSITIVE_RULES and is wired into the allowlist''s (code, check_fn) pair list, which is what makes the property test actually run it. This criterion was widened from the diff after a three-engine quorum refused the PR for carrying work the criterion did not name — the criterion was wrong, not the diff, but a release whose paperwork does not describe it cannot be audited.'
   - 'AND the R4 CLOSEOUT, which is the release ticket''s tail and lands in a SECOND PR (#358) after the cut PR (#356) merges. R4 reads "a tag is cut only when its release has no open entry", and CB-2113 leaves a ticket open in its own PR for the next PR to complete — so PMAT-355 is necessarily still open at the moment #356 merges, and closing it is work only this ticket can own. Done when release-lint reports v7.4.2 with ONE open entry, PMAT-354 itself, which cannot close before the release is cut. Criterion added from the diff after a three-engine quorum refused #358 3/3 for not performing the release cut: the lanes were right that the diff did not match the ticket text, and the ticket text was what was incomplete — a release ticket that does not own its own closeout leaves the closeout ownerless.'
   - 'AND the SECOND CUT, because the first was not tagged: nine entries merged to main after #356 and before any v7.4.2 tag existed (PMAT-362, PMAT-364, PMAT-366, PMAT-370, PMAT-371, PMAT-376, PMAT-380, PMAT-386, PMAT-388), plus #375 (SC1087 and SEC012, fixed by #399) and #397 (the nightly builds whenever the `nightly` tag is not at HEAD), neither of which has a roadmap entry. A tag cut from main carries all of them whether the paperwork names them or not, so the paperwork moves to the tree: the CHANGELOG''s `[Unreleased]` section becomes `[7.4.2] - 2026-10-04` with the #375 entry it was missing, `docs/release-notes.md` and `docs/roadmaps/releases.md` describe thirteen fixes and two nightly changes instead of four fixes, the nine entries are marked completed with `release:v7.4.2`, and the book carries the release, which `check-book-updated.sh` requires of a release commit. Docs-only: no path a cargo build reads changes after the gate tree 1241570740. Done when release-lint reports v7.4.2 with ONE open entry, PMAT-354 itself.'
+  - 'AND the THIRD CUT, because the second was not tagged either: two entries merged to main after #416 and before any v7.4.2 tag existed, PMAT-428 (#430, SEC012 follows an eval payload through a variable assigned a line earlier) and PMAT-439 (#441, SC2075 no longer reads `''\\''` followed by another quoted string as an escaped quote, the false positive that made forjar''s I8 gate refuse fw16''s `fw16-wired-10g-nm-owner` completion check). The paperwork names fifteen fixes: CHANGELOG `[7.4.2] - 2026-10-10`, release-notes, releases.md, and both entries completed with `release:v7.4.2`. Docs-only, so the code the tag carries is `e25dbeef27`, and the release gate must be re-measured on that tree before the tag: the second cut''s gates measured `1241570740`, which carries neither fix.'
   phases: []
   subtasks: []
   estimated_effort: null
@@ -2902,7 +2903,7 @@ roadmap:
   github_issue: 428
   item_type: task
   title: 'SEC012: eval of a variable assigned from a payload substitution (bashrs#428)'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-10-06T01:39:42Z
@@ -2915,6 +2916,7 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.2
   notes: null
   epic: 426
 - id: PMAT-432
@@ -2940,7 +2942,7 @@ roadmap:
   github_issue: 439
   item_type: task
   title: 'SC2075: a single-quoted backslash followed by another single-quoted string is not an escaped quote (bashrs#439)'
-  status: inprogress
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-10-10T07:13:54Z
@@ -2955,5 +2957,6 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.2
   notes: null
   epic: 426
