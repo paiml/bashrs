@@ -2962,3 +2962,23 @@ roadmap:
   - release:v7.4.2
   notes: null
   epic: 426
+- id: PMAT-444
+  github_issue: 444
+  item_type: task
+  title: 'keyring CLI tests share the real $HOME keyring and race under parallel test threads (Refs #444)'
+  status: inprogress
+  priority: critical
+  assigned_to: null
+  created: 2026-10-10T12:59:47Z
+  updated: 2026-10-10T12:59:49.161712617+00:00
+  spec: null
+  acceptance_criteria:
+  - 'test_INSTALLER_CLI_007_keyring_init and _list both resolve the real user''s $XDG_CONFIG_HOME or $HOME/.config/bashrs/installer/keyring.json; run in parallel, list reads a file init is mid-writing: ''EOF while parsing a value at line 1 column 0''. Fix: each keyring CLI test owns a TempDir via XDG_CONFIG_HOME+HOME. Discriminator: N parallel loop fails before, passes after.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - release:v7.4.2
+  notes: null
+  epic: 426
