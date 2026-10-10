@@ -1,0 +1,47 @@
+# Release epics for bashrs: one row per tagged release (a train) plus standing epics.
+# Core work = the open train (the next tag). Look-ahead work = the train after it,
+# planned in docs/lookahead/<train>.yaml; look-ahead proposes tickets and never mints them.
+# A roadmap row names its train with the label release:<tag>; `epic:` on a row is the
+# GitHub issue labelled `epic` that it is a sub-issue of.
+# Tag rule: a tag is cut only after `make release-gate` is green on the cut commit, and
+# nothing is uploaded until clean-room is green on exactly the tagged commit. Existing tags
+# are never moved, deleted or re-used.
+# Version and scope decided by a planted quorum, 2026-10-10:
+# docs/audits/quorum-epics-v7.4.2-v7.4.3.md
+epics:
+  - id: R-7.4.2
+    issue: 354            # the release issue is the umbrella for this train
+    train: "v7.4.2"
+    state: open           # current train: core
+    goal: "the fifteen fixes merged since v7.4.1 released as a patch, so forjar's bashrs pin can move"
+    core: [PMAT-354]
+    done_when:
+      - "make release-gate green on the cut commit"
+      - "tag v7.4.2 on that commit; clean-room green on exactly the tagged commit"
+      - "crates.io read-back: cargo install bashrs --version 7.4.2 reports bashrs 7.4.2"
+      - "forjar's bashrs pin PR opened against 7.4.2"
+    successor: R-7.4.3
+  - id: R-7.4.3
+    issue: null           # minted at the v7.4.2 close-out, not by look-ahead
+    train: "v7.4.3"
+    state: look-ahead
+    goal: "lint false positives found on 7.4.x fixed as a patch, and the nightly wasm gate's first green recorded"
+    kit: docs/lookahead/v7.4.3.yaml
+    look_ahead: [PMAT-440, "#349 (proposed)", "#431 (PR #434)", PMAT-425, PMAT-432]
+    successor: R-7.5.0
+  - id: R-7.5.0
+    issue: null
+    train: "v7.5.0"
+    state: planned        # minor: forjar parity is new behaviour
+    look_ahead: [PMAT-253, "#236", "#234"]
+    successor: null
+  - id: S1
+    issue: 426            # GitHub issue labelled `epic`
+    train: standing
+    name: "bashrs nightly CI green"
+    absorbs: [PMAT-421, PMAT-425, PMAT-432]
+  - id: S2
+    issue: null
+    train: standing
+    name: "debt ratchet"
+    absorbs: [PMAT-357]   # release:unscheduled while blocked

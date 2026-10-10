@@ -1,0 +1,23 @@
+# Look-ahead kit for v7.4.3 (patch). Flat and awk-readable. One look-ahead slot.
+# During the v7.4.2 cut the look-ahead slot opens no PRs and works on its branch only.
+train: "v7.4.3"
+after: "v7.4.2"
+theme: "False positives found on 7.4.x"
+criteria:
+  - {id: T1, pass: "bashrs lint reports no SC2180 on jq index syntax inside single quotes; a bash multidimensional index still fires", falsifier: "revert the fix and the #440 reproducer test goes red", command: "cargo test -p bashrs sc2180", ruling: quorum-2026-10-10}
+  - {id: T2, pass: "no SC2135 on a nested if inside a one-line for loop", falsifier: "the #349 reproducer test is red without the fix", command: "cargo test -p bashrs sc2135", ruling: quorum-2026-10-10}
+  - {id: T3, pass: "no BRS0009 on a '>' inside a quoted string", falsifier: "the #431 reproducer test is red without the fix", command: "cargo test -p bashrs brs0009", ruling: quorum-2026-10-10}
+  - {id: T4, pass: "Nightly Full Gate runs the five wasm latency tests with --release and all five pass on a scheduled run", falsifier: "the job fails unless all five ran and passed", command: "nightly-full-gate.yml scheduled run", ruling: quorum-2026-10-10}
+  - {id: T5, pass: "make release-gate green on the v7.4.3 cut commit; clean-room green on the tagged commit before upload", falsifier: "the release gate's own red", command: "make release-gate", ruling: quorum-2026-10-10}
+must_carry:
+  - {ticket: PMAT-440, issue: 440, size: S, state: "fix committed on a local branch, no PR yet"}
+  - {ticket: proposed, issue: 349, size: S, state: "issue only; look-ahead proposes the ticket, never mints it"}
+  - {ticket: "row on PR branch", issue: 431, size: S, state: "PR #434 open"}
+  - {ticket: PMAT-425, issue: 425, size: XS, state: "code merged in #427 before the v7.4.2 cut; closes on nightly evidence"}
+  - {ticket: PMAT-432, issue: 432, size: XS, state: "merged in #433 before the v7.4.2 cut; closes with PMAT-425"}
+candidates: [438, 437, 436, 435, 429, 424, 417, 415, 414, 413, 412, 411, 410, 409, 407, 406, 405, 403, 402, 401, 398, 391, 390, 379, 374, 373, 369, 368, 360, 359, 348, 336]
+questions:
+  - {id: Q1, text: "Which candidate false positives join v7.4.3 beyond must_carry?", asked: 2026-10-10, answer: open}
+risks:
+  - {risk: "the v7.4.2 cut slips a fourth time because a fix merges after the cut", mechanism: "look-ahead fixes land on main before the tag", tripwire: "no look-ahead PR merges between the v7.4.2 cut commit and its tag"}
+  - {risk: "the patch grows a feature", mechanism: "a forjar-parity phase (PMAT-253) rides along", tripwire: "any kind:code row without a reproducer issue goes to v7.5.0"}
