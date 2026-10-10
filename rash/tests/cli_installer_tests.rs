@@ -312,27 +312,65 @@ fn test_INSTALLER_CLI_006_test_matrix() {
 // =============================================================================
 // INSTALLER_CLI_007: Keyring command tests
 // =============================================================================
+//
+// Every keyring test runs the binary against a keyring in its OWN TempDir (#444). The binary resolves the
+// keyring from `$XDG_CONFIG_HOME`, else `$HOME/.config`; with the ambient environment, init and list both
+// resolved the user's real `~/.config/bashrs/installer/keyring.json`, libtest ran them on parallel threads,
+// and list read the file while init was writing it: "Failed to parse keyring: EOF while parsing a value at
+// line 1 column 0". Both variables are set, so neither branch of the resolution can reach the real home.
+
+/// A `bashrs installer keyring` command whose keyring lives under `config`, never the real `$HOME`.
+fn keyring_cmd(config: &TempDir) -> Command {
+    let mut cmd = bashrs_cmd();
+    cmd.env("XDG_CONFIG_HOME", config.path())
+        .env("HOME", config.path())
+        .arg("installer")
+        .arg("keyring");
+    cmd
+}
+
+/// Where `keyring_cmd(config)` puts the keyring file.
+fn keyring_file(config: &TempDir) -> std::path::PathBuf {
+    config
+        .path()
+        .join("bashrs")
+        .join("installer")
+        .join("keyring.json")
+}
 
 #[test]
 fn test_INSTALLER_CLI_007_keyring_init() {
-    bashrs_cmd()
-        .arg("installer")
-        .arg("keyring")
+    let config = TempDir::new().unwrap();
+    keyring_cmd(&config)
         .arg("init")
         .assert()
         .success()
         .stdout(predicate::str::contains("Initialized keyring"));
+    assert!(
+        keyring_file(&config).is_file(),
+        "init must write the keyring inside the test's own directory"
+    );
 }
 
 #[test]
 fn test_INSTALLER_CLI_007_keyring_list() {
-    bashrs_cmd()
-        .arg("installer")
-        .arg("keyring")
+    let config = TempDir::new().unwrap();
+    keyring_cmd(&config)
         .arg("list")
         .assert()
         .success()
-        .stdout(predicate::str::contains("Keyring")); // Outputs "Keyring not initialized" or "Keyring contents"
+        .stdout(predicate::str::contains("Keyring not initialized"));
+}
+
+#[test]
+fn test_INSTALLER_CLI_007_keyring_list_after_init() {
+    let config = TempDir::new().unwrap();
+    keyring_cmd(&config).arg("init").assert().success();
+    keyring_cmd(&config)
+        .arg("list")
+        .assert()
+        .success()
+        .stdout(predicate::str::contains("Keyring contents"));
 }
 
 // =============================================================================
