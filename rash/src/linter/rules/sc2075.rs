@@ -15,14 +15,34 @@
 //   msg='it'"'"'s fixed'       // End, quote in double quotes, continue
 //
 // Impact: Syntax errors, incorrect string values
+//
+// Not an escape attempt (GH-439): `tr -d '\\'` and `tr -d '\'` are complete
+// strings, because inside '...' a backslash is literal and the next quote
+// closes. The attempt is a `\'` that runs straight into a word, as in
+// 'it\'s'. Each line is scanned with its quoting context, so a `\'` inside
+// "...", $'...', a comment or unquoted code is not read as one, and a string
+// is never paired with the next quoted string on the line.
+//
+// The scan reads an attempt the way its author meant it, as an escaped quote
+// that does not close the string, so a second attempt later on the line is
+// still found ('don\'t' 'won\'t' reports twice). linter::quoting reads the
+// line as the shell does, closing at that `\'`, and from there on it is out
+// of step with the author, so this rule does not use it.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
 
-static ESCAPED_QUOTE_IN_SINGLE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    // Match: 'string\'more' (escaped quote inside single quotes)
-    Regex::new(r"'[^']*\\'[^']*'").unwrap()
-});
+/// The quoting context outside any single-quoted string.
+#[derive(Clone, Copy, PartialEq)]
+enum Ctx {
+    /// Unquoted code at the top of the line.
+    Code,
+    /// Unquoted code inside `$( )`; a `)` at this level closes it.
+    Paren,
+    /// Unquoted code inside backticks.
+    Backtick,
+    /// Inside `"..."`.
+    Double,
+}
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -30,20 +50,13 @@ pub fn check(source: &str) -> LintResult {
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        for mat in ESCAPED_QUOTE_IN_SINGLE.find_iter(line) {
-            let start_col = mat.start() + 1;
-            let end_col = mat.end() + 1;
-
+        for (start, end) in escape_attempts(line.as_bytes()) {
             let diagnostic = Diagnostic::new(
                 "SC2075",
                 Severity::Error,
                 "Escaping a single quote in single quotes won't work. Use '\"'\"' or double quotes"
                     .to_string(),
-                Span::new(line_num, start_col, line_num, end_col),
+                Span::new(line_num, start + 1, line_num, end + 1),
             );
 
             result.add(diagnostic);
@@ -51,6 +64,144 @@ pub fn check(source: &str) -> LintResult {
     }
 
     result
+}
+
+/// Byte ranges of the single-quoted strings on `line` that try to escape a
+/// quote, from the opening quote to the quote the author meant to close with.
+fn escape_attempts(line: &[u8]) -> Vec<(usize, usize)> {
+    let mut found = Vec::new();
+    let mut stack = vec![Ctx::Code];
+    let mut i = 0;
+    while i < line.len() {
+        let ctx = stack.last().copied().unwrap_or(Ctx::Code);
+        if ctx == Ctx::Double {
+            i = step_double(line, i, &mut stack);
+            continue;
+        }
+        match step_code(line, i, ctx, &mut stack, &mut found) {
+            Some(next) => i = next,
+            None => break, // a comment runs to the end of the line
+        }
+    }
+    found
+}
+
+/// One step in unquoted code. `None` when a comment starts at `i`.
+fn step_code(
+    line: &[u8],
+    i: usize,
+    ctx: Ctx,
+    stack: &mut Vec<Ctx>,
+    found: &mut Vec<(usize, usize)>,
+) -> Option<usize> {
+    match line[i] {
+        b'\\' => Some(i + 2),
+        b'#' if starts_word(line, i) => None,
+        b'\'' => Some(single_quoted(line, i, found)),
+        b'$' if line.get(i + 1) == Some(&b'\'') => Some(skip_ansi_c(line, i + 2)),
+        _ => Some(step_nesting(line, i, ctx, stack)),
+    }
+}
+
+/// Opens or closes `$( )`, backticks and `"..."` from unquoted code.
+fn step_nesting(line: &[u8], i: usize, ctx: Ctx, stack: &mut Vec<Ctx>) -> usize {
+    match (line[i], ctx) {
+        (b'$', _) if line.get(i + 1) == Some(&b'(') => {
+            stack.push(Ctx::Paren);
+            i + 2
+        }
+        (b'"', _) => {
+            stack.push(Ctx::Double);
+            i + 1
+        }
+        (b'`', Ctx::Backtick) | (b')', Ctx::Paren) => {
+            stack.pop();
+            i + 1
+        }
+        (b'`', _) => {
+            stack.push(Ctx::Backtick);
+            i + 1
+        }
+        (b'(', Ctx::Paren) => {
+            stack.push(Ctx::Paren);
+            i + 1
+        }
+        _ => i + 1,
+    }
+}
+
+/// One step inside `"..."`, where a single quote is text.
+fn step_double(line: &[u8], i: usize, stack: &mut Vec<Ctx>) -> usize {
+    match line[i] {
+        b'\\' => i + 2,
+        b'"' => {
+            stack.pop();
+            i + 1
+        }
+        b'$' if line.get(i + 1) == Some(&b'(') => {
+            stack.push(Ctx::Paren);
+            i + 2
+        }
+        b'`' => {
+            stack.push(Ctx::Backtick);
+            i + 1
+        }
+        _ => i + 1,
+    }
+}
+
+/// Scans the single-quoted string whose opening quote is at `open` and
+/// returns the index after the quote that closes it. A backslash is literal
+/// and the next quote closes, except a `\'` followed by a word character:
+/// that was meant as an escaped quote, so it is recorded and scanning goes
+/// on the way the author meant it.
+fn single_quoted(line: &[u8], open: usize, found: &mut Vec<(usize, usize)>) -> usize {
+    let mut attempt = false;
+    let mut j = open + 1;
+    while j < line.len() {
+        if line[j] == b'\'' {
+            j += 1;
+            break;
+        }
+        if line[j] == b'\\' && line.get(j + 1) == Some(&b'\'') && is_word_byte(line.get(j + 2)) {
+            attempt = true;
+            j += 2;
+        } else {
+            j += 1;
+        }
+    }
+    if attempt {
+        found.push((open, j));
+    }
+    j
+}
+
+/// Skips the body of `$'...'`, where `\'` is an escape, from `j` to after
+/// its closing quote.
+fn skip_ansi_c(line: &[u8], mut j: usize) -> usize {
+    while j < line.len() {
+        match line[j] {
+            b'\\' => j += 2,
+            b'\'' => return j + 1,
+            _ => j += 1,
+        }
+    }
+    line.len()
+}
+
+/// A `#` starts a comment only at the start of a word.
+fn starts_word(line: &[u8], i: usize) -> bool {
+    i == 0
+        || matches!(
+            line[i - 1],
+            b' ' | b'\t' | b';' | b'&' | b'|' | b'(' | b'<' | b'>'
+        )
+}
+
+/// A letter, digit or underscore: a closing quote followed by one of these
+/// runs into the same word.
+fn is_word_byte(b: Option<&u8>) -> bool {
+    b.is_some_and(|b| b.is_ascii_alphanumeric() || *b == b'_')
 }
 
 #[cfg(test)]
