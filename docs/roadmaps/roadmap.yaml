@@ -2897,6 +2897,7 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.3
   notes: null
   epic: 426
 - id: PMAT-428
@@ -2936,6 +2937,7 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:docs
+  - release:v7.4.3
   notes: null
   epic: 426
 - id: PMAT-439

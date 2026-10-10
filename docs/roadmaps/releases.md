@@ -39,6 +39,18 @@ Goal: the lowerings the v7.2.0 corpus removals exposed, the loop-containment rul
 
 Issues on this release: #303 (SC2106 not implemented), #316 (53 corpus entries exercised std methods with no lowering), #318 (an untracked copy of the source tree written by a test).
 
+## v7.4.3 (look-ahead)
+
+Goal: the lint false positives found on 7.4.x, fixed as a patch with a reproducer test each, and the first green of the nightly wasm gate recorded. A patch carries fixes only; a feature goes to v7.5.0. The kit is `docs/lookahead/v7.4.3.yaml` and the epics are in `docs/roadmaps/epics.yaml`. Nothing here merges between the v7.4.2 cut commit and its tag.
+
+| entry | what |
+|---|---|
+| PMAT-440 | #440: SC2180 read jq index syntax inside single quotes as a bash multidimensional array |
+| PMAT-425 | #425: the Nightly Full Gate measures the wasm latency budgets with `--release` (code merged in #427 before the v7.4.2 cut); closes on a green scheduled run |
+| PMAT-432 | #432: gates.md lists `make latency-gate` (merged in #433); closes with PMAT-425 |
+
+Also on this release, ticket on its PR branch or still to be proposed: #431 (PR #434, BRS0009 counted a `>` inside a quoted string), #349 (SC2135 on a nested `if` inside a one-line `for`).
+
 ## v7.5.0
 
 Goal: the forjar-parity phases that have been carried since v7.1.0, and the shellcheck-parity gaps #236 still names after v7.4.0 re-measured it. Coverage stays at or above 95 percent, every ticket carries a falsification test, and every pull request carries three independent quorum verdicts.
@@ -89,6 +101,8 @@ Goal: the defects found after v7.4.1 released as a patch, so forjar's bashrs pin
 | PMAT-439 | #441: SC2075 read `'\\'` followed by another single-quoted string as an escaped quote and reported an Error on a correct script, which made forjar's I8 gate refuse fw16's `fw16-wired-10g-nm-owner` completion check; `echo 'don\'t'` still fires |
 
 Also on this release, with no roadmap entry: #375 (#399), where SC1087 read `$s[0]` in a single-quoted jq program as an array expansion and SEC012 read `.eval_count` as `eval`; and #397, which builds the nightly whenever the `nightly` tag is not at HEAD.
+
+Status (2026-10-10): the paperwork (#442) is merged. What remains is PMAT-354: `make release-gate` on the cut commit, the tag, clean-room green on exactly the tagged commit, publish, and the forjar pin PR. This is the open train in `docs/roadmaps/epics.yaml`.
 
 Issues on this release: #331, #350, #352, #354, #355, #362, #364, #366, #370, #371, #375, #376, #380, #385, #386, #388, #428, #439.
 
