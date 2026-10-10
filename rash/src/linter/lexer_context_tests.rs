@@ -269,3 +269,36 @@ fn test_PMAT257_gh314_idem002_rm_inside_a_quoted_word_is_text() {
     // A real bare `rm` command is still reported.
     shell_fires("#!/bin/sh\nrm /app/current\n", "IDEM002");
 }
+
+// ---------------------------------------------------------------------------
+// GH-439: inside '...' a backslash is literal, so in `tr -d '\\'` the quote
+// after the backslashes closes the string. SC2075 read that `\'` as an escaped
+// quote and paired the string with the next single-quoted string on the line,
+// an Error on a valid script. `echo 'it\'s'` is still reported: there the
+// closing quote runs straight into a word.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_PMAT439_gh439_backslash_before_a_closing_single_quote_is_literal() {
+    for src in [
+        "#!/bin/bash\necho 'a\\b' | tr -d '\\\\' | grep -x 'ab'\n",
+        "#!/bin/bash\necho a | tr -d '\\' | grep -x 'a'\n",
+        "#!/bin/bash\nx=\"$(echo 'a\\b' | tr -d '\\\\' | grep -x 'ab')\"\necho \"$x\"\n",
+    ] {
+        let result = lint_shell(src);
+        assert_absent(&result, "SC2075", src);
+        let errors: Vec<_> = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.severity == crate::linter::Severity::Error)
+            .collect();
+        assert!(
+            errors.is_empty(),
+            "no error on a valid script:\n{src}\ngot {errors:?}"
+        );
+    }
+    shell_fires("#!/bin/bash\necho 'it\\'s'\n", "SC2075");
+    // An attempt followed by a space leaves no word to glue, so SC2075 stays
+    // silent; the quote it leaves open is still an error.
+    shell_fires("#!/bin/bash\necho 'can\\' t'\necho done\n", "SC1078");
+}
