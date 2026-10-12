@@ -82,7 +82,7 @@ jobs:
         # cargo-deny it reports itself absent and skips, which is honest but
         # measures nothing — and the sovereign CI container has it, so a
         # nightly without it would not be running the same gate.
-        uses: taiki-e/install-action@9534c84618278caac52cb373bb164ed464dbd8af # v2.87.11
+        uses: taiki-e/install-action@ab6895351a88b908e96a4697860d4ffea5e57dbe # v2.87.27
         with:
           tool: cargo-deny
 
