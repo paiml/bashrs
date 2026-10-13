@@ -133,9 +133,6 @@ predicates = "3.1"
 # runs 35452452790 and 35452984904). Do not add it back.
 verificar = "0.6"  # Synthetic bash program generation for comprehensive testing
 jugar-probar = "1.0"  # TUI/GUI testing framework with coverage tracking
-# Differential oracle for build_support/binding_yaml.rs (tests/build_binding_yaml_differential.rs)
-# only: a dev-dependency, so bashrs's normal+build graph stays free of unsafe-libyaml.
-serde_yaml_ng = "0.10"
 
 [[bench]]
 name = "transpilation"

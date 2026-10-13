@@ -1,11 +1,11 @@
-//! Differential: `build_support/binding_yaml.rs` against `serde_yaml_ng`,
-//! the YAML crate `build.rs` used before it (RUSTSEC-2024-0449).
+//! Differential: `../binding_yaml.rs` (the reader `rash/build.rs` uses for
+//! provable-contracts `binding.yaml`) against `serde_yaml_ng`, the YAML crate
+//! `build.rs` used before it (RUSTSEC-2024-0449).
 //!
 //! For every input the old script read, the reader must return the same
-//! bindings, and for every input it refuses, `serde_yaml_ng` must be reading a
-//! shape the reader documents as refused. `serde_yaml_ng` is a
-//! dev-dependency only: `cargo tree -p bashrs -e normal,build` stays free of
-//! it (tests/build_deps_no_unsafe_libyaml.rs).
+//! bindings, and every input it refuses must be a shape it documents as
+//! refused. This package is its own workspace (see Cargo.toml), not a bashrs member, so
+//! `serde_yaml_ng` never enters bashrs's dependency graph or Cargo.lock.
 //!
 //! The committed corpus is the bashrs `binding.yaml` fixture plus the inline
 //! cases below. To run the same comparison over a provable-contracts
@@ -15,10 +15,11 @@
 //!
 //! ```text
 //! BINDING_YAML_CORPUS=../provable-contracts/contracts \
-//!   cargo test -p bashrs --test build_binding_yaml_differential -- --nocapture
+//!   cargo test --manifest-path rash/build_support/differential/Cargo.toml -- --nocapture
 //! ```
+#![cfg(test)]
 
-#[path = "../build_support/binding_yaml.rs"]
+#[path = "../binding_yaml.rs"]
 #[allow(dead_code)]
 mod binding_yaml;
 
@@ -76,7 +77,7 @@ fn compare(name: &str, src: &str) -> bool {
     }
 }
 
-const FIXTURE: &str = include_str!("data/binding_yaml/bashrs-binding.yaml");
+const FIXTURE: &str = include_str!("../../tests/data/binding_yaml/bashrs-binding.yaml");
 
 #[test]
 fn bashrs_fixture_reads_the_same() {
