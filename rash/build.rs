@@ -1,97 +1,55 @@
 //! Build script for bashrs crate.
 //!
 //! This build script configures cargo to recognize the `kani` cfg for verification.
+//! It reads provable-contracts `binding.yaml` with `build_support/binding_yaml.rs`,
+//! a strict reader of that one shape, so no YAML crate is a build-dependency.
+
+#[path = "build_support/binding_yaml.rs"]
+mod binding_yaml;
 
 use std::collections::HashSet;
 use std::path::Path;
-
-#[derive(serde::Deserialize)]
-struct BF {
-    #[allow(dead_code)]
-    version: String,
-    bindings: Vec<B>,
-}
-
-#[derive(serde::Deserialize)]
-struct B {
-    contract: String,
-    equation: String,
-    status: String,
-    #[serde(default)]
-    function: Option<String>,
-}
 
 fn main() {
     // Allow kani cfg for verification
     println!("cargo::rustc-check-cfg=cfg(kani)");
 
     // ── provable-contracts binding enforcement (AllImplemented) ──
-    enforce_bindings();
-}
-
-/// `<workspace parent>/provable-contracts/contracts/bashrs/binding.yaml`.
-fn binding_path() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
+    let binding_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap_or(Path::new("."))
         .parent()
         .unwrap_or(Path::new("."))
-        .join("provable-contracts/contracts/bashrs/binding.yaml")
-}
+        .join("provable-contracts/contracts/bashrs/binding.yaml");
 
-fn enforce_bindings() {
-    let binding_path = binding_path();
     println!("cargo:rerun-if-changed={}", binding_path.display());
+
     if !binding_path.exists() {
         return;
     }
     let Ok(yaml) = std::fs::read_to_string(&binding_path) else {
         return;
     };
-    let Some(bf) = parse_bindings(&yaml) else {
-        return;
-    };
-    check_all_implemented(&bf);
-    // ── Layer 2: Verify bound functions exist in source ──
-    check_bound_functions(&bf);
+    match binding_yaml::parse_bindings(&yaml) {
+        Ok(bindings) => enforce_all_implemented(&bindings),
+        Err(e) => println!("cargo:warning=[contract] binding.yaml not read: {e}"),
+    }
 }
 
-fn parse_bindings(yaml: &str) -> Option<BF> {
-    // RUSTSEC-2024-0449 (PMAT-450): serde-saphyr, held to what serde_yaml_ng read:
-    // YAML 1.2 booleans only, `<<` is an ordinary key, a duplicate key is an error.
-    let opts = serde_saphyr::options! {
-        strict_booleans: true,
-        duplicate_keys: serde_saphyr::options::DuplicateKeyPolicy::Error,
-        merge_keys: serde_saphyr::options::MergeKeyPolicy::AsOrdinary,
-    };
-    serde_saphyr::from_str_with_options::<BF>(yaml, opts).ok()
-}
-
-fn binding_env_var(b: &B) -> String {
-    format!(
-        "CONTRACT_{}_{}",
-        b.contract
-            .trim_end_matches(".yaml")
-            .to_uppercase()
-            .replace('-', "_"),
-        b.equation.to_uppercase().replace('-', "_")
-    )
-}
-
-fn check_all_implemented(bf: &BF) {
-    let (mut imp, mut gaps) = (0u32, Vec::new());
-    for b in &bf.bindings {
-        let var = binding_env_var(b);
+/// One `rustc-env` per binding; any binding not `implemented` fails the build.
+fn enforce_all_implemented(bindings: &[binding_yaml::Binding]) {
+    let mut gaps = Vec::new();
+    for b in bindings {
+        let var = binding_yaml::env_var_name(b);
         println!("cargo:rustc-env={var}={}", b.status);
-        if b.status == "implemented" {
-            imp += 1;
-        } else {
+        if b.status != "implemented" {
             gaps.push(var);
         }
     }
-    let total = bf.bindings.len() as u32;
+    let imp = bindings.len() - gaps.len();
     println!(
-        "cargo:warning=[contract] AllImplemented: {imp}/{total} implemented, {} gaps",
+        "cargo:warning=[contract] AllImplemented: {imp}/{} implemented, {} gaps",
+        bindings.len(),
         gaps.len()
     );
     if !gaps.is_empty() {
@@ -103,15 +61,16 @@ fn check_all_implemented(bf: &BF) {
             gaps.len()
         );
     }
+    check_bound_functions(bindings);
 }
 
-fn check_bound_functions(bf: &BF) {
-    let expected: HashSet<String> = bf
-        .bindings
+/// Layer 2: soft warning when a bound function is not declared in source.
+fn check_bound_functions(bindings: &[binding_yaml::Binding]) {
+    let expected: HashSet<String> = bindings
         .iter()
         .filter(|b| b.status == "implemented")
         .filter_map(|b| b.function.as_deref())
-        .map(|func| func.rsplit("::").next().unwrap_or(func).to_lowercase())
+        .map(|f| f.rsplit("::").next().unwrap_or(f).to_lowercase())
         .collect();
     if expected.is_empty() {
         return;
@@ -119,10 +78,7 @@ fn check_bound_functions(bf: &BF) {
     let mut found = HashSet::new();
     scan_rs(Path::new("src"), &mut found);
     scan_rs(Path::new("crates"), &mut found);
-    let missing = expected
-        .iter()
-        .filter(|n| !found.contains(n.as_str()))
-        .count();
+    let missing = expected.iter().filter(|n| !found.contains(*n)).count();
     if missing > 0 {
         println!("cargo:warning=[contract] L2: {missing} bound function(s) not found in source (soft warning)");
     }
@@ -141,22 +97,15 @@ fn scan_rs(dir: &Path, found: &mut HashSet<String>) {
             }
         } else if p.extension().and_then(|e| e.to_str()) == Some("rs") {
             if let Ok(c) = std::fs::read_to_string(&p) {
-                collect_pub_fns(&c, found);
+                found.extend(c.lines().filter_map(pub_fn_name));
             }
         }
     }
 }
 
-fn collect_pub_fns(source: &str, found: &mut HashSet<String>) {
-    for line in source.lines() {
-        if let Some(name) = pub_fn_name(line.trim()) {
-            found.insert(name);
-        }
-    }
-}
-
-/// Lower-cased name of a `pub fn` / `pub async fn` / `pub(crate) fn` line, if any.
-fn pub_fn_name(t: &str) -> Option<String> {
+/// The lowercased name declared by a `pub fn`, `pub async fn` or `pub(crate) fn` line.
+fn pub_fn_name(line: &str) -> Option<String> {
+    let t = line.trim();
     if !(t.starts_with("pub fn ")
         || t.starts_with("pub async fn ")
         || t.starts_with("pub(crate) fn "))

@@ -180,9 +180,4 @@ harness = false
 
 # wasm-pack metadata removed - WASM support moved to probar/simular/jugar
 
-
-[build-dependencies]
-serde = { version = "1", features = ["derive"] }
-# RUSTSEC-2024-0449 (PMAT-450): serde-saphyr is pure Rust with no libyaml port; serde_yaml_ng pulled the
-# unmaintained unsafe-libyaml. Only `deserialize` is taken: build.rs never writes YAML.
-serde-saphyr = { version = "=1.3.0", default-features = false, features = ["deserialize"] }
+# No build-dependencies: build.rs reads binding.yaml with build_support/binding_yaml.rs.
