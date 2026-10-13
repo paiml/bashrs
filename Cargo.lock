@@ -423,7 +423,6 @@ dependencies = [
  "schemars 1.2.2",
  "serde",
  "serde_json",
- "serde_yaml_ng",
  "static_assertions",
  "syn 3.0.5",
  "sysinfo",
