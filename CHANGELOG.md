@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.4.3] - 2026-10-16
+
+A patch release cut on the weekly cadence. It carries no linter change: nothing that fixes a rule has merged since v7.4.2. What it does carry is a main that builds, lints and passes `cargo deny` again (see Changed), so the next linter fix has a clean tag to land on.
+
+### Changed
+
+- **CI action bumps** (#446, #447, #448): `taiki-e/install-action` 2.87.11 to 2.87.27, `actions/upload-artifact` 4.6.2 to 7.0.2, `actions/download-artifact` 4.3.0 to 8.0.2.
+- **`deny.toml` ignores RUSTSEC-2024-0449** (unsafe-libyaml, unmaintained, no patched release) as an interim entry with a reason and a removal condition (bashrs#451, aprender#5326). Added with the PMAT-451 change; this entry is in the release only if that change has merged before the tag.
+
 ## [7.4.2] - 2026-10-10
 
 A patch release with fifteen fixes. Thirteen of them fix linter rules that reported correct scripts: most read text the shell never runs as shell (a single-quoted awk or jq program, a comment, an English sentence), or found a word by substring or line regex instead of by its place in the command. One fixes a rule that missed a real `eval` of downloaded text when the payload sat one line above the `eval`. The fifteenth drops a dependency that broke every aarch64 build. The release was first cut on 2026-09-20 with four of these fixes and was not tagged before the other eleven merged, so the tag carries all fifteen. The nightly build changed too: its Linux assets run on glibc 2.35, an aarch64-linux asset ships, and it builds whenever the `nightly` tag is not at HEAD.
