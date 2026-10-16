@@ -29,6 +29,7 @@ metadata:
   - 'GH-262: SC2046 fires in three contexts where the shell performs no field splitting (assignment RHS, inside double quotes, case word)'
   - 'GH-235: SC1078 - an apostrophe inside a double-quoted string opens a single quote (fixed; pinned)'
   - 'GH-258: SC1140 - a trailing # comment after a [ ] test is an unexpected token (fixed; pinned)'
+  - 'GH-439: SC2075 - a backslash before the closing quote of ''\\'' or ''\'' is read as an escaped quote, so the string is paired with the next single-quoted string on the line'
   - 'GH-226, GH-272: linter::quoting resolves quoting once and hands QUOTE_SENSITIVE_RULES a masked copy'
   - 'GH-228: linter::shell_words - a command substitution opens a fresh quoting context (POSIX 2.6.3); already treats $(( )) as no expansion (test_SW_020) and honours backslash escapes inside double quotes'
   - 'docs/audit/quality-report09-2026.md section 4: the lexer reads non-shell text as shell'
@@ -139,6 +140,7 @@ invariants:
 - 'bashrs corpus run over the full 17,942-entry corpus scores no worse than the 7.0.2 baseline (84.4/100 B, 333 failures)'
 - 'SC2105 processes loop-start keywords, done and break/continue in the byte order they occur on a physical line, not by summing a whole line''s keyword counts before checking break/continue (PMAT-244); a bare break/continue outside any loop still fires'
 - 'shell_words::Expansion covers command substitutions ($( ), nested $( $( ) ), and backticks, including inside double quotes) as well as $NAME/${NAME}; SC2046 has no private quote-aware scanner of its own (PMAT-250)'
+- 'SC2075 never reports a single-quoted string whose content ends in a backslash when the closing quote is followed by a space, a shell operator, another quote or the end of the line - inside ''...'' a backslash is literal and the next quote closes (GH-439); it still reports `echo ''it\''s''`, where the closing quote runs into a word and a later quote closes the string its author meant, and not `echo ''a\''b` with no later quote, the valid word a\b'
 
 kani_harnesses:
 - id: KANI-LEXER_CONTEXT-001
@@ -300,3 +302,8 @@ falsification_tests:
   prediction: 'a break inside parentheses in a for loop reports SC2106, while a plain break in a loop body does not'
   test: cargo test -p bashrs --lib linter::rules::sc2106::tests::test_PMAT258_sc2106_break_in_subshell_inside_for_loop_fires
   if_fails: 'Contract violation: SC2106 carries a non-shellcheck meaning again, so a suppression written against shellcheck silences the wrong rule, as in GH-303'
+- id: F-LCX-021
+  rule: inside '...' a backslash is literal, so the quote after it closes the string (GH-439)
+  prediction: 'lint_shell reports no SC2075 and no error on `echo ''a\b'' | tr -d ''\\'' | grep -x ''ab''`, on the lone-backslash form `echo a | tr -d ''\'' | grep -x ''a''`, or on the same pipeline inside "$( ... )"; `echo ''it\''s''` still reports SC2075'
+  test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT439_gh439_backslash_before_a_closing_single_quote_is_literal
+  if_fails: 'Contract violation: SC2075 reads `\''` inside single quotes as an escaped quote again and pairs the string with the next quoted string on the line (GH-439), or the rule was blunted so that it no longer fires on its true positive'

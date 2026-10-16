@@ -278,6 +278,21 @@ PASSWORD=$(aws secretsmanager get-secret-value --secret-id my-password --query S
 PASSWORD=$(gpg --decrypt ~/.secrets/password.gpg)
 ```
 
+### What it does NOT flag
+
+A provider prefix such as `sk-`, `ghp_` or `gho_` counts only at the start of a
+token (#351, 7.4.2). Inside a word it is not a key, so the `sk-` inside
+`disk-watch` is not an OpenAI key:
+
+```bash
+TIMER="ci-disk-watch.timer"
+systemctl show "$TIMER"
+```
+
+Before 7.4.2 the prefixes were matched as bare substrings, so this script was
+reported as a hardcoded secret. A value that starts with a provider prefix, such
+as `sk-proj-…`, is still reported.
+
 ### Auto-fix
 
 Not auto-fixable - requires migration to secure secret management.

@@ -82,7 +82,7 @@ jobs:
         # cargo-deny it reports itself absent and skips, which is honest but
         # measures nothing — and the sovereign CI container has it, so a
         # nightly without it would not be running the same gate.
-        uses: taiki-e/install-action@9534c84618278caac52cb373bb164ed464dbd8af # v2.87.11
+        uses: taiki-e/install-action@ab6895351a88b908e96a4697860d4ffea5e57dbe # v2.87.27
         with:
           tool: cargo-deny
 
@@ -107,6 +107,14 @@ jobs:
       - name: Test, every target
         # Integration targets, doctests and examples — the part `--lib` skips.
         run: cargo test --workspace
+
+      - name: Latency budgets, on the build they describe (#425)
+        # C-WASM-002 is a claim about the optimized linter. The five
+        # `mod performance` tests in bashrs-wasm are ignored under
+        # debug_assertions, so the step above lists them as ignored. This
+        # step runs them with --release and fails unless all five passed.
+        # `make release-gate` runs the same target.
+        run: make latency-gate
 
       - name: Integration test targets compiled
         # #233 measured 37 of 145 integration targets not compiling while CI
