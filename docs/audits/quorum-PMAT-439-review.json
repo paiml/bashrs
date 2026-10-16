@@ -1,0 +1,122 @@
+{
+ "ticket": "PMAT-439",
+ "phase": "review",
+ "dispatch": "PMAT-439 review: two blind rounds of width 3 (sonnet, sonnet adversarial, haiku). In each round, every lane judges two candidate diffs A/B against a snapshot of the base files: the real diff and a control that must FAIL. r2 sees them in reversed order. index lines are removed from the diffs so blob hashes cannot reveal which candidate was committed.",
+ "degraded": "same-family",
+ "author_model": "claude-opus-5-5",
+ "base": "63abc48ec4",
+ "judged_commit": "b797e6b2eb2ea20050cbca744edc528ce03a2fdd",
+ "judged_diff": {
+  "cmd": "git diff 63abc48ec4 b797e6b2eb",
+  "sha256": "671890d15c791bd704ce630d3e01113f042769b55316b0fa4b86c507694ced3c",
+  "lane_copy_sha256_index_lines_removed": "9159aaba4846",
+  "files": 4,
+  "insertions": 307,
+  "deletions": 14
+ },
+ "result": {
+  "real_pass": "3/3",
+  "control_caught": "3/3"
+ },
+ "diff_lane_reduce": {
+  "round": 2,
+  "width": 3,
+  "executor": "claude-code",
+  "control": "single_quoted records an attempt only when the closing quote is followed by whitespace or the end of the line (line.get(j + 1).is_none_or(u8::is_ascii_whitespace)); cargo: 17 passed, 1 failed (test_sc2075_in_command_sub)",
+  "lanes": [
+   {
+    "lane": "r1",
+    "model": "claude-sonnet-5-5",
+    "order": "A=real B=control",
+    "status": "SUCCESS",
+    "verdict": "PASS",
+    "control_verdict": "FAIL",
+    "summary": "Real diff: every added assertion and all 10 existing sc2075 tests trace to their expected counts; all three criteria shapes are clean and echo 'it\\'s' reports one Error. Control: the whitespace-only close check drops result=$(echo 'can\\'t'), so test_sc2075_in_command_sub fails.",
+    "findings": [
+     {
+      "claim": "Shared false positive: in echo 'a\\'b 'c' a later opening quote is read as the closer of the attempt. The old regex matched it too, so this is not a regression.",
+      "file": "rash/src/linter/rules/sc2075.rs",
+      "fix": "optional: require that the closer ends a word (whitespace, operator, ')' or end of line), never whitespace alone",
+      "grounding": "bash prints a\\b c; single_quoted sets attempt at \\'b and closes at the quote before c",
+      "line": 0
+     }
+    ]
+   },
+   {
+    "lane": "r2",
+    "model": "claude-sonnet-5-5",
+    "order": "A=control B=real",
+    "status": "SUCCESS",
+    "verdict": "PASS",
+    "control_verdict": "FAIL",
+    "summary": "Adversarial. Real diff: traced the 10 existing counts (1,1,0,0,0,0,0,2,1,0) and every added assertion, and found no failing assertion. Control: test_sc2075_in_command_sub gets 0 where 1 is expected; the control also hides echo 'it\\'s'; foo, cmd 'it\\'s'|grep and echo 'it\\'s'>f, all of which the old regex reported.",
+    "findings": [
+     {
+      "claim": "Shared limit: the scan is per line, so a '...' spanning lines (an awk program) loses its quote state at the newline. The old regex was per line too.",
+      "file": "rash/src/linter/rules/sc2075.rs",
+      "fix": "none for this ticket",
+      "grounding": "awk ' / /x\\'y/ {print} / ' file: line 2 is scanned as code, and \\' is skipped as an escape",
+      "line": 71
+     },
+     {
+      "claim": "echo 'a\\'b' c is reported; the shell leaves a quote open there, so the script is broken anyway, and the old regex reported it too.",
+      "file": "rash/src/linter/rules/sc2075.rs",
+      "fix": "none",
+      "grounding": "attempt at \\'b, closed by the quote before ' c'",
+      "line": 150
+     }
+    ]
+   },
+   {
+    "lane": "r3",
+    "model": "claude-haiku-5-5",
+    "order": "A=real B=control",
+    "status": "SUCCESS",
+    "verdict": "PASS",
+    "control_verdict": "FAIL",
+    "summary": "Real diff: every new assertion traces to its expected count and the existing tests keep theirs, including test_sc2075_in_command_sub. Control: the close of result=$(echo 'can\\'t') is followed by ')', so nothing is pushed (0, expected 1); echo 'it\\'s'; and echo 'it\\'s'|cat are lost too.",
+    "findings": [
+     {
+      "claim": "Shared false positive: echo 'a\\'b'c' is valid shell (the word a\\bc), yet it is reported. The old regex matches '\\'b' as well, so this is not a regression.",
+      "file": "rash/src/linter/rules/sc2075.rs",
+      "fix": "optional: check that the closer ends a word, keeping ')' as an ending so test_sc2075_in_command_sub holds",
+      "grounding": "attempt at \\'b, then the quote before c closes it",
+      "line": 169
+     }
+    ]
+   }
+  ]
+ },
+ "prior_round": {
+  "round": 1,
+  "judged_commit": "3a1a4f72dc",
+  "judged_diff_sha256": "1d340132080abae5bd3a4acd378d506853a3c939e0077a0c0b1f5396f51913cd",
+  "control": "is_word_byte accepts digits and underscore only; cargo: 12 passed, 6 failed (true_positive_still_fires, escaped_quote, in_command_sub, its, multiple, the lexer_context GH-439 test)",
+  "real_pass": "3/3",
+  "control_caught": "3/3",
+  "lanes": [
+   {"lane": "r1", "model": "claude-sonnet-5-5", "order": "A=real B=control", "verdict": "PASS", "control_verdict": "FAIL"},
+   {"lane": "r2", "model": "claude-sonnet-5-5", "order": "A=control B=real", "verdict": "PASS", "control_verdict": "FAIL"},
+   {"lane": "r3", "model": "claude-haiku-5-5", "order": "A=real B=control", "verdict": "PASS", "control_verdict": "FAIL"}
+  ],
+  "findings_acted_on": [
+   {
+    "claim": "echo 'a\\'b with no later quote is reported, but the shell reads it as the valid word a\\b; the old regex needed a later quote and stayed silent (r3; r2 found the same with echo 'C:\\'dir)",
+    "fix": "b797e6b2eb: record an attempt only when a later quote closes the string",
+    "grounding": "bash -c \"echo 'a\\\\'b\" prints a\\b"
+   },
+   {
+    "claim": "echo $$'a\\'b' is silent: $' after $$ was read as ANSI-C, while the old regex reported it (r2)",
+    "fix": "b797e6b2eb: step over $$ as one token",
+    "grounding": "bash: echo $$'a\\nb' prints the pid, then a\\nb literally, so $' after $$ is not ANSI-C"
+   }
+  ]
+ },
+ "delegate_receipt": "lane outputs are model reports; each verdict on a control was checked against cargo below",
+ "orchestrator_remeasure": {
+  "real": "cargo test -p bashrs --lib -- PMAT439 sc2075: 18 passed; 0 failed",
+  "control_round_1": "12 passed; 6 failed",
+  "control_round_2": "17 passed; 1 failed (test_sc2075_in_command_sub)",
+  "workspace": "cargo nextest run --workspace at b797e6b2eb: 17347 passed; 0 failed; 163 skipped"
+ }
+}
