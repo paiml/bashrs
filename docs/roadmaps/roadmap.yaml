@@ -2982,3 +2982,22 @@ roadmap:
   - release:v7.4.2
   notes: null
   epic: 426
+- id: PMAT-437
+  github_issue: 437
+  item_type: task
+  title: 'SC1066: pin quoted $p=$v shapes (forjar mq-label ids="$ids $WANT=$id") in lint_shell (closes #437)'
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-10-17T17:11:54Z
+  updated: 2026-10-17T17:11:54Z
+  spec: null
+  acceptance_criteria:
+  - 'Fixture per form: assignment RHS, echo arg after single-quoted word holding a dquote, mq-label line; bare $p=v control must fire; red when SC1066 leaves QUOTE_SENSITIVE_RULES.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
