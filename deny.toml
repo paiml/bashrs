@@ -16,6 +16,10 @@ ignore = [
     { id = "RUSTSEC-2025-0119", reason = "number_prefix: transitive via indicatif, no replacement available" },
     { id = "RUSTSEC-2025-0141", reason = "bincode: transitive, widely used, no drop-in replacement" },
     { id = "RUSTSEC-2026-0002", reason = "lru 0.12.5: transitive via ratatui, fixed in 0.16 but ratatui pins 0.12" },
+    # unsafe-libyaml 0.2.11 - unmaintained, no patched release exists. Enters via
+    # aprender, jugar-probar and provable-contracts. Interim only (bashrs#451): remove after the
+    # serde-saphyr swap, https://github.com/paiml/aprender/issues/5326
+    { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml: unmaintained, no fix; via aprender/jugar-probar/provable-contracts. Remove after the serde-saphyr swap, aprender#5326 (https://github.com/paiml/aprender/issues/5326); bashrs#451" },
 ]
 
 [licenses]
