@@ -360,6 +360,12 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     "SC1012", // \t is a literal t — a `\t` in an awk regex (info)
     "SC2025", // escape sequences — the same `\t` (info)
     "SC2112", // `function` is non-standard — awk has one too (info)
+    // bashrs#431. SC2096 counted `>` characters on the raw line, so the `>` in
+    // `printf '%s\n' "a <N>m b N>0" >&2` was a second stdout redirection. It
+    // now reads redirection operators from tokens, and masking is what keeps a
+    // quoted string or a heredoc body from ever being a token. The bare
+    // `echo a >x >y` in `tests/quoting_literal_payload_guard.rs` still fires.
+    "SC2096", // Multiple redirections of one stream (BRS0009)
 ];
 
 /// Should a diagnostic from `code` be dropped when it lands inside a literal?
@@ -1386,6 +1392,8 @@ mod tests {
             ("SC1012", sc1012::check),
             ("SC2025", sc2025::check),
             ("SC2112", sc2112::check),
+            // bashrs#431
+            ("SC2096", sc2096::check),
         ]
     }
 

@@ -2982,3 +2982,41 @@ roadmap:
   - release:v7.4.2
   notes: null
   epic: 426
+- id: PMAT-437
+  github_issue: 437
+  item_type: task
+  title: 'SC1066: pin quoted $p=$v shapes (forjar mq-label ids="$ids $WANT=$id") in lint_shell (closes #437)'
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-10-17T17:11:54Z
+  updated: 2026-10-17T17:11:54Z
+  spec: null
+  acceptance_criteria:
+  - 'Fixture per form: assignment RHS, echo arg after single-quoted word holding a dquote, mq-label line; bare $p=v control must fire; red when SC1066 leaves QUOTE_SENSITIVE_RULES.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
+- id: PMAT-431
+  github_issue: 431
+  item_type: task
+  title: 'BRS0009 (SC2096): count redirection operators from tokens, not ''>'' characters (bashrs#431)'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-10-06T07:23:43Z
+  updated: 2026-10-06T07:26:01.042756079+00:00
+  spec: null
+  acceptance_criteria:
+  - 'SC2096 (BRS0009) counts redirection operators read by a lexer over the masked line, and is in QUOTE_SENSITIVE_RULES and allowlisted_checks. In the test_PMAT431_* tests, the bashrs#431 line and its single-quoted, double-quoted, $''...'' and heredoc-body variants give zero SC2096 on the dispatched input and zero BRS0009 from lint_shell, and fire on the raw source; $(( a > b )), (( a > b )), [[ $a > $b ]], \>, ${x//>/y}, exec 3>a 4>b, process substitution, a background &, >> a 2>> b and <> are silent; echo a >x >y, x=$(cmd >a >b), cmd 2>e1 2>e2 and echo a >>f1 >>f2 still fire. The BRS0009 payload in quoting_literal_payload_guard.rs passes. The new tests fail with sc2096.rs and quoting.rs reverted.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
