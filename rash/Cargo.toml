@@ -54,7 +54,6 @@ phf.workspace = true
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 rand = { version = "0.10", optional = true }
 rand_chacha = { version = "0.10", optional = true }
-batuta-common = "0.1"
 static_assertions = "1.1"
 rayon = "1.12"  # Parallel file linting (Sprint 14)
 regex = "1.13"  # For linter pattern matching
