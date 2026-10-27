@@ -493,3 +493,12 @@ fn test_parse_public_key_invalid_hex() {
         parse_public_key("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
     assert!(result.is_err());
 }
+
+#[test]
+fn test_truncate_str_multibyte_boundary_safe() {
+    // 6 bytes but 2 chars: byte index 2 is mid-codepoint for "日日" (3 bytes each)
+    assert_eq!(truncate_str("日日", 5), "日日");
+    assert_eq!(truncate_str("日日日日", 3), "...");
+    assert_eq!(truncate_str("日本語のテキスト", 6), "日本語...");
+    assert_eq!(truncate_str("ééééééé", 6), "ééé...");
+}
