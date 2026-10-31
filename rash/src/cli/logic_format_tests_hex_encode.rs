@@ -398,3 +398,16 @@ fn test_test_pass_rate_none() {
 fn test_test_pass_rate_no_tests() {
     assert_eq!(test_pass_rate(0, 0), 100.0);
 }
+
+#[test]
+fn test_truncate_str_multibyte_respects_char_boundary() {
+    // 'é' is 2 bytes; slicing at a byte offset inside it would panic.
+    assert_eq!(truncate_str("ééééééé", 10), "ééé...");
+}
+
+#[test]
+fn test_truncate_str_tiny_max_len_is_dots_only() {
+    assert_eq!(truncate_str("hello world", 3), "...");
+    assert_eq!(truncate_str("hello world", 2), "..");
+    assert_eq!(truncate_str("hello world", 0), "");
+}
