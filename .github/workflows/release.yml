@@ -58,7 +58,7 @@ concurrency:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clean-room, X64]
     steps:
       - name: Resolve release tag
         id: tag
