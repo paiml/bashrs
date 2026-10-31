@@ -62,8 +62,8 @@ rustyline = { workspace = true, optional = true }  # REPL terminal line editing
 sysinfo = { version = "0.38", optional = true }  # For bench command - CPU/RAM/OS detection
 schemars = "1.2"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "7.0", path = "../bashrs-oracle", optional = true }  # ML-powered error classification
-aprender = { version = "0.27", optional = true }  # BPE tokenizer for SSC C-TOK-001
-entrenar = { version = "0.8", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
+aprender = { package = "aprender-core", version = "0.72", default-features = false, optional = true }  # BPE tokenizer for SSC C-TOK-001
+entrenar = { package = "aprender-train", version = "0.72", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
 
 # Watch mode dependencies (file system watching)
 notify = { version = "8.2", optional = true }  # Cross-platform filesystem notifications
