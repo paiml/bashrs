@@ -3038,3 +3038,21 @@ roadmap:
   - kind:code
   notes: null
   epic: 426
+- id: PMAT-459
+  github_issue: 459
+  item_type: task
+  title: 'FLOW-009 RC-2: add .flow009/batcher.pub (batcher public key)'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-10-19T14:26:19Z
+  updated: 2026-10-19T14:26:19Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:docs
+  notes: null
+  epic: 426
