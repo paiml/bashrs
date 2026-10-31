@@ -10,7 +10,7 @@ Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2,
 
 ## v7.4.3
 
-A patch with no linter change: three CI action bumps (#446, #447, #448) and the cargo-deny entry for RUSTSEC-2024-0449 (#451). The look-ahead fixes (#431, #440, #349) had not merged when it was cut and move to the next release. Full notes in `CHANGELOG.md`.
+A patch: BRS0009 (SC2096) counts redirection operators, not `>` characters (#431, #434); `batuta-common` is dropped and `aprender`/`entrenar` move to 0.72, clearing the zip and zstd advisories (#466, #469); three CI action bumps (#446, #447, #448) and the cargo-deny entry for RUSTSEC-2024-0449 (#455). The other look-ahead fixes (#440, #349) had not merged and move to the next release. Full notes in `CHANGELOG.md`.
 
 ## v7.4.2
 
