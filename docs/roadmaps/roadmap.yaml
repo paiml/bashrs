@@ -2982,6 +2982,27 @@ roadmap:
   - release:v7.4.2
   notes: null
   epic: 426
+- id: PMAT-453
+  github_issue: 453
+  item_type: task
+  title: 'Drop unsafe-libyaml (RUSTSEC-2024-0449) from bashrs: replace serde_yaml_ng build-dep with a strict hand parser of binding.yaml'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-10-13T13:58:10Z
+  updated: 2026-10-13T14:30:00Z
+  spec: null
+  acceptance_criteria:
+  - '`cargo tree -p bashrs -e normal,build` resolves neither serde_yaml_ng nor unsafe-libyaml (RUSTSEC-2024-0449): rash has no build-dependencies; build.rs reads binding.yaml with rash/build_support/binding_yaml.rs. tests/build_deps_no_unsafe_libyaml.rs fails on main and passes'
+  - 'the build-script output for the bashrs binding.yaml is byte-identical to the serde_yaml_ng version (19 lines); tests/build_binding_yaml.rs holds it as a golden captured from the old script, and a reader that keeps the .yaml suffix turns it red'
+  - 'over every provable-contracts binding.yaml (41 files) the reader returns exactly what serde_yaml_ng returned; it refuses (with a cargo warning, where the old script skipped silently) only shapes it does not fully read, such as a null or block-scalar status'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
 - id: PMAT-431
   github_issue: 431
   item_type: task
