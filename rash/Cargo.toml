@@ -54,7 +54,6 @@ phf.workspace = true
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde"] }
 rand = { version = "0.10", optional = true }
 rand_chacha = { version = "0.10", optional = true }
-batuta-common = "0.1"
 static_assertions = "1.1"
 rayon = "1.12"  # Parallel file linting (Sprint 14)
 regex = "1.13"  # For linter pattern matching
@@ -63,8 +62,8 @@ rustyline = { workspace = true, optional = true }  # REPL terminal line editing
 sysinfo = { version = "0.38", optional = true }  # For bench command - CPU/RAM/OS detection
 schemars = "1.2"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "7.0", path = "../bashrs-oracle", optional = true }  # ML-powered error classification
-aprender = { version = "0.27", optional = true }  # BPE tokenizer for SSC C-TOK-001
-entrenar = { version = "0.8", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
+aprender = { package = "aprender-core", version = "0.72", default-features = false, optional = true }  # BPE tokenizer for SSC C-TOK-001
+entrenar = { package = "aprender-train", version = "0.72", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
 
 # Watch mode dependencies (file system watching)
 notify = { version = "8.2", optional = true }  # Cross-platform filesystem notifications
