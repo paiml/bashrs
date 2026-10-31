@@ -524,12 +524,24 @@ fn test_PMAT431_brs0009_descriptor_copy_ends_the_run() {
     // the first redirection is used.
     for src in [
         "cmd > a 2>&1 > b",
-        "cmd > a >&2 > b",
         "cmd > /dev/null 2>&1",
+        "cmd > a >&- > b",
     ] {
         assert!(check(src).diagnostics.is_empty(), "{src}");
     }
     assert_eq!(check("cmd 2>&1 > a > b").diagnostics.len(), 1);
+}
+
+#[test]
+fn test_PMAT431_brs0009_copy_ends_the_run_only_for_its_source_descriptor() {
+    // `2>&1` reads fd 1, so `2> a` is overwritten by it and by `2> b`: still
+    // reported. `> a 2>&1 > b` reads fd 1 after `> a`, so `a` is live.
+    assert_eq!(check("cmd 2> a 2>&1 2> b").diagnostics.len(), 1);
+    assert!(check("cmd > a 2>&1 > b").diagnostics.is_empty());
+    // `>&2` reads fd 2, which does not end the run for fd 1: `> a` is dead.
+    assert_eq!(check("cmd > a >&2 > b").diagnostics.len(), 1);
+    // `2>&1` between two stderr redirections reads fd 1 only.
+    assert!(check("cmd 2> a 2>&1").diagnostics.is_empty());
 }
 
 #[test]

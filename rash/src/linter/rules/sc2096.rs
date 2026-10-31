@@ -59,16 +59,23 @@ enum Kind {
 struct Redir {
     fd: Option<u32>,
     kind: Kind,
+    /// For `Kind::Dup`: the descriptor the copy READS (`1` in `2>&1`), or
+    /// `None` when it is not a plain number (`>&-`, `>&$fd`, `>&file`).
+    source: Option<u32>,
 }
 
-/// True when two redirections that `counts` selects follow one another with no
-/// descriptor copy between them. A copy (`2>&1`, `>&2`) may read the earlier
-/// target — `> a 2>&1 > b` still sends stderr to `a` — so it ends the run.
-fn overridden(redirs: &[Redir], counts: impl Fn(&Redir) -> bool) -> bool {
+/// True when two redirections of descriptor `fd` that `counts` selects follow
+/// one another with no copy of `fd` between them. A copy READS its source
+/// descriptor: `> a 2>&1 > b` copies fd 1, so `a` is live and the run for
+/// fd 1 ends there; `2> a 2>&1 2> b` copies fd 1, not fd 2, so `2> a` is still
+/// dead. A copy whose source is not a plain number may read any descriptor.
+fn overridden(redirs: &[Redir], fd: u32, counts: impl Fn(&Redir) -> bool) -> bool {
     let mut run = 0;
     for redir in redirs {
         if redir.kind == Kind::Dup {
-            run = 0;
+            if redir.source.is_none() || redir.source == Some(fd) {
+                run = 0;
+            }
         } else if counts(redir) {
             run += 1;
             if run > 1 {
@@ -95,13 +102,13 @@ fn overrides_append(redirs: &[Redir]) -> bool {
         .iter()
         .flat_map(appended_fds)
         .flatten()
-        .any(|fd| overridden(redirs, |redir| appended_fds(redir).contains(&Some(fd))))
+        .any(|fd| overridden(redirs, fd, |redir| appended_fds(redir).contains(&Some(fd))))
 }
 
 /// The messages one command's redirections earn, in the rule's fixed order.
 fn findings(redirs: &[Redir]) -> Vec<&'static str> {
-    let stdout = overridden(redirs, |r| r.kind == Kind::Truncate && r.fd == Some(1));
-    let stderr = overridden(redirs, |r| {
+    let stdout = overridden(redirs, 1, |r| r.kind == Kind::Truncate && r.fd == Some(1));
+    let stderr = overridden(redirs, 2, |r| {
         r.fd == Some(2) && matches!(r.kind, Kind::Truncate | Kind::Append)
     });
     [
@@ -122,6 +129,23 @@ fn out_op(rest: &[u8]) -> (Kind, usize) {
         Some(b'|') => (Kind::Truncate, 2),
         _ => (Kind::Truncate, 1),
     }
+}
+
+/// The descriptor a `>&`/`<&` copy reads: the digits right after the operator
+/// (`1` in `2>&1`, also `1-`, a move). `None` for `-`, a variable or a word.
+fn copy_source(after: &[u8]) -> Option<u32> {
+    let end = after
+        .iter()
+        .position(|c| !c.is_ascii_digit())
+        .unwrap_or(after.len());
+    let rest = &after[end..];
+    let plain = rest
+        .first()
+        .is_none_or(|c| !(c.is_ascii_alphanumeric() || matches!(c, b'_' | b'$' | b'{')));
+    if end == 0 || !plain {
+        return None;
+    }
+    std::str::from_utf8(&after[..end]).ok()?.parse().ok()
 }
 
 /// `<<<`, `<<-`, `<<`, `<>`, `<&` or `<`, and how many bytes it takes.
@@ -265,7 +289,12 @@ impl<'a> Lexer<'a> {
             (in_op(rest), 0)
         };
         let fd = self.fd_before(default_fd);
-        self.add(Redir { fd, kind }, len);
+        let source = if kind == Kind::Dup {
+            copy_source(&rest[len..])
+        } else {
+            None
+        };
+        self.add(Redir { fd, kind, source }, len);
     }
 
     fn ampersand(&mut self) {
@@ -274,6 +303,7 @@ impl<'a> Lexer<'a> {
                 Redir {
                     fd: None,
                     kind: Kind::BothAppend,
+                    source: None,
                 },
                 3,
             ),
@@ -281,6 +311,7 @@ impl<'a> Lexer<'a> {
                 Redir {
                     fd: None,
                     kind: Kind::Both,
+                    source: None,
                 },
                 2,
             ),
