@@ -33,9 +33,19 @@ pub fn format_timestamp(timestamp: u64) -> String {
     }
 }
 
-/// Truncate string to max length with ellipsis (delegates to batuta-common).
+/// Truncate string to max length with ellipsis (inlined from the archived batuta-common).
 pub fn truncate_str(s: &str, max_len: usize) -> String {
-    batuta_common::display::truncate_str(s, max_len)
+    if s.len() <= max_len {
+        return s.to_string();
+    }
+    if max_len <= 3 {
+        return ".".repeat(max_len);
+    }
+    let mut end = max_len - 3;
+    while !s.is_char_boundary(end) {
+        end -= 1;
+    }
+    format!("{}...", &s[..end])
 }
 
 /// Generate diff lines between original and purified content
