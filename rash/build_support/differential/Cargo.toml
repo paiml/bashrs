@@ -1,0 +1,26 @@
+# Differential oracle for ../binding_yaml.rs, the reader rash/build.rs uses for
+# provable-contracts binding.yaml. It compares the reader with serde_yaml_ng, the
+# YAML crate build.rs used before (RUSTSEC-2024-0449, unsafe-libyaml).
+#
+# A separate package with its own (empty) workspace: serde_yaml_ng stays out of
+# bashrs's dependency graph and Cargo.lock entirely, normal, build AND dev edges,
+# so `cargo deny check advisories` on the workspace never sees it. Run it with:
+#
+#   cargo test --manifest-path rash/build_support/differential/Cargo.toml
+#   BINDING_YAML_CORPUS=<provable-contracts>/contracts \
+#     cargo test --manifest-path rash/build_support/differential/Cargo.toml -- --nocapture
+[package]
+name = "binding-yaml-differential"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[lib]
+path = "differential.rs"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml_ng = "0.10"
+
+# Its own workspace root, so it is not a member of the bashrs workspace above it.
+[workspace]
