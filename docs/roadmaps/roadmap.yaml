@@ -2894,7 +2894,7 @@ roadmap:
   acceptance_criteria:
   - 'nightly.yml x86_64-apple-darwin and aarch64-apple-darwin legs run on [self-hosted, macOS, ARM64, mini]; every other leg keeps its runner, and nightly.yml still triggers only on schedule and workflow_dispatch.'
   - 'A step guarded by endsWith(matrix.target, ''-apple-darwin'') sets RUSTUP_HOME and CARGO_HOME under the runner tool cache and CARGO_TARGET_DIR to the workspace target dir; no non-darwin leg gets a new variable.'
-  - 'A workflow_dispatch of nightly.yml builds and uploads both bashrs-*-apple-darwin.tar.gz assets on mini-m4.'
+  - 'A workflow_dispatch of nightly.yml builds and uploads both bashrs-*-apple-darwin.tar.gz assets on mini-m4. Receipt: run 41354051339 (workflow_dispatch from ci/nightly-darwin-self-hosted-mac at 4b412a0c6253c19fbeef967b4072f047a505b255, https://github.com/paiml/bashrs/actions/runs/41354051339) - both darwin legs ran on runner mini-m4 and succeeded, uploading the artifacts bashrs-aarch64-apple-darwin and bashrs-x86_64-apple-darwin; the release job was skipped (not main).'
   phases: []
   subtasks: []
   estimated_effort: null
