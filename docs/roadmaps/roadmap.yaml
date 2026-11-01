@@ -2898,7 +2898,8 @@ roadmap:
   phases: []
   subtasks: []
   estimated_effort: null
-  labels: []
+  labels:
+  - release:v7.5.0
   notes: null
 - id: PMAT-425
   github_issue: 425
