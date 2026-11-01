@@ -85,6 +85,9 @@ jobs:
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
     runs-on: ${{ matrix.runner }}
+    # A wedged build on the persistent mini must not hold `release` (needs: build). This bounds RUN time only: GitHub does not
+    # count a job that is still queued for an offline runner, which it cancels itself after 24 h.
+    timeout-minutes: ${{ endsWith(matrix.target, '-apple-darwin') && 60 || 120 }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -97,7 +100,7 @@ jobs:
 
       - name: Symlink provable-contracts for Cargo path deps
         if: runner.os != 'Windows'
-        run: ln -sf "$GITHUB_WORKSPACE/provable-contracts" "$GITHUB_WORKSPACE/../provable-contracts"
+        run: ln -sfn "$GITHUB_WORKSPACE/provable-contracts" "$GITHUB_WORKSPACE/../provable-contracts"
 
       - name: Symlink provable-contracts (Windows)
         if: runner.os == 'Windows'
