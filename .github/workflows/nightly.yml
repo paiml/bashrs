@@ -87,7 +87,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     # A wedged build on the persistent mini must not hold `release` (needs: build). This bounds RUN time only: GitHub does not
     # count a job that is still queued for an offline runner, which it cancels itself after 24 h.
-    timeout-minutes: ${{ endsWith(matrix.target, '-apple-darwin') && 60 || 120 }}
+    timeout-minutes: ${{ endsWith(matrix.target, '-apple-darwin') && 60 || 360 }}   # 360 is GitHub's default: only the darwin legs change
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -221,6 +221,8 @@ jobs:
   # ── Create/update nightly prerelease ─────────────────────
   release:
     needs: build
+    # Only main publishes the nightly: a workflow_dispatch from a branch builds and uploads artifacts but must not replace the release.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
