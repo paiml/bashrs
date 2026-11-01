@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.4.3] - 2026-10-31
+
+A patch release. It carries one linter fix (BRS0009/SC2096 no longer counts `>` characters, #431) and a dependency clean-up that takes the archived `batuta-common` crate, and the zstd 0.14.0 and zip advisories it pulled, out of bashrs and out of downstream trees (#466). It also carries the CI bumps and the `deny.toml` entry that make main build, lint and pass `cargo deny` again.
+
+### Changed
+
+- **CI action bumps** (#446, #447, #448): `taiki-e/install-action` 2.87.11 to 2.87.27, `actions/upload-artifact` 4.6.2 to 7.0.2, `actions/download-artifact` 4.3.0 to 8.0.2.
+- **`batuta-common` dropped, `aprender`/`entrenar` moved to 0.72** (PMAT-466, #466, #469). `batuta-common` is archived and pulled zstd 0.14.0 into downstream trees (forjar#768, rmedia#1743 failed `cargo deny` on the zstd advisories). Its one use, `truncate_str`, is inlined and cut on a char boundary (a multibyte test covers it). `rash` and `bashrs-oracle` now take `aprender-core` and `aprender-train` 0.72 under the old names, which clears the zip and zstd advisories; `tokio` 1.53.1 to 1.54.1 and `clipboard-win` 5.4.1 to 5.4.3 clear RUSTSEC-2026-0386.
+- **`deny.toml` ignores RUSTSEC-2024-0449** (unsafe-libyaml, unmaintained, no patched release) as an interim entry with a reason and a removal condition (bashrs#451, aprender#5326). Added with the PMAT-451 change (#455), merged before this release.
+
 ### Fixed
 
 - **BRS0009 (SC2096) counted `>` characters, not redirections** (PMAT-431, #431). `printf '%s\n' "a <N>m b N>0" >&2` has one redirection, and the rule reported "Multiple stdout redirections" because it split the raw line on `>` and matched it with three regexes, so a `>` inside `'...'`, `"..."`, `$'...'` or a heredoc body counted, and so did one in `$(( a > b ))`, `(( ))`, `[[ $a > $b ]]`, `\>` or `${x//>/y}`. The rule now joins `QUOTE_SENSITIVE_RULES` and reads redirection operators from a small lexer over the masked line: it splits commands at `;`, `|`, `||`, `&` and `&&`, scopes `$( )`, backticks, subshells and process substitution, and takes a descriptor number only from a word of digits written directly before the operator. So `exec 3>a 4>b`, `cmd >> a 2>> b`, `cmd <> f > a`, `foo >a & bar >b` and `tee >(x) >(y) >/dev/null` are no longer reported, and `echo a >x >y`, `x=$(cmd >a >b)`, `cmd 2>e1 2>e2` and `echo a >>f1 >>f2` still are. Real overrides the character scan skipped are now reported: `cat <<EOF > a > b` (every line with `<<` was skipped), `cmd >| a > b` (`>|` was split as a pipe), `echo file2>out > out2`, and `cmd > a >> b > c` (the stdout check was skipped whenever `>>` appeared). A descriptor copy between two redirections ends a stream's run only when it reads that stream: `cmd > a 2>&1 > b` is not reported (`2>&1` reads the `> a` target), while `cmd 2> a 2>&1 2> b` and `cmd > a >&2 > b` are (the copy reads the other descriptor, so the first target is dead). A copy whose source is unknown (`>&-`, `>&$x`) ends the run. SC2094 has the same `split('>')` shape and is unchanged here.

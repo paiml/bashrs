@@ -37,7 +37,7 @@ env:
 jobs:
   build:
     name: ${{ matrix.target }}
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clean-room, X64]
     strategy:
       fail-fast: false
       matrix:
@@ -177,7 +177,7 @@ jobs:
   summary:
     name: Summary
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, clean-room, X64]
     if: always()
     steps:
       - name: Write summary

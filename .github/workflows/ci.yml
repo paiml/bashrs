@@ -67,7 +67,7 @@ jobs:
   # Top-level gate: org ruleset requires status check named "gate" (exact match).
   # The reusable workflow produces "ci / gate" which doesn't satisfy the ruleset.
   gate:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, gate-light]
     needs: [ci]
     if: always()
     steps:

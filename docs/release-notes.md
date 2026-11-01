@@ -8,6 +8,10 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b) and issue #236, re-measured at the v7.4.0 close-out: SC2046 is now 14:1 against shellcheck rather than 210:1, and the three largest remaining gaps are SC2086 inside a heredoc body, SC2154 on a variable a sourced file defines, and SC1004 across a multi-line quoted argument (`docs/audits/sc-vs-shellcheck-v7.4.0.md`).
 
+## v7.4.3
+
+A patch: BRS0009 (SC2096) counts redirection operators, not `>` characters (#431, #434); `batuta-common` is dropped and `aprender`/`entrenar` move to 0.72, clearing the zip and zstd advisories (#466, #469); three CI action bumps (#446, #447, #448) and the cargo-deny entry for RUSTSEC-2024-0449 (#455). The other look-ahead fixes (#440, #349) had not merged and move to the next release. Full notes in `CHANGELOG.md`.
+
 ## v7.4.2
 
 A patch release with fifteen fixes. It was first cut on 2026-09-20 with the four below and was not tagged before eleven more merged, so the tag carries all fifteen.
