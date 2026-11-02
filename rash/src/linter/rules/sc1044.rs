@@ -71,6 +71,31 @@ struct HeredocOpen {
     strips_tabs: bool,
 }
 
+/// Byte index of the `)` that closes the `(` at `open`, or the end of the line when unclosed.
+fn closing_paren(b: &[u8], open: usize) -> usize {
+    let mut depth = 0usize;
+    for (j, &c) in b.iter().enumerate().skip(open) {
+        depth = match c {
+            b'(' => depth + 1,
+            b')' => depth.saturating_sub(1),
+            _ => depth,
+        };
+        if depth == 0 {
+            return j;
+        }
+    }
+    b.len()
+}
+
+/// True when byte offset `pos` lies inside a `((...))` arithmetic span on this line
+/// (`$(( 1 << 3 ))`, `(( x <<= 1 ))`): there `<<` is the left shift, never a heredoc.
+fn in_arithmetic(line: &str, pos: usize) -> bool {
+    let b = line.as_bytes();
+    (0..b.len().saturating_sub(1))
+        .filter(|&i| b[i] == b'(' && b[i + 1] == b'(')
+        .any(|i| pos > i && pos < closing_paren(b, i))
+}
+
 /// The first `<<` on the line that actually opens a heredoc.
 ///
 /// The regex has no lookbehind, so a match that begins immediately after
@@ -80,6 +105,9 @@ struct HeredocOpen {
 fn first_heredoc_start(line: &str) -> Option<HeredocOpen> {
     HEREDOC_START.captures_iter(line).find_map(|caps| {
         let m = caps.get(0)?;
+        if in_arithmetic(line, m.start()) {
+            return None;
+        }
         // Group 0 begins at the `<<`; a `<` right before it means `<<<`.
         if m.start()
             .checked_sub(1)
@@ -238,5 +266,33 @@ mod tests {
         let script = "grep . <<<'x' && cat <<EOF\nbody\nEOF";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    /// BASHRS-111: `<<` inside `$(( ))` / `(( ))` is the arithmetic left shift, not a heredoc.
+    #[test]
+    fn test_sc1044_arithmetic_left_shift_is_not_a_heredoc() {
+        for script in [
+            "x=$(( 1 << 3 ))",
+            "y=$((x<<n))",
+            "(( flags |= 1 << bit ))",
+            "echo $(( (1 << 4) - 1 )) done",
+            "z=$(( x >> 2 ))",
+        ] {
+            let result = check(script);
+            assert_eq!(
+                result.diagnostics.len(),
+                0,
+                "arithmetic shift reported as a heredoc: {script}"
+            );
+        }
+    }
+
+    /// A real heredoc on a line that also has arithmetic is still caught.
+    #[test]
+    fn test_sc1044_heredoc_after_arithmetic_still_flagged() {
+        let script = "n=$(( 1 << 3 )); cat <<EOF\nbody\n# no terminator";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert!(result.diagnostics[0].message.contains("EOF"));
     }
 }
