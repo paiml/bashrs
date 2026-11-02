@@ -98,13 +98,17 @@ fn logical_lines(source: &str) -> Vec<Logical> {
         l.text.push_str(body);
         if !continued {
             if let Some(mut done) = cur.take() {
-                blank_recipe_prefix(&mut done.text);
+                if make {
+                    blank_recipe_prefix(&mut done.text);
+                }
                 out.push(done);
             }
         }
     }
     if let Some(mut done) = cur {
-        blank_recipe_prefix(&mut done.text);
+        if make {
+            blank_recipe_prefix(&mut done.text);
+        }
         out.push(done);
     }
     out
@@ -216,5 +220,16 @@ mod tests {
             lines("\n\t@# note \\\n  more\n\tlocal x=1\n", "local"),
             vec![4]
         );
+    }
+
+    #[test]
+    fn test_gh438_recipe_prefix_blanked_only_in_make() {
+        // plain shell: `-local` / `+local` are not the command `local`
+        assert_eq!(lines("-local x", "local"), Vec::<usize>::new());
+        assert_eq!(lines("+local x", "local"), Vec::<usize>::new());
+        assert_eq!(lines("true\n@local x", "local"), Vec::<usize>::new());
+        // Make recipe text: the prefixes are Make's, the shell sees `local`
+        assert_eq!(lines("\n\t-local x\n", "local"), vec![2]);
+        assert_eq!(lines("\n\t@local x\n", "local"), vec![2]);
     }
 }

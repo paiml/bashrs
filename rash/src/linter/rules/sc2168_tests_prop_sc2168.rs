@@ -479,8 +479,8 @@ fn test_gh438_sc2168_prose_forms_are_not_flagged() {
 #[test]
 fn test_gh438_sc2168_real_top_level_local_still_flagged() {
     for (code, line) in [
-        ("all:\n\tlocal x=1", 2),
-        ("all:\n\t@local x=1", 2),
+        ("\n\tlocal x=1", 2),
+        ("\n\t@local x=1", 2),
         ("true; local x=1", 1),
         ("echo a \\\n  ; local x", 2),
     ] {

@@ -32,6 +32,7 @@ fn is_comment_line(line: &str) -> bool {
 ///
 /// This function tracks quote state to determine if a position is inside a quoted string.
 /// It handles both single quotes ('...') and double quotes ("...").
+#[cfg(test)]
 fn is_inside_quotes(line: &str, pos: usize) -> bool {
     let mut in_single_quote = false;
     let mut in_double_quote = false;
