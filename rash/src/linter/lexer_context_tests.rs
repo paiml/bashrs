@@ -210,9 +210,10 @@ fn test_PMAT248_review_sc2047_considers_only_operands_of_the_test() {
 
 #[test]
 fn test_PMAT248_review_make_recipe_continuation_reaches_shell_rules() {
-    // A backslash-newline continues the recipe line; GNU make does not require
-    // a leading tab on the continued line. 7.0.2 reported this line.
-    let src = "build:\n\t@true \\\n  local x=1\n";
+    // A backslash-newline continues the recipe line; GNU make does not require a leading tab on the continued line.
+    // 7.0.2 reported this line. GH-438: `local` must be in command position, so the continued
+    // line starts a new command (`true; \`) instead of being an argument of `true`.
+    let src = "build:\n\t@true; \\\n  local x=1\n";
     assert_fires(&lint_makefile(src), "SC2168", src);
 }
 

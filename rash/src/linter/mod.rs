@@ -21,6 +21,7 @@
 pub mod autofix;
 pub mod citl;
 pub mod code_namespace;
+pub mod command_keyword;
 pub mod diagnostic;
 pub mod docker_profiler;
 pub mod embedded;

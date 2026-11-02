@@ -12,11 +12,9 @@
 //       local var="value"  # Inside function - OK
 //   }
 
+use crate::linter::command_keyword::command_keyword_hits;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
-
-static LOCAL_KEYWORD: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"\blocal\s+").unwrap());
 
 static FUNCTION_START: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"\b(function\s+[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\))").unwrap()
@@ -144,6 +142,9 @@ pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
     let mut function_depth: usize = 0;
+    // GH-438: `local` counts only as the NAME of a simple command, not as prose in a comment,
+    // an argument or a quoted string.
+    let hits = command_keyword_hits(source, "local");
 
     for (i, line) in lines.iter().enumerate() {
         let line_num = i + 1;
@@ -156,22 +157,17 @@ pub fn check(source: &str) -> LintResult {
         update_depth_for_function_start(&mut function_depth, line, &lines, i);
         update_depth_for_braces(&mut function_depth, line);
 
-        // Check for local keyword outside functions
-        if let Some(mat) = LOCAL_KEYWORD.find(line) {
-            // Skip if 'local' is inside quotes (false positive)
-            if is_inside_quotes(line, mat.start()) {
-                continue;
-            }
-
-            if function_depth == 0 {
-                let start_col = mat.start() + 1;
-                let end_col = mat.end() + 1;
-
-                let diagnostic =
-                    create_local_outside_function_diagnostic(line_num, start_col, end_col);
-
-                result.add(diagnostic);
-            }
+        if function_depth > 0 {
+            continue;
+        }
+        for hit in hits.iter().filter(|h| h.line == line_num) {
+            let gap = line
+                .get(hit.col - 1 + "local".len()..)
+                .map_or(0, |rest| rest.len() - rest.trim_start().len());
+            let end_col = hit.col + "local".len() + gap;
+            result.add(create_local_outside_function_diagnostic(
+                line_num, hit.col, end_col,
+            ));
         }
     }
 

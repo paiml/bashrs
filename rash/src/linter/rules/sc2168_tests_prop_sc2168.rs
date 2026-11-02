@@ -456,3 +456,36 @@ fn prop_sc2168_quote_escaping_handled_correctly() {
         );
     }
 }
+
+// GH-438: `local` is flagged only as the NAME of a command, never as prose.
+#[test]
+fn test_gh438_sc2168_prose_forms_are_not_flagged() {
+    for code in [
+        "all:\n\t@# touches the local registry",
+        "all:\n\t# touches the local registry",
+        "all:\n\t-# local a",
+        "all:\n\t+# local a",
+        "all:\n\t@-# local b",
+        "all:\n\t: touches the local docker registry, which; \\\n\t  more",
+        "all:\n\techo local x",
+        "echo \"a\" local x",
+        "echo 'a' \"b\" local x",
+        "echo a \\\n  local x",
+    ] {
+        assert_eq!(check(code).diagnostics.len(), 0, "{code:?}");
+    }
+}
+
+#[test]
+fn test_gh438_sc2168_real_top_level_local_still_flagged() {
+    for (code, line) in [
+        ("all:\n\tlocal x=1", 2),
+        ("all:\n\t@local x=1", 2),
+        ("true; local x=1", 1),
+        ("echo a \\\n  ; local x", 2),
+    ] {
+        let r = check(code);
+        assert_eq!(r.diagnostics.len(), 1, "{code:?}");
+        assert_eq!(r.diagnostics[0].span.start_line, line, "{code:?}");
+    }
+}
