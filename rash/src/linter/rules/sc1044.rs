@@ -71,8 +71,8 @@ struct HeredocOpen {
     strips_tabs: bool,
 }
 
-/// Byte index of the `)` that closes the `(` at `open`, or the end of the line when unclosed.
-fn closing_paren(b: &[u8], open: usize) -> usize {
+/// Byte index of the `)` that closes the `(` at `open`, or `None` when the line never closes it.
+fn closing_paren(b: &[u8], open: usize) -> Option<usize> {
     let mut depth = 0usize;
     for (j, &c) in b.iter().enumerate().skip(open) {
         depth = match c {
@@ -81,19 +81,53 @@ fn closing_paren(b: &[u8], open: usize) -> usize {
             _ => depth,
         };
         if depth == 0 {
-            return j;
+            return Some(j);
         }
     }
-    b.len()
+    None
+}
+
+/// Does an arithmetic `((` open at `i`? Not inside single quotes; inside double quotes only as `$((`.
+fn opens_arithmetic(b: &[u8], i: usize, quote: u8) -> bool {
+    b[i..].starts_with(b"((") && quote != b'\'' && (quote != b'"' || (i > 0 && b[i - 1] == b'$'))
+}
+
+/// Byte spans `(open, close)` of the closed `((...))` arithmetic on this line. Quote- and
+/// backslash-aware, and an unclosed `((` opens no span: it is not arithmetic, so it must not
+/// hide a real heredoc after it.
+fn arithmetic_spans(line: &str) -> Vec<(usize, usize)> {
+    let b = line.as_bytes();
+    let (mut spans, mut quote, mut i) = (Vec::new(), 0u8, 0usize);
+    while i < b.len() {
+        let c = b[i];
+        if c == b'\\' && quote != b'\'' {
+            i += 2;
+        } else if opens_arithmetic(b, i, quote) {
+            match closing_paren(b, i) {
+                Some(j) => {
+                    spans.push((i, j));
+                    i = j + 1;
+                }
+                None => i += 2,
+            }
+        } else {
+            if quote == 0 && (c == b'\'' || c == b'"') {
+                quote = c;
+            } else if c == quote {
+                quote = 0;
+            }
+            i += 1;
+        }
+    }
+    spans
 }
 
 /// True when byte offset `pos` lies inside a `((...))` arithmetic span on this line
 /// (`$(( 1 << 3 ))`, `(( x <<= 1 ))`): there `<<` is the left shift, never a heredoc.
 fn in_arithmetic(line: &str, pos: usize) -> bool {
-    let b = line.as_bytes();
-    (0..b.len().saturating_sub(1))
-        .filter(|&i| b[i] == b'(' && b[i + 1] == b'(')
-        .any(|i| pos > i && pos < closing_paren(b, i))
+    arithmetic_spans(line)
+        .iter()
+        .any(|&(open, close)| pos > open && pos < close)
 }
 
 /// The first `<<` on the line that actually opens a heredoc.
@@ -276,7 +310,8 @@ mod tests {
             "y=$((x<<n))",
             "(( flags |= 1 << bit ))",
             "echo $(( (1 << 4) - 1 )) done",
-            "z=$(( x >> 2 ))",
+            "z=$(( x<<2 ))",
+            "echo \"$(( 1 << 3 ))\"",
         ] {
             let result = check(script);
             assert_eq!(
@@ -294,5 +329,28 @@ mod tests {
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
         assert!(result.diagnostics[0].message.contains("EOF"));
+    }
+
+    /// bashrs#474 r1 (1): an UNCLOSED `((` is not arithmetic; it must not swallow a real heredoc after it.
+    #[test]
+    fn test_sc1044_unclosed_double_paren_keeps_later_heredoc() {
+        let script = "(( x ; cat <<EOF\nbody\n# no terminator";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert!(result.diagnostics[0].message.contains("EOF"));
+    }
+
+    /// bashrs#474 r1 (2): a quoted `((` opens nothing, so a real heredoc after it is still caught.
+    #[test]
+    fn test_sc1044_quoted_double_paren_keeps_later_heredoc() {
+        for script in [
+            "printf '((' ; cat <<EOF\nbody\n# no terminator",
+            "echo \"((\" && cat <<EOF\nbody\n# no terminator",
+            "echo \\(( ; cat <<EOF\nbody\n# no terminator",
+        ] {
+            let result = check(script);
+            assert_eq!(result.diagnostics.len(), 1, "heredoc lost: {script}");
+            assert!(result.diagnostics[0].message.contains("EOF"));
+        }
     }
 }
