@@ -3080,6 +3080,25 @@ roadmap:
   - kind:code
   notes: null
   epic: 426
+- id: PMAT-474
+  github_issue: 474
+  item_type: task
+  title: 'SC1044: arithmetic << (left shift) inside (( )) is not a heredoc (refs apex#111)'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-11-02T02:50:00Z
+  updated: 2026-11-02T02:50:00Z
+  spec: null
+  acceptance_criteria:
+  - 'SC1044 skips a << that lies inside a $(( )) or (( )) span, so $(( 1 << 3 )), $((x<<n)) and (( f |= 1 << b )) give zero diagnostics, and a real heredoc later on the same line is still reported. Quotes, backslashes and unclosed or non-adjacent-close (( are not arithmetic: a heredoc after them is still reported. Reverting in_arithmetic to never-true fails 6 sc1044 tests (the left-shift test, the heredoc-after-arithmetic test and the four r3 tests); reverting only the r3 closing_paren and is_live_dollar rules fails the adjacent-close and escaped-dollar tests.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
 - id: PMAT-459
   github_issue: 459
   item_type: task
