@@ -49,15 +49,47 @@ fn blank_recipe_prefix(text: &mut String) {
     text.replace_range(lead..lead + run, &" ".repeat(run));
 }
 
+/// Is this preprocessed Make recipe text? `preprocess_for_linting` blanks every non-recipe line, so
+/// recipe text has no non-blank line at column 1 (a continued line may be indented with spaces).
+fn is_make_recipe_text(source: &str) -> bool {
+    let mut after_cont = false;
+    let mut any_tab = false;
+    for raw in source.lines() {
+        let cont = matches!(raw.strip_suffix('\\'), Some(b) if !b.ends_with('\\'));
+        if !after_cont && !raw.trim().is_empty() {
+            if !raw.starts_with('\t') {
+                return false;
+            }
+            any_tab = true;
+        }
+        after_cont = cont;
+    }
+    any_tab
+}
+
+/// Does this line, after its Make recipe prefixes, begin a comment?
+fn is_comment_line(raw: &str) -> bool {
+    raw.trim_start()
+        .trim_start_matches(['@', '-', '+'])
+        .trim_start()
+        .starts_with('#')
+}
+
 /// Join backslash-continued physical lines (the `\` and the newline are dropped, as the shell does).
+/// A shell comment never continues, so `# note \` leaves the next line alone; in a Make recipe the
+/// backslash continues the comment too.
 fn logical_lines(source: &str) -> Vec<Logical> {
     let mut out = Vec::new();
     let mut cur: Option<Logical> = None;
+    let make = is_make_recipe_text(source);
     for (idx, raw) in source.lines().enumerate() {
-        let (body, continued) = match raw.strip_suffix('\\') {
+        let (body, mut continued) = match raw.strip_suffix('\\') {
             Some(b) if !b.ends_with('\\') => (b, true),
             _ => (raw, false),
         };
+        if continued && !make && cur.is_none() && is_comment_line(raw) {
+            continued = false;
+        }
         let l = cur.get_or_insert_with(|| Logical {
             text: String::new(),
             pieces: Vec::new(),
@@ -159,5 +191,30 @@ mod tests {
         assert_eq!((h[0].line, h[0].col), (1, 3));
         assert_eq!(h[0].first_arg, Some(("256".to_string(), 13)));
         assert_eq!(command_keyword_hits("exit", "exit")[0].first_arg, None);
+    }
+
+    #[test]
+    fn test_gh438_shell_comment_does_not_continue() {
+        assert_eq!(lines("# note \\\nlocal x=1", "local"), vec![2]);
+        assert_eq!(lines("  # note \\\nlocal x=1", "local"), vec![2]);
+        assert_eq!(lines("echo a\n# note \\\nlocal x=1", "local"), vec![3]);
+    }
+
+    #[test]
+    fn test_gh438_make_recipe_comment_continues() {
+        // preprocessed Make text: every non-blank line starts with a tab (or continues one)
+        assert_eq!(
+            lines("\n\t@# note \\\n  local x=1\n", "local"),
+            Vec::<usize>::new()
+        );
+        assert_eq!(
+            lines("\n\t# note \\\n\tlocal x=1\n", "local"),
+            Vec::<usize>::new()
+        );
+        // the comment ends with the continuation; the next recipe line is a command again
+        assert_eq!(
+            lines("\n\t@# note \\\n  more\n\tlocal x=1\n", "local"),
+            vec![4]
+        );
     }
 }

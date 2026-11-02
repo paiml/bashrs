@@ -303,3 +303,10 @@ fn test_PMAT439_gh439_backslash_before_a_closing_single_quote_is_literal() {
     // silent; the quote it leaves open is still an error.
     shell_fires("#!/bin/bash\necho 'can\\' t'\necho done\n", "SC1078");
 }
+
+#[test]
+fn test_gh438_make_recipe_local_as_argument_of_continued_command_is_not_flagged() {
+    // The original reproducer: after `@true \` the continued `local` is an ARGUMENT of `true`.
+    let src = "build:\n\t@true \\\n  local x=1\n";
+    assert_absent(&lint_makefile(src), "SC2168", src);
+}
