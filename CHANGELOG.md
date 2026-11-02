@@ -14,7 +14,7 @@ A patch release. It carries one linter fix (BRS0009/SC2096 no longer counts `>` 
 ### Changed
 
 - **CI action bumps** (#446, #447, #448): `taiki-e/install-action` 2.87.11 to 2.87.27, `actions/upload-artifact` 4.6.2 to 7.0.2, `actions/download-artifact` 4.3.0 to 8.0.2.
-- **`batuta-common` dropped, `aprender`/`entrenar` moved to 0.72** (PMAT-466, #466, #469). `batuta-common` is archived and pulled zstd 0.14.0 into downstream trees (forjar#768, rmedia#1743 failed `cargo deny` on the zstd advisories). Its one use, `truncate_str`, is inlined and cut on a char boundary (a multibyte test covers it). `rash` and `bashrs-oracle` now take `aprender-core` and `aprender-train` 0.72 under the old names, which clears the zip and zstd advisories; `tokio` 1.53.1 to 1.54.1 and `clipboard-win` 5.4.1 to 5.4.3 clear RUSTSEC-2026-0386.
+- **`batuta-common` dropped, `aprender`/`entrenar` moved to 0.72** (PMAT-466, #466, #469). `batuta-common` is archived and pulled zstd 0.14.0 into downstream trees (forjar#768, rmedia#1743 failed `cargo deny` on the zstd advisories). Its one use, `truncate_str`, is inlined and cut on a char boundary (a multibyte test covers it). `rash` and `bashrs-oracle` now take `aprender-core` and `aprender-train` 0.72 under the old names, which clears the zip and zstd advisories; `tokio` 1.53.1 to 1.54.1 and `clipboard-win` 5.4.1 to 5.4.3 clear RUSTSEC-2026-0386 (both are `Cargo.lock` changes in #469, commit 3fbd985; `git show 3fbd985 -- Cargo.lock` lists them).
 - **`deny.toml` ignores RUSTSEC-2024-0449** (unsafe-libyaml, unmaintained, no patched release) as an interim entry with a reason and a removal condition (bashrs#451, aprender#5326). Added with the PMAT-451 change (#455), merged before this release.
 
 ### Fixed
