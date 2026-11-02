@@ -25,7 +25,7 @@ pub fn check(source: &str) -> LintResult {
 
     // GH-438: only `return` as the NAME of a simple command counts, not prose or arguments.
     for hit in command_keyword_hits(source, "return") {
-        let Some((arg, arg_end)) = hit.first_arg else {
+        let Some((arg, end_line, arg_end)) = hit.first_arg else {
             continue;
         };
         let Ok(num) = arg.parse::<i32>() else {
@@ -41,7 +41,7 @@ pub fn check(source: &str) -> LintResult {
                 "Only values 0-255 can be returned. {} will be truncated",
                 num
             ),
-            Span::new(hit.line, hit.col, hit.line, arg_end),
+            Span::new(hit.line, hit.col, end_line, arg_end),
         ));
     }
 

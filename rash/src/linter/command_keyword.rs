@@ -15,8 +15,8 @@ pub struct KeywordHit {
     pub line: usize,
     /// 1-indexed byte column of the keyword on that line.
     pub col: usize,
-    /// The first argument, if any: its literal text and the 1-indexed column just past it.
-    pub first_arg: Option<(String, usize)>,
+    /// The first argument, if any: its literal text and the 1-indexed (line, column) just past it.
+    pub first_arg: Option<(String, usize, usize)>,
 }
 
 /// A logical line and where each of its pieces came from.
@@ -130,8 +130,8 @@ pub fn command_keyword_hits(source: &str, keyword: &str) -> Vec<KeywordHit> {
             }
             let (line, col) = logical.locate(name.col - 1);
             let first_arg = words.next().map(|a| {
-                let (_, end) = logical.locate(a.col - 1 + a.raw.len());
-                (a.literal.clone(), end)
+                let (end_line, last) = logical.locate(a.col - 1 + a.raw.len() - 1);
+                (a.literal.clone(), end_line, last + 1)
             });
             hits.push(KeywordHit {
                 line,
@@ -193,7 +193,7 @@ mod tests {
     fn test_gh438_columns_and_first_arg() {
         let h = command_keyword_hits("\t@return 256", "return");
         assert_eq!((h[0].line, h[0].col), (1, 3));
-        assert_eq!(h[0].first_arg, Some(("256".to_string(), 13)));
+        assert_eq!(h[0].first_arg, Some(("256".to_string(), 1, 13)));
         assert_eq!(command_keyword_hits("exit", "exit")[0].first_arg, None);
     }
 
@@ -231,5 +231,12 @@ mod tests {
         // Make recipe text: the prefixes are Make's, the shell sees `local`
         assert_eq!(lines("\n\t-local x\n", "local"), vec![2]);
         assert_eq!(lines("\n\t@local x\n", "local"), vec![2]);
+    }
+
+    #[test]
+    fn test_gh438_first_arg_end_is_on_its_own_line() {
+        let h = command_keyword_hits("return \\\n  256", "return");
+        assert_eq!((h[0].line, h[0].col), (1, 1));
+        assert_eq!(h[0].first_arg, Some(("256".to_string(), 2, 6)));
     }
 }
