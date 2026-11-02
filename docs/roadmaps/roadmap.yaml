@@ -3070,7 +3070,7 @@ roadmap:
   updated: 2026-11-02T02:50:00Z
   spec: null
   acceptance_criteria:
-  - 'SC1044 skips a << that lies inside a $(( )) or (( )) span, so $(( 1 << 3 )), $((x<<n)) and (( f |= 1 << b )) give zero diagnostics, and a real heredoc later on the same line is still reported. The new tests in sc1044.rs fail with the in_arithmetic check reverted.'
+  - 'SC1044 skips a << that lies inside a $(( )) or (( )) span, so $(( 1 << 3 )), $((x<<n)) and (( f |= 1 << b )) give zero diagnostics, and a real heredoc later on the same line is still reported. Quotes, backslashes and unclosed or non-adjacent-close (( are not arithmetic: a heredoc after them is still reported. Reverting in_arithmetic to never-true fails 6 sc1044 tests (the left-shift test, the heredoc-after-arithmetic test and the four r3 tests); reverting only the r3 closing_paren and is_live_dollar rules fails the adjacent-close and escaped-dollar tests.'
   phases: []
   subtasks: []
   estimated_effort: null
