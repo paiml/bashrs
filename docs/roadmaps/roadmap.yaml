@@ -3041,6 +3041,26 @@ roadmap:
   - kind:code
   notes: null
   epic: 426
+- id: PMAT-438
+  github_issue: 438
+  item_type: task
+  title: 'SC2168/SC2151/SC2152: local, return and exit are flagged only in command position (refs #438)'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-11-02T05:30:00Z
+  updated: 2026-11-02T05:30:00Z
+  spec: null
+  acceptance_criteria:
+  - 'SC2168, SC2151 and SC2152 match local, return and exit only as the name of a simple command, after Make recipe prefixes (@ - +) are blanked and backslash-continued lines are joined. On the #438 Makefile (comment, `:` argument, `echo local x`, quoted, continued forms plus one real `local x=1`) `bashrs make lint` goes from 7 SC2168 errors to 1, the real top-level `local x=1`.'
+  - 'Three failing-first tests fail on the old rules and pass now: test_gh438_sc2168_prose_forms_are_not_flagged, test_gh438_sc2151_echo_return_is_prose and test_gh438_sc2152_echo_exit_is_prose. test_gh438_sc2168_real_top_level_local_still_flagged and the sc2151/sc2152 real-command tests pass on both and pin that real uses still report.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
 - id: PMAT-466
   github_issue: 466
   item_type: task
