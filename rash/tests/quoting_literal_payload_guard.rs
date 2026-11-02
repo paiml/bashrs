@@ -242,6 +242,14 @@ const PAYLOADS: &[Payload] = &[
         quoted: "f=x\nawk '\n    function trim(s) { return s }\n    { print trim($0) }\n' \"$f\"\n",
         found_at: "infra/machines/clean-room/coverage-on-tag-census.sh:58 (bashrs#364)",
     },
+    // bashrs#431. SC2096 (BRS0009) counted `>` characters, so the two inside
+    // this string were a second stdout redirection next to the real `>&2`.
+    Payload {
+        code: "BRS0009",
+        bare: "echo a >x >y\n",
+        quoted: "printf '%s\\n' \"a <N>m b N>0\" >&2\n",
+        found_at: "bashrs#431",
+    },
 ];
 
 fn error_codes(source: &str) -> Vec<String> {
