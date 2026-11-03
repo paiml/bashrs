@@ -159,6 +159,68 @@ fn make_diagnostic(o: &Offence, line: usize) -> Diagnostic {
     }
 }
 
+/// True for a word shaped like a shell assignment (`NAME=…`, `NAME+=…`,
+/// including array forms `NAME=(…`). shellcheck never reports SC2046 inside
+/// one, even when it appears as an argument (`export A=$(date)`,
+/// `local b=$(cmd)`, `echo a=$(cmd)`): bash performs no word splitting on the
+/// value of an assignment-shaped word.
+fn is_assignment_shaped(raw: &str) -> bool {
+    let name_end = raw
+        .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+        .unwrap_or(0);
+    if name_end == 0 || raw.as_bytes()[0].is_ascii_digit() {
+        return false;
+    }
+    let rest = &raw[name_end..];
+    rest.starts_with('=') || rest.starts_with("+=")
+}
+
+/// True when `col` (1-indexed physical column) lies inside a `${ … }`
+/// parameter expansion of `word`. shellcheck reports those under SC2086, not
+/// SC2046.
+fn inside_param_expansion(word: &ShellWord, col: usize) -> bool {
+    let rel = col.saturating_sub(word.col);
+    let bytes = word.raw.as_bytes();
+    let mut depth = 0usize;
+    let mut i = 0;
+    while i < bytes.len() && i < rel {
+        if bytes[i] == b'$' && bytes.get(i + 1) == Some(&b'{') {
+            depth += 1;
+            i += 2;
+            continue;
+        }
+        if bytes[i] == b'}' && depth > 0 {
+            depth -= 1;
+        }
+        i += 1;
+    }
+    depth > 0
+}
+
+/// Indices of words that are the operand list of `for … in LIST` / `select`
+/// when LIST is a single word. shellcheck stays silent on a sole
+/// `for x in $(cmd)` but reports it once other words join the list.
+fn sole_list_word(words: &[ShellWord]) -> Option<usize> {
+    let first = words.first()?;
+    if !matches!(first.literal.as_str(), "for" | "select") {
+        return None;
+    }
+    let in_pos = words.iter().position(|w| w.literal == "in")?;
+    let list = &words[in_pos + 1..];
+    if list.len() == 1 {
+        Some(in_pos + 1)
+    } else {
+        None
+    }
+}
+
+/// True when `words[idx]` is a `case` pattern: the command is `case … in`
+/// and the word follows `in` (it is matched, never executed or split).
+fn is_case_pattern(words: &[ShellWord], idx: usize) -> bool {
+    words.first().is_some_and(|w| w.literal == "case")
+        && words[..idx].iter().any(|w| w.literal == "in")
+}
+
 /// True when `words[idx]` should be scanned for unquoted command
 /// substitutions: its role is reportable, unless it is the `case … in`
 /// exception carved out of `CommandName` by [`is_case_operand`].
@@ -173,22 +235,141 @@ fn is_reportable(words: &[ShellWord], idx: usize) -> bool {
 fn scan_line(line: &str) -> Vec<Offence> {
     let mut offences: Vec<Offence> = Vec::new();
     for cmd in shell_words::simple_commands(line) {
+        let sole_list = sole_list_word(&cmd.words);
         for (idx, word) in cmd.words.iter().enumerate() {
-            if is_reportable(&cmd.words, idx) {
-                word_offences(word, &mut offences);
+            if sole_list == Some(idx)
+                || is_case_pattern(&cmd.words, idx)
+                || is_assignment_shaped(&word.raw)
+                || !is_reportable(&cmd.words, idx)
+            {
+                continue;
             }
+            let before = offences.len();
+            word_offences(word, &mut offences);
+            let mut k = before;
+            offences.retain(|o| {
+                let keep = k < before || !inside_param_expansion(word, o.col);
+                k += 1;
+                keep
+            });
         }
     }
+    let skip = skip_ranges(line);
+    offences.retain(|o| !skip.iter().any(|&(s, e)| o.col >= s && o.col <= e));
     offences.sort_by_key(|o| o.col);
     offences
+}
+
+/// `[[ … ]]` starting at byte `i` of `line`: 1-indexed inclusive column range.
+fn dbracket_range(line: &str, i: usize) -> Option<(usize, usize)> {
+    let b = line.as_bytes();
+    let starts = b[i] == b'[' && b.get(i + 1) == Some(&b'[');
+    let at_boundary = i == 0 || matches!(b[i - 1], b' ' | b'\t' | b';' | b'&' | b'|' | b'(');
+    if !(starts && at_boundary) {
+        return None;
+    }
+    let rel = line[i + 2..].find(" ]]")?;
+    Some((i + 1, i + 2 + rel + 3))
+}
+
+/// Byte offset one past the `)` that balances the `(` at `open`.
+fn matching_paren_end(b: &[u8], open: usize) -> usize {
+    let mut depth = 0usize;
+    for (j, &c) in b.iter().enumerate().skip(open) {
+        depth = match c {
+            b'(' => depth + 1,
+            b')' => depth.saturating_sub(1),
+            _ => depth,
+        };
+        if c == b')' && depth == 0 {
+            return j + 1;
+        }
+    }
+    b.len()
+}
+
+/// `NAME=( … )` / `NAME+=( … )` whose `=` is at byte `i`: 1-indexed inclusive
+/// column range, plus the byte offset to resume scanning at.
+fn array_assign_range(line: &str, i: usize) -> Option<(usize, usize, usize)> {
+    let b = line.as_bytes();
+    if !(b[i] == b'=' && b.get(i + 1) == Some(&b'(')) {
+        return None;
+    }
+    let s = if i > 0 && b[i - 1] == b'+' { i - 1 } else { i };
+    let name_start = line[..s]
+        .rfind(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+        .map_or(0, |p| p + 1);
+    if name_start >= s {
+        return None;
+    }
+    let end = matching_paren_end(b, i + 1);
+    Some((name_start + 1, end, end))
+}
+
+/// 1-indexed inclusive column ranges of `line` where shellcheck never reports
+/// SC2046: the body of an array assignment (`NAME=( … )`, `NAME+=( … )`,
+/// `declare -a q=( … )`) and a `[[ … ]]` conditional (no word splitting there).
+/// These span several `simple_commands` (the `(` and `&&` split them), so
+/// they are found on the raw line, not per word.
+fn skip_ranges(line: &str) -> Vec<(usize, usize)> {
+    let mut out = Vec::new();
+    let mut i = 0;
+    while i < line.len() {
+        if let Some((s, e)) = dbracket_range(line, i) {
+            out.push((s, e));
+            i = e;
+        } else if let Some((s, e, next)) = array_assign_range(line, i) {
+            out.push((s, e));
+            i = next;
+        } else {
+            i += 1;
+        }
+    }
+    out
+}
+
+/// Heredoc delimiter opened on `line`, if any (`<<EOF`, `<<-'EOF'`, `<< "EOF"`).
+/// `<<<` here-strings and `<<` arithmetic shifts inside `$(( ))` are not
+/// heredocs.
+fn heredoc_delimiter(line: &str) -> Option<String> {
+    let bytes = line.as_bytes();
+    let mut i = 0;
+    while i + 1 < bytes.len() {
+        if bytes[i] == b'<' && bytes[i + 1] == b'<' {
+            if bytes.get(i + 2) == Some(&b'<') {
+                i += 3;
+                continue;
+            }
+            let mut rest = line[i + 2..].trim_start_matches('-').trim_start();
+            rest = rest.trim_start_matches(['\'', '"', '\\']);
+            let delim: String = rest
+                .chars()
+                .take_while(|c| c.is_ascii_alphanumeric() || *c == '_')
+                .collect();
+            if !delim.is_empty() && !line[..i].contains("$((") {
+                return Some(delim);
+            }
+        }
+        i += 1;
+    }
+    None
 }
 
 /// Check for unquoted command substitutions (SC2046).
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    let mut heredoc: Option<String> = None;
 
     for (line_idx, line) in source.lines().enumerate() {
         let line_num = line_idx + 1;
+
+        // shellcheck does not analyse heredoc bodies for SC2046.
+        if let Some(delim) = &heredoc {
+            if line.trim() == delim {
+                heredoc = None;
+            }
+            continue;
+        }
 
         // Skip comments
         if line.trim_start().starts_with('#') {
@@ -198,6 +379,7 @@ pub fn check(source: &str) -> LintResult {
         for o in &scan_line(line) {
             result.add(make_diagnostic(o, line_num));
         }
+        heredoc = heredoc_delimiter(line);
     }
 
     result
@@ -411,10 +593,13 @@ mod tests {
     }
 
     #[test]
-    fn test_PMAT248_review_sc2046_for_in_argument_still_reported() {
+    fn test_PMAT248_review_sc2046_for_in_argument_reported_with_other_words() {
         // Unaffected by this change: `$(ls)` here is `Argument`, not
         // `CommandName`, already reportable before Phase 7.
+        // GH-236: shellcheck is silent on a sole `for x in $(cmd)` list.
         let result = check("for i in $(ls); do echo $i; done");
+        assert_eq!(result.diagnostics.len(), 0);
+        let result = check("for i in a $(ls); do echo $i; done");
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2046");
     }
@@ -464,5 +649,98 @@ mod tests_pmat250 {
             check("echo $(date)").diagnostics[0].span.start_col,
             word.substitutions[0].col
         );
+    }
+
+    // -----------------------------------------------------------------
+    // GH-236: shellcheck 0.8.0 stays silent on all of these; bashrs used
+    // to fire SC2046 (210x vs 1x on the same 40 files).
+    // -----------------------------------------------------------------
+
+    #[test]
+    fn test_gh236_assignment_word_in_argument_position_silent() {
+        for src in [
+            "export A=$(date)",
+            "export -n A=$(date)",
+            "local B=$(date)",
+            "readonly C=$(date)",
+            "declare D=$(date)",
+            "typeset E=$(date)",
+            "echo a=$(date)",
+            "x=$(date) export B=$(date)",
+            "arr+=$(date)",
+        ] {
+            assert_eq!(check(src).diagnostics.len(), 0, "must be silent: {src}");
+        }
+    }
+
+    #[test]
+    fn test_gh236_array_assignment_silent() {
+        for src in ["b=($(date))", "a=($(date) $(id))", "declare -a q=($(date))"] {
+            assert_eq!(check(src).diagnostics.len(), 0, "must be silent: {src}");
+        }
+    }
+
+    #[test]
+    fn test_gh236_parameter_expansion_default_silent() {
+        for src in ["echo ${z:-$(date)}", "echo x${z:-$(date)}y"] {
+            assert_eq!(check(src).diagnostics.len(), 0, "must be silent: {src}");
+        }
+    }
+
+    #[test]
+    fn test_gh236_double_bracket_silent() {
+        for src in [
+            "[[ $(uname) = Linux ]]",
+            "[[ -n $(uname) && $(id) ]]",
+            "if [[ $(uname) == L* ]]; then :; fi",
+        ] {
+            assert_eq!(check(src).diagnostics.len(), 0, "must be silent: {src}");
+        }
+    }
+
+    #[test]
+    fn test_gh236_sole_for_select_list_silent() {
+        for src in [
+            "for i in $(seq 1 3); do :; done",
+            "select i in $(ls); do :; done",
+        ] {
+            assert_eq!(check(src).diagnostics.len(), 0, "must be silent: {src}");
+        }
+    }
+
+    #[test]
+    fn test_gh236_for_list_with_other_words_still_reported() {
+        assert_eq!(
+            check("for i in a $(seq 1 3) b; do :; done")
+                .diagnostics
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn test_gh236_case_pattern_silent() {
+        assert_eq!(check("case x in $(date)) :;; esac").diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_gh236_heredoc_body_silent() {
+        let src = "cat <<EOF2\n$(date)\nEOF2\necho $(date)\n";
+        let r = check(src);
+        assert_eq!(r.diagnostics.len(), 1, "only the echo after the heredoc");
+        assert_eq!(r.diagnostics[0].span.start_line, 4);
+    }
+
+    #[test]
+    fn test_gh236_true_positives_preserved() {
+        for src in [
+            "echo \"a\"$(date)",
+            "echo $(date) >/dev/null",
+            "printf '%s' $(echo hi)",
+            "if [ $(date +%s) -gt 1 ]; then :; fi",
+            "echo foo=$(date) $(id)",
+        ] {
+            assert!(!check(src).diagnostics.is_empty(), "must report: {src}");
+        }
     }
 }

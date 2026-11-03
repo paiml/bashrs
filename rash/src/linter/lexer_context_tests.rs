@@ -228,8 +228,9 @@ fn test_PMAT248_review_sc2276_ignores_a_pipe_inside_quotes() {
 // ---------------------------------------------------------------------------
 
 #[test]
-fn test_PMAT255_pmat250_sc2046_inside_brace_default_unquoted() {
-    shell_fires("#!/bin/sh\necho ${var:-$(date)}\n", "SC2046");
+fn test_PMAT255_pmat250_sc2046_inside_brace_default_silent_gh236() {
+    // GH-236: shellcheck reports this as SC2086, never SC2046.
+    shell_absent("#!/bin/sh\necho ${var:-$(date)}\n", "SC2046");
 }
 
 #[test]
