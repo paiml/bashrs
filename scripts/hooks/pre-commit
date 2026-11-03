@@ -1,57 +1,43 @@
 #!/bin/bash
-# bashrs pre-commit hook: Zero tolerance for lint warnings
-# Enforces code quality standards before commit
-
-set -e
+# bashrs pre-commit hook.
+#
+# C52 item 3 (operator): a hook BLOCKS only if it is fast (<5 s), deterministic,
+# auto-fixable AND mirrors a required CI check. Format is the only step that is.
+# Clippy, perf lints and tests take longer than 5 s, so they WARN here and CI
+# stays the enforcer.
+set -u
 
 echo "🔍 Running pre-commit quality checks..."
 
-# Run clippy with zero-tolerance mode
-echo "  📋 Checking clippy (zero warnings required)..."
-if ! cargo clippy --lib -- -D warnings 2>&1 | tail -10; then
-    echo ""
-    echo "❌ COMMIT BLOCKED: Clippy warnings detected"
-    echo ""
-    echo "Fix all warnings before committing:"
-    echo "  cargo clippy --lib -- -D warnings"
-    echo ""
-    echo "Or fix automatically where possible:"
-    echo "  cargo clippy --lib --fix --allow-dirty"
-    echo ""
-    exit 1
+# Blocking: format (only when Rust files are staged).
+STAGED_RS=$(git diff --cached --name-only --diff-filter=ACMR -- '*.rs' 2>/dev/null)
+if [ -n "$STAGED_RS" ]; then
+    echo "  📐 Checking format..."
+    if ! cargo fmt --all -- --check >/dev/null 2>&1; then
+        echo ""
+        echo "❌ COMMIT BLOCKED: unformatted Rust code"
+        echo "   Fix: cargo fmt --all"
+        exit 1
+    fi
+    echo "  ✅ Format"
 fi
 
-echo "  ✅ Clippy: Zero warnings"
+# Warn only: everything below can take minutes; CI enforces it.
+warn_step() {
+    label="$1"; shift
+    echo "  ⏳ $label (warning only)..."
+    if "$@" >/dev/null 2>&1; then
+        echo "  ✅ $label"
+    else
+        echo "  ⚠️  $label failed (not blocking; CI enforces). Run: $*"
+    fi
+}
 
-# Run clippy performance checks (release mode)
-echo "  ⚡ Checking performance lints (release mode)..."
-if ! cargo clippy --release -- -W clippy::perf 2>&1 | tail -10; then
-    echo ""
-    echo "❌ COMMIT BLOCKED: Performance issues detected"
-    echo ""
-    echo "Fix performance issues before committing:"
-    echo "  cargo clippy --release -- -W clippy::perf"
-    echo ""
-    exit 1
-fi
-
-echo "  ✅ Performance: No issues"
-
-# Run tests to ensure no regressions (fast mode: 50 property test cases)
-echo "  🧪 Running tests (fast: 50 prop cases)..."
-if ! PROPTEST_CASES=50 cargo test --lib --quiet 2>&1 | tail -5; then
-    echo ""
-    echo "❌ COMMIT BLOCKED: Tests failing"
-    echo ""
-    echo "Fix failing tests before committing:"
-    echo "  make test-fast"
-    echo "  Or: PROPTEST_CASES=50 cargo test --lib"
-    echo ""
-    exit 1
-fi
-
-echo "  ✅ Tests: All passing (50 prop cases)"
+warn_step "clippy (zero warnings)" cargo clippy --lib -- -D warnings
+warn_step "perf lints (release)" cargo clippy --release -- -W clippy::perf
+warn_step "tests (fast: 50 prop cases)" env PROPTEST_CASES=50 cargo test --lib --quiet
 
 echo ""
-echo "✅ Pre-commit checks passed - proceeding with commit"
+echo "✅ Pre-commit checks done"
 echo ""
+exit 0
