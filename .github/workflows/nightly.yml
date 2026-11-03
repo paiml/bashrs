@@ -75,13 +75,19 @@ jobs:
             runner: ubuntu-latest
           - target: aarch64-unknown-linux-gnu
             runner: ubuntu-24.04-arm  # native ARM64, free for public repos
+          # The darwin legs build on the fleet's self-hosted mac (mini). This
+          # workflow runs only on schedule and workflow_dispatch, never on a pull
+          # request, so no fork code reaches that host.
           - target: x86_64-apple-darwin
-            runner: macos-latest
+            runner: [self-hosted, macOS, ARM64, mini]
           - target: aarch64-apple-darwin
-            runner: macos-latest
+            runner: [self-hosted, macOS, ARM64, mini]
           - target: x86_64-pc-windows-msvc
             runner: windows-latest
     runs-on: ${{ matrix.runner }}
+    # A wedged build on the persistent mini must not hold `release` (needs: build). This bounds RUN time only: GitHub does not
+    # count a job that is still queued for an offline runner, which it cancels itself after 24 h.
+    timeout-minutes: ${{ endsWith(matrix.target, '-apple-darwin') && 60 || 360 }}   # 360 is GitHub's default: only the darwin legs change
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -94,12 +100,26 @@ jobs:
 
       - name: Symlink provable-contracts for Cargo path deps
         if: runner.os != 'Windows'
-        run: ln -sf "$GITHUB_WORKSPACE/provable-contracts" "$GITHUB_WORKSPACE/../provable-contracts"
+        run: ln -sfn "$GITHUB_WORKSPACE/provable-contracts" "$GITHUB_WORKSPACE/../provable-contracts"
 
       - name: Symlink provable-contracts (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: New-Item -ItemType Junction -Path "$env:GITHUB_WORKSPACE\..\provable-contracts" -Target "$env:GITHUB_WORKSPACE\provable-contracts" -Force
+
+      # The mac is a persistent host whose ~/.rustup and ~/.cargo also serve other
+      # work, and its runner environment points CARGO_TARGET_DIR at a shared
+      # directory. Give the darwin legs their own toolchain and cargo homes under
+      # the runner's tool cache, and put the build back in ./target, which the
+      # Package step copies from.
+      - name: Isolate the toolchain (darwin legs only)
+        if: endsWith(matrix.target, '-apple-darwin')
+        run: |
+          {
+            echo "RUSTUP_HOME=${{ runner.tool_cache }}/rustup"
+            echo "CARGO_HOME=${{ runner.tool_cache }}/cargo"
+            echo "CARGO_TARGET_DIR=${{ github.workspace }}/target"
+          } >> "$GITHUB_ENV"
 
       - name: Install Rust toolchain (macOS / Windows)
         if: runner.os != 'Linux'
@@ -201,6 +221,8 @@ jobs:
   # ── Create/update nightly prerelease ─────────────────────
   release:
     needs: build
+    # Only main publishes the nightly: a workflow_dispatch from a branch builds and uploads artifacts but must not replace the release.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
