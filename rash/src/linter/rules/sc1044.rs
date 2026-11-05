@@ -71,6 +71,75 @@ struct HeredocOpen {
     strips_tabs: bool,
 }
 
+/// Byte index of the `)` that closes the `((` at `open`, or `None`. Arithmetic closes with an
+/// ADJACENT `))`: a depth-0 `)` not preceded by another `)` (`((true); cat <<EOF)`) is a
+/// subshell, not arithmetic. A line that never closes it is `None` too.
+fn closing_paren(b: &[u8], open: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (j, &c) in b.iter().enumerate().skip(open) {
+        depth = match c {
+            b'(' => depth + 1,
+            b')' => depth.saturating_sub(1),
+            _ => depth,
+        };
+        if depth == 0 {
+            return (j > open + 1 && b[j - 1] == b')').then_some(j);
+        }
+    }
+    None
+}
+
+/// Is the byte at `i` an unescaped `$`? (An even number of backslashes before it.)
+fn is_live_dollar(b: &[u8], i: usize) -> bool {
+    b.get(i) == Some(&b'$') && b[..i].iter().rev().take_while(|&&c| c == b'\\').count() % 2 == 0
+}
+
+/// Does an arithmetic `((` open at `i`? Not inside single quotes; inside double quotes only as a
+/// live `$((` (an escaped `\$((` is a literal dollar).
+fn opens_arithmetic(b: &[u8], i: usize, quote: u8) -> bool {
+    b[i..].starts_with(b"((")
+        && quote != b'\''
+        && (quote != b'"' || (i > 0 && is_live_dollar(b, i - 1)))
+}
+
+/// Byte spans `(open, close)` of the closed `((...))` arithmetic on this line. Quote- and
+/// backslash-aware, and an unclosed `((` opens no span: it is not arithmetic, so it must not
+/// hide a real heredoc after it.
+fn arithmetic_spans(line: &str) -> Vec<(usize, usize)> {
+    let b = line.as_bytes();
+    let (mut spans, mut quote, mut i) = (Vec::new(), 0u8, 0usize);
+    while i < b.len() {
+        let c = b[i];
+        if c == b'\\' && quote != b'\'' {
+            i += 2;
+        } else if opens_arithmetic(b, i, quote) {
+            match closing_paren(b, i) {
+                Some(j) => {
+                    spans.push((i, j));
+                    i = j + 1;
+                }
+                None => i += 2,
+            }
+        } else {
+            if quote == 0 && (c == b'\'' || c == b'"') {
+                quote = c;
+            } else if c == quote {
+                quote = 0;
+            }
+            i += 1;
+        }
+    }
+    spans
+}
+
+/// True when byte offset `pos` lies inside a `((...))` arithmetic span on this line
+/// (`$(( 1 << 3 ))`, `(( x <<= 1 ))`): there `<<` is the left shift, never a heredoc.
+fn in_arithmetic(line: &str, pos: usize) -> bool {
+    arithmetic_spans(line)
+        .iter()
+        .any(|&(open, close)| pos > open && pos < close)
+}
+
 /// The first `<<` on the line that actually opens a heredoc.
 ///
 /// The regex has no lookbehind, so a match that begins immediately after
@@ -80,6 +149,9 @@ struct HeredocOpen {
 fn first_heredoc_start(line: &str) -> Option<HeredocOpen> {
     HEREDOC_START.captures_iter(line).find_map(|caps| {
         let m = caps.get(0)?;
+        if in_arithmetic(line, m.start()) {
+            return None;
+        }
         // Group 0 begins at the `<<`; a `<` right before it means `<<<`.
         if m.start()
             .checked_sub(1)
@@ -238,5 +310,75 @@ mod tests {
         let script = "grep . <<<'x' && cat <<EOF\nbody\nEOF";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    /// BASHRS-111: `<<` inside `$(( ))` / `(( ))` is the arithmetic left shift, not a heredoc.
+    #[test]
+    fn test_sc1044_arithmetic_left_shift_is_not_a_heredoc() {
+        for script in [
+            "x=$(( 1 << 3 ))",
+            "y=$((x<<n))",
+            "(( flags |= 1 << bit ))",
+            "echo $(( (1 << 4) - 1 )) done",
+            "z=$(( x<<2 ))",
+            "echo \"$(( 1 << 3 ))\"",
+        ] {
+            let result = check(script);
+            assert_eq!(
+                result.diagnostics.len(),
+                0,
+                "arithmetic shift reported as a heredoc: {script}"
+            );
+        }
+    }
+
+    /// A real heredoc on a line that also has arithmetic is still caught.
+    #[test]
+    fn test_sc1044_heredoc_after_arithmetic_still_flagged() {
+        let script = "n=$(( 1 << 3 )); cat <<EOF\nbody\n# no terminator";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert!(result.diagnostics[0].message.contains("EOF"));
+    }
+
+    /// bashrs#474 r3. Every script below leads with a genuine `$(( 1 << 3 ))`, so each one fails if
+    /// `in_arithmetic` is reverted to "never": the `<< 3` is read as the heredoc and the message
+    /// names `3`, not `EOF`. The trap after it must NOT hide the real `<<EOF` that follows.
+    fn assert_only_eof_is_flagged(trap: &str) {
+        let script = format!("n=$(( 1 << 3 )); {trap}\nbody\n# no terminator");
+        let result = check(&script);
+        assert_eq!(result.diagnostics.len(), 1, "wrong count for: {script}");
+        assert!(
+            result.diagnostics[0].message.contains("EOF"),
+            "the heredoc was not the one flagged: {script}"
+        );
+    }
+
+    /// An UNCLOSED `((` is not arithmetic; it must not swallow the heredoc after it.
+    #[test]
+    fn test_sc1044_unclosed_double_paren_keeps_later_heredoc() {
+        assert_only_eof_is_flagged("(( x ; cat <<EOF");
+    }
+
+    /// A quoted or escaped `((` opens nothing, even with a `))` later on the line to close it.
+    #[test]
+    fn test_sc1044_quoted_double_paren_keeps_later_heredoc() {
+        assert_only_eof_is_flagged("printf '((' ; cat <<EOF ; echo '))'");
+        assert_only_eof_is_flagged("echo \"((\" ; cat <<EOF ; echo \"))\"");
+        assert_only_eof_is_flagged("echo \\(( ; cat <<EOF ; echo \\))");
+    }
+
+    /// `((` closes only at an adjacent `))`. Here the last `)` is not preceded by one, so this is
+    /// a subshell holding a real heredoc, not arithmetic.
+    #[test]
+    fn test_sc1044_double_paren_needs_an_adjacent_close() {
+        assert_only_eof_is_flagged("((true); cat <<EOF)");
+        assert_only_eof_is_flagged("((true); cat <<EOF ; echo x)");
+    }
+
+    /// `\$((` inside double quotes is a literal dollar followed by `((`, not arithmetic.
+    #[test]
+    fn test_sc1044_escaped_dollar_does_not_open_arithmetic() {
+        assert_only_eof_is_flagged("echo \"\\$((\" ; cat <<EOF ; echo \"))\"");
     }
 }

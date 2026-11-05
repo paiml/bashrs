@@ -2880,6 +2880,27 @@ roadmap:
   - kind:code
   - release:v7.4.2
   notes: null
+- id: PMAT-421
+  github_issue: 421
+  item_type: task
+  title: 'nightly: build the darwin legs on the self-hosted mac'
+  status: inprogress
+  priority: medium
+  kind: code
+  assigned_to: null
+  created: 2026-10-04T14:41:22Z
+  updated: 2026-10-04T14:41:22Z
+  spec: null
+  acceptance_criteria:
+  - 'nightly.yml x86_64-apple-darwin and aarch64-apple-darwin legs run on [self-hosted, macOS, ARM64, mini]; every other leg keeps its runner, and nightly.yml still triggers only on schedule and workflow_dispatch.'
+  - 'A step guarded by endsWith(matrix.target, ''-apple-darwin'') sets RUSTUP_HOME and CARGO_HOME under the runner tool cache and CARGO_TARGET_DIR to the workspace target dir; no non-darwin leg gets a new variable.'
+  - 'A workflow_dispatch of nightly.yml builds and uploads both bashrs-*-apple-darwin.tar.gz assets on mini-m4. Receipt: run 41354051339 (workflow_dispatch from ci/nightly-darwin-self-hosted-mac at 4b412a0c6253c19fbeef967b4072f047a505b255, https://github.com/paiml/bashrs/actions/runs/41354051339) - both darwin legs ran on runner mini-m4 and succeeded, uploading the artifacts bashrs-aarch64-apple-darwin and bashrs-x86_64-apple-darwin; the release job was skipped (not main).'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - release:v7.5.0
+  notes: null
 - id: PMAT-425
   github_issue: 425
   item_type: task
@@ -3072,6 +3093,25 @@ roadmap:
   updated: 2026-10-27T02:47:18.427774464+00:00
   spec: null
   acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
+- id: PMAT-474
+  github_issue: 474
+  item_type: task
+  title: 'SC1044: arithmetic << (left shift) inside (( )) is not a heredoc (refs apex#111)'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-11-02T02:50:00Z
+  updated: 2026-11-02T02:50:00Z
+  spec: null
+  acceptance_criteria:
+  - 'SC1044 skips a << that lies inside a $(( )) or (( )) span, so $(( 1 << 3 )), $((x<<n)) and (( f |= 1 << b )) give zero diagnostics, and a real heredoc later on the same line is still reported. Quotes, backslashes and unclosed or non-adjacent-close (( are not arithmetic: a heredoc after them is still reported. Reverting in_arithmetic to never-true fails 6 sc1044 tests (the left-shift test, the heredoc-after-arithmetic test and the four r3 tests); reverting only the r3 closing_paren and is_live_dollar rules fails the adjacent-close and escaped-dollar tests.'
   phases: []
   subtasks: []
   estimated_effort: null
