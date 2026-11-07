@@ -17,51 +17,32 @@
 //
 // Impact: Return value truncated, unexpected behavior
 
+use crate::linter::command_keyword::command_keyword_hits;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
-
-static RETURN_OUT_OF_RANGE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    // Match: return <number> where number > 255 or < 0
-    Regex::new(r"\breturn\s+(-[0-9]+|[0-9]{3,})").unwrap()
-});
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
-    for (line_num, line) in source.lines().enumerate() {
-        let line_num = line_num + 1;
-
-        if line.trim_start().starts_with('#') {
+    // GH-438: only `return` as the NAME of a simple command counts, not prose or arguments.
+    for hit in command_keyword_hits(source, "return") {
+        let Some((arg, end_line, arg_end)) = hit.first_arg else {
+            continue;
+        };
+        let Ok(num) = arg.parse::<i32>() else {
+            continue;
+        };
+        if (0..=255).contains(&num) {
             continue;
         }
-
-        // Check for return with out-of-range values
-        for mat in RETURN_OUT_OF_RANGE.find_iter(line) {
-            let matched = mat.as_str();
-
-            // Extract the number
-            if let Some(num_str) = matched.strip_prefix("return").map(|s| s.trim()) {
-                if let Ok(num) = num_str.parse::<i32>() {
-                    // Check if out of range 0-255
-                    if !(0..=255).contains(&num) {
-                        let start_col = mat.start() + 1;
-                        let end_col = mat.end() + 1;
-
-                        let diagnostic = Diagnostic::new(
-                            "SC2151",
-                            Severity::Error,
-                            format!(
-                                "Only values 0-255 can be returned. {} will be truncated",
-                                num
-                            ),
-                            Span::new(line_num, start_col, line_num, end_col),
-                        );
-
-                        result.add(diagnostic);
-                    }
-                }
-            }
-        }
+        result.add(Diagnostic::new(
+            "SC2151",
+            Severity::Error,
+            format!(
+                "Only values 0-255 can be returned. {} will be truncated",
+                num
+            ),
+            Span::new(hit.line, hit.col, end_line, arg_end),
+        ));
     }
 
     result
@@ -147,5 +128,22 @@ foo() {
 "#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+}
+
+#[cfg(test)]
+mod tests_gh438 {
+    use super::*;
+
+    #[test]
+    fn test_gh438_sc2151_echo_return_is_prose() {
+        assert_eq!(check("echo return 256").diagnostics.len(), 0);
+        assert_eq!(check("\t@# return 256").diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_gh438_sc2151_real_return_still_flagged() {
+        assert_eq!(check("f() { return 256; }").diagnostics.len(), 1);
+        assert_eq!(check("\t@return 1000").diagnostics.len(), 1);
     }
 }

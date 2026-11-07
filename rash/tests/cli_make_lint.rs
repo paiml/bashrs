@@ -401,3 +401,50 @@ clean:
         fixed_content
     );
 }
+
+/// GH-438: the Makefile from the report. Seven prose / argument forms and one real `local x=1`;
+/// `bashrs make lint` went from 7 SC2168 errors to exactly 1, the real one.
+#[test]
+fn test_CLI_MAKE_LINT_gh438_prose_forms_report_one_sc2168() {
+    let temp_dir = TempDir::new().unwrap();
+    let makefile_path = temp_dir.path().join("Makefile");
+    fs::write(
+        &makefile_path,
+        "all:\n\t@# touches the local registry\n\t: touches the local docker registry, which; \\\n\t  more\n\techo local x\n\t-# local a\n\t@-# local b\n\techo \"a\" local x\n\tlocal x=1\n\techo return 256\n\techo exit 999\n",
+    )
+    .unwrap();
+
+    let out = bashrs_cmd()
+        .arg("make")
+        .arg("lint")
+        .arg(&makefile_path)
+        .output()
+        .unwrap();
+    let text =
+        String::from_utf8_lossy(&out.stdout).to_string() + &String::from_utf8_lossy(&out.stderr);
+    assert_eq!(text.matches("SC2168").count(), 1, "{text}");
+    assert!(
+        text.contains("9:2"),
+        "the real `local x=1` is on line 9: {text}"
+    );
+}
+
+/// GH-438: with a real `target:` header, the recipe path blanks `@`/`-`/`+` so the shell rules see
+/// the command itself: `@local x=1` still reports, at the keyword's column.
+#[test]
+fn test_CLI_MAKE_LINT_gh438_recipe_prefix_is_blanked_with_real_header() {
+    let temp_dir = TempDir::new().unwrap();
+    let makefile_path = temp_dir.path().join("Makefile");
+    fs::write(&makefile_path, "all:\n\t@local x=1\n").unwrap();
+
+    let out = bashrs_cmd()
+        .arg("make")
+        .arg("lint")
+        .arg(&makefile_path)
+        .output()
+        .unwrap();
+    let text =
+        String::from_utf8_lossy(&out.stdout).to_string() + &String::from_utf8_lossy(&out.stderr);
+    assert_eq!(text.matches("SC2168").count(), 1, "{text}");
+    assert!(text.contains("2:3"), "keyword column after the `@`: {text}");
+}

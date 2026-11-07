@@ -210,9 +210,10 @@ fn test_PMAT248_review_sc2047_considers_only_operands_of_the_test() {
 
 #[test]
 fn test_PMAT248_review_make_recipe_continuation_reaches_shell_rules() {
-    // A backslash-newline continues the recipe line; GNU make does not require
-    // a leading tab on the continued line. 7.0.2 reported this line.
-    let src = "build:\n\t@true \\\n  local x=1\n";
+    // A backslash-newline continues the recipe line; GNU make does not require a leading tab on the continued line.
+    // 7.0.2 reported this line. GH-438: `local` must be in command position, so the continued
+    // line starts a new command (`true; \`) instead of being an argument of `true`.
+    let src = "build:\n\t@true; \\\n  local x=1\n";
     assert_fires(&lint_makefile(src), "SC2168", src);
 }
 
@@ -301,4 +302,11 @@ fn test_PMAT439_gh439_backslash_before_a_closing_single_quote_is_literal() {
     // An attempt followed by a space leaves no word to glue, so SC2075 stays
     // silent; the quote it leaves open is still an error.
     shell_fires("#!/bin/bash\necho 'can\\' t'\necho done\n", "SC1078");
+}
+
+#[test]
+fn test_gh438_make_recipe_local_as_argument_of_continued_command_is_not_flagged() {
+    // The original reproducer: after `@true \` the continued `local` is an ARGUMENT of `true`.
+    let src = "build:\n\t@true \\\n  local x=1\n";
+    assert_absent(&lint_makefile(src), "SC2168", src);
 }
