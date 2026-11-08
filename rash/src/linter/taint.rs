@@ -135,7 +135,17 @@ impl TaintMap {
     pub fn line_taint(&self, line_idx: usize, line: &str) -> TaintKind {
         var_names(line)
             .into_iter()
-            .map(|name| self.var_taint(line_idx, &name))
+            .map(|name| {
+                // GH-359: an assignment earlier on this same line (`local d=…;
+                // mkdir "$d"`) already governs the later use, so read the
+                // taint as it stands after the line, not before it.
+                let at = if assigns_on_line(line, &name) {
+                    line_idx + 1
+                } else {
+                    line_idx
+                };
+                self.var_taint(at, &name)
+            })
             .max()
             .unwrap_or_default()
     }
@@ -156,6 +166,24 @@ impl TaintMap {
         let pos = history.partition_point(|(from, _)| *from <= line_idx);
         history.get(pos.checked_sub(1)?).map(|(_, kind)| *kind)
     }
+}
+
+/// Whether `line` contains `name=` as an assignment (not `==`, not a suffix of
+/// a longer name) ahead of a later use of `$name`.
+fn assigns_on_line(line: &str, name: &str) -> bool {
+    let bytes = line.as_bytes();
+    let pat = format!("{name}=");
+    let mut from = 0;
+    while let Some(rel) = line.get(from..).and_then(|t| t.find(&pat)) {
+        let pos = from + rel;
+        let end = pos + pat.len();
+        let boundary = pos == 0 || !is_name_byte(bytes[pos - 1]);
+        if boundary && bytes.get(end) != Some(&b'=') {
+            return true;
+        }
+        from = end;
+    }
+    false
 }
 
 /// Mutable state carried down the file by [`analyze`].
