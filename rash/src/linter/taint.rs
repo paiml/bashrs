@@ -539,10 +539,37 @@ fn apply_line(ctx: &mut Ctx, line: &str, from: usize, block: Option<usize>) {
     apply_assignment(ctx, line, from, block);
 }
 
+/// GH-359: the value of an assignment ends at the first unquoted `;`, `&` or
+/// `|` outside any `$( )`; the rest of the line is other commands whose
+/// variables must not leak into the assigned value.
+fn first_statement(rhs: &str) -> &str {
+    let mut quote: Option<char> = None;
+    let mut depth = 0usize;
+    let mut prev = ' ';
+    for (i, c) in rhs.char_indices() {
+        match quote {
+            Some(q) if c == q => quote = None,
+            Some(_) => {}
+            None => match c {
+                '\'' | '"' if prev != '\\' => quote = Some(c),
+                '(' => depth += 1,
+                ')' => depth = depth.saturating_sub(1),
+                ';' | '&' | '|' if depth == 0 && prev != '\\' => {
+                    return rhs.get(..i).unwrap_or(rhs);
+                }
+                _ => {}
+            },
+        }
+        prev = c;
+    }
+    rhs
+}
+
 fn apply_assignment(ctx: &mut Ctx, line: &str, from: usize, block: Option<usize>) -> bool {
     let Some((name, rhs)) = split_assignment(line) else {
         return false;
     };
+    let rhs = first_statement(rhs);
     let fresh = if is_sanitizer_rhs(rhs) {
         TaintKind::Clean
     } else {
