@@ -15,9 +15,6 @@
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
-static LOCAL_KEYWORD: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"\blocal\s+").unwrap());
-
 static FUNCTION_START: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"\b(function\s+[A-Za-z_][A-Za-z0-9_]*|[A-Za-z_][A-Za-z0-9_]*\s*\(\s*\))").unwrap()
 });
@@ -34,6 +31,7 @@ fn is_comment_line(line: &str) -> bool {
 ///
 /// This function tracks quote state to determine if a position is inside a quoted string.
 /// It handles both single quotes ('...') and double quotes ("...").
+#[cfg(test)]
 fn is_inside_quotes(line: &str, pos: usize) -> bool {
     let mut in_single_quote = false;
     let mut in_double_quote = false;
@@ -140,42 +138,96 @@ fn create_local_outside_function_diagnostic(
     )
 }
 
+/// Strip Make recipe prefixes (`@`, `-`, `+`) from a tab-led recipe line.
+/// Returns the byte offset removed, so columns can be mapped back.
+fn recipe_prefix_len(line: &str) -> usize {
+    if !line.starts_with('\t') {
+        return 0;
+    }
+    let rest = line.trim_start_matches('\t');
+    let body = rest.trim_start_matches(['@', '-', '+', ' ', '\t']);
+    line.len() - body.len()
+}
+
+/// True when the line ends in an odd number of backslashes (continues).
+fn continues(line: &str) -> bool {
+    (line.len() - line.trim_end_matches('\\').len()) % 2 == 1
+}
+
+/// Columns (1-indexed, within `logical`) of every `local` in command position.
+fn local_command_cols(logical: &str) -> Vec<usize> {
+    crate::linter::shell_words::simple_commands(logical)
+        .iter()
+        .filter(|c| c.name.as_deref() == Some("local"))
+        .filter_map(|c| c.words.iter().find(|w| w.literal == "local").map(|w| w.col))
+        .collect()
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
     let mut function_depth: usize = 0;
+    // GH-438: a backslash-continued command is one logical line. `pending`
+    // holds (physical line number, text) pieces and the depth at its start.
+    let mut pending: Vec<(usize, &str)> = Vec::new();
+    let mut pending_depth = 0usize;
 
     for (i, line) in lines.iter().enumerate() {
-        let line_num = i + 1;
-
-        if is_comment_line(line) {
-            continue;
-        }
-
-        // Track function depth
-        update_depth_for_function_start(&mut function_depth, line, &lines, i);
-        update_depth_for_braces(&mut function_depth, line);
-
-        // Check for local keyword outside functions
-        if let Some(mat) = LOCAL_KEYWORD.find(line) {
-            // Skip if 'local' is inside quotes (false positive)
-            if is_inside_quotes(line, mat.start()) {
+        if pending.is_empty() {
+            if is_comment_line(line) {
                 continue;
             }
-
-            if function_depth == 0 {
-                let start_col = mat.start() + 1;
-                let end_col = mat.end() + 1;
-
-                let diagnostic =
-                    create_local_outside_function_diagnostic(line_num, start_col, end_col);
-
-                result.add(diagnostic);
-            }
+            // Track function depth
+            update_depth_for_function_start(&mut function_depth, line, &lines, i);
+            update_depth_for_braces(&mut function_depth, line);
+            pending_depth = function_depth;
+        } else {
+            update_depth_for_braces(&mut function_depth, line);
         }
+        pending.push((i + 1, line));
+        if continues(line) && i + 1 < lines.len() {
+            continue;
+        }
+        if pending_depth == 0 {
+            flag_locals(&pending, &mut result);
+        }
+        pending.clear();
     }
 
     result
+}
+
+/// Join the pieces of one logical line and report each command-position `local`.
+fn flag_locals(pieces: &[(usize, &str)], result: &mut LintResult) {
+    let mut logical = String::new();
+    // (start offset in `logical`, line number, prefix removed from that piece)
+    let mut starts: Vec<(usize, usize, usize)> = Vec::new();
+    for (n, text) in pieces {
+        let skip = recipe_prefix_len(text);
+        let body = text.get(skip..).unwrap_or("");
+        let body = body.strip_suffix('\\').unwrap_or(body);
+        starts.push((logical.len(), *n, skip));
+        logical.push_str(body);
+        logical.push(' ');
+    }
+    if logical.trim_start().starts_with('#') {
+        return;
+    }
+    for col in local_command_cols(&logical) {
+        let off = col - 1;
+        let (start, line_num, skip) = starts
+            .iter()
+            .rev()
+            .find(|(st, _, _)| *st <= off)
+            .copied()
+            .unwrap_or((0, pieces[0].0, 0));
+        let start_col = off - start + skip + 1;
+        result.add(create_local_outside_function_diagnostic(
+            line_num,
+            start_col,
+            start_col + "local ".len(),
+        ));
+    }
 }
 
 #[cfg(test)]
