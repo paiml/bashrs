@@ -456,3 +456,49 @@ fn prop_sc2168_quote_escaping_handled_correctly() {
         );
     }
 }
+
+// ===== GH-438: `local` is flagged only in command position =====
+
+fn sc2168_count(code: &str) -> usize {
+    check(code).diagnostics.len()
+}
+
+#[test]
+fn test_GH438_recipe_comment_prefixes_not_flagged() {
+    for line in [
+        "\t@# touches the local registry",
+        "\t# touches the local registry",
+        "\t-# touches the local registry",
+        "\t+# touches the local registry",
+        "\t@-# touches the local registry",
+    ] {
+        assert_eq!(sc2168_count(line), 0, "{line:?}");
+    }
+}
+
+#[test]
+fn test_GH438_argument_words_not_flagged() {
+    for line in [
+        "\t: touches the local docker registry, which",
+        "\techo local x",
+        "\techo \"a\" local x",
+        "echo 'it' local x",
+    ] {
+        assert_eq!(sc2168_count(line), 0, "{line:?}");
+    }
+}
+
+#[test]
+fn test_GH438_continued_line_argument_not_flagged() {
+    let src = "\t: touches the \\\n\tlocal docker registry\n";
+    assert_eq!(sc2168_count(src), 0);
+}
+
+#[test]
+fn test_GH438_real_local_still_flagged() {
+    assert_eq!(sc2168_count("local x=1"), 1);
+    assert_eq!(sc2168_count("\tlocal x=1"), 1);
+    assert_eq!(sc2168_count("\t@local x=1"), 1);
+    assert_eq!(sc2168_count("true; local x=1"), 1);
+    assert_eq!(sc2168_count("f() {\n  local x=1\n}\n"), 0);
+}
