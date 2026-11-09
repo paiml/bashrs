@@ -17,6 +17,7 @@
 //
 // Impact: Return value truncated, unexpected behavior
 
+use crate::linter::shell_words::keyword_in_command_position;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
@@ -32,6 +33,10 @@ pub fn check(source: &str) -> LintResult {
         let line_num = line_num + 1;
 
         if line.trim_start().starts_with('#') {
+            continue;
+        }
+
+        if !keyword_in_command_position(line, "return") {
             continue;
         }
 

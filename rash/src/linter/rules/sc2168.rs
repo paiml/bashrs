@@ -12,6 +12,7 @@
 //       local var="value"  # Inside function - OK
 //   }
 
+use crate::linter::shell_words::keyword_in_command_position;
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
@@ -157,6 +158,10 @@ pub fn check(source: &str) -> LintResult {
         update_depth_for_braces(&mut function_depth, line);
 
         // Check for local keyword outside functions
+        if !keyword_in_command_position(line, "local") {
+            continue;
+        }
+
         if let Some(mat) = LOCAL_KEYWORD.find(line) {
             // Skip if 'local' is inside quotes (false positive)
             if is_inside_quotes(line, mat.start()) {
@@ -181,3 +186,7 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 #[path = "sc2168_tests_prop_sc2168.rs"]
 mod tests_extracted;
+
+#[cfg(test)]
+#[path = "sc2168_tests_gh438.rs"]
+mod tests_gh438;
