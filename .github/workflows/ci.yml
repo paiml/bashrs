@@ -68,17 +68,30 @@ jobs:
       clippy_args: --workspace --all-targets
     secrets: inherit
 
+  waiver-expiry:
+    runs-on: [self-hosted, gate-light]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Waiver expiry self-test (must be able to fail)
+        run: sh scripts/test-waiver-expiry-check.sh
+      - name: Waiver expiry (red after the date)
+        run: sh scripts/waiver-expiry-check.sh
+
   # Top-level gate: org ruleset requires status check named "gate" (exact match).
   # The reusable workflow produces "ci / gate" which doesn't satisfy the ruleset.
   gate:
     runs-on: [self-hosted, gate-light]
-    needs: [ci]
+    needs: [ci, waiver-expiry]
     if: always()
     steps:
       - name: Check required jobs
         run: |
           if [ "${{ needs.ci.result }}" != "success" ]; then
             echo "ci failed: ${{ needs.ci.result }}"
+            exit 1
+          fi
+          if [ "${{ needs.waiver-expiry.result }}" != "success" ]; then
+            echo "waiver-expiry failed: ${{ needs.waiver-expiry.result }}"
             exit 1
           fi
           echo "All required jobs passed"
