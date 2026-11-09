@@ -747,3 +747,33 @@ fn test_GH359_same_line_assign_from_external_still_errors() {
         .iter()
         .any(|d| d.severity == Severity::Error));
 }
+
+// GH-336: whether SEC010 fires must depend on the variable the path comes from,
+// not on letters elsewhere on the line ("cARGo" contains ARG).
+
+#[test]
+fn test_SEC010_336_cd_repo_then_rm_rf_fires() {
+    let script = "REPO=\"\"\nwhile [ $# -gt 0 ]; do case \"$1\" in --repo) REPO=\"$2\"; shift;; esac; shift; done\n( cd \"$REPO\" && rm -rf out ) > out.log 2>&1\n";
+    let result = check(script);
+    assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+}
+
+#[test]
+fn test_SEC010_336_cd_repo_then_cargo_and_ls_agree() {
+    let head = "REPO=\"\"\nwhile [ $# -gt 0 ]; do case \"$1\" in --repo) REPO=\"$2\"; shift;; esac; shift; done\n";
+    let count = |x: &str| check(&format!("{head}( cd \"$REPO\" && {x} ) > out.log 2>&1\n")).diagnostics.len();
+    assert_eq!(count("cargo build"), count("ls"));
+    assert_eq!(count("cargo build"), count("rm -rf out"));
+}
+
+#[test]
+fn test_SEC010_336_positional_cd_then_rm_rf_fires() {
+    let result = check("cd \"$1\" && rm -rf out\n");
+    assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+}
+
+#[test]
+fn test_SEC010_336_literal_text_with_arg_substring_is_silent() {
+    let result = check("D=/opt/build\ncd \"$D\" && cargo build\n");
+    assert!(result.diagnostics.is_empty(), "{:?}", result.diagnostics);
+}

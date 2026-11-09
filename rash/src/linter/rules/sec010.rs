@@ -68,7 +68,10 @@ fn check_file_ops(line: &str, line_num: usize, taint: &TaintMap, result: &mut Li
         let Some(cmd_col) = find_command(line, file_op) else {
             continue;
         };
-        if !contains_unvalidated_variable(line, file_op) {
+        // GH-336: a variable the taint pass proves external needs no help from
+        // its spelling; the name heuristic only decides the unproven guesses.
+        let proven = kind == TaintKind::External && line_expands_variable(line);
+        if !proven && !contains_unvalidated_variable(line, file_op) {
             continue;
         }
         let span = Span::new(line_num + 1, cmd_col + 1, line_num + 1, line.len());
@@ -95,28 +98,26 @@ fn severity_for(kind: TaintKind) -> Severity {
     }
 }
 
+/// GH-336: a line the traversal-pattern check must not flag.
+fn traversal_exempt(line: &str) -> bool {
+    line.contains("BASH_SOURCE") || line.contains("dirname") || is_validation_context(line)
+}
+
 /// Check for explicit traversal patterns (e.g. ".." in literal paths)
 fn check_traversal_patterns(line: &str, line_num: usize, result: &mut LintResult) {
-    for pattern in TRAVERSAL_PATTERNS {
-        if line.contains(pattern) && contains_file_operation(line) {
-            if line.contains("BASH_SOURCE") || line.contains("dirname") {
-                continue;
-            }
-            if !is_validation_context(line) {
-                if let Some(pos) = line.find(pattern) {
-                    let span = Span::new(line_num + 1, pos + 1, line_num + 1, line.len());
-                    let diag = Diagnostic::new(
-                        "SEC010",
-                        Severity::Warning,
-                        "Path contains traversal sequence '..' - ensure this is intentional and validated",
-                        span,
-                    );
-                    result.add(diag);
-                    break;
-                }
-            }
-        }
+    if !contains_file_operation(line) || traversal_exempt(line) {
+        return;
     }
+    let Some(pos) = TRAVERSAL_PATTERNS.iter().find_map(|p| line.find(p)) else {
+        return;
+    };
+    let span = Span::new(line_num + 1, pos + 1, line_num + 1, line.len());
+    result.add(Diagnostic::new(
+        "SEC010",
+        Severity::Warning,
+        "Path contains traversal sequence '..' - ensure this is intentional and validated",
+        span,
+    ));
 }
 
 /// Check for path traversal vulnerabilities
@@ -237,12 +238,19 @@ fn contains_unvalidated_variable(line: &str, _cmd: &str) -> bool {
         return false;
     }
 
-    // If no suspicious pattern is found, assume it's safe. This reduces false
-    // positives for common scripts.
-    let line_upper = line.to_uppercase();
-    USER_INPUT_PATTERNS
-        .iter()
-        .any(|pattern| line_upper.contains(pattern))
+    // GH-336: judge the NAMES expanded on the line, never the surrounding
+    // text (`cargo` contains `ARG`). A positional parameter or `$@`/`$*` is
+    // command-line input by construction.
+    taint::var_names(line).iter().any(|name| {
+        let upper = name.to_uppercase();
+        let positional = name.chars().all(|c| c.is_ascii_digit()) || name == "@" || name == "*";
+        positional || USER_INPUT_PATTERNS.iter().any(|p| upper.contains(p))
+    })
+}
+
+/// GH-336: the line expands a variable and is not a known-safe shape.
+fn line_expands_variable(line: &str) -> bool {
+    line.contains('$') && !is_known_safe_line(line) && !only_path_env_var(line)
 }
 
 /// Check if line contains any file operation

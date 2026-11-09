@@ -324,7 +324,7 @@ fn is_safe_env_var(name: &str) -> bool {
 // ---------------------------------------------------------------------------
 
 /// Every variable name expanded in `text`, in order of appearance.
-fn var_names(text: &str) -> Vec<String> {
+pub(crate) fn var_names(text: &str) -> Vec<String> {
     let bytes = text.as_bytes();
     let mut out = Vec::new();
     let mut i = 0;
