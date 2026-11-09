@@ -3117,3 +3117,22 @@ roadmap:
   - kind:docs
   notes: null
   epic: 426
+- id: PMAT-359
+  github_issue: 359
+  item_type: task
+  title: 'SEC010/DET002 honesty: #359 #336 #360'
+  status: planned
+  priority: critical
+  assigned_to: null
+  created: 2026-11-09T08:06:28Z
+  updated: 2026-11-09T08:06:28Z
+  spec: null
+  acceptance_criteria:
+  - SEC010 severity/command-after-cd independence, DET002 message advertises only working sinks
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426

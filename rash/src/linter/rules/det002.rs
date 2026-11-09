@@ -42,8 +42,9 @@ const REMEDY: &str = "Derive it from SOURCE_DATE_EPOCH: \
      BUILD_DATE=$(date -u -d \"@${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}\" +%Y%m%d)";
 
 /// Advice for the case where the timestamp is only ever logged.
-const LOG_ADVICE: &str = "If it is only for logging, send it to an append-only sink \
-     (>>, tee -a, logger), or suppress with `# bashrs disable-line=DET002`.";
+const LOG_ADVICE: &str = "If it is only for logging, use `logger`, or append (`>>`, `tee -a`) to a \
+     target whose name contains log, journal, history, audit or trace (or under /dev/), \
+     or suppress with `# bashrs disable-line=DET002`.";
 
 /// Check for timestamp usage that reaches a reproducible sink.
 pub fn check(source: &str) -> LintResult {
@@ -283,3 +284,7 @@ mod tests_gh386;
 #[cfg(test)]
 #[path = "det002_tests_gh376.rs"]
 mod tests_gh376;
+
+#[cfg(test)]
+#[path = "det002_tests_gh360.rs"]
+mod tests_gh360;
