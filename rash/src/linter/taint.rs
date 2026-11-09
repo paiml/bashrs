@@ -135,7 +135,17 @@ impl TaintMap {
     pub fn line_taint(&self, line_idx: usize, line: &str) -> TaintKind {
         var_names(line)
             .into_iter()
-            .map(|name| self.var_taint(line_idx, &name))
+            .map(|name| {
+                // GH-359: an assignment earlier on this same line (`local d=…;
+                // mkdir "$d"`) already governs the later use, so read the
+                // taint as it stands after the line, not before it.
+                let at = if assigns_on_line(line, &name) {
+                    line_idx + 1
+                } else {
+                    line_idx
+                };
+                self.var_taint(at, &name)
+            })
             .max()
             .unwrap_or_default()
     }
@@ -156,6 +166,24 @@ impl TaintMap {
         let pos = history.partition_point(|(from, _)| *from <= line_idx);
         history.get(pos.checked_sub(1)?).map(|(_, kind)| *kind)
     }
+}
+
+/// Whether `line` contains `name=` as an assignment (not `==`, not a suffix of
+/// a longer name) ahead of a later use of `$name`.
+fn assigns_on_line(line: &str, name: &str) -> bool {
+    let bytes = line.as_bytes();
+    let pat = format!("{name}=");
+    let mut from = 0;
+    while let Some(rel) = line.get(from..).and_then(|t| t.find(&pat)) {
+        let pos = from + rel;
+        let end = pos + pat.len();
+        let boundary = pos == 0 || !is_name_byte(bytes[pos - 1]);
+        if boundary && bytes.get(end) != Some(&b'=') {
+            return true;
+        }
+        from = end;
+    }
+    false
 }
 
 /// Mutable state carried down the file by [`analyze`].
@@ -511,10 +539,37 @@ fn apply_line(ctx: &mut Ctx, line: &str, from: usize, block: Option<usize>) {
     apply_assignment(ctx, line, from, block);
 }
 
+/// GH-359: the value of an assignment ends at the first unquoted `;`, `&` or
+/// `|` outside any `$( )`; the rest of the line is other commands whose
+/// variables must not leak into the assigned value.
+fn first_statement(rhs: &str) -> &str {
+    let mut quote: Option<char> = None;
+    let mut depth = 0usize;
+    let mut prev = ' ';
+    for (i, c) in rhs.char_indices() {
+        match quote {
+            Some(q) if c == q => quote = None,
+            Some(_) => {}
+            None => match c {
+                '\'' | '"' if prev != '\\' => quote = Some(c),
+                '(' => depth += 1,
+                ')' => depth = depth.saturating_sub(1),
+                ';' | '&' | '|' if depth == 0 && prev != '\\' => {
+                    return rhs.get(..i).unwrap_or(rhs);
+                }
+                _ => {}
+            },
+        }
+        prev = c;
+    }
+    rhs
+}
+
 fn apply_assignment(ctx: &mut Ctx, line: &str, from: usize, block: Option<usize>) -> bool {
     let Some((name, rhs)) = split_assignment(line) else {
         return false;
     };
+    let rhs = first_statement(rhs);
     let fresh = if is_sanitizer_rhs(rhs) {
         TaintKind::Clean
     } else {

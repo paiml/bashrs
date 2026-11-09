@@ -717,3 +717,33 @@ cp "$S" /dest/
 "#;
     assert_eq!(sec010_count(script), 0);
 }
+
+#[test]
+fn test_GH359_same_line_local_reassignment_shadows_earlier_external_taint() {
+    // `out` was External at file scope; the function's own `local out=` on the
+    // same line shadows it, so the mkdir below must not inherit that taint.
+    let script = "#!/usr/bin/env bash\nBASE=${BASE:-/tmp/x}\nout=$(jq -r '\"a\"')\nmake_dir() { local out=\"$BASE/projection\"; mkdir -p \"$out\"; }\nmake_dir\n";
+    let result = check(script);
+    assert!(
+        result.diagnostics.iter().all(|d| d.severity != Severity::Error),
+        "got: {:?}",
+        result.diagnostics
+    );
+}
+
+#[test]
+fn test_GH359_severity_independent_of_unrelated_jq_line() {
+    let without = "#!/usr/bin/env bash\nBASE=${BASE:-/tmp/x}\nmake_dir() { local out=\"$BASE/projection\"; mkdir -p \"$out\"; }\nmake_dir\n";
+    let with = "#!/usr/bin/env bash\nBASE=${BASE:-/tmp/x}\nout=$(jq -r '\"a\"')\nmake_dir() { local out=\"$BASE/projection\"; mkdir -p \"$out\"; }\nmake_dir\n";
+    let sev = |s: &str| check(s).diagnostics.iter().map(|d| d.severity).collect::<Vec<_>>();
+    assert_eq!(sev(without), sev(with));
+}
+
+#[test]
+fn test_GH359_same_line_assign_from_external_still_errors() {
+    let script = "#!/usr/bin/env bash\nf() { local d=$(curl -s x); mkdir -p \"$d\"; }\nf\n";
+    assert!(check(script)
+        .diagnostics
+        .iter()
+        .any(|d| d.severity == Severity::Error));
+}
