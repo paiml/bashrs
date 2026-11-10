@@ -98,6 +98,6 @@ jobs:
 
   # Runner smells (paiml/infra#3828): ratchet against .github/runner-smells.baseline.
   runner-smells:
-    uses: paiml/.github/.github/workflows/runner-smells.yml@7424d422d4b21b0ff1e01d6c5bf2681c9fca244d
+    uses: paiml/.github/.github/workflows/runner-smells.yml@d0ac85f159e8840129439833f57d6cb5a927b279
     with:
-      scanner_ref: 7424d422d4b21b0ff1e01d6c5bf2681c9fca244d
+      scanner_ref: d0ac85f159e8840129439833f57d6cb5a927b279
