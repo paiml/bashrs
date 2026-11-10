@@ -12,6 +12,7 @@
 //       local var="value"  # Inside function - OK
 //   }
 
+use crate::linter::shell_words::{has_command_word, logical_lines};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
@@ -142,11 +143,12 @@ fn create_local_outside_function_diagnostic(
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-    let lines: Vec<&str> = source.lines().collect();
+    let logical = logical_lines(source);
+    let lines: Vec<&str> = logical.iter().map(|(_, l)| l.as_str()).collect();
     let mut function_depth: usize = 0;
 
     for (i, line) in lines.iter().enumerate() {
-        let line_num = i + 1;
+        let line_num = logical[i].0;
 
         if is_comment_line(line) {
             continue;
@@ -163,7 +165,8 @@ pub fn check(source: &str) -> LintResult {
                 continue;
             }
 
-            if function_depth == 0 {
+            // GH-438: only a command-position `local` is the keyword
+            if function_depth == 0 && has_command_word(line, "local") {
                 let start_col = mat.start() + 1;
                 let end_col = mat.end() + 1;
 
