@@ -1,0 +1,27 @@
+# NOFETCH-001 census (infra NOFETCH-sites-1110Z.tsv, bashrs rows), 2026-11-09.
+# Rule: PR, merge-queue and main gate jobs never fetch tools or deps from the network.
+# Every network site in this repo is listed here with its class and reason.
+# class: release = runs only on tag/release/dispatch, never on pull_request, merge_group or push-to-main
+#        local   = developer Makefile/script hint or recipe, never invoked by a workflow
+#        text    = message string or comment, not an executed fetch
+# Verified: ci.yml and pr-gate.yml contain no curl, wget, cargo install, install-action, setup-* or pip/npm install.
+site	class	reason
+.github/workflows/release.yml:121	release	trigger is push tags v* / workflow_dispatch; bounded poll of the crates.io index for bashrs-oracle before publish
+.github/workflows/binary-release.yml:109	release	trigger is release published / workflow_dispatch; installs pinned cross v0.2.5 for aarch64 release binaries
+.github/workflows/binary-release.yml:6	text	comment
+scripts/quality-gates.sh:141	text	hint string
+scripts/quality-gates.sh.manual-backup:140	text	hint string
+scripts/check-book-updated.sh:24	text	hint string
+scripts/hooks/pre-commit.sh:21	text	hint string
+Makefile:498	text	hint string
+Makefile:510	text	hint string
+Makefile:527	text	hint string
+Makefile:746	local	make audit target, developer machine; CI uses cargo-deny-daily reusable workflow
+Makefile:756	local	make deny target, developer machine
+Makefile:857	local	make target, developer machine
+Makefile:883	local	make target, developer machine
+Makefile:1124	local	make coverage helper, developer machine
+Makefile:1158	local	make coverage helper, developer machine
+Makefile:1358	local	make renacer helper, developer machine
+Makefile:1401	text	echo string
+Makefile:1417	local	make renacer helper, developer machine
