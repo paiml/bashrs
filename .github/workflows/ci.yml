@@ -7,6 +7,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+    types: [opened, synchronize, reopened, ready_for_review]
   schedule:
     - cron: '17 3 * * *'   # FLOW-010 F2: nightly gate on main
   merge_group:
@@ -15,10 +16,13 @@ on:
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  # RS-01: a new push cancels the superseded PR run only; main/merge-queue/schedule runs are never cancelled.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ci:
+    # RS-09: a draft PR does not start the heavy jobs (ready_for_review starts them).
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     uses: paiml/.github/.github/workflows/sovereign-ci.yml@fbee3788a0ed92d09974ac21ea9bc97d373af6f0
     with:
       repo: ${{ github.event.repository.name }}
@@ -75,11 +79,25 @@ jobs:
     runs-on: [self-hosted, gate-light]
     needs: [ci]
     if: always()
+    timeout-minutes: 10
     steps:
       - name: Check required jobs
+        env:
+          CI_RESULT: ${{ needs.ci.result }}
+          IS_DRAFT: ${{ github.event.pull_request.draft == true }}
         run: |
-          if [ "${{ needs.ci.result }}" != "success" ]; then
-            echo "ci failed: ${{ needs.ci.result }}"
+          # A draft PR skips ci (RS-09); that is not a failure and cannot merge anyway.
+          if [ "$CI_RESULT" = skipped ] && [ "$IS_DRAFT" = true ]; then
+            echo "draft PR: ci skipped"; exit 0
+          fi
+          if [ "$CI_RESULT" != "success" ]; then
+            echo "ci failed: $CI_RESULT"
             exit 1
           fi
           echo "All required jobs passed"
+
+  # Runner smells (paiml/infra#3828): ratchet against .github/runner-smells.baseline.
+  runner-smells:
+    uses: paiml/.github/.github/workflows/runner-smells.yml@7424d422d4b21b0ff1e01d6c5bf2681c9fca244d
+    with:
+      scanner_ref: 7424d422d4b21b0ff1e01d6c5bf2681c9fca244d

@@ -38,6 +38,7 @@ jobs:
   build:
     name: ${{ matrix.target }}
     runs-on: [self-hosted, clean-room, X64]
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -178,6 +179,7 @@ jobs:
     name: Summary
     needs: build
     runs-on: [self-hosted, clean-room, X64]
+    timeout-minutes: 10
     if: always()
     steps:
       - name: Write summary
