@@ -19,10 +19,9 @@ concurrency:
 
 jobs:
   ci:
-    uses: paiml/.github/.github/workflows/sovereign-ci.yml@fbee3788a0ed92d09974ac21ea9bc97d373af6f0
+    uses: paiml/.github/.github/workflows/sovereign-ci.yml@main
     with:
       repo: ${{ github.event.repository.name }}
-      heavy_on: train
       # Phase 3 pilot (medium workload) — build-performance.md §7 Phase 3.
       # Workspace with rash + runtime + wasm — moderate dep graph,
       # candidate for mid-range hit-rate signal between copia and aprender.
