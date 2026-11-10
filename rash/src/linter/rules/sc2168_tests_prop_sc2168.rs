@@ -456,3 +456,36 @@ fn prop_sc2168_quote_escaping_handled_correctly() {
         );
     }
 }
+
+// GH-438: `local` is only a keyword in COMMAND position.
+#[test]
+fn test_sc2168_gh438_prose_forms_not_flagged() {
+    let forms = [
+        "\t@# touches the local registry",
+        "\t# touches the local registry",
+        "\t-# touches the local registry",
+        "\t+# touches the local registry",
+        "\t@-# touches the local registry",
+        "\t: touches the local docker registry, which",
+        "\techo local x",
+        "\techo \"a\" 'b' && echo local x",
+        "\t: first \\\n\t  the local docker registry",
+    ];
+    for code in forms {
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0, "false positive for: {code:?}");
+    }
+}
+
+#[test]
+fn test_sc2168_gh438_command_position_still_flagged() {
+    for code in [
+        "local x=1",
+        "\t@local x=1",
+        "true && local x=1",
+        "x=1; local y=2",
+    ] {
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1, "missed: {code:?}");
+    }
+}
