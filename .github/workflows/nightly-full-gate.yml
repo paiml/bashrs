@@ -29,6 +29,7 @@ concurrency:
 jobs:
   check-activity:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     outputs:
       has_commits: ${{ steps.check.outputs.has_commits }}
     steps:
