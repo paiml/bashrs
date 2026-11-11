@@ -59,6 +59,7 @@ concurrency:
 jobs:
   release:
     runs-on: [self-hosted, clean-room, X64]
+    timeout-minutes: 120
     steps:
       - name: Resolve release tag
         id: tag
