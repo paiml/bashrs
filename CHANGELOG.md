@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Release binaries** (#505): `release.yml` now calls `binary-release.yml` once the GitHub Release exists. The release is created with the default `GITHUB_TOKEN`, which does not start `release: published` workflows, so v7.4.2 was published with no assets. The aarch64 targets build natively on ARM64 runners instead of through `cross`, which failed with `can't find crate for std` on a containerised runner; the strip step refuses a binary whose ELF machine field does not match the target.
+
 ## [7.4.3] - 2026-10-31
 
 A patch release. It carries one linter fix (BRS0009/SC2096 no longer counts `>` characters, #431) and a dependency clean-up that takes the archived `batuta-common` crate, and the zstd 0.14.0 and zip advisories it pulled, out of bashrs and out of downstream trees (#466). It also carries the CI bumps and the `deny.toml` entry that make main build, lint and pass `cargo deny` again.
