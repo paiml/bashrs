@@ -59,6 +59,9 @@ concurrency:
 jobs:
   release:
     runs-on: [self-hosted, clean-room, X64]
+    timeout-minutes: 120
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - name: Resolve release tag
         id: tag
@@ -143,3 +146,13 @@ jobs:
             gh release create "$TAG" --title "$TAG" --generate-notes
             echo "Created GitHub Release $TAG"
           fi
+
+  # The release above is created with the default GITHUB_TOKEN, and GitHub
+  # does not start workflows from events that token causes: `release:
+  # published` never reached binary-release.yml, so v7.4.2 was published
+  # with 0 assets. Call it directly once the release exists.
+  binaries:
+    needs: release
+    uses: ./.github/workflows/binary-release.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}

@@ -10,7 +10,7 @@ Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2,
 
 ## v7.4.3
 
-A patch: BRS0009 (SC2096) counts redirection operators, not `>` characters (#431, #434); `batuta-common` is dropped and `aprender`/`entrenar` move to 0.72, clearing the zip and zstd advisories (#466, #469); three CI action bumps (#446, #447, #448) and the cargo-deny entry for RUSTSEC-2024-0449 (#455). The other look-ahead fixes (#440, #349) had not merged and move to the next release. Full notes in `CHANGELOG.md`.
+A patch: a tagged release now gets its binaries, with the aarch64 targets built natively (#505, #507); SC2168/SC2151/SC2152 fire only in command position (#438, #486); SEC010 severity no longer depends on an unrelated earlier line (#359, #482); SC1044 no longer reads an arithmetic shift as a heredoc (#474); BRS0009 (SC2096) counts redirection operators, not `>` characters (#431, #434); `batuta-common` is dropped and `aprender`/`entrenar` move to 0.72, clearing the zip and zstd advisories (#466, #469); three CI action bumps (#446, #447, #448) and the cargo-deny entry for RUSTSEC-2024-0449 (#455), and `rash/build.rs` no longer reads `binding.yaml` through `serde_yaml_ng`, so `bashrs` itself no longer pulls `unsafe-libyaml` (#452). The other look-ahead fixes (#440, #349) had not merged and move to the next release. Full notes in `CHANGELOG.md`.
 
 ## v7.4.2
 

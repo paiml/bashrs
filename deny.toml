@@ -20,6 +20,8 @@ ignore = [
     # aprender, jugar-probar and provable-contracts. Interim only (bashrs#451): remove after the
     # serde-saphyr swap, https://github.com/paiml/aprender/issues/5326
     { id = "RUSTSEC-2024-0449", reason = "unsafe-libyaml: unmaintained, no fix; via aprender/jugar-probar/provable-contracts. Remove after the serde-saphyr swap, aprender#5326 (https://github.com/paiml/aprender/issues/5326); bashrs#451" },
+    # WAIVER Noah 2026-11-09, expires 2026-11-11, ticket paiml/aprender#6827 (48 h; drop when aprender-train ships rusqlite >=0.39)
+    { id = "RUSTSEC-2026-0459", reason = "libsqlite3-sys 0.30.1 (bundled C SQLite CVE) via rusqlite 0.32.1 via aprender-train 0.72.2; upstream fix aprender#6827; Noah 48 h time-boxed waiver, expires 2026-11-11" },
 ]
 
 [licenses]

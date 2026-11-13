@@ -3,7 +3,10 @@
 
 [advisories]
 # Advisory database configuration
-ignore = []
+ignore = [
+    # WAIVER Noah 2026-11-09, expires 2026-11-11, ticket paiml/aprender#6827 (48 h; libsqlite3-sys 0.30.1 via rusqlite 0.32.1 via aprender-train 0.72.2)
+    "RUSTSEC-2026-0459",
+]
 # Treat unmaintained crates as warnings, not errors
 informational_warnings = ["unmaintained"]
 
