@@ -108,6 +108,8 @@ tiny*.rs
 install-*.rs
 install-*.sh
 test-*.sh
+# committed guard fixture tests (CI runs them; the scratch rule above hid one, PR #491)
+!scripts/guards/test-*.sh
 *-binary.sh
 *-out.sh
 *-portable.sh
