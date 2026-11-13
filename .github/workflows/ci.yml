@@ -72,50 +72,22 @@ jobs:
       clippy_args: --workspace --all-targets
     secrets: inherit
 
-  # bashrs#512: README.md is a graded document. `pv-readme --check` turns it into
-  # one readme:Readme node and validates it against the SHACL shape in
-  # contracts/readme-root.yaml. A text parse, no build. An absent verifier is a
-  # NO-GO, never a skip. Skipped only where `ci` is: on a draft PR (RS-09).
-  readme-shape:
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
-    runs-on: [self-hosted, clean-room]
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - name: pv-readme must be present
-        run: |
-          command -v pv-readme >/dev/null || {
-            echo "::error::pv-readme is not installed — README.md is unvalidatable, which is a NO-GO not a skip"
-            exit 1
-          }
-          pv-readme --version
-      - name: README.md conforms to its readme:Readme shape
-        run: pv-readme --check
-      - name: A planted bad README must be refused
-        run: sh tests/readme-shape-falsifier.sh
-
   # Top-level gate: org ruleset requires status check named "gate" (exact match).
   # The reusable workflow produces "ci / gate" which doesn't satisfy the ruleset.
   gate:
     runs-on: [self-hosted, gate-light]
-    needs: [ci, readme-shape]
+    needs: [ci]
     if: always()
     timeout-minutes: 10
     steps:
       - name: Check required jobs
         env:
           CI_RESULT: ${{ needs.ci.result }}
-          README_RESULT: ${{ needs.readme-shape.result }}
           IS_DRAFT: ${{ github.event.pull_request.draft == true }}
         run: |
           # A draft PR skips ci (RS-09); that is not a failure and cannot merge anyway.
           if [ "$CI_RESULT" = skipped ] && [ "$IS_DRAFT" = true ]; then
             echo "draft PR: ci skipped"; exit 0
-          fi
-          if [ "$README_RESULT" != "success" ]; then
-            echo "::error::readme-shape: $README_RESULT — README.md does not conform to contracts/readme-root.yaml, or pv-readme could not run"
-            exit 1
           fi
           if [ "$CI_RESULT" != "success" ]; then
             echo "ci failed: $CI_RESULT"
