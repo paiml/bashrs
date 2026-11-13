@@ -292,8 +292,8 @@ This README is a checked document. CI turns it into one `readme:Readme`
 node and validates it against the SHACL shape in
 [`contracts/readme-root.yaml`](contracts/readme-root.yaml). Every command
 in a `bash` fence must be one a merge-path CI job runs; fences labelled
-`console` or `text` are illustration. The shape is graded nightly on `main` by
-the `readme-shape-lab` workflow (a LAB check, not a merge gate), which runs:
+`console` or `text` are illustration. No CI job runs the shape check yet:
+`pv-readme` is not on the runners. Until it is, these are run by hand:
 
 ```text
 pv-readme --check
