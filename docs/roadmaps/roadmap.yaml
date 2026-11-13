@@ -3136,3 +3136,25 @@ roadmap:
   - kind:code
   notes: null
   epic: 426
+- id: PMAT-505
+  github_issue: 505
+  item_type: task
+  title: 'release: tagged release gets no binaries; aarch64 binary-release job fails under cross'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-12T13:35:00Z
+  updated: 2026-11-12T13:35:00Z
+  spec: null
+  acceptance_criteria:
+  - 'Binary Release dispatched with tag=v7.4.2 ends green and the release lists 8 assets (4 archives, 4 checksums)'
+  - 'release.yml calls binary-release.yml once the GitHub Release exists'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  - orch:fable
+  - orch-basis:state
+  notes: null
+  epic: 426

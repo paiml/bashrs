@@ -208,6 +208,42 @@ pub fn simple_commands(line: &str) -> Vec<SimpleCommand> {
     out
 }
 
+/// Join backslash-continued physical lines into logical lines.
+///
+/// Returns `(first_physical_line_number, text)` per logical line; the number is
+/// 1-based. A trailing `\` is dropped and the next line appended after a space.
+pub fn logical_lines(source: &str) -> Vec<(usize, String)> {
+    let mut out: Vec<(usize, String)> = Vec::new();
+    let mut open = false;
+    for (i, raw) in source.lines().enumerate() {
+        let (body, cont) = match raw.strip_suffix('\\') {
+            Some(b) => (b, true),
+            None => (raw, false),
+        };
+        match out.last_mut() {
+            Some(last) if open => {
+                last.1.push(' ');
+                last.1.push_str(body);
+            }
+            _ => out.push((i + 1, body.to_string())),
+        }
+        open = cont;
+    }
+    out
+}
+
+/// True when `name` is the command word of some simple command in `line`.
+///
+/// Make recipe prefixes (`@`, `-`, `+`) are stripped first, so `\t@# note` is a
+/// comment and `\t@local x=1` still names `local`. Prose such as `echo local x`
+/// or `: the local registry` is not in command position and returns false (GH-438).
+pub fn has_command_word(line: &str, name: &str) -> bool {
+    let body = line.trim_start().trim_start_matches(['@', '-', '+']);
+    simple_commands(body)
+        .iter()
+        .any(|c| c.name.as_deref() == Some(name))
+}
+
 fn collect(text: &str, base: usize, depth: u8, out: &mut Vec<SimpleCommand>) {
     let toks = WordLexer::new(text, base).run();
     let first = out.len();
@@ -918,19 +954,6 @@ fn append_script_operands(out: &mut Vec<SimpleCommand>, from: usize) {
         .filter_map(script_operand)
         .collect();
     out.extend(extra);
-}
-
-/// GH-438: true when `keyword` is in COMMAND position on this logical line.
-///
-/// Make recipe prefixes (`@`, `-`, `+`) are stripped first, so `@# note` is a
-/// comment and `@local x` names the command `local`. Words such as
-/// `echo local x` or `: touches the local registry` are arguments, not commands.
-pub fn keyword_in_command_position(line: &str, keyword: &str) -> bool {
-    let t = line.trim_start();
-    let t = t.trim_start_matches(['@', '-', '+']).trim_start();
-    simple_commands(t)
-        .iter()
-        .any(|c| c.name.as_deref() == Some(keyword))
 }
 
 #[cfg(test)]

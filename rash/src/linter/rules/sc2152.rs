@@ -16,7 +16,7 @@
 //
 // Impact: Exit code truncated, unexpected behavior
 
-use crate::linter::shell_words::keyword_in_command_position;
+use crate::linter::shell_words::{has_command_word, logical_lines};
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
@@ -26,14 +26,13 @@ static EXIT_OUT_OF_RANGE: std::sync::LazyLock<Regex> =
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
-    for (line_num, line) in source.lines().enumerate() {
-        let line_num = line_num + 1;
-
-        if line.trim_start().starts_with('#') {
+    for (line_num, line) in logical_lines(source) {
+        let line = line.as_str();
+        if !has_command_word(line, "exit") {
             continue;
         }
 
-        if !keyword_in_command_position(line, "exit") {
+        if line.trim_start().starts_with('#') {
             continue;
         }
 
@@ -135,5 +134,23 @@ mod tests {
         let code = "exit";
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2152_gh438_prose_not_flagged() {
+        for code in [
+            "echo exit 256",
+            "\t@# exit 999 is prose",
+            "\t: exit 300 here",
+        ] {
+            assert_eq!(check(code).diagnostics.len(), 0, "false positive: {code:?}");
+        }
+    }
+
+    #[test]
+    fn test_sc2152_gh438_command_position_flagged() {
+        for code in ["exit 256", "\t@exit 256", "true && exit 256"] {
+            assert_eq!(check(code).diagnostics.len(), 1, "missed: {code:?}");
+        }
     }
 }
