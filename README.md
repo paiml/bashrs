@@ -1,3 +1,10 @@
+---
+schema_version: "1.0"
+kind: cli
+entrypoints: [rash/src/bin/bashrs.rs]
+contract_count: 120
+---
+
 <p align="center">
   <img src=".github/bashrs-hero.svg" width="800" alt="bashrs">
 </p>
@@ -54,6 +61,9 @@ AI Stack transpiler family alongside
 - [Quality](#quality)
 - [Sovereign AI Stack](#sovereign-ai-stack)
 - [Documentation](#documentation)
+- [Verify](#verify)
+- [Contracts](#contracts)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## What is bashrs?
@@ -77,7 +87,7 @@ dependencies. Same input always produces identical output.
 
 ### CLI
 
-```bash
+```console
 cargo install bashrs
 ```
 
@@ -87,7 +97,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-bashrs = "6.65"
+bashrs = "7.4"
 ```
 
 ## Quick Start
@@ -117,14 +127,14 @@ fn main() {
 
 Transpile to safe POSIX shell:
 
-```bash
+```console
 bashrs build install.rs -o install.sh
 ```
 
 ### Purify Existing Bash
 
 **Before** (unsafe bash):
-```bash
+```text
 #!/bin/bash
 SESSION_ID=$RANDOM                      # Non-deterministic
 mkdir /app/releases/$RELEASE            # Non-idempotent
@@ -132,7 +142,7 @@ rm /app/current                         # Fails if missing
 ```
 
 **After** (purified by Rash):
-```bash
+```text
 #!/bin/sh
 session_id="session-${version}"         # Deterministic
 mkdir -p "/app/releases/${release}"     # Idempotent
@@ -141,7 +151,7 @@ rm -f "/app/current"                    # Safe removal
 
 ### CLI Usage
 
-```bash
+```console
 # Transpile Rust to shell
 bashrs build input.rs -o output.sh
 
@@ -237,7 +247,7 @@ bashrs uses Popperian falsification -- tests attempt to disprove
 functionality rather than confirm it. A passing test means the
 falsification attempt failed.
 
-```bash
+```console
 # 130-point transpiler falsification checklist
 cargo test -p bashrs --test transpiler_tcode_tests
 
@@ -260,14 +270,14 @@ for privacy-preserving ML infrastructure.
 
 | Layer | Crate | Purpose |
 |-------|-------|---------|
-| Compute | [trueno](https://crates.io/crates/trueno) | SIMD/GPU primitives (AVX2/AVX-512/NEON) |
+| Compute | [aprender-compute](https://crates.io/crates/aprender-compute) | SIMD/GPU primitives (AVX2/AVX-512/NEON) |
 | ML | [aprender](https://crates.io/crates/aprender) | ML algorithms, APR v2 model format |
-| Training | [entrenar](https://crates.io/crates/entrenar) | Autograd, LoRA/QLoRA, quantization |
-| Inference | [realizar](https://crates.io/crates/realizar) | LLM inference, GPU kernels |
-| Distribution | [repartir](https://crates.io/crates/repartir) | Distributed compute (CPU/GPU/Remote) |
-| Orchestration | [batuta](https://crates.io/crates/batuta) | Stack coordination and CLI |
+| Training | [aprender-train](https://crates.io/crates/aprender-train) | Autograd, LoRA/QLoRA, quantization |
+| Inference | [aprender-serve](https://crates.io/crates/aprender-serve) | LLM inference, GPU kernels |
+| Distribution | [aprender-distribute](https://crates.io/crates/aprender-distribute) | Distributed compute (CPU/GPU/Remote) |
+| Orchestration | [aprender-orchestrate](https://crates.io/crates/aprender-orchestrate) | Stack coordination and CLI |
 | Transpilers | **bashrs**, [depyler](https://crates.io/crates/depyler), [decy](https://crates.io/crates/decy) | Shell/Python/C to Rust |
-| Verification | [provable-contracts](https://crates.io/crates/provable-contracts) | YAML contract verification |
+| Verification | [aprender-contracts](https://crates.io/crates/aprender-contracts) | YAML contract verification |
 
 ## Documentation
 
@@ -276,10 +286,33 @@ for privacy-preserving ML infrastructure.
 - **Cookbook**: [bashrs-cookbook](https://github.com/paiml/bashrs-cookbook) -- examples and recipes
 - **Changelog**: [CHANGELOG.md](CHANGELOG.md)
 
+## Verify
+
+This README is a checked document. CI turns it into one `readme:Readme`
+node and validates it against the SHACL shape in
+[`contracts/readme-root.yaml`](contracts/readme-root.yaml). Every command
+in a `bash` fence must be one a merge-path CI job runs; fences labelled
+`console` or `text` are illustration. These are the commands CI runs on
+every pull request:
+
+```bash
+pv-readme --check
+sh tests/readme-shape-falsifier.sh
+```
+
+The second command plants four defects in a copy of this file and requires
+each to be refused.
+
+## Contracts
+
+bashrs carries <!-- CONTRACT_COUNT_START -->110<!-- CONTRACT_COUNT_END -->
+contract files under [`contracts/`](contracts/). The count is rendered from
+`contracts/census.json` by `pv-readme --write`.
+
 ## Contributing
 
 1. Fork the repository
-2. Make changes on the `master` branch
+2. Make changes on a feature branch and open a pull request against `main`
 3. Run quality gates: `make lint && make test`
 4. Run coverage: `make coverage`
 5. Submit a pull request

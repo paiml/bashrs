@@ -39,6 +39,8 @@ lcov.info
 rash-analysis.json
 dependency-graph.mmd
 *.json
+# bashrs#513: the census the README's contract_count resolves against is tracked.
+!contracts/census.json
 *-analysis.json
 *-analysis-summary.md
 *-report.json
