@@ -3,13 +3,20 @@
 name: PR Gate
 
 on:
-  pull_request_target:
+  pull_request:
     types: [opened, reopened]
 
 concurrency:
   group: pr-gate-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   authorize:
+    # Fork PRs never run privileged steps (paiml accepts no fork contributions).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      pull-requests: write
     uses: paiml/.github/.github/workflows/pr-gate.yml@fbee3788a0ed92d09974ac21ea9bc97d373af6f0
