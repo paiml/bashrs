@@ -306,8 +306,12 @@ each to be refused.
 ## Contracts
 
 bashrs carries <!-- CONTRACT_COUNT_START -->110<!-- CONTRACT_COUNT_END -->
-contract files under [`contracts/`](contracts/). The count is rendered from
-`contracts/census.json` by `pv-readme --write`.
+contract files under [`contracts/`](contracts/). `pv-readme --write` renders
+that number by walking the directory for regular `*.yaml` files; the 10
+symlinked contracts from `provable-contracts` are not followed. The
+frontmatter `contract_count:` is `contracts/census.json` `n_files`, which
+counts the symlinked contracts too. `sh tests/readme-count-falsifier.sh`
+checks both numbers and this paragraph.
 
 ## Contributing
 
