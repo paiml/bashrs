@@ -440,3 +440,44 @@ mod sc2086_tests_quoting {
     use super::*;
     include!("sc2086_tests_quoting.rs");
 }
+
+// Issue #236: a heredoc body is data; word splitting cannot occur there.
+#[test]
+fn test_sc2086_236_unquoted_heredoc_body_not_flagged() {
+    let src = "#!/bin/sh\nTIMESTAMP=x\ncat <<EOF\n**Time**: $TIMESTAMP\nEOF\n";
+    assert_eq!(check(src).diagnostics.len(), 0);
+}
+
+#[test]
+fn test_sc2086_236_quoted_and_dash_heredoc_bodies_not_flagged() {
+    for opener in ["<<'EOF'", "<<\"EOF\"", "<<-EOF"] {
+        let src = format!("cat {opener}\n  $A and ${{B}}\nEOF\n");
+        assert_eq!(check(&src).diagnostics.len(), 0, "opener {opener}");
+    }
+}
+
+#[test]
+fn test_sc2086_236_after_heredoc_terminator_still_flagged() {
+    let src = "cat <<EOF\n$A\nEOF\nls $FILES\n";
+    let r = check(src);
+    assert_eq!(r.diagnostics.len(), 1);
+    assert_eq!(r.diagnostics[0].span.start_line, 4);
+}
+
+#[test]
+fn test_sc2086_236_command_on_opener_line_still_flagged() {
+    let r = check("cat $FILE <<EOF\nbody\nEOF\n");
+    assert_eq!(r.diagnostics.len(), 1);
+}
+
+#[test]
+fn test_sc2086_236_command_substitution_in_unquoted_heredoc_still_flagged() {
+    let r = check("cat <<EOF\nfiles: $(ls $DIR)\nEOF\n");
+    assert_eq!(r.diagnostics.len(), 1);
+}
+
+#[test]
+fn test_sc2086_236_here_string_is_not_heredoc() {
+    let r = check("cat <<< hi\nls $FILES\n");
+    assert_eq!(r.diagnostics.len(), 1);
+}
