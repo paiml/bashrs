@@ -3158,3 +3158,91 @@ roadmap:
   - orch-basis:state
   notes: null
   epic: 426
+- id: PMAT-513
+  github_issue: null
+  item_type: task
+  title: 'New task: PMAT-513'
+  status: inprogress
+  priority: medium
+  assigned_to: null
+  created: 2026-11-13T12:43:17.133197283+00:00
+  updated: 2026-11-13T12:43:17.133197283+00:00
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels: []
+  notes: null
+- id: PMAT-514
+  github_issue: 514
+  item_type: task
+  title: README frontmatter + CONTRACT_COUNT block
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-11-13T12:43:27Z
+  updated: 2026-11-13T12:43:27Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 512
+- id: PMAT-515
+  github_issue: 515
+  item_type: task
+  title: README claim fences only for CI commands; stale facts
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-11-13T12:43:30Z
+  updated: 2026-11-13T12:43:30Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 512
+- id: PMAT-516
+  github_issue: 516
+  item_type: task
+  title: CI runs pv-readme --check on merge path
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-11-13T12:43:33Z
+  updated: 2026-11-13T12:43:33Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 512
+- id: PMAT-517
+  github_issue: 517
+  item_type: task
+  title: 'Falsifier: planted bad README must exit 1'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-11-13T12:43:35Z
+  updated: 2026-11-13T12:43:35Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 512
