@@ -68,7 +68,7 @@ fn check_file_ops(line: &str, line_num: usize, taint: &TaintMap, result: &mut Li
         let Some(cmd_col) = find_command(line, file_op) else {
             continue;
         };
-        if !contains_unvalidated_variable(line, file_op) {
+        if !contains_unvalidated_variable(line, file_op, kind) {
             continue;
         }
         let span = Span::new(line_num + 1, cmd_col + 1, line_num + 1, line.len());
@@ -97,26 +97,23 @@ fn severity_for(kind: TaintKind) -> Severity {
 
 /// Check for explicit traversal patterns (e.g. ".." in literal paths)
 fn check_traversal_patterns(line: &str, line_num: usize, result: &mut LintResult) {
-    for pattern in TRAVERSAL_PATTERNS {
-        if line.contains(pattern) && contains_file_operation(line) {
-            if line.contains("BASH_SOURCE") || line.contains("dirname") {
-                continue;
-            }
-            if !is_validation_context(line) {
-                if let Some(pos) = line.find(pattern) {
-                    let span = Span::new(line_num + 1, pos + 1, line_num + 1, line.len());
-                    let diag = Diagnostic::new(
-                        "SEC010",
-                        Severity::Warning,
-                        "Path contains traversal sequence '..' - ensure this is intentional and validated",
-                        span,
-                    );
-                    result.add(diag);
-                    break;
-                }
-            }
-        }
+    if !contains_file_operation(line)
+        || line.contains("BASH_SOURCE")
+        || line.contains("dirname")
+        || is_validation_context(line)
+    {
+        return;
     }
+    let Some(pos) = TRAVERSAL_PATTERNS.iter().find_map(|p| line.find(p)) else {
+        return;
+    };
+    let span = Span::new(line_num + 1, pos + 1, line_num + 1, line.len());
+    result.add(Diagnostic::new(
+        "SEC010",
+        Severity::Warning,
+        "Path contains traversal sequence '..' - ensure this is intentional and validated",
+        span,
+    ));
 }
 
 /// Check for path traversal vulnerabilities
@@ -227,7 +224,7 @@ fn only_path_env_var(line: &str) -> bool {
 }
 
 /// Check if line contains unvalidated variable in file operation
-fn contains_unvalidated_variable(line: &str, _cmd: &str) -> bool {
+fn contains_unvalidated_variable(line: &str, _cmd: &str, kind: TaintKind) -> bool {
     // Look for variable usage: $VAR, ${VAR}, "$VAR"
     if !line.contains('$') {
         return false;
@@ -237,12 +234,34 @@ fn contains_unvalidated_variable(line: &str, _cmd: &str) -> bool {
         return false;
     }
 
-    // If no suspicious pattern is found, assume it's safe. This reduces false
-    // positives for common scripts.
-    let line_upper = line.to_uppercase();
+    // GH-336: proven External taint is the signal; do not also demand that the
+    // line's text happen to contain a suspicious substring (the old whole-line
+    // heuristic matched "ARG" inside "cargo" and so keyed on the command).
+    if kind == TaintKind::External {
+        return true;
+    }
+
+    // Otherwise the NAME heuristic, applied to the variable names only.
+    let names = variable_names_text(line).to_uppercase();
     USER_INPUT_PATTERNS
         .iter()
-        .any(|pattern| line_upper.contains(pattern))
+        .any(|pattern| names.contains(pattern))
+}
+
+/// The identifiers interpolated on the line (`$X`, `${X}`), concatenated.
+fn variable_names_text(line: &str) -> String {
+    let mut out = String::new();
+    let mut rest = line;
+    while let Some(i) = rest.find('$') {
+        rest = rest[i + 1..].trim_start_matches('{');
+        let end = rest
+            .find(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+            .unwrap_or(rest.len());
+        out.push_str(&rest[..end]);
+        out.push(' ');
+        rest = &rest[end..];
+    }
+    out
 }
 
 /// Check if line contains any file operation
@@ -289,3 +308,7 @@ fn is_heredoc_pattern(line: &str) -> bool {
 #[cfg(test)]
 #[path = "sec010_tests_sec010_detec.rs"]
 mod tests_ext;
+
+#[cfg(test)]
+#[path = "sec010_tests_gh336.rs"]
+mod tests_gh336;
