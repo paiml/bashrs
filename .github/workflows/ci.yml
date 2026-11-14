@@ -95,6 +95,20 @@ jobs:
           fi
           echo "All required jobs passed"
 
+  # P0 guard: a workflow that reintroduces the pull_request_target trigger fails here.
+  # It lives in CI, not PR Gate, so it runs on every push to an open PR (synchronize)
+  # and on every push to main; PR Gate fires on opened/reopened only (PR #491).
+  no-pull-request-target:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: [self-hosted, gate-light]
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: guard and its fixture test
+        run: sh scripts/guards/test-no-pull-request-target-guard.sh && sh scripts/guards/no-pull-request-target-guard.sh
+
   # Runner smells (paiml/infra#3828): ratchet against .github/runner-smells.baseline.
   runner-smells:
     uses: paiml/.github/.github/workflows/runner-smells.yml@d768b8ac5abfa7d0038470fd38023a15323ac0aa
