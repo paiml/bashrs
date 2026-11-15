@@ -3282,6 +3282,24 @@ roadmap:
   - kind:code
   notes: null
   epic: 236
+- id: PMAT-524
+  github_issue: 524
+  item_type: task
+  title: 'SC2086: unquoted heredoc bodies are checked only inside command substitutions'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-11-15T18:15:00Z
+  updated: 2026-11-15T18:15:00Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 236
 - id: PMAT-521
   github_issue: 521
   item_type: task
