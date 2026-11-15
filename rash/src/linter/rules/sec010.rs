@@ -59,8 +59,14 @@ const TRAVERSAL_PATTERNS: &[&str] = &[
 /// can be influenced from outside the script. The old implementation asked
 /// `contains_unvalidated_variable` alone, which matched `mkdir -p "$OUT_DIR"`
 /// on the substring `DIR` even for a literal path.
-fn check_file_ops(raw_line: &str, line_num: usize, taint: &TaintMap, result: &mut LintResult) {
-    let masked = sec010_quotes::mask_child_shell_scripts(raw_line);
+fn check_file_ops(
+    raw_line: &str,
+    continued: bool,
+    line_num: usize,
+    taint: &TaintMap,
+    result: &mut LintResult,
+) {
+    let masked = sec010_quotes::mask_child_shell_scripts(raw_line, continued);
     let line = masked.as_str();
     let kind = taint.line_taint(line_num, line);
     if kind == TaintKind::Clean {
@@ -128,7 +134,10 @@ pub fn check(source: &str) -> LintResult {
     // rule fires on a line the script never executes.
     let heredoc_body = crate::linter::heredoc::quoted_heredoc_lines(source);
 
+    let mut prev_continues = false;
     for (line_num, line) in source.lines().enumerate() {
+        let continued = prev_continues || line.trim_end().ends_with('\\');
+        prev_continues = line.trim_end().ends_with('\\');
         let trimmed = line.trim();
 
         if trimmed.starts_with('#')
@@ -138,7 +147,7 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        check_file_ops(line, line_num, &taint, &mut result);
+        check_file_ops(line, continued, line_num, &taint, &mut result);
         check_traversal_patterns(line, line_num, &mut result);
     }
 

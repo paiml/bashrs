@@ -118,3 +118,23 @@ fn test_GH336_inner_sh_c_positional_is_not_outer_taint() {
     let s = "#!/usr/bin/env bash\nd=/srv/data\nrunuser -u noah -- sh -c 'cd \"$1\" && rm -f .probe' _ \"$d\"\n";
     assert_eq!(sec010_errors(s), 0);
 }
+
+#[test]
+fn test_GH336_tainted_outer_arg_on_continuation_line_fires() {
+    assert!(fires_on("sh -c 'cd \"$1\" && rm -rf out' \\\n  _ \"$1\""));
+}
+
+#[test]
+fn test_GH336_tainted_outer_arg_alone_on_continuation_line_fires() {
+    assert!(fires_on("sh -c 'cd \"$1\" && rm -rf out' _ \\\n  \"$1\""));
+}
+
+#[test]
+fn test_GH336_exported_tainted_variable_read_by_child_shell_fires() {
+    assert!(fires_on("export D=\"$1\"\nsh -c 'cd \"$D\" && rm -rf out'"));
+}
+
+#[test]
+fn test_GH336_exported_tainted_variable_with_outer_arg_fires() {
+    assert!(fires_on("export D=\"$1\"\nsh -c 'cd \"$D\" && rm -rf out' _ /x"));
+}

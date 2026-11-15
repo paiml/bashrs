@@ -98,9 +98,29 @@ fn follows_child_shell_c(before: &str) -> bool {
     shell.is_some_and(|w| SHELLS.contains(&w.rsplit('/').next().unwrap_or(w)))
 }
 
-/// Blank `$` inside the single-quoted script of child-shell `-c` calls.
-/// Byte columns are preserved.
-pub(super) fn mask_child_shell_scripts(line: &str) -> String {
+/// Blank the `$` of positional references (`$0`-`$9`, `${N`, `$@`, `$*`,
+/// `$#`) in `out[start..end]`. Named variables stay visible: a child shell reads
+/// exported ones, so a tainted one must still be reported.
+fn blank_positionals(out: &mut [u8], start: usize, end: usize) {
+    for i in start..end {
+        if out[i] != b'$' || i + 1 >= end {
+            continue;
+        }
+        let n = out[i + 1];
+        let braced_digit = n == b'{' && out.get(i + 2).is_some_and(|d| d.is_ascii_digit());
+        if n.is_ascii_digit() || matches!(n, b'@' | b'*' | b'#') || braced_digit {
+            out[i] = b' ';
+        }
+    }
+}
+
+/// Blank positional `$` inside the single-quoted script of child-shell `-c`
+/// calls. Byte columns are preserved. A `\` continued command (`continued`) is
+/// never masked: its outer arguments may sit on another line.
+pub(super) fn mask_child_shell_scripts(line: &str, continued: bool) -> String {
+    if continued {
+        return line.to_string();
+    }
     let Some(spans) = top_level_single_spans(line) else {
         return line.to_string();
     };
@@ -110,11 +130,7 @@ pub(super) fn mask_child_shell_scripts(line: &str) -> String {
         let word_start = start == 0 || b[start - 1].is_ascii_whitespace();
         let word_end = end >= b.len() || matches!(b[end], b' ' | b'\t' | b';' | b'&' | b'|' | b')');
         if word_start && word_end && follows_child_shell_c(&line[..start]) {
-            for x in &mut out[start..end] {
-                if *x == b'$' {
-                    *x = b' ';
-                }
-            }
+            blank_positionals(&mut out, start, end);
         }
     }
     String::from_utf8(out).unwrap_or_else(|_| line.to_string())
@@ -126,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_mask_sh_c_body() {
-        let m = mask_child_shell_scripts("sh -c 'cd \"$1\"' _ \"$d\"");
+        let m = mask_child_shell_scripts("sh -c 'cd \"$1\"' _ \"$d\"", false);
         assert_eq!(m, "sh -c 'cd \"\u{20}1\"' _ \"$d\"");
     }
 
@@ -134,10 +150,10 @@ mod tests {
     fn test_mask_other_shells_and_flags() {
         for s in ["bash", "dash", "zsh", "ksh", "/bin/sh"] {
             let l = format!("{s} -c 'x $1' _");
-            assert!(!mask_child_shell_scripts(&l).contains('$'), "{l}");
+            assert!(!mask_child_shell_scripts(&l, false).contains('$'), "{l}");
         }
-        assert!(!mask_child_shell_scripts("sh -e -c 'x $1' _").contains('$'));
-        assert!(!mask_child_shell_scripts("bash -lc 'x $1' _").contains('$'));
+        assert!(!mask_child_shell_scripts("sh -e -c 'x $1' _", false).contains('$'));
+        assert!(!mask_child_shell_scripts("bash -lc 'x $1' _", false).contains('$'));
     }
 
     #[test]
@@ -149,7 +165,7 @@ mod tests {
             "sh 'x $1'",
             "perl -c 'x $1'",
         ] {
-            assert_eq!(mask_child_shell_scripts(l), l, "{l}");
+            assert_eq!(mask_child_shell_scripts(l, false), l, "{l}");
         }
     }
 
@@ -160,7 +176,7 @@ mod tests {
             "sh -c 'x $1' _ `echo '",
             "sh -c 'x $1' _ \"$(echo \"it's\")",
         ] {
-            assert_eq!(mask_child_shell_scripts(l), l, "{l}");
+            assert_eq!(mask_child_shell_scripts(l, false), l, "{l}");
         }
     }
 
@@ -173,5 +189,39 @@ mod tests {
         assert_eq!(spans("echo \"\\\"it's\"; rm x"), Some(vec![]));
         assert_eq!(spans("a 'b' # it's"), Some(vec![(2, 5)]));
         assert_eq!(spans("a 'b"), None);
+    }
+
+    #[test]
+    fn test_mask_blanks_only_positionals() {
+        let m = mask_child_shell_scripts(
+            "sh -c 'a $0 $9 $@ $* $# ${1} ${2:-x} $D ${D} ${#D} $$' _",
+            false,
+        );
+        assert_eq!(m, "sh -c 'a  0  9  @  *  #  {1}  {2:-x} $D ${D} ${#D} $$' _");
+    }
+
+    #[test]
+    fn test_no_mask_when_command_continues() {
+        let l = "sh -c 'cd \"$1\"' \\";
+        assert_eq!(mask_child_shell_scripts(l, true), l);
+    }
+
+    #[test]
+    fn test_no_mask_child_shell_inside_command_substitution() {
+        let l = "x=\"$(sh -c 'cd \"$1\"' _)\"";
+        assert_eq!(mask_child_shell_scripts(l, false), l);
+    }
+
+    #[test]
+    fn test_no_mask_non_c_flag() {
+        let l = "sh -e 'x $1' _";
+        assert_eq!(mask_child_shell_scripts(l, false), l);
+    }
+
+    #[test]
+    fn test_no_mask_span_glued_to_neighbouring_word() {
+        for l in ["sh -c'x $1' _", "sh -c 'x $1'y _"] {
+            assert_eq!(mask_child_shell_scripts(l, false), l, "{l}");
+        }
     }
 }
