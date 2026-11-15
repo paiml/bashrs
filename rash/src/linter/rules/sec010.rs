@@ -60,7 +60,7 @@ const TRAVERSAL_PATTERNS: &[&str] = &[
 /// `contains_unvalidated_variable` alone, which matched `mkdir -p "$OUT_DIR"`
 /// on the substring `DIR` even for a literal path.
 fn check_file_ops(raw_line: &str, line_num: usize, taint: &TaintMap, result: &mut LintResult) {
-    let masked = mask_single_quoted_expansions(raw_line);
+    let masked = sec010_quotes::mask_child_shell_scripts(raw_line);
     let line = masked.as_str();
     let kind = taint.line_taint(line_num, line);
     if kind == TaintKind::Clean {
@@ -116,28 +116,6 @@ fn check_traversal_patterns(line: &str, line_num: usize, result: &mut LintResult
         "Path contains traversal sequence '..' - ensure this is intentional and validated",
         span,
     ));
-}
-
-/// GH-336: `$` inside single quotes is literal to this shell (`sh -c 'cd "$1"' _ "$d"`:
-/// the inner `$1` is the child shell's argument). Blank those `$` so they are
-/// neither read as taint nor as an interpolated path; byte columns are kept.
-fn mask_single_quoted_expansions(line: &str) -> String {
-    let mut in_single = false;
-    let mut in_double = false;
-    line.chars()
-        .map(|c| match c {
-            '\'' if !in_double => {
-                in_single = !in_single;
-                c
-            }
-            '"' if !in_single => {
-                in_double = !in_double;
-                c
-            }
-            '$' if in_single => ' ',
-            _ => c,
-        })
-        .collect()
 }
 
 /// Check for path traversal vulnerabilities
@@ -328,6 +306,9 @@ fn is_heredoc_pattern(line: &str) -> bool {
 
     false
 }
+
+#[path = "sec010_quotes.rs"]
+mod sec010_quotes;
 
 #[cfg(test)]
 #[path = "sec010_tests_sec010_detec.rs"]
