@@ -556,3 +556,48 @@ fn test_sc2086_236_r1_arithmetic_inside_unquoted_body_is_quiet() {
     let src = "cat <<EOF\nsum: $(( $A + 1 ))\nEOF\nls $FILES\n";
     assert_eq!(sc2086_lines(src), vec![4]);
 }
+
+// Redesign round (#236, issue #522): arithmetic grouping parens and logical
+// line continuation are tracked by the quoting scanner itself.
+#[test]
+fn test_sc2086_236_r2_parenthesized_arith_shift_with_later_shift_line() {
+    let src = "shift=3\nmask=$(( (1 << shift) - 1 ))\nls $FILES\nshift\n";
+    assert_eq!(sc2086_lines(src), vec![3]);
+    let src = "(( f |= (1 << shift) ))\nls $FILES\nshift\n";
+    assert_eq!(sc2086_lines(src), vec![2]);
+    let src = "x=$(( ((1 << n)) + 1 ))\nls $FILES\nn\n";
+    assert_eq!(sc2086_lines(src), vec![2]);
+}
+
+#[test]
+fn test_sc2086_236_r2_arith_shift_forms_do_not_open_heredoc() {
+    for first in [
+        "x=$((1<<2))",
+        "(( y = 1 << 3 ))",
+        "let \"z = 1 << 4\"",
+        "x=$(( $(cmd) << 2 ))",
+    ] {
+        let src = format!("{first}\nls $FILES\n2\n");
+        assert_eq!(sc2086_lines(&src), vec![2], "form {first}");
+    }
+}
+
+#[test]
+fn test_sc2086_236_r2_continued_opener_line_body_starts_after_logical_line() {
+    // Bash joins `cmd <<EOF \` with the next line, so `$FILES` is a command
+    // argument (word splitting applies) and the body is `body`.
+    let src = "cmd <<EOF \\\n  $FILES\nbody $X\nEOF\nls $G\n";
+    assert_eq!(sc2086_lines(src), vec![2, 5]);
+}
+
+#[test]
+fn test_sc2086_236_r2_opener_line_with_open_quote_body_starts_after_quote() {
+    let src = "awk <<EOF '\n{ print 1 }\n' $FILES\nbody $X\nEOF\nls $G\n";
+    assert_eq!(sc2086_lines(src), vec![3, 6]);
+}
+
+#[test]
+fn test_sc2086_236_r2_heredoc_inside_command_substitution_still_body() {
+    let src = "x=$(cat <<EOF\nbody $A\nEOF\n)\nls $G\n";
+    assert_eq!(sc2086_lines(src), vec![5]);
+}

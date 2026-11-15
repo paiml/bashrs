@@ -54,6 +54,8 @@ enum Ctx {
     /// Inside `$(( ... ))` or a bare `(( ... ))` — code, and `<<` there is a
     /// left shift, not a heredoc.
     Arith,
+    /// A grouping `( ... )` inside arithmetic: `<<` there is still a shift.
+    ArithParen,
     /// Inside `$'...'` — literal, but `\'` is an escape, unlike `'...'`.
     Ansi,
     /// Between `case … in` and `esac` — code. Tracked only so a pattern's `)`
@@ -645,6 +647,9 @@ struct Scanner {
     pending: std::collections::VecDeque<Heredoc>,
     /// The body currently being consumed.
     body: Option<Heredoc>,
+    /// The line being scanned ends in an unescaped `\`: it continues on the
+    /// next physical line.
+    continued: bool,
     /// Per-byte mask for the line being scanned: text that can never EXPAND —
     /// `'...'`, `$'...'`, a comment, a quoted-delimiter heredoc body. A strict
     /// subset of the literal mask: `"..."` and an unquoted heredoc body are
@@ -658,6 +663,7 @@ impl Scanner {
         let bytes = line.as_bytes();
         let mut marks = vec![false; bytes.len()];
         self.inert = vec![false; bytes.len()];
+        self.continued = false;
 
         if self.consume_heredoc_body(line, &mut marks) {
             return marks;
@@ -673,7 +679,15 @@ impl Scanner {
             };
         }
 
-        if self.body.is_none() {
+        // A heredoc body starts after the LOGICAL line ends (POSIX 2.7.4). A
+        // trailing `\` joins the next physical line, and a newline inside an
+        // open quote belongs to the quoted text, so in both cases the pending
+        // opener waits for a later line.
+        let in_string = matches!(
+            self.stack.last(),
+            Some(Ctx::Single | Ctx::Double | Ctx::Ansi)
+        );
+        if self.body.is_none() && !self.continued && !in_string {
             self.body = self.take_pending();
         }
         marks
@@ -782,6 +796,7 @@ impl Scanner {
         match bytes[i] {
             b'\\' => {
                 marks[i] = true;
+                self.continued = i + 1 == bytes.len();
                 if let Some(m) = marks.get_mut(i + 1) {
                     *m = true;
                 }
@@ -817,7 +832,10 @@ impl Scanner {
             return i + 4;
         }
         match bytes[i] {
-            b'\\' => i + 2,
+            b'\\' => {
+                self.continued = i + 1 == bytes.len();
+                i + 2
+            }
             b'\'' => {
                 self.push_quote(Ctx::Single, i);
                 i + 1
@@ -897,6 +915,11 @@ impl Scanner {
         // A bare `(( … ))` is bash's arithmetic COMMAND. Without this it left
         // the stack empty, so the `<<` in `(( a << b ))` looked like a heredoc
         // opener and masked the rest of the file as its body.
+        // Inside arithmetic every `(` is a grouping paren, `((` included.
+        if matches!(self.stack.last(), Some(Ctx::Arith | Ctx::ArithParen)) {
+            self.stack.push(Ctx::ArithParen);
+            return i + 1;
+        }
         if bytes.get(i + 1) == Some(&b'(') {
             self.stack.push(Ctx::Arith);
             return i + 2;
@@ -908,6 +931,10 @@ impl Scanner {
     }
 
     fn close_paren(&mut self, bytes: &[u8], i: usize) -> usize {
+        if self.stack.last() == Some(&Ctx::ArithParen) {
+            self.stack.pop();
+            return i + 1;
+        }
         if self.stack.last() == Some(&Ctx::Arith) {
             if bytes.get(i + 1) == Some(&b')') {
                 self.stack.pop();
@@ -984,7 +1011,7 @@ impl Scanner {
         if bytes.get(i + 2) == Some(&b'<') {
             return i + 3;
         }
-        if self.stack.last() == Some(&Ctx::Arith) {
+        if matches!(self.stack.last(), Some(Ctx::Arith | Ctx::ArithParen)) {
             return i + 2;
         }
 
@@ -1846,5 +1873,48 @@ mod tests_expansion_rules {
         assert_eq!(inputs.for_module("sc2034"), MIXED);
         assert!(!is_expansion_rule("SC2034") && !is_expansion_module("sc2034"));
         assert_eq!(inputs.literal(), lit);
+    }
+}
+
+#[cfg(test)]
+mod heredoc_property_tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    /// Lines that contain `<<` only inside quotes, comments or arithmetic, or
+    /// as a here-string, plus plain code. None opens a heredoc.
+    fn no_heredoc_line() -> impl Strategy<Value = String> {
+        prop::sample::select(vec![
+            "ls $FILES",
+            "echo \"usage: cat <<EOF\"",
+            "echo 'cat <<EOF'",
+            "# cat <<EOF",
+            "x=$(( 1 << 8 ))",
+            "x=$((1<<2))",
+            "mask=$(( (1 << shift) - 1 ))",
+            "(( y = 1 << 3 ))",
+            "(( f |= (1 << n) ))",
+            "let \"z = 1 << 4\"",
+            "x=$(( $(cmd) << 2 ))",
+            "cat <<< hi",
+            "shift",
+            "EOF",
+            "n",
+            "",
+        ])
+        .prop_map(str::to_owned)
+    }
+
+    proptest! {
+        #![proptest_config(ProptestConfig::with_cases(200))]
+
+        #[test]
+        fn prop_no_heredoc_operator_means_no_heredoc_body(
+            lines in prop::collection::vec(no_heredoc_line(), 0..12)
+        ) {
+            let src = lines.join("\n");
+            prop_assert!(heredoc_body_lines(&src).is_empty(), "{src:?}");
+            prop_assert!(quoted_heredoc_lines(&src).is_empty(), "{src:?}");
+        }
     }
 }
