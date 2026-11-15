@@ -523,29 +523,42 @@ fn test_sc2086_236_r1_dash_tab_terminator_and_two_heredocs() {
     }
 }
 
+// Round 3 (#236): no cross-line shell state. Quiet only before the first line
+// of an unquoted body containing `$(` or a backtick; from there on, as main.
 #[test]
-fn test_sc2086_236_r2_multiline_arithmetic_in_unquoted_body_is_quiet() {
-    let src = "cat <<EOF\nsum: $((\n  $A + 1\n))\nEOF\nls $FILES\n";
-    assert_eq!(sc2086_lines(src), vec![6]);
+fn test_sc2086_236_r3_case_paren_in_backtick_flagged() {
+    let src = "cat <<EOF\n`case $x in a) ls $D;; esac`\n$B\nEOF\n";
+    assert_eq!(sc2086_lines(src), vec![2, 2, 3]);
 }
 
 #[test]
-fn test_sc2086_236_r2_multiline_backtick_in_unquoted_body_flagged() {
-    let src = "cat <<EOF\nx: `\n  ls $D\n`\ny: $B\nEOF\n";
-    assert_eq!(sc2086_lines(src), vec![3]);
+fn test_sc2086_236_r3_dquoted_substitution_unbalanced_stack_flagged() {
+    let src = "cat <<EOF\n$(\n x=\"$(ls $A)\"\n ls $B\n)\n$C\nEOF\n";
+    assert_eq!(sc2086_lines(src), vec![4, 6]);
 }
 
 #[test]
-fn test_sc2086_236_r2_escaped_openers_and_quoted_paren() {
-    let esc = "cat <<EOF\n\\$(\n  ls $D\n\\`\n$E\nEOF\n";
-    assert_eq!(sc2086_lines(esc), Vec::<usize>::new());
-    let q = "cat <<EOF\n$(echo \")\"\n  ls $D)\nEOF\n";
-    assert_eq!(sc2086_lines(q), vec![3]);
+fn test_sc2086_236_r3_nested_arith_then_command_flagged() {
+    let src = "cat <<EOF\n$(\n x=$(( 1 +\n 2 )); ls $DIR\n)\nEOF\n";
+    assert_eq!(sc2086_lines(src), vec![4]);
+}
+
+#[test]
+fn test_sc2086_236_r3_single_quote_backslash_flagged() {
+    let src = "cat <<EOF\n$(echo 'a\\'\n ls $D\n)\n$E\nEOF\n";
+    assert_eq!(sc2086_lines(src), vec![3, 5]);
+}
+
+#[test]
+fn test_sc2086_236_r3_quiet_before_first_substitution_and_escapes_flag() {
+    assert_eq!(sc2086_lines("cat <<EOF\n$A\nx $(ls)\n$B\nEOF\n"), vec![4]);
+    assert_eq!(sc2086_lines("cat <<EOF\n\\$(\n$D\nEOF\n"), vec![3]);
+    assert_eq!(sc2086_lines("cat <<EOF\n$((\n$A\n))\nEOF\n"), vec![3]);
 }
 
 #[test]
 fn test_sc2086_236_multiline_substitution_flagged_only_in_unquoted_heredoc() {
-    for (o, want) in [("", vec![3, 7]), ("'", vec![7])] {
+    for (o, want) in [("", vec![3, 5, 7]), ("'", vec![7])] {
         let src = format!("cat <<{o}EOF{o}\nx: $(\n  ls $DIR\n)\ny: $B\nEOF\nls $FILES\n");
         assert_eq!(sc2086_lines(&src), want, "quote {o:?}");
     }
