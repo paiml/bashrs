@@ -484,42 +484,24 @@ fn test_sc2086_236_here_string_is_not_heredoc() {
 // Fix round 1 (#236): heredoc openers are recognised only outside quotes,
 // comments and arithmetic, so a phantom `<<` never silences later lines.
 fn sc2086_lines(src: &str) -> Vec<usize> {
-    check(src)
-        .diagnostics
-        .iter()
-        .map(|d| d.span.start_line)
-        .collect()
+    let r = check(src);
+    r.diagnostics.iter().map(|d| d.span.start_line).collect()
 }
 
 #[test]
-fn test_sc2086_236_r1_shift_in_double_quoted_string_does_not_open_heredoc() {
-    assert_eq!(
-        sc2086_lines("echo \"usage: cat <<EOF\"\nls $FILES\n"),
-        vec![2]
-    );
-}
-
-#[test]
-fn test_sc2086_236_r1_shift_in_comment_does_not_open_heredoc() {
-    assert_eq!(sc2086_lines("# cat <<EOF\nls $FILES\n"), vec![2]);
-}
-
-#[test]
-fn test_sc2086_236_r1_arithmetic_left_shift_does_not_open_heredoc() {
-    assert_eq!(sc2086_lines("m=$(( 1 << 8 ))\nls $FILES\n"), vec![2]);
-    assert_eq!(sc2086_lines("(( a << b ))\nls $FILES\n"), vec![2]);
-}
-
-#[test]
-fn test_sc2086_236_r1_here_string_does_not_open_heredoc() {
-    assert_eq!(sc2086_lines("cat <<<EOF\nls $FILES\n"), vec![2]);
-}
-
-#[test]
-fn test_sc2086_236_r1_unterminated_heredoc_does_not_silence() {
+fn test_sc2086_236_r1_phantom_openers_do_not_silence() {
     // Rule: a heredoc with no terminator before EOF was a guess; its "body"
     // is analysed as ordinary code, so nothing is suppressed.
-    assert_eq!(sc2086_lines("cat <<EOF\nls $FILES\n"), vec![2]);
+    for src in [
+        "echo \"usage: cat <<EOF\"\nls $FILES\n",
+        "# cat <<EOF\nls $FILES\n",
+        "m=$(( 1 << 8 ))\nls $FILES\n",
+        "(( a << b ))\nls $FILES\n",
+        "cat <<<EOF\nls $FILES\n",
+        "cat <<EOF\nls $FILES\n",
+    ] {
+        assert_eq!(sc2086_lines(src), vec![2], "{src:?}");
+    }
 }
 
 #[test]
@@ -528,16 +510,6 @@ fn test_sc2086_236_r1_quoted_delimiter_forms_stay_quiet_then_resume() {
         let src = format!("cat {opener}\n  $A ${{B}}\nEOF\nls $FILES\n");
         assert_eq!(sc2086_lines(&src), vec![4], "opener {opener}");
     }
-}
-
-#[test]
-fn test_sc2086_236_r1_dash_heredoc_with_tab_terminator() {
-    let src = "cat <<-EOF\n\t$A\n\tEOF\nls $FILES\n";
-    assert_eq!(sc2086_lines(src), vec![4]);
-}
-
-#[test]
-fn test_sc2086_236_r1_delimiter_with_dash_and_dot() {
     for delim in ["EOF-1", "END.TXT"] {
         let src = format!("cat <<'{delim}'\n$A\n{delim}\nls $FILES\n");
         assert_eq!(sc2086_lines(&src), vec![4], "delim {delim}");
@@ -545,25 +517,36 @@ fn test_sc2086_236_r1_delimiter_with_dash_and_dot() {
 }
 
 #[test]
-fn test_sc2086_236_r1_two_heredocs_on_one_line() {
-    let src = "cat <<A <<B\n$X\nA\n$Y\nB\nls $FILES\n";
+fn test_sc2086_236_r1_dash_tab_terminator_and_two_heredocs() {
+    for (s, l) in [("<<-EOF\n\t$A\n\tEOF", 4), ("<<A <<B\n$X\nA\n$Y\nB", 6)] {
+        assert_eq!(sc2086_lines(&format!("cat {s}\nls $FILES\n")), vec![l]);
+    }
+}
+
+#[test]
+fn test_sc2086_236_r2_multiline_arithmetic_in_unquoted_body_is_quiet() {
+    let src = "cat <<EOF\nsum: $((\n  $A + 1\n))\nEOF\nls $FILES\n";
     assert_eq!(sc2086_lines(src), vec![6]);
 }
 
 #[test]
-fn test_sc2086_236_r1_arithmetic_inside_unquoted_body_is_quiet() {
-    let src = "cat <<EOF\nsum: $(( $A + 1 ))\nEOF\nls $FILES\n";
-    assert_eq!(sc2086_lines(src), vec![4]);
+fn test_sc2086_236_r2_multiline_backtick_in_unquoted_body_flagged() {
+    let src = "cat <<EOF\nx: `\n  ls $D\n`\ny: $B\nEOF\n";
+    assert_eq!(sc2086_lines(src), vec![3]);
 }
 
 #[test]
-fn test_sc2086_236_multiline_command_substitution_in_unquoted_heredoc_flagged() {
-    let src = "cat <<EOF\nx: $(\n  ls $DIR\n)\ny: $B\nEOF\nls $FILES\n";
-    assert_eq!(sc2086_lines(src), vec![3, 7]);
+fn test_sc2086_236_r2_escaped_openers_and_quoted_paren() {
+    let esc = "cat <<EOF\n\\$(\n  ls $D\n\\`\n$E\nEOF\n";
+    assert_eq!(sc2086_lines(esc), Vec::<usize>::new());
+    let q = "cat <<EOF\n$(echo \")\"\n  ls $D)\nEOF\n";
+    assert_eq!(sc2086_lines(q), vec![3]);
 }
 
 #[test]
-fn test_sc2086_236_multiline_substitution_in_quoted_heredoc_stays_quiet() {
-    let src = "cat <<'EOF'\nx: $(\n  ls $DIR\n)\nEOF\nls $FILES\n";
-    assert_eq!(sc2086_lines(src), vec![6]);
+fn test_sc2086_236_multiline_substitution_flagged_only_in_unquoted_heredoc() {
+    for (o, want) in [("", vec![3, 7]), ("'", vec![7])] {
+        let src = format!("cat <<{o}EOF{o}\nx: $(\n  ls $DIR\n)\ny: $B\nEOF\nls $FILES\n");
+        assert_eq!(sc2086_lines(&src), want, "quote {o:?}");
+    }
 }
