@@ -276,7 +276,7 @@ fn convert_expr(expr: &SynExpr) -> Result<Expr> {
                 index: Box::new(Expr::Literal(Literal::I32(0))),
             })
         }
-        _ => Err(Error::Validation("Unsupported expression type".to_string())),
+        other => Err(unsupported_expr_error(other)),
     }
 }
 
@@ -360,3 +360,37 @@ fn convert_macro_expr_vec(tokens: proc_macro2::TokenStream) -> Result<Expr> {
 
 
 include!("parser_convert.rs");
+
+/// Human-readable name of a `syn` expression kind, for diagnostics.
+fn expr_kind_name(expr: &SynExpr) -> &'static str {
+    match expr {
+        SynExpr::Try(_) => "`?` (try operator)",
+        SynExpr::Unsafe(_) => "`unsafe` block",
+        SynExpr::Async(_) => "`async` block",
+        SynExpr::Await(_) => "`.await`",
+        SynExpr::ForLoop(_) => "`for` loop in expression position",
+        SynExpr::While(_) => "`while` loop in expression position",
+        SynExpr::Loop(_) => "`loop` in expression position",
+        SynExpr::Break(_) => "`break`",
+        SynExpr::Continue(_) => "`continue`",
+        SynExpr::Assign(_) => "assignment in expression position",
+        SynExpr::Const(_) => "`const` block",
+        SynExpr::Group(_) => "grouped expression",
+        SynExpr::Infer(_) => "`_` placeholder",
+        SynExpr::TryBlock(_) => "`try` block",
+        SynExpr::Yield(_) => "`yield`",
+        SynExpr::Verbatim(_) => "unparsed (verbatim) expression",
+        _ => "unrecognised expression",
+    }
+}
+
+/// Build the "Unsupported expression type" error, naming the expression kind
+/// and its source line (issue #521). The message keeps the original prefix so
+/// diagnostic categorisation is unchanged.
+fn unsupported_expr_error(expr: &SynExpr) -> Error {
+    let line = syn::spanned::Spanned::span(expr).start().line;
+    Error::Validation(format!(
+        "Unsupported expression type: {} at line {line}",
+        expr_kind_name(expr)
+    ))
+}

@@ -24,4 +24,8 @@ mod parser_coverage_tests4;
 #[path = "parser_coverage_tests5.rs"]
 mod parser_coverage_tests5;
 
+#[cfg(test)]
+#[path = "parser_unsupported_expr_tests.rs"]
+mod parser_unsupported_expr_tests;
+
 pub use parser::parse;
