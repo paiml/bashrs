@@ -151,6 +151,7 @@ pub mod sc2083;
 pub mod sc2084;
 pub mod sc2085;
 pub mod sc2086;
+pub mod sc2086_heredoc;
 pub mod sc2086_logic;
 pub mod sc2087;
 pub mod sc2088;
