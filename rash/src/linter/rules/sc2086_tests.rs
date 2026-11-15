@@ -601,3 +601,17 @@ fn test_sc2086_236_r2_heredoc_inside_command_substitution_still_body() {
     let src = "x=$(cat <<EOF\nbody $A\nEOF\n)\nls $G\n";
     assert_eq!(sc2086_lines(src), vec![5]);
 }
+
+// Redesign round 2 (#236, #522): depth-tracked openers, checked against bash
+// in quoting::heredoc_oracle_tests.
+#[test]
+fn test_sc2086_236_r3_brace_expansion_shift_is_not_an_opener() {
+    let src = "msg=\"${1:-usage: cat <<EOF}\"\nls $FILES\nEOF\n";
+    assert_eq!(sc2086_lines(src), vec![2]);
+}
+
+#[test]
+fn test_sc2086_236_r3_multiline_substitution_on_opener_line() {
+    let src = "cmd <<EOF $(\n  echo $D\n) $FILES\nbody $X\nEOF\nls $G\n";
+    assert_eq!(sc2086_lines(src), vec![2, 3, 6]);
+}

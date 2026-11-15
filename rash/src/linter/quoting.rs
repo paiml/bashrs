@@ -92,6 +92,10 @@ struct Heredoc {
     quoted: bool,
     /// 1-indexed line the body starts on, for the unterminated fail-safe.
     body_start: usize,
+    /// Context-stack depth at the opener. The body begins at the first line
+    /// start where the stack is back to this depth: a `$(`, `${`, `$((` or
+    /// quote opened after the `<<EOF` on the same logical line must close first.
+    depth: usize,
 }
 
 /// Column ranges, per line, that are inside a string literal.
@@ -683,11 +687,11 @@ impl Scanner {
         // trailing `\` joins the next physical line, and a newline inside an
         // open quote belongs to the quoted text, so in both cases the pending
         // opener waits for a later line.
-        let in_string = matches!(
-            self.stack.last(),
-            Some(Ctx::Single | Ctx::Double | Ctx::Ansi)
-        );
-        if self.body.is_none() && !self.continued && !in_string {
+        let depth_closed = self
+            .pending
+            .front()
+            .is_some_and(|d| self.stack.len() <= d.depth);
+        if self.body.is_none() && !self.continued && depth_closed {
             self.body = self.take_pending();
         }
         marks
@@ -1011,12 +1015,18 @@ impl Scanner {
         if bytes.get(i + 2) == Some(&b'<') {
             return i + 3;
         }
-        if matches!(self.stack.last(), Some(Ctx::Arith | Ctx::ArithParen)) {
+        // An opener needs command context. Arithmetic (`<<` is a shift), `${…}`
+        // (`<<` is literal expansion text) and quotes are not.
+        if !matches!(
+            self.stack.last(),
+            None | Some(Ctx::Paren | Ctx::Backtick | Ctx::Case)
+        ) {
             return i + 2;
         }
 
         let (doc, next) = parse_heredoc_opener(bytes, i + 2);
-        if let Some(doc) = doc {
+        if let Some(mut doc) = doc {
+            doc.depth = self.stack.len();
             self.pending.push_back(doc);
         }
         next
@@ -1091,6 +1101,7 @@ fn parse_quoted_delim(
         strip_tabs,
         quoted: true,
         body_start: 0,
+        depth: 0,
     });
     (doc, end + 1)
 }
@@ -1110,6 +1121,7 @@ fn parse_bare_delim(bytes: &[u8], start: usize, strip_tabs: bool) -> (Option<Her
             strip_tabs,
             quoted: false,
             body_start: 0,
+            depth: 0,
         }),
         end,
     )
@@ -1916,5 +1928,144 @@ mod heredoc_property_tests {
             prop_assert!(heredoc_body_lines(&src).is_empty(), "{src:?}");
             prop_assert!(quoted_heredoc_lines(&src).is_empty(), "{src:?}");
         }
+    }
+}
+
+/// Oracle tests: the scanner's heredoc-body lines must equal what real bash
+/// reads as heredoc bodies.
+///
+/// Construction (deterministic, no external command): the script runs under
+/// `bash --norc -c` after a preamble that defines `cat`, `cmd`, `awk`, `ls`
+/// and `echo` as shell functions. Each prints `ARG<args>` and then every line
+/// it can read from fd 0 and fd 3 as `BODY<line>`; stdin is /dev/null, so only
+/// a heredoc can feed them. Every line of a test script that matters carries
+/// a token `b<N>` where N is its own 1-indexed line number. The oracle's body
+/// set is the lines whose token shows up in a `BODY<..>` output line. (Two
+/// heredocs on one line use `cat <<A 3<<B` so both reach a reader.)
+#[cfg(test)]
+mod heredoc_oracle_tests {
+    use super::*;
+    use std::collections::BTreeSet;
+    use std::process::{Command, Stdio};
+
+    const PREAMBLE: &str = r#"for n in cat cmd awk ls echo; do
+eval "$n() { printf 'ARG<%s>\n' \"\$*\"; for fd in 0 3; do if { : <&\$fd; } 2>/dev/null; then while IFS= read -r -u \$fd l; do printf 'BODY<%s>\n' \"\$l\"; done; fi; done; }"
+done
+"#;
+
+    /// Tokens `b<digits>` in `text`.
+    fn tokens(text: &str) -> Vec<usize> {
+        let mut out = Vec::new();
+        let b = text.as_bytes();
+        let mut i = 0;
+        while i < b.len() {
+            let boundary = i == 0 || !b[i - 1].is_ascii_alphanumeric();
+            if b[i] == b'b' && boundary {
+                let digits: String = text[i + 1..]
+                    .chars()
+                    .take_while(char::is_ascii_digit)
+                    .collect();
+                if !digits.is_empty() {
+                    out.push(digits.parse().unwrap());
+                }
+            }
+            i += 1;
+        }
+        out
+    }
+
+    /// Lines bash reads as heredoc bodies in `src`.
+    fn bash_body_lines(src: &str) -> BTreeSet<usize> {
+        for (n, line) in src.lines().enumerate() {
+            for t in tokens(line) {
+                assert_eq!(t, n + 1, "token b{t} is on line {} of {src:?}", n + 1);
+            }
+        }
+        let out = Command::new("bash")
+            .args(["--norc", "-c", &format!("{PREAMBLE}{src}")])
+            .stdin(Stdio::null())
+            .stderr(Stdio::null())
+            .output()
+            .expect("bash must be installed for the oracle");
+        let stdout = String::from_utf8_lossy(&out.stdout);
+        // Only the text inside `BODY<...>` counts, wherever it surfaces (a
+        // heredoc read inside `$(...)` reaches the output through its parent).
+        stdout
+            .split("BODY<")
+            .skip(1)
+            .filter_map(|seg| seg.split('>').next())
+            .flat_map(tokens)
+            .collect()
+    }
+
+    fn scanner_lines(src: &str) -> BTreeSet<usize> {
+        heredoc_body_lines(src).into_iter().collect()
+    }
+
+    fn agree(src: &str) {
+        let want = bash_body_lines(src);
+        assert_eq!(scanner_lines(src), want, "scanner vs bash on {src:?}");
+    }
+
+    #[test]
+    fn oracle_itself_sees_a_real_heredoc() {
+        let src = "cat <<EOF\nbody b2\nEOF\nls $F b4\n";
+        assert_eq!(bash_body_lines(src), BTreeSet::from([2]));
+        assert!(bash_body_lines("ls $F b1\n").is_empty());
+    }
+
+    #[test]
+    fn oracle_plain_forms() {
+        agree("cat <<EOF\nbody b2 $A\nEOF\nls $F b4\n");
+        agree("cat <<-EOF\n\tbody b2 $A\n\tEOF\nls $F b4\n");
+        for opener in ["<<'EOF'", "<<\"EOF\"", "<<\\EOF"] {
+            agree(&format!("cat {opener}\nbody b2 $A ${{B}}\nEOF\nls $F b4\n"));
+        }
+        agree("cat <<'EOF-1'\nbody b2 $A\nEOF-1\nls $F b4\n");
+        agree("cat <<'END.TXT'\nbody b2 $A\nEND.TXT\nls $F b4\n");
+        agree("cat <<A 3<<B\nbody b2 $X\nA\nbody b4 $Y\nB\nls $F b6\n");
+    }
+
+    #[test]
+    fn oracle_phantom_openers() {
+        agree("echo \"usage: cat <<EOF\"\nls $F b2\nEOF\n");
+        agree("echo 'cat <<EOF'\nls $F b2\nEOF\n");
+        agree("# cat <<EOF\nls $F b2\nEOF\n");
+        agree("m=$(( 1 << 8 ))\nls $F b2\n8\n");
+        agree("m=$((1<<2))\nls $F b2\n2\n");
+        agree("(( y = 1 << 3 ))\nls $F b2\n3\n");
+        agree("let \"z = 1 << 4\"\nls $F b2\n4\n");
+        agree("x=$(( $(cmd) << 2 ))\nls $F b2\n2\n");
+        agree("shift=3\nmask=$(( (1 << shift) - 1 ))\nls $F b3\nshift\n");
+        agree("(( f |= (1 << shift) ))\nls $F b2\nshift\n");
+        agree("cat <<<EOF\nls $F b2\nEOF\n");
+    }
+
+    #[test]
+    fn oracle_brace_expansion_is_not_an_opener() {
+        // lane 2 and 3 claim from the 065f579 receipts.
+        agree("msg=\"${1:-usage: cat <<EOF}\"\nls $F b2\nEOF\n");
+        agree("echo \"${arr[1 << shift]}\"\nls $F b2\nshift\n");
+        agree("x=$(( ${arr[1 << shift]} ))\nls $F b2\nshift\n");
+        agree("x=${y:-<<EOF}\nls $F b2\nEOF\n");
+    }
+
+    #[test]
+    fn oracle_multiline_expansion_on_opener_line() {
+        // lane 1, 2 and 3 claims from the 065f579 receipts.
+        agree("cmd <<EOF $(\n  echo $D b2\n) $F b3\nbody b4\nEOF\nls $G b6\n");
+        agree("cmd <<EOF \"${V:-\ndefault b2}\" $F\nbody b3\nEOF\nls $G b5\n");
+        agree("cmd <<EOF ${V:-\ndefault b2} $F\nbody b3\nEOF\nls $G b5\n");
+        agree("cmd <<EOF \"$(\n  echo $D b2\n)\" $F b3\nbody b4\nEOF\nls $G b6\n");
+        agree("cmd <<EOF $((\n  1 + 1\n)) $F b3\nbody b4\nEOF\nls $G b6\n");
+        agree("cmd <<EOF `\n echo $A b2\n` $F b3\nbody b4\nEOF\nls $G b6\n");
+        agree("cmd <<EOF `echo $A b1` $F\nbody b2\nEOF\nls $G b4\n");
+    }
+
+    #[test]
+    fn oracle_continuation_and_quotes_on_opener_line() {
+        agree("cmd <<EOF \\\n  $F b2\nbody b3\nEOF\nls $G b5\n");
+        agree("awk <<EOF '\n{ print b2 }\n' $F b3\nbody b4\nEOF\nls $G b6\n");
+        agree("x=$(cat <<EOF\nbody b2\nEOF\n)\necho \"$x\"\nls $G b6\n");
     }
 }
