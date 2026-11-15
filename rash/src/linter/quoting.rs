@@ -54,6 +54,8 @@ enum Ctx {
     /// Inside `$(( ... ))` or a bare `(( ... ))` — code, and `<<` there is a
     /// left shift, not a heredoc.
     Arith,
+    /// A grouping `( ... )` inside arithmetic: `<<` there is still a shift.
+    ArithParen,
     /// Inside `$'...'` — literal, but `\'` is an escape, unlike `'...'`.
     Ansi,
     /// Between `case … in` and `esac` — code. Tracked only so a pattern's `)`
@@ -90,6 +92,10 @@ struct Heredoc {
     quoted: bool,
     /// 1-indexed line the body starts on, for the unterminated fail-safe.
     body_start: usize,
+    /// Context-stack depth at the opener. The body begins at the first line
+    /// start where the stack is back to this depth: a `$(`, `${`, `$((` or
+    /// quote opened after the `<<EOF` on the same logical line must close first.
+    depth: usize,
 }
 
 /// Column ranges, per line, that are inside a string literal.
@@ -645,6 +651,9 @@ struct Scanner {
     pending: std::collections::VecDeque<Heredoc>,
     /// The body currently being consumed.
     body: Option<Heredoc>,
+    /// The line being scanned ends in an unescaped `\`: it continues on the
+    /// next physical line.
+    continued: bool,
     /// Per-byte mask for the line being scanned: text that can never EXPAND —
     /// `'...'`, `$'...'`, a comment, a quoted-delimiter heredoc body. A strict
     /// subset of the literal mask: `"..."` and an unquoted heredoc body are
@@ -658,6 +667,7 @@ impl Scanner {
         let bytes = line.as_bytes();
         let mut marks = vec![false; bytes.len()];
         self.inert = vec![false; bytes.len()];
+        self.continued = false;
 
         if self.consume_heredoc_body(line, &mut marks) {
             return marks;
@@ -673,7 +683,15 @@ impl Scanner {
             };
         }
 
-        if self.body.is_none() {
+        // A heredoc body starts after the LOGICAL line ends (POSIX 2.7.4). A
+        // trailing `\` joins the next physical line, and a newline inside an
+        // open quote belongs to the quoted text, so in both cases the pending
+        // opener waits for a later line.
+        let depth_closed = self
+            .pending
+            .front()
+            .is_some_and(|d| self.stack.len() <= d.depth);
+        if self.body.is_none() && !self.continued && depth_closed {
             self.body = self.take_pending();
         }
         marks
@@ -782,6 +800,7 @@ impl Scanner {
         match bytes[i] {
             b'\\' => {
                 marks[i] = true;
+                self.continued = i + 1 == bytes.len();
                 if let Some(m) = marks.get_mut(i + 1) {
                     *m = true;
                 }
@@ -817,7 +836,10 @@ impl Scanner {
             return i + 4;
         }
         match bytes[i] {
-            b'\\' => i + 2,
+            b'\\' => {
+                self.continued = i + 1 == bytes.len();
+                i + 2
+            }
             b'\'' => {
                 self.push_quote(Ctx::Single, i);
                 i + 1
@@ -897,6 +919,11 @@ impl Scanner {
         // A bare `(( … ))` is bash's arithmetic COMMAND. Without this it left
         // the stack empty, so the `<<` in `(( a << b ))` looked like a heredoc
         // opener and masked the rest of the file as its body.
+        // Inside arithmetic every `(` is a grouping paren, `((` included.
+        if matches!(self.stack.last(), Some(Ctx::Arith | Ctx::ArithParen)) {
+            self.stack.push(Ctx::ArithParen);
+            return i + 1;
+        }
         if bytes.get(i + 1) == Some(&b'(') {
             self.stack.push(Ctx::Arith);
             return i + 2;
@@ -908,6 +935,10 @@ impl Scanner {
     }
 
     fn close_paren(&mut self, bytes: &[u8], i: usize) -> usize {
+        if self.stack.last() == Some(&Ctx::ArithParen) {
+            self.stack.pop();
+            return i + 1;
+        }
         if self.stack.last() == Some(&Ctx::Arith) {
             if bytes.get(i + 1) == Some(&b')') {
                 self.stack.pop();
@@ -984,12 +1015,18 @@ impl Scanner {
         if bytes.get(i + 2) == Some(&b'<') {
             return i + 3;
         }
-        if self.stack.last() == Some(&Ctx::Arith) {
+        // An opener needs command context. Arithmetic (`<<` is a shift), `${…}`
+        // (`<<` is literal expansion text) and quotes are not.
+        if !matches!(
+            self.stack.last(),
+            None | Some(Ctx::Paren | Ctx::Backtick | Ctx::Case)
+        ) {
             return i + 2;
         }
 
         let (doc, next) = parse_heredoc_opener(bytes, i + 2);
-        if let Some(doc) = doc {
+        if let Some(mut doc) = doc {
+            doc.depth = self.stack.len();
             self.pending.push_back(doc);
         }
         next
@@ -1031,6 +1068,15 @@ fn parse_heredoc_opener(bytes: &[u8], start: usize) -> (Option<Heredoc>, usize) 
     match bytes.get(i) {
         Some(&q @ (b'\'' | b'"')) => parse_quoted_delim(bytes, i, q, strip_tabs),
         Some(b) if b.is_ascii_alphabetic() || *b == b'_' => parse_bare_delim(bytes, i, strip_tabs),
+        // `<<\EOF`: a backslash quotes the delimiter, so the body is literal.
+        Some(b'\\')
+            if bytes
+                .get(i + 1)
+                .is_some_and(|b| b.is_ascii_alphabetic() || *b == b'_') =>
+        {
+            let (doc, next) = parse_bare_delim(bytes, i + 1, strip_tabs);
+            (doc.map(|d| Heredoc { quoted: true, ..d }), next)
+        }
         // A numeric or operator "delimiter" is a left shift, not a heredoc.
         _ => (None, i.max(start + 1)),
     }
@@ -1055,6 +1101,7 @@ fn parse_quoted_delim(
         strip_tabs,
         quoted: true,
         body_start: 0,
+        depth: 0,
     });
     (doc, end + 1)
 }
@@ -1074,6 +1121,7 @@ fn parse_bare_delim(bytes: &[u8], start: usize, strip_tabs: bool) -> (Option<Her
             strip_tabs,
             quoted: false,
             body_start: 0,
+            depth: 0,
         }),
         end,
     )
@@ -1837,5 +1885,53 @@ mod tests_expansion_rules {
         assert_eq!(inputs.for_module("sc2034"), MIXED);
         assert!(!is_expansion_rule("SC2034") && !is_expansion_module("sc2034"));
         assert_eq!(inputs.literal(), lit);
+    }
+}
+
+#[cfg(test)]
+mod heredoc_opener_tests {
+    use super::*;
+
+    fn body(src: &str) -> Vec<usize> {
+        let mut v: Vec<usize> = heredoc_body_lines(src).into_iter().collect();
+        v.sort_unstable();
+        v
+    }
+
+    #[test]
+    fn arith_paren_shift_is_not_an_opener() {
+        assert!(body("m=$(( (1 << shift) - 1 ))\nls $F\nshift\n").is_empty());
+        assert!(body("(( f |= (1 << n) ))\nls $F\nn\n").is_empty());
+    }
+
+    #[test]
+    fn brace_expansion_is_not_an_opener() {
+        assert!(body("x=${y:-<<EOF}\nls $F\nEOF\n").is_empty());
+        assert!(body("m=\"${1:-cat <<EOF}\"\nls $F\nEOF\n").is_empty());
+    }
+
+    #[test]
+    fn multiline_expansion_after_opener_delays_body() {
+        assert_eq!(
+            body("cmd <<EOF $(\n echo $D\n) $F\nbody\nEOF\nls $G\n"),
+            [4]
+        );
+        assert_eq!(
+            body("cmd <<EOF \"$(\n echo $D\n)\" $F\nbody\nEOF\nls $G\n"),
+            [4]
+        );
+        assert_eq!(body("cmd <<EOF ${V:-\n d} $F\nbody\nEOF\nls $G\n"), [3]);
+    }
+
+    #[test]
+    fn continued_opener_line_delays_body() {
+        assert_eq!(body("cmd <<EOF \\\n  $F\nbody\nEOF\nls $G\n"), [3]);
+    }
+
+    #[test]
+    fn plain_and_backslash_quoted_heredocs_still_work() {
+        assert_eq!(body("cat <<EOF\nb $A\nEOF\nls $F\n"), [2]);
+        assert_eq!(body("cat <<\\EOF\nb $A\nEOF\nls $F\n"), [2]);
+        assert_eq!(body("x=$(cat <<EOF\nb\nEOF\n)\nls $F\n"), [2]);
     }
 }
