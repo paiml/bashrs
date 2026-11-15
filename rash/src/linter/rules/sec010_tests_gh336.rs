@@ -43,3 +43,25 @@ fn test_GH336_validated_repo_stays_clear() {
     let s = "#!/usr/bin/env bash\nREPO=\"$2\"\ncase \"$REPO\" in /*) ;; *) exit 2;; esac\ncase \"$REPO\" in *..*) exit 2;; esac\n( cd \"$REPO\" && rm -rf out )\n";
     assert!(check(s).diagnostics.iter().all(|d| d.severity != Severity::Error));
 }
+
+fn sec010_errors(s: &str) -> usize {
+    check(s)
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SEC010" && d.severity == Severity::Error)
+        .count()
+}
+
+#[test]
+fn test_GH336_positional_cd_then_rm_fires() {
+    let s = "#!/usr/bin/env bash\ncd \"$1\" && rm -rf out\n";
+    assert_eq!(sec010_errors(s), 1);
+}
+
+#[test]
+fn test_GH336_inner_sh_c_positional_is_not_outer_taint() {
+    // `$1` inside the single-quoted `sh -c` body is the inner shell's own
+    // argument; the literal removal in the body is not the path under test.
+    let s = "#!/usr/bin/env bash\nd=/srv/data\nrunuser -u noah -- sh -c 'cd \"$1\" && rm -f .probe' _ \"$d\"\n";
+    assert_eq!(sec010_errors(s), 0);
+}
