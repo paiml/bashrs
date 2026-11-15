@@ -1031,6 +1031,15 @@ fn parse_heredoc_opener(bytes: &[u8], start: usize) -> (Option<Heredoc>, usize) 
     match bytes.get(i) {
         Some(&q @ (b'\'' | b'"')) => parse_quoted_delim(bytes, i, q, strip_tabs),
         Some(b) if b.is_ascii_alphabetic() || *b == b'_' => parse_bare_delim(bytes, i, strip_tabs),
+        // `<<\EOF`: a backslash quotes the delimiter, so the body is literal.
+        Some(b'\\')
+            if bytes
+                .get(i + 1)
+                .is_some_and(|b| b.is_ascii_alphabetic() || *b == b'_') =>
+        {
+            let (doc, next) = parse_bare_delim(bytes, i + 1, strip_tabs);
+            (doc.map(|d| Heredoc { quoted: true, ..d }), next)
+        }
         // A numeric or operator "delimiter" is a left shift, not a heredoc.
         _ => (None, i.max(start + 1)),
     }
