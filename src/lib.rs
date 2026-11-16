@@ -8,3 +8,6 @@
 #[allow(unused_macros)]
 mod generated_contracts;
 pub mod verification_specs;
+
+#[cfg(test)]
+mod release_floor_tests;
