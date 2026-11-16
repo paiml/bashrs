@@ -204,9 +204,74 @@ fn test_GH336_plain_sh_c_with_fixed_path_is_silent() {
         format!("( {CHILD} )"),
         format!("if true; then {CHILD}; fi"),
         "D=/srv sh -c 'cd \"$1\" && rm -rf out' _ /x".to_string(),
-        format!("cat <<EOF >/dev/null\nplain\nEOF\n{CHILD}"),
-        format!("x=\"a\nb\"\n{CHILD}"),
     ] {
         assert_eq!(sec010_errors(&format!("#!/usr/bin/env bash\n{body}\n")), 0, "{body}");
     }
+}
+
+// Round 4: the ten inputs of the fourth review. Each is an Error on main; the
+// parent shell expands the `$1` in CHILD in every one of them.
+#[test]
+fn test_GH336_round4_ten_violating_inputs_fire() {
+    let inputs: [(&str, String); 10] = [
+        ("n27", format!("x='a\nb'; cat <<EOF | sh\n{CHILD}\nEOF")),
+        ("n28", format!("x=\"a\nb\"; cat <<EOF | sh\n{CHILD}\nEOF")),
+        ("n47", format!("echo \"x\n\"; ssh host bash <<EOF\n{CHILD}\nEOF")),
+        ("n26", format!("true;# it's\ncat <<EOF | sh\nit's here\n{CHILD}\nEOF")),
+        ("n45", format!("false||# don't\ncat <<EOF | sh\ndon't here\n{CHILD}\nEOF")),
+        ("n46", format!("(# it's\ncat <<EOF | sh\nit's here\n{CHILD}\nEOF")),
+        ("n52", format!("sleep 1 &# it's\ncat <<EOF | sh\nit's here\n{CHILD}\nEOF")),
+        ("n51", format!("true;# it's\nx=\"'\n{CHILD}\n\"\neval \"$x\"")),
+        ("n29", format!("x=`date`\"\n{CHILD}\n\"\neval \"$x\"")),
+        ("n23", format!("cat <<EOF | sh\ntrue\nEOF\r\n{CHILD}\nEOF")),
+    ];
+    let silent: Vec<&str> = inputs.iter().filter(|(_, b)| !fires_on(b)).map(|(n, _)| *n).collect();
+    assert!(silent.is_empty(), "silenced real findings: {silent:?}");
+}
+
+// Mask-off rule: the first thing the tracker does not understand turns the
+// mask off for the rest of the file. CHILD on the last line must then report.
+#[test]
+fn test_GH336_first_unparsed_construct_turns_mask_off_for_the_rest() {
+    let mut silent: Vec<&str> = Vec::new();
+    for first in [
+        "x=`date`",
+        "echo `date",
+        "x=$(\ndate\n)",
+        "x=\"$(date\"",
+        "cat <<EOF\nbody\nEOF",
+        "cat <<NEVER_CLOSED\nbody",
+        "cat <<'A' | sh\nx\nA",
+        "echo $'a\\'b'",
+        "echo \"open\nclosed\"",
+        "echo 'open\nclosed'",
+        "true # it's",
+        "true # a <<B",
+        "echo hi # \"q\"",
+        "v=\"${y#'}\"",
+        "echo ok\r",
+        "echo 'unterminated",
+    ] {
+        silent.extend((!fires_on(&format!("{first}\n{CHILD}"))).then_some(first));
+    }
+    assert!(silent.is_empty(), "mask not turned off after: {silent:?}");
+}
+
+#[test]
+fn test_GH336_plain_lines_before_the_first_unparsed_construct_stay_masked() {
+    let s = format!("#!/usr/bin/env bash\ntrue # fine\n{CHILD}\ncat <<EOF\nx\nEOF\n");
+    assert_eq!(sec010_errors(&s), 0);
+}
+
+// Pins words.rs: a backslash before the command is never tokenised, and a `)`
+// ends a case pattern so the next word starts a command.
+#[test]
+fn test_GH336_backslash_assignment_word_is_not_a_child_shell_fires() {
+    assert!(fires_on("D=a\\ sh -c 'cd \"$1\" && rm -rf out' _ /x"));
+}
+
+#[test]
+fn test_GH336_case_pattern_paren_starts_a_command_is_masked() {
+    let s = "#!/usr/bin/env bash\ncase x in a) sh -c 'cd \"$1\" && rm -rf out' _ /x;; esac\n";
+    assert_eq!(sec010_errors(s), 0);
 }

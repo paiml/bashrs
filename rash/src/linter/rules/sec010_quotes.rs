@@ -3,8 +3,8 @@
 //! ALLOW-LIST. Only one text is hidden from the taint lookup: the
 //! single-quoted script argument of a child shell, `sh -c '...$1...' _ /x`,
 //! and only when ALL hold (otherwise nothing is masked, as before):
-//! - the line is outside every here-doc body and starts at top level, not
-//!   inside a quoted string opened on an earlier line (see `sec010_ctx`);
+//! - the file is fully understood up to this line: no here-doc opener, backtick,
+//!   `\r`, `$'` or quote left open at a line end so far (see `sec010_ctx`);
 //! - no `\` continuation before or on the command;
 //! - the `-c` word belongs to the FIRST word of a simple command, after only
 //!   plain `VAR=value` words (see `sec010_words`): not `eval`, `echo`, `ssh`,
@@ -17,25 +17,14 @@
 
 use super::sec010_words::starts_child_shell_c;
 
-/// Quote state carried from one line to the next.
-#[derive(Clone, Copy, PartialEq, Debug)]
-pub(super) enum Carry {
-    Top,
-    Single,
-    Double,
-    Unknown,
-}
-
 /// Result of scanning one line from top-level state.
 #[derive(PartialEq, Debug)]
 pub(super) enum Scan {
     /// Byte ranges (start of `'`, end after closing `'`) of top-level plain
     /// single-quoted spans; the line ends at top level.
     Spans(Vec<(usize, usize)>),
-    /// This line cannot be classified, the carried state is unaffected.
+    /// The line cannot be classified with certainty, or ends inside a quote.
     Uncertain,
-    /// The line ends inside a quote opened on it.
-    Open(Carry),
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -56,7 +45,7 @@ pub(super) fn top_level_single_spans(line: &str) -> Scan {
         match step(b, i, &mut stack, &mut spans) {
             Ok(Some(next)) => i = next + 1,
             Ok(None) => break,
-            Err(open) => return Scan::Open(open),
+            Err(()) => return Scan::Uncertain,
         }
     }
     end_scan(&stack, spans)
@@ -69,7 +58,7 @@ fn step(
     i: usize,
     stack: &mut Vec<Ctx>,
     spans: &mut Vec<(usize, usize)>,
-) -> Result<Option<usize>, Carry> {
+) -> Result<Option<usize>, ()> {
     if stack.last() == Some(&Ctx::Double) {
         return Ok(Some(in_double(b, i, stack)));
     }
@@ -82,7 +71,7 @@ fn step(
             stack.push(Ctx::Paren);
             return Ok(Some(i + 1));
         }
-        b'$' if next == Some(b'\'') => return skip_ansi_c(b, i + 2).map(Some).ok_or(Carry::Unknown),
+        b'$' if next == Some(b'\'') => return skip_ansi_c(b, i + 2).map(Some).ok_or(()),
         b'(' if stack.last() == Some(&Ctx::Paren) => stack.push(Ctx::Paren),
         b')' if stack.last() == Some(&Ctx::Paren) => {
             stack.pop();
@@ -113,30 +102,25 @@ fn in_double(b: &[u8], i: usize, stack: &mut Vec<Ctx>) -> usize {
     i
 }
 
-/// A backtick makes the line uncertain; an odd count poisons later lines.
+/// Any backtick, balanced or not, makes the line uncertain.
 fn backtick_scan(line: &str) -> Option<Scan> {
-    if !line.contains('`') {
-        return None;
-    }
-    let odd = line.bytes().filter(|&x| x == b'`').count() % 2 == 1;
-    Some(if odd { Scan::Open(Carry::Unknown) } else { Scan::Uncertain })
+    line.contains('`').then_some(Scan::Uncertain)
 }
 
-/// Plain single-quoted span starting at `i`: (end, span if top level), or the
-/// carried state when it is unterminated.
-fn single_span(b: &[u8], i: usize, top: bool) -> Result<(usize, Option<(usize, usize)>), Carry> {
+/// Plain single-quoted span starting at `i`: (end, span if top level), or `Err` when it is unterminated.
+fn single_span(b: &[u8], i: usize, top: bool) -> Result<(usize, Option<(usize, usize)>), ()> {
     let Some(rel) = b[i + 1..].iter().position(|&x| x == b'\'') else {
-        return Err(if top { Carry::Single } else { Carry::Unknown });
+        return Err(());
     };
     let end = rel + i + 2;
     Ok((end, top.then_some((i, end))))
 }
 
 fn end_scan(stack: &[Ctx], spans: Vec<(usize, usize)>) -> Scan {
-    match stack {
-        [] => Scan::Spans(spans),
-        [Ctx::Double] => Scan::Open(Carry::Double),
-        _ => Scan::Open(Carry::Unknown),
+    if stack.is_empty() {
+        Scan::Spans(spans)
+    } else {
+        Scan::Uncertain
     }
 }
 
