@@ -126,6 +126,7 @@ pub fn check(source: &str) -> LintResult {
     // rule fires on a line the script never executes.
     let heredoc_body = crate::linter::heredoc::quoted_heredoc_lines(source);
 
+    let plain = sec010_plain::is_plain(source);
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim();
 
@@ -136,6 +137,13 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
+        let masked;
+        let line = if plain {
+            masked = sec010_plain::mask_child_shell(line);
+            masked.as_str()
+        } else {
+            line
+        };
         check_file_ops(line, line_num, &taint, &mut result);
         check_traversal_patterns(line, line_num, &mut result);
     }
@@ -309,6 +317,13 @@ fn is_heredoc_pattern(line: &str) -> bool {
 #[path = "sec010_tests_sec010_detec.rs"]
 mod tests_ext;
 
+#[path = "sec010_plain.rs"]
+mod sec010_plain;
+
 #[cfg(test)]
 #[path = "sec010_tests_gh336.rs"]
 mod tests_gh336;
+
+#[cfg(test)]
+#[path = "sec010_tests_gh528.rs"]
+mod tests_gh528;
