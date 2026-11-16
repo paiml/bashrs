@@ -3300,6 +3300,24 @@ roadmap:
   - kind:code
   notes: null
   epic: 236
+- id: PMAT-521
+  github_issue: 521
+  item_type: task
+  title: 'transpile error "Unsupported expression type" does not name the expression'
+  status: planned
+  priority: medium
+  assigned_to: null
+  created: 2026-11-15T18:15:00Z
+  updated: 2026-11-15T18:15:00Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 426
 - id: PMAT-528
   github_issue: 528
   item_type: task
