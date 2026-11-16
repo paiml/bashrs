@@ -106,9 +106,46 @@ fn gh528_marker_not_a_command_word_still_reports() {
         "xsh -c 'x; cd $1'\n",
         "sudo bash -c 'x; rm -rf $1'\n",
     ];
-    let quiet: Vec<_> = cases
-        .iter()
-        .filter(|s| !check(s).diagnostics.iter().any(|d| d.code == "SEC010"))
-        .collect();
+    let quiet: Vec<_> = cases.iter().filter(|s| !sec(s)).collect();
     assert!(quiet.is_empty(), "must report: {quiet:?}");
+}
+
+fn sec(s: &str) -> bool {
+    check(s).diagnostics.iter().any(|d| d.code == "SEC010")
+}
+
+/// `{`/`(` are not boundaries and a file with a re-parsing word is never masked.
+#[test]
+fn gh528_brace_and_reparse_words_still_report() {
+    let cases = [
+        "eval {sh -c 'true; cd $1'\n",
+        "eval {bash -c 'true; rm -rf $1'\n",
+        "eval { sh -c 'true; rm -rf $1;' }\n",
+        "eval {runuser -- sh -c 'true; rm -rf $1'\n",
+        "( sh -c 'true; cd $1' )\n",
+        "{ sh -c 'true; cd $1'; }\n",
+        "eval x\nsh -c 'true; cd $1'\n",
+        "trap 'x' EXIT\nsh -c 'true; cd $1'\n",
+        "source f.sh\nsh -c 'true; cd $1'\n",
+        ". f.sh\nsh -c 'true; cd $1'\n",
+        "alias a=b\nsh -c 'true; cd $1'\n",
+        "exec 2>&1\nsh -c 'true; cd $1'\n",
+        "! sh -c 'true; cd $1'\n",
+        "time sh -c 'true; cd $1'\n",
+        "VAR=x sh -c 'true; cd $1'\n",
+    ];
+    let quiet: Vec<_> = cases.iter().filter(|s| !sec(s)).collect();
+    assert!(quiet.is_empty(), "must report: {quiet:?}");
+}
+
+/// Unquoted `;`, `|`, `&` are real operators in a plain file: the child owns `$1`.
+#[test]
+fn gh528_operator_before_child_shell_is_silent() {
+    for s in [
+        "echo a;sh -c 'cd $1'\n",
+        "x=1;sh -c 'cd $1'\n",
+        "echo a&sh -c 'cd $1'\n",
+    ] {
+        assert!(!sec(s), "must be silent: {s:?}");
+    }
 }

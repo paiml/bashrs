@@ -8,7 +8,7 @@ const NOT_PLAIN: &[&str] = &["`", "<<", "$(", "${", "$'", "$\"", "\\", "\r"];
 
 /// True when no quoting construct in the whole file can be misread.
 pub(super) fn is_plain(source: &str) -> bool {
-    if !source.is_ascii() || NOT_PLAIN.iter().any(|p| source.contains(p)) {
+    if !source.is_ascii() || NOT_PLAIN.iter().any(|p| source.contains(p)) || reparses(source) {
         return false;
     }
     source
@@ -17,12 +17,16 @@ pub(super) fn is_plain(source: &str) -> bool {
         .all(|(i, line)| plain_line(i, line))
 }
 
+/// Words that re-parse text in the parent shell (`eval "a b"`): quote reading is unsafe.
+fn reparses(source: &str) -> bool {
+    source
+        .split(|c: char| !(c.is_ascii_alphanumeric() || "_.-/".contains(c)))
+        .any(|w| matches!(w, "eval" | "source" | "." | "trap" | "alias" | "exec"))
+}
+
 fn plain_line(index: usize, line: &str) -> bool {
-    if !line.matches('\'').count().is_multiple_of(2) || !line.matches('"').count().is_multiple_of(2)
-    {
-        return false;
-    }
-    if quote_inside_double(line) {
+    let odd = |c| !line.matches(c).count().is_multiple_of(2);
+    if odd('\'') || odd('"') || quote_inside_double(line) {
         return false;
     }
     match line.find('#') {
@@ -78,10 +82,10 @@ fn marker_is_live(before: &str) -> bool {
 }
 
 /// True when the marker's `sh`/`bash` starts its command: only blanks follow the
-/// last `;`, `|`, `&`, `(` or `{`, or the segment is `runuser ... -- `. Any other
+/// last `;`, `|` or `&`, or the segment is `runuser ... -- `. Any other
 /// prefix (`eval`, `exec`, `sudo`, `ssh host`, `then`, ...) is not masked.
 fn command_word(before: &str) -> bool {
-    let seg = before.rsplit([';', '|', '&', '(', '{']).next().unwrap_or("");
+    let seg = before.rsplit([';', '|', '&']).next().unwrap_or("");
     let t = seg.trim();
     if t.is_empty() {
         return seg.is_empty() || seg.ends_with([' ', '\t']) || before.len() == seg.len();
