@@ -84,3 +84,31 @@ fn gh528_plain_file_parent_positional_still_reports() {
     let s = "sh -c 'echo hi'; cd \"$1\" && rm -rf out\n";
     assert!(check(s).diagnostics.iter().any(|d| d.code == "SEC010"));
 }
+
+/// The marker's `'` closes a quote, or `sh`/`bash` is not the command word: the
+/// parent's `$1` is live, so SEC010 must still report.
+#[test]
+fn gh528_marker_not_a_command_word_still_reports() {
+    let cases = [
+        "echo 'a sh -c '; rm -rf \"$1\"; echo 'x'\n",
+        "log 'running sh -c '; cd \"$1\"; log 'done'\n",
+        "sh -c 'echo bash -c '; rm -rf $1; echo 'z'\n",
+        "cd 'x sh -c '$1'y'\n",
+        "eval sh -c 'x; cd $1'\n",
+        "eval bash -c 'true; rm -rf $1'\n",
+        "if x; then sh -c 'x; cd $1'; fi\n",
+        "exec sh -c 'x; cd $1'\n",
+        "xargs sh -c 'x; cd $1'\n",
+        "echo \"a sh -c \"; cd $1; echo ''\n",
+        "echo 'q' 'r sh -c '; rm -rf $1; echo ''\n",
+        "echo 'x; sh -c '; cd $1; echo ''\n",
+        "echo 'x|bash -c '; rm -rf $1; echo ''\n",
+        "xsh -c 'x; cd $1'\n",
+        "sudo bash -c 'x; rm -rf $1'\n",
+    ];
+    let quiet: Vec<_> = cases
+        .iter()
+        .filter(|s| !check(s).diagnostics.iter().any(|d| d.code == "SEC010"))
+        .collect();
+    assert!(quiet.is_empty(), "must report: {quiet:?}");
+}
