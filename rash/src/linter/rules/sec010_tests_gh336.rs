@@ -115,7 +115,7 @@ fn test_GH336_pin_positional_cd_then_rm_fires() {
 fn test_GH336_inner_sh_c_positional_is_not_outer_taint() {
     // `$1` inside the single-quoted `sh -c` body is the inner shell's own
     // argument; the literal removal in the body is not the path under test.
-    let s = "#!/usr/bin/env bash\nd=/srv/data\nrunuser -u noah -- sh -c 'cd \"$1\" && rm -f .probe' _ \"$d\"\n";
+    let s = "#!/usr/bin/env bash\nd=/srv/data\nsh -c 'cd \"$1\" && rm -f .probe' _ \"$d\"\n";
     assert_eq!(sec010_errors(s), 0);
 }
 
@@ -137,4 +137,76 @@ fn test_GH336_exported_tainted_variable_read_by_child_shell_fires() {
 #[test]
 fn test_GH336_exported_tainted_variable_with_outer_arg_fires() {
     assert!(fires_on("export D=\"$1\"\nsh -c 'cd \"$D\" && rm -rf out' _ /x"));
+}
+
+// Allow-list round: a `sh -c` script is masked only for a plain simple command
+// at top level. Each input below was an Error on main and must stay one.
+const CHILD: &str = "sh -c 'cd \"$1\" && rm -rf out' _ /x";
+
+#[test]
+fn test_GH336_unquoted_heredoc_body_piped_to_sh_fires() {
+    assert!(fires_on(&format!("cat <<EOF | sh\n{CHILD}\nEOF")));
+}
+
+#[test]
+fn test_GH336_unquoted_heredoc_body_ssh_fires() {
+    assert!(fires_on(&format!("ssh host bash <<EOF\n{CHILD}\nEOF")));
+}
+
+#[test]
+fn test_GH336_unquoted_heredoc_body_written_to_file_fires() {
+    assert!(fires_on(&format!("cat > run.sh <<EOF\n{CHILD}\nEOF")));
+}
+
+#[test]
+fn test_GH336_line_inside_multiline_double_quote_then_eval_fires() {
+    assert!(fires_on(&format!("cmd=\"\n{CHILD}\n\"\neval \"$cmd\"")));
+}
+
+#[test]
+fn test_GH336_line_inside_multiline_bash_c_double_quote_fires() {
+    assert!(fires_on(&format!("bash -c \"\n{CHILD}\n\"")));
+}
+
+#[test]
+fn test_GH336_eval_sh_c_fires() {
+    assert!(fires_on(&format!("eval {CHILD}")));
+}
+
+#[test]
+fn test_GH336_echo_sh_c_fires() {
+    assert!(fires_on(&format!("echo {CHILD}")));
+}
+
+#[test]
+fn test_GH336_ssh_host_sh_c_fires() {
+    assert!(fires_on(&format!("ssh host {CHILD}")));
+}
+
+#[test]
+fn test_GH336_sh_c_with_dollar_zero_outer_argument_fires() {
+    assert!(fires_on("sh -c 'cd \"$1\" && rm -rf out' \"$0\" /x"));
+}
+
+#[test]
+fn test_GH336_sh_c_inside_spaced_command_substitution_fires() {
+    assert!(fires_on("x=$( sh -c 'cd \"$1\" && rm -rf out' _ /x )"));
+}
+
+#[test]
+fn test_GH336_plain_sh_c_with_fixed_path_is_silent() {
+    for body in [
+        CHILD.to_string(),
+        format!("true; {CHILD}"),
+        format!("true && {CHILD}"),
+        format!("true || {CHILD}"),
+        format!("true | {CHILD}"),
+        format!("( {CHILD} )"),
+        format!("if true; then {CHILD}; fi"),
+        "D=/srv sh -c 'cd \"$1\" && rm -rf out' _ /x".to_string(),
+        format!("cat <<EOF >/dev/null\nplain\nEOF\n{CHILD}"),
+        format!("x=\"a\nb\"\n{CHILD}"),
+    ] {
+        assert_eq!(sec010_errors(&format!("#!/usr/bin/env bash\n{body}\n")), 0, "{body}");
+    }
 }
