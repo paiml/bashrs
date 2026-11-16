@@ -42,8 +42,8 @@ fn floor_step_reads_symbols_and_is_gnu_gated() {
         "floor step not gnu-gated"
     );
     assert!(
-        s.contains("objdump -T"),
-        "floor step does not run objdump -T"
+        s.contains("objdump -T -p"),
+        "floor step must read version needs with objdump -T -p"
     );
     assert!(
         s.contains("GLIBC_"),

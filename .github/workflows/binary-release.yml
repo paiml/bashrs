@@ -170,7 +170,7 @@ jobs:
           T="${{ matrix.target }}"
           BIN="target/$T/release/bashrs"
           FLOOR=2.31
-          syms=$(objdump -T "$BIN")
+          syms=$(objdump -T -p "$BIN")
           if grep -q 'GLIBC_ABI_' <<<"$syms"; then
             echo "::error::$BIN needs a GLIBC_ABI_ version (newer than $FLOOR)"; exit 1
           fi
