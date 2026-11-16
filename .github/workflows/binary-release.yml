@@ -116,9 +116,25 @@ jobs:
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
         with:
-          shared-key: binary-${{ matrix.target }}
+          shared-key: binary-${{ matrix.target }}${{ endsWith(matrix.target, '-gnu') && '-zig' || '' }}
+
+      # gnu legs link against a glibc 2.31 symbol set via zig (#527), so the
+      # asset runs on older distros. The runner must already have these tools;
+      # a missing one fails the leg by name. No install fallback.
+      - name: Require build tools (gnu)
+        if: endsWith(matrix.target, '-gnu')
+        run: |
+          for t in zig cargo-zigbuild objdump; do
+            command -v "$t" >/dev/null || { echo "::error::$t missing on the release runner"; exit 1; }
+          done
+
+      - name: Build bashrs (gnu, glibc 2.31)
+        if: endsWith(matrix.target, '-gnu')
+        run: |
+          cargo zigbuild --release -p bashrs --bin bashrs --target ${{ matrix.target }}.2.31 --locked
 
       - name: Build bashrs
+        if: endsWith(matrix.target, '-musl')
         run: |
           # The workspace's default-run package is `bashrs-specs`, not
           # `bashrs`. The `bashrs` binary lives in the `rash/` package
@@ -147,6 +163,28 @@ jobs:
             exit 1
           fi
           ls -la "$BIN_PATH"
+
+      - name: Glibc floor (release, 2.31)
+        if: endsWith(matrix.target, '-gnu')
+        run: |
+          T="${{ matrix.target }}"
+          BIN="target/$T/release/bashrs"
+          FLOOR=2.31
+          syms=$(objdump -T "$BIN")
+          if grep -q 'GLIBC_ABI_' <<<"$syms"; then
+            echo "::error::$BIN needs a GLIBC_ABI_ version (newer than $FLOOR)"; exit 1
+          fi
+          need=$(grep -oE 'GLIBC_[0-9]+(\.[0-9]+)+' <<<"$syms" | sed 's/^GLIBC_//' | sort -uV | tail -n 1) || need=
+          if [ -z "$need" ]; then
+            echo "::error::no GLIBC_ symbol versions in $BIN; cannot prove the floor"; exit 1
+          fi
+          top=$(printf '%s\n' "$FLOOR" "$need" | sort -V | tail -n 1)
+          if [ "$top" != "$FLOOR" ]; then
+            echo "::error::$BIN needs GLIBC_$need, above the $FLOOR floor"; exit 1
+          fi
+          echo "glibc floor ok: needs GLIBC_$need (floor $FLOOR)"
+          # Starts on the runner libc only; the symbol floor above is the proof.
+          "$BIN" --version || { echo "::error::$BIN --version failed"; exit 1; }
 
       - name: Package archive
         id: package
