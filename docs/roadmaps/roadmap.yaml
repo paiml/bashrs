@@ -3318,3 +3318,21 @@ roadmap:
   - kind:code
   notes: null
   epic: 426
+- id: PMAT-532
+  github_issue: 532
+  item_type: task
+  title: 'release: cut v7.4.4 (patch; merged PRs since v7.4.3)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T08:00:00Z
+  updated: 2026-11-17T08:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'CHANGELOG [7.4.4] and docs/release-notes.md v7.4.4 section list the merged PRs since v7.4.3'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:docs
+  notes: 'parent #506'
