@@ -26,7 +26,12 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
-    for (line_num, line) in source.lines().enumerate() {
+    // #535: comments (and single-quoted text) can never expand `$RANDOM`.
+    // `mask_inert` blanks exactly those regions, byte-for-byte, so columns
+    // stay true and `$#`, `${#x}` and `#` inside quotes are not comment starts.
+    let masked = crate::linter::quoting::mask_inert(source);
+
+    for (line_num, line) in masked.lines().enumerate() {
         if let Some(col) = line.find("$RANDOM") {
             let span = Span::new(
                 line_num + 1, // start_line
@@ -103,5 +108,41 @@ mod tests {
         let result = check(script);
 
         assert_eq!(result.diagnostics.len(), 2);
+    }
+
+    // #535: a comment that merely names $RANDOM is not code.
+    #[test]
+    fn test_DET001_comment_mentioning_random_is_clean() {
+        for script in [
+            "# - Deterministic session IDs (version-based, not $RANDOM)\n",
+            "    # uses $RANDOM nowhere\n",
+            "echo hi # not $RANDOM\n",
+            "echo $# # $RANDOM\n",
+            "echo ${#x} # $RANDOM\n",
+        ] {
+            let result = check(script);
+            assert_eq!(result.diagnostics.len(), 0, "false positive on {script:?}");
+        }
+    }
+
+    #[test]
+    fn test_DET001_real_random_still_fires_with_comment_or_quotes() {
+        for script in [
+            "ID=$RANDOM # session\n",
+            "echo \"id $RANDOM\"\n",
+            "echo \"# $RANDOM\"\n",
+            "echo $# $RANDOM\n",
+            "echo ${#x} $RANDOM\n",
+            "echo a#b $RANDOM\n",
+        ] {
+            let result = check(script);
+            assert_eq!(result.diagnostics.len(), 1, "missed true positive on {script:?}");
+        }
+    }
+
+    #[test]
+    fn test_DET001_column_is_preserved_after_masking() {
+        let result = check("echo 'x' $RANDOM\n");
+        assert_eq!(result.diagnostics[0].span.start_col, 10);
     }
 }

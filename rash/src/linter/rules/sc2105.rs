@@ -25,8 +25,16 @@ static LOOP_START: std::sync::LazyLock<Regex> =
 static LOOP_END: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\bdone\b").unwrap());
 
-static BREAK_CONTINUE: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"\b(break|continue)\b").unwrap());
+// Command position only (#535): `break`/`continue` must start the line,
+// follow a separator (`;` `&` `|` `(` `{`) or a compound-command keyword, and
+// end at whitespace, a separator or the line end. A hyphenated word such as
+// `no-break` or `-break-` is an argument, not a command.
+static BREAK_CONTINUE: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(
+        r"(?:^|[;&|({]|\b(?:do|then|else|elif|if|while|until)\b)\s*(break|continue)(?:\s|[;&|)}#]|$)",
+    )
+    .unwrap()
+});
 
 /// One occurrence of a loop-structure keyword on a physical line, tagged
 /// with its byte position so events on the same line can be replayed in the
@@ -52,7 +60,8 @@ fn line_events(line: &str) -> Vec<(usize, LineEvent)> {
     for m in LOOP_END.find_iter(line) {
         events.push((m.start(), LineEvent::LoopEnd));
     }
-    for m in BREAK_CONTINUE.find_iter(line) {
+    for caps in BREAK_CONTINUE.captures_iter(line) {
+        let m = caps.get(1).expect("group 1 always participates");
         let keyword = if m.as_str() == "break" {
             "break"
         } else {
@@ -319,5 +328,52 @@ done
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2105");
+    }
+
+    // #535: `break`/`continue` inside a hyphenated word is an argument, not a
+    // command, so no loop is needed and nothing may fire.
+    #[test]
+    fn test_PMAT535_hyphenated_break_word_is_not_a_command() {
+        for code in [
+            "expect escaped-line-break-fails    1 \"$tmp/esc-nl\"\n",
+            "echo -break- x\n",
+            "echo no-break\n",
+            "echo breakfast\n",
+            "echo continue-on-error\n",
+            "echo x break\n",
+        ] {
+            let result = check(code);
+            assert_eq!(result.diagnostics.len(), 0, "false positive on {code:?}");
+        }
+    }
+
+    #[test]
+    fn test_PMAT535_real_break_outside_loop_still_fires() {
+        for code in [
+            "break\n",
+            "  continue\n",
+            "break 2\n",
+            "echo hi; break\n",
+            "true && break\n",
+            "false || continue\n",
+            "if true; then break; fi\n",
+            "(break)\n",
+            "{ break; }\n",
+        ] {
+            let result = check(code);
+            assert_eq!(
+                result.diagnostics.len(),
+                1,
+                "missed true positive on {code:?}"
+            );
+            assert_eq!(result.diagnostics[0].code, "SC2105");
+        }
+    }
+
+    #[test]
+    fn test_PMAT535_span_points_at_keyword() {
+        let result = check("echo hi; break\n");
+        let d = &result.diagnostics[0];
+        assert_eq!((d.span.start_col, d.span.end_col), (10, 15));
     }
 }

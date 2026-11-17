@@ -3330,7 +3330,27 @@ roadmap:
   spec: null
   acceptance_criteria:
   - 'Path-component guards in 5 shell files clear 11 SEC010 errors (selflint 6 files over the ratchet -> 1).'
-  - 'NOT MET by this change alone: make dogfood-selflint still exits 1, one file stays red on purpose (scripts/guards/test-no-pull-request-target-guard.sh, SC2105 linter false positive on a test label). The ticket stays open until that false positive is fixed in the linter.'
+  - 'Gate S now passes with the PMAT-535 linter fixes (selflint: 93 files checked, 85 at ratchet, 8 improved, 0 over; bashrs built from this branch).'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 506
+- id: PMAT-535
+  github_issue: 535
+  item_type: task
+  title: 'linter: SC2105 fires on hyphenated word containing break; DET001 fires on comment naming $RANDOM'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T10:00:00Z
+  updated: 2026-11-17T10:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'SC2105 matches break/continue only in command position (start of line, after a separator or compound-command keyword); a hyphenated label such as escaped-line-break-fails gives no finding. Real break outside a loop (break 2, ; break, && break) still fires.'
+  - 'DET001 scans the source with comments and single-quoted text masked (quoting::mask_inert); a comment naming $RANDOM gives no finding, while $RANDOM in code, before a trailing comment, or inside double quotes still fires.'
   phases: []
   subtasks: []
   estimated_effort: null
