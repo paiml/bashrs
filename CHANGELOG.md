@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [7.4.4] - 2026-11-17
 
-A patch release. It carries five linter and parser fixes (SEC010 verdict keyed on taint, #485; heredoc opener no longer opened by arithmetic shifts, `${...}` or continued lines, #523; SC2086 only fires inside command substitutions in unquoted heredoc bodies, #529; the parser's unsupported-expression error names the expression kind and line, #525; SC2105 drops only certain non-commands, #539), a dependency bump that drops the RUSTSEC-2026-0459 ignore (#520), a security fix to the PR Gate trigger (#491), the self-lint gate (`make dogfood-selflint`) green again on the repo's own shell files (#539) and documentation and CI changes.
+A patch release. It carries five linter and parser fixes (SEC010 verdict keyed on taint, #485; heredoc opener no longer opened by arithmetic shifts, `${...}` or continued lines, #523; SC2086 only fires inside command substitutions in unquoted heredoc bodies, #529; the parser's unsupported-expression error names the expression kind and line, #525; SC2105 drops only certain non-commands, #539), a dependency bump that drops the RUSTSEC-2026-0459 ignore (#520), a security fix to the PR Gate trigger (#491), the self-lint gate (`make dogfood-selflint`) green again on the repo's own shell files (#539), two gate unit tests that no longer run the real `cargo deny check` (#541) and documentation and CI changes.
 
 ### Changed
 
@@ -26,6 +26,7 @@ A patch release. It carries five linter and parser fixes (SEC010 verdict keyed o
 - **The parser's unsupported-expression error names the expression kind and line** (#525).
 - **SC2105 drops only certain non-commands** (#535, #539): `break` or `continue` as part of a larger word (`escaped-line-break-fails`), as a whole-command assignment value or as a plain `echo`/`printf` argument no longer fires; every other `break`/`continue` outside a loop still does. The `$RANDOM` comment in `scripts/generate_test_script.sh` is reworded.
 - **Path-component guards in the shell files the self-lint gate reads** (#534, #539): two files in `scripts/` and three `examples/*/purified.sh` files clear 11 SEC010 errors, so `make dogfood-selflint` (Gate S) passes.
+- **The `gate_commands` unit tests no longer run the real `cargo deny check`** (#540, #541): the security gate takes the cargo to run from its caller and the tests hand it a stub, so a new upstream advisory no longer turns `cargo test --workspace` red. The CLI still runs the real `cargo deny check`.
 
 ## [7.4.3] - 2026-11-12
 
