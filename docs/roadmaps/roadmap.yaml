@@ -3357,3 +3357,22 @@ roadmap:
   - kind:code
   notes: null
   epic: 506
+- id: PMAT-540
+  github_issue: 540
+  item_type: task
+  title: 'cli: gate_commands unit tests run the real cargo deny check'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T14:00:00Z
+  updated: 2026-11-17T14:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'No unit test in rash/src/cli/gate_commands.rs spawns the real cargo: the security gate takes the cargo to run from its caller (run_security_gate passes "cargo", behaviour unchanged) and the tests hand it a stub; an absent security config still fails on violations and a disabled one runs nothing.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 506

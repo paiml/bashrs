@@ -228,6 +228,11 @@ pub(crate) fn cargo_deny_outcome(cargo: &str) -> DenyOutcome {
 }
 
 fn run_security_gate(config: &crate::gates::GateConfig) -> bool {
+    run_security_gate_with(config, "cargo")
+}
+
+/// Test seam: `cargo` names the binary used for `cargo deny check`.
+fn run_security_gate_with(config: &crate::gates::GateConfig, cargo: &str) -> bool {
     // GH-181: Respect security gate config (enabled flag, max_unsafe_blocks)
     if let Some(ref security) = config.gates.security {
         if !security.enabled {
@@ -235,7 +240,7 @@ fn run_security_gate(config: &crate::gates::GateConfig) -> bool {
         }
     }
 
-    match cargo_deny_outcome("cargo") {
+    match cargo_deny_outcome(cargo) {
         DenyOutcome::Clean => true,
         DenyOutcome::Violations => false,
         DenyOutcome::Absent => {
@@ -319,7 +324,12 @@ mod pmat257_cov_tests {
             max_complexity: 10,
             satd: None,
             mutation: None,
-            security: None,
+            // Disabled, not absent: an absent security config runs the real
+            // `cargo deny check`, which no unit test may spawn.
+            security: Some(SecurityGate {
+                enabled: false,
+                max_unsafe_blocks: 0,
+            }),
         }
     }
 
@@ -361,8 +371,9 @@ mod pmat257_cov_tests {
 
     #[test]
     fn test_PMAT257_cov_handle_gate_command_with_disabled_gates_all_pass() {
-        // Every disabled-config branch of coverage/complexity/security/satd/
-        // mutation returns true without spawning a subprocess.
+        // Every branch is explicitly disabled (security needs an explicit
+        // `enabled: false`; `None` would spawn the real `cargo deny`), so
+        // none of them spawns a subprocess.
         let tiers = Tiers {
             tier1_gates: vec![
                 "coverage".to_string(),
@@ -373,7 +384,11 @@ mod pmat257_cov_tests {
             ],
             ..Default::default()
         };
-        let config = config_with_tiers(tiers);
+        let mut config = config_with_tiers(tiers);
+        config.gates.security = Some(SecurityGate {
+            enabled: false,
+            max_unsafe_blocks: 0,
+        });
         assert!(handle_gate_command_with(1, &config).is_ok());
     }
 
@@ -459,16 +474,41 @@ mod pmat257_cov_tests {
 
     #[test]
     fn test_PMAT257_cov_run_security_gate_none_and_disabled() {
-        let mut config = config_with_tiers(Tiers::default());
-        assert!(run_security_gate(&config));
+        let version_ok = "case \"$2\" in --version) exit 0 ;; esac\n";
 
+        // `None` + a cargo-deny that passes -> true.
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let cargo = stub_cargo(dir.path(), &format!("#!/bin/sh\n{version_ok}exit 0\n"));
+        let mut config = config_with_tiers(Tiers::default());
+        config.gates.security = None;
+        assert!(run_security_gate_with(&config, &cargo.to_string_lossy()));
+
+        // `None` + a cargo-deny that reports violations -> false.
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let cargo = stub_cargo(dir.path(), &format!("#!/bin/sh\n{version_ok}exit 1\n"));
+        assert!(!run_security_gate_with(&config, &cargo.to_string_lossy()));
+
+        // `None` + no cargo at all -> skipped, true.
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let missing = dir.path().join("no-such-cargo");
+        assert!(run_security_gate_with(&config, &missing.to_string_lossy()));
+
+        // `Some(disabled)` -> true without spawning: the stub leaves a marker
+        // if it is ever invoked.
+        let dir = tempfile::TempDir::new().expect("tempdir");
+        let marker = dir.path().join("spawned");
+        let cargo = stub_cargo(
+            dir.path(),
+            &format!("#!/bin/sh\ntouch '{}'\nexit 1\n", marker.display()),
+        );
+        let mut config = config_with_tiers(Tiers::default());
         config.gates.security = Some(SecurityGate {
             enabled: false,
             max_unsafe_blocks: 0,
         });
-        assert!(run_security_gate(&config));
+        assert!(run_security_gate_with(&config, &cargo.to_string_lossy()));
+        assert!(!marker.exists(), "disabled gate must not spawn cargo");
     }
-
     #[test]
     fn test_PMAT257_cov_run_satd_gate_all_branches() {
         let mut config = config_with_tiers(Tiers::default());
