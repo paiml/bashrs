@@ -26,10 +26,12 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
-    // #535: comments (and single-quoted text) can never expand `$RANDOM`.
-    // `mask_inert` blanks exactly those regions, byte-for-byte, so columns
-    // stay true and `$#`, `${#x}` and `#` inside quotes are not comment starts.
-    let masked = crate::linter::quoting::mask_inert(source);
+    // #535: a comment can never expand `$RANDOM`; nothing else is hidden.
+    // Single-quoted text stays visible: `eval 'x=$RANDOM'`, `bash -c '..'` and
+    // `trap '..'` run it. `mask_comments` blanks only comments, byte-for-byte,
+    // so columns stay true and `$#`, `${#x}`, `a#b` and a quoted `#` are not
+    // comment starts.
+    let masked = crate::linter::quoting::mask_comments(source);
 
     for (line_num, line) in masked.lines().enumerate() {
         if let Some(col) = line.find("$RANDOM") {
@@ -137,6 +139,21 @@ mod tests {
         ] {
             let result = check(script);
             assert_eq!(result.diagnostics.len(), 1, "missed true positive on {script:?}");
+        }
+    }
+
+    // #535 round 2: single-quoted text that RUNS must still fire (as on main).
+    #[test]
+    fn test_DET001_single_quoted_code_still_fires() {
+        for script in [
+            "eval 'x=$RANDOM'\n",
+            "bash -c 'echo $RANDOM'\n",
+            "sh -c 'id=$RANDOM'\n",
+            "trap 'echo $RANDOM' EXIT\n",
+            "echo '$RANDOM'\n",
+        ] {
+            let result = check(script);
+            assert_eq!(result.diagnostics.len(), 1, "lost detection on {script:?}");
         }
     }
 

@@ -111,6 +111,8 @@ pub struct QuotedRegions {
     /// The same shape for text that can never expand (bashrs#362) — see
     /// [`mask_inert`]. Always a subset of `per_line`.
     inert_per_line: Vec<Vec<(usize, usize)>>,
+    /// Only comments (#535) — see [`mask_comments`]. Always a subset of `inert_per_line`.
+    comment_per_line: Vec<Vec<(usize, usize)>>,
     /// 1-indexed lines inside a body whose delimiter was quoted. Those bodies
     /// are literal text by definition, so every rule is dropped there — see
     /// [`quoted_heredoc_lines`].
@@ -131,6 +133,7 @@ impl QuotedRegions {
         let mut scanner = Scanner::default();
         let mut per_line = Vec::new();
         let mut inert_per_line = Vec::new();
+        let mut comment_per_line = Vec::new();
         let mut any = false;
 
         for (idx, line) in source.lines().enumerate() {
@@ -139,6 +142,7 @@ impl QuotedRegions {
             any |= !ranges.is_empty();
             per_line.push(ranges);
             inert_per_line.push(coalesce(&scanner.inert));
+            comment_per_line.push(coalesce(&scanner.comment));
         }
 
         // Fail-safe: a region that never closes means everything after it was
@@ -160,6 +164,7 @@ impl QuotedRegions {
         if let Some((line, col)) = discard_at {
             discard_from(&mut per_line, line, col);
             discard_from(&mut inert_per_line, line, col);
+            discard_from(&mut comment_per_line, line, col);
             any = per_line.iter().any(|ranges| !ranges.is_empty());
         }
 
@@ -167,6 +172,7 @@ impl QuotedRegions {
             per_line,
             any,
             inert_per_line,
+            comment_per_line,
             quoted_heredoc: scanner.quoted_heredoc,
             heredoc_body: scanner.heredoc_body,
             // A quote still on the stack at EOF was never closed. Read off the
@@ -210,6 +216,18 @@ impl QuotedRegions {
         line.checked_sub(1)
             .and_then(|i| self.inert_per_line.get(i))
             .map_or(&[], Vec::as_slice)
+    }
+
+    /// The comment ranges on a 1-indexed line — see [`mask_comments`].
+    fn comment_ranges_for(&self, line: usize) -> &[(usize, usize)] {
+        line.checked_sub(1)
+            .and_then(|i| self.comment_per_line.get(i))
+            .map_or(&[], Vec::as_slice)
+    }
+
+    /// True when the source has no comment.
+    fn comment_is_empty(&self) -> bool {
+        self.comment_per_line.iter().all(Vec::is_empty)
     }
 
     /// True when nothing in the source is inert.
@@ -518,6 +536,17 @@ pub fn mask_inert(source: &str) -> String {
     render_masked(source, |n| regions.inert_ranges_for(n))
 }
 
+/// Rewrite `source` so ONLY comments become filler (#535). Unlike [`mask_inert`]
+/// it leaves `'...'` alone: `eval 'x=$RANDOM'` and `bash -c '...'` run that
+/// text. `$#`, `${#x}`, `a#b` and a `#` inside quotes are not comment starts.
+pub fn mask_comments(source: &str) -> String {
+    let regions = QuotedRegions::analyze(source);
+    if regions.comment_is_empty() {
+        return source.to_string();
+    }
+    render_masked(source, |n| regions.comment_ranges_for(n))
+}
+
 /// Replace every byte inside `ranges_for(line)` with filler.
 fn render_masked<'r>(source: &str, ranges_for: impl Fn(usize) -> &'r [(usize, usize)]) -> String {
     let mut out: Vec<u8> = Vec::with_capacity(source.len());
@@ -659,6 +688,8 @@ struct Scanner {
     /// subset of the literal mask: `"..."` and an unquoted heredoc body are
     /// literal but still expand `$name`, so they are not inert (bashrs#362).
     inert: Vec<bool>,
+    /// Per-byte mask for the line being scanned: comments only (#535).
+    comment: Vec<bool>,
 }
 
 impl Scanner {
@@ -667,6 +698,7 @@ impl Scanner {
         let bytes = line.as_bytes();
         let mut marks = vec![false; bytes.len()];
         self.inert = vec![false; bytes.len()];
+        self.comment = vec![false; bytes.len()];
         self.continued = false;
 
         if self.consume_heredoc_body(line, &mut marks) {
@@ -1003,6 +1035,7 @@ impl Scanner {
         // is a boundary, not content.
         marks[i + 1..].iter_mut().for_each(|m| *m = true);
         self.inert[i + 1..].iter_mut().for_each(|m| *m = true);
+        self.comment[i + 1..].iter_mut().for_each(|m| *m = true);
         bytes.len()
     }
 
