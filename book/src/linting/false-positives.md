@@ -594,7 +594,7 @@ A rule code is part of a user's committed scripts, so a rename is a real cost. I
 
 ## What 7.4.4 stopped guessing
 
-Four fixes in 7.4.4 change what a rule or the transpiler reports; each ships with a test that also asserts the true positive still fires.
+Five fixes in 7.4.4 change what a rule or the transpiler reports; each ships with a test that also asserts the true positive still fires.
 
 ### SEC010 verdict follows taint, not the command
 
@@ -620,3 +620,7 @@ The quoting scanner no longer opens a phantom heredoc for `<<` in arithmetic suc
 ### The transpiler names the unsupported expression
 
 When Rust source uses an expression the transpiler cannot lower, the error now names the kind and the line instead of the bare "Unsupported expression type". For example `let x = foo()?;` on line 2 reports ``Unsupported expression type: `?` (try operator) at line 2``. The `Unsupported expression type` prefix is unchanged, so anything that matches on it keeps working (#521, #525).
+
+### SC2105 only drops certain non-commands
+
+SC2105 reports `break` or `continue` outside a loop. It no longer fires when the word is not a command: part of a larger word (`escaped-line-break-fails`), the value of a whole-command assignment, or a plain `echo`/`printf` argument. Every other `break` or `continue` outside a loop is still reported (#535, #539).

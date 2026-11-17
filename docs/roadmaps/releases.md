@@ -63,6 +63,8 @@ Goal: the lint and parser fixes merged since the v7.4.3 tag, as a patch with a r
 | PMAT-524 | #524: SC2086 fires in an unquoted heredoc body only inside command substitutions (#529) |
 | PMAT-521 | #521: the unsupported-expression error names the expression kind and line (#525) |
 
+Also on this release, merged under PMAT-534 and PMAT-535, which stay open until the cut: SC2105 drops only certain non-commands and path guards clear the SEC010 findings in the repo's own shell files, so the self-lint gate passes (#538, #539).
+
 Also on this release, merged under no roadmap entry of its own: SEC010 verdict keyed on taint (#485, PMAT-359 stays open for #336), PR Gate on `pull_request` (#491), the root README as a pv-checked artifact (#518) and the `taiki-e/install-action` bump (#530).
 
 ## v7.5.0

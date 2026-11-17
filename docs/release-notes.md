@@ -10,7 +10,7 @@ Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2,
 
 ## v7.4.4
 
-A patch: SEC010 verdict keyed on taint (#485); heredoc opener not opened by arithmetic shifts, `${...}` or continued lines (#523); SC2086 only fires inside command substitutions in unquoted heredoc bodies (#529); the parser's unsupported-expression error names the expression kind and line (#525); `aprender-train` 0.72.6 with the RUSTSEC-2026-0459 ignore dropped (#520); PR Gate on `pull_request` (#491); root README as a pv SHACL-checked artifact (#518); one CI action bump (#530). Full notes in `CHANGELOG.md`.
+A patch: SEC010 verdict keyed on taint (#485); heredoc opener not opened by arithmetic shifts, `${...}` or continued lines (#523); SC2086 only fires inside command substitutions in unquoted heredoc bodies (#529); the parser's unsupported-expression error names the expression kind and line (#525); SC2105 drops only certain non-commands, and path guards in the repo's own shell files turn the self-lint gate green (#539); `aprender-train` 0.72.6 with the RUSTSEC-2026-0459 ignore dropped (#520); PR Gate on `pull_request` (#491); root README as a pv SHACL-checked artifact (#518); one CI action bump (#530). Full notes in `CHANGELOG.md`.
 
 ## v7.4.3
 

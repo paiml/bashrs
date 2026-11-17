@@ -3,7 +3,7 @@
 #
 # Improvements:
 # - Deterministic release names (version-based, not timestamp)
-# - Deterministic session IDs (version-based, not $RANDOM)
+# - Deterministic session IDs (version-based, not the shell's random-number variable)
 # - Idempotent operations (mkdir -p, rm -f, ln -sf)
 # - All variables quoted
 # - Comprehensive error handling
@@ -20,6 +20,14 @@ if [ -z "${VERSION}" ]; then
     printf 'Example: %s v2.1.0\n' "$0"
     exit 1
 fi
+
+# The version becomes part of filesystem paths below: reject traversal
+case "${VERSION}" in
+    */*|..)
+        printf 'Error: version must not contain "/" and must not be ".."\n' >&2
+        exit 1
+        ;;
+esac
 
 # Deterministic release name based on version
 RELEASE_NAME="release-${VERSION}"
@@ -73,6 +81,9 @@ cd "${DEPLOY_ROOT}/${APP_NAME}/releases" || exit 1
 # Use ls -t to sort by time, tail to get old ones, xargs to remove
 # shellcheck disable=SC2012
 ls -t | tail -n +6 | while IFS= read -r old_release; do
+    case "${old_release}" in
+        */*|..) continue ;;
+    esac
     printf 'Removing old release: %s\n' "${old_release}"
     rm -rf "${old_release}"
 done

@@ -3341,3 +3341,42 @@ roadmap:
   - kind:docs
   - release:v7.4.4
   notes: 'parent #506'
+- id: PMAT-534
+  github_issue: 534
+  item_type: task
+  title: 'dogfood-selflint (Gate S): fix SEC010 findings in shell files (partial)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T09:00:00Z
+  updated: 2026-11-17T09:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'Path-component guards in 5 shell files clear 11 SEC010 errors (selflint 6 files over the ratchet -> 1).'
+  - 'Gate S passes with the PMAT-535 SC2105 change and the comment reword (bashrs built from this branch).'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 506
+- id: PMAT-535
+  github_issue: 535
+  item_type: task
+  title: 'linter: SC2105 fires on hyphenated word containing break'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T10:00:00Z
+  updated: 2026-11-17T10:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'SC2105 keeps main''s match and drops only certain non-commands (part of a larger word such as escaped-line-break-fails, a whole-command assignment value, a plain echo/printf argument); every other break/continue outside a loop still fires, as on main.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 506
