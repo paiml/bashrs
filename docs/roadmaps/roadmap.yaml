@@ -3318,3 +3318,23 @@ roadmap:
   - kind:code
   notes: null
   epic: 426
+- id: PMAT-534
+  github_issue: 534
+  item_type: task
+  title: 'dogfood-selflint (Gate S): fix SEC010 findings in shell files (partial)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T09:00:00Z
+  updated: 2026-11-17T09:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'Path-component guards in 5 shell files clear 11 SEC010 errors (selflint 6 files over the ratchet -> 1).'
+  - 'NOT MET by this change alone: make dogfood-selflint still exits 1, one file stays red on purpose (scripts/guards/test-no-pull-request-target-guard.sh, SC2105 linter false positive on a test label). The ticket stays open until that false positive is fixed in the linter.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 506
