@@ -591,3 +591,32 @@ done
 
 A rule code is part of a user's committed scripts, so a rename is a real cost. It was weighed against keeping a code that means two different things depending on which tool reads it, and the rename won.
 
+
+## What 7.4.4 stopped guessing
+
+Four fixes in 7.4.4 change what a rule or the transpiler reports; each ships with a test that also asserts the true positive still fires.
+
+### SEC010 verdict follows taint, not the command
+
+SEC010 decides on provenance. A variable proven to carry external input into an unguarded path is reported. Only when provenance is not proven does the name heuristic apply, and it now reads the **interpolated variable names**, not the whole line. Before 7.4.4 the heuristic searched the entire line, so the command after `cd` changed the verdict: `cargo` contains `ARG`, and a line was graded as if its variable were an argument for that reason alone (#359, #485).
+
+### SC2086 inside unquoted heredoc bodies
+
+In an unquoted heredoc, plain text is not word-split, so a bare `$name` in the body is not an SC2086 finding. A `$( )` or backtick command substitution in the body is a real splitting context and is still checked, including one that spans several body lines. Arithmetic `$(( ))` and an escaped opener stay quiet. A quoted heredoc (`<<'EOF'`) is data and is not scanned (#524, #529):
+
+```bash
+cat <<EOF
+home is $HOME
+files: $(ls $dir)
+EOF
+```
+
+The `$HOME` line is not reported; `$dir`, inside the substitution, is.
+
+### A heredoc opener is not a shift
+
+The quoting scanner no longer opens a phantom heredoc for `<<` in arithmetic such as `(( (1 << n) ))`, nor for `<<` inside `${...}` or quotes. It also waits for the end of the logical opener line (a `\` continuation, a multi-line `$(` or `${`, an open quote) before it starts the body, so rules that read the masked copy no longer treat script lines as heredoc text (#522, #523).
+
+### The transpiler names the unsupported expression
+
+When Rust source uses an expression the transpiler cannot lower, the error now names the kind and the line instead of the bare "Unsupported expression type". For example `let x = foo()?;` on line 2 reports ``Unsupported expression type: `?` (try operator) at line 2``. The `Unsupported expression type` prefix is unchanged, so anything that matches on it keeps working (#521, #525).
