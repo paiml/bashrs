@@ -157,6 +157,54 @@ mod tests {
         }
     }
 
+    // #535 differential table: (input, findings), measured with BOTH the
+    // origin/main binary and this tree's binary. A row differs from main only
+    // where marked `// main: N`: a top-level comment (word-initial `#` outside
+    // quotes, `${..}`, backticks, `$(..)`) is hidden. Everything else fires.
+    const TABLE: &[(&str, usize)] = &[
+        ("x=${line%% #*}; echo $RANDOM\n", 1),
+        ("echo ${x:-a #b} $RANDOM\n", 1),
+        ("echo `echo #` $RANDOM\n", 1),
+        ("echo \"a # b $RANDOM\"\n", 1),
+        ("x=${#arr} $RANDOM\n", 1),
+        ("echo $# $RANDOM\n", 1),
+        ("a#b $RANDOM\n", 1),
+        ("echo \\# $RANDOM\n", 1),
+        ("echo $'#' $RANDOM\n", 1),
+        ("x=$(echo hi)#z $RANDOM\n", 1),
+        ("\"${line%% #*}\" $RANDOM\n", 1),
+        ("echo $(true # $RANDOM\n)\n", 1),
+        ("cat <<EOF\n# $RANDOM\nEOF\n", 1),
+        ("echo $RANDOM # note\n", 1),
+        ("eval 'x=$RANDOM'\n", 1),
+        ("bash -c 'echo $RANDOM'\n", 1),
+        ("trap 'echo $RANDOM' EXIT\n", 1),
+        ("echo 'a' # $RANDOM\n", 0), // main: 1
+        ("true;# $RANDOM\n", 0), // main: 1
+        ("# $RANDOM\n", 0), // main: 1
+        ("case $x in a) true ;; # $RANDOM\nesac\n", 0), // main: 1
+        ("echo $RANDOM\n", 1),
+        ("echo a \\\n# $RANDOM\n", 0), // main: 1
+    ];
+
+    #[test]
+    fn test_PMAT535_det001_differential_table() {
+        assert!(TABLE.len() >= 20);
+        // Through the full lint pipeline, as the binary runs it.
+        let bad: Vec<_> = TABLE
+            .iter()
+            .filter_map(|(code, want)| {
+                let got = crate::linter::rules::lint_shell(code)
+                    .diagnostics
+                    .iter()
+                    .filter(|d| d.code == "DET001")
+                    .count();
+                (got != *want).then(|| format!("{code:?}: got {got}, want {want}"))
+            })
+            .collect();
+        assert!(bad.is_empty(), "wrong counts: {bad:#?}");
+    }
+
     #[test]
     fn test_DET001_column_is_preserved_after_masking() {
         let result = check("echo 'x' $RANDOM\n");

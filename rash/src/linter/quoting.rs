@@ -1035,7 +1035,14 @@ impl Scanner {
         // is a boundary, not content.
         marks[i + 1..].iter_mut().for_each(|m| *m = true);
         self.inert[i + 1..].iter_mut().for_each(|m| *m = true);
-        self.comment[i + 1..].iter_mut().for_each(|m| *m = true);
+        // #535: DET001 hides a comment only at top level (or in a `case` body).
+        // Inside `${..}`, backticks, `$(..)` or arithmetic a `#` is not known to
+        // start a comment (`${line%% #*}`, `${x:-a #b}`), and a comment in
+        // backticks ends at the closing backtick; when unsure, do not mask, so
+        // the finding stays as on main.
+        if self.stack.iter().all(|c| matches!(c, Ctx::Case)) {
+            self.comment[i + 1..].iter_mut().for_each(|m| *m = true);
+        }
         bytes.len()
     }
 
