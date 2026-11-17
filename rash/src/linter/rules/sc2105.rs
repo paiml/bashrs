@@ -25,9 +25,7 @@ static LOOP_START: std::sync::LazyLock<Regex> =
 static LOOP_END: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\bdone\b").unwrap());
 
-// `break`/`continue` as a whole word, exactly as on main (#535 keeps main's
-// reach); `is_not_a_command` then drops ONLY the occurrences that are
-// certainly not a command. Anything else fires, as it always did.
+// Main's whole-word match; `is_not_a_command` drops only certain non-commands.
 static BREAK_CONTINUE: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\b(break|continue)\b").unwrap());
 
@@ -85,9 +83,8 @@ fn is_assignment_value(head: &str) -> bool {
 }
 
 /// Is the keyword a plain argument of `echo` or `printf`? The simple command
-/// is the text since the last `;` `&` `|` `(` `)` before the keyword; it
-/// counts only when its first word is `echo`/`printf` and the keyword is a
-/// later word that is not itself inside `$(`, backticks or quotes.
+/// The simple command is the text since the last `;` `&` `|` `(` `)`; its first
+/// word must be `echo`/`printf`, with no quote, backtick, redirect or `$` before.
 fn is_output_argument(line: &str, start: usize) -> bool {
     let head = &line[..start];
     let seg_start = head.rfind([';', '&', '|', '(', ')']).map_or(0, |i| i + 1);
@@ -95,8 +92,7 @@ fn is_output_argument(line: &str, start: usize) -> bool {
     if seg.contains(['`', '"', '\'', '\\', '<', '>', '$']) {
         return false;
     }
-    let mut words = seg.split_whitespace();
-    let first = words.next();
+    let first = seg.split_whitespace().next();
     matches!(first, Some("echo" | "printf")) && seg.ends_with(char::is_whitespace)
 }
 
