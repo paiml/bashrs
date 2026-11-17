@@ -25,6 +25,14 @@ if [ -z "${MIGRATION_VERSION}" ]; then
     exit 1
 fi
 
+# The version becomes part of filesystem paths below: reject traversal
+case "${MIGRATION_VERSION}" in
+    */*|..)
+        printf 'Error: migration version must not contain "/" and must not be ".."\n' >&2
+        exit 1
+        ;;
+esac
+
 # Deterministic backup file (version-based, not timestamp)
 BACKUP_DIR="/var/backups/db"
 BACKUP_FILE="${BACKUP_DIR}/backup_${DB_NAME}_${MIGRATION_VERSION}.sql"

@@ -25,8 +25,76 @@ static LOOP_START: std::sync::LazyLock<Regex> =
 static LOOP_END: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\bdone\b").unwrap());
 
+// Main's whole-word match; `is_not_a_command` drops only certain non-commands.
 static BREAK_CONTINUE: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\b(break|continue)\b").unwrap());
+
+/// Is the keyword at `line[start..end]` certainly NOT a command word?
+///
+/// Deny-list, deliberately narrow; when unsure this returns false and the
+/// rule fires. Two shapes only:
+/// - glued to a neighbour that makes it part of a larger word: `-`, `.`, `/`
+///   or `=` right after it; `-`, `.`, `/` or `$` right before it, or `${`
+///   (`no-break`, `--break`, `break.txt`, `$break`, `${break}`), or `=` right
+///   before it when the text up to there is a plain assignment that is the
+///   whole command (`x=break`, `FOO=1 x=break`, never `FOO=1 break`);
+/// - a plain argument of `echo` or `printf` (see `is_output_argument`).
+fn is_not_a_command(line: &str, start: usize, end: usize) -> bool {
+    let next = line[end..].chars().next();
+    if matches!(next, Some('-' | '.' | '/' | '=')) {
+        return true;
+    }
+    match line[..start].chars().next_back() {
+        Some('-' | '.' | '/' | '$') => return true,
+        Some('{') if line[..start - 1].ends_with('$') => return true,
+        Some('=') => {
+            if ends_the_command(&line[end..]) && is_assignment_value(&line[..start - 1]) {
+                return true;
+            }
+        }
+        _ => {}
+    }
+    is_output_argument(line, start)
+}
+
+/// Nothing but whitespace, or a `;`, follows: the assignment is the whole command.
+fn ends_the_command(rest: &str) -> bool {
+    let rest = rest.trim_start();
+    rest.is_empty() || rest.starts_with(';')
+}
+
+/// `head` ends right before an `=`: is it `NAME` of a simple assignment, i.e.
+/// preceded only by other assignment words since the last separator?
+fn is_assignment_value(head: &str) -> bool {
+    let name_start = head
+        .rfind(|c: char| !(c.is_ascii_alphanumeric() || c == '_'))
+        .map_or(0, |i| i + 1);
+    let name = &head[name_start..];
+    if !name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_') {
+        return false;
+    }
+    let before = &head[..name_start];
+    let seg_start = before.rfind([';', '&', '|', '(']).map_or(0, |i| i + 1);
+    let seg = &before[seg_start..];
+    // `FOO=1 x=break`: whitespace-separated words before the name must all be
+    // assignments; `echo x=break` and `FOO=1 break` are not.
+    (seg.is_empty() || seg.ends_with(char::is_whitespace))
+        && seg.split_whitespace().all(|w| w.contains('='))
+}
+
+/// Is the keyword a plain argument of `echo` or `printf`? The simple command
+/// The simple command is the text since the last `;` `&` `|` `(` `)`; its first
+/// word must be `echo`/`printf`, with no quote, backtick, redirect or `$` before.
+fn is_output_argument(line: &str, start: usize) -> bool {
+    let head = &line[..start];
+    let seg_start = head.rfind([';', '&', '|', '(', ')']).map_or(0, |i| i + 1);
+    let seg = &head[seg_start..];
+    if seg.contains(['`', '"', '\'', '\\', '<', '>', '$']) {
+        return false;
+    }
+    let first = seg.split_whitespace().next();
+    matches!(first, Some("echo" | "printf")) && seg.ends_with(char::is_whitespace)
+}
 
 /// One occurrence of a loop-structure keyword on a physical line, tagged
 /// with its byte position so events on the same line can be replayed in the
@@ -52,7 +120,11 @@ fn line_events(line: &str) -> Vec<(usize, LineEvent)> {
     for m in LOOP_END.find_iter(line) {
         events.push((m.start(), LineEvent::LoopEnd));
     }
-    for m in BREAK_CONTINUE.find_iter(line) {
+    for caps in BREAK_CONTINUE.captures_iter(line) {
+        let m = caps.get(1).expect("group 1 always participates");
+        if is_not_a_command(line, m.start(), m.end()) {
+            continue;
+        }
         let keyword = if m.as_str() == "break" {
             "break"
         } else {
@@ -319,5 +391,109 @@ done
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2105");
+    }
+
+    // #535 differential table: (input, findings). Every count was measured with
+    // BOTH the origin/main binary and this tree's binary; a row differs from
+    // main only where marked `// main: N`: `break`/`continue` is then certainly
+    // not a command (part of a larger word, a whole-command assignment value, or
+    // a plain argument of `echo`/`printf`). Every other shape fires, as on main.
+    const TABLE: &[(&str, usize)] = &[
+        ("break\n", 1),
+        ("  continue\n", 1),
+        ("\tbreak\n", 1),
+        ("break 2\n", 1),
+        ("echo hi; break\n", 1),
+        ("true && break\n", 1),
+        ("false || continue\n", 1),
+        ("echo x | break\n", 1),
+        ("if true; then break; fi\n", 1),
+        ("(break)\n", 1),
+        ("( continue )\n", 1),
+        ("{ break; }\n", 1),
+        ("f() {\n  break\n}\n", 1),
+        ("break # note\n", 1),
+        ("case \"$1\" in q) break ;; esac\n", 1),
+        ("case $1 in *) continue;; esac\n", 1),
+        ("true; break; continue\n", 2),
+        ("break;break\n", 2),
+        ("! break\n", 1),
+        ("time break\n", 1),
+        ("time -p break\n", 1),
+        ("command break\n", 1),
+        ("builtin break\n", 1),
+        ("eval break\n", 1),
+        ("eval \"break\"\n", 0),
+        ("x=`break`\n", 1),
+        ("`break`\n", 1),
+        ("$(break)\n", 1),
+        ("echo $(break)\n", 1),
+        ("echo `break`\n", 1),
+        ("FOO=1 break\n", 1),
+        ("FOO=1 x=break foo\n", 1),
+        ("x=break foo\n", 1),
+        ("x=break # c\n", 1),
+        ("break>/dev/null\n", 1),
+        ("break>&2\n", 1),
+        ("break 2>&1\n", 1),
+        (">/dev/null break\n", 1),
+        ("\"break\"\n", 0),
+        ("'break'\n", 0),
+        ("\\break\n", 1),
+        ("break)\n", 1),
+        ("break;\n", 1),
+        ("if true; then\n\tbreak\nfi\n", 1),
+        ("while true; do :; done; break\n", 1),
+        ("echo \"a; break\"\n", 0),
+        ("echo 'a; break'\n", 0),
+        ("echo \"$x\" break\n", 1),
+        ("printf '%s\\n' break\n", 1),
+        ("echo a || break\n", 1),
+        ("echo then break\n", 0),      // main: 1
+        ("echo break\n", 0),           // main: 1
+        ("echo x break\n", 0),         // main: 1
+        ("printf %s break\n", 0),      // main: 1
+        ("echo x && echo break\n", 0), // main: 1
+        ("expect escaped-line-break-fails    1 \"$tmp/esc-nl\"\n", 0), // main: 1
+        ("echo -break- x\n", 0),       // main: 1
+        ("echo no-break\n", 0),        // main: 1
+        ("echo --break\n", 0),         // main: 1
+        ("echo continue-on-error\n", 0), // main: 1
+        ("cat break.txt\n", 0),        // main: 1
+        ("ls ./break\n", 0),           // main: 1
+        ("x=break\n", 0),              // main: 1
+        ("FOO=1 x=break\n", 0),        // main: 1
+        ("break=1\n", 0),              // main: 1
+        ("echo ${break}\n", 0),        // main: 1
+        ("echo $break\n", 0),          // main: 1
+        ("echo breakfast\n", 0),
+        ("# break\n", 0),
+        ("for i in 1; do break; done\n", 0),
+        ("while true; do\n  if x; then continue; fi\ndone\n", 0),
+    ];
+
+    #[test]
+    fn test_PMAT535_differential_table() {
+        assert!(TABLE.len() >= 70);
+        // Through the full lint pipeline, as the binary runs it.
+        let bad: Vec<_> = TABLE
+            .iter()
+            .filter_map(|(code, want)| {
+                let got = crate::linter::rules::lint_shell(code)
+                    .diagnostics
+                    .iter()
+                    .filter(|d| d.code == "SC2105")
+                    .count();
+                (got != *want).then(|| format!("{code:?}: got {got}, want {want}"))
+            })
+            .collect();
+        assert!(bad.is_empty(), "wrong counts: {bad:#?}");
+    }
+
+    #[test]
+    fn test_PMAT535_span_points_at_keyword() {
+        let result = check("echo hi; break\n");
+        let d = &result.diagnostics[0];
+        assert_eq!((d.span.start_col, d.span.end_col), (10, 15));
     }
 }
