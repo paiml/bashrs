@@ -7,6 +7,10 @@ set -euo pipefail
 LINES=${1:-1000}
 OUTPUT=${2:-/tmp/test_script.sh}
 
+case "$OUTPUT" in
+  ..|../*|*/..|*/../*) echo "refusing: output path has a '..' component: $OUTPUT" >&2; exit 2 ;;
+esac
+
 cat > "$OUTPUT" << 'SCRIPT_START'
 #!/bin/bash
 # Generated test script for performance benchmarking
