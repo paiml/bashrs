@@ -8,6 +8,10 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b) and issue #236, re-measured at the v7.4.0 close-out: SC2046 is now 14:1 against shellcheck rather than 210:1, and the three largest remaining gaps are SC2086 inside a heredoc body, SC2154 on a variable a sourced file defines, and SC1004 across a multi-line quoted argument (`docs/audits/sc-vs-shellcheck-v7.4.0.md`).
 
+## v7.4.4
+
+A patch: SEC010 verdict keyed on taint (#485); heredoc opener not opened by arithmetic shifts, `${...}` or continued lines (#523); SC2086 only fires inside command substitutions in unquoted heredoc bodies (#529); the parser's unsupported-expression error names the expression kind and line (#525); SC2105 drops only certain non-commands, and path guards in the repo's own shell files turn the self-lint gate green (#539); gate unit tests no longer run the real `cargo deny check` (#541); `aprender-train` 0.72.6 with the RUSTSEC-2026-0459 ignore dropped (#520); PR Gate on `pull_request` (#491); root README as a pv SHACL-checked artifact (#518); one CI action bump (#530). Full notes in `CHANGELOG.md`.
+
 ## v7.4.3
 
 A patch: a tagged release now gets its binaries, with the aarch64 targets built natively (#505, #507); SC2168/SC2151/SC2152 fire only in command position (#438, #486); SEC010 severity no longer depends on an unrelated earlier line (#359, #482); SC1044 no longer reads an arithmetic shift as a heredoc (#474); BRS0009 (SC2096) counts redirection operators, not `>` characters (#431, #434); `batuta-common` is dropped and `aprender`/`entrenar` move to 0.72, clearing the zip and zstd advisories (#466, #469); three CI action bumps (#446, #447, #448) and the cargo-deny entry for RUSTSEC-2024-0449 (#455), and `rash/build.rs` no longer reads `binding.yaml` through `serde_yaml_ng`, so `bashrs` itself no longer pulls `unsafe-libyaml` (#452). The other look-ahead fixes (#440, #349) had not merged and move to the next release. Full notes in `CHANGELOG.md`.

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.4.4] - 2026-11-17
+
+A patch release. It carries five linter and parser fixes (SEC010 verdict keyed on taint, #485; heredoc opener no longer opened by arithmetic shifts, `${...}` or continued lines, #523; SC2086 only fires inside command substitutions in unquoted heredoc bodies, #529; the parser's unsupported-expression error names the expression kind and line, #525; SC2105 drops only certain non-commands, #539), a dependency bump that drops the RUSTSEC-2026-0459 ignore (#520), a security fix to the PR Gate trigger (#491), the self-lint gate (`make dogfood-selflint`) green again on the repo's own shell files (#539), two gate unit tests that no longer run the real `cargo deny check` (#541) and documentation and CI changes.
+
+### Changed
+
+- **`aprender-train` 0.72.2 to 0.72.6, RUSTSEC-2026-0459 ignore dropped** (#489, #520). The advisory ignore in `deny.toml` and `.cargo/audit.toml` is removed.
+- **Root `README.md` is a pv SHACL-checked artifact** (PMAT-513, #518), with count and shape falsifier scripts.
+- **CI action bump** (#530): `taiki-e/install-action` 2.90.2 to 2.90.3.
+
+### Fixed
+
+- **PR Gate runs on `pull_request`, not `pull_request_target`** (security, #491), with a guard script that fails if a workflow uses `pull_request_target`.
+- **SEC010 verdict keyed on taint, not on the command after `cd`** (#485).
+- **Heredoc opener not opened by arithmetic shifts, `${...}` or continued lines** (#522, #523).
+- **SC2086 only fires inside command substitutions in unquoted heredoc bodies** (#524, #529).
+- **The parser's unsupported-expression error names the expression kind and line** (#525).
+- **SC2105 drops only certain non-commands** (#535, #539): `break` or `continue` as part of a larger word (`escaped-line-break-fails`), as a whole-command assignment value or as a plain `echo`/`printf` argument no longer fires; every other `break`/`continue` outside a loop still does. The `$RANDOM` comment in `scripts/generate_test_script.sh` is reworded.
+- **Path-component guards in the shell files the self-lint gate reads** (#534, #539): two files in `scripts/` and three `examples/*/purified.sh` files clear 11 SEC010 errors, so `make dogfood-selflint` (Gate S) passes.
+- **The `gate_commands` unit tests no longer run the real `cargo deny check`** (#540, #541): the security gate takes the cargo to run from its caller and the tests hand it a stub, so a new upstream advisory no longer turns `cargo test --workspace` red. The CLI still runs the real `cargo deny check`.
+
 ## [7.4.3] - 2026-11-12
 
 A patch release. It carries four linter fixes (BRS0009/SC2096 no longer counts `>` characters, #431; SC2168/SC2151/SC2152 fire only in command position, #438; SEC010 severity no longer depends on an unrelated earlier line, #359; SC1044 no longer reads an arithmetic shift as a heredoc, #474), a release-workflow fix that gives a tagged release its binaries (#505) and a dependency clean-up that takes the archived `batuta-common` crate, and the zstd 0.14.0 and zip advisories it pulled, out of bashrs and out of downstream trees (#466). It also carries the CI bumps and the `deny.toml` entry that make main build, lint and pass `cargo deny` again.
