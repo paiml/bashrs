@@ -3250,11 +3250,11 @@ roadmap:
   github_issue: 489
   item_type: task
   title: 'fix RUSTSEC-2026-0459: bump aprender-train to 0.72.6, remove ignore'
-  status: planned
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-11-14T21:56:56Z
-  updated: 2026-11-14T21:56:56Z
+  updated: 2026-11-17T09:00:00Z
   spec: null
   acceptance_criteria: []
   phases: []
@@ -3262,17 +3262,18 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.4
   notes: null
   epic: 426
 - id: PMAT-522
   github_issue: 522
   item_type: task
   title: 'quoting scanner: heredoc opener with line continuation and parenthesized arithmetic shifts'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-11-15T00:00:00Z
-  updated: 2026-11-15T00:00:00Z
+  updated: 2026-11-17T09:00:00Z
   spec: null
   acceptance_criteria: []
   phases: []
@@ -3280,17 +3281,18 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.4
   notes: null
   epic: 236
 - id: PMAT-524
   github_issue: 524
   item_type: task
   title: 'SC2086: unquoted heredoc bodies are checked only inside command substitutions'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-11-15T18:15:00Z
-  updated: 2026-11-15T18:15:00Z
+  updated: 2026-11-17T09:00:00Z
   spec: null
   acceptance_criteria: []
   phases: []
@@ -3298,17 +3300,18 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.4
   notes: null
   epic: 236
 - id: PMAT-521
   github_issue: 521
   item_type: task
   title: 'transpile error "Unsupported expression type" does not name the expression'
-  status: planned
+  status: completed
   priority: medium
   assigned_to: null
   created: 2026-11-15T18:15:00Z
-  updated: 2026-11-15T18:15:00Z
+  updated: 2026-11-17T09:00:00Z
   spec: null
   acceptance_criteria: []
   phases: []
@@ -3316,8 +3319,86 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.4
   notes: null
   epic: 426
+- id: PMAT-532
+  github_issue: 532
+  item_type: task
+  title: 'release: cut v7.4.4 (patch; merged PRs since v7.4.3)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T08:00:00Z
+  updated: 2026-11-17T08:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'CHANGELOG [7.4.4] and docs/release-notes.md v7.4.4 section list the merged PRs since v7.4.3'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:docs
+  - release:v7.4.4
+  notes: 'parent #506'
+- id: PMAT-534
+  github_issue: 534
+  item_type: task
+  title: 'dogfood-selflint (Gate S): fix SEC010 findings in shell files (partial)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T09:00:00Z
+  updated: 2026-11-17T09:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'Path-component guards in 5 shell files clear 11 SEC010 errors (selflint 6 files over the ratchet -> 1).'
+  - 'Gate S passes with the PMAT-535 SC2105 change and the comment reword (bashrs built from this branch).'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 506
+- id: PMAT-535
+  github_issue: 535
+  item_type: task
+  title: 'linter: SC2105 fires on hyphenated word containing break'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T10:00:00Z
+  updated: 2026-11-17T10:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'SC2105 keeps main''s match and drops only certain non-commands (part of a larger word such as escaped-line-break-fails, a whole-command assignment value, a plain echo/printf argument); every other break/continue outside a loop still fires, as on main.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 506
+- id: PMAT-540
+  github_issue: 540
+  item_type: task
+  title: 'cli: gate_commands unit tests run the real cargo deny check'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-17T14:00:00Z
+  updated: 2026-11-17T14:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'No unit test in rash/src/cli/gate_commands.rs spawns the real cargo: the security gate takes the cargo to run from its caller (run_security_gate passes "cargo", behaviour unchanged) and the tests hand it a stub; an absent security config still fails on violations and a disabled one runs nothing.'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 506
 - id: PMAT-527
   github_issue: 527
   item_type: task

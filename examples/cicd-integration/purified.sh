@@ -162,6 +162,9 @@ cd /tmp/builds || exit 0  # Don't fail if directory doesn't exist
 # Use ls -t to sort by time, keep newest 5
 # shellcheck disable=SC2012
 ls -t | tail -n +6 | while IFS= read -r old_build; do
+    case "${old_build}" in
+        */*|..) continue ;;
+    esac
     printf 'Removing old build: %s\n' "${old_build}"
     rm -rf "${old_build}"
 done

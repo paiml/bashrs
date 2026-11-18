@@ -138,6 +138,10 @@ manifest_version="$(workspace_version_at_tag)"
 
 REMOVE_WORKTREE_ON_EXIT=0
 if [ -n "$CALLER_WORKTREE" ]; then
+  # A caller-supplied path is used as-is (cd, git); refuse ".." path components.
+  case "$CALLER_WORKTREE" in
+    ..|../*|*/..|*/../*) die "refusing: --worktree '$CALLER_WORKTREE' has a '..' component" ;;
+  esac
   WT="$CALLER_WORKTREE"
   [ -d "$WT" ] || die "refusing: --worktree '$WT' does not exist"
 else
