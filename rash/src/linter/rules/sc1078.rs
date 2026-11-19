@@ -193,7 +193,87 @@ mod tests {
         assert_eq!(check(script).diagnostics.len(), 0);
     }
 
+    // ── GH-546: nested "..." inside "$(...)" — one fixture per form variant ─
+
+    fn assert_clean(script: &str) {
+        let result = check(script);
+        assert!(
+            result.diagnostics.is_empty(),
+            "{script:?}: {:?}",
+            result.diagnostics
+        );
+    }
+
+    #[test]
+    fn gh546_nested_quotes_cut_delimiter_in_command_substitution() {
+        assert_clean("[ \"$(sha256sum /usr/local/bin/yq | cut -d\" \" -f1)\" = \"abc\" ]\n");
+        assert_clean("test \"$(echo a b | cut -d\" \" -f1)\" = a\n");
+    }
+
+    #[test]
+    fn gh546_dollar_before_closing_quote_inside_substitution_is_literal() {
+        // `"...2$"` — the `$` is literal text and the `"` CLOSES the string;
+        // it is not the `$"` locale-translation opener.
+        assert_clean("test \"$(x | grep -c \"v4[.]52[.]2$\")\" = 1\n");
+    }
+
+    #[test]
+    fn gh546_dollar_before_closing_quote_at_top_level() {
+        assert_clean("echo \"cost 5$\" done\n");
+    }
+
+    #[test]
+    fn gh546_dollar_before_single_quote_inside_double_is_literal() {
+        assert_clean("echo \"it costs $'\" 'x'\n");
+    }
+
+    #[test]
+    fn gh546_nested_quotes_inside_backticks() {
+        assert_clean("x=\"`echo a b | cut -d\" \" -f1`\"\n");
+    }
+
+    #[test]
+    fn gh546_nested_quotes_two_levels_deep() {
+        assert_clean("x=\"$(echo \"$(echo a b | cut -d\" \" -f1)\" | tr a b)\"\n");
+    }
+
+    #[test]
+    fn gh546_nested_quotes_with_pipe() {
+        assert_clean("[ \"$(cat f | grep \"a b\" | cut -d\" \" -f2)\" = x ]\n");
+    }
+
+    #[test]
+    fn gh546_nested_quotes_inside_if_not_group() {
+        assert_clean("if ! { [ \"$(echo a b | cut -d\" \" -f1)\" = a ]; }; then echo no; fi\n");
+        assert_clean("if ! { [ \"$(x | grep -c \"v4[.]52[.]2$\")\" = 1 ]; }; then echo no; fi\n");
+    }
+
+    #[test]
+    fn gh546_unlocalized_dollar_dquote_still_opens_a_string() {
+        // `$"..."` in CODE position is a real locale-translated string.
+        assert_clean("echo $\"hello\"\n");
+    }
+
     // ── must still fire ────────────────────────────────────────────────────
+
+    #[test]
+    fn must_still_fire_gh546_unterminated_string_after_nested_quotes() {
+        let result = check("x=\"$(echo a | cut -d\" \" -f1)\"\necho \"open\n");
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        assert_eq!(result.diagnostics[0].span.start_line, 2);
+    }
+
+    #[test]
+    fn must_still_fire_gh546_unterminated_inside_substitution() {
+        let result = check("x=\"$(echo \"abc | cut -d\" \" -f1)\"\n");
+        assert!(!result.diagnostics.is_empty(), "inner string never closes");
+    }
+
+    #[test]
+    fn must_still_fire_gh546_unterminated_after_dollar_quote_fix() {
+        let result = check("test \"$(x | grep -c \"v4$)\" = 1\n");
+        assert!(!result.diagnostics.is_empty());
+    }
 
     #[test]
     fn must_still_fire_unterminated_double_quote_after_a_closed_awk_program() {
