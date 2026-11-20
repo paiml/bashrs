@@ -3399,3 +3399,21 @@ roadmap:
   - kind:code
   notes: null
   epic: 506
+- id: PMAT-527
+  github_issue: 527
+  item_type: task
+  title: 'binary-release gnu legs need a glibc 2.31 floor (v7.4.3 gnu assets need GLIBC_2.39)'
+  status: planned
+  priority: high
+  assigned_to: null
+  created: 2026-11-15T18:15:00Z
+  updated: 2026-11-15T18:15:00Z
+  spec: null
+  acceptance_criteria: []
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:code
+  notes: null
+  epic: 764
