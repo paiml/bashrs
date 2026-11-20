@@ -814,6 +814,14 @@ impl Scanner {
                 self.stack.push(Ctx::Backtick);
                 i + 1
             }
+            // GH-546: inside "..." a `$` directly before `"` or `'` is literal
+            // text — the `"` CLOSES the string (`"v4[.]52[.]2$"`), and `$'`
+            // is not ANSI-C quoting here. `$"` / `$'` only open a string in
+            // code position (see `step_code`).
+            b'$' if matches!(bytes.get(i + 1), Some(b'"' | b'\'')) => {
+                marks[i] = true;
+                i + 1
+            }
             b'$' => self.open_expansion(bytes, i, marks),
             _ => {
                 marks[i] = true;
