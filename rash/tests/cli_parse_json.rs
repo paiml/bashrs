@@ -554,3 +554,12 @@ fn ast_nodes_carry_line_spans() {
     assert_eq!(v["ast"][1]["line"], 2);
     assert_eq!(v["ast"][1]["end_line"], 4);
 }
+
+#[test]
+fn form_declare_array_argument_with_substitution() {
+    let c = commands("declare -a xs=($(docker rm -f x) b)\nlocal -a ys=(1 2)\n");
+    assert!(ctx(find(&c, &RM)).contains(&"cmdsubst".to_string()));
+    assert!(c
+        .iter()
+        .any(|x| argv(x).first().map(String::as_str) == Some("declare")));
+}
