@@ -91,6 +91,8 @@ pub(crate) mod classify_cmds;
 mod explain_cmds;
 #[path = "fix_command.rs"]
 mod fix_cmds;
+#[path = "parse_command.rs"]
+pub(crate) mod parse_cmds;
 #[path = "safety_check_command.rs"]
 mod safety_check_cmds;
 
@@ -290,6 +292,7 @@ fn dispatch_command(
         | Commands::Explain { .. }
         | Commands::Fix { .. }
         | Commands::Classify { .. }
+        | Commands::Parse { .. }
         | Commands::Format { .. } => dispatch_analysis(command, target, verify, validation, strict),
 
         // Quality and testing commands
