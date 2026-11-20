@@ -1,0 +1,100 @@
+metadata:
+  version: 1.0.0
+  verification_level: L2
+  kind: pattern
+  description: >-
+    Provable contract for `bashrs parse --format json <file|->`. The command prints the
+    syntax tree of a shell script and a flat list of every simple command in it, so that a
+    guard can ask "which docker commands does this script run?" without parsing shell
+    itself. The existing BashAst is built for transpilation and is lossy (here-document
+    bodies dropped, backticks rejected, `coproc cmd` rejected, command substitution
+    flattened to a string, quoting lost), so the command has its own tree
+    (`bash_parser::shell_ast`). `commands` is derived by walking that tree
+    (`shell_extract`), never from a second hand-kept list of constructs (bashrs#266). The
+    command fails closed: a script with any part it cannot model prints
+    {"unparsed":[{"line","reason"}]} and exits 2, with no `commands` key at all.
+  verification_command: cargo test -p bashrs --test cli_parse_json
+  depends_on: []
+  references:
+  - 'bashrs#266: a stdlib whitelist and an emitter dispatch were two hand-kept lists; a walker over one tree has none'
+  - 'infra PR 5120: a guard that hand-parses shell in shell failed five review rounds'
+
+kernel_structure:
+  phases:
+  - name: parse
+    description: >-
+      `shell_parse::parse_script` reads the source once with a recursive-descent parser that
+      keeps every construct that can run a command: lists, pipelines, and-or, background,
+      subshells, groups, if, while, until, for, arithmetic for, select, case, functions,
+      coproc, `[[ ]]`, `(( ))`, redirects, here-documents (bodies read at the next newline),
+      `$(...)`, backticks, `<(...)`, `>(...)`, `$((...))`, `${...}`, `$'...'`.
+    invariant: Every construct is parsed or the whole parse is an Unparsed error; nothing is skipped.
+  - name: wrap
+    description: >-
+      `shell_wrap::analyze` peels leading wrappers (sudo, env with its assignments, command,
+      exec, xargs, nohup, timeout N) using a per-wrapper option table, and parses the string
+      of `sh -c`, `bash -c` and `eval` as a nested script (context `sh-c` / `eval`).
+    invariant: A wrapper option that is not in its table is Unparsed; the wrapped command is never guessed.
+  - name: extract
+    description: >-
+      `shell_extract::extract` walks the tree with a context stack and emits one entry per
+      Simple node that has a command word, in tree order.
+    invariant: The walk matches every Kind and Part exhaustively, so a new node kind that is not walked does not compile.
+
+equations:
+  commands:
+    formula: 'commands(t) = [ entry(n) | n in simple_nodes(t) and argv(n) from exec_index(n) is non-empty ]'
+    domain: 't: the parsed tree, including bodies of substitutions, here-documents and embedded sh -c / eval strings'
+    codomain: 'list of {argv, line, context, wrappers}'
+    invariants:
+    - 'argv words are quote-removed strings when static; a word with an expansion, glob or $-quote is {"dynamic":true,"text":<source text>}'
+    - 'line is the 1-based source line of the command, also inside multiline backticks and after here-document bodies'
+  fail_closed:
+    formula: 'exit(s) = 0 and has(commands) <=> parse_script(s) is Ok ; otherwise exit(s) = 2 and out(s) = {"unparsed":[...]} with no commands key'
+    domain: 's: the input bytes'
+    codomain: 'exit code and JSON document'
+    invariants:
+    - 'invalid UTF-8 and NUL bytes are Unparsed'
+    - 'an unterminated quote, substitution, here-document, compound command or case is Unparsed'
+    - 'an unknown option of a modelled wrapper, `env -S`, `{fd}>`, a function with a simple-command body, `sh -c` without a string, and a dynamic option before `-c` are Unparsed'
+
+proof_obligations:
+- type: invariant
+  property: every Simple node of the ast with a command word appears exactly once in commands
+  formal: 'forall s in corpus: multiset(line of simple nodes found by a generic JSON walk of ast) = multiset(line of commands)'
+  applies_to: all
+- type: invariant
+  property: a command nested in any construct is found
+  formal: 'forall form in {pipeline, subshell, group, if, while, until, for, select, case arm, function, coproc, $( ), backtick, <( ), heredoc loop, sh -c, eval}: docker in form -> docker in commands'
+  applies_to: all
+- type: invariant
+  property: unmodelled or malformed input never exits 0
+  formal: 'forall s: parse_script(s) is Err -> exit 2 and no commands key'
+  applies_to: all
+
+invariants:
+- 'exit 0 prints {"ast":[...],"commands":[...]}; exit 2 prints {"unparsed":[{"line","reason"}]}'
+- 'the here-document body of a quoted delimiter is data; the body of an unquoted delimiter may run substitutions, which are commands with context heredoc'
+- 'a wrapper with no wrapped command (`env`, `sudo -v`, `command -v x`) is itself the command'
+
+falsification_tests:
+- id: F-PJ-001
+  rule: each shell form yields its docker command in commands
+  prediction: 'a fixture per form (select, coproc, heredoc-fed while read, done) case arm, multiline backticks, $( in double quotes, process substitution, functions, pipelines) lists argv docker rm -f x'
+  test: cargo test -p bashrs --test cli_parse_json form_
+  if_fails: 'Contract violation: the parser or the walker drops a construct that can run a command'
+- id: F-PJ-002
+  rule: wrappers are peeled and sh -c is parsed
+  prediction: 'sudo/env/command/exec/nohup/timeout/xargs chains expose docker with the wrapper names; sh -c and eval strings expose docker with context sh-c / eval'
+  test: cargo test -p bashrs --test cli_parse_json wrapper_
+  if_fails: 'Contract violation: a command hides behind a wrapper'
+- id: F-PJ-003
+  rule: unmodelled input fails closed
+  prediction: 'each unterminated construct, unknown wrapper option, bad UTF-8 and NUL exits 2 with an unparsed array and no commands key'
+  test: cargo test -p bashrs --test cli_parse_json unparsed_
+  if_fails: 'Contract violation: an input that is not fully modelled exits 0'
+- id: F-PJ-004
+  rule: commands is derived from the ast
+  prediction: 'for every corpus script the Simple nodes found in ast by a generic JSON walk match commands one to one'
+  test: cargo test -p bashrs --test cli_parse_json every_simple_node_in_ast_is_in_commands
+  if_fails: 'Contract violation: the walker skips a node kind, or commands is built from a second list'

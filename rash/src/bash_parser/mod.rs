@@ -30,6 +30,10 @@ pub mod parser_error_display;
 pub mod parser_expr;
 pub mod parser_pipeline;
 pub mod semantic;
+pub mod shell_ast;
+pub mod shell_extract;
+pub mod shell_parse;
+pub mod shell_wrap;
 
 pub use ast::{BashAst, BashExpr, BashNode, BashStmt};
 pub use parser::{BashParser, ParseError, ParseResult};

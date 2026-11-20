@@ -235,6 +235,15 @@ pub enum Commands {
         #[arg(long, value_name = "DIR")]
         chat_model: Option<PathBuf>,
     },
+    /// Parse a shell script and print its AST plus every simple command as JSON
+    Parse {
+        /// Input script file, or - for stdin
+        #[arg(value_name = "FILE")]
+        input: String,
+        /// Output format
+        #[arg(long, value_enum, default_value = "json")]
+        format: ParseFormat,
+    },
     /// Classify script safety (supports bash, Makefile, Dockerfile)
     Classify {
         /// Input script file
