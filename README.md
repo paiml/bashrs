@@ -330,3 +330,7 @@ MIT License. See [LICENSE](LICENSE) for details.
 <div align="center">
 <sub>Part of the <a href="https://github.com/paiml">PAIML</a> Sovereign AI Stack</sub>
 </div>
+
+<!-- FUNNEL-001 footer: replace bashrs with the repo name -->
+---
+📚 **Learn this hands-on:** [Pragmatic AI Labs courses on Coursera](https://www.coursera.org/partners/pragmatic-ai-labs?utm_source=github&utm_medium=readme&utm_campaign=funnel_2026q4&utm_content=bashrs) · ✉ [Free newsletter](https://ds500.paiml.com/mailing?utm_source=github&utm_medium=readme&utm_campaign=funnel_2026q4&utm_content=bashrs)
