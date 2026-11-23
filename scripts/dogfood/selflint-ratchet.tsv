@@ -8,7 +8,7 @@
 4	examples/cicd-integration/original.sh
 1	examples/database-migration/original.sh
 3	examples/deployment/original.sh
-4	examples/deployment/purified.sh
+0	examples/deployment/purified.sh
 4	examples/deployment/test.sh
 3	examples/deploy-messy.sh
 1	examples/docker-entrypoint/original.sh
