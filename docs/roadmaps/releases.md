@@ -67,6 +67,17 @@ Also on this release, merged under PMAT-534 and PMAT-535, which stay open until 
 
 Also on this release, merged under no roadmap entry of its own: SEC010 verdict keyed on taint (#485, PMAT-359 stays open for #336), PR Gate on `pull_request` (#491), the root README as a pv-checked artifact (#518) and the `taiki-e/install-action` bump (#530).
 
+## v7.4.5
+
+Goal: the fixes merged since the v7.4.4 tag, as a patch with a reproducer test each. A patch carries fixes only; a feature goes to v7.5.0. Nothing but the release ticket stays open on this release at the cut.
+
+| entry | what |
+|---|---|
+| PMAT-551 | the release: version bump, CHANGELOG, release notes and this plan (#551); closes with the tag |
+| PMAT-527 | #527: the gnu release binaries are built against a glibc 2.31 floor and the build checks it (#531) |
+
+Also on this release, merged under no roadmap entry of its own: SC1078 false positive on `$` before a closing quote inside `"$(...)"` (#546, #547) and the `taiki-e/install-action` bump (#549).
+
 ## v7.5.0
 
 Goal: the forjar-parity phases that have been carried since v7.1.0, and the shellcheck-parity gaps #236 still names after v7.4.0 re-measured it. Coverage stays at or above 95 percent, every ticket carries a falsification test, and every pull request carries three independent quorum verdicts.

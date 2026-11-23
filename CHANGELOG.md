@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.4.5] - 2026-11-23
+
+A patch release. It carries one linter fix (SC1078 no longer fires on a `$` before the closing quote inside `"$(...)"`, #546, #547), a release-workflow fix (the gnu binaries are built against a glibc 2.31 floor and the floor is checked, #527, #531) and one CI action bump (#549).
+
+### Changed
+
+- **CI action bump** (#549): `taiki-e/install-action` 2.90.3 to 2.90.6.
+
+### Fixed
+
+- **SC1078 false positive on `$` before a closing quote inside `"$(...)"`** (#546, #547).
+- **The gnu release binaries are built against a glibc 2.31 floor, and the build checks it** (#527, #531): the v7.4.3 gnu assets needed GLIBC_2.39.
+
 ## [7.4.4] - 2026-11-17
 
 A patch release. It carries five linter and parser fixes (SEC010 verdict keyed on taint, #485; heredoc opener no longer opened by arithmetic shifts, `${...}` or continued lines, #523; SC2086 only fires inside command substitutions in unquoted heredoc bodies, #529; the parser's unsupported-expression error names the expression kind and line, #525; SC2105 drops only certain non-commands, #539), a dependency bump that drops the RUSTSEC-2026-0459 ignore (#520), a security fix to the PR Gate trigger (#491), the self-lint gate (`make dogfood-selflint`) green again on the repo's own shell files (#539), two gate unit tests that no longer run the real `cargo deny check` (#541) and documentation and CI changes.
