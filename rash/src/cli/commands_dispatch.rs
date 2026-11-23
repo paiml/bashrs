@@ -93,6 +93,7 @@ fn dispatch_analysis(
             output.as_deref(),
             chat_model.as_deref(),
         ),
+        Commands::Parse { input, format } => parse_cmds::parse_command(&input, &format),
         Commands::Classify {
             input,
             json,

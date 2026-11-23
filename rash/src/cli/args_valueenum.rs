@@ -256,3 +256,10 @@ impl ValueEnum for ValidationLevel {
         })
     }
 }
+
+/// Output format for the parse command
+#[derive(Clone, Debug, ValueEnum)]
+pub enum ParseFormat {
+    /// JSON document: `ast` and `commands`, or `unparsed` with exit code 2
+    Json,
+}

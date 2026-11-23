@@ -141,14 +141,119 @@ fn run_subcommand(watch_cmd: &WatchCommand, files: &[PathBuf]) -> bool {
 
 /// Print the watch header with timestamp.
 fn print_header(watch_cmd: &WatchCommand, file_count: usize) {
-    let now = chrono::Local::now();
+    let now = crate::clock::local_format("%H:%M:%S");
     println!(
         "\x1b[1m[{time}] bashrs watch \u{2192} {cmd} ({n} file{s})\x1b[0m",
-        time = now.format("%H:%M:%S"),
+        time = now,
         cmd = command_name(watch_cmd),
         n = file_count,
         s = if file_count == 1 { "" } else { "s" },
     );
+}
+
+/// Print the startup banner.
+fn print_banner(path_count: usize, extensions: &str, debounce_ms: u64, watch_cmd: &WatchCommand) {
+    println!(
+        "\x1b[1;36mbashrs watch\x1b[0m v{ver}",
+        ver = env!("CARGO_PKG_VERSION")
+    );
+    println!(
+        "  Watching {n} path{s} for changes (extensions: {exts})",
+        n = path_count,
+        s = if path_count == 1 { "" } else { "s" },
+        exts = extensions,
+    );
+    println!(
+        "  Debounce: {debounce_ms}ms | Command: \x1b[1m{cmd}\x1b[0m",
+        cmd = command_name(watch_cmd),
+    );
+    println!("  Press Ctrl+C to stop.\n");
+}
+
+/// Collect changed paths from this batch plus any pending ones (coalescing
+/// rapid changes), sorted and deduplicated.
+fn coalesce_changes(
+    events: &[notify_debouncer_mini::DebouncedEvent],
+    rx: &mpsc::Receiver<notify_debouncer_mini::DebounceEventResult>,
+    exts: &[String],
+) -> Vec<PathBuf> {
+    let mut changed: Vec<PathBuf> = events
+        .iter()
+        .filter(|e| e.kind == DebouncedEventKind::Any)
+        .map(|e| e.path.clone())
+        .filter(|p| matches_extensions(p, exts))
+        .collect();
+    while let Ok(Ok(more_events)) = rx.try_recv() {
+        for ev in more_events {
+            if ev.kind == DebouncedEventKind::Any && matches_extensions(&ev.path, exts) {
+                changed.push(ev.path);
+            }
+        }
+    }
+    changed.sort();
+    changed.dedup();
+    changed
+}
+
+/// Show which files changed.
+fn print_changed(changed: &[PathBuf]) {
+    for p in changed {
+        println!(
+            "  \x1b[33m\u{25cf}\x1b[0m {}",
+            p.strip_prefix(std::env::current_dir().unwrap_or_default())
+                .unwrap_or(p)
+                .display()
+        );
+    }
+}
+
+/// Create the debounced watcher and register every path recursively.
+fn start_watcher(
+    paths: &[PathBuf],
+    debounce_ms: u64,
+) -> Result<(
+    notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>,
+    mpsc::Receiver<notify_debouncer_mini::DebounceEventResult>,
+)> {
+    let (tx, rx) = mpsc::channel();
+    let mut debouncer = new_debouncer(Duration::from_millis(debounce_ms), tx)
+        .map_err(|e| Error::Internal(format!("Failed to create file watcher: {e}")))?;
+
+    for path in paths {
+        let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
+        info!("Watching path: {}", canonical.display());
+        debouncer
+            .watcher()
+            .watch(&canonical, RecursiveMode::Recursive)
+            .map_err(|e| Error::Internal(format!("Failed to watch {}: {e}", path.display())))?;
+    }
+    Ok((debouncer, rx))
+}
+
+/// Re-run the command after a batch of changes. Returns an error only for
+/// `--fail-fast` failures.
+fn rerun_after_change(
+    paths: &[PathBuf],
+    watch_cmd: &WatchCommand,
+    exts: &[String],
+    changed: &[PathBuf],
+    clear: bool,
+    fail_fast: bool,
+) -> Result<()> {
+    if clear {
+        print!("\x1b[2J\x1b[H");
+    }
+    // Re-collect all matching files (some might have been added/removed)
+    let all_files = collect_files(paths, exts);
+    print_header(watch_cmd, all_files.len());
+    print_changed(changed);
+
+    let ok = run_subcommand(watch_cmd, &all_files);
+    if fail_fast && !ok {
+        return Err(Error::Internal("Watch: run failed with --fail-fast".into()));
+    }
+    println!();
+    Ok(())
 }
 
 /// Main watch loop: setup watcher, debounce, re-run on changes.
@@ -163,21 +268,7 @@ fn run_watch(
     let exts = parse_extensions(extensions);
     let files = collect_files(paths, &exts);
 
-    println!(
-        "\x1b[1;36mbashrs watch\x1b[0m v{ver}",
-        ver = env!("CARGO_PKG_VERSION")
-    );
-    println!(
-        "  Watching {n} path{s} for changes (extensions: {exts})",
-        n = paths.len(),
-        s = if paths.len() == 1 { "" } else { "s" },
-        exts = extensions,
-    );
-    println!(
-        "  Debounce: {debounce_ms}ms | Command: \x1b[1m{cmd}\x1b[0m",
-        cmd = command_name(watch_cmd),
-    );
-    println!("  Press Ctrl+C to stop.\n");
+    print_banner(paths.len(), extensions, debounce_ms, watch_cmd);
 
     // Initial run
     if clear {
@@ -190,87 +281,20 @@ fn run_watch(
     }
     println!();
 
-    // Set up file watcher
-    let (tx, rx) = mpsc::channel();
-    let debounce_duration = Duration::from_millis(debounce_ms);
-
-    let mut debouncer = new_debouncer(debounce_duration, tx).map_err(|e| {
-        Error::Internal(format!("Failed to create file watcher: {e}"))
-    })?;
-
-    for path in paths {
-        let canonical = path.canonicalize().unwrap_or_else(|_| path.clone());
-        info!("Watching path: {}", canonical.display());
-        debouncer
-            .watcher()
-            .watch(&canonical, RecursiveMode::Recursive)
-            .map_err(|e| {
-                Error::Internal(format!("Failed to watch {}: {e}", path.display()))
-            })?;
-    }
+    // Keep `_debouncer` alive: dropping it stops the watcher.
+    let (_debouncer, rx) = start_watcher(paths, debounce_ms)?;
 
     // Event loop with coalescing: drain all pending events before re-running
     loop {
         match rx.recv() {
             Ok(Ok(events)) => {
-                let mut changed: Vec<PathBuf> = events
-                    .iter()
-                    .filter(|e| e.kind == DebouncedEventKind::Any)
-                    .map(|e| e.path.clone())
-                    .filter(|p| matches_extensions(p, &exts))
-                    .collect();
-
-                // Drain any additional pending events to coalesce rapid changes
-                while let Ok(Ok(more_events)) = rx.try_recv() {
-                    for ev in more_events {
-                        if ev.kind == DebouncedEventKind::Any
-                            && matches_extensions(&ev.path, &exts)
-                        {
-                            changed.push(ev.path);
-                        }
-                    }
+                let changed = coalesce_changes(&events, &rx, &exts);
+                if !changed.is_empty() {
+                    rerun_after_change(paths, watch_cmd, &exts, &changed, clear, fail_fast)?;
                 }
-
-                if changed.is_empty() {
-                    continue;
-                }
-
-                // Deduplicate
-                changed.sort();
-                changed.dedup();
-
-                if clear {
-                    print!("\x1b[2J\x1b[H");
-                }
-
-                // Re-collect all matching files (some might have been added/removed)
-                let all_files = collect_files(paths, &exts);
-                print_header(watch_cmd, all_files.len());
-
-                // Show which files changed
-                for p in &changed {
-                    println!(
-                        "  \x1b[33m\u{25cf}\x1b[0m {}",
-                        p.strip_prefix(std::env::current_dir().unwrap_or_default())
-                            .unwrap_or(p)
-                            .display()
-                    );
-                }
-
-                let ok = run_subcommand(watch_cmd, &all_files);
-                if fail_fast && !ok {
-                    return Err(Error::Internal(
-                        "Watch: run failed with --fail-fast".into(),
-                    ));
-                }
-                println!();
             }
-            Ok(Err(errs)) => {
-                eprintln!("\x1b[31mWatch error: {errs:?}\x1b[0m");
-            }
-            Err(e) => {
-                return Err(Error::Internal(format!("Watch channel closed: {e}")));
-            }
+            Ok(Err(errs)) => eprintln!("\x1b[31mWatch error: {errs:?}\x1b[0m"),
+            Err(e) => return Err(Error::Internal(format!("Watch channel closed: {e}"))),
         }
     }
 }

@@ -89,7 +89,7 @@ pub(crate) fn installer_golden_capture_command(path: &Path, trace_name: &str) ->
         .events;
     let trace = GoldenTrace {
         name: trace_name.to_string(),
-        captured_at: chrono::Utc::now().to_rfc3339(),
+        captured_at: crate::clock::utc_rfc3339(),
         installer_version: spec.installer.version.clone(),
         result_hash: format!("{:016x}", {
             // Simple hash of events for reproducibility check
@@ -201,7 +201,7 @@ pub(crate) fn installer_golden_compare_command(path: &Path, trace_name: &str) ->
 
     let current = GoldenTrace {
         name: format!("{}-current", trace_name),
-        captured_at: chrono::Utc::now().to_rfc3339(),
+        captured_at: crate::clock::utc_rfc3339(),
         installer_version: spec.installer.version.clone(),
         events: collector
             .into_trace(trace_name, &spec.installer.version)

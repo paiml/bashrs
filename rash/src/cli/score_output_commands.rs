@@ -273,7 +273,7 @@ pub(crate) fn print_markdown_score_results(
     println!("**File**: `{}`", input.display());
     println!(
         "**Date**: {}",
-        chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
+        crate::clock::local_format("%Y-%m-%d %H:%M:%S")
     );
     println!();
     println!("## Overall Score");
@@ -405,7 +405,7 @@ pub(crate) fn print_markdown_dockerfile_score_results(
     println!("**File**: `{}`", input.display());
     println!(
         "**Date**: {}",
-        chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
+        crate::clock::local_format("%Y-%m-%d %H:%M:%S")
     );
     println!();
     println!("## Overall Score");
