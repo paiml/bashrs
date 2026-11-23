@@ -270,7 +270,6 @@ fn peel(base: &str, argv: &[Word], idx: usize) -> R<Option<(usize, Wrapper)>> {
                     "open-tty",
                     "show-limits",
                 ],
-                ..Spec::default()
             };
             let (i, args) = scan(argv, idx + 1, &spec, "xargs")?;
             Some((i, mk(args, Vec::new(), true)))
@@ -416,11 +415,7 @@ fn shell_script(base: &str, argv: &[Word], idx: usize) -> R<Option<Embedded>> {
 pub fn analyze(argv: &[Word]) -> R<Analysis> {
     let mut wrappers: Vec<Wrapper> = Vec::new();
     let mut idx = 0;
-    loop {
-        let name = match value_at(argv, idx) {
-            Some(n) => n,
-            None => break,
-        };
+    while let Some(name) = value_at(argv, idx) {
         let base = name.rsplit('/').next().unwrap_or(&name).to_string();
         match peel(&base, argv, idx)? {
             Some((next, w)) if next < argv.len() => {
