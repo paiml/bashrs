@@ -27,6 +27,16 @@ static USELESS_ECHO: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"\$\(\s*echo\s+([^)]+)\)").unwrap()
 });
 
+/// Echo forms that are intentional: flags, pipelines (ShellCheck parity), or
+/// multi-word literal formatting.
+fn is_not_useless(echo_content: &str) -> bool {
+    if echo_content.starts_with('-') || echo_content.contains('|') {
+        return true;
+    }
+    let arg_count = echo_content.split_whitespace().count();
+    arg_count > 1 && !echo_content.starts_with('$') && !echo_content.starts_with('"')
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -42,14 +52,7 @@ pub fn check(source: &str) -> LintResult {
             let full_match = cap.get(0).unwrap().as_str();
             let echo_content = cap.get(1).unwrap().as_str().trim();
 
-            // Skip if echo has flags (-n, -e, etc.)
-            if echo_content.starts_with('-') {
-                continue;
-            }
-
-            // Skip if multiple arguments (might be intentional formatting)
-            let arg_count = echo_content.split_whitespace().count();
-            if arg_count > 1 && !echo_content.starts_with('$') && !echo_content.starts_with('"') {
+            if is_not_useless(echo_content) {
                 continue;
             }
 
@@ -76,6 +79,12 @@ pub fn check(source: &str) -> LintResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_sc2005_echo_pipeline_not_flagged() {
+        let code = r#"r=$(echo "$x" | grep a)"#;
+        assert_eq!(check(code).diagnostics.len(), 0);
+    }
 
     #[test]
     fn test_sc2005_useless_echo_var() {
