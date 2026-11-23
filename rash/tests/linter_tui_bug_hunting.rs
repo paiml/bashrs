@@ -10,10 +10,11 @@
 
 use bashrs::linter::rules::lint_shell;
 use bashrs::linter::LintResult;
-use jugar_probar::gui_coverage;
-use jugar_probar::tui::{expect_frame, FrameSequence, TuiFrame, TuiSnapshot};
+#[macro_use]
+mod tui_shim;
 use std::collections::HashMap;
 use std::panic::{self, AssertUnwindSafe};
+use tui_shim::{expect_frame, FrameSequence, TuiFrame, TuiSnapshot};
 
 // ============================================================================
 // BUG REPORT STRUCTURES

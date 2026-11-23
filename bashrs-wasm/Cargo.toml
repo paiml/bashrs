@@ -25,12 +25,9 @@ safetensors = { version = "0.8", optional = true }
 default = []
 # CodeBERT WASM classifier (requires WASM-002/004)
 codebert = ["safetensors"]
-# Docker-based cross-browser tests (requires Docker)
-docker = ["jugar-probar/docker"]
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
-jugar-probar = { version = "1.0", default-features = false }
 
 [[test]]
 name = "probar_shell_safety"

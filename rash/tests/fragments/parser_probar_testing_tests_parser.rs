@@ -149,7 +149,7 @@ fn test_parser_comprehensive_coverage() {
     };
 
     // Variable tests
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("x=5", "var_simple"),
         ("${x:-default}", "var_default"),
         ("${x:=default}", "var_assign"),
@@ -160,25 +160,19 @@ fn test_parser_comprehensive_coverage() {
         ("${x%pat}", "var_pattern"),
         ("${arr[0]}", "var_array"),
         ("${!ref}", "var_indirect"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Command substitution
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("$(cmd)", "cmd_dollar"),
         ("`cmd`", "cmd_backtick"),
         ("$($(inner))", "cmd_nested"),
         ("\"$(cmd)\"", "cmd_string"),
         ("$(($(echo 1)))", "cmd_arith"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Conditionals
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("if true; then x; fi", "if_simple"),
         ("if true; then x; else y; fi", "if_else"),
         ("if true; then x; elif false; then y; fi", "if_elif"),
@@ -189,13 +183,10 @@ fn test_parser_comprehensive_coverage() {
         ("case $x in a) ;; esac", "case_simple"),
         ("case $x in a|b) ;; esac", "case_multi"),
         ("case $x in *) ;; esac", "case_default"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Loops
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("for i in 1 2; do x; done", "for_simple"),
         ("for ((i=0;i<10;i++)); do x; done", "for_c"),
         ("for i in {1..10}; do x; done", "for_brace"),
@@ -205,39 +196,30 @@ fn test_parser_comprehensive_coverage() {
         ("select o in a b; do x; done", "select_simple"),
         ("for i in 1; do break; done", "break_stmt"),
         ("for i in 1; do continue; done", "continue_stmt"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Functions
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("function f { x; }", "func_keyword"),
         ("f() { x; }", "func_parens"),
         ("f() { x; y; }", "func_body"),
         ("f() { local v=1; }", "func_local"),
         ("f() { return 0; }", "func_return"),
         ("f() { f; }", "func_recursive"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Quoting
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("'single'", "quote_single"),
         ("\"double\"", "quote_double"),
         ("\"esc\\\"ape\"", "quote_escape"),
         ("$'dollar'", "quote_dollar"),
         ("$'\\x41'", "quote_ansi"),
         ("'a'\"b\"", "quote_mixed"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Arithmetic
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("$((1+2))", "arith_add"),
         ("$((5-3))", "arith_sub"),
         ("$((2*3))", "arith_mult"),
@@ -248,13 +230,10 @@ fn test_parser_comprehensive_coverage() {
         ("((x=5))", "arith_assign"),
         ("((x++))", "arith_incr"),
         ("((x>5))", "arith_cmp"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Redirection
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("cmd > f", "redir_out"),
         ("cmd >> f", "redir_append"),
         ("cmd < f", "redir_in"),
@@ -263,13 +242,10 @@ fn test_parser_comprehensive_coverage() {
         ("cat <<EOF\nx\nEOF", "redir_heredoc"),
         ("cat <<< 'x'", "redir_herestring"),
         ("cmd 2>&1", "redir_fd"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Pipeline
-    for (input, feature) in [
+    click_features(&mut gui, &[
         ("a | b", "pipe_simple"),
         ("a | b | c", "pipe_chain"),
         ("a && b", "pipe_and"),
@@ -277,10 +253,7 @@ fn test_parser_comprehensive_coverage() {
         ("(a) | b", "pipe_subshell"),
         ("{ a; } | b", "pipe_brace"),
         ("diff <(a) <(b)", "pipe_proc"),
-    ] {
-        let _ = ParserResult::from_parse(input);
-        gui.click(feature);
-    }
+    ]);
 
     // Visit states
     gui.visit("idle");
@@ -407,4 +380,12 @@ fn test_parser_determinism() {
     }
 
     println!("\n  All {} inputs verified deterministic", inputs.len());
+}
+
+/// Parse each input and click its feature in the coverage tracker.
+fn click_features(gui: &mut tui_shim::GuiCoverage, cases: &[(&str, &str)]) {
+    for (input, feature) in cases {
+        let _ = ParserResult::from_parse(input);
+        gui.click(feature);
+    }
 }
