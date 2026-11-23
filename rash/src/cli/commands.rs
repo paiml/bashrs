@@ -315,6 +315,7 @@ fn dispatch_command(
             devcontainer_cmds::handle_devcontainer_command(cmd)
         }
         Commands::Config { command: cmd } => config_cmds::handle_config_command(cmd),
+        Commands::Update { check } => super::update_check::handle_update_command(check),
         Commands::Ext(CommandsExt::Installer { command: cmd }) => {
             super::installer_commands::handle_installer_command(cmd)
         }
