@@ -136,11 +136,27 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        check_file_ops(line, line_num, &taint, &mut result);
+        let masked = mask_child_shell_scripts(line);
+        check_file_ops(&masked, line_num, &taint, &mut result);
         check_traversal_patterns(line, line_num, &mut result);
     }
 
     result
+}
+
+/// GH-528: the single-quoted script of `sh -c` / `bash -c` is a different shell
+/// scope; its `$1` is that child's own positional, not this script's input.
+/// Blank it (same length, so spans stay valid) before the rule looks at the line.
+fn mask_child_shell_scripts(line: &str) -> String {
+    static CHILD: std::sync::LazyLock<regex::Regex> = std::sync::LazyLock::new(|| {
+        regex::Regex::new(r"\b(?:ba|da|z|k)?sh\s+-[a-zA-Z]*c[a-zA-Z]*\s+'([^']*)'").unwrap()
+    });
+    let mut out = line.to_string();
+    for caps in CHILD.captures_iter(line) {
+        let body = caps.get(1).expect("group 1");
+        out.replace_range(body.range(), &" ".repeat(body.len()));
+    }
+    out
 }
 
 /// Find a command in a line (word boundary detection)

@@ -43,3 +43,45 @@ fn test_GH336_validated_repo_stays_clear() {
     let s = "#!/usr/bin/env bash\nREPO=\"$2\"\ncase \"$REPO\" in /*) ;; *) exit 2;; esac\ncase \"$REPO\" in *..*) exit 2;; esac\n( cd \"$REPO\" && rm -rf out )\n";
     assert!(check(s).diagnostics.iter().all(|d| d.severity != Severity::Error));
 }
+
+#[test]
+fn test_GH528_positional_inside_child_shell_script_does_not_fire() {
+    for line in [
+        "bash -c 'cd \"$1\" && ls' _ /opt/build",
+        "sh -c 'rm -rf \"$1\"' sh /tmp/x",
+        "bash -lc 'cat \"$1\"' _ /etc/hostname",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{line}\n");
+        assert!(
+            check(&s).diagnostics.iter().all(|d| d.code != "SEC010"),
+            "{line}"
+        );
+    }
+}
+
+#[test]
+fn test_GH528_parent_shell_positional_still_fires() {
+    let s = "#!/usr/bin/env bash\nREPO=\"$1\"\ncd \"$REPO\" && ls\n";
+    assert!(check(s).diagnostics.iter().any(|d| d.code == "SEC010"));
+}
+
+#[test]
+fn test_GH528_child_shell_script_with_inner_command_after_space() {
+    for line in [
+        "bash -c 'set -e; cd \"$1\" && make' _ /fixed",
+        "sh -c 'echo hi; cat \"$1\"' _ /etc/hosts",
+        "bash -c 'test -d \"$1\" || mkdir -p \"$1\"' _ out",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{line}\n");
+        assert!(
+            check(&s).diagnostics.iter().all(|d| d.code != "SEC010"),
+            "{line}"
+        );
+    }
+}
+
+#[test]
+fn test_GH528_arg_after_child_shell_script_still_checked() {
+    let s = "#!/usr/bin/env bash\nREPO=\"$1\"\nbash -c 'echo x' _ && cd \"$REPO\"\n";
+    assert!(check(s).diagnostics.iter().any(|d| d.code == "SEC010"));
+}
