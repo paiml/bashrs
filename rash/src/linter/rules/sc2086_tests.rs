@@ -440,3 +440,27 @@ mod sc2086_tests_quoting {
     use super::*;
     include!("sc2086_tests_quoting.rs");
 }
+
+#[test]
+fn test_sc2086_assignment_rhs_not_flagged() {
+    for src in [
+        "X=$RANDOM\n",
+        "BUILD_ID=$RANDOM\n",
+        "local batch_id=$RANDOM\n",
+        "export FOO=$BAR\n",
+        "readonly BAZ=$QUX\n",
+        "declare -r Y=$Z\n",
+    ] {
+        let result = check(src);
+        assert!(
+            result.diagnostics.is_empty(),
+            "assignment RHS must not be flagged: {src:?} -> {:?}",
+            result.diagnostics
+        );
+    }
+}
+
+#[test]
+fn test_sc2086_command_args_still_flagged() {
+    assert_eq!(check("echo $RANDOM\n").diagnostics.len(), 1);
+}
