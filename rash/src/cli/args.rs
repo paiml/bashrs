@@ -9,7 +9,7 @@ pub use super::args_tools::*;
 #[derive(Parser)]
 #[command(name = "bashrs")]
 #[command(about = "Rust-to-Shell transpiler for deterministic bootstrap scripts")]
-#[command(version = env!("CARGO_PKG_VERSION"))]
+#[command(version = concat!(env!("CARGO_PKG_VERSION"), " (commit: ", env!("BASHRS_GIT_COMMIT"), ")"))]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
@@ -234,6 +234,15 @@ pub enum Commands {
         /// Path to chat model directory for ML-powered explanation (requires `ml` feature)
         #[arg(long, value_name = "DIR")]
         chat_model: Option<PathBuf>,
+    },
+    /// Parse a shell script and print its AST plus every simple command as JSON
+    Parse {
+        /// Input script file, or - for stdin
+        #[arg(value_name = "FILE")]
+        input: String,
+        /// Output format
+        #[arg(long, value_enum, default_value = "json")]
+        format: ParseFormat,
     },
     /// Classify script safety (supports bash, Makefile, Dockerfile)
     Classify {

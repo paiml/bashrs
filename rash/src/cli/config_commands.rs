@@ -233,11 +233,9 @@ fn handle_inplace_fix(
     analysis: &crate::config::ConfigAnalysis,
     no_backup: bool,
 ) -> Result<()> {
-    use chrono::Local;
-
     // Create backup unless --no-backup
     if !no_backup {
-        let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
+        let timestamp = crate::clock::local_format("%Y-%m-%d_%H-%M-%S");
         let backup_path = input.with_extension(format!("bak.{}", timestamp));
         fs::copy(input, &backup_path).map_err(Error::Io)?;
         info!("Backup: {}", backup_path.display());
@@ -255,7 +253,7 @@ fn handle_inplace_fix(
     println!("✓ Done! {} has been purified.", input.display());
 
     if !no_backup {
-        let timestamp = Local::now().format("%Y-%m-%d_%H-%M-%S");
+        let timestamp = crate::clock::local_format("%Y-%m-%d_%H-%M-%S");
         let backup_path = input.with_extension(format!("bak.{}", timestamp));
         println!(
             "\nTo rollback: cp {} {}",

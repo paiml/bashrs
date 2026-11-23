@@ -179,7 +179,7 @@ impl RichLintReport {
 
         RichLintReport {
             source_file: source_file.to_string(),
-            timestamp: chrono::Utc::now().format("%Y-%m-%d %H:%M:%S").to_string(),
+            timestamp: crate::clock::utc_format("%Y-%m-%d %H:%M:%S"),
             total_issues: result.diagnostics.len(),
             errors,
             warnings,

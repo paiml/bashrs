@@ -144,4 +144,30 @@ pub struct QualityGate {
 }
 
 
+/// Program that runs `cargo audit`. Release builds always use `cargo`.
+/// Under `cfg(test)` it is a per-thread override, and with none set a
+/// path that does not exist: the real `cargo audit` (live advisory DB) is
+/// never spawned by a unit test (#542).
+#[cfg(not(test))]
+fn security_cargo() -> String {
+    "cargo".to_string()
+}
+
+#[cfg(test)]
+thread_local! {
+    static TEST_SECURITY_CARGO: std::cell::RefCell<Option<String>> =
+        const { std::cell::RefCell::new(None) };
+}
+
+#[cfg(test)]
+fn security_cargo() -> String {
+    TEST_SECURITY_CARGO
+        .with(|c| c.borrow().clone())
+        .unwrap_or_else(|| "/nonexistent/hermetic-cargo-542".to_string())
+}
+
 include!("gates_default_qualitygate.rs");
+
+#[cfg(test)]
+#[path = "gates_security_hermetic_tests.rs"]
+mod gates_security_hermetic_tests;
