@@ -209,7 +209,7 @@ fn display_results(
     println!("  CPU:     {}", environment.cpu);
     println!("  RAM:     {}", environment.ram);
     println!("  OS:      {}", environment.os);
-    println!("  Date:    {}", Utc::now().to_rfc3339());
+    println!("  Date:    {}", crate::clock::utc_rfc3339());
 
     Ok(())
 }
