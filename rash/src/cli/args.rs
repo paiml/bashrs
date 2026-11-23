@@ -9,7 +9,7 @@ pub use super::args_tools::*;
 #[derive(Parser)]
 #[command(name = "bashrs")]
 #[command(about = "Rust-to-Shell transpiler for deterministic bootstrap scripts")]
-#[command(version = env!("CARGO_PKG_VERSION"))]
+#[command(version = concat!(env!("CARGO_PKG_VERSION"), " (commit: ", env!("BASHRS_GIT_COMMIT"), ")"))]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Commands,
