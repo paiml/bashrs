@@ -1,44 +1,25 @@
-// SC2183: Variable used as command name - potential code injection.
-use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
+// SC2183: shellcheck's SC2183 is a printf-format arity check ("This format
+// string has N variables, but is passed M arguments"), not a "variable used as
+// command name" warning. shellcheck emits nothing for `$cmd arg` (#236), so
+// this rule must not either. Variable-as-command-name injection is SEC002's
+// subject.
+use crate::linter::LintResult;
 
-static VAR_AS_COMMAND: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"^\s*\$\{?\w+\}?\s+").unwrap());
-
-pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
-    for (line_num, line) in source.lines().enumerate() {
-        let line_num = line_num + 1;
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        if VAR_AS_COMMAND.is_match(line) {
-            let diagnostic = Diagnostic::new(
-                "SC2183",
-                Severity::Warning,
-                "Variable used as command name - potential injection risk".to_string(),
-                Span::new(line_num, 1, line_num, line.len() + 1),
-            );
-            result.add(diagnostic);
-        }
-    }
-    result
+pub fn check(_source: &str) -> LintResult {
+    LintResult::new()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     #[test]
-    fn test_sc2183_var_command() {
-        let code = "$cmd arg";
-        let result = check(code);
-        assert_eq!(result.diagnostics.len(), 1);
+    fn test_sc2183_var_command_not_reported_like_shellcheck() {
+        for code in ["$cmd arg", "  ${cmd} arg", "n=1; $n x"] {
+            assert_eq!(check(code).diagnostics.len(), 0, "{code}");
+        }
     }
     #[test]
     fn test_sc2183_normal_ok() {
-        let code = "echo test";
-        let result = check(code);
-        assert_eq!(result.diagnostics.len(), 0);
+        assert_eq!(check("echo test").diagnostics.len(), 0);
     }
 }
