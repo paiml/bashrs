@@ -72,6 +72,23 @@ fn is_inside_quotes(line: &str, pos: usize) -> bool {
     quote_count % 2 == 1
 }
 
+/// True when the glob sits in the word list of `for NAME in ...` (no command
+/// separator between the `in` and the glob).
+fn is_in_for_list(line: &str, pos: usize) -> bool {
+    let before = &line[..pos];
+    match before.rfind("for ") {
+        Some(i) => {
+            let rest = &before[i + 4..];
+            let mut it = rest.splitn(3, char::is_whitespace);
+            let name_ok = it.next().is_some_and(|n| !n.is_empty());
+            let in_ok = it.next() == Some("in");
+            let tail = it.next().unwrap_or("");
+            name_ok && in_ok && !tail.contains([';', '|', '&', '\n'])
+        }
+        None => false,
+    }
+}
+
 /// Issue #96: Check if glob position is inside a quoted find -name/-iname/-path argument
 /// These patterns are for find, not shell expansion, so they're safe when quoted
 fn is_inside_find_pattern(line: &str, glob_start: usize, glob_end: usize) -> bool {
@@ -136,6 +153,12 @@ fn should_check_line(line: &str) -> bool {
 fn should_skip_glob(line: &str, glob_start: usize, glob_end: usize) -> bool {
     // Skip if glob is safe (prefixed with ./ or / or $)
     if is_glob_safe(line, glob_start) {
+        return true;
+    }
+
+    // ShellCheck parity: a glob in a `for x in <words>` list is not a command
+    // argument; the loop variable receives each match.
+    if is_in_for_list(line, glob_start) {
         return true;
     }
 
@@ -223,5 +246,25 @@ mod pmat257_gh311_tests {
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2035");
+    }
+}
+
+#[cfg(test)]
+mod for_list_glob_tests {
+    use super::*;
+
+    /// ShellCheck parity: a glob in a `for x in *.txt` word list is not an
+    /// argument to a command, so a later `echo` in the body must not trigger it.
+    #[test]
+    fn test_sc2035_for_loop_glob_not_flagged() {
+        let code = "for f in *.txt; do echo \"$f\"; done";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 0, "{:?}", result.diagnostics);
+    }
+
+    #[test]
+    fn test_sc2035_glob_after_for_list_still_flagged() {
+        let code = "for f in a b; do rm *.txt; done";
+        assert_eq!(check(code).diagnostics.len(), 1);
     }
 }
