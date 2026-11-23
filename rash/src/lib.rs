@@ -83,6 +83,8 @@ pub mod build_rs;
 /// Command-line interface for bashrs
 #[cfg(all(not(target_arch = "wasm32"), feature = "clap"))]
 pub mod cli;
+/// Configuration types and error handling
+pub mod clock;
 /// Rust compiler integration for transpilation
 #[cfg(all(not(target_arch = "wasm32"), feature = "compile"))]
 pub mod compiler;
@@ -119,7 +121,6 @@ pub mod kani_bounded;
 pub mod linter;
 /// Makefile parsing and purification
 pub mod make_parser;
-/// Configuration types and error handling
 pub mod models;
 /// Quality gates with rich reporting and fault localization (ML-001 to ML-012)
 #[cfg(not(target_arch = "wasm32"))]

@@ -3,7 +3,6 @@
 
 use crate::linter::lint_shell;
 use crate::{Error, Result};
-use chrono::Utc;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::collections::hash_map::DefaultHasher;
@@ -282,7 +281,7 @@ pub fn bench_command(options: BenchOptions) -> Result<()> {
     // Generate output
     let output = BenchmarkOutput {
         version: VERSION.to_string(),
-        timestamp: Utc::now().to_rfc3339(),
+        timestamp: crate::clock::utc_rfc3339(),
         environment,
         benchmarks: results.clone(),
     };
