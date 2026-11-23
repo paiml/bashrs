@@ -159,6 +159,20 @@ fn make_diagnostic(o: &Offence, line: usize) -> Diagnostic {
     }
 }
 
+/// Builtins whose `NAME=value` arguments are assignments, not split words.
+const DECLARATION_BUILTINS: &[&str] = &["export", "readonly", "declare", "local", "typeset"];
+
+/// True for a `NAME=…` / `NAME+=…` word (identifier before the `=`).
+fn is_assignment_arg(raw: &str) -> bool {
+    let Some(eq) = raw.find('=') else {
+        return false;
+    };
+    let name = raw[..eq].strip_suffix('+').unwrap_or(&raw[..eq]);
+    let mut chars = name.chars();
+    matches!(chars.next(), Some(c) if c.is_ascii_alphabetic() || c == '_')
+        && chars.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
 /// True when `words[idx]` should be scanned for unquoted command
 /// substitutions: its role is reportable, unless it is the `case … in`
 /// exception carved out of `CommandName` by [`is_case_operand`].
@@ -173,7 +187,18 @@ fn is_reportable(words: &[ShellWord], idx: usize) -> bool {
 fn scan_line(line: &str) -> Vec<Offence> {
     let mut offences: Vec<Offence> = Vec::new();
     for cmd in shell_words::simple_commands(line) {
+        let head = cmd.words.first().map(|w| w.literal.as_str()).unwrap_or("");
+        // `[[ … ]]` never word-splits its operands.
+        if head == "[[" {
+            continue;
+        }
+        let decl = DECLARATION_BUILTINS.contains(&head);
         for (idx, word) in cmd.words.iter().enumerate() {
+            // `export A=$(cmd)`: declaration builtins take assignment
+            // arguments that are not word-split (shellcheck: no SC2046).
+            if decl && idx > 0 && is_assignment_arg(&word.raw) {
+                continue;
+            }
             if is_reportable(&cmd.words, idx) {
                 word_offences(word, &mut offences);
             }
@@ -224,6 +249,22 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2046");
         assert!(result.diagnostics[0].message.contains("Quote this"));
+    }
+
+    #[test]
+    fn test_sc2046_gh236_declaration_and_dbl_bracket_not_reported() {
+        for src in [
+            "export A=$(date)",
+            "local d=$(date)",
+            "readonly B+=$(date)",
+            "declare C=$(date)",
+            "[[ $(uname) == Linux ]]",
+            "[[ -n $(ls) ]] && :",
+        ] {
+            assert_eq!(check(src).diagnostics.len(), 0, "{src}");
+        }
+        assert_eq!(check("export $(date)").diagnostics.len(), 1);
+        assert_eq!(check("echo A=$(date)").diagnostics.len(), 1);
     }
 
     #[test]
