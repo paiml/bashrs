@@ -1,9 +1,9 @@
-// SC2259: Prefer [[ ]] over grep for simple string checks
+// SC2259: This redirection overrides piped input (`cmd | cmd2 < file`)
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
 static GREP_FOR_SUBSTRING: std::sync::LazyLock<Regex> =
-    std::sync::LazyLock::new(|| Regex::new(r"echo\s+[^|]+\|\s*grep\s+-q").unwrap());
+    std::sync::LazyLock::new(|| Regex::new(r"\|[^|;&<]*[^<\s]\s+<\s*[^\s<(]").unwrap());
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -17,7 +17,7 @@ pub fn check(source: &str) -> LintResult {
             let diagnostic = Diagnostic::new(
                 "SC2259",
                 Severity::Info,
-                "Consider using [[ $var == *substring* ]] instead of echo/grep for substring matching".to_string(),
+                "This redirection overrides piped input; the pipe is ignored".to_string(),
                 Span::new(line_num, 1, line_num, line.len() + 1),
             );
             result.add(diagnostic);
@@ -33,7 +33,7 @@ mod tests {
     fn test_sc2259_echo_grep() {
         assert_eq!(
             check(r#"echo "$var" | grep -q pattern"#).diagnostics.len(),
-            1
+            0
         );
     }
     #[test]
@@ -62,7 +62,7 @@ mod tests {
     }
     #[test]
     fn test_sc2259_echo_literal() {
-        assert_eq!(check(r#"echo "test" | grep -q foo"#).diagnostics.len(), 1);
+        assert_eq!(check(r#"echo "test" | grep -q foo"#).diagnostics.len(), 0);
     }
     #[test]
     fn test_sc2259_case_ok() {
@@ -71,5 +71,18 @@ mod tests {
     #[test]
     fn test_sc2259_regex_ok() {
         assert_eq!(check(r#"[[ "$x" =~ pattern ]]"#).diagnostics.len(), 0);
+    }
+}
+
+#[cfg(test)]
+mod redirect_override_tests {
+    use super::*;
+    #[test]
+    fn test_sc2259_pipe_then_input_redirect_fires() {
+        assert_eq!(check("echo x | grep -q a < file").diagnostics.len(), 1);
+    }
+    #[test]
+    fn test_sc2259_pipe_without_redirect_ok() {
+        assert_eq!(check(r#"echo "$x" | grep -q a"#).diagnostics.len(), 0);
     }
 }
