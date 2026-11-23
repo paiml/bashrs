@@ -287,3 +287,7 @@ mod tests_gh376;
 #[cfg(test)]
 #[path = "det002_tests_gh360.rs"]
 mod tests_gh360;
+
+#[cfg(test)]
+#[path = "det002_tests_gh336.rs"]
+mod tests_gh336;

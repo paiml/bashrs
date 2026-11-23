@@ -949,9 +949,48 @@ fn is_build_id_name(name: &str) -> bool {
 // Line classification helpers
 // ---------------------------------------------------------------------------
 
-/// Reading `SOURCE_DATE_EPOCH` is DET002's own remedy, so the line is exempt.
+/// Reading `SOURCE_DATE_EPOCH` is DET002's own remedy, so the line is exempt,
+/// unless the read's default (`${SOURCE_DATE_EPOCH:-...}`) is itself the wall
+/// clock: with the variable unset that is as non-reproducible as a bare `date`
+/// (GH-336).
 fn adopts_source_date_epoch(line: &str) -> bool {
-    line.contains("SOURCE_DATE_EPOCH")
+    let Some(pos) = line.find("SOURCE_DATE_EPOCH") else {
+        return false;
+    };
+    let rest = &line[pos + "SOURCE_DATE_EPOCH".len()..];
+    let Some(default) = rest.strip_prefix(":-").or_else(|| rest.strip_prefix(":=")) else {
+        return true;
+    };
+    !default_is_wall_clock(default)
+}
+
+/// Does the default text (up to the closing `}` of the expansion) run a bare
+/// `date`? A `date -d`/`--date`/`-r` call converts a given value and is not
+/// the wall clock.
+fn default_is_wall_clock(default: &str) -> bool {
+    let mut depth = 0usize;
+    let mut end = default.len();
+    for (i, c) in default.char_indices() {
+        match c {
+            '{' => depth += 1,
+            '}' if depth == 0 => {
+                end = i;
+                break;
+            }
+            '}' => depth -= 1,
+            _ => {}
+        }
+    }
+    let body = &default[..end];
+    body.match_indices("date").any(|(i, _)| {
+        let before_ok = i == 0
+            || !body[..i]
+                .ends_with(|c: char| c.is_alphanumeric() || c == '_' || c == '-' || c == '/');
+        let after = &body[i + 4..];
+        let after_ok = after.is_empty() || after.starts_with([' ', ')', '`', ';']);
+        let converts = after.contains(" -d") || after.contains("--date") || after.contains(" -r");
+        before_ok && after_ok && !converts
+    })
 }
 
 /// Is there an intentional-timestamp marker in this line's *comment*?
