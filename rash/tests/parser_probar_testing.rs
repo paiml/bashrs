@@ -14,9 +14,10 @@
 
 use bashrs::bash_parser::ast::BashAst;
 use bashrs::bash_parser::parser::BashParser;
-use jugar_probar::gui_coverage;
-use jugar_probar::tui::{expect_frame, FrameSequence, SnapshotManager, TuiFrame, TuiSnapshot};
-use jugar_probar::ux_coverage::{InteractionType, StateId, UxCoverageBuilder};
+#[macro_use]
+mod tui_shim;
+use tui_shim::{expect_frame, FrameSequence, TuiFrame, TuiSnapshot};
+use tui_shim::{SnapshotManager, UxCoverageBuilder};
 
 // ============================================================================
 // PARSER RESULT WRAPPER
@@ -94,17 +95,11 @@ fn parser_frame(input: &str, result: &ParserResult) -> TuiFrame {
 fn parse_with_coverage(
     input: &str,
     feature: &str,
-    tracker: &mut jugar_probar::ux_coverage::UxCoverageTracker,
+    tracker: &mut tui_shim::UxCoverageTracker,
 ) -> ParserResult {
     let result = ParserResult::from_parse(input);
-    tracker.record_interaction(
-        &jugar_probar::ux_coverage::ElementId::new("parser", feature),
-        InteractionType::Click,
-    );
-    tracker.record_state(StateId::new(
-        "state",
-        if result.is_ok() { "parsed" } else { "error" },
-    ));
+    tracker.record_click("parser", feature);
+    tracker.record_state(if result.is_ok() { "parsed" } else { "error" });
     result
 }
 

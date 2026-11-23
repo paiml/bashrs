@@ -8,7 +8,8 @@
 #![allow(clippy::unwrap_used)]
 
 use bashrs::linter::rules::lint_shell;
-use jugar_probar::gui_coverage;
+#[macro_use]
+mod tui_shim;
 use std::panic::{self, AssertUnwindSafe};
 
 /// Helper: Run lint without panicking

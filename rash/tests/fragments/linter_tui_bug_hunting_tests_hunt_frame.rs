@@ -143,14 +143,7 @@ fn hunt_pixel_alignment() {
                 let lines = frame.lines();
 
                 // Check vertical alignment - all ║ chars should be at same columns
-                let mut pipe_positions: HashMap<usize, Vec<usize>> = HashMap::new();
-                for (row, line) in lines.iter().enumerate() {
-                    for (col, ch) in line.chars().enumerate() {
-                        if ch == '║' {
-                            pipe_positions.entry(col).or_default().push(row);
-                        }
-                    }
-                }
+                let pipe_positions = pipe_positions(lines);
 
                 // Find columns with most pipes - those are the alignment columns
                 // Note: Rows 0, 2, 6, 9 have box corners (╔╠╚) not pipes, so we expect
@@ -363,3 +356,16 @@ fn hunt_frame_assertions() {
 // ============================================================================
 
 include!("linter_tui_bug_hunting_hunt.rs");
+
+/// Map each column holding a box-drawing pipe to the rows that have one there.
+fn pipe_positions(lines: &[String]) -> HashMap<usize, Vec<usize>> {
+    let mut positions: HashMap<usize, Vec<usize>> = HashMap::new();
+    for (row, line) in lines.iter().enumerate() {
+        for (col, ch) in line.chars().enumerate() {
+            if ch == '║' {
+                positions.entry(col).or_default().push(row);
+            }
+        }
+    }
+    positions
+}

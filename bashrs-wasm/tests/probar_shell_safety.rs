@@ -10,7 +10,6 @@
 //!   C-PRB-003: Layer 3 (performance): linter <10ms budget
 //!   C-PRB-007: Determinism: repeated calls produce identical results
 
-use jugar_probar::Assertion;
 use std::time::{Duration, Instant};
 
 // Re-export WASM functions for native testing (rlib target)
@@ -84,8 +83,8 @@ fn test_prb001_classifier_wasm_safe_detection() {
     let parsed: serde_json::Value = serde_json::from_str(&result).expect("valid JSON");
     assert_eq!(parsed["label"], "safe");
     let confidence = parsed["confidence"].as_f64().expect("confidence");
-    let assertion = Assertion::in_range(confidence, 10.0, 95.0);
-    assert!(assertion.passed, "Confidence must be in [10.0, 95.0]");
+    let assertion_passed = (10.0..=95.0).contains(&confidence);
+    assert!(assertion_passed, "Confidence must be in [10.0, 95.0]");
 }
 
 #[test]
@@ -113,9 +112,9 @@ fn test_prb001_classifier_wasm_classification_output() {
 
     // Verify confidence in valid range
     let confidence = parsed["confidence"].as_f64().expect("confidence");
-    let range_check = Assertion::in_range(confidence, 10.0, 95.0);
+    let range_check = (10.0..=95.0).contains(&confidence);
     assert!(
-        range_check.passed,
+        range_check,
         "Confidence {confidence} must be in [10.0, 95.0]"
     );
 
