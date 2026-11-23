@@ -22,12 +22,29 @@
 
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 
+/// Column of `$RANDOM` in the code part of `line`, ignoring comment text.
+fn find_random_outside_comment(line: &str) -> Option<usize> {
+    let (mut sq, mut dq) = (false, false);
+    let mut prev = None;
+    for (i, c) in line.char_indices() {
+        match c {
+            '\'' if !dq => sq = !sq,
+            '"' if !sq => dq = !dq,
+            '#' if !sq && !dq && prev.is_none_or(|p: char| p.is_whitespace() || p == ';') => return None,
+            '$' if line[i..].starts_with("$RANDOM") => return Some(i),
+            _ => {}
+        }
+        prev = Some(c);
+    }
+    None
+}
+
 /// Check for $RANDOM usage in shell script
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
-        if let Some(col) = line.find("$RANDOM") {
+        if let Some(col) = find_random_outside_comment(line) {
             let span = Span::new(
                 line_num + 1, // start_line
                 col + 1,      // start_col
@@ -95,6 +112,15 @@ mod tests {
         let result = check(script);
 
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_DET001_ignores_random_in_comment_535() {
+        assert_eq!(check("# uses $RANDOM here").diagnostics.len(), 0);
+        assert_eq!(check("  # $RANDOM").diagnostics.len(), 0);
+        assert_eq!(check("echo hi # $RANDOM is bad").diagnostics.len(), 0);
+        assert_eq!(check("echo \"#\" $RANDOM").diagnostics.len(), 1);
+        assert_eq!(check("X=$RANDOM # note").diagnostics.len(), 1);
     }
 
     #[test]
