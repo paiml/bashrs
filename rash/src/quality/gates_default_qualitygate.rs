@@ -337,6 +337,15 @@ impl QualityGate {
     }
 
     fn run_security_gate(&self) -> (bool, String, HashMap<String, f64>, Vec<GateViolation>) {
+        self.run_security_gate_with(&security_cargo())
+    }
+
+    /// Test seam (#542): `cargo` names the binary used for `cargo audit`.
+    /// The product path passes `"cargo"` unchanged.
+    fn run_security_gate_with(
+        &self,
+        cargo: &str,
+    ) -> (bool, String, HashMap<String, f64>, Vec<GateViolation>) {
         if !self.config.gates.security.enabled {
             return (
                 true,
@@ -347,7 +356,7 @@ impl QualityGate {
         }
 
         // Run cargo audit
-        let output = Command::new("cargo").args(["audit"]).output();
+        let output = Command::new(cargo).args(["audit"]).output();
 
         match output {
             Ok(output) => {
