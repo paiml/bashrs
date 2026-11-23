@@ -57,27 +57,13 @@ fi
 SHELL_FENCES="bash sh shell console "
 EXTRACT="$(mktemp)"
 trap 'rm -f "$EXTRACT"' EXIT
-python3 - "$EXTRACT" <<'PY'
-import re, sys
-out_path = sys.argv[1]
-inside, lang = False, ""
-rows = []
-for lineno, raw in enumerate(open("README.md", encoding="utf-8").read().splitlines(), 1):
-    if raw.startswith("```"):
-        inside, lang = (not inside), (raw[3:].strip() if not inside else "")
-        continue
-    if not inside:
-        continue
-    if lang not in ("bash", "sh", "shell", "console", ""):
-        continue
-    text = re.sub(r"^\$\s+", "", raw.strip())
-    if re.match(r"^bashrs(\s|$)", text):
-        rows.append(f"{lineno}\t{text}")
-with open(out_path, "w", encoding="utf-8") as fh:
-    fh.write("\n".join(rows))
-    if rows:
-        fh.write("\n")
-PY
+awk '
+/^```/ { if (!inside) { inside=1; lang=substr($0,4); gsub(/^[ \t]+|[ \t]+$/,"",lang) } else { inside=0; lang="" } next }
+!inside { next }
+lang!="bash" && lang!="sh" && lang!="shell" && lang!="console" && lang!="" { next }
+{ t=$0; gsub(/^[ \t]+|[ \t]+$/,"",t); sub(/^\$[ \t]+/,"",t)
+  if (t ~ /^bashrs([ \t]|$)/) printf "%d\t%s\n", NR, t }
+' README.md > "$EXTRACT"
 
 n_inv="$(grep -c . "$EXTRACT" || true)"
 # Vacuity floor: today's count of fenced `bashrs` invocations in README.md. A
