@@ -25,6 +25,11 @@ static EXEC_COMMAND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"^\s*exec\s+\w+").unwrap()
 });
 
+static EXEC_REDIRECT_ONLY: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    #[allow(clippy::unwrap_used)]
+    Regex::new(r"^\s*exec\s+(?:\d*[<>&]\S*\s*)+(?:#.*)?$").unwrap()
+});
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let lines: Vec<&str> = source.lines().collect();
@@ -38,6 +43,10 @@ pub fn check(source: &str) -> LintResult {
 
         // Check if line has exec
         if let Some(mat) = EXEC_COMMAND.find(line) {
+            // `exec 3>&1`, `exec <&3`: only redirections, shell is not replaced
+            if EXEC_REDIRECT_ONLY.is_match(line) {
+                continue;
+            }
             // Check if there are more non-comment lines after this
             let has_code_after = lines[idx + 1..]
                 .iter()
@@ -107,6 +116,18 @@ echo "done"
         let result = check(code);
         // No exec
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2093_exec_fd_redirect_only_ok() {
+        for code in [
+            "exec 3>&1\necho hi >&3\n",
+            "exec 2>/dev/null\necho hi\n",
+            "exec 3<file\necho hi\n",
+            "exec <&3\necho hi\n",
+        ] {
+            assert_eq!(check(code).diagnostics.len(), 0, "{code:?}");
+        }
     }
 
     #[test]
