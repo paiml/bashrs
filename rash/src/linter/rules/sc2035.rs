@@ -72,21 +72,39 @@ fn is_inside_quotes(line: &str, pos: usize) -> bool {
     quote_count % 2 == 1
 }
 
-/// True when the glob sits in the word list of `for NAME in ...` (no command
-/// separator between the `in` and the glob).
-fn is_in_for_list(line: &str, pos: usize) -> bool {
-    let before = &line[..pos];
-    match before.rfind("for ") {
-        Some(i) => {
-            let rest = &before[i + 4..];
-            let mut it = rest.splitn(3, char::is_whitespace);
-            let name_ok = it.next().is_some_and(|n| !n.is_empty());
-            let in_ok = it.next() == Some("in");
-            let tail = it.next().unwrap_or("");
-            name_ok && in_ok && !tail.contains([';', '|', '&', '\n'])
+/// Text of the command that contains the end of `before`: everything after the
+/// last unquoted command boundary (`;` `&` `|` newline `(` backtick). Opening
+/// `$(` or a backtick is a boundary, so a command substitution inside a `for`
+/// list starts a fresh command and is never mistaken for the list itself.
+fn current_command(before: &str) -> &str {
+    let mut start = 0;
+    let mut quote: Option<char> = None;
+    let mut escaped = false;
+    for (i, c) in before.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
         }
-        None => false,
+        match (quote, c) {
+            (None | Some('"'), '\\') => escaped = true,
+            (Some(q), _) if c == q => quote = None,
+            (Some(_), _) => {}
+            (None, '"' | '\'') => quote = Some(c),
+            (None, ';' | '&' | '|' | '\n' | '(' | '`') => start = i + c.len_utf8(),
+            _ => {}
+        }
     }
+    &before[start..]
+}
+
+/// True when the glob sits in the word list of `for NAME in ...`: the current
+/// command starts with the whole word `for` (after optional `do`/`then`/...
+/// keywords), followed by a name and `in`. Any run of blanks separates words.
+fn is_in_for_list(line: &str, pos: usize) -> bool {
+    let mut words = current_command(&line[..pos])
+        .split_whitespace()
+        .skip_while(|w| matches!(*w, "do" | "then" | "else" | "elif" | "{" | "!"));
+    words.next() == Some("for") && words.next().is_some() && words.next() == Some("in")
 }
 
 /// Issue #96: Check if glob position is inside a quoted find -name/-iname/-path argument
@@ -266,5 +284,59 @@ mod for_list_glob_tests {
     fn test_sc2035_glob_after_for_list_still_flagged() {
         let code = "for f in a b; do rm *.txt; done";
         assert_eq!(check(code).diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2035_for_word_in_args_still_flagged() {
+        assert_eq!(check("rm for x in *.txt").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2035_cmd_subst_in_for_list_still_flagged() {
+        assert_eq!(
+            check("for f in $(rm *.txt); do echo \"$f\"; done")
+                .diagnostics
+                .len(),
+            1
+        );
+        assert_eq!(
+            check("for f in `rm *.txt`; do echo \"$f\"; done")
+                .diagnostics
+                .len(),
+            1
+        );
+    }
+
+    #[test]
+    fn test_sc2035_for_extra_whitespace_not_flagged() {
+        assert_eq!(
+            check("for  f in *.txt; do echo \"$f\"; done")
+                .diagnostics
+                .len(),
+            0
+        );
+        assert_eq!(
+            check("for f  in *.txt; do echo \"$f\"; done")
+                .diagnostics
+                .len(),
+            0
+        );
+        assert_eq!(
+            check("for\tf\tin\t*.txt; do echo \"$f\"; done")
+                .diagnostics
+                .len(),
+            0
+        );
+    }
+
+    #[test]
+    fn test_sc2035_for_after_separator_not_flagged() {
+        assert_eq!(
+            check("true && for f in *.txt; do echo \"$f\"; done")
+                .diagnostics
+                .len(),
+            0
+        );
+        assert_eq!(check("do for f in *.txt; do :; done").diagnostics.len(), 0);
     }
 }
