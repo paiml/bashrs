@@ -98,6 +98,20 @@ struct Offence {
     backtick: bool,
 }
 
+/// True for `$(seq …)` / `` `seq …` ``: shellcheck never reports SC2046 on a
+/// `seq` substitution (its output is numeric words, safe to split; GH-236).
+fn is_seq_substitution(text: &str) -> bool {
+    let inner = text
+        .strip_prefix("$(")
+        .and_then(|s| s.strip_suffix(')'))
+        .or_else(|| text.strip_prefix('`').and_then(|s| s.strip_suffix('`')))
+        .unwrap_or("");
+    inner
+        .trim_start()
+        .strip_prefix("seq")
+        .is_some_and(|rest| rest.starts_with(char::is_whitespace))
+}
+
 /// Command-substitution markers on a reportable word, filtered to the
 /// unquoted ones. `shell_words` (PMAT-250) already excludes `$((...))`
 /// arithmetic expansion from ever producing a marker, and already resets
@@ -110,6 +124,9 @@ struct Offence {
 fn word_offences(word: &ShellWord, out: &mut Vec<Offence>) {
     for sub in &word.substitutions {
         if sub.quoted {
+            continue;
+        }
+        if is_seq_substitution(&sub.text) {
             continue;
         }
         let backtick = matches!(
@@ -265,6 +282,24 @@ mod tests {
         }
         assert_eq!(check("export $(date)").diagnostics.len(), 1);
         assert_eq!(check("echo A=$(date)").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2046_gh236_seq_not_reported() {
+        for src in [
+            "for i in $(seq 1 10); do echo \"$i\"; done",
+            "echo $(seq 1 3)",
+            "for i in `seq 1 $n`; do :; done",
+        ] {
+            assert_eq!(check(src).diagnostics.len(), 0, "{src}");
+        }
+        assert_eq!(
+            check("for i in $(sequence 1); do :; done")
+                .diagnostics
+                .len(),
+            1
+        );
+        assert_eq!(check("for i in $(ls); do :; done").diagnostics.len(), 1);
     }
 
     #[test]
