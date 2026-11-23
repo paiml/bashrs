@@ -185,7 +185,7 @@ fn test_GH230_log_line_not_flagged() {
 
 #[test]
 fn test_GH230_source_date_epoch_clears() {
-    let script = "#!/bin/sh\nTIMESTAMP=\"$(date -u -d \"@${SOURCE_DATE_EPOCH:-$(date +%s)}\" +%Y%m%d 2>/dev/null || date +%Y%m%d)\"\ncp build.log \"out/report_$TIMESTAMP.log\"\n";
+    let script = "#!/bin/sh\nTIMESTAMP=\"$(date -u -d \"@${SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}\" +%Y%m%d 2>/dev/null || echo 19700101)\"\ncp build.log \"out/report_$TIMESTAMP.log\"\n";
     assert_eq!(count(script), 0, "DET002 must not fire on its own remedy");
 }
 
@@ -323,7 +323,7 @@ mod props {
         #[test]
         fn prop_GH230_source_date_epoch_always_clears(fmt in "[a-zA-Z%_:-]{1,12}") {
             let src = format!(
-                "D=\"$(date -u -d \"@${{SOURCE_DATE_EPOCH:-$(date +%s)}}\" +{fmt})\"\ncp a \"b_$D\"\n"
+                "D=\"$(date -u -d \"@${{SOURCE_DATE_EPOCH:-$(git log -1 --format=%ct)}}\" +{fmt})\"\ncp a \"b_$D\"\n"
             );
             prop_assert_eq!(count(&src), 0);
         }
