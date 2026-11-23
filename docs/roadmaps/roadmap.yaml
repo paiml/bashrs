@@ -3403,11 +3403,11 @@ roadmap:
   github_issue: 527
   item_type: task
   title: 'binary-release gnu legs need a glibc 2.31 floor (v7.4.3 gnu assets need GLIBC_2.39)'
-  status: planned
+  status: completed
   priority: high
   assigned_to: null
   created: 2026-11-15T18:15:00Z
-  updated: 2026-11-15T18:15:00Z
+  updated: 2026-11-23T09:00:00Z
   spec: null
   acceptance_criteria: []
   phases: []
@@ -3415,5 +3415,25 @@ roadmap:
   estimated_effort: null
   labels:
   - kind:code
+  - release:v7.4.5
   notes: null
   epic: 764
+- id: PMAT-551
+  github_issue: 551
+  item_type: task
+  title: 'release: cut v7.4.5 (patch; merged PRs since v7.4.4)'
+  status: inprogress
+  priority: high
+  assigned_to: null
+  created: 2026-11-23T09:00:00Z
+  updated: 2026-11-23T09:00:00Z
+  spec: null
+  acceptance_criteria:
+  - 'CHANGELOG [7.4.5] and docs/release-notes.md v7.4.5 section list the merged PRs since v7.4.4'
+  phases: []
+  subtasks: []
+  estimated_effort: null
+  labels:
+  - kind:docs
+  - release:v7.4.5
+  notes: 'parent #377'
