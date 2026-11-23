@@ -12,8 +12,8 @@ fn test_should_skip_line_comment() {
 fn test_should_skip_line_assignment() {
     // Only skips if there's a space after the assignment
     assert!(should_skip_line("FOO=bar baz")); // assignment before space
-                                              // No space = no skip (simple assignment handled elsewhere)
-    assert!(!should_skip_line("VAR=value"));
+                                              // A bare single-word assignment is also skipped (X=$RANDOM)
+    assert!(should_skip_line("VAR=value"));
 }
 
 #[test]
@@ -37,8 +37,8 @@ fn test_should_skip_line_equals_after_space() {
 
 #[test]
 fn test_should_skip_line_no_space() {
-    // No space at all - simple assignment, but no space makes it not skip
-    assert!(!should_skip_line("VAR=value"));
+    // No space at all - a simple assignment is skipped
+    assert!(should_skip_line("VAR=value"));
 }
 
 // ===== FIND DOLLAR POSITION =====

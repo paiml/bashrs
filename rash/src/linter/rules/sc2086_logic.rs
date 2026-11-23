@@ -12,18 +12,52 @@ pub fn should_skip_line(line: &str) -> bool {
         return true;
     }
 
-    // Skip variable assignments (VAR=value)
-    if line.contains('=') && !line.contains("if [") && !line.contains("[ ") {
-        if let Some(eq_pos) = line.find('=') {
-            if let Some(first_space) = line.find(' ') {
-                if eq_pos < first_space {
-                    return true; // Assignment, not command
-                }
-            }
-        }
+    // Skip assignments: keyword form, bare single word, or NAME=value before a space
+    if is_keyword_assignment(line) || is_bare_assignment_word(line) || is_prefix_assignment(line) {
+        return true;
     }
 
     false
+}
+
+/// `VAR=value rest` where `=` precedes the first space (not a test expression).
+fn is_prefix_assignment(line: &str) -> bool {
+    if line.contains("if [") || line.contains("[ ") {
+        return false;
+    }
+    match (line.find('='), line.find(' ')) {
+        (Some(eq), Some(sp)) => eq < sp,
+        _ => false,
+    }
+}
+
+/// True if the line is a single `NAME=value` word (e.g. `X=$RANDOM`).
+fn is_bare_assignment_word(line: &str) -> bool {
+    let t = line.trim();
+    is_assign_word(t) && !t.contains(char::is_whitespace)
+}
+
+/// True if `w` starts with `NAME=`.
+fn is_assign_word(w: &str) -> bool {
+    let Some(p) = w.find('=').filter(|&p| p > 0) else {
+        return false;
+    };
+    let mut cs = w[..p].chars();
+    cs.next()
+        .is_some_and(|c| c.is_ascii_alphabetic() || c == '_')
+        && cs.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// True for `local|export|readonly|declare [-flags] NAME=value` lines.
+fn is_keyword_assignment(line: &str) -> bool {
+    let mut words = line.split_whitespace();
+    let kw = matches!(
+        words.next(),
+        Some("local" | "export" | "readonly" | "declare" | "typeset")
+    );
+    kw && words
+        .find(|w| !w.starts_with('-'))
+        .is_some_and(is_assign_word)
 }
 
 /// Find the position of $ character before a variable
@@ -214,6 +248,13 @@ pub fn get_var_pattern() -> Regex {
     Regex::new(r#"(?m)(?P<pre>[^"']|^)\$(?:\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<simple>[A-Za-z_][A-Za-z0-9_]*))"#).unwrap()
 }
 
+/// True if the variable sits in a context where SC2086 does not apply.
+fn is_exempt_context(line: &str, dollar_pos: usize, var_end: usize, is_arithmetic: bool) -> bool {
+    (is_arithmetic && is_in_arithmetic_context(line, dollar_pos, var_end))
+        || is_already_quoted(line, dollar_pos, var_end)
+        || is_in_double_bracket_context(line, dollar_pos, var_end)
+}
+
 /// Find unquoted variables in a line
 pub fn find_unquoted_vars(
     line: &str,
@@ -237,16 +278,10 @@ pub fn find_unquoted_vars(
         let is_braced = cap.name("brace").is_some();
         let end_col = calculate_end_column(line, var_capture.end(), is_braced);
 
-        if is_arithmetic && is_in_arithmetic_context(line, dollar_pos, var_capture.end()) {
-            continue;
-        }
-        if is_already_quoted(line, dollar_pos, var_capture.end()) {
-            continue;
-        }
-        if is_in_double_bracket_context(line, dollar_pos, var_capture.end()) {
-            continue;
-        }
-        if cstyle_vars.contains(var_name) {
+        let var_end = var_capture.end();
+        if is_exempt_context(line, dollar_pos, var_end, is_arithmetic)
+            || cstyle_vars.contains(var_name)
+        {
             continue;
         }
 
