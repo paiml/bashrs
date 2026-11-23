@@ -235,7 +235,7 @@ impl SimulatedTraceCollector {
         let duration_ms = self.elapsed_ns() / 1_000_000;
         GoldenTrace {
             name: name.to_string(),
-            captured_at: chrono::Utc::now().to_rfc3339(),
+            captured_at: crate::clock::utc_rfc3339(),
             installer_version: version.to_string(),
             events: self.events,
             result_hash: String::new(),

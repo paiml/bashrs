@@ -70,7 +70,7 @@ fn generate_run_id() -> String {
 }
 
 fn current_timestamp() -> String {
-    chrono::Utc::now().to_rfc3339()
+    crate::clock::utc_rfc3339()
 }
 
 fn detect_environment() -> EnvironmentInfo {

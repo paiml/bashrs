@@ -14,6 +14,8 @@ fn main() {
     // Allow kani cfg for verification
     println!("cargo::rustc-check-cfg=cfg(kani)");
 
+    emit_git_commit();
+
     // ── provable-contracts binding enforcement (AllImplemented) ──
     let binding_path = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -126,4 +128,38 @@ fn pub_fn_name(line: &str) -> Option<String> {
         .trim()
         .to_lowercase();
     (!name.is_empty()).then_some(name)
+}
+
+/// Embed the build commit as `BASHRS_GIT_COMMIT` (issue #393).
+///
+/// Order: `GIT_COMMIT` env, then `git rev-parse HEAD`. With neither, the value
+/// is `unknown`, unless `BASHRS_REQUIRE_COMMIT=1` (release builds), which fails.
+fn emit_git_commit() {
+    println!("cargo:rerun-if-env-changed=GIT_COMMIT");
+    println!("cargo:rerun-if-env-changed=BASHRS_REQUIRE_COMMIT");
+    let manifest = env!("CARGO_MANIFEST_DIR");
+    for rel in ["../.git/HEAD", "../.git/refs/heads"] {
+        println!("cargo:rerun-if-changed={manifest}/{rel}");
+    }
+    let from_env = std::env::var("GIT_COMMIT").ok();
+    let from_git = || {
+        std::process::Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .current_dir(manifest)
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .and_then(|o| String::from_utf8(o.stdout).ok())
+    };
+    let sha = from_env
+        .or_else(from_git)
+        .map(|s| s.trim().to_string())
+        .filter(|s| s.len() >= 7 && s.chars().all(|c| c.is_ascii_hexdigit()));
+    match sha {
+        Some(s) => println!("cargo:rustc-env=BASHRS_GIT_COMMIT={s}"),
+        None if std::env::var("BASHRS_REQUIRE_COMMIT").as_deref() == Ok("1") => {
+            panic!("BASHRS_REQUIRE_COMMIT=1 but no git commit found (set GIT_COMMIT)")
+        }
+        None => println!("cargo:rustc-env=BASHRS_GIT_COMMIT=unknown"),
+    }
 }

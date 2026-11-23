@@ -106,7 +106,7 @@ pub fn capture_golden_trace(
         file_operations: vec![], // TODO: Parse from detailed JSON
         total_syscalls: 0,       // TODO: Calculate from summary
         renacer_version: "0.6.2".to_string(),
-        captured_at: chrono::Utc::now().to_rfc3339(),
+        captured_at: bashrs::clock::utc_rfc3339(),
     };
 
     // Save golden trace

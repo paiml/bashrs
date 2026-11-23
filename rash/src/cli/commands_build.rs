@@ -241,7 +241,7 @@ fn generate_proof(source: &str, proof_path: &Path, config: &Config) -> Result<()
         blake3::hash(source.as_bytes()),
         config.verify,
         config.target,
-        chrono::Utc::now().to_rfc3339()
+        crate::clock::utc_rfc3339()
     );
 
     fs::write(proof_path, proof).map_err(Error::Io)?;

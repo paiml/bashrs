@@ -138,7 +138,7 @@ impl CitlExport {
         Self {
             version: "1.0.0".to_string(),
             source_file: source_file.to_string(),
-            timestamp: chrono::Utc::now().timestamp(),
+            timestamp: crate::clock::unix_timestamp(),
             tool: "bashrs".to_string(),
             tool_version: env!("CARGO_PKG_VERSION").to_string(),
             diagnostics,

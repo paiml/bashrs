@@ -1,4 +1,3 @@
-use chrono::Utc;
 use std::fs;
 use std::path::Path;
 
@@ -85,7 +84,7 @@ Generated: {}
 2. Add more integration tests (Priority: Low)
 3. Document complex algorithms (Priority: Low)
 ",
-        Utc::now().to_rfc3339(),
+        bashrs::clock::utc_rfc3339(),
         count_lines_of_code(),
         count_files(),
         count_tests()
