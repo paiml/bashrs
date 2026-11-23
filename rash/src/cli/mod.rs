@@ -17,6 +17,7 @@ pub mod dockerfile_profile_commands;
 pub mod dockerfile_validate_commands;
 pub mod installer_commands;
 pub mod logic;
+pub mod update_check;
 
 #[cfg(test)]
 mod tests;

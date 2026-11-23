@@ -300,6 +300,13 @@ pub enum Commands {
         command: CorpusCommands,
     },
 
+    /// Check for a newer bashrs release (`update --check`; install not yet implemented)
+    Update {
+        /// Report current vs latest release without installing
+        #[arg(long)]
+        check: bool,
+    },
+
     /// Shell configuration file management (NEW in v7.0)
     Config {
         #[command(subcommand)]
