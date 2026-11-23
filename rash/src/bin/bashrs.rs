@@ -6,8 +6,13 @@ use std::process;
 
 fn main() {
     let cli = Cli::parse();
+    let is_update = matches!(std::env::args().nth(1).as_deref(), Some("update"));
 
-    if let Err(error) = execute_command(cli) {
+    let result = execute_command(cli);
+    if result.is_ok() && !is_update {
+        bashrs::cli::update_check::maybe_print_startup_notice();
+    }
+    if let Err(error) = result {
         // CommandFailed errors already have fully formatted output (e.g. parse diagnostics)
         if let bashrs::models::Error::CommandFailed { message } = &error {
             eprintln!("{message}");

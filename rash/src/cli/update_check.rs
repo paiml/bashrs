@@ -62,11 +62,15 @@ pub fn latest_from_json(body: &str) -> Result<String> {
 }
 
 fn fetch_latest_release() -> Result<String> {
+    fetch_latest_release_with_timeout("10")
+}
+
+fn fetch_latest_release_with_timeout(secs: &str) -> Result<String> {
     let out = Command::new("curl")
         .args([
             "-fsSL",
             "--max-time",
-            "10",
+            secs,
             "https://api.github.com/repos/paiml/bashrs/releases/latest",
         ])
         .output()
@@ -90,6 +94,76 @@ pub fn handle_update_command(check: bool) -> Result<()> {
     }
     println!("{}", check_with(CURRENT, fetch_latest_release)?);
     Ok(())
+}
+
+/// Inputs for the startup notice; all environment is injected so tests are hermetic.
+pub const STAMP_FILE: &str = "update-check-stamp";
+const NOTICE_INTERVAL_SECS: u64 = 86_400;
+
+pub struct NoticeCtx {
+    pub opted_out: bool,
+    pub is_tty: bool,
+    pub ci: bool,
+    pub cache_dir: Option<std::path::PathBuf>,
+    pub now_secs: u64,
+}
+
+pub fn startup_notice_with(
+    ctx: &NoticeCtx,
+    current: &str,
+    fetch: impl FnOnce() -> Result<String>,
+) -> Option<String> {
+    if ctx.opted_out || !ctx.is_tty || ctx.ci {
+        return None;
+    }
+    let stamp = ctx.cache_dir.as_ref()?.join(STAMP_FILE);
+    let last = std::fs::read_to_string(&stamp)
+        .ok()
+        .and_then(|s| s.trim().parse::<u64>().ok());
+    if let Some(t) = last {
+        if ctx.now_secs.saturating_sub(t) < NOTICE_INTERVAL_SECS {
+            return None;
+        }
+    }
+    // Stamp first so a failing or slow fetch is not retried on every command.
+    if let Some(dir) = stamp.parent() {
+        let _ = std::fs::create_dir_all(dir);
+    }
+    let _ = std::fs::write(&stamp, ctx.now_secs.to_string());
+    let status = compare(current, &fetch().ok()?).ok()?;
+    match status {
+        UpdateStatus::Available { .. } => Some(render(&status)),
+        UpdateStatus::UpToDate(_) => None,
+    }
+}
+
+/// Startup notice for real runs: honours BASHRS_NO_UPDATE_CHECK, CI, non-tty;
+/// cache under $XDG_CACHE_HOME or ~/.cache. Never fails or panics the command.
+pub fn maybe_print_startup_notice() {
+    use std::io::IsTerminal;
+    let cache_dir = std::env::var_os("XDG_CACHE_HOME")
+        .filter(|v| !v.is_empty())
+        .map(std::path::PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|h| std::path::PathBuf::from(h).join(".cache")))
+        .map(|p| p.join("bashrs"));
+    let now_secs = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let ctx = NoticeCtx {
+        opted_out: std::env::var_os("BASHRS_NO_UPDATE_CHECK").is_some(),
+        is_tty: std::io::stderr().is_terminal() && std::io::stdout().is_terminal(),
+        ci: std::env::var_os("CI").is_some(),
+        cache_dir,
+        now_secs,
+    };
+    if let Some(line) = startup_notice_with(&ctx, CURRENT, fetch_latest_release_quick) {
+        eprintln!("{line}");
+    }
+}
+
+fn fetch_latest_release_quick() -> Result<String> {
+    fetch_latest_release_with_timeout("3")
 }
 
 #[cfg(test)]
@@ -158,5 +232,72 @@ mod tests {
         );
         assert!(latest_from_json("{}").is_err());
         assert!(latest_from_json("nope").is_err());
+    }
+
+    fn ctx(dir: &std::path::Path, now: u64) -> NoticeCtx {
+        NoticeCtx {
+            opted_out: false,
+            is_tty: true,
+            ci: false,
+            cache_dir: Some(dir.to_path_buf()),
+            now_secs: now,
+        }
+    }
+
+    fn ok(v: &'static str) -> impl FnOnce() -> Result<String> {
+        move || Ok(v.to_string())
+    }
+
+    #[test]
+    fn notice_when_newer_then_silent_for_a_day() {
+        let d = tempfile::tempdir().unwrap();
+        let n = startup_notice_with(&ctx(d.path(), 1000), "1.0.0", ok("v1.1.0")).unwrap();
+        assert!(n.contains("1.1.0"));
+        let again = startup_notice_with(&ctx(d.path(), 1000 + 3600), "1.0.0", || {
+            panic!("must not fetch within a day")
+        });
+        assert!(again.is_none());
+        let next = startup_notice_with(&ctx(d.path(), 1000 + 86_400), "1.0.0", ok("v1.1.0"));
+        assert!(next.is_some());
+    }
+
+    #[test]
+    fn up_to_date_is_silent_but_stamped() {
+        let d = tempfile::tempdir().unwrap();
+        assert!(startup_notice_with(&ctx(d.path(), 5), "1.1.0", ok("v1.1.0")).is_none());
+        assert!(startup_notice_with(&ctx(d.path(), 6), "1.1.0", || panic!("fetched")).is_none());
+    }
+
+    #[test]
+    fn fetch_failure_is_silent_and_stamped() {
+        let d = tempfile::tempdir().unwrap();
+        let fail = || Err(Error::Validation("offline".into()));
+        assert!(startup_notice_with(&ctx(d.path(), 5), "1.0.0", fail).is_none());
+        assert!(startup_notice_with(&ctx(d.path(), 6), "1.0.0", || panic!("fetched")).is_none());
+    }
+
+    #[test]
+    fn opt_out_non_tty_ci_never_fetch() {
+        let d = tempfile::tempdir().unwrap();
+        for mutate in [
+            (|c: &mut NoticeCtx| c.opted_out = true) as fn(&mut NoticeCtx),
+            |c| c.is_tty = false,
+            |c| c.ci = true,
+        ] {
+            let mut c = ctx(d.path(), 1);
+            mutate(&mut c);
+            let r = startup_notice_with(&c, "1.0.0", || panic!("fetched"));
+            assert!(r.is_none());
+        }
+    }
+
+    #[test]
+    fn no_cache_dir_or_corrupt_stamp_never_fails() {
+        let mut c = ctx(std::path::Path::new("/nonexistent/x/y"), 9);
+        c.cache_dir = None;
+        assert!(startup_notice_with(&c, "1.0.0", ok("v2.0.0")).is_none());
+        let d = tempfile::tempdir().unwrap();
+        std::fs::write(d.path().join(STAMP_FILE), "garbage").unwrap();
+        assert!(startup_notice_with(&ctx(d.path(), 9), "1.0.0", ok("v2.0.0")).is_some());
     }
 }
