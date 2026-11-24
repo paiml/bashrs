@@ -728,8 +728,35 @@ fn cat_reads_stdin(rhs: &str) -> bool {
 /// `cat` only counts as a command when it opens the substitution or follows a
 /// control operator, never as an argument or path segment (`dirname /opt/cat`).
 fn cat_in_command_position(rhs: &str, pos: usize) -> bool {
-    let before = rhs[..pos].trim_end();
-    before.is_empty() || before.ends_with(['(', '`', '|', ';', '&', '{'])
+    let mut before = &rhs[..pos];
+    loop {
+        if before.trim_end_matches([' ', '\t']).ends_with('\n') {
+            return true;
+        }
+        before = before.trim_end();
+        if before.is_empty() || before.ends_with(['(', '`', '|', ';', '&', '{']) {
+            return true;
+        }
+        let word_start = before
+            .rfind(|c: char| c.is_whitespace() || "(`|;&{".contains(c))
+            .map_or(0, |i| i + 1);
+        if !is_prefix_word(&before[word_start..]) {
+            return false;
+        }
+        before = &before[..word_start];
+    }
+}
+
+/// Words that leave the next word in command position: `!`, compound-command
+/// keywords and `NAME=value` prefix assignments (`IFS= cat`).
+fn is_prefix_word(w: &str) -> bool {
+    if matches!(w, "!" | "then" | "do" | "else" | "elif" | "while" | "until") {
+        return true;
+    }
+    w.split_once('=').is_some_and(|(name, _)| {
+        name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+            && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    })
 }
 
 fn cat_args_read_stdin(after: &str) -> bool {
@@ -761,6 +788,8 @@ fn cat_arg_kind<'a>(t: &str, toks: &mut impl Iterator<Item = &'a str>) -> CatArg
         return CatArg::Stdin;
     }
     let rest = t.trim_start_matches(|c: char| c.is_ascii_digit());
+    // Only fd 0 (or no fd) redirects stdin; `3<file` leaves cat reading stdin.
+    let stdin_fd = rest.len() == t.len() || t[..t.len() - rest.len()].bytes().all(|b| b == b'0');
     let rest = rest
         .strip_prefix('&')
         .filter(|r| r.starts_with('>'))
@@ -769,18 +798,7 @@ fn cat_arg_kind<'a>(t: &str, toks: &mut impl Iterator<Item = &'a str>) -> CatArg
         return CatArg::Heredoc;
     }
     if let Some(r) = rest.strip_prefix('<') {
-        let fd_dup = r.starts_with('&');
-        let target = r.trim_start_matches('&');
-        let target = if target.is_empty() {
-            toks.next().unwrap_or("")
-        } else {
-            target
-        };
-        return match (fd_dup, target) {
-            (_, "/dev/stdin") | (true, "0") => CatArg::Stdin,
-            (true, _) => CatArg::Ignored,
-            _ => CatArg::Operand,
-        };
+        return cat_input_redirect(r, stdin_fd, toks);
     }
     if let Some(r) = rest.strip_prefix('>') {
         if r.trim_start_matches(['>', '&', '|']).is_empty() {
@@ -792,6 +810,30 @@ fn cat_arg_kind<'a>(t: &str, toks: &mut impl Iterator<Item = &'a str>) -> CatArg
         CatArg::Ignored
     } else {
         CatArg::Operand
+    }
+}
+
+/// `<` redirect (`r` is the text after it): only fd 0 can take stdin away
+/// from `cat`; the target is the rest of the word, else the next word.
+fn cat_input_redirect<'a>(
+    r: &str,
+    stdin_fd: bool,
+    toks: &mut impl Iterator<Item = &'a str>,
+) -> CatArg {
+    let fd_dup = r.starts_with('&');
+    let target = r.trim_start_matches('&');
+    let target = if target.is_empty() {
+        toks.next().unwrap_or("")
+    } else {
+        target
+    };
+    if !stdin_fd {
+        return CatArg::Ignored;
+    }
+    match (fd_dup, target) {
+        (_, "/dev/stdin") | (true, "0") => CatArg::Stdin,
+        (true, _) => CatArg::Ignored,
+        _ => CatArg::Operand,
     }
 }
 

@@ -196,3 +196,41 @@ fn test_GH336_cat_outside_command_position_is_not_stdin() {
         assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
     }
 }
+
+#[test]
+fn test_GH336_cat_nonzero_fd_input_redirect_still_reads_stdin() {
+    for src in [
+        "r=$(cat 3</dev/null)",
+        "r=$(cat 3<file.txt)",
+        "r=$(cat 3< file.txt)",
+        "r=$(cat 3<&0)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_stdin_in_extended_command_positions() {
+    for src in [
+        "r=$(! cat)",
+        "r=$(if true; then cat; fi)",
+        "r=$(if false; then echo x; else cat; fi)",
+        "r=$(if false; then echo x; elif true; then cat; fi)",
+        "r=$(while true; do cat; done)",
+        "r=$(until false; do cat; done)",
+        "r=$(IFS= cat)",
+        "r=$(A=1 B=2 cat)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_after_non_command_words_stays_silent() {
+    for src in ["r=$(echo then cat)", "r=$(echo FOO=1 cat)", "r=$(echo ! cat)"] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
+    }
+}
