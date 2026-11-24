@@ -55,6 +55,11 @@ pub fn check(source: &str) -> LintResult {
 
         for cap in pattern.captures_iter(line) {
             let full_match = cap.get(0).unwrap();
+            // Any `||` handler after the cd counts as handled (shellcheck parity, #587)
+            if line[full_match.end()..].contains("||") {
+                continue;
+            }
+
             let directory = cap.get(1).unwrap().as_str();
 
             let start_col = full_match.start() + 1;
@@ -155,5 +160,17 @@ mod tests {
         let script = "cd /tmp && ls";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    // Issue #587: any `||` handler after cd counts (shellcheck parity)
+    #[test]
+    fn test_sc2164_or_true_not_flagged() {
+        assert_eq!(check("cd /tmp || true").diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2164_or_brace_group_not_flagged() {
+        let script = "cd \"$d\" || { echo no; exit 1; }";
+        assert_eq!(check(script).diagnostics.len(), 0);
     }
 }
