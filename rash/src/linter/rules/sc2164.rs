@@ -34,17 +34,35 @@ use regex::Regex;
 static PATTERN: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\bcd\s+([^\s;&|]+)").unwrap());
 
-/// Byte offset of the cd that is the condition of if/elif/while/until or is
-/// negated with `!` (its exit status is tested, so shellcheck does not emit
-/// SC2164). Only that cd is exempt; later cds on the line are still checked.
+static COND_END: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"(?:^|[;\s])(?:then|do)(?:[;\s]|$)").unwrap());
+
+/// Offset of `cd` in a command segment (optionally `!`-negated), if it starts
+/// with `cd` plus whitespace. `base` is the segment's byte offset in the line.
+fn cd_start_in(seg: &str, base: usize) -> Option<usize> {
+    let lead = seg.len() - seg.trim_start().len();
+    let t = seg.trim_start();
+    let neg = t.strip_prefix('!').map_or(t, |r| r.trim_start());
+    let off = base + lead + (t.len() - neg.len());
+    let after = neg.strip_prefix("cd")?;
+    after.starts_with(char::is_whitespace).then_some(off)
+}
+
+/// Byte offset of the cd whose exit status is tested: the LAST command of the
+/// condition list of if/elif/while/until (optionally `!`-negated). Earlier
+/// commands in the list, and a standalone `! cd`, are still checked.
 fn condition_cd_offset(line: &str) -> Option<usize> {
     let t = line.trim_start();
-    ["if ", "elif ", "while ", "until ", "! "]
-        .iter()
-        .find_map(|kw| t.strip_prefix(kw))
-        .map(|r| r.trim_start().trim_start_matches("! "))
-        .filter(|r| r.starts_with("cd "))
-        .map(|r| line.len() - r.len())
+    let word_end = t.find(char::is_whitespace)?;
+    if !["if", "elif", "while", "until"].contains(&&t[..word_end]) {
+        return None;
+    }
+    let rest = &t[word_end..];
+    let base = line.len() - rest.len();
+    let end = COND_END.find(rest).map_or(rest.len(), |m| m.start());
+    let cond = rest[..end].trim_end_matches(|c: char| c == ';' || c.is_whitespace());
+    let last = cond.rfind(';').map_or(0, |i| i + 1);
+    cd_start_in(&cond[last..], base + last)
 }
 
 /// Whole-line skips: comments or inline handling.
@@ -190,7 +208,6 @@ mod tests {
             "until cd /z; do sleep 1; done",
             "if ! cd /q; then exit; fi",
             "elif cd /q; then :",
-            "! cd /q",
         ] {
             let result = check(script);
             assert_eq!(result.diagnostics.len(), 0, "false positive: {script}");
@@ -237,17 +254,63 @@ mod tests {
     }
 
     #[test]
-    fn test_sc2164_negated_condition_then_cd_flagged() {
-        let r = check("! cd /a; cd /b");
-        assert_eq!(r.diagnostics.len(), 1);
-        assert_eq!(
-            r.diagnostics[0].fix.as_ref().unwrap().replacement,
-            "cd /b || exit"
-        );
+    fn test_sc2164_condition_only_still_not_flagged() {
+        assert_eq!(check("if cd /a; then echo ok; fi").diagnostics.len(), 0);
+    }
+
+    fn count(s: &str) -> usize {
+        check(s).diagnostics.len()
+    }
+
+    // PR #590 re-review: shellcheck 0.8.0 flags standalone `! cd`
+    #[test]
+    fn test_sc2164_standalone_negated_cd_flagged() {
+        assert_eq!(count("! cd /q"), 1);
+        assert_eq!(count("! cd /q; echo oops"), 1);
+        assert_eq!(count("! cd /a; cd /b"), 2);
     }
 
     #[test]
-    fn test_sc2164_condition_only_still_not_flagged() {
-        assert_eq!(check("if cd /a; then echo ok; fi").diagnostics.len(), 0);
+    fn test_sc2164_negated_condition_exempt() {
+        for s in [
+            "if ! cd /q; then exit; fi",
+            "while ! cd /q; do sleep 1; done",
+            "until ! cd /q; do sleep 1; done",
+            "elif ! cd /q; then :",
+        ] {
+            assert_eq!(count(s), 0, "{s}");
+        }
+    }
+
+    // only the LAST command of the condition list is tested
+    #[test]
+    fn test_sc2164_condition_list_only_last_cd_exempt() {
+        assert_eq!(count("if cd /a; echo x; then echo ok; fi"), 1);
+        assert_eq!(count("while cd /a; echo x; do break; done"), 1);
+        let r = check("if cd /a; cd /b; then echo ok; fi");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert_eq!(
+            r.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "cd /a || exit"
+        );
+        assert_eq!(count("while cd /a; cd /b; do break; done"), 1);
+        assert_eq!(count("if echo x; cd /b; then echo ok; fi"), 0);
+    }
+
+    #[test]
+    fn test_sc2164_condition_whitespace_forms() {
+        for s in [
+            "if !  cd /q; then exit; fi",
+            "if cd\t/tmp; then echo a; fi",
+            "if\tcd /tmp; then echo a; fi",
+            "if   cd /tmp; then echo a; fi",
+            "  if cd /tmp; then echo a; fi",
+            "\tif ! cd /tmp; then echo a; fi",
+            "    while  cd /z; do break; done",
+        ] {
+            assert_eq!(count(s), 0, "false positive: {s:?}");
+        }
+        assert_eq!(count("  cd /tmp"), 1);
+        assert_eq!(count("  if true; then cd /w; fi"), 1);
     }
 }
