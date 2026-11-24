@@ -42,18 +42,24 @@ struct Lexer {
     words: Vec<String>,
     cur: String,
     in_word: bool,
+    /// The next word is a redirection target and is dropped.
+    skip_next: bool,
 }
 
 impl Lexer {
     fn flush_word(&mut self) {
         if self.in_word {
-            self.words.push(std::mem::take(&mut self.cur));
+            let w = std::mem::take(&mut self.cur);
+            if !std::mem::take(&mut self.skip_next) {
+                self.words.push(w);
+            }
             self.in_word = false;
         }
     }
 
     fn end_command(&mut self) {
         self.flush_word();
+        self.skip_next = false;
         if !self.words.is_empty() {
             self.cmds.push(std::mem::take(&mut self.words));
         }
@@ -62,6 +68,24 @@ impl Lexer {
     fn push_char(&mut self, c: char) {
         self.cur.push(c);
         self.in_word = true;
+    }
+
+    /// Unquoted `<` / `>`: drop an fd prefix (`2>`) and the target word.
+    fn redirect(&mut self) {
+        if self.in_word && self.cur.chars().all(|c| c.is_ascii_digit()) {
+            self.cur.clear();
+            self.in_word = false;
+        }
+        self.flush_word();
+        self.skip_next = true;
+    }
+
+    /// `&` / `|` / `;`: a separator, except as part of a redirection (`>&2`, `>|f`).
+    fn separator(&mut self, c: char) {
+        if self.skip_next && !self.in_word && (c == '&' || c == '|') {
+            return;
+        }
+        self.end_command();
     }
 }
 
@@ -82,8 +106,46 @@ fn lex_quoted(q: char, chars: &mut std::str::Chars<'_>, lx: &mut Lexer) {
     }
 }
 
+/// Copy a `$(...)` span (after the `$`) verbatim into the current word,
+/// honouring nesting and quotes, so inner words stay inside one word.
+fn lex_subst(chars: &mut std::str::Chars<'_>, lx: &mut Lexer) {
+    let mut depth = 0usize;
+    let mut quote: Option<char> = None;
+    while let Some(c) = chars.next() {
+        lx.cur.push(c);
+        match (quote, c) {
+            (_, '\\') if quote != Some('\'') => lx.cur.extend(chars.next()),
+            (Some(q), _) if c == q => quote = None,
+            (Some(_), _) => {}
+            (None, '\'' | '"') => quote = Some(c),
+            (None, '(') => depth += 1,
+            (None, ')') => {
+                depth -= 1;
+                if depth == 0 {
+                    return;
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Copy a backtick span (opening backtick already read) into the current word.
+fn lex_backtick(chars: &mut std::str::Chars<'_>, lx: &mut Lexer) {
+    lx.push_char('`');
+    while let Some(c) = chars.next() {
+        lx.cur.push(c);
+        if c == '\\' {
+            lx.cur.extend(chars.next());
+        } else if c == '`' {
+            return;
+        }
+    }
+}
+
 /// Split a line into simple commands, each a list of words with quotes
-/// removed. Stops at an unquoted `#` comment; splits at unquoted `;`, `&`, `|`.
+/// removed. Stops at an unquoted `#` comment; splits at unquoted `;`, `&`, `|`;
+/// keeps `$(...)` and backtick spans inside one word; drops redirections.
 fn split_commands(line: &str) -> Vec<Vec<String>> {
     let mut lx = Lexer::default();
     let mut chars = line.chars();
@@ -95,8 +157,14 @@ fn split_commands(line: &str) -> Vec<Vec<String>> {
                     lx.push_char(n);
                 }
             }
+            '$' if chars.clone().next() == Some('(') => {
+                lx.push_char('$');
+                lex_subst(&mut chars, &mut lx);
+            }
+            '`' => lex_backtick(&mut chars, &mut lx),
             '#' if !lx.in_word => break,
-            ';' | '&' | '|' => lx.end_command(),
+            '<' | '>' => lx.redirect(),
+            ';' | '&' | '|' => lx.separator(c),
             c if c.is_whitespace() => lx.flush_word(),
             _ => lx.push_char(c),
         }
@@ -105,26 +173,57 @@ fn split_commands(line: &str) -> Vec<Vec<String>> {
     lx.cmds
 }
 
+/// True if a leading option word (before `--` or the first operand) has `flag`.
 fn has_flag(args: &[String], flag: char) -> bool {
     args.iter()
-        .any(|w| w.starts_with('-') && !w.starts_with("--") && w.contains(flag))
+        .take_while(|w| w.starts_with('-') && w.as_str() != "--")
+        .any(|w| !w.starts_with("--") && w.contains(flag))
+}
+
+/// Index of the command word: skips `then`/`do`/`{`/`(`/`!` and `VAR=val` prefixes.
+fn command_start(cmd: &[String]) -> usize {
+    cmd.iter()
+        .position(|w| {
+            let w = w.trim_start_matches('(');
+            !(w.is_empty()
+                || matches!(
+                    w,
+                    "then" | "do" | "else" | "elif" | "if" | "while" | "{" | "!"
+                )
+                || ASSIGN_PATTERN.is_match(w))
+        })
+        .unwrap_or(cmd.len())
+}
+
+/// Does this command export variables (not functions, not `-n`)?
+fn exports_vars(name: &str, args: &[String]) -> bool {
+    match name {
+        "export" => !has_flag(args, 'n') && !has_flag(args, 'f'),
+        "declare" | "typeset" => has_flag(args, 'x') && !has_flag(args, 'f'),
+        _ => false,
+    }
+}
+
+/// Variable name of an operand (`x`, `x=1`, `x+=1`, `x)`).
+fn operand_name(word: &str) -> &str {
+    let name = word.split('=').next().unwrap_or("");
+    name.trim_end_matches(')').trim_end_matches('+')
 }
 
 /// Names passed to `export` (or `declare -x` / `typeset -x`) count as used
-/// (shellcheck parity). `readonly` and `export -n` do not export.
+/// (shellcheck parity). `readonly`, `export -n` and `export -f` do not export a variable.
 fn mark_exported(line: &str, used: &mut HashSet<String>) {
     for cmd in split_commands(line) {
-        let args = &cmd[1..];
-        let exports = match cmd[0].as_str() {
-            "export" => !has_flag(args, 'n'),
-            "declare" | "typeset" => has_flag(args, 'x'),
-            _ => false,
+        let start = command_start(&cmd);
+        let Some(first) = cmd.get(start) else {
+            continue;
         };
-        if !exports {
+        let args = &cmd[start + 1..];
+        if !exports_vars(first.trim_start_matches('('), args) {
             continue;
         }
         for word in args.iter().filter(|w| !w.starts_with('-')) {
-            let name = word.split('=').next().unwrap_or("");
+            let name = operand_name(word);
             if !name.is_empty() {
                 used.insert(name.to_string());
             }
@@ -360,5 +459,51 @@ echo "Hello"
     fn test_sc2034_export_still_exempts() {
         assert!(unused_names("x=1\nexport x\n").is_empty());
         assert!(unused_names("x=1\nexport -p x\n").is_empty());
+    }
+
+    fn flags(src: &str, name: &str) -> bool {
+        unused_names(src)
+            .iter()
+            .any(|m| m.contains(&format!("'{name}'")))
+    }
+
+    #[test]
+    fn test_sc2034_export_f_is_not_variable_export() {
+        assert!(flags("x=1\nexport -f x\n", "x"));
+        assert!(flags("x=1\ndeclare -xf x\n", "x"));
+    }
+
+    #[test]
+    fn test_sc2034_export_redirection_does_not_leak() {
+        assert!(flags("out=1\nexport -p > out\n", "out"));
+        assert!(flags("out=1\nexport -p >out\n", "out"));
+        assert!(flags("out=1\nexport -p 2>&1 >> out\n", "out"));
+        assert!(!flags("x=1\nexport x > /dev/null\n", "x"));
+    }
+
+    #[test]
+    fn test_sc2034_export_command_substitution_does_not_leak() {
+        assert!(flags("y=2\nexport x=$(echo y z)\n", "y"));
+        assert!(flags("y=2\nexport x=`echo y z`\n", "y"));
+        assert!(flags("y=2\nexport x=$(echo $(echo 'a ) b') y)\n", "y"));
+        assert!(flags("y=2\nexport x=$(echo y; true) \n", "y"));
+    }
+
+    #[test]
+    fn test_sc2034_inner_command_flags_do_not_toggle_export() {
+        assert!(!flags("x=1\nexport x=$(echo -n hi)\n", "x"));
+        assert!(flags("x=1\nfoo=2\ndeclare x=$(grep -x foo bar)\n", "x"));
+        assert!(flags("x=1\ndeclare x\n", "x"));
+        assert!(!flags("name=1\nexport name\n", "name"));
+    }
+
+    #[test]
+    fn test_sc2034_export_after_keyword_prefix_or_append() {
+        assert!(!flags("x=1\nif true; then export x; fi\n", "x"));
+        assert!(!flags("x=1\n{ export x; }\n", "x"));
+        assert!(!flags("x=1\n(export x)\n", "x"));
+        assert!(!flags("x=1\nFOO=bar export x\n", "x"));
+        assert!(!flags("x=1\nexport x+=2\n", "x"));
+        assert!(!flags("x=1\nexport x=2\n", "x"));
     }
 }
