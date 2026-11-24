@@ -4,10 +4,8 @@
 use super::*;
 
 fn stub_cargo(dir: &std::path::Path, body: &str) -> String {
-    use std::os::unix::fs::PermissionsExt;
     let path = dir.join("cargo");
-    std::fs::write(&path, body).expect("write stub cargo");
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+    crate::testing::exec_stub::write_exec_stub(&path, body);
     path.to_string_lossy().into_owned()
 }
 
