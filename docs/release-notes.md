@@ -6,7 +6,7 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 ## v7.5.0
 
-A minor: `bashrs parse --format json` (#548), the build commit in `--version` (#557), `bashrs update --check` and the once-per-day update notice (#377, #567, #570); shellcheck-parity fixes for SC2086, SC2046 and eleven more rules (#236, #526); DET001/DET002/SEC010 fixes; `jugar-probar` dropped for RUSTSEC-2026-0543 (#563). Full notes in `CHANGELOG.md`. The forjar-parity phases (PMAT-253) and the remaining #236 gaps (SC2154 on a sourced variable, SC1004 across a multi-line quoted argument) are carried to the next release.
+A minor: `bashrs parse --format json` (#548), the build commit in `--version` (#557), `bashrs update --check` and the once-per-day update notice (#377, #567, #570); shellcheck-parity fixes for SC2086, SC2046 and ten more rules (#236, #526); DET001/DET002/SEC010 fixes; `jugar-probar` dropped for RUSTSEC-2026-0543 (#563). Full notes in `CHANGELOG.md`. The forjar-parity phases (PMAT-253) and the remaining #236 gaps (SC2154 on a sourced variable, SC1004 across a multi-line quoted argument) are carried to the next release.
 
 ## v7.4.5
 

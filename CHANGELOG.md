@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [7.5.0] - 2026-11-24
 
-A minor release. It adds four CLI features (`bashrs parse --format json`, a build commit in `--version`, `bashrs update --check` and a once-per-day cached update notice), a batch of shellcheck-parity linter fixes (#236, #526), two DET002/SEC010 fixes and a dependency change that clears RUSTSEC-2026-0543.
+A minor release. It adds four CLI features (`bashrs parse --format json`, a build commit in `--version`, `bashrs update --check` and a once-per-day cached update notice), a batch of shellcheck-parity linter fixes (#236, #526), three DET001/DET002/SEC010 fixes and a dependency change that clears RUSTSEC-2026-0543.
 
 ### Added
 
