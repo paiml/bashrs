@@ -305,3 +305,24 @@ fn a_bashrsignore_naming_the_legacy_code_still_ignores() {
         .should_ignore_rule("BRS0006"));
     assert!(!ignore.should_ignore_rule("SEC011"));
 }
+
+/// #236: SC2047 and SC2183 carry different checks in shellcheck than the ones
+/// bashrs once filed under them. Neither number may be emitted for the old
+/// meaning; the quoting finding is SC2086's, as in shellcheck.
+#[test]
+fn sc2047_and_sc2183_are_not_emitted_for_non_shellcheck_meanings() {
+    let src = "#!/bin/bash\nsh_c='sh -c'\n$sh_c 'docker version'\n[ -z $var ]\n";
+    let found = codes(src);
+    assert!(
+        !found.iter().any(|c| c == "SC2183"),
+        "SC2183 emitted: {found:?}"
+    );
+    assert!(
+        !found.iter().any(|c| c == "SC2047"),
+        "SC2047 emitted: {found:?}"
+    );
+    assert!(
+        found.iter().any(|c| c == "SC2086"),
+        "SC2086 missing: {found:?}"
+    );
+}
