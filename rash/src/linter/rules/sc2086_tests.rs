@@ -464,3 +464,12 @@ fn test_sc2086_assignment_rhs_not_flagged() {
 fn test_sc2086_command_args_still_flagged() {
     assert_eq!(check("echo $RANDOM\n").diagnostics.len(), 1);
 }
+
+/// Refs #236: `\$x` is a literal dollar sign; shellcheck 0.8.0 emits no SC2086.
+#[test]
+fn test_sc2086_escaped_dollar_not_flagged() {
+    assert_eq!(check("echo \\$x\n").diagnostics.len(), 0);
+    assert_eq!(check("echo \\${x}\n").diagnostics.len(), 0);
+    // Escaped backslash then a real expansion is still flagged.
+    assert_eq!(check("echo \\\\$x\n").diagnostics.len(), 1);
+}

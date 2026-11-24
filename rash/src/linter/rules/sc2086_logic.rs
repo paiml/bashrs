@@ -255,6 +255,16 @@ fn is_exempt_context(line: &str, dollar_pos: usize, var_end: usize, is_arithmeti
         || is_in_double_bracket_context(line, dollar_pos, var_end)
 }
 
+/// True if the `$` at `dollar_pos` is escaped by an odd run of backslashes (`\$x` is literal).
+fn is_backslash_escaped(line: &str, dollar_pos: usize) -> bool {
+    let run = line[..dollar_pos]
+        .bytes()
+        .rev()
+        .take_while(|&b| b == b'\\')
+        .count();
+    run % 2 == 1
+}
+
 /// Find unquoted variables in a line
 pub fn find_unquoted_vars(
     line: &str,
@@ -279,6 +289,9 @@ pub fn find_unquoted_vars(
         let end_col = calculate_end_column(line, var_capture.end(), is_braced);
 
         let var_end = var_capture.end();
+        if is_backslash_escaped(line, dollar_pos) {
+            continue;
+        }
         if is_exempt_context(line, dollar_pos, var_end, is_arithmetic)
             || cstyle_vars.contains(var_name)
         {
