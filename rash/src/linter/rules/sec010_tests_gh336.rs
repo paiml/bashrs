@@ -85,3 +85,21 @@ fn test_GH528_arg_after_child_shell_script_still_checked() {
     let s = "#!/usr/bin/env bash\nREPO=\"$1\"\nbash -c 'echo x' _ && cd \"$REPO\"\n";
     assert!(check(s).diagnostics.iter().any(|d| d.code == "SEC010"));
 }
+
+#[test]
+fn test_GH336_direct_positional_cd_fires() {
+    let s = "#!/usr/bin/env bash\ncd \"$1\" && rm -rf out\n";
+    assert!(
+        check(s)
+            .diagnostics
+            .iter()
+            .any(|d| d.code == "SEC010" && d.severity == Severity::Error),
+        "cd \"$1\" is external input"
+    );
+}
+
+#[test]
+fn test_GH336_read_r_validated_stays_clear() {
+    let s = "#!/usr/bin/env bash\nset -euo pipefail\ntd=$(mktemp -d)\nread -r r < \"$td/f\"\nif [[ \"$r\" == *..* ]] || [[ \"$r\" != /* ]]; then exit 2; fi\nout=$(cd \"$r\" && cargo build 2>&1); echo \"$out\"\n";
+    assert!(check(s).diagnostics.iter().all(|d| d.code != "SEC010"));
+}
