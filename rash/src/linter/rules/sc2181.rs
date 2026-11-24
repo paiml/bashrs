@@ -38,34 +38,37 @@ static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r"(?:if|while)\s+\[\s*\$\?\s*(?:-eq|-ne)\s*0\s*\]").unwrap()
 });
 
-pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
+/// `[[ $? OP 0 ]]` and `(( $? ))`-style conditions (shellcheck 0.8.0 flags
+/// these as SC2181; `-eq 1`, `-ge 1` and compound conditions stay silent).
+/// Kept separate from `PATTERN` so quoting changes to that regex don't overlap.
+static DBL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(
+        r#"(?:if|while|until)\s+(?:\[\[\s*"?\$\?"?\s*(?:==|=|!=|-eq|-ne|-gt)\s*"?0"?\s*\]\]|\(\(\s*(?:!\s*)?\$\?\s*(?:(?:==|!=|>)\s*0\s*)?\)\))"#,
+    )
+    .unwrap()
+});
 
-    // Pattern: if [ $? -eq 0 ] or [ $? -ne 0 ]
-    let pattern = &*PATTERN;
-
-    for (line_num, line) in source.lines().enumerate() {
-        let line_num = line_num + 1;
-
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
-
-        for cap in pattern.captures_iter(line) {
-            let full_match = cap.get(0).unwrap();
-
-            let start_col = full_match.start() + 1;
-            let end_col = full_match.end() + 1;
-
-            let diagnostic = Diagnostic::new(
+fn diagnostics_for_line(line: &str, line_num: usize, result: &mut LintResult) {
+    for pattern in [&*PATTERN, &*DBL_PATTERN] {
+        for m in pattern.find_iter(line) {
+            result.add(Diagnostic::new(
                 "SC2181",
                 Severity::Info,
                 "Check exit code directly with e.g. 'if mycmd;', not indirectly with $?",
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
-            result.add(diagnostic);
+                Span::new(line_num, m.start() + 1, line_num, m.end() + 1),
+            ));
         }
+    }
+}
+
+pub fn check(source: &str) -> LintResult {
+    let mut result = LintResult::new();
+
+    for (idx, line) in source.lines().enumerate() {
+        if line.trim_start().starts_with('#') {
+            continue;
+        }
+        diagnostics_for_line(line, idx + 1, &mut result);
     }
 
     result
@@ -137,6 +140,65 @@ mod tests {
         let script = "if [ $? -ne 0 ]; then\n  if [ $? -eq 0 ]; then ok; fi\nfi";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 2);
+    }
+
+    #[test]
+    fn test_sc2181_dbl_bracket_forms() {
+        for cond in [
+            "[[ $? == 0 ]]",
+            "[[ $? = 0 ]]",
+            "[[ $? != 0 ]]",
+            "[[ $? -eq 0 ]]",
+            "[[ $? -ne 0 ]]",
+            "[[ $? -gt 0 ]]",
+        ] {
+            let script = format!("foo\nif {cond}; then echo x; fi");
+            let result = check(&script);
+            assert_eq!(result.diagnostics.len(), 1, "{cond}");
+            assert_eq!(result.diagnostics[0].code, "SC2181");
+        }
+    }
+
+    #[test]
+    fn test_sc2181_dbl_bracket_while_until() {
+        assert_eq!(
+            check("while [[ $? == 0 ]]; do foo; done").diagnostics.len(),
+            1
+        );
+        assert_eq!(check("until (( $? )); do foo; done").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2181_arith_forms() {
+        for cond in [
+            "(( $? ))",
+            "(($?))",
+            "(( $? == 0 ))",
+            "(( $? != 0 ))",
+            "(( $? > 0 ))",
+            "(( ! $? ))",
+        ] {
+            let script = format!("foo\nif {cond}; then echo x; fi");
+            let result = check(&script);
+            assert_eq!(result.diagnostics.len(), 1, "{cond}");
+        }
+    }
+
+    #[test]
+    fn test_sc2181_dbl_false_positive_shellcheck_silent() {
+        for cond in [
+            "[[ $? -eq 1 ]]",
+            "[[ $? == 1 ]]",
+            "[[ $? -ge 1 ]]",
+            "[[ $? -eq 0 && -f x ]]",
+            "[[ -f x && $? -eq 0 ]]",
+            "(( $? == 1 ))",
+            "[[ $x == 0 ]]",
+            "(( x ))",
+        ] {
+            let script = format!("foo\nif {cond}; then echo x; fi");
+            assert_eq!(check(&script).diagnostics.len(), 0, "{cond}");
+        }
     }
 
     #[test]
