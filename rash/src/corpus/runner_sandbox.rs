@@ -300,17 +300,10 @@ mod tests {
     fn test_PMAT258_sandbox_unusable_bwrap_is_rejected_and_the_script_still_runs() {
         let dir = tempfile::TempDir::new().expect("temp dir");
         let fake = dir.path().join("bwrap");
-        std::fs::write(
+        crate::testing::exec_stub::write_exec_stub(
             &fake,
             "#!/bin/sh\necho 'bwrap: Creating new namespace failed' >&2\nexit 1\n",
-        )
-        .expect("fake bwrap written");
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755))
-                .expect("fake bwrap made executable");
-        }
+        );
         assert!(
             !Sandbox::bwrap_works(&fake, dir.path()),
             "a bwrap that exits 1 is not usable"
