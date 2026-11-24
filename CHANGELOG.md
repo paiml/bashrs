@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The scheduled advisory lane runs again.** `cargo-deny-daily.yml` called a reusable workflow in a private repository, which a public repository cannot do: 18 of 18 scheduled runs (2026-11-06 to 2026-11-23) ended as a startup failure with zero jobs, so no advisory scan of `main` ran. It is replaced by `advisory-andon.yml`, a caller of the public `paiml/.github` advisory andon (one issue per advisory found on `main`), with `workflow_dispatch` so the lane can be measured on demand.
+
 ## [7.4.5] - 2026-11-23
 
 A patch release. It carries one linter fix (SC1078 no longer fires on a `$` before the closing quote inside `"$(...)"`, #546, #547), a release-workflow fix (the gnu binaries are built against a glibc 2.31 floor and the floor is checked, #527, #531) and one CI action bump (#549).
