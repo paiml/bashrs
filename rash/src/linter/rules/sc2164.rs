@@ -34,6 +34,16 @@ use regex::Regex;
 static PATTERN: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\bcd\s+([^\s;&|]+)").unwrap());
 
+/// True when the cd is the condition of if/elif/while/until or negated with `!`
+/// (its exit status is tested, so shellcheck does not emit SC2164).
+fn is_condition_cd(line: &str) -> bool {
+    let t = line.trim_start();
+    ["if ", "elif ", "while ", "until ", "! "].iter().any(|kw| {
+        t.strip_prefix(kw)
+            .is_some_and(|r| r.trim_start().trim_start_matches("! ").starts_with("cd "))
+    })
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -45,6 +55,10 @@ pub fn check(source: &str) -> LintResult {
         let line_num = line_num + 1;
 
         if line.trim_start().starts_with('#') {
+            continue;
+        }
+
+        if is_condition_cd(line) {
             continue;
         }
 
@@ -155,5 +169,27 @@ mod tests {
         let script = "cd /tmp && ls";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2164_condition_contexts_not_flagged() {
+        // shellcheck 0.8.0 is silent: cd's status is tested by the construct
+        for script in [
+            "if cd /tmp; then echo a; fi",
+            "while cd /z; do break; done",
+            "until cd /z; do sleep 1; done",
+            "if ! cd /q; then exit; fi",
+            "elif cd /q; then :",
+            "! cd /q",
+        ] {
+            let result = check(script);
+            assert_eq!(result.diagnostics.len(), 0, "false positive: {script}");
+        }
+    }
+
+    #[test]
+    fn test_sc2164_plain_cd_still_flagged_after_condition_fix() {
+        assert_eq!(check("cd /w; echo c").diagnostics.len(), 1);
+        assert_eq!(check("if true; then cd /w; fi").diagnostics.len(), 1);
     }
 }
