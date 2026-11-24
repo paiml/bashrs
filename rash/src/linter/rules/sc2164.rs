@@ -34,20 +34,22 @@ use regex::Regex;
 static PATTERN: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\bcd\s+([^\s;&|]+)").unwrap());
 
-/// True when the cd is the condition of if/elif/while/until or negated with `!`
-/// (its exit status is tested, so shellcheck does not emit SC2164).
-fn is_condition_cd(line: &str) -> bool {
+/// Byte offset of the cd that is the condition of if/elif/while/until or is
+/// negated with `!` (its exit status is tested, so shellcheck does not emit
+/// SC2164). Only that cd is exempt; later cds on the line are still checked.
+fn condition_cd_offset(line: &str) -> Option<usize> {
     let t = line.trim_start();
-    ["if ", "elif ", "while ", "until ", "! "].iter().any(|kw| {
-        t.strip_prefix(kw)
-            .is_some_and(|r| r.trim_start().trim_start_matches("! ").starts_with("cd "))
-    })
+    ["if ", "elif ", "while ", "until ", "! "]
+        .iter()
+        .find_map(|kw| t.strip_prefix(kw))
+        .map(|r| r.trim_start().trim_start_matches("! "))
+        .filter(|r| r.starts_with("cd "))
+        .map(|r| line.len() - r.len())
 }
 
-/// Whole-line skips: comments, condition-context cd, or inline handling.
+/// Whole-line skips: comments or inline handling.
 fn is_skipped_line(line: &str) -> bool {
     line.trim_start().starts_with('#')
-        || is_condition_cd(line)
         || line.contains("|| exit")
         || line.contains("|| return")
         || line.contains("&& ")
@@ -77,8 +79,13 @@ fn check_line(line_num: usize, line: &str, result: &mut LintResult) {
     if is_skipped_line(line) {
         return;
     }
+    let cond = condition_cd_offset(line);
     for cap in PATTERN.captures_iter(line) {
-        let end = cap.get(0).unwrap().end();
+        let full = cap.get(0).unwrap();
+        if Some(full.start()) == cond {
+            continue;
+        }
+        let end = full.end();
         if !has_or_handler(&line[end..]) {
             result.add(build_diagnostic(line_num, &cap));
         }
@@ -206,5 +213,41 @@ mod tests {
     fn test_sc2164_or_brace_group_not_flagged() {
         let script = "cd \"$d\" || { echo no; exit 1; }";
         assert_eq!(check(script).diagnostics.len(), 0);
+    }
+
+    // PR #590 review: only the condition cd is exempt, not the whole line
+    #[test]
+    fn test_sc2164_if_condition_then_body_cd_flagged() {
+        let r = check("if cd /a; then cd /b; fi");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert_eq!(
+            r.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "cd /b || exit"
+        );
+    }
+
+    #[test]
+    fn test_sc2164_while_condition_do_body_cd_flagged() {
+        let r = check("while cd /a; do cd /b; done");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert_eq!(
+            r.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "cd /b || exit"
+        );
+    }
+
+    #[test]
+    fn test_sc2164_negated_condition_then_cd_flagged() {
+        let r = check("! cd /a; cd /b");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert_eq!(
+            r.diagnostics[0].fix.as_ref().unwrap().replacement,
+            "cd /b || exit"
+        );
+    }
+
+    #[test]
+    fn test_sc2164_condition_only_still_not_flagged() {
+        assert_eq!(check("if cd /a; then echo ok; fi").diagnostics.len(), 0);
     }
 }
