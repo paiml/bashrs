@@ -228,9 +228,16 @@ fn scan_line(line: &str) -> Vec<Offence> {
 /// Check for unquoted command substitutions (SC2046).
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    // GH-236: a heredoc body (quoted or not) is never word-split; an
+    // unquoted body expands `$(cmd)` but keeps the result as text.
+    let heredoc = crate::linter::quoting::heredoc_body_lines(source);
 
     for (line_idx, line) in source.lines().enumerate() {
         let line_num = line_idx + 1;
+
+        if heredoc.contains(&line_num) {
+            continue;
+        }
 
         // Skip comments
         if line.trim_start().starts_with('#') {
@@ -282,6 +289,22 @@ mod tests {
         }
         assert_eq!(check("export $(date)").diagnostics.len(), 1);
         assert_eq!(check("echo A=$(date)").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2046_gh236_heredoc_body_not_reported() {
+        for src in [
+            "cat <<EOT\ntoday is $(date)\nEOT\n",
+            "cat <<-EOT\n\t$(date)\n\tEOT\n",
+            "cat <<'EOT'\n$(date)\nEOT\n",
+        ] {
+            assert_eq!(check(src).diagnostics.len(), 0, "{src}");
+        }
+        // The opener line and code after the body are still checked.
+        let src = "cat <<EOT $(date)\nx\nEOT\necho $(date)\n";
+        let d = check(src).diagnostics;
+        assert_eq!(d.len(), 2);
+        assert_eq!(d[1].span.start_line, 4);
     }
 
     #[test]
