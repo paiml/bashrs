@@ -35,7 +35,7 @@ use regex::Regex;
 
 /// Check for indirect $? comparisons
 static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"(?:if|while)\s+\[\s*\$\?\s*(?:-eq|-ne)\s*0\s*\]").unwrap()
+    Regex::new(r#"(?:if|while)\s+\[\s*"?\$\?"?\s*(?:-eq|-ne)\s*0\s*\]"#).unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -144,5 +144,14 @@ mod tests {
         let script = "if ! command; then echo fail; fi";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2181_quoted_exit_status() {
+        // shellcheck 0.8.0 flags "$?" the same as $?
+        let script = "if [ \"$?\" -ne 0 ]; then echo fail; fi";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2181");
     }
 }
