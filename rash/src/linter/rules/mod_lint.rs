@@ -240,7 +240,6 @@ pub fn lint_shell(source: &str) -> LintResult {
     apply!(sc2096);
     apply!(sc2097);
     apply!(sc2098);
-    apply!(sc2099);
     apply!(sc2100);
     apply!(sc2101);
     apply!(sc2102);
@@ -366,7 +365,6 @@ pub fn lint_shell(source: &str) -> LintResult {
     apply!(sc2222);
     apply!(sc2223);
     apply!(sc2224);
-    apply!(sc2225);
     apply!(sc2226);
     apply!(sc2227);
     apply!(sc2228);

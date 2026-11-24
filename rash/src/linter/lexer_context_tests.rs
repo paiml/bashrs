@@ -304,3 +304,21 @@ fn test_PMAT439_gh439_backslash_before_a_closing_single_quote_is_literal() {
     // silent; the quote it leaves open is still an error.
     shell_fires("#!/bin/bash\necho 'can\\' t'\necho done\n", "SC1078");
 }
+
+// ---------------------------------------------------------------------------
+// #526: shellcheck 0.8.0 reports legacy backticks as SC2006 only. SC2099 is
+// "Use $((..)) for arithmetics" and SC2225 is not a backtick rule, so neither
+// code may fire on a plain backtick substitution.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn test_gh526_backticks_report_sc2006_only() {
+    for src in [
+        "#!/bin/sh\nx=`date`\necho \"$x\"\n",
+        "#!/bin/sh\necho `date`\n",
+    ] {
+        shell_fires(src, "SC2006");
+        shell_absent(src, "SC2099");
+        shell_absent(src, "SC2225");
+    }
+}
