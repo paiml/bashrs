@@ -33,15 +33,6 @@ use regex::Regex;
 static BACKTICK_PATTERN: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"`([^`]+)`").expect("valid backtick regex"));
 
-/// F080: Regex to detect assignment context: var=`cmd` or local/export/readonly var=`cmd`
-#[allow(clippy::expect_used)] // Compile-time regex, panic on invalid pattern is acceptable
-static ASSIGNMENT_BACKTICK: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(
-        r"(?:^|;|\s)(?:local|export|readonly|declare|typeset)?\s*[A-Za-z_][A-Za-z0-9_]*=`[^`]+`",
-    )
-    .expect("valid assignment backtick regex")
-});
-
 /// Check for deprecated backtick command substitution
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -59,12 +50,6 @@ pub fn check(source: &str) -> LintResult {
 
         // Issue #96: Skip lines inside quoted heredocs
         if quoted_heredoc_lines.contains(&line_num) {
-            continue;
-        }
-
-        // F080: Skip lines where backticks are in assignment context
-        // Legacy backticks in assignments are intentional - user knows what they're doing
-        if ASSIGNMENT_BACKTICK.is_match(line) {
             continue;
         }
 
@@ -103,8 +88,8 @@ mod tests {
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: Backticks in assignments are intentional, not flagged"
+            1,
+            "#526: Backticks in assignments are flagged (shellcheck SC2006, #526), are flagged (shellcheck SC2006, #526)"
         );
     }
 
@@ -127,8 +112,8 @@ mod tests {
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: Backticks in assignments are intentional"
+            1,
+            "#526: Backticks in assignments are flagged (shellcheck SC2006, #526)"
         );
     }
 
@@ -138,8 +123,8 @@ mod tests {
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: Backticks in assignments are intentional"
+            1,
+            "#526: Backticks in assignments are flagged (shellcheck SC2006, #526)"
         );
     }
 
@@ -168,8 +153,8 @@ c=`cmd3`
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: Backticks in assignments are intentional"
+            3,
+            "#526: Backticks in assignments are flagged (shellcheck SC2006, #526)"
         );
     }
 
@@ -211,8 +196,8 @@ function get_time() {
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: Backticks in function assignments are intentional"
+            1,
+            "#526: Backticks in function assignments are flagged (shellcheck SC2006, #526)"
         );
     }
 
@@ -277,8 +262,8 @@ function get_time() {
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: Simple assignment with backticks must NOT be flagged"
+            1,
+            "#526: Simple assignment with backticks must are flagged (shellcheck SC2006, #526)"
         );
     }
 
@@ -288,8 +273,8 @@ function get_time() {
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: local assignment with backticks must NOT be flagged"
+            1,
+            "#526: local assignment with backticks must are flagged (shellcheck SC2006, #526)"
         );
     }
 
@@ -299,8 +284,8 @@ function get_time() {
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: export assignment with backticks must NOT be flagged"
+            1,
+            "#526: export assignment with backticks must are flagged (shellcheck SC2006, #526)"
         );
     }
 
@@ -310,8 +295,8 @@ function get_time() {
         let result = check(script);
         assert_eq!(
             result.diagnostics.len(),
-            0,
-            "F080: readonly assignment with backticks must NOT be flagged"
+            1,
+            "#526: readonly assignment with backticks must are flagged (shellcheck SC2006, #526)"
         );
     }
 
