@@ -25,16 +25,62 @@ use regex::Regex;
 
 static AND_OR_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     // Match: command && command || command
-    // Looking for pattern with both && and ||
-    Regex::new(r"[^|&]+&&[^|&]+\|\|[^|&]+").unwrap()
+    // Looking for pattern with both && and ||. `;` ends a chain, so a match never spans it.
+    Regex::new(r"[^|&;]+&&[^|&;]+\|\|[^|&;]+").unwrap()
 });
 
-/// ShellCheck 0.8.0 does not flag `A && B || C` when C is an error-reporting or
-/// terminating command (the usual "A && B || die" idiom).
-fn fallback_is_exempt(matched: &str) -> bool {
+/// True when the fallback continues as a pipeline (`C | tee`, `C |& tee`), which
+/// ShellCheck does not exempt. `rest` is the fallback text plus what follows the match.
+fn fallback_is_pipeline(rest: &str) -> bool {
+    let cleaned = rest
+        .replace(">&", ">")
+        .replace("<&", "<")
+        .replace("&>", ">");
+    let mut chars = cleaned.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            ';' | '&' => return false,
+            '|' => return chars.peek() != Some(&'|'),
+            _ => {}
+        }
+    }
+    false
+}
+
+/// Name of the command a fallback runs, skipping leading `VAR=value` words and
+/// `command`/`builtin` prefixes, with quotes and any directory removed.
+/// `None` when the fallback is only assignments.
+fn fallback_command(fallback: &str) -> Option<String> {
+    let mut words = fallback
+        .split_whitespace()
+        .skip_while(|w| w.contains('=') && !w.starts_with('=') && !w.starts_with(['"', '\'']))
+        .skip_while(|w| matches!(*w, "command" | "builtin"));
+    let word = words.next()?;
+    let word = word.split(['<', '>']).next().unwrap_or("");
+    let word = word.trim_matches(['"', '\'']);
+    Some(word.rsplit('/').next().unwrap_or("").to_string())
+}
+
+/// ShellCheck 0.8.0 does not flag `A && B || C` when C is a single error-reporting or
+/// terminating command (the usual "A && B || die" idiom) or a bare assignment.
+fn fallback_is_exempt(matched: &str, after: &str) -> bool {
     let fallback = matched.rsplit("||").next().unwrap_or("").trim_start();
-    let cmd = fallback.split_whitespace().next().unwrap_or("");
-    matches!(cmd, "echo" | "exit" | "return" | "printf")
+    if fallback_is_pipeline(&format!("{fallback}{after}")) {
+        return false;
+    }
+    match fallback_command(fallback) {
+        None => true,
+        Some(cmd) => matches!(cmd.as_str(), "echo" | "exit" | "return" | "printf"),
+    }
+}
+
+fn diagnostic_for(line_num: usize, m: &regex::Match) -> Diagnostic {
+    Diagnostic::new(
+        "SC2015",
+        Severity::Info,
+        "Note that 'A && B || C' is not if-then-else. C may run when A is true. Use 'if A; then B; else C; fi' for proper conditional logic".to_string(),
+        Span::new(line_num, m.start() + 1, line_num, m.end() + 1),
+    )
 }
 
 pub fn check(source: &str) -> LintResult {
@@ -58,22 +104,12 @@ pub fn check(source: &str) -> LintResult {
         }
 
         // Look for && followed by ||
-        if let Some(m) = AND_OR_PATTERN.find(line) {
-            let matched = m.as_str();
-            if fallback_is_exempt(matched) {
+        // Examine every chain on the line; one exempt chain must not hide another.
+        for m in AND_OR_PATTERN.find_iter(line) {
+            if fallback_is_exempt(m.as_str(), &line[m.end()..]) {
                 continue;
             }
-            let start_col = m.start() + 1;
-            let end_col = m.end() + 1;
-
-            let diagnostic = Diagnostic::new(
-                "SC2015",
-                Severity::Info,
-                "Note that 'A && B || C' is not if-then-else. C may run when A is true. Use 'if A; then B; else C; fi' for proper conditional logic".to_string(),
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
-            result.add(diagnostic);
+            result.add(diagnostic_for(line_num, &m));
         }
     }
 
@@ -177,6 +213,76 @@ check2 && ok2 || fail2
             "foo && bar || :",
             "foo && bar || cd d",
             "foo && bar || continue",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_pipeline_fallback_still_flagged() {
+        // shellcheck 0.8.0 flags these: the fallback is a pipeline, not a single command
+        for c in [
+            "foo && bar || echo b | tee log",
+            "foo && bar || echo b 2>&1 | tee log",
+            "foo && bar || echo b |& tee log",
+            "foo && bar || exit | x",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_list_fallback_exempt() {
+        // shellcheck 0.8.0 does not flag when the exempt command is followed by & / && / ||
+        for c in [
+            "foo && bar || echo b &",
+            "foo && bar || echo b && baz",
+            "foo && bar || echo b || baz",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_every_chain_on_line_examined() {
+        assert_eq!(
+            check("foo && bar || echo ok; baz && qux || rm -f x")
+                .diagnostics
+                .len(),
+            1
+        );
+        assert_eq!(
+            check("foo && bar || echo ok; baz && qux || echo z")
+                .diagnostics
+                .len(),
+            0
+        );
+        assert_eq!(check("a && b || c1; d && e || c2").diagnostics.len(), 2);
+    }
+
+    #[test]
+    fn test_sc2015_parity_extra_exempt_forms() {
+        for c in [
+            "foo && bar || /bin/echo b",
+            "foo && bar || \"echo\" b",
+            "foo && bar || echo>&2 b",
+            "foo && bar || command echo b",
+            "foo && bar || builtin echo b",
+            "foo && bar || X=1",
+            "foo && bar || X=1 echo b",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_extra_forms_not_over_exempt() {
+        for c in [
+            "foo && bar || X=1 true",
+            "foo && bar || command cleanup",
+            "foo && bar || /bin/cleanup",
+            "foo && bar || cleanup &",
+            "foo && bar || cleanup | tee",
         ] {
             assert_eq!(check(c).diagnostics.len(), 1, "{c}");
         }
