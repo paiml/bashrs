@@ -32,6 +32,81 @@ use regex::Regex;
 static PATTERN: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\bread\s+([A-Za-z_][A-Za-z0-9_]*)").unwrap());
 
+/// Options of `read` that consume the next word as their argument.
+const ARG_OPTS: &str = "pnNdtuia";
+
+/// Split the text after `read` into words, stopping at a command terminator.
+/// Quoted sections are kept inside their word.
+fn split_words(rest: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut word = String::new();
+    let mut quote: Option<char> = None;
+    for c in rest.chars() {
+        if quote.is_some() {
+            if Some(c) == quote {
+                quote = None;
+            }
+            word.push(c);
+        } else if c == '"' || c == '\'' {
+            quote = Some(c);
+            word.push(c);
+        } else if c.is_whitespace() || ";&|<>".contains(c) {
+            if !word.is_empty() {
+                words.push(std::mem::take(&mut word));
+            }
+            if !c.is_whitespace() {
+                return words;
+            }
+        } else {
+            word.push(c);
+        }
+    }
+    if !word.is_empty() {
+        words.push(word);
+    }
+    words
+}
+
+/// True when the leading option words of a `read` include `-r`.
+fn options_have_r(words: &[String]) -> bool {
+    let mut expect_arg = false;
+    let mut has_r = false;
+    for w in words {
+        if std::mem::take(&mut expect_arg) {
+            continue;
+        }
+        let flags = match w.strip_prefix('-') {
+            Some(f) if !f.is_empty() && !f.starts_with('-') => f,
+            _ => break,
+        };
+        has_r |= flags.contains('r');
+        expect_arg = flags.chars().last().is_some_and(|c| ARG_OPTS.contains(c));
+    }
+    has_r
+}
+
+/// Flags `read` commands whose first word is an option (`read -p "x" var`),
+/// which the plain `read VAR` pattern misses, when they lack `-r`.
+fn check_read_with_options(line: &str, line_num: usize, result: &mut LintResult) {
+    static START: std::sync::LazyLock<Regex> =
+        std::sync::LazyLock::new(|| Regex::new(r"\bread\s+-").unwrap());
+    for m in START.find_iter(line) {
+        if options_have_r(&split_words(&line[m.end() - 1..])) {
+            continue;
+        }
+        let start = m.start() + 1;
+        result.add(
+            Diagnostic::new(
+                "SC2162",
+                Severity::Info,
+                "read without -r will mangle backslashes",
+                Span::new(line_num, start, line_num, start + 4),
+            )
+            .with_fix(Fix::new("read -r".to_string())),
+        );
+    }
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -44,6 +119,8 @@ pub fn check(source: &str) -> LintResult {
         if line.trim_start().starts_with('#') {
             continue;
         }
+
+        check_read_with_options(line, line_num, &mut result);
 
         // Skip if line contains "read -r"
         if line.contains("read -r") {
@@ -152,5 +229,31 @@ mod tests {
         let script = "IFS= read line";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2162_read_p_prompt() {
+        for s in [
+            "read -p \"x\" var",
+            "read -s -p \"x\" var",
+            "read -p x var",
+            "read -n 1 var",
+        ] {
+            let r = check(s);
+            assert_eq!(r.diagnostics.len(), 1, "{s}");
+            assert_eq!(r.diagnostics[0].code, "SC2162");
+        }
+    }
+
+    #[test]
+    fn test_sc2162_read_p_with_r_not_flagged() {
+        for s in [
+            "read -r -p \"x\" var",
+            "read -rp \"x\" var",
+            "read -p \"x\" -r var",
+            "read -s -r var",
+        ] {
+            assert_eq!(check(s).diagnostics.len(), 0, "{s}");
+        }
     }
 }
