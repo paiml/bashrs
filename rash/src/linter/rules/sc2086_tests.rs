@@ -503,3 +503,18 @@ fn test_sc2086_for_in_true_positives_kept() {
         1
     );
 }
+
+#[test]
+fn test_sc2086_case_subject_not_flagged_236() {
+    // shellcheck 0.8.0 is silent: a case subject is never word-split or globbed.
+    let code = "#!/bin/sh\ncase $x in\n  a) echo hi;;\nesac\ncase ${y}$z in a) :;; esac\n";
+    let result = check(code);
+    assert_eq!(result.diagnostics.len(), 0, "{:?}", result.diagnostics);
+}
+
+#[test]
+fn test_sc2086_case_body_still_flagged_236() {
+    let code = "case $x in\n  a) ls $FILES;;\nesac\n";
+    let result = check(code);
+    assert_eq!(result.diagnostics.len(), 1);
+}
