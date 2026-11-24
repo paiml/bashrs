@@ -253,6 +253,7 @@ fn is_exempt_context(line: &str, dollar_pos: usize, var_end: usize, is_arithmeti
     (is_arithmetic && is_in_arithmetic_context(line, dollar_pos, var_end))
         || is_already_quoted(line, dollar_pos, var_end)
         || is_in_double_bracket_context(line, dollar_pos, var_end)
+        || case_subject_range(line).is_some_and(|(s, e)| dollar_pos >= s && dollar_pos < e)
 }
 
 /// True if the `$` at `dollar_pos` is escaped by an odd run of backslashes (`\$x` is literal).
@@ -263,6 +264,19 @@ fn is_backslash_escaped(line: &str, dollar_pos: usize) -> bool {
         .take_while(|&b| b == b'\\')
         .count();
     run % 2 == 1
+}
+
+/// Byte range of the subject word(s) of a `case SUBJECT in` on this line, if any.
+/// shellcheck does not flag SC2086 there: a case subject is neither split nor globbed.
+fn case_subject_range(line: &str) -> Option<(usize, usize)> {
+    let trimmed = line.trim_start();
+    let rest = trimmed.strip_prefix("case")?;
+    if !rest.starts_with([' ', '\t']) {
+        return None;
+    }
+    let start = line.len() - rest.len();
+    let end = start + rest.find(" in")?;
+    Some((start, end))
 }
 
 /// Find unquoted variables in a line
