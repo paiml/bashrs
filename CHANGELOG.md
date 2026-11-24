@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.5.0] - 2026-11-24
+
+A minor release. It adds four CLI features (`bashrs parse --format json`, a build commit in `--version`, `bashrs update --check` and a once-per-day cached update notice), a batch of shellcheck-parity linter fixes (#236, #526), three DET001/DET002/SEC010 fixes and a dependency change that clears RUSTSEC-2026-0543.
+
+### Added
+
+- **`bashrs parse --format json`** prints a faithful AST plus a flat command list (#548).
+- **`bashrs --version` names the build commit** (#393, #557).
+- **`bashrs update --check`** reports the current version against the latest release (#377, #567).
+- **Once-per-day cached update notice** (#377, #570).
+
+### Changed
+
+- **`jugar-probar` dev-dependency dropped for a std test shim** (RUSTSEC-2026-0543, #537, #545, #563).
+- **Direct `chrono` dropped for `jiff`; `aprender-core` 0.75** (#537, #561).
+- **Three `deny.toml` advisory ignores that match nothing in `Cargo.lock` removed** (#550, #554).
+- **SC2105 tests moved into `sc2105_tests.rs`** (#544, #559); selflint ratchet row for `examples/deployment/purified.sh` lowered 4 to 0 (#543, #555).
+- **SC2047/SC2183 docs no longer claim non-shellcheck coverage; test pins it** (#236, #580).
+
+### Fixed
+
+- **SC2086**: skips assignment right-hand sides, for-in word lists, `case` subjects and backslash-escaped `$` (#236, #576, #582, #584, #586).
+- **SC2046**: skips heredoc bodies, `$(seq ...)`, declaration-builtin assignments and `[[ ]]` (#236, #564, #568, #578).
+- **SC2047, SC2183, SC2035, SC2274, SC2259, SC2005, SC2093, SC2164, SC2162, SC2006** brought in line with shellcheck (#236, #526, #566, #569, #571-#575, #588, #592, #594).
+- **DET001 ignores `$RANDOM` in comments** (#535, #556); **DET002 `SOURCE_DATE_EPOCH` with a wall-clock fallback no longer clears the rule** (#336, #565).
+- **SEC010 ignores positionals inside a child-shell `-c` script** (#528, #560); regression tests for #336 (#579).
+- **Gate tests no longer run the real `cargo audit`** (#542, #558); **python-free README extraction in `docs.sh`** (#462, #562); **selflint red on main cleared** (#534, #577); **test stub executables no longer fail with ETXTBSY** (#603).
+
 ## [7.4.5] - 2026-11-23
 
 A patch release. It carries one linter fix (SC1078 no longer fires on a `$` before the closing quote inside `"$(...)"`, #546, #547), a release-workflow fix (the gnu binaries are built against a glibc 2.31 floor and the floor is checked, #527, #531) and one CI action bump (#549).

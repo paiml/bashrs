@@ -6,7 +6,7 @@ Sections for releases before v7.1.0 carry the tag's own annotated message, which
 
 ## v7.5.0
 
-Planned. The forjar-parity phases that keep being carried (PMAT-253: 1a–1c, 2, 3b, 4a, 4b, 6, 7a, 7b) and issue #236, re-measured at the v7.4.0 close-out: SC2046 is now 14:1 against shellcheck rather than 210:1, and the three largest remaining gaps are SC2086 inside a heredoc body, SC2154 on a variable a sourced file defines, and SC1004 across a multi-line quoted argument (`docs/audits/sc-vs-shellcheck-v7.4.0.md`).
+A minor: `bashrs parse --format json` (#548), the build commit in `--version` (#557), `bashrs update --check` and the once-per-day update notice (#377, #567, #570); shellcheck-parity fixes for SC2086, SC2046 and ten more rules (#236, #526); DET001/DET002/SEC010 fixes; `jugar-probar` dropped for RUSTSEC-2026-0543 (#563). Full notes in `CHANGELOG.md`. The forjar-parity phases (PMAT-253) and the remaining #236 gaps (SC2154 on a sourced variable, SC1004 across a multi-line quoted argument) are carried to the next release.
 
 ## v7.4.5
 
