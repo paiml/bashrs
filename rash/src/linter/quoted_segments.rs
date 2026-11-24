@@ -11,7 +11,7 @@
 //! a string boundary. That is the fix; the rest of this module makes sure a caller
 //! is never handed a span that does not name the bytes it claims.
 
-use super::shell_words::simple_commands;
+use super::shell_words::{head_word, simple_commands, ShellWord};
 
 /// One closed single-quoted segment, exactly as written in the physical line.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -23,6 +23,10 @@ pub struct SingleQuoted {
     pub end_col: usize,
     /// The text between the quotes.
     pub content: String,
+    /// Literal basename of the first word of the command this segment is an
+    /// argument of (`ssh` for `/usr/bin/ssh h '...'`); `None` when that word
+    /// is not literal. Not resolved through wrappers: `nohup ssh` is `nohup`.
+    pub head: Option<String>,
 }
 
 /// Every closed single-quoted segment on `line`, in column order, each once.
@@ -37,40 +41,59 @@ pub struct SingleQuoted {
 /// inner command [`simple_commands`] recurses into -- so segments are deduplicated
 /// by span.
 pub fn single_quoted_segments(line: &str) -> Vec<SingleQuoted> {
-    let spans = simple_commands(line)
-        .into_iter()
-        .flat_map(|cmd| cmd.words)
-        .flat_map(|word| {
-            let col = word.col;
-            pair_single_quotes(&word.raw)
-                .into_iter()
-                .map(move |(open, close)| (col + open, col + close + 1))
-        });
     let mut out: Vec<SingleQuoted> = Vec::new();
-    for (start_col, end_col) in spans {
-        let Some(seg) = segment_at(line, start_col, end_col) else {
-            continue;
-        };
-        if !out
-            .iter()
-            .any(|s| s.start_col == start_col && s.end_col == end_col)
-        {
-            out.push(seg);
+    let mut seen_cols: Vec<usize> = Vec::new();
+    for cmd in simple_commands(line) {
+        let head = head_word(&cmd);
+        for word in &cmd.words {
+            // The synthetic `sh -c` operand command re-presents a word its
+            // shell command already owns; the first owner is the real one.
+            if seen_cols.contains(&word.col) {
+                continue;
+            }
+            seen_cols.push(word.col);
+            for seg in word_segments(line, word, &head) {
+                // A segment inside `$( ... )` is seen in the enclosing word and
+                // in the inner command, which comes later and owns it.
+                match out
+                    .iter()
+                    .position(|s| (s.start_col, s.end_col) == (seg.start_col, seg.end_col))
+                {
+                    Some(i) => out[i] = seg,
+                    None => out.push(seg),
+                }
+            }
         }
     }
     out.sort_by_key(|s| s.start_col);
     out
 }
 
+/// The verified single-quoted segments of one word.
+fn word_segments(line: &str, word: &ShellWord, head: &Option<String>) -> Vec<SingleQuoted> {
+    pair_single_quotes(&word.raw)
+        .into_iter()
+        .filter_map(|(open, close)| {
+            segment_at(line, word.col + open, word.col + close + 1, head.clone())
+        })
+        .collect()
+}
+
 /// The segment at these columns, if the bytes of `line` there really are
 /// `'content'`.
-fn segment_at(line: &str, start_col: usize, end_col: usize) -> Option<SingleQuoted> {
+fn segment_at(
+    line: &str,
+    start_col: usize,
+    end_col: usize,
+    head: Option<String>,
+) -> Option<SingleQuoted> {
     let text = line.get(start_col.saturating_sub(1)..end_col.saturating_sub(1))?;
     let content = text.strip_prefix('\'')?.strip_suffix('\'')?;
     Some(SingleQuoted {
         start_col,
         end_col,
         content: content.to_string(),
+        head,
     })
 }
 
@@ -175,5 +198,39 @@ mod tests {
     #[test]
     fn test_QS_335_unterminated_quote_yields_nothing() {
         assert!(contents("echo 'never closed $x").is_empty());
+    }
+
+    fn heads(line: &str) -> Vec<Option<String>> {
+        single_quoted_segments(line)
+            .into_iter()
+            .map(|s| s.head)
+            .collect()
+    }
+
+    #[test]
+    fn test_QS_526_segment_carries_its_commands_head() {
+        assert_eq!(heads("ssh h 'a $X'"), vec![Some("ssh".to_string())]);
+        assert_eq!(heads("\techo\t'a'"), vec![Some("echo".to_string())]);
+    }
+
+    #[test]
+    fn test_QS_526_nested_command_owns_the_segment() {
+        assert_eq!(
+            heads("ssh h $(echo 'a $X')"),
+            vec![Some("echo".to_string())]
+        );
+        assert_eq!(heads("echo $(ssh h 'a $X')"), vec![Some("ssh".to_string())]);
+    }
+
+    #[test]
+    fn test_QS_526_script_operand_keeps_the_shell_as_owner() {
+        // `sh -c 'echo $X'$Y` also yields a synthetic `echo` command that
+        // re-presents the same word; the shell stays the owner.
+        assert_eq!(heads("sh -c 'echo $X'$Y"), vec![Some("sh".to_string())]);
+    }
+
+    #[test]
+    fn test_QS_526_non_literal_head_is_none() {
+        assert_eq!(heads("$cmd 'a $X'"), vec![None]);
     }
 }
