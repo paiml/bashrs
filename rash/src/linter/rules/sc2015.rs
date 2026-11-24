@@ -29,6 +29,14 @@ static AND_OR_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| 
     Regex::new(r"[^|&]+&&[^|&]+\|\|[^|&]+").unwrap()
 });
 
+/// ShellCheck 0.8.0 does not flag `A && B || C` when C is an error-reporting or
+/// terminating command (the usual "A && B || die" idiom).
+fn fallback_is_exempt(matched: &str) -> bool {
+    let fallback = matched.rsplit("||").next().unwrap_or("").trim_start();
+    let cmd = fallback.split_whitespace().next().unwrap_or("");
+    matches!(cmd, "echo" | "exit" | "return" | "printf")
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -52,6 +60,9 @@ pub fn check(source: &str) -> LintResult {
         // Look for && followed by ||
         if let Some(m) = AND_OR_PATTERN.find(line) {
             let matched = m.as_str();
+            if fallback_is_exempt(matched) {
+                continue;
+            }
             let start_col = m.start() + 1;
             let end_col = m.end() + 1;
 
@@ -85,14 +96,14 @@ mod tests {
 
     #[test]
     fn test_sc2015_file_check() {
-        let code = r#"[[ -f file ]] && cat file || echo "missing""#;
+        let code = r#"[[ -f file ]] && cat file || handle_missing"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
     }
 
     #[test]
     fn test_sc2015_command_check() {
-        let code = r#"command && echo "ok" || echo "fail""#;
+        let code = r#"command && echo "ok" || cleanup"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
     }
@@ -143,6 +154,32 @@ check2 && ok2 || fail2
 "#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 2);
+    }
+
+    #[test]
+    fn test_sc2015_parity_echo_exit_return_printf_fallback_exempt() {
+        // shellcheck 0.8.0 does not flag these fallbacks (error-handling idiom)
+        for c in [
+            "foo && bar || echo b",
+            "foo && bar || exit 1",
+            "foo && bar || return 1",
+            "foo && bar || printf x",
+            "[ -f x ] && echo a || echo b >&2",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_parity_other_fallback_still_flagged() {
+        for c in [
+            "foo && bar || true",
+            "foo && bar || :",
+            "foo && bar || cd d",
+            "foo && bar || continue",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
     }
 
     #[test]
