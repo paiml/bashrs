@@ -265,6 +265,22 @@ fn is_backslash_escaped(line: &str, dollar_pos: usize) -> bool {
     run % 2 == 1
 }
 
+/// True if `dollar_pos` lies in the word list of `for NAME in WORDS` (shellcheck does not
+/// flag it: the list is split on purpose), outside any command substitution.
+fn in_for_in_word_list(line: &str, dollar_pos: usize) -> bool {
+    static FOR_IN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(r"^\s*for\s+\w+\s+in\s+(?P<list>[^;]*)").expect("valid regex")
+    });
+    let Some(list) = FOR_IN.captures(line).and_then(|c| c.name("list")) else {
+        return false;
+    };
+    if dollar_pos < list.start() || dollar_pos >= list.end() {
+        return false;
+    }
+    let before = &line[list.start()..dollar_pos];
+    !(before.contains("$(") || before.contains('`'))
+}
+
 /// Find unquoted variables in a line
 pub fn find_unquoted_vars(
     line: &str,
@@ -289,7 +305,7 @@ pub fn find_unquoted_vars(
         let end_col = calculate_end_column(line, var_capture.end(), is_braced);
 
         let var_end = var_capture.end();
-        if is_backslash_escaped(line, dollar_pos) {
+        if is_backslash_escaped(line, dollar_pos) || in_for_in_word_list(line, dollar_pos) {
             continue;
         }
         if is_exempt_context(line, dollar_pos, var_end, is_arithmetic)
