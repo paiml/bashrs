@@ -715,7 +715,9 @@ fn cat_reads_stdin(rhs: &str) -> bool {
     let mut from = 0;
     while let Some(rel) = rhs.get(from..).and_then(|s| word_pos(s, "cat")) {
         let start = from + rel + 3;
-        if cat_args_read_stdin(rhs.get(start..).unwrap_or("")) {
+        if cat_in_command_position(rhs, from + rel)
+            && cat_args_read_stdin(rhs.get(start..).unwrap_or(""))
+        {
             return true;
         }
         from = start;
@@ -723,26 +725,122 @@ fn cat_reads_stdin(rhs: &str) -> bool {
     false
 }
 
+/// `cat` only counts as a command when it opens the substitution or follows a
+/// control operator, never as an argument or path segment (`dirname /opt/cat`).
+fn cat_in_command_position(rhs: &str, pos: usize) -> bool {
+    let before = rhs[..pos].trim_end();
+    before.is_empty() || before.ends_with(['(', '`', '|', ';', '&', '{'])
+}
+
 fn cat_args_read_stdin(after: &str) -> bool {
-    let end = after.find([')', '`', '|', ';']).unwrap_or(after.len());
-    let args = after[..end].replace("&&", " ");
+    let words = cat_arg_words(after);
     let mut operands = 0;
-    let mut toks = args.split_whitespace();
+    let mut toks = words.iter().map(String::as_str);
     while let Some(t) = toks.next() {
-        match t {
-            "-" | "/dev/stdin" | "<&0" | "0<&0" => return true,
-            "<" => {
-                if toks.next() == Some("/dev/stdin") {
-                    return true;
-                }
-                operands += 1;
-            }
-            _ if t.starts_with("<<") => return false,
-            _ if t.starts_with('-') || t.contains('>') => {}
-            _ => operands += 1,
+        match cat_arg_kind(t, &mut toks) {
+            CatArg::Stdin => return true,
+            CatArg::Heredoc => return false,
+            CatArg::Operand => operands += 1,
+            CatArg::Ignored => {}
         }
     }
     operands == 0
+}
+
+enum CatArg {
+    Stdin,
+    Heredoc,
+    Operand,
+    Ignored,
+}
+
+/// Classify one word of `cat`'s argument list; a redirection consumes its
+/// target (same word when unspaced, else the next word).
+fn cat_arg_kind<'a>(t: &str, toks: &mut impl Iterator<Item = &'a str>) -> CatArg {
+    if t == "-" || t == "/dev/stdin" {
+        return CatArg::Stdin;
+    }
+    let rest = t.trim_start_matches(|c: char| c.is_ascii_digit());
+    let rest = rest
+        .strip_prefix('&')
+        .filter(|r| r.starts_with('>'))
+        .unwrap_or(rest);
+    if rest.starts_with("<<") {
+        return CatArg::Heredoc;
+    }
+    if let Some(r) = rest.strip_prefix('<') {
+        let fd_dup = r.starts_with('&');
+        let target = r.trim_start_matches('&');
+        let target = if target.is_empty() {
+            toks.next().unwrap_or("")
+        } else {
+            target
+        };
+        return match (fd_dup, target) {
+            (_, "/dev/stdin") | (true, "0") => CatArg::Stdin,
+            (true, _) => CatArg::Ignored,
+            _ => CatArg::Operand,
+        };
+    }
+    if let Some(r) = rest.strip_prefix('>') {
+        if r.trim_start_matches(['>', '&', '|']).is_empty() {
+            toks.next();
+        }
+        return CatArg::Ignored;
+    }
+    if t.starts_with('-') {
+        CatArg::Ignored
+    } else {
+        CatArg::Operand
+    }
+}
+
+/// Unquoted control operator ending `cat`'s arguments; `&` inside a redirection
+/// (`<&0`, `2>&1`, `&>f`) is not one.
+fn is_cat_terminator(c: char, prev: char, next: Option<char>) -> bool {
+    match c {
+        ')' | '`' | '|' | ';' => true,
+        '&' => !matches!(prev, '<' | '>') && next != Some('>'),
+        _ => false,
+    }
+}
+
+/// Split the text after `cat` into shell words (quotes removed), stopping at
+/// the first unquoted control operator: `)`, backtick, `|`, `;`, `&&`, `&`.
+/// `&` inside a redirection (`<&0`, `2>&1`, `&>f`) is not an operator.
+fn cat_arg_words(after: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut cur = String::new();
+    let mut in_word = false;
+    let mut quote: Option<char> = None;
+    let mut prev = ' ';
+    let mut chars = after.chars().peekable();
+    while let Some(c) = chars.next() {
+        match quote {
+            Some(q) if c == q => quote = None,
+            Some(_) => cur.push(c),
+            None if c == '\'' || c == '"' => {
+                quote = Some(c);
+                in_word = true;
+            }
+            None if c.is_whitespace() => {
+                if in_word {
+                    words.push(std::mem::take(&mut cur));
+                    in_word = false;
+                }
+            }
+            None if is_cat_terminator(c, prev, chars.peek().copied()) => break,
+            None => {
+                cur.push(c);
+                in_word = true;
+            }
+        }
+        prev = c;
+    }
+    if in_word {
+        words.push(cur);
+    }
+    words
 }
 
 /// Canonicalisation that makes a path safe regardless of where it came from

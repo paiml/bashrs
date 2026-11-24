@@ -137,3 +137,62 @@ fn test_GH336_file_cat_substitution_stays_clean() {
         assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
     }
 }
+
+#[test]
+fn test_GH336_cat_args_end_at_control_operators() {
+    for src in [
+        "r=$(cat && echo ok)",
+        "r=$(cat; echo ok)",
+        "r=$(cat | tr a b)",
+        "r=`cat && echo ok`",
+        "r=$(cat || echo ok)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_redirect_target_is_not_a_file_operand() {
+    for src in [
+        "r=$(cat 2> /dev/null)",
+        "r=$(cat > /dev/null)",
+        "r=$(cat 2>/dev/null)",
+        "r=$(cat >/dev/null)",
+        "r=$(cat >> log.txt)",
+        "r=$(cat 2>&1)",
+        "r=$(cat &>/dev/null)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\nrm -rf \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_unspaced_and_quoted_stdin_forms() {
+    for src in [
+        "r=$(cat </dev/stdin)",
+        "r=$(cat 0</dev/stdin)",
+        "r=$(cat \"/dev/stdin\")",
+        "r=$(cat < \"/dev/stdin\")",
+        "r=$(cat <&0)",
+        "r=$(cat 0<&0)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_outside_command_position_is_not_stdin() {
+    for src in [
+        "r=$(dirname /opt/cat)",
+        "r=$(basename cat)",
+        "r=$(cat \"$ROOT/VERSION\" && echo ok)",
+        "r=$(cat 2>/dev/null VERSION)",
+        "r=$(cat <VERSION)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\nROOT=/opt/app\n{src}\ncd \"$r\"\n");
+        assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
+    }
+}
