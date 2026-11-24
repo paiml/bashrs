@@ -18,6 +18,11 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 const DECL_KEYWORDS: [&str; 5] = ["local", "declare", "typeset", "readonly", "export"];
 const PREFIX_WORDS: [&str; 5] = ["then", "do", "else", "{", "!"];
 
+/// A shell word with its byte offset in the statement.
+type Word<'a> = (usize, &'a str);
+/// Declaration keyword offset, keyword and its argument words.
+type Decl<'a> = (usize, &'a str, &'a [Word<'a>]);
+
 /// Minimal shell lexer state: quotes, `(...)` nesting and backticks.
 #[derive(Default)]
 struct Lex {
@@ -107,21 +112,89 @@ fn is_subst_open(rest: &str) -> bool {
     rest.starts_with('(') && !rest.starts_with("((")
 }
 
+/// Byte length of the balanced `open ... close` group at the start of `s`
+/// (`s` starts with `open`); the whole of `s` when unbalanced.
+fn balanced_len(s: &str, open: char, close: char) -> usize {
+    let mut depth = 0i32;
+    for (i, c) in s.char_indices() {
+        depth += i32::from(c == open) - i32::from(c == close);
+        if depth == 0 {
+            return i + 1;
+        }
+    }
+    s.len()
+}
+
+/// Length of a `$((...))` or `${...}` group whose body shellcheck does not
+/// inspect for substitutions; `rest` is the text after the `$`.
+fn opaque_group_len(rest: &str) -> Option<usize> {
+    if rest.starts_with("((") {
+        Some(balanced_len(rest, '(', ')'))
+    } else if rest.starts_with('{') {
+        Some(balanced_len(rest, '{', '}'))
+    } else {
+        None
+    }
+}
+
+/// What the substitution scanner does after one character.
+enum Step {
+    Found,
+    SkipTo(usize),
+    Next,
+}
+
+/// Quote state of the substitution scanner.
+#[derive(Default)]
+struct Quotes {
+    single: bool,
+    double: bool,
+}
+
+impl Quotes {
+    /// Classify the char at byte `i`; toggles quote state as a side effect.
+    fn step(&mut self, value: &str, i: usize, c: char) -> Step {
+        match c {
+            '\'' if !self.double => self.single = !self.single,
+            '"' if !self.single => self.double = !self.double,
+            '`' if !self.single => return Step::Found,
+            '$' if !self.single => return Self::dollar(&value[i + 1..], i + 1),
+            _ => {}
+        }
+        Step::Next
+    }
+
+    fn dollar(rest: &str, base: usize) -> Step {
+        match opaque_group_len(rest) {
+            Some(n) => Step::SkipTo(base + n),
+            None if is_subst_open(rest) => Step::Found,
+            None => Step::Next,
+        }
+    }
+}
+
 /// True when the value contains an active command substitution
 /// (`$(...)` that is not arithmetic, or backticks), outside single quotes
-/// and not backslash-escaped.
+/// and not backslash-escaped. Like shellcheck, ignores substitutions nested
+/// inside `$((...))`, `${...}` and array literals `(...)`.
 fn has_command_subst(value: &str) -> bool {
-    let (mut single, mut chars) = (false, value.char_indices());
+    if value.starts_with('(') {
+        return false;
+    }
+    let (mut quotes, mut skip_to) = (Quotes::default(), 0usize);
+    let mut chars = value.char_indices();
     while let Some((i, c)) = chars.next() {
-        match c {
-            '\\' if !single => {
-                chars.next();
-            }
-            '\'' => single = !single,
-            '`' | '$' if single => {}
-            '`' => return true,
-            '$' if is_subst_open(&value[i + 1..]) => return true,
-            _ => {}
+        if c == '\\' && !quotes.single {
+            chars.next();
+            continue;
+        }
+        if i < skip_to {
+            continue;
+        }
+        match quotes.step(value, i, c) {
+            Step::Found => return true,
+            Step::SkipTo(n) => skip_to = n,
+            Step::Next => {}
         }
     }
     false
@@ -147,9 +220,7 @@ fn has_readonly_flag(keyword: &str, flags: &[(usize, &str)]) -> bool {
 
 /// Keyword word of a statement (skipping `then`/`do`/`{` prefixes) and the
 /// words after it.
-fn declaration_of<'a>(
-    words: &'a [(usize, &'a str)],
-) -> Option<(usize, &'a str, &'a [(usize, &'a str)])> {
+fn declaration_of<'a>(words: &'a [Word<'a>]) -> Option<Decl<'a>> {
     let idx = words.iter().position(|(_, w)| !PREFIX_WORDS.contains(w))?;
     let (off, kw) = words[idx];
     DECL_KEYWORDS
@@ -161,7 +232,11 @@ fn declaration_of<'a>(
 /// command substitution's return value.
 fn masked_declaration(stmt: &str) -> Option<(usize, String)> {
     let words = split_words(stmt);
-    let (off, kw, args) = declaration_of(&words)?;
+    let end = words
+        .iter()
+        .position(|(_, w)| w.starts_with('#'))
+        .unwrap_or(words.len());
+    let (off, kw, args) = declaration_of(&words[..end])?;
     if has_readonly_flag(kw, args) {
         return None;
     }
@@ -337,5 +412,21 @@ function test() {
         assert_eq!(check(r#"local a="\$(date)""#).diagnostics.len(), 0);
         assert_eq!(check("local a=$((1+2))").diagnostics.len(), 0);
         assert_eq!(check(r#"echo "local a=$(date)""#).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2155_parity_apostrophe_in_dq_and_whitespace() {
+        assert_eq!(check(r#"local a="it's $(date)""#).diagnostics.len(), 1);
+        assert_eq!(check("local\ta=$(date)").diagnostics.len(), 1);
+        assert_eq!(check("local   a=$(date)").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2155_parity_nested_silent() {
+        assert_eq!(check("local a=$(( $(date) ))").diagnostics.len(), 0);
+        assert_eq!(check(r#"local a="${b:-$(date)}""#).diagnostics.len(), 0);
+        assert_eq!(check("local -a arr=($(ls))").diagnostics.len(), 0);
+        assert_eq!(check("local a=1 # x=$(date)").diagnostics.len(), 0);
+        assert_eq!(check("local a='x'$(date)").diagnostics.len(), 1);
     }
 }
