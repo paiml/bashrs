@@ -410,13 +410,7 @@ mod pmat257_cov_tests {
     /// installed (the defect only showed on a runner without cargo-deny).
     fn stub_cargo(dir: &std::path::Path, body: &str) -> std::path::PathBuf {
         let path = dir.join("cargo");
-        std::fs::write(&path, body).expect("write stub cargo");
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
-                .expect("chmod stub cargo");
-        }
+        crate::testing::exec_stub::write_exec_stub(&path, body);
         path
     }
 
