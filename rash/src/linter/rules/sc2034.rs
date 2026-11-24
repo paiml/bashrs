@@ -42,18 +42,26 @@ struct Lexer {
     words: Vec<String>,
     cur: String,
     in_word: bool,
+    /// The next word is a redirection target and is dropped.
+    skip_next: bool,
 }
 
 impl Lexer {
     fn flush_word(&mut self) {
         if self.in_word {
-            self.words.push(std::mem::take(&mut self.cur));
+            let w = std::mem::take(&mut self.cur);
+            if std::mem::take(&mut self.skip_next) {
+                // redirection target: not an operand
+            } else {
+                self.words.push(w);
+            }
             self.in_word = false;
         }
     }
 
     fn end_command(&mut self) {
         self.flush_word();
+        self.skip_next = false;
         if !self.words.is_empty() {
             self.cmds.push(std::mem::take(&mut self.words));
         }
@@ -63,10 +71,33 @@ impl Lexer {
         self.cur.push(c);
         self.in_word = true;
     }
+
+    /// An unquoted command separator. `&` right after a redirection operator
+    /// (`>&2`) belongs to the redirection.
+    fn separator(&mut self, c: char) {
+        if c == '&' && self.skip_next && self.cur.is_empty() {
+            return;
+        }
+        self.end_command();
+    }
+
+    /// An unquoted `<` or `>` starts a redirection: drop an fd prefix such as
+    /// `2` and the target word that follows.
+    fn start_redirect(&mut self) {
+        if self.in_word && self.cur.chars().all(|c| c.is_ascii_digit()) {
+            self.cur.clear();
+            self.in_word = false;
+        } else {
+            self.flush_word();
+        }
+        self.skip_next = true;
+    }
 }
 
+type Chars<'a> = std::iter::Peekable<std::str::Chars<'a>>;
+
 /// Consume a quoted span (opening quote already read) into the current word.
-fn lex_quoted(q: char, chars: &mut std::str::Chars<'_>, lx: &mut Lexer) {
+fn lex_quoted(q: char, chars: &mut Chars<'_>, lx: &mut Lexer) {
     lx.in_word = true;
     while let Some(c) = chars.next() {
         if c == q {
@@ -82,11 +113,55 @@ fn lex_quoted(q: char, chars: &mut std::str::Chars<'_>, lx: &mut Lexer) {
     }
 }
 
+/// Consume a `$( ... )` span (the `$` already read, `(` next) verbatim into
+/// the current word, balancing nested parentheses.
+fn lex_subst(chars: &mut Chars<'_>, lx: &mut Lexer) {
+    lx.push_char('$');
+    let mut depth = 0usize;
+    while let Some(c) = chars.next() {
+        lx.cur.push(c);
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth -= 1;
+                if depth == 0 {
+                    return;
+                }
+            }
+            '\\' => {
+                if let Some(n) = chars.next() {
+                    lx.cur.push(n);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Consume a backtick span (opening backtick already read) verbatim.
+fn lex_backtick(chars: &mut Chars<'_>, lx: &mut Lexer) {
+    lx.push_char('`');
+    while let Some(c) = chars.next() {
+        lx.cur.push(c);
+        match c {
+            '`' => return,
+            '\\' => {
+                if let Some(n) = chars.next() {
+                    lx.cur.push(n);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 /// Split a line into simple commands, each a list of words with quotes
-/// removed. Stops at an unquoted `#` comment; splits at unquoted `;`, `&`, `|`.
+/// removed. Command substitutions stay inside their word and redirection
+/// targets are dropped. Stops at an unquoted `#` comment; splits at unquoted
+/// `;`, `&`, `|`, `(` and `)`.
 fn split_commands(line: &str) -> Vec<Vec<String>> {
     let mut lx = Lexer::default();
-    let mut chars = line.chars();
+    let mut chars = line.chars().peekable();
     while let Some(c) = chars.next() {
         match c {
             '\'' | '"' => lex_quoted(c, &mut chars, &mut lx),
@@ -95,8 +170,11 @@ fn split_commands(line: &str) -> Vec<Vec<String>> {
                     lx.push_char(n);
                 }
             }
+            '$' if chars.peek() == Some(&'(') => lex_subst(&mut chars, &mut lx),
+            '`' => lex_backtick(&mut chars, &mut lx),
             '#' if !lx.in_word => break,
-            ';' | '&' | '|' => lx.end_command(),
+            '<' | '>' => lx.start_redirect(),
+            ';' | '&' | '|' | '(' | ')' => lx.separator(c),
             c if c.is_whitespace() => lx.flush_word(),
             _ => lx.push_char(c),
         }
@@ -105,29 +183,62 @@ fn split_commands(line: &str) -> Vec<Vec<String>> {
     lx.cmds
 }
 
+/// Option words are the leading `-x` arguments up to `--` or the first
+/// operand; later words are operands, never flags.
 fn has_flag(args: &[String], flag: char) -> bool {
     args.iter()
-        .any(|w| w.starts_with('-') && !w.starts_with("--") && w.contains(flag))
+        .take_while(|w| w.starts_with('-') && w.as_str() != "--")
+        .any(|w| !w.starts_with("--") && w.contains(flag))
+}
+
+fn is_assignment_word(w: &str) -> bool {
+    let Some(eq) = w.find('=') else { return false };
+    let name = w[..eq].trim_end_matches('+');
+    let mut cs = name.chars();
+    matches!(cs.next(), Some(c) if c.is_ascii_alphabetic() || c == '_')
+        && cs.all(|c| c.is_ascii_alphanumeric() || c == '_')
+}
+
+/// Index of the command word, skipping shell keywords, `!`, `{` and
+/// prefix assignments (`FOO=bar export x`).
+fn command_index(cmd: &[String]) -> usize {
+    cmd.iter()
+        .position(|w| {
+            !matches!(
+                w.as_str(),
+                "if" | "then" | "else" | "elif" | "do" | "while" | "until" | "!" | "{" | "time"
+            ) && !is_assignment_word(w)
+        })
+        .unwrap_or(cmd.len())
 }
 
 /// Names passed to `export` (or `declare -x` / `typeset -x`) count as used
-/// (shellcheck parity). `readonly` and `export -n` do not export.
+/// (shellcheck parity). `readonly`, `export -n` and `export -f` do not
+/// export a variable.
 fn mark_exported(line: &str, used: &mut HashSet<String>) {
     for cmd in split_commands(line) {
-        let args = &cmd[1..];
-        let exports = match cmd[0].as_str() {
-            "export" => !has_flag(args, 'n'),
-            "declare" | "typeset" => has_flag(args, 'x'),
-            _ => false,
-        };
-        if !exports {
-            continue;
+        let idx = command_index(&cmd);
+        let Some(name) = cmd.get(idx) else { continue };
+        let args = &cmd[idx + 1..];
+        if exports_variables(name, args) {
+            mark_operands(args, used);
         }
-        for word in args.iter().filter(|w| !w.starts_with('-')) {
-            let name = word.split('=').next().unwrap_or("");
-            if !name.is_empty() {
-                used.insert(name.to_string());
-            }
+    }
+}
+
+fn exports_variables(name: &str, args: &[String]) -> bool {
+    match name {
+        "export" => !has_flag(args, 'n') && !has_flag(args, 'f'),
+        "declare" | "typeset" => has_flag(args, 'x'),
+        _ => false,
+    }
+}
+
+fn mark_operands(args: &[String], used: &mut HashSet<String>) {
+    for word in args.iter().filter(|w| !w.starts_with('-')) {
+        let name = word.split('=').next().unwrap_or("").trim_end_matches('+');
+        if !name.is_empty() {
+            used.insert(name.to_string());
         }
     }
 }
@@ -360,5 +471,78 @@ echo "Hello"
     fn test_sc2034_export_still_exempts() {
         assert!(unused_names("x=1\nexport x\n").is_empty());
         assert!(unused_names("x=1\nexport -p x\n").is_empty());
+    }
+
+    #[test]
+    fn test_sc2034_export_cmd_subst_does_not_leak() {
+        let r = unused_names("env=prod\nexport API_URL=$(build_url env us-east)\n");
+        assert!(r.iter().any(|m| m.contains("'env'")), "{r:?}");
+        let r = unused_names("y=2\nexport x=`cmd y z`\n");
+        assert!(r.iter().any(|m| m.contains("'y'")), "{r:?}");
+        let r = unused_names("y=2\nexport x=$(a $(b y) z)\n");
+        assert!(r.iter().any(|m| m.contains("'y'")), "{r:?}");
+    }
+
+    #[test]
+    fn test_sc2034_export_redirect_does_not_leak() {
+        let r = unused_names("out=1\nexport -p > out\n");
+        assert!(r.iter().any(|m| m.contains("'out'")), "{r:?}");
+        let r = unused_names("out=1\nexport -p 2>out\n");
+        assert!(r.iter().any(|m| m.contains("'out'")), "{r:?}");
+        let r = unused_names("out=1\nexport -p >&out\n");
+        assert!(r.iter().any(|m| m.contains("'out'")), "{r:?}");
+        assert!(unused_names("x=1\nexport x > /dev/null\n").is_empty());
+    }
+
+    #[test]
+    fn test_sc2034_export_compound_prefixed_append() {
+        assert!(unused_names("x=1\nif true; then export x; fi\n").is_empty());
+        assert!(unused_names("x=1\n{ export x; }\n").is_empty());
+        assert!(unused_names("x=1\n(export x)\n").is_empty());
+        assert!(unused_names("x=1\nFOO=bar export x\n").is_empty());
+        assert!(unused_names("x=1\nexport x+=2\n").is_empty());
+        assert!(unused_names("x=1\nexport x=2\n").is_empty());
+    }
+
+    #[test]
+    fn test_sc2034_export_f_does_not_mark_variable() {
+        let r = unused_names("x=1\nexport -f x\n");
+        assert!(r.iter().any(|m| m.contains("'x'")), "{r:?}");
+    }
+
+    #[test]
+    fn test_sc2034_flags_only_from_option_args() {
+        assert!(unused_names("x=1\nexport x=$(echo -n hi)\n").is_empty());
+        let r = unused_names("x=1\nfoo=2\ndeclare x=$(grep -x foo bar)\n");
+        assert_eq!(r.len(), 2, "{r:?}");
+        assert!(unused_names("name=1\nexport name\n").is_empty());
+        let r = unused_names("x=1\nexport -- -n x\n");
+        assert!(r.is_empty(), "{r:?}");
+        let r = unused_names("x=1\nexport --nope x\n");
+        assert!(r.is_empty(), "{r:?}");
+    }
+
+    #[test]
+    fn test_sc2034_declare_typeset_x() {
+        assert!(unused_names("x=1\ndeclare -x x\n").is_empty());
+        assert!(unused_names("x=1\ntypeset -x x\n").is_empty());
+        let r = unused_names("x=1\ndeclare x\n");
+        assert!(r.iter().any(|m| m.contains("'x'")), "{r:?}");
+        let r = unused_names("x=1\ntypeset x\n");
+        assert!(r.iter().any(|m| m.contains("'x'")), "{r:?}");
+    }
+
+    #[test]
+    fn test_sc2034_lexer_quotes_escapes_pipe() {
+        let r = unused_names("y=2\nexport x='a; y'\n");
+        assert!(r.iter().any(|m| m.contains("'y'")), "{r:?}");
+        let r = unused_names("y=2\nexport x=\"a \\\" y\"\n");
+        assert!(r.iter().any(|m| m.contains("'y'")), "{r:?}");
+        let r = unused_names("y=2\nexport x=a\\ y\n");
+        assert!(r.iter().any(|m| m.contains("'y'")), "{r:?}");
+        let r = unused_names("y=2\nexport x | y\n");
+        assert!(r.iter().any(|m| m.contains("'y'")), "{r:?}");
+        let r = unused_names("x=1\ny=2\nexport x=a#b y\n");
+        assert!(r.iter().any(|m| m.contains("'x'")) == false, "{r:?}");
     }
 }
