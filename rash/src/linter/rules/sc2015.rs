@@ -74,7 +74,7 @@ fn fallback_is_exempt(matched: &str, after: &str) -> bool {
     }
 }
 
-fn diagnostic_for(line_num: usize, m: &regex::Match) -> Diagnostic {
+fn diagnostic_for(line_num: usize, m: &regex::Match<'_>) -> Diagnostic {
     Diagnostic::new(
         "SC2015",
         Severity::Info,
