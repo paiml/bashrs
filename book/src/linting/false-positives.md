@@ -50,7 +50,7 @@ is the documented dispatcher idiom:
 ```bash
 sh_c='sh -c'
 [ "$(id -u)" -ne 0 ] && sh_c='sudo -E sh -c'
-$sh_c 'docker version'     # not SEC002; SC2183 covers variable command names
+$sh_c 'docker version'     # not SEC002; shellcheck is silent here too
 ```
 
 An unquoted expansion in *argument* position still is, including inside a command
@@ -100,7 +100,7 @@ the rule still fires on its true positive.
   it, and no longer reports an assignment RHS, a word inside double quotes or a
   `case $(uname) in` word, where the shell performs no field splitting (#237, #262).
 - A `$(` opens a fresh quoting context. In `[ "$(echo "$x >= 80" | bc)" -eq 1 ]` the
-  `$x` is quoted twice over; SC2047 now asks the shared word analysis instead of counting
+  `$x` is quoted twice over; the quoting check (SC2086) asks the shared word analysis instead of counting
   quotes on the line (#241).
 - Inside `"…"` a backslash escapes exactly `$`, backtick, `"` and `\`. An escaped
   backtick in a `--body "…"` argument is text, so SC2006, SC2046 and SC2099 stay quiet;

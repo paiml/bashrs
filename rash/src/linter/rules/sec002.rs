@@ -67,8 +67,8 @@ fn dangerous_command(name: &str) -> Option<&'static str> {
 /// severity.
 ///
 /// `CommandName` is *excluded* on purpose: word splitting there is intentional
-/// (`sh_c='sh -c'; $sh_c 'docker version'`) and SC2183 already reports it with
-/// the appropriate severity. See GH-229.
+/// (`sh_c='sh -c'; $sh_c 'docker version'`) and no rule reports it (SC2183 was retired
+/// from that use in #236; shellcheck is silent there too). See GH-229.
 const REPORTABLE_ROLES: &[WordRole] = &[WordRole::Argument, WordRole::RedirectTarget];
 
 /// The leftmost unquoted expansion sitting in a reportable position of a

@@ -79,7 +79,7 @@ equations:
     codomain: bool
     invariants:
     - 'in `[ "$(echo "$x >= 80" | bc)" -eq 1 ]` both $x and the outer $(...) are quoted - GH-241'
-    - 'in `[ $x -eq 1 ]` $x is unquoted and SC2047 still reports'
+    - 'in `[ $x -eq 1 ]` $x is unquoted and SC2086 reports it (SC2047 emits nothing, #236)'
     - 'only operands of the test command itself are its subject; `$x` in `[ -n "$(echo $x)" ]` is an operand of echo and belongs to SC2086'
   recipe:
     formula: 'reaches_shell_rules(l) <=> is_recipe_line(l) ; a target line, a variable line or a Make comment never does'
@@ -174,7 +174,7 @@ falsification_tests:
   if_fails: 'Contract violation: SC2046 still tokenises "$((" as "$(" and reports a span with an unbalanced paren'
 - id: F-LCX-003
   rule: a $var inside a double-quoted nested command substitution is quoted
-  prediction: 'lint_shell on the GH-241 reproducer reports neither SC2047 nor SC2122, nor does `[ -n "$(echo $x)" ]` (an operand of echo, not of `[`); `[ $x -eq 1 ]` still reports SC2047'
+  prediction: 'lint_shell on the GH-241 reproducer reports neither SC2047 nor SC2122, nor does `[ -n "$(echo $x)" ]` (an operand of echo, not of `[`); `[ $x -eq 1 ]` is reported once, as SC2086, never SC2047'
   test: cargo test -p bashrs --lib linter::lexer_context_tests::test_PMAT248_gh241_quoted_var_inside_nested_substitution_is_quoted
   if_fails: 'Contract violation: SC2047 decides quotedness by counting quotes on the line instead of asking shell_words (GH-228)'
 - id: F-LCX-004

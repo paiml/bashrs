@@ -49,7 +49,7 @@ invariants:
 - 'SEC002 scope: an unquoted expansion in ARGUMENT position of a dangerous command
   (curl, wget, ssh, scp, git, rsync, docker, kubectl), including inside a command
   substitution, which is a fresh quoting context. Expansions in COMMAND position are
-  excluded (SC2183 covers those), as are dangerous command names occurring inside
+  excluded (shellcheck is silent there too), as are dangerous command names occurring inside
   quoted literals.'
 - 'SEC002 spans are 1-indexed BYTE columns covering the whole expansion, so applying
   the suggested fix is a valid, non-panicking splice.'
@@ -76,8 +76,8 @@ falsification_tests:
   if_fails: 'Contract violation: SEC002 does NOT flag quoted variable in network command'
 - id: F-SEC002-PRECISE-DISPATCHER
   rule: SEC002 does NOT flag an expansion in COMMAND position, nor a dangerous command
-    name appearing inside a quoted argument (GH-229). SC2183 already covers variable
-    command names with the correct severity.
+    name appearing inside a quoted argument (GH-229). Variable
+    command names are not reported at all, as in shellcheck (#236).
   prediction: lint result does NOT contain SEC002 for `$sh_c 'docker version'` or for
     `echo 'docker run $IMAGE'`
   test: 'Given input, verify: lint result does NOT contain SEC002 diagnostic'

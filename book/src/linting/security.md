@@ -103,8 +103,8 @@ raw text, which fixes three classes of defect (GH-228, GH-229):
   `"$( … )"` is correctly seen as quoted, and a bare `$url` inside it is correctly
   seen as unquoted.
 - Only the word in **command position** names the command. A dangerous name inside a
-  quoted argument is just text, and an expansion in command position is left to
-  SC2183.
+  quoted argument is just text, and an expansion in command position is not reported (as in shellcheck,
+  which is silent there).
 - The reported span covers the whole expansion in **byte** columns, so `--fix`
   splices correctly instead of corrupting the line (and no longer panics on
   non-ASCII input).
@@ -138,7 +138,7 @@ out="$(curl -sSfL "$url" | head -1)"  # Quoted inside the substitution - safe
 #!/bin/sh
 sh_c='sh -c'
 [ "$(id -u)" -ne 0 ] && sh_c='sudo -E sh -c'
-$sh_c 'docker version'   # SC2183 covers this; quoting $sh_c would break it
+$sh_c 'docker version'   # not reported (as in shellcheck); quoting $sh_c would break it
 ```
 
 ### Auto-fix

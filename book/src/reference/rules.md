@@ -105,7 +105,7 @@ resolves, in **command** position, to one of the names above. Wrapper commands
 (`sudo`, `env`, `timeout`, …) are followed through to the real command name.
 
 **Excluded on purpose:**
-- Expansions in command position (`$sh_c 'docker version'`) — SC2183 reports those.
+- Expansions in command position (`$sh_c 'docker version'`) — shellcheck is silent there too (#236).
 - Dangerous names occurring inside quoted argument text (`echo 'docker run' $x`).
 - Redirect targets (`curl "$u" > $out`) — SC2086 reports those.
 
