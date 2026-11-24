@@ -61,7 +61,7 @@ awk '
 /^```/ { if (!inside) { inside=1; lang=substr($0,4); gsub(/^[ \t]+|[ \t]+$/,"",lang) } else { inside=0; lang="" } next }
 !inside { next }
 lang!="bash" && lang!="sh" && lang!="shell" && lang!="console" && lang!="" { next }
-{ t=$0; gsub(/^[ \t]+|[ \t]+$/,"",t); sub(/^\$[ \t]+/,"",t)
+{ t=$0; gsub(/^[ \t]+|[ \t]+$/,"",t); sub(/^[$][ \t]+/,"",t)
   if (t ~ /^bashrs([ \t]|$)/) printf "%d\t%s\n", NR, t }
 ' README.md > "$EXTRACT"
 
