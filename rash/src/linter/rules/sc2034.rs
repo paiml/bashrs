@@ -35,6 +35,20 @@ static ASSIGN_PATTERN: std::sync::LazyLock<Regex> =
 static USE_PATTERN: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?").unwrap());
 
+/// Names passed to `export`/`readonly` count as used (shellcheck parity).
+fn mark_exported(line: &str, used: &mut HashSet<String>) {
+    let mut words = line.split_whitespace();
+    if !matches!(words.next(), Some("export" | "readonly")) {
+        return;
+    }
+    for word in words.filter(|w| !w.starts_with('-')) {
+        let name = word.split('=').next().unwrap_or("");
+        if !name.is_empty() {
+            used.insert(name.to_string());
+        }
+    }
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
@@ -59,6 +73,8 @@ pub fn check(source: &str) -> LintResult {
             let var_name = cap.get(1).unwrap().as_str().to_string();
             assigned.insert(var_name, line_num);
         }
+
+        mark_exported(line, &mut used);
 
         // Find uses
         for cap in use_pattern.captures_iter(line) {
@@ -197,5 +213,20 @@ echo "Hello"
 "#;
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2034_exported_variable_is_used() {
+        let script = "x=1\nexport x";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2034_export_does_not_hide_other_unused() {
+        let script = "x=1\ny=2\nexport x";
+        let result = check(script);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert!(result.diagnostics[0].message.contains("'y'"));
     }
 }
