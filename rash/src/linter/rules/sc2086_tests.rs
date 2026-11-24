@@ -474,6 +474,36 @@ fn test_sc2086_escaped_dollar_not_flagged() {
     assert_eq!(check("echo \\\\$x\n").diagnostics.len(), 1);
 }
 
+/// Refs #236: shellcheck 0.8.0 is silent on `for f in $x` (word list is split intentionally).
+#[test]
+fn test_sc2086_for_in_word_list_not_flagged() {
+    for src in [
+        "for f in $x; do\n  echo \"$f\"\ndone\n",
+        "for f in $a $b; do\n  echo \"$f\"\ndone\n",
+        "for f in ${list}; do echo \"$f\"; done\n",
+    ] {
+        let result = check(src);
+        assert!(
+            result.diagnostics.is_empty(),
+            "for-in word list must not be flagged: {src:?} -> {:?}",
+            result.diagnostics
+        );
+    }
+}
+
+/// Refs #236: true positives stay: loop body and command substitutions inside the list.
+#[test]
+fn test_sc2086_for_in_true_positives_kept() {
+    assert_eq!(
+        check("for f in a b; do echo $f; done\n").diagnostics.len(),
+        1
+    );
+    assert_eq!(
+        check("for f in $(ls $d); do :; done\n").diagnostics.len(),
+        1
+    );
+}
+
 #[test]
 fn test_sc2086_case_subject_not_flagged_236() {
     // shellcheck 0.8.0 is silent: a case subject is never word-split or globbed.
