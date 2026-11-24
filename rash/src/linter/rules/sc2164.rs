@@ -44,50 +44,53 @@ fn is_condition_cd(line: &str) -> bool {
     })
 }
 
-pub fn check(source: &str) -> LintResult {
-    let mut result = LintResult::new();
+/// Whole-line skips: comments, condition-context cd, or inline handling.
+fn is_skipped_line(line: &str) -> bool {
+    line.trim_start().starts_with('#')
+        || is_condition_cd(line)
+        || line.contains("|| exit")
+        || line.contains("|| return")
+        || line.contains("&& ")
+}
 
-    // Pattern: cd path (simple detection - enhancement needed)
-    // Improving negative lookahead for better detection is not implemented yet; PMAT-249 tracks the gap.
-    let pattern = &*PATTERN;
+/// Any `||` handler after the cd counts as handled (shellcheck parity, #587).
+fn has_or_handler(rest: &str) -> bool {
+    rest.contains("||")
+}
 
-    for (line_num, line) in source.lines().enumerate() {
-        let line_num = line_num + 1;
+fn build_diagnostic(line_num: usize, cap: &regex::Captures) -> Diagnostic {
+    let full_match = cap.get(0).unwrap();
+    let directory = cap.get(1).unwrap().as_str();
+    let start_col = full_match.start() + 1;
+    let end_col = full_match.end() + 1;
 
-        if line.trim_start().starts_with('#') {
-            continue;
-        }
+    Diagnostic::new(
+        "SC2164",
+        Severity::Warning,
+        "Use 'cd ... || exit' in case cd fails",
+        Span::new(line_num, start_col, line_num, end_col),
+    )
+    .with_fix(Fix::new(format!("cd {} || exit", directory)))
+}
 
-        if is_condition_cd(line) {
-            continue;
-        }
-
-        // Skip if line already has error handling
-        if line.contains("|| exit") || line.contains("|| return") || line.contains("&& ") {
-            continue;
-        }
-
-        for cap in pattern.captures_iter(line) {
-            let full_match = cap.get(0).unwrap();
-            let directory = cap.get(1).unwrap().as_str();
-
-            let start_col = full_match.start() + 1;
-            let end_col = full_match.end() + 1;
-
-            let fix_text = format!("cd {} || exit", directory);
-
-            let diagnostic = Diagnostic::new(
-                "SC2164",
-                Severity::Warning,
-                "Use 'cd ... || exit' in case cd fails",
-                Span::new(line_num, start_col, line_num, end_col),
-            )
-            .with_fix(Fix::new(fix_text));
-
-            result.add(diagnostic);
+fn check_line(line_num: usize, line: &str, result: &mut LintResult) {
+    if is_skipped_line(line) {
+        return;
+    }
+    for cap in PATTERN.captures_iter(line) {
+        let end = cap.get(0).unwrap().end();
+        if !has_or_handler(&line[end..]) {
+            result.add(build_diagnostic(line_num, &cap));
         }
     }
+}
 
+pub fn check(source: &str) -> LintResult {
+    let mut result = LintResult::new();
+    // Simple detection; negative-lookahead improvement tracked by PMAT-249.
+    for (idx, line) in source.lines().enumerate() {
+        check_line(idx + 1, line, &mut result);
+    }
     result
 }
 
@@ -191,5 +194,17 @@ mod tests {
     fn test_sc2164_plain_cd_still_flagged_after_condition_fix() {
         assert_eq!(check("cd /w; echo c").diagnostics.len(), 1);
         assert_eq!(check("if true; then cd /w; fi").diagnostics.len(), 1);
+    }
+
+    // Issue #587: any `||` handler after cd counts (shellcheck parity)
+    #[test]
+    fn test_sc2164_or_true_not_flagged() {
+        assert_eq!(check("cd /tmp || true").diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2164_or_brace_group_not_flagged() {
+        let script = "cd \"$d\" || { echo no; exit 1; }";
+        assert_eq!(check(script).diagnostics.len(), 0);
     }
 }

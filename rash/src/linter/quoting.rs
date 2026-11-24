@@ -342,7 +342,6 @@ pub const QUOTE_SENSITIVE_RULES: &[&str] = &[
     // keep firing on genuine backtick substitutions. See
     // `tests/quoting_literal_payload_guard.rs`.
     "SC2006", // Use $(...) instead of legacy backticks
-    "SC2099", // Use $(...) instead of deprecated backtick command substitution
     // PMAT-248 (#242): an HTML entity inside an unquoted heredoc body is data
     // being emitted, not a typo in this script's own shell code.
     "SC1109", // Unquoted HTML entity
@@ -1436,7 +1435,6 @@ mod tests {
             ("SC2188", sc2188::check),
             // PMAT-248
             ("SC2006", sc2006::check),
-            ("SC2099", sc2099::check),
             ("SC1109", sc1109::check),
             ("SC2276", sc2276::check),
             // bashrs#364
