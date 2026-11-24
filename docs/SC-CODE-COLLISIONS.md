@@ -149,7 +149,7 @@ ShellCheck check under a neighbouring ShellCheck number. They are left alone
 because the number still means roughly the right thing, but they are worth
 knowing about:
 
-- bashrs `SC2005` emits ShellCheck's `SC2116` message; bashrs `SC2116` emits it too.
+- bashrs `SC2005` used to report the `$(echo x)` form, which is ShellCheck's `SC2116`. It now reports ShellCheck's `SC2005` check (`echo $(cmd)`, bashrs#526); `SC2116` keeps the `$(echo x)` form.
 - bashrs `SC2038` emits ShellCheck's `SC2044` message (for-loop over `find`).
 - bashrs `SC2104` emitted ShellCheck's `SC1020` check ("Missing space before `]`") —
   a duplicate of bashrs' own `SC1020` rule, under a squatted number. Now `BRS0010`;
