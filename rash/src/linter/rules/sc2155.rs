@@ -14,11 +14,162 @@
 //   # $? is the command's actual exit code
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
-use regex::Regex;
 
-static LOCAL_WITH_COMMAND_SUBST: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r"\b(local|declare|readonly|export)\s+([A-Za-z_][A-Za-z0-9_]*)=\$\(").unwrap()
-});
+const DECL_KEYWORDS: [&str; 5] = ["local", "declare", "typeset", "readonly", "export"];
+const PREFIX_WORDS: [&str; 5] = ["then", "do", "else", "{", "!"];
+
+/// Minimal shell lexer state: quotes, `(...)` nesting and backticks.
+#[derive(Default)]
+struct Lex {
+    depth: i32,
+    quote: Option<char>,
+    tick: bool,
+}
+
+impl Lex {
+    fn is_open(&self) -> bool {
+        self.quote.is_some() || self.depth > 0 || self.tick
+    }
+
+    /// Feed one char; returns true when the next char is escaped (skip it).
+    fn feed(&mut self, c: char) -> bool {
+        if c == '\\' && self.quote != Some('\'') {
+            return true;
+        }
+        match self.quote {
+            Some(q) => self.in_quote(c, q),
+            None => self.outside(c),
+        }
+        false
+    }
+
+    fn in_quote(&mut self, c: char, q: char) {
+        if c == q {
+            self.quote = None;
+        }
+    }
+
+    fn outside(&mut self, c: char) {
+        match c {
+            '\'' | '"' => self.quote = Some(c),
+            '`' => self.tick = !self.tick,
+            '(' => self.depth += 1,
+            ')' => self.depth -= 1,
+            _ => {}
+        }
+    }
+}
+
+/// Split a line into simple-command segments `(byte_offset, text)` at
+/// unquoted `;`, `&` and `|`.
+fn split_statements(line: &str) -> Vec<(usize, &str)> {
+    let mut out = Vec::new();
+    let (mut start, mut lex) = (0usize, Lex::default());
+    let mut chars = line.char_indices();
+    while let Some((i, c)) = chars.next() {
+        if matches!(c, ';' | '&' | '|') && !lex.is_open() {
+            out.push((start, &line[start..i]));
+            start = i + 1;
+        } else if lex.feed(c) {
+            chars.next();
+        }
+    }
+    out.push((start, &line[start..]));
+    out
+}
+
+/// Split a statement into whitespace-separated words, honouring quotes,
+/// `$(...)` and backticks.
+fn split_words(stmt: &str) -> Vec<(usize, &str)> {
+    let mut out = Vec::new();
+    let (mut start, mut lex) = (None::<usize>, Lex::default());
+    let mut chars = stmt.char_indices();
+    while let Some((i, c)) = chars.next() {
+        if c.is_whitespace() && !lex.is_open() {
+            if let Some(s) = start.take() {
+                out.push((s, &stmt[s..i]));
+            }
+            continue;
+        }
+        start.get_or_insert(i);
+        if lex.feed(c) {
+            chars.next();
+        }
+    }
+    if let Some(s) = start {
+        out.push((s, &stmt[s..]));
+    }
+    out
+}
+
+/// `$(` that opens a command substitution rather than `$((` arithmetic.
+fn is_subst_open(rest: &str) -> bool {
+    rest.starts_with('(') && !rest.starts_with("((")
+}
+
+/// True when the value contains an active command substitution
+/// (`$(...)` that is not arithmetic, or backticks), outside single quotes
+/// and not backslash-escaped.
+fn has_command_subst(value: &str) -> bool {
+    let (mut single, mut chars) = (false, value.char_indices());
+    while let Some((i, c)) = chars.next() {
+        match c {
+            '\\' if !single => {
+                chars.next();
+            }
+            '\'' => single = !single,
+            '`' | '$' if single => {}
+            '`' => return true,
+            '$' if is_subst_open(&value[i + 1..]) => return true,
+            _ => {}
+        }
+    }
+    false
+}
+
+/// `NAME=value` where NAME is a valid identifier; returns the value.
+fn assignment_value(word: &str) -> Option<&str> {
+    let (name, value) = word.split_once('=')?;
+    let mut cs = name.chars();
+    let first = cs.next()?;
+    let ident = (first.is_ascii_alphabetic() || first == '_')
+        && cs.all(|c| c.is_ascii_alphanumeric() || c == '_');
+    ident.then_some(value)
+}
+
+/// shellcheck stays silent when `-r` is given to declare/local/typeset.
+fn has_readonly_flag(keyword: &str, flags: &[(usize, &str)]) -> bool {
+    keyword != "readonly"
+        && flags
+            .iter()
+            .any(|(_, w)| w.starts_with('-') && w.contains('r'))
+}
+
+/// Keyword word of a statement (skipping `then`/`do`/`{` prefixes) and the
+/// words after it.
+fn declaration_of<'a>(
+    words: &'a [(usize, &'a str)],
+) -> Option<(usize, &'a str, &'a [(usize, &'a str)])> {
+    let idx = words.iter().position(|(_, w)| !PREFIX_WORDS.contains(w))?;
+    let (off, kw) = words[idx];
+    DECL_KEYWORDS
+        .contains(&kw)
+        .then_some((off, kw, &words[idx + 1..]))
+}
+
+/// Offset and name of the declaration keyword if the statement masks a
+/// command substitution's return value.
+fn masked_declaration(stmt: &str) -> Option<(usize, String)> {
+    let words = split_words(stmt);
+    let (off, kw, args) = declaration_of(&words)?;
+    if has_readonly_flag(kw, args) {
+        return None;
+    }
+    args.iter()
+        .filter_map(|(_, w)| assignment_value(w))
+        .any(has_command_subst)
+        .then(|| (off, kw.to_string()))
+}
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
@@ -30,22 +181,18 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        for cap in LOCAL_WITH_COMMAND_SUBST.captures_iter(line) {
-            if let Some(keyword) = cap.get(1) {
-                let start_col = keyword.start() + 1;
-                let end_col = keyword.end() + 1;
-
-                let diagnostic = Diagnostic::new(
+        for (base, stmt) in split_statements(line) {
+            if let Some((off, keyword)) = masked_declaration(stmt) {
+                let start_col = base + off + 1;
+                let end_col = start_col + keyword.len();
+                result.add(Diagnostic::new(
                     "SC2155",
                     Severity::Warning,
                     format!(
-                        "Declare and assign separately to avoid masking return values ({})",
-                        keyword.as_str()
+                        "Declare and assign separately to avoid masking return values ({keyword})"
                     ),
                     Span::new(line_num, start_col, line_num, end_col),
-                );
-
-                result.add(diagnostic);
+                ));
             }
         }
     }
@@ -135,5 +282,60 @@ function test() {
         let code = r#"local var=value"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2155_526_readonly_quoted_subst() {
+        assert_eq!(check(r#"readonly X="$(id)""#).diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2155_526_local_quoted_then_plain() {
+        assert_eq!(check(r#"local a="$(date)" b=2"#).diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2155_526_local_second_assignment_subst() {
+        assert_eq!(check(r#"local a=2 b="$(date)""#).diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2155_526_declare_x_unquoted() {
+        assert_eq!(check("declare -x y=$(ls)").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2155_526_backticks() {
+        assert_eq!(check("local a=`date`").diagnostics.len(), 1);
+        assert_eq!(check("local a=\"`date`\"").diagnostics.len(), 1);
+        assert_eq!(check("readonly X=`id`").diagnostics.len(), 1);
+        assert_eq!(check("export X=`id`").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2155_526_embedded_subst() {
+        assert_eq!(check(r#"local a="pre$(date)post""#).diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2155_526_after_separator() {
+        assert_eq!(check("echo hi; local a=$(date)").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2155_526_readonly_flag_silent() {
+        // shellcheck 0.8.0 stays silent with -r on declare/local
+        assert_eq!(check("declare -r y=$(ls)").diagnostics.len(), 0);
+        assert_eq!(check("local -r z=$(id)").diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2155_526_silent_cases() {
+        assert_eq!(check("local x; x=$(cmd)").diagnostics.len(), 0);
+        assert_eq!(check("export X=literal").diagnostics.len(), 0);
+        assert_eq!(check("local a='$(date)'").diagnostics.len(), 0);
+        assert_eq!(check(r#"local a="\$(date)""#).diagnostics.len(), 0);
+        assert_eq!(check("local a=$((1+2))").diagnostics.len(), 0);
+        assert_eq!(check(r#"echo "local a=$(date)""#).diagnostics.len(), 0);
     }
 }
