@@ -141,7 +141,7 @@ fn test_parser_variables_coverage() {
         let result = parse_with_coverage(input, feature, &mut tracker);
         let frame = parser_frame(input, &result);
         expect_frame(&frame)
-            .to_contain_text("BASHRS PARSER")
+            .expect_contain_text("BASHRS PARSER")
             .unwrap();
     }
 
@@ -183,7 +183,7 @@ fn test_parser_command_substitution_coverage() {
         gui.visit(if result.is_ok() { "parsed" } else { "error" });
 
         let frame = parser_frame(input, &result);
-        expect_frame(&frame).to_contain_text("BASHRS").unwrap();
+        expect_frame(&frame).expect_contain_text("BASHRS").unwrap();
     }
 
     println!("\nCommand Substitution Coverage: {:.1}%", gui.percent());

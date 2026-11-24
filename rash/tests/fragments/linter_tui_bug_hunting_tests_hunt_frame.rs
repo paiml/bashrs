@@ -310,7 +310,7 @@ fn hunt_frame_assertions() {
                 let frame = linter_frame(code, &result);
 
                 // Use expect_frame assertions
-                match expect_frame(&frame).to_contain_text("BASHRS LINTER") {
+                match expect_frame(&frame).expect_contain_text("BASHRS LINTER") {
                     Ok(_) => {
                         gui.visit("valid");
                         println!("  [OK] {}: {}", id, desc);
