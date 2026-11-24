@@ -58,7 +58,7 @@ fn has_or_handler(rest: &str) -> bool {
     rest.contains("||")
 }
 
-fn build_diagnostic(line_num: usize, cap: &regex::Captures) -> Diagnostic {
+fn build_diagnostic(line_num: usize, cap: &regex::Captures<'_>) -> Diagnostic {
     let full_match = cap.get(0).unwrap();
     let directory = cap.get(1).unwrap().as_str();
     let start_col = full_match.start() + 1;
