@@ -103,3 +103,37 @@ fn test_GH336_read_r_validated_stays_clear() {
     let s = "#!/usr/bin/env bash\nset -euo pipefail\ntd=$(mktemp -d)\nread -r r < \"$td/f\"\nif [[ \"$r\" == *..* ]] || [[ \"$r\" != /* ]]; then exit 2; fi\nout=$(cd \"$r\" && cargo build 2>&1); echo \"$out\"\n";
     assert!(check(s).diagnostics.iter().all(|d| d.code != "SEC010"));
 }
+
+fn sec010_fires(s: &str) -> bool {
+    check(s).diagnostics.iter().any(|d| d.code == "SEC010")
+}
+
+#[test]
+fn test_GH336_stdin_cat_substitution_is_external() {
+    for src in [
+        "r=$(cat)",
+        "r=$(cat -)",
+        "r=$(cat /dev/stdin)",
+        "r=$(cat <&0)",
+        "r=`cat`",
+        "r=$(cat 2>/dev/null)",
+    ] {
+        for sink in ["cd \"$r\"", "rm -rf \"$r\""] {
+            let s = format!("#!/usr/bin/env bash\n{src}\n{sink}\n");
+            assert!(sec010_fires(&s), "SEC010 must fire for `{src}` then `{sink}`");
+        }
+    }
+}
+
+#[test]
+fn test_GH336_file_cat_substitution_stays_clean() {
+    for src in [
+        "r=$(cat \"$ROOT/VERSION\")",
+        "r=$(cat VERSION)",
+        "r=$(cat < VERSION)",
+        "r=$(cat <<EOF)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\nROOT=/opt/app\n{src}\ncd \"$r\"\n");
+        assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
+    }
+}

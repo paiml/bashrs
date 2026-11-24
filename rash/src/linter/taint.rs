@@ -703,7 +703,46 @@ fn cmd_sub_taint(rhs: &str) -> TaintKind {
     {
         return TaintKind::External;
     }
+    if cat_reads_stdin(rhs) {
+        return TaintKind::External;
+    }
     TaintKind::Clean
+}
+
+/// `cat` with no file operand, `-`, `/dev/stdin` or `<&0` reads the script's
+/// stdin, which is as external as `read` (GH-336). `cat "$file"` stays a file read.
+fn cat_reads_stdin(rhs: &str) -> bool {
+    let mut from = 0;
+    while let Some(rel) = rhs.get(from..).and_then(|s| word_pos(s, "cat")) {
+        let start = from + rel + 3;
+        if cat_args_read_stdin(rhs.get(start..).unwrap_or("")) {
+            return true;
+        }
+        from = start;
+    }
+    false
+}
+
+fn cat_args_read_stdin(after: &str) -> bool {
+    let end = after.find([')', '`', '|', ';']).unwrap_or(after.len());
+    let args = after[..end].replace("&&", " ");
+    let mut operands = 0;
+    let mut toks = args.split_whitespace();
+    while let Some(t) = toks.next() {
+        match t {
+            "-" | "/dev/stdin" | "<&0" | "0<&0" => return true,
+            "<" => {
+                if toks.next() == Some("/dev/stdin") {
+                    return true;
+                }
+                operands += 1;
+            }
+            _ if t.starts_with("<<") => return false,
+            _ if t.starts_with('-') || t.contains('>') => {}
+            _ => operands += 1,
+        }
+    }
+    operands == 0
 }
 
 /// Canonicalisation that makes a path safe regardless of where it came from
@@ -1131,7 +1170,8 @@ fn word_boundaries_ok(bytes: &[u8], pos: usize, len: usize) -> bool {
 //   script's `$1` (over-tainting — conservative).
 // * Arrays and namerefs are tracked by base name only.
 // * `eval` bodies are not analysed; `${!x}` is pessimistically `External`.
-// * `X=$(cat /some/file)` is `Clean` — only `EXTERNAL_DATA_CMDS` and nested
+// * `X=$(cat /some/file)` is `Clean`; `$(cat)`, `$(cat -)`, `$(cat /dev/stdin)`
+//   and `$(cat <&0)` read stdin and are `External` (GH-336). Otherwise only `EXTERNAL_DATA_CMDS` and nested
 //   tainted variables mark a substitution external. Reading a path out of a
 //   config file therefore does not taint it; the file's own contents are
 //   treated as script-owned data. This is deliberate: the alternative marks
