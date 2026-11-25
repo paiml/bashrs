@@ -83,7 +83,11 @@ fn fallback_command(masked: &str, original: &str) -> Option<String> {
     while i < words.len() && matches!(words[i].1, "command" | "builtin") {
         i += 1;
     }
-    let Some(&(off, w)) = words.get(i) else {
+    // A word that starts with `#` in `original` is a masked trailing comment, not a command.
+    let word_at = words
+        .get(i)
+        .filter(|&&(off, _)| original.get(off..).is_some_and(|s| !s.starts_with('#')));
+    let Some(&(off, w)) = word_at else {
         // A bare `command`/`builtin` runs that command, so it is not exempt.
         return (i > prefix_start).then(|| "command".to_string());
     };
@@ -455,6 +459,27 @@ check2 && ok2 || fail2
             "foo && bar || command",
             "foo && bar || builtin",
         ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_trailing_comment_fallback_exempt() {
+        // shellcheck 0.8.0 reports 0 for these: the trailing comment is not a command
+        for c in [
+            "foo && bar || X=1 # comment",
+            "foo && bar || X=\"a b\" # c",
+            "foo && bar || X=1 Y=2 # c",
+            "foo && bar || echo b # c",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_trailing_comment_after_command_still_flagged() {
+        // the comment does not hide a real fallback command before it
+        for c in ["foo && bar || cleanup # c", "foo && bar || command # c"] {
             assert_eq!(check(c).diagnostics.len(), 1, "{c}");
         }
     }
