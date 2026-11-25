@@ -130,6 +130,10 @@ fn fallback_command(masked: &str, original: &str) -> Option<String> {
     let mut saw_prefix = false;
     while i < words.len() {
         let (m, o) = words[i];
+        // A word that starts with `#` in `original` is a masked trailing comment: the chain ends here.
+        if o.starts_with('#') {
+            break;
+        }
         if is_assignment(m) {
             i = skip_assignment(&words, i);
         } else if is_redirection(m) {
@@ -178,8 +182,8 @@ fn fallback_is_exempt(masked_tail: &str, original_tail: &str) -> bool {
     }
 }
 
-/// Copy of `line` with quoted text, `$( )` bodies and a trailing `#` comment masked by
-/// `_` (same byte length), so `;`, `|` and `&` inside them cannot split or join a chain.
+/// Copy of `line` with quoted text, backtick spans, `$( )` bodies and a trailing `#` comment
+/// masked by `_` (same byte length), so `;`, `|` and `&` inside them cannot split or join a chain.
 fn mask_quoted(line: &str) -> String {
     let mut out = String::with_capacity(line.len());
     let mut mask = Mask::default();
@@ -189,73 +193,155 @@ fn mask_quoted(line: &str) -> String {
     out
 }
 
+/// Lexical context of the masker. `Top` is unquoted shell text (the empty stack); every
+/// other context is a span whose content is masked. Spans nest: `$( )` may hold quotes,
+/// and double quotes may hold `$( )` or backticks.
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+enum Ctx {
+    #[default]
+    Top,
+    /// Inside `$( )`; the payload counts unclosed bare `(` inside it.
+    Subst(usize),
+    Dq,
+    Sq,
+    Bt,
+}
+
 #[derive(Default)]
 struct Mask {
-    quote: Option<char>,
-    depth: usize,
+    stack: Vec<Ctx>,
     comment: bool,
     escaped: bool,
+    /// Raw previous input char (`\0` at line start, `\\` after an escaped char).
+    prev: char,
+}
+
+/// `#` starts a comment only where a word starts: after whitespace, a shell metacharacter,
+/// or at the start of the line.
+fn starts_word(prev: char) -> bool {
+    prev == '\0' || prev.is_whitespace() || ";&|()<>".contains(prev)
+}
+
+/// The span opened by `c` in unquoted text (`prev` is the char before it): `"`, `'`,
+/// a backtick, or `$(`.
+fn opener(c: char, prev: char) -> Option<Ctx> {
+    match c {
+        '"' => Some(Ctx::Dq),
+        '\'' => Some(Ctx::Sq),
+        '`' => Some(Ctx::Bt),
+        '(' if prev == '$' => Some(Ctx::Subst(0)),
+        _ => None,
+    }
 }
 
 impl Mask {
+    fn top(&self) -> Ctx {
+        self.stack.last().copied().unwrap_or_default()
+    }
+
+    fn set_top(&mut self, ctx: Ctx) {
+        if let Some(t) = self.stack.last_mut() {
+            *t = ctx;
+        }
+    }
+
     fn step(&mut self, out: &mut String, c: char) {
+        let prev = std::mem::replace(&mut self.prev, c);
         if self.comment {
             push_mask(out, c);
         } else if self.escaped {
             // The char after a backslash is literal: it cannot open, close or split anything.
             self.escaped = false;
+            self.prev = '\\';
             push_mask(out, c);
-        } else if c == '\\' && self.quote != Some('\'') {
+        } else if c == '\\' && self.top() != Ctx::Sq {
             // Backslash is literal inside single quotes only.
             self.escaped = true;
-            out.push(c);
-        } else if let Some(q) = self.quote {
-            self.in_quote(out, q, c);
-        } else if self.depth > 0 {
-            self.in_subst(out, c);
-        } else {
-            self.plain(out, c);
-        }
-    }
-
-    fn in_quote(&mut self, out: &mut String, quote: char, c: char) {
-        if c == quote {
-            self.quote = None;
-            out.push(c);
-        } else {
-            push_mask(out, c);
-        }
-    }
-
-    fn in_subst(&mut self, out: &mut String, c: char) {
-        match c {
-            '(' => self.depth += 1,
-            ')' => self.depth -= 1,
-            _ => {}
-        }
-        if c == ')' && self.depth == 0 {
-            out.push(c);
-        } else {
-            push_mask(out, c);
-        }
-    }
-
-    fn plain(&mut self, out: &mut String, c: char) {
-        match c {
-            '"' | '\'' => {
-                self.quote = Some(c);
+            if self.top() == Ctx::Top {
                 out.push(c);
-            }
-            '(' if out.ends_with('$') => {
-                self.depth = 1;
-                out.push(c);
-            }
-            '#' if out.chars().last().is_none_or(char::is_whitespace) => {
-                self.comment = true;
+            } else {
                 push_mask(out, c);
             }
-            _ => out.push(c),
+        } else {
+            self.dispatch(out, c, prev);
         }
+    }
+
+    fn dispatch(&mut self, out: &mut String, c: char, prev: char) {
+        match self.top() {
+            Ctx::Top => self.code(out, c, prev),
+            Ctx::Subst(depth) => self.subst(out, c, prev, depth),
+            Ctx::Dq => self.dq(out, c, prev),
+            Ctx::Sq => close_span(&mut self.stack, out, c, '\''),
+            Ctx::Bt => close_span(&mut self.stack, out, c, '`'),
+        }
+    }
+
+    /// Unquoted shell text: quotes and `$(` open spans; a word-initial `#` starts a comment.
+    fn code(&mut self, out: &mut String, c: char, prev: char) {
+        if c == '#' && starts_word(prev) {
+            self.comment = true;
+            push_mask(out, c);
+            return;
+        }
+        if let Some(ctx) = opener(c, prev) {
+            self.stack.push(ctx);
+        }
+        out.push(c);
+    }
+
+    /// Inside `$( )`: everything is masked except the `)` that closes it.
+    fn subst(&mut self, out: &mut String, c: char, prev: char, depth: usize) {
+        if c == ')' && depth == 0 {
+            self.stack.pop();
+            out.push(c);
+            return;
+        }
+        push_mask(out, c);
+        if let Some(ctx) = opener(c, prev) {
+            self.stack.push(ctx);
+        } else {
+            self.subst_paren(c, prev, depth);
+        }
+    }
+
+    /// Bare parentheses and comments inside `$( )` (quotes and `$(` are handled by `opener`).
+    fn subst_paren(&mut self, c: char, prev: char, depth: usize) {
+        match c {
+            ')' => self.set_top(Ctx::Subst(depth - 1)),
+            '(' => self.set_top(Ctx::Subst(depth + 1)),
+            '#' if starts_word(prev) => self.comment = true,
+            _ => {}
+        }
+    }
+
+    /// Inside double quotes: `"` closes; `$(` and backticks open nested spans.
+    fn dq(&mut self, out: &mut String, c: char, prev: char) {
+        match c {
+            '"' => {
+                self.stack.pop();
+                out.push(c);
+            }
+            '(' if prev == '$' => {
+                self.stack.push(Ctx::Subst(0));
+                push_mask(out, c);
+            }
+            '`' => {
+                self.stack.push(Ctx::Bt);
+                push_mask(out, c);
+            }
+            _ => push_mask(out, c),
+        }
+    }
+}
+
+/// Single-quote or backtick span: the closing delimiter ends it, the rest is masked.
+fn close_span(stack: &mut Vec<Ctx>, out: &mut String, c: char, close: char) {
+    if c == close {
+        stack.pop();
+        out.push(c);
+    } else {
+        push_mask(out, c);
     }
 }
 
@@ -620,6 +706,27 @@ check2 && ok2 || fail2
     }
 
     #[test]
+    fn test_sc2015_trailing_comment_fallback_exempt() {
+        // shellcheck 0.8.0 reports 0 for these: the trailing comment is not a command
+        for c in [
+            "foo && bar || X=1 # comment",
+            "foo && bar || X=\"a b\" # c",
+            "foo && bar || X=1 Y=2 # c",
+            "foo && bar || echo b # c",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_trailing_comment_after_command_still_flagged() {
+        // the comment does not hide a real fallback command before it
+        for c in ["foo && bar || cleanup # c", "foo && bar || command # c"] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
     fn test_sc2015_backslash_escape_chain_flagged() {
         // A backslash escapes the next char: `\"` and `\'` do not open quotes, `\;` does not split
         for c in [
@@ -642,6 +749,39 @@ check2 && ok2 || fail2
         ] {
             assert_eq!(check(c).diagnostics.len(), 0, "{c}");
         }
+    }
+
+    #[test]
+    fn test_sc2015_nested_quotes_in_subst_chain_flagged() {
+        // shellcheck 0.8.0 flags these: quotes inside $( ) and backticks do not end the chain
+        for c in [
+            r#"foo && echo "$(echo "a;b")" || cleanup"#,
+            r#"foo && x=$(echo ")") || cleanup"#,
+            "foo && x=$(echo '(') || cleanup",
+            "foo && echo `a; b` || cleanup",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_nested_quotes_in_subst_fallback_exempt() {
+        // shellcheck 0.8.0 exempts these: the '|' sits inside a quoted $( ) or backtick span
+        for c in [
+            r#"foo && bar || echo "$(echo "a | b")""#,
+            "foo && bar || echo `a | b`",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_semicolon_hash_is_comment() {
+        // In bash, '#' starts a comment at the start of a word, so `;#` ends the code
+        assert_eq!(
+            check("foo && bar;#baz && qux || cleanup").diagnostics.len(),
+            0
+        );
     }
 
     #[test]
