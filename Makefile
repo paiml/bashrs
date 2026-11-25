@@ -256,12 +256,12 @@ format-check:
 # Linting
 lint:
 	@echo "🔍 Running clippy..."
-	@RUSTFLAGS="-A warnings" cargo clippy --all-targets --all-features --quiet
-	@RUSTFLAGS="-A warnings" cargo clippy --all-targets --all-features --fix --allow-dirty --allow-staged --quiet 2>/dev/null || true
+	@cargo clippy --workspace --all-targets --all-features --quiet
+	@cargo clippy --workspace --all-targets --all-features --fix --allow-dirty --allow-staged --quiet 2>/dev/null || true
 
 lint-check:
 	@echo "🔍 Checking clippy..."
-	@cargo clippy --all-targets --all-features -- \
+	@cargo clippy --workspace --all-targets --all-features -- \
 		-D clippy::correctness \
 		-D clippy::suspicious \
 		-D clippy::unwrap_used \
@@ -286,7 +286,7 @@ lint-check:
 # Type checking
 check:
 	@echo "🔍 Type checking..."
-	@cargo check --all-targets --all-features
+	@cargo check --workspace --all-targets --all-features
 
 # Test execution with multiple strategies
 # TARGET: < 5 minutes (enforced with minimal property test cases)
