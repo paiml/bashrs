@@ -6,19 +6,22 @@
 // Examples:
 // Bad:
 //   test && success || failure      // failure runs if success fails
-//   [[ -f file ]] && cat file || echo "missing"  // wrong logic
-//   command && echo "ok" || echo "fail"  // misleading
+//   [[ -f file ]] && cat file || cleanup  // wrong logic
+//   command && build || rollback  // misleading
 //
 // Good:
 //   if test; then success; else failure; fi  // Clear if-then-else
-//   if [[ -f file ]]; then cat file; else echo "missing"; fi
-//   if command; then echo "ok"; else echo "fail"; fi
+//   if [[ -f file ]]; then cat file; else cleanup; fi
+//   if command; then build; else rollback; fi
 //
 // Why it's wrong:
-//   true && false || echo "runs"    // Runs even though true succeeded
+//   true && false || cleanup        // Runs even though true succeeded
 //   The || sees the false from && and runs
 //
 // Note: Use proper if-then-else for conditional logic to avoid surprises.
+//
+// Exempt (shellcheck 0.8.0 parity): a fallback of echo/exit/return/printf, or a
+// bare assignment, is not flagged.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
@@ -112,6 +115,8 @@ fn redirect_takes_next(word: &str) -> bool {
 /// Command name of one original word: quotes, redirection and directory removed.
 fn command_name(original_word: &str) -> String {
     let word = original_word.split(['<', '>']).next().unwrap_or("");
+    // `\echo` runs `echo`: a leading backslash is quote removal, as in ShellCheck.
+    let word = word.strip_prefix('\\').unwrap_or(word);
     let word = word.trim_matches(['"', '\'']);
     word.rsplit('/').next().unwrap_or("").to_string()
 }
@@ -189,12 +194,21 @@ struct Mask {
     quote: Option<char>,
     depth: usize,
     comment: bool,
+    escaped: bool,
 }
 
 impl Mask {
     fn step(&mut self, out: &mut String, c: char) {
         if self.comment {
             push_mask(out, c);
+        } else if self.escaped {
+            // The char after a backslash is literal: it cannot open, close or split anything.
+            self.escaped = false;
+            push_mask(out, c);
+        } else if c == '\\' && self.quote != Some('\'') {
+            // Backslash is literal inside single quotes only.
+            self.escaped = true;
+            out.push(c);
         } else if let Some(q) = self.quote {
             self.in_quote(out, q, c);
         } else if self.depth > 0 {
@@ -484,7 +498,7 @@ check2 && ok2 || fail2
             r#"foo && bar || echo "a;b" | tee log"#,
             "foo && bar || echo ok && baz || cleanup",
         ] {
-            assert!(check(c).diagnostics.len() >= 1, "{c}");
+            assert!(!check(c).diagnostics.is_empty(), "{c}");
         }
     }
 
@@ -603,6 +617,31 @@ check2 && ok2 || fail2
             check("foo && bar || \"command\" cleanup").diagnostics.len(),
             1
         );
+    }
+
+    #[test]
+    fn test_sc2015_backslash_escape_chain_flagged() {
+        // A backslash escapes the next char: `\"` and `\'` do not open quotes, `\;` does not split
+        for c in [
+            r#"foo && echo "a\";b" || cleanup"#,
+            r#"foo && echo \" || cleanup"#,
+            r#"foo && echo \' || cleanup"#,
+            r#"foo && echo a\;b || cleanup"#,
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_backslash_escape_not_split_exempt() {
+        // An escaped `|` is literal, not a pipeline; `\echo` is the command echo
+        for c in [
+            r#"foo && bar || echo "a\" | b""#,
+            r#"foo && bar || echo a\|b"#,
+            r#"foo && bar || \echo b"#,
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
     }
 
     #[test]

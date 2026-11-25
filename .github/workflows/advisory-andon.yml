@@ -1,0 +1,25 @@
+# Advisory andon: the scheduled half of the diff-only advisory gate (ADV-001).
+#
+# `ci / security` (sovereign-ci.yml, advisories_diff_only default true) fails a PR only on
+# advisories its own Cargo.lock change introduces. An advisory published against a crate
+# ALREADY on main is caught here, on a schedule, as one issue per finding; it never turns a
+# PR or main red. Schedule and dispatch only: never pull_request or merge_group.
+#
+# This replaces cargo-deny-daily.yml, which called a reusable workflow in a PRIVATE
+# repository. A public repository cannot call one, so every scheduled run ended as a
+# startup failure with zero jobs (18 of 18 runs, 2026-11-06 to 2026-11-23): the lane was
+# red every night and measured nothing. The reusable workflow below lives in the public
+# paiml/.github, at the same pin ci.yml uses for sovereign-ci.yml.
+name: Advisory Andon
+on:
+  schedule:
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+concurrency: { group: 'advisory-andon-${{ github.ref }}', cancel-in-progress: false }
+permissions: { contents: read }
+jobs:
+  andon:
+    permissions:
+      contents: read
+      issues: write
+    uses: paiml/.github/.github/workflows/advisory-andon.yml@fbee3788a0ed92d09974ac21ea9bc97d373af6f0
