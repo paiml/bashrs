@@ -48,58 +48,126 @@ fn fallback_is_pipeline(rest: &str) -> bool {
     false
 }
 
-/// `NAME=value` (or `NAME+=value`): the part before `=` is a shell identifier.
+/// `NAME=value`, `NAME+=value`, `NAME[sub]=value` or `NAME[sub]+=value`: the name
+/// before `=` (with any `+` and `[subscript]` removed) is a shell identifier.
 fn is_assignment(word: &str) -> bool {
     let Some((name, _)) = word.split_once('=') else {
         return false;
     };
     let name = name.strip_suffix('+').unwrap_or(name);
-    let mut chars = name.chars();
+    let base = match name.split_once('[') {
+        None => name,
+        Some((base, _)) if name.ends_with(']') => base,
+        Some(_) => return false,
+    };
+    is_identifier(base)
+}
+
+fn is_identifier(s: &str) -> bool {
+    let mut chars = s.chars();
     chars
         .next()
         .is_some_and(|c| c == '_' || c.is_ascii_alphabetic())
         && chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
 }
 
-/// Name of the command a fallback runs, skipping leading `VAR=value` words and
-/// `command`/`builtin` prefixes, with quotes and any directory removed.
-/// `None` when the fallback is only assignments.
-/// Structure is read from `masked` (quoted text is `_`); the name is taken from `original`
-/// at the same byte offset, so a quoted command such as `"echo"` keeps its name.
-fn fallback_command(masked: &str, original: &str) -> Option<String> {
+/// Words of a fallback as `(masked, original)` pairs at the same byte offset.
+fn fallback_words<'a>(masked: &'a str, original: &'a str) -> Vec<(&'a str, &'a str)> {
     let base = masked.as_ptr() as usize;
-    let words: Vec<(usize, &str)> = masked
+    masked
         .split_whitespace()
-        .map(|w| (w.as_ptr() as usize - base, w))
-        .collect();
-    let mut i = 0;
-    while i < words.len() && is_assignment(words[i].1) {
-        i += 1;
+        .map(|w| {
+            let off = w.as_ptr() as usize - base;
+            (w, original.get(off..off + w.len()).unwrap_or(""))
+        })
+        .collect()
+}
+
+/// Index just past the assignment word at `i`. An array `X=( ... )` spans words up to
+/// the one that ends in `)`.
+fn skip_assignment(words: &[(&str, &str)], i: usize) -> usize {
+    let value = words[i].0.split_once('=').map_or("", |(_, v)| v);
+    let mut next = i + 1;
+    if value.starts_with('(') && !value.ends_with(')') {
+        while next < words.len() && !words[next - 1].0.ends_with(')') {
+            next += 1;
+        }
     }
-    let prefix_start = i;
-    while i < words.len() && matches!(words[i].1, "command" | "builtin") {
-        i += 1;
-    }
-    let Some(&(off, w)) = words.get(i) else {
-        // A bare `command`/`builtin` runs that command, so it is not exempt.
-        return (i > prefix_start).then(|| "command".to_string());
-    };
-    let word = original.get(off..off + w.len())?;
-    let word = word.split(['<', '>']).next().unwrap_or("");
+    next
+}
+
+/// A redirection word: `>x`, `2>&1`, `&>f`, or a bare `>` / `2>` whose target is the next word.
+fn is_redirection(word: &str) -> bool {
+    let rest = word.trim_start_matches(|c: char| c.is_ascii_digit());
+    rest.starts_with(['<', '>']) || word.starts_with("&>")
+}
+
+/// True when a redirection's target is the following word (`>`, `2>`, `>&`).
+fn redirect_takes_next(word: &str) -> bool {
+    word.trim_start_matches(|c: char| c.is_ascii_digit())
+        .trim_start_matches(['<', '>', '&', '|'])
+        .is_empty()
+}
+
+/// Command name of one original word: quotes, redirection and directory removed.
+fn command_name(original_word: &str) -> String {
+    let word = original_word.split(['<', '>']).next().unwrap_or("");
     let word = word.trim_matches(['"', '\'']);
-    Some(word.rsplit('/').next().unwrap_or("").to_string())
+    word.rsplit('/').next().unwrap_or("").to_string()
+}
+
+/// Name of the command a fallback runs, skipping leading assignments, redirections and
+/// `command`/`builtin` prefixes. `None` when the fallback has no command word.
+/// Structure is read from `masked` (quoted text is `_`); names come from `original`.
+fn fallback_command(masked: &str, original: &str) -> Option<String> {
+    let words = fallback_words(masked, original);
+    let mut i = 0;
+    let mut saw_prefix = false;
+    while i < words.len() {
+        let (m, o) = words[i];
+        if is_assignment(m) {
+            i = skip_assignment(&words, i);
+        } else if is_redirection(m) {
+            i += if redirect_takes_next(m) { 2 } else { 1 };
+        } else if matches!(command_name(o).as_str(), "command" | "builtin") {
+            saw_prefix = true;
+            i += 1;
+        } else {
+            return Some(command_name(o));
+        }
+    }
+    // A bare `command`/`builtin` runs that command, so it is not exempt.
+    saw_prefix.then(|| "command".to_string())
+}
+
+/// The fallback command text: from the start of `tail` (just after the chain's last `||`)
+/// up to the next `;`, or up to the `)` that closes a subshell around the chain.
+fn fallback_body(tail: &str) -> &str {
+    let mut depth = 0usize;
+    for (idx, c) in tail.char_indices() {
+        match c {
+            ';' => return &tail[..idx],
+            '(' => depth += 1,
+            ')' if depth == 0 => return &tail[..idx],
+            ')' => depth -= 1,
+            _ => {}
+        }
+    }
+    tail
 }
 
 /// ShellCheck 0.8.0 does not flag `A && B || C` when C is a single error-reporting or
 /// terminating command (the usual "A && B || die" idiom) or a bare assignment.
-/// `masked` and `original` are the same chain (quotes masked, or not); `after` is masked.
-fn fallback_is_exempt(masked: &str, original: &str, after: &str) -> bool {
-    let fallback = masked.rsplit("||").next().unwrap_or("").trim_start();
-    let original_fallback = &original[original.len() - fallback.len()..];
-    if fallback_is_pipeline(&format!("{fallback}{after}")) {
+/// `masked_tail` and `original_tail` are the line from just after the chain's `||`
+/// (quotes masked, or not).
+fn fallback_is_exempt(masked_tail: &str, original_tail: &str) -> bool {
+    let body = fallback_body(masked_tail);
+    let lead = body.len() - body.trim_start().len();
+    let (masked, original) = (&body[lead..], &original_tail[lead..body.len()]);
+    if fallback_is_pipeline(masked) {
         return false;
     }
-    match fallback_command(fallback, original_fallback) {
+    match fallback_command(masked, original) {
         None => true,
         Some(cmd) => matches!(cmd.as_str(), "echo" | "exit" | "return" | "printf"),
     }
@@ -219,13 +287,14 @@ pub fn check(source: &str) -> LintResult {
         let mut pos = 0;
         while let Some(m) = AND_OR_PATTERN.find(&masked[pos..]) {
             let (start, end) = (pos + m.start(), pos + m.end());
-            let matched = &masked[start..end];
-            if !fallback_is_exempt(matched, &line[start..end], &masked[end..]) {
+            // The fallback starts after the chain's last `||`; the match itself is a prefix of it.
+            let fallback = start + masked[start..end].rfind("||").unwrap_or(0) + 2;
+            if !fallback_is_exempt(&masked[fallback..], &line[fallback..]) {
                 result.add(diagnostic_for(line_num, start, end));
                 pos = end;
             } else {
                 // Resume at the last `||`, so a following `&& ... || ...` chain is still examined.
-                pos = start + matched.rfind("||").unwrap_or(matched.len() - 1) + 2;
+                pos = fallback;
             }
         }
     }
@@ -443,6 +512,97 @@ check2 && ok2 || fail2
         ] {
             assert_eq!(check(c).diagnostics.len(), 1, "{c}");
         }
+    }
+
+    #[test]
+    fn test_sc2015_leading_redirect_exempt() {
+        // shellcheck 0.8.0 skips leading redirections before the exempt command
+        for c in [
+            "foo && bar || >&2 echo hi",
+            "foo && bar || 2>&1 echo hi",
+            "foo && bar || >err echo hi",
+            "foo && bar || 2>/dev/null echo hi",
+            "foo && bar || > err echo hi",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_leading_redirect_not_over_exempt() {
+        for c in [
+            "foo && bar || >err cleanup",
+            "foo && bar || 2>&1 cleanup",
+            "foo && bar || > err cleanup",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_subshell_fallback_exempt() {
+        // shellcheck 0.8.0 reads the fallback up to the ')' that closes the subshell
+        for c in [
+            "(foo && bar || exit)",
+            "(foo && bar || echo)",
+            "(foo && bar || echo a) | tee log",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_subshell_fallback_not_over_exempt() {
+        for c in [
+            "(foo && bar || cleanup)",
+            "(foo && bar || echo b | tee log)",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_array_assignment_fallback_exempt() {
+        for c in [
+            "foo && bar || X=(1 2)",
+            "foo && bar || X=( 1 2 )",
+            "foo && bar || X=()",
+            "foo && bar || arr[0]=1",
+            "foo && bar || arr[$i]+=(1 2)",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_array_assignment_not_over_exempt() {
+        for c in [
+            "foo && bar || X=(1 2) cleanup",
+            "foo && bar || arr[0]=1 cleanup",
+            "foo && bar || arr[0]x=1 cleanup",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_quoted_command_prefix_exempt() {
+        // a quoted command word is still the command: "command" and "echo" are shell words
+        for c in [
+            "foo && bar || \"command\" echo hi",
+            "foo && bar || 'command' echo hi",
+            "foo && bar || \"builtin\" echo hi",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_quoted_command_prefix_not_over_exempt() {
+        assert_eq!(
+            check("foo && bar || \"command\" cleanup").diagnostics.len(),
+            1
+        );
     }
 
     #[test]
