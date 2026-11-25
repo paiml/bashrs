@@ -80,7 +80,8 @@ fn fallback_command(masked: &str, original: &str) -> Option<String> {
         i += 1;
     }
     let prefix_start = i;
-    while i < words.len() && matches!(words[i].1, "command" | "builtin") {
+    // Only one `command`/`builtin` prefix is skipped, as in ShellCheck 0.8.0.
+    if i < words.len() && matches!(words[i].1, "command" | "builtin") {
         i += 1;
     }
     // A word that starts with `#` in `original` is a masked trailing comment, not a command.
@@ -91,8 +92,9 @@ fn fallback_command(masked: &str, original: &str) -> Option<String> {
         // A bare `command`/`builtin` runs that command, so it is not exempt.
         return (i > prefix_start).then(|| "command".to_string());
     };
-    let word = original.get(off..off + w.len())?;
-    let word = word.split(['<', '>']).next().unwrap_or("");
+    // Redirection is split on the masked word, so a `<` or `>` inside quotes is literal.
+    let masked_word = w.split(['<', '>']).next().unwrap_or("");
+    let word = original.get(off..off + masked_word.len())?;
     // `\echo` runs `echo`: a leading backslash is quote removal, as in ShellCheck.
     let word = word.strip_prefix('\\').unwrap_or(word);
     let word = word.trim_matches(['"', '\'']);
@@ -592,6 +594,18 @@ check2 && ok2 || fail2
     }
 
     #[test]
+    fn test_sc2015_quoted_redirect_char_flagged() {
+        // '<' or '>' inside quotes is literal: the quoted word is not `echo` with a redirect
+        for c in [
+            r#"foo && bar || "echo>foo""#,
+            "foo && bar || 'echo>foo'",
+            r#"foo && bar || "echo<foo""#,
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
     fn test_sc2015_nested_quotes_in_subst_chain_flagged() {
         // shellcheck 0.8.0 flags these: quotes inside $( ) and backticks do not end the chain
         for c in [
@@ -601,6 +615,35 @@ check2 && ok2 || fail2
             "foo && echo `a; b` || cleanup",
         ] {
             assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_unquoted_redirect_still_exempt() {
+        for c in ["foo && bar || echo>foo", r#"foo && bar || "echo">foo"#] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_stacked_prefix_flagged() {
+        // shellcheck 0.8.0 strips only one command/builtin prefix, so a second one is the command
+        for c in [
+            "foo && bar || command command echo hi",
+            "foo && bar || command builtin echo hi",
+            "foo && bar || builtin command echo hi",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_single_prefix_still_exempt() {
+        for c in [
+            "foo && bar || command echo hi",
+            "foo && bar || builtin echo hi",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
         }
     }
 
