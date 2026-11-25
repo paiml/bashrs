@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **The scheduled advisory lane runs again.** `cargo-deny-daily.yml` called a reusable workflow in a private repository, which a public repository cannot do: 18 of 18 scheduled runs (2026-11-06 to 2026-11-23) ended as a startup failure with zero jobs, so no advisory scan of `main` ran. It is replaced by `advisory-andon.yml`, a caller of the public `paiml/.github` advisory andon (one issue per advisory found on `main`), with `workflow_dispatch` so the lane can be measured on demand.
+
 ## [7.5.0] - 2026-11-24
 
 A minor release. It adds four CLI features (`bashrs parse --format json`, a build commit in `--version`, `bashrs update --check` and a once-per-day cached update notice), a batch of shellcheck-parity linter fixes (#236, #526), three DET001/DET002/SEC010 fixes and a dependency change that clears RUSTSEC-2026-0543.

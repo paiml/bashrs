@@ -16,7 +16,7 @@ scripts/hooks/pre-commit.sh:21	text	hint string
 Makefile:498	text	hint string
 Makefile:510	text	hint string
 Makefile:527	text	hint string
-Makefile:746	local	make audit target, developer machine; CI uses cargo-deny-daily reusable workflow
+Makefile:746	local	make audit target, developer machine; CI uses the advisory-andon reusable workflow
 Makefile:756	local	make deny target, developer machine
 Makefile:857	local	make target, developer machine
 Makefile:883	local	make target, developer machine

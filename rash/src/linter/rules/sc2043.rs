@@ -22,6 +22,9 @@
 //! # Auto-fix
 //!
 //! Suggest simplifying to direct command
+//!
+//! A single double-quoted literal (`for i in "a b c"`, no expansion and no `*`)
+//! also runs once and is reported, matching ShellCheck.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
@@ -31,11 +34,26 @@ static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
     Regex::new(r#"for\s+\w+\s+in\s+"(\$[A-Za-z_][A-Za-z0-9_]*)"\s*;"#).unwrap()
 });
 
+/// A `for` loop over one double-quoted literal word (no `$`, backtick or `*`),
+/// in command position and followed by `;`, a comment or end of line.
+static LITERAL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(
+        r#"(?:^|[;&|({]|\b(?:then|do|else)\b)\s*(for\s+[A-Za-z_]\w*\s+in\s+"(?:[^"\\$`*]|\\[^*])*"\s*(?:;|$|#))"#,
+    )
+    .unwrap()
+});
+
+fn single_diagnostic(line_num: usize, start: usize, end: usize) -> Diagnostic {
+    Diagnostic::new(
+        "SC2043",
+        Severity::Info,
+        "This for loop will only run once. Use direct command instead.",
+        Span::new(line_num, start + 1, line_num, end + 1),
+    )
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
-
-    // Pattern: for var in "$single_var"
-    let pattern = &*PATTERN;
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
@@ -44,19 +62,12 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        for cap in pattern.captures_iter(line) {
-            let full_match = cap.get(0).unwrap();
-            let start_col = full_match.start() + 1;
-            let end_col = full_match.end() + 1;
-
-            let diagnostic = Diagnostic::new(
-                "SC2043",
-                Severity::Info,
-                "This for loop will only run once. Use direct command instead.",
-                Span::new(line_num, start_col, line_num, end_col),
-            );
-
-            result.add(diagnostic);
+        for m in PATTERN.find_iter(line) {
+            result.add(single_diagnostic(line_num, m.start(), m.end()));
+        }
+        for cap in LITERAL_PATTERN.captures_iter(line) {
+            let m = cap.get(1).unwrap();
+            result.add(single_diagnostic(line_num, m.start(), m.end()));
         }
     }
 
@@ -140,5 +151,88 @@ done
         let script = r#"for i in "$myvar"; do echo "$i"; done"#;
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    fn count(script: &str) -> usize {
+        check(script).diagnostics.len()
+    }
+
+    #[test]
+    fn test_sc2043_literal_with_spaces() {
+        assert_eq!(count(r#"for i in "a b c"; do echo "$i"; done"#), 1);
+        assert_eq!(count(r#"for i in "abc"; do echo "$i"; done"#), 1);
+        assert_eq!(count(r#"for i in ""; do echo "$i"; done"#), 1);
+        assert_eq!(count(r#"for i in "a  b"; do :; done"#), 1);
+    }
+
+    #[test]
+    fn test_sc2043_literal_whitespace_forms() {
+        assert_eq!(count("  for i in \"a b\"; do :; done"), 1);
+        assert_eq!(count("\tfor i in \"a b\"; do :; done"), 1);
+        assert_eq!(count("for\ti\tin\t\"a b\"\t;\tdo :; done"), 1);
+        assert_eq!(count("for   i   in   \"a b\"   ; do :; done"), 1);
+        assert_eq!(count("for i in \"a b\";do :; done"), 1);
+        assert_eq!(count("for i in \"a b\"\ndo :; done"), 1);
+        assert_eq!(count("for i in \"a b\" # note\ndo :; done"), 1);
+    }
+
+    #[test]
+    fn test_sc2043_literal_special_chars() {
+        assert_eq!(count(r#"for i in "a;b"; do :; done"#), 1);
+        assert_eq!(count(r#"for i in "a?b"; do :; done"#), 1);
+        assert_eq!(count(r#"for i in "a[b]"; do :; done"#), 1);
+        assert_eq!(count(r#"for i in "a{b,c}"; do :; done"#), 1);
+        assert_eq!(count(r#"for i in "a\"b c"; do :; done"#), 1);
+        assert_eq!(count(r#"for i in "a\$b"; do :; done"#), 1);
+        assert_eq!(count("for i in \"a'b\"; do :; done"), 1);
+    }
+
+    #[test]
+    fn test_sc2043_literal_not_flagged() {
+        // oracle: expansions, globs and multiple words are not single literals
+        assert_eq!(count(r#"for i in "a b" "c"; do :; done"#), 0);
+        assert_eq!(count(r#"for i in "a" "b"; do :; done"#), 0);
+        assert_eq!(count(r#"for i in "a*"; do :; done"#), 0);
+        assert_eq!(count(r#"for i in "a\*"; do :; done"#), 0);
+        assert_eq!(count(r#"for i in "a$x b"; do :; done"#), 0);
+        assert_eq!(count(r#"for i in "a$(ls) b"; do :; done"#), 0);
+        assert_eq!(count(r#"for i in "a`ls` b"; do :; done"#), 0);
+        assert_eq!(count(r#"for i in "a ${x} b"; do :; done"#), 0);
+        assert_eq!(count("for i in 'a b'; do :; done"), 0);
+        assert_eq!(count(r#"for i in "a b" c; do :; done"#), 0);
+    }
+
+    #[test]
+    fn test_sc2043_literal_not_command_position() {
+        assert_eq!(count(r#"echo "for i in \"a b\"; do :; done""#), 0);
+        assert_eq!(count(r#"echo "x" for i in "a b"; do :; done"#), 0);
+        assert_eq!(count(r#"# for i in "a b"; do :; done"#), 0);
+    }
+
+    #[test]
+    fn test_sc2043_literal_nested_contexts() {
+        assert_eq!(count(r#"echo x; for i in "a b"; do :; done"#), 1);
+        assert_eq!(count(r#"if x; then for i in "a b"; do :; done; fi"#), 1);
+        assert_eq!(count(r#"while x; do for i in "a b"; do :; done; done"#), 1);
+        assert_eq!(count(r#"x && for i in "a b"; do :; done"#), 1);
+        assert_eq!(
+            count("for i in \"a b\"; do :; done; for j in \"c d\"; do :; done"),
+            2
+        );
+    }
+
+    #[test]
+    fn test_sc2043_literal_span() {
+        let r = check("x\n\tfor i in \"a b\"; do :; done");
+        assert_eq!(r.diagnostics.len(), 1);
+        assert_eq!(r.diagnostics[0].span.start_line, 2);
+        assert_eq!(r.diagnostics[0].span.start_col, 2);
+    }
+
+    #[test]
+    fn test_sc2043_var_regression() {
+        assert_eq!(count(r#"for i in "$var"; do :; done"#), 1);
+        // a single variable must not be reported twice
+        assert_eq!(count(r#"for i in "$var" ; do :; done"#), 1);
     }
 }
