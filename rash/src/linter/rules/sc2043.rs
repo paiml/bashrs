@@ -24,15 +24,12 @@
 //! Suggest simplifying to direct command
 //!
 //! A single double-quoted literal (`for i in "a b c"`, no expansion and no `*`)
-//! also runs once and is reported, matching ShellCheck.
+//! also runs once and is reported, matching ShellCheck. A single quoted
+//! variable (`for i in "$var"`) is not reported: ShellCheck 0.8.0 reports that
+//! case as SC2066, not SC2043.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
-
-/// Check for useless for loops with single element
-static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r#"for\s+\w+\s+in\s+"(\$[A-Za-z_][A-Za-z0-9_]*)"\s*;"#).unwrap()
-});
 
 /// A `for` loop over one double-quoted literal word (no `$`, backtick or `*`),
 /// in command position and followed by `;`, a comment or end of line.
@@ -62,9 +59,6 @@ pub fn check(source: &str) -> LintResult {
             continue;
         }
 
-        for m in PATTERN.find_iter(line) {
-            result.add(single_diagnostic(line_num, m.start(), m.end()));
-        }
         for cap in LITERAL_PATTERN.captures_iter(line) {
             let m = cap.get(1).unwrap();
             result.add(single_diagnostic(line_num, m.start(), m.end()));
@@ -82,15 +76,14 @@ mod tests {
     fn test_sc2043_basic_detection() {
         let script = r#"for i in "$var"; do echo "$i"; done"#;
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 1);
-        assert_eq!(result.diagnostics[0].code, "SC2043");
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
     fn test_sc2043_single_variable() {
         let script = r#"for f in "$file"; do cat "$f"; done"#;
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
@@ -129,14 +122,14 @@ for item in "$single_item"; do
 done
 "#;
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
     fn test_sc2043_different_variable_names() {
         let script = r#"for x in "$value"; do process "$x"; done"#;
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     #[test]
@@ -150,7 +143,7 @@ done
     fn test_sc2043_nested_var() {
         let script = r#"for i in "$myvar"; do echo "$i"; done"#;
         let result = check(script);
-        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics.len(), 0);
     }
 
     fn count(script: &str) -> usize {
@@ -231,8 +224,16 @@ done
 
     #[test]
     fn test_sc2043_var_regression() {
-        assert_eq!(count(r#"for i in "$var"; do :; done"#), 1);
-        // a single variable must not be reported twice
-        assert_eq!(count(r#"for i in "$var" ; do :; done"#), 1);
+        assert_eq!(count(r#"for i in "$var"; do :; done"#), 0);
+        assert_eq!(count(r#"for i in "$var" ; do :; done"#), 0);
+    }
+
+    #[test]
+    fn test_sc2043_quoted_var_not_flagged_like_shellcheck() {
+        // shellcheck 0.8.0 is silent on SC2043 for a single quoted variable
+        // (it reports SC2066 instead); SC2043 is literal-only.
+        assert_eq!(count(r#"for i in "$var"; do echo "$i"; done"#), 0);
+        assert_eq!(count(r#"for f in "$file"; do cat "$f"; done"#), 0);
+        assert_eq!(count(r#"for i in "$var" ; do :; done"#), 0);
     }
 }
