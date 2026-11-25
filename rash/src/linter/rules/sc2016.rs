@@ -49,6 +49,20 @@ fn is_documentation_pattern(matched: &str) -> bool {
     false
 }
 
+/// Commands that run their arguments as a script (a remote shell, `sh -c`,
+/// `eval`, a privilege or container wrapper). ShellCheck 0.8.0 does not report
+/// SC2016 for single-quoted text that is an argument of one of these, because
+/// the `$` is meant for the inner shell. Matched exactly, on the command's own
+/// first word: `nohup ssh`, `env ssh`, `su -c` and `dash -c` are still reported.
+const SCRIPT_RUNNERS: &[&str] = &[
+    "ssh", "sh", "bash", "ksh", "zsh", "eval", "sudo", "docker", "podman",
+];
+
+/// Is this segment an argument of a [`SCRIPT_RUNNERS`] command?
+fn is_script_argument(head: Option<&str>) -> bool {
+    head.is_some_and(|h| SCRIPT_RUNNERS.contains(&h))
+}
+
 /// Is this single-quoted text likely an expansion its author expected to run?
 fn expects_expansion(content: &str) -> bool {
     if !EXPANSION_IN_CONTENT.is_match(content) {
@@ -82,6 +96,7 @@ pub fn check(source: &str) -> LintResult {
         // Look for single-quoted strings with $ expressions
         for seg in single_quoted_segments(line)
             .into_iter()
+            .filter(|seg| !is_script_argument(seg.head.as_deref()))
             .filter(|seg| expects_expansion(&seg.content))
         {
             result.add(Diagnostic::new(
@@ -250,5 +265,124 @@ msg2='Today is $(date)'
         let code = r#"f 'a' $x 'b'"#;
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 0, "{:?}", result.diagnostics);
+    }
+
+    // ===== bashrs#526: remote-command contexts (ShellCheck 0.8.0 parity) =====
+    // ShellCheck is silent when the single-quoted text is an argument of a
+    // command that runs it as a script (ssh, sh, bash, ksh, zsh, eval, sudo,
+    // docker, podman). The match is on the command's own first word, exactly.
+
+    fn flagged(code: &str) -> usize {
+        check(code).diagnostics.len()
+    }
+
+    #[test]
+    fn test_sc2016_526_ssh_remote_command_not_flagged() {
+        assert_eq!(flagged("ssh h 'echo $HOME'"), 0);
+    }
+
+    #[test]
+    fn test_sc2016_526_shell_dash_c_not_flagged() {
+        assert_eq!(flagged("sh -c 'echo $HOME'"), 0);
+        assert_eq!(flagged("bash -c 'echo $HOME'"), 0);
+        assert_eq!(flagged("ksh -c 'echo $HOME'"), 0);
+        assert_eq!(flagged("zsh -c 'echo $HOME'"), 0);
+    }
+
+    #[test]
+    fn test_sc2016_526_other_script_runners_not_flagged() {
+        assert_eq!(flagged("eval 'echo $HOME'"), 0);
+        assert_eq!(flagged("sudo sh -c 'echo $HOME'"), 0);
+        assert_eq!(flagged("docker exec c sh -c 'echo $HOME'"), 0);
+        assert_eq!(flagged("podman exec c sh -c 'echo $HOME'"), 0);
+    }
+
+    #[test]
+    fn test_sc2016_526_indented_and_tab_separated() {
+        assert_eq!(flagged("    ssh h 'echo $HOME'"), 0);
+        assert_eq!(flagged("\tssh h 'echo $HOME'"), 0);
+        assert_eq!(flagged("ssh\th\t'echo $HOME'"), 0);
+        assert_eq!(flagged("ssh   h   'echo $HOME'"), 0);
+    }
+
+    #[test]
+    fn test_sc2016_526_options_assignments_and_path_prefix() {
+        assert_eq!(flagged("ssh -p 22 -o X=y h 'echo $HOME'"), 0);
+        assert_eq!(flagged("FOO=1 ssh h 'echo $HOME'"), 0);
+        assert_eq!(flagged("/usr/bin/ssh h 'echo $HOME'"), 0);
+        assert_eq!(flagged("'ssh' h 'echo $HOME'"), 0);
+        assert_eq!(flagged("if ssh h 'echo $HOME'; then :; fi"), 0);
+        assert_eq!(flagged("! ssh h 'echo $HOME'"), 0);
+    }
+
+    #[test]
+    fn test_sc2016_526_every_argument_and_mixed_quoting() {
+        assert_eq!(flagged("ssh h 'echo $A' 'echo $B'"), 0);
+        assert_eq!(flagged(r#"ssh h 'a'"b"'$X'"#), 0);
+        assert_eq!(flagged("ssh h 'a ${X}' 'b $(date)'"), 0);
+    }
+
+    #[test]
+    fn test_sc2016_526_inside_command_substitution() {
+        assert_eq!(flagged("x=$(ssh h 'echo $HOME')"), 0);
+        assert_eq!(flagged(r#"echo "$(ssh h 'a $X')""#), 0);
+    }
+
+    #[test]
+    fn test_sc2016_526_next_command_still_flagged() {
+        assert_eq!(flagged("ssh h 'echo $HOME'; echo 'x $Y'"), 1);
+        assert_eq!(flagged("ssh h 'echo $HOME' && echo 'x $Y'"), 1);
+        assert_eq!(flagged("ssh h 'echo $HOME' || echo 'x $Y'"), 1);
+        assert_eq!(flagged("ssh h 'echo $HOME' | echo 'x $Y'"), 1);
+        assert_eq!(flagged("ssh h 'echo $HOME' & echo 'x $Y'"), 1);
+        assert_eq!(flagged("sudo sh -c 'a $X'; echo 'b $Y'"), 1);
+    }
+
+    #[test]
+    fn test_sc2016_526_commands_shellcheck_still_flags() {
+        // ShellCheck 0.8.0 reports each of these.
+        assert_eq!(flagged("su -c 'echo $HOME' u"), 1);
+        assert_eq!(flagged("xargs sh -c 'echo $HOME'"), 1);
+        assert_eq!(flagged("nohup ssh h 'echo $HOME'"), 1);
+        assert_eq!(flagged("env ssh h 'echo $HOME'"), 1);
+        assert_eq!(flagged("timeout 5 ssh h 'echo $HOME'"), 1);
+        assert_eq!(flagged("dash -c 'echo $HOME'"), 1);
+        assert_eq!(flagged("sshpass ssh h 'a $X'"), 1);
+        assert_eq!(flagged("scp 'a $X' h:"), 1);
+    }
+
+    #[test]
+    fn test_sc2016_526_name_must_match_exactly() {
+        assert_eq!(flagged("SSH h 'a $X'"), 1);
+        assert_eq!(flagged("sshx h 'a $X'"), 1);
+        assert_eq!(flagged("xssh h 'a $X'"), 1);
+    }
+
+    #[test]
+    fn test_sc2016_526_word_mentioning_ssh_is_not_ssh() {
+        assert_eq!(flagged("echo 'ssh h $X'"), 1);
+        assert_eq!(flagged("foo 'a $X' | ssh h"), 1);
+        assert_eq!(flagged("cmd 'echo $HOME' ssh"), 1);
+        assert_eq!(flagged("# ssh h 'a $X'"), 0);
+    }
+
+    #[test]
+    fn test_sc2016_526_nested_command_owns_its_quotes() {
+        // The inner `echo` owns the quote even though `ssh` encloses it.
+        assert_eq!(flagged(r#"ssh h "$(echo 'a $X')""#), 1);
+        assert_eq!(flagged("ssh h $(echo 'a $X')"), 1);
+    }
+
+    #[test]
+    fn test_sc2016_526_non_literal_command_word_still_flagged() {
+        assert_eq!(flagged("$cmd h 'a $X'"), 1);
+        assert_eq!(flagged("$(which ssh) h 'a $X'"), 1);
+    }
+
+    #[test]
+    fn test_sc2016_526_shell_script_operand_with_unquoted_tail_not_flagged() {
+        // The synthetic inner command of `sh -c 'echo $X'$Y` must not take
+        // ownership of the quote from `sh`.
+        assert_eq!(flagged("sh -c 'echo $X'$Y"), 0);
     }
 }

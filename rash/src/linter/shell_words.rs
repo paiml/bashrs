@@ -232,6 +232,22 @@ pub fn logical_lines(source: &str) -> Vec<(usize, String)> {
     out
 }
 
+/// The word the shell reads first as the command: the first word that is not an
+/// assignment prefix, a redirect target, or a reserved word (`if`, `!`, `{` ...).
+/// Unlike [`SimpleCommand::name`] this does NOT see through wrappers, so
+/// `nohup ssh h` has head `nohup`. `None` when that word has an expansion.
+pub fn head_word(cmd: &SimpleCommand) -> Option<String> {
+    let w = cmd.words.iter().find(|w| match w.role {
+        WordRole::AssignPrefix | WordRole::RedirectTarget => false,
+        _ => !(w.expansions.is_empty() && RESERVED_WORDS.contains(&w.literal.as_str())),
+    })?;
+    if w.expansions.is_empty() && w.substitutions.is_empty() {
+        Some(basename(&w.literal).to_string())
+    } else {
+        None
+    }
+}
+
 /// True when `name` is the command word of some simple command in `line`.
 ///
 /// Make recipe prefixes (`@`, `-`, `+`) are stripped first, so `\t@# note` is a
@@ -971,6 +987,39 @@ mod tests {
             .collect()
     }
 
+    fn head_of(line: &str) -> Option<String> {
+        head_word(&simple_commands(line)[0])
+    }
+
+    #[test]
+    fn test_SW_526_head_word_is_the_literal_first_word() {
+        assert_eq!(head_of("ssh h"), Some("ssh".into()));
+        assert_eq!(head_of("/usr/bin/ssh h"), Some("ssh".into()));
+        assert_eq!(head_of("\tssh\th"), Some("ssh".into()));
+        assert_eq!(head_of("'ssh'  h"), Some("ssh".into()));
+    }
+
+    #[test]
+    fn test_SW_526_head_word_skips_prefix_reserved_and_redirect() {
+        assert_eq!(head_of("A=1 B=2 ssh h"), Some("ssh".into()));
+        assert_eq!(head_of("if ssh h"), Some("ssh".into()));
+        assert_eq!(head_of("! ssh h"), Some("ssh".into()));
+        assert_eq!(head_of("> out ssh h"), Some("ssh".into()));
+    }
+
+    #[test]
+    fn test_SW_526_head_word_does_not_see_through_wrappers() {
+        assert_eq!(head_of("nohup ssh h"), Some("nohup".into()));
+        assert_eq!(head_of("env ssh h"), Some("env".into()));
+    }
+
+    #[test]
+    fn test_SW_526_head_word_is_none_when_not_literal() {
+        assert_eq!(head_of("$cmd h"), None);
+        assert_eq!(head_of("${cmd}x h"), None);
+        assert_eq!(head_of("$(which ssh) h"), None);
+        assert_eq!(head_of("A=1"), None);
+    }
     #[test]
     fn test_SW_001_words_and_columns() {
         let cmds = simple_commands("curl -sSfL $u");
