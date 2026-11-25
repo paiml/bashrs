@@ -38,11 +38,6 @@ fn is_comment_line(line: &str) -> bool {
     line.trim_start().starts_with('#')
 }
 
-/// Check if line has array syntax (parentheses or brackets)
-fn has_array_syntax(line: &str) -> bool {
-    line.contains("=(") || line.contains('[')
-}
-
 /// Create diagnostic for array-to-string assignment
 fn create_array_to_string_diagnostic(
     line_num: usize,
@@ -60,61 +55,64 @@ fn create_array_to_string_diagnostic(
 /// Check for string assignment to array variable
 static ARRAY_DECL_PATTERN: std::sync::LazyLock<Regex> =
     std::sync::LazyLock::new(|| Regex::new(r"([A-Za-z_][A-Za-z0-9_]*)=\(").unwrap());
-static SC2178_RE_1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*)=(?:"[^"]*"|'[^']*'|[^\s;]+)"#).unwrap()
+/// `declare -a x` / `declare -A x` / `typeset -A x` / `local -a x` / `readonly -A x`
+static ARRAY_FLAG_DECL_PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"\b(?:declare|typeset|local|readonly)\s+-[A-Za-z]*[aA][A-Za-z]*\s+([A-Za-z_][A-Za-z0-9_]*)")
+        .unwrap()
 });
+static SC2178_RE_1: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r#"([A-Za-z_][A-Za-z0-9_]*)=(?:"[^"]*"|'[^']*'|[^\s;]*)"#).unwrap()
+});
+
+/// Array declarations on one line as (name, start offset of the name).
+fn line_array_decls(line: &str) -> Vec<(String, usize)> {
+    [&*ARRAY_DECL_PATTERN, &*ARRAY_FLAG_DECL_PATTERN]
+        .iter()
+        .flat_map(|re| re.captures_iter(line))
+        .filter_map(|cap| cap.get(1))
+        .map(|m| (m.as_str().to_string(), m.start()))
+        .collect()
+}
+
+/// True if `name` was declared an array on an earlier line, or earlier on this line.
+fn declared_before(
+    name: &str,
+    at: usize,
+    known: &std::collections::HashSet<String>,
+    line_decls: &[(String, usize)],
+) -> bool {
+    known.contains(name) || line_decls.iter().any(|(n, pos)| n == name && *pos < at)
+}
 
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
+    let mut known = std::collections::HashSet::new();
 
-    // Track array declarations
-    let mut array_vars = std::collections::HashSet::new();
-
-    // Pattern for array declaration: var=(...)
-    let array_decl_pattern = &*ARRAY_DECL_PATTERN;
-
-    // Pattern for string assignment: var="..." or var=...
-    let string_assign_pattern = &*SC2178_RE_1;
-
-    // First pass: identify array variables
-    for line in source.lines() {
+    for (idx, line) in source.lines().enumerate() {
         if is_comment_line(line) {
             continue;
         }
+        let line_decls = line_array_decls(line);
 
-        for cap in array_decl_pattern.captures_iter(line) {
-            let var_name = cap.get(1).unwrap().as_str();
-            array_vars.insert(var_name.to_string());
-        }
-    }
-
-    // Second pass: find string assignments to array variables
-    for (line_num, line) in source.lines().enumerate() {
-        let line_num = line_num + 1;
-
-        if is_comment_line(line) {
-            continue;
-        }
-
-        for cap in string_assign_pattern.captures_iter(line) {
+        for cap in SC2178_RE_1.captures_iter(line) {
             let full_match = cap.get(0).unwrap();
             let var_name = cap.get(1).unwrap().as_str();
-
-            // Check if this variable was declared as an array
-            if array_vars.contains(var_name) {
-                // Skip if this is array syntax (has parentheses or brackets)
-                if has_array_syntax(line) {
-                    continue;
-                }
-
+            // `name=(` is an array (re)assignment, not a string
+            if full_match.as_str().as_bytes().get(var_name.len() + 1) == Some(&b'(') {
+                continue;
+            }
+            if declared_before(var_name, full_match.start(), &known, &line_decls) {
                 let start_col = full_match.start() + 1;
                 let end_col = full_match.end() + 1;
-
-                let diagnostic = create_array_to_string_diagnostic(line_num, start_col, end_col);
-
-                result.add(diagnostic);
+                result.add(create_array_to_string_diagnostic(
+                    idx + 1,
+                    start_col,
+                    end_col,
+                ));
             }
         }
+
+        known.extend(line_decls.into_iter().map(|(n, _)| n));
     }
 
     result
@@ -325,5 +323,44 @@ mod tests {
         let script = "my_array=(a b)\nmy_array=\"text\"";
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    // ===== #526 parity (shellcheck 0.8.0) =====
+
+    #[test]
+    fn test_sc2178_same_line_array_then_string() {
+        let result = check("a=(1 2); a=foo");
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2178_declare_assoc_then_string() {
+        let result = check("declare -A m; m=x");
+        assert_eq!(result.diagnostics.len(), 1);
+        let result = check("declare -a b\nb=x");
+        assert_eq!(result.diagnostics.len(), 1);
+        let result = check("typeset -A c\nc=y");
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2178_empty_string_assignment() {
+        let result = check("a=(1 2); a=; echo $a");
+        assert_eq!(result.diagnostics.len(), 1);
+        let result = check("a=(1 2)\na=");
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2178_string_before_array_silent() {
+        assert_eq!(check("a=foo\na=(1 2)").diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2178_same_line_array_reassign_and_index_silent() {
+        assert_eq!(check("a=(1 2); a=(3 4)").diagnostics.len(), 0);
+        assert_eq!(check("a=(1 2); a[0]=x").diagnostics.len(), 0);
+        assert_eq!(check("declare -A m; m[k]=v").diagnostics.len(), 0);
+        assert_eq!(check("declare -A m=([k]=v)").diagnostics.len(), 0);
     }
 }

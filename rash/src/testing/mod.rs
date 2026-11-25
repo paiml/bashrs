@@ -18,6 +18,7 @@ pub mod boundary;
 pub mod coverage;
 pub mod cross_validation;
 pub mod error_injection;
+pub(crate) mod exec_stub;
 pub mod idempotence_tests;
 pub mod shellcheck_validation_tests;
 pub mod stress;

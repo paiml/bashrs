@@ -592,3 +592,12 @@ mod property_tests {
         }
     }
 }
+
+#[test]
+fn test_GH336_cat_after_newline_in_substitution_text_is_stdin() {
+    // The pass reads one physical line at a time, but the helper must still
+    // see a newline as a command boundary when handed multi-line text.
+    assert_eq!(cmd_sub_taint("$(echo ok\ncat)"), TaintKind::External);
+    assert_eq!(cmd_sub_taint("$(echo ok\n  cat)"), TaintKind::External);
+    assert_eq!(cmd_sub_taint("$(echo ok cat)"), TaintKind::Clean);
+}

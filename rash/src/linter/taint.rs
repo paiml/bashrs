@@ -703,7 +703,186 @@ fn cmd_sub_taint(rhs: &str) -> TaintKind {
     {
         return TaintKind::External;
     }
+    if cat_reads_stdin(rhs) {
+        return TaintKind::External;
+    }
     TaintKind::Clean
+}
+
+/// `cat` with no file operand, `-`, `/dev/stdin` or `<&0` reads the script's
+/// stdin, which is as external as `read` (GH-336). `cat "$file"` stays a file read.
+fn cat_reads_stdin(rhs: &str) -> bool {
+    let mut from = 0;
+    while let Some(rel) = rhs.get(from..).and_then(|s| word_pos(s, "cat")) {
+        let start = from + rel + 3;
+        if cat_in_command_position(rhs, from + rel)
+            && cat_args_read_stdin(rhs.get(start..).unwrap_or(""))
+        {
+            return true;
+        }
+        from = start;
+    }
+    false
+}
+
+/// `cat` only counts as a command when it opens the substitution or follows a
+/// control operator, never as an argument or path segment (`dirname /opt/cat`).
+fn cat_in_command_position(rhs: &str, pos: usize) -> bool {
+    let mut before = &rhs[..pos];
+    loop {
+        if before.trim_end_matches([' ', '\t']).ends_with('\n') {
+            return true;
+        }
+        before = before.trim_end();
+        if before.is_empty() || before.ends_with(['(', '`', '|', ';', '&', '{']) {
+            return true;
+        }
+        let word_start = before
+            .rfind(|c: char| c.is_whitespace() || "(`|;&{".contains(c))
+            .map_or(0, |i| i + 1);
+        if !is_prefix_word(&before[word_start..]) {
+            return false;
+        }
+        before = &before[..word_start];
+    }
+}
+
+/// Words that leave the next word in command position: `!`, compound-command
+/// keywords and `NAME=value` prefix assignments (`IFS= cat`).
+fn is_prefix_word(w: &str) -> bool {
+    if matches!(w, "!" | "then" | "do" | "else" | "elif" | "while" | "until") {
+        return true;
+    }
+    w.split_once('=').is_some_and(|(name, _)| {
+        name.starts_with(|c: char| c.is_ascii_alphabetic() || c == '_')
+            && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+    })
+}
+
+fn cat_args_read_stdin(after: &str) -> bool {
+    let words = cat_arg_words(after);
+    let mut operands = 0;
+    let mut toks = words.iter().map(String::as_str);
+    while let Some(t) = toks.next() {
+        match cat_arg_kind(t, &mut toks) {
+            CatArg::Stdin => return true,
+            CatArg::Heredoc => return false,
+            CatArg::Operand => operands += 1,
+            CatArg::Ignored => {}
+        }
+    }
+    operands == 0
+}
+
+enum CatArg {
+    Stdin,
+    Heredoc,
+    Operand,
+    Ignored,
+}
+
+/// Classify one word of `cat`'s argument list; a redirection consumes its
+/// target (same word when unspaced, else the next word).
+fn cat_arg_kind<'a>(t: &str, toks: &mut impl Iterator<Item = &'a str>) -> CatArg {
+    if t == "-" || t == "/dev/stdin" {
+        return CatArg::Stdin;
+    }
+    let rest = t.trim_start_matches(|c: char| c.is_ascii_digit());
+    // Only fd 0 (or no fd) redirects stdin; `3<file` leaves cat reading stdin.
+    let stdin_fd = rest.len() == t.len() || t[..t.len() - rest.len()].bytes().all(|b| b == b'0');
+    let rest = rest
+        .strip_prefix('&')
+        .filter(|r| r.starts_with('>'))
+        .unwrap_or(rest);
+    if rest.starts_with("<<") {
+        return CatArg::Heredoc;
+    }
+    if let Some(r) = rest.strip_prefix('<') {
+        return cat_input_redirect(r, stdin_fd, toks);
+    }
+    if let Some(r) = rest.strip_prefix('>') {
+        if r.trim_start_matches(['>', '&', '|']).is_empty() {
+            toks.next();
+        }
+        return CatArg::Ignored;
+    }
+    if t.starts_with('-') {
+        CatArg::Ignored
+    } else {
+        CatArg::Operand
+    }
+}
+
+/// `<` redirect (`r` is the text after it): only fd 0 can take stdin away
+/// from `cat`; the target is the rest of the word, else the next word.
+fn cat_input_redirect<'a>(
+    r: &str,
+    stdin_fd: bool,
+    toks: &mut impl Iterator<Item = &'a str>,
+) -> CatArg {
+    let fd_dup = r.starts_with('&');
+    let target = r.trim_start_matches('&');
+    let target = if target.is_empty() {
+        toks.next().unwrap_or("")
+    } else {
+        target
+    };
+    if !stdin_fd {
+        return CatArg::Ignored;
+    }
+    match (fd_dup, target) {
+        (_, "/dev/stdin") | (true, "0") => CatArg::Stdin,
+        (true, _) => CatArg::Ignored,
+        _ => CatArg::Operand,
+    }
+}
+
+/// Unquoted control operator ending `cat`'s arguments; `&` inside a redirection
+/// (`<&0`, `2>&1`, `&>f`) is not one.
+fn is_cat_terminator(c: char, prev: char, next: Option<char>) -> bool {
+    match c {
+        ')' | '`' | '|' | ';' => true,
+        '&' => !matches!(prev, '<' | '>') && next != Some('>'),
+        _ => false,
+    }
+}
+
+/// Split the text after `cat` into shell words (quotes removed), stopping at
+/// the first unquoted control operator: `)`, backtick, `|`, `;`, `&&`, `&`.
+/// `&` inside a redirection (`<&0`, `2>&1`, `&>f`) is not an operator.
+fn cat_arg_words(after: &str) -> Vec<String> {
+    let mut words = Vec::new();
+    let mut cur = String::new();
+    let mut in_word = false;
+    let mut quote: Option<char> = None;
+    let mut prev = ' ';
+    let mut chars = after.chars().peekable();
+    while let Some(c) = chars.next() {
+        match quote {
+            Some(q) if c == q => quote = None,
+            Some(_) => cur.push(c),
+            None if c == '\'' || c == '"' => {
+                quote = Some(c);
+                in_word = true;
+            }
+            None if c.is_whitespace() => {
+                if in_word {
+                    words.push(std::mem::take(&mut cur));
+                    in_word = false;
+                }
+            }
+            None if is_cat_terminator(c, prev, chars.peek().copied()) => break,
+            None => {
+                cur.push(c);
+                in_word = true;
+            }
+        }
+        prev = c;
+    }
+    if in_word {
+        words.push(cur);
+    }
+    words
 }
 
 /// Canonicalisation that makes a path safe regardless of where it came from
@@ -1131,7 +1310,8 @@ fn word_boundaries_ok(bytes: &[u8], pos: usize, len: usize) -> bool {
 //   script's `$1` (over-tainting — conservative).
 // * Arrays and namerefs are tracked by base name only.
 // * `eval` bodies are not analysed; `${!x}` is pessimistically `External`.
-// * `X=$(cat /some/file)` is `Clean` — only `EXTERNAL_DATA_CMDS` and nested
+// * `X=$(cat /some/file)` is `Clean`; `$(cat)`, `$(cat -)`, `$(cat /dev/stdin)`
+//   and `$(cat <&0)` read stdin and are `External` (GH-336). Otherwise only `EXTERNAL_DATA_CMDS` and nested
 //   tainted variables mark a substitution external. Reading a path out of a
 //   config file therefore does not taint it; the file's own contents are
 //   treated as script-owned data. This is deliberate: the alternative marks

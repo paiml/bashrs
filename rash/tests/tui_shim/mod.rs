@@ -114,7 +114,7 @@ pub fn expect_frame(frame: &TuiFrame) -> FrameExpect<'_> {
 }
 
 impl FrameExpect<'_> {
-    pub fn to_contain_text(&self, text: &str) -> Result<(), String> {
+    pub fn expect_contain_text(&self, text: &str) -> Result<(), String> {
         if self.0.contains(text) {
             Ok(())
         } else {
@@ -272,7 +272,7 @@ impl<'a> FrameExpect<'a> {
 }
 
 impl SoftExpect<'_> {
-    pub fn to_contain_text(&mut self, text: &str) -> Result<(), String> {
+    pub fn expect_contain_text(&mut self, text: &str) -> Result<(), String> {
         if self.frame.contains(text) {
             Ok(())
         } else {

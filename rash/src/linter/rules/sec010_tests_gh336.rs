@@ -103,3 +103,134 @@ fn test_GH336_read_r_validated_stays_clear() {
     let s = "#!/usr/bin/env bash\nset -euo pipefail\ntd=$(mktemp -d)\nread -r r < \"$td/f\"\nif [[ \"$r\" == *..* ]] || [[ \"$r\" != /* ]]; then exit 2; fi\nout=$(cd \"$r\" && cargo build 2>&1); echo \"$out\"\n";
     assert!(check(s).diagnostics.iter().all(|d| d.code != "SEC010"));
 }
+
+fn sec010_fires(s: &str) -> bool {
+    check(s).diagnostics.iter().any(|d| d.code == "SEC010")
+}
+
+#[test]
+fn test_GH336_stdin_cat_substitution_is_external() {
+    for src in [
+        "r=$(cat)",
+        "r=$(cat -)",
+        "r=$(cat /dev/stdin)",
+        "r=$(cat <&0)",
+        "r=`cat`",
+        "r=$(cat 2>/dev/null)",
+    ] {
+        for sink in ["cd \"$r\"", "rm -rf \"$r\""] {
+            let s = format!("#!/usr/bin/env bash\n{src}\n{sink}\n");
+            assert!(sec010_fires(&s), "SEC010 must fire for `{src}` then `{sink}`");
+        }
+    }
+}
+
+#[test]
+fn test_GH336_file_cat_substitution_stays_clean() {
+    for src in [
+        "r=$(cat \"$ROOT/VERSION\")",
+        "r=$(cat VERSION)",
+        "r=$(cat < VERSION)",
+        "r=$(cat <<EOF)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\nROOT=/opt/app\n{src}\ncd \"$r\"\n");
+        assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_args_end_at_control_operators() {
+    for src in [
+        "r=$(cat && echo ok)",
+        "r=$(cat; echo ok)",
+        "r=$(cat | tr a b)",
+        "r=`cat && echo ok`",
+        "r=$(cat || echo ok)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_redirect_target_is_not_a_file_operand() {
+    for src in [
+        "r=$(cat 2> /dev/null)",
+        "r=$(cat > /dev/null)",
+        "r=$(cat 2>/dev/null)",
+        "r=$(cat >/dev/null)",
+        "r=$(cat >> log.txt)",
+        "r=$(cat 2>&1)",
+        "r=$(cat &>/dev/null)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\nrm -rf \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_unspaced_and_quoted_stdin_forms() {
+    for src in [
+        "r=$(cat </dev/stdin)",
+        "r=$(cat 0</dev/stdin)",
+        "r=$(cat \"/dev/stdin\")",
+        "r=$(cat < \"/dev/stdin\")",
+        "r=$(cat <&0)",
+        "r=$(cat 0<&0)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_outside_command_position_is_not_stdin() {
+    for src in [
+        "r=$(dirname /opt/cat)",
+        "r=$(basename cat)",
+        "r=$(cat \"$ROOT/VERSION\" && echo ok)",
+        "r=$(cat 2>/dev/null VERSION)",
+        "r=$(cat <VERSION)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\nROOT=/opt/app\n{src}\ncd \"$r\"\n");
+        assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_nonzero_fd_input_redirect_still_reads_stdin() {
+    for src in [
+        "r=$(cat 3</dev/null)",
+        "r=$(cat 3<file.txt)",
+        "r=$(cat 3< file.txt)",
+        "r=$(cat 3<&0)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_stdin_in_extended_command_positions() {
+    for src in [
+        "r=$(! cat)",
+        "r=$(if true; then cat; fi)",
+        "r=$(if false; then echo x; else cat; fi)",
+        "r=$(if false; then echo x; elif true; then cat; fi)",
+        "r=$(while true; do cat; done)",
+        "r=$(until false; do cat; done)",
+        "r=$(IFS= cat)",
+        "r=$(A=1 B=2 cat)",
+    ] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(sec010_fires(&s), "SEC010 must fire for `{src}`");
+    }
+}
+
+#[test]
+fn test_GH336_cat_after_non_command_words_stays_silent() {
+    for src in ["r=$(echo then cat)", "r=$(echo FOO=1 cat)", "r=$(echo ! cat)"] {
+        let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
+        assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
+    }
+}
