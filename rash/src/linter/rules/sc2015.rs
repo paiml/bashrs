@@ -35,7 +35,8 @@ fn fallback_is_pipeline(rest: &str) -> bool {
     let cleaned = rest
         .replace(">&", ">")
         .replace("<&", "<")
-        .replace("&>", ">");
+        .replace("&>", ">")
+        .replace(">|", ">");
     let mut chars = cleaned.chars().peekable();
     while let Some(c) = chars.next() {
         match c {
@@ -47,15 +48,43 @@ fn fallback_is_pipeline(rest: &str) -> bool {
     false
 }
 
+/// `NAME=value` (or `NAME+=value`): the part before `=` is a shell identifier.
+fn is_assignment(word: &str) -> bool {
+    let Some((name, _)) = word.split_once('=') else {
+        return false;
+    };
+    let name = name.strip_suffix('+').unwrap_or(name);
+    let mut chars = name.chars();
+    chars
+        .next()
+        .is_some_and(|c| c == '_' || c.is_ascii_alphabetic())
+        && chars.all(|c| c == '_' || c.is_ascii_alphanumeric())
+}
+
 /// Name of the command a fallback runs, skipping leading `VAR=value` words and
 /// `command`/`builtin` prefixes, with quotes and any directory removed.
 /// `None` when the fallback is only assignments.
-fn fallback_command(fallback: &str) -> Option<String> {
-    let mut words = fallback
+/// Structure is read from `masked` (quoted text is `_`); the name is taken from `original`
+/// at the same byte offset, so a quoted command such as `"echo"` keeps its name.
+fn fallback_command(masked: &str, original: &str) -> Option<String> {
+    let base = masked.as_ptr() as usize;
+    let words: Vec<(usize, &str)> = masked
         .split_whitespace()
-        .skip_while(|w| w.contains('=') && !w.starts_with('=') && !w.starts_with(['"', '\'']))
-        .skip_while(|w| matches!(*w, "command" | "builtin"));
-    let word = words.next()?;
+        .map(|w| (w.as_ptr() as usize - base, w))
+        .collect();
+    let mut i = 0;
+    while i < words.len() && is_assignment(words[i].1) {
+        i += 1;
+    }
+    let prefix_start = i;
+    while i < words.len() && matches!(words[i].1, "command" | "builtin") {
+        i += 1;
+    }
+    let Some(&(off, w)) = words.get(i) else {
+        // A bare `command`/`builtin` runs that command, so it is not exempt.
+        return (i > prefix_start).then(|| "command".to_string());
+    };
+    let word = original.get(off..off + w.len())?;
     let word = word.split(['<', '>']).next().unwrap_or("");
     let word = word.trim_matches(['"', '\'']);
     Some(word.rsplit('/').next().unwrap_or("").to_string())
@@ -63,23 +92,103 @@ fn fallback_command(fallback: &str) -> Option<String> {
 
 /// ShellCheck 0.8.0 does not flag `A && B || C` when C is a single error-reporting or
 /// terminating command (the usual "A && B || die" idiom) or a bare assignment.
-fn fallback_is_exempt(matched: &str, after: &str) -> bool {
-    let fallback = matched.rsplit("||").next().unwrap_or("").trim_start();
+/// `masked` and `original` are the same chain (quotes masked, or not); `after` is masked.
+fn fallback_is_exempt(masked: &str, original: &str, after: &str) -> bool {
+    let fallback = masked.rsplit("||").next().unwrap_or("").trim_start();
+    let original_fallback = &original[original.len() - fallback.len()..];
     if fallback_is_pipeline(&format!("{fallback}{after}")) {
         return false;
     }
-    match fallback_command(fallback) {
+    match fallback_command(fallback, original_fallback) {
         None => true,
         Some(cmd) => matches!(cmd.as_str(), "echo" | "exit" | "return" | "printf"),
     }
 }
 
-fn diagnostic_for(line_num: usize, m: &regex::Match<'_>) -> Diagnostic {
+/// Copy of `line` with quoted text, `$( )` bodies and a trailing `#` comment masked by
+/// `_` (same byte length), so `;`, `|` and `&` inside them cannot split or join a chain.
+fn mask_quoted(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut mask = Mask::default();
+    for c in line.chars() {
+        mask.step(&mut out, c);
+    }
+    out
+}
+
+#[derive(Default)]
+struct Mask {
+    quote: Option<char>,
+    depth: usize,
+    comment: bool,
+}
+
+impl Mask {
+    fn step(&mut self, out: &mut String, c: char) {
+        if self.comment {
+            push_mask(out, c);
+        } else if let Some(q) = self.quote {
+            self.in_quote(out, q, c);
+        } else if self.depth > 0 {
+            self.in_subst(out, c);
+        } else {
+            self.plain(out, c);
+        }
+    }
+
+    fn in_quote(&mut self, out: &mut String, quote: char, c: char) {
+        if c == quote {
+            self.quote = None;
+            out.push(c);
+        } else {
+            push_mask(out, c);
+        }
+    }
+
+    fn in_subst(&mut self, out: &mut String, c: char) {
+        match c {
+            '(' => self.depth += 1,
+            ')' => self.depth -= 1,
+            _ => {}
+        }
+        if c == ')' && self.depth == 0 {
+            out.push(c);
+        } else {
+            push_mask(out, c);
+        }
+    }
+
+    fn plain(&mut self, out: &mut String, c: char) {
+        match c {
+            '"' | '\'' => {
+                self.quote = Some(c);
+                out.push(c);
+            }
+            '(' if out.ends_with('$') => {
+                self.depth = 1;
+                out.push(c);
+            }
+            '#' if out.chars().last().is_none_or(char::is_whitespace) => {
+                self.comment = true;
+                push_mask(out, c);
+            }
+            _ => out.push(c),
+        }
+    }
+}
+
+fn push_mask(out: &mut String, c: char) {
+    for _ in 0..c.len_utf8() {
+        out.push('_');
+    }
+}
+
+fn diagnostic_for(line_num: usize, start: usize, end: usize) -> Diagnostic {
     Diagnostic::new(
         "SC2015",
         Severity::Info,
         "Note that 'A && B || C' is not if-then-else. C may run when A is true. Use 'if A; then B; else C; fi' for proper conditional logic".to_string(),
-        Span::new(line_num, m.start() + 1, line_num, m.end() + 1),
+        Span::new(line_num, start + 1, line_num, end + 1),
     )
 }
 
@@ -105,11 +214,19 @@ pub fn check(source: &str) -> LintResult {
 
         // Look for && followed by ||
         // Examine every chain on the line; one exempt chain must not hide another.
-        for m in AND_OR_PATTERN.find_iter(line) {
-            if fallback_is_exempt(m.as_str(), &line[m.end()..]) {
-                continue;
+        // Matching runs on a masked copy so quoted or commented text cannot split a chain.
+        let masked = mask_quoted(line);
+        let mut pos = 0;
+        while let Some(m) = AND_OR_PATTERN.find(&masked[pos..]) {
+            let (start, end) = (pos + m.start(), pos + m.end());
+            let matched = &masked[start..end];
+            if !fallback_is_exempt(matched, &line[start..end], &masked[end..]) {
+                result.add(diagnostic_for(line_num, start, end));
+                pos = end;
+            } else {
+                // Resume at the last `||`, so a following `&& ... || ...` chain is still examined.
+                pos = start + matched.rfind("||").unwrap_or(matched.len() - 1) + 2;
             }
-            result.add(diagnostic_for(line_num, &m));
         }
     }
 
@@ -283,6 +400,46 @@ check2 && ok2 || fail2
             "foo && bar || /bin/cleanup",
             "foo && bar || cleanup &",
             "foo && bar || cleanup | tee",
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_quote_aware_chain_flagged() {
+        // ';' or '|' inside quotes or $(...) does not end the chain (shellcheck 0.8.0 flags these)
+        for c in [
+            r#"foo && echo "a;b" || cleanup"#,
+            "foo && x=$(a; b) || cleanup",
+            r#"foo && bar || MSG="a echo" cleanup"#,
+            r#"foo && bar || echo "a;b" | tee log"#,
+            "foo && bar || echo ok && baz || cleanup",
+        ] {
+            assert!(check(c).diagnostics.len() >= 1, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_quoted_pipe_and_noclobber_exempt() {
+        // shellcheck 0.8.0 exempts these: the '|' is quoted or is '>|' redirection
+        for c in [
+            r#"foo && bar || echo "a | b""#,
+            "foo && bar || echo 'x|y'",
+            "foo && bar || echo err >| /tmp/err.log",
+            r#"foo && bar || X="a b" echo hi"#,
+        ] {
+            assert_eq!(check(c).diagnostics.len(), 0, "{c}");
+        }
+    }
+
+    #[test]
+    fn test_sc2015_non_assignment_and_bare_prefix_flagged() {
+        // '=' inside a non-assignment word, and a bare command/builtin, are not exempt
+        for c in [
+            "foo && bar || ((count+=1))",
+            "foo && bar || ./script=1",
+            "foo && bar || command",
+            "foo && bar || builtin",
         ] {
             assert_eq!(check(c).diagnostics.len(), 1, "{c}");
         }
