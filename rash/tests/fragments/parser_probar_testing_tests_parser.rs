@@ -316,8 +316,8 @@ fn test_parser_error_soft_assertions() {
     let frame = parser_frame(script, &result);
 
     let mut soft = expect_frame(&frame).soft();
-    let _ = soft.to_contain_text("BASHRS PARSER OUTPUT");
-    let _ = soft.to_contain_text("Status:");
+    let _ = soft.expect_contain_text("BASHRS PARSER OUTPUT");
+    let _ = soft.expect_contain_text("Status:");
     let _ = soft.not_to_contain_text("PANIC");
     let _ = soft.not_to_contain_text("FATAL");
 
