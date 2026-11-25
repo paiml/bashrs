@@ -6,19 +6,22 @@
 // Examples:
 // Bad:
 //   test && success || failure      // failure runs if success fails
-//   [[ -f file ]] && cat file || echo "missing"  // wrong logic
-//   command && echo "ok" || echo "fail"  // misleading
+//   [[ -f file ]] && cat file || cleanup  // wrong logic
+//   command && build || rollback  // misleading
 //
 // Good:
 //   if test; then success; else failure; fi  // Clear if-then-else
-//   if [[ -f file ]]; then cat file; else echo "missing"; fi
-//   if command; then echo "ok"; else echo "fail"; fi
+//   if [[ -f file ]]; then cat file; else cleanup; fi
+//   if command; then build; else rollback; fi
 //
 // Why it's wrong:
-//   true && false || echo "runs"    // Runs even though true succeeded
+//   true && false || cleanup        // Runs even though true succeeded
 //   The || sees the false from && and runs
 //
 // Note: Use proper if-then-else for conditional logic to avoid surprises.
+//
+// Exempt (shellcheck 0.8.0 parity): a fallback of echo/exit/return/printf, or a
+// bare assignment, is not flagged.
 
 use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
@@ -415,7 +418,7 @@ check2 && ok2 || fail2
             r#"foo && bar || echo "a;b" | tee log"#,
             "foo && bar || echo ok && baz || cleanup",
         ] {
-            assert!(check(c).diagnostics.len() >= 1, "{c}");
+            assert!(!check(c).diagnostics.is_empty(), "{c}");
         }
     }
 
