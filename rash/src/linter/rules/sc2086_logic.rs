@@ -126,6 +126,46 @@ pub fn get_cstyle_for_loop_vars(source: &str) -> HashSet<String> {
     vars
 }
 
+/// PMAT-654: names assigned only integer literals (`n=1`) anywhere in the file.
+/// A name that is also a for/read target, or has any non-literal assignment, is excluded.
+pub fn get_integer_literal_vars(source: &str) -> HashSet<String> {
+    #[allow(clippy::unwrap_used)] // Compile-time regex
+    static ASSIGN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(
+            r"^(?:export\s+|local\s+|declare\s+(?:-[a-zA-Z]+\s+)?)?([A-Za-z_][A-Za-z0-9_]*)=(\S*)",
+        )
+        .unwrap()
+    });
+    #[allow(clippy::unwrap_used)] // Compile-time regex
+    static LITERAL: std::sync::LazyLock<Regex> =
+        std::sync::LazyLock::new(|| Regex::new(r"^-?[0-9]+$").unwrap());
+    #[allow(clippy::unwrap_used)] // Compile-time regex
+    static REBIND: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+        Regex::new(r"\b(?:for|read)\s+(?:-[a-zA-Z]+\s+)*([A-Za-z_][A-Za-z0-9_]*)").unwrap()
+    });
+
+    let mut literal = HashSet::new();
+    let mut other = HashSet::new();
+    for line in source.lines() {
+        let t = line.trim();
+        if t.starts_with('#') {
+            continue;
+        }
+        if let Some(c) = ASSIGN.captures(t) {
+            let name = c[1].to_string();
+            if LITERAL.is_match(&c[2]) {
+                literal.insert(name);
+            } else {
+                other.insert(name);
+            }
+        }
+        for c in REBIND.captures_iter(t) {
+            other.insert(c[1].to_string());
+        }
+    }
+    literal.difference(&other).cloned().collect()
+}
+
 /// Issue #105: Check if variable is inside [[ ]] (bash extended test)
 /// In [[ ]], word splitting and glob expansion do NOT occur on unquoted variables
 /// This is safe: [[ -n $var ]] (no word splitting inside [[ ]])
