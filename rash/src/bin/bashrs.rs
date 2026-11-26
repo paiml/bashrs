@@ -4,14 +4,25 @@ use clap::Parser;
 use std::error::Error;
 use std::process;
 
-fn main() {
-    let cli = Cli::parse();
-    let is_update = matches!(std::env::args().nth(1).as_deref(), Some("update"));
+const PRODUCT: sovereign_update::Product = sovereign_update::Product {
+    bin: "bashrs",
+    repo: "paiml/bashrs",
+    version: env!("CARGO_PKG_VERSION"),
+    build_sha: None,
+    release_asset: Some("{bin}-{tag}-{target}.tar.gz"),
+    nightly: false,
+};
 
-    let result = execute_command(cli);
-    if result.is_ok() && !is_update {
-        bashrs::cli::update_check::maybe_print_startup_notice();
+fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    // `update` is dispatched before the CLI parser so the running executable is always `bashrs`.
+    if args.get(1).is_some_and(|a| a == "update") {
+        std::process::exit(sovereign_update::update_main(&PRODUCT, &args[2..]));
     }
+    sovereign_update::startup(&PRODUCT, &args);
+
+    let cli = Cli::parse();
+    let result = execute_command(cli);
     if let Err(error) = result {
         // CommandFailed errors already have fully formatted output (e.g. parse diagnostics)
         if let bashrs::models::Error::CommandFailed { message } = &error {

@@ -64,6 +64,7 @@ schemars = "1.2"  # For JSON schema generation (Issue #12)
 bashrs-oracle = { version = "7.0", path = "../bashrs-oracle", optional = true }  # ML-powered error classification
 aprender = { package = "aprender-core", version = "0.75", default-features = false, optional = true }  # BPE tokenizer for SSC C-TOK-001
 entrenar = { package = "aprender-train", version = "0.75", optional = true }  # CodeBERT encoder for SSC CLF-RUN classifier
+aprender-update = "0.75"  # Sovereign self-update check and `update` subcommand (#377, EPIC aprender#4232)
 
 # Watch mode dependencies (file system watching)
 notify = { version = "8.2", optional = true }  # Cross-platform filesystem notifications
