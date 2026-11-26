@@ -223,7 +223,12 @@ fn check_shellcheck_patterns(content: &str) -> RuleResult {
     }
 }
 
-fn check_shellcheck_line(trimmed: &str, line_num: usize, errexit: bool, violations: &mut Vec<Violation>) {
+fn check_shellcheck_line(
+    trimmed: &str,
+    line_num: usize,
+    errexit: bool,
+    violations: &mut Vec<Violation>,
+) {
     // SC2006: Use $(...) instead of backticks
     if trimmed.contains('`') && !trimmed.contains("\\`") {
         violations.push(Violation {
@@ -298,9 +303,9 @@ fn is_dangerous_rm_rf(trimmed: &str) -> bool {
 fn is_errexit_set(trimmed: &str) -> bool {
     let t = trimmed.split('#').next().unwrap_or("").trim();
     if let Some(flags) = t.strip_prefix("set ") {
-        return flags
-            .split_whitespace()
-            .any(|w| (w.starts_with('-') && !w.starts_with("--") && w.contains('e')) || w == "errexit");
+        return flags.split_whitespace().any(|w| {
+            (w.starts_with('-') && !w.starts_with("--") && w.contains('e')) || w == "errexit"
+        });
     }
     false
 }
@@ -373,7 +378,10 @@ mod sc2164_set_e_tests_652 {
         assert!(
             !r.violations.iter().any(|v| v.message.contains("SC2164")),
             "SC2164 fired under set -e: {:?}",
-            r.violations.iter().map(|v| v.message.clone()).collect::<Vec<_>>()
+            r.violations
+                .iter()
+                .map(|v| v.message.clone())
+                .collect::<Vec<_>>()
         );
     }
     #[test]
@@ -381,5 +389,4 @@ mod sc2164_set_e_tests_652 {
         let r = check_shellcheck_patterns("#!/bin/sh\ncd /tmp\necho ok\n");
         assert!(r.violations.iter().any(|v| v.message.contains("SC2164")));
     }
-
 }
