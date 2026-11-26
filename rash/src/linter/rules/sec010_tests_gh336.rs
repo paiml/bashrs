@@ -284,3 +284,12 @@ fn test_GH336_literal_absolute_cd_resets_carried_taint() {
         "rm after literal cd still flagged: {lines:?}"
     );
 }
+
+#[test]
+fn test_GH336_quoted_absolute_rm_after_tainted_cd_is_not_relative() {
+    let lines = sec010_lines("#!/bin/sh\ncd \"$1\" || exit 1\nrm -rf \"/tmp/build\"\n");
+    assert!(
+        !lines.contains(&3),
+        "quoted absolute rm misread as relative: {lines:?}"
+    );
+}

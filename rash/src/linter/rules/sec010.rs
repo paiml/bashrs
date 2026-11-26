@@ -168,9 +168,11 @@ fn track_cwd_taint(
     let Some(cd_col) = find_command(line, "cd") else {
         if let (Some(kind), Some(rm_col)) = (cwd.kind, find_command(line, "rm")) {
             let args = line.get(rm_col + 2..).unwrap_or("");
+            // Strip quotes so `rm -rf "/tmp/x"` is read as absolute, not relative.
             let operands: Vec<&str> = args
                 .split_whitespace()
                 .filter(|t| !t.starts_with('-'))
+                .map(|t| t.trim_matches(|c| c == '"' || c == '\''))
                 .collect();
             let relative_literal = !operands.is_empty()
                 && operands
