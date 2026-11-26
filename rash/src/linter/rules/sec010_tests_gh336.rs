@@ -41,7 +41,10 @@ fn test_GH336_cargo_in_a_literal_path_line_does_not_fire() {
 #[test]
 fn test_GH336_validated_repo_stays_clear() {
     let s = "#!/usr/bin/env bash\nREPO=\"$2\"\ncase \"$REPO\" in /*) ;; *) exit 2;; esac\ncase \"$REPO\" in *..*) exit 2;; esac\n( cd \"$REPO\" && rm -rf out )\n";
-    assert!(check(s).diagnostics.iter().all(|d| d.severity != Severity::Error));
+    assert!(check(s)
+        .diagnostics
+        .iter()
+        .all(|d| d.severity != Severity::Error));
 }
 
 #[test]
@@ -120,7 +123,10 @@ fn test_GH336_stdin_cat_substitution_is_external() {
     ] {
         for sink in ["cd \"$r\"", "rm -rf \"$r\""] {
             let s = format!("#!/usr/bin/env bash\n{src}\n{sink}\n");
-            assert!(sec010_fires(&s), "SEC010 must fire for `{src}` then `{sink}`");
+            assert!(
+                sec010_fires(&s),
+                "SEC010 must fire for `{src}` then `{sink}`"
+            );
         }
     }
 }
@@ -229,8 +235,52 @@ fn test_GH336_cat_stdin_in_extended_command_positions() {
 
 #[test]
 fn test_GH336_cat_after_non_command_words_stays_silent() {
-    for src in ["r=$(echo then cat)", "r=$(echo FOO=1 cat)", "r=$(echo ! cat)"] {
+    for src in [
+        "r=$(echo then cat)",
+        "r=$(echo FOO=1 cat)",
+        "r=$(echo ! cat)",
+    ] {
         let s = format!("#!/usr/bin/env bash\n{src}\ncd \"$r\"\n");
         assert!(!sec010_fires(&s), "SEC010 must stay silent for `{src}`");
     }
+}
+
+// GH-336 (bashrs#336, multi-line): an unvalidated `cd "$VAR"` moves the working
+// directory for every later line. A later literal `rm -rf` on its own line
+// must be flagged; the old line-keyed check said nothing about it.
+fn sec010_lines(src: &str) -> Vec<usize> {
+    check(src)
+        .diagnostics
+        .iter()
+        .filter(|d| d.code == "SEC010")
+        .map(|d| d.span.start_line)
+        .collect()
+}
+
+#[test]
+fn test_GH336_rm_after_tainted_cd_on_later_line_fires() {
+    let lines = sec010_lines("#!/bin/sh\ncd \"$1\" || exit 1\nrm -rf build\n");
+    assert!(
+        lines.contains(&3),
+        "rm -rf on line 3 not flagged after tainted cd: {lines:?}"
+    );
+}
+
+#[test]
+fn test_GH336_cargo_after_tainted_cd_on_later_line_is_not_flagged() {
+    let lines = sec010_lines("#!/bin/sh\ncd \"$1\" || exit 1\ncargo build\n");
+    assert!(
+        !lines.contains(&3),
+        "cargo on line 3 is a false positive: {lines:?}"
+    );
+}
+
+#[test]
+fn test_GH336_literal_absolute_cd_resets_carried_taint() {
+    let lines =
+        sec010_lines("#!/bin/sh\ncd \"$1\" || exit 1\ncd /opt/app || exit 1\nrm -rf build\n");
+    assert!(
+        !lines.contains(&4),
+        "rm after literal cd still flagged: {lines:?}"
+    );
 }
