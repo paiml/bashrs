@@ -94,7 +94,8 @@ fn test_PMAT248_gh241_quoted_var_inside_nested_substitution_is_quoted() {
     shell_absent(src, "SC2047");
     shell_absent(src, "SC2122");
     // An unquoted variable in a [ ] test is still reported.
-    let unq = "#!/bin/sh\nx=1\nif [ $x -eq 1 ]; then echo y; fi\n";
+    // Non-literal RHS: #654 exempts integer-literal vars (shellcheck parity).
+    let unq = "#!/bin/sh\nx=$(date +%s)\nif [ $x -eq 1 ]; then echo y; fi\n";
     shell_fires(unq, "SC2086");
     shell_absent(unq, "SC2047");
 }
@@ -204,7 +205,8 @@ fn test_PMAT248_review_sc2047_considers_only_operands_of_the_test() {
         "#!/bin/sh\nx=1\nif [ -n \"$(echo $x)\" ]; then :; fi\n",
         "SC2047",
     );
-    let unq = "#!/bin/sh\nx=1\nif [ $x -eq 1 ]; then :; fi\n";
+    // Non-literal RHS: #654 exempts integer-literal vars (shellcheck parity).
+    let unq = "#!/bin/sh\nx=$(date +%s)\nif [ $x -eq 1 ]; then :; fi\n";
     shell_fires(unq, "SC2086");
     shell_absent(unq, "SC2047");
 }

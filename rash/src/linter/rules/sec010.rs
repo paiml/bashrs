@@ -75,7 +75,10 @@ fn check_file_ops(line: &str, line_num: usize, taint: &TaintMap, result: &mut Li
         let diag = Diagnostic::new(
             "SEC010",
             severity_for(kind),
-            format!("Path traversal risk in {} - validate paths don't contain '..' or start with '/'", file_op),
+            format!(
+                "Path traversal risk in {} - validate paths don't contain '..' or start with '/'",
+                file_op
+            ),
             span,
         );
         result.add(diag);
@@ -126,6 +129,7 @@ pub fn check(source: &str) -> LintResult {
     // rule fires on a line the script never executes.
     let heredoc_body = crate::linter::heredoc::quoted_heredoc_lines(source);
 
+    let mut cwd = CwdTaint::default();
     for (line_num, line) in source.lines().enumerate() {
         let trimmed = line.trim();
 
@@ -139,9 +143,66 @@ pub fn check(source: &str) -> LintResult {
         let masked = mask_child_shell_scripts(line);
         check_file_ops(&masked, line_num, &taint, &mut result);
         check_traversal_patterns(line, line_num, &mut result);
+        track_cwd_taint(&masked, line_num, &taint, &mut cwd, &mut result);
     }
 
     result
+}
+
+/// GH-336 (multi-line): an unvalidated `cd "$VAR"` leaves the working directory
+/// attacker-influenced for every later line, until a `cd` to a literal path.
+/// The per-line check cannot see that, so a later `rm` whose operands are
+/// relative literals is flagged here, at the severity of the `cd`'s taint.
+#[derive(Default)]
+struct CwdTaint {
+    kind: Option<TaintKind>,
+}
+
+fn track_cwd_taint(
+    line: &str,
+    line_num: usize,
+    taint: &TaintMap,
+    cwd: &mut CwdTaint,
+    result: &mut LintResult,
+) {
+    let Some(cd_col) = find_command(line, "cd") else {
+        if let (Some(kind), Some(rm_col)) = (cwd.kind, find_command(line, "rm")) {
+            let args = line.get(rm_col + 2..).unwrap_or("");
+            // Strip quotes so `rm -rf "/tmp/x"` is read as absolute, not relative.
+            let operands: Vec<&str> = args
+                .split_whitespace()
+                .filter(|t| !t.starts_with('-'))
+                .map(|t| t.trim_matches(|c| c == '"' || c == '\''))
+                .collect();
+            let relative_literal = !operands.is_empty()
+                && operands
+                    .iter()
+                    .all(|t| !t.contains('$') && !t.starts_with('/') && !t.starts_with('~'));
+            if relative_literal {
+                let span = Span::new(line_num + 1, rm_col + 1, line_num + 1, line.len());
+                result.add(Diagnostic::new(
+                    "SEC010",
+                    severity_for(kind),
+                    "Path traversal risk in rm - working directory was changed by an unvalidated cd on an earlier line",
+                    span,
+                ));
+            }
+        }
+        return;
+    };
+    let args = line.get(cd_col + 2..).unwrap_or("");
+    let target = args
+        .split(|c: char| c.is_whitespace() || matches!(c, ';' | '&' | '|'))
+        .find(|t| !t.is_empty())
+        .unwrap_or("");
+    if target.contains('$') {
+        let kind = taint.line_taint(line_num, line);
+        if kind != TaintKind::Clean {
+            cwd.kind = Some(kind);
+        }
+    } else {
+        cwd.kind = None;
+    }
 }
 
 /// GH-528: the single-quoted script of `sh -c` / `bash -c` is a different shell
