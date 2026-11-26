@@ -128,3 +128,12 @@ impl Default for Oracle {
 }
 
 include!("lib_oracle.rs");
+
+#[cfg(test)]
+mod coverage_red_probe_651 {
+    // PMAT-651 probe: must FAIL. Proves the coverage job turns red on a failing lib test.
+    #[test]
+    fn always_fails_651() {
+        assert_eq!(1 + 1, 3, "PMAT-651 probe: coverage job must go red");
+    }
+}
