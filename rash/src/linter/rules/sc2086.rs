@@ -8,7 +8,9 @@ use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
     let pattern = get_var_pattern();
-    let cstyle_vars = get_cstyle_for_loop_vars(source);
+    // PMAT-654: a variable only ever assigned an integer literal cannot word-split; shellcheck 0.8.0 agrees.
+    let mut cstyle_vars = get_cstyle_for_loop_vars(source);
+    cstyle_vars.extend(get_integer_literal_vars(source));
     let body = super::sc2086_heredoc::body_command_substitution_bytes(source);
     for (line_num, line) in source.lines().enumerate() {
         let subst = body.get(&(line_num + 1));
@@ -42,3 +44,37 @@ mod tests;
 #[cfg(test)]
 #[path = "sc2086_tests_heredoc.rs"]
 mod tests_heredoc;
+
+#[cfg(test)]
+mod integer_literal_tests_654 {
+    use super::check;
+
+    // PMAT-654 / bashrs#654: shellcheck 0.8.0 does not flag $n when n is assigned an integer literal.
+    #[test]
+    fn echo_of_integer_literal_var_is_not_flagged() {
+        let r = check("n=1\necho $n\n");
+        assert!(
+            r.diagnostics.is_empty(),
+            "SC2086 fired on integer-literal var: {:?}",
+            r.diagnostics
+                .iter()
+                .map(|d| d.message.clone())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn test_bracket_of_integer_literal_var_is_not_flagged() {
+        let r = check("n=1\nif [ $n -le 1 ]; then\n  echo ok\nfi\n");
+        assert!(
+            r.diagnostics.is_empty(),
+            "SC2086 fired in [ ] on integer-literal var"
+        );
+    }
+
+    #[test]
+    fn non_literal_var_is_still_flagged() {
+        let r = check("n=$(date)\necho $n\n");
+        assert!(!r.diagnostics.is_empty());
+    }
+}
