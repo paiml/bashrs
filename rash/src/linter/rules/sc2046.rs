@@ -201,9 +201,47 @@ fn is_reportable(words: &[ShellWord], idx: usize) -> bool {
 
 /// Collect every reportable command-substitution offence on one physical
 /// line, in ascending column order.
+/// Blank out every `(( … ))` arithmetic command on a line, keeping byte
+/// columns intact. Its operands are never word-split, so a `$(…)` inside it
+/// is not SC2046 (shellcheck: silent).
+fn arith_command_end(chars: &[char], start: usize) -> Option<usize> {
+    let mut depth = 0usize;
+    for (j, &c) in chars.iter().enumerate().skip(start) {
+        match c {
+            '(' => depth += 1,
+            ')' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return Some(j);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+fn mask_arith_commands(line: &str) -> String {
+    let mut chars: Vec<char> = line.chars().collect();
+    let mut i = 0;
+    while i + 1 < chars.len() {
+        let is_open = chars[i] == '(' && chars[i + 1] == '(';
+        let is_expansion = i > 0 && (chars[i - 1] == '$' || chars[i - 1] == '(');
+        match arith_command_end(&chars, i) {
+            Some(e) if is_open && !is_expansion => {
+                chars[i..=e].iter_mut().for_each(|c| *c = ' ');
+                i = e + 1;
+            }
+            _ => i += 1,
+        }
+    }
+    chars.into_iter().collect()
+}
+
 fn scan_line(line: &str) -> Vec<Offence> {
     let mut offences: Vec<Offence> = Vec::new();
-    for cmd in shell_words::simple_commands(line) {
+    let masked = mask_arith_commands(line);
+    for cmd in shell_words::simple_commands(&masked) {
         let head = cmd.words.first().map(|w| w.literal.as_str()).unwrap_or("");
         // `[[ … ]]` never word-splits its operands.
         if head == "[[" {
@@ -396,6 +434,16 @@ mod tests {
     fn test_PMAT248_gh237_arithmetic_not_reported() {
         let result = check("echo $((x+1))");
         assert_eq!(result.diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc236_arith_command_cmdsub_not_reported() {
+        let result = check(
+            r#"if (( $(echo "$X >= 85" | bc -l 2>/dev/null || echo "1") )); then
+  echo ok
+fi"#,
+        );
+        assert_eq!(result.diagnostics.len(), 0, "{:?}", result.diagnostics);
     }
 
     #[test]
