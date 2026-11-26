@@ -202,13 +202,18 @@ fn check_shellcheck_patterns(content: &str) -> RuleResult {
     // Lightweight shellcheck-equivalent patterns
     // Full shellcheck integration deferred to Phase 2
     let mut violations = Vec::new();
+    let mut errexit = false;
 
     for (i, line) in content.lines().enumerate() {
         let trimmed = line.trim();
         if trimmed.starts_with('#') {
             continue;
         }
-        check_shellcheck_line(trimmed, i + 1, &mut violations);
+        // PMAT-652: under `set -e` a failed cd aborts the script, so shellcheck 0.8.0 is silent on it.
+        if is_errexit_set(trimmed) {
+            errexit = true;
+        }
+        check_shellcheck_line(trimmed, i + 1, errexit, &mut violations);
     }
 
     RuleResult {
@@ -218,7 +223,12 @@ fn check_shellcheck_patterns(content: &str) -> RuleResult {
     }
 }
 
-fn check_shellcheck_line(trimmed: &str, line_num: usize, violations: &mut Vec<Violation>) {
+fn check_shellcheck_line(
+    trimmed: &str,
+    line_num: usize,
+    errexit: bool,
+    violations: &mut Vec<Violation>,
+) {
     // SC2006: Use $(...) instead of backticks
     if trimmed.contains('`') && !trimmed.contains("\\`") {
         violations.push(Violation {
@@ -238,7 +248,7 @@ fn check_shellcheck_line(trimmed: &str, line_num: usize, violations: &mut Vec<Vi
     }
 
     // SC2164: cd without || exit (silent failure)
-    if is_bare_cd(trimmed) {
+    if !errexit && is_bare_cd(trimmed) {
         violations.push(Violation {
             rule: RuleId::ShellCheck,
             line: Some(line_num),
@@ -287,6 +297,17 @@ fn is_dangerous_rm_rf(trimmed: &str) -> bool {
     (trimmed.starts_with("rm -rf /") || trimmed.starts_with("rm -rf \"/$"))
         && trimmed.contains('$')
         && !trimmed.contains(":?")
+}
+
+/// `set -e` / `set -o errexit` (also in a combined flag such as `set -eu`)
+fn is_errexit_set(trimmed: &str) -> bool {
+    let t = trimmed.split('#').next().unwrap_or("").trim();
+    if let Some(flags) = t.strip_prefix("set ") {
+        return flags.split_whitespace().any(|w| {
+            (w.starts_with('-') && !w.starts_with("--") && w.contains('e')) || w == "errexit"
+        });
+    }
+    false
 }
 
 /// SC2164: cd without error handling (|| exit, || return, || die)
@@ -345,3 +366,27 @@ fn is_bare_glob(trimmed: &str) -> bool {
 }
 
 include!("rules_makefile_docker.rs");
+
+#[cfg(test)]
+mod sc2164_set_e_tests_652 {
+    use super::check_shellcheck_patterns;
+
+    // PMAT-652 / bashrs#652: shellcheck 0.8.0 is silent on a bare cd under set -e.
+    #[test]
+    fn bare_cd_under_set_e_is_not_flagged() {
+        let r = check_shellcheck_patterns("set -e\ncd /tmp\necho ok\n");
+        assert!(
+            !r.violations.iter().any(|v| v.message.contains("SC2164")),
+            "SC2164 fired under set -e: {:?}",
+            r.violations
+                .iter()
+                .map(|v| v.message.clone())
+                .collect::<Vec<_>>()
+        );
+    }
+    #[test]
+    fn bare_cd_without_set_e_still_flagged() {
+        let r = check_shellcheck_patterns("#!/bin/sh\ncd /tmp\necho ok\n");
+        assert!(r.violations.iter().any(|v| v.message.contains("SC2164")));
+    }
+}
