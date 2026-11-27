@@ -20,8 +20,9 @@ use crate::linter::{Diagnostic, LintResult, Severity, Span};
 use regex::Regex;
 
 static EXECUTE_COMMAND_SUB: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    // Match: $(cmd) at command position (start of line or after ; && ||)
-    Regex::new(r"(^|[;&|]+)\s*\$\([^)]+\)").unwrap()
+    // Match: $(cmd) at command position (start of line, after ; && ||, or
+    // after a keyword that introduces a command: if/then/elif/while/until/do/else)
+    Regex::new(r"(^|[;&|]+|\b(?:if|then|elif|while|until|do|else)\b)\s*\$\([^)]+\)").unwrap()
 });
 
 pub fn check(source: &str) -> LintResult {
@@ -41,7 +42,7 @@ pub fn check(source: &str) -> LintResult {
             }
 
             // Skip if it's in a test
-            if line[..mat.start()].contains('[') || line[..mat.start()].contains("if") {
+            if line[..mat.start()].contains('[') {
                 continue;
             }
 
@@ -101,8 +102,8 @@ mod tests {
     fn test_sc2091_in_test_ok() {
         let code = "if $(true); then echo ok; fi";
         let result = check(code);
-        // In if statement context
-        assert_eq!(result.diagnostics.len(), 0);
+        // shellcheck 0.8.0 reports SC2091 on a command substitution after `if`
+        assert_eq!(result.diagnostics.len(), 1);
     }
 
     #[test]
@@ -137,6 +138,14 @@ mod tests {
     #[test]
     fn test_sc2091_with_pipe() {
         let code = "cat file | $(awk '{print $1}')";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2091_after_if_keyword_matches_shellcheck() {
+        // shellcheck 0.8.0: `if $(true); then echo ok; fi` -> SC2091 at 2:4
+        let code = "if $(true); then echo ok; fi";
         let result = check(code);
         assert_eq!(result.diagnostics.len(), 1);
     }
