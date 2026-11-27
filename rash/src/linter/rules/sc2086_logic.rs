@@ -348,13 +348,18 @@ pub fn find_unquoted_vars(
     }
     let is_arithmetic = line_has_arithmetic_markers(line);
 
-    for cap in pattern.captures_iter(line) {
+    // Resume the scan just past each `$` (not past the whole match): the pattern's `pre` group
+    // consumes the byte before `$`, so a match that ends in a name char (`$1` in `$1$foo`) would
+    // otherwise swallow the `pre` byte that the next `$` needs.
+    let mut from = 0;
+    while let Some(cap) = pattern.captures_at(line, from) {
         let var_capture = match cap.name("brace").or_else(|| cap.name("simple")) {
             Some(v) => v,
-            None => continue,
+            None => break,
         };
         let var_name = var_capture.as_str();
         let dollar_pos = find_dollar_position(line, var_capture.start());
+        from = dollar_pos + 1;
         let col = dollar_pos + 1;
         let is_braced = cap.name("brace").is_some();
         let end_col = calculate_end_column(line, var_capture.end(), is_braced);
