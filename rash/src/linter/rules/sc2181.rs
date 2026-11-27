@@ -36,7 +36,13 @@ use regex::Regex;
 
 /// Check for indirect $? comparisons
 static PATTERN: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
-    Regex::new(r#"(?:if|while)\s+\[\s*"?\$\?"?\s*(?:-eq|-ne)\s*0\s*\]"#).unwrap()
+    // `-eq`/`-ne` plus the operators shellcheck 0.8.0 also flags against 0
+    // (`-gt`, `-ge`, `=`, `==`, `!=`), in either operand order.
+    let pattern = format!(
+        r"(?:if|while)\s+\[\s*{}\s*\]",
+        status_vs_zero(r"(?:-eq|-ne|-gt|-ge|==|!=|=)")
+    );
+    Regex::new(&pattern).unwrap()
 });
 
 /// `$?` spelled as shellcheck sees it, with balanced quotes: `$?`, `${?}`,
@@ -290,5 +296,35 @@ mod tests {
         let result = check(script);
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2181");
+    }
+
+    #[test]
+    fn test_sc2181_bracket_string_and_gt_operators() {
+        // shellcheck 0.8.0 flags these; the -eq/-ne-only pattern missed them.
+        for script in [
+            "if [ $? != 0 ]; then echo fail; fi",
+            "if [ $? = 0 ]; then echo ok; fi",
+            "if [ $? == 0 ]; then echo ok; fi",
+            "if [ $? -gt 0 ]; then echo fail; fi",
+            "if [ $? -ge 0 ]; then echo fail; fi",
+            "if [ 0 != $? ]; then echo fail; fi",
+        ] {
+            let result = check(script);
+            assert_eq!(result.diagnostics.len(), 1, "script: {script}");
+            assert_eq!(result.diagnostics[0].code, "SC2181", "script: {script}");
+        }
+    }
+
+    #[test]
+    fn test_sc2181_bracket_operators_silent_when_not_zero() {
+        // shellcheck 0.8.0 is silent on these; keep them silent.
+        for script in [
+            "if [ $? -eq 1 ]; then echo x; fi",
+            "if [ $? -lt 1 ]; then echo x; fi",
+            "if test $? != 0; then echo x; fi",
+        ] {
+            let result = check(script);
+            assert_eq!(result.diagnostics.len(), 0, "script: {script}");
+        }
     }
 }
