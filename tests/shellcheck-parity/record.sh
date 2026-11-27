@@ -3,5 +3,5 @@
 set -uo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 check_pin
-measure | sort >"$EXPECTED"
+LC_ALL=C measure | LC_ALL=C sort >"$EXPECTED"
 echo "recorded $(wc -l <"$EXPECTED") (file, rule) rows over $(ls "$CORPUS"/*.sh | wc -l) scripts -> $EXPECTED"

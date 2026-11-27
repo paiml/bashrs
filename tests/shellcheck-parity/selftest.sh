@@ -11,7 +11,7 @@ awk -F'\t' 'BEGIN{OFS="\t"} $1=="unquoted-var.sh" && $2=="SC2086" {$3=$3+1} {pri
 out="$(SC_EXPECTED="$T/planted.tsv" bash "$R" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && grep -q 'FAIL replay' <<<"$out"; then echo "ok   planted wrong expectation FAILS the replay"; else echo "FAIL selftest: planted expectation was not caught"; exit 1; fi
 # plant: a rule recorded as absent that the live run finds
-grep -v -P '\tSC2034\t' "$HERE/expected.tsv" >"$T/dropped.tsv"
+awk -F'\t' '$2!="SC2034"' "$HERE/expected.tsv" >"$T/dropped.tsv"
 out="$(SC_EXPECTED="$T/dropped.tsv" bash "$R" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ]; then echo "ok   a dropped expectation FAILS the replay"; else echo "FAIL selftest: dropped expectation was not caught"; exit 1; fi
 echo "PASS selftest"
