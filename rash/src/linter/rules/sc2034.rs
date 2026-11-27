@@ -577,6 +577,6 @@ echo "Hello"
         let r = unused_names("y=2\nexport x | y\n");
         assert!(r.iter().any(|m| m.contains("'y'")), "{r:?}");
         let r = unused_names("x=1\ny=2\nexport x=a#b y\n");
-        assert!(r.iter().any(|m| m.contains("'x'")) == false, "{r:?}");
+        assert!(!r.iter().any(|m| m.contains("'x'")), "{r:?}");
     }
 }
