@@ -1,0 +1,10 @@
+backticks.sh	SC2006	1
+cd-no-guard.sh	SC2164	1
+local-assign.sh	SC2155	1
+read-no-r.sh	SC2162	1
+test-unquoted.sh	SC2086	1
+test-unquoted.sh	SC2154	1
+unquoted-cmdsub.sh	SC2046	1
+unquoted-var.sh	SC2086	1
+unused-var.sh	SC1010	1
+unused-var.sh	SC2034	1
