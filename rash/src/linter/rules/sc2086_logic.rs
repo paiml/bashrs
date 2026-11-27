@@ -285,7 +285,8 @@ pub struct UnquotedVar {
 /// Get the variable pattern regex
 #[allow(clippy::unwrap_used)] // Compile-time regex
 pub fn get_var_pattern() -> Regex {
-    Regex::new(r#"(?m)(?P<pre>[^"']|^)\$(?:\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<simple>[A-Za-z_][A-Za-z0-9_]*))"#).unwrap()
+    // Positional parameters $1..$9 word-split like any other unquoted expansion (shellcheck 0.8.0 SC2086).
+    Regex::new(r#"(?m)(?P<pre>[^"']|^)\$(?:\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<simple>[A-Za-z_][A-Za-z0-9_]*|[1-9]))"#).unwrap()
 }
 
 /// True if the variable sits in a context where SC2086 does not apply.

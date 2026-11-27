@@ -77,4 +77,20 @@ mod integer_literal_tests_654 {
         let r = check("n=$(date)\necho $n\n");
         assert!(!r.diagnostics.is_empty());
     }
+
+    // Shellcheck 0.8.0 flags an unquoted positional parameter ($1..$9) with SC2086.
+    #[test]
+    fn unquoted_positional_param_is_flagged_sc2086() {
+        let r = check("#!/bin/bash\necho $1 $2\n");
+        let codes: Vec<String> = r.diagnostics.iter().map(|d| d.code.clone()).collect();
+        assert_eq!(
+            codes.iter().filter(|c| *c == "SC2086").count(),
+            2,
+            "SC2086 must fire on $1 and $2, got {:?}",
+            r.diagnostics
+                .iter()
+                .map(|d| (d.code.clone(), d.message.clone()))
+                .collect::<Vec<_>>()
+        );
+    }
 }
