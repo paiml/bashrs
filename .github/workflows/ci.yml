@@ -23,7 +23,7 @@ jobs:
   ci:
     # RS-09: a draft PR does not start the heavy jobs (ready_for_review starts them).
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
-    uses: paiml/.github/.github/workflows/sovereign-ci.yml@fbee3788a0ed92d09974ac21ea9bc97d373af6f0
+    uses: paiml/.github/.github/workflows/sovereign-ci.yml@581d492c7f92481c02963129eea8946df5c0f392
     with:
       repo: ${{ github.event.repository.name }}
       # Phase 3 pilot (medium workload) — build-performance.md §7 Phase 3.
