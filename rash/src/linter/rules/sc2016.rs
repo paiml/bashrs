@@ -52,10 +52,11 @@ fn is_documentation_pattern(matched: &str) -> bool {
 /// Commands that run their arguments as a script (a remote shell, `sh -c`,
 /// `eval`, a privilege or container wrapper). ShellCheck 0.8.0 does not report
 /// SC2016 for single-quoted text that is an argument of one of these, because
-/// the `$` is meant for the inner shell. Matched exactly, on the command's own
+/// the `$` is meant for the inner shell. `trap` is included (bashrs#668): its
+/// action runs later, when the trap fires. Matched exactly, on the command's own
 /// first word: `nohup ssh`, `env ssh`, `su -c` and `dash -c` are still reported.
 const SCRIPT_RUNNERS: &[&str] = &[
-    "ssh", "sh", "bash", "ksh", "zsh", "eval", "sudo", "docker", "podman",
+    "ssh", "sh", "bash", "ksh", "zsh", "eval", "sudo", "docker", "podman", "trap",
 ];
 
 /// Is this segment an argument of a [`SCRIPT_RUNNERS`] command?
@@ -384,5 +385,21 @@ msg2='Today is $(date)'
         // The synthetic inner command of `sh -c 'echo $X'$Y` must not take
         // ownership of the quote from `sh`.
         assert_eq!(flagged("sh -c 'echo $X'$Y"), 0);
+    }
+
+    // ===== bashrs#668: trap action =====
+    // The trap action is expanded when the trap fires, not when it is set, so a
+    // single-quoted `$` in it is intentional. ShellCheck 0.8.0 is silent on it.
+
+    #[test]
+    fn test_sc2016_668_trap_action_not_flagged() {
+        assert_eq!(flagged("x=1\ntrap 'echo $x' INT TERM"), 0);
+        assert_eq!(flagged("trap 'echo $x' EXIT"), 0);
+        assert_eq!(flagged("    trap 'echo $x' INT"), 0);
+    }
+
+    #[test]
+    fn test_sc2016_668_plain_single_quoted_dollar_still_flagged() {
+        assert_eq!(flagged("echo '$HOME'"), 1);
     }
 }
