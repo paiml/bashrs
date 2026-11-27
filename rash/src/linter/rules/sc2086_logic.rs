@@ -285,7 +285,8 @@ pub struct UnquotedVar {
 /// Get the variable pattern regex
 #[allow(clippy::unwrap_used)] // Compile-time regex
 pub fn get_var_pattern() -> Regex {
-    Regex::new(r#"(?m)(?P<pre>[^"']|^)\$(?:\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<simple>[A-Za-z_][A-Za-z0-9_]*))"#).unwrap()
+    // Positional parameters $1..$9 word-split like any other unquoted expansion (shellcheck 0.8.0 SC2086).
+    Regex::new(r#"(?m)(?P<pre>[^"']|^)\$(?:\{(?P<brace>[A-Za-z_][A-Za-z0-9_]*)\}|(?P<simple>[A-Za-z_][A-Za-z0-9_]*|[1-9]))"#).unwrap()
 }
 
 /// True if the variable sits in a context where SC2086 does not apply.
@@ -347,13 +348,18 @@ pub fn find_unquoted_vars(
     }
     let is_arithmetic = line_has_arithmetic_markers(line);
 
-    for cap in pattern.captures_iter(line) {
+    // Resume the scan just past each `$` (not past the whole match): the pattern's `pre` group
+    // consumes the byte before `$`, so a match that ends in a name char (`$1` in `$1$foo`) would
+    // otherwise swallow the `pre` byte that the next `$` needs.
+    let mut from = 0;
+    while let Some(cap) = pattern.captures_at(line, from) {
         let var_capture = match cap.name("brace").or_else(|| cap.name("simple")) {
             Some(v) => v,
-            None => continue,
+            None => break,
         };
         let var_name = var_capture.as_str();
         let dollar_pos = find_dollar_position(line, var_capture.start());
+        from = dollar_pos + 1;
         let col = dollar_pos + 1;
         let is_braced = cap.name("brace").is_some();
         let end_col = calculate_end_column(line, var_capture.end(), is_braced);

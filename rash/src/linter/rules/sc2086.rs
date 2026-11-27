@@ -77,4 +77,63 @@ mod integer_literal_tests_654 {
         let r = check("n=$(date)\necho $n\n");
         assert!(!r.diagnostics.is_empty());
     }
+
+    // Shellcheck 0.8.0 flags an unquoted positional parameter ($1..$9) with SC2086.
+    #[test]
+    fn unquoted_positional_param_is_flagged_sc2086() {
+        let r = check("#!/bin/bash\necho $1 $2\n");
+        let codes: Vec<String> = r.diagnostics.iter().map(|d| d.code.clone()).collect();
+        assert_eq!(
+            codes.iter().filter(|c| *c == "SC2086").count(),
+            2,
+            "SC2086 must fire on $1 and $2, got {:?}",
+            r.diagnostics
+                .iter()
+                .map(|d| (d.code.clone(), d.message.clone()))
+                .collect::<Vec<_>>()
+        );
+    }
+
+    // Positional-parameter parity with shellcheck 0.8.0 (measured, `shellcheck -s bash -f gcc`):
+    //   echo $10        -> SC2086 at col 6 (one note; SC1037 error)
+    //   echo $12 $99    -> SC2086 at col 6 and col 10
+    //   echo $1$foo     -> SC2086 at col 6 and col 8
+    //   echo "$1" / echo $# -> none
+    fn sc2086_cols(src: &str) -> Vec<usize> {
+        check(src)
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "SC2086")
+            .map(|d| d.span.start_col)
+            .collect()
+    }
+
+    #[test]
+    fn adjacent_positional_then_var_reports_both() {
+        // Regression: the `$1` match used to consume the `1` that `$foo` needs as its `pre` char.
+        assert_eq!(sc2086_cols("#!/bin/bash\necho $1$foo\n"), vec![6, 8]);
+    }
+
+    #[test]
+    fn adjacent_var_then_var_reports_both() {
+        assert_eq!(sc2086_cols("#!/bin/bash\necho $foo$bar\n"), vec![6, 10]);
+    }
+
+    #[test]
+    fn multi_digit_positional_matches_shellcheck_at_dollar() {
+        // shellcheck 0.8.0 reports SC2086 at the `$` of `$10`, and at each of `$12` and `$99`.
+        assert_eq!(sc2086_cols("#!/bin/bash\necho $10\n"), vec![6]);
+        assert_eq!(sc2086_cols("#!/bin/bash\necho $12 $99\n"), vec![6, 10]);
+    }
+
+    #[test]
+    fn quoted_positional_stays_silent() {
+        assert!(sc2086_cols("#!/bin/bash\necho \"$1\"\n").is_empty());
+        assert!(sc2086_cols("#!/bin/bash\necho '$1'\n").is_empty());
+    }
+
+    #[test]
+    fn special_params_stay_silent() {
+        assert!(sc2086_cols("#!/bin/bash\necho $#\n").is_empty());
+    }
 }
