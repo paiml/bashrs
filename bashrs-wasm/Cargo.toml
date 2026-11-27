@@ -25,6 +25,9 @@ safetensors = { version = "0.8", optional = true }
 default = []
 # CodeBERT WASM classifier (requires WASM-002/004)
 codebert = ["safetensors"]
+# PRB-006 Docker cross-browser matrix. A declared, empty feature: it gates the placeholder
+# in tests/probar_shell_safety.rs, so `--all-features` builds it and the tests still need Docker.
+docker = []
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"
