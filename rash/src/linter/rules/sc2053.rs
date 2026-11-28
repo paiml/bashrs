@@ -79,13 +79,52 @@ fn create_unquoted_glob_diagnostic(
     )
 }
 
+/// bashrs#675: an unquoted `$var` on the right of `==` inside `[[ ]]`.
+/// Captures the variable reference; the closing `]]` or whitespace after it
+/// keeps `${y}*` (a deliberate pattern) out of scope.
+static DOUBLE_BRACKET_EQ_VAR_RHS: std::sync::LazyLock<Regex> = std::sync::LazyLock::new(|| {
+    Regex::new(r"==\s+(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?)(\s|\]\])").unwrap()
+});
+
+/// bashrs#675: ShellCheck 0.8.0 reports SC2053 at the RHS of `==` in `[[ ]]`
+/// when it is an unquoted variable. Only the RHS span is reported, so the
+/// same span carries no SC2066 (BRS0003) finding.
+fn check_double_bracket_rhs(line: &str, line_num: usize, result: &mut LintResult) {
+    if !has_double_bracket(line) {
+        return;
+    }
+    for cap in DOUBLE_BRACKET_EQ_VAR_RHS.captures_iter(line) {
+        let rhs = cap.get(1).unwrap();
+        if !line[..rhs.start()].contains("[[") {
+            continue;
+        }
+        let start_col = rhs.start() + 1;
+        let end_col = rhs.end() + 1;
+        result.add(Diagnostic::new(
+            "SC2053",
+            Severity::Warning,
+            format!(
+                "Quote the right-hand side of == in [[ ]] to prevent glob matching: '{}'",
+                rhs.as_str()
+            ),
+            Span::new(line_num, start_col, line_num, end_col),
+        ));
+    }
+}
+
 pub fn check(source: &str) -> LintResult {
     let mut result = LintResult::new();
 
     for (line_num, line) in source.lines().enumerate() {
         let line_num = line_num + 1;
 
-        if is_comment_line(line) || has_double_bracket(line) || !should_check_line(line) {
+        if is_comment_line(line) {
+            continue;
+        }
+
+        check_double_bracket_rhs(line, line_num, &mut result);
+
+        if has_double_bracket(line) || !should_check_line(line) {
             continue;
         }
 
@@ -254,6 +293,41 @@ mod tests {
         assert_eq!(result.diagnostics.len(), 1);
         assert_eq!(result.diagnostics[0].code, "SC2053");
         assert!(result.diagnostics[0].message.contains("Quote"));
+    }
+
+    // bashrs#675: shellcheck 0.8.0 reports an unquoted right-hand side of `==`
+    // inside `[[ ]]` as SC2053, at the RHS, not as a quoting finding.
+    #[test]
+    fn test_sc2053_675_unquoted_rhs_double_bracket_eq() {
+        let code = "x=a; y=b\n[[ $x == $y ]] && echo same";
+        let result = check(code);
+        assert_eq!(result.diagnostics.len(), 1);
+        assert_eq!(result.diagnostics[0].code, "SC2053");
+        assert_eq!(result.diagnostics[0].span.start_line, 2);
+        assert_eq!(result.diagnostics[0].span.start_col, 10);
+    }
+
+    // bashrs#675: through the full pipeline the RHS span carries exactly one
+    // finding, the SC2053 one, and no SC2066 / BRS0003 duplicate.
+    #[test]
+    fn test_sc2053_675_pipeline_rhs_span_has_single_finding() {
+        let result = crate::linter::rules::lint_shell("x=a; y=b\n[[ $x == $y ]] && echo same\n");
+        let on_rhs: Vec<_> = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.span.start_line == 2 && d.span.start_col == 10)
+            .collect();
+        assert_eq!(on_rhs.len(), 1, "RHS span findings: {:?}", on_rhs);
+        assert_eq!(on_rhs[0].code, "SC2053");
+    }
+
+    #[test]
+    fn test_sc2053_675_quoted_rhs_double_bracket_not_flagged() {
+        assert_eq!(
+            check(r#"[[ $x == "$y" ]] && echo same"#).diagnostics.len(),
+            0
+        );
+        assert_eq!(check("[[ $x == $y* ]]").diagnostics.len(), 0);
     }
 
     #[test]
