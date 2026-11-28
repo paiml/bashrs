@@ -60,6 +60,7 @@
 
 use crate::linter::shell_words::{self, ExpansionKind, ShellWord, WordRole};
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
+use regex::Regex;
 
 /// Roles in which an unquoted command substitution is reportable: the shell
 /// word-splits an unquoted expansion in argument, redirect-target, or
@@ -259,8 +260,23 @@ fn scan_line(line: &str) -> Vec<Offence> {
             }
         }
     }
+    offences.retain(|o| !is_bare_array_value(line, o));
     offences.sort_by_key(|o| o.col);
     offences
+}
+
+/// `NAME=(` at the end of the text before an offence.
+static ARRAY_OPEN: std::sync::LazyLock<Regex> =
+    std::sync::LazyLock::new(|| Regex::new(r"\w+\s*=\s*\(\s*$").unwrap());
+
+/// bashrs#677: an offence that is the whole value of an array assignment,
+/// `NAME=( $(cmd) )`. The `(` ends the simple command in `shell_words`, so the
+/// substitution reads as a command name. ShellCheck 0.8.0 reports only SC2207
+/// for this shape, so it is not SC2046. Any other element next to it still is.
+fn is_bare_array_value(line: &str, o: &Offence) -> bool {
+    let before = line.get(..o.col.saturating_sub(1)).unwrap_or("");
+    let after = line.get(o.end_col.saturating_sub(1)..).unwrap_or("");
+    ARRAY_OPEN.is_match(before) && after.trim_start().starts_with(')')
 }
 
 /// Check for unquoted command substitutions (SC2046).

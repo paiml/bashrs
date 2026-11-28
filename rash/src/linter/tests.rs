@@ -60,4 +60,27 @@ result=$(echo foo)  # Info: SC2116
         assert!(result.count_by_severity(Severity::Warning) >= 1);
         assert!(result.count_by_severity(Severity::Info) >= 1);
     }
+
+    // bashrs#677: `arr=($(cmd))` is an array assignment whose elements are
+    // word-split. ShellCheck 0.8.0 reports only SC2207 for it.
+    #[test]
+    fn test_lint_677_array_cmdsub_emits_only_sc2207() {
+        let result = lint_shell("#!/bin/bash\ndeclare -a arr=($(ls))\n");
+        let codes: Vec<&str> = result.diagnostics.iter().map(|d| d.code.as_str()).collect();
+        assert!(codes.contains(&"SC2207"), "SC2207 must stay: {codes:?}");
+        assert!(!codes.contains(&"SC2046"), "extra SC2046: {codes:?}");
+        assert!(!codes.contains(&"SC2206"), "extra SC2206: {codes:?}");
+    }
+
+    // bashrs#677 guard: a plain scalar command substitution assignment is not
+    // touched by the array fix. On main it emits no SC2046 (an assignment RHS
+    // is never word-split), and that stays true.
+    #[test]
+    fn test_lint_677_plain_cmdsub_assignment_unchanged() {
+        let result = lint_shell("#!/bin/bash\nx=$(ls)\n");
+        let codes: Vec<&str> = result.diagnostics.iter().map(|d| d.code.as_str()).collect();
+        assert!(!codes.contains(&"SC2046"), "unexpected SC2046: {codes:?}");
+        assert!(!codes.contains(&"SC2206"), "unexpected SC2206: {codes:?}");
+        assert!(!codes.contains(&"SC2207"), "unexpected SC2207: {codes:?}");
+    }
 }
