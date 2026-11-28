@@ -72,12 +72,15 @@ result=$(echo foo)  # Info: SC2116
         assert!(!codes.contains(&"SC2206"), "extra SC2206: {codes:?}");
     }
 
-    // bashrs#677: a plain scalar command substitution assignment is not touched.
+    // bashrs#677 guard: a plain scalar command substitution assignment is not
+    // touched by the array fix. On main it emits no SC2046 (an assignment RHS
+    // is never word-split), and that stays true.
     #[test]
-    fn test_lint_677_plain_cmdsub_assignment_keeps_sc2046() {
+    fn test_lint_677_plain_cmdsub_assignment_unchanged() {
         let result = lint_shell("#!/bin/bash\nx=$(ls)\n");
         let codes: Vec<&str> = result.diagnostics.iter().map(|d| d.code.as_str()).collect();
-        assert!(codes.contains(&"SC2046"), "SC2046 must stay: {codes:?}");
+        assert!(!codes.contains(&"SC2046"), "unexpected SC2046: {codes:?}");
+        assert!(!codes.contains(&"SC2206"), "unexpected SC2206: {codes:?}");
         assert!(!codes.contains(&"SC2207"), "unexpected SC2207: {codes:?}");
     }
 }
