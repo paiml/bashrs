@@ -7,9 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.6.0] - 2026-11-28
+
+### Added
+
+- **Sovereign update dispatch.** `bashrs` adopts the sovereign-update dispatch (#377, #647).
+
 ### Fixed
 
 - **The scheduled advisory lane runs again.** `cargo-deny-daily.yml` called a reusable workflow in a private repository, which a public repository cannot do: 18 of 18 scheduled runs (2026-11-06 to 2026-11-23) ended as a startup failure with zero jobs, so no advisory scan of `main` ran. It is replaced by `advisory-andon.yml`, a caller of the public `paiml/.github` advisory andon (one issue per advisory found on `main`), with `workflow_dispatch` so the lane can be measured on demand.
+- **ShellCheck 0.8.0 parity in the lint rules.** SC2015, SC2016, SC2034, SC2043, SC2046, SC2053, SC2081, SC2086, SC2091, SC2155, SC2164, SC2178, SC2181 and SC2012 match ShellCheck 0.8.0 on the pinned corpus (#590, #607, #609, #611, #613, #616, #617, #627, #628, #637-#646, #653-#655, #663-#680; #661 replays the corpus).
+- **SEC010** carries an unvalidated `cd` forward to a later `rm` (#336, #657) and taints stdin-reading `cat` substitutions (#601).
+- **Dependency:** `url` 2.5.8 -> 2.5.9 for RUSTSEC-2026-0592 (#650, #656).
+- **CI:** nightly clippy runs every target and feature (#595, #659); sovereign-ci is pinned to 581d492 so failing lib tests fail `ci / test` (#604, #670); the lint, lint-check and check make targets cover the whole workspace (#605, #641); `validate-performance` runs a script that is committed (#599).
+
+### Changed
+
+- The `CLAUDE.md` agent rules are trimmed to 4.4 KB; the reference moves to `docs/agent-rules-history.md` (#626).
 
 ## [7.5.0] - 2026-11-24
 
