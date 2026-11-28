@@ -137,3 +137,38 @@ mod integer_literal_tests_654 {
         assert!(sc2086_cols("#!/bin/bash\necho $#\n").is_empty());
     }
 }
+
+#[cfg(test)]
+mod command_name_tests_671 {
+    use super::check;
+
+    // bashrs#671: a variable in command-name position (first word of a simple command) is not
+    // word-split into arguments by the shell's command lookup; shellcheck 0.8.0 is silent on it.
+    fn sc2086_count(src: &str) -> usize {
+        check(src)
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "SC2086")
+            .count()
+    }
+
+    #[test]
+    fn unquoted_command_name_var_is_not_flagged() {
+        assert_eq!(sc2086_count("#!/bin/bash\ncmd=ls\n$cmd --flag\n"), 0);
+    }
+
+    #[test]
+    fn indented_and_chained_command_name_var_is_not_flagged() {
+        assert_eq!(
+            sc2086_count("#!/bin/bash\nif true; then\n  $cmd --flag\nfi\n"),
+            0
+        );
+        assert_eq!(sc2086_count("#!/bin/bash\ntrue && $cmd --flag\n"), 0);
+    }
+
+    #[test]
+    fn variable_argument_is_still_flagged() {
+        assert_eq!(sc2086_count("#!/bin/bash\necho $cmd\n"), 1);
+        assert_eq!(sc2086_count("#!/bin/bash\ndir=/tmp\nls $dir\n"), 1);
+    }
+}

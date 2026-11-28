@@ -297,6 +297,24 @@ fn is_exempt_context(line: &str, dollar_pos: usize, var_end: usize, is_arithmeti
         || case_subject_range(line).is_some_and(|(s, e)| dollar_pos >= s && dollar_pos < e)
 }
 
+/// True if the `$` at `dollar_pos` is a whole word in command-name position: the first word of a
+/// simple command (line start, or after `;` `&` `|` `(`), e.g. `$cmd --flag` (bashrs#671).
+fn is_command_name_word(line: &str, dollar_pos: usize, var_end: usize, is_braced: bool) -> bool {
+    let before = line[..dollar_pos].trim_end();
+    // A `(` opens a subshell only when it is not part of `$(` or `((` (substitution/arithmetic).
+    let subshell_open = before
+        .strip_suffix('(')
+        .is_some_and(|p| !p.ends_with(['$', '(']));
+    let at_command_start = before.is_empty() || subshell_open || before.ends_with([';', '&', '|']);
+    let rest = &line[var_end..];
+    let after = if is_braced {
+        rest.strip_prefix('}')
+    } else {
+        Some(rest)
+    };
+    at_command_start && after.is_some_and(|a| a.is_empty() || a.starts_with(char::is_whitespace))
+}
+
 /// True if the `$` at `dollar_pos` is escaped by an odd run of backslashes (`\$x` is literal).
 fn is_backslash_escaped(line: &str, dollar_pos: usize) -> bool {
     let run = line[..dollar_pos]
@@ -369,6 +387,7 @@ pub fn find_unquoted_vars(
             continue;
         }
         if is_exempt_context(line, dollar_pos, var_end, is_arithmetic)
+            || is_command_name_word(line, dollar_pos, var_end, is_braced)
             || cstyle_vars.contains(var_name)
         {
             continue;
