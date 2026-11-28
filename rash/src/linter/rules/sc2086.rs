@@ -2,7 +2,55 @@
 // All logic extracted to sc2086_logic.rs
 
 use super::sc2086_logic::*;
+use crate::linter::shell_words::{self, Expansion, ShellWord, WordRole};
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
+
+/// bashrs#679: an unquoted `${NAME<op>WORD}` whose WORD holds an unquoted command
+/// substitution (`${x:-$(date)}`) is word-split with the whole expansion. ShellCheck 0.8.0
+/// reports SC2086 on that expansion; the inner `$(date)` is not SC2046 (sc2046 skips it).
+/// Assignment words and `case` subjects are not split, so they are skipped.
+fn default_cmdsub_expansions(line: &str) -> Vec<Expansion> {
+    if line.trim_start().starts_with('#') {
+        return Vec::new();
+    }
+    let mut out = Vec::new();
+    for cmd in shell_words::simple_commands(line) {
+        for (i, word) in cmd.words.iter().enumerate() {
+            if is_split_word(&cmd.words, i) {
+                out.extend(
+                    word.expansions
+                        .iter()
+                        .filter(|e| is_unquoted_default_cmdsub(word, e))
+                        .cloned(),
+                );
+            }
+        }
+    }
+    out
+}
+
+/// True when `words[i]` is word-split by the shell: not an assignment prefix or reserved word,
+/// and not the subject of `case`.
+fn is_split_word(words: &[ShellWord], i: usize) -> bool {
+    if matches!(words[i].role, WordRole::AssignPrefix | WordRole::Reserved) {
+        return false;
+    }
+    !(i > 0 && is_case_keyword(&words[i - 1]))
+}
+
+fn is_case_keyword(word: &ShellWord) -> bool {
+    word.role == WordRole::Reserved && word.literal == "case"
+}
+
+/// True when `e` is an unquoted `${...}` whose body holds an unquoted command substitution.
+fn is_unquoted_default_cmdsub(word: &ShellWord, e: &Expansion) -> bool {
+    e.braced
+        && !e.quoted
+        && word
+            .substitutions
+            .iter()
+            .any(|s| !s.quoted && s.col > e.col && s.end_col <= e.end_col)
+}
 
 /// Check for unquoted variable expansions (SC2086)
 pub fn check(source: &str) -> LintResult {
@@ -14,6 +62,23 @@ pub fn check(source: &str) -> LintResult {
     let body = super::sc2086_heredoc::body_command_substitution_bytes(source);
     for (line_num, line) in source.lines().enumerate() {
         let subst = body.get(&(line_num + 1));
+        for e in default_cmdsub_expansions(line) {
+            if subst.is_some_and(|s| !s.contains(&(e.col - 1))) {
+                continue;
+            }
+            result.add(
+                Diagnostic::new(
+                    "SC2086",
+                    Severity::Warning,
+                    format!(
+                        "Double quote to prevent globbing and word splitting on {}",
+                        e.text
+                    ),
+                    Span::new(line_num + 1, e.col, line_num + 1, e.end_col),
+                )
+                .with_fix(Fix::new(format!("\"{}\"", e.text))),
+            );
+        }
         for uv in find_unquoted_vars(line, &pattern, &cstyle_vars) {
             if subst.is_some_and(|s| !s.contains(&(uv.col - 1))) {
                 continue;
@@ -170,5 +235,22 @@ mod command_name_tests_671 {
     fn variable_argument_is_still_flagged() {
         assert_eq!(sc2086_count("#!/bin/bash\necho $cmd\n"), 1);
         assert_eq!(sc2086_count("#!/bin/bash\ndir=/tmp\nls $dir\n"), 1);
+    }
+}
+
+#[cfg(test)]
+mod default_cmdsub_tests_679 {
+    use super::check;
+
+    // bashrs#679: shellcheck 0.8.0 reports SC2086 on the `${x:-$(date)}` expansion.
+    #[test]
+    fn default_value_cmdsub_expansion_is_sc2086() {
+        let r = check("x=\"\"; echo ${x:-$(date)}");
+        let n = r.diagnostics.iter().filter(|d| d.code == "SC2086").count();
+        assert_eq!(
+            n, 1,
+            "SC2086 must fire once on ${{x:-$(date)}}, got {:?}",
+            r.diagnostics
+        );
     }
 }

@@ -130,6 +130,15 @@ fn word_offences(word: &ShellWord, out: &mut Vec<Offence>) {
         if is_seq_substitution(&sub.text) {
             continue;
         }
+        // bashrs#679: `$(cmd)` in the word of an unquoted `${x:-…}` is split together with
+        // the whole expansion. ShellCheck 0.8.0 reports that expansion as SC2086, not SC2046.
+        if word
+            .expansions
+            .iter()
+            .any(|e| e.braced && e.col < sub.col && sub.end_col <= e.end_col)
+        {
+            continue;
+        }
         let backtick = matches!(
             sub.kind,
             ExpansionKind::CommandSubstitution { backtick: true }
@@ -626,6 +635,35 @@ mod tests_pmat250 {
         assert_eq!(
             check("echo $(date)").diagnostics[0].span.start_col,
             word.substitutions[0].col
+        );
+    }
+}
+
+#[cfg(test)]
+mod default_cmdsub_tests_679 {
+    use super::check;
+
+    // bashrs#679: for `${x:-$(date)}` shellcheck 0.8.0 reports one SC2086 on the
+    // expansion and no SC2046 on the inner `$(date)`.
+    #[test]
+    fn default_value_cmdsub_is_not_sc2046() {
+        let r = check("x=\"\"; echo ${x:-$(date)}");
+        assert!(
+            r.diagnostics.iter().all(|d| d.code != "SC2046"),
+            "SC2046 fired on $(date) inside ${{x:-...}}: {:?}",
+            r.diagnostics
+                .iter()
+                .map(|d| d.message.clone())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn plain_cmdsub_still_sc2046() {
+        let r = check("echo $(date)");
+        assert_eq!(
+            r.diagnostics.iter().filter(|d| d.code == "SC2046").count(),
+            1
         );
     }
 }
