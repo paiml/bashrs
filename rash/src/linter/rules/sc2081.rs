@@ -63,6 +63,13 @@ pub fn check(source: &str) -> LintResult {
                 continue;
             }
 
+            // bashrs#673: a trap action runs when the trap fires, so its `$` is
+            // meant for later. Matched on the command's own first word, as SC2016
+            // does (bashrs#669): `echo trap '$x'` is still reported.
+            if seg.head.as_deref() == Some("trap") {
+                continue;
+            }
+
             let diagnostic = Diagnostic::new(
                 "SC2081",
                 Severity::Info,
@@ -183,6 +190,24 @@ mod tests {
         );
     }
 
+    // bashrs#673: the trap action is expanded when the trap fires, not when it
+    // is set, so a single-quoted `$` in it is intentional. ShellCheck 0.8.0 is
+    // silent on it (same class as SC2016, bashrs#669).
+    #[test]
+    fn test_sc2081_673_trap_action_not_flagged() {
+        assert_eq!(check("trap 'echo $x' INT TERM").diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2081_673_plain_single_quoted_expansion_still_flagged() {
+        assert_eq!(check("echo 'Value: $var'").diagnostics.len(), 1);
+    }
+
+    #[test]
+    fn test_sc2081_673_trap_as_argument_still_flagged() {
+        assert_eq!(check("echo trap 'x $y'").diagnostics.len(), 1);
+    }
+
     // bashrs#335. `bashrs fix` rewrote a single-quoted trap into a double-quoted
     // one and collapsed four arguments into one, on 7.3.0 and on published
     // 7.4.0. Two defects: the detector matched `'…$x…'` against the raw line with
@@ -227,13 +252,15 @@ mod tests {
     #[test]
     fn test_sc2081_335_fix_escapes_embedded_double_quotes() {
         // 7.4.0 produced `trap "rm -rf -- "${TD:?}"" EXIT`: the content's own `"`
-        // closed the new string early and left ${TD:?} unquoted.
-        let script = r#"trap 'rm -rf -- "${TD:?}"' EXIT"#;
+        // closed the new string early and left ${TD:?} unquoted. A trap action is
+        // exempt since bashrs#673, so the case is exercised with `echo`.
+        let script = r#"echo 'rm -rf -- "${TD:?}"'"#;
         let result = check(script);
-        for d in &result.diagnostics {
-            if let Some(fix) = &d.fix {
-                assert_eq!(fix.replacement, r#""rm -rf -- \"${TD:?}\"""#);
-            }
-        }
+        assert_eq!(result.diagnostics.len(), 1, "{:?}", result.diagnostics);
+        let fix = result.diagnostics[0]
+            .fix
+            .as_ref()
+            .expect("a fix is still offered");
+        assert_eq!(fix.replacement, r#""rm -rf -- \"${TD:?}\"""#);
     }
 }
