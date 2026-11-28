@@ -58,7 +58,7 @@
 //! References:
 //! - <https://www.shellcheck.net/wiki/SC2046>
 
-use crate::linter::shell_words::{self, ExpansionKind, ShellWord, WordRole};
+use crate::linter::shell_words::{self, Expansion, ExpansionKind, ShellWord, WordRole};
 use crate::linter::{Diagnostic, Fix, LintResult, Severity, Span};
 use regex::Regex;
 
@@ -113,6 +113,22 @@ fn is_seq_substitution(text: &str) -> bool {
         .is_some_and(|rest| rest.starts_with(char::is_whitespace))
 }
 
+/// bashrs#679: `sub` is the word of an unquoted `${x:-…}` (directly, not nested in another
+/// substitution of that default). The whole expansion is split, so ShellCheck 0.8.0 reports
+/// it as SC2086 instead. A substitution nested inside that one is a command of its own and
+/// keeps its SC2046.
+fn is_default_word_cmdsub(word: &ShellWord, sub: &Expansion) -> bool {
+    word.expansions.iter().any(|e| {
+        e.braced
+            && e.col < sub.col
+            && sub.end_col <= e.end_col
+            && !word
+                .substitutions
+                .iter()
+                .any(|t| e.col < t.col && t.col < sub.col && sub.end_col <= t.end_col)
+    })
+}
+
 /// Command-substitution markers on a reportable word, filtered to the
 /// unquoted ones. `shell_words` (PMAT-250) already excludes `$((...))`
 /// arithmetic expansion from ever producing a marker, and already resets
@@ -128,6 +144,9 @@ fn word_offences(word: &ShellWord, out: &mut Vec<Offence>) {
             continue;
         }
         if is_seq_substitution(&sub.text) {
+            continue;
+        }
+        if is_default_word_cmdsub(word, sub) {
             continue;
         }
         let backtick = matches!(
@@ -627,5 +646,52 @@ mod tests_pmat250 {
             check("echo $(date)").diagnostics[0].span.start_col,
             word.substitutions[0].col
         );
+    }
+}
+
+#[cfg(test)]
+mod default_cmdsub_tests_679 {
+    use super::check;
+
+    // bashrs#679: for `${x:-$(date)}` shellcheck 0.8.0 reports one SC2086 on the
+    // expansion and no SC2046 on the inner `$(date)`.
+    #[test]
+    fn default_value_cmdsub_is_not_sc2046() {
+        let r = check("x=\"\"; echo ${x:-$(date)}");
+        assert!(
+            r.diagnostics.iter().all(|d| d.code != "SC2046"),
+            "SC2046 fired on $(date) inside ${{x:-...}}: {:?}",
+            r.diagnostics
+                .iter()
+                .map(|d| d.message.clone())
+                .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn plain_cmdsub_still_sc2046() {
+        let r = check("echo $(date)");
+        assert_eq!(
+            r.diagnostics.iter().filter(|d| d.code == "SC2046").count(),
+            1
+        );
+    }
+}
+
+#[cfg(test)]
+mod nested_default_cmdsub_tests_679 {
+    use super::check;
+
+    // shellcheck 0.8.0 on `x=""; echo ${x:-$(foo $(bar))}`: SC2086 at col 12, and SC2046 only at
+    // col 23 (the inner `$(bar)`). The outer `$(foo ...)` is the default word and gets no SC2046.
+    #[test]
+    fn nested_default_cmdsub_matches_shellcheck() {
+        let cols: Vec<usize> = check("#!/bin/bash\nx=\"\"; echo ${x:-$(foo $(bar))}\n")
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "SC2046")
+            .map(|d| d.span.start_col)
+            .collect();
+        assert_eq!(cols, vec![23]);
     }
 }

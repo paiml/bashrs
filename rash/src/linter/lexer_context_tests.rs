@@ -233,7 +233,9 @@ fn test_PMAT248_review_sc2276_ignores_a_pipe_inside_quotes() {
 
 #[test]
 fn test_PMAT255_pmat250_sc2046_inside_brace_default_unquoted() {
-    shell_fires("#!/bin/sh\necho ${var:-$(date)}\n", "SC2046");
+    // bashrs#679: the unquoted expansion gets SC2086 instead; its inner `$(date)` is not SC2046.
+    shell_absent("#!/bin/sh\necho ${var:-$(date)}\n", "SC2046");
+    shell_fires("#!/bin/sh\necho ${var:-$(date)}\n", "SC2086");
 }
 
 #[test]
