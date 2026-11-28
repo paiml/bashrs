@@ -20,7 +20,9 @@ fn default_cmdsub_expansions(line: &str) -> Vec<Expansion> {
                 out.extend(
                     word.expansions
                         .iter()
-                        .filter(|e| is_unquoted_default_cmdsub(word, e))
+                        .filter(|e| {
+                            is_unquoted_default_cmdsub(word, e) && !is_case_pattern(line, e)
+                        })
                         .cloned(),
                 );
             }
@@ -42,14 +44,34 @@ fn is_case_keyword(word: &ShellWord) -> bool {
     word.role == WordRole::Reserved && word.literal == "case"
 }
 
-/// True when `e` is an unquoted `${...}` whose body holds an unquoted command substitution.
+/// True when `e` is an unquoted `${NAME<op>WORD}` (a parameter default with a word operator)
+/// whose WORD holds an unquoted command substitution.
 fn is_unquoted_default_cmdsub(word: &ShellWord, e: &Expansion) -> bool {
     e.braced
         && !e.quoted
+        && takes_word_operator(e)
         && word
             .substitutions
             .iter()
             .any(|s| !s.quoted && s.col > e.col && s.end_col <= e.end_col)
+}
+
+/// True when the text after `${NAME` starts with a word operator: `:-` `-` `:=` `=` `:+` `+`
+/// `:?` `?`. `${#a[$(date)]}` and `${a[$(date)]:-x}` do not match.
+fn takes_word_operator(e: &Expansion) -> bool {
+    const OPS: [&str; 8] = [":-", "-", ":=", "=", ":+", "+", ":?", "?"];
+    e.text
+        .strip_prefix("${")
+        .and_then(|s| s.strip_prefix(e.name.as_str()))
+        .is_some_and(|rest| OPS.iter().any(|op| rest.starts_with(op)))
+}
+
+/// True when `e` ends a case pattern: `${y:-$(date)})` at the start of a line or right after
+/// `in`. ShellCheck 0.8.0 reports SC2254 on such a pattern, not SC2086.
+fn is_case_pattern(line: &str, e: &Expansion) -> bool {
+    let after = line.get(e.end_col - 1..).unwrap_or("");
+    let before = line.get(..e.col - 1).unwrap_or("").trim_end();
+    after.starts_with(')') && (before.is_empty() || before.ends_with(" in"))
 }
 
 /// Check for unquoted variable expansions (SC2086)
@@ -252,5 +274,45 @@ mod default_cmdsub_tests_679 {
             "SC2086 must fire once on ${{x:-$(date)}}, got {:?}",
             r.diagnostics
         );
+    }
+}
+
+#[cfg(test)]
+mod default_cmdsub_oracle_tests_679 {
+    use super::check;
+
+    // Every expectation below was measured with local shellcheck 0.8.0 (`-s bash -f gcc`).
+    fn sc2086_cols(src: &str) -> Vec<usize> {
+        check(src)
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "SC2086")
+            .map(|d| d.span.start_col)
+            .collect()
+    }
+
+    #[test]
+    fn quoted_default_cmdsub_is_silent() {
+        // shellcheck 0.8.0: no finding on `echo "${x:-$(date)}"`.
+        assert!(sc2086_cols("#!/bin/bash\nx=\"\"; echo \"${x:-$(date)}\"\n").is_empty());
+    }
+
+    #[test]
+    fn array_length_subscript_cmdsub_is_silent() {
+        // shellcheck 0.8.0: no finding on `${#a[$(date)]}`, which is not a parameter default.
+        assert!(sc2086_cols("#!/bin/bash\na=(1); echo ${#a[$(date)]}\n").is_empty());
+    }
+
+    #[test]
+    fn case_pattern_default_cmdsub_is_not_sc2086() {
+        // shellcheck 0.8.0 reports SC2254 (not SC2086) on a case pattern, on the same line and on its own line.
+        assert!(sc2086_cols(
+            "#!/bin/bash\nx=\"\"; y=\"\"; case $x in ${y:-$(date)}) echo hi;; esac\n"
+        )
+        .is_empty());
+        assert!(sc2086_cols(
+            "#!/bin/bash\nx=\"\"; y=\"\"\ncase $x in\n  ${y:-$(date)}) echo hi;;\nesac\n"
+        )
+        .is_empty());
     }
 }

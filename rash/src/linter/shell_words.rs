@@ -541,6 +541,8 @@ impl<'a> WordLexer<'a> {
         }
         let end = find_close(self.bytes, k + 1, b'(', b')').min(to);
         self.add_sub_expansion(k, end, false);
+        // bashrs#679: a substitution nested in this one is a command of its own, so record it too.
+        self.scan_brace_substitutions(k + 2, end);
         end + 1
     }
 
