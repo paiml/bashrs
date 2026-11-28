@@ -86,6 +86,36 @@ static DOUBLE_BRACKET_EQ_VAR_RHS: std::sync::LazyLock<Regex> = std::sync::LazyLo
     Regex::new(r"==\s+(\$\{?[A-Za-z_][A-Za-z0-9_]*\}?)(\s|\]\])").unwrap()
 });
 
+/// bashrs#675: true when the nearest `[[` before `pos` is still open, i.e. it
+/// starts after the last `]]` before `pos`.
+fn inside_open_double_bracket(line: &str, pos: usize) -> bool {
+    let before = &line[..pos];
+    match before.rfind("[[") {
+        Some(open) => before.rfind("]]").is_none_or(|close| open > close),
+        None => false,
+    }
+}
+
+/// bashrs#675: true when `pos` sits inside a single- or double-quoted string
+/// on this line (a `==` in quoted text is not an operator).
+fn in_quotes(line: &str, pos: usize) -> bool {
+    let (mut single, mut double) = (false, false);
+    let mut escaped = false;
+    for ch in line[..pos].chars() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match ch {
+            '\\' if !single => escaped = true,
+            '\'' if !double => single = !single,
+            '"' if !single => double = !double,
+            _ => {}
+        }
+    }
+    single || double
+}
+
 /// bashrs#675: ShellCheck 0.8.0 reports SC2053 at the RHS of `==` in `[[ ]]`
 /// when it is an unquoted variable. Only the RHS span is reported, so the
 /// same span carries no SC2066 (BRS0003) finding.
@@ -95,7 +125,7 @@ fn check_double_bracket_rhs(line: &str, line_num: usize, result: &mut LintResult
     }
     for cap in DOUBLE_BRACKET_EQ_VAR_RHS.captures_iter(line) {
         let rhs = cap.get(1).unwrap();
-        if !line[..rhs.start()].contains("[[") {
+        if !inside_open_double_bracket(line, rhs.start()) || in_quotes(line, rhs.start()) {
             continue;
         }
         let start_col = rhs.start() + 1;
@@ -319,6 +349,30 @@ mod tests {
             .collect();
         assert_eq!(on_rhs.len(), 1, "RHS span findings: {:?}", on_rhs);
         assert_eq!(on_rhs[0].code, "SC2053");
+    }
+
+    // bashrs#675 (quorum FAIL on #676): a `[[ ]]` that is already closed does not
+    // make a later single-bracket `==` a double-bracket RHS.
+    #[test]
+    fn test_sc2053_675_closed_double_bracket_then_single_bracket_not_flagged() {
+        let result = check(r#"[[ -n "$a" ]] && [ $x == $y ]"#);
+        let n = result
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "SC2053")
+            .count();
+        assert_eq!(n, 0, "{:?}", result.diagnostics);
+    }
+
+    // bashrs#675 (quorum FAIL on #676): a `==` inside a quoted string is text.
+    #[test]
+    fn test_sc2053_675_echo_string_with_double_equals_not_flagged() {
+        assert_eq!(check(r#"[[ $a ]] && echo "x == $y ""#).diagnostics.len(), 0);
+    }
+
+    #[test]
+    fn test_sc2053_675_quoted_rhs_in_double_bracket_string_not_flagged() {
+        assert_eq!(check(r#"[[ $x == "a == $y " ]]"#).diagnostics.len(), 0);
     }
 
     #[test]
